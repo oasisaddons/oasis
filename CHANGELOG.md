@@ -2,8 +2,9 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.5.961
+## 0.5.964
 
+- Chat: the emoji and sound buttons in the input line have a larger click area.
 - Minimap: Oasis icons no longer cover your own arrow in the centre, and they sit below the minimap frame and compass.
 - Emoji picker: one group "Emojis"; the "Mine" group is gone.
 - Emoji picker: the standard emojis are back, as the first tab under "Stickers".

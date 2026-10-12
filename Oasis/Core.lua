@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.5.961"
+ns.version = "0.5.964"
 ns.versionDate = "12.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -358,9 +358,9 @@ function ns.MiniPinLayer(p, add)
     pcall(p.SetFrameLevel, p, (Minimap:GetFrameLevel() or 1) + (add or 2))
 end
 -- Externe Programme (OasisSync, Export-Skripte, Einlese-Skripte) werden mit der oeffentlichen Version vorerst nicht verteilt
--- (User 12.10.2026). Einstellungen und Hinweise, die nur damit Sinn ergeben, gibt es deshalb nur mit dem Gildenmodul.
+--. Einstellungen und Hinweise, die nur damit Sinn ergeben, gibt es deshalb nur mit dem Gildenmodul.
 -- Oasis-Tools (Vorlagen fuer eigene Sounds/Emojis, Export-Programme) liegt als getrennte Datei auf GitHub und im Discord,
--- nie auf CurseForge/Wago (User 12.10.2026). Darum zeigt Oasis die Hinweise und Einstellungen dazu fuer alle.
+-- nie auf CurseForge/Wago. Darum zeigt Oasis die Hinweise und Einstellungen dazu fuer alle.
 ns.TOOLS_RELEASED = true
 function ns.ExternTools() return (ns.GuildPack or ns.TOOLS_RELEASED) and true or false end
 -- alle Sounds/Emojis ohne Rang-Sperre (nur bei mir): Entwicklermodus oder /oa freischalten
