@@ -2,7 +2,7 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.5.970
+## 0.5.971
 
 - Guild chat: messages written from Discord are marked with an icon and "Discord" next to the name.
 - Guild chat: your own messages no longer count as unread.
