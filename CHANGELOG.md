@@ -2,7 +2,7 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.5.974
+## 0.5.975
 
 - Item comparison: Blizzard's own comparison tooltip no longer flickers behind the Oasis panel.
 - Guild chat: messages written from Discord are marked with an icon and "Discord" next to the name.
