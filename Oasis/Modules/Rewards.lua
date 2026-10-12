@@ -145,6 +145,8 @@ end
 local EMOJI_STEPS = { 8, 16, 26, 36, 48, 62, 76, 92 }
 local emojiLock
 function RW.EmojiLevel(e)
+    -- eigenes Emoji einer Gilde mit festem Rang ("@20" im Dateinamen, Oasis_Emojis)
+    if type(e) == "table" and e.lvl then return e.lvl end
     if not emojiLock then
         emojiLock = {}
         local anim = {}
