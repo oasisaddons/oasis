@@ -523,6 +523,9 @@ local function hideShopping()
     for _, n in ipairs(SHOP) do
         local t = _G[n]
         if t and t.SetAlpha then t:SetAlpha(hide and 0 or 1) end
+        -- 0.5.974: zusaetzlich wirklich ausblenden. Die Deckkraft allein reicht in diesem Client nicht: Blizzards
+        -- Einblend-Animation setzt sie wieder hoch und der Kopf "Ausgeruestet" blieb sichtbar -> es blinkte dahinter.
+        if hide and t and t.IsShown and t:IsShown() then pcall(t.Hide, t) end
     end
 end
 IC.HideShopping = hideShopping
@@ -544,7 +547,15 @@ local function hookShopping()
                     if a and a > 0 and P:IsShown() and not shiftDown() then self:SetAlpha(0) end
                 end)
             end
-            if t.HookScript then t:HookScript("OnShow", function() ns.After(0, hideShopping) end) end
+            -- sofort (im selben Frame) wieder weg: ein Frame spaeter war es schon einmal gezeichnet -> Blinken
+            if t.HookScript then
+                t:HookScript("OnShow", function(self)
+                    if P:IsShown() and not shiftDown() then
+                        self:SetAlpha(0)
+                        pcall(self.Hide, self)
+                    end
+                end)
+            end
         end
     end
 end
