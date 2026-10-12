@@ -2,7 +2,7 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.5.980
+## 0.5.981
 
 - Item comparison: the panel no longer covers the window the item is in (bags, bank, vendor) if there is room elsewhere.
 - Sounds are twice as loud by default (the volume slider in the sound settings still goes from 0 to 200 %).
