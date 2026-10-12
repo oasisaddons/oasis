@@ -851,11 +851,9 @@ function Map.ShowMapBar()
         b.logo:SetSize(18, 18)
         b.logo:SetPoint("TOPLEFT", 12, -8)
         b.boxes, b.seps = {}, {}
-        -- { Schalter, Text, danach, Gruppe, Tooltip }  (Heatmap steht nur noch in den Einstellungen)
+        -- { Schalter, Text, danach, Gruppe, Tooltip }  (Heatmap, Position teilen und Minimap-Punkte stehen nur noch in den Einstellungen)
         local defs = {
-            { "shareMap", "Position teilen", function() lastKey = nil sendPos() end, 1, "Deine Position geht an die Gilde - andere sehen dich auf Karte und Minimap" },
             { "mapNames", "Namen", function() Map.UpdateWorldPins() end, 1, "Namen neben den Punkten der Gildenmitglieder" },
-            { "minimapDots", "Minimap-Punkte", function() Map.UpdateMinimap() end, 1, "Gildenmitglieder auch auf der Minimap zeigen" },
             { "mapLevels", "Levelbereiche", function() Map.UpdateWorldPins() end, 2, "Stufenbereich der Gebiete auf der Karte" },
             { "mapDeaths", "Todesorte", function() Map.UpdateWorldPins() end, 2, "Wo Gildenmitglieder gestorben sind" },
             { "mapReveal", "Aufdecken", function() if ns.ComfortPlus then ns.ComfortPlus.ApplyReveal() end end, 2, "Noch unentdeckte Gebiete auf der Karte zeigen" },
