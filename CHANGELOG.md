@@ -2,8 +2,9 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.5.966
+## 0.5.967
 
+- Map: danger zones (red shimmer) are only drawn on zone maps, no longer on continent maps.
 - Map bar: small slide switches, everything in one row (it tightens up on narrow maps); heatmap, position sharing and minimap dots are in the settings only.
 - Chat: the emoji and sound buttons in the input line have a larger click area.
 - Minimap: Oasis icons no longer cover your own arrow in the centre, and they sit below the minimap frame and compass.

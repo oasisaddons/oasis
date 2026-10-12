@@ -353,6 +353,10 @@ end
 local function drawDanger(w)
     hideAll("dz")
     if not on("mapDanger") or not (ns.Deaths and ns.Deaths.MapPins) then return end
+    -- 0.5.967: nur auf Gebietskarten. Auf Kontinent- und Weltkarte wurde der Schimmer riesig und faerbte ganze Landstriche rot.
+    local info = C_Map and C_Map.GetMapInfo and w.map and C_Map.GetMapInfo(w.map)
+    local mt = info and ns.safe(info.mapType)
+    if type(mt) == "number" and mt < ((Enum and Enum.UIMapType and Enum.UIMapType.Zone) or 3) then return end
     for _, z in ipairs(X.DangerZones(ns.Deaths.MapPins(), w.map, ns.now())) do
         local f = take("dz", w.canvas, function(parent)
             local fr = CreateFrame("Frame", nil, parent)
