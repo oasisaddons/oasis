@@ -4,8 +4,9 @@
 ## Notes: All-in-one guild add-on: members, crafting, groups, raids & loot, guild bank, chronicle, guild leadership
 ## Notes-deDE: Gilden-Multi-Addon: Mitglieder, Handwerk, Gruppen, Raids & Beute, Gildenbank, Chronik, Gildenleitung
 ## Author: Oasis Addons
+## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.5.978
+## Version: 0.5.979
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
