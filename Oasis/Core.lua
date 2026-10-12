@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.5.975"
+ns.version = "0.5.976"
 ns.versionDate = "12.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -807,7 +807,7 @@ local DEFAULT_SETTINGS = {
     toastDur = 7,
     toastHoldCombat = false,
     sound = true,
-    soundVol = 7,
+    soundVol = 14,   -- 0.5.976: doppelt so laut wie bisher (70 %)
     soundQuietCombat = true,
     soundEvents = {},
     music = "off",
@@ -828,7 +828,7 @@ local DEFAULT_SETTINGS = {
 -- 0.5.727: Einsteiger-Einstellungen - ruhig, wenige Seiten, nichts blinkt. Gilt fuer NEUE Installationen (leere Einstellungen)
 -- und per /oa einsteiger fuer bestehende. Alles bleibt in den Einstellungen aenderbar; versteckte Seiten unter Bereiche.
 local BEGINNER = {
-    soundVol = 5, toastDur = 6, toastHoldCombat = true,
+    soundVol = 10, toastDur = 6, toastHoldCombat = true,
     dashStill = true, dashTicker = false, dashHero = false, hideMidasAd = true, calmStart = true,
     xpFloat = false, priceAnswer = false, announceMilestones = false, lfgAuto = false, greetOn = false,
 }
@@ -864,6 +864,17 @@ local function initDB()
     if db.settings.shareQuest740 == nil then
         db.settings.shareQuest740 = true
         db.settings.cfBlockShared = nil
+    end
+    -- 0.5.976: Oasis-Sounds generell doppelt so laut. Bestehende Installationen: gespeicherte Lautstaerke (und die des
+    -- Online-Sounds) einmalig verdoppeln, hoechstens bis 200 % (Stufe 40). Neue Installationen haben schon den neuen Standard.
+    if db.settings.soundVolDoubled == nil then
+        db.settings.soundVolDoubled = true
+        if not fresh then
+            for _, k in ipairs({ "soundVol", "soundEntranceVol" }) do
+                local v = tonumber(db.settings[k])
+                if v and v > 0 then db.settings[k] = math.min(40, math.floor(v * 2)) end
+            end
+        end
     end
     if db.settings.beginner727 == nil then
         db.settings.beginner727 = true

@@ -2,8 +2,9 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.5.975
+## 0.5.976
 
+- Sounds are twice as loud by default (the volume slider in the sound settings still goes from 0 to 200 %).
 - Item comparison: Blizzard's own comparison tooltip no longer flickers behind the Oasis panel.
 - Guild chat: messages written from Discord are marked with an icon and "Discord" next to the name.
 - Guild chat: your own messages no longer count as unread.

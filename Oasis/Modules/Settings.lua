@@ -2092,7 +2092,7 @@ local EV_ICON = { toast = "announce", announce = "announce", alert = "announce",
     camp = "camp", dr_invite = "deathroll", dr_turn = "deathroll", dr_win = "deathroll", dr_lose = "deathroll",
     open = "home", close = "home" }
 refreshSoundSpk = function(f)
-    local v = S().soundVol or 7
+    local v = S().soundVol or 14
     local on = S().sound ~= false
     f.spk:SetTexture(ns.MEDIA .. "icons\\" .. ((v == 0 or not on) and "speaker_off" or "speaker"))
     f.spk:SetAlpha(0.55 + 0.45 * v / 10)
@@ -2162,7 +2162,7 @@ local function buildSound(f)
     f.quiet = toggle(f, X, -72, "Im Kampf stumm", "soundQuietCombat", nil, nil, 320)
     f.chs = toggle(f, X, -100, "Sounds aus dem Chat", "chatSounds", "Sounds, die andere im Gildenchat schicken", nil, 320)
     rowLabel(f, L["Lautstaerke"], X, -140)
-    f.vol = K.Slider(f, 160, 0, Snd.VOL_MAX, 1, function() return S().soundVol or 7 end,
+    f.vol = K.Slider(f, 160, 0, Snd.VOL_MAX, 1, function() return S().soundVol or 14 end,
         function(v) S().soundVol = v if f.spk then refreshSoundSpk(f) end end,
         function(v) return v == 0 and L["aus"] or Snd.VolText(v) end,
         function(v) Snd.Preview("glocke", v) end)
@@ -2408,7 +2408,7 @@ local function refreshSound(f)
     local on = S().sound ~= false
     for _, t in ipairs({ f.quiet, f.chs, f.vol, f.eq, f.list }) do if t then t:SetAlpha(on and 1 or 0.4) end end
     if f.spk then
-        local v = S().soundVol or 7
+        local v = S().soundVol or 14
         f.spk:SetTexture(ns.MEDIA .. "icons\\" .. ((v == 0 or not on) and "speaker_off" or "speaker"))
         local c = (v == 0 or not on) and C.dim or C.accent2
         f.spk:SetVertexColor(c[1], c[2], c[3])

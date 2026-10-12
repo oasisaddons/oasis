@@ -244,7 +244,7 @@ function Sound.PlayChoice(key, vol)
         if Sound.byKey[key] then c = Sound.byKey[key] end
     end
     if c.own then
-        vol = math.floor(tonumber(vol or (S() and S().soundVol) or 7) or 7)
+        vol = math.floor(tonumber(vol or (S() and S().soundVol) or 14) or 14)
         if vol <= 0 then return end
         if vol > Sound.VOL_MAX then vol = Sound.VOL_MAX end
         -- Oasis_Sounds ohne ffmpeg eingelesen: nur die Originaldatei, keine Lautstaerkestufen
@@ -1559,7 +1559,7 @@ function Sound.SendInChat(key, channel, target)
     if s and s.sound then
         local ok, h = pcall(Sound.PlayChoice, key, s.soundVol)
         -- 0.5.670: WoW spielt die Datei nicht (neu dazugekommen -> erst nach WoW-Neustart bekannt)
-        if not (ok and h) and (tonumber(s.soundVol) or 7) > 0 then ns.print(L["Sound nicht abspielbar - neue Sound-Dateien kennt WoW erst nach einem kompletten Neustart."]) end
+        if not (ok and h) and (tonumber(s.soundVol) or 14) > 0 then ns.print(L["Sound nicht abspielbar - neue Sound-Dateien kennt WoW erst nach einem kompletten Neustart."]) end
     elseif s and s.sound == false then
         ns.print(L["Du hoerst den Sound nicht selbst: Sounds sind ausgeschaltet (Einstellungen > Klang & Hinweise > Sound)."])
     end
