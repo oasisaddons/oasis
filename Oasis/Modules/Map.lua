@@ -834,8 +834,8 @@ end
 function Map.ShowMapBar()
     if not WorldMapFrame or not WorldMapFrame:IsShown() then return end
     if not Map.bar then
-        -- 0.5.945: Leiste neu - ruhige Textschalter (aktiv = hell + Akzentlinie darunter) in drei Gruppen,
-        -- rechts die Knoepfe in derselben Zeile; bei schmaler Karte brechen die Gruppen in eine zweite Zeile um.
+        -- 0.5.965: Leiste mit kleinen Schiebeschaltern, alles in EINER Zeile. Wird es eng, rueckt sie zusammen
+        -- (kleinere Schrift, engere Abstaende, Knoepfe rechts nur als Symbol); erst wenn auch das nicht reicht, bricht sie um.
         local b = CreateFrame("Frame", "OasisMapBar", UIParent)
         b:SetHeight(34)
         b:SetFrameStrata(WorldMapFrame:GetFrameStrata() or "HIGH")
@@ -851,40 +851,45 @@ function Map.ShowMapBar()
         b.logo:SetSize(18, 18)
         b.logo:SetPoint("TOPLEFT", 12, -8)
         b.boxes, b.seps = {}, {}
-        -- { Schalter, Text, danach, Gruppe, Tooltip }
+        -- { Schalter, Text, danach, Gruppe, Tooltip }  (Heatmap steht nur noch in den Einstellungen)
         local defs = {
             { "shareMap", "Position teilen", function() lastKey = nil sendPos() end, 1, "Deine Position geht an die Gilde - andere sehen dich auf Karte und Minimap" },
             { "mapNames", "Namen", function() Map.UpdateWorldPins() end, 1, "Namen neben den Punkten der Gildenmitglieder" },
             { "minimapDots", "Minimap-Punkte", function() Map.UpdateMinimap() end, 1, "Gildenmitglieder auch auf der Minimap zeigen" },
-            { "mapHeat", "Heatmap", function() Map.UpdateWorldPins() end, 2, "Wo sich die Gilde am meisten aufhaelt" },
             { "mapLevels", "Levelbereiche", function() Map.UpdateWorldPins() end, 2, "Stufenbereich der Gebiete auf der Karte" },
             { "mapDeaths", "Todesorte", function() Map.UpdateWorldPins() end, 2, "Wo Gildenmitglieder gestorben sind" },
             { "mapReveal", "Aufdecken", function() if ns.ComfortPlus then ns.ComfortPlus.ApplyReveal() end end, 2, "Noch unentdeckte Gebiete auf der Karte zeigen" },
             { "mapGather", "Sammelpunkte", function() ns.db.settings.gatherWorldOff = not ns.db.settings.mapGather Map.UpdateWorldPins() if ns.Gather then pcall(ns.Gather.DrawWorld) end end, 3, "Bekannte Fundorte von Kraeutern, Erzen und Kisten" },
             { "gatherRoute", "Sammelroute", function() if ns.Gather and ns.Gather.Refresh then ns.Gather.Refresh() end end, 3, "Verbindet die Fundorte des Gebiets zu einer Rundstrecke" },
         }
+        local SW_W, SW_H, KNOB = 22, 12, 8
         for _, d in ipairs(defs) do
             local t = CreateFrame("Button", nil, b)
             t:SetHeight(26)
             t.hl = t:CreateTexture(nil, "HIGHLIGHT")
             t.hl:SetAllPoints()
             t.hl:SetColorTexture(1, 1, 1, 0.04)
+            -- kleiner Schiebeschalter: Bahn + runder Knopf (rechts = an)
+            t.pill = K.Pill(t, SW_W, SW_H)
+            t.pill:SetPoint("LEFT", 4, 0)
+            t.knob = K.KnobCircle(t.pill, KNOB)
             t.lbl = K.Text(t, 12, C.text)
-            t.lbl:SetPoint("CENTER", 0, 1)
+            t.lbl:SetPoint("LEFT", t.pill, "RIGHT", 6, 1)
             t.lbl:SetText(L[d[2]])
-            t:SetWidth(math.ceil(t.lbl:GetStringWidth() or 40) + 18)
-            t.line = t:CreateTexture(nil, "ARTWORK")
-            t.line:SetHeight(2)
-            t.line:SetPoint("BOTTOMLEFT", 8, 2)
-            t.line:SetPoint("BOTTOMRIGHT", -8, 2)
             t.key, t.after, t.group, t.tip, t.title = d[1], d[3], d[4], d[5], d[2]
+            function t:Fit() self:SetWidth(4 + SW_W + 6 + math.ceil(self.lbl:GetStringWidth() or 40) + 4) end
+            t:Fit()
             function t:Update()
                 local on = ns.db.settings[self.key] and true or false
                 self.on = on
                 local c = on and C.text or C.dim
                 self.lbl:SetTextColor(c[1], c[2], c[3])
-                self.line:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
-                self.line:SetShown(on)
+                local pc = on and C.accent or { 0.22, 0.22, 0.25 }
+                self.pill:SetColor(pc[1], pc[2], pc[3], 1)
+                local kc = on and 1 or 0.62
+                self.knob:SetVertexColor(kc, kc, kc + (on and 0 or 0.04), 1)
+                self.knob:ClearAllPoints()
+                self.knob:SetPoint("CENTER", self.pill, "LEFT", on and (SW_W - SW_H / 2) or (SW_H / 2), 0)
             end
             t:SetScript("OnEnter", function(self)
                 if not self.on then self.lbl:SetTextColor(C.muted[1], C.muted[2], C.muted[3]) end
@@ -905,7 +910,7 @@ function Map.ShowMapBar()
             sp:SetSize(1, 14)
             b.seps[i] = sp
         end
-        -- Knoepfe rechts: Symbol + Text, beim Ueberfahren hell
+        -- Knoepfe rechts: Symbol + Text (bei wenig Platz nur das Symbol), beim Ueberfahren hell
         local function action(text, icon, onClick, tip)
             local g = CreateFrame("Button", nil, b)
             g:SetHeight(26)
@@ -920,11 +925,16 @@ function Map.ShowMapBar()
             g.lbl = K.Text(g, 12, C.muted)
             g.lbl:SetPoint("LEFT", g.ic, "RIGHT", 6, 1)
             g.lbl:SetText(L[text])
-            g:SetWidth(math.ceil(g.lbl:GetStringWidth() or 40) + 36)
+            g.title = text
+            function g:Fit(labels)
+                self.lbl:SetShown(labels)
+                self:SetWidth(labels and (math.ceil(self.lbl:GetStringWidth() or 40) + 36) or 30)
+            end
+            g:Fit(true)
             g:SetScript("OnEnter", function(self)
                 self.lbl:SetTextColor(C.text[1], C.text[2], C.text[3])
                 self.ic:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
-                if tip then K.ShowTip(self, tip()) end
+                K.ShowTip(self, tip and tip() or { L[self.title] })
             end)
             g:SetScript("OnLeave", function(self)
                 self.lbl:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
@@ -941,19 +951,34 @@ function Map.ShowMapBar()
         end, function() return { L["Marker setzen"], L["Treffpunkt, Vorsicht oder Notiz: Art waehlen, dann auf die Karte klicken"] } end)
         b.layer = action("Layer", "map", function(self)
             if ns.MapExtras and ns.MapExtras.LayerMenuItems then K.ShowMenu(self, ns.MapExtras.LayerMenuItems(), L["Layer wechseln"]) end
-        end)
+        end, function() return { L["Layer wechseln"] } end)
         b.asep = b:CreateTexture(nil, "ARTWORK")
         b.asep:SetColorTexture(1, 1, 1, 0.10)
         b.asep:SetSize(1, 14)
+        -- Stufen von luftig nach eng: { Schriftgroesse, Abstand zwischen Gruppen, Knoepfe mit Text }
+        local STEPS = { { 12, 18, true }, { 11, 14, true }, { 11, 12, false }, { 10, 8, false } }
         function b:Layout()
             local w = self:GetWidth() or 0
-            local LEFT, ROW, GAP = 38, 28, 17
-            local actionsW = self.gear:GetWidth() + self.marker:GetWidth() + self.layer:GetWidth() + 10
+            local LEFT, ROW = 38, 28
+            local actions = { self.layer, self.marker, self.gear }
+            local GAP, actionsW, need
+            for _, st in ipairs(STEPS) do
+                for _, t in ipairs(self.boxes) do K.SetFontSafe(t.lbl, K.FONT, st[1], "", K.FONT) t:Fit() end
+                for _, g in ipairs(actions) do K.SetFontSafe(g.lbl, K.FONT, st[1], "", K.FONT) g:Fit(st[3]) end
+                GAP, actionsW, need = st[2], 10, LEFT
+                for _, g in ipairs(actions) do actionsW = actionsW + g:GetWidth() end
+                local prev
+                for _, t in ipairs(self.boxes) do
+                    need = need + t:GetWidth() + ((prev and prev.group ~= t.group) and GAP or 0)
+                    prev = t
+                end
+                if w < 300 or need + actionsW + 14 <= w then break end
+            end
             local x, row, sepN, prev = LEFT, 0, 0, nil
             for _, s in ipairs(self.seps) do s:Hide() end
             for _, t in ipairs(self.boxes) do
                 local newGroup = prev and prev.group ~= t.group
-                -- erste Zeile teilt sich den Platz mit den Knoepfen rechts
+                -- erste Zeile teilt sich den Platz mit den Knoepfen rechts; Umbruch nur, wenn selbst die engste Stufe nicht passt
                 local limit = w - 8 - (row == 0 and actionsW + 16 or 0)
                 if w > 300 and x > LEFT and x + (newGroup and GAP or 0) + t:GetWidth() > limit then
                     row, x, newGroup = row + 1, LEFT, false
