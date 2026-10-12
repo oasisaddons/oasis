@@ -590,10 +590,55 @@ function IC.ShowFor(tt, link)
     local ts, us = tt:GetEffectiveScale() or 1, UIParent:GetEffectiveScale() or 1
     P:SetScale(us > 0 and ts / us or 1)
     P:ClearAllPoints()
-    if (tt:GetRight() or 0) + W + 6 < (UIParent:GetWidth() or 0) then
-        P:SetPoint("TOPLEFT", tt, "TOPRIGHT", 6, 0)
-    else
-        P:SetPoint("TOPRIGHT", tt, "TOPLEFT", -6, 0)
+    -- 0.5.978: Platz suchen, der auf den Bildschirm passt UND das Fenster des ueberfahrenen Items nicht verdeckt
+    -- (beim Verkaufen lag das Vergleichsfenster ueber den Taschen). Reihenfolge: rechts, links, darueber, darunter.
+    local placed = false
+    do
+        local tl, tr, tT, tb
+        if tt.GetLeft and tt.GetTop then tl, tr, tT, tb = tt:GetLeft(), tt:GetRight(), tt:GetTop(), tt:GetBottom() end
+        if tl and tr and tT and tb then
+            tl, tr, tT, tb = tl * ts, tr * ts, tT * ts, tb * ts            -- alles in Bildschirm-Pixeln
+            local sw, sh = (UIParent:GetWidth() or 0) * us, (UIParent:GetHeight() or 0) * us
+            local pw, ph = W * ts, (P:GetHeight() or contentH or 200) * ts
+            -- Fenster, zu dem das Item gehoert: vom Besitzer des Tooltips hoch bis zum Fenster direkt unter UIParent
+            local box
+            local ok, owner = pcall(function() return tt.GetOwner and tt:GetOwner() end)
+            local f, guard = ok and owner or nil, 0
+            while f and f.GetParent and guard < 12 do
+                local par = f:GetParent()
+                if par == UIParent or par == nil then break end
+                f, guard = par, guard + 1
+            end
+            if f and f ~= UIParent and f.GetLeft and f:GetLeft() then
+                local fs = f:GetEffectiveScale() or 1
+                box = { f:GetLeft() * fs, f:GetRight() * fs, f:GetTop() * fs, f:GetBottom() * fs }
+            end
+            local G = 6 * ts
+            local cands = {
+                { "TOPLEFT", "TOPRIGHT", 6, 0, tr + G, tT - ph },
+                { "TOPRIGHT", "TOPLEFT", -6, 0, tl - G - pw, tT - ph },
+                { "BOTTOMLEFT", "TOPLEFT", 0, 6, tl, tT + G },
+                { "TOPLEFT", "BOTTOMLEFT", 0, -6, tl, tb - G - ph },
+            }
+            for _, c in ipairs(cands) do
+                local l, b = c[5], c[6]
+                local r, t = l + pw, b + ph
+                local onScreen = l >= 0 and r <= sw and b >= 0 and t <= sh
+                local hits = box and not (r <= box[1] or l >= box[2] or t <= box[4] or b >= box[3])
+                if onScreen and not hits then
+                    P:SetPoint(c[1], tt, c[2], c[3], c[4])
+                    placed = true
+                    break
+                end
+            end
+        end
+    end
+    if not placed then
+        if (tt:GetRight() or 0) + W + 6 < (UIParent:GetWidth() or 0) then
+            P:SetPoint("TOPLEFT", tt, "TOPRIGHT", 6, 0)
+        else
+            P:SetPoint("TOPRIGHT", tt, "TOPLEFT", -6, 0)
+        end
     end
     P:Show()
     if changed and K.Tween and not S().noAnim then
