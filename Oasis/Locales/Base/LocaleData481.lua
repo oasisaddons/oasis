@@ -2922,3 +2922,5 @@ DE["Schaltet beim Einloggen das Kampflog ein (wie /combatlog). OasisSync liest d
 EN["Schaltet beim Einloggen das Kampflog ein (wie /combatlog). OasisSync liest daraus die Crits aus Gruppen und Dungeons."] = "Turns on combat logging at login (like /combatlog). OasisSync reads group and dungeon crits from it."
 DE["1. Die Vorlage Oasis-Tools gibt es auf der GitHub-Seite von Oasis und im Oasis-Discord (auf CurseForge ueber den Link Source)."] = "1. Die Vorlage Oasis-Tools gibt es auf der GitHub-Seite von Oasis und im Oasis-Discord (auf CurseForge über den Link Source)."
 EN["1. Die Vorlage Oasis-Tools gibt es auf der GitHub-Seite von Oasis und im Oasis-Discord (auf CurseForge ueber den Link Source)."] = "1. Get the template Oasis-Tools from the Oasis GitHub page or the Oasis Discord (on CurseForge via the Source link)."
+DE["1. Die Vorlage Oasis-Tools gibt es im Oasis-Discord (Kanal oasis-download)."] = "1. Die Vorlage Oasis-Tools gibt es im Oasis-Discord (Kanal oasis-download)."
+EN["1. Die Vorlage Oasis-Tools gibt es im Oasis-Discord (Kanal oasis-download)."] = "1. Get the template Oasis-Tools from the Oasis Discord (channel oasis-download)."

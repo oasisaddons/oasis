@@ -2,7 +2,7 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.5.976
+## 0.5.977
 
 - Sounds are twice as loud by default (the volume slider in the sound settings still goes from 0 to 200 %).
 - Item comparison: Blizzard's own comparison tooltip no longer flickers behind the Oasis panel.
@@ -20,7 +20,7 @@ Add a new section at the top for every file that is uploaded. Describe what chan
 - Every notification can now be hidden right on the notification (eye icon), including one-off ones like "Campfire reported". "All on" in the settings brings them back.
 - Sample data for everyone: Settings > Status > "Show sample data" (or `/oa demo`) fills Oasis with example members, events and more so you can try and set things up. It stays on your PC, is never sent to your guild, and one click removes it again.
 - The download now contains only the folder `Oasis` (no companion folders, no scripts or programs).
-- Sound settings: new entry "Your own sounds and emojis" explains how a guild adds its own (template on the source page) and shows what is loaded.
+- Sound settings: new entry "Your own sounds and emojis" explains how a guild adds its own (template on the Oasis Discord) and shows what is loaded.
 - Map bar below the world map redesigned: quiet text switches in three groups with tooltips, buttons in the same row.
 - Member list: badges, add-on dot, menu and invite button no longer overlap on the right.
 - Guild leadership can block individual members from sending sound effects.

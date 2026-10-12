@@ -18,7 +18,7 @@ badges, a dungeon atlas, Deathroll duels and more. Everything is optional and ca
 - **Trade**: crafting exchange with orders, wish list, market page (uses the optional add-on Midas).
 - **Fun**: ranks and badges, Deathroll arena (stakes are off by default and can only be enabled by guild leadership), graveyard.
 - **Guild leadership**: announcements, permissions per rank, promotion suggestions, history, inactive members.
-- **Your own content**: a guild can add its own sounds and emojis with two small companion folders. They are not part of this download (so updates never overwrite them); the template is on the project's source page.
+- **Your own content**: a guild can add its own sounds and emojis with two small companion folders. They are not part of this download (so updates never overwrite them); the template is available on the Oasis Discord.
 
 ## Commands
 
@@ -54,7 +54,3 @@ World of Warcraft and related names/graphics are trademarks of Blizzard Entertai
 ## Install
 
 Download the latest `Oasis-Public-<version>.zip` from the Releases page and unpack it into `Interface/AddOns`.
-
-## Your own sounds and emojis
-
-The same release has a second file, `Oasis-Tools-<version>.zip`. It contains the templates `Oasis_Sounds` and `Oasis_Emojis` with their import scripts and instructions (plus the export tools). Unpack it into `Interface/AddOns`, drop your files in, run the import and share the two folders with your guild. They are not part of the Oasis package, so add-on updates never touch them.

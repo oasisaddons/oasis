@@ -2198,7 +2198,7 @@ local function buildSound(f)
     -- haengt an ns.TOOLS_RELEASED (Core.lua): die Vorlage dazu liegt in Oasis-Tools auf GitHub/Discord
     if ns.TOOLS_RELEASED then
         local STEPS = {
-            "1. Die Vorlage Oasis-Tools gibt es auf der GitHub-Seite von Oasis und im Oasis-Discord (auf CurseForge ueber den Link Source).",
+            "1. Die Vorlage Oasis-Tools gibt es im Oasis-Discord (Kanal oasis-download).",
             "2. Nach Interface/AddOns entpacken: dort entstehen die Ordner Oasis_Sounds und Oasis_Emojis.",
             "3. Eigene Dateien hineinlegen, die Einlese-Datei doppelklicken, WoW neu starten.",
             "4. Die beiden Ordner an eure Gilde weitergeben. Updates von Oasis fassen sie nicht an.",
