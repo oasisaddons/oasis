@@ -183,7 +183,33 @@ local function rememberLinks(e)
     while #h > 30 do table.remove(h) end
 end
 GC.RememberLinks = rememberLinks
+-- Eigene Nachricht? (0.5.969) Der Name allein reicht nicht immer: WoW Forever liefert den Absender im Gildenchat teils nur
+-- mit Vornamen ("Tomas-Realm"), waehrend der eigene Name als "Tomas Berg-Realm" bekannt ist - dann zaehlte die eigene
+-- Nachricht als ungelesen. Sicher ist die GUID (e.me, vom Chat-Ereignis); sonst Vorname + Realm, wenn der Vorname
+-- in der Gilde nur einmal vorkommt.
+local function firstAndRealm(n)
+    n = type(n) == "string" and n or ""
+    local base, realm = n:match("^(.*)%-([^%-]+)$")
+    base = (base or n):lower()
+    return base:match("^(%S+)") or base, (realm or ""):lower()
+end
+local function isMine(e)
+    if e.me or ns.isMe(e.s) then return true end
+    local me = ns.me and ns.me()
+    if not me or type(e.s) ~= "string" then return false end
+    local f1, r1 = firstAndRealm(e.s)
+    local f2, r2 = firstAndRealm(me)
+    if f1 == "" or f1 ~= f2 or (r1 ~= "" and r2 ~= "" and r1 ~= r2) then return false end
+    local n = 0
+    for _, m in ipairs(ns.Radar and ns.Radar.roster or {}) do
+        if firstAndRealm(m.name) == f1 then n = n + 1 end
+    end
+    return n <= 1
+end
+GC.IsMine = isMine
 function GC.Add(e, silent)
+    local mine = isMine(e)
+    e.me = nil   -- nur fuer diese Pruefung: nicht speichern, nicht an andere weitergeben
     e.m = clean(e.m)
     -- geschuetzte Texte nur aus dem Community-Verlauf (mit ID) - nie von anderen Oasis-Nutzern
     if isK(e.m) and not e.cid then return false end
@@ -207,11 +233,11 @@ function GC.Add(e, silent)
     table.insert(l, pos, e)
     if #l > KEEP_MAX + 200 then prune() end
     if not silent and e.src == "live" and ns.Sound and ns.Sound.OnChatSound then pcall(ns.Sound.OnChatSound, e.s, e.m) end
-    if not silent and not ns.isMe(e.s) and e.k ~= "sys" and e.src == "live" and S().chatMentionSound ~= false
+    if not silent and not mine and e.k ~= "sys" and e.src == "live" and S().chatMentionSound ~= false
         and mentionsMe(e.m) and ns.Sound and ns.Sound.PlayChoice and not (S().soundQuietCombat and ns.inCombat()) then
         pcall(ns.Sound.PlayChoice, "ping", S().soundVol)
     end
-    if not silent and not ns.isMe(e.s) and e.k ~= "sys" then
+    if not silent and not mine and e.k ~= "sys" then
         if ns.CurrentPage and ns.CurrentPage() == "chat" and ns.MainShown and ns.MainShown() then
             unread = 0
         else
@@ -227,15 +253,21 @@ end
 local function classOf(sender)
     return ns.Radar and ns.Radar.ClassOf(sender) or nil
 end
-ns.On("CHAT_MSG_GUILD", function(msg, sender)
+-- 12. Wert des Chat-Ereignisses = GUID des Absenders: daran erkennt man die eigene Nachricht sicher
+local function ownGuid(...)
+    local guid = ns.safe((select(10, ...)))
+    local mine = UnitGUID and ns.safe(UnitGUID("player"))
+    return (type(guid) == "string" and guid ~= "" and guid == mine) or nil
+end
+ns.On("CHAT_MSG_GUILD", function(msg, sender, ...)
     msg, sender = ns.safe(msg), ns.safe(sender)
     if type(msg) ~= "string" or type(sender) ~= "string" then return end
-    GC.Add({ ts = ns.now(), s = ns.fullName(sender), m = msg, c = classOf(sender), src = "live", sess = isK(msg) and GC.sess or nil })
+    GC.Add({ ts = ns.now(), s = ns.fullName(sender), m = msg, c = classOf(sender), src = "live", sess = isK(msg) and GC.sess or nil, me = ownGuid(...) })
 end)
-ns.On("CHAT_MSG_OFFICER", function(msg, sender)
+ns.On("CHAT_MSG_OFFICER", function(msg, sender, ...)
     msg, sender = ns.safe(msg), ns.safe(sender)
     if type(msg) ~= "string" or type(sender) ~= "string" then return end
-    GC.Add({ ts = ns.now(), s = ns.fullName(sender), m = msg, c = classOf(sender), k = "off", src = "live" })
+    GC.Add({ ts = ns.now(), s = ns.fullName(sender), m = msg, c = classOf(sender), k = "off", src = "live", me = ownGuid(...) })
 end)
 ns.On("CHAT_MSG_GUILD_ACHIEVEMENT", function(msg, sender)
     msg, sender = ns.safe(msg), ns.safe(sender)

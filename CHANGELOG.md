@@ -2,8 +2,9 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.5.968
+## 0.5.969
 
+- Guild chat: your own messages no longer count as unread.
 - Own guild sounds and emojis can require an Oasis rank: put "@20" at the end of a file or folder name before importing (applies only while guild leadership has the rank lock switched on).
 - Map: danger zones (red shimmer) are only drawn on zone maps, no longer on continent maps.
 - Map bar: small slide switches, everything in one row (it tightens up on narrow maps); heatmap, position sharing and minimap dots are in the settings only.
