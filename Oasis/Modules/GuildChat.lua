@@ -344,7 +344,7 @@ local function known(s, m, ts, loose)
     for i = #l, 1, -1 do
         local x = l[i]
         if (x.ts or 0) < ts - 86400 then break end
-        if (loose or math.abs((x.ts or 0) - ts) < 300) and same(x, { s = s, m = m }) then return true end
+        if (loose or math.abs((x.ts or 0) - ts) < 300) and same(x, { s = s, m = m }) then return x end
     end
     return false
 end
@@ -478,9 +478,13 @@ function GC.ImportClub()
                             if alias and alias:find(" ", 1, true) then full = alias end
                             if ns.Emoji and ns.Emoji.Unrender then text = ns.Emoji.Unrender(text) end
                             local cid = tostring(epoch) .. "-" .. tostring(ns.safe(m.messageId.position) or 0)
-                            if isK(text) or not known(full, text, ts, false) then
-                                local okd, isDc = pcall(fromDiscord, m)
-                                local dc = okd and isDc or nil
+                            local okd, isDc = pcall(fromDiscord, m)
+                            local dc = okd and isDc or nil
+                            local have = (not isK(text)) and known(full, text, ts, false)
+                            -- 0.5.970: kam die Nachricht schon live an, wusste Oasis nicht, dass sie aus Discord stammt -
+                            -- das Kennzeichen steht nur im Community-Verlauf, darum hier nachtragen
+                            if type(have) == "table" and dc and not have.dc then have.dc = true n = n + 1 GC.dcMarked = true end
+                            if isK(text) or not have then
                                 if GC.Add({ ts = ts, s = full, m = text, c = classFileOf(a.classID) or classOf(full), k = st.kind, src = "club", cid = cid, dc = dc or nil }, true) then n = n + 1 end
                             end
                         end
@@ -490,6 +494,8 @@ function GC.ImportClub()
         end
     end
     GC.bulk = nil
+    -- nachgetragene Discord-Kennzeichen: schon gezeichnete Zeilen neu aufbauen
+    if GC.dcMarked then GC.dcMarked = nil if GC.ClearRenderCache then pcall(GC.ClearRenderCache) end end
     if n > 0 then ns.RefreshPage("chat") end
     ns.debug("Gildenverlauf (Community) uebernommen:", n)
     return n
@@ -882,7 +888,7 @@ renderRaw = function(e)
     local kind = askOf(e)
     if kind then help = "  |Hoasishelp:" .. lid(e) .. "|h|cff66db9e[" .. (kind == "group" and L["Bin dabei"] or L["Ich helfe"]) .. "]|r|h" end
     return {
-        head = tag .. dcIcon .. nameLink(e) .. late,
+        head = tag .. dcIcon .. nameLink(e) .. (e.dc and "  |cff7b8cf0Discord|r" or "") .. late,
         body = time .. mention .. highlight(text) .. reactLine(e) .. help,
     }
 end

@@ -5,7 +5,7 @@
 ## Notes-deDE: Gilden-Multi-Addon: Mitglieder, Handwerk, Gruppen, Raids & Beute, Gildenbank, Chronik, Gildenleitung
 ## Author: Oasis Addons
 ## X-License: GPL-2.0
-## Version: 0.5.969
+## Version: 0.5.970
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
