@@ -6,7 +6,7 @@
 ## Author: Oasis Addons
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.5.979
+## Version: 0.5.980
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
