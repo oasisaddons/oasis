@@ -1,0 +1,13 @@
+Oasis - Media\fx (Effekt-Grafiken Level-Rennen)
+
+Alle Dateien in diesem Ordner sind eigene Arbeit: prozedural erzeugt mit Python/PIL/numpy
+(Skript make_fx.py, Oktober 2026), keine Fremdgrafiken, keine Blizzard-Inhalte.
+Lizenz: CC0 1.0 (gemeinfrei) - https://creativecommons.org/publicdomain/zero/1.0/
+
+glow128.tga      weicher Schein
+flare128.tga     Lichtpunkt mit feinem Vier-Strahl-Stern
+spark32.tga      Funke
+comet256.tga     Kometen-Schweif (Kopf rechts)
+smoke128.tga     weicher Nebel
+mist256.tga      Nebelband fuer den Hintergrund
+twinkle_4x4.tga  Flipbook 4x4 (16 Bilder a 64x64), funkelnder Stern

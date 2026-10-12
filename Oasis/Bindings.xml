@@ -1,0 +1,36 @@
+<Bindings>
+	<Binding name="CLICK OasisMarkSecure:LeftButton" header="OASIS">
+	</Binding>
+	<Binding name="CLICK OasisMarkSecure:RightButton">
+	</Binding>
+	<Binding name="OASIS_TOGGLE">
+		Oasis_KeyAction("OASIS_TOGGLE")
+	</Binding>
+	<Binding name="OASIS_TOPBAR">
+		Oasis_KeyAction("OASIS_TOPBAR")
+	</Binding>
+	<Binding name="OASIS_SETTINGS">
+		Oasis_KeyAction("OASIS_SETTINGS")
+	</Binding>
+	<Binding name="OASIS_EMOJI">
+		Oasis_KeyAction("OASIS_EMOJI")
+	</Binding>
+	<Binding name="OASIS_HOME">
+		Oasis_KeyAction("OASIS_HOME")
+	</Binding>
+	<Binding name="OASIS_MEMBERS">
+		Oasis_KeyAction("OASIS_MEMBERS")
+	</Binding>
+	<Binding name="OASIS_CHAT">
+		Oasis_KeyAction("OASIS_CHAT")
+	</Binding>
+	<Binding name="OASIS_GROUPS">
+		Oasis_KeyAction("OASIS_GROUPS")
+	</Binding>
+	<Binding name="OASIS_RAID">
+		Oasis_KeyAction("OASIS_RAID")
+	</Binding>
+	<Binding name="OASIS_PROFILE">
+		Oasis_KeyAction("OASIS_PROFILE")
+	</Binding>
+</Bindings>

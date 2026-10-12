@@ -1,0 +1,15 @@
+Oasis - Hintergrundgrafiken der Designs (Media/themes)
+
+fantasy.tga  - aus "Leather037" und "Paper003" von ambientCG.com (CC0 1.0)
+classic.tga  - aus "Rock051" von ambientCG.com (CC0 1.0)
+future.tga   - aus "DiamondPlate008C" von ambientCG.com (CC0 1.0)
+modern.tga   - selbst erzeugt (Tools/make_theme_tex.py)
+
+Created using Leather037, Paper003, Rock051 and DiamondPlate008C from ambientCG.com,
+licensed under the Creative Commons CC0 1.0 Universal License.
+Bearbeitet (zugeschnitten, eingefaerbt, abgedunkelt) mit Tools/cc0_build.py.
+
+Media/skins/*      - selbst erzeugt (Tools/make_skins.py)
+kawaii.tga         - selbst erzeugt (Tools/make_kawaii.py)
+WoW Classic nutzt Blizzards eigene Rahmen aus dem Spiel-Client (nicht mitgeliefert).
+standard.tga       - selbst erzeugt (Tools/make_standard.py)

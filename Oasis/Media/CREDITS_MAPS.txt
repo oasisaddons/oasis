@@ -1,0 +1,15 @@
+Oasis - Dungeon-Karten
+
+Kartenbilder der klassischen Dungeons: werden direkt aus dem World-of-Warcraft-Client geladen
+(Interface\Worldmap\...). Oasis liefert diese Bilder nicht mit.
+
+Boss-Positionen und Ebenen-Zuordnung: uebernommen aus "Forever Atlas" (Fork von AtlasLootClassic),
+GPL-2.0. Urspruengliche AtlasLootClassic-Autoren: Daviesh, Lag, Arith, Cellelach, Asurn, Pernicus,
+Dynaletik und weitere. Teile davon stammen aus "SimpleDungeonMap" von Babilounet (MIT-Lizenz),
+https://github.com/Babilounet/SimpleDungeonMap
+
+Karten der neuen WoW-Forever-Dungeons (liegen im Gildenmodul Oasis_Guild: Media/maps/HallOfThanes.tga, RuinsOfLordaeron.tga):
+aus "Forever Atlas" (GPL-2.0) uebernommen; die Weitergabe in Oasis wurde der Gilde laut eigener Aussage
+am 04.10.2026 bestaetigt. Fan-Karten-Vorlage vermutlich von Santiago Reyes.
+
+World of Warcraft und zugehoerige Namen/Grafiken sind Marken von Blizzard Entertainment.

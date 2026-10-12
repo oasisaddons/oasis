@@ -1,0 +1,31 @@
+OASIS - CREDITS AND LICENSES
+============================
+
+License of Oasis: GNU General Public License version 2 (GPL-2.0), full text in the file LICENSE.
+Reason: the boss positions in the dungeon atlas come from Forever Atlas / AtlasLootClassic (GPL-2.0).
+Third-party files keep their own license (see below). The guild module Oasis_Guild is not part of the public version.
+
+Own work (Oasis author): rank crests, profile frames, level badges, emblems, digits, Deathroll graphics,
+logos and banners, effect graphics (CC0), theme frames/skins.
+- Dashboard banners (Media/dash_banner.tga, Media/dash_banner_ally.tga): own work of the Oasis author,
+  created with AI, no third-party artwork. Confirmed by the author on 2026-10-12.
+  The Horde/Alliance crests shown are trademarks of Blizzard Entertainment.
+
+Third-party content:
+- Icons (Media/icons, Media/icons/badges): game-icons.net, CC BY 3.0, authors Lorc and Delapouite
+  https://game-icons.net  (license: https://creativecommons.org/licenses/by/3.0/)
+- Emojis (Media/emoji): Twemoji, copyright Twitter/X and contributors, CC BY 4.0, resized for Oasis
+  https://github.com/jdecked/twemoji
+- Flags (Media/flags): flag-icons by Panayiotis Lipiridis, MIT license (text in LICENSE-MIT.txt)
+- Background textures (Media/themes): ambientCG, CC0 1.0 (Leather037, Paper003, Rock051, DiamondPlate008C)
+- Click sounds (Media/sounds/ke_*): Kenney "Interface Sounds" (www.kenney.nl), CC0 1.0
+- Fonts (Media/fonts): Google Fonts, SIL Open Font License 1.1, details in Media/fonts/LICENSE-FONTS.txt
+- Dungeon maps and boss positions: see Media/CREDITS_MAPS.txt (Forever Atlas / AtlasLootClassic, GPL-2.0;
+  parts from SimpleDungeonMap by Babilounet, MIT license, text in LICENSE-MIT.txt)
+- Drop chances of dungeon bosses (Modules/Dungeons/DropRates.lua): from AtlasLootClassic (GPL-2.0),
+  authors Lag, Daviesh and others
+- Dungeon data (Modules/Dungeons/DungeonData.lua): compiled from foreverchanges.pro and wowforevertalents.com
+- Midas banner (Media/midas_ad.tga): banner of the auction house add-on Midas by Rebo (member of the guild OASIS)
+
+World of Warcraft and related names and artwork are trademarks of Blizzard Entertainment.
+Oasis is a fan project and is not affiliated with Blizzard Entertainment.

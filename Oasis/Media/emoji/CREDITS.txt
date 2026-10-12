@@ -1,0 +1,2 @@
+Emoji-Grafiken: Twemoji (https://github.com/jdecked/twemoji), Copyright Twitter/X und Mitwirkende,
+Lizenz CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Fuer Oasis auf 64x64 TGA verkleinert.
