@@ -327,7 +327,9 @@ function Emoji.StepChat()
         local lines = cf and cf ~= tipOwner and cf:IsVisible() and cf.visibleLines
         if lines then
             for _, fs in ipairs(lines) do
-                if fs.IsShown and fs:IsShown() then pcall(stepLine, fs) end
+                -- Zeile unter der Maus nicht weiterschalten: SetText baut die Link-Flaechen neu, ein Klick auf den
+                -- Namen in einer Zeile mit animiertem Emoji ging dadurch verloren (kein Fluestern, kein Menue)
+                if fs.IsShown and fs:IsShown() and not (fs.IsMouseOver and fs:IsMouseOver()) then pcall(stepLine, fs) end
             end
         end
     end

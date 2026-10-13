@@ -2,8 +2,9 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.5.993
+## 0.5.994
 
+- Chat: clicking a player name in a line with an animated emoji works again (whisper, right-click menu). The line under the mouse pauses its animation.
 - Game chat: now also works when another addon restyles chat lines (shortened channel names, coloured timestamps); before, nothing changed in that case.
 - Chat: animated emojis now also move in whisper tabs, and the emoji and sound buttons appear at the input of whisper tabs.
 - Dungeons, quests: every quest now says "Missing", "Active" or "Done" in colour; missing quests come first, finished ones last, and a line above the list counts each group.
