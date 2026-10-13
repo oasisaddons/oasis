@@ -518,11 +518,16 @@ local function post(frame, text, r, g, b, _, _, _, event, args)
     if not text or text == "" or #text > LINE_MAX then return end
     event, args = str(event), tbl(args)
     local chat = event ~= nil and args ~= nil and event:find("^CHAT_MSG_") ~= nil
+    -- Chatzeilen ueber ihre Ereignisdaten wiederfinden, nicht ueber den Text: ein anderes Addon kann die Zeile
+    -- auf dem Weg ins Fenster schon umgebaut haben (gekuerzte Kanalnamen, gefaerbte Uhrzeit) - dann stimmte der
+    -- Text nie ueberein und der Spielchat aenderte gar nichts.
     local function same(message, ...)
-        if issecret(message) or message ~= text then return false end
-        if not args then return true end
-        local a = select(8, ...)
-        return not issecret(a) and a == args
+        if issecret(message) then return false end
+        if chat then
+            local a = select(8, ...)
+            return not issecret(a) and a == args
+        end
+        return message == text
     end
     if chat and frame.RemoveMessagesByPredicate and GC.ShouldHide(event, args, s) then
         GC.hidden = GC.hidden + 1
@@ -531,16 +536,23 @@ local function post(frame, text, r, g, b, _, _, _, event, args)
     end
     local shown = text
     if frame.TransformMessages then
-        local new, headEnd = GC.Decorate(text, event, chat and args or nil, fontHeight(frame), s)
+        local size = fontHeight(frame)
+        local new, headEnd = GC.Decorate(text, event, chat and args or nil, size, s)
         local quiet = s.gcQuiet and headEnd and QUIET[event]
         if new ~= text or quiet then
             shown = new
-            frame:TransformMessages(same, function(_, mr, mg, mb, ...)
-                if quiet and num(mr) and num(mg) and num(mb) then
-                    local qt, qr, qg, qb = GC.Quiet(new, headEnd, mr, mg, mb)
+            frame:TransformMessages(same, function(message, mr, mg, mb, ...)
+                local cur, he = new, headEnd
+                -- steht im Fenster ein anderer Text als der uebergebene, dann genau den umbauen (sonst ginge die
+                -- Aenderung des anderen Addons verloren)
+                if message ~= text then
+                    cur, he = GC.Decorate(message, event, chat and args or nil, size, s)
+                end
+                if s.gcQuiet and he and QUIET[event] and num(mr) and num(mg) and num(mb) then
+                    local qt, qr, qg, qb = GC.Quiet(cur, he, mr, mg, mb)
                     return qt, qr, qg, qb, ...
                 end
-                return new, mr, mg, mb, ...
+                return cur, mr, mg, mb, ...
             end)
         end
     end
