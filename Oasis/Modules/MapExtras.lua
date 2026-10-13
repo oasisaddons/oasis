@@ -352,7 +352,7 @@ function X.DangerZones(deaths, mapID, now)
 end
 local function drawDanger(w)
     hideAll("dz")
-    if not on("mapDanger") or not (ns.Deaths and ns.Deaths.MapPins) then return end
+    if not opt("mapDanger") or not (ns.Deaths and ns.Deaths.MapPins) then return end
     -- 0.5.967: nur auf Gebietskarten. Auf Kontinent- und Weltkarte wurde der Schimmer riesig und faerbte ganze Landstriche rot.
     local info = C_Map and C_Map.GetMapInfo and w.map and C_Map.GetMapInfo(w.map)
     local mt = info and ns.safe(info.mapType)
@@ -625,6 +625,8 @@ ns.On("TAXIMAP_OPENED", function() visit("flight", npcName()) end)
 -- Anbindung
 ------------------------------------------------------------------------
 ns.Listen("LOGIN", function()
+    -- 0.5.984: Gefahrenzonen sind standardmaessig aus (einmalig auch fuer alle, die sie schon an hatten)
+    if not S().dangerOffV1 then S().dangerOffV1 = true S().mapDanger = false end
     if ns.Map and ns.Map.UpdateWorldPins then hooksecurefunc(ns.Map, "UpdateWorldPins", function() pcall(X.DrawWorld) end) end
     if WorldMapFrame then WorldMapFrame:HookScript("OnHide", function() X.StopPlacing() end) end
     local f, acc, tacc = CreateFrame("Frame"), 0, 0

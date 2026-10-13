@@ -1139,7 +1139,7 @@ ns.AddPageSettings("map", function(det, y)
     for _, e in ipairs({
         { "Marker und Notizen", "mapMarkers", "Treffpunkte, Warnungen und Notizen auf Weltkarte und Minimap", true },
         { "Dungeon-Eingaenge", "mapDungeons", "Eingaenge mit Levelspanne und der Zahl der Gildenmitglieder im Levelbereich", true },
-        { "Gefahrenzonen", "mapDanger", "Roter Schimmer, wo in den letzten 7 Tagen mehrere aus der Gilde gestorben sind", true },
+        { "Gefahrenzonen", "mapDanger", "Roter Schimmer, wo in den letzten 7 Tagen mehrere aus der Gilde gestorben sind" },
         { "Haendler, Reparatur, Briefkaesten und Flugpunkte", "mapPoi", "Orte, die jemand aus der Gilde schon besucht hat, auf der Weltkarte", true },
         { "Questgeber der Dungeon-Quests", "mapQuestGivers", "Zeigt in der offenen Welt, wo Dungeon-Quests beginnen" },
         { "Laufspuren der Gilde", "mapTrails", "Zeigt den Weg der letzten 5 Minuten als duenne Linie hinter jedem Mitglied" },
