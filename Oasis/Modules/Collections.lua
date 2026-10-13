@@ -494,26 +494,57 @@ ns.On("BAG_UPDATE_DELAYED", function() scanSoon(60) end)
 ------------------------------------------------------------------------
 -- Gilden-Auswertung
 ------------------------------------------------------------------------
+-- Liefert eine Funktion Name -> einheitlicher Name. Erst ueber die Gildenliste (ns.ResolveName), danach - bei regional
+-- eindeutigen Namen - ueber den Namen ohne Realm, damit auch Ausgetretene nicht doppelt stehen.
+function Coll.NameMerger()
+    local regional = RegionalUniqueNamesEnabled and ns.safe(RegionalUniqueNamesEnabled()) and true or false
+    local byBase = {}
+    local function base(n) return (n:match("^(.*)%-[^%-]+$") or n):lower() end
+    local me = ns.me()
+    if me and regional then byBase[base(me)] = me end
+    return function(name)
+        if ns.isMe(name) then return me end
+        local who = ns.ResolveName and ns.ResolveName(name, true) or name
+        if not regional then return who end
+        local b = base(who)
+        if not byBase[b] then byBase[b] = who end
+        return byBase[b]
+    end
+end
 -- cache.chars = { [name] = rec }, cache.own[kind][name] = set, cache.index[kind][id] = { owners }
 local function rebuild()
     if not cache.dirty then return end
     local demo = demoOn()
     cache.chars, cache.own, cache.index, cache.src = {}, {}, {}, {}
+    -- Derselbe Charakter kommt unter mehreren Schreibweisen an (nur Vorname, anderer Realm-Anhang): auf den Namen
+    -- aus der Gildenliste zusammenfuehren, je Charakter zaehlt der neueste Datensatz.
+    local canon = Coll.NameMerger()
+    local stamp = {}
     for _, r in ipairs(Store.List(CHARS, function(r) return demo or not r.demo end)) do
-        if r.by then cache.chars[r.by] = r end
+        if r.by then
+            local who = canon(r.by)
+            if not cache.chars[who] or (r.u or 0) >= (stamp[who] or 0) then
+                cache.chars[who], stamp[who] = r, r.u or 0
+            end
+        end
     end
     for _, kind in ipairs(KINDS) do
         cache.own[kind], cache.index[kind], cache.src[kind] = {}, {}, {}
+        local newest, srcOf = {}, {}
         for _, r in ipairs(Store.List(LISTS[kind], function(r) return demo or not r.demo end)) do
             if r.by then
-                local set = unpackIds(r.ids)
-                cache.own[kind][r.by] = set
-                for id in pairs(set) do
-                    local e = cache.index[kind][id]
-                    if not e then e = { id = id, owners = {}, src = r.src or "j" } cache.index[kind][id] = e end
-                    e.owners[#e.owners + 1] = r.by
+                local who = canon(r.by)
+                if not cache.own[kind][who] or (r.u or 0) >= (newest[who] or 0) then
+                    cache.own[kind][who], newest[who], srcOf[who] = unpackIds(r.ids), r.u or 0, r.src or "j"
                 end
-                if not cache.chars[r.by] then cache.chars[r.by] = { by = r.by, m = -1, p = -1, t = -1 } end
+                if not cache.chars[who] then cache.chars[who] = { by = who, m = -1, p = -1, t = -1 } end
+            end
+        end
+        for who, set in pairs(cache.own[kind]) do
+            for id in pairs(set) do
+                local e = cache.index[kind][id]
+                if not e then e = { id = id, owners = {}, src = srcOf[who] } cache.index[kind][id] = e end
+                e.owners[#e.owners + 1] = who
             end
         end
     end
