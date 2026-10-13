@@ -174,16 +174,50 @@ function Emoji.ShowLinkTip(owner, link)
     GameTooltip:Show()
     return true
 end
--- Chatfenster: Tooltip beim Ueberfahren (nur anhaengen, Blizzards eigene Link-Behandlung bleibt)
-ns.Listen("LOGIN", function()
+-- Alle Chatfenster: die festen (1..NUM_CHAT_WINDOWS) und die zeitweiligen (Fluester-Reiter, ab Nummer 11) aus
+-- CHAT_FRAMES. Vorher liefen nur die festen mit: im Fluester-Reiter standen animierte Emojis still und die
+-- Knoepfe an der Eingabe fehlten.
+local function chatFrameNames()
+    local out, seen = {}, {}
     for i = 1, (NUM_CHAT_WINDOWS or 10) do
-        local cf = _G["ChatFrame" .. i]
-        if cf and cf.HookScript then
+        local n = "ChatFrame" .. i
+        out[#out + 1], seen[n] = n, true
+    end
+    if type(CHAT_FRAMES) == "table" then
+        for _, n in ipairs(CHAT_FRAMES) do
+            if type(n) == "string" and not seen[n] then seen[n] = true out[#out + 1] = n end
+        end
+    end
+    return out
+end
+Emoji.ChatFrameNames = chatFrameNames
+-- Anschluesse je Chatfenster (Tooltip, Eingabe, Knoepfe): laufen beim Login und wieder, wenn WoW einen Reiter oeffnet
+local wirers = {}
+function Emoji.WireChatFrames()
+    Emoji._stepFrames = nil
+    for _, fn in ipairs(wirers) do
+        local ok, e = pcall(fn)
+        if not ok then ns.err("Emoji", e) end
+    end
+end
+ns.Listen("LOGIN", function()
+    Emoji.WireChatFrames()
+    if hooksecurefunc and type(FCF_OpenTemporaryWindow) == "function" then
+        hooksecurefunc("FCF_OpenTemporaryWindow", function() C_Timer.After(0, Emoji.WireChatFrames) end)
+    end
+end)
+-- Chatfenster: Tooltip beim Ueberfahren (nur anhaengen, Blizzards eigene Link-Behandlung bleibt)
+local tipHooked = setmetatable({}, { __mode = "k" })
+wirers[#wirers + 1] = function()
+    for _, n in ipairs(chatFrameNames()) do
+        local cf = _G[n]
+        if cf and cf.HookScript and not tipHooked[cf] then
+            tipHooked[cf] = true
             cf:HookScript("OnHyperlinkEnter", function(self, link) Emoji.ShowLinkTip(self, link) end)
             cf:HookScript("OnHyperlinkLeave", function() GameTooltip:Hide() end)
         end
     end
-end)
+end
 
 -- Text ausserhalb von Links umwandeln (Item-/Spieler-Links enthalten Doppelpunkte!)
 -- gesperrte Emojis (erst ab Oasis-Rang): nur als Bild zeigen, wenn der ABSENDER den Rang hat
@@ -275,7 +309,7 @@ function Emoji.StepChat()
     local frames = Emoji._stepFrames
     if not frames then
         frames = {}
-        for i = 1, (NUM_CHAT_WINDOWS or 10) do frames[#frames + 1] = _G["ChatFrame" .. i] end
+        for _, n in ipairs(chatFrameNames()) do frames[#frames + 1] = _G[n] end
         Emoji._stepFrames = frames
     end
     for _, f in ipairs(Emoji.frames or {}) do
@@ -482,15 +516,17 @@ end
 -- Nur das Ziel (Gruppe, Fluestern, Gilde ...) behalten, nie den Text: nach dem Senden oder Abbrechen vergessen
 local function forgetText() if Emoji.lastTarget then Emoji.lastTarget.text = "" end end
 if hooksecurefunc and ChatEdit_SendText then hooksecurefunc("ChatEdit_SendText", forgetText) end
-ns.Listen("LOGIN", function()
-    for i = 1, (NUM_CHAT_WINDOWS or 10) do
-        local eb = _G["ChatFrame" .. i .. "EditBox"]
-        if eb then
+local forgetHooked = setmetatable({}, { __mode = "k" })
+wirers[#wirers + 1] = function()
+    for _, n in ipairs(chatFrameNames()) do
+        local eb = _G[n .. "EditBox"]
+        if eb and not forgetHooked[eb] then
+            forgetHooked[eb] = true
             eb:HookScript("OnEnterPressed", forgetText)
             eb:HookScript("OnEscapePressed", forgetText)
         end
     end
-end)
+end
 -- zuletzt benutzte Emojis (eigener Reiter ganz vorne)
 local RECENT_MAX = 28
 local byCode = {}
@@ -1690,15 +1726,18 @@ function Emoji.Preview(eb)
     if K.FadeIn then f.oasisFadedAt = nil pcall(K.FadeIn, f, 0, 4) end
 end
 
-ns.Listen("LOGIN", function()
-    for i = 1, (NUM_CHAT_WINDOWS or 10) do
-        local eb = _G["ChatFrame" .. i .. "EditBox"]
+local editWired = setmetatable({}, { __mode = "k" })
+wirers[#wirers + 1] = function()
+    for _, n in ipairs(chatFrameNames()) do
+        local eb = _G[n .. "EditBox"]
+        local fresh = eb and not editWired[eb]
+        if fresh then editWired[eb] = true end
         attach(eb)
         Emoji.AttachHotkey(eb, function() return buttons[eb] end)
         -- WoW-Chat: Pfeil hoch/runter holt die letzten Nachrichten auch OHNE Alt zurueck (abschaltbar: settings.chatArrowAlt)
-        if eb and eb.SetAltArrowKeyMode and not (ns.db and ns.db.settings.chatArrowAlt) then pcall(eb.SetAltArrowKeyMode, eb, false) end
+        if fresh and eb.SetAltArrowKeyMode and not (ns.db and ns.db.settings.chatArrowAlt) then pcall(eb.SetAltArrowKeyMode, eb, false) end
         -- Chat-Ziel direkt an der Eingabe mitschreiben (Wechsel per /p, /w, Klick ...), nur solange getippt wird
-        if eb and eb.HookScript then
+        if fresh and eb.HookScript then
             eb:HookScript("OnAttributeChanged", function(self, name)
                 if name == "chattype" or name == "chatType" or name == "telltarget" or name == "tellTarget" or name == "channeltarget" then
                     pcall(Emoji.RememberTarget, self)
@@ -1715,7 +1754,7 @@ ns.Listen("LOGIN", function()
         end
     end
     Emoji.UpdateButtons()
-end)
+end
 
 ------------------------------------------------------------------------
 -- Sprechblasen ueber den Koepfen: Kurzcodes auch dort als Emoji zeigen.

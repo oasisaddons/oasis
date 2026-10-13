@@ -2,8 +2,9 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.5.991
+## 0.5.992
 
+- Chat: animated emojis now also move in whisper tabs, and the emoji and sound buttons appear at the input of whisper tabs.
 - Dungeons, quests: every quest now says "Missing", "Active" or "Done" in colour; missing quests come first, finished ones last, and a line above the list counts each group.
 - Dungeons, quests: the map in the quest details is larger - it starts right below the text and uses the free space at the bottom.
 - Dungeons, quests: each quest row has a soft colour gradient for its state (pink = missing, yellow = active, green = done).
