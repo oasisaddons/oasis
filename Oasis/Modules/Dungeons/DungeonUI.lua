@@ -230,6 +230,28 @@ local function drawMap(host, mapID, focus)
     return true
 end
 
+-- Quests ordnen: fehlende zuerst, dann die im Log, erledigte ans Ende; dazu die Anzahl je Zustand
+local QUEST_RANK = { open = 1, log = 2, done = 3 }
+local function questOrder(quests)
+    local n = { open = 0, log = 0, done = 0 }
+    for i, q in ipairs(quests) do
+        q.pos = i
+        n[q.state] = (n[q.state] or 0) + 1
+    end
+    table.sort(quests, function(a, b)
+        local ra, rb = QUEST_RANK[a.state] or 1, QUEST_RANK[b.state] or 1
+        if ra ~= rb then return ra < rb end
+        return a.pos < b.pos
+    end)
+    return n
+end
+-- Zustand einer Quest als kurzes Wort mit Farbe (Liste und Zaehlzeile)
+local QUEST_STATE = {
+    open = { "Fehlt", "ff7a5c" },
+    log = { "Aktiv", "ffd24a" },
+    done = { "Erledigt", "66db9e" },
+}
+
 -- Forever Atlas installiert? (nur dann duerfen wir dessen eigene Kartenbilder verwenden)
 local function hasForeverAtlas()
     local get = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
@@ -2373,11 +2395,15 @@ ns.RegisterPage({
             r.cols.lvl = K.Title(r.badge, 13, C.text, "CENTER")
             r.cols.lvl:SetPoint("CENTER", 0, 0)
             r.mark = r.badge:CreateTexture(nil, "OVERLAY")
-            r.mark:SetSize(13, 13)
+            r.mark:SetSize(16, 16)
             r.mark:SetPoint("CENTER", r.badge, "BOTTOMRIGHT", -1, 2)
+            -- Zustand ausgeschrieben oben rechts: fehlt / aktiv / erledigt
+            r.cols.st = K.Text(r, 11, C.muted, "RIGHT")
+            r.cols.st:SetPoint("TOPRIGHT", -8, -9)
             r.cols.name = K.Title(r, 12, C.text)
             r.cols.name:SetPoint("TOPLEFT", 48, -8)
-            r.cols.name:SetPoint("RIGHT", r, "RIGHT", -8, 0)
+            r.cols.name:SetPoint("RIGHT", r.cols.st, "LEFT", -8, 0)
+            r.cols.name:SetWordWrap(false)
             r.cols.who = K.Text(r, 10, C.mint or C.muted, "RIGHT")
             r.cols.who:SetPoint("BOTTOMRIGHT", -8, 8)
             r.cols.where = K.Text(r, 11, C.muted)
@@ -2403,6 +2429,8 @@ ns.RegisterPage({
                 or q.state == "log" and "Interface\\GossipFrame\\ActiveQuestIcon"
                 or "Interface\\GossipFrame\\AvailableQuestIcon")
             r.cols.name:SetText(q.name)
+            local st = QUEST_STATE[q.state] or QUEST_STATE.open
+            r.cols.st:SetText("|cff" .. st[2] .. L[st[1]] .. "|r")
             local lv = tonumber(q.level)
             local lc = lv and lvlColor({ lo = lv }) or C.muted
             r.cols.lvl:SetText(lv and tostring(lv) or "?")
@@ -2414,9 +2442,14 @@ ns.RegisterPage({
             r.cols.who:SetText(others > 0 and (L["%d aus der Gilde"]):format(others) or "")
             r.cols.where:SetText(q.whereShort or "")
             r.sel:SetShown(S.quest == q.id)
-            r:SetAlpha(q.state == "done" and 0.6 or 1)
+            r:SetAlpha(q.state == "done" and 0.55 or 1)
         end)
-        qt.list:SetPoint("TOPLEFT")
+        -- Zaehlzeile ueber der Liste: wie viele fehlen, laufen, sind erledigt
+        qt.sum = K.Text(qt, 11, C.muted)
+        qt.sum:SetPoint("TOPLEFT", 8, -4)
+        qt.sum:SetWidth(288)
+        qt.sum:SetWordWrap(false)
+        qt.list:SetPoint("TOPLEFT", 0, -24)
         qt.list:SetPoint("BOTTOMLEFT")
         qt.list:SetWidth(300)
         qt.list.empty:SetText(L["Noch keine bekannt - sobald jemand mit Oasis eine Quest fuer diesen Dungeon hat, steht sie hier."])
@@ -2485,11 +2518,13 @@ ns.RegisterPage({
                 self.text:SetHeight(math.max(100, h - 62 - 116))
                 mh:SetPoint("TOPLEFT", tw + 6, -62)
             else
+                -- Karte gleich unter dem Text (so hoch wie er wirklich ist) statt mit festem Abstand
+                local th = math.max(30, math.min(self.textH or 110, math.max(30, h - 62 - (self.bottomPad or 110) - 130)))
                 self.text:SetPoint("RIGHT", self, "RIGHT", -14, 0)
-                self.text:SetHeight(110)
-                mh:SetPoint("TOPLEFT", 14, -180)
+                self.text:SetHeight(th)
+                mh:SetPoint("TOPLEFT", 14, -(62 + th + 10))
             end
-            mh:SetPoint("BOTTOMRIGHT", -14, 110)
+            mh:SetPoint("BOTTOMRIGHT", -14, self.bottomPad or 110)
         end
         qd:HookScript("OnSizeChanged", function(self)
             self:Layout()
@@ -3275,6 +3310,13 @@ ns.RegisterPage({
                 q.loc = loc
                 q.whereShort = loc.start and loc.start.text or ""
             end
+            local cnt = questOrder(quests)
+            local parts = {}
+            for _, k in ipairs({ "open", "log", "done" }) do
+                local st = QUEST_STATE[k]
+                parts[#parts + 1] = "|cff" .. st[2] .. L[st[1]] .. "|r |cffffffff" .. cnt[k] .. "|r"
+            end
+            qt.sum:SetText(#quests > 0 and table.concat(parts, "   ·   ") or "")
             qt.list:SetData(quests)
             local q
             for _, x in ipairs(quests) do if x.id == S.quest then q = x end end
@@ -3311,6 +3353,7 @@ ns.RegisterPage({
                 end
             end
             qd.text:SetText(table.concat(lines, "\n"))
+            qd.textH = qd.text.GetStringHeight and math.ceil((qd.text:GetStringHeight() or 0) + 4) or nil
             local others = {}
             for _, n in ipairs(q.holders) do if not ns.isMe(n) then others[#others + 1] = n end end
             local inGroup = IsInGroup and IsInGroup()
@@ -3361,6 +3404,9 @@ ns.RegisterPage({
             qd.whoMore:ClearAllPoints()
             qd.whoMore:SetPoint("BOTTOMLEFT", wx + shownW * 28 + 4, 60)
             qd.whoMore:SetText(#others > shownW and shownW > 0 and ("+" .. (#others - shownW)) or "")
+            -- ohne Belohnungen und ohne Gildenmitglieder braucht der Fuss nur die Knopfzeile
+            qd.bottomPad = (n > 0 or shownW > 0) and 110 or 50
+            qd:Layout()
 
             local s, f = loc.start, loc.finish
             -- Karte daneben zeichnen
