@@ -27,7 +27,7 @@ badges, a dungeon atlas, Deathroll duels and more. Everything is optional and ca
 - `/oa sync` - sync guild data now
 - `/oa rundgang` - show the first-start tour again
 - `/oa weiterleiten` - switch the whisper offer for alts on or off
-- `/oa bug` - report a problem (guild version)
+- `/oa demo` - fill Oasis with sample data to try it out (stays on your PC)
 
 ## License
 
