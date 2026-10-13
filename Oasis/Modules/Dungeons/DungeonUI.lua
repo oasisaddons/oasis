@@ -336,6 +336,19 @@ local function legacyPins(host, list, floor, toXY, hidden)
         end
     end
 end
+-- Karte des Clients zu einer Ebene: die Karten eines Dungeons nach Nummer geordnet; die Ebene zaehlt als Platz
+-- in dieser Reihe (Fluegel teilen sich einen Ordner: Ebene 3 = dritte Karte), sonst der Platz in der Ebenenliste
+local function clientMapFor(d, cfg, floor)
+    if not d or not (C_Map and C_Map.GetMapArtLayerTextures) then return nil end
+    local ok, found = pcall(dungeonMaps, d)
+    if not ok or type(found) ~= "table" or #found == 0 then return nil end
+    local maps = {}
+    for i, m in ipairs(found) do maps[i] = m end
+    table.sort(maps, function(a, b) return a.id < b.id end)
+    local idx = 1
+    for i, fl in ipairs(cfg.floors or { 1 }) do if fl == floor then idx = i end end
+    return maps[tonumber(floor) or 0] or maps[idx] or maps[1]
+end
 local function drawLegacyMap(host, cfg, floor)
     host.ltiles = host.ltiles or {}
     for _, t in ipairs(host.ltiles) do t:Hide() end
@@ -345,6 +358,16 @@ local function drawLegacyMap(host, cfg, floor)
     local W, H = host:GetWidth(), host:GetHeight()
     if W < 50 then W, H = 600, 400 end
     if cfg.folder then
+        -- Neuer Client (Forever): die alten Bildpfade gibt es dort nicht mehr - das Kartenbild kommt ueber die
+        -- Kartennummer des Dungeons, die Boss-Positionen (in % des Bildes) passen unveraendert darauf.
+        local m = clientMapFor(host.curDungeon, cfg, floor)
+        if m and drawMap(host, m.id) and host.mapRect then
+            local R = host.mapRect
+            host.lrect = { R.x, R.y, R.w, R.h }
+            legacyPins(host, cfg.pins, floor, function(x, y) return R.x + x * R.w, R.y + y * R.h end)
+            return true
+        end
+        if host.tiles then for _, t in ipairs(host.tiles) do t:Hide() end end
         -- 4x3 Kacheln in einem 3:2-Rahmen (so wie die Boss-Positionen aus Forever Atlas gemessen sind)
         local asp = 1.5
         local dw = math.min(W, H * asp)

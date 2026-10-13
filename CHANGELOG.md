@@ -2,7 +2,7 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.5.989
+## 0.5.990
 
 - Dungeons, quests: every quest now says "Missing", "Active" or "Done" in colour; missing quests come first, finished ones last, and a line above the list counts each group.
 - Dungeons, quests: the map in the quest details is larger - it starts right below the text and uses the free space at the bottom.
@@ -13,6 +13,7 @@ Add a new section at the top for every file that is uploaded. Describe what chan
 - Game chat: search and copy the lines of a chat tab (/oa chatsuche) and keep the chat history between sessions.
 - Game chat: keyword alerts with notice, sound and a list of matches (/oa chatalarm).
 - Game chat: hide the chat menu, channel, social and scroll buttons.
+- Dungeons: the dungeon map with boss locations is shown again on the Forever client (the map image now comes from the game map of the dungeon).
 
 ## 0.5.986
 
