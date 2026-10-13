@@ -247,9 +247,9 @@ local function questOrder(quests)
 end
 -- Zustand einer Quest als kurzes Wort mit Farbe (Liste und Zaehlzeile)
 local QUEST_STATE = {
-    open = { "Fehlt", "ff7a5c" },
-    log = { "Aktiv", "ffd24a" },
-    done = { "Erledigt", "66db9e" },
+    open = { "Fehlt", "ff7fa6", { 1, 0.42, 0.62 } },
+    log = { "Aktiv", "ffd24a", { 1, 0.80, 0.25 } },
+    done = { "Erledigt", "66db9e", { 0.35, 0.85, 0.60 } },
 }
 
 -- Forever Atlas installiert? (nur dann duerfen wir dessen eigene Kartenbilder verwenden)
@@ -2385,6 +2385,9 @@ ns.RegisterPage({
         dv.questTab = qt
         qt.list = K.List(qt, 50, function(l)
             local r = K.Row(l)
+            -- leichter Farbverlauf je Zustand (von links auslaufend): fehlt rosa, aktiv gelb, erledigt gruen
+            r.tint = r:CreateTexture(nil, "BACKGROUND", nil, 1)
+            r.tint:SetAllPoints()
             -- Stufen-Plakette in Questfarbe, Status-Symbol in der Ecke
             r.badge = CreateFrame("Frame", nil, r)
             r.badge:SetSize(32, 32)
@@ -2431,6 +2434,10 @@ ns.RegisterPage({
             r.cols.name:SetText(q.name)
             local st = QUEST_STATE[q.state] or QUEST_STATE.open
             r.cols.st:SetText("|cff" .. st[2] .. L[st[1]] .. "|r")
+            local tc = st[3]
+            if not K.Gradient(r.tint, "HORIZONTAL", { tc[1], tc[2], tc[3], 0.20 }, { tc[1], tc[2], tc[3], 0.02 }) then
+                r.tint:SetColorTexture(tc[1], tc[2], tc[3], 0.08)
+            end
             local lv = tonumber(q.level)
             local lc = lv and lvlColor({ lo = lv }) or C.muted
             r.cols.lvl:SetText(lv and tostring(lv) or "?")
@@ -2605,6 +2612,14 @@ ns.RegisterPage({
             ns.RefreshPage("dungeons")
         end)
         qd.clear:SetPoint("LEFT", qd.turnin, "RIGHT", 6, 0)
+        -- zur Karte des Dungeons mit den Boss-Standorten (Reiter Karte)
+        qd.dmap = K.Button(qd, L["Dungeonkarte"], 120, 26, "ghost", function()
+            S.tab, S.sub.g2, S.tabFade = "map", "map", true
+            ns.RefreshPage("dungeons")
+        end)
+        qd.dmap:SetPoint("BOTTOMRIGHT", -14, 12)
+        qd.dmap:HookScript("OnEnter",function(self) K.ShowTip(self, { L["Dungeonkarte"], L["Karte des Dungeons mit den Standorten der Bosse"] }) end)
+        qd.dmap:HookScript("OnLeave",function() GameTooltip:Hide() end)
 
         -- Reiter Karte: Kartengrafik aus dem Client, Ebenen umschaltbar
         local mt = K.Panel(body, C.panel)
