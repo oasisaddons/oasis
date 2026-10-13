@@ -22,6 +22,7 @@ M.LIST = {
     { addon = "Oasis_Deathroll", title = "Todeswuerfeln", icon = "deathroll", desc = "Deathroll-Duelle mit Rangliste" },
     { addon = "Oasis_Legacy", title = "Legacy", icon = "legacy", desc = "Legacy-Erfolge und Sammelstuecke" },
     { addon = "Oasis_Questitems", title = "Questitems", icon = "checklist", desc = "Questitems der Gilde suchen und anbieten" },
+    { addon = "Oasis_Spielchat", title = "Spielchat", icon = "social", desc = "Blizzards Chatfenster lesbarer: Namen, Stufen und Symbole, Filter, Suche, Verlauf und Stichwort-Alarme" },
 }
 M.state = {}   -- [addon] = "loaded" | "off" | "missing" | "disabled" | Fehlertext
 

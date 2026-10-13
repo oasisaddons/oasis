@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.5.988
+## Version: 0.5.989
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -176,6 +176,8 @@ Modules\CombatCrit.lua
 Modules\Talents.lua
 Modules\UpdateStart.lua
 Locales\Base\LocaleData481.lua
+Modules\GameChat\GameChat.lua
+Modules\GameChat\GameChatUI.lua
 Modules\Dungeons\DungeonData.lua
 Modules\Dungeons\BossPos.lua
 Modules\Dungeons\DungeonMaps.lua
