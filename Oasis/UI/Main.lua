@@ -41,7 +41,12 @@ local GUILD_ONLY = { radar = true, chat = true, chronicle = true, polls = true, 
     wants = true, camp = true, deaths = true, admin = true, officer = true, map = true, gearmatch = true, questitems = true,
     lockouts = true, repplan = true, rares = true }
 function ns.InGuild() return not IsInGuild or IsInGuild() and true or false end
-function ns.GuildOnly(key) return GUILD_ONLY[key] == true and not ns.InGuild() end
+-- Mit Beispieldaten (/oa demo) sind die Gildenseiten auch ohne Gilde zu sehen: zum Ausprobieren, alles bleibt auf diesem PC
+function ns.GuildView()
+    if ns.InGuild() then return true end
+    return ns.Demo ~= nil and ns.Demo.IsActive ~= nil and ns.Demo.IsActive() or false
+end
+function ns.GuildOnly(key) return GUILD_ONLY[key] == true and not ns.GuildView() end
 -- sichtbar = eigene Bedingung + von der Gildenleitung eingeschaltet + nicht selbst ausgeblendet
 function ns.PageVisible(key)
     local def = pages[key]
@@ -1602,6 +1607,8 @@ function ns.SetLanguage(key, reload)
         return
     end
     ns.lang = want
+    if ns.RelabelAll then ns.RelabelAll() end
+    if ns.Demo and ns.Demo.Relang then ns.Demo.Relang() end
     K.ApplyUserFonts()
     ns.RebuildMain()
     local l = ns.langByKey[ns.lang]

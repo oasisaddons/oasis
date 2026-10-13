@@ -105,12 +105,25 @@ function ns.PrepareLang()
     end
     ns.langFiles = nil   -- uebrige Fremdsprachen verwerfen
     umlautCache = {}
+    ns.RelabelAll()
 end
 -- braucht die Sprache Verworfenes? Dann geht der Wechsel erst nach /reload
 function ns.LangNeedsReload(lang)
     if FOREIGN[lang] and not ns.langLoaded[lang] and not (ns.langFiles and ns.langFiles[lang]) then return true end
     if lang == "de" then return ns.langDropped.de and true or false end
     return ns.langDropped.en and true or false
+end
+
+-- Texte, die schon beim Laden einer Datei gelesen werden (Tabellen mit Beschriftungen), stuenden sonst fuer immer
+-- in der Client-Sprache: die Sprache des Nutzers steht erst bei ADDON_LOADED fest. fn laeuft sofort und nach
+-- jedem Festlegen oder Wechseln der Sprache erneut.
+local relabel = {}
+function ns.Relabel(fn)
+    relabel[#relabel + 1] = fn
+    fn()
+end
+function ns.RelabelAll()
+    for _, fn in ipairs(relabel) do pcall(fn) end
 end
 
 ns.L = setmetatable({}, {

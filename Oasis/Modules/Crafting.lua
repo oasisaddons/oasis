@@ -250,6 +250,16 @@ function Crafting.LocalProf(recipeID, fallback)
     profCache[recipeID] = false
     return fallback
 end
+-- Name eines Materials: kennt der Client das Item noch nicht, wird es angefordert (GET_ITEM_INFO_RECEIVED zeichnet
+-- die Seite neu) und bis dahin stehen drei Punkte da - nie die nackte Nummer ("#2452").
+function Crafting.MatName(itemID)
+    local n = C_Item.GetItemNameByID and ns.safe(C_Item.GetItemNameByID(itemID))
+    if n and n ~= "" then return n end
+    n = ns.ItemSearch and ns.ItemSearch.Name and ns.ItemSearch.Name(itemID)   -- gemerkte Namen dieser Sprache
+    if n and n ~= "" then return n end
+    if C_Item.RequestLoadItemDataByID then pcall(C_Item.RequestLoadItemDataByID, itemID) end
+    return "..."
+end
 -- Item-Namen kommen verzoegert: nur wenn ein im Index noch fehlender Name ankommt, den Index neu bauen -
 -- gebuendelt nach 1 s (Performance 0.5.482: vorher machte JEDES geladene Item - Tooltips, Taschen, Chat -
 -- den Index ungueltig, er wurde dann bei fast jedem Tooltip komplett neu gebaut)
@@ -324,12 +334,16 @@ end
 -- Auftraege
 ------------------------------------------------------------------------
 local STATUS = {
-    open = { L["Offen"], C.amber },
-    accepted = { L["In Arbeit"], C.blue },
-    done = { L["Fertig"], C.mint },
-    cancel = { L["Storniert"], C.dim },
-    declined = { L["Abgelehnt"], C.red },
+    open = { "Offen", C.amber },
+    accepted = { "In Arbeit", C.blue },
+    done = { "Fertig", C.mint },
+    cancel = { "Storniert", C.dim },
+    declined = { "Abgelehnt", C.red },
 }
+ns.Relabel(function()
+    STATUS.open[1], STATUS.accepted[1], STATUS.done[1] = L["Offen"], L["In Arbeit"], L["Fertig"]
+    STATUS.cancel[1], STATUS.declined[1] = L["Storniert"], L["Abgelehnt"]
+end)
 -- offene Auftraege an alle: "ablehnen" blendet sie nur fuer dich aus
 local function hiddenForMe(o)
     return ns.db and ns.db.ordersHidden and ns.db.ordersHidden[o.id] and true or false
@@ -2343,7 +2357,7 @@ local function fillCard(p)
                 p.cMats[i] = w
                 w.itemID, w.need = m.itemID, need
                 w.icon:SetTexture(Crafting.Icon({ itemID = m.itemID }))
-                local nm = (C_Item.GetItemNameByID and ns.safe(C_Item.GetItemNameByID(m.itemID))) or ("#" .. m.itemID)
+                local nm = Crafting.MatName(m.itemID)
                 w.nm = nm
                 w.name:SetText("|cffc8c8c8" .. need .. "x|r " .. Crafting.QualityHex(m.itemID) .. nm .. "|r")
                 local bags, bank, gb, tw = stockOf(m.itemID)

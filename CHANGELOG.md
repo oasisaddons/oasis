@@ -2,6 +2,17 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.5.986
+
+- Sample data (/oa demo) is now in English for every language except German: events, guild chat, notes, boss tactics, dungeon and item names.
+- Without a guild: with the sample data loaded, the guild pages are shown too, and the start page for players without a guild has a button "See an example".
+- Labels now follow the language chosen in Oasis even if it differs from the game client (role names, loot choices, order status, chronicle types, whisper filters).
+- Groups: the switches "Voice chat" and "Auto-accept" no longer overlap.
+- Crafting: materials whose name the client has not loaded yet are requested instead of being shown as a number.
+- Map: danger zones (red tint on the world map) are off by default; they can be switched on in the settings.
+- Translations: 15 texts that were still shown in English are now translated in French, Spanish, Italian, Portuguese, Russian, Chinese, Korean, Japanese and Polish (sample data, own sounds and emojis, map markers).
+- Chinese: fixed an error when showing the number of recipes of a crafter.
+
 ## 0.5.981
 
 - Item comparison: the panel no longer covers the window the item is in (bags, bank, vendor) if there is room elsewhere.

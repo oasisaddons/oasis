@@ -107,6 +107,19 @@ function NoGuild.Fill(p)
         p.find.btn:ClearAllPoints()
         p.find.btn:SetPoint("RIGHT", -16, 0)
         p.find.btn:SetWidth(150)
+        -- Beispieldaten: so sieht Oasis mit Gilde aus. Startet nur per Klick und bleibt auf diesem PC.
+        if ns.Demo and ns.Demo.Load then
+            p.find.btn:SetPoint("RIGHT", -16, 17)
+            p.find.demo = calmBtn(K.Button(p.find, L["Beispiel ansehen"], 150, 26, "ghost", function()
+                if not ns.Demo.IsActive() then ns.Demo.Load() end
+                ns.ShowPage("home")
+            end))
+            p.find.demo:SetPoint("RIGHT", -16, -17)
+            p.find.demo:HookScript("OnEnter", function(self)
+                K.ShowTip(self, { L["Beispiel ansehen"], L["So sieht Oasis mit einer Gilde aus: Beispieldaten nur auf deinem PC, es wird nichts gesendet. Entfernen mit /oa demo aus."] })
+            end)
+            p.find.demo:HookScript("OnLeave", function() GameTooltip:Hide() end)
+        end
 
         -- Deine Oasis-Kontakte (Oasis-Nutzer aus Gruppen, auch ausserhalb einer Gilde)
         local MAXR = 5

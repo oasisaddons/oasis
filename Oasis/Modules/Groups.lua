@@ -61,10 +61,13 @@ ns.Groups = Groups
 Groups.requests = {}   -- Anfragen an meine Suche: [name] = { role, class, lvl, t, state }
 
 local ROLES = {
-    tank = { L["Tank"], { 0.38, 0.62, 1.00 } },
-    heal = { L["Heiler"], { 0.40, 0.86, 0.62 } },
-    dps = { L["Schaden"], { 1.00, 0.35, 0.30 } },
+    tank = { "Tank", { 0.38, 0.62, 1.00 } },
+    heal = { "Heiler", { 0.40, 0.86, 0.62 } },
+    dps = { "Schaden", { 1.00, 0.35, 0.30 } },
 }
+ns.Relabel(function()
+    ROLES.tank[1], ROLES.heal[1], ROLES.dps[1] = L["Tank"], L["Heiler"], L["Schaden"]
+end)
 local CAN = {
     WARRIOR = { tank = true, dps = true }, PALADIN = { tank = true, heal = true, dps = true },
     DRUID = { tank = true, heal = true, dps = true }, PRIEST = { heal = true, dps = true },
@@ -1370,7 +1373,7 @@ ns.RegisterPage({
         p.cardOff = 0
         p.cardsArea = CreateFrame("Frame", nil, nv)
         p.cardsArea:SetPoint("TOPLEFT", 12, -90)
-        p.cardsArea:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -12, 188)
+        p.cardsArea:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -12, 212)
         p.cardsArea:EnableMouseWheel(true)
         p.cardsArea:SetScript("OnMouseWheel", function(_, delta)
             p.cardOff = (p.cardOff or 0) - (delta or 0)
@@ -1419,7 +1422,7 @@ ns.RegisterPage({
             if t ~= "" then pickTitle = nil end
             ns.RefreshPage("groups")
         end)
-        p.title:SetPoint("BOTTOMLEFT", 12, 158)
+        p.title:SetPoint("BOTTOMLEFT", 12, 182)
         p.title:SetPoint("RIGHT", box, "RIGHT", -12, 0)
         p.title:SetHeight(26)
         p.title:SetTextInsets(28, 8, 0, 0)
@@ -1437,7 +1440,7 @@ ns.RegisterPage({
 
         -- Rollen-Kacheln
         local rr = CreateFrame("Frame", nil, nv)
-        rr:SetPoint("BOTTOMLEFT", 12, 104)
+        rr:SetPoint("BOTTOMLEFT", 12, 128)
         rr:SetPoint("RIGHT", box, "RIGHT", -12, 0)
         rr:SetHeight(48)
         p.roleBtns = {}
@@ -1470,7 +1473,7 @@ ns.RegisterPage({
         p.auto = K.Toggle(nv, L["Automatisch einladen"], function() return autoInvite end, function(v) autoInvite = v ns.db.settings.lfgAuto = v end)
         optionRow(p.auto, L["Automatisch einladen"], L["Wer sich mit passender Rolle meldet, wird sofort in deine Gruppe eingeladen."])
         p.auto:ClearAllPoints()
-        p.auto:SetPoint("BOTTOMLEFT", 12, 76)
+        p.auto:SetPoint("BOTTOMLEFT", 12, 100)
         p.auto:SetPoint("RIGHT", box, "RIGHT", -12, 0)
         p.auto:SetHeight(20)
 
@@ -1485,7 +1488,7 @@ ns.RegisterPage({
         p.voice = K.Toggle(nv, L["Sprachchat"], function() return ns.db.settings.lfgVoice and true or false end, function(v) ns.db.settings.lfgVoice = v end)
         optionRow(p.voice, L["Sprachchat"], L["Zeigt in der Suche an, dass ihr per Sprache redet (Discord o.ae.). Beitreten regelt weiter Blizzard bzw. dein Gruppenleiter."])
         p.voice:ClearAllPoints()
-        p.voice:SetPoint("BOTTOMLEFT", 12, 52)
+        p.voice:SetPoint("BOTTOMLEFT", 12, 76)
         p.voice:SetPoint("RIGHT", box, "RIGHT", -12, 0)
         p.voice:SetHeight(20)
 
@@ -1798,6 +1801,14 @@ ns.RegisterPage({
         local view = mine and "run" or "new"
         local switched = p.lastView ~= view
         p.lastView = view
+        -- Trennlinie ueber den Schalterzeilen: die neue Suche hat eine Zeile mehr (Sprachchat)
+        if p.optLine and p.optLineView ~= view then
+            p.optLineView = view
+            local y = (view == "new") and 126 or 102
+            p.optLine:ClearAllPoints()
+            p.optLine:SetPoint("BOTTOMLEFT", 12, y)
+            p.optLine:SetPoint("BOTTOMRIGHT", -12, y)
+        end
         p.newView:SetShown(not mine)
         p.runView:SetShown(mine ~= nil)
         if p.boxHead then
@@ -2452,15 +2463,17 @@ do
         if MK.afterCombat then local f = MK.afterCombat MK.afterCombat = nil pcall(f) end
     end)
     ns.Listen("LOGIN", function() MK.Secure() end)
-    _G["BINDING_NAME_CLICK OasisMarkSecure:LeftButton"] = L["Gegner automatisch markieren"]
-    _G["BINDING_NAME_CLICK OasisMarkSecure:RightButton"] = L["Marken entfernen"]
+    ns.Relabel(function()
+        _G["BINDING_NAME_CLICK OasisMarkSecure:LeftButton"] = L["Gegner automatisch markieren"]
+        _G["BINDING_NAME_CLICK OasisMarkSecure:RightButton"] = L["Marken entfernen"]
+        _G.BINDING_NAME_OASIS_AUTOMARK = L["Gegner automatisch markieren"]
+        _G.BINDING_NAME_OASIS_CLEARMARK = L["Marken entfernen"]
+    end)
 
     -- Tastenbelegung (Bindings.xml) ruft diese auf
     _G.OasisAutoMark = function() MK.Mark() end
     _G.OasisClearMarks = function() MK.Clear() end
     _G.BINDING_HEADER_OASIS = "Oasis"
-    _G.BINDING_NAME_OASIS_AUTOMARK = L["Gegner automatisch markieren"]
-    _G.BINDING_NAME_OASIS_CLEARMARK = L["Marken entfernen"]
 
     -- schwebende Box: grosser Marker-Knopf + Schnell-Einstellungen (verschiebbar, nur ausserhalb des Kampfes)
     local btn, box

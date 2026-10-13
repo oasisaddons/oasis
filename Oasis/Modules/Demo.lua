@@ -140,7 +140,59 @@ function Demo.People()
 end
 -- Horde-Volk je Klasse (Orc 2, Untoter 5, Tauren 6, Troll 8)
 local DEMO_RACE = { WARRIOR = 2, PRIEST = 5, HUNTER = 6, MAGE = 8, SHAMAN = 6, ROGUE = 5, DRUID = 6, WARLOCK = 2, PALADIN = 2 }
+-- Beispieltexte in der Sprache des Nutzers: Deutsch steht im Code, jede andere Sprache nimmt die englische Fassung
+-- (Modules/DemoSeeds/TextsEN.lua). Zusammengesetzte Felder ("Name@id", "Beruf/1/2/3+Beruf/..", "0{Item{5{..}")
+-- werden abschnittsweise ersetzt. Kennungen und die Vorlagen der Chronik (tk, uebersetzt die Anzeige) bleiben.
+local KEEP = { tk = true, id = true, who = true, by = true, kind = true, hash = true }
+function Demo.Text(s)
+    local t = ns.DemoEN
+    if not t or ns.lang == "de" or type(s) ~= "string" then return s end
+    local v = t[s]
+    if v then return v end
+    if s:find("[{}@/+]") then return (s:gsub("[^{}@/+]+", function(part) return t[part] end)) end
+    return s
+end
+function Demo.Localize(rec, depth)
+    if ns.lang == "de" or type(rec) ~= "table" or not ns.DemoEN then return rec end
+    depth = depth or 0
+    if depth > 6 then return rec end
+    local rename
+    for k, v in pairs(rec) do
+        if type(v) == "table" then
+            Demo.Localize(v, depth + 1)
+        elseif type(v) == "string" and not KEEP[k] then
+            local n = Demo.Text(v)
+            if n ~= v then rec[k] = n end
+        end
+        -- Berufe stehen als Schluessel (Rezepte je Beruf)
+        if type(k) == "string" and ns.DemoEN[k] and rec[ns.DemoEN[k]] == nil then
+            rename = rename or {}
+            rename[k] = ns.DemoEN[k]
+        end
+    end
+    for k, n in pairs(rename or {}) do
+        rec[n], rec[k] = rec[k], nil
+    end
+    return rec
+end
+-- alles ausserhalb des Stores, was die Demo angelegt hat (Mitglieder, Rezepte, Mitspieler ...): Tabellen mit demo = true
+local function localizeTables(t, depth, seen)
+    if type(t) ~= "table" or depth > 4 or seen[t] then return end
+    seen[t] = true
+    if rawget(t, "demo") == true then Demo.Localize(t) return end
+    for _, v in pairs(t) do
+        if type(v) == "table" then localizeTables(v, depth + 1, seen) end
+    end
+end
+function Demo.LocalizeAll()
+    if ns.lang == "de" or not ns.DemoEN then return end
+    local seen = { [ns.db.store or {}] = true }   -- Store-Saetze uebersetzt put() schon
+    localizeTables(ns.db, 0, seen)
+    if ns.char then localizeTables(ns.char, 0, seen) end
+end
+
 local function put(name, rec)
+    Demo.Localize(rec)
     rec.demo = true
     rec.u = rec.u or ns.now()
     rec.by = rec.by or rec.who or ns.me()
@@ -462,6 +514,8 @@ local function refreshAll()
     end
     if ns.UpdateMiniBar then ns.UpdateMiniBar() end
     if ns.UpdateDemoSwitch then ns.UpdateDemoSwitch() end
+    -- ohne Gilde haengen die Gildenseiten an den Beispieldaten: Navigation neu aufbauen
+    if ns.LayoutNav then pcall(ns.LayoutNav) end
 end
 
 -- Position des Spielers (damit ein paar Leute auch auf der Minimap neben dir stehen)
@@ -618,7 +672,7 @@ local function tick()
 end
 
 -- bei neuen Demo-Inhalten hochzaehlen: aeltere Demos werden nach /reload ergaenzt
-local DEMO_VERSION = 13
+local DEMO_VERSION = 14
 
 function Demo.Load()
     -- 0.5.949: Beispieldaten gibt es wieder fuer alle (zum Ausprobieren und Einrichten). Sie starten nie von selbst,
@@ -630,11 +684,12 @@ function Demo.Load()
     local ok, err = pcall(function() seedMembers() seedStore() end)
     ns.demoLoading = false
     if not ok then ns.err("Demo", err) end
+    pcall(Demo.LocalizeAll)
     movePeople()
     nextEvent = GetTime() + 8
     refreshAll()
     if ns.Admin and ns.Admin.ApplyBrand then pcall(ns.Admin.ApplyBrand, true) end   -- Logo: langer Demo-Gildenname
-    ns.print(L["Demo-Daten geladen (nur bei dir, wird nicht an die Gilde gesendet). Entfernen: /oa demo aus"])
+    if not Demo.quiet then ns.print(L["Demo-Daten geladen (nur bei dir, wird nicht an die Gilde gesendet). Entfernen: /oa demo aus"]) end
 end
 
 function Demo.Remove()
@@ -659,8 +714,21 @@ function Demo.Remove()
     if ns.Map and ns.Map.pos then for name, p in pairs(ns.Map.pos) do if p.demo then ns.Map.pos[name] = nil end end end
     for _, d in ipairs(Demo.SEEDS) do if d.clean then pcall(d.clean) end end
     refreshAll()
+    -- ohne Gilde: die offene Gildenseite gibt es jetzt nicht mehr
+    if ns.MainShown and ns.MainShown() and ns.GuildOnly and ns.CurrentPage and ns.GuildOnly(ns.CurrentPage() or "") then
+        pcall(ns.ShowPage, "home")
+    end
     if ns.Admin and ns.Admin.ApplyBrand then pcall(ns.Admin.ApplyBrand, true) end   -- Logo wieder mit dem echten Namen
-    ns.print((L["Demo-Daten entfernt (%d Eintraege)."]):format(n))
+    if not Demo.quiet then ns.print((L["Demo-Daten entfernt (%d Eintraege)."]):format(n)) end
+end
+
+-- Sprache gewechselt, waehrend die Beispieldaten laufen: in der neuen Sprache neu anlegen
+function Demo.Relang()
+    if not Demo.IsActive() then return end
+    Demo.quiet = true
+    pcall(Demo.Remove)
+    pcall(Demo.Load)
+    Demo.quiet = nil
 end
 
 ns.slash.demo = function(arg)
@@ -683,6 +751,7 @@ ns.Listen("LOGIN", function()
             ns.db.demoVersion = DEMO_VERSION
             ns.print(L["Demo-Daten auf den neuen Stand gebracht."])
         end
+        pcall(Demo.LocalizeAll)
         movePeople()
         refreshAll()
     end)

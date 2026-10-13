@@ -811,7 +811,10 @@ end
 ------------------------------------------------------------------------
 -- Ansicht
 ------------------------------------------------------------------------
-local FILTERS = { { key = "all", text = L["Alle"] }, { key = "unread", text = L["Ungelesen"] }, { key = "pin", text = L["Angeheftet"] }, { key = "star", text = L["Gemerkt"] } }
+local FILTERS = { { key = "all", text = "Alle" }, { key = "unread", text = "Ungelesen" }, { key = "pin", text = "Angeheftet" }, { key = "star", text = "Gemerkt" } }
+ns.Relabel(function()
+    FILTERS[1].text, FILTERS[2].text, FILTERS[3].text, FILTERS[4].text = L["Alle"], L["Ungelesen"], L["Angeheftet"], L["Gemerkt"]
+end)
 local function lowerFind(hay, q) return q and q ~= "" and plain(hay or ""):lower():find(q, 1, true) end
 -- Treffer hervorheben (nur in reinem Text ohne Codes, sonst unveraendert)
 local function mark(text, q)

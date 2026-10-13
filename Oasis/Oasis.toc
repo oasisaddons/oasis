@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.5.984
+## Version: 0.5.986
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -196,6 +196,7 @@ Modules\Deathroll\Deathroll.lua
 Modules\Legacy\Legacy.lua
 Modules\QuestItems\QuestItems.lua
 # Demo-Daten je Bereich (nur /oa demo, Entwicklerversion)
+Modules\DemoSeeds\TextsEN.lua
 Modules\DemoSeeds\Ich.lua
 Modules\DemoSeeds\Gilde.lua
 Modules\DemoSeeds\Zusammen.lua

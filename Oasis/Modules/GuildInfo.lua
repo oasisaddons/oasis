@@ -2782,7 +2782,7 @@ ns.RegisterPage({
             for _, t in ipairs(self.tiles) do t:Hide() end
             -- Kacheln
             local ty = -(banH + GAP)
-            if self.ngArea and ns.InGuild and not ns.InGuild() then
+            if self.ngArea and ns.GuildView and not ns.GuildView() then
                 self:LayoutNoGuild(ty, W, H)
                 return
             end
@@ -3833,8 +3833,8 @@ ns.RegisterPage({
         ban.motd.has = false
         ban.motd.tip = nil
         ban.motd:Hide()
-        ban.info:SetShown(Info.Text() ~= "" and (not ns.InGuild or ns.InGuild()))
-        if ns.InGuild and not ns.InGuild() then
+        ban.info:SetShown(Info.Text() ~= "" and (not ns.GuildView or ns.GuildView()))
+        if ns.GuildView and not ns.GuildView() then
             local lv = ns.safe(UnitLevel("player")) or 0
             local zn = ns.safe(GetRealZoneText()) or ""
             ban.line2:SetText((L["Level %d"]):format(lv) .. (zn ~= "" and ("  |cff888888·|r  " .. zn) or "") .. "  |cff888888·|r  " .. L["ohne Gilde unterwegs"])
@@ -3884,7 +3884,7 @@ ns.RegisterPage({
                 end
             end
         end
-        if ns.InGuild and not ns.InGuild() then
+        if ns.GuildView and not ns.GuildView() then
             tlist = {}
             local life = ns.char and ns.char.life
             for _, e in ipairs((life and life.events) or {}) do
@@ -4151,7 +4151,7 @@ ns.RegisterPage({
             end
         end
         p:UpdateClock()
-        if p.ngArea and ns.InGuild and not ns.InGuild() then p:Layout() end
+        if p.ngArea and ns.GuildView and not ns.GuildView() then p:Layout() end
         p.fresh = false
     end,
 })

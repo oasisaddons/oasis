@@ -60,15 +60,19 @@ local Chronicle = {}
 ns.Chronicle = Chronicle
 
 local KINDS = {
-    level = { L["Level"], C.blue },
-    loot = { L["Beute"], C.pink },
-    legacy = { L["Legacy"], C.violet },
-    boss = { L["Boss"], C.amber },
-    guild = { L["Gilde"], C.mint },
-    duel = { L["Wuerfeln"], C.red },
-    badge = { L["Abzeichen"], C.accent },
-    news = { L["Gilden-News"], { 0.55, 0.68, 0.85 } },
+    level = { "Level", C.blue },
+    loot = { "Beute", C.pink },
+    legacy = { "Legacy", C.violet },
+    boss = { "Boss", C.amber },
+    guild = { "Gilde", C.mint },
+    duel = { "Wuerfeln", C.red },
+    badge = { "Abzeichen", C.accent },
+    news = { "Gilden-News", { 0.55, 0.68, 0.85 } },
 }
+ns.Relabel(function()
+    KINDS.level[1], KINDS.loot[1], KINDS.legacy[1], KINDS.boss[1] = L["Level"], L["Beute"], L["Legacy"], L["Boss"]
+    KINDS.guild[1], KINDS.duel[1], KINDS.badge[1], KINDS.news[1] = L["Gilde"], L["Wuerfeln"], L["Abzeichen"], L["Gilden-News"]
+end)
 
 -- Eintraege speichern eine Textvorlage (tk) + Werte (a1..a3), damit jeder Client
 -- sie in seiner eigenen Sprache anzeigt

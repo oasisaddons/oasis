@@ -96,16 +96,20 @@ end
 Raid.RankAllowed = rankAllowed
 
 local ROLES = {
-    tank = { L["Tank"], C.blue },
-    heal = { L["Heiler"], C.mint },
-    dps = { L["Schaden"], C.pink },
+    tank = { "Tank", C.blue },
+    heal = { "Heiler", C.mint },
+    dps = { "Schaden", C.pink },
 }
 local CHOICES = {
-    need = { L["Bedarf"], C.mint, 1 },
-    greed = { L["Zweitspec"], C.amber, 2 },
-    mog = { L["Transmog"], C.violet, 3 },
-    pass = { L["Passen"], C.dim, 4 },
+    need = { "Bedarf", C.mint, 1 },
+    greed = { "Zweitspec", C.amber, 2 },
+    mog = { "Transmog", C.violet, 3 },
+    pass = { "Passen", C.dim, 4 },
 }
+ns.Relabel(function()
+    ROLES.tank[1], ROLES.heal[1], ROLES.dps[1] = L["Tank"], L["Heiler"], L["Schaden"]
+    CHOICES.need[1], CHOICES.greed[1], CHOICES.mog[1], CHOICES.pass[1] = L["Bedarf"], L["Zweitspec"], L["Transmog"], L["Passen"]
+end)
 
 ------------------------------------------------------------------------
 -- Termine

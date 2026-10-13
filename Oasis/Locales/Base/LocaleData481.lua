@@ -2924,3 +2924,5 @@ DE["1. Die Vorlage Oasis-Tools gibt es auf der GitHub-Seite von Oasis und im Oas
 EN["1. Die Vorlage Oasis-Tools gibt es auf der GitHub-Seite von Oasis und im Oasis-Discord (auf CurseForge ueber den Link Source)."] = "1. Get the template Oasis-Tools from the Oasis GitHub page or the Oasis Discord (on CurseForge via the Source link)."
 DE["1. Die Vorlage Oasis-Tools gibt es im Oasis-Discord (Kanal oasis-download)."] = "1. Die Vorlage Oasis-Tools gibt es im Oasis-Discord (Kanal oasis-download)."
 EN["1. Die Vorlage Oasis-Tools gibt es im Oasis-Discord (Kanal oasis-download)."] = "1. Get the template Oasis-Tools from the Oasis Discord (channel oasis-download)."
+DE["So sieht Oasis mit einer Gilde aus: Beispieldaten nur auf deinem PC, es wird nichts gesendet. Entfernen mit /oa demo aus."] = "So sieht Oasis mit einer Gilde aus: Beispieldaten nur auf deinem PC, es wird nichts gesendet. Entfernen mit /oa demo aus."
+EN["So sieht Oasis mit einer Gilde aus: Beispieldaten nur auf deinem PC, es wird nichts gesendet. Entfernen mit /oa demo aus."] = "This is what Oasis looks like with a guild: sample data on your PC only, nothing is sent. Remove it with /oa demo off."
