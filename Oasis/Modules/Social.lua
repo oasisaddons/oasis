@@ -496,6 +496,70 @@ refreshSocial = function()
     ns.RefreshPage("social")
     ns.RefreshPage("allies")
 end
+
+------------------------------------------------------------------------
+-- 0.6.137: Spieler von Hand ins Spielerbuch - Rechtsklick auf einen Namen (Chat, Gruppe, Schlachtzug, Ziel, Freunde)
+-- oder /oa buch fuer das aktuelle Ziel. Legt den Eintrag an, oeffnet das Spielerbuch und setzt den Cursor in die Notiz.
+------------------------------------------------------------------------
+function Social.AddToBook(name, unit)
+    if type(name) ~= "string" or name == "" then return end
+    local full = ns.fullName(name)
+    if not full or ns.isMe(full) then return end
+    local e = Social.Entry(full)
+    if unit and UnitExists(unit) then
+        local _, classFile = UnitClass(unit)
+        e.class = ns.safe(classFile) or e.class
+        e.lvl = ns.safe(UnitLevel(unit)) or e.lvl
+        local g = ns.safe(GetGuildInfo(unit))
+        if g ~= nil then e.guild = g end
+    end
+    if (e.last or 0) == 0 then e.last = ns.now() end
+    e.manual = true
+    selected = full
+    view = "allies"
+    ns.ShowPage("allies")
+    refreshSocial()
+    ns.After(0.15, function()
+        local pg = Social._page
+        if pg and pg.detailNote then pg.detailNote:SetFocus() end
+    end)
+    K.Toast(L["Spielerbuch"], (L["%s steht jetzt im Spielerbuch - schreib eine Notiz dazu."]):format(ns.displayName(full)), C.accent)
+end
+-- Eintrag in Blizzards Rechtsklick-Menues (offizieller Weg: Menu.ModifyMenu, Blizzard-Menues bleiben unveraendert)
+local MENU_TAGS = { "MENU_UNIT_PLAYER", "MENU_UNIT_PARTY", "MENU_UNIT_RAID_PLAYER", "MENU_UNIT_TARGET", "MENU_UNIT_FRIEND",
+    "MENU_UNIT_ENEMY_PLAYER", "MENU_UNIT_FOCUS", "MENU_UNIT_CHAT_ROSTER", "MENU_UNIT_COMMUNITIES_GUILD_MEMBER" }
+local function bookMenu(owner, root, ctx)
+    if not ctx then return end
+    local unit = ctx.unit
+    local name = ctx.name
+    if unit and UnitExists(unit) then
+        if not UnitIsPlayer(unit) or UnitIsUnit(unit, "player") then return end
+        local n, realm = ns.UnitFullName(unit)
+        n, realm = ns.safe(n), ns.safe(realm)
+        if n then name = (realm and realm ~= "") and (n .. "-" .. realm) or n end
+    elseif name and ctx.server and ctx.server ~= "" and not name:find("-", 1, true) then
+        name = name .. "-" .. ctx.server
+    end
+    name = ns.safe(name)
+    if not name or name == "" or ns.isMe(name) then return end
+    root:CreateDivider()
+    root:CreateTitle("Oasis")
+    root:CreateButton(L["Ins Spielerbuch"], function() Social.AddToBook(name, unit) end)
+end
+if ns.Listen then ns.Listen("LOGIN", function()
+    if not (Menu and Menu.ModifyMenu) then return end
+    for _, tag in ipairs(MENU_TAGS) do pcall(Menu.ModifyMenu, tag, function(owner, root, ctx) pcall(bookMenu, owner, root, ctx) end) end
+end) end
+ns.slash = ns.slash or {}
+ns.slash.buch = function()
+    if UnitExists("target") and UnitIsPlayer("target") and not UnitIsUnit("target", "player") then
+        local n, realm = ns.UnitFullName("target")
+        n, realm = ns.safe(n), ns.safe(realm)
+        if n then Social.AddToBook((realm and realm ~= "") and (n .. "-" .. realm) or n, "target") return end
+    end
+    ns.print(L["Erst einen Spieler anvisieren, dann /oa buch."])
+end
+ns.slash.book = ns.slash.buch
 local allyFilter, roleFilter = "all", nil
 local allySearch = ""
 local bookLoaded = false
@@ -1195,6 +1259,7 @@ local socialPage = {
         p.detailMeta:SetPoint("TOPLEFT", 12, -30)
         p.detailMeta:SetPoint("RIGHT", -12, 0)
         p.detailNote = K.Input(p.details, 300, L["Notiz ..."])
+        Social._page = p
         p.detailNote:SetPoint("BOTTOMLEFT", 12, 10)
         p.detailNote:SetPoint("RIGHT", p.details, "RIGHT", -190, 0)
         p.detailNote:SetMaxLetters(250)

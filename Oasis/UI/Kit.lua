@@ -2348,6 +2348,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         t.bar:Hide()
         t.glow:SetAlpha(0.5)
         t.boxTint:SetVertexColor(color[1], color[2], color[3], 1)
+        t.boxTint:Hide()   -- 0.6.137: Rahmenlinie aus dem Bild ausgeblendet (wirkte wie ein zusaetzlicher Rahmen)
         -- 0.6.135: Zeitbalken in der Box rechts neben dem Logo bis vor das Auge, mit Verlauf, dezentem Schein und
         -- einem Lichtpunkt, der ueber den Balken laeuft
         t.time:ClearAllPoints()
@@ -2368,7 +2369,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         end
         if not K.Gradient(t.timeGlow, "HORIZONTAL", { color[1], color[2], color[3], 0.05 }, { color[1], color[2], color[3], 0.22 }) then t.timeGlow:SetVertexColor(color[1], color[2], color[3], 0.15) end
         if not K.Gradient(t.timeShine, "HORIZONTAL", { 1, 1, 1, 0 }, { 1, 1, 1, 0.55 }) then t.timeShine:SetVertexColor(1, 1, 1, 0.4) end
-        t.timeGlow:Show() t.timeShine:Show()
+        t.timeGlow:Show() t.timeShine:Hide()   -- 0.6.137: laufender Lichtpunkt aus (wirkte unruhig)
         local ac = C.accent
         t.logoTint:SetVertexColor(ac[1], ac[2], ac[3], 1)
     end
