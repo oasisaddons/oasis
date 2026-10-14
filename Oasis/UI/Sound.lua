@@ -477,8 +477,16 @@ function Sound.EntrancePopup(name, key, handle, isTest)
         pop:SetScript("OnShow", function() K.LayoutToasts() end)
         pop:SetScript("OnHide", function() K.LayoutToasts() end)
         pop:SetFrameStrata("DIALOG")
-        K.Fill(pop, { 0.04, 0.04, 0.05, 0.96 })
+        pop.fillTex = K.Fill(pop, { 0.04, 0.04, 0.05, 0.96 })
         K.Border(pop, { C.accent[1] * 0.7, C.accent[2] * 0.7, C.accent[3] * 0.7, 1 })
+        -- 0.6.151: gleiche Bild-Box wie die uebrigen Hinweise (K.Toast, Gildenmodul) statt Flaeche und Oasis-Rand
+        if ns.GuildPack then
+            pop.boxBase = pop:CreateTexture(nil, "BACKGROUND", nil, 3)
+            pop.boxBase:SetAllPoints()
+            pop.boxBase:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\toast_box_base")
+            if pop.fillTex then pop.fillTex:SetAlpha(0) end
+            pop.imgBox = true
+        end
         pop.glow = pop:CreateTexture(nil, "BORDER")
         pop.glow:SetAllPoints()
         if not K.Gradient(pop.glow, "HORIZONTAL", { C.accent[1], C.accent[2], C.accent[3], 0.22 }, { C.accent[1], C.accent[2], C.accent[3], 0 }) then pop.glow:Hide() end
@@ -504,6 +512,19 @@ function Sound.EntrancePopup(name, key, handle, isTest)
         pop.time = pop:CreateTexture(nil, "OVERLAY")
         pop.time:SetPoint("BOTTOMLEFT", 1, 1)
         pop.time:SetHeight(2)
+        pop.timePad = 2
+        if pop.imgBox then
+            -- wie bei den Hinweisen: Balken in der Box rechts neben dem Symbol, mit Verlauf und dezentem Schein
+            pop.time:ClearAllPoints()
+            pop.time:SetPoint("BOTTOMLEFT", 60, 9)
+            pop.time:SetTexture("Interface\\Buttons\\WHITE8X8")
+            pop.timePad = 60 + 34
+            pop.timeGlow = pop:CreateTexture(nil, "ARTWORK", nil, -1)
+            pop.timeGlow:SetPoint("TOPLEFT", pop.time, "TOPLEFT", -2, 3)
+            pop.timeGlow:SetPoint("BOTTOMRIGHT", pop.time, "BOTTOMRIGHT", 2, -3)
+            pop.timeGlow:SetTexture("Interface\\Buttons\\WHITE8X8")
+            pop.timeGlow:SetBlendMode("ADD")
+        end
         pop.time:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.9)
         -- Lautsprecher: Klick stoppt den Sound und schaltet diese Person stumm (nochmal: wieder an)
         pop.mute = CreateFrame("Button", nil, pop)
@@ -541,7 +562,7 @@ function Sound.EntrancePopup(name, key, handle, isTest)
         end
         pop:SetScript("OnUpdate", function(self, el)
             self.t = (self.t or 0) + el
-            local w = (self:GetWidth() - 2) * math.max(0, 1 - self.t / 12)
+            local w = (self:GetWidth() - (self.timePad or 2)) * math.max(0, 1 - self.t / 12)
             self.time:SetWidth(math.max(1, w))
             if self.t > 12 and not self:IsMouseOver() then self:Hide() end
         end)
@@ -558,6 +579,13 @@ function Sound.EntrancePopup(name, key, handle, isTest)
     K.SetBorderColor(pop, { cr * 0.75, cg * 0.75, cb * 0.75, 1 })
     if not K.Gradient(pop.glow, "HORIZONTAL", { cr, cg, cb, 0.24 }, { cr, cg, cb, 0 }) then pop.glow:SetColorTexture(cr, cg, cb, 0.08) end
     pop.time:SetColorTexture(cr, cg, cb, 0.95)
+    if pop.imgBox then
+        K.SetBorderColor(pop, { 0, 0, 0, 0 })
+        pop.glow:SetAlpha(0.5)
+        pop.time:SetTexture("Interface\\Buttons\\WHITE8X8")
+        if not K.Gradient(pop.time, "HORIZONTAL", { cr, cg, cb, 0.35 }, { cr, cg, cb, 1 }) then pop.time:SetVertexColor(cr, cg, cb, 0.9) end
+        if not K.Gradient(pop.timeGlow, "HORIZONTAL", { cr, cg, cb, 0.05 }, { cr, cg, cb, 0.22 }) then pop.timeGlow:SetVertexColor(cr, cg, cb, 0.15) end
+    end
     pop.who, pop.handle, pop.isTest, pop.muted, pop.t = ns.short(name), handle, isTest, false, 0
     local c = Sound.byKey[key]
     pop.name:SetText((ns.colorName and ns.colorName(name, ns.Radar and ns.Radar.ClassOf(name)) or ns.displayName(name)) .. "  |cff66db9e" .. L["ist online"] .. "|r")
