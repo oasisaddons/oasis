@@ -1907,6 +1907,10 @@ ns.slash.emojitest = function()
     end
     add("Bitte Screenshot davon schicken, waehrend ein animiertes Emoji im Chat steht.")
     if ns.db then ns.db.emojiDiag = { t = time(), lines = out } end
+    -- 0.6.155: ganze Ausgabe (auch die Zeile nach 1,5 s) in einem Textfenster - markiert, Strg+C kopiert
+    C_Timer.After(1.7, function()
+        if ns.WhisperLog and ns.WhisperLog.Copy then pcall(ns.WhisperLog.Copy, "Emojitest", table.concat(out, "\n")) end
+    end)
 end
 
 ------------------------------------------------------------------------

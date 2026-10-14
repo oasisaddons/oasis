@@ -474,15 +474,26 @@ local function buildMain()
         art:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", 0, 0)
         -- 0.6.146: Felsbild mit Glutrissen statt Glut-Verlauf - normal gezeichnet, auf das Seitenverhaeltnis
         -- des Inhaltsbereichs zugeschnitten (Bild 4:3)
-        art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\content_bg")
+        -- 0.6.154: zwei Ebenen (Tools/split_glow.py) - Fels in Grau, darueber nur die Glut in der gewaehlten Farbe
+        art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\content_bg_base")
+        local artGlow = main:CreateTexture(nil, "ARTWORK", nil, -8)
+        artGlow:SetAllPoints(art)
+        artGlow:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\content_bg_glow")
+        artGlow:SetBlendMode("ADD")
         local function fitArt()
             local w, h = art:GetWidth() or 0, art:GetHeight() or 0
             if w <= 0 or h <= 0 then return end
             local r = (w / h) / (4 / 3)
-            if r < 1 then pcall(art.SetTexCoord, art, (1 - r) / 2, 1 - (1 - r) / 2, 0, 1)
-            else pcall(art.SetTexCoord, art, 0, 1, (1 - 1 / r) / 2, 1 - (1 - 1 / r) / 2) end
+            for _, t in ipairs({ art, artGlow }) do
+                if r < 1 then pcall(t.SetTexCoord, t, (1 - r) / 2, 1 - (1 - r) / 2, 0, 1)
+                else pcall(t.SetTexCoord, t, 0, 1, (1 - 1 / r) / 2, 1 - (1 - 1 / r) / 2) end
+            end
         end
-        if K.RoundMask then pcall(K.RoundMask, art, main, 12, { "tr", "br" }) end
+        if K.RoundMask then
+            pcall(K.RoundMask, art, main, 12, { "tr", "br" })
+            pcall(K.RoundMask, artGlow, main, 12, { "tr", "br" })
+        end
+        main.contentGlow = artGlow
         main.contentArt = art
         -- 0.6.147: Vignette ueber dem Bild - zu den Raendern dunkler, Inhalt in der Mitte bleibt ruhig
         local vig = main:CreateTexture(nil, "ARTWORK", nil, -7)
@@ -506,6 +517,7 @@ local function buildMain()
         function main.UpdateContentArt()
             local home = ns.CurrentPage and ns.CurrentPage() == "home"
             art:SetShown(not home)
+            artGlow:SetShown(not home)
             vig:SetShown(not home)
             dots:SetShown(not home)
         end
@@ -516,12 +528,9 @@ local function buildMain()
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             if key == last then return end
             last = key
-            -- 0.6.146: das Bild ist rot gemalt - bei roter Farbe Original, sonst entsaettigt in der gewaehlten Farbe
-            local red = ac[1] > 0.55 and ac[2] < 0.45 and ac[3] < 0.45
-            art:SetDesaturated(not red)
-            -- 0.6.147: etwas dunkler (40 % statt 55 %)
-            if red then art:SetVertexColor(1, 1, 1, 0.40)
-            else art:SetVertexColor(math.min(1, ac[1] * 1.6), math.min(1, ac[2] * 1.6), math.min(1, ac[3] * 1.6), 0.40) end
+            -- 0.6.154: nur die Glut nimmt die Farbe an, der Fels bleibt grau (40 % wie bisher)
+            art:SetVertexColor(1, 1, 1, 0.40)
+            artGlow:SetVertexColor(ac[1], ac[2], ac[3], 0.55)
         end
         tint()
         main:HookScript("OnUpdate", function(_, el)
@@ -583,18 +592,28 @@ local function buildMain()
         side.art = side:CreateTexture(nil, "ARTWORK", nil, -8)
         side.art:SetAllPoints()
         -- 0.6.148: Schieferbild mit feinen Glutadern statt Glut-Maske (normal gezeichnet, Seitenverhaeltnis passt fast genau)
-        side.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg")
+        -- 0.6.154: zwei Ebenen wie rechts - Schiefer in Grau, darueber nur die Glutadern in der gewaehlten Farbe
+        side.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg_base")
+        side.glow = side:CreateTexture(nil, "ARTWORK", nil, -8)
+        side.glow:SetAllPoints(side.art)
+        side.glow:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg_glow")
+        side.glow:SetBlendMode("ADD")
         -- 0.6.149: wie rechts eingepasst statt gestreckt (Bild 668:2000, mittig zugeschnitten)
         local function fitSide()
             local w, h = side.art:GetWidth() or 0, side.art:GetHeight() or 0
             if w <= 0 or h <= 0 then return end
             local r = (w / h) / (668 / 2000)
-            if r < 1 then pcall(side.art.SetTexCoord, side.art, (1 - r) / 2, 1 - (1 - r) / 2, 0, 1)
-            else pcall(side.art.SetTexCoord, side.art, 0, 1, (1 - 1 / r) / 2, 1 - (1 - 1 / r) / 2) end
+            for _, t in ipairs({ side.art, side.glow }) do
+                if r < 1 then pcall(t.SetTexCoord, t, (1 - r) / 2, 1 - (1 - r) / 2, 0, 1)
+                else pcall(t.SetTexCoord, t, 0, 1, (1 - 1 / r) / 2, 1 - (1 - 1 / r) / 2) end
+            end
         end
         side:HookScript("OnSizeChanged", fitSide)
         fitSide()
-        if K.RoundMask then pcall(K.RoundMask, side.art, main, 12, { "tl", "bl" }) end
+        if K.RoundMask then
+            pcall(K.RoundMask, side.art, main, 12, { "tl", "bl" })
+            pcall(K.RoundMask, side.glow, main, 12, { "tl", "bl" })
+        end
         local last
         local function tint()
             -- 0.6.149: eigene Farbe fuer links (glowColorSide), sonst wie rechts
@@ -603,11 +622,9 @@ local function buildMain()
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             if key == last then return end
             last = key
-            -- 0.6.148: Bild ist rot geadert - bei roter Farbe Original, sonst entsaettigt und leicht eingefaerbt
-            local red = ac[1] > 0.55 and ac[2] < 0.45 and ac[3] < 0.45
-            side.art:SetDesaturated(not red)
-            if red then side.art:SetVertexColor(1, 1, 1, 1)
-            else side.art:SetVertexColor(math.min(1, 0.6 + ac[1] * 0.6), math.min(1, 0.6 + ac[2] * 0.6), math.min(1, 0.6 + ac[3] * 0.6), 1) end
+            -- 0.6.154: nur die Glutadern nehmen die Farbe an, der Schiefer bleibt grau
+            side.art:SetVertexColor(1, 1, 1, 1)
+            side.glow:SetVertexColor(ac[1], ac[2], ac[3], 1)
         end
         tint()
         if K.DotGrid then side.dots = K.DotGrid(side, 0.045, 4) end
