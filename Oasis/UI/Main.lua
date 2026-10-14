@@ -465,6 +465,45 @@ local function buildMain()
     main.bgTex:SetPoint("TOPLEFT", main, "TOPLEFT", SIDEBAR, 0)
     main.bgTex:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", 0, 0)
     K.Border(main, C.line)
+    -- 0.6.128: Glut-Grafik im Inhaltsbereich rechts, wie links in der Akzentfarbe (Graustufen-Maske + ADD), dazu
+    -- das feine Punktraster; Ecken rechts gerundet. Nur mit Gildenmodul.
+    if ns.GuildPack then
+        local art = main:CreateTexture(nil, "ARTWORK", nil, -8)
+        art:SetPoint("TOPLEFT", main, "TOPLEFT", SIDEBAR, 0)
+        art:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", 0, 0)
+        art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\content_glow")
+        art:SetBlendMode("ADD")
+        if K.RoundMask then pcall(K.RoundMask, art, main, 12, { "tr", "br" }) end
+        main.contentArt = art
+        local dots = main:CreateTexture(nil, "ARTWORK", nil, -6)
+        dots:SetPoint("TOPLEFT", main, "TOPLEFT", SIDEBAR + 4, -4)
+        dots:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", -4, 4)
+        dots:SetTexture(ns.MEDIA .. "dotgrid", "REPEAT", "REPEAT")
+        dots:SetVertexColor(1, 1, 1, 0.035)
+        local function fitDots()
+            local w, h = dots:GetWidth() or 0, dots:GetHeight() or 0
+            if w > 0 and h > 0 then dots:SetTexCoord(0, w / 16, 0, h / 16) end
+        end
+        main:HookScript("OnSizeChanged", fitDots)
+        fitDots()
+        local last, acc = nil, 0
+        local function tint()
+            local ac = C.accent or { 1, 0.2, 0.2 }
+            local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
+            if key == last then return end
+            last = key
+            -- rechts dezenter als die Leiste (grosse Flaeche hinter dem Inhalt)
+            art:SetVertexColor(ac[1] * 0.75, ac[2] * 0.75, ac[3] * 0.75, 1)
+        end
+        tint()
+        main:HookScript("OnUpdate", function(_, el)
+            acc = acc + (el or 0)
+            if acc < 0.5 then return end
+            acc = 0
+            tint()
+            if not main.dotsFit then main.dotsFit = true fitDots() end
+        end)
+    end
 
     -- Seitenleiste
     local side = CreateFrame("Frame", nil, main)
