@@ -500,7 +500,7 @@ local function buildMain()
             if key == last then return end
             last = key
             -- rechts dezenter als die Leiste (grosse Flaeche hinter dem Inhalt)
-            art:SetVertexColor(ac[1] * 0.375, ac[2] * 0.375, ac[3] * 0.375, 1)   -- 0.6.131: halb so stark wie vorher
+            art:SetVertexColor(ac[1] * 0.25, ac[2] * 0.25, ac[3] * 0.25, 1)   -- 0.6.132: nochmal dezenter
         end
         tint()
         main:HookScript("OnUpdate", function(_, el)
@@ -534,7 +534,7 @@ local function buildMain()
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             if key == last then return end
             last = key
-            side.art:SetVertexColor(ac[1] * 0.6, ac[2] * 0.6, ac[3] * 0.6, 1)   -- 0.6.129: dezenter (Navigation war schlecht lesbar)
+            side.art:SetVertexColor(ac[1] * 0.48, ac[2] * 0.48, ac[3] * 0.48, 1)   -- 0.6.132: noch etwas dezenter (Lesbarkeit)
         end
         tint()
         if K.DotGrid then side.dots = K.DotGrid(side, 0.045, 4) end
