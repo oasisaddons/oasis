@@ -2,6 +2,17 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.161
+
+- New "What's new" window: title with version, one row per change with icon, title and short text.
+- Start window: centred header, calmer background with vignette, round badges of equal size on every tile, the "keep everything" card pulses gently with a shimmer along its edge, a short sound when you click next to the window.
+- Main window: frame with a fine accent line like the start window; finer dot grid on both sides.
+- Appearance > Own colours: separate colours for the background left and right, sliders "Glow left" / "Glow right" and a "Glow breathes" switch. Picking a design resets all own colours.
+- "Sidebar left" colour no longer changes the right side.
+- "X is online" notice uses the new notice design.
+- Gathering nodes on the minimap are see-through (ring only), so the game's own node icon stays visible, and they sit below frame and compass.
+- Animated emojis (emoji mode 4): position respects the chat line's text scale; /oa emojiversatz <factor> to fine-tune; /oa emojitest shows more values and opens the output in a copy box.
+
 ## 0.6.139
 
 - Guild members on the world map and minimap now glide smoothly between updates instead of jumping; while moving, positions are sent every 2.5 s.
