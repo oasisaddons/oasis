@@ -530,7 +530,7 @@ local function buildMain()
             last = key
             -- 0.6.154: nur die Glut nimmt die Farbe an, der Fels bleibt grau (40 % wie bisher)
             art:SetVertexColor(1, 1, 1, 0.40)
-            artGlow:SetVertexColor(ac[1], ac[2], ac[3], 0.55)
+            artGlow:SetVertexColor(ac[1], ac[2], ac[3], 1)   -- 0.6.158: Staerke ueber SetAlpha (Standard 0,8 = wie bisher)
         end
         tint()
         main:HookScript("OnUpdate", function(_, el)
@@ -623,8 +623,8 @@ local function buildMain()
         end
         local last
         local function tint()
-            -- 0.6.149: eigene Farbe fuer links (glowColorSide), sonst wie rechts
-            local gh = ns.db and ((ns.db.settings.glowColorSide ~= "" and ns.db.settings.glowColorSide) or ns.db.settings.glowColor)
+            -- 0.6.159: links wie rechts - eigene Farbe (glowColorSide), ohne Wahl die Akzentfarbe
+            local gh = ns.db and ns.db.settings.glowColorSide
             local ac = (gh and gh ~= "" and K.FromHex(gh)) or C.accent or { 1, 0.2, 0.2 }
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             if key == last then return end
@@ -632,12 +632,26 @@ local function buildMain()
             -- 0.6.154: nur die Glutadern nehmen die Farbe an, der Schiefer bleibt grau
             side.art:SetVertexColor(1, 1, 1, 1)
             side.glow:SetVertexColor(ac[1], ac[2], ac[3], 1)
-            if not K.Gradient(side.wash, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.16 }) then
-                side.wash:SetColorTexture(ac[1], ac[2], ac[3], 0.06)
-            end
+            side.wash:Hide()   -- 0.6.159: kein Lichtschein mehr - links wie rechts nur die Glut in der Farbe
         end
         tint()
         if K.DotGrid then side.dots = K.DotGrid(side, 0.045, 4) end
+        -- 0.6.158: Glut-Staerke links/rechts (glowStrengthL/R, 0..2) und "Glut atmet" (glowBreath) - jedes Bild
+        -- einmal, danach nur SetAlpha; beim Atmen pulsiert die Glut in 5 s langsam auf und ab
+        local gt = 0
+        main:HookScript("OnUpdate", function(_, el)
+            local st = ns.db and ns.db.settings
+            if not st then return end
+            local b = 1
+            if st.glowBreath then
+                gt = (gt + (el or 0)) % 5
+                b = 0.55 + 0.45 * (0.5 - 0.5 * math.cos(gt / 5 * math.pi * 2))
+            end
+            local sl, sr = tonumber(st.glowStrengthL) or 1, tonumber(st.glowStrengthR) or 1
+            if side.glow then side.glow:SetAlpha(math.min(1, sl * b)) end
+            if side.wash then side.wash:SetAlpha(math.min(1, sl * b)) end
+            if main.contentGlow then main.contentGlow:SetAlpha(math.min(1, sr * b * 0.8)) end
+        end)
         local acc = 0
         side:HookScript("OnUpdate", function(_, el)
             acc = acc + (el or 0)
