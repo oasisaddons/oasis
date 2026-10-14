@@ -1805,106 +1805,23 @@ local function buildLook(f)
     cardH(f, 0, Y3, 362, 300, "chronicle", L["Schrift"], L["Gilt fuer die ganze Oasis-Oberflaeche. Wirkt sofort, einzelne Stellen erst nach /reload."])
     f.head = fontList(f, LX, Y3 - 54, 330, 232, K.PickFonts(), "uiFont", true)
     Y3 = Y - farbH - 14
-    cardH(f, RXc, Y3, 362, 372, "settings", L["Details"], L["Kontrast, Rahmen, Grafik, Logo, Groesse und Durchsicht"], true)
+    -- 0.6.107: Details als ruhige Liste - drei Schalter in voller Breite, darunter Groesse und Durchsicht, unten
+    -- Zuruecksetzen (vorher Kacheln mit abgeschnittenem Titel und einer grossen Luecke vor den Reglern)
+    cardH(f, RXc, Y3, 362, 300, "settings", L["Details"], L["Kontrast, Rahmen, Grafik, Groesse und Durchsicht"], true)
     local MX = RXc + 16
-    -- Optionen als Glas-Kacheln: Symbol, Titel, Kurztext, Schalterpunkt rechts; Klick schaltet
-    local function optTile(x, y, icon, title, desc, key, after, default)
-        if default ~= nil and S()[key] == nil then S()[key] = default end
-        local b = CreateFrame("Button", nil, f)
-        b:SetSize(161, 58)
-        b:SetPoint("TOPLEFT", x, y)
-        local G = ns.Insta and ns.Insta.Glass
-        if not (G and pcall(G, b, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.09 }, 10)) then K.Fill(b, { 1, 1, 1, 0.03 }) K.Border(b, C.line) end
-        b.tint = b:CreateTexture(nil, "BACKGROUND", nil, 3)
-        b.tint:SetPoint("TOPLEFT", 3, -3) b.tint:SetPoint("BOTTOMRIGHT", -3, 3)
-        b.ic = K.Glyph(b, 15, ns.MEDIA .. "icons\\" .. icon, C.muted)
-        b.ic:SetPoint("TOPLEFT", 10, -10)
-        b.t = K.Title(b, 12, C.text)
-        b.t:SetPoint("LEFT", b.ic, "RIGHT", 7, 0)
-        b.t:SetPoint("RIGHT", -30, 0)
-        b.t:SetJustifyH("LEFT")
-        b.t:SetWordWrap(false)
-        b.t:SetText(L[title])
-        b.d = K.Text(b, 10, C.dim)
-        b.d:SetPoint("TOPLEFT", 10, -30)
-        b.d:SetPoint("RIGHT", -10, 0)
-        b.d:SetJustifyH("LEFT")
-        b.d:SetWordWrap(true)
-        b.d:SetText(L[desc])
-        -- kleiner Schalter oben rechts
-        b.sw = K.Pill(b, 24, 13)
-        b.sw:SetPoint("TOPRIGHT", -9, -11)
-        b.knob = K.KnobCircle(b.sw, 10)
-        function b:Refresh()
-            local on = S()[key] and true or false
-            local ac = C.accent
-            self.tint:SetColorTexture(ac[1], ac[2], ac[3], on and 0.12 or 0)
-            self.sw:SetColor(on and ac[1] or 0.25, on and ac[2] or 0.25, on and ac[3] or 0.27, 1)
-            self.knob:ClearAllPoints()
-            self.knob:SetPoint("CENTER", self.sw, on and "RIGHT" or "LEFT", on and -6 or 6, 0)
-            self.knob:SetVertexColor(1, 1, 1, 1)
-            local ic = on and ac or C.muted
-            self.ic:SetVertexColor(ic[1], ic[2], ic[3])
-            local tc = on and C.text or C.muted
-            self.t:SetTextColor(tc[1], tc[2], tc[3])
-        end
-        b:SetScript("OnClick", function(self)
-            S()[key] = not S()[key] or nil
-            if key == "themeTexture" or key == "logoAnim" then S()[key] = S()[key] and true or false end
-            if after then pcall(after, S()[key]) end
-            self:Refresh()
-            if PlaySound and SOUNDKIT then pcall(PlaySound, SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON) end
-        end)
-        b:SetScript("OnEnter", function(self) self.tint:SetAlpha(1.6) K.ShowTip(self, { L[title], L[desc] }) end)
-        b:SetScript("OnLeave", function(self) self.tint:SetAlpha(1) GameTooltip:Hide() end)
-        indexAdd(L[title], b, L[desc])
-        return b
-    end
     local restyle = function() local m = ns.MainFrame and ns.MainFrame() if m and K.StyleWindow then K.StyleWindow(m) end end
-    f.contrast = optTile(MX, Y3 - 54, "eye_off", "Hoher Kontrast", "Graue Texte und Linien heller", "highContrast", rebuildSoon)
-    f.frameAcc = optTile(MX + 169, Y3 - 54, "brush", "Rahmen in Akzentfarbe", "Fensterrand in deiner Farbe", "frameAccent", restyle)
-    f.texT = optTile(MX, Y3 - 120, "camera", "Hintergrundgrafik", "Leder, Stein, Hex-Raster ...", "themeTexture", restyle, true)
-    f.texT:SetWidth(330)   -- 0.5.792: Kachel "Logo-Animation" entfernt (den Lichtstreifen am Logo gibt es nicht mehr) - Grafik-Kachel ueber die ganze Breite
-    -- 0.5.681: Logo ist immer der Gildenname - keine Auswahl mehr (Schrift: Klick aufs Logo)
-    f.logoSeg = { btns = {}, Select = function() end }
-    for i, it in ipairs({}) do
-        local b = CreateFrame("Button", nil, f)
-        b:SetSize(106, 30)
-        b:SetPoint("TOPLEFT", MX + (i - 1) * 113, Y3 - 206)
-        b.bg = b:CreateTexture(nil, "BACKGROUND")
-        b.bg:SetAllPoints()
-        K.Border(b, C.line)
-        b.t = K.Text(b, 11, C.muted, "CENTER")
-        b.t:SetPoint("CENTER")
-        b.t:SetText(it[2])
-        b.key = it[1]
-        b:SetScript("OnClick", function(self) ns.Admin.SetLogoMode(self.key ~= "auto" and self.key or nil) f.logoSeg:Select(self.key) end)
-        b:SetScript("OnEnter", function(self) if not self.on then self.bg:SetColorTexture(1, 1, 1, 0.07) end end)
-        b:SetScript("OnLeave", function(self) if not self.on then self.bg:SetColorTexture(1, 1, 1, 0.025) end end)
-        f.logoSeg.btns[i] = b
-    end
-    function f.logoSeg._Select(key)
-        local ac = C.accent
-        for _, b in ipairs(self.btns) do
-            b.on = b.key == key
-            b.bg:SetColorTexture(b.on and ac[1] or 1, b.on and ac[2] or 1, b.on and ac[3] or 1, b.on and 0.16 or 0.025)
-            K.SetBorderColor(b, b.on and { ac[1], ac[2], ac[3], 0.7 } or C.line)
-            local c = b.on and C.text or C.muted
-            b.t:SetTextColor(c[1], c[2], c[3])
-        end
-    end
-    local rs = K.Button(f, L["Aussehen zuruecksetzen"], 170, 24, "ghost", function()
-        local s = S()
-        s.theme, s.themeGrad, s.highContrast, s.frameAccent, s.accent, s.uiFont = nil, nil, nil, nil, "", "inter"
-        s.duoBase, s.duoAccent, s.duoSide = nil, nil, nil
-        s.themeTexture, s.logoAnim, s.logoMode, s.windowAlpha = true, true, nil, 1
-        K.ApplyUserFonts()
-        if ns.ApplyWindowAlpha then ns.ApplyWindowAlpha() end
-        if K.Toast then K.Toast(L["Aussehen zuruecksetzen"], L["Alle Farb- und Design-Einstellungen stehen wieder auf Standard."], C.accent) end
-        rebuildSoon()
-    end)
-    -- Fenstergroesse + Durchsicht (0.5.559 von Allgemein hierher)
-    rowLabel(f, L["Fenstergroesse"], MX, Y3 - 254)
+    if S().themeTexture == nil then S().themeTexture = true end
+    f.contrast = toggle(f, MX, Y3 - 62, "Hoher Kontrast", "highContrast", "Graue Texte und Linien heller", function() rebuildSoon() end, 330)
+    f.frameAcc = toggle(f, MX, Y3 - 94, "Rahmen in Akzentfarbe", "frameAccent", "Fensterrand in deiner Farbe", function() restyle() end, 330)
+    f.texT = toggle(f, MX, Y3 - 126, "Hintergrundgrafik", "themeTexture", "Leder, Stein, Hex-Raster ... je nach Design", function(v)
+        S().themeTexture = v and true or false
+        restyle()
+    end, 330)
+    f.logoSeg = { Select = function() end }   -- 0.5.681: keine Logo-Auswahl mehr (Stub fuer refreshLook)
+    local dv = K.Divider(f)
+    dv:SetPoint("TOPLEFT", MX, Y3 - 164)
+    dv:SetWidth(330)
+    rowLabel(f, L["Fenstergroesse"], MX, Y3 - 180)
     local pendingScale
     f.winScale = K.Slider(f, 200, 0.7, 1.4, 0.05, function() return pendingScale or S().scale or 1 end,
         function(v) pendingScale = v end, function(v) return (L["%d%%"]):format(v * 100 + 0.5) end,
@@ -1912,17 +1829,26 @@ local function buildLook(f)
             pendingScale = nil
             if v ~= S().scale then ns.SetScale(v) end
         end)
-    f.winScale:SetPoint("TOPLEFT", MX + 110, Y3 - 252)
+    f.winScale:SetPoint("TOPLEFT", MX + 110, Y3 - 178)
     indexAdd(L["Fenstergroesse"], f.winScale)
-    Y3 = Y3 - 32
-    rowLabel(f, L["Durchsicht"], MX, Y3 - 254)
+    rowLabel(f, L["Durchsicht"], MX, Y3 - 212)
     f.winAlpha = K.Slider(f, 200, 0.1, 1, 0.01, function() return S().windowAlpha or 1 end,
         function(v) S().windowAlpha = v if ns.ApplyWindowAlpha then ns.ApplyWindowAlpha() end end,
         function(v) return ("%d %%"):format(v * 100 + 0.5) end)
-    f.winAlpha:SetPoint("TOPLEFT", MX + 110, Y3 - 252)
+    f.winAlpha:SetPoint("TOPLEFT", MX + 110, Y3 - 210)
     indexAdd(L["Durchsicht"], f.winAlpha, L["Wie durchsichtig das Oasis-Fenster ist"])
-    rs:SetPoint("TOPLEFT", MX, Y3 - 296)
-    note(f, L["Manche Stellen faerben sich erst nach /reload um."], MX + 180, Y3 - 300, 150, C.dim)
+    local rs = K.Button(f, L["Aussehen zuruecksetzen"], 170, 24, "ghost", function()
+        local st = S()
+        st.theme, st.themeGrad, st.highContrast, st.frameAccent, st.accent, st.uiFont = nil, nil, nil, nil, "", "inter"
+        st.duoBase, st.duoAccent, st.duoSide = nil, nil, nil
+        st.themeTexture, st.logoAnim, st.logoMode, st.windowAlpha = true, true, nil, 1
+        K.ApplyUserFonts()
+        if ns.ApplyWindowAlpha then ns.ApplyWindowAlpha() end
+        if K.Toast then K.Toast(L["Aussehen zuruecksetzen"], L["Alle Farb- und Design-Einstellungen stehen wieder auf Standard."], C.accent) end
+        rebuildSoon()
+    end)
+    rs:SetPoint("TOPLEFT", MX, Y3 - 252)
+    note(f, L["Manche Stellen faerben sich erst nach /reload um."], MX + 182, Y3 - 254, 150, C.dim)
 end
 local function refreshLook(f)
     for _, b in ipairs(f.duo or {}) do
