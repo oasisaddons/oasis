@@ -1803,18 +1803,21 @@ local function buildLook(f)
     f.duoAcc = K.ColorPickButton(f, function() return S().duoAccent or "ff4d6d" end, function(hex) applyDuo(S().duoBase or "15171d", hex) end, L["Akzentfarbe"], lookSnapshot)
     f.duoAcc:SetWidth(162)
     f.duoAcc:SetPoint("LEFT", f.duoBase, "RIGHT", 6, 0)
+    -- 0.6.159: aktuelle Grund-/Akzentfarbe behalten (vorher Standardfarben -> rechts aenderte sich alles mit)
+    local function curBase() return S().duoBase or (C.bg and K.ToHex(C.bg)) or "15171d" end
+    local function curAcc() return S().duoAccent or (C.accent and K.ToHex(C.accent)) or "ff4d6d" end
     f.duoSide = K.ColorPickButton(f, function()
         local th = K.DuoTheme(S().duoBase, S().duoAccent, S().duoSide)
         return (S().duoSide and S().duoSide ~= "") and S().duoSide or K.ToHex(th.side)
     end, function(hex)
         S().duoSide = hex
-        applyDuo(S().duoBase or "15171d", S().duoAccent or "ff4d6d")
+        applyDuo(curBase(), curAcc())
     end, L["Leiste links"], lookSnapshot)
     f.duoSide:SetWidth(162)
     f.duoSide:SetPoint("TOPLEFT", f.duoBase, "BOTTOMLEFT", 0, -6)
     f.duoSide:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     f.duoSide:HookScript("OnClick", function(_, btn)
-        if btn == "RightButton" then S().duoSide = nil applyDuo(S().duoBase or "15171d", S().duoAccent or "ff4d6d") end
+        if btn == "RightButton" then S().duoSide = nil applyDuo(curBase(), curAcc()) end
     end)
     f.duoSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Leiste links"], L["Eigene Farbe fuer die Navigation links. Rechtsklick: wieder automatisch."] }) end)
     f.duoSide:HookScript("OnLeave", function() GameTooltip:Hide() end)

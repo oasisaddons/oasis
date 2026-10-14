@@ -626,11 +626,19 @@ local function buildMain()
             -- 0.6.159: links wie rechts - eigene Farbe (glowColorSide), ohne Wahl die Akzentfarbe
             local gh = ns.db and ns.db.settings.glowColorSide
             local ac = (gh and gh ~= "" and K.FromHex(gh)) or C.accent or { 1, 0.2, 0.2 }
-            local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
+            local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3] .. ":" .. tostring(ns.db and ns.db.settings.duoSide)
             if key == last then return end
             last = key
             -- 0.6.154: nur die Glutadern nehmen die Farbe an, der Schiefer bleibt grau
-            side.art:SetVertexColor(1, 1, 1, 1)
+            -- 0.6.159: "Leiste links" (duoSide) faerbt den Schiefer selbst ein - das Bild deckt die Leistenflaeche ab
+            local sh = ns.db and ns.db.settings.duoSide
+            local sc = sh and sh ~= "" and K.FromHex(sh)
+            if sc then
+                local m = math.max(sc[1], sc[2], sc[3], 0.01)
+                side.art:SetVertexColor(sc[1] / m, sc[2] / m, sc[3] / m, 1)
+            else
+                side.art:SetVertexColor(1, 1, 1, 1)
+            end
             side.glow:SetVertexColor(ac[1], ac[2], ac[3], 1)
             side.wash:Hide()   -- 0.6.159: kein Lichtschein mehr - links wie rechts nur die Glut in der Farbe
         end
