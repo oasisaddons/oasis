@@ -1715,6 +1715,10 @@ local function themeCard(f, th, x, y, w, h)
         s.colorOn = nil                      -- Design-Klick = Farben des Designs (eigene Farben wieder aus)
         s.themeGrad = nil                    -- Verlauf wieder wie im Design vorgesehen
         s.accent = th.accent                 -- Standard = Farbe der Gilde
+        -- 0.6.160: Design-Klick = alles auf Standard - auch eigene Grund-/Akzent-/Leistenfarbe, Glut-Farben,
+        -- Glut-Staerke und Atmen
+        s.duoBase, s.duoAccent, s.duoSide, s.glowColor, s.glowColorSide = nil, nil, nil, nil, nil
+        s.glowStrengthL, s.glowStrengthR, s.glowBreath = nil, nil, nil
         if th.font and K.fontByKey[th.font] then s.uiFont = th.font K.ApplyUserFonts() end
         -- Design mit eigenem Klick-Soundpaket (th.uiPack); wer Klick-Toene aus hat, bleibt bei aus
         if th.uiPack and ns.Sound and ns.Sound.SetUiPack and ns.Sound.UiPack() ~= "none" then ns.Sound.SetUiPack(th.uiPack) end
