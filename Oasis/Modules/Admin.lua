@@ -52,7 +52,13 @@ end
 -- Testmodus (/oa testleitung): nur auf diesem PC wie ein Gildenmeister behandeln.
 -- Andere Clients pruefen den echten Rang und ignorieren Aenderungen aus dem Testmodus.
 -- 0.5.997: fuer Entwickler Standard an (adminTest == false = bewusst aus)
-function Admin.TestMode() return ns.db and ns.db.settings.adminTest ~= false and ns.IsDev() and true or false end
+function Admin.TestMode()
+    local s = ns.db and ns.db.settings
+    if not s then return false end
+    -- 0.5.998: ein altes "aus" (aus der Zeit vor dem Standard an) einmal zuruecksetzen
+    if not s.adminTestV2 then s.adminTestV2 = true if s.adminTest == false then s.adminTest = nil end end
+    return s.adminTest ~= false and ns.IsDev() and true or false
+end
 local function myRankIndex()
     if not IsInGuild() then return nil end
     if Admin.TestMode() then return 0 end
