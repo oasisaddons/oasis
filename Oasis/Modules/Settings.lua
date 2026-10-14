@@ -2879,6 +2879,27 @@ local function buildStatus(f)
             L["Solange sie laufen, steht oben im Fenster 'Demo an'. Ein Klick dort oder hier entfernt alles wieder."] })
     end)
     f.demoBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    -- 0.5.996: Entwickler - Leitungsrechte (Gildenleitung, Offiziere, Raidleitung) per Knopf statt nur /oa testleitung
+    f.devLead = K.Button(hc, "", 170, 24, "ghost", function(self)
+        if ns.slash.testleitung then ns.slash.testleitung() end
+        self:Refresh()
+        ns.RefreshPage("settings")
+    end)
+    f.devLead:SetPoint("RIGHT", f.tour, "LEFT", -10, 0)
+    function f.devLead:Refresh()
+        local dev = ns.IsDev and ns.IsDev()
+        self:SetShown(dev and true or false)
+        local on = ns.Admin and ns.Admin.TestMode()
+        self.label:SetText(on and L["Leitungsrechte aus"] or L["Leitungsrechte an"])
+    end
+    f.devLead:Refresh()
+    f.devLead:HookScript("OnShow", function(self) self:Refresh() end)
+    f.devLead:HookScript("OnEnter", function(self)
+        K.ShowTip(self, { L["Leitungsrechte (Entwickler)"],
+            L["Du wirst auf diesem PC wie der Gildenmeister behandelt: Gildenleitung, Offiziers- und Raidleiter-Einstellungen sind offen."],
+            L["Fuer die Gilde gespeicherte Aenderungen sehen die anderen NICHT - deren Oasis prueft deinen echten Rang."] })
+    end)
+    f.devLead:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
     f.tiles = {}
     local labels = { L["Profile bekannt"], L["Rezeptlisten"], L["Legacy-Daten"], L["Letzter Abgleich"] }
@@ -2939,6 +2960,7 @@ local function refreshStatus(f)
     f.ver:SetText("OASIS  " .. K.hex(C.accent) .. ns.version .. "|r")
     f.guild:SetText(L["Gilde: "] .. "|cffffffff" .. guild .. "|r" .. (rankName and ("   |cff888888" .. rankName .. "|r") or ""))
     f.lead:SetText(ns.Admin and ns.Admin.CanManage() and L["Du hast Zugriff auf die Gildenleitung."] or "")
+    if f.devLead then f.devLead:Refresh() end
 
     local members, recipes, legacy = 0, 0, 0
     for _ in pairs(ns.db.members) do members = members + 1 end
