@@ -176,24 +176,42 @@ function D.ShowPicker(mode)
         -- im Kampf nie das Spiel blockieren
         ns.On("PLAYER_REGEN_DISABLED", function() veil:Hide() end)
         -- Hintergrund: tiefes Dunkel mit weichem Akzent-Schein oben links
-        K.Fill(f, { 0.035, 0.035, 0.045, 0.97 })
-        K.Border(f, { 1, 1, 1, 0.08 })
+        -- 0.6.122: runde Ecken (Glas-Flaeche wie die Karten); Bilder bis an den Rand werden an den Ecken maskiert
+        local RAD = 16
+        local G = ns.Insta and ns.Insta.Glass
+        if not (G and pcall(G, f, { 0.035, 0.035, 0.045, 0.97 }, { 1, 1, 1, 0.08 }, RAD)) then
+            K.Fill(f, { 0.035, 0.035, 0.045, 0.97 })
+            K.Border(f, { 1, 1, 1, 0.08 })
+        end
+        f.box = f.box or CreateFrame("Frame", nil, f)
+        f.box:SetAllPoints(f)
+        local function round(tex, corners) if K.RoundMask then pcall(K.RoundMask, tex, f.box, RAD, corners) end end
         -- 0.6.118: Hintergrundbild schwach (nur mit Gildenmodul - Herkunft des Bildes nicht frei geklaert)
-        f.art = f:CreateTexture(nil, "BACKGROUND", nil, 2)
-        f.art:SetPoint("TOPLEFT", 1, -1) f.art:SetPoint("BOTTOMRIGHT", -1, 1)
-        f.art:SetAlpha(0.30)   -- 0.6.120: 12 % war auf dem fast schwarzen Grund unsichtbar
-        f.art:Hide()
+        f.artTop = f:CreateTexture(nil, "BACKGROUND", nil, 2)
+        f.artTop:SetPoint("TOPLEFT", 1, -1) f.artTop:SetPoint("RIGHT", -1, 0) f.artTop:SetPoint("BOTTOM", f, "CENTER")
+        f.artBot = f:CreateTexture(nil, "BACKGROUND", nil, 2)
+        f.artBot:SetPoint("BOTTOMLEFT", 1, 1) f.artBot:SetPoint("RIGHT", -1, 0) f.artBot:SetPoint("TOP", f, "CENTER")
+        for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.30) t:Hide() end   -- 0.6.120: 12 % war unsichtbar
         f:HookScript("OnShow", function()
-            if ns.GuildPack then
-                f.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\updatebg")
-                local r = (f:GetWidth() or 660) / math.max(1, f:GetHeight() or 350) / 2   -- Bild ist 2:1
-                if r < 1 then f.art:SetTexCoord((1 - r) / 2, 1 - (1 - r) / 2, 0, 1) else f.art:SetTexCoord(0, 1, 0, 1) end
-                f.art:Show()
+            if not ns.GuildPack then return end
+            local r = (f:GetWidth() or 660) / math.max(1, f:GetHeight() or 350) / 2   -- Bild ist 2:1
+            local l, rr = 0, 1
+            if r < 1 then l, rr = (1 - r) / 2, 1 - (1 - r) / 2 end
+            f.artTop:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\updatebg")
+            f.artBot:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\updatebg")
+            pcall(f.artTop.SetTexCoord, f.artTop, l, rr, 0, 0.5)
+            pcall(f.artBot.SetTexCoord, f.artBot, l, rr, 0.5, 1)
+            if not f.artRound then
+                f.artRound = true
+                round(f.artTop, { "tl", "tr" })
+                round(f.artBot, { "bl", "br" })
             end
+            f.artTop:Show() f.artBot:Show()
         end)
         local glow = f:CreateTexture(nil, "BORDER")
         glow:SetPoint("TOPLEFT") glow:SetPoint("TOPRIGHT") glow:SetHeight(180)
         grad(glow, "VERTICAL", { C.accent[1], C.accent[2], C.accent[3], 0 }, { C.accent[1], C.accent[2], C.accent[3], 0.16 })
+        round(glow, { "tl", "tr" })
         local orb = f:CreateTexture(nil, "BORDER")
         orb:SetTexture(ns.MEDIA .. "softglow")
         orb:SetSize(420, 320)
@@ -204,6 +222,7 @@ function D.ShowPicker(mode)
         local top = f:CreateTexture(nil, "ARTWORK")
         top:SetPoint("TOPLEFT") top:SetPoint("TOPRIGHT") top:SetHeight(2)
         grad(top, "HORIZONTAL", { C.accent[1], C.accent[2], C.accent[3], 1 }, { C.accent[1], C.accent[2], C.accent[3], 0 })
+        round(top, { "tl", "tr" })
 
         f.eyebrow = K.Text(f, 10, C.accent)
         f.eyebrow:SetPoint("TOPLEFT", 28, -26)
