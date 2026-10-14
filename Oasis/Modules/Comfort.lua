@@ -488,6 +488,7 @@ local OPTS = {
         { "invTooltipOff", "Keine Twink-Bestaende im Tooltip", "Sonst: Item-Tooltip zeigt, welcher deiner Charaktere es wie oft hat." },
     } },
 }
+CF.CHAT_OPTS = OPTS[5][2]   -- fuer den Reiter Spielchat
 local function build(f)
     local H = ns.SettingsHelpers
     local x, y = 0, 0
@@ -496,6 +497,8 @@ local function build(f)
     for _, grp in ipairs(OPTS) do byName[grp[1]] = grp end
     local LEFT = { "Haendler", "Quests & Annehmen", "Komfort" }
     local RIGHT = { "Blocker & Gruppen", "Blizzard-Leisten", "Chat" }
+    -- 0.6.111: Chat-Schalter stehen im Reiter Spielchat - hier nur, wenn das Spielchat-Modul aus ist
+    if ns.GameChat then RIGHT[3] = nil end
     -- 0.5.720: je Gruppe eine Glas-Karte (Titel in der Karte, Schalter darin) - ohne Abstandsautomatik, sonst ueberlappen die Karten
     f.noCompact = true
     local ICON = { ["Haendler"] = "bank", ["Quests & Annehmen"] = "chronicle", ["Komfort"] = "home",

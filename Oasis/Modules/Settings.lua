@@ -2073,7 +2073,7 @@ local function buildSound(f)
 
     -- Karte: Wiedergabe ---------------------------------------------------
     local X = 14
-    card(f, 0, 0, 362, 228)
+    card(f, 0, 0, 362, ns.TOOLS_RELEASED and 270 or 228)
     section(f, L["Wiedergabe"], X, -12, 334)
     f.on = toggle(f, X, -44, "Sounds abspielen", "sound", nil, nil, 320)
     f.quiet = toggle(f, X, -72, "Im Kampf stumm", "soundQuietCombat", nil, nil, 320)
@@ -2132,7 +2132,7 @@ local function buildSound(f)
             for _, t in ipairs(STEPS) do ns.print("  " .. L[t]) end
             ns.print("  " .. loaded())
         end)
-        f.own:SetPoint("TOPLEFT", X, -198)
+        f.own:SetPoint("TOPLEFT", X, -236)   -- 0.6.111: unter die Klick-Lautstaerke (lag vorher genau darauf)
         f.own:HookScript("OnEnter", function(self)
             local lines = { L["Eigene Sounds und Emojis fuer eure Gilde"] }
             for _, t in ipairs(STEPS) do lines[#lines + 1] = L[t] end

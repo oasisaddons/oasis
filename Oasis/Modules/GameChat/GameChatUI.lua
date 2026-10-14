@@ -285,6 +285,22 @@ local function build(f)
     h = 50 + #BUTTONS * 28 + 8
     c = H.cardH(body, 0, y, W, h, "modules", L["Knoepfe am Chatfenster"])
     toggles(c, BUTTONS, -48, function() pcall(GC.ApplyButtons) end)
+    y = y - h - 12
+
+    -- 0.6.111: Chat-Schalter aus Komfort und Markieren hier gesammelt
+    local CO = ns.Comfort and ns.Comfort.CHAT_OPTS or {}
+    h = 50 + (#CO + 2) * 28 + 8
+    c = H.cardH(body, 0, y, W, h, "polls", L["Chatfenster"])
+    cy = -48
+    for _, o in ipairs(CO) do
+        H.toggle(c, 14, cy, o[2], o[1], o[3], o[4] and function() pcall(o[4]) end or nil, IN)
+        cy = cy - 28
+    end
+    if s.gcLiveSelect == nil then s.gcLiveSelect = true end
+    if s.gcAltSelect == nil then s.gcAltSelect = true end
+    H.toggle(c, 14, cy, "Text durch Ziehen markieren", "gcLiveSelect", "Mit gedrueckter Maus ueber den Chat ziehen markiert buchstabengenau, Strg+C kopiert, Rechtsklick zeigt mehr", nil, IN)
+    cy = cy - 28
+    H.toggle(c, 14, cy, "Alt + Klick oeffnet das Markierfeld", "gcAltSelect", "Der Chat als Textfeld ueber dem Fenster - zum Markieren ueber viele Zeilen", nil, IN)
     local leftBottom = y - h - 12
 
     -- rechte Spalte
