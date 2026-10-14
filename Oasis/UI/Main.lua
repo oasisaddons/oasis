@@ -526,7 +526,7 @@ local function buildMain()
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             if key == last then return end
             last = key
-            side.art:SetVertexColor(math.min(1, ac[1] * 1.15), math.min(1, ac[2] * 1.15), math.min(1, ac[3] * 1.15), 1)   -- 0.6.127: etwas kraeftiger
+            side.art:SetVertexColor(ac[1] * 0.6, ac[2] * 0.6, ac[3] * 0.6, 1)   -- 0.6.129: dezenter (Navigation war schlecht lesbar)
         end
         tint()
         if K.DotGrid then side.dots = K.DotGrid(side, 0.045, 4) end
