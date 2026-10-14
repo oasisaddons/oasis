@@ -166,7 +166,7 @@ local function build()
     f.preset:SetPoint("LEFT", f.multi, "RIGHT", 8, 0)
     -- nicht mehr fragen
     f.never = K.Toggle(f, L["Bei neuen Versionen nicht mehr fragen"], function() return S().updateAsk == false end,
-        function(v) S().updateAsk = (not v) and nil or false end)
+        function(v) if v then S().updateAsk = false else S().updateAsk = nil end end)   -- 0.6.125: liess sich nicht ausschalten
     f.never:SetPoint("BOTTOMLEFT", 14, 16)
     f.never:SetWidth(320)
     win = f

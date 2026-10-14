@@ -200,7 +200,7 @@ function D.ShowPicker(mode)
         f.artTop:SetPoint("TOPLEFT", 1, -1) f.artTop:SetPoint("RIGHT", -1, 0) f.artTop:SetPoint("BOTTOM", f, "CENTER")
         f.artBot = f:CreateTexture(nil, "ARTWORK", nil, -8)
         f.artBot:SetPoint("BOTTOMLEFT", 1, 1) f.artBot:SetPoint("RIGHT", -1, 0) f.artBot:SetPoint("TOP", f, "CENTER")
-        for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.18) t:Hide() end   -- 0.6.123: 18 % (12 % unsichtbar, 30 % zu kraeftig)
+        for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.24) t:Hide() end   -- 0.6.125: 24 % (18 % war wieder unsichtbar, 30 % zu kraeftig)
         f:HookScript("OnShow", function()
             if not ns.GuildPack then return end
             local r = (f:GetWidth() or 660) / math.max(1, f:GetHeight() or 350) / 2   -- Bild ist 2:1
@@ -478,6 +478,10 @@ function D.ShowPicker(mode)
             self.count:SetText((L["%d von %d ausgewaehlt"]):format(n, #self.tiles))
             self.ok:SetEnabled(n > 0)
             if self.ok.SetLabel then self.ok:SetLabel(n > 0 and (L["Los geht's (%d)"]):format(n) or L["Los geht's"]) end
+            if self.go then
+                self.go.label:SetText(n > 0 and (L["Los geht's (%d)"]):format(n) or L["Los geht's"])
+                self.go:SetAlpha(n > 0 and 1 or 0.5)
+            end
         end
 
         --------------------------------------------------------------------
@@ -496,30 +500,27 @@ function D.ShowPicker(mode)
             K.Toast(L["Fertig eingerichtet"], L["Mehr Bereiche findest du jederzeit unter 'Entdecken'."], C.mint, function() ns.ShowPage("discover") end)
         end)
         f.ok:SetPoint("BOTTOMRIGHT", -24, 22)
-        -- 0.6.124: Bild-Knopf unten in der Mitte (Gildenmodul); Schrift mittig, etwas links vom Pfeil im Bild
+        -- 0.6.125: Bild-Knopf unten in der Mitte (Gildenmodul) - eigener schlichter Knopf nur aus dem Bild, der
+        -- Standard-Knopf zeichnete Flaeche und Rahmen um die halbtransparenten Kanten
         if ns.GuildPack then
-            f.ok:ClearAllPoints()
-            f.ok:SetSize(216, 52)
-            f.ok:SetPoint("BOTTOM", f, "BOTTOM", 0, 14)
-            f.ok.art = f.ok:CreateTexture(nil, "BACKGROUND", nil, 7)
-            f.ok.art:SetAllPoints()
-            f.ok.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\start_go")
-            if f.ok.bg then f.ok.bg:SetAlpha(0) end
-            K.SetBorderColor(f.ok, { 0, 0, 0, 0 })
-            f.ok.label:ClearAllPoints()
-            f.ok.label:SetPoint("CENTER", -10, 0)
-            f.ok.label:SetTextColor(1, 0.92, 0.85)
-            f.ok.imgBtn = true
-            f.ok:HookScript("OnEnter", function(self) self.art:SetVertexColor(1.15, 1.15, 1.15) K.SetBorderColor(self, { 0, 0, 0, 0 }) if self.bg then self.bg:SetAlpha(0) end end)
+            f.ok:Hide()
+            f.ok.Show = function() end
+            local g = CreateFrame("Button", nil, f)
+            g:SetSize(216, 52)
+            g:SetPoint("BOTTOM", f, "BOTTOM", 0, 14)
+            g.art = g:CreateTexture(nil, "ARTWORK")
+            g.art:SetAllPoints()
+            g.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\start_go")
+            g.label = K.Text(g, 12, { 1, 0.92, 0.85 }, "CENTER")
+            g.label:SetPoint("CENTER", -10, 0)
+            g:SetScript("OnClick", function() local fn = f.ok:GetScript("OnClick") if fn and f.ok:IsEnabled() then fn(f.ok, "LeftButton") end end)
+            g:SetScript("OnEnter", function(self) if f.ok:IsEnabled() then self.art:SetVertexColor(1.15, 1.15, 1.15) end end)
+            g:SetScript("OnLeave", function(self) self.art:SetVertexColor(1, 1, 1) end)
+            f.go = g
         end
         f.ok.label:SetTextColor(C.accent[1], C.accent[2], C.accent[3])
         K.SetBorderColor(f.ok, { C.accent[1], C.accent[2], C.accent[3], 0.55 })
         f.ok:HookScript("OnLeave", function(self)
-            if self.imgBtn then
-                self.art:SetVertexColor(1, 1, 1) K.SetBorderColor(self, { 0, 0, 0, 0 }) if self.bg then self.bg:SetAlpha(0) end
-                self.label:SetTextColor(1, 0.92, 0.85)
-                return
-            end
             K.SetBorderColor(self, { C.accent[1], C.accent[2], C.accent[3], 0.55 })
             self.label:SetTextColor(C.accent[1], C.accent[2], C.accent[3])
         end)
@@ -538,7 +539,7 @@ function D.ShowPicker(mode)
         end)
         f.min:SetPoint("RIGHT", f.all, "LEFT", -8, 0)
         f.never = K.Toggle(f, L["Nicht mehr fragen"], function() return S().updateAsk == false end,
-            function(v) S().updateAsk = (not v) and nil or false end)
+            function(v) if v then S().updateAsk = false else S().updateAsk = nil end end)   -- 0.6.125: liess sich nicht ausschalten
         f.never:SetPoint("BOTTOMLEFT", 20, 28)
         f.never:SetWidth(150)
         f.never:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Nicht mehr fragen"], L["Bei neuen Versionen startet Oasis dann einfach wie bisher."] }) end)
