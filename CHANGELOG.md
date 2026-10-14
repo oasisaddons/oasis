@@ -2,6 +2,22 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.112
+
+- Settings reorganised by topic instead of by module: Start, Appearance, Notifications & sound, Tooltips & map, Areas, Gameplay helpers, Profile, Advanced.
+- New "Quick start" page: the most important switches at a glance, plus tiles that lead to every topic.
+- New page "Tooltips": all extra tooltip lines (wanted by, crafters, guild bank, materials, reservations, player ratings) in one place.
+- New page "Map": all world map and minimap switches in one place.
+- No more duplicate settings: notification switches only under Notifications, sharing switches only under Privacy, chat sounds and online display only under Sound. Areas link to these pages.
+- Technical pages (status, modules, performance) moved to "Advanced".
+- Appearance > Details: cleaner layout without cut-off titles; window size and transparency directly below.
+- Chat: select text right in the chat window by dragging with the mouse - letter by letter, also across wrapped lines. Ctrl+C copies, right-click shows more (insert into chat line, open as text box, clear). Scrolling with the mouse wheel while dragging extends or shrinks the selection.
+- Chat: Alt + click opens the chat as a text box for selecting; the copy button at the top right of the chat opens it too (right-click: search window).
+- Game chat (level, class icon and coloured names in Blizzard's chat) is now on by default; its history after /reload is off by default.
+- Game chat settings now also contain the chat switches from Comfort (arrow keys, no fading, input above the chat) and the selection switches.
+- "Keep chat after /reload" no longer carries old history blocks along and saves only new lines.
+- Sound settings: the button "Own sounds and emojis" no longer overlaps the click volume.
+
 ## 0.5.994
 
 - Chat: clicking a player name in a line with an animated emoji works again (whisper, right-click menu). The line under the mouse pauses its animation.
