@@ -3696,6 +3696,23 @@ K.SKINS.glass = {
 -- Textur an den vier Ecken von 'box' rund abschneiden: je Ecke eine Maske (Viertelkreis), ausserhalb
 -- der Maske CLAMPTOWHITE = sichtbar. Masken werden je Besitzer-Frame einmal angelegt und geteilt.
 -- Textur nach Maske gegen SetTexCoord-Fehler absichern (Ausschnitt entfaellt dann still)
+-- 0.6.127: feines Punktraster als Overlay (Media/dotgrid, 16 px Raster), passt sich der Groesse an
+function K.DotGrid(parent, alpha, inset)
+    local t = parent:CreateTexture(nil, "ARTWORK", nil, -6)
+    inset = inset or 0
+    t:SetPoint("TOPLEFT", inset, -inset)
+    t:SetPoint("BOTTOMRIGHT", -inset, inset)
+    t:SetTexture(ns.MEDIA .. "dotgrid", "REPEAT", "REPEAT")
+    t:SetVertexColor(1, 1, 1, alpha or 0.05)
+    local function fit()
+        local w, h = t:GetWidth() or 0, t:GetHeight() or 0
+        if w > 0 and h > 0 then t:SetTexCoord(0, w / 16, 0, h / 16) end
+    end
+    parent:HookScript("OnSizeChanged", fit)
+    fit()
+    if C_Timer then C_Timer.After(0, fit) end
+    return t
+end
 function K.MaskSafe(tex)
     if not tex or tex.oasisSafeTC or not tex.SetTexCoord then return tex end
     local orig = tex.SetTexCoord

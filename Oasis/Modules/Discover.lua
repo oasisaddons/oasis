@@ -200,7 +200,7 @@ function D.ShowPicker(mode)
         f.artTop:SetPoint("TOPLEFT", 1, -1) f.artTop:SetPoint("RIGHT", -1, 0) f.artTop:SetPoint("BOTTOM", f, "CENTER")
         f.artBot = f:CreateTexture(nil, "ARTWORK", nil, -8)
         f.artBot:SetPoint("BOTTOMLEFT", 1, 1) f.artBot:SetPoint("RIGHT", -1, 0) f.artBot:SetPoint("TOP", f, "CENTER")
-        for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.24) t:Hide() end   -- 0.6.125: 24 % (18 % war wieder unsichtbar, 30 % zu kraeftig)
+        for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.20) t:Hide() end   -- 0.6.127: 20 % (18 % unsichtbar, 24 % minimal zu kraeftig)
         f:HookScript("OnShow", function()
             if not ns.GuildPack then return end
             local r = (f:GetWidth() or 660) / math.max(1, f:GetHeight() or 350) / 2   -- Bild ist 2:1
@@ -216,6 +216,7 @@ function D.ShowPicker(mode)
                 round(f.artBot, { "bl", "br" })
             end
             f.artTop:Show() f.artBot:Show()
+            if not f.dots and K.DotGrid then f.dots = K.DotGrid(f, 0.04, 10) end
         end)
         local glow = f:CreateTexture(nil, "BORDER")
         glow:SetPoint("TOPLEFT") glow:SetPoint("TOPRIGHT") glow:SetHeight(180)
