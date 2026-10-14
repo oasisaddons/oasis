@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.5.996"
+ns.version = "0.5.997"
 ns.versionDate = "14.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -370,7 +370,7 @@ function ns.UnlockAll()
     return (ns.IsDev and ns.IsDev()) or (ns.db and ns.db.settings and ns.db.settings.unlockAll == true) or false
 end
 function ns.isOfficer()
-    if ns.db and ns.db.settings.adminTest and ns.IsDev() then return true end   -- Testmodus der Gildenleitung (nur Entwickler)
+    if ns.db and ns.db.settings.adminTest ~= false and ns.IsDev() then return true end   -- Testmodus der Gildenleitung (nur Entwickler)
     return C_GuildInfo and C_GuildInfo.IsGuildOfficer and C_GuildInfo.IsGuildOfficer() or false
 end
 function ns.groupChannel()

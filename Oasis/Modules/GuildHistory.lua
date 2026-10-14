@@ -260,7 +260,7 @@ end
 local Comm = ns.Comm
 local function notes() ns.db.mnotes = ns.db.mnotes or {} return ns.db.mnotes end
 local function isOfficer()
-    if ns.db.settings.adminTest and ns.IsDev() then return true end
+    if ns.db.settings.adminTest ~= false and ns.IsDev() then return true end
     return C_GuildInfo and C_GuildInfo.IsGuildOfficer and C_GuildInfo.IsGuildOfficer() or false
 end
 GH.CanNotes = isOfficer

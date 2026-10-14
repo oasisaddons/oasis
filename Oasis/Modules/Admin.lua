@@ -51,7 +51,8 @@ function Admin.GuildName()
 end
 -- Testmodus (/oa testleitung): nur auf diesem PC wie ein Gildenmeister behandeln.
 -- Andere Clients pruefen den echten Rang und ignorieren Aenderungen aus dem Testmodus.
-function Admin.TestMode() return ns.db and ns.db.settings.adminTest and ns.IsDev() and true or false end
+-- 0.5.997: fuer Entwickler Standard an (adminTest == false = bewusst aus)
+function Admin.TestMode() return ns.db and ns.db.settings.adminTest ~= false and ns.IsDev() and true or false end
 local function myRankIndex()
     if not IsInGuild() then return nil end
     if Admin.TestMode() then return 0 end
@@ -3090,10 +3091,10 @@ end
 ns.slash.admin = ns.slash.leitung
 ns.slash.testleitung = function()
     if not ns.IsDev() then ns.print(L["Nur fuer Gildenmeister und Offiziere."]) return end
-    ns.db.settings.adminTest = not ns.db.settings.adminTest
+    ns.db.settings.adminTest = not Admin.TestMode()
     memo = nil
     Admin.ApplyBrand(true)
-    if ns.db.settings.adminTest then
+    if Admin.TestMode() then
         ns.print(K.hex(C.amber) .. L["Testmodus AN: du wirst nur auf deinem PC wie der Gildenmeister behandelt. Fuer die Gilde gespeicherte Aenderungen sehen die anderen NICHT. Ausschalten: /oa testleitung"] .. "|r")
         ns.ShowPage("admin")
     else
