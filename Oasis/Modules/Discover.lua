@@ -140,6 +140,8 @@ end
 function D.ShowPicker(mode)
     if not pick then
         local W, COLS, TW, TH, GAP = 660, 3, 196, 128, 12
+        -- 0.6.124: mit Bild-Kacheln breiter - Kachel 228 x 56 = genau das Bildformat 4:1 (vorher rechts abgeschnitten)
+        if ns.GuildPack then W, TW = 760, 228 end
         local f = CreateFrame("Frame", "OasisInterests", UIParent)
         f:SetSize(W, 500)
         f:SetPoint("CENTER", 0, 30)
@@ -194,9 +196,9 @@ function D.ShowPicker(mode)
         f.box:SetAllPoints(f)
         local function round(tex, corners) if K.RoundMask then pcall(K.RoundMask, tex, f.box, RAD, corners) end end
         -- 0.6.118: Hintergrundbild schwach (nur mit Gildenmodul - Herkunft des Bildes nicht frei geklaert)
-        f.artTop = f:CreateTexture(nil, "BACKGROUND", nil, 2)
+        f.artTop = f:CreateTexture(nil, "ARTWORK", nil, -8)   -- 0.6.124: ueber der Glas-Fuellung (lag darunter)
         f.artTop:SetPoint("TOPLEFT", 1, -1) f.artTop:SetPoint("RIGHT", -1, 0) f.artTop:SetPoint("BOTTOM", f, "CENTER")
-        f.artBot = f:CreateTexture(nil, "BACKGROUND", nil, 2)
+        f.artBot = f:CreateTexture(nil, "ARTWORK", nil, -8)
         f.artBot:SetPoint("BOTTOMLEFT", 1, 1) f.artBot:SetPoint("RIGHT", -1, 0) f.artBot:SetPoint("TOP", f, "CENTER")
         for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.18) t:Hide() end   -- 0.6.123: 18 % (12 % unsichtbar, 30 % zu kraeftig)
         f:HookScript("OnShow", function()
@@ -303,7 +305,7 @@ function D.ShowPicker(mode)
             for _, x in ipairs({ hero.bg, hero.tint, hero.halo, hero.icon, hero.t, hero.s, hero.arrow }) do x:Hide() end
             hero.bg.Show = function() end
             K.SetBorderColor(hero, { 0, 0, 0, 0 })
-            local H = math.floor(604 / 7 + 0.5)
+            local H = math.floor((W - 56) / 7 + 0.5)
             hero.extra = H - 66
             hero:SetHeight(H)
             hero.shL:SetHeight(H) hero.shR:SetHeight(H)
@@ -418,7 +420,7 @@ function D.ShowPicker(mode)
                 if t.art then
                     -- Bild 4:1 - ist die Kachel hoeher, mittig zuschneiden
                     local w = TW
-                    local need = w / 4
+                    local need = w / 4 - 1
                     if th > need then
                         local keep = (w / th) / 4
                         t.art:SetTexCoord(0, keep, 0, 1)
@@ -494,9 +496,30 @@ function D.ShowPicker(mode)
             K.Toast(L["Fertig eingerichtet"], L["Mehr Bereiche findest du jederzeit unter 'Entdecken'."], C.mint, function() ns.ShowPage("discover") end)
         end)
         f.ok:SetPoint("BOTTOMRIGHT", -24, 22)
+        -- 0.6.124: Bild-Knopf unten in der Mitte (Gildenmodul); Schrift mittig, etwas links vom Pfeil im Bild
+        if ns.GuildPack then
+            f.ok:ClearAllPoints()
+            f.ok:SetSize(216, 52)
+            f.ok:SetPoint("BOTTOM", f, "BOTTOM", 0, 14)
+            f.ok.art = f.ok:CreateTexture(nil, "BACKGROUND", nil, 7)
+            f.ok.art:SetAllPoints()
+            f.ok.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\start_go")
+            if f.ok.bg then f.ok.bg:SetAlpha(0) end
+            K.SetBorderColor(f.ok, { 0, 0, 0, 0 })
+            f.ok.label:ClearAllPoints()
+            f.ok.label:SetPoint("CENTER", -10, 0)
+            f.ok.label:SetTextColor(1, 0.92, 0.85)
+            f.ok.imgBtn = true
+            f.ok:HookScript("OnEnter", function(self) self.art:SetVertexColor(1.15, 1.15, 1.15) K.SetBorderColor(self, { 0, 0, 0, 0 }) if self.bg then self.bg:SetAlpha(0) end end)
+        end
         f.ok.label:SetTextColor(C.accent[1], C.accent[2], C.accent[3])
         K.SetBorderColor(f.ok, { C.accent[1], C.accent[2], C.accent[3], 0.55 })
         f.ok:HookScript("OnLeave", function(self)
+            if self.imgBtn then
+                self.art:SetVertexColor(1, 1, 1) K.SetBorderColor(self, { 0, 0, 0, 0 }) if self.bg then self.bg:SetAlpha(0) end
+                self.label:SetTextColor(1, 0.92, 0.85)
+                return
+            end
             K.SetBorderColor(self, { C.accent[1], C.accent[2], C.accent[3], 0.55 })
             self.label:SetTextColor(C.accent[1], C.accent[2], C.accent[3])
         end)
@@ -506,7 +529,7 @@ function D.ShowPicker(mode)
             if ns.UpdateStart and ns.UpdateStart.AllOn then ns.UpdateStart.AllOn() else D.ShowAll() end
             f:Hide()
         end)
-        f.all:SetPoint("RIGHT", f.ok, "LEFT", -12, 0)
+        if ns.GuildPack then f.all:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -24, 28) else f.all:SetPoint("RIGHT", f.ok, "LEFT", -12, 0) end
         f.min = textBtn(f, L["Nur das Noetigste"], 116, function()
             if ns.UpdateStart then ns.UpdateStart.Minimal() end
             S().interestsDone = ns.now()

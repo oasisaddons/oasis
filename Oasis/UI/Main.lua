@@ -472,6 +472,14 @@ local function buildMain()
     side:SetPoint("BOTTOMLEFT", 1, 1)
     side:SetWidth(SIDEBAR)
     main.sideTex = K.Fill(side, C.side)
+    -- 0.6.124: Seitenpanel-Grafik dezent im Hintergrund der Leiste (nur mit Gildenmodul); Ecken links gerundet wie das Fenster
+    if ns.GuildPack then
+        side.art = side:CreateTexture(nil, "ARTWORK", nil, -8)
+        side.art:SetAllPoints()
+        side.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg")
+        side.art:SetAlpha(0.35)
+        if K.RoundMask then pcall(K.RoundMask, side.art, main, 12, { "tl", "bl" }) end
+    end
     if K.SkinWindow then pcall(K.SkinWindow, main) end     -- Design: echter Rahmen/Seitenleiste
     if K.StyleWindow then pcall(K.StyleWindow, main) end   -- Design: Verlauf + Rahmenfarbe
     if ns.ApplyWindowAlpha then ns.ApplyWindowAlpha(main) end
