@@ -1063,6 +1063,18 @@ local function liveStart(cf)
         live.layer:SetFrameStrata("DIALOG")
         live.layer:SetAllPoints(UIParent)
         live.drv = CreateFrame("Frame")
+        -- nach dem Markieren beim Scrollen die Hervorhebung mitfuehren (der Text bleibt derselbe)
+        live.follow = CreateFrame("Frame")
+        live.follow:SetScript("OnUpdate", function(self, el)
+            self.acc = (self.acc or 0) + el
+            if self.acc < 0.05 then return end
+            self.acc = 0
+            if live.frame and live.text and live.A and not (live.drv and live.drv:GetScript("OnUpdate")) and live.eb and live.eb:HasFocus() then
+                live.lines = shownLines(live.frame)
+                live.map = visibleMap(live.frame, live.lines)
+                liveDraw()
+            end
+        end)
     end
     live.cache = {}
     -- gleicher Massstab wie das Chatfenster (gemessen wird in dessen Einheiten)
@@ -1099,18 +1111,6 @@ local function liveStart(cf)
         end
     end)
 end
--- nach dem Markieren beim Scrollen die Hervorhebung mitfuehren (Text bleibt ohnehin derselbe)
-live.follow = CreateFrame("Frame")
-live.follow:SetScript("OnUpdate", function(self, el)
-    self.acc = (self.acc or 0) + el
-    if self.acc < 0.05 then return end
-    self.acc = 0
-    if live.frame and live.text and live.A and not (live.drv and live.drv:GetScript("OnUpdate")) and live.eb and live.eb:HasFocus() then
-        live.lines = shownLines(live.frame)
-        live.map = visibleMap(live.frame, live.lines)
-        liveDraw()
-    end
-end)
 -- Rechtsklick auf eine Markierung: kleines Menue. Die Zwischenablage selbst ist fuer Addons gesperrt -
 -- "Kopieren" legt die Markierung wieder bereit, Strg+C kopiert.
 local function liveMenu()
