@@ -5,9 +5,12 @@ local K, C, Comm = ns.K, ns.K.C, ns.Comm
 
 local QUALITY = { [2] = "Gruen", [3] = "Blau", [4] = "Episch" }
 local TABS = {
-    { key = "general", text = "Allgemein" },
+    { key = "quick", text = "Schnellstart" },
+    { key = "general", text = "Fenster & Minimap" },
     { key = "pages", text = "Bereiche" },
-    { key = "look", text = "Oasis" },
+    { key = "look", text = "Design" },
+    { key = "tips", text = "Tooltips" },
+    { key = "mapset", text = "Karte" },
     { key = "toasts", text = "Hinweise" },
     { key = "sound", text = "Sound" },
     { key = "char", text = "Profil & Sichern" },
@@ -393,7 +396,6 @@ local PAGE_OPTS = {
         { "Emoji-Knopf im Eingabefeld", "emojiButton", "Kleines Gesicht rechts im Chat-Eingabefeld", function() if ns.Emoji then ns.Emoji.UpdateButtons() end end },
         { "Sounds aus dem Chat", "chatSounds", nil, nil, true },
         { "Fluestern an Offline-Charaktere dem Twink anbieten", "whisperForward", "Ist der angefluesterte Charakter offline und ein Twink desselben Spielers online, bietet Oasis an, die Nachricht dorthin zu schicken - gesendet wird erst nach deinem Klick." },
-        { "Oasis-Nutzer im Tooltip markieren", "oasisMark", "Kleines Zeichen im Tooltip bei Mitgliedern, die Oasis nutzen", nil, true },
         emojiPicker = true,
     },
     radar = {
@@ -402,14 +404,6 @@ local PAGE_OPTS = {
         { "Deutlicher Standard-Ton bei Online-Meldungen", "entranceLoud", "Zweiklang statt kurzem Ton, wenn die Person keinen eigenen Online-Sound gewaehlt hat", nil, true },
         inactive = true, listDark = true,
     },
-    map = {
-        { "Position mit der Gilde teilen", "shareMap", "Fuer Gildenkarte und Minimap-Punkte der anderen" },
-        { "Namen auf der Weltkarte", "mapNames", nil, updPins },
-        { "Gildenpunkte auf der Minimap", "minimapDots", nil, function() if ns.Map then ns.Map.UpdateMinimap() end end },
-        { "Heatmap auf der Weltkarte", "mapHeat", "Wo die Gilde unterwegs war", updPins },
-        { "Weltkarte aufdecken", "mapReveal", "Zeigt unerforschte Gebiete abgedunkelt an (Standard aus)", function() if ns.ComfortPlus then ns.ComfortPlus.ApplyReveal() end end },
-    },
-    deaths = { { "Totenkoepfe auf der Karte", "deathPins", "Wo Gildenmitglieder gestorben sind" } },
     deathroll = { { "Deathroll leise wuerfeln", "drSilent", "Unter Oasis-Spielern fair per Addon statt /roll - nichts im Chat" } },
     allies = { { "Mitspieler-Bewertungen mit der Gilde teilen", "shareRep", "Gut/Schlecht und Notiz zu Mitspielern - die Gilde wird dann auch vor schlechten gewarnt" } },
     chronicle = { { "Eigene Meilensteine im Gildenchat posten", "announceMilestones", "Level alle 5 Stufen und Legacy-Challenges" } },
@@ -418,7 +412,15 @@ local PAGE_OPTS = {
 -- andere Module koennen eigene Bereichs-Einstellungen anmelden: build(frame, y) -> neue y
 local PAGE_EXTRA = {}
 -- Unterseiten (kein eigener Navigationspunkt) -> ihre Einstellungen erscheinen beim Hauptbereich
-local AREA_CHILDREN = { raid = { "softres" }, radar = { "map" }, insta = { "life" } }
+local AREA_CHILDREN = { insta = { "life" } }
+-- Bereiche, deren Tooltip-/Kartenschalter jetzt unter Tooltips & Karte stehen: { Reiter, Knopftext }
+local AREA_LINKS = {
+    radar = { "mapset", "Karte und Minimap einstellen" }, map = { "mapset", "Karte und Minimap einstellen" },
+    deaths = { "mapset", "Karte und Minimap einstellen" },
+    wants = { "tips", "Tooltip-Zeilen einstellen" }, crafting = { "tips", "Tooltip-Zeilen einstellen" },
+    bank = { "tips", "Tooltip-Zeilen einstellen" }, raid = { "tips", "Tooltip-Zeilen einstellen" },
+    allies = { "tips", "Tooltip-Zeilen einstellen" }, chat = { "tips", "Tooltip-Zeilen einstellen" },
+}   -- 0.5.995: Karte und Softres-Tooltip stehen unter Tooltips & Karte
 function ns.AddPageSettings(key, build) PAGE_EXTRA[key] = build end
 
 -- Bereich "Profil": was jeder fuer sich selbst einstellt (Ueber mich, Sichtbarkeit, Belohnungen)
@@ -771,8 +773,7 @@ ns.AddPageSettings("allies", function(det, y)
     end
     det.t[#det.t + 1] = toggle(det, 14, y, "Mitspieler aus Gruppen merken", "allyRemember", "Spieler ausserhalb der Gilde, mit denen du in einer Gruppe warst, landen im Spielerbuch - nur bei dir gespeichert", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Bewertung im Spieler-Tooltip zeigen", "allyTooltip", "Deine Bewertung, Notiz und die Erfahrungen der Gilde beim Drueberfahren", nil, 600)
-    y = y - 40
+    y = y - 8
     rowLabel(det, "|cffe8b44a" .. L["Warnungen"] .. "|r", 14, y)
     y = y - 28
     det.t[#det.t + 1] = toggle(det, 14, y, "Warnen, wenn ein schlecht Bewerteter in die Gruppe kommt", "allyWarnGroup", nil, nil, 600)
@@ -861,14 +862,6 @@ ns.AddPageSettings("raid", function(det, y)
     return y - 10
 end)
 
-ns.AddPageSettings("softres", function(det, y)
-    if S().srTooltip == nil then S().srTooltip = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Reservierungen im Item-Tooltip zeigen", "srTooltip", "Zeigt im Item-Tooltip, wer das Item fuer einen anstehenden Termin reserviert hat", nil, 600)
-    y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Tooltip-Zeile nur in einer Gruppe", "srTooltipGroupOnly", "Die Reservierungs-Zeile erscheint nur, wenn du in einer Gruppe oder einem Schlachtzug bist", nil, 600)
-    y = y - 32
-    return y - 10
-end)
 -- [C]
 -- Gruppe C (Handel): Handwerks-Boerse, Markt, Wunschliste, Gildenbank
 
@@ -884,8 +877,6 @@ ns.AddPageSettings("crafting", function(det, y)
     y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Zahl offener Auftraege im Menue", "craftBadge", "Kleine Zahl am Menuepunkt Handwerks-Boerse fuer Auftraege, die du herstellen koenntest",
         function() if ns.Crafting and ns.Crafting.UpdateBadge then ns.Crafting.UpdateBadge() end end, 600)
-    y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Herstellbar von im Item-Tooltip", "tipCrafters", "Zeigt im Tooltip, wer in der Gilde das Item herstellen kann", nil, 600)
     y = y - 32
     return y - 10
 end)
@@ -928,14 +919,8 @@ ns.AddPageSettings("wants", function(det, y)
     y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Ziel erreicht melden", "wantsGotHint", "Lootest du ein Item von deiner Wunschliste, kommt ein Hinweis (Klick hakt es ab)", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Material-Tooltip: wofuer die Gilde es braucht", "tipReagent", "Unter Materialien: in welchen Rezepten der Gilde sie stecken (Shift = alle)", nil, 600)
-    y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Zahl im Menue, wenn ich helfen kann", "wantsBadge", "Kleine Zahl am Menuepunkt Wunschliste",
         function() if ns.Wants and ns.Wants.UpdateBadge then ns.Wants.UpdateBadge() end end, 600)
-    y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Oasis-Zeilen im Item-Tooltip", "tipOasis", "Gesucht von, Auftraege, Gilden-Preis, Gildenbank und Herkunft unter jedem Item-Tooltip", nil, 600)
-    y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Gesucht von im Item-Tooltip", "tipWanted", "Wer aus der Gilde das Item auf der Wunschliste hat", nil, 600)
     y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Item-Vorschlaege beim Tippen", "itemSuggest", "Beim Eintippen eines Item-Namens schlaegt Oasis passende Items vor", nil, 600)
     y = y - 32
@@ -948,8 +933,6 @@ ns.AddPageSettings("bank", function(det, y)
     if s.bankShareScan == nil then s.bankShareScan = true end
     if s.tipBank == nil then s.tipBank = true end
     det.t[#det.t + 1] = toggle(det, 14, y, "Gildenbank fuer die Gilde einlesen", "bankShareScan", "Oeffnest du den Gildentresor, liest Oasis Faecher, Gold und Protokoll und teilt sie mit der Gilde", nil, 600)
-    y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Gildenbank-Bestand im Item-Tooltip", "tipBank", "Zeigt im Tooltip, wie viele davon in der Gildenbank liegen", nil, 600)
     y = y - 38
     rowLabel(det, L["Protokoll zeigt zuerst"], 14, y - 2)
     det.bankLog = K.Segments(det, { { key = "all", text = L["Alles"] }, { key = "items", text = L["Items"] },
@@ -1537,6 +1520,14 @@ local function buildPages(f)
                     elseif not ok then ns.err(L["Aufbau"] .. " settings/pages/" .. ck, ny) end
                 end
             end
+        end
+        -- 0.5.995: Tooltip- und Karten-Schalter stehen gesammelt unter Tooltips & Karte - hier nur der Weg dorthin
+        local link = AREA_LINKS[key]
+        if link then
+            y = y - 6
+            local lb = K.Button(det, L[link[2]] .. "  >", 260, 24, "ghost", function() if ns.Settings then ns.Settings.SetTab(link[1]) end end)
+            lb:SetPoint("TOPLEFT", 14, y)
+            y = y - 36
         end
         if y == Y0 then
             note(det, L["Fuer diesen Bereich gibt es keine eigenen Einstellungen."], 14, y, 600, C.dim)
@@ -3328,14 +3319,28 @@ compact = function(fr)
 end
 -- Gliederung (0.5.677): sechs Gruppen mit Symbol, darunter Unterreiter (nur wenn eine Gruppe mehrere hat)
 -- Topbar = Fensterverhalten (Allgemein), Listen & Karte = was Oasis zeigt (Bereiche), Profil + Daten zusammen
+-- 0.5.995: neu geordnet nach der Frage des Spielers ("wie sieht es aus", "was will ich mitbekommen", "was steht im Tooltip/auf der Karte")
+-- statt nach Modulen. Start = Schnellstart mit dem Wichtigsten, Technik liegt unter Erweitert.
+-- "lists" (Listen & Karte) gibt es nicht mehr in der Navigation - alles daraus steht bei Karte bzw. den Bereichen.
 local GROUPS = {
-    { key = "general", text = "Allgemein", icon = "settings", tabs = { "general", "bar", "keys" } },
-    { key = "look", text = "Aussehen", icon = "brush", tabs = { "look" } },
-    { key = "notify", text = "Klang & Hinweise", icon = "announce", tabs = { "sound", "toasts", "greet" } },
-    { key = "pages", text = "Bereiche", icon = "modules", tabs = { "pages", "modules", "lists" } },
-    { key = "help", text = "Spielhilfen", icon = "checklist", tabs = { "comfort", "helpers" } },
-    { key = "char", text = "Profil & Daten", icon = "profile", tabs = { "char", "share", "status", "perf", "lexport" } },   -- share = Datenschutz, perf = Live-Leistungsmesser
+    { key = "start", text = "Start", icon = "home", tabs = { "quick" },
+        desc = "Das Wichtigste auf einen Blick" },
+    { key = "look", text = "Aussehen", icon = "brush", tabs = { "look", "general", "bar" },
+        desc = "Design, Schrift, Fenster, Minimap-Knopf und Topbar" },
+    { key = "notify", text = "Hinweise & Klang", icon = "announce", tabs = { "toasts", "sound", "greet" },
+        desc = "Welche Meldungen du siehst und hoerst" },
+    { key = "info", text = "Tooltips & Karte", icon = "map", tabs = { "tips", "mapset" },
+        desc = "Zusatzzeilen im Tooltip, Gilde auf Weltkarte und Minimap" },
+    { key = "pages", text = "Bereiche", icon = "modules", tabs = { "pages" },
+        desc = "Bereiche ein- und ausblenden, ihre eigenen Einstellungen" },
+    { key = "help", text = "Spielhilfen", icon = "checklist", tabs = { "comfort", "helpers", "keys" },
+        desc = "Komfort-Funktionen, Helfer, Spielchat und Tastenkuerzel" },
+    { key = "char", text = "Profil", icon = "profile", tabs = { "char", "share" },
+        desc = "Main und Twinks, Datenschutz, Einstellungen sichern" },
+    { key = "adv", text = "Erweitert", icon = "stats", tabs = { "status", "modules", "perf", "lexport" },
+        desc = "Status, Module, Leistung - fuer Fortgeschrittene" },
 }
+local HIDDEN_TABS = { lists = true }   -- weiter aufrufbar (alte Links), aber ohne eigenen Reiter
 local function tabText(key)
     for _, t in ipairs(TABS) do if t.key == key then return L[t.text] end end
     return key
@@ -3347,7 +3352,7 @@ local function groupTabs(g)
     for _, gg in ipairs(GROUPS) do for _, k in ipairs(gg.tabs) do known[k] = true end end
     for _, k in ipairs(g.tabs) do if BUILD[k] then out[#out + 1] = k end end
     if g.key == "help" then
-        for _, t in ipairs(TABS) do if not known[t.key] and BUILD[t.key] then out[#out + 1] = t.key end end
+        for _, t in ipairs(TABS) do if not known[t.key] and not HIDDEN_TABS[t.key] and BUILD[t.key] then out[#out + 1] = t.key end end
     end
     return out
 end
@@ -3358,7 +3363,8 @@ end
 local function tabTop(g) return -84 end   -- zweite Zeile immer da (Unterreiter + Suche), mit Luft darueber/darunter
 local function setTab(key)
     if not page then return end
-    if not BUILD[key] then key = "general" end
+    if not BUILD[key] then key = "quick" end
+    if HIDDEN_TABS[key] then key = "mapset" end
     page.tab = key
     local g = groupOf(key)
     page.group = g.key
@@ -3477,6 +3483,8 @@ function ns.OpenSettingsTab(key)
 end
 -- Einstellungen eines Bereichs oeffnen (z. B. "map" aus der Leiste unter der Weltkarte); holt Oasis vor die Karte
 function ns.OpenAreaSettings(area)
+    -- Karten-Schalter haben seit 0.5.995 einen eigenen Reiter
+    if area == "map" then ns.OpenSettingsTab("mapset") if ns.OasisFront then ns.OasisFront() end return end
     ns.OpenSettingsTab("pages")
     local pf = page and page.tabs and page.tabs.pages
     if pf and pf.ShowSel then
@@ -3486,6 +3494,172 @@ function ns.OpenAreaSettings(area)
     end
     if ns.OasisFront then ns.OasisFront() end
 end
+
+------------------------------------------------------------------------
+-- 0.5.995: Schnellstart, Tooltips, Karte
+-- Schnellstart = das Wichtigste + Wegweiser zu allen Gruppen; Tooltips und Karte sammeln, was vorher
+-- verstreut in sechs Bereichen und zwei Reitern stand.
+------------------------------------------------------------------------
+-- Glas-Karte ueber die volle Breite mit Titel; liefert die Karte und die erste freie Zeile
+local function wideCard(f, y, icon, title, sub)
+    local c = cardH(f, 0, y, 740, 100, icon, title, sub)
+    c:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, y)
+    return c, y - (sub and 62 or 46)
+end
+-- Zwischenueberschrift in einer Karte (gleiche Art wie in den Bereichen)
+local function subHead(f, text, y)
+    rowLabel(f, "|cffe8b44a" .. L[text] .. "|r", 14, y)
+    return y - 28
+end
+-- Liste { Text, Schluessel, Erklaerung, nachher, Standard an } als Schalter untereinander
+local function toggleList(f, list, y)
+    for _, o in ipairs(list) do
+        if o[5] and S()[o[2]] == nil then S()[o[2]] = true end
+        f.t[#f.t + 1] = toggle(f, 14, y, o[1], o[2], o[3], o[4], 600)
+        y = y - 32
+    end
+    return y
+end
+
+local function buildQuick(f)
+    f.noCompact = true
+    f.t = {}
+    -- Das Wichtigste ----------------------------------------------------
+    local c, y = wideCard(f, 0, "settings", L["Das Wichtigste"], L["Die Schalter, die fast jeder einmal braucht - alles andere findest du unten nach Themen sortiert"])
+    rowLabel(f, L["Sprache"], 14, y)
+    f.lang = K.Button(f, "", 220, 24, "ghost")
+    f.lang.isDropdown = true
+    f.lang:SetPoint("TOPLEFT", 200, y + 4)
+    f.lang:SetScript("OnClick", function(self) ns.ShowLanguageMenu(self) end)
+    indexAdd(L["Sprache"], f.lang)
+    y = y - 36
+    y = toggleList(f, {
+        { "Hinweise anzeigen", "toasts", "Kurze Meldungen am Bildschirmrand: Auftraege, Termine, Gruppensuchen, Durchsagen ..." },
+        { "Sounds abspielen", "sound", "Alle Oasis-Klaenge an oder aus" },
+        { "Im Kampf ausblenden", "hideInCombat", "Das Oasis-Fenster verschwindet, sobald ein Kampf beginnt" },
+        { "Minimap-Knopf anzeigen", "minimap", "Linksklick oeffnet Oasis, Rechtsklick die Einstellungen", function() if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end end },
+        { "Position mit der Gilde teilen", "shareMap", "Fuer Gildenkarte und Minimap-Punkte der anderen" },
+        { "Emojis im Chat anzeigen", "chatEmoji", "Aus :lol: oder <3 wird ein Bild" },
+        { "Oasis-Zeilen im Item-Tooltip", "tipOasis", "Gesucht von, Auftraege, Gildenbank und Herkunft unter jedem Item-Tooltip", nil, true },
+        { "Animationen reduzieren", "noAnim", "Kein Einblenden und Hochzaehlen - alles erscheint sofort" },
+    }, y)
+    c:SetHeight(-y + 4)
+    -- Wegweiser ---------------------------------------------------------
+    y = y - 18
+    local h = K.Text(f, 10, C.dim)
+    h:SetPoint("TOPLEFT", 0, y)
+    h:SetText(K.Upper(L["Alle Einstellungen nach Thema"]))
+    y = y - 20
+    local G = ns.Insta and ns.Insta.Glass
+    f.tiles = {}
+    for _, g in ipairs(GROUPS) do
+        if g.key ~= "start" and #groupTabs(g) > 0 then
+            local t = CreateFrame("Button", nil, f)
+            t:SetHeight(56)
+            if not (G and pcall(G, t, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.09 }, 10)) then K.Fill(t, { 1, 1, 1, 0.03 }) K.Border(t, C.line) end
+            t.icon = K.Glyph(t, 16, ns.MEDIA .. "icons\\" .. g.icon, C.accent)
+            t.icon:SetPoint("TOPLEFT", 12, -11)
+            t.lbl = K.Title(t, 12, C.text)
+            t.lbl:SetPoint("LEFT", t.icon, "RIGHT", 8, 0)
+            t.lbl:SetText(L[g.text])
+            t.sub = K.Text(t, 10, C.dim)
+            t.sub:SetPoint("TOPLEFT", 12, -32)
+            t.sub:SetPoint("RIGHT", -10, 0)
+            t.sub:SetJustifyH("LEFT")
+            t.sub:SetWordWrap(false)
+            t.sub:SetText(L[g.desc or ""])
+            t.hl = t:CreateTexture(nil, "HIGHLIGHT")
+            t.hl:SetAllPoints()
+            t.hl:SetColorTexture(1, 1, 1, 0.05)
+            t.g = g
+            t:SetScript("OnClick", function(self) setTab(groupTabs(self.g)[1]) end)
+            f.tiles[#f.tiles + 1] = t
+        end
+    end
+    local function layout()
+        local w = f:GetWidth()
+        if not w or w < 200 then w = 740 end
+        local cols = w >= 600 and 3 or 2
+        local cw = math.floor((w - 2 - (cols - 1) * 10) / cols)
+        for i, t in ipairs(f.tiles) do
+            local k = i - 1
+            t:ClearAllPoints()
+            t:SetPoint("TOPLEFT", (k % cols) * (cw + 10), y - math.floor(k / cols) * 64)
+            t:SetWidth(cw)
+        end
+    end
+    f:HookScript("OnSizeChanged", layout)
+    layout()
+    -- Rundgang erneut starten (Onboarding.lua)
+    if ns.Onboarding and ns.Onboarding.Show then
+        local tb = K.Button(f, L["Rundgang starten"], 140, 22, "ghost", function() ns.Onboarding.Show() end)
+        tb:SetPoint("TOPLEFT", 0, y - math.ceil(#f.tiles / 3) * 64 - 8)
+    end
+end
+local function refreshQuick(f)
+    for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end
+    local l = ns.langByKey and ns.langByKey[ns.lang]
+    if l and f.lang then
+        local auto = (S().lang or "auto") == "auto"
+        f.lang:SetLabel("|T" .. ns.MEDIA .. "flags\\" .. l.flag .. ":12:16:0:0:64:64:0:64:0:48|t  " .. (auto and (L["Wie das Spiel"] .. " (" .. l.name .. ")") or l.name))
+    end
+end
+
+-- Tooltips: alle Zusatzzeilen an einer Stelle (vorher bei Wunschliste, Handwerk, Gildenbank, Softres, Spielerbuch und Chat)
+local function buildTips(f)
+    f.noCompact = true
+    f.t = {}
+    local c, y = wideCard(f, 0, "wants", L["Item-Tooltip"], L["Was Oasis unter Gegenstaenden anzeigt"])
+    y = toggleList(f, {
+        { "Oasis-Zeilen im Item-Tooltip", "tipOasis", "Hauptschalter: Gesucht von, Auftraege, Gilden-Preis, Gildenbank und Herkunft", nil, true },
+        { "Gesucht von im Item-Tooltip", "tipWanted", "Wer aus der Gilde das Item auf der Wunschliste hat", nil, true },
+        { "Herstellbar von im Item-Tooltip", "tipCrafters", "Zeigt im Tooltip, wer in der Gilde das Item herstellen kann", nil, true },
+        { "Gildenbank-Bestand im Item-Tooltip", "tipBank", "Zeigt im Tooltip, wie viele davon in der Gildenbank liegen", nil, true },
+        { "Material-Tooltip: wofuer die Gilde es braucht", "tipReagent", "Unter Materialien: in welchen Rezepten der Gilde sie stecken (Shift = alle)", nil, true },
+        { "Reservierungen im Item-Tooltip zeigen", "srTooltip", "Zeigt im Item-Tooltip, wer das Item fuer einen anstehenden Termin reserviert hat", nil, true },
+        { "Tooltip-Zeile nur in einer Gruppe", "srTooltipGroupOnly", "Die Reservierungs-Zeile erscheint nur, wenn du in einer Gruppe oder einem Schlachtzug bist" },
+    }, y)
+    c:SetHeight(-y + 4)
+    y = y - 18
+    local c2
+    local top2 = y
+    c2, y = wideCard(f, y, "profile", L["Spieler-Tooltip"], L["Was Oasis unter Spielern anzeigt"])
+    y = toggleList(f, {
+        { "Oasis-Nutzer im Tooltip markieren", "oasisMark", "Kleines Zeichen im Tooltip bei Mitgliedern, die Oasis nutzen", nil, true },
+        { "Bewertung im Spieler-Tooltip zeigen", "allyTooltip", "Deine Bewertung, Notiz und die Erfahrungen der Gilde beim Drueberfahren", nil, true },
+    }, y)
+    c2:SetHeight(top2 - y + 4)
+end
+local function refreshTips(f) for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end end
+
+-- Karte: alles zu Weltkarte und Minimap (vorher Bereiche > Mitglieder > Karte, dazu Listen & Karte und Friedhof)
+local function buildMapTab(f)
+    f.noCompact = true
+    f.t, f.refreshers = {}, {}
+    local c, y = wideCard(f, 0, "map", L["Gilde auf der Karte"], L["Was du teilst und was du von der Gilde siehst"])
+    y = toggleList(f, {
+        { "Position mit der Gilde teilen", "shareMap", "Fuer Gildenkarte und Minimap-Punkte der anderen" },
+        { "Namen auf der Weltkarte", "mapNames", nil, updPins },
+        { "Gildenpunkte auf der Minimap", "minimapDots", nil, function() if ns.Map then ns.Map.UpdateMinimap() end end },
+        { "Heatmap auf der Weltkarte", "mapHeat", "Wo die Gilde unterwegs war", updPins },
+        { "Totenkoepfe auf der Karte", "deathPins", "Wo Gildenmitglieder gestorben sind" },
+        { "Weltkarte aufdecken", "mapReveal", "Zeigt unerforschte Gebiete abgedunkelt an (Standard aus)", function() if ns.ComfortPlus then ns.ComfortPlus.ApplyReveal() end end },
+    }, y)
+    -- die ausfuehrlichen Karten-Schalter (Sammelkarte, Extras, Symbole) aus Modules/Settings "map"
+    if PAGE_EXTRA.map then
+        y = y - 8
+        local ok, ny = pcall(PAGE_EXTRA.map, f, y)
+        if ok and type(ny) == "number" then y = ny elseif not ok then ns.err(L["Aufbau"] .. " settings/mapset", ny) end
+    end
+    c:SetHeight(-y + 4)
+end
+local function refreshMapTab(f)
+    for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end
+    for _, fn in ipairs(f.refreshers or {}) do pcall(fn) end
+end
+BUILD.quick, REFRESH.quick = buildQuick, refreshQuick
+BUILD.tips, REFRESH.tips = buildTips, refreshTips
+BUILD.mapset, REFRESH.mapset = buildMapTab, refreshMapTab
 
 ns.RegisterPage({
     key = "settings", title = "Einstellungen", order = 8, topbar = true,
@@ -3818,11 +3992,13 @@ ns.RegisterPage({
         local line = K.Divider(p)
         line:SetPoint("TOPLEFT", 0, -28)
         line:SetPoint("TOPRIGHT", 0, -28)
+        -- 0.5.995: nach dem Umbau einmal auf dem Schnellstart beginnen
+        if not S().settingsV2 then S().settingsV2 = true S().settingsTab = "quick" S().settingsSub = nil end
         local tab = S().settingsTab
         -- gemerkter Reiter nur, wenn es ihn noch gibt (z.B. "Teilen" ist entfallen)
         local known = false
-        for _, t in ipairs(TABS) do if t.key == tab then known = true end end
-        setTab(known and REFRESH[tab] and tab or "general")
+        for _, t in ipairs(TABS) do if t.key == tab and not HIDDEN_TABS[tab] then known = true end end
+        setTab(known and REFRESH[tab] and tab or "quick")
     end,
     refresh = function(p)
         local fr = p.tabs[p.tab]
