@@ -441,9 +441,13 @@ local function ovStep(frames)
                                 local free = (fs:GetWidth() or 0) - ((fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth() or 0)
                                 if free > 0 then jx = (jh == "RIGHT") and free or free / 2 end
                             end
-                            t:SetSize(it.sz * k, it.sz * k)
+                            -- 0.6.147: Text-Skalierung der Zeile (SetTextScale) - WoW meldet Breiten ohne sie, zeichnet aber
+                            -- verkleinert; ohne diesen Faktor sass das Emoji bei manchen Spielern ~14 % zu weit rechts
+                            local ts = (fs.GetTextScale and tonumber(fs:GetTextScale())) or 1
+                            if ts <= 0.2 or ts > 5 then ts = 1 end
+                            t:SetSize(it.sz * k * ts, it.sz * k * ts)
                             t:ClearAllPoints()
-                            t:SetPoint("CENTER", fs, "TOPLEFT", (jx + it.x + it.sz / 2) * k, (-((it.row - 1) * lh + lh / 2) + it.yo) * k)
+                            t:SetPoint("CENTER", fs, "TOPLEFT", (jx + it.x + it.sz / 2) * k * ts, (-((it.row - 1) * lh + lh / 2) + it.yo * ts) * k)
                             ov.dbg = ov.dbg or { k = k, fs = fs, x = it.x, t = t, jh = jh }
                             t:SetAlpha(fs.GetEffectiveAlpha and fs:GetEffectiveAlpha() or 1)
                             t:Show()
@@ -1841,22 +1845,30 @@ ns.slash.emojitest = function()
         for fs, c in pairs(ov.info) do
             if shown < 3 and c.items and c.items[1] and fs.IsVisible and fs:IsVisible() then
                 shown = shown + 1
-                add(("Modus 4: x=%.0f Faktor=%.3f Zeilenbreite=%.0f Fensterskala=%.2f"):format(c.items[1].x or -1, c.factor or 1,
-                    fs.GetStringWidth and fs:GetStringWidth() or -1, fs.GetEffectiveScale and fs:GetEffectiveScale() or -1))
+                add(("Modus 4: x=%.0f Faktor=%.3f Zeilenbreite=%.0f Fensterskala=%.2f Textskala=%s"):format(c.items[1].x or -1, c.factor or 1,
+                    fs.GetStringWidth and fs:GetStringWidth() or -1, fs.GetEffectiveScale and fs:GetEffectiveScale() or -1,
+                    tostring(fs.GetTextScale and fs:GetTextScale() or "-")))
                 if shown == 1 then
                     -- 0.6.145: Text der Zeile (Steuerzeichen sichtbar) und 15 s lang drei Hilfslinien an der Zeile:
                     -- gruen = Zeilenanfang laut WoW, rot = hier sollte das Emoji beginnen, blau = Zeilenende laut WoW
                     add("Zeile: " .. tostring(c.raw or ""):gsub("|", "||"):sub(1, 220))
                     ov.marks = ov.marks or {}
                     local real = (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth() or 0
+                    local tsc = (fs.GetTextScale and tonumber(fs:GetTextScale())) or 1
                     for i, d in ipairs({ { 0, 0, 1, 0 }, { c.items[1].x or 0, 1, 0, 0 }, { real, 0.2, 0.5, 1 } }) do
-                        local m = ov.marks[i] or UIParent:CreateTexture(nil, "OVERLAY")
+                        -- 0.6.147: auf eigener Ebene ueber dem Chatfenster (lagen sonst darunter und waren unsichtbar)
+                        if not ov.markFrame then
+                            ov.markFrame = CreateFrame("Frame", nil, UIParent)
+                            ov.markFrame:SetFrameStrata("TOOLTIP")
+                            ov.markFrame:SetAllPoints(UIParent)
+                        end
+                        local m = ov.marks[i] or ov.markFrame:CreateTexture(nil, "OVERLAY")
                         ov.marks[i] = m
                         m:SetColorTexture(d[2], d[3], d[4], 1)
                         m:ClearAllPoints()
                         m:SetSize(2, (fs:GetHeight() or 14) + 8)
                         local k = (fs:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1)
-                        m:SetPoint("TOP", fs, "TOPLEFT", d[1] * k, 4)
+                        m:SetPoint("TOP", fs, "TOPLEFT", d[1] * k * tsc, 4)
                         m:Show()
                     end
                     C_Timer.After(15, function() for _, m in ipairs(ov.marks) do m:Hide() end end)

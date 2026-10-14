@@ -484,6 +484,13 @@ local function buildMain()
         end
         if K.RoundMask then pcall(K.RoundMask, art, main, 12, { "tr", "br" }) end
         main.contentArt = art
+        -- 0.6.147: Vignette ueber dem Bild - zu den Raendern dunkler, Inhalt in der Mitte bleibt ruhig
+        local vig = main:CreateTexture(nil, "ARTWORK", nil, -7)
+        vig:SetAllPoints(art)
+        vig:SetTexture(ns.MEDIA .. "vignette")
+        vig:SetVertexColor(1, 1, 1, 0.9)
+        if K.RoundMask then pcall(K.RoundMask, vig, main, 12, { "tr", "br" }) end
+        main.contentVig = vig
         local dots = main:CreateTexture(nil, "ARTWORK", nil, -6)
         dots:SetPoint("TOPLEFT", main, "TOPLEFT", SIDEBAR + 4, -4)
         dots:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", -4, 4)
@@ -499,6 +506,7 @@ local function buildMain()
         function main.UpdateContentArt()
             local home = ns.CurrentPage and ns.CurrentPage() == "home"
             art:SetShown(not home)
+            vig:SetShown(not home)
             dots:SetShown(not home)
         end
         local last, acc = nil, 0
@@ -511,8 +519,9 @@ local function buildMain()
             -- 0.6.146: das Bild ist rot gemalt - bei roter Farbe Original, sonst entsaettigt in der gewaehlten Farbe
             local red = ac[1] > 0.55 and ac[2] < 0.45 and ac[3] < 0.45
             art:SetDesaturated(not red)
-            if red then art:SetVertexColor(1, 1, 1, 0.55)
-            else art:SetVertexColor(math.min(1, ac[1] * 1.6), math.min(1, ac[2] * 1.6), math.min(1, ac[3] * 1.6), 0.55) end
+            -- 0.6.147: etwas dunkler (40 % statt 55 %)
+            if red then art:SetVertexColor(1, 1, 1, 0.40)
+            else art:SetVertexColor(math.min(1, ac[1] * 1.6), math.min(1, ac[2] * 1.6), math.min(1, ac[3] * 1.6), 0.40) end
         end
         tint()
         main:HookScript("OnUpdate", function(_, el)
