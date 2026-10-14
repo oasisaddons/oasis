@@ -344,6 +344,15 @@ local function lineItems(fs, raw)
     if c and c.raw == raw then return c.items end
     local items = {}
     local multi = fs.GetNumLines and (fs:GetNumLines() or 1) > 1
+    -- 0.6.106: an der echten Zeile abgleichen - meldet die Chatzeile eine andere Gesamtbreite als die eigene Messung
+    -- (andere Schriftdarstellung, Symbole ...), wird x mit demselben Faktor umgerechnet
+    local factor = 1
+    if not multi then
+        local real = (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or (fs.GetStringWidth and fs:GetStringWidth())
+        local mine = measWidth(fs, raw)
+        if real and real > 0 and mine > 0 then factor = real / mine end
+        if factor < 0.5 or factor > 2 then factor = 1 end
+    end
     local pos = 1
     while true do
         local a, e, key, sw, sh, yo = raw:find(OV_PAT, pos)
@@ -354,7 +363,7 @@ local function lineItems(fs, raw)
             local prefix = raw:sub(1, a - 1)
             local x, row = nil, 1
             if not multi then
-                x = measWidth(fs, prefix)
+                x = measWidth(fs, prefix) * factor
             else
                 -- Bildzeile des Emojis und deren Anfang (nach dem letzten Leerzeichen, das noch davor umbricht)
                 row = measRows(fs, raw:sub(1, e))
@@ -370,7 +379,7 @@ local function lineItems(fs, raw)
         end
         pos = e + 1
     end
-    ov.info[fs] = { raw = raw, items = items }
+    ov.info[fs] = { raw = raw, items = items, factor = factor }
     return items
 end
 local function ovLayer(cf)
@@ -1802,6 +1811,16 @@ ns.slash.emojitest = function()
         out[#out + 1] = s
         ns.print(s)
     end)
+    if redrawMode() == 4 then
+        local shown = 0
+        for fs, c in pairs(ov.info) do
+            if shown < 3 and c.items and c.items[1] and fs.IsVisible and fs:IsVisible() then
+                shown = shown + 1
+                add(("Modus 4: x=%.0f Faktor=%.3f Zeilenbreite=%.0f Fensterskala=%.2f"):format(c.items[1].x or -1, c.factor or 1,
+                    fs.GetStringWidth and fs:GetStringWidth() or -1, fs.GetEffectiveScale and fs:GetEffectiveScale() or -1))
+            end
+        end
+    end
     add("Bitte Screenshot davon schicken, waehrend ein animiertes Emoji im Chat steht.")
     if ns.db then ns.db.emojiDiag = { t = time(), lines = out } end
 end

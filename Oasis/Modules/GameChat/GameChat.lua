@@ -923,14 +923,8 @@ local function liveDraw()
         n = n + 1
         local t = live.hl[n]
         if not t then t = live.layer:CreateTexture(nil, "OVERLAY") live.hl[n] = t end
-        -- 0.6.102: Verlauf in der Akzentfarbe (links kraeftig, nach rechts weicher)
-        t:SetTexture("Interface\\Buttons\\WHITE8X8")
-        if t.SetGradient and CreateColor then
-            t:SetVertexColor(1, 1, 1, 1)
-            t:SetGradient("HORIZONTAL", CreateColor(ac[1], ac[2], ac[3], 0.55), CreateColor(ac[1] * 0.7, ac[2] * 0.7, ac[3] * 0.7, 0.18))
-        else
-            t:SetVertexColor(ac[1], ac[2], ac[3], 0.35)
-        end
+        -- 0.6.106: einfarbig statt Verlauf (beim Verlauf war das Ende der Markierung schlecht zu erkennen)
+        t:SetColorTexture(ac[1], ac[2], ac[3], 0.45)
         t:ClearAllPoints()
         t:SetPoint("TOPLEFT", fs, "TOPLEFT", x0, y0)
         if x1 then t:SetPoint("BOTTOMRIGHT", fs, "TOPLEFT", x1, y1) else t:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 2, -1) end
