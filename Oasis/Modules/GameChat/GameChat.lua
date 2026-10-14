@@ -824,39 +824,72 @@ local function units(raw)
     end
     return out
 end
-local meas
+local meas, wrapM
+-- 0.6.102: immer buchstabengenau, auch bei umgebrochenen Nachrichten: je Zeichen Bildzeile (row) und rechte Kante (w)
+-- innerhalb seiner Bildzeile; Umbrueche ermittelt ein unsichtbares Textfeld mit gleicher Schrift und Breite
 local function measureLine(fs)
     live.cache = live.cache or {}
     local raw = fs:GetText()
     local c = live.cache[fs]
     if c and c.raw == raw then return c end
-    c = { raw = raw, u = units(raw), w = { [0] = 0 } }
+    c = { raw = raw, u = units(raw), w = { [0] = 0 }, row = {}, rowStart = { 1 } }
     live.cache[fs] = c
-    if not meas then meas = UIParent:CreateFontString(nil, "BACKGROUND") meas:SetWordWrap(false) meas:SetAlpha(0) end
     local font, size, flags = fs:GetFont()
-    if not font then c.whole = true return c end
+    if not font or #c.u > 600 then c.whole = true return c end
+    if not meas then meas = UIParent:CreateFontString(nil, "BACKGROUND") meas:SetWordWrap(false) meas:SetAlpha(0) end
     meas:SetFont(font, size, flags or "")
     local function width(t)
         meas:SetText(t)
         return (meas.GetUnboundedStringWidth and meas:GetUnboundedStringWidth()) or meas:GetStringWidth() or 0
     end
-    local multi = fs.GetNumLines and (fs:GetNumLines() or 1) > 1
-    if multi or #c.u > 400 then c.whole = true return c end
-    for k, u in ipairs(c.u) do c.w[k] = width(raw:sub(1, u.e)) end
-    if (c.w[#c.u] or 0) > (fs:GetWidth() or 0) + 2 then c.whole = true end   -- umgebrochen
+    local rows = math.max(1, (fs.GetNumLines and fs:GetNumLines()) or 1)
+    local rowsOf
+    if rows > 1 then
+        if not wrapM then wrapM = UIParent:CreateFontString(nil, "BACKGROUND") wrapM:SetWordWrap(true) wrapM:SetAlpha(0) end
+        wrapM:SetFont(font, size, flags or "")
+        wrapM:SetWidth(fs:GetWidth() or 300)
+        if fs.GetIndentedWordWrap and wrapM.SetIndentedWordWrap then wrapM:SetIndentedWordWrap(fs:GetIndentedWordWrap()) end
+        rowsOf = function(t) wrapM:SetText(t) return (wrapM.GetNumLines and wrapM:GetNumLines()) or 1 end
+    end
+    c.rows = rows
+    c.lh = (fs:GetHeight() or 14) / rows
+    local cur, startByte = 1, 1
+    for k, u in ipairs(c.u) do
+        local r = rowsOf and rowsOf(raw:sub(1, u.e)) or 1
+        if r > cur then
+            cur = r
+            c.rowStart[r] = k
+            startByte = u.s
+        end
+        c.row[k] = cur
+        c.w[k] = width(raw:sub(startByte, u.e))
+    end
     return c
 end
--- Grenze (0 .. Zeichenzahl) an Position x; nil = ganze Zeile
-local function boundAt(fs, x)
+-- linke Kante von Zeichen k (in seiner Bildzeile)
+local function leftOf(c, k)
+    if k <= 1 or c.row[k - 1] ~= c.row[k] then return 0 end
+    return c.w[k - 1]
+end
+-- Grenze (0 .. Zeichenzahl) an Position x/y
+local function boundAt(fs, x, y)
     local c = measureLine(fs)
     if c.whole or #c.u == 0 then return nil end
-    local rx = x - (fs:GetLeft() or 0)
-    if rx <= 0 then return 0 end
-    for k = 1, #c.u do
-        local mid = (c.w[k - 1] + c.w[k]) / 2
-        if rx < mid then return k - 1 end
+    local r = 1
+    if c.rows > 1 and y then
+        r = math.floor(((fs:GetTop() or 0) - y) / c.lh) + 1
+        r = math.max(1, math.min(c.rows, r))
     end
-    return #c.u
+    local rx = x - (fs:GetLeft() or 0)
+    local first = c.rowStart[r] or 1
+    if rx <= 0 then return first - 1 end
+    local last = first - 1
+    for k = first, #c.u do
+        if c.row[k] ~= r then break end
+        last = k
+        if rx < (leftOf(c, k) + c.w[k]) / 2 then return k - 1 end
+    end
+    return last
 end
 -- Auswahl geordnet: Zeile a (ab Grenze ba) bis Zeile b (bis Grenze bb)
 local function span()
@@ -874,25 +907,42 @@ local function liveDraw()
     local a, ba, b, bb = span()
     local ac = (ns.K and ns.K.C and ns.K.C.accent) or { 0.6, 0.4, 1 }
     local n = 0
+    local function bar(fs, x0, y0, x1, y1)
+        n = n + 1
+        local t = live.hl[n]
+        if not t then t = live.layer:CreateTexture(nil, "OVERLAY") live.hl[n] = t end
+        -- 0.6.102: Verlauf in der Akzentfarbe (links kraeftig, nach rechts weicher)
+        t:SetTexture("Interface\\Buttons\\WHITE8X8")
+        if t.SetGradient and CreateColor then
+            t:SetVertexColor(1, 1, 1, 1)
+            t:SetGradient("HORIZONTAL", CreateColor(ac[1], ac[2], ac[3], 0.55), CreateColor(ac[1] * 0.7, ac[2] * 0.7, ac[3] * 0.7, 0.18))
+        else
+            t:SetVertexColor(ac[1], ac[2], ac[3], 0.35)
+        end
+        t:ClearAllPoints()
+        t:SetPoint("TOPLEFT", fs, "TOPLEFT", x0, y0)
+        if x1 then t:SetPoint("BOTTOMRIGHT", fs, "TOPLEFT", x1, y1) else t:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 2, -1) end
+        t:Show()
+    end
     for i = a, b do
         local fs = live.lines[i]
         if fs then
             local c = measureLine(fs)
-            local x0, x1
-            if not c.whole then
-                if i == a and ba then x0 = c.w[ba] end
-                if i == b and bb then x1 = c.w[bb] end
-            end
-            if not (x0 and x1 and x1 <= x0) then
-                n = n + 1
-                local t = live.hl[n]
-                if not t then t = live.layer:CreateTexture(nil, "OVERLAY") live.hl[n] = t end
-                t:SetColorTexture(ac[1], ac[2], ac[3], 0.30)
-                t:ClearAllPoints()
-                t:SetPoint("TOPLEFT", fs, "TOPLEFT", (x0 or 0) - (x0 and 0 or 2), 1)
-                if x1 then t:SetPoint("BOTTOMRIGHT", fs, "BOTTOMLEFT", x1, -1)
-                else t:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 2, -1) end
-                t:Show()
+            if c.whole or #c.u == 0 then
+                bar(fs, -2, 1)
+            else
+                local s0 = (i == a and ba) or 0
+                local s1 = (i == b and bb) or #c.u
+                if s1 > s0 then
+                    local r0, r1 = c.row[s0 + 1], c.row[s1]
+                    for r = r0, r1 do
+                        local x0 = (r == r0) and leftOf(c, s0 + 1) or 0
+                        local lastK = s1
+                        if r < r1 then lastK = (c.rowStart[r + 1] or (#c.u + 1)) - 1 end
+                        local x1 = c.w[lastK] or 0
+                        if x1 > x0 then bar(fs, x0, -(r - 1) * c.lh, x1, -r * c.lh) end
+                    end
+                end
             end
         end
     end
@@ -932,8 +982,12 @@ local function liveFinish()
         -- unsichtbares Eingabefeld: haelt den markierten Text, damit Strg+C ihn kopiert
         local eb = CreateFrame("EditBox", nil, live.layer)
         eb:SetSize(10, 10)
-        eb:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
+        -- ausserhalb des Bildschirms und ohne Markierungsfarbe: SetAlpha(0) allein liess die graue Markierung des
+        -- Feldes oben links stehen (0.6.102)
+        eb:SetPoint("TOPLEFT", UIParent, "BOTTOMRIGHT", 200, -200)
         eb:SetAlpha(0)
+        if eb.SetHighlightColor then eb:SetHighlightColor(0, 0, 0, 0) end
+        eb:SetTextColor(0, 0, 0, 0)
         eb:SetMultiLine(true)
         eb:SetAutoFocus(false)
         eb:SetFontObject(ChatFontNormal or GameFontNormal)
@@ -975,7 +1029,7 @@ local function liveStart(cf)
     live.cache = {}
     live.lines, live.frame, live.x0, live.y0, live.moved = lines, cf, x0, y0, false
     live.from, live.to = i, i
-    live.fromB = boundAt(lines[i], x0)
+    live.fromB = boundAt(lines[i], x0, y0)
     live.toB = live.fromB
     live.drv:SetScript("OnUpdate", function(self)
         if not live.lines then self:SetScript("OnUpdate", nil) return end
@@ -986,7 +1040,7 @@ local function liveStart(cf)
         end
         live.moved = true
         local j = lineAt(live.lines, y)
-        if j then live.to = j live.toB = boundAt(live.lines[j], x) end
+        if j then live.to = j live.toB = boundAt(live.lines[j], x, y) end
         liveDraw()
         if not IsMouseButtonDown("LeftButton") then
             self:SetScript("OnUpdate", nil)

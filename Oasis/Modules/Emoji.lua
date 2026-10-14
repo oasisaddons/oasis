@@ -146,9 +146,15 @@ end
 -- 0.5.602: nur noch minimal tiefer (vorher 18 %) - in der untersten Chatzeile ragte das Bild sonst unter den
 -- Fensterrand und wurde abgeschnitten (Blizzard-Chat wie EllesmereUI)
 local function yoffFor(sz) return -math.floor((sz or 20) * 0.06 + 0.5) end
+local BLANK = ns.MEDIA .. "blank"
 local function linked(e)
     local sz = chatSize()
     if not linksOk() then return tex(e, sz, yoffFor(sz)) end
+    -- 0.6.102 Modus 4: animierte Emojis im Chat als unsichtbarer Platzhalter, das bewegte Bild legt Oasis darueber
+    if Emoji._inFilter and e.n and e.n > 1 and ns.db and tonumber(ns.db.settings.emojiRedraw) == 4 then
+        local yo = yoffFor(sz)
+        return "|Haddon:oasisemo:" .. e[1]:gsub("\\", "~") .. "|h|T" .. BLANK .. ":" .. sz .. ":" .. sz .. ":0:" .. yo .. "|t|h"
+    end
     return "|Haddon:oasisemo:" .. e[1]:gsub("\\", "~") .. "|h" .. tex(e, sz, yoffFor(sz)) .. "|h"
 end
 function Emoji.ShowLinkTip(owner, link)
@@ -306,6 +312,118 @@ local function stepLine(fs)
         fs:SetText(new)
     end
 end
+------------------------------------------------------------------------
+-- Modus 4 (0.6.102): eigene Bilder ueber den Platzhaltern. Manche Clients zeichnen eine geaenderte Chatzeile nicht
+-- neu (Text nachweislich weitergeschaltet, Bild stand) - echte Texturen bewegen sich dort trotzdem (wie im
+-- Emoji-Fenster). Position: Zeile mit derselben Schrift ausmessen, bei Umbruch die Zeile ueber die Leerzeichen suchen.
+------------------------------------------------------------------------
+local OV_PAT = "|Haddon:oasisemo:([^|]+)|h|T[^|]-blank:(%d+):(%d+):0:(%-?%d+)|t|h"
+local ov = { info = setmetatable({}, { __mode = "k" }), layers = {}, pool = {}, used = 0 }
+local measFS, wrapFS
+local function measWidth(fs, t)
+    if not measFS then measFS = UIParent:CreateFontString(nil, "BACKGROUND") measFS:SetWordWrap(false) measFS:SetAlpha(0) end
+    local f, s, fl = fs:GetFont()
+    if not f then return 0 end
+    measFS:SetFont(f, s, fl or "")
+    measFS:SetText(t)
+    return (measFS.GetUnboundedStringWidth and measFS:GetUnboundedStringWidth()) or measFS:GetStringWidth() or 0
+end
+local function measRows(fs, t)
+    if not wrapFS then wrapFS = UIParent:CreateFontString(nil, "BACKGROUND") wrapFS:SetWordWrap(true) wrapFS:SetAlpha(0) end
+    local f, s, fl = fs:GetFont()
+    if not f then return 1 end
+    wrapFS:SetFont(f, s, fl or "")
+    wrapFS:SetWidth(fs:GetWidth() or 300)
+    wrapFS:SetText(t)
+    return (wrapFS.GetNumLines and wrapFS:GetNumLines()) or 1
+end
+-- Emojis einer Zeile mit Position (x ab links, Bildzeile) - nur neu, wenn sich der Text aendert
+local function lineItems(fs, raw)
+    local c = ov.info[fs]
+    if c and c.raw == raw then return c.items end
+    local items = {}
+    local multi = fs.GetNumLines and (fs:GetNumLines() or 1) > 1
+    local pos = 1
+    while true do
+        local a, e, key, sw, sh, yo = raw:find(OV_PAT, pos)
+        if not a then break end
+        key = key:gsub("~", "\\")
+        local an = Emoji.anims[key]
+        if an then
+            local prefix = raw:sub(1, a - 1)
+            local x, row = nil, 1
+            if not multi then
+                x = measWidth(fs, prefix)
+            else
+                -- Bildzeile des Emojis und deren Anfang (nach dem letzten Leerzeichen, das noch davor umbricht)
+                row = measRows(fs, raw:sub(1, e))
+                local start = 1
+                if row > 1 then
+                    for s = #prefix, 1, -1 do
+                        if prefix:sub(s, s) == " " and measRows(fs, raw:sub(1, s - 1)) < row then start = s + 1 break end
+                    end
+                end
+                x = measWidth(fs, prefix:sub(start))
+            end
+            items[#items + 1] = { e = an, x = x, row = row, sz = tonumber(sw) or 14, yo = tonumber(yo) or 0 }
+        end
+        pos = e + 1
+    end
+    ov.info[fs] = { raw = raw, items = items }
+    return items
+end
+local function ovLayer(cf)
+    local l = ov.layers[cf]
+    if not l then
+        l = CreateFrame("Frame", nil, UIParent)
+        l:SetFrameStrata(cf:GetFrameStrata() or "MEDIUM")
+        l:SetFrameLevel((cf:GetFrameLevel() or 1) + 6)
+        l:SetAllPoints(cf)
+        ov.layers[cf] = l
+    end
+    return l
+end
+local function ovStep(frames)
+    for _, t in ipairs(ov.pool) do t.keep = false end
+    local n = 0
+    for _, cf in ipairs(frames) do
+        local lines = cf and cf:IsVisible() and type(cf.visibleLines) == "table" and cf.visibleLines
+        if lines then
+            local layer = ovLayer(cf)
+            layer:Show()
+            for _, fs in ipairs(lines) do
+                if fs.IsShown and fs:IsShown() then
+                    local raw = fs:GetText()
+                    if raw and not issecret(raw) and raw:find("oasisemo:", 1, true) and raw:find("blank:", 1, true) then
+                        local rows = math.max(1, (fs.GetNumLines and fs:GetNumLines()) or 1)
+                        local lh = (fs:GetHeight() or 14) / rows
+                        for _, it in ipairs(lineItems(fs, raw)) do
+                            n = n + 1
+                            local t = ov.pool[n]
+                            if not t then t = layer:CreateTexture(nil, "OVERLAY") ov.pool[n] = t end
+                            if t:GetParent() ~= layer then t:SetParent(layer) end
+                            local e = it.e
+                            t:SetTexture((e.base or PATH) .. e[1])
+                            local top = frameOf(e) * 64
+                            t:SetTexCoord(0, 1, top / e.h, (top + 64) / e.h)
+                            t:SetSize(it.sz, it.sz)
+                            t:ClearAllPoints()
+                            t:SetPoint("CENTER", fs, "TOPLEFT", it.x + it.sz / 2, -((it.row - 1) * lh + lh / 2) + it.yo)
+                            t:SetAlpha(fs.GetEffectiveAlpha and fs:GetEffectiveAlpha() or 1)
+                            t:Show()
+                        end
+                    end
+                end
+            end
+        elseif cf and ov.layers[cf] then
+            ov.layers[cf]:Hide()
+        end
+    end
+    for i = n + 1, #ov.pool do ov.pool[i]:Hide() end
+    return n
+end
+Emoji.OverlayStep = ovStep
+
 local lastTransform = 0
 local function stepBuffer(cf)
     if not cf.TransformMessages then return false end
@@ -345,6 +463,11 @@ function Emoji.StepChat()
     -- 0.5.565: Chatfenster, ueber dessen Link gerade die Maus steht (Tooltip gehoert ihm), nicht weiterschalten -
     -- SetText baut die Link-Flaechen neu, WoW meldet "Maus weg" und die Vorschau verschwand sofort
     local tipOwner = GameTooltip and GameTooltip:IsShown() and GameTooltip:GetOwner() or nil
+    if redrawMode() == 4 then
+        local ok, e = pcall(ovStep, frames)
+        if not ok then ns.err("Emoji", e) end
+        return
+    end
     local viaBuffer = redrawMode() == 3
     for _, cf in ipairs(frames) do
         local lines = cf and cf ~= tipOwner and cf:IsVisible() and cf.visibleLines
@@ -394,7 +517,10 @@ local function filter(self, event, msg, ...)
     -- eigene gesendete Fluesternachricht: "sender" ist hier der EMPFAENGER -> Absender bin ich
     -- (sonst wurden gesperrte Emojis nach dessen Rang geprueft und blieben als Code stehen)
     if event == "CHAT_MSG_WHISPER_INFORM" or event == "CHAT_MSG_BN_WHISPER_INFORM" then sender = ns.me() end
-    local new = Emoji.Render(msg, sender and ns.fullName(sender) or nil)
+    Emoji._inFilter = true
+    local ok, new = pcall(Emoji.Render, msg, sender and ns.fullName(sender) or nil)
+    Emoji._inFilter = nil
+    if not ok then new = msg end
     if new ~= msg then return false, new, ... end
     return false
 end
@@ -1614,8 +1740,9 @@ ns.slash.emojis = ns.slash.emoji
 local DIAG_ADDONS = { "Prat-3.0", "Chattynator", "ElvUI", "Glass", "Chatter", "WIM", "BasicChatMods", "TwitchEmotes", "TwitchEmotes_Solaris", "ls_Glass", "nesUI" }
 ns.slash.emojimodus = function(rest)
     local m = tonumber(tostring(rest or ""):match("%d"))
-    if m and m >= 1 and m <= 3 then ns.db.settings.emojiRedraw = (m ~= 1) and m or nil end
-    ns.print(("Emoji-Modus %d  (1 = normal, 2 = Zeile neu setzen, 3 = ueber den Chatverlauf). Aendern: /oa emojimodus 1|2|3"):format(redrawMode()))
+    if m and m >= 1 and m <= 4 then ns.db.settings.emojiRedraw = (m ~= 1) and m or nil end
+    if redrawMode() ~= 4 then for _, t in ipairs(ov.pool) do t:Hide() end end
+    ns.print(("Emoji-Modus %d  (1 = normal, 2 = Zeile neu setzen, 3 = ueber den Chatverlauf, 4 = eigene Bilder ueber dem Chat - wirkt ab dem naechsten Emoji). Aendern: /oa emojimodus 1|2|3|4"):format(redrawMode()))
 end
 ns.slash.emojimode = ns.slash.emojimodus
 ns.slash.emojitest = function()
