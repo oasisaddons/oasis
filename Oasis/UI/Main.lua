@@ -472,13 +472,31 @@ local function buildMain()
     side:SetPoint("BOTTOMLEFT", 1, 1)
     side:SetWidth(SIDEBAR)
     main.sideTex = K.Fill(side, C.side)
-    -- 0.6.124: Seitenpanel-Grafik dezent im Hintergrund der Leiste (nur mit Gildenmodul); Ecken links gerundet wie das Fenster
+    -- 0.6.126: Glut-Grafik hinter der Leiste in der Akzentfarbe des Nutzers (nur mit Gildenmodul).
+    -- Die Datei ist eine Graustufen-Maske (Glut hell, Grund schwarz); "ADD" + Akzentfarbe = Glut in jeder Farbe,
+    -- der schwarze Teil veraendert die Leiste nicht. Farbwechsel in den Einstellungen wird sofort uebernommen.
     if ns.GuildPack then
         side.art = side:CreateTexture(nil, "ARTWORK", nil, -8)
         side.art:SetAllPoints()
-        side.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg")
-        side.art:SetAlpha(0.35)
+        side.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_glow")
+        side.art:SetBlendMode("ADD")
         if K.RoundMask then pcall(K.RoundMask, side.art, main, 12, { "tl", "bl" }) end
+        local last
+        local function tint()
+            local ac = C.accent or { 1, 0.2, 0.2 }
+            local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
+            if key == last then return end
+            last = key
+            side.art:SetVertexColor(ac[1], ac[2], ac[3], 0.9)
+        end
+        tint()
+        local acc = 0
+        side:HookScript("OnUpdate", function(_, el)
+            acc = acc + (el or 0)
+            if acc < 0.5 then return end
+            acc = 0
+            tint()
+        end)
     end
     if K.SkinWindow then pcall(K.SkinWindow, main) end     -- Design: echter Rahmen/Seitenleiste
     if K.StyleWindow then pcall(K.StyleWindow, main) end   -- Design: Verlauf + Rahmenfarbe

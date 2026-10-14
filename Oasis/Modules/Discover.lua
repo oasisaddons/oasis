@@ -221,6 +221,7 @@ function D.ShowPicker(mode)
         glow:SetPoint("TOPLEFT") glow:SetPoint("TOPRIGHT") glow:SetHeight(180)
         grad(glow, "VERTICAL", { C.accent[1], C.accent[2], C.accent[3], 0 }, { C.accent[1], C.accent[2], C.accent[3], 0.16 })
         round(glow, { "tl", "tr" })
+        f.glowTex = glow
         local orb = f:CreateTexture(nil, "BORDER")
         orb:SetTexture(ns.MEDIA .. "softglow")
         orb:SetSize(420, 320)
@@ -232,6 +233,7 @@ function D.ShowPicker(mode)
         top:SetPoint("TOPLEFT") top:SetPoint("TOPRIGHT") top:SetHeight(2)
         grad(top, "HORIZONTAL", { C.accent[1], C.accent[2], C.accent[3], 1 }, { C.accent[1], C.accent[2], C.accent[3], 0 })
         round(top, { "tl", "tr" })
+        f.topTex = top
 
         f.eyebrow = K.Text(f, 10, C.accent)
         f.eyebrow:SetPoint("TOPLEFT", 28, -26)
@@ -514,8 +516,14 @@ function D.ShowPicker(mode)
             g.label = K.Text(g, 12, { 1, 0.92, 0.85 }, "CENTER")
             g.label:SetPoint("CENTER", -10, 0)
             g:SetScript("OnClick", function() local fn = f.ok:GetScript("OnClick") if fn and f.ok:IsEnabled() then fn(f.ok, "LeftButton") end end)
-            g:SetScript("OnEnter", function(self) if f.ok:IsEnabled() then self.art:SetVertexColor(1.15, 1.15, 1.15) end end)
-            g:SetScript("OnLeave", function(self) self.art:SetVertexColor(1, 1, 1) end)
+            g:SetScript("OnEnter", function(self) if f.ok:IsEnabled() then self.art:SetAlpha(1) self.hl:Show() end end)
+            g:SetScript("OnLeave", function(self) self.hl:Hide() end)
+            g.hl = g:CreateTexture(nil, "ARTWORK", nil, 2)
+            g.hl:SetAllPoints()
+            g.hl:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\start_go")
+            g.hl:SetBlendMode("ADD")
+            g.hl:SetAlpha(0.25)
+            g.hl:Hide()
             f.go = g
         end
         f.ok.label:SetTextColor(C.accent[1], C.accent[2], C.accent[3])
@@ -580,7 +588,7 @@ function D.ShowPicker(mode)
                 h.bg:SetColorTexture(1, 1, 1, 0.03 + 0.05 * h.hv)
                 h.halo:SetSize(42 + 6 * h.hv, 42 + 6 * h.hv)
                 h.arrow:SetVertexColor(1, 1, 1, 0.6 + 0.4 * h.hv)
-                if h.art then local v = 0.82 + 0.18 * h.hv h.art:SetVertexColor(v, v, v) end
+                if h.art then h.art:SetAlpha(0.85 + 0.15 * h.hv) end
                 -- Lichtstreif: alle 3,5 s einmal in 1,1 s von links nach rechts
                 self.shT = (self.shT + el) % 3.5
                 local p = self.shT / 1.1
@@ -590,6 +598,25 @@ function D.ShowPicker(mode)
                 h.shR:SetShown(p < 1)
             end
         end)
+        -- 0.6.126: Farben bei jedem Oeffnen an die gewaehlte Akzentfarbe anpassen (Fenster wird nur einmal gebaut)
+        function f:Retint()
+            local ac = C.accent
+            grad(self.glowTex, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.16 })
+            grad(self.topTex, "HORIZONTAL", { ac[1], ac[2], ac[3], 1 }, { ac[1], ac[2], ac[3], 0 })
+            -- die Bilder sind rot gemalt: bei roter Akzentfarbe Original, sonst entsaettigt in der Akzentfarbe
+            local red = ac[1] > 0.55 and ac[2] < 0.45 and ac[3] < 0.45
+            local function paint(tex, boost)
+                if not tex then return end
+                tex:SetDesaturated(not red)
+                if red then tex:SetVertexColor(1, 1, 1)
+                else tex:SetVertexColor(math.min(1, ac[1] * boost), math.min(1, ac[2] * boost), math.min(1, ac[3] * boost)) end
+            end
+            paint(self.hero and self.hero.art, 1.6)
+            paint(self.go and self.go.art, 1.6)
+            paint(self.artTop, 1.4)
+            paint(self.artBot, 1.4)
+        end
+        f:HookScript("OnShow", function(self) pcall(self.Retint, self) end)
         ns.EscClose("OasisInterests")
         pick = f
     end
