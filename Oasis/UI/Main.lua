@@ -375,6 +375,7 @@ local function showPage(key)
     end
     local prevKey = current
     current = key
+    if main and main.UpdateContentArt then pcall(main.UpdateContentArt) end
     ns.Trace("Seite " .. key)
     -- aus einer zugeklappten Gruppe geoeffnet: Navigation neu setzen, damit der Eintrag sichtbar ist
     local closed = ns.db and ns.db.settings.navClosed
@@ -486,6 +487,12 @@ local function buildMain()
         end
         main:HookScript("OnSizeChanged", fitDots)
         fitDots()
+        -- 0.6.131: das Dashboard hat sein eigenes Hintergrundbild - dort keine Glut und kein Raster
+        function main.UpdateContentArt()
+            local home = ns.CurrentPage and ns.CurrentPage() == "home"
+            art:SetShown(not home)
+            dots:SetShown(not home)
+        end
         local last, acc = nil, 0
         local function tint()
             local ac = C.accent or { 1, 0.2, 0.2 }
@@ -493,7 +500,7 @@ local function buildMain()
             if key == last then return end
             last = key
             -- rechts dezenter als die Leiste (grosse Flaeche hinter dem Inhalt)
-            art:SetVertexColor(ac[1] * 0.75, ac[2] * 0.75, ac[3] * 0.75, 1)
+            art:SetVertexColor(ac[1] * 0.375, ac[2] * 0.375, ac[3] * 0.375, 1)   -- 0.6.131: halb so stark wie vorher
         end
         tint()
         main:HookScript("OnUpdate", function(_, el)
@@ -501,6 +508,7 @@ local function buildMain()
             if acc < 0.5 then return end
             acc = 0
             tint()
+            main.UpdateContentArt()
             if not main.dotsFit then main.dotsFit = true fitDots() end
         end)
     end
