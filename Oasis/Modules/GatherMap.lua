@@ -315,7 +315,10 @@ function GM.DrawMinimap()
                 p.rec = r
                 p:SetScale(sc)   -- Abstaende zaehlen im Massstab des Symbols -> durch sc teilen
                 p:SetAlpha(alpha * freshness(r, tnow))
-                if p.bg then p.bg:SetShown(frame) p.ring:SetShown(frame) end
+                -- 0.6.144: durchsichtig - ohne dunkle Scheibe, Bild halb durchsichtig, nur der Ring bleibt kraeftig.
+                -- So sieht man darunter den echten Fundort-Punkt des Spiels (der liegt immer unter Addon-Symbolen).
+                if p.bg then p.bg:SetShown(false) p.ring:SetShown(frame) end
+                p.icon:SetAlpha(0.45)
                 p:ClearAllPoints()
                 p:SetPoint("CENTER", Minimap, "CENTER", nx * half / sc, -ny * half / sc)
                 p:Show()

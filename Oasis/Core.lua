@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.143"
+ns.version = "0.6.144"
 ns.versionDate = "14.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -355,7 +355,8 @@ end
 function ns.MiniPinLayer(p, add)
     if not (p and Minimap) then return end
     pcall(p.SetFrameStrata, p, Minimap:GetFrameStrata() or "LOW")
-    pcall(p.SetFrameLevel, p, (Minimap:GetFrameLevel() or 1) + (add or 2))
+    -- 0.6.144: eine Ebene tiefer (hoechstens +1) - Rahmen, Kompassnadel und Spieler-Pfeil bleiben obenauf
+    pcall(p.SetFrameLevel, p, (Minimap:GetFrameLevel() or 1) + math.min(add or 1, 1))
 end
 -- Externe Programme (OasisSync, Export-Skripte, Einlese-Skripte) werden mit der oeffentlichen Version vorerst nicht verteilt
 --. Einstellungen und Hinweise, die nur damit Sinn ergeben, gibt es deshalb nur mit dem Gildenmodul.
