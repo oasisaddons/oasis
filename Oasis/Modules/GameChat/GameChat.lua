@@ -841,7 +841,7 @@ local meas, wrapM
 -- innerhalb seiner Bildzeile; Umbrueche ermittelt ein unsichtbares Textfeld mit gleicher Schrift und Breite
 local function measureLine(fs, raw)
     live.cache = live.cache or {}
-    raw = raw or (live.snap and live.snap[fs]) or fs:GetText()
+    raw = raw or fs:GetText()
     local c = live.cache[fs]
     if c and c.raw == raw then return c end
     c = { raw = raw, u = units(raw), w = { [0] = 0 }, row = {}, rowStart = { 1 } }
@@ -904,42 +904,72 @@ local function boundAt(fs, x, y)
     return last
 end
 -- Auswahl geordnet: Zeile a (ab Grenze ba) bis Zeile b (bis Grenze bb)
+-- 0.6.109: Auswahl haengt an Nachrichten im Chatverlauf (Nummer + Zeichen), nicht an Bildschirmzeilen. Scrollt man
+-- beim Ziehen, bleibt der Anfang an seiner Nachricht und die Auswahl waechst oder schrumpft mit; der Text kommt aus dem
+-- Verlauf (GetMessageInfo), auch wenn Teile gerade nicht sichtbar sind.
+local function msgText(cf, m)
+    local ok, t = pcall(cf.GetMessageInfo, cf, m)
+    if ok and type(t) == "string" and not issecret(t) then return t end
+end
+-- sichtbare Zeile -> Nachrichtennummer: unterste sichtbare Zeile = neueste (Anzahl - Scrollversatz), nach oben
+-- abzaehlen und am Text bestaetigen; passt der Text nicht, im Umkreis suchen
+local function visibleMap(cf, lines)
+    local map = {}
+    local n = (cf.GetNumMessages and num(cf:GetNumMessages())) or 0
+    local off = (cf.GetScrollOffset and num(cf:GetScrollOffset())) or 0
+    for k = #lines, 1, -1 do
+        local fs = lines[k]
+        local t = fs:GetText()
+        local guess = n - off - (#lines - k)
+        local found
+        if t then
+            for d = 0, 40 do
+                for _, m in ipairs(d == 0 and { guess } or { guess - d, guess + d }) do
+                    if m >= 1 and m <= n and msgText(cf, m) == t then found = m break end
+                end
+                if found then break end
+            end
+        end
+        map[fs] = found or (guess >= 1 and guess or nil)
+    end
+    return map
+end
+-- Auswahl geordnet (aeltere Nachricht zuerst): a = { m, b }, z = { m, b }
 local function span()
-    local a, ba, b, bb = live.from, live.fromB, live.to, live.toB
-    if a > b or (a == b and ba and bb and ba > bb) then a, ba, b, bb = b, bb, a, ba end
-    return a, ba, b, bb
+    local a, z = live.A, live.F
+    if z.m < a.m or (z.m == a.m and (z.b or 0) < (a.b or 0)) then a, z = z, a end
+    return a, z
 end
 local function liveClear()
     for _, t in ipairs(live.hl) do t:Hide() end
-    live.from, live.to, live.lines, live.frame, live.text = nil, nil, nil, nil, nil
+    live.A, live.F, live.lines, live.frame, live.text = nil, nil, nil, nil, nil
     if live.eb then live.eb:ClearFocus() end
     if live.tip then live.tip:Hide() end
 end
 local function liveDraw()
-    local a, ba, b, bb = span()
+    if not (live.frame and live.A and live.F) then return end
+    local a, z = span()
     local ac = (ns.K and ns.K.C and ns.K.C.accent) or { 0.6, 0.4, 1 }
     local n = 0
     local function bar(fs, x0, y0, x1, y1)
         n = n + 1
         local t = live.hl[n]
         if not t then t = live.layer:CreateTexture(nil, "OVERLAY") live.hl[n] = t end
-        -- 0.6.106: einfarbig statt Verlauf (beim Verlauf war das Ende der Markierung schlecht zu erkennen)
         t:SetColorTexture(ac[1], ac[2], ac[3], 0.45)
         t:ClearAllPoints()
         t:SetPoint("TOPLEFT", fs, "TOPLEFT", x0, y0)
         if x1 then t:SetPoint("BOTTOMRIGHT", fs, "TOPLEFT", x1, y1) else t:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 2, -1) end
         t:Show()
     end
-    for i = a, b do
-        local fs = live.lines[i]
-        -- 0.6.108: hat das Mausrad die Zeile mit anderem Text gefuellt, dort nichts hervorheben
-        if fs and fs:GetText() == live.snap[fs] then
-            local c = measureLine(fs)
+    live.first = nil
+    for fs, m in pairs(live.map or {}) do
+        if m and m >= a.m and m <= z.m then
+            local c = measureLine(fs, fs:GetText())
             if c.whole or #c.u == 0 then
                 bar(fs, -2, 1)
             else
-                local s0 = math.max(0, math.min(#c.u, (i == a and ba) or 0))
-                local s1 = math.max(0, math.min(#c.u, (i == b and bb) or #c.u))
+                local s0 = math.max(0, math.min(#c.u, (m == a.m and a.b) or 0))
+                local s1 = math.max(0, math.min(#c.u, (m == z.m and z.b) or #c.u))
                 local r0, r1 = c.row[s0 + 1], c.row[s1]
                 if s1 > s0 and r0 and r1 then
                     for r = r0, r1 do
@@ -951,6 +981,7 @@ local function liveDraw()
                     end
                 end
             end
+            if not live.first or (fs:GetTop() or 0) > (live.first:GetTop() or 0) then live.first = fs end
         end
     end
     for i = n + 1, #live.hl do live.hl[i]:Hide() end
@@ -961,19 +992,17 @@ local function plainOf(raw)
     return (p:gsub("|[hHrc]%x*", ""))
 end
 local function selectedText()
-    local a, ba, b, bb = span()
+    local a, z = span()
     local out = {}
-    for i = a, b do
-        local fs = live.lines[i]
-        local raw = fs and live.snap[fs]
-        if raw and not issecret(raw) then
-            local c = measureLine(fs)
-            local s0 = math.max(0, math.min(#c.u, (not c.whole and i == a and ba) or 0))
-            local s1 = math.max(0, math.min(#c.u, (not c.whole and i == b and bb) or #c.u))
+    for m = a.m, z.m do
+        local raw = msgText(live.frame, m)
+        if raw then
+            local u = units(raw)
+            local s0 = math.max(0, math.min(#u, (m == a.m and a.b) or 0))
+            local s1 = math.max(0, math.min(#u, (m == z.m and z.b) or #u))
             local part
-            if c.whole or #c.u == 0 then part = raw
-            elseif s1 > s0 then part = raw:sub(c.u[s0 + 1].s, c.u[s1].e) end
-            -- Link-Anfang mitnehmen, wenn die Auswahl mitten in einem Link beginnt (sonst bleibt nur Code-Rest)
+            if #u == 0 then part = raw
+            elseif s1 > s0 then part = raw:sub(u[s0 + 1].s, u[s1].e) end
             if part then
                 local p = plainOf(part)
                 if p ~= "" then out[#out + 1] = p end
@@ -986,11 +1015,10 @@ local function liveFinish()
     local text = selectedText()
     if text == "" then liveClear() return end
     if not live.eb then
-        -- unsichtbares Eingabefeld: haelt den markierten Text, damit Strg+C ihn kopiert
+        -- unsichtbares Eingabefeld: haelt den markierten Text, damit Strg+C ihn kopiert. Ausserhalb des Bildschirms
+        -- und ohne Markierungsfarbe (SetAlpha(0) allein liess oben links eine graue Flaeche stehen)
         local eb = CreateFrame("EditBox", nil, live.layer)
         eb:SetSize(10, 10)
-        -- ausserhalb des Bildschirms und ohne Markierungsfarbe: SetAlpha(0) allein liess die graue Markierung des
-        -- Feldes oben links stehen (0.6.102)
         eb:SetPoint("TOPLEFT", UIParent, "BOTTOMRIGHT", 200, -200)
         eb:SetAlpha(0)
         if eb.SetHighlightColor then eb:SetHighlightColor(0, 0, 0, 0) end
@@ -1014,9 +1042,12 @@ local function liveFinish()
     live.eb:SetText(text)
     live.eb:SetFocus()
     live.eb:HighlightText()
-    local a = span()
     live.tip:ClearAllPoints()
-    live.tip:SetPoint("BOTTOMLEFT", live.lines[a], "TOPLEFT", 0, 3)
+    if live.first then
+        live.tip:SetPoint("BOTTOMLEFT", live.first, "TOPLEFT", 0, 3)
+    else
+        live.tip:SetPoint("BOTTOMLEFT", live.frame, "TOPLEFT", 0, 3)
+    end
     live.tip:SetText(L["Strg+C kopiert - Rechtsklick: mehr - Esc hebt auf"])
     live.tip:Show()
 end
@@ -1034,32 +1065,33 @@ local function liveStart(cf)
         live.drv = CreateFrame("Frame")
     end
     live.cache = {}
-    live.snap = {}
-    for _, fs in ipairs(lines) do live.snap[fs] = fs:GetText() end
     -- gleicher Massstab wie das Chatfenster (gemessen wird in dessen Einheiten)
     live.layer:SetScale((cf:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1))
-    live.lines, live.frame, live.x0, live.y0, live.moved = lines, cf, x0, y0, false
-    live.from, live.to = i, i
-    live.fromB = boundAt(lines[i], x0, y0)
-    live.toB = live.fromB
+    local map = visibleMap(cf, lines)
+    local m = map[lines[i]]
+    if not m then return end
+    live.frame, live.lines, live.map, live.x0, live.y0, live.moved = cf, lines, map, x0, y0, false
+    live.A = { m = m, b = boundAt(lines[i], x0, y0) or 0 }
+    live.F = { m = m, b = live.A.b }
     live.drv:SetScript("OnUpdate", function(self)
-        if not live.lines then self:SetScript("OnUpdate", nil) return end
+        if not live.frame then self:SetScript("OnUpdate", nil) return end
         local x, y = cursorXY()
         if not live.moved and math.abs(y - live.y0) < 6 and math.abs(x - live.x0) < 5 then
             if not IsMouseButtonDown("LeftButton") then self:SetScript("OnUpdate", nil) liveClear() end   -- nur ein Klick
             return
         end
-        -- Mausrad waehrend des Ziehens: Zeilen zeigen anderen Text -> hier beenden, Markierung bleibt wie sie war
-        for _, fs in ipairs(live.lines) do
-            if fs:GetText() ~= live.snap[fs] then
-                self:SetScript("OnUpdate", nil)
-                if live.moved then liveFinish() else liveClear() end
-                return
-            end
-        end
         live.moved = true
+        -- jede Runde neu: nach dem Mausrad stehen andere Nachrichten in den Zeilen
+        live.lines = shownLines(live.frame)
+        live.map = visibleMap(live.frame, live.lines)
         local j = lineAt(live.lines, y)
-        if j then live.to = j live.toB = boundAt(live.lines[j], x, y) end
+        local fs = j and live.lines[j]
+        local mj = fs and live.map[fs]
+        if mj then
+            local c = measureLine(fs, fs:GetText())
+            local b = boundAt(fs, x, y)
+            live.F = { m = mj, b = b or ((y < (fs:GetTop() or 0)) and #c.u or 0) }
+        end
         liveDraw()
         if not IsMouseButtonDown("LeftButton") then
             self:SetScript("OnUpdate", nil)
@@ -1067,6 +1099,18 @@ local function liveStart(cf)
         end
     end)
 end
+-- nach dem Markieren beim Scrollen die Hervorhebung mitfuehren (Text bleibt ohnehin derselbe)
+live.follow = CreateFrame("Frame")
+live.follow:SetScript("OnUpdate", function(self, el)
+    self.acc = (self.acc or 0) + el
+    if self.acc < 0.05 then return end
+    self.acc = 0
+    if live.frame and live.text and live.A and not (live.drv and live.drv:GetScript("OnUpdate")) and live.eb and live.eb:HasFocus() then
+        live.lines = shownLines(live.frame)
+        live.map = visibleMap(live.frame, live.lines)
+        liveDraw()
+    end
+end)
 -- Rechtsklick auf eine Markierung: kleines Menue. Die Zwischenablage selbst ist fuer Addons gesperrt -
 -- "Kopieren" legt die Markierung wieder bereit, Strg+C kopiert.
 local function liveMenu()
