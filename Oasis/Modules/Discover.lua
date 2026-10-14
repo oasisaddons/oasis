@@ -201,7 +201,9 @@ function D.ShowPicker(mode)
         f.artBot = f:CreateTexture(nil, "ARTWORK", nil, -8)
         f.artBot:SetPoint("BOTTOMLEFT", 1, 1) f.artBot:SetPoint("RIGHT", -1, 0) f.artBot:SetPoint("TOP", f, "CENTER")
         for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.20) t:Hide() end   -- 0.6.127: 20 % (18 % unsichtbar, 24 % minimal zu kraeftig)
-        f:HookScript("OnShow", function()
+        -- 0.6.130: als Funktion - wird bei jedem Oeffnen direkt aufgerufen (neue Fenster sind schon "sichtbar",
+        -- beim ersten Aufruf kam deshalb kein OnShow und das Bild fehlte bis zum zweiten Oeffnen)
+        function f:ApplyArt()
             if not ns.GuildPack then return end
             local r = (f:GetWidth() or 660) / math.max(1, f:GetHeight() or 350) / 2   -- Bild ist 2:1
             local l, rr = 0, 1
@@ -217,7 +219,8 @@ function D.ShowPicker(mode)
             end
             f.artTop:Show() f.artBot:Show()
             if not f.dots and K.DotGrid then f.dots = K.DotGrid(f, 0.04, 10) end
-        end)
+        end
+        f:HookScript("OnShow", function() pcall(f.ApplyArt, f) end)
         local glow = f:CreateTexture(nil, "BORDER")
         glow:SetPoint("TOPLEFT") glow:SetPoint("TOPRIGHT") glow:SetHeight(180)
         grad(glow, "VERTICAL", { C.accent[1], C.accent[2], C.accent[3], 0 }, { C.accent[1], C.accent[2], C.accent[3], 0.16 })
@@ -640,6 +643,8 @@ function D.ShowPicker(mode)
     local prev = S().interests
     if type(prev) == "table" and next(prev) then for k, v in pairs(prev) do pick.sel[k] = v end else pick.sel.group = true pick.sel.level = true end
     pick:Mark()
+    pcall(pick.ApplyArt, pick)
+    pcall(pick.Retint, pick)
     pick:Show()
     if pick.veil and not pick.veil:IsShown() and not (InCombatLockdown and InCombatLockdown()) then
         pick.veil:SetFrameLevel(math.max(0, pick:GetFrameLevel() - 1))
