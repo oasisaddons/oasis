@@ -200,7 +200,7 @@ function D.ShowPicker(mode)
         f.artTop:SetPoint("TOPLEFT", 1, -1) f.artTop:SetPoint("RIGHT", -1, 0) f.artTop:SetPoint("BOTTOM", f, "CENTER")
         f.artBot = f:CreateTexture(nil, "ARTWORK", nil, -8)
         f.artBot:SetPoint("BOTTOMLEFT", 1, 1) f.artBot:SetPoint("RIGHT", -1, 0) f.artBot:SetPoint("TOP", f, "CENTER")
-        for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.20) t:Hide() end   -- 0.6.127: 20 % (18 % unsichtbar, 24 % minimal zu kraeftig)
+        for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.11) t:Hide() end   -- 0.6.140: 11 % (20 % war zu unruhig hinter den Kacheln)
         -- 0.6.130: als Funktion - wird bei jedem Oeffnen direkt aufgerufen (neue Fenster sind schon "sichtbar",
         -- beim ersten Aufruf kam deshalb kein OnShow und das Bild fehlte bis zum zweiten Oeffnen)
         function f:ApplyArt()
@@ -219,6 +219,13 @@ function D.ShowPicker(mode)
             end
             f.artTop:Show() f.artBot:Show()
             if not f.dots and K.DotGrid then f.dots = K.DotGrid(f, 0.04, 10) end
+            -- 0.6.140: Bild zur Mitte hin abdunkeln, damit Text und Kacheln ruhig liegen
+            if not f.shade then
+                f.shade = f:CreateTexture(nil, "ARTWORK", nil, -7)
+                f.shade:SetPoint("TOPLEFT", 1, -1) f.shade:SetPoint("BOTTOMRIGHT", -1, 1)
+                grad(f.shade, "HORIZONTAL", { 0.02, 0.02, 0.03, 0.55 }, { 0.02, 0.02, 0.03, 0.15 })
+                round(f.shade, { "tl", "tr", "bl" })
+            end
         end
         f:HookScript("OnShow", function() pcall(f.ApplyArt, f) end)
         local glow = f:CreateTexture(nil, "BORDER")
@@ -238,6 +245,29 @@ function D.ShowPicker(mode)
         grad(top, "HORIZONTAL", { C.accent[1], C.accent[2], C.accent[3], 1 }, { C.accent[1], C.accent[2], C.accent[3], 0 })
         round(top, { "tl", "tr" })
         f.topTex = top
+        -- 0.6.140: Rahmen - feine Haarlinie, oben in der Akzentfarbe, an den Seiten nach unten auslaufend,
+        -- dazu eine zweite helle Linie 1 px innen (wirkt wie geschliffenes Glas)
+        f.edges = {}
+        local function edge(side)
+            local t = f:CreateTexture(nil, "OVERLAY")
+            t:SetWidth(1)
+            if side == "L" then t:SetPoint("TOPLEFT", 0, -RAD) else t:SetPoint("TOPRIGHT", 0, -RAD) end
+            t:SetPoint("BOTTOM", f, "CENTER", 0, -40)
+            f.edges[#f.edges + 1] = t
+            return t
+        end
+        f.edgeL, f.edgeR = edge("L"), edge("R")
+        f.inner = f:CreateTexture(nil, "OVERLAY")
+        f.inner:SetPoint("TOPLEFT", RAD, -3) f.inner:SetPoint("TOPRIGHT", -RAD, -3) f.inner:SetHeight(1)
+        grad(f.inner, "HORIZONTAL", { 1, 1, 1, 0.10 }, { 1, 1, 1, 0 })
+        f.bottomLine = f:CreateTexture(nil, "OVERLAY")
+        f.bottomLine:SetPoint("BOTTOMLEFT", RAD, 0) f.bottomLine:SetPoint("BOTTOMRIGHT", -RAD, 0) f.bottomLine:SetHeight(1)
+        function f:PaintEdges(ac)
+            grad(self.edgeL, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.70 })
+            grad(self.edgeR, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.25 })
+            grad(self.bottomLine, "HORIZONTAL", { 1, 1, 1, 0.02 }, { 1, 1, 1, 0.07 })
+        end
+        f:PaintEdges(C.accent)
 
         f.eyebrow = K.Text(f, 10, C.accent)
         f.eyebrow:SetPoint("TOPLEFT", 28, -26)
@@ -358,8 +388,15 @@ function D.ShowPicker(mode)
             -- 0.6.119: Bild-Kachel (Rahmen, Symbol und Szene im Bild) - nur mit Gildenmodul
             if ns.GuildPack then
                 t.art = t:CreateTexture(nil, "BORDER", nil, -1)
-                t.art:SetAllPoints()
+                t.art:SetPoint("TOPRIGHT") t.art:SetPoint("BOTTOMRIGHT")
                 t.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key)
+                -- 0.6.140: Kreis-Abzeichen (linkes Viertel des 4:1-Bildes) als eigenes Quadrat darueber,
+                -- damit es beim Einpassen nie verzogen wird; gestreckt wird nur der Rest des Bildes
+                t.badge = t:CreateTexture(nil, "BORDER", nil, 0)
+                t.badge:SetPoint("TOPLEFT") t.badge:SetPoint("BOTTOMLEFT")
+                t.badge:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key)
+                t.badge:SetTexCoord(0, 0.25, 0, 1)
+                t.art:SetPoint("LEFT", t.badge, "RIGHT", 0, 0)
                 -- dunkler Verlauf hinter dem Namen (rechts neben dem Symbol), damit die Schrift lesbar bleibt
                 t.shade = t:CreateTexture(nil, "BORDER", nil, 1)
                 t.shade:SetPoint("TOPLEFT", t, "TOPLEFT", 4, -4)
@@ -424,15 +461,9 @@ function D.ShowPicker(mode)
                 t.n:ClearAllPoints()
                 t.ring:ClearAllPoints()
                 if t.art then
-                    -- Bild 4:1 - ist die Kachel hoeher, mittig zuschneiden
-                    local w = TW
-                    local need = w / 4 - 1
-                    if th > need then
-                        local keep = (w / th) / 4
-                        t.art:SetTexCoord(0, keep, 0, 1)
-                    else
-                        t.art:SetTexCoord(0, 1, 0, 1)
-                    end
+                    -- Abzeichen immer quadratisch (Kachelhoehe), der Rest des Bildes fuellt die Breite
+                    t.badge:SetWidth(th)
+                    t.art:SetTexCoord(0.25, 1, 0, 1)
                     t.halo:Hide() t.icon:Hide()
                 end
                 if compact then
@@ -473,6 +504,8 @@ function D.ShowPicker(mode)
                 if t.art then
                     t.art:SetAlpha(on and 1 or (t.hover and 0.85 or 0.55))
                     t.art:SetDesaturated(not on and not t.hover)
+                    t.badge:SetAlpha(on and 1 or (t.hover and 0.85 or 0.55))
+                    t.badge:SetDesaturated(not on and not t.hover)
                     t.shade:SetAlpha(on and 0.7 or 1)
                 end
                 t.halo:SetVertexColor(c[1], c[2], c[3], on and 0.32 or (t.hover and 0.22 or 0.14))
@@ -607,6 +640,7 @@ function D.ShowPicker(mode)
             local ac = C.accent
             grad(self.glowTex, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.16 })
             grad(self.topTex, "HORIZONTAL", { ac[1], ac[2], ac[3], 1 }, { ac[1], ac[2], ac[3], 0 })
+            self:PaintEdges(ac)
             -- die Bilder sind rot gemalt: bei roter Akzentfarbe Original, sonst entsaettigt in der Akzentfarbe
             local red = ac[1] > 0.55 and ac[2] < 0.45 and ac[3] < 0.45
             local function paint(tex, boost)
