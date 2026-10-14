@@ -2325,7 +2325,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
             else
                 self:SetAlpha(1)
             end
-            if self.expire > 0 then self.time:SetWidth(math.max(1, (self:GetWidth() - 2) * math.max(0, 1 - self.age / self.expire))) end
+            if self.expire > 0 then self.time:SetWidth(math.max(1, (self:GetWidth() - (self.timePad or 2)) * math.max(0, 1 - self.age / self.expire))) end
         end)
         t:SetScript("OnEnter", function(self) if self.age < self.expire then self.expire = self.age + 3 end end)
     end
@@ -2340,6 +2340,10 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         t.bar:Hide()
         t.glow:SetAlpha(0.5)
         t.boxTint:SetVertexColor(color[1], color[2], color[3], 1)
+        -- 0.6.134: Zeitbalken innerhalb der Box, unten mit Abstand zum Rahmen
+        t.time:ClearAllPoints()
+        t.time:SetPoint("BOTTOMLEFT", 14, 8)
+        t.timePad = 28
         local ac = C.accent
         t.logoTint:SetVertexColor(ac[1], ac[2], ac[3], 1)
     end
