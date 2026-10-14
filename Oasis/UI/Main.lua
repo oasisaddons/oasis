@@ -495,7 +495,8 @@ local function buildMain()
         end
         local last, acc = nil, 0
         local function tint()
-            local ac = C.accent or { 1, 0.2, 0.2 }
+            local gh = ns.db and ns.db.settings.glowColor
+            local ac = (gh and gh ~= "" and K.FromHex(gh)) or C.accent or { 1, 0.2, 0.2 }   -- 0.6.136: eigene Hintergrundfarbe
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             if key == last then return end
             last = key
@@ -530,7 +531,8 @@ local function buildMain()
         if K.RoundMask then pcall(K.RoundMask, side.art, main, 12, { "tl", "bl" }) end
         local last
         local function tint()
-            local ac = C.accent or { 1, 0.2, 0.2 }
+            local gh = ns.db and ns.db.settings.glowColor
+            local ac = (gh and gh ~= "" and K.FromHex(gh)) or C.accent or { 1, 0.2, 0.2 }   -- 0.6.136: eigene Hintergrundfarbe
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             if key == last then return end
             last = key

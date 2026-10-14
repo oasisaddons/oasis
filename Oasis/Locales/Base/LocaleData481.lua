@@ -3267,3 +3267,7 @@ DE["Alle Schalter dieser Seite wieder auf Standard stellen?"] = "Alle Schalter d
 EN["Alle Schalter dieser Seite wieder auf Standard stellen?"] = "Set all switches on this page back to default?"
 DE["Gildenchat: Text mit der Maus markieren und mit Strg+C kopieren"] = "Gildenchat: Text mit der Maus markieren und mit Strg+C kopieren"
 EN["Gildenchat: Text mit der Maus markieren und mit Strg+C kopieren"] = "Guild chat: select text with the mouse and copy it with Ctrl+C"
+DE["Hintergrund"] = "Hintergrund"
+EN["Hintergrund"] = "Background"
+DE["Farbe der Glut hinter Leiste und Inhalt. Rechtsklick: wieder wie die Akzentfarbe."] = "Farbe der Glut hinter Leiste und Inhalt. Rechtsklick: wieder wie die Akzentfarbe."
+EN["Farbe der Glut hinter Leiste und Inhalt. Rechtsklick: wieder wie die Akzentfarbe."] = "Colour of the glow behind the sidebar and content. Right-click: back to the accent colour."

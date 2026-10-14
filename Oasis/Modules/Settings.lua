@@ -1634,7 +1634,7 @@ local function rebuildSoon()
     end)
 end
 -- Zustand der Farb-Einstellungen merken -> Funktion, die ihn wiederherstellt (Farbwaehler "Abbrechen")
-local LOOK_KEYS = { "theme", "duoBase", "duoAccent", "duoSide", "accent", "themeGrad" }
+local LOOK_KEYS = { "theme", "duoBase", "duoAccent", "duoSide", "accent", "themeGrad", "glowColor" }
 local function lookSnapshot()
     local t, s = {}, S()
     for _, k in ipairs(LOOK_KEYS) do t[k] = s[k] end
@@ -1765,7 +1765,7 @@ local function buildLook(f)
     local RX0 = RXc + 16
     -- Hoehe aus der Zahl der Vorlagen (6 je Reihe)
     local duoRows = math.ceil(#K.DUO_PRESETS / 6)
-    local farbH = 68 + duoRows * 28 + 8 + 24 + 20
+    local farbH = 68 + duoRows * 28 + 8 + 24 + 20 + 30   -- 0.6.136: zweite Knopfzeile (Hintergrund)
     cardH(f, RXc, Y, 362, farbH, "heart", L["Eigene Farben"], L["Zwei Farben mischen - Grundfarbe, Akzent und Leiste einzeln waehlbar"], true)
     local function applyDuo(base, acc)
         local s = S()
@@ -1798,10 +1798,10 @@ local function buildLook(f)
     end
     local by = Y - 68 - math.ceil(#K.DUO_PRESETS / DPER) * 28 - 8
     f.duoBase = K.ColorPickButton(f, function() return S().duoBase or "15171d" end, function(hex) applyDuo(hex, S().duoAccent or (S().accent ~= "" and S().accent) or "ff4d6d") end, L["Grundfarbe"], lookSnapshot)
-    f.duoBase:SetWidth(106)
+    f.duoBase:SetWidth(162)
     f.duoBase:SetPoint("TOPLEFT", RX0, by)
     f.duoAcc = K.ColorPickButton(f, function() return S().duoAccent or "ff4d6d" end, function(hex) applyDuo(S().duoBase or "15171d", hex) end, L["Akzentfarbe"], lookSnapshot)
-    f.duoAcc:SetWidth(106)
+    f.duoAcc:SetWidth(162)
     f.duoAcc:SetPoint("LEFT", f.duoBase, "RIGHT", 6, 0)
     f.duoSide = K.ColorPickButton(f, function()
         local th = K.DuoTheme(S().duoBase, S().duoAccent, S().duoSide)
@@ -1810,14 +1810,26 @@ local function buildLook(f)
         S().duoSide = hex
         applyDuo(S().duoBase or "15171d", S().duoAccent or "ff4d6d")
     end, L["Leiste links"], lookSnapshot)
-    f.duoSide:SetWidth(106)
-    f.duoSide:SetPoint("LEFT", f.duoAcc, "RIGHT", 6, 0)
+    f.duoSide:SetWidth(162)
+    f.duoSide:SetPoint("TOPLEFT", f.duoBase, "BOTTOMLEFT", 0, -6)
     f.duoSide:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     f.duoSide:HookScript("OnClick", function(_, btn)
         if btn == "RightButton" then S().duoSide = nil applyDuo(S().duoBase or "15171d", S().duoAccent or "ff4d6d") end
     end)
     f.duoSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Leiste links"], L["Eigene Farbe fuer die Navigation links. Rechtsklick: wieder automatisch."] }) end)
     f.duoSide:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    -- 0.6.136: eigene Farbe fuer die Glut-Hintergruende (Leiste links und Inhalt rechts); ohne Wahl = Akzentfarbe
+    f.glowCol = K.ColorPickButton(f, function()
+        return (S().glowColor and S().glowColor ~= "") and S().glowColor or K.ToHex(C.accent)
+    end, function(hex) S().glowColor = hex end, L["Hintergrund"], lookSnapshot)
+    f.glowCol:SetWidth(162)
+    f.glowCol:SetPoint("LEFT", f.duoSide, "RIGHT", 6, 0)
+    f.glowCol:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    f.glowCol:HookScript("OnClick", function(self, btn)
+        if btn == "RightButton" then S().glowColor = nil if self.Update then self:Update() end end
+    end)
+    f.glowCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Hintergrund"], L["Farbe der Glut hinter Leiste und Inhalt. Rechtsklick: wieder wie die Akzentfarbe."] }) end)
+    f.glowCol:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- Schrift (links) + Details (rechts) --------------------------------------
     local Y3 = -designH - 14
     cardH(f, 0, Y3, 362, 300, "chronicle", L["Schrift"], L["Gilt fuer die ganze Oasis-Oberflaeche. Wirkt sofort, einzelne Stellen erst nach /reload."])
@@ -1858,7 +1870,7 @@ local function buildLook(f)
     local rs = K.Button(f, L["Aussehen zuruecksetzen"], 170, 24, "ghost", function()
         local st = S()
         st.theme, st.themeGrad, st.highContrast, st.frameAccent, st.accent, st.uiFont = nil, nil, nil, nil, "", "inter"
-        st.duoBase, st.duoAccent, st.duoSide = nil, nil, nil
+        st.duoBase, st.duoAccent, st.duoSide, st.glowColor = nil, nil, nil, nil
         st.themeTexture, st.logoAnim, st.logoMode, st.windowAlpha = true, true, nil, 1
         K.ApplyUserFonts()
         if ns.ApplyWindowAlpha then ns.ApplyWindowAlpha() end
@@ -1874,6 +1886,7 @@ local function refreshLook(f)
         K.SetBorderColor(b, b.on and C.accent or C.line)
     end
     if f.duoBase and f.duoBase.Update then f.duoBase:Update() f.duoAcc:Update() if f.duoSide.Update then f.duoSide:Update() end end
+    if f.glowCol and f.glowCol.Update then f.glowCol:Update() end
     local cur = K.CurrentTheme().key
     for _, b in ipairs(f.themes) do
         local on = b.th.key == cur
