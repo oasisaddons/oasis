@@ -534,6 +534,42 @@ local function buildMain()
         end)
     end
 
+    -- 0.6.149: Rahmen wie beim Startfenster (/oa start) - oben eine Linie in der Akzentfarbe, die nach rechts auslaeuft,
+    -- an den Seiten feine Linien, die nach unten verblassen, oben innen eine helle Haarlinie, unten eine schwache Linie
+    do
+        local fr = CreateFrame("Frame", nil, main)
+        fr:SetAllPoints(main)
+        fr:SetFrameLevel(main:GetFrameLevel() + 20)
+        local R = 12
+        local function tx(layer) local t = fr:CreateTexture(nil, layer or "OVERLAY") return t end
+        local top = tx() top:SetHeight(2) top:SetPoint("TOPLEFT", R, 0) top:SetPoint("TOPRIGHT", -R, 0)
+        local inner = tx() inner:SetHeight(1) inner:SetPoint("TOPLEFT", R, -3) inner:SetPoint("TOPRIGHT", -R, -3)
+        local eL = tx() eL:SetWidth(1) eL:SetPoint("TOPLEFT", 0, -R) eL:SetPoint("BOTTOM", main, "CENTER", 0, -60)
+        local eR = tx() eR:SetWidth(1) eR:SetPoint("TOPRIGHT", 0, -R) eR:SetPoint("BOTTOM", main, "CENTER", 0, -60)
+        local bot = tx() bot:SetHeight(1) bot:SetPoint("BOTTOMLEFT", R, 0) bot:SetPoint("BOTTOMRIGHT", -R, 0)
+        local last
+        local function paint()
+            local ac = C.accent or { 1, 0.2, 0.2 }
+            local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
+            if key == last then return end
+            last = key
+            K.Gradient(top, "HORIZONTAL", { ac[1], ac[2], ac[3], 1 }, { ac[1], ac[2], ac[3], 0.05 })
+            K.Gradient(inner, "HORIZONTAL", { 1, 1, 1, 0.10 }, { 1, 1, 1, 0 })
+            K.Gradient(eL, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.70 })
+            K.Gradient(eR, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.25 })
+            K.Gradient(bot, "HORIZONTAL", { 1, 1, 1, 0.02 }, { 1, 1, 1, 0.07 })
+        end
+        paint()
+        local acc = 0
+        fr:SetScript("OnUpdate", function(_, el)
+            acc = acc + (el or 0)
+            if acc < 0.5 then return end
+            acc = 0
+            paint()
+        end)
+        main.frameLines = fr
+    end
+
     -- Seitenleiste
     local side = CreateFrame("Frame", nil, main)
     side:SetPoint("TOPLEFT", 1, -1)
@@ -548,11 +584,22 @@ local function buildMain()
         side.art:SetAllPoints()
         -- 0.6.148: Schieferbild mit feinen Glutadern statt Glut-Maske (normal gezeichnet, Seitenverhaeltnis passt fast genau)
         side.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg")
+        -- 0.6.149: wie rechts eingepasst statt gestreckt (Bild 668:2000, mittig zugeschnitten)
+        local function fitSide()
+            local w, h = side.art:GetWidth() or 0, side.art:GetHeight() or 0
+            if w <= 0 or h <= 0 then return end
+            local r = (w / h) / (668 / 2000)
+            if r < 1 then pcall(side.art.SetTexCoord, side.art, (1 - r) / 2, 1 - (1 - r) / 2, 0, 1)
+            else pcall(side.art.SetTexCoord, side.art, 0, 1, (1 - 1 / r) / 2, 1 - (1 - 1 / r) / 2) end
+        end
+        side:HookScript("OnSizeChanged", fitSide)
+        fitSide()
         if K.RoundMask then pcall(K.RoundMask, side.art, main, 12, { "tl", "bl" }) end
         local last
         local function tint()
-            local gh = ns.db and ns.db.settings.glowColor
-            local ac = (gh and gh ~= "" and K.FromHex(gh)) or C.accent or { 1, 0.2, 0.2 }   -- 0.6.136: eigene Hintergrundfarbe
+            -- 0.6.149: eigene Farbe fuer links (glowColorSide), sonst wie rechts
+            local gh = ns.db and ((ns.db.settings.glowColorSide ~= "" and ns.db.settings.glowColorSide) or ns.db.settings.glowColor)
+            local ac = (gh and gh ~= "" and K.FromHex(gh)) or C.accent or { 1, 0.2, 0.2 }
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             if key == last then return end
             last = key

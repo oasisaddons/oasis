@@ -1634,7 +1634,7 @@ local function rebuildSoon()
     end)
 end
 -- Zustand der Farb-Einstellungen merken -> Funktion, die ihn wiederherstellt (Farbwaehler "Abbrechen")
-local LOOK_KEYS = { "theme", "duoBase", "duoAccent", "duoSide", "accent", "themeGrad", "glowColor" }
+local LOOK_KEYS = { "theme", "duoBase", "duoAccent", "duoSide", "accent", "themeGrad", "glowColor", "glowColorSide" }
 local function lookSnapshot()
     local t, s = {}, S()
     for _, k in ipairs(LOOK_KEYS) do t[k] = s[k] end
@@ -1765,7 +1765,7 @@ local function buildLook(f)
     local RX0 = RXc + 16
     -- Hoehe aus der Zahl der Vorlagen (6 je Reihe)
     local duoRows = math.ceil(#K.DUO_PRESETS / 6)
-    local farbH = 68 + duoRows * 28 + 8 + 24 + 20 + 30   -- 0.6.136: zweite Knopfzeile (Hintergrund)
+    local farbH = 68 + duoRows * 28 + 8 + 24 + 20 + 30 + 34   -- 0.6.136: zweite Knopfzeile (Hintergrund); 0.6.149: dritte (links/rechts getrennt)
     cardH(f, RXc, Y, 362, farbH, "heart", L["Eigene Farben"], L["Zwei Farben mischen - Grundfarbe, Akzent und Leiste einzeln waehlbar"], true)
     local function applyDuo(base, acc)
         local s = S()
@@ -1821,15 +1821,29 @@ local function buildLook(f)
     -- 0.6.136: eigene Farbe fuer die Glut-Hintergruende (Leiste links und Inhalt rechts); ohne Wahl = Akzentfarbe
     f.glowCol = K.ColorPickButton(f, function()
         return (S().glowColor and S().glowColor ~= "") and S().glowColor or K.ToHex(C.accent)
-    end, function(hex) S().glowColor = hex end, L["Hintergrund"], lookSnapshot)
+    end, function(hex) S().glowColor = hex end, L["Hintergrund rechts"], lookSnapshot)
     f.glowCol:SetWidth(162)
     f.glowCol:SetPoint("LEFT", f.duoSide, "RIGHT", 6, 0)
     f.glowCol:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     f.glowCol:HookScript("OnClick", function(self, btn)
         if btn == "RightButton" then S().glowColor = nil if self.Update then self:Update() end end
     end)
-    f.glowCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Hintergrund"], L["Farbe der Glut hinter Leiste und Inhalt. Rechtsklick: wieder wie die Akzentfarbe."] }) end)
+    f.glowCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Hintergrund rechts"], L["Farbe des Hintergrundbilds hinter dem Inhalt. Rechtsklick: wieder wie die Akzentfarbe."] }) end)
     f.glowCol:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    -- 0.6.149: eigene Farbe fuer den Hintergrund der Leiste links (ohne Wahl wie rechts bzw. Akzentfarbe)
+    f.glowSide = K.ColorPickButton(f, function()
+        local v = S().glowColorSide
+        if v and v ~= "" then return v end
+        return (S().glowColor and S().glowColor ~= "") and S().glowColor or K.ToHex(C.accent)
+    end, function(hex) S().glowColorSide = hex end, L["Hintergrund links"], lookSnapshot)
+    f.glowSide:SetWidth(162)
+    f.glowSide:SetPoint("TOPLEFT", f.duoSide, "BOTTOMLEFT", 0, -6)
+    f.glowSide:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    f.glowSide:HookScript("OnClick", function(self, btn)
+        if btn == "RightButton" then S().glowColorSide = nil if self.Update then self:Update() end end
+    end)
+    f.glowSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Hintergrund links"], L["Farbe des Hintergrundbilds hinter der Leiste links. Rechtsklick: wieder automatisch."] }) end)
+    f.glowSide:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- Schrift (links) + Details (rechts) --------------------------------------
     local Y3 = -designH - 14
     cardH(f, 0, Y3, 362, 300, "chronicle", L["Schrift"], L["Gilt fuer die ganze Oasis-Oberflaeche. Wirkt sofort, einzelne Stellen erst nach /reload."])
@@ -1870,7 +1884,7 @@ local function buildLook(f)
     local rs = K.Button(f, L["Aussehen zuruecksetzen"], 170, 24, "ghost", function()
         local st = S()
         st.theme, st.themeGrad, st.highContrast, st.frameAccent, st.accent, st.uiFont = nil, nil, nil, nil, "", "inter"
-        st.duoBase, st.duoAccent, st.duoSide, st.glowColor = nil, nil, nil, nil
+        st.duoBase, st.duoAccent, st.duoSide, st.glowColor, st.glowColorSide = nil, nil, nil, nil, nil
         st.themeTexture, st.logoAnim, st.logoMode, st.windowAlpha = true, true, nil, 1
         K.ApplyUserFonts()
         if ns.ApplyWindowAlpha then ns.ApplyWindowAlpha() end
