@@ -765,13 +765,16 @@ end
 ------------------------------------------------------------------------
 -- 0.6.4: Live markieren - mit gedrueckter Maus ueber Chatzeilen ziehen markiert sie (farbig hinterlegt), beim
 -- Loslassen liegt der Text markiert in einem unsichtbaren Eingabefeld: Strg+C kopiert. Ein Klick ohne Ziehen
--- bleibt ein normaler Klick (Namen, Links). Zeilenweise - ein Chatfenster verraet nicht, welcher Buchstabe
--- unter der Maus liegt. Alt + Klick oeffnet weiter das Markierfeld fuer einzelne Woerter.
+-- bleibt ein normaler Klick (Namen, Links). Seit 0.6.101 buchstabengenau, Rechtsklick auf die Markierung = Menue.
+-- Alt + Klick oeffnet weiter das Markierfeld.
 ------------------------------------------------------------------------
 local live = { hl = {} }
-local function cursorY()
-    local _, y = GetCursorPosition()
-    return y / (UIParent:GetEffectiveScale() or 1)
+-- 0.6.101: buchstabengenau - jede Zeile wird mit derselben Schrift Zeichen fuer Zeichen ausgemessen (Chatfenster
+-- verraten nicht, welcher Buchstabe unter der Maus liegt). Nachrichten ueber mehrere Bildschirmzeilen bleiben ganz.
+local function cursorXY()
+    local x, y = GetCursorPosition()
+    local s = UIParent:GetEffectiveScale() or 1
+    return x / s, y / s
 end
 -- sichtbare, lesbare Zeilen eines Chatfensters, oben zuerst
 local function shownLines(cf)
@@ -794,47 +797,137 @@ local function lineAt(lines, y)
         if y < lines[#lines]:GetBottom() then return #lines end
     end
 end
+-- sichtbare Zeichen einer Zeile: { s = erstes Byte, e = letztes Byte }; Farb-, Link- und Endcodes zaehlen nicht mit,
+-- Symbole (|T...|t, |A...|a) zaehlen als ein Zeichen
+local function units(raw)
+    local out, i, n = {}, 1, #raw
+    while i <= n do
+        local c = raw:sub(i, i)
+        if c == "|" then
+            local nx = raw:sub(i + 1, i + 1)
+            if nx == "c" and raw:sub(i + 2, i + 2) == "n" then local e = raw:find(":", i + 3, true) i = (e or n) + 1   -- |cnNAME:
+            elseif nx == "c" then i = i + 10
+            elseif nx == "r" or nx == "h" then i = i + 2
+            elseif nx == "H" then local e = raw:find("|h", i + 2, true) i = (e or n) + 2
+            elseif nx == "T" or nx == "A" then
+                local e = raw:find(nx == "T" and "|t" or "|a", i + 2, true)
+                out[#out + 1] = { s = i, e = (e or n) + 1 }
+                i = (e or n) + 2
+            elseif nx == "|" then out[#out + 1] = { s = i, e = i + 1 } i = i + 2
+            else out[#out + 1] = { s = i, e = i } i = i + 1 end
+        else
+            local b = c:byte()
+            local len = (b >= 240 and 4) or (b >= 224 and 3) or (b >= 192 and 2) or 1
+            out[#out + 1] = { s = i, e = i + len - 1 }
+            i = i + len
+        end
+    end
+    return out
+end
+local meas
+local function measureLine(fs)
+    live.cache = live.cache or {}
+    local raw = fs:GetText()
+    local c = live.cache[fs]
+    if c and c.raw == raw then return c end
+    c = { raw = raw, u = units(raw), w = { [0] = 0 } }
+    live.cache[fs] = c
+    if not meas then meas = UIParent:CreateFontString(nil, "BACKGROUND") meas:SetWordWrap(false) meas:SetAlpha(0) end
+    local font, size, flags = fs:GetFont()
+    if not font then c.whole = true return c end
+    meas:SetFont(font, size, flags or "")
+    local function width(t)
+        meas:SetText(t)
+        return (meas.GetUnboundedStringWidth and meas:GetUnboundedStringWidth()) or meas:GetStringWidth() or 0
+    end
+    local multi = fs.GetNumLines and (fs:GetNumLines() or 1) > 1
+    if multi or #c.u > 400 then c.whole = true return c end
+    for k, u in ipairs(c.u) do c.w[k] = width(raw:sub(1, u.e)) end
+    if (c.w[#c.u] or 0) > (fs:GetWidth() or 0) + 2 then c.whole = true end   -- umgebrochen
+    return c
+end
+-- Grenze (0 .. Zeichenzahl) an Position x; nil = ganze Zeile
+local function boundAt(fs, x)
+    local c = measureLine(fs)
+    if c.whole or #c.u == 0 then return nil end
+    local rx = x - (fs:GetLeft() or 0)
+    if rx <= 0 then return 0 end
+    for k = 1, #c.u do
+        local mid = (c.w[k - 1] + c.w[k]) / 2
+        if rx < mid then return k - 1 end
+    end
+    return #c.u
+end
+-- Auswahl geordnet: Zeile a (ab Grenze ba) bis Zeile b (bis Grenze bb)
+local function span()
+    local a, ba, b, bb = live.from, live.fromB, live.to, live.toB
+    if a > b or (a == b and ba and bb and ba > bb) then a, ba, b, bb = b, bb, a, ba end
+    return a, ba, b, bb
+end
 local function liveClear()
     for _, t in ipairs(live.hl) do t:Hide() end
-    live.from, live.to, live.lines, live.frame = nil, nil, nil, nil
+    live.from, live.to, live.lines, live.frame, live.text = nil, nil, nil, nil, nil
     if live.eb then live.eb:ClearFocus() end
     if live.tip then live.tip:Hide() end
 end
 local function liveDraw()
-    local a, b = math.min(live.from, live.to), math.max(live.from, live.to)
+    local a, ba, b, bb = span()
     local ac = (ns.K and ns.K.C and ns.K.C.accent) or { 0.6, 0.4, 1 }
     local n = 0
     for i = a, b do
         local fs = live.lines[i]
         if fs then
-            n = n + 1
-            local t = live.hl[n]
-            if not t then
-                t = live.layer:CreateTexture(nil, "OVERLAY")
-                live.hl[n] = t
+            local c = measureLine(fs)
+            local x0, x1
+            if not c.whole then
+                if i == a and ba then x0 = c.w[ba] end
+                if i == b and bb then x1 = c.w[bb] end
             end
-            t:SetColorTexture(ac[1], ac[2], ac[3], 0.30)
-            t:ClearAllPoints()
-            t:SetPoint("TOPLEFT", fs, "TOPLEFT", -2, 1)
-            t:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 2, -1)
-            t:Show()
+            if not (x0 and x1 and x1 <= x0) then
+                n = n + 1
+                local t = live.hl[n]
+                if not t then t = live.layer:CreateTexture(nil, "OVERLAY") live.hl[n] = t end
+                t:SetColorTexture(ac[1], ac[2], ac[3], 0.30)
+                t:ClearAllPoints()
+                t:SetPoint("TOPLEFT", fs, "TOPLEFT", (x0 or 0) - (x0 and 0 or 2), 1)
+                if x1 then t:SetPoint("BOTTOMRIGHT", fs, "BOTTOMLEFT", x1, -1)
+                else t:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 2, -1) end
+                t:Show()
+            end
         end
     end
     for i = n + 1, #live.hl do live.hl[i]:Hide() end
 end
-local function liveFinish()
-    local a, b = math.min(live.from, live.to), math.max(live.from, live.to)
+local function plainOf(raw)
+    local ok, p = pcall(GC.Plain, raw)
+    p = ok and p or raw
+    return (p:gsub("|[hHrc]%x*", ""))
+end
+local function selectedText()
+    local a, ba, b, bb = span()
     local out = {}
     for i = a, b do
         local fs = live.lines[i]
-        local t = fs and fs:GetText()
-        if t and not issecret(t) then
-            local ok, plain = pcall(GC.Plain, t)
-            if ok and plain ~= "" then out[#out + 1] = plain end
+        local raw = fs and fs:GetText()
+        if raw and not issecret(raw) then
+            local c = measureLine(fs)
+            local s0 = (not c.whole and i == a and ba) or 0
+            local s1 = (not c.whole and i == b and bb) or #c.u
+            local part
+            if c.whole or #c.u == 0 then part = raw
+            elseif s1 > s0 then part = raw:sub(c.u[s0 + 1].s, c.u[s1].e) end
+            -- Link-Anfang mitnehmen, wenn die Auswahl mitten in einem Link beginnt (sonst bleibt nur Code-Rest)
+            if part then
+                local p = plainOf(part)
+                if p ~= "" then out[#out + 1] = p end
+            end
         end
     end
-    if #out == 0 then liveClear() return end
-    local text = table.concat(out, "\n")
+    return table.concat(out, "\n")
+end
+local function liveFinish()
+    local text = selectedText()
+    if text == "" then liveClear() return end
     if not live.eb then
         -- unsichtbares Eingabefeld: haelt den markierten Text, damit Strg+C ihn kopiert
         local eb = CreateFrame("EditBox", nil, live.layer)
@@ -846,7 +939,7 @@ local function liveFinish()
         eb:SetFontObject(ChatFontNormal or GameFontNormal)
         eb:SetScript("OnTextChanged", function(self, user) if user and live.text then self:SetText(live.text) self:HighlightText() end end)
         eb:SetScript("OnEscapePressed", liveClear)
-        eb:SetScript("OnEditFocusLost", function() for _, t in ipairs(live.hl) do t:Hide() end if live.tip then live.tip:Hide() end end)
+        eb:SetScript("OnEditFocusLost", function() if not live.menu then for _, t in ipairs(live.hl) do t:Hide() end if live.tip then live.tip:Hide() end end end)
         eb:SetScript("OnKeyUp", function(_, key)
             if key == "C" and IsControlKeyDown() and live.tip then
                 live.tip:SetText(L["Kopiert"])
@@ -860,16 +953,17 @@ local function liveFinish()
     live.eb:SetText(text)
     live.eb:SetFocus()
     live.eb:HighlightText()
+    local a = span()
     live.tip:ClearAllPoints()
     live.tip:SetPoint("BOTTOMLEFT", live.lines[a], "TOPLEFT", 0, 3)
-    live.tip:SetText(L["Strg+C kopiert - Esc hebt auf"])
+    live.tip:SetText(L["Strg+C kopiert - Rechtsklick: mehr - Esc hebt auf"])
     live.tip:Show()
 end
 local function liveStart(cf)
     if G().gcLiveSelect == false then return end
     liveClear()
     local lines = shownLines(cf)
-    local y0 = cursorY()
+    local x0, y0 = cursorXY()
     local i = lineAt(lines, y0)
     if not i then return end
     if not live.layer then
@@ -878,17 +972,21 @@ local function liveStart(cf)
         live.layer:SetAllPoints(UIParent)
         live.drv = CreateFrame("Frame")
     end
-    live.lines, live.from, live.to, live.frame, live.y0, live.moved = lines, i, i, cf, y0, false
+    live.cache = {}
+    live.lines, live.frame, live.x0, live.y0, live.moved = lines, cf, x0, y0, false
+    live.from, live.to = i, i
+    live.fromB = boundAt(lines[i], x0)
+    live.toB = live.fromB
     live.drv:SetScript("OnUpdate", function(self)
         if not live.lines then self:SetScript("OnUpdate", nil) return end
-        local y = cursorY()
-        if not live.moved and math.abs(y - live.y0) < 6 then
+        local x, y = cursorXY()
+        if not live.moved and math.abs(y - live.y0) < 6 and math.abs(x - live.x0) < 5 then
             if not IsMouseButtonDown("LeftButton") then self:SetScript("OnUpdate", nil) liveClear() end   -- nur ein Klick
             return
         end
         live.moved = true
         local j = lineAt(live.lines, y)
-        if j and j ~= live.to then live.to = j end
+        if j then live.to = j live.toB = boundAt(live.lines[j], x) end
         liveDraw()
         if not IsMouseButtonDown("LeftButton") then
             self:SetScript("OnUpdate", nil)
@@ -896,7 +994,39 @@ local function liveStart(cf)
         end
     end)
 end
-GC.LiveStart, GC.LiveClear = liveStart, liveClear
+-- Rechtsklick auf eine Markierung: kleines Menue. Die Zwischenablage selbst ist fuer Addons gesperrt -
+-- "Kopieren" legt die Markierung wieder bereit, Strg+C kopiert.
+local function liveMenu()
+    if not live.text or not live.lines then return false end
+    local text = live.text
+    if not live.anchor then live.anchor = CreateFrame("Frame", nil, UIParent) live.anchor:SetSize(1, 1) end
+    local x, y = cursorXY()
+    live.anchor:ClearAllPoints()
+    live.anchor:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
+    live.menu = true
+    liveDraw()
+    local function refocus()
+        live.menu = nil
+        if live.eb then live.eb:SetFocus() live.eb:HighlightText() end
+        liveDraw()
+        if live.tip then live.tip:SetText(L["Jetzt Strg+C druecken"]) live.tip:Show() end
+    end
+    local items = {
+        { text = L["Kopieren (Strg+C)"], fn = refocus },
+        { text = L["In die Chatzeile einfuegen"], fn = function()
+            live.menu = nil
+            local one = text:gsub("\n", " ")
+            liveClear()
+            local open = ChatFrame_OpenChat or (ChatFrameUtil and ChatFrameUtil.OpenChat)
+            if open then open(one) end
+        end },
+        { text = L["Im Markierfeld oeffnen"], fn = function() live.menu = nil local f = live.frame liveClear() GC.SelectInPlace(f) end },
+        { text = L["Markierung aufheben"], fn = function() live.menu = nil liveClear() end },
+    }
+    if ns.K and ns.K.ShowMenu then ns.K.ShowMenu(live.anchor, items, L["Markierter Text"]) end
+    return true
+end
+GC.LiveStart, GC.LiveClear, GC.LiveMenu = liveStart, liveClear, liveMenu
 function GC.LiveText() return live.text end   -- fuer Tests
 GC._live = live
 
@@ -910,6 +1040,7 @@ function GC.HookSelect()
         if cf and cf.HookScript and not selHooked[cf] then
             selHooked[cf] = true
             cf:HookScript("OnMouseDown", function(self, btn)
+                if btn == "RightButton" then pcall(GC.LiveMenu) return end
                 if btn ~= "LeftButton" then return end
                 if IsAltKeyDown() then
                     if G().gcAltSelect ~= false then GC.SelectInPlace(self) end
