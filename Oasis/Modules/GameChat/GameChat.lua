@@ -391,10 +391,26 @@ local function push(frame, plain, r, g, b)
     end
 end
 function GC.Buffer(frame) return buffers[frame] or {} end
+-- Ohne mitgeschriebenen Puffer (Spielchat aus): Zeilen direkt aus dem Chatfenster lesen, geheime ueberspringen
+local function frameLines(frame)
+    local out, n = {}, 0
+    pcall(function() n = num(frame:GetNumMessages()) or 0 end)
+    for i = math.max(1, n - BUF_MAX + 1), n do
+        local ok, text = pcall(frame.GetMessageInfo, frame, i)
+        text = ok and str(text) or nil
+        if text then
+            local okP, plain = pcall(GC.Plain, text)
+            if okP and plain ~= "" then out[#out + 1] = { t = plain } end
+        end
+    end
+    return out
+end
 function GC.Search(frame, query)
     local out = {}
     query = (query or ""):lower()
-    for _, l in ipairs(GC.Buffer(frame)) do
+    local buf = buffers[frame]
+    if not buf or #buf == 0 then buf = frameLines(frame) end
+    for _, l in ipairs(buf) do
         if query == "" or l.t:lower():find(query, 1, true) then out[#out + 1] = l end
     end
     return out
@@ -670,11 +686,40 @@ function GC.ApplyStamp()
     end
 end
 
+------------------------------------------------------------------------
+-- Kopier-Knopf oben rechts im Chatfenster: oeffnet den Chat als markierbaren Text (Strg+C)
+-- nesUI hat dafuer einen eigenen Knopf in seiner Chatleiste -> dann keinen zweiten
+------------------------------------------------------------------------
+local function nesUIChat() return _G.nesUI ~= nil and not (_G.nesUIDB and _G.nesUIDB.chatOff) end
+function GC.ApplyCopyButton()
+    local want = G().gcCopyBtn ~= false and not nesUIChat()
+    if not GC.copyBtn then
+        if not want or not ChatFrame1 then return end
+        local b = CreateFrame("Button", "OasisChatCopyButton", ChatFrame1)
+        b:SetSize(18, 18)
+        b:SetPoint("TOPRIGHT", ChatFrame1, "TOPRIGHT", 0, 0)
+        b:SetFrameLevel((ChatFrame1:GetFrameLevel() or 1) + 5)
+        b.icon = b:CreateTexture(nil, "ARTWORK")
+        b.icon:SetAllPoints()
+        b.icon:SetTexture("Interface\\AddOns\\Oasis\\Media\\icons\\checklist")
+        b:SetAlpha(0.35)
+        b:SetScript("OnEnter", function(self)
+            self:SetAlpha(1)
+            if ns.K and ns.K.ShowTip then ns.K.ShowTip(self, L["Chat kopieren"]) end
+        end)
+        b:SetScript("OnLeave", function(self) self:SetAlpha(0.35) GameTooltip:Hide() end)
+        b:SetScript("OnClick", function() if GC.OpenViewer then GC.OpenViewer("search", SELECTED_CHAT_FRAME) end end)
+        GC.copyBtn = b
+    end
+    GC.copyBtn:SetShown(want)
+end
+
 function GC.ApplyAll()
     if not ns.db then return end
     GC.Attach()
     GC.ApplyButtons()
     GC.ApplyStamp()
+    pcall(GC.ApplyCopyButton)
 end
 
 ------------------------------------------------------------------------
@@ -719,6 +764,8 @@ ns.slash.chatmute = function(rest)
 end
 ns.slash.chatsuche = function() if GC.OpenViewer then GC.OpenViewer("search") end end
 ns.slash.chatsearch = ns.slash.chatsuche
+ns.slash.chatkopieren = ns.slash.chatsuche
+ns.slash.chatcopy = ns.slash.chatsuche
 ns.slash.chatalarm = function(rest)
     rest = (rest or ""):gsub("^%s+", ""):gsub("%s+$", "")
     if rest == "" then

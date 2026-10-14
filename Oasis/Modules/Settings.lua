@@ -3550,13 +3550,7 @@ local function buildQuick(f)
     f.t = {}
     -- Das Wichtigste ----------------------------------------------------
     local c, y = wideCard(f, 0, "settings", L["Das Wichtigste"], L["Die Schalter, die fast jeder einmal braucht - alles andere findest du unten nach Themen sortiert"])
-    rowLabel(f, L["Sprache"], 14, y)
-    f.lang = K.Button(f, "", 220, 24, "ghost")
-    f.lang.isDropdown = true
-    f.lang:SetPoint("TOPLEFT", 200, y + 4)
-    f.lang:SetScript("OnClick", function(self) ns.ShowLanguageMenu(self) end)
-    indexAdd(L["Sprache"], f.lang)
-    y = y - 36
+    -- Sprache steht oben im Fenster (Flagge) immer bereit - hier nicht doppelt
     y = toggleList(f, {
         { "Hinweise anzeigen", "toasts", "Kurze Meldungen am Bildschirmrand: Auftraege, Termine, Gruppensuchen, Durchsagen ..." },
         { "Sounds abspielen", "sound", "Alle Oasis-Klaenge an oder aus" },

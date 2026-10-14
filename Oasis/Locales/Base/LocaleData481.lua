@@ -3147,3 +3147,5 @@ DE["Du wirst auf diesem PC wie der Gildenmeister behandelt: Gildenleitung, Offiz
 EN["Du wirst auf diesem PC wie der Gildenmeister behandelt: Gildenleitung, Offiziers- und Raidleiter-Einstellungen sind offen."] = "On this PC you are treated like the guild master: guild leadership, officer and raid leader settings are unlocked."
 DE["Fuer die Gilde gespeicherte Aenderungen sehen die anderen NICHT - deren Oasis prueft deinen echten Rang."] = "Für die Gilde gespeicherte Änderungen sehen die anderen NICHT – deren Oasis prüft deinen echten Rang."
 EN["Fuer die Gilde gespeicherte Aenderungen sehen die anderen NICHT - deren Oasis prueft deinen echten Rang."] = "Others do NOT see changes saved for the guild - their Oasis checks your real rank."
+DE["Chat kopieren"] = "Chat kopieren"
+EN["Chat kopieren"] = "Copy chat"

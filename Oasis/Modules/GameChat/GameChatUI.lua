@@ -100,7 +100,7 @@ local function buildViewer()
         local out = {}
         for i = math.max(1, #lines - SHOW_MAX + 1), #lines do
             local l = lines[i]
-            out[#out + 1] = date("[%H:%M] ", l.ts) .. (alerts and ("<" .. l.w .. "> ") or "") .. l.t
+            out[#out + 1] = (l.ts and date("[%H:%M] ", l.ts) or "") .. (alerts and ("<" .. l.w .. "> ") or "") .. l.t
         end
         self.count:SetText(#lines > SHOW_MAX and (L["%d Zeilen, die letzten %d gezeigt"]):format(#lines, SHOW_MAX) or (L["%d Zeilen"]):format(#lines))
         if #out == 0 then
@@ -130,7 +130,8 @@ function GC.OpenViewer(mode, frame)
     if frame then f.frame = frame end
     f:Show()
     f:Refresh()
-    if not G().gcOn then ns.print(L["Spielchat ist ausgeschaltet - einschalten unter Einstellungen > Spielhilfen > Spielchat."]) end
+    -- Suchen/Kopieren geht auch ohne Spielchat (liest dann das Chatfenster), nur die Alarme brauchen ihn
+    if mode == "alerts" and not G().gcOn then ns.print(L["Spielchat ist ausgeschaltet - einschalten unter Einstellungen > Spielhilfen > Spielchat."]) end
 end
 
 ------------------------------------------------------------------------

@@ -285,16 +285,38 @@ end
 local issecret = issecretvalue or function() return false end
 -- y-Versatz kann negativ sein (Emoji sitzt auf der Grundlinie) -> mit erfassen, sonst bleibt das Bild stehen
 local ANIM_PAT = "(emoji\\(guild\\[%w_]+)):(%d+):(%d+):0:(%-?%d+):64:(%d+):0:64:(%d+):(%d+)|t"
-local function stepLine(fs)
-    local t = fs:GetText()
-    if not t or issecret(t) or not t:find("emoji\\guild\\", 1, true) then return end
-    local new = t:gsub(ANIM_PAT, function(path, key, sw, sh, yo, h, top, bottom)
+local function animText(t)
+    return (t:gsub(ANIM_PAT, function(path, key, sw, sh, yo, h, top, bottom)
         local e = Emoji.anims[key]
         if not e then return nil end
         local nt = frameOf(e) * 64
         return path .. ":" .. sw .. ":" .. sh .. ":0:" .. yo .. ":64:" .. h .. ":0:64:" .. nt .. ":" .. (nt + 64) .. "|t"
+    end))
+end
+-- 0.6.1: Neuzeichnen je nach Rechner (/oa emojimodus): 1 = Zeile direkt (Standard), 2 = Zeile erst leeren, dann
+-- neu setzen, 3 = ueber den Chatverlauf des Fensters (TransformMessages) - fuer Clients, die eine geaenderte
+-- Zeile nicht neu zeichnen (Text war nachweislich weitergeschaltet, Bild stand trotzdem)
+local function redrawMode() return tonumber(ns.db and ns.db.settings.emojiRedraw) or 1 end
+local function stepLine(fs)
+    local t = fs:GetText()
+    if not t or issecret(t) or not t:find("emoji\\guild\\", 1, true) then return end
+    local new = animText(t)
+    if new ~= t then
+        if redrawMode() == 2 then fs:SetText("") end
+        fs:SetText(new)
+    end
+end
+local lastTransform = 0
+local function stepBuffer(cf)
+    if not cf.TransformMessages then return false end
+    local now = GetTime()
+    if now - lastTransform < 0.08 then return true end
+    cf:TransformMessages(function(message)
+        return type(message) == "string" and not issecret(message) and message:find("emoji\\guild\\", 1, true) ~= nil
+    end, function(message, ...)
+        return animText(message), ...
     end)
-    if new ~= t then fs:SetText(new) end
+    return true
 end
 -- eigene Oasis-Textfelder (Chatblasen, Vorschau): animierte Emojis dort ebenfalls weiterschalten
 Emoji.tracked = setmetatable({}, { __mode = "k" })
@@ -323,9 +345,13 @@ function Emoji.StepChat()
     -- 0.5.565: Chatfenster, ueber dessen Link gerade die Maus steht (Tooltip gehoert ihm), nicht weiterschalten -
     -- SetText baut die Link-Flaechen neu, WoW meldet "Maus weg" und die Vorschau verschwand sofort
     local tipOwner = GameTooltip and GameTooltip:IsShown() and GameTooltip:GetOwner() or nil
+    local viaBuffer = redrawMode() == 3
     for _, cf in ipairs(frames) do
         local lines = cf and cf ~= tipOwner and cf:IsVisible() and cf.visibleLines
-        if lines then
+        if lines and viaBuffer and cf.TransformMessages and cf ~= Emoji.frames[1] then
+            local ok, e = pcall(stepBuffer, cf)
+            if not ok then ns.err("Emoji", e) end
+        elseif lines then
             for _, fs in ipairs(lines) do
                 -- Zeile unter der Maus nicht weiterschalten: SetText baut die Link-Flaechen neu, ein Klick auf den
                 -- Namen in einer Zeile mit animiertem Emoji ging dadurch verloren (kein Fluestern, kein Menue)
@@ -333,6 +359,7 @@ function Emoji.StepChat()
             end
         end
     end
+    if viaBuffer and GetTime() - lastTransform >= 0.08 then lastTransform = GetTime() end
 end
 -- 0.5.511: ~30 Bilder/s statt 12,5 (alle 0,08 s) - die GIFs haben 0,02-0,06 s je Bild und ruckelten/liefen
 -- scheinbar zu langsam. Laeuft nur, solange animierte Emojis sichtbar sein koennen (StepChat prueft das selbst).
@@ -1585,13 +1612,19 @@ ns.slash.emojis = ns.slash.emoji
 -- Diagnose: /oa emojitest - warum laufen animierte Emojis bei jemandem nicht? Ausgabe im Chat (Screenshot reicht),
 -- zusaetzlich in OasisDB.emojiDiag (SavedVariables) gespeichert
 local DIAG_ADDONS = { "Prat-3.0", "Chattynator", "ElvUI", "Glass", "Chatter", "WIM", "BasicChatMods", "TwitchEmotes", "TwitchEmotes_Solaris", "ls_Glass", "nesUI" }
+ns.slash.emojimodus = function(rest)
+    local m = tonumber(tostring(rest or ""):match("%d"))
+    if m and m >= 1 and m <= 3 then ns.db.settings.emojiRedraw = (m ~= 1) and m or nil end
+    ns.print(("Emoji-Modus %d  (1 = normal, 2 = Zeile neu setzen, 3 = ueber den Chatverlauf). Aendern: /oa emojimodus 1|2|3"):format(redrawMode()))
+end
+ns.slash.emojimode = ns.slash.emojimodus
 ns.slash.emojitest = function()
     local out = {}
     local function add(s) out[#out + 1] = s ns.print(s) end
     local st = ns.db and ns.db.settings or {}
     local nAnim = 0
     for _ in pairs(Emoji.anims) do nAnim = nAnim + 1 end
-    add(("Emojitest %s | chatEmoji=%s noAnim=%s | animiert=%d | Gildenpaket=%s | Takt=%s | zuletzt gezeigt vor %s s | Felder=%d"):format(
+    add(("Emojitest %s | Modus " .. redrawMode() .. " | chatEmoji=%s noAnim=%s | animiert=%d | Gildenpaket=%s | Takt=%s | zuletzt gezeigt vor %s s | Felder=%d"):format(
         tostring(ns.version), tostring(st.chatEmoji), tostring(st.noAnim), nAnim, tostring(ns.GuildPack ~= nil),
         tostring(Emoji.stepper ~= nil and Emoji.stepper:GetScript("OnUpdate") ~= nil),
         Emoji.animShown and math.floor(GetTime() - Emoji.animShown) or "nie", (function() local n = 0 for _ in pairs(Emoji.tracked) do n = n + 1 end return n end)()))
