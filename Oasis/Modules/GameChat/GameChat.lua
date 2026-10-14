@@ -16,7 +16,7 @@ local DEFAULTS = {
     gcShort = false, gcLevel = true, gcClassIcon = false, gcRaceIcon = false,
     gcLinkIcons = true, gcTokens = true, gcChNum = false, gcQuiet = false, gcHover = false,
     gcFilter = false, gcWhole = false, gcCyr = false, gcHan = false, gcRepeat = false, gcRepeatSec = 60,
-    gcHist = true, gcHistLines = 100,
+    gcHist = false, gcHistLines = 100,   -- 0.6.104: Verlauf nach /reload Standard aus (wirkte grau und doppelt)
     gcAlert = true, gcAlertSound = true,
     gcHideMenu = false, gcHideChannel = false, gcHideSocial = false, gcHideScroll = false,
 }
@@ -34,6 +34,8 @@ local function G()
         for k, v in pairs(DEFAULTS) do if s[k] == nil then s[k] = v end end
         -- 0.6.4: der alte Standard "aus" stand schon gespeichert -> einmal einschalten; spaeteres Aus bleibt
         if not s.gcOnV2 then s.gcOnV2 = true s.gcOn = true end
+        -- 0.6.104: Verlauf nach /reload einmal aus (stand bei allen noch auf dem alten Standard an)
+        if not s.gcHistV2 then s.gcHistV2 = true s.gcHist = false end
         for _, k in ipairs(LISTS) do if type(s[k]) ~= "table" then s[k] = {} end end
     end
     return s
