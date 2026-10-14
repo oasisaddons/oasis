@@ -166,6 +166,11 @@ function D.ShowPicker(mode)
         veil.bg:SetColorTexture(0, 0, 0, 0.62)
         veil:Hide()
         veil:SetScript("OnClick", function()
+            -- 0.6.156: kurzer Ablehnungs-Ton zum Wackeln (auch ohne Animation)
+            if PlaySound and SOUNDKIT then
+                local id = SOUNDKIT.IG_PLAYER_INVITE_DECLINE or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF
+                if id then pcall(PlaySound, id) end
+            end
             if not K.Tween or (ns.db and ns.db.settings.noAnim) then return end
             local p1, rel, p2, x0, y0 = f:GetPoint(1)
             K.Tween(f, 0.32, function(q)
