@@ -178,6 +178,19 @@ function D.ShowPicker(mode)
         -- Hintergrund: tiefes Dunkel mit weichem Akzent-Schein oben links
         K.Fill(f, { 0.035, 0.035, 0.045, 0.97 })
         K.Border(f, { 1, 1, 1, 0.08 })
+        -- 0.6.118: Hintergrundbild ganz schwach (nur mit Gildenmodul - Herkunft des Bildes nicht frei geklaert)
+        f.art = f:CreateTexture(nil, "BACKGROUND", nil, 2)
+        f.art:SetPoint("TOPLEFT", 1, -1) f.art:SetPoint("BOTTOMRIGHT", -1, 1)
+        f.art:SetAlpha(0.12)
+        f.art:Hide()
+        f:HookScript("OnShow", function()
+            if ns.GuildPack then
+                f.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\updatebg")
+                local r = (f:GetWidth() or 660) / math.max(1, f:GetHeight() or 350) / 2   -- Bild ist 2:1
+                if r < 1 then f.art:SetTexCoord((1 - r) / 2, 1 - (1 - r) / 2, 0, 1) else f.art:SetTexCoord(0, 1, 0, 1) end
+                f.art:Show()
+            end
+        end)
         local glow = f:CreateTexture(nil, "BORDER")
         glow:SetPoint("TOPLEFT") glow:SetPoint("TOPRIGHT") glow:SetHeight(180)
         grad(glow, "VERTICAL", { C.accent[1], C.accent[2], C.accent[3], 0 }, { C.accent[1], C.accent[2], C.accent[3], 0.16 })

@@ -2,6 +2,15 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.117
+
+- Settings search also finds related words (sound, privacy, size ...), ignores umlauts, searches tab and area names and lists matches in the name first.
+- A short grey line under each switch tells what it does (quick start, tooltips, map, privacy and all areas).
+- Map settings on one page in two columns, sorted by world map, gathering map, icons and sending.
+- Tooltips, Map and Privacy have a "Reset this page" button (asks once before resetting).
+- New "What's new" window once per new version with up to 5 points and a button to the settings (/oa neu, can be turned off).
+- Guild chat: select text with the mouse and copy it with Ctrl+C.
+
 ## 0.6.112
 
 - Settings reorganised by topic instead of by module: Start, Appearance, Notifications & sound, Tooltips & map, Areas, Gameplay helpers, Profile, Advanced.
