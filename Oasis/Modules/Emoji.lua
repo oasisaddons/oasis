@@ -445,9 +445,11 @@ local function ovStep(frames)
                             -- verkleinert; ohne diesen Faktor sass das Emoji bei manchen Spielern ~14 % zu weit rechts
                             local ts = (fs.GetTextScale and tonumber(fs:GetTextScale())) or 1
                             if ts <= 0.2 or ts > 5 then ts = 1 end
+                            -- 0.6.152: Korrektur von Hand (/oa emojiversatz), falls ein Client anders zeichnet als er misst
+                            local xs = tonumber(ns.db and ns.db.settings.emojiXScale) or 1
                             t:SetSize(it.sz * k * ts, it.sz * k * ts)
                             t:ClearAllPoints()
-                            t:SetPoint("CENTER", fs, "TOPLEFT", (jx + it.x + it.sz / 2) * k * ts, (-((it.row - 1) * lh + lh / 2) + it.yo * ts) * k)
+                            t:SetPoint("CENTER", fs, "TOPLEFT", (jx + it.x * xs + it.sz / 2) * k * ts, (-((it.row - 1) * lh + lh / 2) + it.yo * ts) * k)
                             ov.dbg = ov.dbg or { k = k, fs = fs, x = it.x, t = t, jh = jh }
                             t:SetAlpha(fs.GetEffectiveAlpha and fs:GetEffectiveAlpha() or 1)
                             t:Show()
@@ -1786,6 +1788,16 @@ ns.slash.emojimodus = function(rest)
     ns.print(("Emoji-Modus %d  (1 = normal, 2 = Zeile neu setzen, 3 = ueber den Chatverlauf, 4 = eigene Bilder ueber dem Chat - wirkt ab dem naechsten Emoji). Aendern: /oa emojimodus 1|2|3|4"):format(redrawMode()))
 end
 ns.slash.emojimode = ns.slash.emojimodus
+-- 0.6.152: /oa emojiversatz 0.88 - staucht die berechnete Position im Modus 4 (1 = aus). Fuer Clients, bei denen das
+-- Emoji trotz richtiger Messwerte rechts neben dem Platzhalter sitzt.
+ns.slash.emojiversatz = function(rest)
+    local v = tonumber((tostring(rest or ""):gsub(",", ".")))
+    if v and v >= 0.5 and v <= 1.5 then
+        ns.db.settings.emojiXScale = (v ~= 1) and v or nil
+        if ov.info then for k in pairs(ov.info) do ov.info[k] = nil end end
+    end
+    ns.print(("Emoji-Versatz %.2f  (kleiner = weiter links, 1 = aus). Aendern: /oa emojiversatz 0.88"):format(tonumber(ns.db.settings.emojiXScale) or 1))
+end
 ns.slash.emojitest = function()
     local out = {}
     local function add(s) out[#out + 1] = s ns.print(s) end
