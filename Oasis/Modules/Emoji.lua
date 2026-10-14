@@ -1843,6 +1843,25 @@ ns.slash.emojitest = function()
                 shown = shown + 1
                 add(("Modus 4: x=%.0f Faktor=%.3f Zeilenbreite=%.0f Fensterskala=%.2f"):format(c.items[1].x or -1, c.factor or 1,
                     fs.GetStringWidth and fs:GetStringWidth() or -1, fs.GetEffectiveScale and fs:GetEffectiveScale() or -1))
+                if shown == 1 then
+                    -- 0.6.145: Text der Zeile (Steuerzeichen sichtbar) und 15 s lang drei Hilfslinien an der Zeile:
+                    -- gruen = Zeilenanfang laut WoW, rot = hier sollte das Emoji beginnen, blau = Zeilenende laut WoW
+                    add("Zeile: " .. tostring(c.raw or ""):gsub("|", "||"):sub(1, 220))
+                    ov.marks = ov.marks or {}
+                    local real = (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth() or 0
+                    for i, d in ipairs({ { 0, 0, 1, 0 }, { c.items[1].x or 0, 1, 0, 0 }, { real, 0.2, 0.5, 1 } }) do
+                        local m = ov.marks[i] or UIParent:CreateTexture(nil, "OVERLAY")
+                        ov.marks[i] = m
+                        m:SetColorTexture(d[2], d[3], d[4], 1)
+                        m:ClearAllPoints()
+                        m:SetSize(2, (fs:GetHeight() or 14) + 8)
+                        local k = (fs:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1)
+                        m:SetPoint("TOP", fs, "TOPLEFT", d[1] * k, 4)
+                        m:Show()
+                    end
+                    C_Timer.After(15, function() for _, m in ipairs(ov.marks) do m:Hide() end end)
+                    add("Hilfslinien 15 s: gruen = Zeilenanfang, rot = Emoji-Anfang (berechnet), blau = Zeilenende - bitte Screenshot")
+                end
             end
         end
     end
