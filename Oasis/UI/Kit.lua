@@ -2326,6 +2326,14 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
                 self:SetAlpha(1)
             end
             if self.expire > 0 then self.time:SetWidth(math.max(1, (self:GetWidth() - (self.timePad or 2)) * math.max(0, 1 - self.age / self.expire))) end
+            -- Lichtpunkt laeuft alle 1,6 s ueber den Balken (nur so weit, wie der Balken noch reicht)
+            if self.timeShine and self.timeShine:IsShown() then
+                local w = self.time:GetWidth() or 0
+                local x = ((self.age % 1.6) / 1.6) * (w + 22) - 22
+                self.timeShine:ClearAllPoints()
+                self.timeShine:SetPoint("LEFT", self.time, "LEFT", math.max(0, math.min(w - 22, x)), 0)
+                self.timeShine:SetAlpha((w > 30 and x > -10 and x < w) and 1 or 0)
+            end
         end)
         t:SetScript("OnEnter", function(self) if self.age < self.expire then self.expire = self.age + 3 end end)
     end
@@ -2340,10 +2348,27 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         t.bar:Hide()
         t.glow:SetAlpha(0.5)
         t.boxTint:SetVertexColor(color[1], color[2], color[3], 1)
-        -- 0.6.134: Zeitbalken innerhalb der Box, unten mit Abstand zum Rahmen
+        -- 0.6.135: Zeitbalken in der Box rechts neben dem Logo bis vor das Auge, mit Verlauf, dezentem Schein und
+        -- einem Lichtpunkt, der ueber den Balken laeuft
         t.time:ClearAllPoints()
-        t.time:SetPoint("BOTTOMLEFT", 14, 8)
-        t.timePad = 28
+        t.time:SetPoint("BOTTOMLEFT", 60, 9)
+        t.timePad = 60 + 34
+        t.time:SetTexture("Interface\\Buttons\\WHITE8X8")
+        if not K.Gradient(t.time, "HORIZONTAL", { color[1], color[2], color[3], 0.35 }, { color[1], color[2], color[3], 1 }) then t.time:SetVertexColor(color[1], color[2], color[3], 0.9) end
+        if not t.timeGlow then
+            t.timeGlow = t:CreateTexture(nil, "ARTWORK", nil, -1)
+            t.timeGlow:SetPoint("TOPLEFT", t.time, "TOPLEFT", -2, 3)
+            t.timeGlow:SetPoint("BOTTOMRIGHT", t.time, "BOTTOMRIGHT", 2, -3)
+            t.timeGlow:SetTexture("Interface\\Buttons\\WHITE8X8")
+            t.timeGlow:SetBlendMode("ADD")
+            t.timeShine = t:CreateTexture(nil, "OVERLAY", nil, 2)
+            t.timeShine:SetSize(22, 4)
+            t.timeShine:SetTexture("Interface\\Buttons\\WHITE8X8")
+            t.timeShine:SetBlendMode("ADD")
+        end
+        if not K.Gradient(t.timeGlow, "HORIZONTAL", { color[1], color[2], color[3], 0.05 }, { color[1], color[2], color[3], 0.22 }) then t.timeGlow:SetVertexColor(color[1], color[2], color[3], 0.15) end
+        if not K.Gradient(t.timeShine, "HORIZONTAL", { 1, 1, 1, 0 }, { 1, 1, 1, 0.55 }) then t.timeShine:SetVertexColor(1, 1, 1, 0.4) end
+        t.timeGlow:Show() t.timeShine:Show()
         local ac = C.accent
         t.logoTint:SetVertexColor(ac[1], ac[2], ac[3], 1)
     end
