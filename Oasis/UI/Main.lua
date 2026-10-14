@@ -472,8 +472,16 @@ local function buildMain()
         local art = main:CreateTexture(nil, "ARTWORK", nil, -8)
         art:SetPoint("TOPLEFT", main, "TOPLEFT", SIDEBAR, 0)
         art:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", 0, 0)
-        art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\content_glow")
-        art:SetBlendMode("ADD")
+        -- 0.6.146: Felsbild mit Glutrissen statt Glut-Verlauf - normal gezeichnet, auf das Seitenverhaeltnis
+        -- des Inhaltsbereichs zugeschnitten (Bild 4:3)
+        art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\content_bg")
+        local function fitArt()
+            local w, h = art:GetWidth() or 0, art:GetHeight() or 0
+            if w <= 0 or h <= 0 then return end
+            local r = (w / h) / (4 / 3)
+            if r < 1 then pcall(art.SetTexCoord, art, (1 - r) / 2, 1 - (1 - r) / 2, 0, 1)
+            else pcall(art.SetTexCoord, art, 0, 1, (1 - 1 / r) / 2, 1 - (1 - 1 / r) / 2) end
+        end
         if K.RoundMask then pcall(K.RoundMask, art, main, 12, { "tr", "br" }) end
         main.contentArt = art
         local dots = main:CreateTexture(nil, "ARTWORK", nil, -6)
@@ -485,7 +493,7 @@ local function buildMain()
             local w, h = dots:GetWidth() or 0, dots:GetHeight() or 0
             if w > 0 and h > 0 then dots:SetTexCoord(0, w / 8, 0, h / 8) end   -- 0.6.143: so fein wie links (K.DotGrid)
         end
-        main:HookScript("OnSizeChanged", fitDots)
+        main:HookScript("OnSizeChanged", function() fitDots() fitArt() end)
         fitDots()
         -- 0.6.131: das Dashboard hat sein eigenes Hintergrundbild - dort keine Glut und kein Raster
         function main.UpdateContentArt()
@@ -500,8 +508,11 @@ local function buildMain()
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             if key == last then return end
             last = key
-            -- rechts dezenter als die Leiste (grosse Flaeche hinter dem Inhalt)
-            art:SetVertexColor(ac[1] * 0.25, ac[2] * 0.25, ac[3] * 0.25, 1)   -- 0.6.132: nochmal dezenter
+            -- 0.6.146: das Bild ist rot gemalt - bei roter Farbe Original, sonst entsaettigt in der gewaehlten Farbe
+            local red = ac[1] > 0.55 and ac[2] < 0.45 and ac[3] < 0.45
+            art:SetDesaturated(not red)
+            if red then art:SetVertexColor(1, 1, 1, 0.55)
+            else art:SetVertexColor(math.min(1, ac[1] * 1.6), math.min(1, ac[2] * 1.6), math.min(1, ac[3] * 1.6), 0.55) end
         end
         tint()
         main:HookScript("OnUpdate", function(_, el)
@@ -510,7 +521,7 @@ local function buildMain()
             acc = 0
             tint()
             main.UpdateContentArt()
-            if not main.dotsFit then main.dotsFit = true fitDots() end
+            if not main.dotsFit then main.dotsFit = true fitDots() fitArt() end
         end)
     end
 
