@@ -2211,8 +2211,20 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         t = CreateFrame("Button", nil, UIParent)
         t:SetSize(340, 56)
         t:SetFrameStrata("DIALOG")
-        K.Fill(t, { 0.04, 0.04, 0.05, 0.96 })
+        t.fillTex = K.Fill(t, { 0.04, 0.04, 0.05, 0.96 })
         K.Border(t, C.line)
+        -- 0.6.133: Bild-Box und Bild-Logo (Gildenmodul). Je zwei Ebenen: neutrale Grundebene + Farbebene, die in der
+        -- Hinweis- bzw. Akzentfarbe eingefaerbt wird - so passen sie zu jeder Farbwahl.
+        if ns.GuildPack then
+            local GP = "Interface\\AddOns\\Oasis_Guild\\Media\\"
+            t.boxBase = t:CreateTexture(nil, "BACKGROUND", nil, 3)
+            t.boxBase:SetAllPoints()
+            t.boxBase:SetTexture(GP .. "toast_box_base")
+            t.boxTint = t:CreateTexture(nil, "BACKGROUND", nil, 4)
+            t.boxTint:SetAllPoints()
+            t.boxTint:SetTexture(GP .. "toast_box_tint")
+            t.imgBox = true
+        end
         -- Farbverlauf in der Hinweisfarbe von links
         t.glow = t:CreateTexture(nil, "BORDER")
         t.glow:SetAllPoints()
@@ -2275,6 +2287,13 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         t.logo:SetTexture(ns.MEDIA .. "logo64")
         t.logo:SetSize(32, 32)
         t.logo:SetPoint("LEFT", 12, 0)
+        if t.imgBox then
+            t.logo:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\toast_logo_base")
+            t.logo:SetSize(36, 36)
+            t.logoTint = t:CreateTexture(nil, "ARTWORK", nil, 2)
+            t.logoTint:SetAllPoints(t.logo)
+            t.logoTint:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\toast_logo_tint")
+        end
         t.title = K.Title(t, 13, C.text)
         t.title:SetPoint("TOPLEFT", t.logo, "TOPRIGHT", 12, 2)
         t.title:SetWidth(262)
@@ -2314,6 +2333,16 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
     col(t.time, color)
     K.SetBorderColor(t, { color[1] * 0.6, color[2] * 0.6, color[3] * 0.6, 1 })
     if not K.Gradient(t.glow, "HORIZONTAL", { color[1], color[2], color[3], 0.2 }, { color[1], color[2], color[3], 0 }) then t.glow:SetColorTexture(color[1], color[2], color[3], 0.06) end
+    if t.imgBox then
+        -- Bild-Box: eigener Rahmen und Flaeche statt Oasis-Rand, Linie in der Hinweisfarbe, Logo in der Akzentfarbe
+        if t.fillTex then t.fillTex:SetAlpha(0) end
+        K.SetBorderColor(t, { 0, 0, 0, 0 })
+        t.bar:Hide()
+        t.glow:SetAlpha(0.5)
+        t.boxTint:SetVertexColor(color[1], color[2], color[3], 1)
+        local ac = C.accent
+        t.logoTint:SetVertexColor(ac[1], ac[2], ac[3], 1)
+    end
     do
         local ch = ns.Sound and ns.Sound.ChoiceFor and ns.Sound.ChoiceFor(event)
         t.snd:Hide()   -- 0.5.685: Lautsprecher-Anzeige entfernt
