@@ -3534,13 +3534,15 @@ local function subHead(f, text, y)
     return y - 28
 end
 -- Liste { Text, Schluessel, Erklaerung, nachher, Standard an } als Schalter untereinander
-local function toggleList(f, list, y)
-    for _, o in ipairs(list) do
+-- 0.6.0: zweispaltig (links 14, rechts 384) - einspaltig blieb die halbe Karte leer
+local function toggleList(f, list, y, cols)
+    cols = cols or 2
+    for i, o in ipairs(list) do
         if o[5] and S()[o[2]] == nil then S()[o[2]] = true end
-        f.t[#f.t + 1] = toggle(f, 14, y, o[1], o[2], o[3], o[4], 600)
-        y = y - 32
+        local col, row = (i - 1) % cols, math.floor((i - 1) / cols)
+        f.t[#f.t + 1] = toggle(f, cols == 1 and 14 or (14 + col * 370), y - row * 32, o[1], o[2], o[3], o[4], cols == 1 and 600 or 340)
     end
-    return y
+    return y - math.ceil(#list / cols) * 32
 end
 
 local function buildQuick(f)
