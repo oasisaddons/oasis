@@ -60,6 +60,10 @@ end
 
 -- Anzeigetext ohne Farben, Links und Symbole (Suche, Verlauf, Alarme)
 function GC.Plain(text)
+    -- 0.6.103: Oasis-Emojis werden zu ihrem Kurzcode (sonst fehlten sie im Verlauf nach /reload und beim Kopieren)
+    if text:find("oasisemo:", 1, true) and ns.Emoji and ns.Emoji.CodeOf then
+        text = text:gsub("|Haddon:oasisemo:([^|]+)|h.-|h", function(k) return ns.Emoji.CodeOf((k:gsub("~", "\\"))) or "" end)
+    end
     text = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cn[^:|]*:", ""):gsub("|r", "")
     text = text:gsub("|H.-|h(.-)|h", "%1"):gsub("|T.-|t", ""):gsub("|A.-|a", ""):gsub("|K.-|k", "?")
     return (text:gsub("||", "|"):gsub("  +", " "))
@@ -472,8 +476,14 @@ local function restoreHistory()
                 f:AddMessage("|cff666666- - - " .. (L["Chat vom %s"]):format(date("%d.%m. %H:%M", h.ts)) .. " - - -|r")
                 for _, l in ipairs(saved.l) do
                     if type(l.t) == "string" then
-                        local stamp = l.ts and date("[%H:%M] ", l.ts) or ""
-                        f:AddMessage(stamp .. l.t:gsub("|", "||"), (l.r or 1) * 0.72, (l.g or 1) * 0.72, (l.b or 1) * 0.72)
+                        -- 0.6.103: steht schon eine Uhrzeit vorn (Blizzard-Zeitstempel), keine zweite davor
+                        local stamp = (l.ts and not l.t:find("^%[?%d%d?:%d%d")) and date("[%H:%M] ", l.ts) or ""
+                        local line = stamp .. l.t:gsub("|", "||")
+                        if ns.Emoji and ns.Emoji.Render then
+                            local okR, r = pcall(ns.Emoji.Render, line)
+                            if okR and r then line = r end
+                        end
+                        f:AddMessage(line, (l.r or 1) * 0.72, (l.g or 1) * 0.72, (l.b or 1) * 0.72)
                     end
                 end
                 f:AddMessage("|cff666666- - - - - - - - - - -|r")
@@ -1027,6 +1037,8 @@ local function liveStart(cf)
         live.drv = CreateFrame("Frame")
     end
     live.cache = {}
+    -- gleicher Massstab wie das Chatfenster (gemessen wird in dessen Einheiten)
+    live.layer:SetScale((cf:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1))
     live.lines, live.frame, live.x0, live.y0, live.moved = lines, cf, x0, y0, false
     live.from, live.to = i, i
     live.fromB = boundAt(lines[i], x0, y0)

@@ -90,6 +90,7 @@ Emoji.Tex = tex
 
 -- Bild zurueck in den Kurzcode (fuer Text, der schon durch den Chat-Filter gelaufen ist)
 local codeOf = {}
+function Emoji.CodeOf(key) return codeOf[key] end   -- 0.6.103: fuer den Chat-Verlauf (Bild -> Kurzcode)
 for _, cat in ipairs(Emoji.CATS) do
     for _, e in ipairs(cat.items) do
         if e[2] and not codeOf[e[1]] then codeOf[e[1]] = e[2] end
@@ -381,6 +382,9 @@ local function ovLayer(cf)
         l:SetAllPoints(cf)
         ov.layers[cf] = l
     end
+    -- gleicher Massstab wie das Chatfenster: gemessen wird in dessen Einheiten (0.6.103 - sass sonst zu weit rechts)
+    local r = (cf:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1)
+    if math.abs((l:GetScale() or 1) - r) > 0.001 then l:SetScale(r) end
     return l
 end
 local function ovStep(frames)
