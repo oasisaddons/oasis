@@ -546,8 +546,8 @@ local function buildMain()
     if ns.GuildPack then
         side.art = side:CreateTexture(nil, "ARTWORK", nil, -8)
         side.art:SetAllPoints()
-        side.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_glow")
-        side.art:SetBlendMode("ADD")
+        -- 0.6.148: Schieferbild mit feinen Glutadern statt Glut-Maske (normal gezeichnet, Seitenverhaeltnis passt fast genau)
+        side.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg")
         if K.RoundMask then pcall(K.RoundMask, side.art, main, 12, { "tl", "bl" }) end
         local last
         local function tint()
@@ -556,7 +556,11 @@ local function buildMain()
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             if key == last then return end
             last = key
-            side.art:SetVertexColor(ac[1] * 0.48, ac[2] * 0.48, ac[3] * 0.48, 1)   -- 0.6.132: noch etwas dezenter (Lesbarkeit)
+            -- 0.6.148: Bild ist rot geadert - bei roter Farbe Original, sonst entsaettigt und leicht eingefaerbt
+            local red = ac[1] > 0.55 and ac[2] < 0.45 and ac[3] < 0.45
+            side.art:SetDesaturated(not red)
+            if red then side.art:SetVertexColor(1, 1, 1, 1)
+            else side.art:SetVertexColor(math.min(1, 0.6 + ac[1] * 0.6), math.min(1, 0.6 + ac[2] * 0.6), math.min(1, 0.6 + ac[3] * 0.6), 1) end
         end
         tint()
         if K.DotGrid then side.dots = K.DotGrid(side, 0.045, 4) end
