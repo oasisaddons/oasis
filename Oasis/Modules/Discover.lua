@@ -305,6 +305,18 @@ function D.ShowPicker(mode)
             t.bar:SetPoint("TOPLEFT", 1, -1) t.bar:SetPoint("TOPRIGHT", -1, -1) t.bar:SetHeight(2)
             t.bar:SetColorTexture(c[1], c[2], c[3], 1)
             -- Symbol im Farbkreis (waechst beim Drueberfahren)
+            -- 0.6.119: Bild-Kachel (Rahmen, Symbol und Szene im Bild) - nur mit Gildenmodul
+            if ns.GuildPack then
+                t.art = t:CreateTexture(nil, "BORDER", nil, -1)
+                t.art:SetAllPoints()
+                t.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key)
+                -- dunkler Verlauf hinter dem Namen (rechts neben dem Symbol), damit die Schrift lesbar bleibt
+                t.shade = t:CreateTexture(nil, "BORDER", nil, 1)
+                t.shade:SetPoint("TOPLEFT", t, "TOPLEFT", 4, -4)
+                t.shade:SetPoint("BOTTOMRIGHT", t, "BOTTOMRIGHT", -4, 4)
+                grad(t.shade, "HORIZONTAL", { 0, 0, 0, 0.0 }, { 0, 0, 0, 0.55 })
+                t.bg:Hide()
+            end
             t.halo = t:CreateTexture(nil, "ARTWORK")
             t.halo:SetTexture(CIRCLE)
             t.halo:SetSize(46, 46)
@@ -360,9 +372,21 @@ function D.ShowPicker(mode)
                 t.halo:ClearAllPoints()
                 t.n:ClearAllPoints()
                 t.ring:ClearAllPoints()
+                if t.art then
+                    -- Bild 4:1 - ist die Kachel hoeher, mittig zuschneiden
+                    local w = TW
+                    local need = w / 4
+                    if th > need then
+                        local keep = (w / th) / 4
+                        t.art:SetTexCoord(0, keep, 0, 1)
+                    else
+                        t.art:SetTexCoord(0, 1, 0, 1)
+                    end
+                    t.halo:Hide() t.icon:Hide()
+                end
                 if compact then
                     t.halo:SetPoint("CENTER", t, "LEFT", 24, 0)
-                    t.n:SetPoint("LEFT", t, "LEFT", 46, 0)
+                    t.n:SetPoint("LEFT", t, "LEFT", t.art and math.floor(th * 1.05) or 46, 0)
                     t.n:SetPoint("RIGHT", -34, 0)
                     t.ring:SetPoint("CENTER", t, "RIGHT", -18, 0)
                     t.nFont = t.nFont or { t.n:GetFont() }
@@ -389,7 +413,12 @@ function D.ShowPicker(mode)
                 local tintA = self.compact and (on and 0.14 or (t.hover and 0.07 or 0)) or (on and 0.26 or (t.hover and 0.1 or 0))
                 grad(t.tint, self.compact and "HORIZONTAL" or "VERTICAL", { c[1], c[2], c[3], tintA }, { c[1], c[2], c[3], 0 })
                 if self.compact then K.SetBorderColor(t, on and { c[1], c[2], c[3], 0.55 } or (t.hover and { c[1], c[2], c[3], 0.3 } or { 1, 1, 1, 0.05 })) end
-                t.bar:SetShown(on and true or false)
+                t.bar:SetShown(on and not t.art and true or false)
+                if t.art then
+                    t.art:SetAlpha(on and 1 or (t.hover and 0.85 or 0.55))
+                    t.art:SetDesaturated(not on and not t.hover)
+                    t.shade:SetAlpha(on and 0.7 or 1)
+                end
                 t.halo:SetVertexColor(c[1], c[2], c[3], on and 0.32 or (t.hover and 0.22 or 0.14))
                 t.icon:SetAlpha((on or t.hover) and 1 or 0.75)
                 t.ring:SetVertexColor(on and c[1] or 1, on and c[2] or 1, on and c[3] or 1, on and 1 or 0.12)
