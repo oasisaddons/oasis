@@ -443,7 +443,7 @@ local function ovStep(frames)
                             end
                             -- 0.6.147: Text-Skalierung der Zeile (SetTextScale) - WoW meldet Breiten ohne sie, zeichnet aber
                             -- verkleinert; ohne diesen Faktor sass das Emoji bei manchen Spielern ~14 % zu weit rechts
-                            local ts = (fs.GetTextScale and tonumber(fs:GetTextScale())) or 1
+                            local ts = (fs.GetTextScale and tonumber((fs:GetTextScale()))) or 1
                             if ts <= 0.2 or ts > 5 then ts = 1 end
                             -- 0.6.152: Korrektur von Hand (/oa emojiversatz), falls ein Client anders zeichnet als er misst
                             local xs = tonumber(ns.db and ns.db.settings.emojiXScale) or 1
@@ -1812,6 +1812,22 @@ ns.slash.emojitest = function()
     local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
     for _, a in ipairs(DIAG_ADDONS) do if isLoaded and isLoaded(a) then other[#other + 1] = a end end
     add("Chat-Addons: " .. (#other > 0 and table.concat(other, ", ") or "keine bekannten"))
+    -- 0.6.153: alles, was die Schriftdarstellung beeinflusst - um den Versatz der bewegten Emojis automatisch zu erkennen
+    do
+        local cf = ChatFrame1
+        local ff, fsz, ffl = cf and cf.GetFont and cf:GetFont()
+        local pw, ph = 0, 0
+        if GetPhysicalScreenSize then pw, ph = GetPhysicalScreenSize() end
+        local function cv(n) local ok, v = pcall(function() return (C_CVar and C_CVar.GetCVar(n)) or (GetCVar and GetCVar(n)) end) return ok and tostring(v) or "?" end
+        local line1 = cf and cf.visibleLines and cf.visibleLines[1]
+        add(("Schrift: %s %s %s | Bildschirm %dx%d, UI %.0fx%.0f | uiScale=%s useUiScale=%s | Chat-Skala=%.2f eff=%.3f | Zeile Textskala=%s Schrift=%s"):format(
+            tostring(ff and ff:match("[^\\/]+$") or ff), tostring(fsz), tostring(ffl), pw or 0, ph or 0,
+            GetScreenWidth and GetScreenWidth() or 0, GetScreenHeight and GetScreenHeight() or 0,
+            cv("uiScale"), cv("useUiScale"), cf and cf:GetScale() or 0, cf and cf:GetEffectiveScale() or 0,
+            tostring(line1 and line1.GetTextScale and line1:GetTextScale() or "-"),
+            tostring(line1 and line1.GetFont and select(2, line1:GetFont()) or "-")))
+        add(("Emoji-Versatz von Hand: %s"):format(tostring(st.emojiXScale or 1)))
+    end
     Emoji._stepFrames = nil
     local watch = {}
     for _, n in ipairs(chatFrameNames()) do
@@ -1866,7 +1882,7 @@ ns.slash.emojitest = function()
                     add("Zeile: " .. tostring(c.raw or ""):gsub("|", "||"):sub(1, 220))
                     ov.marks = ov.marks or {}
                     local real = (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth() or 0
-                    local tsc = (fs.GetTextScale and tonumber(fs:GetTextScale())) or 1
+                    local tsc = (fs.GetTextScale and tonumber((fs:GetTextScale()))) or 1
                     for i, d in ipairs({ { 0, 0, 1, 0 }, { c.items[1].x or 0, 1, 0, 0 }, { real, 0.2, 0.5, 1 } }) do
                         -- 0.6.147: auf eigener Ebene ueber dem Chatfenster (lagen sonst darunter und waren unsichtbar)
                         if not ov.markFrame then
