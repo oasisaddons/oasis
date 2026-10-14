@@ -219,12 +219,19 @@ function D.ShowPicker(mode)
             end
             f.artTop:Show() f.artBot:Show()
             if not f.dots and K.DotGrid then f.dots = K.DotGrid(f, 0.04, 10) end
-            -- 0.6.140: Bild zur Mitte hin abdunkeln, damit Text und Kacheln ruhig liegen
-            if not f.shade then
-                f.shade = f:CreateTexture(nil, "ARTWORK", nil, -7)
-                f.shade:SetPoint("TOPLEFT", 1, -1) f.shade:SetPoint("BOTTOMRIGHT", -1, 1)
-                grad(f.shade, "HORIZONTAL", { 0.02, 0.02, 0.03, 0.55 }, { 0.02, 0.02, 0.03, 0.15 })
-                round(f.shade, { "tl", "tr", "bl" })
+            -- 0.6.142: Vignette - Bild zu den Raendern hin abdunkeln (zwei Haelften wegen hoechstens 3 Masken)
+            if not f.vigTop then
+                f.vigTop = f:CreateTexture(nil, "ARTWORK", nil, -7)
+                f.vigTop:SetPoint("TOPLEFT", 1, -1) f.vigTop:SetPoint("RIGHT", -1, 0) f.vigTop:SetPoint("BOTTOM", f, "CENTER")
+                f.vigBot = f:CreateTexture(nil, "ARTWORK", nil, -7)
+                f.vigBot:SetPoint("BOTTOMLEFT", 1, 1) f.vigBot:SetPoint("RIGHT", -1, 0) f.vigBot:SetPoint("TOP", f, "CENTER")
+                for i, t in ipairs({ f.vigTop, f.vigBot }) do
+                    t:SetTexture(ns.MEDIA .. "vignette")
+                    t:SetTexCoord(0, 1, i == 1 and 0 or 0.5, i == 1 and 0.5 or 1)
+                    t:SetVertexColor(1, 1, 1, 0.85)
+                end
+                round(f.vigTop, { "tl", "tr" })
+                round(f.vigBot, { "bl", "br" })
             end
         end
         f:HookScript("OnShow", function() pcall(f.ApplyArt, f) end)
@@ -269,15 +276,24 @@ function D.ShowPicker(mode)
         end
         f:PaintEdges(C.accent)
 
+        -- 0.6.142: Kopf mittig - Ueberzeile zwischen zwei auslaufenden Linien (wie der Trenner unten)
         f.eyebrow = K.Text(f, 10, C.accent)
-        f.eyebrow:SetPoint("TOPLEFT", 28, -26)
-        f.title = K.Title(f, 24, C.text)
-        f.title:SetPoint("TOPLEFT", f.eyebrow, "BOTTOMLEFT", 0, -8)
+        f.eyebrow:SetPoint("TOP", 0, -24)
+        if f.eyebrow.SetSpacing then pcall(f.eyebrow.SetSpacing, f.eyebrow, 0) end
+        f.ebL = f:CreateTexture(nil, "ARTWORK")
+        f.ebL:SetHeight(1) f.ebL:SetWidth(70)
+        f.ebL:SetPoint("RIGHT", f.eyebrow, "LEFT", -12, 0)
+        f.ebR = f:CreateTexture(nil, "ARTWORK")
+        f.ebR:SetHeight(1) f.ebR:SetWidth(70)
+        f.ebR:SetPoint("LEFT", f.eyebrow, "RIGHT", 12, 0)
+        f.title = K.Title(f, 26, C.text)
+        f.title:SetPoint("TOP", f.eyebrow, "BOTTOM", 0, -10)
         f.sub = K.Text(f, 12, C.muted)
-        f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -8)
-        f.sub:SetPoint("RIGHT", -28, 0)
+        f.sub:SetPoint("TOP", f.title, "BOTTOM", 0, -8)
+        f.sub:SetPoint("LEFT", 60, 0)
+        f.sub:SetPoint("RIGHT", -60, 0)
         f.sub:SetWordWrap(true)
-        f.sub:SetJustifyH("LEFT")
+        f.sub:SetJustifyH("CENTER")
         f.close = K.CloseButton(f, function() f:Hide() end)
         f.close:SetPoint("TOPRIGHT", -12, -12)
 
@@ -296,13 +312,6 @@ function D.ShowPicker(mode)
         hero.tint:SetAllPoints()
         grad(hero.tint, "HORIZONTAL", { a[1], a[2], a[3], 0.34 }, { b[1], b[2], b[3], 0.08 })
         -- Lichtstreif, der ab und zu ueber die Karte zieht
-        hero.shL = hero:CreateTexture(nil, "ARTWORK")
-        hero.shL:SetSize(70, 66)
-        grad(hero.shL, "HORIZONTAL", { 1, 1, 1, 0 }, { 1, 1, 1, 0.09 })
-        hero.shR = hero:CreateTexture(nil, "ARTWORK")
-        hero.shR:SetSize(70, 66)
-        hero.shR:SetPoint("LEFT", hero.shL, "RIGHT", 0, 0)
-        grad(hero.shR, "HORIZONTAL", { 1, 1, 1, 0.09 }, { 1, 1, 1, 0 })
         hero.halo = hero:CreateTexture(nil, "ARTWORK", nil, 2)
         hero.halo:SetTexture(CIRCLE)
         hero.halo:SetSize(42, 42)
@@ -344,9 +353,30 @@ function D.ShowPicker(mode)
             local H = math.floor((W - 56) / 7 + 0.5)
             hero.extra = H - 66
             hero:SetHeight(H)
-            hero.shL:SetHeight(H) hero.shR:SetHeight(H)
         end
         f.hero, f.keep = hero, hero
+        -- 0.6.143: statt Leuchten aussen pulsiert die Karte selbst (Bild noch einmal additiv darueber),
+        -- dazu laeuft ab und zu ein Schimmer ueber den oberen und unteren Rand
+        if hero.art then
+            hero.pulse = hero:CreateTexture(nil, "ARTWORK", nil, 5)
+            hero.pulse:SetAllPoints(hero.art)
+            hero.pulse:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\start_keep")
+            hero.pulse:SetBlendMode("ADD")
+            hero.pulse:SetAlpha(0)
+        end
+        hero.edge = {}
+        for _, side in ipairs({ "TOP", "BOTTOM" }) do
+            for half = 1, 2 do
+                local t = hero:CreateTexture(nil, "OVERLAY", nil, 6)
+                t:SetSize(90, 3)
+                t:SetBlendMode("ADD")
+                t.side, t.half = side, half
+                if half == 1 then grad(t, "HORIZONTAL", { 1, 1, 1, 0 }, { 1, 0.9, 0.75, 0.9 })
+                else grad(t, "HORIZONTAL", { 1, 0.9, 0.75, 0.9 }, { 1, 1, 1, 0 }) end
+                t:Hide()
+                hero.edge[#hero.edge + 1] = t
+            end
+        end
         -- Trenner "oder neu zusammenstellen"
         f.orLbl = K.Text(f, 10, C.dim)
         f.orLbl:SetPoint("TOP", hero, "BOTTOM", 0, -14)
@@ -388,15 +418,13 @@ function D.ShowPicker(mode)
             -- 0.6.119: Bild-Kachel (Rahmen, Symbol und Szene im Bild) - nur mit Gildenmodul
             if ns.GuildPack then
                 t.art = t:CreateTexture(nil, "BORDER", nil, -1)
-                t.art:SetPoint("TOPRIGHT") t.art:SetPoint("BOTTOMRIGHT")
+                t.art:SetAllPoints()
                 t.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key)
-                -- 0.6.140: Kreis-Abzeichen (linkes Viertel des 4:1-Bildes) als eigenes Quadrat darueber,
-                -- damit es beim Einpassen nie verzogen wird; gestreckt wird nur der Rest des Bildes
+                -- 0.6.142: Kreis-Abzeichen als eigene runde Grafik darueber (Tools/make_interest_badges.py) -
+                -- in den Bildern sind die Kreise verschieden gross und oval; so sind alle gleich rund und gross
                 t.badge = t:CreateTexture(nil, "BORDER", nil, 0)
-                t.badge:SetPoint("TOPLEFT") t.badge:SetPoint("BOTTOMLEFT")
-                t.badge:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key)
-                t.badge:SetTexCoord(0, 0.25, 0, 1)
-                t.art:SetPoint("LEFT", t.badge, "RIGHT", 0, 0)
+                t.badge:SetPoint("CENTER", t, "LEFT", 34, 0)
+                t.badge:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key .. "_badge")
                 -- dunkler Verlauf hinter dem Namen (rechts neben dem Symbol), damit die Schrift lesbar bleibt
                 t.shade = t:CreateTexture(nil, "BORDER", nil, 1)
                 t.shade:SetPoint("TOPLEFT", t, "TOPLEFT", 4, -4)
@@ -461,9 +489,9 @@ function D.ShowPicker(mode)
                 t.n:ClearAllPoints()
                 t.ring:ClearAllPoints()
                 if t.art then
-                    -- Abzeichen immer quadratisch (Kachelhoehe), der Rest des Bildes fuellt die Breite
-                    t.badge:SetWidth(th)
-                    t.art:SetTexCoord(0.25, 1, 0, 1)
+                    -- Abzeichen immer quadratisch (Kachelhoehe), das Bild darunter fuellt die Kachel
+                    t.badge:SetSize(th, th)
+                    t.art:SetTexCoord(0, 1, 0, 1)
                     t.halo:Hide() t.icon:Hide()
                 end
                 if compact then
@@ -626,13 +654,25 @@ function D.ShowPicker(mode)
                 h.halo:SetSize(42 + 6 * h.hv, 42 + 6 * h.hv)
                 h.arrow:SetVertexColor(1, 1, 1, 0.6 + 0.4 * h.hv)
                 if h.art then h.art:SetAlpha(0.85 + 0.15 * h.hv) end
-                -- Lichtstreif: alle 3,5 s einmal in 1,1 s von links nach rechts
-                self.shT = (self.shT + el) % 3.5
-                local p = self.shT / 1.1
-                h.shL:ClearAllPoints()
-                h.shL:SetPoint("LEFT", h, "LEFT", -150 + p * ((h:GetWidth() or 600) + 160), 0)
-                h.shL:SetShown(p < 1)
-                h.shR:SetShown(p < 1)
+                -- Pulsieren: 3 s ein und aus, beim Drueberfahren kraeftiger
+                h.gT = ((h.gT or 0) + el) % 3
+                if h.pulse then h.pulse:SetAlpha((0.5 - 0.5 * math.cos(h.gT / 3 * math.pi * 2)) * 0.22 + 0.10 * h.hv) end
+                -- Schimmer ueber den Rand: alle 6 s, oben nach rechts, unten nach links (1,2 s)
+                self.shT = (self.shT + el) % 6
+                local p = self.shT / 1.2
+                local wd = (h:GetWidth() or 600) - 40
+                for _, t in ipairs(h.edge) do
+                    if p < 1 then
+                        local e = p * p * (3 - 2 * p)
+                        local x = (t.side == "TOP") and (20 + e * wd) or (20 + (1 - e) * wd)
+                        t:ClearAllPoints()
+                        t:SetPoint(t.half == 1 and "RIGHT" or "LEFT", h, t.side .. "LEFT", x, t.side == "TOP" and -3 or 3)
+                        t:SetAlpha(math.sin(p * math.pi))
+                        t:Show()
+                    else
+                        t:Hide()
+                    end
+                end
             end
         end)
         -- 0.6.126: Farben bei jedem Oeffnen an die gewaehlte Akzentfarbe anpassen (Fenster wird nur einmal gebaut)
@@ -641,6 +681,8 @@ function D.ShowPicker(mode)
             grad(self.glowTex, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.16 })
             grad(self.topTex, "HORIZONTAL", { ac[1], ac[2], ac[3], 1 }, { ac[1], ac[2], ac[3], 0 })
             self:PaintEdges(ac)
+            grad(self.ebL, "HORIZONTAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.6 })
+            grad(self.ebR, "HORIZONTAL", { ac[1], ac[2], ac[3], 0.6 }, { ac[1], ac[2], ac[3], 0 })
             -- die Bilder sind rot gemalt: bei roter Akzentfarbe Original, sonst entsaettigt in der Akzentfarbe
             local red = ac[1] > 0.55 and ac[2] < 0.45 and ac[3] < 0.45
             local function paint(tex, boost)
@@ -650,6 +692,7 @@ function D.ShowPicker(mode)
                 else tex:SetVertexColor(math.min(1, ac[1] * boost), math.min(1, ac[2] * boost), math.min(1, ac[3] * boost)) end
             end
             paint(self.hero and self.hero.art, 1.6)
+            paint(self.hero and self.hero.pulse, 1.6)
             paint(self.go and self.go.art, 1.6)
             paint(self.artTop, 1.4)
             paint(self.artBot, 1.4)

@@ -483,7 +483,7 @@ local function buildMain()
         dots:SetVertexColor(1, 1, 1, 0.035)
         local function fitDots()
             local w, h = dots:GetWidth() or 0, dots:GetHeight() or 0
-            if w > 0 and h > 0 then dots:SetTexCoord(0, w / 16, 0, h / 16) end
+            if w > 0 and h > 0 then dots:SetTexCoord(0, w / 8, 0, h / 8) end   -- 0.6.143: so fein wie links (K.DotGrid)
         end
         main:HookScript("OnSizeChanged", fitDots)
         fitDots()

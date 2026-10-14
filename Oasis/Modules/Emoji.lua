@@ -347,8 +347,9 @@ local function lineItems(fs, raw)
     -- 0.6.106: an der echten Zeile abgleichen - meldet die Chatzeile eine andere Gesamtbreite als die eigene Messung
     -- (andere Schriftdarstellung, Symbole ...), wird x mit demselben Faktor umgerechnet
     local factor = 1
+    local real
     if not multi then
-        local real = (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or (fs.GetStringWidth and fs:GetStringWidth())
+        real = (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or (fs.GetStringWidth and fs:GetStringWidth())
         local mine = measWidth(fs, raw)
         if real and real > 0 and mine > 0 then factor = real / mine end
         if factor < 0.5 or factor > 2 then factor = 1 end
@@ -363,7 +364,16 @@ local function lineItems(fs, raw)
             local prefix = raw:sub(1, a - 1)
             local x, row = nil, 1
             if not multi then
-                x = measWidth(fs, prefix) * factor
+                -- 0.6.143: von rechts rechnen - die echte Zeilenbreite meldet WoW selbst, gemessen wird nur der Text
+                -- hinter dem Emoji (meist nichts). Von links summierten sich Messfehler (Emoji sass weit rechts daneben).
+                local sz = tonumber(sw) or 14
+                if real and real > 0 then
+                    local suffix = raw:sub(e + 1)
+                    x = real - sz - ((suffix ~= "" and measWidth(fs, suffix) * factor) or 0)
+                    if x < 0 then x = measWidth(fs, prefix) * factor end
+                else
+                    x = measWidth(fs, prefix) * factor
+                end
             else
                 -- Bildzeile des Emojis und deren Anfang (nach dem letzten Leerzeichen, das noch davor umbricht)
                 row = measRows(fs, raw:sub(1, e))

@@ -3765,7 +3765,7 @@ function K.DotGrid(parent, alpha, inset)
     t:SetVertexColor(1, 1, 1, alpha or 0.05)
     local function fit()
         local w, h = t:GetWidth() or 0, t:GetHeight() or 0
-        if w > 0 and h > 0 then t:SetTexCoord(0, w / 16, 0, h / 16) end
+        if w > 0 and h > 0 then t:SetTexCoord(0, w / 8, 0, h / 8) end   -- 0.6.141: alle 8 Einheiten ein Punkt (feiner)
     end
     parent:HookScript("OnSizeChanged", fit)
     fit()
