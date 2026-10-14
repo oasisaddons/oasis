@@ -392,8 +392,6 @@ local function ovLayer(cf)
         ov.layers[cf] = l
     end
     -- gleicher Massstab wie das Chatfenster: gemessen wird in dessen Einheiten (0.6.103 - sass sonst zu weit rechts)
-    local r = (cf:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1)
-    if math.abs((l:GetScale() or 1) - r) > 0.001 then l:SetScale(r) end
     return l
 end
 local function ovStep(frames)
@@ -424,9 +422,19 @@ local function ovStep(frames)
                             t:SetTexture((e.base or PATH) .. e[1])
                             local top = frameOf(e) * 64
                             t:SetTexCoord(0, 1, top / e.h, (top + 64) / e.h)
-                            t:SetSize(it.sz, it.sz)
+                            -- 0.6.108: gemessen wird in Einheiten der Chatzeile, platziert in denen der Bild-Ebene -> umrechnen
+                            -- (bei Chat-Skala 0,64 sass das Bild sonst verschoben); Textausrichtung der Zeile beachten
+                            local k = (fs:GetEffectiveScale() or 1) / (layer:GetEffectiveScale() or 1)
+                            local jx = 0
+                            local jh = fs.GetJustifyH and fs:GetJustifyH()
+                            if (jh == "RIGHT" or jh == "CENTER") and it.row == 1 and rows == 1 then
+                                local free = (fs:GetWidth() or 0) - ((fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth() or 0)
+                                if free > 0 then jx = (jh == "RIGHT") and free or free / 2 end
+                            end
+                            t:SetSize(it.sz * k, it.sz * k)
                             t:ClearAllPoints()
-                            t:SetPoint("CENTER", fs, "TOPLEFT", it.x + it.sz / 2, -((it.row - 1) * lh + lh / 2) + it.yo)
+                            t:SetPoint("CENTER", fs, "TOPLEFT", (jx + it.x + it.sz / 2) * k, (-((it.row - 1) * lh + lh / 2) + it.yo) * k)
+                            ov.dbg = ov.dbg or { k = k, fs = fs, x = it.x, t = t, jh = jh }
                             t:SetAlpha(fs.GetEffectiveAlpha and fs:GetEffectiveAlpha() or 1)
                             t:Show()
                             end
@@ -1811,6 +1819,13 @@ ns.slash.emojitest = function()
         out[#out + 1] = s
         ns.print(s)
     end)
+    if redrawMode() == 4 and ov.dbg and ov.dbg.fs then
+        local d = ov.dbg
+        local fe, te = d.fs:GetEffectiveScale() or 1, d.t:GetEffectiveScale() or 1
+        add(("Modus 4 Lage: Umrechnung=%.3f Ausrichtung=%s Zeile links=%.0f Bild links=%.0f erwartet=%.0f (Bildschirmpunkte) UIParent=%.2f"):format(
+            d.k, tostring(d.jh), (d.fs:GetLeft() or 0) * fe, (d.t:GetLeft() or 0) * te, ((d.fs:GetLeft() or 0) + d.x) * fe, UIParent:GetEffectiveScale() or 0))
+        ov.dbg = nil
+    end
     if redrawMode() == 4 then
         local shown = 0
         for fs, c in pairs(ov.info) do

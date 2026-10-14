@@ -839,9 +839,9 @@ end
 local meas, wrapM
 -- 0.6.102: immer buchstabengenau, auch bei umgebrochenen Nachrichten: je Zeichen Bildzeile (row) und rechte Kante (w)
 -- innerhalb seiner Bildzeile; Umbrueche ermittelt ein unsichtbares Textfeld mit gleicher Schrift und Breite
-local function measureLine(fs)
+local function measureLine(fs, raw)
     live.cache = live.cache or {}
-    local raw = fs:GetText()
+    raw = raw or (live.snap and live.snap[fs]) or fs:GetText()
     local c = live.cache[fs]
     if c and c.raw == raw then return c end
     c = { raw = raw, u = units(raw), w = { [0] = 0 }, row = {}, rowStart = { 1 } }
@@ -932,15 +932,16 @@ local function liveDraw()
     end
     for i = a, b do
         local fs = live.lines[i]
-        if fs then
+        -- 0.6.108: hat das Mausrad die Zeile mit anderem Text gefuellt, dort nichts hervorheben
+        if fs and fs:GetText() == live.snap[fs] then
             local c = measureLine(fs)
             if c.whole or #c.u == 0 then
                 bar(fs, -2, 1)
             else
-                local s0 = (i == a and ba) or 0
-                local s1 = (i == b and bb) or #c.u
-                if s1 > s0 then
-                    local r0, r1 = c.row[s0 + 1], c.row[s1]
+                local s0 = math.max(0, math.min(#c.u, (i == a and ba) or 0))
+                local s1 = math.max(0, math.min(#c.u, (i == b and bb) or #c.u))
+                local r0, r1 = c.row[s0 + 1], c.row[s1]
+                if s1 > s0 and r0 and r1 then
                     for r = r0, r1 do
                         local x0 = (r == r0) and leftOf(c, s0 + 1) or 0
                         local lastK = s1
@@ -964,11 +965,11 @@ local function selectedText()
     local out = {}
     for i = a, b do
         local fs = live.lines[i]
-        local raw = fs and fs:GetText()
+        local raw = fs and live.snap[fs]
         if raw and not issecret(raw) then
             local c = measureLine(fs)
-            local s0 = (not c.whole and i == a and ba) or 0
-            local s1 = (not c.whole and i == b and bb) or #c.u
+            local s0 = math.max(0, math.min(#c.u, (not c.whole and i == a and ba) or 0))
+            local s1 = math.max(0, math.min(#c.u, (not c.whole and i == b and bb) or #c.u))
             local part
             if c.whole or #c.u == 0 then part = raw
             elseif s1 > s0 then part = raw:sub(c.u[s0 + 1].s, c.u[s1].e) end
@@ -1033,6 +1034,8 @@ local function liveStart(cf)
         live.drv = CreateFrame("Frame")
     end
     live.cache = {}
+    live.snap = {}
+    for _, fs in ipairs(lines) do live.snap[fs] = fs:GetText() end
     -- gleicher Massstab wie das Chatfenster (gemessen wird in dessen Einheiten)
     live.layer:SetScale((cf:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1))
     live.lines, live.frame, live.x0, live.y0, live.moved = lines, cf, x0, y0, false
@@ -1045,6 +1048,14 @@ local function liveStart(cf)
         if not live.moved and math.abs(y - live.y0) < 6 and math.abs(x - live.x0) < 5 then
             if not IsMouseButtonDown("LeftButton") then self:SetScript("OnUpdate", nil) liveClear() end   -- nur ein Klick
             return
+        end
+        -- Mausrad waehrend des Ziehens: Zeilen zeigen anderen Text -> hier beenden, Markierung bleibt wie sie war
+        for _, fs in ipairs(live.lines) do
+            if fs:GetText() ~= live.snap[fs] then
+                self:SetScript("OnUpdate", nil)
+                if live.moved then liveFinish() else liveClear() end
+                return
+            end
         end
         live.moved = true
         local j = lineAt(live.lines, y)
