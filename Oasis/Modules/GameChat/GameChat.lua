@@ -12,7 +12,7 @@ local GC = {}
 ns.GameChat = GC
 
 local DEFAULTS = {
-    gcOn = false,
+    gcOn = true,   -- 0.6.4: Standard an (vorher aus)
     gcShort = false, gcLevel = true, gcClassIcon = false, gcRaceIcon = false,
     gcLinkIcons = true, gcTokens = true, gcChNum = false, gcQuiet = false, gcHover = false,
     gcFilter = false, gcWhole = false, gcCyr = false, gcHan = false, gcRepeat = false, gcRepeatSec = 60,
@@ -32,6 +32,8 @@ local function G()
     if not ready then
         ready = true
         for k, v in pairs(DEFAULTS) do if s[k] == nil then s[k] = v end end
+        -- 0.6.4: der alte Standard "aus" stand schon gespeichert -> einmal einschalten; spaeteres Aus bleibt
+        if not s.gcOnV2 then s.gcOnV2 = true s.gcOn = true end
         for _, k in ipairs(LISTS) do if type(s[k]) ~= "table" then s[k] = {} end end
     end
     return s
@@ -760,18 +762,168 @@ function GC.SelectInPlace(frame)
         sel.sc:SetVerticalScroll(math.max(0, sel.eb:GetHeight() - sel.sc:GetHeight()))
     end)
 end
--- Alt + Klick ins Chatfenster startet das Markieren direkt dort
+------------------------------------------------------------------------
+-- 0.6.4: Live markieren - mit gedrueckter Maus ueber Chatzeilen ziehen markiert sie (farbig hinterlegt), beim
+-- Loslassen liegt der Text markiert in einem unsichtbaren Eingabefeld: Strg+C kopiert. Ein Klick ohne Ziehen
+-- bleibt ein normaler Klick (Namen, Links). Zeilenweise - ein Chatfenster verraet nicht, welcher Buchstabe
+-- unter der Maus liegt. Alt + Klick oeffnet weiter das Markierfeld fuer einzelne Woerter.
+------------------------------------------------------------------------
+local live = { hl = {} }
+local function cursorY()
+    local _, y = GetCursorPosition()
+    return y / (UIParent:GetEffectiveScale() or 1)
+end
+-- sichtbare, lesbare Zeilen eines Chatfensters, oben zuerst
+local function shownLines(cf)
+    local out = {}
+    for _, fs in ipairs(type(cf.visibleLines) == "table" and cf.visibleLines or {}) do
+        if fs.IsShown and fs:IsShown() and fs:GetTop() then
+            local t = fs:GetText()
+            if t and not issecret(t) and t ~= "" then out[#out + 1] = fs end
+        end
+    end
+    table.sort(out, function(a, b) return a:GetTop() > b:GetTop() end)
+    return out
+end
+local function lineAt(lines, y)
+    for i, fs in ipairs(lines) do
+        if y <= fs:GetTop() + 1 and y >= fs:GetBottom() - 1 then return i end
+    end
+    if #lines > 0 then
+        if y > lines[1]:GetTop() then return 1 end
+        if y < lines[#lines]:GetBottom() then return #lines end
+    end
+end
+local function liveClear()
+    for _, t in ipairs(live.hl) do t:Hide() end
+    live.from, live.to, live.lines, live.frame = nil, nil, nil, nil
+    if live.eb then live.eb:ClearFocus() end
+    if live.tip then live.tip:Hide() end
+end
+local function liveDraw()
+    local a, b = math.min(live.from, live.to), math.max(live.from, live.to)
+    local ac = (ns.K and ns.K.C and ns.K.C.accent) or { 0.6, 0.4, 1 }
+    local n = 0
+    for i = a, b do
+        local fs = live.lines[i]
+        if fs then
+            n = n + 1
+            local t = live.hl[n]
+            if not t then
+                t = live.layer:CreateTexture(nil, "OVERLAY")
+                live.hl[n] = t
+            end
+            t:SetColorTexture(ac[1], ac[2], ac[3], 0.30)
+            t:ClearAllPoints()
+            t:SetPoint("TOPLEFT", fs, "TOPLEFT", -2, 1)
+            t:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 2, -1)
+            t:Show()
+        end
+    end
+    for i = n + 1, #live.hl do live.hl[i]:Hide() end
+end
+local function liveFinish()
+    local a, b = math.min(live.from, live.to), math.max(live.from, live.to)
+    local out = {}
+    for i = a, b do
+        local fs = live.lines[i]
+        local t = fs and fs:GetText()
+        if t and not issecret(t) then
+            local ok, plain = pcall(GC.Plain, t)
+            if ok and plain ~= "" then out[#out + 1] = plain end
+        end
+    end
+    if #out == 0 then liveClear() return end
+    local text = table.concat(out, "\n")
+    if not live.eb then
+        -- unsichtbares Eingabefeld: haelt den markierten Text, damit Strg+C ihn kopiert
+        local eb = CreateFrame("EditBox", nil, live.layer)
+        eb:SetSize(10, 10)
+        eb:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
+        eb:SetAlpha(0)
+        eb:SetMultiLine(true)
+        eb:SetAutoFocus(false)
+        eb:SetFontObject(ChatFontNormal or GameFontNormal)
+        eb:SetScript("OnTextChanged", function(self, user) if user and live.text then self:SetText(live.text) self:HighlightText() end end)
+        eb:SetScript("OnEscapePressed", liveClear)
+        eb:SetScript("OnEditFocusLost", function() for _, t in ipairs(live.hl) do t:Hide() end if live.tip then live.tip:Hide() end end)
+        eb:SetScript("OnKeyUp", function(_, key)
+            if key == "C" and IsControlKeyDown() and live.tip then
+                live.tip:SetText(L["Kopiert"])
+                C_Timer.After(0.8, liveClear)
+            end
+        end)
+        live.eb = eb
+        live.tip = live.layer:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    end
+    live.text = text
+    live.eb:SetText(text)
+    live.eb:SetFocus()
+    live.eb:HighlightText()
+    live.tip:ClearAllPoints()
+    live.tip:SetPoint("BOTTOMLEFT", live.lines[a], "TOPLEFT", 0, 3)
+    live.tip:SetText(L["Strg+C kopiert - Esc hebt auf"])
+    live.tip:Show()
+end
+local function liveStart(cf)
+    if G().gcLiveSelect == false then return end
+    liveClear()
+    local lines = shownLines(cf)
+    local y0 = cursorY()
+    local i = lineAt(lines, y0)
+    if not i then return end
+    if not live.layer then
+        live.layer = CreateFrame("Frame", nil, UIParent)
+        live.layer:SetFrameStrata("DIALOG")
+        live.layer:SetAllPoints(UIParent)
+        live.drv = CreateFrame("Frame")
+    end
+    live.lines, live.from, live.to, live.frame, live.y0, live.moved = lines, i, i, cf, y0, false
+    live.drv:SetScript("OnUpdate", function(self)
+        if not live.lines then self:SetScript("OnUpdate", nil) return end
+        local y = cursorY()
+        if not live.moved and math.abs(y - live.y0) < 6 then
+            if not IsMouseButtonDown("LeftButton") then self:SetScript("OnUpdate", nil) liveClear() end   -- nur ein Klick
+            return
+        end
+        live.moved = true
+        local j = lineAt(live.lines, y)
+        if j and j ~= live.to then live.to = j end
+        liveDraw()
+        if not IsMouseButtonDown("LeftButton") then
+            self:SetScript("OnUpdate", nil)
+            liveFinish()
+        end
+    end)
+end
+GC.LiveStart, GC.LiveClear = liveStart, liveClear
+function GC.LiveText() return live.text end   -- fuer Tests
+GC._live = live
+
+-- Ziehen im Chatfenster = live markieren, Alt + Klick = Markierfeld (einzelne Woerter)
 local selHooked = setmetatable({}, { __mode = "k" })
 function GC.HookSelect()
-    for i = 1, (NUM_CHAT_WINDOWS or 10) do
-        local cf = _G["ChatFrame" .. i]
+    local names = ns.Emoji and ns.Emoji.ChatFrameNames and ns.Emoji.ChatFrameNames()
+    if not names then names = {} for i = 1, (NUM_CHAT_WINDOWS or 10) do names[i] = "ChatFrame" .. i end end
+    for _, n in ipairs(names) do
+        local cf = _G[n]
         if cf and cf.HookScript and not selHooked[cf] then
             selHooked[cf] = true
             cf:HookScript("OnMouseDown", function(self, btn)
-                if btn == "LeftButton" and IsAltKeyDown() and G().gcAltSelect ~= false then GC.SelectInPlace(self) end
+                if btn ~= "LeftButton" then return end
+                if IsAltKeyDown() then
+                    if G().gcAltSelect ~= false then GC.SelectInPlace(self) end
+                elseif not IsShiftKeyDown() and not IsControlKeyDown() then
+                    local ok, e = pcall(liveStart, self)
+                    if not ok then ns.err("Spielchat", e) end
+                end
             end)
         end
     end
+end
+if ns.Listen then ns.Listen("LOGIN", function() C_Timer.After(1, function() pcall(GC.HookSelect) end) end) end
+if hooksecurefunc and type(FCF_OpenTemporaryWindow) == "function" then
+    hooksecurefunc("FCF_OpenTemporaryWindow", function() C_Timer.After(0, function() pcall(GC.HookSelect) end) end)
 end
 function GC.ApplyCopyButton()
     local want = G().gcCopyBtn ~= false and not nesUIChat()
