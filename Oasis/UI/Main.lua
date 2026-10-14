@@ -598,6 +598,12 @@ local function buildMain()
         side.glow:SetAllPoints(side.art)
         side.glow:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg_glow")
         side.glow:SetBlendMode("ADD")
+        -- 0.6.157: weicher Lichtschein in der gewaehlten Farbe, faellt von oben in die Leiste und verblasst nach unten
+        side.wash = side:CreateTexture(nil, "ARTWORK", nil, -7)
+        side.wash:SetPoint("TOPLEFT", side.art, "TOPLEFT")
+        side.wash:SetPoint("TOPRIGHT", side.art, "TOPRIGHT")
+        side.wash:SetHeight(320)
+        side.wash:SetBlendMode("ADD")
         -- 0.6.149: wie rechts eingepasst statt gestreckt (Bild 668:2000, mittig zugeschnitten)
         local function fitSide()
             local w, h = side.art:GetWidth() or 0, side.art:GetHeight() or 0
@@ -613,6 +619,7 @@ local function buildMain()
         if K.RoundMask then
             pcall(K.RoundMask, side.art, main, 12, { "tl", "bl" })
             pcall(K.RoundMask, side.glow, main, 12, { "tl", "bl" })
+            pcall(K.RoundMask, side.wash, main, 12, { "tl" })
         end
         local last
         local function tint()
@@ -625,6 +632,9 @@ local function buildMain()
             -- 0.6.154: nur die Glutadern nehmen die Farbe an, der Schiefer bleibt grau
             side.art:SetVertexColor(1, 1, 1, 1)
             side.glow:SetVertexColor(ac[1], ac[2], ac[3], 1)
+            if not K.Gradient(side.wash, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.16 }) then
+                side.wash:SetColorTexture(ac[1], ac[2], ac[3], 0.06)
+            end
         end
         tint()
         if K.DotGrid then side.dots = K.DotGrid(side, 0.045, 4) end
