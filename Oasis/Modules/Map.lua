@@ -102,7 +102,7 @@ function Map.SameLayer(name)
 end
 ns.GuildOption({ page = "map", key = "mpShare", default = true, label = "Positionen teilen erlaubt",
     desc = "Aus: niemand sendet seine Position an die Gilde (Gildenkarte und Minimap-Punkte bleiben leer)" })
-ns.GuildOption({ page = "map", key = "mpMinInt", default = 5, min = 5, max = 60, step = 1, label = "Position hoechstens alle",
+ns.GuildOption({ page = "map", key = "mpMinInt", default = 3, min = 2, max = 60, step = 1, label = "Position hoechstens alle",
     desc = "Kleinster Abstand zwischen zwei Positionsmeldungen (gegen Last im Addon-Kanal)",
     fmt = function(v) return (ns.L["%d s"]):format(v) end })
 local function sendPos()
@@ -139,8 +139,18 @@ Comm.On("POS", function(sender, _, mapID, x, y, layer)
         Map.pos[sender] = nil
     else
         layer = (layer and layer ~= "") and SEC.Text(layer, 12) or nil
-        Map.pos[sender] = { mapID = mapID, x = x / 10000, y = y / 10000, t = GetTime(),
-            layer = layer }
+        local now = GetTime()
+        local prev = Map.pos[sender]
+        local np = { mapID = mapID, x = x / 10000, y = y / 10000, t = now, layer = layer }
+        -- 0.6.139: gleiten statt springen - von der gerade angezeigten Stelle ueber die Zeit bis zur naechsten Meldung
+        if prev and prev.mapID == mapID and now - prev.t < 20 then
+            np.fx, np.fy = Map.Glide(prev, now)
+            np.gt0 = now
+            np.gdur = math.max(0.5, math.min(10, now - prev.t))
+            -- weit gesprungen (Flugpunkt, Ruhestein): nicht ueber die Karte gleiten
+            if math.abs(np.fx - np.x) + math.abs(np.fy - np.y) > 0.15 then np.fx = nil end
+        end
+        Map.pos[sender] = np
     end
     Map.dirty = true
 end)
@@ -151,6 +161,19 @@ local function memberKey(name)
     local full = ns.fullName(name)
     local member = ns.Radar and ns.Radar.byName and ns.Radar.byName[full]
     return member and member.name or full
+end
+
+-- angezeigte Position (gleitend zwischen zwei Meldungen); ohne Gleitdaten die gemeldete Stelle
+function Map.Glide(p, now)
+    if not p.fx then return p.x, p.y end
+    local q = ((now or GetTime()) - p.gt0) / p.gdur
+    if q >= 1 then p.fx = nil return p.x, p.y end
+    if q < 0 then q = 0 end
+    return p.fx + (p.x - p.fx) * q, p.fy + (p.y - p.fy) * q
+end
+function Map.Gliding()
+    for _, p in pairs(Map.pos) do if p.fx then return true end end
+    return false
 end
 
 function Map.Active()
@@ -638,7 +661,8 @@ function Map.UpdateWorldPins()
     groupNames[memberKey(ns.me())] = true
     -- Mitglieder
     for _, e in ipairs(Map.Active()) do
-        local x, y = translate(e.p.mapID, e.p.x, e.p.y, mapID)
+        local gx, gy = Map.Glide(e.p)
+        local x, y = translate(e.p.mapID, gx, gy, mapID)
         -- wer in meiner Gruppe ist, hat schon Blizzards Punkt: dann nur Name + Layer (kein zweiter Punkt)
         local sh = ns.short(e.name)
         local member = ns.Radar and ns.Radar.byName and ns.Radar.byName[memberKey(e.name)]
@@ -1145,7 +1169,8 @@ function Map.UpdateMinimap()
             for name, pos in pairs(Map.pos) do
                 -- Gruppenmitglieder zeigt Blizzard schon auf der Minimap -> keinen zweiten Punkt
                 if now - pos.t < EXPIRE and not isGrouped(name) then
-                    local x, y = cachedTranslate(pos, pos.mapID, pos.x, pos.y, myMap)
+                    local gx, gy = Map.Glide(pos, now)
+                    local x, y = cachedTranslate(pos, pos.mapID, gx, gy, myMap)
                     if x then
                         local p = place(x, y)
                         p.kind, p.who = "m", name
@@ -1495,8 +1520,14 @@ ns.Listen("LOGIN", function()
     ns.After(5, sendPos)
     C_Timer.NewTicker(1, function()
         local now = GetTime()
+        -- 0.6.139: laufe ich, oefter senden (fluessigere Punkte bei den anderen); im Stand wie eingestellt
+        local mm, mx, my = ns.Camp.MyPosition()
+        local moving = mm and Map.lastMoveX and (mm ~= Map.lastMoveMap or math.abs(mx - Map.lastMoveX) + math.abs(my - Map.lastMoveY) > 0.0004)
+        Map.lastMoveMap, Map.lastMoveX, Map.lastMoveY = mm, mx, my
+        if moving and Map.nextSend and Map.nextSend - now > 2.5 then Map.nextSend = now end
         if not Map.nextSend or now >= Map.nextSend then
-            Map.nextSend = now + math.max(ns.db.settings.mapInterval or 8, tonumber(ns.GuildOpt("mpMinInt")) or 5)
+            local guildMin = tonumber(ns.GuildOpt("mpMinInt")) or 3
+            Map.nextSend = now + (moving and math.max(2.5, guildMin) or math.max(ns.db.settings.mapInterval or 8, guildMin))
             local ok, e = pcall(sendPos)
             if not ok then ns.err("Position", e) end
         end
@@ -1527,6 +1558,10 @@ ns.Listen("LOGIN", function()
         if mmTick % 100 == 0 and next(Map.pos) then
             local now = GetTime()
             for n, p in pairs(Map.pos) do if now - p.t >= EXPIRE then Map.pos[n] = nil end end
+        end
+        if mmTick % 4 == 0 and WorldMapFrame and WorldMapFrame:IsShown() and Map.Gliding() then
+            local ok2, e2 = pcall(Map.UpdateWorldPins)
+            if not ok2 then ns.err("Kartenpunkte", e2) end
         end
         if mmUsed == 0 and not next(Map.pos) and not Map.target and not hasFires then return end
         local ok, e = pcall(Map.UpdateMinimap)
