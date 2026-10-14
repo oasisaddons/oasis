@@ -691,6 +691,88 @@ end
 -- nesUI hat dafuer einen eigenen Knopf in seiner Chatleiste -> dann keinen zweiten
 ------------------------------------------------------------------------
 local function nesUIChat() return _G.nesUI ~= nil and not (_G.nesUIDB and _G.nesUIDB.chatOff) end
+
+------------------------------------------------------------------------
+-- 0.6.3: Markieren direkt im Chatfenster. Blizzards Chat kann selbst nichts markieren - Oasis legt ein
+-- Eingabefeld mit demselben Text und derselben Schrift genau ueber das Fenster: mit der Maus markieren, Strg+C
+-- kopiert, Esc oder Klick daneben schliesst. Das Chatfenster selbst wird nicht veraendert.
+------------------------------------------------------------------------
+local sel
+local function selLines(frame)
+    local buf = buffers[frame]
+    if not buf or #buf == 0 then buf = frameLines(frame) end
+    local out = {}
+    for i, l in ipairs(buf) do out[i] = l.t end
+    return table.concat(out, "\n")
+end
+function GC.SelectInPlace(frame)
+    frame = frame or SELECTED_CHAT_FRAME or ChatFrame1
+    if not frame or not frame.GetFont then return end
+    if not sel then
+        sel = CreateFrame("Frame", "OasisChatSelect", UIParent)
+        sel:SetFrameStrata("DIALOG")
+        sel:EnableMouse(true)
+        sel.bg = sel:CreateTexture(nil, "BACKGROUND")
+        sel.bg:SetAllPoints()
+        sel.bg:SetColorTexture(0.03, 0.03, 0.04, 0.92)
+        sel.hint = sel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        sel.hint:SetPoint("BOTTOMLEFT", sel, "TOPLEFT", 2, 3)
+        sel.hint:SetText(L["Text mit der Maus markieren - Strg+C kopiert, Esc schliesst"])
+        sel.sc = CreateFrame("ScrollFrame", nil, sel)
+        sel.sc:SetAllPoints()
+        sel.eb = CreateFrame("EditBox", nil, sel.sc)
+        sel.eb:SetMultiLine(true)
+        sel.eb:SetAutoFocus(false)
+        sel.eb:SetTextInsets(2, 2, 2, 2)
+        sel.sc:SetScrollChild(sel.eb)
+        -- nur lesen: Tippen setzt den Text sofort zurueck (Markieren und Strg+C bleiben moeglich)
+        sel.eb:SetScript("OnTextChanged", function(self, user) if user and sel.text then self:SetText(sel.text) end end)
+        sel.eb:SetScript("OnEscapePressed", function() sel:Hide() end)
+        sel.eb:SetScript("OnEditFocusLost", function() sel:Hide() end)
+        sel.eb:SetScript("OnCursorChanged", function(_, _, y, _, h)
+            -- beim Markieren ueber den Rand hinaus mitrollen
+            local top, view = sel.sc:GetVerticalScroll(), sel.sc:GetHeight()
+            if -y < top then sel.sc:SetVerticalScroll(-y)
+            elseif -y + h > top + view then sel.sc:SetVerticalScroll(-y + h - view) end
+        end)
+        sel.sc:EnableMouseWheel(true)
+        sel.sc:SetScript("OnMouseWheel", function(self, d)
+            local max = math.max(0, sel.eb:GetHeight() - self:GetHeight())
+            self:SetVerticalScroll(math.max(0, math.min(max, self:GetVerticalScroll() - d * 42)))
+        end)
+        sel:SetScript("OnMouseDown", function() sel.eb:SetFocus() end)
+        sel:Hide()
+    end
+    sel:ClearAllPoints()
+    sel:SetPoint("TOPLEFT", frame, "TOPLEFT", -2, 2)
+    sel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 2, -2)
+    local font, size, flags = frame:GetFont()
+    if font then sel.eb:SetFont(font, size or 14, flags or "") end
+    sel.eb:SetWidth(math.max(50, (frame:GetWidth() or 300)))
+    sel.text = selLines(frame)
+    sel:Show()
+    sel.eb:SetText(sel.text)
+    sel.eb:SetFocus()
+    sel.eb:SetCursorPosition(#sel.text)
+    -- ans Ende rollen, wenn die Hoehe feststeht (wie der Chat: neueste Zeile unten)
+    C_Timer.After(0, function()
+        if not sel:IsShown() then return end
+        sel.sc:SetVerticalScroll(math.max(0, sel.eb:GetHeight() - sel.sc:GetHeight()))
+    end)
+end
+-- Alt + Klick ins Chatfenster startet das Markieren direkt dort
+local selHooked = setmetatable({}, { __mode = "k" })
+function GC.HookSelect()
+    for i = 1, (NUM_CHAT_WINDOWS or 10) do
+        local cf = _G["ChatFrame" .. i]
+        if cf and cf.HookScript and not selHooked[cf] then
+            selHooked[cf] = true
+            cf:HookScript("OnMouseDown", function(self, btn)
+                if btn == "LeftButton" and IsAltKeyDown() and G().gcAltSelect ~= false then GC.SelectInPlace(self) end
+            end)
+        end
+    end
+end
 function GC.ApplyCopyButton()
     local want = G().gcCopyBtn ~= false and not nesUIChat()
     if not GC.copyBtn then
@@ -705,10 +787,18 @@ function GC.ApplyCopyButton()
         b:SetAlpha(0.35)
         b:SetScript("OnEnter", function(self)
             self:SetAlpha(1)
-            if ns.K and ns.K.ShowTip then ns.K.ShowTip(self, L["Chat kopieren"]) end
+            if ns.K and ns.K.ShowTip then ns.K.ShowTip(self, { L["Chat kopieren"], L["Linksklick: direkt im Chat markieren, Strg+C kopiert"], L["Rechtsklick: Suchfenster"], L["Auch Alt + Klick ins Chatfenster startet das Markieren"] }) end
         end)
         b:SetScript("OnLeave", function(self) self:SetAlpha(0.35) GameTooltip:Hide() end)
-        b:SetScript("OnClick", function() if GC.OpenViewer then GC.OpenViewer("search", SELECTED_CHAT_FRAME) end end)
+        -- 0.6.3: Linksklick = direkt im Chat markieren, Rechtsklick = Suchfenster (wie bisher)
+        b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        b:SetScript("OnClick", function(_, btn)
+            if btn == "RightButton" then
+                if GC.OpenViewer then GC.OpenViewer("search", SELECTED_CHAT_FRAME) end
+            else
+                GC.SelectInPlace(SELECTED_CHAT_FRAME)
+            end
+        end)
         GC.copyBtn = b
     end
     GC.copyBtn:SetShown(want)
@@ -720,6 +810,7 @@ function GC.ApplyAll()
     GC.ApplyButtons()
     GC.ApplyStamp()
     pcall(GC.ApplyCopyButton)
+    pcall(GC.HookSelect)
 end
 
 ------------------------------------------------------------------------
@@ -766,6 +857,8 @@ ns.slash.chatsuche = function() if GC.OpenViewer then GC.OpenViewer("search") en
 ns.slash.chatsearch = ns.slash.chatsuche
 ns.slash.chatkopieren = ns.slash.chatsuche
 ns.slash.chatcopy = ns.slash.chatsuche
+ns.slash.chatmarkieren = function() GC.SelectInPlace() end
+ns.slash.chatselect = ns.slash.chatmarkieren
 ns.slash.chatalarm = function(rest)
     rest = (rest or ""):gsub("^%s+", ""):gsub("%s+$", "")
     if rest == "" then
