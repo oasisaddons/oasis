@@ -1853,18 +1853,18 @@ local function buildLook(f)
     f.glowSide:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- 0.6.158: Glut-Staerke links/rechts und "Glut atmet"
     local pct = function(v) return (L["%d%%"]):format(v * 100 + 0.5) end
-    local function glowRow(label, key, below, dy)
+    local function glowRow(label, key, below, dy, def)
         local lb = K.Text(f, 13, C.text)
         lb:SetPoint("TOPLEFT", below, "BOTTOMLEFT", 0, dy)
         lb:SetText(L[label])
-        local sl = K.Slider(f, 200, 0, 2, 0.05, function() return tonumber(S()[key]) or 1 end,
-            function(v) S()[key] = (math.abs(v - 1) > 0.001) and v or nil end, pct)
+        local sl = K.Slider(f, 200, 0, 2, 0.05, function() return tonumber(S()[key]) or def end,
+            function(v) S()[key] = (math.abs(v - def) > 0.001) and v or nil end, pct)
         sl:SetPoint("LEFT", lb, "LEFT", 130, 0)
         indexAdd(L[label], sl)
         return lb, sl
     end
-    f.glowStrLLbl, f.glowStrL = glowRow("Glut links", "glowStrengthL", f.glowSide, -16)
-    f.glowStrRLbl, f.glowStrR = glowRow("Glut rechts", "glowStrengthR", f.glowStrLLbl, -14)
+    f.glowStrLLbl, f.glowStrL = glowRow("Glut links", "glowStrengthL", f.glowSide, -16, 0)   -- 0.6.161: Standard 0
+    f.glowStrRLbl, f.glowStrR = glowRow("Glut rechts", "glowStrengthR", f.glowStrLLbl, -14, 1)
     f.glowBreath = K.Toggle(f, L["Glut atmet"], function() return S().glowBreath and true or false end,
         function(v) S().glowBreath = v or nil end)
     f.glowBreath:SetPoint("TOPLEFT", f.glowStrRLbl, "BOTTOMLEFT", 0, -12)

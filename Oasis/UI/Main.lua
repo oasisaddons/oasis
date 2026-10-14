@@ -655,7 +655,7 @@ local function buildMain()
                 gt = (gt + (el or 0)) % 5
                 b = 0.55 + 0.45 * (0.5 - 0.5 * math.cos(gt / 5 * math.pi * 2))
             end
-            local sl, sr = tonumber(st.glowStrengthL) or 1, tonumber(st.glowStrengthR) or 1
+            local sl, sr = tonumber(st.glowStrengthL) or 0, tonumber(st.glowStrengthR) or 1   -- 0.6.161: links Standard 0 (aus)
             if side.glow then side.glow:SetAlpha(math.min(1, sl * b)) end
             if side.wash then side.wash:SetAlpha(math.min(1, sl * b)) end
             if main.contentGlow then main.contentGlow:SetAlpha(math.min(1, sr * b * 0.8)) end
