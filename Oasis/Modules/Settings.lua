@@ -348,7 +348,6 @@ local function buildGeneral(f)
     f.t1 = toggle(f, TX, -62, "Anzeigen", "minimap", "Linksklick oeffnet Oasis, Rechtsklick die Einstellungen", function() ns.UpdateMinimapButton() pv:Update() end, 180)
     f.mmLock = toggle(f, TX, -92, "Fixieren", "minimapLock", "Der Knopf laesst sich nicht mehr mit der Maus verschieben", nil, 180)
     f.mmBadge = toggle(f, TX, -122, "Neuigkeiten-Zahl", "minimapBadge", "Kleine Zahl am Knopf, wenn es etwas Neues gibt", function() if ns.UpdateNotify then ns.UpdateNotify() end end, 180)
-    f.mmDots = toggle(f, TX, -152, "Gildenpunkte", "minimapDots", "Mitglieder in der Naehe als Punkte auf der Minimap", function() if ns.Map then ns.Map.UpdateMinimap() end end, 180)
     -- Feineinstellung
     rowLabel(f, L["Position"], MX, -226)
     f.mmAngle = K.Slider(f, 170, 0, 355, 5, function() return math.floor(((S().minimapAngle or 215) % 360) / 5 + 0.5) * 5 end,
@@ -375,7 +374,7 @@ local function buildGeneral(f)
 end
 local function refreshGeneral(f)
     if f.reshow then f.reshow:SetAlpha(S().hideInCombat and 1 or 0.4) end
-    for _, x in ipairs({ f.hideCombat, f.reshow, f.noAnim, f.lockWin, f.t1, f.mmAngle, f.mmDist, f.mmScale, f.mmLock, f.mmBadge, f.mmDots }) do x:Refresh() end
+    for _, x in ipairs({ f.hideCombat, f.reshow, f.noAnim, f.lockWin, f.t1, f.mmAngle, f.mmDist, f.mmScale, f.mmLock, f.mmBadge }) do x:Refresh() end
     f.openSeg:Select(S().openOnLogin or "auto")
     f.startSeg:Select(S().startPage == "last" and "last" or "home")
     if f.mmPreview then f.mmPreview:Update() end
@@ -394,19 +393,14 @@ local PAGE_OPTS = {
     chat = {
         { "Emojis im Chat anzeigen", "chatEmoji", "Aus :lol: oder <3 wird ein Bild - sehen alle mit Oasis" },
         { "Emoji-Knopf im Eingabefeld", "emojiButton", "Kleines Gesicht rechts im Chat-Eingabefeld", function() if ns.Emoji then ns.Emoji.UpdateButtons() end end },
-        { "Sounds aus dem Chat", "chatSounds", nil, nil, true },
         { "Fluestern an Offline-Charaktere dem Twink anbieten", "whisperForward", "Ist der angefluesterte Charakter offline und ein Twink desselben Spielers online, bietet Oasis an, die Nachricht dorthin zu schicken - gesendet wird erst nach deinem Klick." },
         emojiPicker = true,
     },
     radar = {
-        { "Anzeige, wenn jemand online kommt", "entrancePopup", nil, nil, true },
-        { "Online-Sounds anderer", "soundEntrance", nil, nil, true },
         { "Deutlicher Standard-Ton bei Online-Meldungen", "entranceLoud", "Zweiklang statt kurzem Ton, wenn die Person keinen eigenen Online-Sound gewaehlt hat", nil, true },
         inactive = true, listDark = true,
     },
     deathroll = { { "Deathroll leise wuerfeln", "drSilent", "Unter Oasis-Spielern fair per Addon statt /roll - nichts im Chat" } },
-    allies = { { "Mitspieler-Bewertungen mit der Gilde teilen", "shareRep", "Gut/Schlecht und Notiz zu Mitspielern - die Gilde wird dann auch vor schlechten gewarnt" } },
-    chronicle = { { "Eigene Meilensteine im Gildenchat posten", "announceMilestones", "Level alle 5 Stufen und Legacy-Challenges" } },
     raid = { lootQuality = true },
 }
 -- andere Module koennen eigene Bereichs-Einstellungen anmelden: build(frame, y) -> neue y
@@ -414,13 +408,20 @@ local PAGE_EXTRA = {}
 -- Unterseiten (kein eigener Navigationspunkt) -> ihre Einstellungen erscheinen beim Hauptbereich
 local AREA_CHILDREN = { insta = { "life" } }
 -- Bereiche, deren Tooltip-/Kartenschalter jetzt unter Tooltips & Karte stehen: { Reiter, Knopftext }
+-- Wege zu den Sammelseiten: Bereiche zeigen nur ihre eigenen Schalter, Tooltip-, Karten-, Hinweis-, Klang- und
+-- Teilen-Schalter stehen gesammelt (0.6.112: Hinweise und Teilen auch nicht mehr doppelt in den Bereichen)
+local LK = {
+    map = { "mapset", "Karte und Minimap einstellen" }, tips = { "tips", "Tooltip-Zeilen einstellen" },
+    toast = { "toasts", "Hinweise ein- und ausschalten" }, share = { "share", "Teilen und Datenschutz" },
+    sound = { "sound", "Online-Ton und Anzeige" },
+}
 local AREA_LINKS = {
-    radar = { "mapset", "Karte und Minimap einstellen" }, map = { "mapset", "Karte und Minimap einstellen" },
-    deaths = { "mapset", "Karte und Minimap einstellen" },
-    wants = { "tips", "Tooltip-Zeilen einstellen" }, crafting = { "tips", "Tooltip-Zeilen einstellen" },
-    bank = { "tips", "Tooltip-Zeilen einstellen" }, raid = { "tips", "Tooltip-Zeilen einstellen" },
-    allies = { "tips", "Tooltip-Zeilen einstellen" }, chat = { "tips", "Tooltip-Zeilen einstellen" },
-}   -- 0.5.995: Karte und Softres-Tooltip stehen unter Tooltips & Karte
+    radar = { LK.map, LK.toast, LK.sound }, map = { LK.map }, deaths = { LK.map, LK.toast },
+    wants = { LK.tips, LK.toast }, crafting = { LK.tips, LK.toast }, bank = { LK.tips }, raid = { LK.tips },
+    allies = { LK.tips, LK.share }, chat = { LK.tips, LK.sound }, groups = { LK.toast }, legacy = { LK.toast },
+    chronicle = { LK.toast, LK.share }, polls = { LK.toast }, camp = { LK.toast, LK.share }, deathroll = { LK.toast },
+    trade = { LK.share }, insta = { LK.share },
+}
 function ns.AddPageSettings(key, build) PAGE_EXTRA[key] = build end
 
 -- Bereich "Profil": was jeder fuer sich selbst einstellt (Ueber mich, Sichtbarkeit, Belohnungen)
@@ -679,14 +680,6 @@ end)
 ns.AddPageSettings("radar", function(det, y)
     local s = S()
     if s.trackPlay == nil then s.trackPlay = true end
-    rowLabel(det, "|cffe8b44a" .. L["Hinweise"] .. "|r", 14, y)
-    y = y - 28
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Neues Gildenmitglied", "welcome")
-    y = y - 30
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Geburtstag eines Mitglieds", "birthday")
-    y = y - 30
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Stufenaufstieg eines Mitglieds", "levelup")
-    y = y - 38
     rowLabel(det, L["Als neu markieren"], 14, y - 2)
     det.newDays = K.Slider(det, 180, 3, 30, 1, function() return S().newDays or 14 end,
         function(v) S().newDays = v end, function(v) return (L["%d Tg"]):format(v) end)
@@ -732,10 +725,6 @@ ns.AddPageSettings("groups", function(det, y)
     local function refreshGroups() ns.RefreshPage("groups") end
     rowLabel(det, "|cffe8b44a" .. L["Hinweise"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Neue Gruppensuche der Gilde", "group", "Kurzer Hinweis, wenn jemand eine Gruppe sucht - auch fuer Quest-Partner in Gemeinsam questen")
-    y = y - 30
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Beitrittsanfragen zu meiner Suche", "request", "Hinweis, wenn jemand bei deiner Suche mitmoechte (auch Zusammenfuehren)")
-    y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Auch Suchen ohne Platz fuer meine Rolle melden", "lfgAllRoles", "Sonst kommt der Hinweis nur, wenn ein Platz fuer eine deiner Rollen frei ist", nil, 600)
     y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Hinweise auch in Dungeons und Schlachtfeldern", "lfgInInstance", "Sonst bleiben neue Gruppensuchen in Instanzen still", nil, 600)
@@ -871,8 +860,6 @@ ns.AddPageSettings("crafting", function(det, y)
     if s.craftStatusToasts == nil then s.craftStatusToasts = true end
     if s.craftBadge == nil then s.craftBadge = true end
     if s.tipCrafters == nil then s.tipCrafters = true end
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Hinweis bei neuen Auftraegen", "order", "Wenn jemand etwas bei dir oder deinem Beruf bestellt (und wenn dein Auftrag fertig ist)")
-    y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Hinweise zu meinen Auftraegen", "craftStatusToasts", "Angenommen, fertig, abgelehnt oder zurueckgegeben - Meldung bei Aenderungen deiner eigenen Bestellungen", nil, 600)
     y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Zahl offener Auftraege im Menue", "craftBadge", "Kleine Zahl am Menuepunkt Handwerks-Boerse fuer Auftraege, die du herstellen koenntest",
@@ -891,9 +878,6 @@ ns.AddPageSettings("trade", function(det, y)
     y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Preisabfragen beantworten", "priceAnswer", "Schreibt jemand 'pc [Item]' in den Gildenchat, antwortet genau ein Oasis-Nutzer mit Preis und 7-Tage-Tief.", upd, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Meine Handelsbilanz teilen", "shareTrade", "Freiwillig: dein Gewinn der letzten 7 Tage erscheint in der Haendler-Rangliste.",
-        function() upd() if ns.Radar then ns.Radar.SendHello() end end, 600)
-    y = y - 32
     if _G.MidasDB then
         if s.midasAutoScan == nil then s.midasAutoScan = true end
         det.t[#det.t + 1] = toggle(det, 14, y, "Midas scannt automatisch", "midasAutoScan", "Beim Oeffnen des Auktionshauses startet Midas den Scan im Hintergrund (hoechstens alle 15 Minuten, Server-Sperre).",
@@ -909,8 +893,6 @@ ns.AddPageSettings("wants", function(det, y)
     for _, k in ipairs({ "wantsLootHint", "wantsBagHint", "wantsBadge", "tipOasis", "tipWanted", "itemSuggest", "wantsDungeonHint", "wantsGotHint", "tipReagent" }) do
         if s[k] == nil then s[k] = true end
     end
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Hinweise der Wunschliste", "wants", "Alle Wunschliste-Meldungen (jemand hat etwas fuer dich, jemand sucht, was du hast)")
-    y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Beim Looten melden, wenn jemand das sucht", "wantsLootHint", "Hebst du ein Item auf, das ein Gildenmitglied sucht, kommt ein Hinweis zum Bescheid sagen", nil, 600)
     y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Melden, wenn ich Gesuchtes in den Taschen habe", "wantsBagHint", "Neuer Wunsch eines anderen und du hast das Item dabei", nil, 600)
@@ -956,8 +938,6 @@ ns.AddPageSettings("chronicle", function(det, y)
     if s.chrPostLegacy == nil then s.chrPostLegacy = true end
     rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Hinweis bei neuen Chronik-Eintraegen", "chronicle", "Level, Bosse, Legacy, Duelle und Abzeichen anderer Gildenmitglieder")
-    y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Level-Aufstiege anderer melden", "chrToastLevels", "Aus: keine Hinweise mehr, wenn jemand ein Level erreicht - Bosse und Legacy bleiben", nil, 600)
     y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Geschaffte Legacy-Challenges im Gildenchat posten", "chrPostLegacy", "Gilt nur, wenn Meilensteine posten an ist - Aus: nur Level werden gepostet", nil, 600)
@@ -972,8 +952,6 @@ ns.AddPageSettings("polls", function(det, y)
     if s.pollBadge == nil then s.pollBadge = true end
     rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Hinweis bei neuen Umfragen", "poll", "Ein Hinweis erscheint, sobald jemand eine Umfrage startet")
-    y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Ergebnis melden, wenn eine Umfrage endet", "pollEndToast", "Nur fuer Umfragen, die du gestartet oder bei denen du abgestimmt hast", nil, 600)
     y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Offene Umfragen in der Navigation zaehlen", "pollBadge", "Zahl am Menuepunkt fuer Umfragen, bei denen du noch nicht abgestimmt hast",
@@ -1005,15 +983,11 @@ ns.AddPageSettings("camp", function(det, y)
     if s.campOwnToast == nil then s.campOwnToast = true end
     rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Hinweis bei Lagerfeuern der Gilde", "camp", "Jemand meldet ein Lagerfeuer mit Buffs")
-    y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Nur Lagerfeuer in meinem Gebiet melden", "campZoneOnly", "Hinweise nur, wenn das Feuer in deiner aktuellen Zone brennt - auf der Karte siehst du weiter alle", nil, 600)
     y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Bestaetigung beim eigenen Lagerfeuer", "campOwnToast", "Kurzer Hinweis, dass die Gilde dein Feuer sieht", nil, 600)
     y = y - 32
     if s.campAuto == nil then s.campAuto = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Lagerfeuer automatisch melden", "campAuto", "Wenn du ein Lagerfeuer anzuendest oder an einem Feuer einen Lagerfeuer-Buff bekommst, traegt Oasis es fuer die Gilde ein (hoechstens alle 2 Minuten, nicht doppelt in der Naehe)", nil, 600)
-    y = y - 32
     return y - 10
 end)
 
@@ -1023,8 +997,6 @@ ns.AddPageSettings("deathroll", function(det, y)
     if s.drOpenInvites == nil then s.drOpenInvites = true end
     rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Hinweis bei Herausforderungen", "dr_invite", "Jemand fordert dich heraus oder sucht einen Gegner")
-    y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Offene Spiel-Einladungen der Gilde melden", "drOpenInvites", "Aus: Wer in der Warteschlange einen Gegner sucht, erscheint nur noch auf der Deathroll-Seite", nil, 600)
     y = y - 32
     return y - 10
@@ -1036,8 +1008,6 @@ ns.AddPageSettings("deaths", function(det, y)
     if s.deathKiller == nil then s.deathKiller = true end
     rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Hinweis, wenn ein Gildenmitglied stirbt", "death", "Mit Ort und Todesursache")
-    y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Todesursache im Hinweis zeigen", "deathKiller", "Aus: der Hinweis nennt nur Name und Ort", nil, 600)
     y = y - 32
     return y - 10
@@ -1047,8 +1017,6 @@ end)
 ns.AddPageSettings("legacy", function(det, y)
     rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toastToggle(det, 14, y, "Hinweis, wenn jemand Mitstreiter sucht", "group", "Gilt auch fuer Gruppensuchen in anderen Bereichen")
-    y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Auch Suchen fuer bereits geschaffte Challenges melden", "legacyLfgDone", "Normal meldet Oasis nur Suchen, die du selbst noch offen hast", nil, 600)
     y = y - 32
     return y - 10
@@ -1194,10 +1162,6 @@ ns.AddPageSettings("insta", function(det, y)
     note(det, L["Steht auf deiner Profilkarte, die die Gilde sieht."], 164, y, 330, C.dim)
     y = y - 30
     -- Sichtbarkeit
-    det.t[#det.t + 1] = toggle(det, 14, y, "Meine Quests teilen", "profShareQuests", "Fuer 'Gemeinsam questen' - andere sehen, woran du gerade bist", sendProfile, 600)
-    y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Meine Ausruestung teilen", "profShareGear", "Itemlevel und angelegte Ausruestung fuer Raidplaner und Gildenpflege", sendProfile, 600)
-    y = y - 32
     det.t[#det.t + 1] = toggle(det, 14, y, "Oasis-XP im Bild anzeigen", "xpFloat", "Neue Oasis-Erfahrung steigt kurz als +XP in der Bildmitte auf", nil, 600)
     y = y - 40
     -- Belohnungen aus dem Oasis-Rang
@@ -1522,11 +1486,13 @@ local function buildPages(f)
             end
         end
         -- 0.5.995: Tooltip- und Karten-Schalter stehen gesammelt unter Tooltips & Karte - hier nur der Weg dorthin
-        local link = AREA_LINKS[key]
-        if link then
+        local links = AREA_LINKS[key]
+        if links then
             y = y - 6
-            local lb = K.Button(det, L[link[2]] .. "  >", 260, 24, "ghost", function() if ns.Settings then ns.Settings.SetTab(link[1]) end end)
-            lb:SetPoint("TOPLEFT", 14, y)
+            for i, link in ipairs(links) do
+                local lb = K.Button(det, L[link[2]] .. "  >", 226, 24, "ghost", function() if ns.Settings then ns.Settings.SetTab(link[1]) end end)
+                lb:SetPoint("TOPLEFT", 14 + (i - 1) * 234, y)
+            end
             y = y - 36
         end
         if y == Y0 then
@@ -2340,7 +2306,8 @@ end
 ------------------------------------------------------------------------
 -- 0.5.617: Datenschutz - alles, was dich selbst betrifft, an einer Stelle an-/abschaltbar
 local PRIV_ON = { "shareDeaths", "shareNodes", "shareTrace", "shareInstPos", "sharePerf", "shareCombat", "rtShare", "rtTrack",
-    "trackPlay", "scoutSeen", "wrShare", "lkShare", "profShareGear", "profShareQuests", "shareErrors", "campAuto", "cpProfCD" }
+    "trackPlay", "scoutSeen", "wrShare", "lkShare", "profShareGear", "profShareQuests", "shareErrors", "campAuto", "cpProfCD",
+    "chatSounds", "entrancePopup", "soundEntrance" }   -- 0.6.112: Klang-Standards (setzte vorher nur die Bereichsseite)
 ns.Listen("DB_READY", function()
     local s = ns.db and ns.db.settings
     if not s then return end
@@ -2408,40 +2375,6 @@ local function refreshShare(f)
 end
 
 -- 0.5.617: Listen + Karten-Anzeige (vorher unter "Teilen & Karte")
-local function buildLists(f)
-    f.noCompact = true
-    local LX, RX = 14, 376
-    local MX = RX + 14
-    local upd = function() if ns.Map and ns.Map.UpdateWorldPins then ns.Map.UpdateWorldPins() end end
-    f.t = {}
-    cardH(f, 0, 0, 362, 190, "map", L["Karte"], L["Gilde auf Weltkarte und Minimap"])
-    f.t[#f.t + 1] = toggle(f, LX, -56, "Namen auf der Weltkarte", "mapNames", nil, upd, 330)
-    f.t[#f.t + 1] = toggle(f, LX, -84, "Gildenpunkte auf der Minimap", "minimapDots", nil, function() if ns.Map then ns.Map.UpdateMinimap() end end, 330)
-    f.t[#f.t + 1] = toggle(f, LX, -112, "Totenkoepfe auf der Karte", "deathPins", "Wo Gildenmitglieder gestorben sind", nil, 330)
-    f.t[#f.t + 1] = toggle(f, LX, -140, "Heatmap auf der Weltkarte", "mapHeat", "Wo die Gilde unterwegs war", upd, 330)
-    -- 0.5.723: Inhalt liegt IN der Karte (vorher an die Seite gehaengt und bei schmalem Fenster daneben)
-    local lc = cardH(f, RX, 0, 362, 190, "stats", L["Listen"], L["Beute-Log und Mitgliederliste"], true)
-    rowLabel(lc, L["Beute-Log ab Qualitaet"], 14, -58)
-    f.q = K.Segments(lc, {
-        { key = 2, text = L["Gruen"] }, { key = 3, text = L["Blau"] }, { key = 4, text = L["Episch"] },
-    }, function(k) S().lootMinQuality = k end)
-    f.q:SetPoint("TOPLEFT", 14, -82)
-    indexAdd(L["Beute-Log ab Qualitaet"], f.q)
-    local dv = K.Divider(lc)
-    dv:SetPoint("TOPLEFT", 14, -116)
-    dv:SetPoint("RIGHT", lc, "RIGHT", -14, 0)
-    rowLabel(lc, L["Inaktiv ab"], 14, -128)
-    f.inact = K.Slider(lc, 170, 7, 90, 1, function() return S().inactiveDays or 30 end,
-        function(v) S().inactiveDays = v end, function(v) return (L["%d Tg"]):format(v) end)
-    f.inact:SetPoint("TOPLEFT", 110, -126)
-    indexAdd(L["Inaktiv ab"], f.inact)
-    note(lc, L["Ab so vielen Tagen offline gilt ein Mitglied in der Mitgliederliste als inaktiv."], 14, -154, 334)
-end
-local function refreshLists(f)
-    for _, t in ipairs(f.t) do t:Refresh() end
-    f.q:Select(S().lootMinQuality or 3)
-    f.inact:Refresh()
-end
 
 ------------------------------------------------------------------------
 -- Charakter
@@ -2930,8 +2863,8 @@ local function refreshStatus(f)
 end
 
 ------------------------------------------------------------------------
-local BUILD = { general = buildGeneral, pages = buildPages, look = buildLook, toasts = buildToasts, sound = buildSound, share = buildShare, char = buildChar, status = buildStatus, lists = buildLists }
-local REFRESH = { general = refreshGeneral, pages = refreshPages, look = refreshLook, toasts = refreshToasts, sound = refreshSound, share = refreshShare, char = refreshChar, status = refreshStatus, lists = refreshLists }
+local BUILD = { general = buildGeneral, pages = buildPages, look = buildLook, toasts = buildToasts, sound = buildSound, share = buildShare, char = buildChar, status = buildStatus }
+local REFRESH = { general = refreshGeneral, pages = refreshPages, look = refreshLook, toasts = refreshToasts, sound = refreshSound, share = refreshShare, char = refreshChar, status = refreshStatus }
 -- Reiter "Leiste": was die angeheftete Oasis-Leiste zeigt
 local function buildBar(f)
     -- 0.5.549: Topbar-Seite im Glas-Stil, volle Breite (Seite scrollt); die echte Leiste ist waehrenddessen sichtbar
@@ -3311,8 +3244,8 @@ end
 local function tabTop(g) return -84 end   -- zweite Zeile immer da (Unterreiter + Suche), mit Luft darueber/darunter
 local function setTab(key)
     if not page then return end
+    if HIDDEN_TABS[key] then key = "mapset" end   -- alte Links auf "Listen & Karte"
     if not BUILD[key] then key = "quick" end
-    if HIDDEN_TABS[key] then key = "mapset" end
     page.tab = key
     local g = groupOf(key)
     page.group = g.key
@@ -3482,7 +3415,7 @@ local function buildQuick(f)
         { "Sounds abspielen", "sound", "Alle Oasis-Klaenge an oder aus" },
         { "Im Kampf ausblenden", "hideInCombat", "Das Oasis-Fenster verschwindet, sobald ein Kampf beginnt" },
         { "Minimap-Knopf anzeigen", "minimap", "Linksklick oeffnet Oasis, Rechtsklick die Einstellungen", function() if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end end },
-        { "Position mit der Gilde teilen", "shareMap", "Fuer Gildenkarte und Minimap-Punkte der anderen" },
+        { "Position auf der Weltkarte teilen", "shareMap", "Gildenkarte und Minimap-Punkte der anderen. Standard: aus" },
         { "Emojis im Chat anzeigen", "chatEmoji", "Aus :lol: oder <3 wird ein Bild" },
         { "Oasis-Zeilen im Item-Tooltip", "tipOasis", "Gesucht von, Auftraege, Gildenbank und Herkunft unter jedem Item-Tooltip", nil, true },
         { "Animationen reduzieren", "noAnim", "Kein Einblenden und Hochzaehlen - alles erscheint sofort" },
@@ -3582,7 +3515,6 @@ local function buildMapTab(f)
     f.t, f.refreshers = {}, {}
     local c, y = wideCard(f, 0, "map", L["Gilde auf der Karte"], L["Was du teilst und was du von der Gilde siehst"])
     y = toggleList(f, {
-        { "Position mit der Gilde teilen", "shareMap", "Fuer Gildenkarte und Minimap-Punkte der anderen" },
         { "Namen auf der Weltkarte", "mapNames", nil, updPins },
         { "Gildenpunkte auf der Minimap", "minimapDots", nil, function() if ns.Map then ns.Map.UpdateMinimap() end end },
         { "Heatmap auf der Weltkarte", "mapHeat", "Wo die Gilde unterwegs war", updPins },
