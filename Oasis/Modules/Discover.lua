@@ -113,9 +113,16 @@ local function grad(tex, dir, a, b)
     if not K.Gradient(tex, dir, a, b) then tex:SetColorTexture(b[1], b[2], b[3], (b[4] or 1) * 0.6) end
 end
 -- schlichter Text-Knopf (Fusszeile): leise, hell beim Drueberfahren
+-- 0.6.123: kleine, dezente Glas-Knoepfe (halbtransparent, runde Ecken) statt nackter Schrift
 local function textBtn(parent, label, w, fn)
     local b = CreateFrame("Button", nil, parent)
-    b:SetSize(w, 26)
+    b:SetSize(w, 24)
+    local G = ns.Insta and ns.Insta.Glass
+    b.glass = G and pcall(G, b, { 1, 1, 1, 0.045 }, { 1, 1, 1, 0.12 }, 8)
+    b.hov = b:CreateTexture(nil, "BACKGROUND", nil, 3)
+    b.hov:SetPoint("TOPLEFT", 3, -3) b.hov:SetPoint("BOTTOMRIGHT", -3, 3)
+    b.hov:SetColorTexture(1, 1, 1, 0.06)
+    b.hov:Hide()
     b.label = K.Text(b, 11, C.muted, "CENTER")
     b.label:SetPoint("CENTER")
     b.label:SetText(label)
@@ -125,8 +132,8 @@ local function textBtn(parent, label, w, fn)
     b.line:SetPoint("BOTTOMRIGHT", b.label, "BOTTOMRIGHT", 0, -3)
     b.line:SetColorTexture(1, 1, 1, 0.25)
     b.line:Hide()
-    b:SetScript("OnEnter", function(self) self.label:SetTextColor(C.text[1], C.text[2], C.text[3]) self.line:Show() end)
-    b:SetScript("OnLeave", function(self) self.label:SetTextColor(C.muted[1], C.muted[2], C.muted[3]) self.line:Hide() end)
+    b:SetScript("OnEnter", function(self) self.label:SetTextColor(C.text[1], C.text[2], C.text[3]) self.hov:Show() end)
+    b:SetScript("OnLeave", function(self) self.label:SetTextColor(C.muted[1], C.muted[2], C.muted[3]) self.hov:Hide() end)
     b:SetScript("OnClick", fn)
     return b
 end
@@ -191,7 +198,7 @@ function D.ShowPicker(mode)
         f.artTop:SetPoint("TOPLEFT", 1, -1) f.artTop:SetPoint("RIGHT", -1, 0) f.artTop:SetPoint("BOTTOM", f, "CENTER")
         f.artBot = f:CreateTexture(nil, "BACKGROUND", nil, 2)
         f.artBot:SetPoint("BOTTOMLEFT", 1, 1) f.artBot:SetPoint("RIGHT", -1, 0) f.artBot:SetPoint("TOP", f, "CENTER")
-        for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.30) t:Hide() end   -- 0.6.120: 12 % war unsichtbar
+        for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.18) t:Hide() end   -- 0.6.123: 18 % (12 % unsichtbar, 30 % zu kraeftig)
         f:HookScript("OnShow", function()
             if not ns.GuildPack then return end
             local r = (f:GetWidth() or 660) / math.max(1, f:GetHeight() or 350) / 2   -- Bild ist 2:1
@@ -285,6 +292,22 @@ function D.ShowPicker(mode)
         end)
         hero:SetScript("OnEnter", function(self) self.hover = true end)
         hero:SetScript("OnLeave", function(self) self.hover = nil end)
+        -- 0.6.123: Bild-Knopf (Text, Symbol und Rahmen im Bild) - nur mit Gildenmodul und deutscher Sprache,
+        -- weil der Text im Bild deutsch ist. Bild 7:1, der Knopf wird dafuer hoeher.
+        hero.extra = 0
+        if ns.GuildPack and (ns.lang == "de" or (not ns.lang and GetLocale and GetLocale() == "deDE")) then
+            hero.art = hero:CreateTexture(nil, "ARTWORK", nil, 4)
+            hero.art:SetAllPoints()
+            hero.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\start_keep")
+            hero.art:SetTexCoord(0, 1, 0, 1)
+            for _, x in ipairs({ hero.bg, hero.tint, hero.halo, hero.icon, hero.t, hero.s, hero.arrow }) do x:Hide() end
+            hero.bg.Show = function() end
+            K.SetBorderColor(hero, { 0, 0, 0, 0 })
+            local H = math.floor(604 / 7 + 0.5)
+            hero.extra = H - 66
+            hero:SetHeight(H)
+            hero.shL:SetHeight(H) hero.shR:SetHeight(H)
+        end
         f.hero, f.keep = hero, hero
         -- Trenner "oder neu zusammenstellen"
         f.orLbl = K.Text(f, 10, C.dim)
@@ -378,7 +401,8 @@ function D.ShowPicker(mode)
         end
         -- compact (neue Version): flache, ruhige Zeilen-Karten - "Wie bisher" oben bleibt der Blickfang
         function f:Place(y0, compact)
-            local th = compact and 46 or TH
+            -- 0.6.123: mit Bild-Kacheln etwas hoeher, damit der Name zweizeilig neben das Abzeichen passt
+            local th = compact and (self.tiles[1] and self.tiles[1].art and 56 or 46) or TH
             local gap = compact and 8 or GAP
             self.compact = compact
             for _, t in ipairs(self.tiles) do
@@ -405,9 +429,12 @@ function D.ShowPicker(mode)
                 end
                 if compact then
                     t.halo:SetPoint("CENTER", t, "LEFT", 24, 0)
-                    t.n:SetPoint("LEFT", t, "LEFT", t.art and math.floor(th * 1.05) or 46, 0)
+                    -- Name rechts neben dem Abzeichen im Bild (Kreis endet bei gut 27 % der Bildbreite)
+                    t.n:SetPoint("LEFT", t, "LEFT", t.art and 66 or 46, 0)
                     t.n:SetPoint("RIGHT", -34, 0)
                     t.ring:SetPoint("CENTER", t, "RIGHT", -18, 0)
+                    t.n:SetWordWrap(t.art and true or false)
+                    if t.n.SetMaxLines then t.n:SetMaxLines(t.art and 2 or 1) end
                     t.nFont = t.nFont or { t.n:GetFont() }
                     if t.nFont[1] then pcall(t.n.SetFont, t.n, t.nFont[1], 12, t.nFont[3] or "") end
                     t.s:Hide()
@@ -479,14 +506,14 @@ function D.ShowPicker(mode)
             if ns.UpdateStart and ns.UpdateStart.AllOn then ns.UpdateStart.AllOn() else D.ShowAll() end
             f:Hide()
         end)
-        f.all:SetPoint("RIGHT", f.ok, "LEFT", -10, 0)
+        f.all:SetPoint("RIGHT", f.ok, "LEFT", -12, 0)
         f.min = textBtn(f, L["Nur das Noetigste"], 116, function()
             if ns.UpdateStart then ns.UpdateStart.Minimal() end
             S().interestsDone = ns.now()
             f:Hide()
             K.Toast(L["Oasis ist bereit"], L["Nur die wichtigsten Bereiche sind an."], C.mint)
         end)
-        f.min:SetPoint("RIGHT", f.all, "LEFT", -4, 0)
+        f.min:SetPoint("RIGHT", f.all, "LEFT", -8, 0)
         f.never = K.Toggle(f, L["Nicht mehr fragen"], function() return S().updateAsk == false end,
             function(v) S().updateAsk = (not v) and nil or false end)
         f.never:SetPoint("BOTTOMLEFT", 20, 28)
@@ -529,6 +556,7 @@ function D.ShowPicker(mode)
                 h.bg:SetColorTexture(1, 1, 1, 0.03 + 0.05 * h.hv)
                 h.halo:SetSize(42 + 6 * h.hv, 42 + 6 * h.hv)
                 h.arrow:SetVertexColor(1, 1, 1, 0.6 + 0.4 * h.hv)
+                if h.art then local v = 0.82 + 0.18 * h.hv h.art:SetVertexColor(v, v, v) end
                 -- Lichtstreif: alle 3,5 s einmal in 1,1 s von links nach rechts
                 self.shT = (self.shT + el) % 3.5
                 local p = self.shT / 1.1
@@ -551,7 +579,7 @@ function D.ShowPicker(mode)
     for _, w in ipairs({ pick.hero, pick.orLbl, pick.orL, pick.orR, pick.min, pick.never }) do w:SetShown(upd) end
     pick.count:SetShown(not upd)
     -- Karten unter "Wie bisher" bzw. direkt unter den Text; Hoehe passend
-    local y0 = upd and -222 or -122
+    local y0 = upd and (-222 - (pick.hero.extra or 0)) or -122
     local th, gap = pick:Place(y0, upd)
     pick:SetHeight(-y0 + 2 * th + gap + 88)
     if upd and pick.never.Refresh then pick.never:Refresh() end
