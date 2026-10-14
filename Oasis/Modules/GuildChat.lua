@@ -994,6 +994,12 @@ local function newRow(list)
     local row = CreateFrame("Button", nil, list)
     row:RegisterForClicks("RightButtonUp")
     if row.SetHyperlinksEnabled then pcall(row.SetHyperlinksEnabled, row, true) end
+    -- 0.6.117: mit gedrueckter Maus ziehen = Text markieren (wie in Blizzards Chat), Strg+C kopiert
+    row:HookScript("OnMouseDown", function(_, btn)
+        if btn == "LeftButton" and not IsModifierKeyDown() and ns.GameChat and ns.GameChat.LiveStart then
+            pcall(ns.GameChat.LiveStart, list)
+        end
+    end)
     -- Flaeche fuer eigene Nachrichten / Erwaehnungen (sonst unsichtbar)
     row.tint = CreateFrame("Frame", nil, row)
     row.tint:SetPoint("TOPLEFT", 6, -2)
@@ -1171,12 +1177,19 @@ function GC.NewList(parent, page, handlers)
         local y = 0
         from = from or 1
         if from > 1 and self.tops[from - 1] then y = self.tops[from - 1] + self.items[from - 1].h else from = 1 end
+        -- 0.6.117: Nachrichten durchzaehlen - fuer Markieren mit der Maus (Spielchat-Modul, GameChat.lua)
+        local mi = (from > 1 and self.items[from - 1].miUpTo) or 0
+        self.byMi = self.byMi or {}
         for i = from, #self.items do
             local it = self.items[i]
             it.h = itemHeight(self, it)
             self.tops[i] = y
             y = y + it.h
+            if it.kind == "msg" then mi = mi + 1 it.mi = mi self.byMi[mi] = it end
+            it.miUpTo = mi
         end
+        for k = mi + 1, #self.byMi do self.byMi[k] = nil end
+        self.numMsg = mi
         for i = #self.items + 1, #self.tops do self.tops[i] = nil end
         self.total = y + 8
     end
@@ -1205,6 +1218,15 @@ function GC.NewList(parent, page, handlers)
     function list:ScrollToTop() self:ScrollTo(0) end
     -- Kompatibilitaet zu alten Aufrufen (ScrollingMessageFrame)
     function list:GetScrollOffset() return math.max(0, self:MaxOffset() - self.offset) end
+    -- fuer das Markieren: Anzahl, Text je Nachricht, Nachricht je sichtbarer Zeile
+    function list:GetNumMessages() return self.numMsg or 0 end
+    function list:GetMessageInfo(m)
+        local it = self.byMi and self.byMi[m]
+        if not it or not it.e then return nil end
+        local ok, r = pcall(render, it.e)
+        return ok and r and r.body or nil
+    end
+    function list:LiveIndexOf(fs) return fs and fs.liveMi end
     function list:Draw()
         local top, h = self.offset, self:GetHeight() or 0
         if h < 10 then h = 400 end
@@ -1228,7 +1250,7 @@ function GC.NewList(parent, page, handlers)
             row:SetHeight(it.h)
             paintRow(self, row, it)
             row:Show()
-            if it.kind == "msg" then self.visibleLines[#self.visibleLines + 1] = row.body end
+            if it.kind == "msg" then self.visibleLines[#self.visibleLines + 1] = row.body row.body.liveMi = it.mi end
             i = i + 1
         end
         for j = n + 1, #self.rows do self.rows[j]:Hide() self.rows[j].e = nil end

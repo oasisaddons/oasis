@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.112"
+ns.version = "0.6.117"
 ns.versionDate = "14.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -858,6 +858,7 @@ local function initDB()
     local db = OasisDB
     db.settings = db.settings or {}
     local fresh = next(db.settings) == nil
+    ns.DEFAULT_SETTINGS = DEFAULT_SETTINGS   -- fuer "Seite zuruecksetzen" in den Einstellungen
     applyDefaults(db.settings, DEFAULT_SETTINGS)
     -- 0.5.740: Quests teilen soll einfach gehen - einmalig das Ablehnen geteilter Quests ausschalten (Standard war nie an; wer es bewusst wieder
     -- einschaltet, behaelt es). Gruppe, Schlachtzug und Gilde werden ohnehin nie abgelehnt.

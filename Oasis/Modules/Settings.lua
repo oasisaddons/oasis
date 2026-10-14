@@ -108,6 +108,10 @@ local function indexAdd(label, frame, desc)
     if not page or not page.buildingTab then return end
     INDEX[#INDEX + 1] = { label = label, desc = desc, tab = page.buildingTab, frame = frame, area = page.buildingArea }
 end
+-- 0.6.113: auf den Sammelseiten und in den Bereichen steht die Erklaerung als graue Unterzeile direkt unter dem
+-- Schalter (descInline); der Aufbau rechnet die zusaetzliche Hoehe DESC_H ein. Ganzer Text weiter beim Drueberfahren.
+local DESC_H = 14
+local descInline = false
 local function toggle(p, x, y, label, key, desc, after, w)
     local t = K.Toggle(p, L[label], function() return S()[key] and true or false end, function(v)
         S()[key] = v
@@ -115,17 +119,62 @@ local function toggle(p, x, y, label, key, desc, after, w)
     end)
     t:SetPoint("TOPLEFT", x, y)
     t:SetWidth(w or 340)
-    -- Erklaerung nur beim Drueberfahren (weniger Text auf einmal)
+    if desc and descInline then
+        t.sub = K.Text(t, 10, C.dim)
+        t.sub:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -3)
+        t.sub:SetWidth(math.max(80, (w or 340) - 44))
+        t.sub:SetJustifyH("LEFT")
+        t.sub:SetWordWrap(false)
+        t.sub:SetText(L[desc])
+        t.hasSub = true
+    end
+    -- Erklaerung (ganz) beim Drueberfahren
     if desc then
         t.tipText = L[desc]
-        t.info = K.Text(t, 11, C.dim)
-        t.info:SetPoint("LEFT", t.lbl, "RIGHT", 6, 0)
-        t.info:SetText("|cff666666(?)|r")
+        if not t.hasSub then
+            t.info = K.Text(t, 11, C.dim)
+            t.info:SetPoint("LEFT", t.lbl, "RIGHT", 6, 0)
+            t.info:SetText("|cff666666(?)|r")
+        end
         t:HookScript("OnEnter", function(self) K.ShowTip(self, { L[label], self.tipText }) end)
         t:HookScript("OnLeave", function() GameTooltip:Hide() end)
     end
     indexAdd(L[label], t, desc and L[desc])
     return t
+end
+-- alles, was im selben Rahmen unter einem Schalter mit Unterzeile steht, um DESC_H nach unten ruecken; gibt die
+-- gesamte zusaetzliche Hoehe zurueck. Schalter mit noReflow (eigenes Raster) werden uebersprungen.
+local function reflowDescs(fr)
+    local ys = {}
+    for _, c in ipairs({ fr:GetChildren() }) do
+        if c.hasSub and not c.noReflow then
+            local _, rel, _, _, y = c:GetPoint(1)
+            if rel == fr and type(y) == "number" then ys[#ys + 1] = y end
+        end
+    end
+    if #ys == 0 then return 0 end
+    local objs = { fr:GetChildren() }
+    for _, r in ipairs({ fr:GetRegions() }) do objs[#objs + 1] = r end
+    for _, o in ipairs(objs) do
+        local n = o.GetNumPoints and o:GetNumPoints() or 0
+        if n > 0 then
+            local pts, moved = {}, false
+            for i = 1, n do
+                local pt, rel, rp, x, y = o:GetPoint(i)
+                if rel == fr and type(y) == "number" and rp and rp:find("^TOP") then
+                    local sh = 0
+                    for _, sy in ipairs(ys) do if y < sy - 1 then sh = sh + DESC_H end end
+                    if sh > 0 then y = y - sh moved = true end
+                end
+                pts[i] = { pt, rel, rp, x, y }
+            end
+            if moved then
+                o:ClearAllPoints()
+                for _, q in ipairs(pts) do o:SetPoint(q[1], q[2], q[3], q[4], q[5]) end
+            end
+        end
+    end
+    return #ys * DESC_H
 end
 local function rowLabel(p, text, x, y)
     local fs = K.Text(p, 13, C.text)
@@ -587,16 +636,6 @@ ns.AddPageSettings("badges", function(det, y)
     y = y - 76
     return y - 10
 end)
--- Abkuerzung: Hinweis-Art an/aus (gleicher Schalter wie im Reiter Hinweise)
-local function toastToggle(det, x, y, label, key, desc)
-    local t = K.Toggle(det, L[label], function() return not (S().toastOff and S().toastOff[key]) end, function(v)
-        S().toastOff = S().toastOff or {}
-        S().toastOff[key] = (not v) or nil
-    end, desc and L[desc] or nil)
-    t:SetPoint("TOPLEFT", x, y)
-    t:SetWidth(600)
-    return t
-end
 
 -- Bereich "Chat": Tippen-Anzeige, @-Vorschlaege, Erwaehnungs-Ton, Emoji-Groesse, Stummgeschaltete
 ns.AddPageSettings("chat", function(det, y)
@@ -1023,31 +1062,74 @@ ns.AddPageSettings("legacy", function(det, y)
 end)
 
 -- Bereich "Karte & Radar": weitere Kartenebenen, Sendetakt
+-- 0.6.113: Karte zweispaltig und nach Themen (Weltkarte, Sammelkarte, Symbole, Senden); Erklaerung als Unterzeile
 ns.AddPageSettings("map", function(det, y)
+    det.t, det.refreshers = det.t or {}, det.refreshers or {}
     local function upd() if ns.Map then ns.Map.UpdateWorldPins() end end
-    rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
-    y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Levelbereiche auf der Weltkarte", "mapLevels", "Zeigt die Levelspanne der Gebiete", upd, 600)
-    y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Todesorte auf der Weltkarte", "mapDeaths", "Totenkoepfe der Gilde zusaetzlich in der Kartenebene", upd, 600)
-    y = y - 32
-    -- Gilden-Sammelkarte (GatherMap.lua): Standard an, Schalter = ausblenden
     local function gupd() if ns.Gather then if ns.Gather.Refresh then ns.Gather.Refresh() else pcall(ns.Gather.DrawWorld) pcall(ns.Gather.DrawMinimap) end end end
-    for _, g in ipairs({ { "gatherWorldOff", "Sammelkarte auf der Weltkarte ausblenden" }, { "gatherMiniOff", "Sammelkarte auf der Minimap ausblenden" },
-        { "gatherOff_herb", "Kraeuter ausblenden" }, { "gatherOff_ore", "Erz ausblenden" }, { "gatherOff_treasure", "Schaetze ausblenden" },
-        { "gatherOff_fish", "Angelstellen ausblenden" }, { "gatherOff_lock", "Schlosskisten ausblenden" } }) do
-        det.t[#det.t + 1] = toggle(det, 14, y, g[2], g[1], "Gilden-Sammelkarte: Fundorte, die jemand aus der Gilde gefunden hat", gupd, 600)
-        y = y - 32
+    local function symUpd()
+        if ns.Gather and ns.Gather.Refresh then ns.Gather.Refresh() end
+        if ns.Map then pcall(ns.Map.UpdateMinimap) pcall(ns.Map.UpdateWorldPins) end
     end
-    -- 0.5.935: Frische, gerade abgeerntet, Filter je Sorte
+    local function xupd() symUpd() if ns.MapExtras then ns.MapExtras.Redraw() end end
+    -- zwei Spalten; Reihe so hoch wie ihr hoechster Schalter (mit oder ohne Unterzeile)
+    local function grid(list)
+        local was = descInline
+        descInline = true
+        for r = 0, math.ceil(#list / 2) - 1 do
+            local tall = false
+            for c = 1, 2 do
+                local o = list[r * 2 + c]
+                if o then
+                    if o[5] and S()[o[2]] == nil then S()[o[2]] = true end
+                    local t = toggle(det, 14 + (c - 1) * 370, y, o[1], o[2], o[3], o[4], 340)
+                    t.noReflow = true
+                    det.t[#det.t + 1] = t
+                    det.rk = det.rk or {}
+                    det.rk[#det.rk + 1] = { o[2], o[5] and true or nil }
+                    if o[3] then tall = true end
+                end
+            end
+            y = y - 32 - (tall and DESC_H or 0)
+        end
+        descInline = was
+    end
+    local function head(text) y = y - 6 rowLabel(det, "|cffe8b44a" .. L[text] .. "|r", 14, y) y = y - 28 end
+
+    head("Weltkarte")
+    if S().lfgPins == nil then S().lfgPins = true end
+    grid({
+        { "Levelbereiche auf der Weltkarte", "mapLevels", "Zeigt die Levelspanne der Gebiete", upd },
+        { "Todesorte auf der Weltkarte", "mapDeaths", "Totenkoepfe der Gilde zusaetzlich in der Kartenebene", upd },
+        { "Gruppensuchen am Dungeon-Eingang", "lfgPins", "Wer Mitstreiter sucht, erscheint am Eingang des Dungeons", symUpd },
+        { "Marker und Notizen", "mapMarkers", "Treffpunkte, Warnungen und Notizen auf Weltkarte und Minimap", xupd, true },
+        { "Dungeon-Eingaenge", "mapDungeons", "Eingaenge mit Levelspanne und Gildenmitgliedern im Levelbereich", xupd, true },
+        { "Gefahrenzonen", "mapDanger", "Roter Schimmer, wo mehrere aus der Gilde gestorben sind (7 Tage)", xupd },
+        { "Haendler, Reparatur, Briefkaesten und Flugpunkte", "mapPoi", "Orte, die jemand aus der Gilde schon besucht hat", xupd, true },
+        { "Questgeber der Dungeon-Quests", "mapQuestGivers", "Wo Dungeon-Quests in der offenen Welt beginnen", xupd },
+        { "Laufspuren der Gilde", "mapTrails", "Der Weg der letzten 5 Minuten als duenne Linie", xupd },
+        { "Koordinaten an der Minimap", "mmCoords", "Eigene Position und Entfernung zum Ziel", xupd },
+        { "Layer-Anfragen aus der Gilde annehmen", "layerAsk", "Hinweis, wenn jemand ueber deine Gruppe auf deinen Layer will", xupd, true },
+    })
+
+    head("Gilden-Sammelkarte")
     if S().gatherFresh == nil then S().gatherFresh = true end
     if S().gatherHarvest == nil then S().gatherHarvest = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Fundorte nach Frische einfaerben", "gatherFresh", "Frisch gefundene Stellen kraeftig, lange nicht bestaetigte verblassen", gupd, 600)
-    y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Gerade abgeerntete Stellen grau zeigen", "gatherHarvest", "Wenn jemand aus der Gilde dort in den letzten 5 Minuten gesammelt hat", gupd, 600)
-    y = y - 34
+    grid({
+        { "Sammelkarte auf der Weltkarte ausblenden", "gatherWorldOff", "Fundorte, die jemand aus der Gilde gefunden hat", gupd },
+        { "Sammelkarte auf der Minimap ausblenden", "gatherMiniOff", "Fundorte, die jemand aus der Gilde gefunden hat", gupd },
+        { "Kraeuter ausblenden", "gatherOff_herb", nil, gupd },
+        { "Erz ausblenden", "gatherOff_ore", nil, gupd },
+        { "Schaetze ausblenden", "gatherOff_treasure", nil, gupd },
+        { "Angelstellen ausblenden", "gatherOff_fish", nil, gupd },
+        { "Schlosskisten ausblenden", "gatherOff_lock", nil, gupd },
+        { "Sammelpunkte ohne Kreisrahmen", "gatherRingOff", "Nur das Symbol, ohne dunkle Scheibe und Ring", symUpd },
+        { "Fundorte nach Frische einfaerben", "gatherFresh", "Frische Stellen kraeftig, alte verblassen", gupd },
+        { "Gerade abgeerntete Stellen grau zeigen", "gatherHarvest", "Wenn dort in den letzten 5 Minuten gesammelt wurde", gupd },
+        { "Sammelroute", "gatherRoute", "Rundstrecke durch die Fundorte, Pfeil an der Minimap zum naechsten", symUpd },
+    })
     local sorts
-    sorts = K.Button(det, L["Einzelne Sorten filtern"], 240, 24, nil, function()
+    sorts = K.Button(det, L["Einzelne Sorten filtern"], 226, 24, nil, function()
         local items = {}
         local G = ns.Gather
         for _, e in ipairs(G and G.Names and G.Names() or {}) do
@@ -1063,80 +1145,47 @@ ns.AddPageSettings("map", function(det, y)
         K.ShowMenu(sorts, items, L["Einzelne Sorten filtern"])
     end)
     sorts:SetPoint("TOPLEFT", 14, y)
-    y = y - 38
-    -- 0.5.933: Symbole anpassen - Groesse und Deckkraft je Art und Ort, Kreisrahmen, Mindestzahl
-    det.refreshers = det.refreshers or {}
-    local function symUpd()
-        if ns.Gather and ns.Gather.Refresh then ns.Gather.Refresh() end
-        if ns.Map then pcall(ns.Map.UpdateMinimap) pcall(ns.Map.UpdateWorldPins) end
-    end
+    y = y - 36
+
+    head("Symbole anpassen")
     local function pct(v) return math.floor(v * 100 + 0.5) .. "%" end
-    local SYM = {   -- { Gruppe, Art, Schluessel, von, bis, Schritt, Standard }
-        { "Sammelpunkte auf der Minimap", "Groesse", "gatherMiniScale", 0.6, 2, 0.05, 1 },
-        { "Sammelpunkte auf der Minimap", "Deckkraft", "gatherMiniAlpha", 0.2, 1, 0.05, 1 },
-        { "Sammelpunkte auf der Weltkarte", "Groesse", "gatherWorldScale", 0.6, 2.5, 0.05, 1 },
-        { "Sammelpunkte auf der Weltkarte", "Deckkraft", "gatherWorldAlpha", 0.2, 1, 0.05, 1 },
-        { "Gilden-Punkte auf der Minimap", "Groesse", "mmDotScale", 0.6, 2, 0.05, 1 },
-        { "Gilden-Punkte auf der Minimap", "Deckkraft", "mmDotAlpha", 0.2, 1, 0.05, 1 },
-        { "Punkte auf der Weltkarte", "Groesse", "mapPinScale", 0.6, 2, 0.05, 1 },
+    local SYM = {   -- { Text, Schluessel, von, bis, Schritt, Standard, Format }
+        { "Sammelpunkte Minimap: Groesse", "gatherMiniScale", 0.6, 2, 0.05, 1 },
+        { "Sammelpunkte Minimap: Deckkraft", "gatherMiniAlpha", 0.2, 1, 0.05, 1 },
+        { "Sammelpunkte Weltkarte: Groesse", "gatherWorldScale", 0.6, 2.5, 0.05, 1 },
+        { "Sammelpunkte Weltkarte: Deckkraft", "gatherWorldAlpha", 0.2, 1, 0.05, 1 },
+        { "Gilden-Punkte Minimap: Groesse", "mmDotScale", 0.6, 2, 0.05, 1 },
+        { "Gilden-Punkte Minimap: Deckkraft", "mmDotAlpha", 0.2, 1, 0.05, 1 },
+        { "Punkte auf der Weltkarte: Groesse", "mapPinScale", 0.6, 2, 0.05, 1 },
+        { "Nur Fundorte zeigen ab", "gatherMinCount", 1, 10, 1, 1, function(v) return (L["%d Funden"]):format(v) end },
     }
-    det.t[#det.t + 1] = toggle(det, 14, y, "Sammelroute", "gatherRoute", "Verbindet die sichtbaren Fundorte des Gebiets zu einer Rundstrecke. Ein Pfeil an der Minimap zeigt zum naechsten Punkt", symUpd, 600)
-    y = y - 32
-    if S().lfgPins == nil then S().lfgPins = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Gruppensuchen am Dungeon-Eingang", "lfgPins", "Wer Mitstreiter sucht, erscheint auf der Weltkarte am Eingang des Dungeons", symUpd, 600)
-    y = y - 32
-    -- 0.5.936: Karten-Extras (MapExtras.lua). { Text, Schluessel, Erklaerung, Standard an }
-    local function xupd() symUpd() if ns.MapExtras then ns.MapExtras.Redraw() end end
-    for _, e in ipairs({
-        { "Marker und Notizen", "mapMarkers", "Treffpunkte, Warnungen und Notizen auf Weltkarte und Minimap", true },
-        { "Dungeon-Eingaenge", "mapDungeons", "Eingaenge mit Levelspanne und der Zahl der Gildenmitglieder im Levelbereich", true },
-        { "Gefahrenzonen", "mapDanger", "Roter Schimmer, wo in den letzten 7 Tagen mehrere aus der Gilde gestorben sind" },
-        { "Haendler, Reparatur, Briefkaesten und Flugpunkte", "mapPoi", "Orte, die jemand aus der Gilde schon besucht hat, auf der Weltkarte", true },
-        { "Questgeber der Dungeon-Quests", "mapQuestGivers", "Zeigt in der offenen Welt, wo Dungeon-Quests beginnen" },
-        { "Laufspuren der Gilde", "mapTrails", "Zeigt den Weg der letzten 5 Minuten als duenne Linie hinter jedem Mitglied" },
-        { "Koordinaten an der Minimap", "mmCoords", "Eigene Position und Entfernung zum Ziel unter der Minimap" },
-        { "Layer-Anfragen aus der Gilde annehmen", "layerAsk", "Zeigt einen Hinweis, wenn jemand ueber deine Gruppe auf deinen Layer wechseln moechte", true },
-    }) do
-        if e[4] and S()[e[2]] == nil then S()[e[2]] = true end
-        det.t[#det.t + 1] = toggle(det, 14, y, e[1], e[2], e[3], xupd, 600)
-        y = y - 32
-    end
-    y = y - 8
-    rowLabel(det, "|cffe8b44a" .. L["Symbole anpassen"] .. "|r", 14, y)
-    y = y - 28
-    for _, d in ipairs(SYM) do
-        rowLabel(det, L[d[1]] .. ": " .. L[d[2]], 14, y)
-        local sl = K.Slider(det, 180, d[4], d[5], d[6], function() return S()[d[3]] or d[7] end,
-            function(v) S()[d[3]] = v symUpd() end, pct)
-        sl:SetPoint("TOPLEFT", 380, y + 2)
+    for i, d in ipairs(SYM) do
+        local cx = 14 + ((i - 1) % 2) * 370
+        rowLabel(det, L[d[1]], cx, y)
+        local sl = K.Slider(det, 200, d[3], d[4], d[5], function() return S()[d[2]] or d[6] end,
+            function(v) S()[d[2]] = v symUpd() end, d[7] or pct)
+        sl:SetPoint("TOPLEFT", cx, y - 22)
         table.insert(det.refreshers, function() sl:Refresh() end)
-        y = y - 32
+        if i % 2 == 0 or i == #SYM then y = y - 54 end
     end
-    rowLabel(det, L["Nur Fundorte zeigen ab"], 14, y)
-    local minN = K.Slider(det, 180, 1, 10, 1, function() return S().gatherMinCount or 1 end,
-        function(v) S().gatherMinCount = v symUpd() end, function(v) return (L["%d Funden"]):format(v) end)
-    minN:SetPoint("TOPLEFT", 380, y + 2)
-    table.insert(det.refreshers, function() minN:Refresh() end)
-    y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Sammelpunkte ohne Kreisrahmen", "gatherRingOff", "Zeigt nur das Symbol, ohne dunkle Scheibe und farbigen Ring", symUpd, 600)
-    y = y - 34
-    local reset = K.Button(det, L["Symbole zuruecksetzen"], 220, 24, nil, function()
-        for _, d in ipairs(SYM) do S()[d[3]] = nil end
-        S().gatherMinCount, S().gatherRingOff, S().gatherHide = nil, nil, nil
+    local reset = K.Button(det, L["Symbole zuruecksetzen"], 226, 24, nil, function()
+        for _, d in ipairs(SYM) do S()[d[2]] = nil end
+        S().gatherRingOff, S().gatherHide = nil, nil
         symUpd()
         for _, fn in ipairs(det.refreshers) do pcall(fn) end
         for _, t in ipairs(det.t) do if t.Refresh then pcall(t.Refresh, t) end end
     end)
     reset:SetPoint("TOPLEFT", 14, y)
     y = y - 40
+
+    head("Senden")
     rowLabel(det, L["Position senden alle"], 14, y)
     det.mapInterval = K.Slider(det, 160, 5, 30, 1, function() return S().mapInterval or 8 end,
         function(v) S().mapInterval = v if ns.Map then ns.Map.nextSend = nil end end,
         function(v) return (L["%d Sek."]):format(v) end)
     det.mapInterval:SetPoint("TOPLEFT", 184, y + 2)
-    det.refreshers = det.refreshers or {}
     table.insert(det.refreshers, function() det.mapInterval:Refresh() end)
-    y = y - 32
+    y = y - 30
     note(det, L["Seltener senden = weniger Datenverkehr, die Gilde sieht dich aber ruckeliger."], 14, y, 600, C.dim)
     y = y - 22
     return y - 10
@@ -1424,6 +1473,7 @@ local function buildPages(f)
         det:SetScript("OnSizeChanged", nil)
         local Y0 = -46
         local y = Y0
+        descInline = true   -- Erklaerungen als Unterzeile, danach nachruecken (reflowDescs)
         local opts = PAGE_OPTS[key] or {}
         for _, o in ipairs(opts) do
             if o[5] and S()[o[2]] == nil then S()[o[2]] = true end   -- Standard an
@@ -1499,6 +1549,8 @@ local function buildPages(f)
             note(det, L["Fuer diesen Bereich gibt es keine eigenen Einstellungen."], 14, y, 600, C.dim)
             y = y - 24
         end
+        descInline = false
+        y = y - reflowDescs(det)
         c2:SetHeight(-y + 12)
         det:SetHeight(-y + 24)
         sf:SetVerticalScroll(0)
@@ -2329,6 +2381,8 @@ local function buildShare(f)
     local function tg(x, y, label, key, desc, after)
         local t = toggle(f, x, y, label, key, desc, after, 330)
         f.t[#f.t + 1] = t
+        f.rk = f.rk or {}
+        f.rk[#f.rk + 1] = { key }
         return t
     end
     -- links: was die Gilde von dir sieht
@@ -2352,21 +2406,31 @@ local function buildShare(f)
         { "Handelsbilanz teilen", "shareTrade", "Fuer die Handels-Rangliste. Standard: aus" },
         { "Eigene Meilensteine im Gildenchat posten", "announceMilestones", "Level alle 5 Stufen und Legacy-Challenges" },
     }
-    local h1 = 56 + #L1 * ROW + 6
-    cardH(f, 0, 0, 362, h1, "social", L["Was die Gilde von dir sieht"], L["Alles abschaltbar - Standard ist datenschutzfreundlich"])
-    for i, r in ipairs(L1) do
-        tg(LX, -56 - (i - 1) * ROW, r[1], r[2], r[3], r[2] == "rareShare" and function(v) S().cpRareShare = v end
+    descInline = true
+    local c1 = cardH(f, 0, 0, 362, 100, "social", L["Was die Gilde von dir sieht"], L["Alles abschaltbar - Standard ist datenschutzfreundlich"])
+    local yy = -56
+    for _, r in ipairs(L1) do
+        tg(LX, yy, r[1], r[2], r[3], r[2] == "rareShare" and function(v) S().cpRareShare = v end
             or (r[2] == "shareAltsOutside" and function() if ns.Radar and ns.Radar.SendHello then pcall(ns.Radar.SendHello) end end) or nil)
+        yy = yy - ROW - (r[3] and DESC_H or 0)
     end
+    c1:SetHeight(-yy + 6)
     -- rechts oben: Technik
     local L2 = {
         { "Fehlerberichte an die Gilde", "shareErrors", "Hilft beim Beheben von Fehlern" },
         { "Liste anderer Addons mitsenden", "shareAddonList", "Nur fuer die Fehlersuche. Standard: aus" },
         { "Leistungsdaten teilen", "sharePerf", "Bildrate und Speicher, alle 15 Minuten" },
     }
-    local h2 = 56 + #L2 * ROW + 10
-    cardH(f, RX, 0, 362, h2, "settings", L["Technik"], L["Fehlerberichte und Netz"], true)
-    for i, r in ipairs(L2) do tg(MX, -56 - (i - 1) * ROW, r[1], r[2], r[3]) end
+    local c2 = cardH(f, RX, 0, 362, 100, "settings", L["Technik"], L["Fehlerberichte und Netz"], true)
+    yy = -56
+    for _, r in ipairs(L2) do
+        tg(MX, yy, r[1], r[2], r[3])
+        yy = yy - ROW - (r[3] and DESC_H or 0)
+    end
+    c2:SetHeight(-yy + 10)
+    descInline = false
+    local low = math.min(-(c1:GetHeight() or 0), yy - 10)
+    resetButton(f, low - 16, function() if ns.Radar and ns.Radar.SendHello then pcall(ns.Radar.SendHello) end end)
     -- 0.5.675: Oasis-Netz ist immer an - kein Schalter mehr
     -- 0.5.673: Karte "Nur auf diesem PC" entfernt - Spielzeiten, Online-Zeiten, Begegnungen laufen immer, Raid-Check ohne Namen
 end
@@ -3396,12 +3460,62 @@ end
 -- 0.6.0: zweispaltig (links 14, rechts 384) - einspaltig blieb die halbe Karte leer
 local function toggleList(f, list, y, cols)
     cols = cols or 2
-    for i, o in ipairs(list) do
-        if o[5] and S()[o[2]] == nil then S()[o[2]] = true end
-        local col, row = (i - 1) % cols, math.floor((i - 1) / cols)
-        f.t[#f.t + 1] = toggle(f, cols == 1 and 14 or (14 + col * 370), y - row * 32, o[1], o[2], o[3], o[4], cols == 1 and 600 or 340)
+    local was = descInline
+    descInline = true
+    for r = 0, math.ceil(#list / cols) - 1 do
+        local tall = false
+        for c = 1, cols do
+            local o = list[r * cols + c]
+            if o then
+                if o[5] and S()[o[2]] == nil then S()[o[2]] = true end
+                local t = toggle(f, cols == 1 and 14 or (14 + (c - 1) * 370), y, o[1], o[2], o[3], o[4], cols == 1 and 600 or 340)
+                t.noReflow = true
+                f.t[#f.t + 1] = t
+                f.rk = f.rk or {}
+                f.rk[#f.rk + 1] = { o[2], o[5] and true or nil }
+                if o[3] then tall = true end
+            end
+        end
+        y = y - 32 - (tall and DESC_H or 0)
     end
-    return y - math.ceil(#list / cols) * 32
+    descInline = was
+    return y
+end
+
+-- 0.6.115: "Diese Seite zuruecksetzen" - jeder Schalter der Seite auf seinen Standard (Kern-Standard, Datenschutz-
+-- Standard an, oder der beim Schalter vermerkte Standard an); danach Seite neu zeichnen
+local PRIV_SET = {}
+for _, k in ipairs(PRIV_ON) do PRIV_SET[k] = true end
+local function resetPage(f, after)
+    local D = ns.DEFAULT_SETTINGS or {}
+    for _, r in ipairs(f.rk or {}) do
+        local k, on = r[1], r[2]
+        local d = D[k]
+        if type(d) == "table" then d = nil end
+        if d == nil and (on or PRIV_SET[k]) then d = true end
+        S()[k] = d
+    end
+    if after then pcall(after) end
+    for _, t in ipairs(f.t or {}) do if t.Refresh then pcall(t.Refresh, t) end end
+    for _, fn in ipairs(f.refreshers or {}) do pcall(fn) end
+    if K.Toast then K.Toast(L["Zurueckgesetzt"], L["Die Schalter dieser Seite stehen wieder auf Standard."], C.accent) end
+end
+local function resetButton(f, y, after)
+    -- zweistufig: erster Klick fragt nach, zweiter (innerhalb von 4 s) setzt zurueck
+    local b
+    b = K.Button(f, L["Diese Seite zuruecksetzen"], 190, 22, "ghost", function(self)
+        if self.armed and GetTime() - self.armed < 4 then
+            self.armed = nil
+            self:SetLabel(L["Diese Seite zuruecksetzen"])
+            resetPage(f, after)
+            return
+        end
+        self.armed = GetTime()
+        self:SetLabel(L["Wirklich? Nochmal klicken"])
+        C_Timer.After(4, function() if b.armed and GetTime() - b.armed >= 3.9 then b.armed = nil b:SetLabel(L["Diese Seite zuruecksetzen"]) end end)
+    end)
+    b:SetPoint("TOPLEFT", 0, y)
+    return b
 end
 
 local function buildQuick(f)
@@ -3506,6 +3620,7 @@ local function buildTips(f)
         { "Bewertung im Spieler-Tooltip zeigen", "allyTooltip", "Deine Bewertung, Notiz und die Erfahrungen der Gilde beim Drueberfahren", nil, true },
     }, y)
     c2:SetHeight(top2 - y + 4)
+    resetButton(f, y - 16)
 end
 local function refreshTips(f) for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end end
 
@@ -3528,6 +3643,7 @@ local function buildMapTab(f)
         if ok and type(ny) == "number" then y = ny elseif not ok then ns.err(L["Aufbau"] .. " settings/mapset", ny) end
     end
     c:SetHeight(-y + 4)
+    resetButton(f, y - 16, function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end if ns.Gather and ns.Gather.Refresh then pcall(ns.Gather.Refresh) end end)
 end
 local function refreshMapTab(f)
     for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end
@@ -3536,6 +3652,80 @@ end
 BUILD.quick, REFRESH.quick = buildQuick, refreshQuick
 BUILD.tips, REFRESH.tips = buildTips, refreshTips
 BUILD.mapset, REFRESH.mapset = buildMapTab, refreshMapTab
+
+------------------------------------------------------------------------
+-- 0.6.114: Suche mit Synonymen, ohne Umlaut-Unterschied, mit Reiter-/Bereichsnamen und sortiert
+------------------------------------------------------------------------
+local function norm(x)
+    x = tostring(x or ""):lower()
+    x = x:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    return (x:gsub("\195\164", "ae"):gsub("\195\182", "oe"):gsub("\195\188", "ue"):gsub("\195\159", "ss")
+        :gsub("\195\132", "ae"):gsub("\195\150", "oe"):gsub("\195\156", "ue"))
+end
+-- Wortgruppen: sucht man eines, zaehlen alle
+local SYN = {
+    { "ton", "toene", "sound", "klang", "laut", "audio", "musik" },
+    { "hinweis", "meldung", "toast", "benachrichtig", "popup", "notification" },
+    { "minimap", "gildenpunkte", "minikarte" },
+    { "karte", "map", "weltkarte" },
+    { "tooltip", "maus", "drueberfahren", "hover" },
+    { "teilen", "datenschutz", "privat", "share", "privacy" },
+    { "farbe", "design", "aussehen", "theme", "look", "akzent" },
+    { "schrift", "font" },
+    { "groesse", "skalierung", "scale", "size" },
+    { "emoji", "smiley" },
+    { "chat", "fluester", "whisper" },
+    { "durchsicht", "transparenz", "alpha" },
+    { "kampf", "combat" },
+    { "taste", "kuerzel", "keybind", "hotkey" },
+}
+local function variants(q)
+    local out = { q }
+    for _, g in ipairs(SYN) do
+        for _, w in ipairs(g) do
+            if q:find(w, 1, true) or w:find(q, 1, true) then
+                for _, w2 in ipairs(g) do out[#out + 1] = w2 end
+                break
+            end
+        end
+    end
+    return out
+end
+local function searchHits(q)
+    q = norm(q)
+    local vs = variants(q)
+    local hits = {}
+    local function score(label, rest)
+        local l, r = norm(label), norm(rest)
+        if l:find(q, 1, true) == 1 then return 1 end
+        if l:find(q, 1, true) then return 2 end
+        for _, v in ipairs(vs) do if l:find(v, 1, true) then return 3 end end
+        if r:find(q, 1, true) then return 4 end
+        for _, v in ipairs(vs) do if r:find(v, 1, true) then return 5 end end
+    end
+    -- Reiter selbst
+    for _, tb in ipairs(TABS) do
+        if BUILD[tb.key] and not HIDDEN_TABS[tb.key] then
+            local sc = score(L[tb.text], "")
+            if sc then hits[#hits + 1] = { label = L[tb.text], tab = tb.key, isTab = true, sc = sc - 0.5 } end
+        end
+    end
+    local seen = {}
+    for _, e in ipairs(INDEX) do
+        local tabName = e.tab
+        for _, tb in ipairs(TABS) do if tb.key == e.tab then tabName = L[tb.text] end end
+        local ad = e.area and ns.PageDef(e.area)
+        local sc = score(e.label, (e.desc or "") .. " " .. tabName .. " " .. (ad and L[ad.title] or ""))
+        local id = e.label .. "|" .. (e.area or e.tab)
+        if sc and not seen[id] then
+            seen[id] = true
+            hits[#hits + 1] = { label = e.label, desc = e.desc, tab = e.tab, area = e.area, frame = e.frame, sc = sc }
+        end
+    end
+    table.sort(hits, function(a, b) if a.sc ~= b.sc then return a.sc < b.sc end return a.label < b.label end)
+    return hits
+end
+ns.SettingsSearch = searchHits   -- fuer Tests
 
 ns.RegisterPage({
     key = "settings", title = "Einstellungen", order = 8, topbar = true,
@@ -3792,9 +3982,8 @@ ns.RegisterPage({
                 if p.tabs[cur] then p.tabs[cur]:Show() end
             end
             local n = 0
-            for _, e in ipairs(INDEX) do
-                local hay = (e.label .. " " .. (e.desc or "")):lower()
-                if hay:find(t, 1, true) and n < 8 then
+            for _, e in ipairs(searchHits(t)) do
+                if n < 10 then
                     n = n + 1
                     local b = res.btns[n]
                     if not b then
@@ -3818,6 +4007,7 @@ ns.RegisterPage({
                         res:Hide()
                         p.find:ClearFocus()
                         setTab(e.tab)
+                        if e.isTab then return end
                         local f = e.frame
                         -- Bereichs-Einstellung: Bereich oeffnen und den frisch gebauten Schalter suchen
                         if e.area and p.tabs.pages then

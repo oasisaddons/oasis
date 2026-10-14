@@ -915,6 +915,10 @@ end
 -- abzaehlen und am Text bestaetigen; passt der Text nicht, im Umkreis suchen
 local function visibleMap(cf, lines)
     local map = {}
+    if cf.LiveIndexOf then   -- eigene Listen (Oasis-Gildenchat) kennen die Nummer selbst
+        for _, fs in ipairs(lines) do map[fs] = cf:LiveIndexOf(fs) end
+        return map
+    end
     local n = (cf.GetNumMessages and num(cf:GetNumMessages())) or 0
     local off = (cf.GetScrollOffset and num(cf:GetScrollOffset())) or 0
     for k = #lines, 1, -1 do
