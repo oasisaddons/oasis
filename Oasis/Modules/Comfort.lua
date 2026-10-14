@@ -288,11 +288,17 @@ function CF.ApplyChat()
         end
     end
 end
+-- 0.6.105: nur Zeilen speichern, die nach dem Wiederherstellen dazukamen - sonst trug jeder /reload den alten
+-- Block (und Verlaufsbloecke anderer Funktionen) immer weiter
+local restoredUpTo = 0
+-- nesUI hat einen eigenen Chat-Verlauf ueber das Neuladen -> Oasis dann nicht zusaetzlich (sonst doppelt)
+local function nesUIHistory() return _G.nesUI ~= nil and not (_G.nesUIDB and (_G.nesUIDB.chatOff or _G.nesUIDB.chatHistOff)) end
 local function saveChat()
+    if nesUIHistory() then return end
     if not on("cfChatRestore") or not ChatFrame1 or not ChatFrame1.GetNumMessages then return end
     local lines = {}
     local n = ChatFrame1:GetNumMessages() or 0
-    for i = math.max(1, n - 60), n do
+    for i = math.max(1, n - 60, math.min(restoredUpTo, n) + 1), n do
         local ok, text, r, g, b = pcall(ChatFrame1.GetMessageInfo, ChatFrame1, i)
         if ok and type(text) == "string" and text ~= "" then lines[#lines + 1] = { t = text, r = r, g = g, b = b } end
     end
@@ -302,11 +308,22 @@ ns.On("PLAYER_LOGOUT", function() pcall(saveChat) end)
 ns.On("PLAYER_LEAVING_WORLD", function() pcall(saveChat) end)
 local function restoreChat()
     local cr = ns.db.chatRestore
+    if nesUIHistory() then ns.db.chatRestore = nil return end
     if not on("cfChatRestore") or not cr or not cr.lines or time() - (cr.ts or 0) > 600 or not ChatFrame1 then return end
     ns.db.chatRestore = nil
     ChatFrame1:AddMessage("|cff666666- - - " .. L["Chat vor dem Neuladen"] .. " - - -|r")
-    for _, l in ipairs(cr.lines) do ChatFrame1:AddMessage(l.t, l.r or 1, l.g or 1, l.b or 1) end
+    -- alte Verlaufsbloecke (grau, "- - -") aus frueheren Versionen nicht wieder einfuegen
+    local skip = false
+    for _, l in ipairs(cr.lines) do
+        local t = l.t
+        if type(t) == "string" and t:find("^|cff666666%- %- %-") then
+            skip = not t:find("^|cff666666%- %- %- %- %-")   -- Anfangszeile oeffnet, reine Strichzeile schliesst
+        elseif not skip then
+            ChatFrame1:AddMessage(t, l.r or 1, l.g or 1, l.b or 1)
+        end
+    end
     ChatFrame1:AddMessage("|cff666666- - - - - - - - - - -|r")
+    restoredUpTo = ChatFrame1.GetNumMessages and ChatFrame1:GetNumMessages() or 0
 end
 
 ------------------------------------------------------------------------

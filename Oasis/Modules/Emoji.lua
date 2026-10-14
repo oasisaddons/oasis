@@ -401,7 +401,12 @@ local function ovStep(frames)
                     if raw and not issecret(raw) and raw:find("oasisemo:", 1, true) and raw:find("blank:", 1, true) then
                         local rows = math.max(1, (fs.GetNumLines and fs:GetNumLines()) or 1)
                         local lh = (fs:GetHeight() or 14) / rows
+                        -- 0.6.105: nur Bildzeilen innerhalb des Chatfensters (hochgescrollte Zeilen ragen darueber hinaus)
+                        local ct, cb, ft = cf:GetTop(), cf:GetBottom(), fs:GetTop()
                         for _, it in ipairs(lineItems(fs, raw)) do
+                            local rowTop = ft and (ft - (it.row - 1) * lh)
+                            local inside = not (ct and cb and rowTop) or (rowTop <= ct + 2 and rowTop - lh >= cb - 2)
+                            if inside then
                             n = n + 1
                             local t = ov.pool[n]
                             if not t then t = layer:CreateTexture(nil, "OVERLAY") ov.pool[n] = t end
@@ -415,6 +420,7 @@ local function ovStep(frames)
                             t:SetPoint("CENTER", fs, "TOPLEFT", it.x + it.sz / 2, -((it.row - 1) * lh + lh / 2) + it.yo)
                             t:SetAlpha(fs.GetEffectiveAlpha and fs:GetEffectiveAlpha() or 1)
                             t:Show()
+                            end
                         end
                     end
                 end
