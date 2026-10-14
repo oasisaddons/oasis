@@ -419,7 +419,7 @@ function D.ShowPicker(mode)
             if ns.GuildPack then
                 t.art = t:CreateTexture(nil, "BORDER", nil, -1)
                 t.art:SetAllPoints()
-                t.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key)
+                t.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key .. "_clean")   -- 0.6.150: Bild ohne alten Kreis
                 -- 0.6.142: Kreis-Abzeichen als eigene runde Grafik darueber (Tools/make_interest_badges.py) -
                 -- in den Bildern sind die Kreise verschieden gross und oval; so sind alle gleich rund und gross
                 t.badge = t:CreateTexture(nil, "BORDER", nil, 0)
