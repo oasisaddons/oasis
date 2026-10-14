@@ -1582,6 +1582,60 @@ end
 ns.slash.emoji = function() Emoji.TogglePicker() end
 ns.slash.emojis = ns.slash.emoji
 
+-- Diagnose: /oa emojitest - warum laufen animierte Emojis bei jemandem nicht? Ausgabe im Chat (Screenshot reicht),
+-- zusaetzlich in OasisDB.emojiDiag (SavedVariables) gespeichert
+local DIAG_ADDONS = { "Prat-3.0", "Chattynator", "ElvUI", "Glass", "Chatter", "WIM", "BasicChatMods", "TwitchEmotes", "TwitchEmotes_Solaris", "ls_Glass", "nesUI" }
+ns.slash.emojitest = function()
+    local out = {}
+    local function add(s) out[#out + 1] = s ns.print(s) end
+    local st = ns.db and ns.db.settings or {}
+    local nAnim = 0
+    for _ in pairs(Emoji.anims) do nAnim = nAnim + 1 end
+    add(("Emojitest %s | chatEmoji=%s noAnim=%s | animiert=%d | Gildenpaket=%s | Takt=%s | zuletzt gezeigt vor %s s | Felder=%d"):format(
+        tostring(ns.version), tostring(st.chatEmoji), tostring(st.noAnim), nAnim, tostring(ns.GuildPack ~= nil),
+        tostring(Emoji.stepper ~= nil and Emoji.stepper:GetScript("OnUpdate") ~= nil),
+        Emoji.animShown and math.floor(GetTime() - Emoji.animShown) or "nie", (function() local n = 0 for _ in pairs(Emoji.tracked) do n = n + 1 end return n end)()))
+    local other = {}
+    local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
+    for _, a in ipairs(DIAG_ADDONS) do if isLoaded and isLoaded(a) then other[#other + 1] = a end end
+    add("Chat-Addons: " .. (#other > 0 and table.concat(other, ", ") or "keine bekannten"))
+    Emoji._stepFrames = nil
+    local watch = {}
+    for _, n in ipairs(chatFrameNames()) do
+        local cf = _G[n]
+        if cf and cf:IsVisible() then
+            local lines = cf.visibleLines
+            local withEmoji, stepped, secret = 0, 0, 0
+            local sample
+            if type(lines) == "table" then
+                for _, fs in ipairs(lines) do
+                    local t = fs.GetText and fs:GetText()
+                    if t and issecret(t) then secret = secret + 1
+                    elseif t and t:find("emoji\\guild\\", 1, true) then
+                        withEmoji = withEmoji + 1
+                        sample = sample or t:match("(emoji\\guild\\[^|]+)|t")
+                        watch[#watch + 1] = { fs = fs, t = t, n = n }
+                        if t:find(ANIM_PAT) then stepped = stepped + 1 end
+                        if not t:find(ANIM_PAT) then sample = "PASST NICHT: " .. ((t:match("(emoji\\guild\\[^|]+)|t")) or "?") end
+                    end
+                end
+            end
+            add(("%s: visibleLines=%s (%s) Emoji-Zeilen=%d Muster passt=%d geheim=%d %s"):format(n,
+                type(lines), type(lines) == "table" and #lines or "-", withEmoji, stepped, secret, sample and ("| " .. sample) or ""))
+        end
+    end
+    -- nach 1,5 s: haben sich die Emoji-Zeilen wirklich veraendert (= Animation laeuft)?
+    C_Timer.After(1.5, function()
+        local moved = 0
+        for _, w in ipairs(watch) do if w.fs:GetText() ~= w.t then moved = moved + 1 end end
+        local s = ("Nach 1,5 s veraendert: %d von %d Emoji-Zeilen"):format(moved, #watch)
+        out[#out + 1] = s
+        ns.print(s)
+    end)
+    add("Bitte Screenshot davon schicken, waehrend ein animiertes Emoji im Chat steht.")
+    if ns.db then ns.db.emojiDiag = { t = time(), lines = out } end
+end
+
 ------------------------------------------------------------------------
 -- Knopf im Chat-Eingabefeld
 ------------------------------------------------------------------------
