@@ -178,10 +178,10 @@ function D.ShowPicker(mode)
         -- Hintergrund: tiefes Dunkel mit weichem Akzent-Schein oben links
         K.Fill(f, { 0.035, 0.035, 0.045, 0.97 })
         K.Border(f, { 1, 1, 1, 0.08 })
-        -- 0.6.118: Hintergrundbild ganz schwach (nur mit Gildenmodul - Herkunft des Bildes nicht frei geklaert)
+        -- 0.6.118: Hintergrundbild schwach (nur mit Gildenmodul - Herkunft des Bildes nicht frei geklaert)
         f.art = f:CreateTexture(nil, "BACKGROUND", nil, 2)
         f.art:SetPoint("TOPLEFT", 1, -1) f.art:SetPoint("BOTTOMRIGHT", -1, 1)
-        f.art:SetAlpha(0.12)
+        f.art:SetAlpha(0.30)   -- 0.6.120: 12 % war auf dem fast schwarzen Grund unsichtbar
         f.art:Hide()
         f:HookScript("OnShow", function()
             if ns.GuildPack then
@@ -413,6 +413,8 @@ function D.ShowPicker(mode)
                 local tintA = self.compact and (on and 0.14 or (t.hover and 0.07 or 0)) or (on and 0.26 or (t.hover and 0.1 or 0))
                 grad(t.tint, self.compact and "HORIZONTAL" or "VERTICAL", { c[1], c[2], c[3], tintA }, { c[1], c[2], c[3], 0 })
                 if self.compact then K.SetBorderColor(t, on and { c[1], c[2], c[3], 0.55 } or (t.hover and { c[1], c[2], c[3], 0.3 } or { 1, 1, 1, 0.05 })) end
+                -- 0.6.121: Bild-Kacheln haben ihren eigenen Rahmen - Oasis-Rahmen unsichtbar
+                if t.art then K.SetBorderColor(t, { 0, 0, 0, 0 }) end
                 t.bar:SetShown(on and not t.art and true or false)
                 if t.art then
                     t.art:SetAlpha(on and 1 or (t.hover and 0.85 or 0.55))
