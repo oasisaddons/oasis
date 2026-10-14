@@ -2,6 +2,14 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.139
+
+- Guild members on the world map and minimap now glide smoothly between updates instead of jumping; while moving, positions are sent every 2.5 s.
+- Player book: "Add to player book" in the right-click menu (chat names, party, raid, target, focus, friends) and /oa buch for your target - creates the entry and puts the cursor into the note.
+- Appearance > Own colours: fourth colour button "Background" (right-click resets).
+- Start window: wider, rounded corners, nothing cut off any more; "Don't ask again" can be switched off again.
+- Notifications at the top with a cleaner timer bar.
+
 ## 0.6.117
 
 - Settings search also finds related words (sound, privacy, size ...), ignores umlauts, searches tab and area names and lists matches in the name first.
