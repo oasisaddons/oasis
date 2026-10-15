@@ -236,6 +236,45 @@ function Emoji.EuiDiag(cf)
     return "bg-Kinder: " .. (#parts > 0 and table.concat(parts, " ") or "keine")
 end
 Emoji.EuiWindow = euiWindow
+-- 0.6.258: /oa chatwatch - 30 s lang jede Sekunde Scroll-Position und Zeilenzahl des (unsichtbaren) Blizzard-Chats und
+-- des EllesmereUI-Fensters. Waechst die Blizzard-Position ohne Zutun, rutscht EllesmereUIs Fenster leer.
+-- Zusaetzlich: wer ruft ScrollUp/ScrollDown/SetScrollOffset am Blizzard-Fenster auf (Aufrufer aus debugstack).
+local watchHooked = setmetatable({}, { __mode = "k" })
+ns.slash.chatwatch = function()
+    local cf = ChatFrame1
+    if not cf then return end
+    local log = {}
+    local function note(what)
+        local st = debugstack and debugstack(3, 3, 0) or ""
+        local src = st:match("AddOns[/\\]([^:]+:%d+)") or st:match("([^\n]+)") or "?"
+        log[#log + 1] = what .. " <- " .. src
+    end
+    if not watchHooked[cf] then
+        watchHooked[cf] = true
+        for _, m in ipairs({ "ScrollUp", "ScrollDown", "SetScrollOffset", "ScrollToTop", "PageUp" }) do
+            if cf[m] then hooksecurefunc(cf, m, function() if Emoji._watching then note(m) end end) end
+        end
+    end
+    Emoji._watching = true
+    local w = euiWindow(cf)
+    ns.print("chatwatch 30 s - bitte nichts tun und warten. EllesmereUI-Fenster: " .. (w and "gefunden" or "nicht gefunden"))
+    local n, lastOff = 0, nil
+    local t
+    t = C_Timer.NewTicker(1, function()
+        n = n + 1
+        local off = cf.GetScrollOffset and cf:GetScrollOffset() or -1
+        local num = cf.GetNumMessages and cf:GetNumMessages() or -1
+        local wo = w and w.GetScrollOffset and w:GetScrollOffset() or -1
+        local wn = w and w.GetNumMessages and w:GetNumMessages() or -1
+        if n == 1 or off ~= lastOff or #log > 0 or n % 10 == 0 then
+            ns.print(("%2d s  Blizzard: Position %s / %s Zeilen   EllesmereUI: Position %s / %s Zeilen%s"):format(n, tostring(off), tostring(num),
+                tostring(wo), tostring(wn), #log > 0 and ("   Aufrufe: " .. table.concat(log, ", ")) or ""))
+        end
+        lastOff = off
+        for i = #log, 1, -1 do log[i] = nil end
+        if n >= 30 then t:Cancel() Emoji._watching = nil ns.print("chatwatch fertig - bitte Screenshot schicken.") end
+    end)
+end
 -- Anschluesse je Chatfenster (Tooltip, Eingabe, Knoepfe): laufen beim Login und wieder, wenn WoW einen Reiter oeffnet
 local wirers = {}
 function Emoji.WireChatFrames()
