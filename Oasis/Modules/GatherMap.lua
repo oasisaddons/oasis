@@ -61,10 +61,35 @@ GM.Shown, GM.Freshness, GM.Harvested = shown, freshness, harvested
 -- Fundorte merken
 ------------------------------------------------------------------------
 local pending = {}   -- castGUID -> { kind, name }
+-- 0.6.251: Sammeln auch am Zaubernamen erkennen - Clients mit anderen Zauber-IDs (z. B. Forever) speicherten sonst
+-- nichts mehr. Die Namen kommen aus den bekannten IDs (in der Sprache des Clients).
+local function spellName(id)
+    if C_Spell and C_Spell.GetSpellName then local ok, n = pcall(C_Spell.GetSpellName, id) if ok and n then return n end end
+    if GetSpellInfo then local ok, n = pcall(GetSpellInfo, id) if ok and n then return n end end
+end
+local byName
+local function kindOf(spellID)
+    if not spellID then return nil end
+    if SPELLS[spellID] then return SPELLS[spellID] end
+    if not byName then
+        byName = {}
+        for id, k in pairs(SPELLS) do local n = spellName(id) if n then byName[n] = k end end
+    end
+    local n = spellName(spellID)
+    return n and byName[n] or nil
+end
+GM.KindOf = kindOf
+-- letzte Zauber fuer /oa sammeltest (nur lokal, hoechstens 8)
+GM.diag = {}
+local function diag(spellID, kind, note)
+    local d = GM.diag
+    table.insert(d, 1, { t = time(), id = spellID, name = spellID and spellName(spellID) or "?", kind = kind, note = note })
+    if #d > 8 then d[#d] = nil end
+end
 ns.On("UNIT_SPELLCAST_SENT", function(unit, target, guid, spellID)
     if unit ~= "player" then return end
     spellID = ns.safe(spellID)
-    local kind = spellID and SPELLS[spellID]
+    local kind = kindOf(spellID)
     if not kind then return end
     pending[ns.safe(guid) or "x"] = { kind = kind, name = ns.safe(target) or "" }
 end)
@@ -95,9 +120,10 @@ function GM.Nodes(map)
     return byMap[map] or {}
 end
 function GM.Record(kind, name)
-    if ns.inInstance() or ns.db.settings.shareNodes == false then return end
+    if ns.inInstance() then return "Instanz" end
+    if ns.db.settings.shareNodes == false then return "Sammelorte teilen ist aus" end
     local map, x, y = myPos()
-    if not map then return end
+    if not map then return "keine Kartenposition" end
     -- schon bekannt?
     for _, r in ipairs(GM.Nodes(map)) do
         if r.kind == kind and (r.name == name or name == "") and math.abs(r.x - x) < NEAR and math.abs(r.y - y) < NEAR then
@@ -110,25 +136,40 @@ function GM.Record(kind, name)
                 c.ts, c.by = ns.now(), ns.me()
                 Store.Put("nodes", c)
             end
-            return
+            return "schon bekannt"
         end
     end
     Store.Put("nodes", { id = ("nd-%s-%d-%d-%d"):format(kind, map, math.floor(x * 1000), math.floor(y * 1000)),
         kind = kind, name = name, map = map, x = math.floor(x * 10000) / 10000, y = math.floor(y * 10000) / 10000,
         n = 1, ts = ns.now(), by = ns.me() })
     if ns.Map and WorldMapFrame and WorldMapFrame:IsShown() then ns.Map.UpdateWorldPins() end
+    return "neu gespeichert"
 end
 ns.On("UNIT_SPELLCAST_SUCCEEDED", function(unit, guid, spellID)
     if unit ~= "player" then return end
+    spellID = ns.safe(spellID)
     local p = pending[ns.safe(guid) or "x"]
     if not p then
-        spellID = ns.safe(spellID)
-        if not (spellID and SPELLS[spellID]) then return end
-        p = { kind = SPELLS[spellID], name = "" }
+        local kind = kindOf(spellID)
+        if not kind then diag(spellID, nil, "kein Sammelzauber") return end
+        p = { kind = kind, name = "" }
     end
     pending[ns.safe(guid) or "x"] = nil
-    pcall(GM.Record, p.kind, p.name)
+    local ok, res = pcall(GM.Record, p.kind, p.name)
+    diag(spellID, p.kind, ok and res or ("Fehler: " .. tostring(res)))
 end)
+-- /oa sammeltest: letzte Zauber und was daraus wurde
+ns.slash.sammeltest = function()
+    local s = ns.db.settings
+    local map, x, y = myPos()
+    ns.print(("Sammeltest | Sammelorte teilen=%s | Instanz=%s | Karte=%s (%.3f, %.3f) | Fundorte gesamt=%d"):format(
+        tostring(s.shareNodes ~= false), tostring(ns.inInstance()), tostring(map), x or 0, y or 0, #GM.Nodes()))
+    if #GM.diag == 0 then ns.print("Noch kein Zauber seit dem Einloggen - einmal sammeln, dann nochmal /oa sammeltest.") end
+    for _, d in ipairs(GM.diag) do
+        ns.print(("  %s  Zauber %s (%s) -> %s: %s"):format(date("%H:%M:%S", d.t), tostring(d.id), tostring(d.name), tostring(d.kind or "-"), tostring(d.note)))
+    end
+end
+ns.slash.gathertest = ns.slash.sammeltest
 
 ------------------------------------------------------------------------
 -- Weltkarte (haengt sich an Oasis' Kartenebene) und Minimap
