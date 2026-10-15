@@ -238,17 +238,11 @@ local function build(f)
     local H = ns.SettingsHelpers
     local s = G()
     f.noCompact = true
-    local sf = CreateFrame("ScrollFrame", nil, f)
-    sf:SetPoint("TOPLEFT", 0, 0)
-    sf:SetPoint("BOTTOMRIGHT", 0, 0)
-    local body = CreateFrame("Frame", nil, sf)
+    -- 0.6.266: kein eigener Scrollbereich mehr - die Einstellungen scrollen selbst und messen die Seite an ihren
+    -- Inhalten. Der innere Scrollbereich war so gross wie die Seite: man kam nicht bis ganz nach unten.
+    local body = CreateFrame("Frame", nil, f)
+    body:SetPoint("TOPLEFT", 0, 0)
     body:SetSize(770, 900)
-    sf:SetScrollChild(body)
-    sf:EnableMouseWheel(true)
-    sf:SetScript("OnMouseWheel", function(self, delta)
-        local max = math.max(0, (body:GetHeight() or 0) - (self:GetHeight() or 0))
-        self:SetVerticalScroll(math.max(0, math.min(max, (self:GetVerticalScroll() or 0) - delta * 40)))
-    end)
     local function apply() pcall(GC.ApplyAll) end
     local W, IN = 362, 334
     local function toggles(card, list, y, after)

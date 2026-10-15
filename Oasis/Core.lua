@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.264"
+ns.version = "0.6.266"
 ns.versionDate = "15.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -899,7 +899,7 @@ local function initDB()
     local st = db.settings
     if not st.glass26 then
         st.glass26 = true
-        if st.theme == nil or st.theme == "standard" then st.theme = "glass" end
+        if st.theme == nil or st.theme == "standard" or st.theme == "modern" or st.theme == "classic" then st.theme = "glass" end   -- 0.6.265: Klassisch, Modern, WoW Classic entfernt
         if st.uiFont == nil or st.uiFont == "arialn" then st.uiFont = "inter" end
     end
     -- 0.5.379: Standardschrift Inter; Arial-Narrow-Rueckstellung von 0.5.378 zuruecknehmen
