@@ -4339,7 +4339,14 @@ do
                     col.edge:SetAlpha(0)
                     col.m:Hide() col.m.Show = function() end
                     col.cls:ClearAllPoints() col.cls:SetPoint("TOP", 0, -24) col.cls:SetSize(30, 30)
-                    if col.crown then col.crown:ClearAllPoints() col.crown:SetPoint("BOTTOM", col.cls, "TOP", 0, -2) col.crown:SetSize(20, 20) end
+                    if col.crown then
+                        -- 0.6.243: gemalte Krone (Tools/make_crown.py) oben in der Gold-Karte, Klassensymbol rueckt darunter
+                        col.crown:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_crown")
+                        col.crown:SetTexCoord(0, 1, 0, 1)
+                        col.crown:SetVertexColor(1, 1, 1, 1)
+                        col.crown:ClearAllPoints() col.crown:SetPoint("TOP", col, "TOP", 0, -6) col.crown:SetSize(52, 26)
+                        col.cls:ClearAllPoints() col.cls:SetPoint("TOP", col.crown, "BOTTOM", 0, -2)
+                    end
                     col.n:ClearAllPoints() col.n:SetPoint("TOP", col.cls, "BOTTOM", 0, -4) col.n:SetPoint("LEFT", col, "LEFT", 4, 0) col.n:SetPoint("RIGHT", col, "RIGHT", -4, 0)
                     col.num:ClearAllPoints() col.num:SetPoint("TOP", col.n, "BOTTOM", 0, -2)
                     K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 24, "", K.FONT)
