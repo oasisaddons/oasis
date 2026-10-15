@@ -626,7 +626,10 @@ local function build()
         local auto = ns.MiniAutoHide and ns.MiniAutoHide()
         local want = 0
         if auto and not bar.dragging and not bar.preview then
-            if bar:IsMouseOver(4, 0, 0, 0) or (GameTooltip:IsShown() and GameTooltip:GetOwner() and GameTooltip:GetOwner():GetParent() == bar) then
+            -- 0.6.260: mit Glut-Bild steckt die Leiste eingerollt ganz ueber dem Bildschirmrand - sichtbar ist nur das
+            -- Bild darunter; die Maus dort muss sie auch ausrollen (Bereich nach unten um das Bild + Spielraum erweitern)
+            local below = (bar.art and bar.art.m and bar.art.m:IsShown()) and -14 or 0
+            if bar:IsMouseOver(4, below, 0, 0) or (GameTooltip:IsShown() and GameTooltip:GetOwner() and GameTooltip:GetOwner():GetParent() == bar) then
                 away = 0
             else
                 away = away + el
