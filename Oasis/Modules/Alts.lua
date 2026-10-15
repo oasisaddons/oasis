@@ -375,7 +375,7 @@ local function buildAsk()
     f.of:SetScript("OnClick", function(self)
         local items = {}
         for _, c in ipairs(others()) do
-            items[#items + 1] = { text = ns.displayName(c), checked = c == f.pick, fn = function() f.pick = c self:SetText(ns.displayName(c)) end }
+            items[#items + 1] = { text = ns.displayName(c), checked = c == f.pick, fn = function() f.pick = c self:SetLabel(ns.displayName(c)) end }
         end
         K.ShowMenu(self, items, nil, 200)
     end)
@@ -480,7 +480,7 @@ local function buildAsk()
                 cur = best
             end
             self.pick = cur
-            self.of:SetText(cur and ns.displayName(cur) or "")
+            self.of:SetLabel(cur and ns.displayName(cur) or "")   -- 0.6.249: SetLabel (SetText traf WoWs unsichtbaren Knopftext)
         end
     end
     f:Hide()
