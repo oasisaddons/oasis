@@ -612,8 +612,8 @@ local function buildMain()
             end
             side.glow:SetVertexColor(ac[1], ac[2], ac[3], 1)
             -- 0.6.237: Farbverlauf in der Farbe "Hintergrund links" (sonst Akzentfarbe), unabhaengig von der Glut
-            if not K.Gradient(side.wash, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.22 }) then
-                side.wash:SetColorTexture(ac[1], ac[2], ac[3], 0.08)
+            if not K.Gradient(side.wash, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.11 })   -- 0.6.255: halb so stark then
+                side.wash:SetColorTexture(ac[1], ac[2], ac[3], 0.04)
             end
             side.wash:Show()
         end
