@@ -1324,6 +1324,24 @@ local function buildPicker()
         if K.BgImg then K.BgImg(stage.art) end   -- 0.6.227: Helligkeit einstellbar
         stage.art:SetAllPoints()
         stage.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_pick_bg")
+        -- 0.6.239: Fackel-/Glutlicht flackert sanft und unregelmaessig - additive Kopie des Bildes, deren Helligkeit
+        -- weich zufaelligen Zielwerten folgt (neues Ziel alle 0,15-0,6 s, kein Springen)
+        stage.flick = stage:CreateTexture(nil, "BACKGROUND", nil, 2)
+        stage.flick:SetAllPoints(stage.art)
+        stage.flick:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_pick_bg")
+        stage.flick:SetBlendMode("ADD")
+        stage.flick:SetAlpha(0)
+        local cur, goal, wait = 0, 0, 0
+        stage:HookScript("OnUpdate", function(_, el)
+            el = el or 0
+            wait = wait - el
+            if wait <= 0 then
+                goal = 0.04 + math.random() * 0.22
+                wait = 0.15 + math.random() * 0.45
+            end
+            cur = cur + (goal - cur) * math.min(1, el * 4)
+            stage.flick:SetAlpha(cur)
+        end)
         light:Hide() plat:Hide()
         f.big:ClearAllPoints()
         -- 0.6.238: Figur 70 tiefer, damit sie auf dem Ritualkreis steht (schwebte darueber)
