@@ -1192,14 +1192,19 @@ function DR.LoadFighter(m, fi)
     end)
 end
 -- Kamera fuer eine Figur einstellen
-local PICK_DIST = 1.5   -- 0.6.240: Kameraabstand der grossen Vorschau in der Kaempfer-Auswahl
+-- 0.6.241: Kaempfer-Auswahl: Figur fuellt ihren Rahmen (Fuesse unten auf dem Kreis); kleiner wird sie ueber einen
+-- kuerzeren Rahmen, nicht ueber mehr Kameraabstand (sonst schrumpft sie zur Mitte und schwebt)
+local PICK_DIST = "pick"
 function DR.ApplyCam(m, fi, facing, full)
     -- full = ganze Figur (Kampffenster), sonst Portrait-Ausschnitt; zoom = 0 bei der Figur: immer ganz
     if full then
         pcall(m.SetPortraitZoom, m, 0)
         -- 0.6.240: full darf eine Zahl sein = eigener Abstand (Kaempfer-Auswahl), sonst wie bisher 1,1
-        local mult = type(full) == "number" and full or 1.1
-        pcall(m.SetCamDistanceScale, m, (fi and (fi.fdist or fi.dist) or 1) * mult)
+        if full == "pick" then
+            pcall(m.SetCamDistanceScale, m, (fi and (fi.pdist or fi.dist) or 1) * 1.1)
+        else
+            pcall(m.SetCamDistanceScale, m, (fi and (fi.fdist or fi.dist) or 1) * 1.1)
+        end
         pcall(m.SetPosition, m, 0, 0, fi and fi.fy or 0)
         if facing then pcall(m.SetFacing, m, facing) end
         return
@@ -1348,7 +1353,7 @@ local function buildPicker()
         light:Hide() plat:Hide()
         f.big:ClearAllPoints()
         -- 0.6.238: Figur 70 tiefer, damit sie auf dem Ritualkreis steht (schwebte darueber)
-        f.big:SetPoint("TOPLEFT", 0, -80) f.big:SetPoint("BOTTOMRIGHT", 0, 26)
+        f.big:SetPoint("TOPLEFT", 0, -160) f.big:SetPoint("BOTTOMRIGHT", 0, 26)   -- 0.6.241: kuerzer = Figur kleiner
     end
     f.bigName = K.Title(stage, 20, C.text, "CENTER")
     f.bigName:SetPoint("BOTTOM", 0, 40)
