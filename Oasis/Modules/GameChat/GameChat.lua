@@ -661,7 +661,7 @@ function GC.ApplyButtons()
     watch(ChatFrameChannelButton, "gcHideChannel")
     watch(QuickJoinToastButton, "gcHideSocial")
     watch(FriendsMicroButton, "gcHideSocial")
-    for _, n in ipairs(CHAT_FRAMES or {}) do
+    for _, n in ipairs((ns.ForeignChat and ns.ForeignChat()) and {} or CHAT_FRAMES or {}) do   -- 0.6.257: EllesmereUI steuert die Knoepfe selbst
         local f = _G[n]
         if f then
             for _, suffix in ipairs({ "ScrollUpButton", "ScrollDownButton", "BottomButton", "ScrollToBottomButton" }) do
@@ -693,7 +693,7 @@ function GC.ApplyStamp()
     local s = G()
     local fmt
     for _, st in ipairs(GC.STAMPS) do if st.key == s.gcStamp then fmt = st.fmt end end
-    if s.gcOn and fmt then
+    if s.gcOn and fmt and not (ns.ForeignChat and ns.ForeignChat()) then   -- 0.6.257: EllesmereUI hat eigene Zeitstempel (sonst doppelt)
         if s.gcStampNative == nil then s.gcStampNative = cvar("showTimestamps") or "none" end
         cvar("showTimestamps", fmt)
     elseif s.gcStampNative ~= nil then
@@ -1181,7 +1181,7 @@ if hooksecurefunc and type(FCF_OpenTemporaryWindow) == "function" then
     hooksecurefunc("FCF_OpenTemporaryWindow", function() C_Timer.After(0, function() pcall(GC.HookSelect) end) end)
 end
 function GC.ApplyCopyButton()
-    local want = G().gcCopyBtn ~= false and not nesUIChat()
+    local want = G().gcCopyBtn ~= false and not nesUIChat() and not (ns.ForeignChat and ns.ForeignChat())   -- 0.6.257
     if not GC.copyBtn then
         if not want or not ChatFrame1 then return end
         local b = CreateFrame("Button", "OasisChatCopyButton", ChatFrame1)

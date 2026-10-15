@@ -548,8 +548,11 @@ function Emoji.StepChat()
         for _, x in ipairs(frames) do if x == f then have = true break end end
         if not have then frames[#frames + 1] = f end
     end
-    for fs in pairs(Emoji.tracked) do
-        if fs.IsVisible and fs:IsVisible() then pcall(stepLine, fs) end
+    -- 0.6.257: mit EllesmereUI-Chat die unsichtbaren Blizzard-Zeilen nicht umschreiben (Klickflaechen passten nicht mehr)
+    if not (ns.ForeignChat and ns.ForeignChat()) then
+        for fs in pairs(Emoji.tracked) do
+            if fs.IsVisible and fs:IsVisible() then pcall(stepLine, fs) end
+        end
     end
     -- 0.5.565: Chatfenster, ueber dessen Link gerade die Maus steht (Tooltip gehoert ihm), nicht weiterschalten -
     -- SetText baut die Link-Flaechen neu, WoW meldet "Maus weg" und die Vorschau verschwand sofort
@@ -565,6 +568,7 @@ function Emoji.StepChat()
         if not ok then ns.err("Emoji", e) end
         return
     end
+    if (ns.ForeignChat and ns.ForeignChat()) then return end   -- 0.6.257: Modus 1-3 nur im Blizzard-Chat (Modus 4 laeuft oben)
     local viaBuffer = redrawMode() == 3
     for _, cf in ipairs(frames) do
         local lines = cf and cf ~= tipOwner and cf:IsVisible() and cf.visibleLines

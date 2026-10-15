@@ -274,7 +274,9 @@ function CF.ApplyChat()
         end
         if eb and eb.SetAltArrowKeyMode then eb:SetAltArrowKeyMode(not on("cfChatArrows")) end
         if f.SetFading and not (ns.ForeignChat and ns.ForeignChat()) then f:SetFading(not on("cfChatNoFade")) end   -- 0.6.254
-        if eb and on("cfChatTop") then
+        if (ns.ForeignChat and ns.ForeignChat()) then
+            -- 0.6.257: EllesmereUI setzt die Eingabe selbst (Textbereich haengt davon ab) - nicht verschieben
+        elseif eb and on("cfChatTop") then
             eb:ClearAllPoints()
             eb:SetPoint("BOTTOMLEFT", f, "TOPLEFT", -5, 22)
             eb:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", 5, 22)

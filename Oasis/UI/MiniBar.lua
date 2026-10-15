@@ -332,7 +332,8 @@ local function build()
         local baseShape = bar.Shape
         function bar:Shape()
             baseShape(self)
-            local on = self:EdgeOf() == "TOP"
+            -- 0.6.257: nur mit Bild (Textur geladen) - sonst stand die Leiste ganz ohne Hintergrund da
+            local on = self:EdgeOf() == "TOP" and (self.art.m:GetTexture() ~= nil)
             local cw = ((self:GetHeight() or 38) + 8) * 1.09
             self.art.l:SetWidth(cw) self.art.r:SetWidth(cw)
             for _, k in ipairs({ "l", "m", "r" }) do self.art[k]:SetShown(on) end
@@ -349,6 +350,10 @@ local function build()
             if self.sheen then self.sheen:Show() end
             baseShape2(self)
         end
+        -- 0.6.257: UI-Skala geaendert (z. B. EllesmereUI setzt UIParent:SetScale) -> Rand neu bestimmen und Form nachziehen
+        local reshape = CreateFrame("Frame")
+        for _, ev in ipairs({ "UI_SCALE_CHANGED", "DISPLAY_SIZE_CHANGED", "PLAYER_ENTERING_WORLD" }) do pcall(reshape.RegisterEvent, reshape, ev) end
+        reshape:SetScript("OnEvent", function() C_Timer.After(1, function() if bar and bar.Shape then pcall(bar.Shape, bar) end end) end)
         -- Enden-Breite folgt der Hoehe (kompakt / angedockt)
         bar:HookScript("OnSizeChanged", function(self) if self.art then local cw = ((self:GetHeight() or 38) + 8) * 1.09 self.art.l:SetWidth(cw) self.art.r:SetWidth(cw) end end)
     end
