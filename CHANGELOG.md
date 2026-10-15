@@ -2,6 +2,18 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.232
+
+- Deathroll: find opponents outside your guild too - a hidden channel per stake level (small / medium / high) shares who is looking for a game. Sends only on changes plus a sign of life every 60 s; players from other guilds appear quietly in the list. Network status next to the online count (click to connect), can be turned off in the Deathroll settings, /oa drnetz shows the connection.
+- Deathroll: opponent list with padding, cleaner tabs and medal cards for places 1-3; the "Choose your fighter" preview no longer turns see-through when another 3D model is behind it; fixed a layout error in the opponent box.
+- Main window: slimmer, modern frame with a soft gradient from the top left and a short shimmer running around it now and then; the active sidebar entry glows in your accent colour.
+- Dashboard: "Who is online" and "Hero / Unlucky of the week" in separate boxes, matching the widths below; "What's happening" with a time column and more space; "Up next" as cards with a progress bar for goals like (126/150).
+- Rank / XP bar at the bottom in a new ornamental style.
+- Character window: "Best upgrades per slot" shows where each item drops (dungeon and boss) right under its name.
+- Appearance > Own colours: clearer names (Window background, Accent / highlight, Navigation left ...), fewer sliders ("Glow" and "Image brightness").
+- Animated emojis are measured again when another chat addon (e.g. EllesmereUI) changes the chat font; /oa emojitest lists EllesmereUI.
+- Fixed: the "Share" settings page could fail to build.
+
 ## 0.6.161
 
 - New "What's new" window: title with version, one row per change with icon, title and short text.

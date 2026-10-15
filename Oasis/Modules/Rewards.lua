@@ -304,126 +304,114 @@ end
 -- XP-Leiste unten am Hauptfenster (immer sichtbar)
 ------------------------------------------------------------------------
 function RW.AttachBar(main, sidebar)
+    -- 0.6.187: Ornament-Stil in einer Zeile - goldene Raute als Emblem, "Rang N" + Titel, Balken mit Goldkante,
+    -- Rauten an den Enden und am aktuellen Stand, rechts die XP
     local b = CreateFrame("Button", nil, main)
-    -- runde Leiste in Gold mit Textur: Glanz wandert langsam durch die Fuellung,
-    -- am aktuellen Stand ein weicher Schein; Beschriftung ruhig darueber
     b:SetPoint("BOTTOMLEFT", (sidebar or 200) + 16, 6)
     b:SetPoint("BOTTOMRIGHT", -16, 6)
-    b:SetHeight(22)
+    b:SetHeight(26)
     b:SetFrameLevel(main:GetFrameLevel() + 20)
-    local H = 6
-    -- Pille aus Mittelstueck + zwei Halbkreis-Enden
-    local function pill(layer, c)
-        local t = { }
-        t.mid = b:CreateTexture(nil, layer)
-        t.mid:SetHeight(H)
-        t.l = b:CreateTexture(nil, layer)
-        t.l:SetTexture(MASK) t.l:SetSize(H, H)
-        t.r = b:CreateTexture(nil, layer)
-        t.r:SetTexture(MASK) t.r:SetSize(H, H)
-        function t:Color(r, g, bl, a)
-            self.mid:SetColorTexture(r, g, bl, a)
-            self.l:SetVertexColor(r, g, bl, a) self.r:SetVertexColor(r, g, bl, a)
-        end
-        -- Breite x ab linkem Rand der Leiste
-        function t:Place(x)
-            x = math.max(H, x)
-            self.l:ClearAllPoints() self.l:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 2)
-            self.mid:ClearAllPoints()
-            self.mid:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", H / 2, 2)
-            self.mid:SetWidth(math.max(0.5, x - H))
-            self.r:ClearAllPoints() self.r:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", x - H, 2)
-        end
-        t:Color(c[1], c[2], c[3], c[4])
-        return t
+    local GOLD = { 1, 0.78, 0.36 }
+    local H = 8
+    local function diamond(parent, size, c, layer, sub)
+        local d = parent:CreateTexture(nil, layer or "OVERLAY", nil, sub or 2)
+        d:SetColorTexture(c[1], c[2], c[3], c[4] or 1)
+        d:SetSize(size, size)
+        if d.SetRotation then pcall(d.SetRotation, d, math.pi / 4) end
+        return d
     end
-    b.trackP = pill("BACKGROUND", { 1, 1, 1, 0.08 })
-    local GOLD = { 1, 0.78, 0.24 }
-    b.fillP = pill("ARTWORK", { GOLD[1], GOLD[2], GOLD[3], 1 })
-    -- Mittelstueck mit Blizzards Leistentextur, Verlauf dunkles Gold -> helles Gold
-    b.fillP.mid:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    b.fillP.mid:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
-    if b.fillP.mid.SetGradient and CreateColor then
-        pcall(b.fillP.mid.SetGradient, b.fillP.mid, "HORIZONTAL", CreateColor(0.85, 0.52, 0.12, 1), CreateColor(1, 0.86, 0.38, 1))
+    -- Emblem links: Raute mit dunklem Kern und weichem Schein
+    b.emGlow = b:CreateTexture(nil, "BACKGROUND")
+    b.emGlow:SetTexture(ns.MEDIA .. "softglow") b.emGlow:SetBlendMode("ADD")
+    b.emGlow:SetVertexColor(1, 0.7, 0.3) b.emGlow:SetSize(40, 30) b.emGlow:SetAlpha(0.5)
+    b.em = diamond(b, 14, GOLD, "ARTWORK", 1)
+    b.em:SetPoint("LEFT", 6, 0)
+    b.emIn = diamond(b, 8, { 0.14, 0.08, 0.03 }, "ARTWORK", 2)
+    b.emIn:SetPoint("CENTER", b.em)
+    b.emDot = diamond(b, 3, { 1, 0.95, 0.75 }, "ARTWORK", 3)
+    b.emDot:SetPoint("CENTER", b.em)
+    b.emGlow:SetPoint("CENTER", b.em)
+    b.lbl = K.Text(b, 11, GOLD)
+    b.lbl:SetPoint("LEFT", b.em, "RIGHT", 12, 0)
+    b.title = K.Text(b, 11, { 0.86, 0.86, 0.88 })
+    b.title:SetPoint("LEFT", b.lbl, "RIGHT", 8, 0)
+    b.text = K.Text(b, 10, { 0.8, 0.8, 0.82 }, "RIGHT")
+    b.text:SetPoint("RIGHT", -6, 0)
+    b.x2 = K.Text(b, 10, C.amber, "RIGHT")
+    b.x2:SetPoint("RIGHT", b.text, "LEFT", -14, 0)
+    -- Balkenbereich zwischen Titel und XP
+    local area = CreateFrame("Frame", nil, b)
+    area:SetHeight(H + 4)
+    area:SetPoint("LEFT", b.title, "RIGHT", 22, 0)
+    area:SetPoint("RIGHT", b.text, "LEFT", -22, 0)
+    b.area = area
+    area.bg = area:CreateTexture(nil, "BACKGROUND")
+    area.bg:SetAllPoints() area.bg:SetColorTexture(0.03, 0.03, 0.035, 0.9)
+    K.Border(area, { GOLD[1], GOLD[2], GOLD[3], 0.45 })
+    b.endL = diamond(b, 7, GOLD) b.endL:SetPoint("CENTER", area, "LEFT", -7, 0)
+    b.endR = diamond(b, 7, GOLD) b.endR:SetPoint("CENTER", area, "RIGHT", 7, 0)
+    b.fill = area:CreateTexture(nil, "ARTWORK")
+    b.fill:SetPoint("TOPLEFT", 2, -2) b.fill:SetPoint("BOTTOMLEFT", 2, 2)
+    b.fill:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    if not (b.fill.SetGradient and CreateColor and pcall(b.fill.SetGradient, b.fill, "HORIZONTAL", CreateColor(0.7, 0.42, 0.1, 1), CreateColor(1, 0.86, 0.42, 1))) then
+        b.fill:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
     end
-    -- Endstuecke einfarbig: auf die mittlere Helligkeit der Textur abdunkeln, sonst leuchten sie heraus
-    b.fillP.l:SetVertexColor(0.85 * 0.62, 0.52 * 0.62, 0.12 * 0.62, 1)
-    b.fillP.r:SetVertexColor(1 * 0.66, 0.86 * 0.66, 0.38 * 0.66, 1)
-    b.fillP.Color = function() end   -- Farbe bleibt Gold
-    -- Glanz: laeuft innerhalb der Fuellung (abgeschnitten) von links nach rechts
-    b.clip = CreateFrame("Frame", nil, b)
+    b.fill:SetWidth(1)
+    b.track = area.bg
+    -- Glanz innerhalb der Fuellung
+    b.clip = CreateFrame("Frame", nil, area)
     b.clip:SetClipsChildren(true)
-    b.clip:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 2)
-    b.clip:SetSize(1, H)
+    b.clip:SetPoint("TOPLEFT", 2, -2) b.clip:SetPoint("BOTTOMLEFT", 2, 2)
+    b.clip:SetWidth(1)
     b.shine = b.clip:CreateTexture(nil, "OVERLAY")
-    b.shine:SetTexture(ns.MEDIA .. "shine")
-    b.shine:SetBlendMode("ADD")
-    b.shine:SetSize(70, H)
-    b.shine:SetVertexColor(1, 0.95, 0.75)
-    b.shine:SetAlpha(0.22)   -- dezent
-    -- Schein am aktuellen Stand
-    b.glow = b:CreateTexture(nil, "OVERLAY")
-    b.glow:SetTexture(ns.MEDIA .. "softglow")
-    b.glow:SetBlendMode("ADD")
-    b.glow:SetSize(34, 22)
-    b.glow:SetVertexColor(1, 0.8, 0.35)
-    b.tip = b:CreateTexture(nil, "OVERLAY", nil, 1)
-    b.tip:SetTexture(MASK)
-    b.tip:SetSize(H + 2, H + 2)
-    b.tip:SetVertexColor(1, 0.97, 0.85)
-    local origPlace = b.fillP.Place
-    b.fillP.Place = function(self, x)
-        origPlace(self, x)
-        x = math.max(H, x)
-        b.fillX = x
-        b.clip:SetWidth(math.max(1, x))
-        b.glow:ClearAllPoints() b.glow:SetPoint("CENTER", b, "BOTTOMLEFT", x - H / 2, 2 + H / 2)
-        b.tip:ClearAllPoints() b.tip:SetPoint("CENTER", b, "BOTTOMLEFT", x - H / 2, 2 + H / 2)
+    b.shine:SetTexture(ns.MEDIA .. "shine") b.shine:SetBlendMode("ADD")
+    b.shine:SetSize(70, H) b.shine:SetVertexColor(1, 0.95, 0.75) b.shine:SetAlpha(0.25)
+    -- Raute am aktuellen Stand
+    b.glow = area:CreateTexture(nil, "OVERLAY")
+    b.glow:SetTexture(ns.MEDIA .. "softglow") b.glow:SetBlendMode("ADD")
+    b.glow:SetSize(30, 22) b.glow:SetVertexColor(1, 0.8, 0.35)
+    b.tip = diamond(area, 9, { 1, 0.92, 0.6 }, "OVERLAY", 3)
+    b.tipIn = diamond(area, 4, { 0.3, 0.16, 0.04 }, "OVERLAY", 4)
+    local function place(x)
+        local w = math.max(1, x)
+        b.fillX = w
+        b.fill:SetWidth(w)
+        b.clip:SetWidth(w)
+        b.tip:ClearAllPoints() b.tip:SetPoint("CENTER", area, "LEFT", 2 + w, 0)
+        b.tipIn:ClearAllPoints() b.tipIn:SetPoint("CENTER", b.tip)
+        b.glow:ClearAllPoints() b.glow:SetPoint("CENTER", b.tip)
     end
     b.t = 0
     b:SetScript("OnUpdate", function(self, el)
-        if ns.db and ns.db.settings.noAnim then
-            self.shine:Hide() self.glow:SetAlpha(0.6)
-            return
-        end
+        if ns.db and ns.db.settings.noAnim then self.shine:Hide() self.glow:SetAlpha(0.6) return end
         self.t = self.t + el
         local fx = self.fillX or 0
-        local per = 6
-        local q = (self.t % per) / per
+        local q = (self.t % 6) / 6
         self.shine:Show()
         self.shine:ClearAllPoints()
         self.shine:SetPoint("LEFT", self.clip, "LEFT", -70 + (fx + 70) * q, 0)
-        self.glow:SetAlpha(0.4 + 0.15 * math.sin(self.t * 1.6))
+        self.glow:SetAlpha(0.45 + 0.15 * math.sin(self.t * 1.6))
     end)
-    -- alte Felder fuer Aufrufer, die nur Breite abfragen
-    b.fill = b.fillP.mid
-    b.track = b.trackP.mid
-    b.lbl = K.Text(b, 10, C.muted)
-    b.lbl:SetPoint("BOTTOMLEFT", 0, 11)
-    b.text = K.Text(b, 10, C.dim, "RIGHT")
-    b.text:SetPoint("BOTTOMRIGHT", 0, 11)
-    b.x2 = K.Text(b, 10, C.amber)
-    b.x2:SetPoint("LEFT", b.lbl, "RIGHT", 12, 0)
-    b:SetScript("OnSizeChanged", function(self) if self.pct then self.trackP:Place(self:GetWidth() or 0) self.fillP:Place((self:GetWidth() or 0) * self.pct) end end)
+    local function innerW() local w = area:GetWidth() or 0 return math.max(10, w - 4) end
+    area:SetScript("OnSizeChanged", function() if b.pct then place(innerW() * b.pct) end end)
     function b:Update(animate)
         local r = ns.Rank and ns.Rank.Mine()
         if not r then self:Hide() return end
-        local w = self:GetWidth()
-        if not w or w < 10 then w = 760 end
-        self.trackP:Place(w)
+        self.lbl:SetText((L["Rang %d"]):format(r.level))
+        self.title:SetText(r.title or "")
+        self.text:SetText(r.into .. " / " .. r.need .. " XP")
+        local until2 = RW.DoubleUntil()
+        self.x2:SetText(until2 and ("2x XP  ·  " .. L["XP-Wochenende"]) or "")
+        local w = innerW()
         local pct = math.min(1, r.into / math.max(1, r.need))
         local from = (self.pct or 0) * w
         self.pct = pct
         local target = w * pct
         if animate and math.abs(from - target) > 1 then
-            K.Tween(self.fillP.mid, 0.8, function(q) self.fillP:Place(from + (target - from) * q) end)
+            K.Tween(self.fill, 0.8, function(q) place(from + (target - from) * q) end)
         else
-            self.fillP:Place(target)
+            place(target)
         end
-        self.lbl:SetText((L["Rang %d"]):format(r.level) .. "  |cffd8d8dc" .. r.title .. "|r")
-        self.text:SetText(r.into .. " / " .. r.need .. " XP")
-        local until2 = RW.DoubleUntil()
-        self.x2:SetText(until2 and ("2x XP  ·  " .. L["XP-Wochenende"]) or "")
     end
     b:SetScript("OnShow", function(self) self:Update() end)
     b:SetScript("OnEnter", function(self)

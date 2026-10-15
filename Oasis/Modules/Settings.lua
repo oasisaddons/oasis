@@ -1,5 +1,6 @@
 -- Oasis - Einstellungen (persoenlich) mit Reitern
 local ADDON, ns = ...
+local resetButton   -- 0.6.180: Vorab-Deklaration (wird weiter unten belegt, schon frueher benutzt)
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
 
@@ -1038,6 +1039,13 @@ ns.AddPageSettings("deathroll", function(det, y)
     y = y - 28
     det.t[#det.t + 1] = toggle(det, 14, y, "Offene Spiel-Einladungen der Gilde melden", "drOpenInvites", "Aus: Wer in der Warteschlange einen Gegner sucht, erscheint nur noch auf der Deathroll-Seite", nil, 600)
     y = y - 32
+    -- 0.6.213: gildenuebergreifende Lobby ueber versteckte Kanaele (Standard an)
+    if s.drNet == nil then s.drNet = true end
+    det.t[#det.t + 1] = toggle(det, 14, y, "Gegner auch ausserhalb der Gilde finden", "drNet", "Versteckter Kanal je Einsatzhoehe - Suchende anderer Gilden erscheinen still in der Liste", function(v)
+        local DR = ns.Deathroll
+        if DR then if v then DR.NetJoin(DR.inQueue and DR.inQueue.start or 100) else DR.NetLeave() end end
+    end, 600)
+    y = y - 32
     return y - 10
 end)
 
@@ -1717,7 +1725,7 @@ local function themeCard(f, th, x, y, w, h)
         s.accent = th.accent                 -- Standard = Farbe der Gilde
         -- 0.6.160: Design-Klick = alles auf Standard - auch eigene Grund-/Akzent-/Leistenfarbe, Glut-Farben,
         -- Glut-Staerke und Atmen
-        s.duoBase, s.duoAccent, s.duoSide, s.glowColor, s.glowColorSide = nil, nil, nil, nil, nil
+        s.duoBase, s.duoAccent, s.duoSide, s.glowColor, s.glowColorSide, s.frameColor = nil, nil, nil, nil, nil, nil
         s.glowStrengthL, s.glowStrengthR, s.glowBreath = nil, nil, nil
         if th.font and K.fontByKey[th.font] then s.uiFont = th.font K.ApplyUserFonts() end
         -- Design mit eigenem Klick-Soundpaket (th.uiPack); wer Klick-Toene aus hat, bleibt bei aus
@@ -1769,7 +1777,7 @@ local function buildLook(f)
     local RX0 = RXc + 16
     -- Hoehe aus der Zahl der Vorlagen (6 je Reihe)
     local duoRows = math.ceil(#K.DUO_PRESETS / 6)
-    local farbH = 68 + duoRows * 28 + 8 + 24 + 20 + 30 + 34 + 104   -- 0.6.136/0.6.149 Knopfzeilen; 0.6.158: Glut-Staerke und Atmen
+    local farbH = 68 + duoRows * 28 + 8 + 24 + 20 + 30 + 34 + 104   -- 0.6.232: zwei Regler (Glut, Bild-Helligkeit)   -- 0.6.136/0.6.149 Knopfzeilen; 0.6.158: Glut-Staerke und Atmen
     cardH(f, RXc, Y, 362, farbH, "heart", L["Eigene Farben"], L["Zwei Farben mischen - Grundfarbe, Akzent und Leiste einzeln waehlbar"], true)
     local function applyDuo(base, acc)
         local s = S()
@@ -1801,12 +1809,15 @@ local function buildLook(f)
         f.duo[i] = b
     end
     local by = Y - 68 - math.ceil(#K.DUO_PRESETS / DPER) * 28 - 8
-    f.duoBase = K.ColorPickButton(f, function() return S().duoBase or "15171d" end, function(hex) applyDuo(hex, S().duoAccent or (S().accent ~= "" and S().accent) or "ff4d6d") end, L["Grundfarbe"], lookSnapshot)
+    f.duoBase = K.ColorPickButton(f, function() return S().duoBase or "15171d" end, function(hex) applyDuo(hex, S().duoAccent or (S().accent ~= "" and S().accent) or "ff4d6d") end, L["Fenster-Hintergrund"], lookSnapshot)
     f.duoBase:SetWidth(162)
     f.duoBase:SetPoint("TOPLEFT", RX0, by)
-    f.duoAcc = K.ColorPickButton(f, function() return S().duoAccent or "ff4d6d" end, function(hex) applyDuo(S().duoBase or "15171d", hex) end, L["Akzentfarbe"], lookSnapshot)
+    f.duoAcc = K.ColorPickButton(f, function() return S().duoAccent or "ff4d6d" end, function(hex) applyDuo(S().duoBase or "15171d", hex) end, L["Akzent / Hervorhebung"], lookSnapshot)
     f.duoAcc:SetWidth(162)
     f.duoAcc:SetPoint("LEFT", f.duoBase, "RIGHT", 6, 0)
+    -- 0.6.170: klare Namen + Erklaerung, was genau gefaerbt wird
+    f.duoBase:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Fenster-Hintergrund"], L["Grundfarbe des ganzen Oasis-Fensters (Flaechen und Karten)."] }) end)
+    f.duoAcc:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Akzent / Hervorhebung"], L["Farbe fuer Rahmen, Knoepfe, Markierungen und aktive Eintraege."] }) end)
     -- 0.6.159: aktuelle Grund-/Akzentfarbe behalten (vorher Standardfarben -> rechts aenderte sich alles mit)
     local function curBase() return S().duoBase or (C.bg and K.ToHex(C.bg)) or "15171d" end
     local function curAcc() return S().duoAccent or (C.accent and K.ToHex(C.accent)) or "ff4d6d" end
@@ -1816,41 +1827,55 @@ local function buildLook(f)
     end, function(hex)
         S().duoSide = hex
         applyDuo(curBase(), curAcc())
-    end, L["Leiste links"], lookSnapshot)
+    end, L["Navigation links"], lookSnapshot)
     f.duoSide:SetWidth(162)
     f.duoSide:SetPoint("TOPLEFT", f.duoBase, "BOTTOMLEFT", 0, -6)
     f.duoSide:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     f.duoSide:HookScript("OnClick", function(_, btn)
         if btn == "RightButton" then S().duoSide = nil applyDuo(curBase(), curAcc()) end
     end)
-    f.duoSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Leiste links"], L["Eigene Farbe fuer die Navigation links. Rechtsklick: wieder automatisch."] }) end)
+    f.duoSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Navigation links"], L["Hintergrundfarbe der Navigationsleiste links. Rechtsklick: wieder automatisch."] }) end)
     f.duoSide:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- 0.6.136: eigene Farbe fuer die Glut-Hintergruende (Leiste links und Inhalt rechts); ohne Wahl = Akzentfarbe
     f.glowCol = K.ColorPickButton(f, function()
         return (S().glowColor and S().glowColor ~= "") and S().glowColor or K.ToHex(C.accent)
-    end, function(hex) S().glowColor = hex end, L["Hintergrund rechts"], lookSnapshot)
+    end, function(hex) S().glowColor = hex end, L["Glut im Inhalt"], lookSnapshot)
     f.glowCol:SetWidth(162)
     f.glowCol:SetPoint("LEFT", f.duoSide, "RIGHT", 6, 0)
     f.glowCol:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     f.glowCol:HookScript("OnClick", function(self, btn)
         if btn == "RightButton" then S().glowColor = nil if self.Update then self:Update() end end
     end)
-    f.glowCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Hintergrund rechts"], L["Farbe der Glut hinter dem Inhalt. Rechtsklick: wieder wie die Akzentfarbe."] }) end)
+    f.glowCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Glut im Inhalt"], L["Farbe der leuchtenden Glutadern im grossen Inhaltsbereich rechts. Rechtsklick: wieder wie die Akzentfarbe."] }) end)
     f.glowCol:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- 0.6.149: eigene Farbe fuer den Hintergrund der Leiste links (ohne Wahl wie rechts bzw. Akzentfarbe)
     f.glowSide = K.ColorPickButton(f, function()
         local v = S().glowColorSide
         if v and v ~= "" then return v end
         return K.ToHex(C.accent)   -- 0.6.159: wie rechts - ohne Wahl die Akzentfarbe
-    end, function(hex) S().glowColorSide = hex end, L["Hintergrund links"], lookSnapshot)
+    end, function(hex) S().glowColorSide = hex end, L["Glut in der Navigation"], lookSnapshot)
     f.glowSide:SetWidth(162)
     f.glowSide:SetPoint("TOPLEFT", f.duoSide, "BOTTOMLEFT", 0, -6)
     f.glowSide:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     f.glowSide:HookScript("OnClick", function(self, btn)
         if btn == "RightButton" then S().glowColorSide = nil if self.Update then self:Update() end end
     end)
-    f.glowSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Hintergrund links"], L["Farbe der Glut hinter der Leiste links. Rechtsklick: wieder wie die Akzentfarbe."] }) end)
+    f.glowSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Glut in der Navigation"], L["Farbe der leuchtenden Glutadern in der Navigationsleiste links. Rechtsklick: wieder wie die Akzentfarbe."] }) end)
     f.glowSide:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    -- 0.6.191: Farbe der Glut im Fensterrahmen (Bild-Rahmen); ohne Wahl wie die Akzentfarbe
+    f.frameCol = K.ColorPickButton(f, function()
+        local v = S().frameColor
+        if v and v ~= "" then return v end
+        return K.ToHex(C.accent)
+    end, function(hex) S().frameColor = hex end, L["Fensterrahmen"], lookSnapshot)
+    f.frameCol:SetWidth(162)
+    f.frameCol:SetPoint("LEFT", f.glowSide, "RIGHT", 6, 0)
+    f.frameCol:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    f.frameCol:HookScript("OnClick", function(self, btn)
+        if btn == "RightButton" then S().frameColor = nil if self.Update then self:Update() end end
+    end)
+    f.frameCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Fensterrahmen"], L["Farbe der Glut im Fensterrahmen. Rechtsklick: wieder wie die Akzentfarbe."] }) end)
+    f.frameCol:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- 0.6.158: Glut-Staerke links/rechts und "Glut atmet"
     local pct = function(v) return (L["%d%%"]):format(v * 100 + 0.5) end
     local function glowRow(label, key, below, dy, def)
@@ -1863,11 +1888,32 @@ local function buildLook(f)
         indexAdd(L[label], sl)
         return lb, sl
     end
-    f.glowStrLLbl, f.glowStrL = glowRow("Glut links", "glowStrengthL", f.glowSide, -16, 0)   -- 0.6.161: Standard 0
-    f.glowStrRLbl, f.glowStrR = glowRow("Glut rechts", "glowStrengthR", f.glowStrLLbl, -14, 1)
+    -- 0.6.231: vereinfacht auf drei Regler, die jeweils links UND rechts setzen (vorher sechs einzelne)
+    local function pairRow(label, keys, below, dy, maxV, def, tipKey, after)
+        local lb = K.Text(f, 13, C.text)
+        lb:SetPoint("TOPLEFT", below, "BOTTOMLEFT", 0, dy)
+        lb:SetText(L[label])
+        local sl = K.Slider(f, 200, 0, maxV, 0.05, function() return tonumber(S()[keys[1]]) or def end,
+            function(v)
+                for _, k in ipairs(keys) do S()[k] = (math.abs(v - def) > 0.001) and v or nil end
+                if after then after() end
+            end, pct)
+        sl:SetPoint("LEFT", lb, "LEFT", 130, 0)
+        indexAdd(L[label], sl)
+        sl:HookScript("OnEnter", function(self) K.ShowTip(self, { L[label], L[tipKey] }) end)
+        sl:HookScript("OnLeave", function() GameTooltip:Hide() end)
+        return lb, sl
+    end
+    local applyBg = function() if K.ApplyBgBright then K.ApplyBgBright() end end
+    f.glowAllLbl, f.glowAll = pairRow("Glut", { "glowStrengthR", "glowStrengthL" }, f.glowSide, -16, 2, 1,
+        "Leuchtkraft der Glutadern links und rechts. 0 % = aus.")
+    -- 0.6.232: Bild-Deckkraft entfaellt (Helligkeit 0 % = schwarz deckt das ab); alte Werte einmalig auf 100 %
+    S().bgBright, S().bgBrightL = nil, nil
+    f.bgLiLbl, f.bgLi = pairRow("Bild-Helligkeit", { "bgLight", "bgLightL" }, f.glowAllLbl, -14, 2, 1,
+        "0 % = schwarz, 100 % = normal, darueber kraeftiger und leuchtender.", applyBg)
     f.glowBreath = K.Toggle(f, L["Glut atmet"], function() return S().glowBreath and true or false end,
         function(v) S().glowBreath = v or nil end)
-    f.glowBreath:SetPoint("TOPLEFT", f.glowStrRLbl, "BOTTOMLEFT", 0, -12)
+    f.glowBreath:SetPoint("TOPLEFT", f.bgLiLbl, "BOTTOMLEFT", 0, -12)
     f.glowBreath:SetWidth(330)
     indexAdd(L["Glut atmet"], f.glowBreath)
     -- Schrift (links) + Details (rechts) --------------------------------------
@@ -1877,21 +1923,31 @@ local function buildLook(f)
     Y3 = Y - farbH - 14
     -- 0.6.107: Details als ruhige Liste - drei Schalter in voller Breite, darunter Groesse und Durchsicht, unten
     -- Zuruecksetzen (vorher Kacheln mit abgeschnittenem Titel und einer grossen Luecke vor den Reglern)
-    cardH(f, RXc, Y3, 362, 300, "settings", L["Details"], L["Kontrast, Rahmen, Grafik, Groesse und Durchsicht"], true)
+    cardH(f, RXc, Y3, 362, 332, "settings", L["Details"], L["Kontrast, Rahmen, Grafik, Groesse und Durchsicht"], true)
     local MX = RXc + 16
     local restyle = function() local m = ns.MainFrame and ns.MainFrame() if m and K.StyleWindow then K.StyleWindow(m) end end
     if S().themeTexture == nil then S().themeTexture = true end
+    if S().imageFrame == nil then S().imageFrame = true end
     f.contrast = toggle(f, MX, Y3 - 62, "Hoher Kontrast", "highContrast", "Graue Texte und Linien heller", function() rebuildSoon() end, 330)
     f.frameAcc = toggle(f, MX, Y3 - 94, "Rahmen in Akzentfarbe", "frameAccent", "Fensterrand in deiner Farbe", function() restyle() end, 330)
     f.texT = toggle(f, MX, Y3 - 126, "Hintergrundgrafik", "themeTexture", "Leder, Stein, Hex-Raster ... je nach Design", function(v)
         S().themeTexture = v and true or false
         restyle()
     end, 330)
+    -- 0.6.192: Bild-Rahmen (Lavaglut) an/aus - aus = schlanker moderner Rahmen mit Schimmer wie vorher
+    f.imgFrame = toggle(f, MX, Y3 - 158, "Verzierter Fensterrahmen", "imageFrame", "Bild-Rahmen mit Glut (aus: schlanker moderner Rahmen)", function(v)
+        S().imageFrame = v and true or false
+        if K.ApplyFrameStyle then
+            local m = ns.MainFrame and ns.MainFrame()
+            if m then K.ApplyFrameStyle(m) end
+            if _G.OasisInterests then K.ApplyFrameStyle(_G.OasisInterests) end if _G.OasisFighterSelect then K.ApplyFrameStyle(_G.OasisFighterSelect) end
+        end
+    end, 330)
     f.logoSeg = { Select = function() end }   -- 0.5.681: keine Logo-Auswahl mehr (Stub fuer refreshLook)
     local dv = K.Divider(f)
-    dv:SetPoint("TOPLEFT", MX, Y3 - 164)
+    dv:SetPoint("TOPLEFT", MX, Y3 - 196)
     dv:SetWidth(330)
-    rowLabel(f, L["Fenstergroesse"], MX, Y3 - 180)
+    rowLabel(f, L["Fenstergroesse"], MX, Y3 - 212)
     local pendingScale
     f.winScale = K.Slider(f, 200, 0.7, 1.4, 0.05, function() return pendingScale or S().scale or 1 end,
         function(v) pendingScale = v end, function(v) return (L["%d%%"]):format(v * 100 + 0.5) end,
@@ -1899,18 +1955,18 @@ local function buildLook(f)
             pendingScale = nil
             if v ~= S().scale then ns.SetScale(v) end
         end)
-    f.winScale:SetPoint("TOPLEFT", MX + 110, Y3 - 178)
+    f.winScale:SetPoint("TOPLEFT", MX + 110, Y3 - 210)
     indexAdd(L["Fenstergroesse"], f.winScale)
-    rowLabel(f, L["Durchsicht"], MX, Y3 - 212)
+    rowLabel(f, L["Durchsicht"], MX, Y3 - 244)
     f.winAlpha = K.Slider(f, 200, 0.1, 1, 0.01, function() return S().windowAlpha or 1 end,
         function(v) S().windowAlpha = v if ns.ApplyWindowAlpha then ns.ApplyWindowAlpha() end end,
         function(v) return ("%d %%"):format(v * 100 + 0.5) end)
-    f.winAlpha:SetPoint("TOPLEFT", MX + 110, Y3 - 210)
+    f.winAlpha:SetPoint("TOPLEFT", MX + 110, Y3 - 242)
     indexAdd(L["Durchsicht"], f.winAlpha, L["Wie durchsichtig das Oasis-Fenster ist"])
     local rs = K.Button(f, L["Aussehen zuruecksetzen"], 170, 24, "ghost", function()
         local st = S()
         st.theme, st.themeGrad, st.highContrast, st.frameAccent, st.accent, st.uiFont = nil, nil, nil, nil, "", "inter"
-        st.duoBase, st.duoAccent, st.duoSide, st.glowColor, st.glowColorSide = nil, nil, nil, nil, nil
+        st.duoBase, st.duoAccent, st.duoSide, st.glowColor, st.glowColorSide, st.frameColor, st.bgBright, st.bgBrightL, st.bgLight, st.bgLightL = nil, nil, nil, nil, nil, nil, nil, nil, nil, nil
         st.glowStrengthL, st.glowStrengthR, st.glowBreath = nil, nil, nil
         st.themeTexture, st.logoAnim, st.logoMode, st.windowAlpha = true, true, nil, 1
         K.ApplyUserFonts()
@@ -1918,8 +1974,8 @@ local function buildLook(f)
         if K.Toast then K.Toast(L["Aussehen zuruecksetzen"], L["Alle Farb- und Design-Einstellungen stehen wieder auf Standard."], C.accent) end
         rebuildSoon()
     end)
-    rs:SetPoint("TOPLEFT", MX, Y3 - 252)
-    note(f, L["Manche Stellen faerben sich erst nach /reload um."], MX + 182, Y3 - 254, 150, C.dim)
+    rs:SetPoint("TOPLEFT", MX, Y3 - 284)
+    note(f, L["Manche Stellen faerben sich erst nach /reload um."], MX + 182, Y3 - 286, 150, C.dim)
 end
 local function refreshLook(f)
     for _, b in ipairs(f.duo or {}) do
@@ -3554,7 +3610,7 @@ local function resetPage(f, after)
     for _, fn in ipairs(f.refreshers or {}) do pcall(fn) end
     if K.Toast then K.Toast(L["Zurueckgesetzt"], L["Die Schalter dieser Seite stehen wieder auf Standard."], C.accent) end
 end
-local function resetButton(f, y, after)
+function resetButton(f, y, after)   -- 0.6.180: oben vorab als local deklariert (Seite 'Teilen' rief sie vorher auf -> nil)
     -- zweistufig: erster Klick fragt nach, zweiter (innerhalb von 4 s) setzt zurueck
     local b
     b = K.Button(f, L["Diese Seite zuruecksetzen"], 190, 22, "ghost", function(self)

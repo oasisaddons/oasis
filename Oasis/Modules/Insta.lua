@@ -3513,6 +3513,7 @@ do
                                     if gain >= 1 then
                                         out[#out + 1] = { link = link, tex = tex, gain = gain, ilvl = ilvl, minL = minL or 0,
                                             src = (de and d.de or d.name) .. "  ·  " .. (b.name or "?"), key = d.key, cur = cur,
+                                            dungeon = (de and d.de or d.name), boss = b.name, lo = d.lo, hi = d.hi, q = q,
                                             slot = (slots[1]:gsub("%d$", "")) }
                                     end
                                 end
@@ -3534,7 +3535,7 @@ do
     local f
     local function build()
         f = CreateFrame("Frame", "OasisUpgrades", CharacterFrame or UIParent)
-        f:SetSize(330, 482)
+        f:SetSize(360, 482)   -- 0.6.193: breiter fuer die Fundort-Zeile
         if CharacterFrame then f:SetPoint("TOPLEFT", CharacterFrame, "TOPRIGHT", -30, -12) else f:SetPoint("CENTER") end
         f:SetFrameStrata("HIGH")
         f:EnableMouse(true)
@@ -3544,35 +3545,60 @@ do
         hd:SetPoint("TOPLEFT", 12, -10) hd:SetPoint("RIGHT", -36, 0)
         local close = K.CloseButton(f, function() f:Hide() end, L["Schliessen (Esc)"])
         close:SetPoint("TOPRIGHT", -6, -6)
+        -- 0.6.193: Plaetze mit Upgrade als zweizeilige Karte (Symbol mit Qualitaetsrahmen, Name, darunter Fundort
+        -- Dungeon · Boss in Gold, rechts Gewinn als Plakette); leere Plaetze als schmale gedimmte Zeile. Hoehe passt sich an.
         f.rows = {}
         for i, sl in ipairs(SLOTS) do
             local r = CreateFrame("Button", nil, f)
-            r:SetHeight(25)
-            r:SetPoint("TOPLEFT", 8, -34 - (i - 1) * 25)
+            r:SetHeight(20)
+            r:SetPoint("LEFT", f, "LEFT", 8, 0)
             r:SetPoint("RIGHT", f, "RIGHT", -8, 0)
             r.bg = r:CreateTexture(nil, "BACKGROUND")
-            r.bg:SetAllPoints()
-            r.bg:SetColorTexture(1, 1, 1, (i % 2 == 0) and 0.03 or 0)
-            r.slot = K.Text(r, 10, C.dim)
-            r.slot:SetPoint("LEFT", 4, 0)
-            r.slot:SetWidth(70)
+            r.bg:SetPoint("TOPLEFT", 0, -2) r.bg:SetPoint("BOTTOMRIGHT", 0, 2)
+            r.bg:SetColorTexture(1, 1, 1, 0.045)
+            r.edge = r:CreateTexture(nil, "ARTWORK")
+            r.edge:SetPoint("TOPLEFT", r.bg, "TOPLEFT") r.edge:SetPoint("BOTTOMLEFT", r.bg, "BOTTOMLEFT")
+            r.edge:SetWidth(2)
+            r.hl = r:CreateTexture(nil, "HIGHLIGHT")
+            r.hl:SetAllPoints(r.bg) r.hl:SetColorTexture(1, 1, 1, 0.06)
+            r.slot = K.Text(r, 9, C.dim)
+            r.slot:SetPoint("LEFT", 10, 0)
+            r.slot:SetWidth(68)
             r.slot:SetText(K.Upper(L[sl[2]]))
-            r.icon = r:CreateTexture(nil, "ARTWORK")
-            r.icon:SetSize(20, 20)
-            r.icon:SetPoint("LEFT", 78, 0)
+            r.iconBox = CreateFrame("Frame", nil, r)
+            r.iconBox:SetSize(30, 30)
+            r.iconBox:SetPoint("LEFT", 80, 0)
+            r.iconBox.bg = r.iconBox:CreateTexture(nil, "BACKGROUND")
+            r.iconBox.bg:SetAllPoints() r.iconBox.bg:SetColorTexture(0, 0, 0, 0.6)
+            K.Border(r.iconBox, C.line)
+            r.icon = r.iconBox:CreateTexture(nil, "ARTWORK")
+            r.icon:SetPoint("TOPLEFT", 2, -2) r.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+            r.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            r.pill = r:CreateTexture(nil, "ARTWORK")
+            r.pill:SetSize(40, 18)
+            r.pill:SetPoint("RIGHT", -8, 0)
+            r.pill:SetColorTexture(C.mint[1], C.mint[2], C.mint[3], 0.14)
+            r.gain = K.Text(r, 11, C.mint, "CENTER")
+            r.gain:SetPoint("CENTER", r.pill)
             r.name = K.Text(r, 11, C.text)
-            r.name:SetPoint("LEFT", r.icon, "RIGHT", 6, 0)
-            r.name:SetPoint("RIGHT", r, "RIGHT", -40, 0)
+            r.name:SetPoint("TOPLEFT", r.iconBox, "TOPRIGHT", 8, -1)
+            r.name:SetPoint("RIGHT", r.pill, "LEFT", -8, 0)
             r.name:SetWordWrap(false)
-            r.gain = K.Text(r, 12, C.mint, "RIGHT")
-            r.gain:SetPoint("RIGHT", -4, 0)
+            r.src = K.Text(r, 9, { 0.9, 0.72, 0.38 })
+            r.src:SetPoint("BOTTOMLEFT", r.iconBox, "BOTTOMRIGHT", 8, 2)
+            r.src:SetPoint("RIGHT", r.pill, "LEFT", -8, 0)
+            r.src:SetWordWrap(false)
+            r.empty = K.Text(r, 10, { 0.4, 0.4, 0.42 })
+            r.empty:SetPoint("LEFT", 80, 0)
+            r.empty:SetText(L["kein besseres Teil"])
             r.key = sl[1]
             r:SetScript("OnEnter", function(self)
                 if not self.item then return end
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 pcall(GameTooltip.SetHyperlink, GameTooltip, self.item.link)
                 GameTooltip:AddLine(" ")
-                GameTooltip:AddLine(self.item.src, 0.6, 0.6, 0.6)
+                GameTooltip:AddLine(self.item.src, 0.9, 0.72, 0.38)
+                if self.item.lo then GameTooltip:AddLine((L["Dungeon fuer Level %d-%d"]):format(self.item.lo, self.item.hi or self.item.lo), 0.6, 0.6, 0.6) end
                 GameTooltip:AddLine((L["+%d Punkte fuer deine Spezialisierung"]):format(self.item.gain), 0.4, 0.86, 0.62)
                 GameTooltip:AddLine(L["Shift-Klick: verlinken"], 0.5, 0.5, 0.5)
                 GameTooltip:Show()
@@ -3581,6 +3607,13 @@ do
             r:SetScript("OnClick", function(self)
                 if self.item and IsModifiedClick("CHATLINK") then ChatEdit_InsertLink(self.item.link) end
             end)
+            function r:SetFull(on)
+                self:SetHeight(on and 42 or 20)
+                self.bg:SetShown(on) self.edge:SetShown(on) self.iconBox:SetShown(on) self.pill:SetShown(on)
+                self.gain:SetShown(on) self.name:SetShown(on) self.src:SetShown(on) self.empty:SetShown(not on)
+                self.slot:SetTextColor(on and 0.75 or 0.4, on and 0.75 or 0.4, on and 0.78 or 0.42)
+            end
+            r:SetFull(false)
             f.rows[i] = r
         end
         -- Fusszeile: eigener Bereich unter den Plaetzen (Spezialisierung, Anzahl, Hinweis)
@@ -3659,12 +3692,27 @@ do
                 r.icon:SetAlpha(1)
                 r.name:SetText(x.link)
                 r.gain:SetText("+" .. x.gain)
+                r.src:SetText((x.dungeon or "?") .. "  |cff8a8a90·|r  " .. (x.boss or "?"))
+                local qr, qg, qb = 0.6, 0.6, 0.6
+                if x.q and GetItemQualityColor then local ok, a1, a2, a3 = pcall(GetItemQualityColor, x.q) if ok and a1 then qr, qg, qb = a1, a2, a3 end end
+                K.SetBorderColor(r.iconBox, { qr, qg, qb, 0.9 })
+                r.edge:SetColorTexture(qr, qg, qb, 0.9)
+                r:SetFull(true)
             else
                 r.icon:SetTexture(nil)
-                r.name:SetText("|cff555555" .. L["kein besseres Teil"] .. "|r")
                 r.gain:SetText("")
+                r:SetFull(false)
             end
         end
+        -- Zeilen untereinander (Karten hoeher), Fensterhoehe passt sich an
+        local y = -36
+        for _, r in ipairs(f.rows) do
+            r:ClearAllPoints()
+            r:SetPoint("TOPLEFT", f, "TOPLEFT", 8, y)
+            r:SetPoint("RIGHT", f, "RIGHT", -8, 0)
+            y = y - r:GetHeight()
+        end
+        f:SetHeight(-y + 62)
         local roleName
         do
             local hs = ns.Insta and ns.Insta.headSoon

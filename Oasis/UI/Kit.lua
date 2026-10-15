@@ -3514,8 +3514,338 @@ function K.SideParticles(main)
     end)
 end
 
+-- 0.6.165: Zierrahmen fuer Fenster (Hauptfenster, Startfenster): 1 px ringsum in der Akzentfarbe, oben mit hellem
+-- Kern, dazu von Zeit zu Zeit ein kurzer Schimmer einmal um den Rahmen. Liegt ueber dem Inhalt (sonst verdeckt).
+-- R = Eckenradius (die Linien enden vor den runden Ecken)
+function K.FrameLines(host, R)
+    R = R or 12
+    local fr = CreateFrame("Frame", nil, host)
+    fr:SetAllPoints(host)
+    fr:EnableMouse(false)
+    fr:SetFrameLevel(math.min(9000, host:GetFrameLevel() + 199))
+    host:HookScript("OnShow", function() fr:SetFrameStrata(host:GetFrameStrata()) fr:SetFrameLevel(math.min(9000, host:GetFrameLevel() + 199)) end)
+
+        local function tx(layer) local t = fr:CreateTexture(nil, layer or "OVERLAY") return t end
+        -- 0.6.163: duenner und ruhiger - alles 1 px; oben Akzent, der zur Mitte hin am staerksten ist und zu beiden
+        -- Seiten auslaeuft, direkt darunter eine helle Haarlinie (feine Kante), Seiten gleich stark und nach unten weg
+        local top = tx() top:SetHeight(1) top:SetPoint("TOPLEFT", R, 0) top:SetPoint("TOP", 0, 0)
+        local top2 = tx() top2:SetHeight(1) top2:SetPoint("TOPLEFT", top, "TOPRIGHT") top2:SetPoint("TOPRIGHT", -R, 0)
+        local inner = tx() inner:SetHeight(1) inner:SetPoint("TOPLEFT", R, -1) inner:SetPoint("TOPRIGHT", -R, -1)
+        -- 0.6.164: Seiten ueber die ganze Hoehe, unten eine Akzentlinie, die zur Mitte hin aufleuchtet
+        local eL = tx() eL:SetWidth(1) eL:SetPoint("TOPLEFT", 0, -R) eL:SetPoint("BOTTOMLEFT", 0, R)
+        local eR = tx() eR:SetWidth(1) eR:SetPoint("TOPRIGHT", 0, -R) eR:SetPoint("BOTTOMRIGHT", 0, R)
+        local bot = tx() bot:SetHeight(1) bot:SetPoint("BOTTOMLEFT", R, 0) bot:SetPoint("BOTTOM", 0, 0)
+        local bot2 = tx() bot2:SetHeight(1) bot2:SetPoint("BOTTOMLEFT", bot, "BOTTOMRIGHT") bot2:SetPoint("BOTTOMRIGHT", -R, 0)
+        -- heller Kern mitten auf der oberen Linie (wie ein Lichtpunkt auf einer Metallkante)
+        local core = tx() core:SetHeight(1) core:SetWidth(160) core:SetBlendMode("ADD")
+        local core2 = tx() core2:SetHeight(1) core2:SetWidth(140) core2:SetPoint("TOPLEFT", core, "TOPRIGHT") core2:SetBlendMode("ADD")
+        core:SetPoint("TOPLEFT", fr, "TOPLEFT", R, 0) core:SetWidth(60)   -- 0.6.167: Kern oben links
+        -- 0.6.166: Dicke in ECHTEN Bildschirmpixeln - bei UI-Skala < 1 war "1" weniger als ein Pixel und WoW hat die
+        -- Linien auf dem Pixelraster weggerundet (Rahmen und Schimmer waren deshalb unsichtbar)
+        top:ClearAllPoints() top:SetPoint("TOPLEFT", R, 0) top:SetPoint("TOPRIGHT", fr, "TOP", 0, 0)
+        fr.lines = { top, top2, eL, eR, bot, bot2, inner }
+        -- 0.6.166: runde Ecken - Viertelbogen (Media/corner_arc, Tools/make_corner_arc.py) verbinden die Linien,
+        -- vorher endeten sie vor der Rundung und dort blieb die graue Fensterkante stehen
+        fr.corners = {}
+        for _, c in ipairs({ { "TOPLEFT", 0, 1, 0, 1, true }, { "TOPRIGHT", 1, 0, 0, 1, true },
+            { "BOTTOMLEFT", 0, 1, 1, 0, false }, { "BOTTOMRIGHT", 1, 0, 1, 0, false } }) do
+            local t = tx()
+            t:SetTexture(ns.MEDIA .. "corner_arc")
+            t:SetTexCoord(c[2], c[3], c[4], c[5])
+            t:SetSize(R, R)
+            t:SetPoint(c[1], fr, c[1], 0, 0)
+            t.isTop = c[6]
+            fr.corners[#fr.corners + 1] = t
+        end
+        local thick = { { top, "h", 1 }, { top2, "h", 1 }, { core, "h", 1 }, { core2, "h", 1 }, { inner, "h", 1, 2 },
+            { eL, "v", 1 }, { eR, "v", 1 }, { bot, "h", 1 }, { bot2, "h", 1 } }
+        function fr.Pixel()
+            local ph = GetPhysicalScreenSize and select(2, GetPhysicalScreenSize()) or 0
+            local es = fr:GetEffectiveScale() or 1
+            if not ph or ph <= 0 or es <= 0 then return 1 end
+            return (768 / ph) / es
+        end
+        function fr.Relayout()
+            local px = fr.Pixel()
+            for _, x in ipairs(thick) do
+                local t, n = x[1], x[3]
+                if t.SetSnapToPixelGrid then pcall(t.SetSnapToPixelGrid, t, false) pcall(t.SetTexelSnappingBias, t, 0) end
+                if x[2] == "h" then t:SetHeight(px * n) else t:SetWidth(px * n) end
+            end
+            inner:ClearAllPoints() inner:SetPoint("TOPLEFT", R, -px) inner:SetPoint("TOPRIGHT", -R, -px)
+            fr.px = px
+        end
+        fr.Relayout()
+        fr:HookScript("OnSizeChanged", fr.Relayout)
+        fr:HookScript("OnShow", fr.Relayout)
+        if ns.On then ns.On("UI_SCALE_CHANGED", fr.Relayout) ns.On("DISPLAY_SIZE_CHANGED", fr.Relayout) end
+        local last
+        local function paint()
+            local ac = K.C.accent or { 1, 0.2, 0.2 }
+            local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
+            if key == last then return end
+            last = key
+            -- 0.6.167: dezent, wie Licht von oben links - dort am staerksten, laeuft oben nach rechts und links nach
+            -- unten aus; rechte Seite und unten nur ein Hauch
+            local function A(x) return { ac[1], ac[2], ac[3], x } end
+            K.Gradient(top, "HORIZONTAL", A(0.70), A(0.22))
+            K.Gradient(top2, "HORIZONTAL", A(0.22), A(0.04))
+            K.Gradient(inner, "HORIZONTAL", { 1, 1, 1, 0.06 }, { 1, 1, 1, 0 })
+            K.Gradient(eL, "VERTICAL", A(0), A(0.55))
+            K.Gradient(eR, "VERTICAL", A(0), A(0.08))
+            K.Gradient(bot, "HORIZONTAL", { 1, 1, 1, 0.01 }, { 1, 1, 1, 0.05 })
+            K.Gradient(bot2, "HORIZONTAL", { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.01 })
+            -- heller Kern sitzt jetzt oben links (wo das Licht herkommt)
+            K.Gradient(core, "HORIZONTAL", { 1, 1, 1, 0 }, { 1, 1, 1, 0.30 })
+            K.Gradient(core2, "HORIZONTAL", { 1, 1, 1, 0.30 }, { 1, 1, 1, 0 })
+            local ca = { 0.70, 0.04, 0.02, 0.01 }   -- oben links, oben rechts, unten links, unten rechts
+            for i, t in ipairs(fr.corners) do t:SetVertexColor(ac[1], ac[2], ac[3], ca[i]) end
+        end
+        paint()
+        -- 0.6.163: von Zeit zu Zeit laeuft ein kurzer, heller Schimmer einmal um den Rahmen (im Uhrzeigersinn,
+        -- 1,6 s, alle 14 s). Zwei Haelften je Richtung, die zur Mitte hell werden; aus bei "Animationen aus" (noAnim)
+        local function streak(horiz)
+            local a, b = tx(), tx()
+            a:SetBlendMode("ADD") b:SetBlendMode("ADD")
+            if horiz then
+                a:SetSize(60, 1) b:SetSize(60, 1)
+                b:SetPoint("LEFT", a, "RIGHT")
+            else
+                a:SetSize(1, 60) b:SetSize(1, 60)
+                b:SetPoint("TOP", a, "BOTTOM")
+            end
+            a:Hide() b:Hide()
+            return { a = a, b = b, horiz = horiz }
+        end
+        local sh, sv = streak(true), streak(false)
+        local function tintStreak(s, alpha)
+            local ac = K.C.accent or { 1, 0.2, 0.2 }
+            local r, g, bl = 0.55 + ac[1] * 0.45, 0.55 + ac[2] * 0.45, 0.55 + ac[3] * 0.45
+            local dir = s.horiz and "HORIZONTAL" or "VERTICAL"
+            -- VERTICAL laeuft von unten nach oben: obere Haelfte unten hell, untere oben hell
+            if s.horiz then
+                K.Gradient(s.a, dir, { r, g, bl, 0 }, { r, g, bl, alpha })
+                K.Gradient(s.b, dir, { r, g, bl, alpha }, { r, g, bl, 0 })
+            else
+                K.Gradient(s.a, dir, { r, g, bl, alpha }, { r, g, bl, 0 })
+                K.Gradient(s.b, dir, { r, g, bl, 0 }, { r, g, bl, alpha })
+            end
+        end
+        local function place(s, x, y)
+            s.a:ClearAllPoints()
+            local th = 1 * (fr.px or 1)   -- 0.6.167: 1 echter Pixel (0.6.166: 2) (sonst bei UI-Skala < 1 weggerundet)
+            if s.horiz then s.a:SetHeight(th) s.b:SetHeight(th) else s.a:SetWidth(th) s.b:SetWidth(th) end
+            if s.horiz then s.a:SetPoint("RIGHT", fr, "TOPLEFT", x, y) else s.a:SetPoint("BOTTOM", fr, "TOPLEFT", x, y) end
+            s.a:Show() s.b:Show()
+        end
+        local function hide(s) s.a:Hide() s.b:Hide() end
+        local SH_EVERY, SH_RUN = 14, 1.6
+        local shT = SH_EVERY - 3   -- erster Schimmer kurz nach dem Oeffnen
+        fr.shimmer = { h = sh, v = sv }
+        local acc = 0
+        fr:SetScript("OnUpdate", function(_, el)
+            el = el or 0
+            acc = acc + el
+            if acc >= 0.5 then acc = 0 paint() end
+            local st = ns.db and ns.db.settings
+            if (st and (st.noAnim or st.frameShimmer == false)) then hide(sh) hide(sv) return end
+            shT = shT + el
+            if shT < SH_EVERY then return end
+            local p = (shT - SH_EVERY) / SH_RUN
+            if p >= 1 then shT = 0 hide(sh) hide(sv) return end
+            local w, h = fr:GetWidth() or 0, fr:GetHeight() or 0
+            if w <= 0 or h <= 0 then return end
+            -- sanft rein und raus, in der Mitte am hellsten
+            local alpha = 0.45 * math.sin(p * math.pi)
+            local d = p * (2 * w + 2 * h)
+            if d < w then                       -- oben, nach rechts
+                hide(sv) tintStreak(sh, alpha) place(sh, d, -0.5)
+            elseif d < w + h then               -- rechts, nach unten
+                hide(sh) tintStreak(sv, alpha) place(sv, w - 0.5, -(d - w))
+            elseif d < 2 * w + h then           -- unten, nach links
+                hide(sv) tintStreak(sh, alpha) place(sh, w - (d - w - h), -h + 0.5)
+            else                                -- links, nach oben
+                hide(sh) tintStreak(sv, alpha) place(sv, 0.5, -h + (d - 2 * w - h))
+            end
+        end)
+    return fr
+end
+
+-- 0.6.186: Bild-Rahmen aussen ums Fenster (Gildenmodul, Media/window_frame aus Tools/make_window_frame.py).
+-- 12 Teile: Ecken und Mittelverzierung oben/unten behalten ihre Form, die Kanten dazwischen werden gestreckt.
+-- Masse in Quellpixeln (Bild 1509x1012 nach dem Zuschnitt); k = UI-Einheiten je Quellpixel.
+function K.ImageFrame(host, k)
+    k = k or 0.3
+    -- 0.6.188: schlanker Rahmen "Eleganter Lavaglut-Fantasierahmen" (vorher 1509x1012 mit breiten Baendern)
+    local SW, SH = 1504, 991
+    local BT, BB, BL, BR = 35, 39, 26, 27        -- Baender (bis zur Innenkante)
+    local CW, CHT, CHB = 130, 75, 80             -- Ecken
+    local M1, M2 = 680, 825                      -- Mittelverzierung oben/unten
+    local TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\window_frame"
+    local OV = 2                                 -- so weit ueberlappt die Innenkante das Fenster
+    local fr = CreateFrame("Frame", nil, host)
+    fr:EnableMouse(false)
+    fr:SetPoint("TOPLEFT", host, "TOPLEFT", -(BL * k) + OV, BT * k - OV)
+    fr:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", BR * k - OV, -(BB * k) + OV)
+    fr:SetFrameStrata(host:GetFrameStrata())
+    fr:SetFrameLevel(math.min(9000, host:GetFrameLevel() + 198))
+    host:HookScript("OnShow", function() fr:SetFrameStrata(host:GetFrameStrata()) fr:SetFrameLevel(math.min(9000, host:GetFrameLevel() + 198)) end)
+    -- 0.6.191: jedes Teil doppelt - Grundbild (Bronze) und darueber die Glut (window_frame_glow, weiss) in der
+    -- Rahmenfarbe (Einstellung frameColor, ohne Wahl Akzentfarbe), additiv
+    fr.glows = {}
+    local function piece(x1, y1, x2, y2)
+        local t = fr:CreateTexture(nil, "OVERLAY", nil, 1)
+        t:SetTexture(TEX)
+        t:SetTexCoord(x1 / SW, x2 / SW, y1 / SH, y2 / SH)
+        local g = fr:CreateTexture(nil, "OVERLAY", nil, 2)
+        g:SetTexture(TEX .. "_glow")
+        g:SetTexCoord(x1 / SW, x2 / SW, y1 / SH, y2 / SH)
+        g:SetBlendMode("ADD")
+        g:SetAllPoints(t)
+        fr.glows[#fr.glows + 1] = g
+        return t
+    end
+    local P = {}
+    -- Ecken
+    P.tl = piece(0, 0, CW, CHT)             P.tl:SetSize(CW * k, CHT * k) P.tl:SetPoint("TOPLEFT")
+    P.tr = piece(SW - CW, 0, SW, CHT)       P.tr:SetSize(CW * k, CHT * k) P.tr:SetPoint("TOPRIGHT")
+    P.bl = piece(0, SH - CHB, CW, SH)       P.bl:SetSize(CW * k, CHB * k) P.bl:SetPoint("BOTTOMLEFT")
+    P.br = piece(SW - CW, SH - CHB, SW, SH) P.br:SetSize(CW * k, CHB * k) P.br:SetPoint("BOTTOMRIGHT")
+    -- Mittelstuecke
+    P.tm = piece(M1, 0, M2, BT)             P.tm:SetSize((M2 - M1) * k, BT * k) P.tm:SetPoint("TOP")
+    P.bm = piece(M1, SH - BB, M2, SH)       P.bm:SetSize((M2 - M1) * k, BB * k) P.bm:SetPoint("BOTTOM")
+    -- Kanten oben/unten links und rechts der Mitte (gestreckt)
+    P.t1 = piece(CW, 0, M1, BT)             P.t1:SetHeight(BT * k) P.t1:SetPoint("TOPLEFT", P.tl, "TOPRIGHT") P.t1:SetPoint("TOPRIGHT", P.tm, "TOPLEFT")
+    P.t2 = piece(M2, 0, SW - CW, BT)        P.t2:SetHeight(BT * k) P.t2:SetPoint("TOPLEFT", P.tm, "TOPRIGHT") P.t2:SetPoint("TOPRIGHT", P.tr, "TOPLEFT")
+    P.b1 = piece(CW, SH - BB, M1, SH)       P.b1:SetHeight(BB * k) P.b1:SetPoint("BOTTOMLEFT", P.bl, "BOTTOMRIGHT") P.b1:SetPoint("BOTTOMRIGHT", P.bm, "BOTTOMLEFT")
+    P.b2 = piece(M2, SH - BB, SW - CW, SH)  P.b2:SetHeight(BB * k) P.b2:SetPoint("BOTTOMLEFT", P.bm, "BOTTOMRIGHT") P.b2:SetPoint("BOTTOMRIGHT", P.br, "BOTTOMLEFT")
+    -- Seiten (gestreckt)
+    P.l = piece(0, CHT, BL, SH - CHB)       P.l:SetWidth(BL * k) P.l:SetPoint("TOPLEFT", P.tl, "BOTTOMLEFT") P.l:SetPoint("BOTTOMLEFT", P.bl, "TOPLEFT")
+    P.r = piece(SW - BR, CHT, SW, SH - CHB) P.r:SetWidth(BR * k) P.r:SetPoint("TOPRIGHT", P.tr, "BOTTOMRIGHT") P.r:SetPoint("BOTTOMRIGHT", P.br, "TOPRIGHT")
+    fr.pieces = P
+    local lastKey
+    function fr.Tint()
+        local st = ns.db and ns.db.settings
+        local hex = st and st.frameColor
+        local c = (hex and hex ~= "" and K.FromHex and K.FromHex(hex)) or K.C.accent or { 1, 0.4, 0.15 }
+        local key = c[1] .. ":" .. c[2] .. ":" .. c[3]
+        if key == lastKey then return end
+        lastKey = key
+        -- etwas aufhellen, damit die Glut auch bei dunklen Farben leuchtet
+        local r, g, b = math.min(1, c[1] * 1.15 + 0.08), math.min(1, c[2] * 1.15 + 0.08), math.min(1, c[3] * 1.15 + 0.08)
+        for _, t in ipairs(fr.glows) do t:SetVertexColor(r, g, b, 1) end
+    end
+    fr.Tint()
+    local acc = 0
+    fr:SetScript("OnUpdate", function(_, el) acc = acc + (el or 0) if acc >= 0.5 then acc = 0 fr.Tint() end end)
+    -- 0.6.190: Rahmen zum Verschieben anfassbar - vier schmale Griffleisten auf den Baendern (Innenbereich bleibt
+    -- frei), sie reichen das Ziehen an das Fenster weiter (dessen eigene Drag-Skripte -> Position wird gespeichert)
+    local function grip(p1, p2, w, h)
+        local g = CreateFrame("Frame", nil, fr)
+        g:SetPoint(p1) g:SetPoint(p2)
+        if w then g:SetWidth(w) end
+        if h then g:SetHeight(h) end
+        g:EnableMouse(true)
+        g:RegisterForDrag("LeftButton")
+        g:SetScript("OnDragStart", function()
+            local src = host.dragHead or host
+            local fn = src:GetScript("OnDragStart")
+            if fn then fn(src, "LeftButton") elseif host:IsMovable() then host:StartMoving() end
+        end)
+        g:SetScript("OnDragStop", function()
+            local src = host.dragHead or host
+            local fn = src:GetScript("OnDragStop")
+            if fn then fn(src) else host:StopMovingOrSizing() end
+        end)
+        return g
+    end
+    fr.grips = {
+        grip("TOPLEFT", "TOPRIGHT", nil, BT * k),
+        grip("BOTTOMLEFT", "BOTTOMRIGHT", nil, BB * k),
+        grip("TOPLEFT", "BOTTOMLEFT", BL * k, nil),
+        grip("TOPRIGHT", "BOTTOMRIGHT", BR * k, nil),
+    }
+    return fr
+end
+
+-- 0.6.192: Bild-Rahmen an/aus (Einstellung imageFrame, Standard an). Aus = schlanker Rahmen mit Schimmer (frameLines)
+function K.ApplyFrameStyle(host)
+    if not host then return end
+    local st = ns.db and ns.db.settings
+    local on = host.imageFrame and not (st and st.imageFrame == false)
+    if host.imageFrame then host.imageFrame:SetShown(on and true or false) end
+    if host.frameLines then host.frameLines:SetShown(not on) end
+    if host.lineFrame then host.lineFrame:SetAlpha(on and 0 or 0.35) end
+end
+
+-- 0.6.230: Hintergrundbilder je Seite einstellbar - links (Navigation) / rechts (Inhalt):
+--   Deckkraft  bgBrightL / bgBright   0..1  (Alpha des Bildes; Name der Einstellung bleibt aus 0.6.227)
+--   Helligkeit bgLightL  / bgLight    0..2  (unter 1: abdunkelnde MOD-Ebene, ueber 1: additive Kopie = kraeftiger)
+K.bgImgs = setmetatable({}, { __mode = "k" })
+local function clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
+function K.BgBright(side)   -- Deckkraft - 0.6.232: kein Regler mehr, immer voll
+    return 1
+end
+function K.BgLight(side)    -- Helligkeit
+    local st = ns.db and ns.db.settings
+    return clamp(tonumber(st and (side == "L" and st.bgLightL or st.bgLight)) or 1, 0, 2)
+end
+local function applyBg(tex, side)
+    local op, li = K.BgBright(side), K.BgLight(side)
+    if not tex.oasisBgNoAlpha then tex:SetAlpha(op) end
+    local d, m = tex.oasisBgDup, tex.oasisBgDark
+    if d then d:SetAlpha(li > 1 and math.min(1, (li - 1) * 0.8) * op or 0) end
+    if m then
+        local k = li < 1 and li or 1
+        m:SetColorTexture(k, k, k, 1)
+        m:SetShown(li < 0.999 and tex:IsShown())
+    end
+end
+function K.BgImg(tex, side)
+    if not tex or K.bgImgs[tex] then return tex end
+    local layer, sub = tex:GetDrawLayer()
+    local parent = tex:GetParent()
+    local d = parent:CreateTexture(nil, layer, nil, math.min(7, (sub or 0) + 1))
+    d:SetAllPoints(tex)
+    d:SetBlendMode("ADD")
+    d:SetAlpha(0)
+    tex.oasisBgDup = d
+    -- abdunkeln: einfarbige Flaeche im Modus MOD (multipliziert mit dem Bild darunter)
+    local m = parent:CreateTexture(nil, layer, nil, math.min(7, (sub or 0) + 1))
+    m:SetAllPoints(tex)
+    m:SetColorTexture(1, 1, 1, 1)
+    pcall(m.SetBlendMode, m, "MOD")
+    m:Hide()
+    tex.oasisBgDark = m
+    local function sync()
+        d:SetTexture(tex:GetTexture())
+        local a1, b1, c1, d1, e1, f1, g1, h1 = tex:GetTexCoord()
+        if a1 then pcall(d.SetTexCoord, d, a1, b1, c1, d1, e1, f1, g1, h1) end
+        d:SetShown(tex:IsShown())
+    end
+    sync()
+    local function vis(on) d:SetShown(on and true or false) applyBg(tex, K.bgImgs[tex]) if not on then m:Hide() end end
+    hooksecurefunc(tex, "SetTexture", function() sync() end)
+    hooksecurefunc(tex, "SetTexCoord", function() sync() end)
+    hooksecurefunc(tex, "Show", function() vis(true) end)
+    hooksecurefunc(tex, "Hide", function() vis(false) end)
+    hooksecurefunc(tex, "SetShown", function(_, on) vis(on) end)
+    K.bgImgs[tex] = side or "R"
+    applyBg(tex, side or "R")
+    return tex
+end
+function K.ApplyBgBright()
+    for tex, side in pairs(K.bgImgs) do applyBg(tex, side) end
+end
+
 -- Akzentrahmen ueber allem im Fenster halten (gleiche Ebene wie das Fenster, hoechste Stufe)
 function K.FixEdge(main)
+    -- 0.6.164: die Zierlinien (frameLines, mit Schimmer) ebenso ganz nach oben - sie lagen unter dem Inhalt und waren unsichtbar
+    local fl = main and main.frameLines
+    if fl then
+        fl:SetFrameStrata(main:GetFrameStrata())
+        fl:SetFrameLevel(math.min(9000, main:GetFrameLevel() + 199))
+    end
     local e = main and main.accentEdge
     if not e then return end
     e:SetFrameStrata(main:GetFrameStrata())

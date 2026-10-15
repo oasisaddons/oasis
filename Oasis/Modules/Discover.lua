@@ -280,6 +280,19 @@ function D.ShowPicker(mode)
             grad(self.bottomLine, "HORIZONTAL", { 1, 1, 1, 0.02 }, { 1, 1, 1, 0.07 })
         end
         f:PaintEdges(C.accent)
+        -- 0.6.165: neuer Zierrahmen mit Schimmer wie im Hauptfenster - alte Linien bleiben angelegt, aber aus
+        if K.FrameLines then
+            f.frameLines = K.FrameLines(f, RAD)
+            for _, t in ipairs({ f.topTex, f.edgeL, f.edgeR, f.inner, f.bottomLine }) do t:SetAlpha(0) end
+        end
+        -- 0.6.189: mit Gildenmodul derselbe Bild-Rahmen wie das Hauptfenster (Zierlinien dann aus)
+        if ns.GuildPack and K.ImageFrame then
+            local ok, fr = pcall(K.ImageFrame, f, 0.3)
+            if ok and fr then
+                f.imageFrame = fr
+                if K.ApplyFrameStyle then K.ApplyFrameStyle(f) end   -- 0.6.192: abschaltbar
+            end
+        end
 
         -- 0.6.142: Kopf mittig - Ueberzeile zwischen zwei auslaufenden Linien (wie der Trenner unten)
         f.eyebrow = K.Text(f, 10, C.accent)
@@ -347,12 +360,30 @@ function D.ShowPicker(mode)
         -- 0.6.123: Bild-Knopf (Text, Symbol und Rahmen im Bild) - nur mit Gildenmodul und deutscher Sprache,
         -- weil der Text im Bild deutsch ist. Bild 7:1, der Knopf wird dafuer hoeher.
         hero.extra = 0
-        if ns.GuildPack and (ns.lang == "de" or (not ns.lang and GetLocale and GetLocale() == "deDE")) then
+        -- 0.6.215: alle Sprachen - Deutsch mit dem Text im Bild, sonst textfreie Fassung (Tools/make_start_keep_blank.py)
+        -- und der uebersetzte Text liegt darueber
+        local de = ns.lang == "de" or (not ns.lang and GetLocale and GetLocale() == "deDE")
+        hero.artFile = de and "start_keep" or "start_keep_blank"
+        if ns.GuildPack then
             hero.art = hero:CreateTexture(nil, "ARTWORK", nil, 4)
             hero.art:SetAllPoints()
-            hero.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\start_keep")
+            hero.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. hero.artFile)
             hero.art:SetTexCoord(0, 1, 0, 1)
-            for _, x in ipairs({ hero.bg, hero.tint, hero.halo, hero.icon, hero.t, hero.s, hero.arrow }) do x:Hide() end
+            for _, x in ipairs({ hero.bg, hero.tint, hero.halo, hero.icon, hero.arrow }) do x:Hide() end
+            if de then hero.t:Hide() hero.s:Hide()
+            else
+                -- Text an die Stelle, wo er im deutschen Bild steht (ab ~19 % der Breite), mit Schatten
+                for _, fs in ipairs({ hero.t, hero.s }) do
+                    if fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 1) fs:SetShadowOffset(1, -1) end
+                    fs:SetDrawLayer("OVERLAY", 7)
+                end
+                hero.t:ClearAllPoints() hero.t:SetPoint("LEFT", hero, "LEFT", math.floor((W - 56) * 0.19), 9)
+                hero.s:ClearAllPoints() hero.s:SetPoint("TOPLEFT", hero.t, "BOTTOMLEFT", 0, -6)
+                hero.s:SetPoint("RIGHT", hero, "LEFT", math.floor((W - 56) * 0.70), 0)
+                K.SetFontSafe(hero.t, K.FONT_HEAD or K.FONT, 18, "", K.FONT)
+                hero.t:SetTextColor(1, 0.96, 0.9)
+                hero.s:SetTextColor(0.9, 0.85, 0.8)
+            end
             hero.bg.Show = function() end
             K.SetBorderColor(hero, { 0, 0, 0, 0 })
             local H = math.floor((W - 56) / 7 + 0.5)
@@ -365,7 +396,7 @@ function D.ShowPicker(mode)
         if hero.art then
             hero.pulse = hero:CreateTexture(nil, "ARTWORK", nil, 5)
             hero.pulse:SetAllPoints(hero.art)
-            hero.pulse:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\start_keep")
+            hero.pulse:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. hero.artFile)
             hero.pulse:SetBlendMode("ADD")
             hero.pulse:SetAlpha(0)
         end

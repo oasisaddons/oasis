@@ -340,8 +340,13 @@ local function measRows(fs, t)
 end
 -- Emojis einer Zeile mit Position (x ab links, Bildzeile) - nur neu, wenn sich der Text aendert
 local function lineItems(fs, raw)
+    -- 0.6.162: Schrift gehoert zum Merkschluessel - Chat-Addons (EllesmereUI u. a.) setzen die Schrift oft erst
+    -- nach der ersten Messung, sonst blieb die alte Position haengen und das Emoji sass dauerhaft daneben
+    local f, s, fl = fs:GetFont()
+    local ts = fs.GetTextScale and fs:GetTextScale()
+    local fkey = tostring(f) .. "|" .. tostring(s) .. "|" .. tostring(fl) .. "|" .. tostring(ts) .. "|" .. tostring(fs.GetWidth and fs:GetWidth())
     local c = ov.info[fs]
-    if c and c.raw == raw then return c.items end
+    if c and c.raw == raw and c.fkey == fkey then return c.items end
     local items = {}
     local multi = fs.GetNumLines and (fs:GetNumLines() or 1) > 1
     -- 0.6.106: an der echten Zeile abgleichen - meldet die Chatzeile eine andere Gesamtbreite als die eigene Messung
@@ -389,7 +394,7 @@ local function lineItems(fs, raw)
         end
         pos = e + 1
     end
-    ov.info[fs] = { raw = raw, items = items, factor = factor }
+    ov.info[fs] = { raw = raw, items = items, factor = factor, fkey = fkey }
     return items
 end
 local function ovLayer(cf)
@@ -1780,7 +1785,7 @@ ns.slash.emojis = ns.slash.emoji
 
 -- Diagnose: /oa emojitest - warum laufen animierte Emojis bei jemandem nicht? Ausgabe im Chat (Screenshot reicht),
 -- zusaetzlich in OasisDB.emojiDiag (SavedVariables) gespeichert
-local DIAG_ADDONS = { "Prat-3.0", "Chattynator", "ElvUI", "Glass", "Chatter", "WIM", "BasicChatMods", "TwitchEmotes", "TwitchEmotes_Solaris", "ls_Glass", "nesUI" }
+local DIAG_ADDONS = { "Prat-3.0", "Chattynator", "ElvUI", "Glass", "Chatter", "WIM", "BasicChatMods", "TwitchEmotes", "TwitchEmotes_Solaris", "ls_Glass", "nesUI", "EllesmereUI", "EllesmereUIChat" }
 ns.slash.emojimodus = function(rest)
     local m = tonumber(tostring(rest or ""):match("%d"))
     if m and m >= 1 and m <= 4 then ns.db.settings.emojiRedraw = (m ~= 1) and m or nil end

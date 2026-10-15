@@ -495,6 +495,8 @@ local function buildMain()
         end
         main.contentGlow = artGlow
         main.contentArt = art
+        art.oasisBgNoAlpha = true   -- 0.6.230: Deckkraft macht tint() selbst (40 % Grundwert), Helligkeit ueber BgImg
+        if K.BgImg then K.BgImg(art) end
         -- 0.6.147: Vignette ueber dem Bild - zu den Raendern dunkler, Inhalt in der Mitte bleibt ruhig
         local vig = main:CreateTexture(nil, "ARTWORK", nil, -7)
         vig:SetAllPoints(art)
@@ -518,7 +520,7 @@ local function buildMain()
             local home = ns.CurrentPage and ns.CurrentPage() == "home"
             art:SetShown(not home)
             artGlow:SetShown(not home)
-            vig:SetShown(not home)
+            vig:SetShown(false)   -- 0.6.231: Vignette aus
             dots:SetShown(not home)
         end
         local last, acc = nil, 0
@@ -526,10 +528,15 @@ local function buildMain()
             local gh = ns.db and ns.db.settings.glowColor
             local ac = (gh and gh ~= "" and K.FromHex(gh)) or C.accent or { 1, 0.2, 0.2 }   -- 0.6.136: eigene Hintergrundfarbe
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
+            local bv = K.BgBright and K.BgBright() or 1
+            local lv = K.BgLight and K.BgLight() or 1
+            key = key .. ":" .. bv .. ":" .. lv .. ":" .. tostring(C.accent and C.accent[1]) .. tostring(C.accent and C.accent[2]) .. tostring(C.accent and C.accent[3])
             if key == last then return end
             last = key
             -- 0.6.154: nur die Glut nimmt die Farbe an, der Fels bleibt grau (40 % wie bisher)
-            art:SetVertexColor(1, 1, 1, 0.40)
+            -- 0.6.227: Helligkeit (bgBright): Fels kraeftiger, Vignette schwaecher
+            art:SetVertexColor(1, 1, 1, 0.40 * bv)
+            vig:Hide()   -- 0.6.231: Vignette rechts ganz weg (Wunsch)
             artGlow:SetVertexColor(ac[1], ac[2], ac[3], 1)   -- 0.6.158: Staerke ueber SetAlpha (Standard 0,8 = wie bisher)
         end
         tint()
@@ -543,41 +550,6 @@ local function buildMain()
         end)
     end
 
-    -- 0.6.149: Rahmen wie beim Startfenster (/oa start) - oben eine Linie in der Akzentfarbe, die nach rechts auslaeuft,
-    -- an den Seiten feine Linien, die nach unten verblassen, oben innen eine helle Haarlinie, unten eine schwache Linie
-    do
-        local fr = CreateFrame("Frame", nil, main)
-        fr:SetAllPoints(main)
-        fr:SetFrameLevel(main:GetFrameLevel() + 20)
-        local R = 12
-        local function tx(layer) local t = fr:CreateTexture(nil, layer or "OVERLAY") return t end
-        local top = tx() top:SetHeight(2) top:SetPoint("TOPLEFT", R, 0) top:SetPoint("TOPRIGHT", -R, 0)
-        local inner = tx() inner:SetHeight(1) inner:SetPoint("TOPLEFT", R, -3) inner:SetPoint("TOPRIGHT", -R, -3)
-        local eL = tx() eL:SetWidth(1) eL:SetPoint("TOPLEFT", 0, -R) eL:SetPoint("BOTTOM", main, "CENTER", 0, -60)
-        local eR = tx() eR:SetWidth(1) eR:SetPoint("TOPRIGHT", 0, -R) eR:SetPoint("BOTTOM", main, "CENTER", 0, -60)
-        local bot = tx() bot:SetHeight(1) bot:SetPoint("BOTTOMLEFT", R, 0) bot:SetPoint("BOTTOMRIGHT", -R, 0)
-        local last
-        local function paint()
-            local ac = C.accent or { 1, 0.2, 0.2 }
-            local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
-            if key == last then return end
-            last = key
-            K.Gradient(top, "HORIZONTAL", { ac[1], ac[2], ac[3], 1 }, { ac[1], ac[2], ac[3], 0.05 })
-            K.Gradient(inner, "HORIZONTAL", { 1, 1, 1, 0.10 }, { 1, 1, 1, 0 })
-            K.Gradient(eL, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.70 })
-            K.Gradient(eR, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.25 })
-            K.Gradient(bot, "HORIZONTAL", { 1, 1, 1, 0.02 }, { 1, 1, 1, 0.07 })
-        end
-        paint()
-        local acc = 0
-        fr:SetScript("OnUpdate", function(_, el)
-            acc = acc + (el or 0)
-            if acc < 0.5 then return end
-            acc = 0
-            paint()
-        end)
-        main.frameLines = fr
-    end
 
     -- Seitenleiste
     local side = CreateFrame("Frame", nil, main)
@@ -590,6 +562,7 @@ local function buildMain()
     -- der schwarze Teil veraendert die Leiste nicht. Farbwechsel in den Einstellungen wird sofort uebernommen.
     if ns.GuildPack then
         side.art = side:CreateTexture(nil, "ARTWORK", nil, -8)
+        if K.BgImg then K.BgImg(side.art, "L") end   -- 0.6.227: Helligkeit einstellbar
         side.art:SetAllPoints()
         -- 0.6.148: Schieferbild mit feinen Glutadern statt Glut-Maske (normal gezeichnet, Seitenverhaeltnis passt fast genau)
         -- 0.6.154: zwei Ebenen wie rechts - Schiefer in Grau, darueber nur die Glutadern in der gewaehlten Farbe
@@ -670,6 +643,24 @@ local function buildMain()
     end
     if K.SkinWindow then pcall(K.SkinWindow, main) end     -- Design: echter Rahmen/Seitenleiste
     if K.StyleWindow then pcall(K.StyleWindow, main) end   -- Design: Verlauf + Rahmenfarbe
+    -- 0.6.165: Zierrahmen mit Schimmer - gemeinsam mit dem Startfenster (K.FrameLines in Kit.lua)
+    -- 0.6.168: erst NACH dem Design - Eckenradius vom Design uebernehmen (rund = 14, sonst lagen zwei Boegen
+    -- nebeneinander), die graue Design-Kante zuruecknehmen; eckige/Metall-Designs ohne Boegen
+    do
+        local sk = main.skinDef
+        main.frameLines = K.FrameLines(main, (sk and sk.r) or 12)
+        main.frameShimmer = main.frameLines.shimmer
+        if sk and sk.line ~= "round_line" then for _, t in ipairs(main.frameLines.corners) do t:Hide() end end
+        if main.lineFrame then main.lineFrame:SetAlpha(0.35) end
+        -- 0.6.186: mit Gildenmodul Bild-Rahmen aussen ums Fenster - Zierlinien und graue Kante dann aus
+        if ns.GuildPack and K.ImageFrame then
+            local ok, f = pcall(K.ImageFrame, main, 0.3)
+            if ok and f then
+                main.imageFrame = f
+                K.ApplyFrameStyle(main)   -- 0.6.192: abschaltbar (Einstellungen > Details)
+            end
+        end
+    end
     if ns.ApplyWindowAlpha then ns.ApplyWindowAlpha(main) end
     local sep = side:CreateTexture(nil, "ARTWORK")
     sep:SetColorTexture(C.line[1], C.line[2], C.line[3], 1)
@@ -773,7 +764,29 @@ local function buildMain()
                 self.icon:SetVertexColor(c[1], c[2], c[3])
                 return
             end
-            self.bg:SetShown(on)
+            -- 0.6.202: aktiver Eintrag mit Verlauf in der Akzentfarbe (links kraeftig, nach rechts aus), feiner Kante oben/
+            -- unten, die ebenfalls auslaeuft, und hellem Strich links - wie eine glimmende Platte
+            if not self.act then
+                local a = {}
+                a.fill = self:CreateTexture(nil, "BACKGROUND", nil, 2) a.fill:SetAllPoints()
+                a.top = self:CreateTexture(nil, "ARTWORK", nil, 1) a.top:SetPoint("TOPLEFT") a.top:SetPoint("TOPRIGHT") a.top:SetHeight(1)
+                a.bot = self:CreateTexture(nil, "ARTWORK", nil, 1) a.bot:SetPoint("BOTTOMLEFT") a.bot:SetPoint("BOTTOMRIGHT") a.bot:SetHeight(1)
+                a.rgt = self:CreateTexture(nil, "ARTWORK", nil, 1) a.rgt:SetPoint("TOPRIGHT") a.rgt:SetPoint("BOTTOMRIGHT") a.rgt:SetWidth(1)
+                a.glow = self:CreateTexture(nil, "BACKGROUND", nil, 3)
+                a.glow:SetTexture(ns.MEDIA .. "softglow") a.glow:SetBlendMode("ADD")
+                a.glow:SetPoint("CENTER", self.icon, "CENTER") a.glow:SetSize(46, 34)
+                self.act = a
+            end
+            local ac = C.accent
+            local a = self.act
+            K.Gradient(a.fill, "HORIZONTAL", { ac[1] * 0.55, ac[2] * 0.55, ac[3] * 0.55, 0.75 }, { ac[1] * 0.15, ac[2] * 0.15, ac[3] * 0.15, 0.25 })
+            K.Gradient(a.top, "HORIZONTAL", { ac[1], ac[2], ac[3], 0.9 }, { ac[1], ac[2], ac[3], 0.15 })
+            K.Gradient(a.bot, "HORIZONTAL", { ac[1], ac[2], ac[3], 0.7 }, { ac[1], ac[2], ac[3], 0.1 })
+            a.rgt:SetColorTexture(ac[1], ac[2], ac[3], 0.15)
+            a.glow:SetVertexColor(ac[1], ac[2], ac[3])
+            a.glow:SetAlpha(0.45)
+            for _, t in pairs(a) do t:SetShown(on) end
+            self.bg:SetShown(false)
             self.bar:SetShown(on)
             local c = on and C.text or C.muted
             self.label:SetTextColor(c[1], c[2], c[3])
@@ -927,6 +940,7 @@ local function buildMain()
     head:EnableMouse(true)
     head:RegisterForDrag("LeftButton")
     head:SetScript("OnDragStart", function() if not ns.db.settings.lockWindow then main:StartMoving() end end)
+    main.dragHead = head   -- 0.6.190: Griffleisten am Bildrahmen nutzen dieselben Skripte (Sperre, Position speichern)
     head:SetScript("OnDragStop", function()
         main:StopMovingOrSizing()
         -- Position merken (auch ueber /reload und Neustart)
@@ -2120,4 +2134,21 @@ ns.slash.rahmen = function()
         tostring(ns.db.settings.frameAccent), tostring(e ~= nil), tostring(e and e:IsVisible()),
         m:GetFrameStrata(), m:GetFrameLevel(), e and e:GetFrameStrata() or "-", e and e:GetFrameLevel() or -1,
         e and e:GetWidth() or -1, b and b:GetAlpha() or -1, tostring(b and b:IsShown())))
+    -- 0.6.165: Zierrahmen mit Schimmer pruefen (wird auch in OasisDB.frameDiag gespeichert)
+    local fl = m.frameLines
+    local d = { "Zierrahmen=" .. tostring(fl ~= nil) }
+    if fl then
+        local t = fl.lines and fl.lines[1]
+        local tr, tg, tb, ta = 0, 0, 0, 0
+        if t and t.GetVertexColor then tr, tg, tb, ta = t:GetVertexColor() end
+        d[#d + 1] = ("sichtbar=%s alpha=%.2f eff=%.2f Ebene=%s/%d Groesse=%.0fx%.0f Linie=%s tex=%s farbe=%.2f/%.2f/%.2f/%.2f gezeigt=%s"):format(
+            tostring(fl:IsVisible()), fl:GetAlpha() or -1, fl.GetEffectiveAlpha and fl:GetEffectiveAlpha() or -1,
+            fl:GetFrameStrata(), fl:GetFrameLevel(), fl:GetWidth() or 0, fl:GetHeight() or 0,
+            tostring(t ~= nil), tostring(t and t:GetTexture()), tr, tg, tb, ta, tostring(t and t:IsVisible()))
+        d[#d + 1] = ("Linie Groesse=%.1fx%.1f  Fenster-Ebene max Kind=%s  noAnim=%s frameShimmer=%s"):format(
+            t and t:GetWidth() or -1, t and t:GetHeight() or -1, tostring(m.lineFrame and m.lineFrame:GetFrameLevel()),
+            tostring(ns.db.settings.noAnim), tostring(ns.db.settings.frameShimmer))
+    end
+    for _, x in ipairs(d) do print("Oasis Zierrahmen: " .. x) end
+    OasisDB.frameDiag = d
 end

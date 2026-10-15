@@ -506,6 +506,13 @@ local function memberCell(parent)
     c.icon:SetPoint("CENTER", c.ring)
     c.letter = K.Title(c, 15, C.text, "CENTER")
     c.letter:SetPoint("CENTER", c.ring)
+    -- 0.6.178: Ornament-Ring (Gildenmodul) statt Farbkreis; Klassensymbol fuellt die Oeffnung (ohne Maske -
+    -- Ecken liegen unter dem Ring). Oeffnung ~74 %, Ring bis ~90 % des Bildes.
+    if ns.GuildPack then
+        c.frame = c:CreateTexture(nil, "OVERLAY", nil, 1)
+        c.frame:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\online_ring")
+        c.frame:SetPoint("CENTER", c.ring)
+    end
     c.lvlBg = c:CreateTexture(nil, "OVERLAY")
     c.lvlBg:SetTexture(CIRCLE)
     c.lvlBg:SetVertexColor(0.06, 0.06, 0.07)
@@ -565,6 +572,13 @@ local function memberCell(parent)
         self.ring:SetPoint("TOP", 0, -1)
         self.inner:SetSize(s - 4, s - 4)
         self.icon:SetSize(math.floor(s * 0.6), math.floor(s * 0.6))
+        if self.frame then
+            local f = math.floor(s * 0.86)   -- etwas kleiner als der alte Kreis
+            self.frame:SetSize(f, f)
+            self.ring:SetAlpha(0)
+            self.inner:SetSize(math.floor(f * 0.76), math.floor(f * 0.76))
+            self.icon:SetSize(math.floor(f * 0.64), math.floor(f * 0.64))
+        end
         self.glow:SetSize(s * 1.6, s * 1.6)
         self.glow:ClearAllPoints()
         self.glow:SetPoint("CENTER", self.ring)
@@ -587,6 +601,7 @@ local function memberCell(parent)
         cr, cg, cb = cr or 0.6, cg or 0.6, cb or 0.6
         self.ring:SetVertexColor(cr, cg, cb)
         self.glow:SetVertexColor(cr, cg, cb)
+        if self.frame then self.frame:SetVertexColor(cr, cg, cb) end   -- 0.6.179: Ring in Klassenfarbe
         if setClassIcon(self.icon, m.class) then
             self.icon:Show()
             self.letter:Hide()
@@ -611,6 +626,7 @@ local function memberCell(parent)
     function c:SetMore(n)
         self.member, self.more = nil, n
         self.ring:SetVertexColor(C.line[1], C.line[2], C.line[3])
+        if self.frame then self.frame:SetVertexColor(0.6, 0.6, 0.62) end
         self.icon:Hide()
         self.letter:SetText("+" .. n)
         self.letter:SetTextColor(C.text[1], C.text[2], C.text[3])
@@ -1261,6 +1277,7 @@ ns.RegisterPage({
             ban.base:SetColorTexture(0.08, 0.08, 0.1, 1)
         end
         ban.img = ban:CreateTexture(nil, "BACKGROUND", nil, 0)
+        if K.BgImg then K.BgImg(ban.img) end   -- 0.6.227: Helligkeit einstellbar
         ban.img:SetAllPoints()
         -- Abdunklung: unten kraeftig (Text), links fuer die Schrift, Vignette oben/rechts
         local function shade(layer, sub, dir, a, b, pts)
@@ -1419,6 +1436,56 @@ ns.RegisterPage({
         ban.nameShine:SetSize(50, 38)
         ban.nameShine:SetAlpha(0)
 
+        -- 0.6.176: Banner im Ornament-Stil - leuchtender Zierrahmen (wie das Hauptfenster, mit Schimmer),
+        -- goldene Raute mit auslaufenden Linien ueber dem Gildennamen, Trennlinie mit Raute darunter
+        local GOLD = { 1, 0.78, 0.42 }
+        if K.FrameLines then ban.frameLines = K.FrameLines(ban, 12) end
+        local function diamond(parent, size, layer)
+            local d = parent:CreateTexture(nil, layer or "OVERLAY", nil, 6)
+            d:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 1)
+            d:SetSize(size, size)
+            if d.SetRotation then pcall(d.SetRotation, d, math.pi / 4) end
+            return d
+        end
+        local function hline(parent, w, a1, a2)
+            local t = parent:CreateTexture(nil, "OVERLAY", nil, 5)
+            t:SetHeight(1) t:SetWidth(w)
+            if not K.Gradient(t, "HORIZONTAL", { GOLD[1], GOLD[2], GOLD[3], a1 }, { GOLD[1], GOLD[2], GOLD[3], a2 }) then t:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.4) end
+            return t
+        end
+        do
+            local la2 = ban.logo or ban.logoText
+            -- Ornament ueber dem Namen: Raute, links/rechts auslaufende Linien, kleiner Schein dahinter
+            local orn = CreateFrame("Frame", nil, tf)
+            orn:SetSize(120, 14)
+            orn:SetPoint("BOTTOM", la2, "TOP", 0, 6)
+            orn:SetPoint("LEFT", la2, "LEFT", 0, 0)
+            orn.glow = orn:CreateTexture(nil, "ARTWORK")
+            orn.glow:SetTexture(EMBER) orn.glow:SetBlendMode("ADD")
+            orn.glow:SetVertexColor(GOLD[1], GOLD[2] * 0.8, GOLD[3] * 0.5)
+            orn.glow:SetSize(46, 30) orn.glow:SetAlpha(0.45)
+            orn.d = diamond(orn, 8)
+            orn.d:SetPoint("CENTER", orn, "LEFT", 28, 0)
+            orn.glow:SetPoint("CENTER", orn.d)
+            orn.dIn = orn:CreateTexture(nil, "OVERLAY", nil, 7)
+            orn.dIn:SetColorTexture(0.12, 0.07, 0.04, 1) orn.dIn:SetSize(4, 4)
+            if orn.dIn.SetRotation then pcall(orn.dIn.SetRotation, orn.dIn, math.pi / 4) end
+            orn.dIn:SetPoint("CENTER", orn.d)
+            orn.l = hline(orn, 22, 0, 0.8) orn.l:SetPoint("RIGHT", orn.d, "LEFT", -4, 0)
+            orn.r = hline(orn, 70, 0.8, 0) orn.r:SetPoint("LEFT", orn.d, "RIGHT", 4, 0)
+            ban.orn = orn
+            -- Trennlinie zwischen Name und Begruessung: kleine Raute links, Linie laeuft nach rechts aus
+            local div = CreateFrame("Frame", nil, tf)
+            div:SetSize(200, 8)
+            div:SetPoint("BOTTOMLEFT", ban.greet, "TOPLEFT", -2, 3)
+            div.d = diamond(div, 5)
+            div.d:SetPoint("LEFT", 0, 0)
+            div.l = hline(div, 170, 0.75, 0) div.l:SetPoint("LEFT", div.d, "RIGHT", 4, 0)
+            ban.div = div
+            -- Name etwas hoeher, damit die Trennlinie Luft hat
+            la2:ClearAllPoints()
+            la2:SetPoint("BOTTOMLEFT", ban.greet, "TOPLEFT", 0, ban.logo and 16 or 14)
+        end
         -- rechts im Banner: der eigene Charakter als 3D-Modell auf einem Lichtkegel
         local stage = CreateFrame("Frame", nil, ban)
         -- Buehne ragt rechts ueber den Bannerrand (wird dort abgeschnitten) -> Figur steht weit rechts
@@ -1457,6 +1524,12 @@ ns.RegisterPage({
 
         -- Gildeninfo klein oben rechts unter der Uhr (nur wenn hinterlegt)
         ban.info = K.Button(tf, L["Gildeninfo"], 66, 16, "ghost")
+        -- 0.6.176: Info-Symbol rechts im Knopf
+        ban.info:SetWidth(82)
+        ban.info.ico = ban.info:CreateTexture(nil, "OVERLAY")
+        ban.info.ico:SetTexture("Interface\\FriendsFrame\\InformationIcon")
+        ban.info.ico:SetSize(11, 11) ban.info.ico:SetPoint("RIGHT", -6, 0)
+        ban.info.ico:SetDesaturated(true) ban.info.ico:SetVertexColor(1, 1, 1, 0.85)
         ban.info:SetPoint("RIGHT", ban.clock, "LEFT", -12, 0)
         ban.info:SetFrameLevel(stage:GetFrameLevel() + 3)
         ban.info:SetScript("OnEnter", function(self)
@@ -1703,10 +1776,22 @@ ns.RegisterPage({
         ----------------------------------------------------------------
         local online = box(p, L["Wer ist online"], C.mint)
         online.head:Live(true)
+        -- 0.6.177: Hintergrundbild (naechtliche Oase mit eigenem Zierrahmen, Gildenmodul) - gestreckt auf die Box,
+        -- die eigene Kante der Box tritt zurueck, damit es keinen Doppelrahmen gibt
+        if ns.GuildPack then
+            online.art = online:CreateTexture(nil, "BACKGROUND", nil, 2)
+            if K.BgImg then K.BgImg(online.art) end   -- 0.6.227: Helligkeit einstellbar
+            online.art:SetAllPoints()
+            online.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\online_bg")
+            if K.RoundMask then pcall(K.RoundMask, online.art, online, 8) end
+            if online.bg then online.bg:SetAlpha(0) end
+            if online.borders then for _, b in ipairs(online.borders) do b:SetAlpha(0) end end
+            if online.skinLine then for _, b in ipairs(online.skinLine) do b:SetAlpha(0) end end
+        end
         -- 0.5.778: Discord Voice rechtsbuendig in der Kopfzeile (vor dem Trennstrich zum Helden der Woche), mit Symbol, ohne Rahmen
         online.voice = CreateFrame("Button", nil, online)
         online.voice:SetHeight(16)
-        online.voice:SetPoint("TOPRIGHT", online, "TOPRIGHT", -332, -10)
+        online.voice:SetPoint("TOPRIGHT", online, "TOPRIGHT", -12, -10)   -- 0.6.171: Held/Pechvogel in eigener Box
         online.voice.label = K.Text(online.voice, 10, C.muted, "RIGHT")
         online.voice.label:SetPoint("RIGHT", 0, 0)
         online.voice.icon = online.voice:CreateTexture(nil, "ARTWORK")
@@ -1732,35 +1817,78 @@ ns.RegisterPage({
         online.grid:SetPoint("TOPLEFT", 8, -38)
         online.grid:SetPoint("BOTTOMRIGHT", -8, 6)
         -- rechts: Held der Woche <-> Pechvogel der Woche, blenden alle 8 s ineinander ueber
-        local sp = CreateFrame("Button", nil, online)
-        sp:SetPoint("TOPRIGHT", -10, -10)
-        sp:SetPoint("BOTTOMRIGHT", -10, 10)
-        sp:SetWidth(300)
-        sp.div = online:CreateTexture(nil, "ARTWORK")
-        sp.div:SetWidth(1)
-        sp.div:SetPoint("TOPRIGHT", sp, "TOPLEFT", -10, -6)
-        sp.div:SetPoint("BOTTOMRIGHT", sp, "BOTTOMLEFT", -10, 6)
-        sp.div:SetColorTexture(1, 1, 1, 0.07)
+        -- 0.6.171: eigene Box neben "Wer ist online" (vorher im selben Kasten mit Trennstrich)
+        local spotBox = K.Panel(p, C.panel)
+        if spotBox.bg then spotBox.bg:SetAlpha(0.8) end
+        spotBox:Hide()
+        p.spotBox = spotBox
+        local sp = CreateFrame("Button", nil, spotBox)
+        sp:SetPoint("TOPLEFT", 1, -1)
+        sp:SetPoint("BOTTOMRIGHT", -1, 1)
+        sp.div = sp:CreateTexture(nil, "ARTWORK")   -- Trennstrich entfaellt (eigene Box), bleibt als leeres Objekt
+        sp.div:Hide()
+        -- 0.6.171: Stil wie eine Karte - Kopfzeile mit Symbol, Bild rechts (nur Pechvogel, Gildenmodul), nach links
+        -- dunkel auslaufend; Klassenring links, Name gross in Gold, darunter der Grund
+        local ART_W, ART_H = 1024, 356   -- Bildteil in unlucky_bg.tga (1024x512)
         local function layer()
             local f = CreateFrame("Frame", nil, sp)
             f:SetAllPoints()
+            f.art = f:CreateTexture(nil, "BACKGROUND", nil, 1)
+            if K.BgImg then K.BgImg(f.art) end   -- 0.6.227: Helligkeit einstellbar
+            f.art:SetAllPoints()
+            f.art:Hide()
+            f.shade = f:CreateTexture(nil, "BACKGROUND", nil, 2)
+            f.shade:SetAllPoints()
+            if not K.Gradient(f.shade, "HORIZONTAL", { 0.04, 0.04, 0.05, 0.96 }, { 0.04, 0.04, 0.05, 0.05 }) then f.shade:SetColorTexture(0, 0, 0, 0.5) end
+            f.shade:Hide()
+            if K.RoundMask then pcall(K.RoundMask, f.art, spotBox, 8) pcall(K.RoundMask, f.shade, spotBox, 8) end
+            function f:FitArt()
+                local w, h = self:GetWidth() or 0, self:GetHeight() or 0
+                if w <= 0 or h <= 0 then return end
+                local r = (w / h) / (ART_W / ART_H)
+                local v1 = ART_H / 512
+                if r >= 1 then
+                    local cut = (1 - 1 / r) / 2 * v1
+                    self.art:SetTexCoord(0, 1, cut, v1 - cut)
+                else
+                    self.art:SetTexCoord((1 - r) / 2, 1 - (1 - r) / 2, 0, v1)
+                end
+            end
+            f:SetScript("OnSizeChanged", function(self) self:FitArt() end)
+            f.headIcon = f:CreateTexture(nil, "ARTWORK")
+            f.headIcon:SetSize(13, 13) f.headIcon:SetPoint("TOPLEFT", 12, -11)
+            f.kick = K.Text(f, 10, C.text)
+            f.kick:SetPoint("LEFT", f.headIcon, "RIGHT", 6, 0)
+            if f.kick.SetSpacing then pcall(f.kick.SetSpacing, f.kick, 0) end
             f.ring = f:CreateTexture(nil, "BORDER")
-            f.ring:SetTexture(CIRCLE) f.ring:SetSize(60, 60) f.ring:SetPoint("LEFT", 8, 0)
+            f.ring:SetTexture(CIRCLE) f.ring:SetSize(56, 56) f.ring:SetPoint("TOPLEFT", 12, -36)
             f.inner = f:CreateTexture(nil, "ARTWORK")
-            f.inner:SetTexture(CIRCLE) f.inner:SetVertexColor(0.08, 0.08, 0.1) f.inner:SetSize(56, 56) f.inner:SetPoint("CENTER", f.ring)
+            f.inner:SetTexture(CIRCLE) f.inner:SetVertexColor(0.08, 0.08, 0.1) f.inner:SetSize(52, 52) f.inner:SetPoint("CENTER", f.ring)
             f.icon = f:CreateTexture(nil, "ARTWORK", nil, 1)
-            f.icon:SetSize(32, 32) f.icon:SetPoint("CENTER", f.ring)
+            f.icon:SetSize(30, 30) f.icon:SetPoint("CENTER", f.ring)
+            -- 0.6.173: Ornament-Ring als Badge-Rahmen ums Klassensymbol (Gildenmodul); Innenradius ~70 % des Bildes
+            if ns.GuildPack then
+                f.frame = f:CreateTexture(nil, "OVERLAY", nil, 2)
+                f.frame:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\badge_ring")
+                -- 0.6.174: kleiner (56), Klassensymbol fuellt die Oeffnung (~70 % = 40)
+                f.frame:SetSize(56, 56) f.frame:SetPoint("CENTER", f.ring)
+                f.ring:SetAlpha(0)   -- Rahmen kommt aus dem Bild
+                f.inner:SetSize(40, 40)
+                f.icon:SetSize(36, 36)   -- 0.6.178: ohne Maske (zeigte sonst das ganze Klassenblatt), Ecken liegen unter dem Ring
+            end
             f.badge = f:CreateTexture(nil, "OVERLAY")
-            f.badge:SetSize(18, 18) f.badge:SetPoint("CENTER", f.ring, "TOPRIGHT", -6, -6)
-            f.kick = K.Text(f, 10, C.amber)
-            f.kick:SetPoint("TOPLEFT", f.ring, "TOPRIGHT", 14, -4)
-            f.name = K.Title(f, 15, C.text)
-            f.name:SetPoint("TOPLEFT", f.kick, "BOTTOMLEFT", 0, -3)
-            f.name:SetPoint("RIGHT", f, "RIGHT", -6, 0)
+            f.badge:SetSize(16, 16) f.badge:SetPoint("CENTER", f.ring, "TOPRIGHT", -6, -6)
+            f.badge:Hide()
+            f.name = K.Title(f, 17, { 1, 0.84, 0.45 })
+            f.name:SetPoint("TOPLEFT", f.ring, "TOPRIGHT", 12, -8)
+            f.name:SetPoint("RIGHT", f, "RIGHT", -10, 0)
             f.name:SetWordWrap(false)
-            f.why = K.Text(f, 10, C.muted)
-            f.why:SetPoint("TOPLEFT", f.name, "BOTTOMLEFT", 0, -4)
-            f.why:SetPoint("RIGHT", f, "RIGHT", -6, 0)
+            f.whyIcon = f:CreateTexture(nil, "ARTWORK")
+            f.whyIcon:SetSize(11, 11) f.whyIcon:SetPoint("TOPLEFT", f.name, "BOTTOMLEFT", 0, -7)
+            f.whyIcon:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Skull")
+            f.why = K.Text(f, 10, C.text)
+            f.why:SetPoint("LEFT", f.whyIcon, "RIGHT", 5, 0)
+            f.why:SetPoint("RIGHT", f, "RIGHT", -10, 0)
             f.why:SetWordWrap(false)
             f:SetAlpha(0)
             return f
@@ -1779,12 +1907,21 @@ ns.RegisterPage({
         }
         function sp:Fill(f, it)
             local k = KINDS[it.kind]
-            f.kick:SetText(L[k.kick])
-            f.kick:SetTextColor(k.col[1], k.col[2], k.col[3])
+            local kt = L[k.kick]
+            f.kick:SetText(K.Upper and K.Upper(kt) or kt:upper())
+            f.headIcon:SetTexture(k.badge)
+            f.whyIcon:SetTexture(k.badge)
             f.badge:SetTexture(k.badge)
+            -- Bild nur beim Pechvogel (Gildenmodul), Held bleibt schlicht
+            local art = it.kind == "unl" and ns.GuildPack
+            if art then f.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\unlucky_bg") f:FitArt() end
+            f.art:SetShown(art and true or false)
+            f.shade:SetShown(art and true or false)
             local cls = ns.Radar.ClassOf and ns.Radar.ClassOf(it.name)
             local cr, cg, cb = ns.classColor(cls)
             f.ring:SetVertexColor(cr or 0.8, cg or 0.8, cb or 0.8)
+            -- 0.6.173: Ornament-Ring in Klassenfarbe (Bild ist graustufig, Farbe kommt per Vertexfarbe)
+            if f.frame then f.frame:SetVertexColor(cr or 0.85, cg or 0.85, cb or 0.85) end
             f.name:SetText(ns.Radar.Colored(it.name))
             f.why:SetText(it.reason or "")
             if not setClassIcon(f.icon, cls) then f.icon:SetTexture(nil) end
@@ -1794,7 +1931,7 @@ ns.RegisterPage({
             self.idx = 1
             self.t = 0
             self:SetShown(#list > 0)
-            self.div:SetShown(#list > 0)
+            if p.spotBox then p.spotBox:SetShown(#list > 0 and p.online:IsShown()) end
             for i, d in ipairs(self.dots) do d:SetShown(#list > 1) end
             if #list > 0 then
                 self:Fill(self.a, list[1])
@@ -1856,25 +1993,38 @@ ns.RegisterPage({
         ----------------------------------------------------------------
         local feed = box(p, L["Was gerade passiert"], C.violet or C.accent)
         feed.head:Live(true)
-        feed.list = K.List(feed, 32, function(l)
+        -- 0.6.180: Zeilen wie in der Vorlage - Zeit links, Symbol, Text, Pfeil rechts, feine Trennlinie
+        feed.list = K.List(feed, 40, function(l)   -- 0.6.181: 40 statt 34, ruhiger
             local r = K.Row(l)
+            if r.stripe then r.stripe:SetAlpha(0) end   -- keine Streifen, nur feine Trennlinien
             r.bar = r:CreateTexture(nil, "ARTWORK")
-            r.bar:SetPoint("TOPLEFT", 0, -4)
-            r.bar:SetPoint("BOTTOMLEFT", 0, 4)
-            r.bar:SetWidth(2)
+            r.bar:SetPoint("LEFT", 4, 0)
+            r.bar:SetSize(2, 18)
+            r.bar:SetAlpha(0.7)
             r.pulse = r:CreateTexture(nil, "BACKGROUND", nil, 1)
             r.pulse:SetAllPoints()
             r.pulse:SetColorTexture(1, 1, 1, 0.06)
             r.pulse:Hide()
-            r.icon = r:CreateTexture(nil, "ARTWORK")
-            r.icon:SetSize(20, 20)
-            r.icon:SetPoint("LEFT", 8, 0)
-            r.cols.text = K.Text(r, 11, C.text)
-            r.cols.text:SetPoint("TOPLEFT", 34, -3)
-            r.cols.text:SetPoint("RIGHT", r, "RIGHT", -4, 0)
-            r.cols.text:SetWordWrap(false)
             r.cols.when = K.Text(r, 9, C.dim)
-            r.cols.when:SetPoint("BOTTOMLEFT", 34, 3)
+            r.cols.when:SetPoint("LEFT", 14, 0)
+            r.cols.when:SetWidth(56)
+            r.cols.when:SetJustifyH("LEFT")
+            r.cols.when:SetWordWrap(false)
+            r.icon = r:CreateTexture(nil, "ARTWORK")
+            r.icon:SetSize(24, 24)
+            r.icon:SetPoint("LEFT", 74, 0)
+            r.chev = K.Text(r, 12, C.dim, "RIGHT")
+            r.chev:SetPoint("RIGHT", -12, 0)
+            r.chev:SetAlpha(0.6)
+            r.chev:SetText(">")
+            r.cols.text = K.Text(r, 12, C.text)
+            r.cols.text:SetPoint("LEFT", 110, 0)
+            r.cols.text:SetPoint("RIGHT", r.chev, "LEFT", -12, 0)
+            r.cols.text:SetWordWrap(false)
+            r.sep = r:CreateTexture(nil, "BORDER")
+            r.sep:SetHeight(1)
+            r.sep:SetPoint("BOTTOMLEFT", 14, 0) r.sep:SetPoint("BOTTOMRIGHT", -14, 0)
+            r.sep:SetColorTexture(1, 1, 1, 0.045)
             r:SetScript("OnClick", function() ns.ShowPage("chronicle") end)
             r:SetScript("OnEnter", function(self) if self.full then K.ShowTip(self, { self.full, self.cols.when:GetText() or "" }) end end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1903,7 +2053,8 @@ ns.RegisterPage({
             local txt = ns.Radar.Label(e.who) .. " " .. (e.mergedText or (ns.Chronicle and ns.Chronicle.Text(e)) or "") .. ((not e.mergedText and item) and (" " .. item) or "")
             r.full = txt
             r.cols.text:SetText(txt)
-            r.cols.when:SetText(ns.ago(e.ts))
+            local ago = ns.ago(e.ts) or ""
+            r.cols.when:SetText((ago:gsub("^%l", string.upper)))
             -- Neuestes (letzte Stunde) leuchtet sanft
             r.pulse:SetShown(idx == 1 and (ns.now() - (e.ts or 0)) < 3600)
             p.pulseTex = idx == 1 and r.pulse or p.pulseTex
@@ -1970,8 +2121,8 @@ ns.RegisterPage({
         end
         hl.wk = wk
         feed.wk = wk
-        feed.list:SetPoint("TOPLEFT", 4, -38)
-        feed.list:SetPoint("BOTTOMRIGHT", -4, 6)
+        feed.list:SetPoint("TOPLEFT", 8, -46)
+        feed.list:SetPoint("BOTTOMRIGHT", -8, 10)
         p.feed = feed
 
         -- Reiter-Chips rechts im Kartenkopf: defs = { { key, "Text" }, ... }
@@ -2514,11 +2665,41 @@ ns.RegisterPage({
         -- Spalte 3: Als Naechstes (Durchsagen, Termine, Fuer dich)
         ----------------------------------------------------------------
         local nextBox = box(p, L["Als Naechstes"], C.amber)
-        nextBox.list = K.List(nextBox, 34, function(l)
+        -- 0.6.180: jeder Eintrag als Karte - dunkle Flaeche, goldene Kante links, gerahmtes Symbol, Pfeil rechts,
+        -- bei "(x/y)" im Text ein Fortschrittsbalken mit Prozent
+        nextBox.list = K.List(nextBox, 60, function(l)   -- 0.6.181: hoehere Karten mit Abstand
             local r = K.Row(l)
+            if r.stripe then r.stripe:SetAlpha(0) end
+            if r.hl then r.hl:ClearAllPoints() r.hl:SetPoint("TOPLEFT", 6, -5) r.hl:SetPoint("BOTTOMRIGHT", -6, 5) r.hl:SetColorTexture(1, 1, 1, 0.05) end
+            r.card = r:CreateTexture(nil, "BACKGROUND", nil, 1)
+            r.card:SetPoint("TOPLEFT", 6, -5) r.card:SetPoint("BOTTOMRIGHT", -6, 5)
+            if not K.Gradient(r.card, "HORIZONTAL", { 1, 1, 1, 0.06 }, { 1, 1, 1, 0.015 }) then r.card:SetColorTexture(1, 1, 1, 0.04) end
+            r.cardLine = r:CreateTexture(nil, "BACKGROUND", nil, 2)
+            r.cardLine:SetHeight(1)
+            r.cardLine:SetPoint("TOPLEFT", r.card, "TOPLEFT", 2, 0) r.cardLine:SetPoint("TOPRIGHT", r.card, "TOPRIGHT")
+            if not K.Gradient(r.cardLine, "HORIZONTAL", { 1, 1, 1, 0.10 }, { 1, 1, 1, 0 }) then r.cardLine:SetColorTexture(1, 1, 1, 0.05) end
+            r.edge = r:CreateTexture(nil, "ARTWORK")
+            r.edge:SetPoint("TOPLEFT", r.card, "TOPLEFT") r.edge:SetPoint("BOTTOMLEFT", r.card, "BOTTOMLEFT")
+            r.edge:SetWidth(2)
+            r.chev = K.Text(r, 12, C.dim, "RIGHT")
+            r.chev:SetPoint("RIGHT", -18, 0)
+            r.chev:SetText(">")
+            r.chev:SetAlpha(0.6)
+            r.track = r:CreateTexture(nil, "ARTWORK")
+            r.track:SetHeight(3)
+            r.track:SetColorTexture(1, 1, 1, 0.08)
+            r.fill = r:CreateTexture(nil, "ARTWORK", nil, 1)
+            r.fill:SetHeight(3)
+            r.fill:SetPoint("LEFT", r.track, "LEFT")
+            r.pct = K.Text(r, 9, C.muted, "RIGHT")
+            r.pct:SetPoint("RIGHT", r.chev, "LEFT", -12, -9)
+            r.track:SetPoint("LEFT", 66, -9)
+            r.track:SetPoint("RIGHT", r.pct, "LEFT", -8, 0)
+            r.track:Hide() r.fill:Hide() r.pct:Hide()
             r.date = CreateFrame("Frame", nil, r)
-            r.date:SetSize(38, 26)
-            r.date:SetPoint("LEFT", 6, 0)
+            r.date:SetSize(36, 36)
+            r.date:SetPoint("LEFT", 18, 0)
+            K.Border(r.date, { C.amber[1], C.amber[2], C.amber[3], 0.45 })
             r.date.bg = K.Fill(r.date, C.raised)
             r.date.top = r.date:CreateTexture(nil, "ARTWORK")
             r.date.top:SetPoint("TOPLEFT") r.date.top:SetPoint("TOPRIGHT")
@@ -2527,14 +2708,15 @@ ns.RegisterPage({
             r.date.a:SetPoint("TOP", 0, -4)
             r.date.b = K.Text(r.date, 10, C.text, "CENTER")
             r.date.b:SetPoint("BOTTOM", 0, 2)
-            r.icon = K.Glyph(r.date, 14, nil)
+            r.icon = K.Glyph(r.date, 18, nil)
             r.icon:SetPoint("CENTER")
-            r.cols.text = K.Text(r, 11, C.text)
-            r.cols.text:SetPoint("LEFT", 52, 0)
-            r.cols.text:SetPoint("RIGHT", r, "RIGHT", -6, 0)
-            r.cols.text:SetWordWrap(false)
+            r.cols.text = K.Text(r, 12, C.text)
+            r.cols.text:SetPoint("LEFT", 66, 0)
+            r.cols.text:SetPoint("RIGHT", r.chev, "LEFT", -12, 0)
+            r.cols.text:SetWordWrap(true)
+            if r.cols.text.SetMaxLines then r.cols.text:SetMaxLines(2) end
             r.b1 = K.Button(r, "", 50, 20, "ghost")
-            r.b1:SetPoint("RIGHT", -4, 0)
+            r.b1:SetPoint("RIGHT", r.chev, "LEFT", -6, 0)
             r.b2 = K.Button(r, "", 50, 20, "ghost")
             r.b2:SetPoint("RIGHT", r.b1, "LEFT", -3, 0)
             r:SetScript("OnClick", function(self)
@@ -2550,7 +2732,7 @@ ns.RegisterPage({
             return r
         end, function(r, a, idx)
             r.b1:Hide() r.b2:Hide()
-            r.cols.text:SetPoint("RIGHT", r, "RIGHT", -6, 0)
+            r.cols.text:SetPoint("RIGHT", r.chev, "LEFT", -12, 0)
             if a.ev and ns.Raid then
                 local mine = ns.Raid.MySignup(a.ev.id)
                 local st = mine and mine.status
@@ -2585,6 +2767,27 @@ ns.RegisterPage({
             end
             local c = a.color or C.amber
             r.date.top:SetColorTexture(c[1], c[2], c[3], 1)
+            r.edge:SetColorTexture(c[1], c[2], c[3], 0.9)
+            -- Fortschritt aus "(x/y)" im Text
+            local x, y = tostring(a.text or ""):match("%((%d+)%s*/%s*(%d+)%)")
+            x, y = tonumber(x), tonumber(y)
+            if x and y and y > 0 then
+                local q = math.max(0, math.min(1, x / y))
+                r.fill:SetColorTexture(c[1], c[2], c[3], 1)
+                r.track:Show() r.fill:Show() r.pct:Show()
+                r.fill:SetWidth(math.max(1, (r.track:GetWidth() or 100) * q))
+                r.fillQ = q
+                r.pct:SetText(("%d%%"):format(q * 100 + 0.5))
+                r.cols.text:ClearAllPoints()
+                r.cols.text:SetPoint("LEFT", 66, 7)
+                r.cols.text:SetPoint("RIGHT", r.chev, "LEFT", -12, 7)
+            else
+                r.track:Hide() r.fill:Hide() r.pct:Hide()
+                r.fillQ = nil
+                r.cols.text:ClearAllPoints()
+                r.cols.text:SetPoint("LEFT", 66, 0)
+                r.cols.text:SetPoint("RIGHT", r.chev, "LEFT", -12, 0)
+            end
             if a.ts then
                 r.date.a:SetText(K.Upper(ns.weekday(a.ts, true)))
                 r.date.a:SetTextColor(c[1], c[2], c[3])
@@ -2599,12 +2802,30 @@ ns.RegisterPage({
             r.cols.text:SetText(a.text)
             if p.fresh and animOn() then K.FadeIn(r, 0.6 + (idx or 1) * 0.06) end
         end)
-        nextBox.list:SetPoint("TOPLEFT", 4, -38)
-        nextBox.list:SetPoint("BOTTOMRIGHT", -4, 6)
+        nextBox.list:SetPoint("TOPLEFT", 6, -44)
+        nextBox.list:SetPoint("BOTTOMRIGHT", -6, 8)
         nextBox.list.empty:SetText("")
         nextBox.empty = emptyState(nextBox, ns.ICONS.raid, C.amber, L["Nichts geplant - wie waer's mit einem Termin?"],
             { { "Termin anlegen", "raid" }, { "Gruppe suchen", "groups" } })
         p.nextBox = nextBox
+        -- 0.6.182: Hintergrundbilder mit eigenem Zierrahmen (Gildenmodul): links dunkle Oase, rechts Lager mit Fackeln.
+        -- Dann keine Oasis-Kante/Flaeche und kein Zierrahmen (sonst doppelt); ohne Gildenmodul wie bisher (0.6.180)
+        local function boxArt(bx, file)
+            bx.art = bx:CreateTexture(nil, "BACKGROUND", nil, 2)
+            if K.BgImg then K.BgImg(bx.art) end   -- 0.6.227: Helligkeit einstellbar
+            bx.art:SetAllPoints()
+            bx.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. file)
+            if bx.bg then bx.bg:SetAlpha(0) end
+            if bx.borders then for _, b in ipairs(bx.borders) do b:SetAlpha(0) end end
+            if bx.skinLine then for _, b in ipairs(bx.skinLine) do b:SetAlpha(0) end end
+        end
+        if ns.GuildPack then
+            boxArt(feed, "feed_bg")
+            boxArt(nextBox, "next_bg")
+        elseif K.FrameLines then
+            feed.frameLines = K.FrameLines(feed, 8)
+            nextBox.frameLines = K.FrameLines(nextBox, 8)
+        end
 
         -- Werbebanner "Midas" (AH-Addon von Rebo) unten in Spalte 3, Hoehe = Breite / 3
         local ad = CreateFrame("Button", nil, p)
@@ -2684,7 +2905,7 @@ ns.RegisterPage({
             if h < 80 then h = 260 end
             local gw, gh = w - 16, h - 44
             -- rechts sitzt Held/Pechvogel: Kreise nur bis davor
-            if o.spot and o.spot.key and o.spot.key ~= "" then gw = w - 8 - 330 end
+            -- 0.6.174: Held/Pechvogel hat eine eigene Box - die Online-Box ist schon schmaler, nichts mehr abziehen
             local list = self.onlineList or computeOnline()
             self.onlineList = list
             local n = #list
@@ -2726,7 +2947,7 @@ ns.RegisterPage({
         -- Dashboard ohne Gilde: Banner bleibt, darunter Karten-Reihe + Kontakte, Midas rechts daneben
         function p:LayoutNoGuild(ty, W, H)
             for _, t in ipairs(self.tiles) do t:Hide() end
-            self.online:Hide() self.feed:Hide() self.nextBox:Hide() self.hl:Hide()
+            self.online:Hide() if self.spotBox then self.spotBox:Hide() end self.feed:Hide() self.nextBox:Hide() self.hl:Hide()
             local a = self.ngArea
             a:Show()
             a:ClearAllPoints()
@@ -2806,7 +3027,17 @@ ns.RegisterPage({
             local OH = 118   -- Hoehe der Online-Box (volle Breite)
             self.online:ClearAllPoints()
             self.online:SetPoint("TOPLEFT", 0, ty)
-            self.online:SetSize(W, OH)
+            -- 0.6.171: Held/Pechvogel als eigene Box rechts daneben (nur wenn es einen gibt)
+            local spOn = self.online.spot and self.online.spot.list and #self.online.spot.list > 0
+            -- 0.6.175: gleiche Spaltenbreiten wie die Boxen darunter (Was gerade passiert 55 % / Als Naechstes)
+            local SPW = spOn and ((W - GAP) - math.floor((W - GAP) * 0.55)) or 0
+            self.online:SetSize(spOn and (W - SPW - GAP) or W, OH)
+            if self.spotBox then
+                self.spotBox:ClearAllPoints()
+                self.spotBox:SetPoint("TOPLEFT", self.online, "TOPRIGHT", GAP, 0)   -- 0.6.173: direkt an "Wer ist online" (0.6.172 lag ausserhalb des Fensters)
+                self.spotBox:SetSize(math.max(1, SPW), OH)
+                self.spotBox:SetShown(spOn and self.online:IsShown() and true or false)
+            end
             local top = ty - OH - GAP
             local ch = math.max(120, H + top - 10)   -- 10 px Luft zum unteren Rand
             local inner = W - GAP
@@ -2821,17 +3052,20 @@ ns.RegisterPage({
             -- 0.5.916: zu wenig Hoehe fuer die untere Zeile (kleines Fenster) -> Midas trotzdem zeigen: unten in der rechten
             -- Spalte, die Box "Als Naechstes" wird dafuer niedriger
             local adInCol = false
-            if bh == 0 and not simple and adWanted() then
+            -- 0.6.183: aus - Midas in der rechten Spalte machte "Als Naechstes" kuerzer als "Was gerade passiert"
+            -- (ungleich hohe Boxen); Midas kommt nur noch in der eigenen Zeile darunter (grosses Fenster)
+            if false and bh == 0 and not simple and adWanted() then
                 local h = math.min(110, math.floor(w3 / 3))
                 if ch2 - h - GAP >= 64 then adInCol, showAd, adH, aw = true, true, h, w3 end
             end
-            local x = 0
-            for _, e in ipairs({ { self.feed, w2 }, { self.nextBox, w3 } }) do
-                e[1]:ClearAllPoints()
-                e[1]:SetPoint("TOPLEFT", x, top)
-                e[1]:SetSize(e[2], (adInCol and e[1] == self.nextBox) and (ch2 - adH - GAP) or ch2)
-                x = x + e[2] + GAP
-            end
+            -- 0.6.184: "Als Naechstes" haengt oben UND unten an "Was gerade passiert" - immer exakt gleich hoch
+            self.feed:ClearAllPoints()
+            self.feed:SetPoint("TOPLEFT", 0, top)
+            self.feed:SetSize(w2, ch2)
+            self.nextBox:ClearAllPoints()
+            self.nextBox:SetPoint("TOPLEFT", self.feed, "TOPRIGHT", GAP, 0)
+            self.nextBox:SetPoint("BOTTOMLEFT", self.feed, "BOTTOMRIGHT", GAP, 0)
+            self.nextBox:SetWidth(w3)
             local rowY = top - ch2 - GAP
             self.hl:SetShown(bh > 0)
             if bh > 0 then
@@ -3858,8 +4092,8 @@ ns.RegisterPage({
             local sp = p.online.spot
             local key = ""
             for _, it in ipairs(list) do key = key .. it.kind .. it.name .. (it.reason or "") end
-            if sp.key ~= key then sp.key = key sp:SetData(list) if p.LayoutGrid then p:LayoutGrid() end end
-            p.online.grid:SetPoint("BOTTOMRIGHT", (#list > 0) and -330 or -8, 6)
+            if sp.key ~= key then sp.key = key sp:SetData(list) if p.Layout then pcall(p.Layout, p) elseif p.LayoutGrid then p:LayoutGrid() end end   -- 0.6.174: ganzes Layout (Breite der Online-Box + eigene Box)
+            p.online.grid:SetPoint("BOTTOMRIGHT", -8, 6)
         end
 
         -- Live-Ticker: Held + letzte Ereignisse der Chronik
@@ -4137,7 +4371,7 @@ ns.RegisterPage({
                 ns.After(2, function() if tile.dy ~= 0 or (tile:GetAlpha() or 1) < 1 then tile.dy = 0 tile:SetAlpha(1) p:PlaceTile(tile) end end)
                 p:SweepTile(tile, 0.75 + i * 0.12)
             end
-            K.FadeIn(p.online, 0.35)
+            K.FadeIn(p.online, 0.35) if p.spotBox and p.spotBox:IsShown() then K.FadeIn(p.spotBox, 0.35) end
             K.FadeIn(p.feed, 0.45)
             K.FadeIn(p.nextBox, 0.55)
             if p.hl:IsShown() then K.FadeIn(p.hl, 0.65) end
