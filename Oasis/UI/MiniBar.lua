@@ -887,7 +887,10 @@ function ns.PlaceMiniBar()
     if not bar or bar.dragging then return end
     local compact = ns.MiniCompact()
     local auto = ns.MiniAutoHide()
-    local off = auto and math.floor((bar:GetHeight() - 3) * (bar.slide or 0) + 0.5) or 0
+    -- 0.6.259: mit Glut-Bild (ragt 8 unter die Leiste) weiter hoch - nur die unterste rote Linie bleibt zu sehen
+    local art = bar.art and bar.art.m and bar.art.m:IsShown()
+    local travel = art and (bar:GetHeight() + 8 - 5) or (bar:GetHeight() - 3)
+    local off = auto and math.floor(travel * (bar.slide or 0) + 0.5) or 0
     bar:SetClampedToScreen(not auto)
     if compact then
         bar:ClearAllPoints()
