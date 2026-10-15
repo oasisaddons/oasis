@@ -324,14 +324,16 @@ local function build()
             t:Hide()
             bar.art[k] = t
         end
-        bar.art.l:SetPoint("TOPLEFT") bar.art.l:SetPoint("BOTTOMLEFT")
-        bar.art.r:SetPoint("TOPRIGHT") bar.art.r:SetPoint("BOTTOMRIGHT")
+        -- 0.6.248: Bild ragt unten 8 ueber die Leiste hinaus - Gluehlinie sass zu dicht unter den Symbolen
+        local DROP = 8
+        bar.art.l:SetPoint("TOPLEFT") bar.art.l:SetPoint("BOTTOMLEFT", 0, -DROP)
+        bar.art.r:SetPoint("TOPRIGHT") bar.art.r:SetPoint("BOTTOMRIGHT", 0, -DROP)
         bar.art.m:SetPoint("TOPLEFT", bar.art.l, "TOPRIGHT") bar.art.m:SetPoint("BOTTOMRIGHT", bar.art.r, "BOTTOMLEFT")
         local baseShape = bar.Shape
         function bar:Shape()
             baseShape(self)
             local on = self:EdgeOf() == "TOP"
-            local cw = (self:GetHeight() or 38) * 1.09
+            local cw = ((self:GetHeight() or 38) + 8) * 1.09
             self.art.l:SetWidth(cw) self.art.r:SetWidth(cw)
             for _, k in ipairs({ "l", "m", "r" }) do self.art[k]:SetShown(on) end
             if not on then return end
@@ -348,7 +350,7 @@ local function build()
             baseShape2(self)
         end
         -- Enden-Breite folgt der Hoehe (kompakt / angedockt)
-        bar:HookScript("OnSizeChanged", function(self) if self.art then local cw = (self:GetHeight() or 38) * 1.09 self.art.l:SetWidth(cw) self.art.r:SetWidth(cw) end end)
+        bar:HookScript("OnSizeChanged", function(self) if self.art then local cw = ((self:GetHeight() or 38) + 8) * 1.09 self.art.l:SetWidth(cw) self.art.r:SetWidth(cw) end end)
     end
 
     -- Wortmarke (animiert): Klick = aufklappen
