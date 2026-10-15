@@ -273,7 +273,7 @@ function CF.ApplyChat()
             eb:HookScript("OnEscapePressed", function(self) EBM[self].histIdx = nil end)
         end
         if eb and eb.SetAltArrowKeyMode then eb:SetAltArrowKeyMode(not on("cfChatArrows")) end
-        if f.SetFading then f:SetFading(not on("cfChatNoFade")) end
+        if f.SetFading and not (ns.ForeignChat and ns.ForeignChat()) then f:SetFading(not on("cfChatNoFade")) end   -- 0.6.254
         if eb and on("cfChatTop") then
             eb:ClearAllPoints()
             eb:SetPoint("BOTTOMLEFT", f, "TOPLEFT", -5, 22)
@@ -310,6 +310,7 @@ local function restoreChat()
     local cr = ns.db.chatRestore
     if nesUIHistory() then ns.db.chatRestore = nil return end
     if not on("cfChatRestore") or not cr or not cr.lines or time() - (cr.ts or 0) > 600 or not ChatFrame1 then return end
+    if ns.ForeignChat and ns.ForeignChat() then ns.db.chatRestore = nil return end   -- 0.6.254: fremder Chat hat eigenen Verlauf
     ns.db.chatRestore = nil
     ChatFrame1:AddMessage("|cff666666- - - " .. L["Chat vor dem Neuladen"] .. " - - -|r")
     -- alte Verlaufsbloecke (grau, "- - -") aus frueheren Versionen nicht wieder einfuegen

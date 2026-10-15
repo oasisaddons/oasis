@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.253"
+ns.version = "0.6.254"
 ns.versionDate = "15.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -344,6 +344,14 @@ end
 -- In der oeffentlichen Version ist niemand Entwickler: Demo-Daten, Testmodus der Gildenleitung und Entwickler-Abfragen
 -- bleiben aus - auch wenn jemand den gespeicherten Schalter von Hand setzt. Immer als ns.IsDev() aufrufen, nie zwischenspeichern.
 function ns.IsDev() return false end
+-- 0.6.254: zeichnet ein anderes Addon den Chat selbst (EllesmereUI-Chat: Blizzard-Fenster laufen unsichtbar mit und
+-- werden gespiegelt)? Dann veraendert Oasis die Blizzard-Chatfenster nicht - Umschreiben/Entfernen von Zeilen,
+-- Ausblenden, eingefuegter Verlauf und Markieren brachten dessen Fenster durcheinander (nur 2-3 Zeilen, Chat
+-- wanderte nach oben weg).
+function ns.ForeignChat()
+    local E = rawget(_G, "EllesmereUI")
+    return type(E) == "table" and type(E._chatCFD) == "function" or false
+end
 -- Minimap-Symbole von Oasis (0.5.960): die Mitte bleibt frei, damit der eigene Pfeil sichtbar ist, und die Symbole liegen in der
 -- Ebene der Minimap selbst (vorher eine Ebene hoeher - dann verdeckten sie Rahmen und Kompass).
 -- px/py = Abstand von der Minimap-Mitte in Bildschirm-Pixeln.

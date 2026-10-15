@@ -465,6 +465,7 @@ local function restoreHistory()
     local s = G()
     local h = ns.char and ns.char.gcHist
     if not s.gcOn or not s.gcHist or type(h) ~= "table" or type(h.f) ~= "table" then return end
+    if ns.ForeignChat and ns.ForeignChat() then return end   -- 0.6.254
     local age = time() - (tonumber(h.ts) or 0)
     if age > HIST_AGE then ns.char.gcHist = nil return end
     for _, f in ipairs(chatFrames()) do
@@ -542,6 +543,7 @@ end
 ------------------------------------------------------------------------
 local function post(frame, text, r, g, b, _, _, _, event, args)
     if busy or not ns.db then return end
+    if ns.ForeignChat and ns.ForeignChat() then return end   -- 0.6.254: fremder Chat zeichnet selbst
     local s = G()
     if not s.gcOn then return end
     text = str(text)
@@ -1154,6 +1156,7 @@ GC._live = live
 -- Ziehen im Chatfenster = live markieren, Alt + Klick = Markierfeld (einzelne Woerter)
 local selHooked = setmetatable({}, { __mode = "k" })
 function GC.HookSelect()
+    if ns.ForeignChat and ns.ForeignChat() then return end   -- 0.6.254: Markieren nur im Blizzard-Chat
     local names = ns.Emoji and ns.Emoji.ChatFrameNames and ns.Emoji.ChatFrameNames()
     if not names then names = {} for i = 1, (NUM_CHAT_WINDOWS or 10) do names[i] = "ChatFrame" .. i end end
     for _, n in ipairs(names) do
