@@ -130,6 +130,25 @@ local function sendPos()
     Comm.SendEx({ ch = "GUILD", key = "pos" }, "POS", mapID, xi, yi, Map.myLayer or "")
 end
 Map.sendPos = sendPos
+-- 0.6.253: /oa positionen - warum sehe ich niemanden auf der Karte? (eigenes Senden, Gildenvorgabe, Empfangenes)
+ns.slash.positionen = function()
+    local now = GetTime()
+    ns.print(("Positionen | ich sende=%s | Gilde erlaubt=%s | Instanz=%s | Layer=%s"):format(
+        tostring(ns.db.settings.shareMap and true or false), tostring(ns.GuildOpt("mpShare") ~= false),
+        tostring(ns.inInstance()), tostring(Map.myLayer or "-")))
+    local n = 0
+    for name, p in pairs(Map.pos) do
+        n = n + 1
+        if n <= 12 then
+            ns.print(("  %s  Karte %s  vor %d s%s"):format(ns.displayName(name), tostring(p.mapID), math.floor(now - (p.t or now)),
+                (now - (p.t or now) >= EXPIRE) and "  (abgelaufen)" or ""))
+        end
+    end
+    if n == 0 then
+        ns.print("Keine Positionen empfangen - die anderen muessen 'Position auf der Weltkarte teilen' einschalten (Standard: aus).")
+    end
+end
+ns.slash.positions = ns.slash.positionen
 Comm.On("HELLOREQ", function() lastKey = nil end)
 
 Comm.On("POS", function(sender, _, mapID, x, y, layer)
