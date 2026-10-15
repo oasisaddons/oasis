@@ -3626,6 +3626,23 @@ ns.RegisterPage({
         function pod:Layout()
             local W = self:GetWidth() or 400
             local cw = math.floor((W - 16) / 3)
+            if self.cardStyle then
+                -- 0.6.242: Gold etwas groesser - breiter und hoeher, Silber/Bronze schmaler und niedriger
+                local big, small = cw + 16, cw - 8
+                local x = 0
+                for slot = 1, 3 do
+                    for place, col in pairs(self.cols) do
+                        if col.slot == slot then
+                            local w = place == 1 and big or small
+                            col:ClearAllPoints()
+                            col:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", x, 0)
+                            col:SetSize(w, place == 1 and 128 or 114)
+                            x = x + w + 8
+                        end
+                    end
+                end
+                return
+            end
             for place, col in pairs(self.cols) do
                 col:ClearAllPoints()
                 col:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", (col.slot - 1) * (cw + 8), 0)
@@ -4303,20 +4320,23 @@ do
             -- Podest: ruhige Glas-Bloecke in Medaillenfarbe
             local PCOL = { { 1, 0.80, 0.25 }, { 0.80, 0.83, 0.90 }, { 0.85, 0.55, 0.32 } }
             p.podium.cardStyle = ns.GuildPack and true or false
+            p.podium:Layout()
             for place, col in pairs(p.podium.cols) do
                 local pc = PCOL[place]
                 col.block:SetColorTexture(pc[1] * 0.35, pc[2] * 0.35, pc[3] * 0.35, 0.55)
-                round(col.block, col.block, 8)
+                if not p.podium.cardStyle then round(col.block, col.block, 8) end   -- 0.6.242: Bildkarte hat eigene Ecken
                 col.edge:SetAlpha(0)
                 col.cls:SetDrawLayer("ARTWORK", 2)
                 if p.podium.cardStyle then
                     -- 0.6.201: jede Stufe als Karte in Medaillenfarbe (Verlauf, Rahmen, Lichtkante oben),
                     -- Klassensymbol + Krone oben, Name, grosse Platzzahl, Elo/Bilanz unten; kein 3D-Modell
                     col.block:ClearAllPoints() col.block:SetAllPoints(col)
-                    if not K.Gradient(col.block, "VERTICAL", { pc[1] * 0.06, pc[2] * 0.06, pc[3] * 0.06, 0.92 }, { pc[1] * 0.34, pc[2] * 0.34, pc[3] * 0.34, 0.92 }) then col.block:SetColorTexture(pc[1] * 0.2, pc[2] * 0.2, pc[3] * 0.2, 0.92) end
-                    if not col.cardBorder then K.Border(col, { pc[1], pc[2], pc[3], 0.7 }) col.cardBorder = true end
-                    col.edge:ClearAllPoints() col.edge:SetPoint("TOPLEFT", 1, -1) col.edge:SetPoint("TOPRIGHT", -1, -1) col.edge:SetHeight(2)
-                    col.edge:SetAlpha(1)
+                    -- 0.6.242: Karte als Bild mit eigenem Rahmen in Gold/Silber/Bronze (Tools/make_podium_cards.py)
+                    local MED = { "gold", "silver", "bronze" }
+                    col.block:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_podium_" .. MED[place])
+                    col.block:SetVertexColor(1, 1, 1, 1)
+                    col.block:SetTexCoord(0, 1, 0, 1)
+                    col.edge:SetAlpha(0)
                     col.m:Hide() col.m.Show = function() end
                     col.cls:ClearAllPoints() col.cls:SetPoint("TOP", 0, -24) col.cls:SetSize(30, 30)
                     if col.crown then col.crown:ClearAllPoints() col.crown:SetPoint("BOTTOM", col.cls, "TOP", 0, -2) col.crown:SetSize(20, 20) end
