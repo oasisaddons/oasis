@@ -685,7 +685,7 @@ function updateMiniBarNow()
         local hide = ns.db and ns.db.settings.miniNoLogo
         bar.name:SetWidth(hide and 16 or 76)
         bar.wm:SetShown(not hide)
-        bar.plus:SetShown(hide and true or false)
+        bar.plus:SetShown(false)   -- 0.6.252: kein Plus mehr (Klick links klappt weiter auf)
     end
     if not bar then return end
     local compact = ns.MiniCompact()
@@ -696,7 +696,7 @@ function updateMiniBarNow()
     bar:SetScale(math.max(0.6, math.min(1.6, (ns.db and ns.db.settings.miniScale) or 1)))
     bar:SetHeight(compact and 24 or (minimal and 30) or (dock and 48) or 38)
     bar.wm:SetShown(not compact and not slim and not (ns.db and ns.db.settings.miniNoLogo))
-    bar.plus:SetShown(slim or (not compact and (ns.db and ns.db.settings.miniNoLogo)) and true or false)
+    bar.plus:SetShown(false)   -- 0.6.252: kein Plus mehr
     bar.label:SetShown(compact)
     if compact then bar.name:SetWidth(bar.label:GetStringWidth() + 2) elseif slim then bar.name:SetWidth(16) end
     bar.dot:SetSize(compact and 8 or 12, compact and 8 or 12)
@@ -915,6 +915,7 @@ end
 
 -- X an der Leiste: Oasis ganz schliessen (oeffnen per Minimap-Knopf oder /oasis) - nicht bei "immer"
 local function addCloseX()
+    do return end   -- 0.6.252: kein X mehr an der Leiste (schliessen ueber Einstellungen > Topbar bzw. /oasis)
     if not bar or bar.closeX then return end
     bar.closeX = ns.K.CloseButton(bar, function() ns.HideMiniBar() end, L["Ganz schliessen (/oasis oeffnet wieder)"])
     bar.closeX:SetPoint("RIGHT", bar, "RIGHT", -6, 0)
