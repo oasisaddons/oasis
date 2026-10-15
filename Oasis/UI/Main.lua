@@ -573,10 +573,8 @@ local function buildMain()
         side.glow:SetBlendMode("ADD")
         -- 0.6.157: weicher Lichtschein in der gewaehlten Farbe, faellt von oben in die Leiste und verblasst nach unten
         side.wash = side:CreateTexture(nil, "ARTWORK", nil, -7)
-        side.wash:SetPoint("TOPLEFT", side.art, "TOPLEFT")
-        side.wash:SetPoint("TOPRIGHT", side.art, "TOPRIGHT")
-        side.wash:SetHeight(320)
-        side.wash:SetBlendMode("ADD")
+        -- 0.6.237: Farbverlauf ueber die ganze Leiste - oben in der Farbe, nach unten auslaufend
+        side.wash:SetAllPoints(side.art)
         -- 0.6.149: wie rechts eingepasst statt gestreckt (Bild 668:2000, mittig zugeschnitten)
         local function fitSide()
             local w, h = side.art:GetWidth() or 0, side.art:GetHeight() or 0
@@ -592,7 +590,7 @@ local function buildMain()
         if K.RoundMask then
             pcall(K.RoundMask, side.art, main, 12, { "tl", "bl" })
             pcall(K.RoundMask, side.glow, main, 12, { "tl", "bl" })
-            pcall(K.RoundMask, side.wash, main, 12, { "tl" })
+            pcall(K.RoundMask, side.wash, main, 12, { "tl", "bl" })
         end
         local last
         local function tint()
@@ -613,7 +611,11 @@ local function buildMain()
                 side.art:SetVertexColor(1, 1, 1, 1)
             end
             side.glow:SetVertexColor(ac[1], ac[2], ac[3], 1)
-            side.wash:Hide()   -- 0.6.159: kein Lichtschein mehr - links wie rechts nur die Glut in der Farbe
+            -- 0.6.237: Farbverlauf in der Farbe "Hintergrund links" (sonst Akzentfarbe), unabhaengig von der Glut
+            if not K.Gradient(side.wash, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.22 }) then
+                side.wash:SetColorTexture(ac[1], ac[2], ac[3], 0.08)
+            end
+            side.wash:Show()
         end
         tint()
         if K.DotGrid then side.dots = K.DotGrid(side, 0.045, 4) end
@@ -630,7 +632,6 @@ local function buildMain()
             end
             local sl, sr = tonumber(st.glowStrengthL) or 0, tonumber(st.glowStrengthR) or 1   -- 0.6.161: links Standard 0 (aus)
             if side.glow then side.glow:SetAlpha(math.min(1, sl * b)) end
-            if side.wash then side.wash:SetAlpha(math.min(1, sl * b)) end
             if main.contentGlow then main.contentGlow:SetAlpha(math.min(1, sr * b * 0.8)) end
         end)
         local acc = 0

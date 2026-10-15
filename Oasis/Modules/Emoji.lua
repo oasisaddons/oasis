@@ -198,6 +198,44 @@ local function chatFrameNames()
     return out
 end
 Emoji.ChatFrameNames = chatFrameNames
+-- 0.6.235: EllesmereUI (Chat-Modul) laesst den Blizzard-Chat unsichtbar mitlaufen (Text-Alpha 0) und zeichnet den
+-- sichtbaren Text in einem EIGENEN ScrollingMessageFrame auf der Hintergrundflaeche des Fensters. Die Emojis
+-- (Modus 4) muessen an DESSEN Zeilen ausgerichtet werden - an den unsichtbaren Blizzard-Zeilen sassen sie verschoben.
+-- Zugang ueber die oeffentliche Zuordnung EllesmereUI._chatCFD(cf).bg -> Kind vom Typ ScrollingMessageFrame.
+local function euiWindow(cf)
+    local E = rawget(_G, "EllesmereUI")
+    local CFD = type(E) == "table" and E._chatCFD
+    if not cf or type(CFD) ~= "function" then return nil end
+    local ok, d = pcall(CFD, cf)
+    local bg = ok and type(d) == "table" and d.bg
+    if not (bg and bg.GetChildren) then return nil end
+    -- 0.6.236: am Inhalt erkennen statt am Typnamen (das selbstgebaute Fenster meldete sich nicht als
+    -- "ScrollingMessageFrame"): Kind mit Zeilenliste und Nachrichtenzahl; sichtbares bevorzugt
+    local any
+    for _, c in ipairs({ bg:GetChildren() }) do
+        if type(c.visibleLines) == "table" and c.GetNumMessages then
+            if c:IsVisible() then return c end
+            any = any or c
+        end
+    end
+    return any
+end
+-- Diagnose: was haengt an der EllesmereUI-Flaeche?
+function Emoji.EuiDiag(cf)
+    local E = rawget(_G, "EllesmereUI")
+    local CFD = type(E) == "table" and E._chatCFD
+    if type(CFD) ~= "function" then return "kein _chatCFD" end
+    local ok, d = pcall(CFD, cf)
+    if not ok or type(d) ~= "table" then return "CFD-Fehler" end
+    if not d.bg then return "keine bg-Flaeche" end
+    local parts = {}
+    for _, c in ipairs({ d.bg:GetChildren() }) do
+        parts[#parts + 1] = (c.GetObjectType and c:GetObjectType() or "?") .. (type(c.visibleLines) == "table" and ("[" .. #c.visibleLines .. "]") or "")
+            .. (c.IsVisible and (c:IsVisible() and "+" or "-") or "")
+    end
+    return "bg-Kinder: " .. (#parts > 0 and table.concat(parts, " ") or "keine")
+end
+Emoji.EuiWindow = euiWindow
 -- Anschluesse je Chatfenster (Tooltip, Eingabe, Knoepfe): laufen beim Login und wieder, wenn WoW einen Reiter oeffnet
 local wirers = {}
 function Emoji.WireChatFrames()
@@ -318,6 +356,11 @@ end
 -- neu (Text nachweislich weitergeschaltet, Bild stand) - echte Texturen bewegen sich dort trotzdem (wie im
 -- Emoji-Fenster). Position: Zeile mit derselben Schrift ausmessen, bei Umbruch die Zeile ueber die Leerzeichen suchen.
 ------------------------------------------------------------------------
+-- Versatz-Faktor fuer Modus 4: eigene Einstellung (/oa emojiversatz), sonst 1.
+-- 0.6.234: Mac-Annahme aus 0.6.233 wieder raus - der betroffene Spieler ist nicht am Mac.
+function Emoji.XScale()
+    return tonumber(ns.db and ns.db.settings.emojiXScale) or 1
+end
 local OV_PAT = "|Haddon:oasisemo:([^|]+)|h|T[^|]-blank:(%d+):(%d+):0:(%-?%d+)|t|h"
 local ov = { info = setmetatable({}, { __mode = "k" }), layers = {}, pool = {}, used = 0 }
 local measFS, wrapFS
@@ -451,7 +494,7 @@ local function ovStep(frames)
                             local ts = (fs.GetTextScale and tonumber((fs:GetTextScale()))) or 1
                             if ts <= 0.2 or ts > 5 then ts = 1 end
                             -- 0.6.152: Korrektur von Hand (/oa emojiversatz), falls ein Client anders zeichnet als er misst
-                            local xs = tonumber(ns.db and ns.db.settings.emojiXScale) or 1
+                            local xs = Emoji.XScale()
                             t:SetSize(it.sz * k * ts, it.sz * k * ts)
                             t:ClearAllPoints()
                             t:SetPoint("CENTER", fs, "TOPLEFT", (jx + it.x * xs + it.sz / 2) * k * ts, (-((it.row - 1) * lh + lh / 2) + it.yo * ts) * k)
@@ -512,7 +555,13 @@ function Emoji.StepChat()
     -- SetText baut die Link-Flaechen neu, WoW meldet "Maus weg" und die Vorschau verschwand sofort
     local tipOwner = GameTooltip and GameTooltip:IsShown() and GameTooltip:GetOwner() or nil
     if redrawMode() == 4 then
-        local ok, e = pcall(ovStep, frames)
+        -- 0.6.235: mit EllesmereUI die sichtbaren Fenster von EllesmereUI vermessen statt der unsichtbaren Blizzard-Zeilen
+        local ovFrames = frames
+        if rawget(_G, "EllesmereUI") then
+            ovFrames = {}
+            for i, f in ipairs(frames) do ovFrames[i] = euiWindow(f) or f end
+        end
+        local ok, e = pcall(ovStep, ovFrames)
         if not ok then ns.err("Emoji", e) end
         return
     end
@@ -1798,10 +1847,16 @@ ns.slash.emojimode = ns.slash.emojimodus
 ns.slash.emojiversatz = function(rest)
     local v = tonumber((tostring(rest or ""):gsub(",", ".")))
     if v and v >= 0.5 and v <= 1.5 then
-        ns.db.settings.emojiXScale = (v ~= 1) and v or nil
+        ns.db.settings.emojiXScale = v   -- 0.6.233: auch 1 speichern (= bewusst aus), "auto" loescht
         if ov.info then for k in pairs(ov.info) do ov.info[k] = nil end end
     end
-    ns.print(("Emoji-Versatz %.2f  (kleiner = weiter links, 1 = aus). Aendern: /oa emojiversatz 0.88"):format(tonumber(ns.db.settings.emojiXScale) or 1))
+    if tostring(rest or ""):lower():find("auto", 1, true) then
+        ns.db.settings.emojiXScale = nil
+        if ov.info then for k in pairs(ov.info) do ov.info[k] = nil end end
+    end
+    local own = tonumber(ns.db.settings.emojiXScale)
+    ns.print(("Emoji-Versatz %.2f  (%s)  - kleiner = weiter links. Aendern: /oa emojiversatz 1.05 | /oa emojiversatz auto"):format(
+        Emoji.XScale(), own and "eigene Einstellung" or "Standard"))
 end
 ns.slash.emojitest = function()
     local out = {}
@@ -1817,6 +1872,11 @@ ns.slash.emojitest = function()
     local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
     for _, a in ipairs(DIAG_ADDONS) do if isLoaded and isLoaded(a) then other[#other + 1] = a end end
     add("Chat-Addons: " .. (#other > 0 and table.concat(other, ", ") or "keine bekannten"))
+    if rawget(_G, "EllesmereUI") then   -- 0.6.235
+        local w = euiWindow(ChatFrame1)
+        add("EllesmereUI-Chatfenster: " .. (w and ("gefunden - Emojis richten sich danach (Zeilen: " .. tostring(w.visibleLines and #w.visibleLines or "?") .. ")") or "nicht gefunden - Emojis an Blizzard-Zeilen"))
+        add("EllesmereUI-Aufbau: " .. Emoji.EuiDiag(ChatFrame1))
+    end
     -- 0.6.153: alles, was die Schriftdarstellung beeinflusst - um den Versatz der bewegten Emojis automatisch zu erkennen
     do
         local cf = ChatFrame1
@@ -1831,7 +1891,8 @@ ns.slash.emojitest = function()
             cv("uiScale"), cv("useUiScale"), cf and cf:GetScale() or 0, cf and cf:GetEffectiveScale() or 0,
             tostring(line1 and line1.GetTextScale and line1:GetTextScale() or "-"),
             tostring(line1 and line1.GetFont and select(2, line1:GetFont()) or "-")))
-        add(("Emoji-Versatz von Hand: %s"):format(tostring(st.emojiXScale or 1)))
+        add(("Emoji-Versatz: %.2f (%s)  Mac: %s"):format(Emoji.XScale(), st.emojiXScale and "von Hand" or "automatisch",
+            tostring(IsMacClient and IsMacClient() or false)))
     end
     Emoji._stepFrames = nil
     local watch = {}
