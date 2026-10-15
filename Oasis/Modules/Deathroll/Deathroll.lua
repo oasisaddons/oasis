@@ -1192,11 +1192,14 @@ function DR.LoadFighter(m, fi)
     end)
 end
 -- Kamera fuer eine Figur einstellen
+local PICK_DIST = 1.5   -- 0.6.240: Kameraabstand der grossen Vorschau in der Kaempfer-Auswahl
 function DR.ApplyCam(m, fi, facing, full)
     -- full = ganze Figur (Kampffenster), sonst Portrait-Ausschnitt; zoom = 0 bei der Figur: immer ganz
     if full then
         pcall(m.SetPortraitZoom, m, 0)
-        pcall(m.SetCamDistanceScale, m, (fi and (fi.fdist or fi.dist) or 1) * 1.1)
+        -- 0.6.240: full darf eine Zahl sein = eigener Abstand (Kaempfer-Auswahl), sonst wie bisher 1,1
+        local mult = type(full) == "number" and full or 1.1
+        pcall(m.SetCamDistanceScale, m, (fi and (fi.fdist or fi.dist) or 1) * mult)
         pcall(m.SetPosition, m, 0, 0, fi and fi.fy or 0)
         if facing then pcall(m.SetFacing, m, facing) end
         return
@@ -1431,8 +1434,9 @@ local function buildPicker()
     end
     function f:Preview(fi)
         -- grosse Vorschau: immer die ganze Figur (Kopf bis Fuss), grosse Kreaturen weiter weg
-        self:Load(self.big, fi, nil, true)
-        C_Timer.After(0.35, function() if self.big.fi == fi then DR.ApplyCam(self.big, fi, nil, true) end end)
+        -- 0.6.240: weiter weg als im Kampffenster - normal grosse Figuren (Mankrik ...) sprengten sonst den Rahmen
+        self:Load(self.big, fi, nil, PICK_DIST)
+        C_Timer.After(0.35, function() if self.big.fi == fi then DR.ApplyCam(self.big, fi, nil, PICK_DIST) end end)
         self.bigName:SetText(K.Upper(L[fi.name]))
         if DR.Unlocked(fi) then self.bigSub:SetText(L[fi.sub])
         else self.bigSub:SetText("|cffff6655" .. (L["Gesperrt - freigeschaltet ab Oasis-Rang %d"]):format(fi.rank) .. "|r") end
