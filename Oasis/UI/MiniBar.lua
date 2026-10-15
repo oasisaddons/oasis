@@ -313,6 +313,44 @@ local function build()
         end
     end
 
+    -- 0.6.244: oben angeheftet = Glut-Leiste als Bild (Gildenmodul, Tools/make_minibar.py): oben gerade, unten rund.
+    -- Drei Teile (Enden + dehnbare Mitte), damit die Rundungen bei jeder Breite rund bleiben. Sonst die normale Leiste.
+    if ns.GuildPack then
+        local GP = "Interface\\AddOns\\Oasis_Guild\\Media\\"
+        bar.art = {}
+        for _, k in ipairs({ "l", "m", "r" }) do
+            local t = bar:CreateTexture(nil, "BACKGROUND", nil, 2)
+            t:SetTexture(GP .. "minibar_" .. k)
+            t:Hide()
+            bar.art[k] = t
+        end
+        bar.art.l:SetPoint("TOPLEFT") bar.art.l:SetPoint("BOTTOMLEFT")
+        bar.art.r:SetPoint("TOPRIGHT") bar.art.r:SetPoint("BOTTOMRIGHT")
+        bar.art.m:SetPoint("TOPLEFT", bar.art.l, "TOPRIGHT") bar.art.m:SetPoint("BOTTOMRIGHT", bar.art.r, "BOTTOMLEFT")
+        local baseShape = bar.Shape
+        function bar:Shape()
+            baseShape(self)
+            local on = self:EdgeOf() == "TOP"
+            local cw = (self:GetHeight() or 38) * 1.09
+            self.art.l:SetWidth(cw) self.art.r:SetWidth(cw)
+            for _, k in ipairs({ "l", "m", "r" }) do self.art[k]:SetShown(on) end
+            if not on then return end
+            for _, t in ipairs(self.bgParts) do t:Hide() end
+            if self.sheen then self.sheen:Hide() end
+            self.accent:Hide() self.accentGlow:Hide()
+            for _, arc in pairs(self.arcs or {}) do arc:Hide() arc.glow:Hide() end
+        end
+        -- vorher versteckte Teile wieder zeigen, wenn die Leiste vom oberen Rand weggezogen wird
+        local baseShape2 = bar.Shape
+        function bar:Shape()
+            for _, t in ipairs(self.bgParts) do t:Show() end
+            if self.sheen then self.sheen:Show() end
+            baseShape2(self)
+        end
+        -- Enden-Breite folgt der Hoehe (kompakt / angedockt)
+        bar:HookScript("OnSizeChanged", function(self) if self.art then local cw = (self:GetHeight() or 38) * 1.09 self.art.l:SetWidth(cw) self.art.r:SetWidth(cw) end end)
+    end
+
     -- Wortmarke (animiert): Klick = aufklappen
     local logoBtn = CreateFrame("Button", nil, bar)
     logoBtn:SetSize(76, 19)
