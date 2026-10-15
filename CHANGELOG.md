@@ -2,6 +2,17 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.256
+
+- EllesmereUI chat: Oasis no longer changes Blizzard's chat windows while EllesmereUI draws the chat itself (no rewritten or removed lines, no fading change, no restored history, no mouse selection) - its chat showed only 2-3 lines and slowly drifted up.
+- Animated emojis line up with EllesmereUI's visible chat window; /oa emojitest shows whether it was found.
+- Gathering nodes are recognised by spell name as well, so clients with different spell IDs save them again; /oa sammeltest shows the last casts and what happened.
+- New /oa positionen: shows whether you share your position, whether the guild allows it and which positions arrived.
+- Alt question on login: the "Alt of" dropdown now shows the chosen character (it was saved but stayed empty).
+- Death roll: the fighter picker shows every figure standing on the platform; the large preview fits normal-sized figures.
+- Sidebar with a soft colour gradient (colour "Background left" or accent colour).
+- Top bar without the plus and close button.
+
 ## 0.6.232
 
 - Deathroll: find opponents outside your guild too - a hidden channel per stake level (small / medium / high) shares who is looking for a game. Sends only on changes plus a sign of life every 60 s; players from other guilds appear quietly in the list. Network status next to the online count (click to connect), can be turned off in the Deathroll settings, /oa drnetz shows the connection.
