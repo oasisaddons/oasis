@@ -236,43 +236,81 @@ function Emoji.EuiDiag(cf)
     return "bg-Kinder: " .. (#parts > 0 and table.concat(parts, " ") or "keine")
 end
 Emoji.EuiWindow = euiWindow
--- 0.6.258: /oa chatwatch - 30 s lang jede Sekunde Scroll-Position und Zeilenzahl des (unsichtbaren) Blizzard-Chats und
--- des EllesmereUI-Fensters. Waechst die Blizzard-Position ohne Zutun, rutscht EllesmereUIs Fenster leer.
--- Zusaetzlich: wer ruft ScrollUp/ScrollDown/SetScrollOffset am Blizzard-Fenster auf (Aufrufer aus debugstack).
-local watchHooked = setmetatable({}, { __mode = "k" })
-ns.slash.chatwatch = function()
-    local cf = ChatFrame1
+-- Chat-Diagnose: nur lesen, keine Chatzeilen ausgeben oder Scroll-Hooks installieren.
+-- Der Bericht enthaelt keine Nachrichten und bleibt lokal; die Kopie oeffnet ausserhalb des Chats.
+local chatWatchTimer
+local function watchValue(f, method)
+    if not f or type(f[method]) ~= "function" then return "?" end
+    local ok, value = pcall(f[method], f)
+    value = ok and ns.safe(value)
+    if type(value) == "number" then return ("%.2f"):format(value) end
+    if type(value) == "boolean" then return value and "1" or "0" end
+    return "?"
+end
+local function watchFrame(f)
+    if not f then return "missing" end
+    local values = {}
+    for _, method in ipairs({ "GetScrollOffset", "GetNumMessages", "GetMaxScrollRange", "GetNumVisibleLines",
+        "IsVisible", "GetEffectiveAlpha", "GetWidth", "GetHeight", "GetTop", "GetBottom", "GetFading" }) do
+        values[#values + 1] = watchValue(f, method)
+    end
+    local shown, text, inside, secret, ink = 0, 0, 0, 0, 0
+    local lines = ns.safe(f.visibleLines)
+    if type(lines) == "table" then
+        for _, fs in ipairs(lines) do
+            if ns.safe(fs:IsShown()) then
+                shown = shown + 1
+                local raw = fs:GetText()
+                if issecretvalue and issecretvalue(raw) then
+                    secret = secret + 1
+                elseif type(raw) == "string" and raw ~= "" then
+                    text = text + 1
+                    local alpha = fs.GetEffectiveAlpha and ns.safe(fs:GetEffectiveAlpha())
+                    if type(alpha) == "number" and alpha > 0 then ink = ink + 1 end
+                    local ft, fb = ns.safe(f:GetTop()), ns.safe(f:GetBottom())
+                    local lt, lb = ns.safe(fs:GetTop()), ns.safe(fs:GetBottom())
+                    if type(ft) == "number" and type(fb) == "number" and type(lt) == "number" and type(lb) == "number"
+                        and lt > fb and lb < ft then inside = inside + 1 end
+                end
+            end
+        end
+    end
+    return table.concat(values, "/") .. (" lines=%d text=%d inside=%d secret=%d ink=%d containerAlpha=%s"):format(
+        shown, text, inside, secret, ink, watchValue(f.FontStringContainer, "GetEffectiveAlpha"))
+end
+local function showChatWatch()
+    local report = ns.db and ns.db.chatWatchReport
+    if report and ns.WhisperLog and ns.WhisperLog.Copy then
+        ns.WhisperLog.Copy(L["Chat-Diagnose"], report)
+    end
+end
+ns.slash.chatwatch = function(arg)
+    if not ns.db then return end
+    if arg and arg:match("^%s*bericht%s*$") then showChatWatch() return end
+    if chatWatchTimer then chatWatchTimer:Cancel() chatWatchTimer = nil end
+    local cf = SELECTED_CHAT_FRAME or ChatFrame1
     if not cf then return end
-    local log = {}
-    local function note(what)
-        local st = debugstack and debugstack(3, 3, 0) or ""
-        local src = st:match("AddOns[/\\]([^:]+:%d+)") or st:match("([^\n]+)") or "?"
-        log[#log + 1] = what .. " <- " .. src
+    local out = { "Oasis " .. ns.version .. " chatwatch (30 s)",
+        "offset/messages/range/visibleLines/visible/alpha/width/height/top/bottom/fading",
+        "Read-only; no chat text captured. Scroll normally after the first 3 seconds." }
+    local function sample(n)
+        out[#out + 1] = ("%02ds Blizzard %s"):format(n, watchFrame(cf))
+        out[#out + 1] = ("%02ds EllesmereUI %s"):format(n, watchFrame(euiWindow(cf)))
+        ns.db.chatWatchReport = table.concat(out, "\n")
     end
-    if not watchHooked[cf] then
-        watchHooked[cf] = true
-        for _, m in ipairs({ "ScrollUp", "ScrollDown", "SetScrollOffset", "ScrollToTop", "PageUp" }) do
-            if cf[m] then hooksecurefunc(cf, m, function() if Emoji._watching then note(m) end end) end
-        end
+    sample(0)
+    if ns.K and ns.K.Toast then
+        ns.K.Toast(L["Chat-Diagnose"], L["Messung laeuft 30 Sekunden. Danach oeffnet sich der Bericht zum Kopieren."], nil, nil, "none")
     end
-    Emoji._watching = true
-    local w = euiWindow(cf)
-    ns.print("chatwatch 30 s - bitte nichts tun und warten. EllesmereUI-Fenster: " .. (w and "gefunden" or "nicht gefunden"))
-    local n, lastOff = 0, nil
-    local t
-    t = C_Timer.NewTicker(1, function()
+    local n = 0
+    chatWatchTimer = C_Timer.NewTicker(1, function()
         n = n + 1
-        local off = cf.GetScrollOffset and cf:GetScrollOffset() or -1
-        local num = cf.GetNumMessages and cf:GetNumMessages() or -1
-        local wo = w and w.GetScrollOffset and w:GetScrollOffset() or -1
-        local wn = w and w.GetNumMessages and w:GetNumMessages() or -1
-        if n == 1 or off ~= lastOff or #log > 0 or n % 10 == 0 then
-            ns.print(("%2d s  Blizzard: Position %s / %s Zeilen   EllesmereUI: Position %s / %s Zeilen%s"):format(n, tostring(off), tostring(num),
-                tostring(wo), tostring(wn), #log > 0 and ("   Aufrufe: " .. table.concat(log, ", ")) or ""))
+        sample(n)
+        if n >= 30 then
+            chatWatchTimer:Cancel()
+            chatWatchTimer = nil
+            showChatWatch()
         end
-        lastOff = off
-        for i = #log, 1, -1 do log[i] = nil end
-        if n >= 30 then t:Cancel() Emoji._watching = nil ns.print("chatwatch fertig - bitte Screenshot schicken.") end
     end)
 end
 -- Anschluesse je Chatfenster (Tooltip, Eingabe, Knoepfe): laufen beim Login und wieder, wenn WoW einen Reiter oeffnet
@@ -286,7 +324,7 @@ function Emoji.WireChatFrames()
 end
 ns.Listen("LOGIN", function()
     Emoji.WireChatFrames()
-    if hooksecurefunc and type(FCF_OpenTemporaryWindow) == "function" then
+    if not (ns.ForeignChat and ns.ForeignChat()) and hooksecurefunc and type(FCF_OpenTemporaryWindow) == "function" then
         hooksecurefunc("FCF_OpenTemporaryWindow", function() C_Timer.After(0, Emoji.WireChatFrames) end)
     end
 end)

@@ -613,6 +613,7 @@ local function itemTipHide(self)
     end
 end
 function GC.Attach()
+    if ns.ForeignChat and ns.ForeignChat() then return end   -- fremde Chat-Ereigniskette nicht zusaetzlich einhaengen
     for _, f in ipairs(chatFrames()) do
         if not hooked[f] then
             hooked[f] = true
@@ -656,6 +657,7 @@ local function watch(btn, key)
     pcall(applyButton, btn)
 end
 function GC.ApplyButtons()
+    if ns.ForeignChat and ns.ForeignChat() then return end   -- auch Seitenleisten- und Sozialknoepfe gehoeren dem fremden Chat
     if not ns.db or ns.inCombat() then GC.pending = true return end
     watch(ChatFrameMenuButton, "gcHideMenu")
     watch(ChatFrameChannelButton, "gcHideChannel")
@@ -1177,7 +1179,7 @@ function GC.HookSelect()
     end
 end
 if ns.Listen then ns.Listen("LOGIN", function() C_Timer.After(1, function() pcall(GC.HookSelect) end) end) end
-if hooksecurefunc and type(FCF_OpenTemporaryWindow) == "function" then
+if not (ns.ForeignChat and ns.ForeignChat()) and hooksecurefunc and type(FCF_OpenTemporaryWindow) == "function" then
     hooksecurefunc("FCF_OpenTemporaryWindow", function() C_Timer.After(0, function() pcall(GC.HookSelect) end) end)
 end
 function GC.ApplyCopyButton()
@@ -1305,7 +1307,7 @@ ns.On("PLAYER_ENTERING_WORLD", function()
     if not entered then
         entered = true
         ns.After(1.5, function() pcall(restoreHistory) end)
-        if hooksecurefunc then
+        if hooksecurefunc and not (ns.ForeignChat and ns.ForeignChat()) then
             if FCF_OpenTemporaryWindow then hooksecurefunc("FCF_OpenTemporaryWindow", function() ns.After(0, GC.ApplyAll) end) end
             if FCF_OpenNewWindow then hooksecurefunc("FCF_OpenNewWindow", function() ns.After(0, GC.ApplyAll) end) end
         end

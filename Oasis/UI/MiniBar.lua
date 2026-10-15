@@ -329,6 +329,7 @@ local function build()
         bar.art.l:SetPoint("TOPLEFT") bar.art.l:SetPoint("BOTTOMLEFT", 0, -DROP)
         bar.art.r:SetPoint("TOPRIGHT") bar.art.r:SetPoint("BOTTOMRIGHT", 0, -DROP)
         bar.art.m:SetPoint("TOPLEFT", bar.art.l, "TOPRIGHT") bar.art.m:SetPoint("BOTTOMRIGHT", bar.art.r, "BOTTOMLEFT")
+        C_Timer.After(0, function() if ns.ApplyMiniAlpha then pcall(ns.ApplyMiniAlpha) end end)   -- 0.6.263: Deckkraft + Farbe gleich anwenden
         local baseShape = bar.Shape
         function bar:Shape()
             baseShape(self)
@@ -673,7 +674,27 @@ function ns.ApplyMiniAlpha()
     local a = ns.db and ns.db.settings.miniAlpha or 1
     if b and b.bgParts then for _, t in ipairs(b.bgParts) do t:SetAlpha(a) end
     elseif b and b.bgTex then b.bgTex:SetAlpha(a) end
+    -- 0.6.261: auch das Glut-Bild (Gildenmodul) - sonst wirkte der Regler oben angeheftet gar nicht
+    if b and b.art then for _, k in ipairs({ "l", "m", "r" }) do if b.art[k] then b.art[k]:SetAlpha(a) end end end
+    if ns.TintMiniArt then pcall(ns.TintMiniArt) end   -- 0.6.263: auch beim Bauen/Einstellen einfaerben
 end
+-- 0.6.263: Glut-Bild der Leiste folgt der Akzentfarbe (wie Startfenster und Hintergruende): bei Rot das Original,
+-- sonst entsaettigt und in der Akzentfarbe
+local function tintMiniArt()
+    local b = ns._miniBar
+    if not (b and b.art) then return end
+    local ac = C.accent or { 1, 0.2, 0.2 }
+    local red = ac[1] > 0.55 and ac[2] < 0.45 and ac[3] < 0.45
+    for _, k in ipairs({ "l", "m", "r" }) do
+        local t = b.art[k]
+        if t then
+            t:SetDesaturated(not red)
+            if red then t:SetVertexColor(1, 1, 1)
+            else t:SetVertexColor(math.min(1, ac[1] * 1.6), math.min(1, ac[2] * 1.6), math.min(1, ac[3] * 1.6)) end
+        end
+    end
+end
+ns.TintMiniArt = tintMiniArt
 -- gebuendelt (Performance 0.5.482): wird bei jedem Zaehler-Update, Gruppenwechsel und Abgleich-Datensatz
 -- angestossen - jetzt hoechstens einmal je 0,1 s statt hunderte Male beim Login-Abgleich
 local mbPending = false
@@ -941,6 +962,7 @@ function ns.RestyleMiniBar()
     for _, fs in ipairs({ bar.plus, bar.hint, bar.label }) do if fs and fs.SetTextColor then fs:SetTextColor(ac[1], ac[2], ac[3]) end end
     if bar.Shape then pcall(bar.Shape, bar) end
     if ns.ApplyMiniAlpha then pcall(ns.ApplyMiniAlpha) end
+    pcall(tintMiniArt)   -- 0.6.263
     if ns.UpdateMiniBarNow then pcall(ns.UpdateMiniBarNow) elseif ns.UpdateMiniBar then pcall(ns.UpdateMiniBar) end
 end
 ns.Listen("BRAND", function() ns.Debounce("miniRestyle", 0.2, function() pcall(ns.RestyleMiniBar) end) end)

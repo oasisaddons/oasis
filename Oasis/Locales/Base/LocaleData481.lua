@@ -3409,3 +3409,11 @@ DE["Leuchtkraft der Glutadern links und rechts. 0 % = aus."] = "Leuchtkraft der 
 EN["Leuchtkraft der Glutadern links und rechts. 0 % = aus."] = "Glow strength of the ember veins left and right. 0 % = off."
 DE["Wie stark die Hintergrundbilder durchscheinen. 0 % = kein Bild."] = "Wie stark die Hintergrundbilder durchscheinen. 0 % = kein Bild."
 EN["Wie stark die Hintergrundbilder durchscheinen. 0 % = kein Bild."] = "How strongly the background images show. 0 % = no image."
+
+DE["Chat-Diagnose"] = "Chat-Diagnose"
+EN["Chat-Diagnose"] = "Chat diagnostics"
+
+DE["Messung laeuft 30 Sekunden. Danach oeffnet sich der Bericht zum Kopieren."] = "Messung läuft 30 Sekunden. Danach öffnet sich der Bericht zum Kopieren."
+EN["Messung laeuft 30 Sekunden. Danach oeffnet sich der Bericht zum Kopieren."] = "Recording for 30 seconds. The report will then open for copying."
+DE["Leiste ohne Schriftzug, Klick links klappt weiter auf"] = "Leiste ohne Schriftzug, Klick links klappt weiter auf"
+EN["Leiste ohne Schriftzug, Klick links klappt weiter auf"] = "Bar without the wordmark, clicking on the left still expands it"

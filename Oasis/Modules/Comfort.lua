@@ -233,12 +233,13 @@ end
 for _, ev in ipairs({ "CHAT_MSG_WHISPER_INFORM", "CHAT_MSG_BN_WHISPER_INFORM" }) do
     ns.On(ev, function(msg) pcall(rememberText, msg) end)
 end
-if ChatEdit_ActivateChat then
+if ChatEdit_ActivateChat and not (ns.ForeignChat and ns.ForeignChat()) then
     hooksecurefunc("ChatEdit_ActivateChat", function(eb)
         if on("cfChatArrows") and eb and eb.SetAltArrowKeyMode then eb:SetAltArrowKeyMode(false) end
     end)
 end
 function CF.ApplyChat()
+    if ns.ForeignChat and ns.ForeignChat() then return end   -- Eingabe, Pfeiltasten und Mausklicks verwaltet der fremde Chat
     for _, c in ipairs(chatFrames()) do
         local f, eb = c[1], c[2]
         if eb and not EBM[eb] and eb.HookScript then

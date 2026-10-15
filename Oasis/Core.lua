@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.260"
+ns.version = "0.6.264"
 ns.versionDate = "15.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -350,7 +350,10 @@ function ns.IsDev() return false end
 -- wanderte nach oben weg).
 function ns.ForeignChat()
     local E = rawget(_G, "EllesmereUI")
-    return type(E) == "table" and type(E._chatCFD) == "function" or false
+    if type(E) == "table" and type(E._chatCFD) == "function" then return true end
+    -- Bereits beim Laden erkennen, bevor die fremde Fensterzuordnung bereitsteht.
+    local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
+    return loaded and loaded("EllesmereUIChat") and true or false
 end
 -- Minimap-Symbole von Oasis (0.5.960): die Mitte bleibt frei, damit der eigene Pfeil sichtbar ist, und die Symbole liegen in der
 -- Ebene der Minimap selbst (vorher eine Ebene hoeher - dann verdeckten sie Rahmen und Kompass).

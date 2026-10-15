@@ -3241,7 +3241,7 @@ local function buildBar(f)
     cardH(f, RXc, Y2, 362, 292, "settings", L["Leiste"], nil, true)
     f.autoHide = optTile(RX0, Y2 - 46, 330, "eye_off", "Einrollen", "nur der Rand bleibt sichtbar, Maus oben holt sie", "miniAutoHide",
         function() if ns.PlaceMiniBar then ns.PlaceMiniBar() end end)
-    f.noLogo = optTile(RX0, Y2 - 110, 330, "chronicle", "Logo ausblenden", "statt des Schriftzugs nur ein kleines +", "miniNoLogo",
+    f.noLogo = optTile(RX0, Y2 - 110, 330, "chronicle", "Logo ausblenden", "Leiste ohne Schriftzug, Klick links klappt weiter auf", "miniNoLogo",
         function() if ns.UpdateMiniBar then ns.UpdateMiniBar() end end)
     rowLabel(f, L["Hintergrund"], RX0, Y2 - 182)
     f.miniAlpha = K.Slider(f, 200, 0.1, 1, 0.05, function() return S().miniAlpha or 1 end,
