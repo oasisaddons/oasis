@@ -1023,6 +1023,53 @@ local function iconList(parent, rowH)
     end)
 end
 
+-- 0.6.397: Rekorde im Stil der Werte-Seite - Zeile mit Symbol im Kaestchen, Titel/Datum, Wert gross in Gold,
+-- Verbesserung zum vorherigen Rekord gruen davor
+local function recList(parent)
+    return K.List(parent, 46, function(list)
+        local r = K.Row(list)
+        r.bgx = r:CreateTexture(nil, "BACKGROUND")
+        r.bgx:SetPoint("TOPLEFT", 0, -2) r.bgx:SetPoint("BOTTOMRIGHT", 0, 2)
+        r.bgx:SetColorTexture(1, 1, 1, 0.03)
+        if K.RoundMask then pcall(K.RoundMask, r.bgx, r, 6) end
+        r.box = r:CreateTexture(nil, "BORDER")
+        r.box:SetSize(34, 34)
+        r.box:SetPoint("LEFT", 6, 0)
+        r.box:SetColorTexture(1, 1, 1, 0.06)
+        if K.RoundMask then pcall(K.RoundMask, r.box, r.box, 5) end
+        r.ic = r:CreateTexture(nil, "ARTWORK")
+        r.ic:SetSize(28, 28)
+        r.ic:SetPoint("CENTER", r.box, "CENTER")
+        r.ic:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        if K.RoundMask then pcall(K.RoundMask, r.ic, r.ic, 4) end
+        r.title = K.Text(r, 13, C.text)
+        r.title:SetPoint("TOPLEFT", r.box, "TOPRIGHT", 12, -2)
+        r.title:SetPoint("RIGHT", -170, 0)
+        r.title:SetWordWrap(false)
+        r.sub = K.Text(r, 10, C.muted)
+        r.sub:SetPoint("BOTTOMLEFT", r.box, "BOTTOMRIGHT", 12, 2)
+        r.sub:SetPoint("RIGHT", -170, 0)
+        r.sub:SetWordWrap(false)
+        r.val = K.Title(r, 16, C.amber, "RIGHT")
+        r.val:SetPoint("RIGHT", -14, 0)
+        r.up = K.Text(r, 11, C.mint, "RIGHT")
+        r.up:SetPoint("RIGHT", r.val, "LEFT", -10, 0)
+        r:SetScript("OnEnter", function(s) if s.item and s.item.tip then K.ShowTip(s, s.item.tip) end end)
+        r:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        return r
+    end, function(r, it)
+        r.ic:SetTexture(it.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+        r.title:SetText(it.title or "")
+        r.sub:SetText(it.sub or "")
+        r.val:SetText(it.val or "")
+        r.up:SetText(it.up or "")
+        local dim = it.none
+        r.val:SetTextColor(dim and C.dim[1] or C.amber[1], dim and C.dim[2] or C.amber[2], dim and C.dim[3] or C.amber[3])
+        r.ic:SetDesaturated(dim and true or false)
+        r.ic:SetAlpha(dim and 0.5 or 1)
+    end)
+end
+
 local function tiles(p, defs)
     p.tiles = {}
     for i, d in ipairs(defs) do
@@ -1085,15 +1132,57 @@ ns.RegisterPage({
 
         -------------------------------------------------- Rekorde
         local r = sub(p, "records")
-        r.head = K.GameHead(r, L["Persoenliche Rekorde"], C.amber)
-        r.head:SetPoint("TOPLEFT", 0, -2)
-        r.head:SetWidth(400)
-        r.note = K.Text(r, 11, C.muted, "RIGHT")
-        r.note:SetPoint("TOPRIGHT", 0, -4)
+        -- 0.6.397: Kacheln oben (wie die Werte-Kacheln), darunter die Rekorde in einer Box
+        local G = ns.Insta and ns.Insta.Glass
+        local BOXF, BOXL = { 0.055, 0.055, 0.065, 0.85 }, { 1, 1, 1, 0.08 }
+        local RT = { { "badges", "Rekorde", { 0.95, 0.72, 0.38 } }, { "star_on", "Neuester Rekord", { 0.62, 0.48, 0.95 } }, { "chronicle", "In den letzten 7 Tagen", { 0.35, 0.85, 0.55 } } }
+        r.rt = {}
+        for i, d in ipairs(RT) do
+            local t = CreateFrame("Frame", nil, r)
+            t:SetHeight(64)
+            if G then G(t, BOXF, BOXL, 10) end
+            if K.DarkBoxFrame then K.DarkBoxFrame(t) end
+            t.disc = t:CreateTexture(nil, "ARTWORK")
+            t.disc:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+            t.disc:SetSize(36, 36)
+            t.disc:SetPoint("LEFT", 14, 0)
+            t.disc:SetVertexColor(d[3][1], d[3][2], d[3][3], 0.14)
+            t.icon = K.Glyph(t, 18, ns.MEDIA .. "icons\\" .. d[1], d[3])
+            t.icon:SetPoint("CENTER", t.disc, "CENTER")
+            t.lbl = K.Text(t, 11, C.muted)
+            t.lbl:SetPoint("TOPLEFT", t, "TOPLEFT", 62, -14)
+            t.lbl:SetPoint("RIGHT", t, "RIGHT", -10, 0)
+            t.lbl:SetWordWrap(false)
+            t.lbl:SetText(L[d[2]])
+            t.val = K.Title(t, 18, C.text)
+            t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -5)
+            t.val:SetPoint("RIGHT", t, "RIGHT", -10, 0)
+            t.val:SetWordWrap(false)
+            r.rt[i] = t
+        end
+        r:HookScript("OnSizeChanged", function(self, w)
+            local tw = math.floor(((w or 750) - 2 * 10) / 3)
+            for i, t in ipairs(self.rt) do
+                t:ClearAllPoints()
+                t:SetPoint("TOPLEFT", (i - 1) * (tw + 10), 0)
+                t:SetWidth(tw)
+            end
+        end)
+        r.box = CreateFrame("Frame", nil, r)
+        r.box:SetPoint("TOPLEFT", 0, -76)
+        r.box:SetPoint("BOTTOMRIGHT")
+        if G then G(r.box, BOXF, BOXL, 12) end
+        if K.DarkBoxFrame then K.DarkBoxFrame(r.box) end
+        r.head = K.GameHead(r.box, L["Persoenliche Rekorde"], C.amber)
+        r.head:SetPoint("TOPLEFT", 14, -12)
+        r.head:SetWidth(300)
+        r.head.text:SetText(L["Persoenliche Rekorde"])
+        r.note = K.Text(r.box, 10, C.dim, "RIGHT")
+        r.note:SetPoint("TOPRIGHT", -14, -14)
         r.note:SetText(L["Crits und Schaden sind in Forever fuer Addons gesperrt"])
-        r.list = iconList(r, 44)
-        r.list:SetPoint("TOPLEFT", 0, -28)
-        r.list:SetPoint("BOTTOMRIGHT")
+        r.list = recList(r.box)
+        r.list:SetPoint("TOPLEFT", 10, -38)
+        r.list:SetPoint("BOTTOMRIGHT", -10, 10)
 
         -------------------------------------------------- Dungeons
         local d = sub(p, "dungeons")
@@ -1439,11 +1528,27 @@ end
 
 function Life.RefreshRecords(r, l)
     local data = {}
+    local nSet, newest, week = 0, nil, 0
     for _, key in ipairs(REC_ORDER) do
         local def, rec = REC[key], l.rec[key]
+        local up
+        if rec and rec.prev and type(rec.v) == "number" and type(rec.prev) == "number" and rec.v > rec.prev then
+            local okU, txt = pcall(def[3], rec.v - rec.prev)
+            if okU and txt then up = "+" .. txt end
+        end
+        if rec then
+            nSet = nSet + 1
+            if not newest or (rec.t or 0) > (newest.t or 0) then newest = { t = rec.t, name = L[def[1]] } end
+            if (rec.t or 0) > now() - 7 * DAY then week = week + 1 end
+        end
         data[#data + 1] = { icon = def[4], title = L[def[1]] .. (rec and rec.x and rec.x.label and ("  |cff888888" .. rec.x.label .. "|r") or ""),
             sub = rec and ((L["aufgestellt am %s"]):format(fmtDate(rec.t)) .. (rec.prev and ("  ·  " .. L["vorher"] .. " " .. def[3](rec.prev)) or "")) or L["noch kein Wert"],
-            val = rec and def[3](rec.v) or "–" }
+            val = rec and def[3](rec.v) or "–", up = up, none = not rec }
+    end
+    if r.rt then
+        r.rt[1].val:SetText(tostring(nSet))
+        r.rt[2].val:SetText(newest and newest.name or "–")
+        r.rt[3].val:SetText(tostring(week))
     end
     local runs = {}
     for key, rec in pairs(l.rec) do if key:find("^run:") then runs[#runs + 1] = rec end end
