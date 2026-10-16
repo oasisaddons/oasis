@@ -3111,7 +3111,10 @@ ns.RegisterPage({
                     local cwList, cwTotal = {}, 0
                     if rc and rc.chips then
                         for i, b in ipairs(rc.chips) do
-                            local w = math.ceil((b.label and b.label:GetStringWidth() or 40) + 44)
+                            -- 0.6.348: nur Symbol (Name steht im Tooltip)
+                            if b.label then b.label:Hide() end
+                            if b.icon then b.icon:ClearAllPoints() b.icon:SetPoint("CENTER") end
+                            local w = 30
                             cwList[i] = w
                             cwTotal = cwTotal + w + (i > 1 and 6 or 0)
                         end
