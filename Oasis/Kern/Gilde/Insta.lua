@@ -2880,7 +2880,7 @@ ns.RegisterPage({
                 local OFF_F, OFF_L = { 1, 1, 1, 0.04 }, { 1, 1, 1, 0.16 }
                 local x = 0
                 for _, b in ipairs(bar.btns) do
-                    b:SetHeight(30)
+                    b:SetHeight(26)
                     b:ClearAllPoints()
                     b:SetPoint("LEFT", x, 0)
                     x = x + (b:GetWidth() or 60) + 8
@@ -2888,7 +2888,7 @@ ns.RegisterPage({
                     if b.hl and K.RoundMask then K.RoundMask(b.hl, b, 6) end
                 end
                 bar:SetWidth(math.max(1, x - 8))
-                bar:SetHeight(30)
+                bar:SetHeight(26)
                 IG.Glass(bar, CLEAR, CLEAR, 10)
                 local sel = bar.Select
                 function bar:Select(key)
@@ -3004,7 +3004,7 @@ ns.RegisterPage({
             soon.clsSep:SetPoint("LEFT", soon.clsPill, "RIGHT", 12, 0)
 
             -- obere Reihe der Werte-Ansicht: drei Kacheln links, Spezialisierung/Wunschrolle rechts
-            local ROW = 68   -- 0.6.346: noch flacher (Charakterwerte darunter brauchen den Platz)
+            local ROW = 60   -- 0.6.347: noch flacher (Charakterwerte darunter brauchen den Platz)
             cs:ClearAllPoints()
             -- 0.6.330: Verbrauchsgueter als eigene Box unter den Charakterwerten (2x2), Werte einspaltig
             local cb = CreateFrame("Frame", nil, view)
@@ -3032,17 +3032,19 @@ ns.RegisterPage({
                 local t = CreateFrame("Frame", nil, tiles)
                 IG.Glass(t, IG.GLASS_FILL, IG.GLASS_LINE, 10)
                 -- 0.6.326: schlichte Symbole in der Wertfarbe (Entwurf)
-                t.icon = K.Glyph(t, 24, ns.MEDIA .. "icons\\" .. d.icon, d.col)
-                t.icon:SetPoint("LEFT", 16, 4)
+                t.icon = K.Glyph(t, 20, ns.MEDIA .. "icons\\" .. d.icon, d.col)
+                t.icon:SetPoint("LEFT", 14, 4)
                 t.lbl = K.Text(t, 11, C.muted)
-                t.lbl:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 12, 6)
+                t.lbl:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 10, 7)
+                t.lbl:SetPoint("RIGHT", t, "RIGHT", -8, 0)
+                t.lbl:SetWordWrap(false)
                 t.lbl:SetText(L[d.label])
-                t.val = K.Title(t, 21, C.text)
+                t.val = K.Title(t, 18, C.text)
                 t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -2)
                 t.track = t:CreateTexture(nil, "ARTWORK")
                 t.track:SetColorTexture(1, 1, 1, 0.08)
                 t.track:SetHeight(5)
-                t.track:SetPoint("BOTTOMLEFT", 14, 8) t.track:SetPoint("BOTTOMRIGHT", -14, 8)
+                t.track:SetPoint("BOTTOMLEFT", 14, 7) t.track:SetPoint("BOTTOMRIGHT", -14, 7)
                 t.fill = t:CreateTexture(nil, "ARTWORK", nil, 1)
                 t.fill:SetColorTexture(d.col[1], d.col[2], d.col[3], 1)
                 t.fill:SetHeight(5)
@@ -3089,7 +3091,7 @@ ns.RegisterPage({
             rb:SetHeight(ROW)
             IG.Glass(rb, IG.GLASS_FILL, IG.GLASS_LINE, 10)
             rb.l1 = K.Text(rb, 11, C.muted)
-            rb.l1:SetPoint("TOPLEFT", 12, -8)
+            rb.l1:SetPoint("TOPLEFT", 12, -6)
             rb.l1:SetText(L["Spezialisierung"])
             rb.l2 = K.Text(rb, 11, C.muted)
             rb.l2:SetText(L["Wunschrolle"])
@@ -3119,24 +3121,24 @@ ns.RegisterPage({
                     local sc = math.min(1, inner / math.max(1, bw + 24 + cwTotal))
                     bar:SetScale(sc)
                     bar:ClearAllPoints()
-                    bar:SetPoint("TOPLEFT", rb, "TOPLEFT", 12 / sc, -28 / sc)
+                    bar:SetPoint("TOPLEFT", rb, "TOPLEFT", 12 / sc, -24 / sc)
                     if rc then
                         rc:SetScale(sc)
                         rc:ClearAllPoints()
                         rc:SetWidth(math.max(1, cwTotal))
-                        rc:SetHeight(30)
-                        rc:SetPoint("TOPRIGHT", rb, "TOPRIGHT", -12 / sc, -28 / sc)
+                        rc:SetHeight(26)
+                        rc:SetPoint("TOPRIGHT", rb, "TOPRIGHT", -12 / sc, -24 / sc)
                         local x = 0
                         for i, b in ipairs(rc.chips or {}) do
                             b:ClearAllPoints()
-                            b:SetSize(cwList[i], 30)
+                            b:SetSize(cwList[i], 26)
                             b:SetPoint("LEFT", rc, "LEFT", x, 0)
                             x = x + cwList[i] + 6
                         end
                         rb.l2:ClearAllPoints()
                         -- Ueberschrift auf einer Hoehe mit "Spezialisierung"
                         rb.l2:SetPoint("LEFT", rc, "LEFT", 0, 0)
-                        rb.l2:SetPoint("TOP", rb, "TOP", 0, -8)
+                        rb.l2:SetPoint("TOP", rb, "TOP", 0, -6)
                     end
                 end
                 rb:HookScript("OnSizeChanged", function() pcall(layout) end)
