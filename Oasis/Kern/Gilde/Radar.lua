@@ -3866,6 +3866,27 @@ do
         end
         wasIn = now
     end)
+    -- 0.6.402: Sicherheitsnetz - alle 5 Min Online-Mitglieder ohne jede Oasis-Meldung einmal pro Sitzung leise
+    -- fragen (erkennt auch, wer Oasis erst waehrend des Spielens einschaltet); hoechstens 5 je Runde, versetzt
+    local askedNet = {}
+    ns.Listen("LOGIN", function()
+        ns.Every(300, function()
+            if not IsInGuild() or ns.inCombat() then return end
+            local n = 0
+            for _, m in ipairs(Radar.roster or {}) do
+                if n >= 5 then break end
+                if m.online and m.name and not ns.isMe(m.name) and not askedNet[m.name] then
+                    local pr = rawget(ns.db.members, m.name)
+                    if not pr or not pr.seen then
+                        askedNet[m.name] = true
+                        n = n + 1
+                        local who = m.name
+                        ns.After(n * 2, function() Comm.Whisper(who, "HELLOREQ") end)
+                    end
+                end
+            end
+        end)
+    end)
     -- jemand ist der Gilde beigetreten: gezielt fragen, ob er Oasis hat (Antwort = sein Profil)
     local JOIN = ERR_GUILD_JOIN_S and ERR_GUILD_JOIN_S:gsub("%%s", "(.+)"):gsub("%.", "%%.")
     ns.On("CHAT_MSG_SYSTEM", function(msg)
