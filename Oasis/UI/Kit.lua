@@ -3798,6 +3798,7 @@ end
 -- Masse wie K.ImageFrame (Quellpixel nach dem Zuschnitt), ohne Mittelstueck: Kanten aus dem Stueck neben der Ecke.
 K.boxFrames = setmetatable({}, { __mode = "k" })
 local BOX = { SW = 1398, SH = 1028, BT = 20, BB = 20, BL = 14, BR = 13, C = 60, k = 0.16, alpha = 0.5 }
+local BOX_BEVEL = BOX.C * BOX.k   -- Kantenlaenge der Abschraegung (K.RoundMask schneidet Boxen mit Rahmen genauso)
 local function boxOn()
     local st = ns.db and ns.db.settings
     return ns.GuildPack ~= nil and not (st and (st.imageFrame == false or st.boxFrame == false))
@@ -4251,14 +4252,18 @@ function K.RoundMask(tex, box, r, corners)
     local owner = tex:GetParent()
     if not (owner and owner.CreateMaskTexture) then return end
     owner.roundMasks = owner.roundMasks or {}
-    local key = tostring(box) .. ":" .. r
+    -- 0.6.314: Box mit Bild-Rahmen (abgeschraegte Ecken) -> schraeg statt rund schneiden, sonst ragt die Rundung
+    -- ueber die Schraege des Rahmens hinaus. Groesse = Abschraegung des Box-Rahmens (+1 Sicherheit)
+    local shape = "mask_"
+    if box.boxFrame then shape, r = "mask_bevel_", BOX_BEVEL + 1 end
+    local key = tostring(box) .. ":" .. shape .. r
     local set = owner.roundMasks[key]
     if not set then
         set = {}
         local ok = pcall(function()
             for _, d in ipairs({ { "tl", "TOPLEFT" }, { "tr", "TOPRIGHT" }, { "bl", "BOTTOMLEFT" }, { "br", "BOTTOMRIGHT" } }) do
                 local m = owner:CreateMaskTexture()
-                m:SetTexture(SKD .. "mask_" .. d[1], "CLAMPTOWHITE", "CLAMPTOWHITE")
+                m:SetTexture(SKD .. shape .. d[1], "CLAMPTOWHITE", "CLAMPTOWHITE")
                 m:SetSize(r, r)
                 m:SetPoint(d[2], box, d[2], 0, 0)
                 set[#set + 1] = m
