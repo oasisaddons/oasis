@@ -2,6 +2,24 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.404
+
+- Please restart the game after this update (new files and folders).
+- Character profile redesigned: compact header with portrait, a gold ring showing your Oasis rank progress, level and rank bars; calmer tabs with an animated underline.
+- Stats tab: three stat tiles (health, attack power, crit), specialization picker in the header, character stats in one column with a quality-coloured progress background, stat priority with animated bars measured against a target for your level.
+- All profile tabs (Journal, Achievements, Adventure, Tasks, Skills) in the same look: tiles with coloured icon discs, records with improvement shown, weekly tasks and professions/reputation with rounded rows and bars.
+- Hero / Unlucky of the week: switch manually with arrows or dots, progress bar until the next switch, pauses under the mouse; the unlucky one no longer disappears when the hero also has the most deaths.
+- Dungeons: guild focus ("Now with the guild", who wants to join, invite everyone), map as its own tab, boss pins show their loot, 3D model off by default, cards coloured by difficulty.
+- Player book fills itself from groups, whispers, trades and duels; filter by rating.
+- Guild chat imports the community history like Blizzard's window, marks Discord messages, protected messages are restored.
+- Private chat: one row per person (main and alts), shared history.
+- Map: quick toggle for dungeon entrances on the world map; gathering nodes visible on the world map again; node positions get more accurate with every gather; near nodes on the minimap show only a faint ring so the game's own node stays visible.
+- New guild members with Oasis show up right away (and members are asked quietly every few minutes if no Oasis message was seen yet).
+- Main window: title and subtitle in one line, settings and guild lead buttons at the bottom of the sidebar, subtle shimmer on frame and top bar.
+- Many more areas can be turned off (Settings > Areas > Modules).
+- EllesmereUI chat: Oasis leaves its chat windows alone; copy button works again.
+- Notices that send a chat message show the message in quotes and "Click: send" on its own line.
+
 ## 0.6.256
 
 - EllesmereUI chat: Oasis no longer changes Blizzard's chat windows while EllesmereUI draws the chat itself (no rewritten or removed lines, no fading change, no restored history, no mouse selection) - its chat showed only 2-3 lines and slowly drifted up.
