@@ -3136,28 +3136,46 @@ ns.RegisterPage({
                 end
             end
             -- 0.6.322: Ring ums Portraet; 0.6.329: zeigt den Fortschritt im Oasis-Rang (Gold), ab 12 Uhr im Uhrzeigersinn
-            -- 0.6.336: Rang-Ring mit dem bewaehrten Baustein der Tagesziel-Ringe (K.ActivityRings, Cooldown-Swipe);
-            -- haengt am Portraet selbst und liegt damit sicher ueber dessen Rahmen. Nur der aeussere Ring wird genutzt.
+            -- 0.6.342: Rang-Ring = voller Goldring (einfache Textur, sicher sichtbar) + dunkle Cooldown-Flaeche ueber
+            -- dem noch fehlenden Teil. Eigener Frame am Kopf, Ebene immer ueber dem Portraet.
             local am = C.amber
-            local ar = K.ActivityRings(soon.av, (soon.av.size or 70) + 22, { am, am, am })
-            ar:SetPoint("CENTER", soon.av, "CENTER", 0, 0)
-            for i = 2, 3 do
-                local r = ar.rings[i]
-                for _, x in ipairs({ r.track, r.cd, r.cd2, r.fill, r.cap }) do if x then x:Hide() x.Show = function() end end end
+            local lr = CreateFrame("Frame", nil, hc)
+            lr:SetPoint("CENTER", soon.av, "CENTER", 0, 0)
+            lr.gold = lr:CreateTexture(nil, "ARTWORK")
+            lr.gold:SetAllPoints()
+            lr.gold:SetTexture(ns.MEDIA .. "level_ring")
+            lr.gold:SetVertexColor(am[1], am[2], am[3], 1)
+            local okCd, cd = pcall(CreateFrame, "Cooldown", nil, lr)
+            if okCd and cd and cd.SetSwipeTexture then
+                cd:SetAllPoints()
+                cd:SetSwipeTexture(ns.MEDIA .. "level_ring")
+                cd:SetSwipeColor(0.07, 0.07, 0.08, 0.92)
+                if cd.SetDrawEdge then cd:SetDrawEdge(false) end
+                if cd.SetDrawBling then cd:SetDrawBling(false) end
+                if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(true) end
+                cd.noCooldownCount = true
+                lr.cd = cd
             end
-            if ar.glow then ar.glow:Hide() ar.glow.Show = function() end end
-            soon.levelRing = ar
+            soon.levelRing = lr
             function soon:FillRing()
-                -- 0.6.341: Cooldowns haben feste Ebenen - hebt das Portraet seine Ebene spaeter an, lagen sie darunter
-                local base = math.min(9000, self.av:GetFrameLevel() + 6)
-                ar:SetFrameLevel(base)
-                local r1 = ar.rings[1]
-                if r1.cd then r1.cd:SetFrameLevel(base + 1) end
-                if r1.cd2 then r1.cd2:SetFrameLevel(base + 4) end
-                if r1.cap then r1.cap:SetFrameLevel(base + 8) end
+                local sc = self.av:GetEffectiveScale() / math.max(0.01, lr:GetEffectiveScale())
+                local d = ((self.av.size or 70) + 20) * sc
+                lr:SetSize(d, d)
+                local base = math.min(9000, self.av:GetFrameLevel() + 20)
+                lr:SetFrameLevel(base)
+                if lr.cd then lr.cd:SetFrameLevel(base + 1) end
+                lr:Show()
                 local frac = (num(self.pct and self.pct:GetText()) or 0) / 100
                 frac = math.max(0, math.min(1, frac))
-                ar:Set({ frac, 0, 0 }, false)
+                if lr.cd then
+                    -- abgelaufen = Fortschritt, die dunkle Flaeche deckt den Rest ab
+                    if frac >= 0.999 then lr.cd:Hide() else
+                        lr.cd:Show()
+                        local D = 1000
+                        lr.cd:SetCooldown(GetTime() - frac * D, D)
+                        if lr.cd.Pause then pcall(lr.cd.Pause, lr.cd) end
+                    end
+                end
             end
             hc:HookScript("OnShow", function() ns.After(0.05, function() pcall(soon.FillRing, soon) end) end)
             -- 0.6.324: Stift vor "Visitenkarte bearbeiten", Pfeil in der Belohnungskarte
