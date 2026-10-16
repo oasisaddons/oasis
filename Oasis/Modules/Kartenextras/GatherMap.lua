@@ -277,7 +277,7 @@ function GM.DrawWorld()
             p:ClearAllPoints()
             p:SetPoint("CENTER", canvas, "TOPLEFT", (r.x * cw) / s, (-r.y * ch) / s)
             p:SetFrameStrata(canvas:GetFrameStrata())
-            p:SetFrameLevel(canvas:GetFrameLevel() + 55)
+            p:SetFrameLevel(math.min(8900, canvas:GetFrameLevel() + 2400))   -- 0.6.393: ueber allen Kartenschichten (bei +55 uebermalt)
             p:Show()
         end
     end
