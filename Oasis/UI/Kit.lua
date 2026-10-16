@@ -2400,6 +2400,13 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
     end
     t.title:SetText(title or "")
     t.text:SetText(text or "")
+    -- 0.6.404: Aktions-Hinweis ("Klick: senden") unten rechts statt im Text (lag sonst auf der Zeitleiste)
+    if not t.action then
+        t.action = K.Text(t, 10, C.muted, "RIGHT")
+        t.action:SetPoint("BOTTOMRIGHT", t, "BOTTOMRIGHT", -28, 8)
+    end
+    t.action:SetText(K.toastHint or "")
+    K.toastHint = nil
     t.event = event
     local typed = event ~= "toast" and ns.Sound and ns.Sound.eventByKey and ns.Sound.eventByKey[event] and true or false
     -- ohne eigene Art: Auge blendet genau diesen Hinweis (Titel) aus - nur bei festen Titeln sinnvoll, darum nur mit Text
@@ -2408,8 +2415,14 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
     -- Hoehe an den Inhalt anpassen (mind. wie bisher)
     do
         local th = (title and title ~= "") and (t.title:GetStringHeight() or 14) or 0
-        local xh = (text and text ~= "") and ((t.text:GetStringHeight() or 14) + 5) or 0
-        t:SetHeight(math.max(56, th + xh + 32))   -- 0.6.390: mehr Luft unten (letzte Zeile lag auf der Zeitleiste)
+        local hasAct = (t.action:GetText() or "") ~= ""
+        local function fit()
+            local th2 = (title and title ~= "") and (t.title:GetStringHeight() or 14) or 0
+            local xh2 = (text and text ~= "") and ((t.text:GetStringHeight() or 14) + 5) or 0
+            t:SetHeight(math.max(56, th2 + xh2 + (hasAct and 38 or 26)))
+        end
+        fit()
+        ns.After(0, fit)   -- 0.6.404: nach dem Umbrechen nochmal messen (sonst zu niedrig)
     end
     t.cb = onClick
     t.age, t.expire = 0, (ns.db and ns.db.settings.toastDur) or 7

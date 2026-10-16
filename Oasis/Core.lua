@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.403"
+ns.version = "0.6.404"
 ns.versionDate = "16.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -460,8 +460,11 @@ function ns.OfferChat(title, msg, channel, target, color)
     -- 0.6.236: an Zeichengrenze kuerzen (vorher mitten in UTF-8-Zeichen wie "–" -> kaputte Zeichen),
     -- "Klick: senden" in eine eigene Zeile (ueberlagerte sonst den Text)
     if #preview > 160 then preview = ns.Utf8Cut(preview, 157) .. "..." end
-    K.Toast(title, preview .. "\n|cff888888" .. L["Klick: senden"] .. "|r", color or K.C.accent,
+    -- 0.6.404: Nachricht gedaempft in Anfuehrungszeichen, "Klick: senden" als eigener Hinweis unten rechts
+    K.toastHint = "|cffe8b44a" .. L["Klick: senden"] .. "|r"
+    K.Toast(title, "|cffa8a8ae\226\128\158" .. preview .. "\226\128\156|r", color or K.C.accent,
         function() ns.SendChat(msg, channel, target) end)
+    K.toastHint = nil   -- falls der Hinweis stumm war und nicht gezeigt wurde
 end
 -- Chat-Eingabe oeffnen ("/w Name ") - im Kampf nicht: das beruehrt die Blizzard-Eingabezeile
 function ns.OpenChat(text)
