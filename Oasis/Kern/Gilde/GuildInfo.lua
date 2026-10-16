@@ -2823,6 +2823,7 @@ ns.RegisterPage({
             if K.BgImg then K.BgImg(bx.art) end   -- 0.6.227: Helligkeit einstellbar
             bx.art:SetAllPoints()
             bx.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. file)
+            if K.RoundMask then pcall(K.RoundMask, bx.art, bx, 8) end   -- 0.6.315: in die Rahmenecken schneiden
             if bx.bg then bx.bg:SetAlpha(0) end
             if bx.borders then for _, b in ipairs(bx.borders) do b:SetAlpha(0) end end
             if bx.skinLine then for _, b in ipairs(bx.skinLine) do b:SetAlpha(0) end end

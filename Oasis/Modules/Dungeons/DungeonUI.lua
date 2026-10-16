@@ -1239,6 +1239,7 @@ local function buildCard(parent)
             for _, t in ipairs({ c.bg, c.tone, c.art, c.hov, c.shade, c.topShade, c.diffTint }) do
                 if K.MaskSafe then K.MaskSafe(t) end
                 pcall(t.AddMaskTexture, t, m)
+                t.ownMask = true   -- K.ClipBox laesst sie in Ruhe
             end
         end
     end

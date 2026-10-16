@@ -3849,6 +3849,17 @@ function K.BoxFrame(box, minH)
         fr:SetShown(boxOn() and not box.imageFrame and not box.noBoxFrame and w >= cs * 2 + 4 and h >= math.max(cs * 2 + 4, minH or 0))
     end
     box:HookScript("OnSizeChanged", fit)
+    -- 0.6.315: alles, was die ganze Box bedeckt (Bilder, Flaechen - auch in direkten Unterframes), in die
+    -- abgeschraegten Ecken schneiden. Laeuft nach Groessenwechsel/Anzeigen, damit spaeter angelegte Bilder dabei sind.
+    local pend
+    local function clip()
+        pend = nil
+        if fr:IsShown() and K.ClipBox then pcall(K.ClipBox, box) end
+    end
+    local function later() if not pend then pend = true C_Timer.After(0, clip) end end
+    box:HookScript("OnSizeChanged", later)
+    box:HookScript("OnShow", later)
+    later()
     fr.fit = fit
     local cr, cg, cb = frameGlowColor()
     for _, g in ipairs(fr.glows) do g:SetVertexColor(cr, cg, cb, 1) end
@@ -3889,6 +3900,27 @@ function K.ImageButton(b)
     show(base())
     K.imageButtons[b] = true
     return true
+end
+-- Flaechen einer Box mit Rahmen, die die ganze Box bedecken, schraeg beschneiden (K.RoundMask teilt sie bei Bedarf)
+local CLIP_LAYERS = { BACKGROUND = true, BORDER = true, ARTWORK = true }
+function K.ClipBox(box)
+    if not (box and box.boxFrame and K.RoundMask) then return end
+    local bw, bh = box:GetWidth() or 0, box:GetHeight() or 0
+    if bw < 30 or bh < 30 then return end
+    local function scan(owner)
+        for _, t in ipairs({ owner:GetRegions() }) do
+            if t.GetObjectType and t:GetObjectType() == "Texture" and not t.boxSplit and not t.boxTwinOf
+                and not (t.roundMasked and next(t.roundMasked)) and not t.ownMask
+                and not (t.GetNumMaskTextures and (t:GetNumMaskTextures() or 0) > 0)
+                and CLIP_LAYERS[t:GetDrawLayer() or ""] and (t:GetWidth() or 0) >= bw - 3 and (t:GetHeight() or 0) >= bh - 3 then
+                K.RoundMask(t, box, 8)
+            end
+        end
+    end
+    scan(box)
+    for _, ch in ipairs({ box:GetChildren() }) do
+        if ch ~= box.boxFrame and (ch:GetWidth() or 0) >= bw - 3 and (ch:GetHeight() or 0) >= bh - 3 then scan(ch) end
+    end
 end
 function K.RefreshBoxFrames()
     local cr, cg, cb = frameGlowColor()
@@ -4274,6 +4306,55 @@ function K.RoundMask(tex, box, r, corners)
     end
     K.MaskSafe(tex)   -- maskierte Texturen werfen bei SetTexCoord einen Fehler
     tex.roundMasked = tex.roundMasked or {}
+    -- 0.6.315: Box mit Rahmen und alle vier Ecken: mehr als 3 Masken gehen nicht. Darum zeigt das Bild nur die linke
+    -- Haelfte (tl, bl + Maske "rechts weg"), ein Zwilling darueber nur die rechte (tr, br + "links weg").
+    if box.boxFrame and not corners then
+        if tex.boxSplit then return end
+        tex.boxSplit = true
+        if not set.halves then
+            local ok = pcall(function()
+                local hr = owner:CreateMaskTexture()
+                hr:SetTexture(SKD .. "mask_none", "CLAMPTOWHITE", "CLAMPTOWHITE")
+                hr:SetPoint("TOPLEFT", box, "TOP", 0, 40) hr:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", 40, -40)
+                local hl = owner:CreateMaskTexture()
+                hl:SetTexture(SKD .. "mask_none", "CLAMPTOWHITE", "CLAMPTOWHITE")
+                hl:SetPoint("TOPLEFT", box, "TOPLEFT", -40, 40) hl:SetPoint("BOTTOMRIGHT", box, "BOTTOM", 0, -40)
+                set.halves = { hr, hl }
+            end)
+            if not ok then return end
+        end
+        local layer, sub = tex:GetDrawLayer()
+        local tw = owner:CreateTexture(nil, layer, nil, sub)
+        tw:SetAllPoints(tex)
+        K.MaskSafe(tw)
+        local function sync()
+            local file = tex:GetTexture()
+            if file then tw:SetTexture(file) elseif not tw.colored then tw:SetColorTexture(1, 1, 1, 1) end
+            local a1, b1, c1, d1, e1, f1, g1, h1 = tex:GetTexCoord()
+            if a1 then pcall(tw.SetTexCoord, tw, a1, b1, c1, d1, e1, f1, g1, h1) end
+            tw:SetAlpha(tex:GetAlpha() or 1)
+            local r1, g2, b2, a2 = tex:GetVertexColor()
+            if r1 then tw:SetVertexColor(r1, g2, b2, a2 or 1) end
+            pcall(tw.SetBlendMode, tw, tex:GetBlendMode())
+            if tex.IsDesaturated then tw:SetDesaturated(tex:IsDesaturated() and true or false) end
+            tw:SetShown(tex:IsShown())
+        end
+        sync()
+        -- Farbflaechen (z. B. Abdunkeln von K.BgImg): Farbe direkt weiterreichen, lesen laesst sie sich nicht
+        hooksecurefunc(tex, "SetColorTexture", function(_, ...) tw.colored = true pcall(tw.SetColorTexture, tw, ...) end)
+        for _, fn in ipairs({ "SetTexture", "SetTexCoord", "SetAlpha", "SetVertexColor", "SetBlendMode",
+                              "SetDesaturated", "Show", "Hide", "SetShown" }) do
+            if tex[fn] then hooksecurefunc(tex, fn, sync) end
+        end
+        for _, m in ipairs({ set[1], set[3], set.halves[1] }) do pcall(tex.AddMaskTexture, tex, m) end
+        for _, m in ipairs({ set[2], set[4], set.halves[2] }) do pcall(tw.AddMaskTexture, tw, m) end
+        tex.boxTwin = tw
+        tw.boxTwinOf = tex
+        -- Helligkeits-Ebenen von K.BgImg liegen genauso ueber der ganzen Flaeche
+        if tex.oasisBgDup then K.RoundMask(tex.oasisBgDup, box, r) end
+        if tex.oasisBgDark then K.RoundMask(tex.oasisBgDark, box, r) end
+        return
+    end
     local want
     if corners then want = {} for _, c in ipairs(corners) do want[c] = true end end
     local ORDER = { "tl", "tr", "bl", "br" }
