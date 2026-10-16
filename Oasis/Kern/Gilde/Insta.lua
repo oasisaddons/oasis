@@ -2500,7 +2500,7 @@ ns.RegisterPage({
             -- nur so viele Prioritaets-Zeilen, wie ueber den Tipp-Kasten passen (keine Ueberlappung)
             local ph = self.pr:GetHeight() or 0
             local tipH = self.pr.tipBox:IsShown() and (42 + 20) or 12
-            local maxRows = math.min(7, math.max(1, math.floor((ph - 36 - tipH) / 26)))
+            local maxRows = math.min(5, math.max(1, math.floor((ph - 36 - tipH) / 26)))   -- 0.6.355: Top 5
             if ph > 100 then for i, r in ipairs(self.pr.rows) do if i > maxRows then r:Hide() end end end
         end
 
@@ -3014,14 +3014,20 @@ ns.RegisterPage({
             cs:ClearAllPoints()
             -- 0.6.330: Verbrauchsgueter als eigene Box unter den Charakterwerten (2x2), Werte einspaltig
             local cb = CreateFrame("Frame", nil, view)
-            cb:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 0, 0)
-            cb:SetPoint("RIGHT", view, "CENTER", -6, 0)
+            -- 0.6.355: rechts unter der Stat-Prioritaet
+            cb:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", 0, 0)
+            cb:SetPoint("LEFT", view, "CENTER", 6, 0)
             cb:SetHeight(124)
             IG.Glass(cb, IG.GLASS_FILL, IG.GLASS_LINE, 12)
             soon.consBox = cb
             cs:SetPoint("TOPLEFT", view, "TOPLEFT", 0, -(ROW + 12))
-            cs:SetPoint("BOTTOMLEFT", cb, "TOPLEFT", 0, 12)
+            cs:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 0, 0)
             cs:SetPoint("RIGHT", view, "CENTER", -6, 0)
+            -- Stat-Prioritaet rechts oben, endet ueber den Verbrauchsguetern
+            pr:ClearAllPoints()
+            pr:SetPoint("TOPLEFT", cs, "TOPRIGHT", 12, 0)
+            pr:SetPoint("RIGHT", view, "RIGHT", 0, 0)
+            pr:SetPoint("BOTTOM", cb, "TOP", 0, 12)
             if cs.SetClipsChildren then cs:SetClipsChildren(true) end   -- Verbrauchsgueter liefen unten heraus
             local tiles = CreateFrame("Frame", nil, view)
             tiles:SetPoint("TOPLEFT", view, "TOPLEFT", 0, 0)
@@ -3038,19 +3044,25 @@ ns.RegisterPage({
                 local t = CreateFrame("Frame", nil, tiles)
                 IG.Glass(t, IG.GLASS_FILL, IG.GLASS_LINE, 10)
                 -- 0.6.326: schlichte Symbole in der Wertfarbe (Entwurf)
-                t.icon = K.Glyph(t, 20, ns.MEDIA .. "icons\\" .. d.icon, d.col)
-                t.icon:SetPoint("CENTER", t, "TOPLEFT", 26, -40)
+                -- 0.6.355: Symbol im dezenten Farbkreis, mittig zu Beschriftung und Zahl
+                t.disc = t:CreateTexture(nil, "ARTWORK")
+                t.disc:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+                t.disc:SetSize(36, 36)
+                t.disc:SetPoint("CENTER", t, "TOPLEFT", 32, -34)
+                t.disc:SetVertexColor(d.col[1], d.col[2], d.col[3], 0.14)
+                t.icon = K.Glyph(t, 18, ns.MEDIA .. "icons\\" .. d.icon, d.col)
+                t.icon:SetPoint("CENTER", t.disc, "CENTER")
                 t.lbl = K.Text(t, 11, C.muted)
-                t.lbl:SetPoint("TOPLEFT", t, "TOPLEFT", 48, -10)
+                t.lbl:SetPoint("TOPLEFT", t, "TOPLEFT", 60, -12)
                 t.lbl:SetPoint("RIGHT", t, "RIGHT", -8, 0)
                 t.lbl:SetWordWrap(false)
                 t.lbl:SetText(L[d.label])
                 t.val = K.Title(t, 23, C.text)
-                t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -7)
+                t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -5)
                 t.track = t:CreateTexture(nil, "ARTWORK")
                 t.track:SetColorTexture(1, 1, 1, 0.08)
                 t.track:SetHeight(5)
-                t.track:SetPoint("BOTTOMLEFT", 14, 10) t.track:SetPoint("BOTTOMRIGHT", -14, 10)
+                t.track:SetPoint("BOTTOMLEFT", 16, 11) t.track:SetPoint("BOTTOMRIGHT", -16, 11)
                 t.fill = t:CreateTexture(nil, "ARTWORK", nil, 1)
                 t.fill:SetColorTexture(d.col[1], d.col[2], d.col[3], 1)
                 t.fill:SetHeight(5)
