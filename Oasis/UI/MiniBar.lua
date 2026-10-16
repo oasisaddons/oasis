@@ -369,13 +369,13 @@ local function build()
                 else
                     swRun = swRun + (el or 0) / 2.2
                     if swRun >= 1 then
-                        swRun, swWait = nil, 8 + math.random() * 4
+                        swRun, swWait = nil, 4 + math.random() * 2
                         sw:Hide() sw2:Hide()
                     else
                         local x = swX0 + swRun * 120
                         sw:ClearAllPoints()
                         sw:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", x, -3)
-                        local a = math.sin(swRun * math.pi) * 0.3 * (bar.art.m:GetAlpha() or 1)
+                        local a = math.sin(swRun * math.pi) * 0.5 * (bar.art.m:GetAlpha() or 1)
                         sw:SetAlpha(a) sw2:SetAlpha(a)
                         sw:Show() sw2:Show()
                     end

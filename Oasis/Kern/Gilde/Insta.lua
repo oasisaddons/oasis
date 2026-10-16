@@ -2374,6 +2374,7 @@ ns.RegisterPage({
                         if pt then r:SetPoint(pt, rel, rp, px, py - 8) end
                     end
                     r.l:SetText(x[1])
+                    r.key = x.key
                     r.v:SetText(x[2])
                     local lc = x.toggle and C.text or C.muted
                     r.l:SetTextColor(lc[1], lc[2], lc[3])
@@ -2650,7 +2651,7 @@ ns.RegisterPage({
         -- darunter Reiter (34) und ggf. Unterreiter (24); Inhalt ab 164 bzw. 194 px (vorher 254 / 288)
         ------------------------------------------------------------------
         do
-            local PH, X1, X2, RW = soon.HEAD_H, 140, 300, 190   -- 0.6.332: Proportionen wie im Entwurf (Kopf ~760 breit)
+            local PH, X1, X2, RW = soon.HEAD_H, 140, 300, 0   -- 0.6.373: Karten rechts entfallen, Leisten bekommen die Breite
             local ac = C.accent
             hc:ClearAllPoints()
             hc:SetPoint("TOPLEFT", 0, 0)
@@ -2817,6 +2818,9 @@ ns.RegisterPage({
             K.SetFontSafe(cr.value, K.FONT_HEAD, 13, "", K.FONT)
             soon.chipF:Hide()
             local vit = soon.vit
+            -- 0.6.373: "Naechste Belohnung" und "Abzeichen" entfallen im Kopf
+            cr:Hide() cr.Show = function() end
+            vit:Hide() vit.Show = function() end
             vit:ClearAllPoints()
             vit:SetPoint("TOPRIGHT", hc, "TOPRIGHT", -12, -78)
             vit:SetSize(RW, 58)
@@ -3070,6 +3074,46 @@ ns.RegisterPage({
                 end
             end)
             soon:HookScript("OnShow", function() soon.prFresh = true end)
+            -- 0.6.373: Ziel je Wert (fuer Stat-Prioritaet und Charakterwerte)
+            function soon.GoalOf(k)
+                local lvl = num(UnitLevel("player")) or 1
+                if k == "hit" then return 9, "%" end
+                if k == "shit" then return 16, "%" end
+                if k == "crit" or k == "scrit" then return 5 + lvl * 0.15, "%" end
+                if k == "dodge" or k == "parry" or k == "block" then return 5 + lvl * 0.1, "%" end
+                if k and k:match("^stat%d$") then return lvl * 3 + 20 end
+                if k == "ap" then return lvl * 8 + 40 end
+                if k == "sp" or k == "heal" then return math.max(10, lvl * 3) end
+                if k == "armor" then return lvl * 50 end
+                if k == "def" then return lvl * 5 end
+                if k == "mp5" then return math.max(2, lvl * 0.3) end
+                if k == "hp" then return lvl * 30 + 60 end
+                return nil
+            end
+            -- Charakterwerte: dezenter Fortschritt als Verlauf hinter jeder Zeile (Laenge = Anteil am Ziel)
+            local fillStats = soon.FillStats
+            function soon:FillStats(...)
+                fillStats(self, ...)
+                local ac = C.accent
+                for _, r in ipairs(self.cs.rows) do
+                    if not r.prog then
+                        r.prog = r:CreateTexture(nil, "BORDER", nil, 1)
+                        r.prog:SetPoint("TOPLEFT") r.prog:SetPoint("BOTTOMLEFT")
+                        if not K.Gradient(r.prog, "HORIZONTAL", { ac[1], ac[2], ac[3], 0.16 }, { ac[1], ac[2], ac[3], 0.02 }) then r.prog:SetColorTexture(ac[1], ac[2], ac[3], 0.08) end
+                    end
+                    local g = r:IsShown() and not r.toggle and soon.GoalOf(r.key)
+                    if g and g > 0 then
+                        local tx = strip(r.v:GetText() or ""):gsub(",", ".")
+                        local v = math.abs(tonumber(tx:match("%-?%d+%.?%d*") or "") or 0)
+                        local w = (r:GetWidth() or 0)
+                        if w < 20 then w = 300 end
+                        r.prog:SetWidth(math.max(1, w * math.min(1, v / g)))
+                        r.prog:SetShown(v > 0)
+                    else
+                        r.prog:Hide()
+                    end
+                end
+            end
             local fillPrio = soon.FillPrio
             function soon:FillPrio(st)
                 -- 0.6.360: immer 6 Zeilen - Zeilenabstand richtet sich nach der Hoehe der Box
@@ -3087,7 +3131,8 @@ ns.RegisterPage({
                 -- alles andere gegen einen Richtwert fuer das eigene Level
                 local lvl = num(UnitLevel("player")) or 1
                 local pl = self:Prio()
-                local function goalOf(k)
+                local goalOf = soon.GoalOf
+                local function goalOfOld(k)
                     if k == "hit" then return 9, "%" end
                     if k == "shit" then return 16, "%" end
                     if k == "crit" or k == "scrit" then return 5 + lvl * 0.15, "%" end
@@ -3334,7 +3379,11 @@ ns.RegisterPage({
                     local sc = math.min(1, inner / math.max(1, bw + 24 + cwTotal))
                     bar:SetScale(sc)
                     bar:ClearAllPoints()
-                    bar:SetPoint("TOPLEFT", rb, "TOPLEFT", 12 / sc, -24 / sc)
+                    -- 0.6.373: mittig im Kasten (waagrecht und unter der Ueberschrift)
+                    local bh = (rb:GetHeight() or 78)
+                    local xL = 12 + math.max(0, (inner - bw * sc) / 2)
+                    local yT = 22 + math.max(0, ((bh - 22) - 30 * sc) / 2)
+                    bar:SetPoint("TOPLEFT", rb, "TOPLEFT", xL / sc, -yT / sc)
                     if rc then
                         rc:SetScale(sc)
                         rc:ClearAllPoints()

@@ -3794,14 +3794,14 @@ function K.ImageFrame(host, k)
             run, d0 = 0, math.random() * total
         end
         run = run + (el or 0) / 2.2          -- 2,2 s je Aufleuchten
-        if run >= 1 then run, wait = nil, 8 + math.random() * 4 return end
+        if run >= 1 then run, wait = nil, 4 + math.random() * 2 return end   -- 0.6.373: haeufiger
         local fade = math.sin(run * math.pi)  -- ein- und ausblenden
         local d = d0 + run * 110              -- gleitet ~110 px weiter
         for i, t in ipairs(fr.spark) do
             local x, y = pointAt(segs, total, d - (i - 1) * 5)
             t:ClearAllPoints()
             t:SetPoint("CENTER", fr, "TOPLEFT", x, -y)
-            t:SetAlpha(fade * ((i == 1) and 0.35 or (0.22 * (1 - (i - 1) / TRAIL) ^ 1.5)))
+            t:SetAlpha(fade * ((i == 1) and 0.55 or (0.32 * (1 - (i - 1) / TRAIL) ^ 1.5)))
             t:Show()
         end
     end)
