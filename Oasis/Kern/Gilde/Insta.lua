@@ -1066,6 +1066,7 @@ ns.RegisterPage({
                 if not ok then ns.err("Profil/Berufe", e) end
             end
             if k == "daily" then self.dailyHost:Update(user) end
+            if self.StyleHosts then ns.After(0.05, function() pcall(self.StyleHosts, self) end) ns.After(0.6, function() pcall(self.StyleHosts, self) end) end
             if LIFE[k] then
                 local def = ns.PageDef("life")
                 if def and not self.lifeBuilt then
@@ -3568,6 +3569,25 @@ ns.RegisterPage({
                 for _, x in ipairs({ self.chipR, self.vit, self.consBox }) do noFrame(x) end
                 for _, x in ipairs({ hc, self.cs, self.pr, self.roleBox }) do withFrame(x) end
                 for _, t in ipairs((self.statTiles and self.statTiles.t) or {}) do withFrame(t) end
+            end
+            -- 0.6.396: alle Profil-Reiter im Look der Werte-Seite - jede umrahmte Box darin bekommt schwarzen
+            -- Rahmen und eine deckende dunkle Glasflaeche (Erfolge, Abenteuer, Aufgaben, Koennen ...)
+            local styled = setmetatable({}, { __mode = "k" })
+            function soon:StyleHosts()
+                local function walk(f, depth)
+                    if not f or depth > 4 then return end
+                    for _, ch in ipairs({ f:GetChildren() }) do
+                        if ch.boxFrame and not styled[ch] and not ch.noBoxFrame then
+                            styled[ch] = true
+                            if K.DarkBoxFrame then pcall(K.DarkBoxFrame, ch) end
+                            if (ch:GetWidth() or 0) > 120 and (ch:GetHeight() or 0) > 50 then pcall(IG.Glass, ch, BOXFILL, BOXLINE) end
+                        end
+                        walk(ch, depth + 1)
+                    end
+                end
+                for _, h in ipairs({ self.rankHost, self.profHost, self.weapHost, self.skillHost, self.weeklyHost, self.lifeHost, self.dailyHost }) do
+                    if h and h:IsShown() then walk(h, 1) end
+                end
             end
             local up2 = soon.Update
             function soon:Update(fresh)
