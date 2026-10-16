@@ -4311,6 +4311,12 @@ function K.RoundMask(tex, box, r, corners)
     if box.boxFrame and not corners then
         if tex.boxSplit then return end
         tex.boxSplit = true
+        -- 0.6.316: Farb-/Verlaufsflaechen nicht teilen - ein Verlauf laesst sich nicht auslesen, der Zwilling wurde weiss.
+        -- Sie bekommen nur drei Ecken (tl, tr, bl); geteilt werden nur Bilder (Datei oder K.BgImg)
+        if not tex:GetTexture() and not K.bgImgs[tex] then
+            for i = 1, 3 do if not tex.roundMasked[set[i]] then tex.roundMasked[set[i]] = true pcall(tex.AddMaskTexture, tex, set[i]) end end
+            return
+        end
         if not set.halves then
             local ok = pcall(function()
                 local hr = owner:CreateMaskTexture()
