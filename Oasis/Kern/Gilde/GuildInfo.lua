@@ -889,11 +889,12 @@ function Info.Hero()
     return { name = best.name, score = 0, n = {}, reason = (L["Oasis-Rang %d"]):format(lvl or 0), byRank = true }
 end
 -- Pechvogel der Woche: meiste Tode der letzten 7 Tage (Gegenstueck zum Helden)
-function Info.Unlucky()
+-- exclude: diesen Namen ueberspringen (0.6.317: ist der Held auch der mit den meisten Toden, kommt der naechste)
+function Info.Unlucky(exclude)
     local since, by, best = ns.now() - 7 * 86400, {}, nil
     for _, d in ipairs((ns.Deaths and ns.Deaths.List and ns.Deaths.List()) or Store.List("deaths")) do
         local w = d.who
-        if w and (d.ts or 0) > since and isMember(w) then
+        if w and (d.ts or 0) > since and isMember(w) and not (exclude and w == exclude) then
             local s2 = by[w] or { name = w, n = 0, killers = {} }
             by[w] = s2
             s2.n = s2.n + 1
@@ -4096,8 +4097,8 @@ ns.RegisterPage({
         do
             local list = {}
             if hero then list[#list + 1] = { kind = "hero", name = hero.name, reason = hero.reason } end
-            local okU, u = pcall(Info.Unlucky)
-            if okU and u and (not hero or u.name ~= hero.name) then list[#list + 1] = { kind = "unl", name = u.name, reason = u.reason } end
+            local okU, u = pcall(Info.Unlucky, hero and hero.name)
+            if okU and u then list[#list + 1] = { kind = "unl", name = u.name, reason = u.reason } end
             local sp = p.online.spot
             local key = ""
             for _, it in ipairs(list) do key = key .. it.kind .. it.name .. (it.reason or "") end
