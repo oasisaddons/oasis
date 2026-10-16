@@ -790,7 +790,7 @@ function IG.ProfileTabs(parent, items, onChange)
     f.ind:SetWidth(60)
     f.ind.glow = f.ind:CreateTexture(nil, "BACKGROUND")
     f.ind.glow:SetAllPoints()
-    if not K.Gradient(f.ind.glow, "VERTICAL", { ac[1], ac[2], ac[3], 0.16 }, { ac[1], ac[2], ac[3], 0 }) then f.ind.glow:SetColorTexture(ac[1], ac[2], ac[3], 0.08) end
+    if not K.Gradient(f.ind.glow, "VERTICAL", { ac[1], ac[2], ac[3], 0.06 }, { ac[1], ac[2], ac[3], 0 }) then f.ind.glow:SetColorTexture(ac[1], ac[2], ac[3], 0.08) end
     f.ind.line = f.ind:CreateTexture(nil, "ARTWORK")
     f.ind.line:SetColorTexture(ac[1], ac[2], ac[3], 1)
     f.ind.line:SetPoint("BOTTOMLEFT", 6, 0) f.ind.line:SetPoint("BOTTOMRIGHT", -6, 0)
@@ -2645,7 +2645,7 @@ ns.RegisterPage({
             hc.glow:ClearAllPoints()
             hc.glow:SetPoint("TOPLEFT", 3, -3)
             hc.glow:SetPoint("BOTTOMRIGHT", -3, 3)
-            hc.glow:Show()
+            hc.glow:Hide()   -- 0.6.333: kein Klassenfarben-Verlauf mehr (wirkte rosa)
             -- Glut: kleine Funken in der Klassenfarbe steigen langsam auf (vor allem links ums Portraet)
             local em = CreateFrame("Frame", nil, hc)
             em:SetPoint("TOPLEFT", 3, -3)
@@ -2705,10 +2705,10 @@ ns.RegisterPage({
             end)
             soon.embers = em
             -- Portraet: der Rangrahmen bleibt (er zeigt den Rang); Aura, Strahlen und Drehringe entfallen
-            local AS = 0.8
+            local AS = 1.15
             soon.av:SetScale(AS)
             soon.av:ClearAllPoints()
-            soon.av:SetPoint("CENTER", hc, "LEFT", 68 / AS, 0)
+            soon.av:SetPoint("CENTER", hc, "LEFT", 70 / AS, 0)
             soon.stage:Hide()
             function soon:AvatarFx()
                 self.stage:Hide()
@@ -2781,7 +2781,12 @@ ns.RegisterPage({
             cr:SetPoint("TOPRIGHT", hc, "TOPRIGHT", -12, -14)
             cr:SetSize(RW, 56)
             cr.edge:Hide()
-            IG.Glass(cr, IG.GLASS_FILL, IG.GLASS_LINE, 10)
+            -- 0.6.333: schlichte Karte (feine graue Kante) statt Box-Rahmen
+            for _, x in ipairs({ cr, soon.vit }) do
+                x.noBoxFrame = true
+                if x.boxFrame then x.boxFrame:Hide() if x.boxFrame.fit then x.boxFrame.fit() end end
+            end
+            IG.Glass(cr, { 0.06, 0.06, 0.07, 0.85 }, { 1, 1, 1, 0.12 }, 8)
             cr.icon:ClearAllPoints()
             cr.icon:SetSize(22, 22)
             cr.icon:SetPoint("LEFT", 12, 0)
@@ -2792,14 +2797,14 @@ ns.RegisterPage({
             cr.value:ClearAllPoints()
             cr.value:SetPoint("BOTTOMLEFT", 44, 10)
             cr.value:SetPoint("RIGHT", cr, "RIGHT", -12, 0)
-            K.SetFontSafe(cr.value, K.FONT_HEAD, 14, "", K.FONT)
+            K.SetFontSafe(cr.value, K.FONT_HEAD, 13, "", K.FONT)
             soon.chipF:Hide()
             local vit = soon.vit
             vit:ClearAllPoints()
             vit:SetPoint("TOPRIGHT", hc, "TOPRIGHT", -12, -78)
             vit:SetSize(RW, 58)
             vit.sep:Hide()
-            IG.Glass(vit, IG.GLASS_FILL, IG.GLASS_LINE, 10)
+            IG.Glass(vit, { 0.06, 0.06, 0.07, 0.85 }, { 1, 1, 1, 0.12 }, 8)
             vit.lbl:ClearAllPoints()
             vit.lbl:SetPoint("TOPLEFT", 12, -10)
             vit.lbl:SetText(L["Abzeichen"])
@@ -2951,7 +2956,7 @@ ns.RegisterPage({
                 hc.art:SetTexCoord(0, 1, 0.1 * 356 / 512, 0.9 * 356 / 512)
                 hc.art:SetPoint("TOPRIGHT", -2, -2) hc.art:SetPoint("BOTTOMRIGHT", -2, 2)
                 hc.art:SetPoint("LEFT", hc, "LEFT", 2, 0)
-                hc.art:SetAlpha(0.28)
+                hc.art:SetAlpha(0.2)
                 hc.artFade = hc:CreateTexture(nil, "BACKGROUND", nil, 2)
                 hc.artFade:SetPoint("TOPLEFT", hc.art, "TOPLEFT") hc.artFade:SetPoint("BOTTOMLEFT", hc.art, "BOTTOMLEFT")
                 hc.artFade:SetWidth(260)
@@ -3122,39 +3127,36 @@ ns.RegisterPage({
                 end
             end
             -- 0.6.322: Ring ums Portraet; 0.6.329: zeigt den Fortschritt im Oasis-Rang (Gold), ab 12 Uhr im Uhrzeigersinn
-            local RING = ns.MEDIA .. "level_ring"
+            -- 0.6.333: Ring aus 72 Segmenten (Cooldown-Swipe zeigte im Spiel nichts); Gold = Rang-Fortschritt ab 12 Uhr
             local lr = CreateFrame("Frame", nil, hc)
             lr:SetPoint("CENTER", soon.av, "CENTER", 0, 0)
             lr:SetFrameLevel(soon.av:GetFrameLevel() + 6)
-            lr.track = lr:CreateTexture(nil, "ARTWORK")
-            lr.track:SetAllPoints()
-            lr.track:SetTexture(RING)
-            lr.track:SetVertexColor(1, 1, 1, 0.08)
-            local okCd, cd = pcall(CreateFrame, "Cooldown", nil, lr)
-            if okCd and cd then
-                cd:SetAllPoints()
-                pcall(cd.SetSwipeTexture, cd, RING)
-                pcall(cd.SetDrawEdge, cd, false)
-                pcall(cd.SetDrawBling, cd, false)
-                pcall(cd.SetHideCountdownNumbers, cd, true)
-                pcall(cd.SetReverse, cd, true)   -- zeigt den abgelaufenen Teil = Fortschritt, ab 12 Uhr
-                lr.cd = cd
+            lr:SetSize(10, 10)
+            lr.seg = {}
+            local NSEG = 72
+            for i = 1, NSEG do
+                local t = lr:CreateTexture(nil, "ARTWORK")
+                t:SetColorTexture(1, 1, 1, 1)
+                lr.seg[i] = t
             end
             soon.levelRing = lr
             function soon:FillRing()
-                local base = (self.av.art and self.av.art:IsShown() and self.av.art:GetWidth()) or self.av:GetWidth() or 70
-                local s = base * (self.av:GetEffectiveScale() / lr:GetEffectiveScale()) + 6
-                lr:SetSize(s, s)
-                -- Rang-Fortschritt aus der Prozentangabe der Rangleiste (r.into / r.need)
+                -- Radius: knapp ausserhalb des Portraetrahmens
+                local sc = self.av:GetEffectiveScale() / lr:GetEffectiveScale()
+                local rad = ((self.av.size or 70) / 2 + 9) * sc
+                local w, h = math.max(2, rad * 0.06), math.max(4, rad * 0.075)
                 local frac = (num(self.pct and self.pct:GetText()) or 0) / 100
                 frac = math.max(0, math.min(1, frac))
-                if not lr.cd then return end
+                local on = math.floor(frac * NSEG + 0.5)
                 local am = C.amber
-                lr.cd:SetSwipeColor(am[1], am[2], am[3], 0.95)
-                -- Cooldown als stehender Fortschritt: Anteil "abgelaufen" = Rang-Stand, dann anhalten
-                local D = 1000
-                lr.cd:SetCooldown(GetTime() - D * frac, D)
-                if lr.cd.Pause then pcall(lr.cd.Pause, lr.cd) end
+                for i, t in ipairs(lr.seg) do
+                    local a = (i - 0.5) / NSEG * math.pi * 2
+                    t:SetSize(w, h)
+                    t:ClearAllPoints()
+                    t:SetPoint("CENTER", lr, "CENTER", rad * math.sin(a), rad * math.cos(a))
+                    t:SetRotation(-a)
+                    if i <= on then t:SetVertexColor(am[1], am[2], am[3], 1) else t:SetVertexColor(1, 1, 1, 0.10) end
+                end
             end
             -- 0.6.324: Stift vor "Visitenkarte bearbeiten", Pfeil in der Belohnungskarte
             soon.cardPen = hc:CreateTexture(nil, "ARTWORK")
