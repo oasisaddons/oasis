@@ -3004,7 +3004,7 @@ ns.RegisterPage({
             soon.clsSep:SetPoint("LEFT", soon.clsPill, "RIGHT", 12, 0)
 
             -- obere Reihe der Werte-Ansicht: drei Kacheln links, Spezialisierung/Wunschrolle rechts
-            local ROW = 72   -- 0.6.352: Luft um die groesseren Zahlen
+            local ROW = 78   -- 0.6.353: feste Abstaende (Beschriftung 10, Zahl +7, Leiste 10 vom Rand)
             cs:ClearAllPoints()
             -- 0.6.330: Verbrauchsgueter als eigene Box unter den Charakterwerten (2x2), Werte einspaltig
             local cb = CreateFrame("Frame", nil, view)
@@ -3033,18 +3033,18 @@ ns.RegisterPage({
                 IG.Glass(t, IG.GLASS_FILL, IG.GLASS_LINE, 10)
                 -- 0.6.326: schlichte Symbole in der Wertfarbe (Entwurf)
                 t.icon = K.Glyph(t, 20, ns.MEDIA .. "icons\\" .. d.icon, d.col)
-                t.icon:SetPoint("LEFT", 14, 5)
+                t.icon:SetPoint("CENTER", t, "TOPLEFT", 26, -40)
                 t.lbl = K.Text(t, 11, C.muted)
-                t.lbl:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 10, 12)
+                t.lbl:SetPoint("TOPLEFT", t, "TOPLEFT", 48, -10)
                 t.lbl:SetPoint("RIGHT", t, "RIGHT", -8, 0)
                 t.lbl:SetWordWrap(false)
                 t.lbl:SetText(L[d.label])
                 t.val = K.Title(t, 23, C.text)
-                t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -4)
+                t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -7)
                 t.track = t:CreateTexture(nil, "ARTWORK")
                 t.track:SetColorTexture(1, 1, 1, 0.08)
                 t.track:SetHeight(5)
-                t.track:SetPoint("BOTTOMLEFT", 14, 9) t.track:SetPoint("BOTTOMRIGHT", -14, 9)
+                t.track:SetPoint("BOTTOMLEFT", 14, 10) t.track:SetPoint("BOTTOMRIGHT", -14, 10)
                 t.fill = t:CreateTexture(nil, "ARTWORK", nil, 1)
                 t.fill:SetColorTexture(d.col[1], d.col[2], d.col[3], 1)
                 t.fill:SetHeight(5)
