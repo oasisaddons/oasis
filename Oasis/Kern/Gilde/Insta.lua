@@ -2959,6 +2959,17 @@ ns.RegisterPage({
                 if not K.Gradient(hc.artFade, "HORIZONTAL", { bg[1], bg[2], bg[3], 1 }, { bg[1], bg[2], bg[3], 0 }) then hc.artFade:Hide() end
                 if K.RoundMask then pcall(K.RoundMask, hc.art, hc, 14) end
             end
+            -- 0.6.329: dunkle Klassenfarbe als Grund (setzt soon:Update), feines Punktraster und Abschattung von links
+            hc.dots = hc:CreateTexture(nil, "BACKGROUND", nil, 3)
+            hc.dots:SetPoint("TOPLEFT", 3, -3) hc.dots:SetPoint("BOTTOMRIGHT", -3, 3)
+            hc.dots:SetTexture(ns.MEDIA .. "dots", "REPEAT", "REPEAT")
+            hc.dots:SetHorizTile(true) hc.dots:SetVertTile(true)
+            hc.dots:SetAlpha(0.07)
+            hc.shadeL = hc:CreateTexture(nil, "BACKGROUND", nil, 4)
+            hc.shadeL:SetPoint("TOPLEFT", 3, -3) hc.shadeL:SetPoint("BOTTOMLEFT", 3, 3)
+            hc.shadeL:SetWidth(420)
+            if not K.Gradient(hc.shadeL, "HORIZONTAL", { 0, 0, 0, 0.55 }, { 0, 0, 0, 0 }) then hc.shadeL:Hide() end
+            if K.RoundMask then pcall(K.RoundMask, hc.dots, hc, 14) pcall(K.RoundMask, hc.shadeL, hc, 14, { "tl", "bl" }) end
             -- Klasse | Level als schlichter Text statt Pillen
             for _, pl in ipairs({ soon.clsPill, soon.lvlPill }) do
                 local set = pl.Set
@@ -3103,7 +3114,7 @@ ns.RegisterPage({
                     K.SetFontSafe(self.roleLbl, K.FONT, 11, "", K.FONT)
                 end
             end
-            -- 0.6.322: Ring ums Portraet fuellt sich mit dem Level-Stand (Klassenfarbe, im Uhrzeigersinn)
+            -- 0.6.322: Ring ums Portraet; 0.6.329: zeigt den Fortschritt im Oasis-Rang (Gold), ab 12 Uhr im Uhrzeigersinn
             local RING = ns.MEDIA .. "level_ring"
             local lr = CreateFrame("Frame", nil, hc)
             lr:SetPoint("CENTER", soon.av, "CENTER", 0, 0)
@@ -3119,21 +3130,22 @@ ns.RegisterPage({
                 pcall(cd.SetDrawEdge, cd, false)
                 pcall(cd.SetDrawBling, cd, false)
                 pcall(cd.SetHideCountdownNumbers, cd, true)
+                pcall(cd.SetReverse, cd, true)   -- zeigt den abgelaufenen Teil = Fortschritt, ab 12 Uhr
                 lr.cd = cd
             end
             soon.levelRing = lr
             function soon:FillRing()
                 local s = (self.av:GetWidth() or 70) * (self.av:GetEffectiveScale() / lr:GetEffectiveScale()) + 10
                 lr:SetSize(s, s)
-                local cur, max = num(ns.safe(UnitXP("player"))) or 0, num(ns.safe(UnitXPMax("player"))) or 0
-                local frac = max > 0 and math.max(0, math.min(1, cur / max)) or 1
-                local _, cf = UnitClass("player")
-                local r, g, b = ns.classColor(ns.safe(cf))
+                -- Rang-Fortschritt aus der Prozentangabe der Rangleiste (r.into / r.need)
+                local frac = (num(self.pct and self.pct:GetText()) or 0) / 100
+                frac = math.max(0, math.min(1, frac))
                 if not lr.cd then return end
-                lr.cd:SetSwipeColor(r or 1, g or 0.4, b or 0.4, 0.95)
-                -- Cooldown als stehender Fortschritt: Anteil "abgelaufen" = Level-Stand, dann anhalten
+                local am = C.amber
+                lr.cd:SetSwipeColor(am[1], am[2], am[3], 0.95)
+                -- Cooldown als stehender Fortschritt: Anteil "abgelaufen" = Rang-Stand, dann anhalten
                 local D = 1000
-                lr.cd:SetCooldown(GetTime() - D * (1 - frac), D)
+                lr.cd:SetCooldown(GetTime() - D * frac, D)
                 if lr.cd.Pause then pcall(lr.cd.Pause, lr.cd) end
             end
             -- 0.6.324: Stift vor "Visitenkarte bearbeiten", Pfeil in der Belohnungskarte
@@ -3155,13 +3167,18 @@ ns.RegisterPage({
             function soon:Update(fresh)
                 up2(self, fresh)
                 -- Name in Weiss (Entwurf), Rang: "Rang N" in Gold, Titel hell
+                local _, cfx = UnitClass("player")
+                local cr2, cg2, cb2 = ns.classColor(ns.safe(cfx))
+                cr2, cg2, cb2 = cr2 or 0.6, cg2 or 0.6, cb2 or 0.6
+                IG.Glass(hc, { cr2 * 0.16 + 0.03, cg2 * 0.16 + 0.03, cb2 * 0.16 + 0.035, 0.92 }, { cr2, cg2, cb2, 0.22 })
+                if self.xpW then self.rank:SetWidth(self.xpW) end
                 local me = ns.me and ns.me() or ""
                 self.name:SetText(ns.displayName and ns.displayName(me) or (me:match("^[^-]+") or me))
                 self.name:SetTextColor(1, 1, 1)
                 local rt = (self.rank:GetText() or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
                 local head, rest = rt:match("^(.-)%s%s+[·%s]*(.+)$")
                 if head and rest then
-                    K.SetFontSafe(self.rank, K.FONT_HEAD, 16, "", K.FONT)
+                    K.SetFontSafe(self.rank, K.FONT_HEAD, 15, "", K.FONT)
                     self.rank:SetText(head .. "   |cffe6e6e6" .. rest .. "|r")
                 end
                 pcall(self.FillTiles, self)

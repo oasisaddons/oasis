@@ -1149,7 +1149,9 @@ local function buildMain()
             local t = (tc and tc ~= C.text) and tc or C.muted
             self.tc = t
             self.text:SetTextColor(t[1], t[2], t[3])
-            self:SetWidth(math.ceil((self.icon and 34 or 16) + (self.text:GetStringWidth() or 40)))
+            -- 0.6.329: Kacheln mit Symbol (AH, Abgleich) nur noch Punkt + Symbol, der Text steht im Tooltip
+            self.text:SetShown(not self.icon)
+            self:SetWidth(self.icon and 32 or math.ceil(16 + (self.text:GetStringWidth() or 40)))
         end
         return c
     end
