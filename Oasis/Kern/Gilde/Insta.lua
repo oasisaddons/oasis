@@ -883,7 +883,7 @@ ns.RegisterPage({
         K.Fill(soon, { C.bg[1], C.bg[2], C.bg[3], 1 })
         -- Profil 2026: Hoehen der Kopfzeile/Reiter und Beginn der Inhalte (mit/ohne Unterreiter)
         -- 0.6.318: groesserer Kopf (170) und hoehere Reiterleiste (46) wie im Entwurf
-        soon.HEAD_H, soon.NAV_Y, soon.SUB_Y, soon.TOP, soon.TOP_SUB = 170, -180, -236, -238, -268
+        soon.HEAD_H, soon.NAV_Y, soon.SUB_Y, soon.TOP, soon.TOP_SUB = 150, -160, -216, -218, -248
         -- Profil + "Mein Weg" zusammengefuehrt (07.10.): sechs Bereiche oben, darunter je Bereich Unterreiter
         local MAIN = {
             { key = "vals", text = L["Werte"], icon = "stats", subs = { "stats" } },
@@ -2633,7 +2633,7 @@ ns.RegisterPage({
         -- darunter Reiter (34) und ggf. Unterreiter (24); Inhalt ab 164 bzw. 194 px (vorher 254 / 288)
         ------------------------------------------------------------------
         do
-            local PH, X1, X2, RW = soon.HEAD_H, 150, 330, 220   -- 0.6.320: Kopf ist im Spiel nur ~760 breit -> kompakter
+            local PH, X1, X2, RW = soon.HEAD_H, 140, 300, 190   -- 0.6.332: Proportionen wie im Entwurf (Kopf ~760 breit)
             local ac = C.accent
             hc:ClearAllPoints()
             hc:SetPoint("TOPLEFT", 0, 0)
@@ -2705,10 +2705,10 @@ ns.RegisterPage({
             end)
             soon.embers = em
             -- Portraet: der Rangrahmen bleibt (er zeigt den Rang); Aura, Strahlen und Drehringe entfallen
-            local AS = 1.1
+            local AS = 0.8
             soon.av:SetScale(AS)
             soon.av:ClearAllPoints()
-            soon.av:SetPoint("CENTER", hc, "LEFT", 76 / AS, 4 / AS)
+            soon.av:SetPoint("CENTER", hc, "LEFT", 68 / AS, 0)
             soon.stage:Hide()
             function soon:AvatarFx()
                 self.stage:Hide()
@@ -2722,9 +2722,9 @@ ns.RegisterPage({
             hc.editHit:SetWidth(X2 - 16)
             -- Name gross, darunter Klasse/Level als Pillen, Hinweis Visitenkarte
             soon.name:ClearAllPoints()
-            soon.name:SetPoint("TOPLEFT", hc, "TOPLEFT", X1, -30)
+            soon.name:SetPoint("TOPLEFT", hc, "TOPLEFT", X1, -26)
             soon.name:SetWidth(X2 - X1 - 16)
-            K.SetFontSafe(soon.name, K.FONT_HEAD, 26, "", K.FONT)
+            K.SetFontSafe(soon.name, K.FONT_HEAD, 28, "", K.FONT)
             soon.clsPill:ClearAllPoints()
             soon.clsPill:SetPoint("TOPLEFT", soon.name, "BOTTOMLEFT", 0, -12)
             for _, pl in ipairs({ soon.clsPill, soon.lvlPill }) do
@@ -2744,7 +2744,7 @@ ns.RegisterPage({
             soon.cardHint:SetText(L["Klick: Visitenkarte bearbeiten"])
             -- Leisten: oben Level (Klassenfarbe), unten Oasis-Rang (Akzentfarbe), beide schmal und rund
             soon.wxp:ClearAllPoints()
-            soon.wxp:SetPoint("TOPLEFT", hc, "TOPLEFT", X2, -28)
+            soon.wxp:SetPoint("TOPLEFT", hc, "TOPLEFT", X2, -22)
             soon.wxp:SetTextColor(C.text[1], C.text[2], C.text[3])
             K.SetFontSafe(soon.wxp, K.FONT, 14, "", K.FONT)
             soon.wTrack:ClearAllPoints()
@@ -2754,7 +2754,7 @@ ns.RegisterPage({
             soon.wxpR:SetJustifyH("LEFT")
             -- Oasis-Rang gross in Gold, Leiste in Gold/Orange
             soon.rank:ClearAllPoints()
-            soon.rank:SetPoint("TOPLEFT", hc, "TOPLEFT", X2, -96)
+            soon.rank:SetPoint("TOPLEFT", hc, "TOPLEFT", X2, -84)
             K.SetFontSafe(soon.rank, K.FONT_HEAD, 18, "", K.FONT)
             soon.rank:SetTextColor(C.amber[1], C.amber[2], C.amber[3])
             soon.pct:ClearAllPoints()
@@ -2778,42 +2778,42 @@ ns.RegisterPage({
             -- rechts: naechste Belohnung + Abzeichen als zwei Glaskarten
             local cr = soon.chipR
             cr:ClearAllPoints()
-            cr:SetPoint("TOPRIGHT", hc, "TOPRIGHT", -14, -16)
-            cr:SetSize(RW, 64)
+            cr:SetPoint("TOPRIGHT", hc, "TOPRIGHT", -12, -14)
+            cr:SetSize(RW, 56)
             cr.edge:Hide()
             IG.Glass(cr, IG.GLASS_FILL, IG.GLASS_LINE, 10)
             cr.icon:ClearAllPoints()
-            cr.icon:SetSize(26, 26)
-            cr.icon:SetPoint("LEFT", 16, 0)
+            cr.icon:SetSize(22, 22)
+            cr.icon:SetPoint("LEFT", 12, 0)
             cr.label:ClearAllPoints()
-            cr.label:SetPoint("TOPLEFT", 56, -13)
+            cr.label:SetPoint("TOPLEFT", 44, -11)
             cr.label:SetText(L["Naechste Belohnung"])
             cr.label:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
             cr.value:ClearAllPoints()
-            cr.value:SetPoint("BOTTOMLEFT", 56, 12)
+            cr.value:SetPoint("BOTTOMLEFT", 44, 10)
             cr.value:SetPoint("RIGHT", cr, "RIGHT", -12, 0)
             K.SetFontSafe(cr.value, K.FONT_HEAD, 14, "", K.FONT)
             soon.chipF:Hide()
             local vit = soon.vit
             vit:ClearAllPoints()
-            vit:SetPoint("TOPRIGHT", hc, "TOPRIGHT", -14, -88)
-            vit:SetSize(RW, 66)
+            vit:SetPoint("TOPRIGHT", hc, "TOPRIGHT", -12, -78)
+            vit:SetSize(RW, 58)
             vit.sep:Hide()
             IG.Glass(vit, IG.GLASS_FILL, IG.GLASS_LINE, 10)
             vit.lbl:ClearAllPoints()
-            vit.lbl:SetPoint("TOPLEFT", 14, -12)
+            vit.lbl:SetPoint("TOPLEFT", 12, -10)
             vit.lbl:SetText(L["Abzeichen"])
             vit.num:ClearAllPoints()
             vit.num:SetPoint("TOPLEFT", vit.lbl, "BOTTOMLEFT", 0, -4)
-            K.SetFontSafe(vit.num, K.FONT_HEAD, 20, "", K.FONT)
+            K.SetFontSafe(vit.num, K.FONT_HEAD, 18, "", K.FONT)
             vit.pct:ClearAllPoints()
             vit.pct:SetPoint("LEFT", vit.of, "RIGHT", 8, 0)
             vit.pct:SetJustifyH("LEFT")
             vit.pct:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
             for i, b in ipairs(vit.icons) do
                 b:ClearAllPoints()
-                b:SetSize(24, 24)
-                b:SetPoint("RIGHT", vit, "RIGHT", -10 - (#vit.icons - i) * 27, 0)
+                b:SetSize(20, 20)
+                b:SetPoint("RIGHT", vit, "RIGHT", -8 - (#vit.icons - i) * 23, 0)
                 b.icon:ClearAllPoints()
                 b.icon:SetPoint("TOPLEFT", 3, -3)
                 b.icon:SetPoint("BOTTOMRIGHT", -3, 3)
@@ -2822,7 +2822,7 @@ ns.RegisterPage({
             end
             vit.track:ClearAllPoints()
             vit.track:SetPoint("BOTTOMLEFT", 14, 8)
-            vit.track:SetPoint("BOTTOMRIGHT", vit, "BOTTOMRIGHT", -(10 + #vit.icons * 27 + 6), 8)
+            vit.track:SetPoint("BOTTOMRIGHT", vit, "BOTTOMRIGHT", -(8 + #vit.icons * 23 + 6), 8)
             vit.track:SetHeight(3)
             vit.fill:SetHeight(3)
             -- Breiten an die Fensterbreite anpassen
@@ -2951,7 +2951,7 @@ ns.RegisterPage({
                 hc.art:SetTexCoord(0, 1, 0.1 * 356 / 512, 0.9 * 356 / 512)
                 hc.art:SetPoint("TOPRIGHT", -2, -2) hc.art:SetPoint("BOTTOMRIGHT", -2, 2)
                 hc.art:SetPoint("LEFT", hc, "LEFT", 2, 0)
-                hc.art:SetAlpha(0.4)
+                hc.art:SetAlpha(0.28)
                 hc.artFade = hc:CreateTexture(nil, "BACKGROUND", nil, 2)
                 hc.artFade:SetPoint("TOPLEFT", hc.art, "TOPLEFT") hc.artFade:SetPoint("BOTTOMLEFT", hc.art, "BOTTOMLEFT")
                 hc.artFade:SetWidth(260)
@@ -3142,7 +3142,8 @@ ns.RegisterPage({
             end
             soon.levelRing = lr
             function soon:FillRing()
-                local s = (self.av:GetWidth() or 70) * (self.av:GetEffectiveScale() / lr:GetEffectiveScale()) + 10
+                local base = (self.av.art and self.av.art:IsShown() and self.av.art:GetWidth()) or self.av:GetWidth() or 70
+                local s = base * (self.av:GetEffectiveScale() / lr:GetEffectiveScale()) + 6
                 lr:SetSize(s, s)
                 -- Rang-Fortschritt aus der Prozentangabe der Rangleiste (r.into / r.need)
                 local frac = (num(self.pct and self.pct:GetText()) or 0) / 100
@@ -3177,7 +3178,7 @@ ns.RegisterPage({
                 local _, cfx = UnitClass("player")
                 local cr2, cg2, cb2 = ns.classColor(ns.safe(cfx))
                 cr2, cg2, cb2 = cr2 or 0.6, cg2 or 0.6, cb2 or 0.6
-                IG.Glass(hc, { cr2 * 0.16 + 0.03, cg2 * 0.16 + 0.03, cb2 * 0.16 + 0.035, 0.92 }, { cr2, cg2, cb2, 0.22 })
+                IG.Glass(hc, { cr2 * 0.06 + 0.025, cg2 * 0.06 + 0.025, cb2 * 0.06 + 0.03, 0.97 }, { 1, 1, 1, 0.08 })   -- 0.6.332: viel dunkler
                 if self.xpW then self.rank:SetWidth(self.xpW) end
                 local me = ns.me and ns.me() or ""
                 self.name:SetText(ns.displayName and ns.displayName(me) or (me:match("^[^-]+") or me))
