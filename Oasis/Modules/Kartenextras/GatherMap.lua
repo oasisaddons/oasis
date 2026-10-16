@@ -380,7 +380,7 @@ function GM.DrawMinimap()
                 local close = rx * rx + ry * ry < 80 * 80
                 p.icon:SetAlpha(close and 0 or 0.45)
                 -- 0.6.386: in der Naehe kein harter Ring (zeigt jeden kleinen Versatz zum echten Punkt), nur weicher Schein
-                if p.ring then p.ring:SetAlpha(1) p.ring:SetShown(frame and not close) end
+                if p.ring then p.ring:SetAlpha(close and 0.35 or 1) p.ring:SetShown(frame or close) end   -- 0.6.388: nah: ganz zarter Ring
                 p.close, p.kcol = close and not hv, k.color
                 if p.glow then p.glow:SetShown(p.close and true or false) end
                 p:ClearAllPoints()
@@ -409,8 +409,8 @@ ns.Listen("LOGIN", function()
         pcall(GM.DrawMinimap)
         -- 0.6.380: nahe Fundorte pulsieren (Ring + Glanz), unabhaengig vom Neuzeichnen
         local tt = GetTime()
-        local k = 0.45 + 0.35 * math.sin(tt * 4)
-        if ns.db and ns.db.settings.noAnim then k = 0.6 end
+        local k = 0.85 + 0.35 * math.sin(tt * 4)   -- 0.6.388: deutlich kraeftiger (war auf dunklem Grund kaum zu sehen)
+        if ns.db and ns.db.settings.noAnim then k = 1 end
         for i = 1, mUsed do
             local pin = mPool[i]
             if pin and pin.close and pin.glow and pin.kcol then
