@@ -3043,6 +3043,33 @@ ns.RegisterPage({
                 r.fill:SetPoint("LEFT", r.track, "LEFT")
                 if K.RoundMask then pcall(K.RoundMask, r.track, r.track, 3) pcall(K.RoundMask, r.fill, r.fill, 3) pcall(K.RoundMask, r.box, r.box, 4) end
             end
+            -- Schimmer: alle paar Sekunden laeuft ein heller Streif ueber die gefuellten Teile
+            for _, r in ipairs(pr.rows) do
+                r.sheen = r:CreateTexture(nil, "ARTWORK", nil, 2)
+                r.sheen:SetBlendMode("ADD")
+                r.sheen:SetSize(24, 9)
+                if not K.Gradient(r.sheen, "HORIZONTAL", { 1, 1, 1, 0 }, { 1, 1, 1, 0.35 }) then r.sheen:SetColorTexture(1, 1, 1, 0.12) end
+                r.sheen:Hide()
+            end
+            local shT = 0
+            pr:HookScript("OnUpdate", function(_, el)
+                if ns.db and ns.db.settings.noAnim then return end
+                shT = (shT + (el or 0)) % 4.5
+                local p = shT / 1.2
+                for i, r in ipairs(pr.rows) do
+                    local fw = r.fill and r.fill:GetWidth() or 0
+                    local q = p - (i - 1) * 0.08
+                    if r:IsShown() and fw > 30 and q > 0 and q < 1 then
+                        r.sheen:ClearAllPoints()
+                        r.sheen:SetPoint("LEFT", r.fill, "LEFT", q * (fw - 24), 0)
+                        r.sheen:SetAlpha(math.sin(q * math.pi))
+                        r.sheen:Show()
+                    else
+                        r.sheen:Hide()
+                    end
+                end
+            end)
+            soon:HookScript("OnShow", function() soon.prFresh = true end)
             local fillPrio = soon.FillPrio
             function soon:FillPrio(st)
                 -- 0.6.360: immer 6 Zeilen - Zeilenabstand richtet sich nach der Hoehe der Box
@@ -3103,11 +3130,25 @@ ns.RegisterPage({
                     r.fill:SetColorTexture(c[1], c[2], c[3], 1)
                     local q = goals[i] and goals[i] > 0 and vals[i] / goals[i] or 0
                     r.diag = { vals[i], goals[i], q, W }
-                    r.fill:SetWidth(math.max(1, W * 0.32 * math.max(0.04, math.min(1, q))))
+                    -- 0.6.372: Balken wachsen beim Oeffnen und bei Aenderung von links auf ihren Wert (gestaffelt)
+                    local goalW = math.max(1, W * 0.32 * math.max(0.04, math.min(1, q)))
+                    local noAnim = ns.db and ns.db.settings.noAnim
+                    if noAnim or not K.Tween or (r.barW and math.abs(r.barW - goalW) < 0.5 and not self.prFresh) then
+                        r.fill:SetWidth(goalW)
+                    else
+                        r.fill:SetWidth(1)
+                        local fillTex = r.fill
+                        K.Tween(fillTex, 0.7, function(t)
+                            local e = 1 - (1 - t) ^ 3
+                            fillTex:SetWidth(math.max(1, goalW * e))
+                        end, function() fillTex:SetWidth(goalW) end, 0.06 * (i - 1))
+                    end
+                    r.barW = goalW
                     r.num:SetTextColor(C.amber[1], C.amber[2], C.amber[3])
                     r.val:SetTextColor(C.text[1], C.text[2], C.text[3])
                     r.bg:SetColorTexture(1, 1, 1, 0.025)
                 end
+                self.prFresh = nil
             end
             -- 0.6.367: Diagnose fuer den Profil-Kopf/Werte (/oa profildiag) - schreibt die echten Werte in den Chat
             ns.slash.profildiag = function()
