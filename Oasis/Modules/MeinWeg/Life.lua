@@ -1239,6 +1239,7 @@ ns.RegisterPage({
         y.hero:SetPoint("TOPRIGHT", 0, 0)
         y.hero:SetHeight(96)
         glass(y.hero, nil, nil, 14)
+        if K.DarkBoxFrame then K.DarkBoxFrame(y.hero) end
         y.portrait = y.hero:CreateTexture(nil, "ARTWORK")
         y.portrait:SetSize(68, 68)
         y.portrait:SetPoint("LEFT", 16, 0)
@@ -1262,6 +1263,8 @@ ns.RegisterPage({
         for _, fs in ipairs({ y.kicker, y.name, y.cls, y.since }) do fs:SetPoint("RIGHT", y.hero, "RIGHT", -190, 0) end
 
         -- Kennzahlen: vier Gruppen nebeneinander, je eine Spalte Glas-Kacheln mit Symbol
+        -- 0.6.370: Farbe je Gruppe (Symbol im Farbkreis wie die Werte-Kacheln im Profil)
+        local GCOL = { { 0.93, 0.32, 0.34 }, { 0.95, 0.72, 0.38 }, { 0.95, 0.82, 0.35 }, { 0.62, 0.48, 0.95 } }
         local GROUPS = {
             { "Kampf", { { "kills", "raid", "Gegner besiegt" }, { "bosses", "dungeons", "Bosse besiegt" }, { "deaths", "deaths", "Tode" } } },
             { "Abenteuer", { { "runs", "dungeons", "Dungeon-Laeufe" }, { "quests", "checklist", "Quests abgeschlossen" }, { "zones", "map", "Gebiete entdeckt" } } },
@@ -1277,17 +1280,24 @@ ns.RegisterPage({
             col.tiles = {}
             for ti, d in ipairs(g[2]) do
                 local t = CreateFrame("Frame", nil, col)
-                t:SetHeight(44)
-                t:SetPoint("TOPLEFT", 0, -18 - (ti - 1) * 50)
+                t:SetHeight(52)
+                t:SetPoint("TOPLEFT", 0, -18 - (ti - 1) * 58)
                 t:SetPoint("RIGHT", col, "RIGHT", 0, 0)
                 glass(t, nil, nil, 10)
-                t.icon = K.Glyph(t, 16, ICO .. d[2], C.muted)
-                t.icon:SetPoint("LEFT", 12, 0)
-                t.v = K.Title(t, 16, C.text)
-                t.v:SetPoint("TOPLEFT", 38, -7)
+                if K.DarkBoxFrame then K.DarkBoxFrame(t) end
+                local gc = GCOL[gi]
+                t.disc = t:CreateTexture(nil, "ARTWORK")
+                t.disc:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+                t.disc:SetSize(32, 32)
+                t.disc:SetPoint("LEFT", 10, 0)
+                t.disc:SetVertexColor(gc[1], gc[2], gc[3], 0.14)
+                t.icon = K.Glyph(t, 16, ICO .. d[2], gc)
+                t.icon:SetPoint("CENTER", t.disc, "CENTER")
+                t.v = K.Title(t, 19, C.text)
+                t.v:SetPoint("TOPLEFT", 52, -8)
                 t.v:SetPoint("RIGHT", t, "RIGHT", -8, 0)
                 t.l = K.Text(t, 10, C.muted)
-                t.l:SetPoint("BOTTOMLEFT", 38, 7)
+                t.l:SetPoint("BOTTOMLEFT", 52, 8)
                 t.l:SetPoint("RIGHT", t, "RIGHT", -8, 0)
                 t.l:SetText(L[d[3]])
                 t.key = d[1]
@@ -1304,6 +1314,7 @@ ns.RegisterPage({
             local c = CreateFrame("Frame", nil, y.body)
             c:SetHeight(58)
             glass(c, nil, nil, 12)
+            if K.DarkBoxFrame then K.DarkBoxFrame(c) end
             c.icon = K.Glyph(c, 18, ICO .. d[2], C.amber)
             c.icon:SetPoint("TOPLEFT", 12, -10)
             c.cap = K.Text(c, 10, C.muted)
@@ -1327,9 +1338,9 @@ ns.RegisterPage({
             for gi, col in ipairs(y.groups) do
                 col:ClearAllPoints()
                 col:SetPoint("TOPLEFT", y.body, "TOPLEFT", (gi - 1) * (cw + gap), -top)
-                col:SetSize(cw, 18 + 3 * 50)
+                col:SetSize(cw, 18 + 3 * 58)
             end
-            local hy = top + 18 + 3 * 50 + 6
+            local hy = top + 18 + 3 * 58 + 6
             local hw = math.floor((W - gap * 2) / 3)
             for i, c in ipairs(y.hl) do
                 c:ClearAllPoints()
@@ -1349,6 +1360,7 @@ ns.RegisterPage({
             local fill = primary and { ac[1], ac[2], ac[3], 0.16 } or nil
             local line = primary and { ac[1], ac[2], ac[3], 0.45 } or nil
             glass(b, fill, line, 9)
+            if K.DarkBoxFrame then K.DarkBoxFrame(b, true) end   -- 0.6.370: Knoepfe ohne Bildrahmen
             if b.sheen then b.sheen:Hide() end
             b.hl = b:CreateTexture(nil, "HIGHLIGHT")
             b.hl:SetAllPoints()

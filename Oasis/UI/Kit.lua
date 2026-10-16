@@ -3976,6 +3976,21 @@ function K.ClipBox(box)
         if ch ~= box.boxFrame and (ch:GetWidth() or 0) >= bw - 3 and (ch:GetHeight() or 0) >= bh - 3 then scan(ch) end
     end
 end
+-- 0.6.370: Box-Rahmen dunkel einfaerben (Profil/Tagebuch): Linie entsaettigt und dunkel, kein rotes Leuchten.
+-- off = true blendet den Rahmen ganz aus (z. B. kleine Knoepfe)
+function K.DarkBoxFrame(x, off)
+    if not x then return end
+    if off then
+        x.noBoxFrame = true
+        if x.boxFrame then x.boxFrame:Hide() if x.boxFrame.fit then x.boxFrame.fit() end end
+        return
+    end
+    local fr = x.boxFrame
+    if not fr then return end
+    fr.tint = { 0.05, 0.05, 0.06 }
+    for _, g in ipairs(fr.glows or {}) do g:SetVertexColor(0.05, 0.05, 0.06, 1) end
+    for _, pc in ipairs(fr.pieces or {}) do pc:SetDesaturated(true) pc:SetVertexColor(0.22, 0.22, 0.24, 1) end
+end
 function K.RefreshBoxFrames()
     local cr, cg, cb = frameGlowColor()
     for fr in pairs(K.boxFrames) do
