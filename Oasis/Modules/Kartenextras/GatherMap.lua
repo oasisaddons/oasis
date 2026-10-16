@@ -182,6 +182,17 @@ ns.slash.sammeltest = function()
     if wm then
         local okD, errD = pcall(GM.DrawWorld)
         ns.print(("  Weltkarte neu gezeichnet: ok=%s gezeichnet=%d %s"):format(tostring(okD), GM.WorldCount and GM.WorldCount() or -1, okD and "" or ("Fehler: " .. tostring(errD))))
+        local pin = GM.WorldPin and GM.WorldPin(1)
+        if pin then
+            local cv = WorldMapFrame:GetCanvas()
+            local _, _, _, px, py = pin:GetPoint(1)
+            ns.print(("  Punkt 1: shown=%s visible=%s alpha=%.2f eff=%.2f scale=%.2f pos=%.0f,%.0f size=%.0f level=%s/%s strata=%s/%s parent=%s"):format(
+                tostring(pin:IsShown()), tostring(pin:IsVisible()), pin:GetAlpha() or -1, pin:GetEffectiveAlpha() or -1, pin:GetScale() or -1,
+                px or 0, py or 0, pin:GetWidth() or 0, tostring(pin:GetFrameLevel()), tostring(cv and cv:GetFrameLevel()),
+                tostring(pin:GetFrameStrata()), tostring(cv and cv:GetFrameStrata()), tostring(pin:GetParent() == cv)))
+            ns.print(("  Karte: canvas %.0f x %.0f, icon=%s alpha=%.2f"):format(cv and cv:GetWidth() or 0, cv and cv:GetHeight() or 0,
+                tostring(pin.icon and pin.icon:GetTexture()), pin.icon and pin.icon:GetAlpha() or -1))
+        end
     end
     if #GM.diag == 0 then ns.print("Noch kein Zauber seit dem Einloggen - einmal sammeln, dann nochmal /oa sammeltest.") end
     for _, d in ipairs(GM.diag) do
@@ -195,6 +206,7 @@ ns.slash.gathertest = ns.slash.sammeltest
 ------------------------------------------------------------------------
 local wPool, wUsed = {}, 0
 function GM.WorldCount() return wUsed end   -- 0.6.391: fuer /oa sammeltest
+function GM.WorldPin(i) return wPool[i] end
 local function wPin(canvas)
     wUsed = wUsed + 1
     local p = wPool[wUsed]
