@@ -267,9 +267,9 @@ local function mPin()
         if ns.MiniPinLayer then ns.MiniPinLayer(p, 2) end
         -- 0.6.380: weicher Glanz, wenn der echte Fundort-Punkt im Ring liegt (Helligkeit ueber die Farbe, ADD)
         p.glow = p:CreateTexture(nil, "BACKGROUND", nil, -1)
-        p.glow:SetTexture(ns.MEDIA .. "ember")
+        p.glow:SetTexture(ns.MEDIA .. "level_ring")   -- 0.6.381: leuchtet aussen als Ring, Mitte bleibt frei
         p.glow:SetBlendMode("ADD")
-        p.glow:SetPoint("TOPLEFT", -10, 10) p.glow:SetPoint("BOTTOMRIGHT", 10, -10)
+        p.glow:SetPoint("TOPLEFT", -6, 6) p.glow:SetPoint("BOTTOMRIGHT", 6, -6)
         p.glow:Hide()
         -- 0.5.929: Symbol im Kreis - dunkle Scheibe, rund zugeschnittenes Symbol, Ring in der Farbe der Art
         p.bg = p:CreateTexture(nil, "BACKGROUND")
