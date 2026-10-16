@@ -780,7 +780,11 @@ function IG.ProfileTabs(parent, items, onChange)
     f:SetHeight(TH)
     f.buttons = {}
     local ac = C.accent
-    IG.Glass(f, IG.GLASS_FILL, IG.GLASS_LINE, 10)
+    -- 0.6.324: keine eigene Box mehr, nur eine feine Linie unten (Entwurf)
+    f.base = f:CreateTexture(nil, "BACKGROUND")
+    f.base:SetColorTexture(1, 1, 1, 0.08)
+    f.base:SetPoint("BOTTOMLEFT") f.base:SetPoint("BOTTOMRIGHT")
+    f.base:SetHeight(1)
     f.ind = CreateFrame("Frame", nil, f)
     f.ind:SetHeight(TH - 8)
     f.ind:SetWidth(60)
@@ -3127,9 +3131,34 @@ ns.RegisterPage({
                 lr.cd:SetCooldown(GetTime() - D * (1 - frac), D)
                 if lr.cd.Pause then pcall(lr.cd.Pause, lr.cd) end
             end
+            -- 0.6.324: Stift vor "Visitenkarte bearbeiten", Pfeil in der Belohnungskarte
+            soon.cardPen = hc:CreateTexture(nil, "ARTWORK")
+            soon.cardPen:SetTexture("Interface\Buttons\UI-GuildButton-PublicNote-Up")
+            soon.cardPen:SetSize(14, 14)
+            soon.cardPen:SetVertexColor(C.muted[1], C.muted[2], C.muted[3])
+            soon.cardPen:SetPoint("TOPLEFT", soon.clsPill, "BOTTOMLEFT", 0, -14)
+            soon.cardHint:ClearAllPoints()
+            soon.cardHint:SetPoint("LEFT", soon.cardPen, "RIGHT", 6, 0)
+            soon.cardHint:SetText(L["Visitenkarte bearbeiten"])
+            if soon.chipR then
+                soon.chipR.chev = K.Text(soon.chipR, 16, C.muted, "RIGHT")
+                soon.chipR.chev:SetPoint("RIGHT", -12, 0)
+                soon.chipR.chev:SetText(">")
+                soon.chipR.value:SetPoint("RIGHT", soon.chipR, "RIGHT", -28, 0)
+            end
             local up2 = soon.Update
             function soon:Update(fresh)
                 up2(self, fresh)
+                -- Name in Weiss (Entwurf), Rang: "Rang N" in Gold, Titel hell
+                local me = ns.me and ns.me() or ""
+                self.name:SetText(ns.displayName and ns.displayName(me) or (me:match("^[^-]+") or me))
+                self.name:SetTextColor(1, 1, 1)
+                local rt = (self.rank:GetText() or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+                local head, rest = rt:match("^(.-)%s%s+[·%s]*(.+)$")
+                if head and rest then
+                    K.SetFontSafe(self.rank, K.FONT_HEAD, 16, "", K.FONT)
+                    self.rank:SetText(head .. "   |cffe6e6e6" .. rest .. "|r")
+                end
                 pcall(self.FillTiles, self)
                 pcall(self.FillRing, self)
             end
