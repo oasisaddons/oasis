@@ -3737,15 +3737,15 @@ function K.ImageFrame(host, k)
         for _, t in ipairs(fr.glows) do t:SetVertexColor(r, g, b, 1) end
     end
     fr.Tint()
-    -- 0.6.337: Schimmer - ein Lichtpunkt mit kurzem Schweif laeuft einmal ganz um den Rahmen (auf der roten Linie,
-    -- ueber die abgeschraegten Ecken), 6 s je Runde; aus mit "Animationen aus"
-    local TRAIL = 7
+    -- 0.6.338: Schimmer sehr dezent - alle 8-12 s blendet an einer zufaelligen Stelle ein kleiner Lichtpunkt auf,
+    -- gleitet ein kurzes Stueck auf der Linie und blendet wieder aus; aus mit "Animationen aus"
+    local TRAIL = 4
     fr.spark = {}
     for i = 1, TRAIL do
         local t = fr:CreateTexture(nil, "OVERLAY", nil, 3)
         t:SetTexture(ns.MEDIA .. "ember")
         t:SetBlendMode("ADD")
-        local sz = (i == 1) and 22 or math.max(6, 16 - i * 1.5)
+        local sz = (i == 1) and 14 or math.max(5, 11 - i * 1.5)
         t:SetSize(sz, sz)
         t:SetVertexColor(1, 0.82, 0.62)
         t:Hide()
@@ -3774,7 +3774,8 @@ function K.ImageFrame(host, k)
         end
         return seg[1].a[1], seg[1].a[2]
     end
-    local acc, clock, lastW, lastH, segs, total = 0, 0, 0, 0, nil, 0
+    local acc, lastW, lastH, segs, total = 0, 0, 0, nil, 0
+    local wait, run, d0 = 3, nil, 0   -- Pause bis zum naechsten Aufleuchten / laufendes Aufleuchten (0..1)
     fr:SetScript("OnUpdate", function(_, el)
         acc = acc + (el or 0)
         if acc >= 0.5 then acc = 0 fr.Tint() end
@@ -3786,13 +3787,21 @@ function K.ImageFrame(host, k)
         local W, H = fr:GetWidth() or 0, fr:GetHeight() or 0
         if W < 50 or H < 50 then return end
         if W ~= lastW or H ~= lastH or not segs then lastW, lastH = W, H segs, total = path(W, H) end
-        clock = (clock + (el or 0)) % 6
-        local d = clock / 6 * total
+        if not run then
+            wait = wait - (el or 0)
+            for _, t in ipairs(fr.spark) do t:Hide() end
+            if wait > 0 then return end
+            run, d0 = 0, math.random() * total
+        end
+        run = run + (el or 0) / 2.2          -- 2,2 s je Aufleuchten
+        if run >= 1 then run, wait = nil, 8 + math.random() * 4 return end
+        local fade = math.sin(run * math.pi)  -- ein- und ausblenden
+        local d = d0 + run * 110              -- gleitet ~110 px weiter
         for i, t in ipairs(fr.spark) do
-            local x, y = pointAt(segs, total, d - (i - 1) * 7)
+            local x, y = pointAt(segs, total, d - (i - 1) * 6)
             t:ClearAllPoints()
             t:SetPoint("CENTER", fr, "TOPLEFT", x, -y)
-            t:SetAlpha((i == 1) and 0.9 or (0.55 * (1 - (i - 1) / TRAIL)))
+            t:SetAlpha(fade * ((i == 1) and 0.35 or (0.2 * (1 - (i - 1) / TRAIL))))
             t:Show()
         end
     end)

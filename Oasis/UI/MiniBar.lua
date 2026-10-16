@@ -349,7 +349,7 @@ local function build()
         if not K.Gradient(sw2, "HORIZONTAL", { 1, 0.85, 0.7, 0.9 }, { 1, 0.85, 0.7, 0 }) then sw2:SetColorTexture(1, 0.85, 0.7, 0.4) end
         sw2:SetPoint("TOPLEFT", sw, "TOPRIGHT") sw2:SetPoint("BOTTOMLEFT", sw, "BOTTOMRIGHT") sw2:SetWidth(50)
         sw:Hide() sw2:Hide()
-        local swT = 0
+        local swWait, swRun, swX0 = 4, nil, 0   -- 0.6.338: dezentes Aufleuchten alle 8-12 s statt Dauerlauf
         local clock = 0
         local pulse = CreateFrame("Frame", nil, bar)
         pulse:SetScript("OnUpdate", function(_, el)
@@ -359,19 +359,24 @@ local function build()
             -- Streif nur, wenn das Glut-Bild zu sehen ist
             local showArt = on and bar.art.m:IsShown()
             if showArt then
-                swT = (swT + (el or 0)) % 5
-                local p = swT / 1.8
                 local W = bar:GetWidth() or 600
-                if p < 1 then
-                    local e = p * p * (3 - 2 * p)
-                    local x = -100 + e * (W + 100)
-                    sw:ClearAllPoints()
-                    sw:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", x, -5)
-                    local a = math.sin(p * math.pi) * 0.6 * (bar.art.m:GetAlpha() or 1)
-                    sw:SetAlpha(a) sw2:SetAlpha(a)
-                    sw:SetShown(x > -50 and x < W) sw2:SetShown(x + 50 > 0 and x + 50 < W)
-                else
+                if not swRun then
+                    swWait = swWait - (el or 0)
                     sw:Hide() sw2:Hide()
+                    if swWait <= 0 then swRun, swX0 = 0, 40 + math.random() * math.max(1, W - 220) end
+                else
+                    swRun = swRun + (el or 0) / 2.2
+                    if swRun >= 1 then
+                        swRun, swWait = nil, 8 + math.random() * 4
+                        sw:Hide() sw2:Hide()
+                    else
+                        local x = swX0 + swRun * 120
+                        sw:ClearAllPoints()
+                        sw:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", x, -5)
+                        local a = math.sin(swRun * math.pi) * 0.3 * (bar.art.m:GetAlpha() or 1)
+                        sw:SetAlpha(a) sw2:SetAlpha(a)
+                        sw:Show() sw2:Show()
+                    end
                 end
             else
                 sw:Hide() sw2:Hide()
