@@ -3737,50 +3737,63 @@ function K.ImageFrame(host, k)
         for _, t in ipairs(fr.glows) do t:SetVertexColor(r, g, b, 1) end
     end
     fr.Tint()
-    -- 0.6.330: Schimmer - ein Lichtstreif laeuft alle 5 s ueber die obere (nach rechts) und untere Kante (nach links)
-    fr.sweep = {}
-    for i, side in ipairs({ "TOP", "BOTTOM" }) do
+    -- 0.6.337: Schimmer - ein Lichtpunkt mit kurzem Schweif laeuft einmal ganz um den Rahmen (auf der roten Linie,
+    -- ueber die abgeschraegten Ecken), 6 s je Runde; aus mit "Animationen aus"
+    local TRAIL = 7
+    fr.spark = {}
+    for i = 1, TRAIL do
         local t = fr:CreateTexture(nil, "OVERLAY", nil, 3)
-        t:SetSize(60, 2)   -- 0.6.334: feiner Lichtpunkt statt breitem Streif
+        t:SetTexture(ns.MEDIA .. "ember")
         t:SetBlendMode("ADD")
-        if not K.Gradient(t, "HORIZONTAL", { 1, 0.85, 0.7, 0 }, { 1, 0.85, 0.7, 0.9 }) then t:SetColorTexture(1, 0.85, 0.7, 0.4) end
-        t.side = side
+        local sz = (i == 1) and 22 or math.max(6, 16 - i * 1.5)
+        t:SetSize(sz, sz)
+        t:SetVertexColor(1, 0.82, 0.62)
         t:Hide()
-        fr.sweep[i] = t
-        -- zweite Haelfte (Verlauf zurueck), damit der Streif in der Mitte am hellsten ist
-        local t2 = fr:CreateTexture(nil, "OVERLAY", nil, 3)
-        t2:SetBlendMode("ADD")
-        if not K.Gradient(t2, "HORIZONTAL", { 1, 0.85, 0.7, 0.9 }, { 1, 0.85, 0.7, 0 }) then t2:SetColorTexture(1, 0.85, 0.7, 0.4) end
-        t2:SetPoint("TOPLEFT", t, "TOPRIGHT") t2:SetPoint("BOTTOMLEFT", t, "BOTTOMRIGHT")
-        t2:SetWidth(60)
-        t2:Hide()
-        t.tail = t2
+        fr.spark[i] = t
     end
-    local acc, clock = 0, 0
+    -- Weg auf der Linie: Eckpunkte im Uhrzeigersinn (y nach unten), Laenge wird je Groesse neu berechnet
+    local function path(W, H)
+        local ix, iy, c = BL * k * 0.55, BT * k * 0.55, CW * k * 0.62
+        local P = { { c, iy }, { W - c, iy }, { W - ix, c }, { W - ix, H - c }, { W - c, H - iy }, { c, H - iy }, { ix, H - c }, { ix, c } }
+        local seg, total = {}, 0
+        for i = 1, #P do
+            local a, b = P[i], P[i % #P + 1]
+            local len = math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2)
+            seg[i] = { a = a, b = b, len = len, at = total }
+            total = total + len
+        end
+        return seg, total
+    end
+    local function pointAt(seg, total, d)
+        d = d % total
+        for _, sg in ipairs(seg) do
+            if d <= sg.at + sg.len then
+                local q = (sg.len > 0) and (d - sg.at) / sg.len or 0
+                return sg.a[1] + (sg.b[1] - sg.a[1]) * q, sg.a[2] + (sg.b[2] - sg.a[2]) * q
+            end
+        end
+        return seg[1].a[1], seg[1].a[2]
+    end
+    local acc, clock, lastW, lastH, segs, total = 0, 0, 0, 0, nil, 0
     fr:SetScript("OnUpdate", function(_, el)
         acc = acc + (el or 0)
         if acc >= 0.5 then acc = 0 fr.Tint() end
         local st = ns.db and ns.db.settings
         if st and st.noAnim then
-            for _, t in ipairs(fr.sweep) do t:Hide() t.tail:Hide() end
+            for _, t in ipairs(fr.spark) do t:Hide() end
             return
         end
-        clock = (clock + (el or 0)) % 5
-        local p = clock / 1.6   -- 1,6 s Lauf, dann Pause
-        local W = fr:GetWidth() or 600
-        for _, t in ipairs(fr.sweep) do
-            if p < 1 then
-                local e = p * p * (3 - 2 * p)
-                local x = (t.side == "TOP") and (-120 + e * (W + 120)) or (W - e * (W + 120))
-                t:ClearAllPoints()
-                t:SetPoint(t.side .. "LEFT", fr, t.side .. "LEFT", x, t.side == "TOP" and -((BT * k) / 2) or ((BB * k) / 2))
-                -- nur innerhalb des Rahmens zeigen
-                local a = math.sin(p * math.pi) * 0.6
-                t:SetAlpha(a) t.tail:SetAlpha(a)
-                t:SetShown(x > -60 and x < W) t.tail:SetShown(x + 60 > 0 and x + 60 < W)
-            else
-                t:Hide() t.tail:Hide()
-            end
+        local W, H = fr:GetWidth() or 0, fr:GetHeight() or 0
+        if W < 50 or H < 50 then return end
+        if W ~= lastW or H ~= lastH or not segs then lastW, lastH = W, H segs, total = path(W, H) end
+        clock = (clock + (el or 0)) % 6
+        local d = clock / 6 * total
+        for i, t in ipairs(fr.spark) do
+            local x, y = pointAt(segs, total, d - (i - 1) * 7)
+            t:ClearAllPoints()
+            t:SetPoint("CENTER", fr, "TOPLEFT", x, -y)
+            t:SetAlpha((i == 1) and 0.9 or (0.55 * (1 - (i - 1) / TRAIL)))
+            t:Show()
         end
     end)
     -- 0.6.190: Rahmen zum Verschieben anfassbar - vier schmale Griffleisten auf den Baendern (Innenbereich bleibt
