@@ -363,7 +363,9 @@ local function build()
                 if not swRun then
                     swWait = swWait - (el or 0)
                     sw:Hide() sw2:Hide()
-                    if swWait <= 0 then swRun, swX0 = 0, 40 + math.random() * math.max(1, W - 220) end
+                    -- 0.6.362: nur im geraden Mittelstueck (zwischen den runden Enden) starten und enden
+                    local cw = bar.art.l:GetWidth() or 60
+                    if swWait <= 0 then swRun, swX0 = 0, cw + math.random() * math.max(1, W - 2 * cw - 190) end
                 else
                     swRun = swRun + (el or 0) / 2.2
                     if swRun >= 1 then
@@ -372,7 +374,7 @@ local function build()
                     else
                         local x = swX0 + swRun * 120
                         sw:ClearAllPoints()
-                        sw:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", x, -5)
+                        sw:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", x, -3)
                         local a = math.sin(swRun * math.pi) * 0.3 * (bar.art.m:GetAlpha() or 1)
                         sw:SetAlpha(a) sw2:SetAlpha(a)
                         sw:Show() sw2:Show()
