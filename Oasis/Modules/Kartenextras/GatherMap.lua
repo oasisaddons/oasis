@@ -131,11 +131,19 @@ function GM.Record(kind, name)
             -- hoechstens alle 10 Minuten neu senden (0.5.935: vorher 6 Stunden - fuer "gerade abgeerntet" braucht die Gilde
             -- den Zeitpunkt); der Zaehler "wie oft gefunden" steigt weiter nur alle 6 Stunden
             local age = ns.now() - (r.ts or 0)
+            -- 0.6.384: Position mit jedem Abbau mitteln (man steht mal links, mal rechts vom Erz) -> wandert zur echten
+            -- Mitte, also zum Fundort-Punkt des Spiels; hoechstens 8 Abbauten zaehlen, damit er noch nachruecken kann
+            local m = math.min(8, (r.m or 1))
+            local c = {} for k, v in pairs(r) do c[k] = v end
+            c.x = math.floor(((r.x * m + x) / (m + 1)) * 10000) / 10000
+            c.y = math.floor(((r.y * m + y) / (m + 1)) * 10000) / 10000
+            c.m = m + 1
             if age > RESEND then
-                local c = {} for k, v in pairs(r) do c[k] = v end
                 if age > 6 * 3600 then c.n = (c.n or 1) + 1 end
                 c.ts, c.by = ns.now(), ns.me()
                 Store.Put("nodes", c)
+            elseif Store.merge then
+                Store.merge("nodes", c)   -- nur lokal, ohne Senden
             end
             return "schon bekannt"
         end
