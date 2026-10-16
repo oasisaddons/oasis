@@ -2831,7 +2831,7 @@ ns.RegisterPage({
                 b.icon:SetPoint("TOPLEFT", 3, -3)
                 b.icon:SetPoint("BOTTOMRIGHT", -3, 3)
                 -- jedes Abzeichen in einem eigenen kleinen Rahmen
-                if not b.box then b.box = CreateFrame("Frame", nil, b) b.box:SetAllPoints() b.box:SetFrameLevel(b:GetFrameLevel()) IG.Glass(b.box, { 1, 1, 1, 0.04 }, { 1, 1, 1, 0.22 }, 4) end
+                if not b.box then b.box = CreateFrame("Frame", nil, b) b.box:SetAllPoints() b.box:SetFrameLevel(b:GetFrameLevel()) IG.Glass(b.box, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.1 }, 4) end
             end
             vit.track:ClearAllPoints()
             vit.track:SetPoint("BOTTOMLEFT", 14, 8)
@@ -3151,6 +3151,10 @@ ns.RegisterPage({
             soon.levelRing = lr
             function soon:FillRing()
                 -- Radius: knapp ausserhalb des Portraetrahmens
+                -- ueber dem Portraetrahmen halten (der Rahmen setzt seine Ebene spaeter selbst)
+                lr:SetFrameStrata(self.av:GetFrameStrata())
+                lr:SetFrameLevel(math.min(9000, self.av:GetFrameLevel() + 30))
+                lr:Show()
                 local sc = self.av:GetEffectiveScale() / lr:GetEffectiveScale()
                 local rad = ((self.av.size or 70) / 2 + 9) * sc
                 local w, h = math.max(2, rad * 0.06), math.max(4, rad * 0.075)
@@ -3196,6 +3200,22 @@ ns.RegisterPage({
                 self.name:SetTextColor(1, 1, 1)
                 local rt = (self.rank:GetText() or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
                 local head, rest = rt:match("^(.-)%s%s+[·%s]*(.+)$")
+                -- Rang-Wappen vor "Rang N" (0.6.335)
+                if not self.rankIco then
+                    self.rankIco = hc:CreateTexture(nil, "ARTWORK")
+                    self.rankIco:SetSize(18, 18)
+                    self.rankIco:SetPoint("RIGHT", self.rank, "LEFT", -6, 0)
+                    self.rank:ClearAllPoints()
+                    self.rank:SetPoint("TOPLEFT", hc, "TOPLEFT", 300 + 24, -84)
+                    -- Leiste bleibt in der Spalte (haengt sonst am verschobenen Text)
+                    self.xpTrack:ClearAllPoints()
+                    self.xpTrack:SetPoint("TOPLEFT", hc, "TOPLEFT", 300, -110)
+                end
+                local rl = tonumber((rt:match("(%d+)")))
+                if rl and ns.Rank and ns.Rank.FrameIndex then
+                    local okI, idx = pcall(ns.Rank.FrameIndex, rl)
+                    if okI and idx then self.rankIco:SetTexture(ns.MEDIA .. "emblems\\tier" .. idx) end
+                end
                 if head and rest then
                     K.SetFontSafe(self.rank, K.FONT_HEAD, 15, "", K.FONT)
                     self.rank:SetText(head .. "   |cffe6e6e6" .. rest .. "|r")
