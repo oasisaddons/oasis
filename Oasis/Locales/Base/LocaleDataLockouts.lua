@@ -1,4 +1,4 @@
--- Oasis - Texte: Raid-IDs & Freischaltungen (Modules\Lockouts.lua)
+-- Oasis - Texte: Raid-IDs & Freischaltungen (Modules\RaidTools\Lockouts.lua)
 local ADDON, ns = ...
 local DE, EN = ns.LOCALE_DE, ns.LOCALE_EN
 

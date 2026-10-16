@@ -1,4 +1,4 @@
--- Oasis - Texte: Raid-Check (Modules\RaidCheck.lua), Pluender-Regeln (Modules\LootRules.lua),
+-- Oasis - Texte: Raid-Check (Modules\RaidTools\RaidCheck.lua), Pluender-Regeln (Modules\RaidTools\LootRules.lua),
 -- Raid-Vorbereitung (Seitenoptik). Deutsch: Umlaute macht Locale.lua automatisch, hier nur Ausnahmen.
 local ADDON, ns = ...
 local DE, EN = ns.LOCALE_DE, ns.LOCALE_EN

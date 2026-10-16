@@ -1,4 +1,4 @@
--- Oasis - Texte: Neugestaltung Raid-Zeit (Modules\RaidTime.lua), Raid-IDs (Modules\Lockouts.lua), Kampfberichte (Modules\WipeReport.lua)
+-- Oasis - Texte: Neugestaltung Raid-Zeit (Modules\RaidTools\RaidTime.lua), Raid-IDs (Modules\RaidTools\Lockouts.lua), Kampfberichte (Modules\RaidTools\WipeReport.lua)
 local ADDON, ns = ...
 local DE, EN = ns.LOCALE_DE, ns.LOCALE_EN
 

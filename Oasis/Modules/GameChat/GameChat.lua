@@ -1183,7 +1183,7 @@ if not (ns.ForeignChat and ns.ForeignChat()) and hooksecurefunc and type(FCF_Ope
     hooksecurefunc("FCF_OpenTemporaryWindow", function() C_Timer.After(0, function() pcall(GC.HookSelect) end) end)
 end
 function GC.ApplyCopyButton()
-    local want = G().gcCopyBtn ~= false and not nesUIChat() and not (ns.ForeignChat and ns.ForeignChat())   -- 0.6.257
+    local want = G().gcCopyBtn ~= false and not nesUIChat()
     if not GC.copyBtn then
         if not want or not ChatFrame1 then return end
         local b = CreateFrame("Button", "OasisChatCopyButton", ChatFrame1)
@@ -1196,7 +1196,12 @@ function GC.ApplyCopyButton()
         b:SetAlpha(0.35)
         b:SetScript("OnEnter", function(self)
             self:SetAlpha(1)
-            if ns.K and ns.K.ShowTip then ns.K.ShowTip(self, { L["Chat kopieren"], L["Linksklick: direkt im Chat markieren, Strg+C kopiert"], L["Rechtsklick: Suchfenster"], L["Auch Alt + Klick ins Chatfenster startet das Markieren"] }) end
+            if ns.K and ns.K.ShowTip then
+                local foreign = ns.ForeignChat and ns.ForeignChat()
+                local lines = { L["Chat kopieren"], foreign and L["Linksklick: Kopierfenster oeffnen"] or L["Linksklick: direkt im Chat markieren, Strg+C kopiert"], L["Rechtsklick: Suchfenster"] }
+                if not foreign then lines[#lines + 1] = L["Auch Alt + Klick ins Chatfenster startet das Markieren"] end
+                ns.K.ShowTip(self, lines)
+            end
         end)
         b:SetScript("OnLeave", function(self) self:SetAlpha(0.35) GameTooltip:Hide() end)
         -- 0.6.3: Linksklick = direkt im Chat markieren, Rechtsklick = Suchfenster (wie bisher)
@@ -1204,6 +1209,8 @@ function GC.ApplyCopyButton()
         b:SetScript("OnClick", function(_, btn)
             if btn == "RightButton" then
                 if GC.OpenViewer then GC.OpenViewer("search", SELECTED_CHAT_FRAME) end
+            elseif ns.ForeignChat and ns.ForeignChat() then
+                GC.Copy(SELECTED_CHAT_FRAME)
             else
                 GC.SelectInPlace(SELECTED_CHAT_FRAME)
             end
@@ -1211,6 +1218,16 @@ function GC.ApplyCopyButton()
         GC.copyBtn = b
     end
     GC.copyBtn:SetShown(want)
+end
+
+-- Fremde Chatdarstellung nur auslesen; die Markierung bleibt im separaten Kopierfenster.
+function GC.Copy(frame)
+    frame = frame or SELECTED_CHAT_FRAME or ChatFrame1
+    if not frame or not (ns.WhisperLog and ns.WhisperLog.Copy) then return end
+    local source = ns.Emoji and ns.Emoji.EuiWindow and ns.Emoji.EuiWindow(frame)
+    local out = {}
+    for _, line in ipairs(frameLines(source or frame)) do out[#out + 1] = line.t end
+    if ns.WhisperLog then ns.WhisperLog.Copy(L["Chat kopieren"], table.concat(out, "\n")) end   -- Fluestern-Modul kann aus sein
 end
 
 function GC.ApplyAll()

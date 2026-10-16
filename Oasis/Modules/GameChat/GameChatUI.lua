@@ -242,6 +242,15 @@ local function build(f)
     -- Inhalten. Der innere Scrollbereich war so gross wie die Seite: man kam nicht bis ganz nach unten.
     local body = CreateFrame("Frame", nil, f)
     body:SetPoint("TOPLEFT", 0, 0)
+    -- 0.6.272: mit EllesmereUI-Chat greift Oasis seit 0.6.254 nicht in den Chat ein (ns.ForeignChat) - die Schalter
+    -- hier wirkten dann still nicht. Jetzt steht oben ein Hinweis und die Seite ist ausgegraut.
+    if ns.ForeignChat and ns.ForeignChat() then
+        local warn = H.cardH(f, 0, 0, 738, 74, "eye_off", L["EllesmereUI-Chat erkannt"],
+            L["Den Chat zeichnet EllesmereUI. Damit nichts doppelt laeuft, greift Oasis nicht in den Chat ein - die Schalter auf dieser Seite wirken nur ohne EllesmereUI-Chat."])
+        if warn.s then warn.s:SetWordWrap(true) warn.s:SetPoint("RIGHT", -14, 0) end
+        body:SetPoint("TOPLEFT", 0, -86)
+        body:SetAlpha(0.45)
+    end
     body:SetSize(770, 900)
     local function apply() pcall(GC.ApplyAll) end
     local W, IN = 362, 334

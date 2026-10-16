@@ -3768,10 +3768,26 @@ ns.RegisterPage({
                 local lead = s.w > s.l and ("|cff66db9e" .. L["du fuehrst"] .. "|r") or (s.w < s.l and ("|cffe06060" .. L["du liegst hinten"] .. "|r") or L["ausgeglichen"])
                 r.cols.sub:SetText(lead .. "  ·  " .. L["zuletzt "] .. ns.ago(s.last))
             end
-            r.cols.wl:ClearAllPoints()
-            r.cols.wl:SetPoint("RIGHT", -10, rightView == "rank" and 0 or 3)
-            r.cols.wl:SetText("|cff66db9e" .. s.w .. "|r |cff666666:|r |cffe06060" .. s.l .. "|r" ..
-                (tot > 0 and ("  |cff888888" .. math.floor(s.w / tot * 100 + 0.5) .. " %|r") or ""))
+            -- 0.6.288: Bilanz in festen Spalten (Siege rechtsbuendig | Doppelpunkt | Niederlagen linksbuendig | Quote
+            -- rechtsbuendig) - vorher ein Text, der je nach Ziffernbreite hin und her sprang
+            if not r.wlW then
+                local function col(w, j, c) local t = K.Text(r, 12, c, j) t:SetWidth(w) t:SetWordWrap(false) return t end
+                r.wlP = col(40, "RIGHT", C.muted)
+                r.wlL = col(22, "LEFT", { 0.88, 0.38, 0.38 })
+                r.wlC = col(10, "CENTER", { 0.4, 0.4, 0.4 })
+                r.wlW = col(22, "RIGHT", { 0.40, 0.86, 0.62 })
+                r.wlC:SetText(":")
+            end
+            r.cols.wl:SetText("")
+            r.cols.wl:Hide()
+            local dy = rightView == "rank" and 0 or 3
+            r.wlP:ClearAllPoints() r.wlP:SetPoint("RIGHT", r, "RIGHT", -10, dy)
+            r.wlL:ClearAllPoints() r.wlL:SetPoint("RIGHT", r.wlP, "LEFT", -8, 0)
+            r.wlC:ClearAllPoints() r.wlC:SetPoint("RIGHT", r.wlL, "LEFT", 0, 0)
+            r.wlW:ClearAllPoints() r.wlW:SetPoint("RIGHT", r.wlC, "LEFT", 0, 0)
+            r.wlW:SetText(s.w)
+            r.wlL:SetText(s.l)
+            r.wlP:SetText(tot > 0 and (math.floor(s.w / tot * 100 + 0.5) .. " %") or "")
             r.bar:Set(tot > 0 and s.w / tot or 0)
             r.sel:SetShown(rightView == "rank" and ns.isMe(s.name))
         end)
@@ -3821,6 +3837,7 @@ ns.RegisterPage({
         p.stRank.v:SetText(pos and ("#" .. pos) or "–")
         local MEDAL = { { 1, 0.82, 0.3 }, { 0.78, 0.8, 0.86 }, { 0.85, 0.55, 0.3 } }
         p.rankMedal = pos and MEDAL[pos] or nil
+        p.rankPos = pos
         local rc = p.rankMedal or C.text
         p.stRank.v:SetTextColor(rc[1], rc[2], rc[3])
         DR.LayoutStats(p)
@@ -4271,7 +4288,7 @@ do
                 ch.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. "dr_opp_bg")
                 -- 0.6.203: ganz zeigen (Bildrahmen nicht abschneiden), stark abgedunkelt = dezent
                 ch.art:SetTexCoord(0, 1, 0, 1)
-                ch.art:SetVertexColor(0.38, 0.36, 0.35)
+                ch.art:SetVertexColor(0.22, 0.21, 0.20)   -- 0.6.285: noch dezenter (vorher 0.38)
                 -- 0.6.204: Innenabstand zum Bildrahmen
                 local PAD = 16
                 if ch.head then ch.head:ClearAllPoints() ch.head:SetPoint("TOPLEFT", PAD + 4, -PAD) end
@@ -4361,8 +4378,29 @@ do
             if not hasGlass() then return end
             -- Platz-Pille: Gold/Silber/Bronze dezent getoent, ab Platz 4 neutral
             local mc = p.rankMedal
-            if mc then glass(p.stRank, { mc[1], mc[2], mc[3], 0.10 }, { mc[1], mc[2], mc[3], 0.45 }, 10)
-            else glass(p.stRank, { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.12 }, 10) end
+            -- 0.6.299: Platz 1-3 mit der Bildkarte der Rangliste (Gold/Silber/Bronze), auf Platz 1 die Krone darueber
+            local st = p.stRank
+            local MED = { "gold", "silver", "bronze" }
+            local card = ns.GuildPack and p.rankPos and MED[p.rankPos]
+            if card then
+                if not st.card then
+                    st.card = st:CreateTexture(nil, "BACKGROUND", nil, 1)
+                    st.card:SetAllPoints()
+                    st.crown = st:CreateTexture(nil, "OVERLAY")
+                    st.crown:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_crown")
+                    st.crown:SetSize(40, 20)
+                    st.crown:SetPoint("BOTTOM", st, "TOP", 0, -6)
+                end
+                st.card:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_podium_" .. card)
+                st.card:Show()
+                st.crown:SetShown(p.rankPos == 1)
+                glass(st, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, 10)   -- Glas weg, die Karte hat ihren eigenen Rahmen
+                if st.v.SetShadowColor then st.v:SetShadowColor(0, 0, 0, 1) st.v:SetShadowOffset(1, -1) end
+            else
+                if st.card then st.card:Hide() st.crown:Hide() end
+                if mc then glass(st, { mc[1], mc[2], mc[3], 0.10 }, { mc[1], mc[2], mc[3], 0.45 }, 10)
+                else glass(st, { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.12 }, 10) end
+            end
             -- Gegnerkarten (entstehen in der Liste): Glas, Klassenring, ruhiger Fordern-Text, Wartende in Bernstein
             for _, r in pairs(p.onList.rows or {}) do
                 for _, c in ipairs({ r.a, r.b }) do

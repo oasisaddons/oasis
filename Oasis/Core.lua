@@ -2,8 +2,8 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.266"
-ns.versionDate = "15.10.2026"
+ns.version = "0.6.309"
+ns.versionDate = "16.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
 ns.MEDIA = "Interface\\AddOns\\Oasis\\Media\\"
@@ -344,6 +344,27 @@ end
 -- In der oeffentlichen Version ist niemand Entwickler: Demo-Daten, Testmodus der Gildenleitung und Entwickler-Abfragen
 -- bleiben aus - auch wenn jemand den gespeicherten Schalter von Hand setzt. Immer als ns.IsDev() aufrufen, nie zwischenspeichern.
 function ns.IsDev() return false end
+-- 0.6.275: eigene Position auf der Karte (mapID, x, y 0..1) - frueher Camp.MyPosition, gebraucht von Karte, Lager u. a.
+function ns.MyMapPosition()
+    local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+    if not mapID then return nil end
+    local pos = C_Map.GetPlayerMapPosition(mapID, "player")
+    if not pos then return nil end
+    local x, y = pos:GetXY()
+    x, y = ns.safe(x), ns.safe(y)
+    if not x or not y then return nil end
+    return mapID, x, y
+end
+-- 0.6.272: abschaltbare Module melden sich hier an (vorher in ModuleLoader.lua - Moduldateien mussten in der toc dahinter
+-- stehen). ModuleLoader.LoadAll fuehrt beim Start nur die eingeschalteten aus; danach nimmt ns.ModuleFile nichts mehr an.
+ns.moduleFiles = {}
+ns.moduleOrder = {}   -- 0.6.285: Reihenfolge der toc (Module, die auf anderen aufbauen, laden danach)
+function ns.ModuleFile(key, fn)
+    local files = ns.moduleFiles
+    if not files then return end
+    if not files[key] then files[key] = {} table.insert(ns.moduleOrder, key) end
+    table.insert(files[key], fn)
+end
 -- 0.6.254: zeichnet ein anderes Addon den Chat selbst (EllesmereUI-Chat: Blizzard-Fenster laufen unsichtbar mit und
 -- werden gespiegelt)? Dann veraendert Oasis die Blizzard-Chatfenster nicht - Umschreiben/Entfernen von Zeilen,
 -- Ausblenden, eingefuegter Verlauf und Markieren brachten dessen Fenster durcheinander (nur 2-3 Zeilen, Chat

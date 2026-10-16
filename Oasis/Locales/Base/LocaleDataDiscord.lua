@@ -1,4 +1,4 @@
--- Oasis - Texte: Discord-Bruecke (Modules\DiscordBridge.lua)
+-- Oasis - Texte: Discord-Bruecke (Modules\Discord\DiscordBridge.lua)
 local ADDON, ns = ...
 local DE, EN = ns.LOCALE_DE, ns.LOCALE_EN
 

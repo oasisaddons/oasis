@@ -2048,6 +2048,17 @@ function K.Bar(parent, w, h)
     col(f.fill, C.accent2)
     f.fill:SetPoint("TOPLEFT")
     f.fill:SetPoint("BOTTOMLEFT")
+    -- 0.6.274: Design mit eigenem Balken (Skin "bar" = { track, fill }): Spur und Fuellung als Grafik
+    local sb = K.Skin and K.Skin("bar")
+    if sb and sb.track and sb.fill then
+        for _, r in ipairs({ f:GetRegions() }) do if r ~= f.fill and r.SetColorTexture and r:GetDrawLayer() == "BACKGROUND" then r:Hide() end end
+        local tr = f:CreateTexture(nil, "BACKGROUND", nil, 1)
+        tr:SetAllPoints()
+        tr:SetTexture(sb.track)
+        f.skinTrack = tr
+        f.fill:SetTexture(sb.fill)
+        f.fill:SetVertexColor(1, 1, 1, 1)
+    end
     function f:Set(p)
         p = math.max(0, math.min(1, p or 0))
         self.fill:SetWidth(math.max(0.01, self:GetWidth() * p))
@@ -3664,11 +3675,13 @@ end
 -- Masse in Quellpixeln (Bild 1509x1012 nach dem Zuschnitt); k = UI-Einheiten je Quellpixel.
 function K.ImageFrame(host, k)
     k = k or 0.3
-    -- 0.6.188: schlanker Rahmen "Eleganter Lavaglut-Fantasierahmen" (vorher 1509x1012 mit breiten Baendern)
-    local SW, SH = 1504, 991
-    local BT, BB, BL, BR = 35, 39, 26, 27        -- Baender (bis zur Innenkante)
-    local CW, CHT, CHB = 130, 75, 80             -- Ecken
-    local M1, M2 = 680, 825                      -- Mittelverzierung oben/unten
+    -- 0.6.279: "Minimalist roter Sci-Fi-HUD-Rahmen" (Vorlage auf Schwarz, make_window_frame.py --black): graue Kante,
+    -- rote Linie, Lichtpunkte oben/unten in der Mitte (vorher 0.6.188 Lavaglut-Fantasierahmen 1504x991)
+    -- 0.6.280: graues Aussenband entfernt (nur rote Linie + Glut) -> Zuschnitt kleiner, schmalere Baender
+    local SW, SH = 1398, 1028
+    local BT, BB, BL, BR = 20, 20, 14, 13        -- Baender (bis zur Innenkante)
+    local CW, CHT, CHB = 60, 60, 60              -- Ecken (Abschraegung)
+    local M1, M2 = 599, 799                      -- Lichtpunkt oben/unten bleibt ungestreckt
     local TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\window_frame"
     local OV = 2                                 -- so weit ueberlappt die Innenkante das Fenster
     local fr = CreateFrame("Frame", nil, host)
@@ -3764,6 +3777,123 @@ function K.ApplyFrameStyle(host)
     if host.imageFrame then host.imageFrame:SetShown(on and true or false) end
     if host.frameLines then host.frameLines:SetShown(not on) end
     if host.lineFrame then host.lineFrame:SetAlpha(on and 0 or 0.35) end
+end
+
+-- 0.6.281: derselbe Bild-Rahmen (rote Linie + Glut) schmal um jede Box im Addon (K.ApplySkin "panel").
+-- Nur mit Gildenmodul; folgt "Verzierter Fensterrahmen" (imageFrame) und "Rahmen auch um Boxen" (boxFrame).
+-- Masse wie K.ImageFrame (Quellpixel nach dem Zuschnitt), ohne Mittelstueck: Kanten aus dem Stueck neben der Ecke.
+K.boxFrames = setmetatable({}, { __mode = "k" })
+local BOX = { SW = 1398, SH = 1028, BT = 20, BB = 20, BL = 14, BR = 13, C = 60, k = 0.16, alpha = 0.5 }
+local function boxOn()
+    local st = ns.db and ns.db.settings
+    return ns.GuildPack ~= nil and not (st and (st.imageFrame == false or st.boxFrame == false))
+end
+local function frameGlowColor()
+    local st = ns.db and ns.db.settings
+    local hex = st and st.frameColor
+    local c = (hex and hex ~= "" and K.FromHex and K.FromHex(hex)) or K.C.accent or { 1, 0.4, 0.15 }
+    return math.min(1, c[1] * 1.15 + 0.08), math.min(1, c[2] * 1.15 + 0.08), math.min(1, c[3] * 1.15 + 0.08)
+end
+-- minH: kleinste Hoehe fuer einen Rahmen (Glas-Boxen: 40, damit Zeilen und Knoepfe frei bleiben)
+function K.BoxFrame(box, minH)
+    if not box or box.boxFrame or box.noBoxFrame or not ns.GuildPack then return end
+    local B, k = BOX, BOX.k
+    local TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\window_frame"
+    local fr = CreateFrame("Frame", nil, box)
+    fr:SetAllPoints()
+    fr:EnableMouse(false)
+    fr:SetAlpha(BOX.alpha)   -- 0.6.284: schwaecher als der Fensterrahmen
+    fr:SetFrameLevel(math.min(9000, box:GetFrameLevel() + 3))
+    fr.glows = {}
+    local function piece(x1, y1, x2, y2)
+        local t = fr:CreateTexture(nil, "OVERLAY", nil, 1)
+        t:SetTexture(TEX)
+        t:SetTexCoord(x1 / B.SW, x2 / B.SW, y1 / B.SH, y2 / B.SH)
+        local g = fr:CreateTexture(nil, "OVERLAY", nil, 2)
+        g:SetTexture(TEX .. "_glow")
+        g:SetTexCoord(x1 / B.SW, x2 / B.SW, y1 / B.SH, y2 / B.SH)
+        g:SetBlendMode("ADD")
+        g:SetAllPoints(t)
+        fr.glows[#fr.glows + 1] = g
+        return t
+    end
+    local SW, SH, C2, E = B.SW, B.SH, B.C, B.C + 120   -- E: Ende des Kantenstuecks neben der Ecke
+    local cs = B.C * k
+    local tl = piece(0, 0, C2, C2)             tl:SetSize(cs, cs) tl:SetPoint("TOPLEFT")
+    local tr = piece(SW - C2, 0, SW, C2)       tr:SetSize(cs, cs) tr:SetPoint("TOPRIGHT")
+    local bl = piece(0, SH - C2, C2, SH)       bl:SetSize(cs, cs) bl:SetPoint("BOTTOMLEFT")
+    local br = piece(SW - C2, SH - C2, SW, SH) br:SetSize(cs, cs) br:SetPoint("BOTTOMRIGHT")
+    local t = piece(C2, 0, E, B.BT)            t:SetHeight(B.BT * k) t:SetPoint("TOPLEFT", tl, "TOPRIGHT") t:SetPoint("TOPRIGHT", tr, "TOPLEFT")
+    local b = piece(C2, SH - B.BB, E, SH)      b:SetHeight(B.BB * k) b:SetPoint("BOTTOMLEFT", bl, "BOTTOMRIGHT") b:SetPoint("BOTTOMRIGHT", br, "BOTTOMLEFT")
+    local l = piece(0, C2, B.BL, C2 + 120)     l:SetWidth(B.BL * k) l:SetPoint("TOPLEFT", tl, "BOTTOMLEFT") l:SetPoint("BOTTOMLEFT", bl, "TOPLEFT")
+    local r = piece(SW - B.BR, C2, SW, C2 + 120) r:SetWidth(B.BR * k) r:SetPoint("TOPRIGHT", tr, "BOTTOMRIGHT") r:SetPoint("BOTTOMRIGHT", br, "TOPRIGHT")
+    -- zu kleine Boxen (Ecken wuerden sich ueberlappen) bekommen keinen Rahmen
+    local function fit()
+        local w, h = box:GetWidth() or 0, box:GetHeight() or 0
+        -- Hauptfenster hat seinen eigenen grossen Rahmen
+        fr:SetShown(boxOn() and not box.imageFrame and not box.noBoxFrame and w >= cs * 2 + 4 and h >= math.max(cs * 2 + 4, minH or 0))
+    end
+    box:HookScript("OnSizeChanged", fit)
+    fr.fit = fit
+    local cr, cg, cb = frameGlowColor()
+    for _, g in ipairs(fr.glows) do g:SetVertexColor(cr, cg, cb, 1) end
+    box.boxFrame = fr
+    K.boxFrames[fr] = true
+    fit()
+    return fr
+end
+-- Einstellung oder Rahmenfarbe geaendert: alle Box-Rahmen nachziehen (zwei Mal je Sekunde, nur bei Aenderung)
+-- 0.6.283: Knoepfe als Bild (Gildenmodul, Tools/make_buttons.py): normal / hover (hellere Linie) / active (rot gefuellt,
+-- beim Druecken und dauerhaft fuer Hauptknoepfe). Folgt denselben Schaltern wie der Box-Rahmen (imageFrame, boxFrame).
+-- Bilder 512x128, Ecke 24 px (Abschraegung) -> 9-Slice ueber K.NineSlice, Glut nicht nachgefaerbt (Bild ist rot).
+local BTN_TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\btn_"
+local BTN_N = { w = 1, h = 1, cx = 24 / 512, cy = 24 / 128, center = true }
+K.imageButtons = setmetatable({}, { __mode = "k" })
+function K.ImageButton(b)
+    if not (b and boxOn()) or b.imgBtn then return b and b.imgBtn ~= nil end
+    local r = math.max(5, math.floor((b:GetHeight() or 24) * 0.22))
+    local sets = {}
+    for _, st in ipairs({ "normal", "hover", "active" }) do
+        local n = {}
+        for k2, v in pairs(BTN_N) do n[k2] = v end
+        n.file = BTN_TEX .. st
+        sets[st] = K.NineSlice(b, n, r, "BACKGROUND", 3, true)
+    end
+    b.imgBtn = sets
+    if b.bg then b.bg:SetAlpha(0) end
+    if b.borders then for _, x in ipairs(b.borders) do x:Hide() end end
+    local function show(st)
+        for k2, list in pairs(sets) do for _, t in ipairs(list) do t:SetShown(k2 == st) end end
+    end
+    local function base() return b.style == "primary" and "active" or "normal" end
+    function b:ImgState(st) show(st or base()) end
+    b:HookScript("OnEnter", function(self) if self:IsEnabled() then show(self.style == "primary" and "active" or "hover") end end)
+    b:HookScript("OnLeave", function() show(base()) end)
+    b:HookScript("OnMouseDown", function(self) if self:IsEnabled() then show("active") end end)
+    b:HookScript("OnMouseUp", function(self) show(self:IsMouseOver() and (self.style == "primary" and "active" or "hover") or base()) end)
+    show(base())
+    K.imageButtons[b] = true
+    return true
+end
+function K.RefreshBoxFrames()
+    local cr, cg, cb = frameGlowColor()
+    for fr in pairs(K.boxFrames) do
+        fr.fit()
+        for _, g in ipairs(fr.glows) do g:SetVertexColor(cr, cg, cb, 1) end
+    end
+end
+do
+    local last, acc = nil, 0
+    local tick = CreateFrame("Frame")
+    tick:SetScript("OnUpdate", function(_, el)
+        acc = acc + (el or 0)
+        if acc < 0.5 then return end
+        acc = 0
+        if not next(K.boxFrames) then return end
+        local cr, cg, cb = frameGlowColor()
+        local key = cr .. ":" .. cg .. ":" .. cb .. ":" .. tostring(boxOn())
+        if key ~= last then last = key K.RefreshBoxFrames() end
+    end)
 end
 
 -- 0.6.230: Hintergrundbilder je Seite einstellbar - links (Navigation) / rechts (Inhalt):
@@ -4174,6 +4304,37 @@ local function slice(f, corner, edge, r, layer, sub, c, center)
     for _, x in ipairs(list) do x:SetVertexColor(c[1], c[2], c[3], c[4] or 1) end
     return list
 end
+-- 9-Slice aus einer Grafik: n = { file, w, h (Anteil der Leinwand), cx, cy (Ecke als Anteil), ex (optional: nur diesen
+-- Anteil ab der Ecke fuer die waagrechten Kanten nehmen, z. B. wenn oben in der Mitte eine Zierkerbe sitzt) }
+function K.NineSlice(f, n, r, layer, sub, center)
+    local list = {}
+    local w, h, cx, cy = n.w or 1, n.h or 1, n.cx, n.cy
+    local u = { 0, cx, w - cx, w }
+    local v = { 0, cy, h - cy, h }
+    local hu = n.ex and { cx, math.min(w - cx, cx + n.ex) } or { cx, w - cx }
+    local function piece(l, rr, t, b, p1, x1, y1, p2, x2, y2, sw, sh)
+        local x = f:CreateTexture(nil, layer, nil, sub)
+        x:SetTexture(n.file)
+        x:SetTexCoord(l, rr, t, b)
+        x:SetPoint(p1, f, p1, x1, y1)
+        if p2 then x:SetPoint(p2, f, p2, x2, y2) end
+        if sw then x:SetWidth(sw) end
+        if sh then x:SetHeight(sh) end
+        list[#list + 1] = x
+    end
+    -- Ecken
+    piece(u[1], u[2], v[1], v[2], "TOPLEFT", 0, 0, nil, 0, 0, r, r)
+    piece(u[3], u[4], v[1], v[2], "TOPRIGHT", 0, 0, nil, 0, 0, r, r)
+    piece(u[1], u[2], v[3], v[4], "BOTTOMLEFT", 0, 0, nil, 0, 0, r, r)
+    piece(u[3], u[4], v[3], v[4], "BOTTOMRIGHT", 0, 0, nil, 0, 0, r, r)
+    -- Kanten
+    piece(hu[1], hu[2], v[1], v[2], "TOPLEFT", r, 0, "TOPRIGHT", -r, 0, nil, r)
+    piece(hu[1], hu[2], v[3], v[4], "BOTTOMLEFT", r, 0, "BOTTOMRIGHT", -r, 0, nil, r)
+    piece(u[1], u[2], v[2], v[3], "TOPLEFT", 0, -r, "BOTTOMLEFT", 0, r, r, nil)
+    piece(u[3], u[4], v[2], v[3], "TOPRIGHT", 0, -r, "BOTTOMRIGHT", 0, r, r, nil)
+    if center then piece(u[2], u[3], v[2], v[3], "TOPLEFT", r, -r, "BOTTOMRIGHT", -r, r) end
+    return list
+end
 local function tintList(list, c, a)
     if not list then return end
     for _, x in ipairs(list) do x:SetVertexColor(c[1], c[2], c[3], a or c[4] or 1) end
@@ -4189,6 +4350,7 @@ function K.SkinLine(f, c, a)
 end
 -- Frame mit dem Rahmen des aktuellen Designs versehen. role: window/panel/button/toggle/field
 function K.ApplySkin(f, role, fillColor, lineColor)
+    if role == "panel" and K.BoxFrame then pcall(K.BoxFrame, f) end   -- 0.6.281: Bild-Rahmen um jede Box
     local sk = K.Skin(role)
     if not sk or f.skinned then return false end
     -- kleine Frames: Ecken duerfen hoechstens die halbe Hoehe/Breite haben
@@ -4217,6 +4379,16 @@ function K.ApplySkin(f, role, fillColor, lineColor)
         end
         local ec = sk.edgeColor or { 1, 1, 1, 1 }
         f:SetBackdropBorderColor(ec[1], ec[2], ec[3], ec[4] or 1)
+        return true
+    end
+    -- 0.6.271: Rahmen aus EINER Grafik (Ecken fest, Kanten gestreckt, Mitte optional) - fuer Designs aus Asset-Paketen
+    if sk.nine then
+        if f.bg and sk.nine.center and not sk.keepBg then
+            f.bg:Hide()
+            f.bg.skinOwner = f
+        end
+        f.skinLine = K.NineSlice(f, sk.nine, r, "BORDER", 2, sk.nine.center and not sk.keepBg)
+        f.skinColored = true
         return true
     end
     if f.bg and not sk.keepBg then
@@ -4289,6 +4461,7 @@ K.SKINS.kawaii = {
 }
 -- Knoepfe: Design-Rahmen bzw. Blizzards rote Panel-Knoepfe (Classic)
 function K.SkinButton(b, base)
+    if K.ImageButton and K.ImageButton(b) then return end   -- 0.6.283: Bild-Knoepfe (Gildenmodul)
     local sk = K.Skin("button")
     if not sk then return end
     if sk.pill and K.PillButton then return K.PillButton(b) end
@@ -4314,6 +4487,8 @@ function K.SkinButton(b, base)
         b.skinBlizz = true
         return
     end
+    -- 0.6.274: Designs koennen fuer Hauptknoepfe (style "primary") einen eigenen Rahmen mitbringen
+    if b.style == "primary" and K.Skin("primary") then return K.ApplySkin(b, "primary", base) end
     K.ApplySkin(b, "button", base)
 end
 

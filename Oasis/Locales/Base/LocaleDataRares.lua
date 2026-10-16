@@ -1,4 +1,4 @@
--- Oasis - Texte: Seltene Gegner (Modules\Rares.lua) und Sammlungen (Modules\Collections.lua)
+-- Oasis - Texte: Seltene Gegner (Modules\Rares\Rares.lua) und Sammlungen (Modules\Sammlungen\Collections.lua)
 local ADDON, ns = ...
 local DE, EN = ns.LOCALE_DE, ns.LOCALE_EN
 

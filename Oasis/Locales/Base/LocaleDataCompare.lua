@@ -1,4 +1,4 @@
--- Oasis - Texte: Item-Vergleichsfenster (Modules\ItemCompare.lua)
+-- Oasis - Texte: Item-Vergleichsfenster (Modules\Itemvergleich\ItemCompare.lua)
 local ADDON, ns = ...
 local DE, EN = ns.LOCALE_DE, ns.LOCALE_EN
 

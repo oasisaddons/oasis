@@ -185,7 +185,7 @@ local function journalList()
 end
 
 ------------------------------------------------------------------------
--- Oasis-eigene Dungeon-Datenbank (Modules\DungeonData.lua, aus oeffentlichen Quellen)
+-- Oasis-eigene Dungeon-Datenbank (Modules\Dungeons\DungeonData.lua, aus oeffentlichen Quellen)
 ------------------------------------------------------------------------
 local oasisList
 local function dataList()

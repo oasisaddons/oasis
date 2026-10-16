@@ -1,4 +1,4 @@
--- Oasis - Texte: Raid-Vorbereitung (Modules\RaidPrep.lua) und Kampfberichte (Modules\WipeReport.lua)
+-- Oasis - Texte: Raid-Vorbereitung (Modules\RaidTools\RaidPrep.lua) und Kampfberichte (Modules\RaidTools\WipeReport.lua)
 local ADDON, ns = ...
 local DE, EN = ns.LOCALE_DE, ns.LOCALE_EN
 

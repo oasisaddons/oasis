@@ -7,7 +7,7 @@
 --  Koordinaten normiert 0..1 auf die Karte; gespeichert je Karte in ns.db.raidBoards[karte].plans[A/B/C]
 local ADDON, ns = ...
 ns.ModuleFile("Oasis_Raidwerkzeuge", function()   -- Modul Raidwerkzeuge (abschaltbar, siehe ModuleLoader.lua)
--- ns.Group kommt aus Modules\RaidSim.lua; fehlt die Datei, gelten die echten Blizzard-Abfragen
+-- ns.Group kommt aus Kern\Diagnose\RaidSim.lua; fehlt die Datei, gelten die echten Blizzard-Abfragen
 if not ns.Group then ns.Group = { IsSim = function() return false end, IsInGroup = function() return (IsInGroup and IsInGroup()) and true or false end, IsInRaid = function() return (IsInRaid and IsInRaid()) and true or false end, Num = function() return (GetNumGroupMembers and GetNumGroupMembers()) or 0 end, InInstance = function() if IsInInstance then return IsInInstance() end return false, "none" end, Instance = function() return nil end, Members = function() return {} end, Member = function() return nil end, IsLeader = function() return (UnitIsGroupLeader and UnitIsGroupLeader("player")) and true or false end, IsAssist = function() return false end } end
 local L = ns.L
 local K, C = ns.K, ns.K.C

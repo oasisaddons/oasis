@@ -2470,7 +2470,7 @@ EN["Die Gilde sieht dein Feuer %d Minuten auf der Karte."] = "The guild sees you
 EN["bis Rang %d"] = "up to rank %d"
 DE["bis Rang %d"] = "bis Rang %d"
 
--- raid (Modules/Raid.lua)
+-- raid (Modules/RaidTools/Raid.lua)
 EN["Termine anlegen"] = "Create events"
 EN["Bis zu welchem Gildenrang Mitglieder auf der Raid-Seite neue Termine anlegen duerfen. 10 = alle."] = "Up to which guild rank members may create new events on the raid page. 10 = everyone."
 DE["Bis zu welchem Gildenrang Mitglieder auf der Raid-Seite neue Termine anlegen duerfen. 10 = alle."] = "Bis zu welchem Gildenrang Mitglieder auf der Raid-Seite neue Termine anlegen dürfen. 10 = alle."
@@ -2482,7 +2482,7 @@ EN["Wie viele Minuten vor Beginn alle Zusagen eine Erinnerung bekommen."] = "How
 EN["Termine anlegen darf bei euch nur die Gildenleitung bzw. hoehere Raenge."] = "In your guild only leadership or higher ranks may create events."
 DE["Termine anlegen darf bei euch nur die Gildenleitung bzw. hoehere Raenge."] = "Termine anlegen darf bei euch nur die Gildenleitung bzw. höhere Ränge."
 
--- softres (Modules/SoftRes.lua)
+-- softres (Modules/RaidTools/SoftRes.lua)
 EN["Reservieren erlaubt"] = "Reserving allowed"
 EN["Bis zu welchem Gildenrang Mitglieder Items reservieren duerfen. 10 = alle."] = "Up to which guild rank members may reserve items. 10 = everyone."
 DE["Bis zu welchem Gildenrang Mitglieder Items reservieren duerfen. 10 = alle."] = "Bis zu welchem Gildenrang Mitglieder Items reservieren dürfen. 10 = alle."

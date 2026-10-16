@@ -1,4 +1,4 @@
--- Oasis - Texte: Taktik-Karte (Modules\RaidBoard.lua)
+-- Oasis - Texte: Taktik-Karte (Modules\RaidTools\RaidBoard.lua)
 local ADDON, ns = ...
 local DE, EN = ns.LOCALE_DE, ns.LOCALE_EN
 

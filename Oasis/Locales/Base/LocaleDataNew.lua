@@ -1,4 +1,4 @@
--- Oasis - Texte: Neu seit letztem Besuch (Modules\NewSince.lua) und Leuchten (UI\Main.lua)
+-- Oasis - Texte: Neu seit letztem Besuch (Kern\Gilde\NewSince.lua) und Leuchten (UI\Main.lua)
 local ADDON, ns = ...
 local DE, EN = ns.LOCALE_DE, ns.LOCALE_EN
 

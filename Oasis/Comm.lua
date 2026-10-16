@@ -520,6 +520,7 @@ local RETENTION = {
     flights = 365 * 86400,
     mapcal = 365 * 86400,   -- Abgleich Dungeonkarte <-> Spielposition (von Spielern gesetzt, fuer alle)  -- gelernte Flugzeiten (Strecke -> Sekunden), mit der Gilde geteilt      -- Erfahrungen mit Mitspielern (gut/schlecht + Notiz), mit der Gilde geteilt
     lfg = 3 * 3600,
+    dgjoin = 4 * 3600,   -- 0.6.304: Mitkommen-Liste je Dungeon (Dungeons > Gilde & Gruppe)
     duels = 400 * 86400,   -- Deathroll: Saisons brauchen den Vormonat komplett
     polls = 30 * 86400,
     votes = 30 * 86400,
@@ -662,7 +663,7 @@ local function mayRelay(name, feature)
     return r
 end
 local OWNED = { posts = true, comments = true, likes = true, follows = true, rep = true, deaths = true,
-    profcd = true, trace = true, lfgreq = true, orders = true }
+    profcd = true, trace = true, lfgreq = true, orders = true, dgjoin = true }
 -- Weitergereichte Datensaetze (Abgleich): wer nicht selbst Autor ist, darf nur NEUE, unkritische Saetze
 -- weitergeben. Aendern/Loeschen fremder Saetze und alles hier drin nur durch Offiziere (oder den Autor selbst).
 -- (nur Bank/Raenge: alles andere MUSS weitergereicht werden duerfen, sonst bekommen Offline-Mitglieder
@@ -880,7 +881,7 @@ function Store.Put(name, rec)
     if rec.demo or tostring(rec.id):find("demo-", 1, true) then return rec end
     -- Gruppen/Anfragen/Pins sofort senden, nicht hinter Sync-Paketen warten
     -- 0.5.708: auch Tode - sonst warteten sie hinter Sync-Paketen (bis zu Minuten) und der Hinweis kam viel zu spaet
-    local fast = name == "lfg" or name == "lfgreq" or name == "chatpin" or name == "reacts" or name == "deaths" or name == "chronicle"
+    local fast = name == "lfg" or name == "dgjoin" or name == "lfgreq" or name == "chatpin" or name == "reacts" or name == "deaths" or name == "chronicle"
     if IsInGuild() then Comm.SendEx({ ch = OFFICER_ONLY[name] and "OFFICER" or "GUILD", prio = fast }, "U", name, Comm.encodeRecord(rec)) end
     return rec
 end

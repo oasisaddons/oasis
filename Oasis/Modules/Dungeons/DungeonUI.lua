@@ -326,6 +326,11 @@ local function legacyPins(host, list, floor, toXY, hidden)
             pin.boss = bp[1]
             pin.hidden = hidden
             pin.tip = { bp[1] }
+            -- 0.6.307: was der Boss fallen laesst (Qualitaetsfarbe, Upgrades gruen) direkt im Tooltip
+            if D.BossTipLines then
+                local ok, lines = pcall(D.BossTipLines, bp[1])
+                for _, ln in ipairs(ok and lines or {}) do pin.tip[#pin.tip + 1] = ln end
+            end
             if host.rough then pin.tip[#pin.tip + 1] = "|cffe8b44a" .. L["Position nur ungefaehr"] .. "|r" end
             pin.tip[#pin.tip + 1] = "|cff66db9e" .. L["Klick: Boss und Beute zeigen"] .. "|r"
             pin:SetAlpha(host.rough and 0.6 or 1)
@@ -516,9 +521,20 @@ D.FitFor = fitFor
 -- Markierungen: gesucht / Gildenbank / habe ich
 local function markers(id)
     local t = {}
+    -- 0.6.308: alle Suchenden aus der Gilde, nicht nur der erste
+    local seek = {}
     for _, w in ipairs(Store.List("wants")) do
-        if w.itemID == id then t[#t + 1] = "|cffffc24d" .. (L["gesucht: %s"]):format(ns.displayName(w.who)) .. "|r" break end
+        if w.itemID == id and w.who and not ns.isMe(w.who) then seek[#seek + 1] = w.who end
     end
+    if #seek > 0 then
+        t[#t + 1] = "|cffffc24d" .. (L["gesucht: %s"]):format(ns.displayName(seek[1])) .. (#seek > 1 and (" +" .. (#seek - 1)) or "") .. "|r"
+    end
+    -- wer aus der Gilde es schon erbeutet hat (neuester Eintrag im Beute-Log)
+    local got
+    for _, x in ipairs(Store.List("loot")) do
+        if x.itemID == id and x.who and (not got or (x.ts or 0) > (got.ts or 0)) then got = x end
+    end
+    if got then t[#t + 1] = "|cffb48cff" .. (L["erbeutet: %s"]):format(ns.displayName(got.who)) .. "|r" end
     local bank = ns.GuildBank and ns.GuildBank.Count(id) or 0
     if bank > 0 then t[#t + 1] = "|cff9b8cff" .. L["Bank: "] .. bank .. "|r" end
     local ok, have = pcall(C_Item.GetItemCount, id, true)
@@ -593,6 +609,24 @@ local function othersInRange(d)
 end
 local function refreshSoon()
     if pageShown() then ns.RefreshPage("dungeons") end
+end
+-- 0.6.307: Tooltip-Zeilen fuer einen Boss-Pin auf der Dungeonkarte: Beute (bis 8), Upgrades fuer mich gruen markiert
+function D.BossTipLines(bossName)
+    local d = D.Get(S.dungeon)
+    if not d or not bossName then return {} end
+    local ok, bosses = pcall(D.Bosses, d)
+    local boss
+    for _, bo in ipairs(ok and bosses or {}) do if bo.name == bossName then boss = bo break end end
+    if not boss or not boss.loot or #boss.loot == 0 then return {} end
+    local out = { " ", "|cff888888" .. L["Beute"] .. ":|r" }
+    for i, it in ipairs(boss.loot) do
+        if i > 8 then out[#out + 1] = "|cff777777+" .. (#boss.loot - 8) .. "|r" break end
+        local info = itemInfo(it)
+        local m = markOf(it[1])
+        out[#out + 1] = "|c" .. (info.color or "ffffffff") .. (info.name or "?") .. "|r"
+            .. ((m and m.up) and ("  |cff66db9e+" .. math.min(m.pct or 0, 999) .. "%|r") or "")
+    end
+    return out
 end
 ns.On("PLAYER_EQUIPMENT_CHANGED", function() resetUp() ns.After(0.3, refreshSoon) end)
 
@@ -865,7 +899,7 @@ S = { view = "home", filter = nil, dungeon = nil, tab = "bosses", boss = 1, home
     homeSearch = "", homeZone = nil, sort = "level", upOnly = false, lootUp = false, lootSlot = nil, lootKind = nil }
 -- Dungeon-Seite: fuenf Ansichten in drei Reitern; je Reiter merkt sich S.sub die zuletzt gezeigte Ansicht
 S.sub = { g1 = "bosses", g2 = "quests" }
-S.group = { bosses = "g1", loot = "g1", quests = "g2", map = "g2", guild = "guild" }
+S.group = { bosses = "g1", loot = "g1", quests = "g2", map = "map", guild = "guild" }   -- 0.6.307: Karte eigener Reiter
 -- Start-Filter neu anwenden (nach Aenderung in den Einstellungen)
 function D.ResetFilter() S.filter = nil S.homeOffset = 0 ns.RefreshPage("dungeons") end
 
@@ -997,7 +1031,7 @@ function D.PickBoss(i)
     ns.RefreshPage("dungeons")
 end
 local function openDungeon(key, boss)
-    S.view, S.dungeon, S.tab, S.boss = "dungeon", key, "bosses", boss or 1
+    S.view, S.dungeon, S.tab, S.boss = "dungeon", key, boss and "bosses" or "guild", boss or 1   -- 0.6.303: ohne Boss: Gilde & Gruppe
     S.fadeIn = "dv"
     ns.RefreshPage("dungeons")
 end
@@ -1150,9 +1184,11 @@ local function buildCard(parent)
     c.glow:SetHeight(120)
     c.glow:SetAlpha(0)
     K.Border(c, C.line)
+    -- 0.6.306: Oasis-Bildrahmen (rote Linie, abgeschraegte Ecken) wie bei allen Boxen; die alte Randlinie weicht
+    if K.BoxFrame and K.BoxFrame(c) then for _, x in ipairs(c.borders or {}) do x:Hide() end end
     c.band = c:CreateTexture(nil, "OVERLAY", nil, 2)
-    c.band:SetPoint("TOPLEFT") c.band:SetPoint("TOPRIGHT")
-    c.band:SetHeight(3)
+    c.band:SetPoint("TOPLEFT", 10, -3) c.band:SetPoint("TOPRIGHT", -10, -3)
+    c.band:SetHeight(2)
     c.name = K.Title(c, 15, C.text)
     c.name:SetPoint("BOTTOMLEFT", 12, 30)
     c.name:SetPoint("RIGHT", c, "RIGHT", -10, 0)
@@ -1269,24 +1305,18 @@ local function fillCard(c, d)
     c.info = info
     -- Kennzeichen sagen, was die Zahl bedeutet; nur auf schmalen Karten bleibt die blosse Zahl
     local wide = (c:GetWidth() or 240) >= 250
-    c.upPill:SetShown(info.ups > 0)
-    if info.ups > 0 then c.upPill:Set("Interface\\Buttons\\Arrow-Up-Up", not wide and tostring(info.ups) or (info.ups == 1 and L["1 Upgrade"] or (L["%d Upgrades"]):format(info.ups))) end
-    c.qPill:ClearAllPoints()
-    if info.ups > 0 then c.qPill:SetPoint("LEFT", c.upPill, "RIGHT", 4, 0) else c.qPill:SetPoint("TOPLEFT", 8, -10) end
-    c.qPill:SetShown(info.q > 0)
-    if info.q > 0 then c.qPill:Set("Interface\\GossipFrame\\ActiveQuestIcon", not wide and tostring(info.q) or (info.q == 1 and L["1 Quest"] or (L["%d Quests"]):format(info.q))) end
-    for i, dot in ipairs(c.dots) do
-        local m = info.on[i]
-        if m then
-            local r, g, b = ns.classColor(m.class)
-            dot:SetVertexColor(r or 1, g or 1, b or 1)
-            dot:Show()
-        else
-            dot:Hide()
-        end
-    end
-    c.onl:SetText(#info.on > 0 and (L["%d online"]):format(#info.on) or "")
-    c.meta:SetText(d.closed and ("|cffd9786b" .. L["noch geschlossen"] .. "|r") or (d.location or ""))
+    -- 0.6.303: keine Symbol-Pillen und Punkte mehr - eine Klartext-Zeile: wer aus der Gilde passt, Quests, Upgrades
+    c.upPill:Hide() c.qPill:Hide()
+    for _, dot in ipairs(c.dots) do dot:Hide() end
+    c.onl:SetText("")
+    local parts = {}
+    if #info.on > 0 then parts[#parts + 1] = "|cff66db9e" .. (#info.on == 1 and L["1 aus der Gilde passt"] or (L["%d aus der Gilde passen"]):format(#info.on)) .. "|r" end
+    if info.q > 0 then parts[#parts + 1] = "|cffffd24a" .. (info.q == 1 and L["1 Quest"] or (L["%d Quests"]):format(info.q)) .. "|r" end
+    if info.ups > 0 then parts[#parts + 1] = "|cff7fe0a0" .. (info.ups == 1 and L["1 Upgrade"] or (L["%d Upgrades"]):format(info.ups)) .. "|r" end
+    c.meta:SetPoint("RIGHT", c, "RIGHT", -10, 0)
+    if d.closed then c.meta:SetText("|cffd9786b" .. L["noch geschlossen"] .. "|r")
+    elseif #parts > 0 then c.meta:SetText(table.concat(parts, "  |cff666666·|r  "))
+    else c.meta:SetText("|cff888888" .. (d.location or "") .. "|r") end
     c:SetAlpha(d.closed and 0.6 or 1)
 end
 
@@ -1715,6 +1745,53 @@ local function colCard(parent, title, color, rowH, createRow, updateRow)
 end
 
 -- Gilden-Reiter: Daten (mit Demo-Ergaenzung, nichts davon wird gespeichert)
+------------------------------------------------------------------------
+-- 0.6.304: Mitkommen-Liste je Dungeon (geteilt, Sammlung "dgjoin", 4 Stunden gueltig, nur der Autor aendert)
+-- Wer Lust auf einen Dungeon hat, traegt sich mit Rolle ein; daraus bildet jemand per Klick die Gruppe.
+------------------------------------------------------------------------
+local JOIN_TTL = 4 * 3600
+local function joinId(key, who) return "dj-" .. tostring(key) .. "-" .. ns.short(who or ns.me()) end
+function D.JoinList(key)
+    local now = ns.now()
+    local out = ns.Store.List("dgjoin", function(r) return r.dk == key and not r.del and now - (tonumber(r.ts) or 0) < JOIN_TTL end)
+    table.sort(out, function(a, b) return (a.ts or 0) < (b.ts or 0) end)
+    return out
+end
+function D.MyJoin(key)
+    local r = ns.Store.Get("dgjoin", joinId(key))
+    if r and not r.del and ns.now() - (tonumber(r.ts) or 0) < JOIN_TTL then return r end
+end
+function D.Join(key, role)
+    local _, cls = UnitClass("player")
+    ns.Store.Put("dgjoin", { id = joinId(key), dk = key, who = ns.me(), role = role, ts = ns.now(),
+        class = ns.safe(cls), lvl = ns.safe(UnitLevel("player")) })
+end
+function D.Leave(key)
+    if ns.Store.Get("dgjoin", joinId(key)) then ns.Store.Delete("dgjoin", joinId(key)) end
+end
+local function joinOnline(name)
+    local m = ns.Radar and ns.Radar.byName and rawget(ns.Radar.byName, name)
+    return (m and m.online) or ns.isMe(name)
+end
+-- Gruppe bilden: online Eingetragene einladen (hoechstens 4), erst je ein Tank und Heiler, dann Schaden
+function D.FormGroup(key)
+    local list, pick, have = D.JoinList(key), {}, { tank = 0, heal = 0, dps = 0 }
+    local me = D.MyJoin(key)
+    if me then have[me.role or "dps"] = 1 end
+    local function take(role, max)
+        for _, r in ipairs(list) do
+            if #pick >= 4 then return end
+            if not ns.isMe(r.who) and joinOnline(r.who) and (r.role or "dps") == role and not r.picked and have[role] < max then
+                r.picked = true have[role] = have[role] + 1 pick[#pick + 1] = r
+            end
+        end
+    end
+    take("tank", 1) take("heal", 1) take("dps", 3)
+    for _, r in ipairs(list) do r.picked = nil end
+    for _, r in ipairs(pick) do ns.InviteName(r.who) end
+    return #pick
+end
+
 local function guildData(d)
     local wanted = D.WantedLoot(d)
     local got = D.GuildLoot(d)
@@ -1803,8 +1880,69 @@ ns.RegisterPage({
         end)
         home.filter:SetPoint("LEFT", home.search, "RIGHT", 8, 0)
 
+        -- 0.6.303: "Jetzt mit der Gilde" - Dungeons, fuer die gerade mind. 2 aus der Gilde im Stufenbereich online sind;
+        -- Klick oeffnet den Dungeon im Reiter Gilde & Gruppe (Gruppe suchen, alle einladen, wer hat die Quests)
+        home.gbar = CreateFrame("Frame", nil, home)
+        home.gbar:SetPoint("TOPLEFT", 0, -40)
+        home.gbar:SetPoint("RIGHT", home, "RIGHT", 0, 0)
+        home.gbar:SetHeight(42)
+        -- 0.6.306: als Glasbox mit Oasis-Rahmen (wie die Karten)
+        if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(home.gbar, nil, nil, 12) end
+        home.gbar.lbl = K.Text(home.gbar, 11, C.muted)
+        home.gbar.lbl:SetPoint("LEFT", 14, 0)
+        home.gbar.lbl:SetText(L["Jetzt mit der Gilde:"])
+        home.gbar.chips = {}
+        for i = 1, 4 do
+            local b = CreateFrame("Button", nil, home.gbar)
+            b:SetHeight(26)
+            b.t = K.Text(b, 11, C.text)
+            b.t:SetPoint("CENTER", 0, 0)
+            b.noBoxFrame = true
+            if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(b, { 0.40, 0.86, 0.62, 0.08 }, { 0.40, 0.86, 0.62, 0.35 }, 13) end
+            b:SetScript("OnClick", function(self) if self.key then openDungeon(self.key) end end)
+            b:SetScript("OnEnter", function(self)
+                if not self.names then return end
+                K.ShowTip(self, { self.title or "", self.names, "|cff888888" .. L["Klick: Gilde & Gruppe - Gruppe suchen, alle einladen"] .. "|r" })
+            end)
+            b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            home.gbar.chips[i] = b
+        end
+        home.gbar.none = K.Text(home.gbar, 11, C.dim)
+        home.gbar.none:SetText(L["gerade niemand passend online"])
+        function home.gbar:Update()
+            local cand = {}
+            for _, d in ipairs(D.List()) do
+                if not d.closed then
+                    local on = othersInRange(d)
+                    if #on >= 2 then cand[#cand + 1] = { d = d, on = on } end
+                end
+            end
+            table.sort(cand, function(a, b) return #a.on > #b.on end)
+            local prev
+            for i, b in ipairs(self.chips) do
+                local c = cand[i]
+                if c then
+                    b.key, b.title = c.d.key, c.d.name
+                    local nm = {}
+                    for k = 1, math.min(8, #c.on) do nm[k] = ns.colorName and ns.colorName(c.on[k].name, c.on[k].class) or c.on[k].name end
+                    b.names = table.concat(nm, ", ")
+                    b.t:SetText(c.d.name .. "  |cff66db9e" .. #c.on .. "|r")
+                    b:SetWidth((b.t:GetStringWidth() or 80) + 24)
+                    b:ClearAllPoints()
+                    if prev then b:SetPoint("LEFT", prev, "RIGHT", 6, 0) else b:SetPoint("LEFT", self.lbl, "RIGHT", 10, 0) end
+                    b:Show()
+                    prev = b
+                else
+                    b.key, b.names = nil, nil
+                    b:Hide()
+                end
+            end
+            self.none:ClearAllPoints()
+            self.none:SetPoint("LEFT", self.lbl, "RIGHT", 10, 0)
+            self.none:SetShown(#cand == 0)
+        end
         home.grid = CreateFrame("Frame", nil, home)
-        home.grid:SetPoint("TOPLEFT", 0, -42)
+        home.grid:SetPoint("TOPLEFT", 0, -92)
         home.grid:SetPoint("BOTTOMRIGHT")
         home.grid:SetClipsChildren(true)
         home.grid:EnableMouseWheel(true)
@@ -1957,9 +2095,10 @@ ns.RegisterPage({
         end)
 
         -- drei Reiter statt fuenf; die Ansicht innerhalb eines Reiters schaltet der kleine Schalter rechts
-        dv.seg = slideTabs(dv, { { key = "g1", text = L["Bosse & Beute"] }, { key = "g2", text = L["Quests & Karte"] },
-            { key = "guild", text = L["Gilde"] } }, function(k)
-            S.tab = (k == "guild") and "guild" or S.sub[k]
+        -- 0.6.303: Gemeinschaft zuerst - "Gilde & Gruppe" ist der erste Reiter und oeffnet sich standardmaessig
+        dv.seg = slideTabs(dv, { { key = "guild", text = L["Gilde & Gruppe"] }, { key = "g1", text = L["Bosse & Beute"] },
+            { key = "g2", text = L["Quests"] }, { key = "map", text = L["Karte"] } }, function(k)
+            S.tab = (k == "guild" or k == "map") and k or S.sub[k]
             S.tabFade = true
             ns.RefreshPage("dungeons")
         end)
@@ -1967,7 +2106,6 @@ ns.RegisterPage({
         dv.subs = {}
         for g, items in pairs({
             g1 = { { key = "bosses", text = L["Nach Boss"] }, { key = "loot", text = L["Gesamte Beute"] } },
-            g2 = { { key = "quests", text = L["Quests"] }, { key = "map", text = L["Karte"] } },
         }) do
             local sw = K.Segments(dv, items, function(k)
                 S.tab, S.sub[g] = k, k
@@ -2332,15 +2470,18 @@ ns.RegisterPage({
         tac.note:SetPoint("RIGHT")
         tac.note:SetText(L["Stand Classic - in WoW Forever kann ein Boss abweichen."])
         bt.loot.empty:SetText(L["Keine Beute bekannt."])
+        -- 0.6.308: Modell standardmaessig aus - die Buehne nahm ein Drittel der Breite und war meist leer
+        bt.modelHidden = not (ns.db and ns.db.settings.dgModel)
         bt.modelToggle = K.Button(right, L["3D-Modell"], 100, 22, "ghost", function()
             bt.modelHidden = not bt.modelHidden
+            if ns.db then ns.db.settings.dgModel = not bt.modelHidden end
             bt:Layout()
         end)
         bt.modelToggle:SetPoint("TOPRIGHT", -10, -12)
         function bt:Layout()
             local W = self:GetWidth() or 0
             if W < 50 then W = 750 end
-            local lw = math.min(250, math.max(170, math.floor(W * 0.25)))
+            local lw = math.min(290, math.max(210, math.floor(W * 0.29)))   -- 0.6.307: breiter, Bossnamen ganz
             local showModel = W >= 720 and not self.modelHidden
             local sw = showModel and math.min(340, math.max(220, math.floor(W * 0.31))) or 0
             self.list:ClearAllPoints()
@@ -2637,7 +2778,7 @@ ns.RegisterPage({
         qd.clear:SetPoint("LEFT", qd.turnin, "RIGHT", 6, 0)
         -- zur Karte des Dungeons mit den Boss-Standorten (Reiter Karte)
         qd.dmap = K.Button(qd, L["Dungeonkarte"], 120, 26, "ghost", function()
-            S.tab, S.sub.g2, S.tabFade = "map", "map", true
+            S.tab, S.tabFade = "map", true   -- 0.6.307: Karte ist eigener Reiter
             ns.RefreshPage("dungeons")
         end)
         qd.dmap:SetPoint("BOTTOMRIGHT", -14, 12)
@@ -2700,6 +2841,131 @@ ns.RegisterPage({
         gt.invite:SetPoint("RIGHT", gt.lfg, "LEFT", -6, 0)
         gt.invite:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Alle einladen"], (L["Laedt bis zu %d Mitglieder aus dem Stufenbereich in deine Gruppe ein."]):format(4) }) end)
         gt.invite:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        -- 0.6.304: Leiste "Wer will mit?" - eintragen mit Rolle, Eingetragene mit Klasse/Rolle/online, Gruppe bilden
+        local ROLES = { "tank", "heal", "dps" }
+        local RN = { tank = "Tank", heal = "Heiler", dps = "Schaden" }
+        local jb = CreateFrame("Frame", nil, gt)
+        jb:SetHeight(84)
+        if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(jb, nil, nil, 12) end
+        gt.join = jb
+        jb.title = K.Title(jb, 13, C.text)
+        jb.title:SetPoint("TOPLEFT", 14, -10)
+        jb.title:SetText(L["Wer will mit?"])
+        jb.sub = K.Text(jb, 10, C.dim)
+        jb.sub:SetPoint("LEFT", jb.title, "RIGHT", 8, 0)
+        jb.sub:SetText(L["4 Std. sichtbar fuer die Gilde"])
+        local function myRole() return (ns.db.settings.dgJoinRole and RN[ns.db.settings.dgJoinRole]) and ns.db.settings.dgJoinRole or "dps" end
+        jb.roles = {}
+        for i, k in ipairs(ROLES) do
+            local b = CreateFrame("Button", nil, jb)
+            b:SetSize(26, 26)
+            b.icon = b:CreateTexture(nil, "ARTWORK")
+            b.icon:SetTexture(ns.Profile and ns.Profile.RoleTexture(k))
+            b.icon:SetSize(18, 18)
+            b.icon:SetPoint("CENTER")
+            b.noBoxFrame = true
+            b:SetPoint("TOPLEFT", 14 + (i - 1) * 30, -36)
+            b:SetScript("OnClick", function()
+                ns.db.settings.dgJoinRole = k
+                if D.MyJoin(S.dungeon) then D.Join(S.dungeon, k) end
+                jb:Update()
+            end)
+            b:SetScript("OnEnter", function(self) K.ShowTip(self, { L[RN[k]], L["Mit dieser Rolle eintragen"] }) end)
+            b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            jb.roles[k] = b
+        end
+        jb.toggle = K.Button(jb, L["Ich will mit"], 108, 24, "primary", function()
+            if D.MyJoin(S.dungeon) then D.Leave(S.dungeon) else D.Join(S.dungeon, myRole()) end
+            jb:Update()
+        end)
+        jb.toggle:SetPoint("LEFT", jb.roles.dps, "RIGHT", 10, 0)
+        jb.ask = K.Button(jb, L["Im Gildenchat fragen"], 140, 24, "ghost", function()
+            local d = D.Get(S.dungeon)
+            if d and ns.OfferChat then
+                ns.OfferChat(L["Im Gildenchat fragen"], (L["Wer kommt mit in %s? Ich bin %s dabei - eintragen in Oasis > Dungeons"]):format(d.name, L[RN[myRole()]]), "GUILD")
+            end
+        end)
+        jb.ask:SetPoint("LEFT", jb.toggle, "RIGHT", 6, 0)
+        jb.form = K.Button(jb, L["Gruppe bilden"], 112, 24, "primary", function()
+            local n = D.FormGroup(S.dungeon)
+            ns.print(n > 0 and (L["%d Eingetragene eingeladen."]):format(n) or L["Gerade niemand Eingetragenes online."])
+        end)
+        jb.form:SetPoint("TOPRIGHT", -12, -10)
+        jb.form:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Gruppe bilden"], L["Laedt online Eingetragene ein - erst je ein Tank und Heiler, dann Schaden (hoechstens 4)."] }) end)
+        jb.form:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        -- Eingetragene: Klassenkreis mit Rollen-Symbol, Name, gedimmt wenn offline
+        jb.people = {}
+        for i = 1, 8 do
+            local f = CreateFrame("Button", nil, jb)
+            f:SetSize(118, 24)
+            f.disc = classDisc(f, 20)
+            f.disc:SetPoint("LEFT", 0, 0)
+            f.role = f:CreateTexture(nil, "OVERLAY")
+            f.role:SetSize(12, 12)
+            f.role:SetPoint("BOTTOMRIGHT", f.disc, "BOTTOMRIGHT", 3, -2)
+            f.name = K.Text(f, 11, C.text)
+            f.name:SetPoint("LEFT", f.disc, "RIGHT", 6, 0)
+            f.name:SetPoint("RIGHT", f, "RIGHT", 0, 0)
+            f.name:SetWordWrap(false)
+            f:SetScript("OnClick", function(self) if self.who and not ns.isMe(self.who) then personMenu(self, self.who) end end)
+            f:SetScript("OnEnter", function(self)
+                if not self.who then return end
+                K.ShowTip(self, { ns.Radar.Colored(self.who), L[RN[self.r or "dps"]] .. "  ·  " .. (self.on and L["online"] or L["offline"]),
+                    (L["eingetragen %s"]):format(ns.ago(self.ts or 0)), "|cff888888" .. L["Klick: Fluestern, Einladen, Profil"] .. "|r" })
+            end)
+            f:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            jb.people[i] = f
+        end
+        jb.none = K.Text(jb, 11, C.dim)
+        jb.none:SetText(L["Noch niemand eingetragen - sei die oder der Erste."])
+        function jb:Update()
+            local key = S.dungeon
+            if not key then return end
+            local mine = D.MyJoin(key)
+            local role = (mine and mine.role) or myRole()
+            for k, b in pairs(self.roles) do
+                local c = ns.Profile and ns.Profile.ROLE_COLORS[k] or { 1, 1, 1 }
+                local on = k == role
+                b.icon:SetVertexColor(on and c[1] or c[1] * 0.45, on and c[2] or c[2] * 0.45, on and c[3] or c[3] * 0.45)
+                b:SetAlpha(on and 1 or 0.7)
+            end
+            self.toggle:SetLabel(mine and L["Austragen"] or L["Ich will mit"])
+            local list = D.JoinList(key)
+            local W = self:GetWidth() or 700
+            if W < 100 then W = 700 end
+            local x0, perRow = 14 + 3 * 30 + 10 + 108 + 6 + 140 + 18, nil
+            local avail = W - x0 - 12
+            perRow = math.max(1, math.floor(avail / 124))
+            local shown = 0
+            for i, f in ipairs(self.people) do
+                local r = list[i]
+                if r and i <= perRow * 1 then
+                    f.who, f.r, f.ts = r.who, r.role, r.ts
+                    f.on = joinOnline(r.who)
+                    f.disc:Set(r.class or classOf(r.who))
+                    f.role:SetTexture(ns.Profile and ns.Profile.RoleTexture(r.role or "dps"))
+                    f.name:SetText(ns.Radar.Colored(r.who))
+                    f:SetAlpha(f.on and 1 or 0.45)
+                    f:ClearAllPoints()
+                    f:SetPoint("TOPLEFT", x0 + (i - 1) * 124, -38)
+                    f:Show()
+                    shown = shown + 1
+                else
+                    f.who = nil
+                    f:Hide()
+                end
+            end
+            self.more = #list - shown
+            self.none:ClearAllPoints()
+            self.none:SetPoint("TOPLEFT", x0, -42)
+            self.none:SetShown(#list == 0)
+            local onlineOthers = 0
+            for _, r in ipairs(list) do if not ns.isMe(r.who) and joinOnline(r.who) then onlineOthers = onlineOthers + 1 end end
+            self.form:SetEnabled(onlineOthers > 0)
+            self.form:SetAlpha(onlineOthers > 0 and 1 or 0.5)
+            self.sub:SetText(#list > shown and ((L["%d eingetragen"]):format(#list) .. "  ·  ") .. L["4 Std. sichtbar fuer die Gilde"] or L["4 Std. sichtbar fuer die Gilde"])
+        end
 
         -- (1) Online im Stufenbereich
         gt.on = colCard(gt, L["Online im Stufenbereich"], MINT, 44, function(l)
@@ -2859,17 +3125,39 @@ ns.RegisterPage({
             r.have:SetShown(not mine)
         end)
         gt.want.empty.icon:SetTexture("Interface\\Icons\\INV_Misc_Note_01")
+        -- 0.6.305: Hinweis statt zweier leerer Karten (keine Gildenbeute, keine Wuensche aus diesem Dungeon)
+        gt.hint = CreateFrame("Button", nil, gt)
+        gt.hint:SetHeight(20)
+        gt.hint.t = K.Text(gt.hint, 11, C.dim)
+        gt.hint.t:SetPoint("LEFT", 0, 0)
+        gt.hint.t:SetText(L["Noch keine Gildenbeute und keine Wuensche aus diesem Dungeon."] .. "  |cffe8b44a" .. L["Beute ansehen"] .. " >|r")
+        gt.hint:SetWidth(520)
+        gt.hint:SetScript("OnClick", function() S.tab, S.tabFade = "loot", true ns.RefreshPage("dungeons") end)
+        gt.hint:Hide()
         function gt:Layout()
             local W, H = self:GetWidth() or 0, self:GetHeight() or 0
             if W < 50 then W = 750 end
             if H < 50 then H = 390 end
-            local top, gap = 36, 10
+            local gap = 10
+            -- 0.6.305: aufgeraeumt - keine Kennzahl-Zeile (steht im Banner), kein zweites "Gruppe suchen" (Banner);
+            -- "Wer will mit?" ganz oben, "Alle einladen" sitzt darin neben "Gruppe bilden"
+            for _, st in pairs(self.stats) do st:Hide() end
+            self.lfg:Hide()
+            self.join:ClearAllPoints()
+            self.join:SetPoint("TOPLEFT", 0, 0) self.join:SetPoint("TOPRIGHT", 0, 0)
+            self.invite:SetParent(self.join)
+            self.invite:ClearAllPoints()
+            self.invite:SetPoint("RIGHT", self.join.form, "LEFT", -6, 0)
+            self.invite:Show()
+            local top = 84 + gap
             for _, c in ipairs({ self.on, self.loot, self.want }) do c:ClearAllPoints() end
-            -- breite Kopfzeile: Knoepfe nur, wenn neben den Kennzahlen Platz ist
-            local used = 0
-            for _, s in pairs(self.stats) do used = used + (s:GetWidth() or 100) + 6 end
-            self.invite:SetShown(W - used > 112 + 104 + 12)
-            if W >= 640 then
+            local bothEmpty = self.emptyBoth
+            self.loot:SetShown(not bothEmpty) self.want:SetShown(not bothEmpty)
+            self.hint:SetShown(bothEmpty and true or false)
+            if bothEmpty then
+                self.on:SetPoint("TOPLEFT", 0, -top) self.on:SetPoint("BOTTOMRIGHT", 0, 30)
+                self.hint:ClearAllPoints() self.hint:SetPoint("BOTTOMLEFT", 2, 4)
+            elseif W >= 640 then
                 local wOn = math.floor((W - 2 * gap) * 0.31)
                 local wLoot = math.floor((W - 2 * gap) * 0.36)
                 self.on:SetPoint("TOPLEFT", 0, -top) self.on:SetPoint("BOTTOMLEFT") self.on:SetWidth(wOn)
@@ -2916,6 +3204,7 @@ ns.RegisterPage({
             if home.seg.value ~= S.filter then home.seg:Select(S.filter) end
             if S.upOnly and not upOn() then S.upOnly = false end
             home.filter:Update()
+            pcall(home.gbar.Update, home.gbar)
             local list = homeList()
             local cols, rows = home.cols or 3, home.rowsVis or 2
             local rowsTotal = math.ceil(#list / cols)
@@ -3488,12 +3777,14 @@ ns.RegisterPage({
             local gt = dv.guildTab
             local wanted, got, range = guildData(d)
             gt.range = range
+            pcall(gt.join.Update, gt.join)
             local now, week = ns.now(), 0
             for _, x in ipairs(got) do if (x.ts or 0) >= now - 7 * 86400 then week = week + 1 end end
             gt.stats.on:Set(#range)
             gt.stats.loot:Set(week)
             gt.stats.want:Set(#wanted)
             gt.invite:SetEnabledState(#range > 0)
+            gt.emptyBoth = #got == 0 and #wanted == 0
             gt:Layout()
             gt.on.count:SetText(#range > 0 and tostring(#range) or "")
             gt.on.list:SetData(range)
@@ -3773,6 +4064,8 @@ function DP.Transform(key)
     return res or nil
 end
 ns.Listen("STORE", function(coll) if coll == "mapcal" then DP.cache = nil end end)
+-- 0.6.304: Mitkommen-Liste live nachziehen, wenn sich jemand ein- oder austraegt
+ns.Listen("STORE", function(coll) if coll == "dgjoin" then ns.Debounce("dgjoin", 0.3, refreshSoon) end end)
 local function toMap(tr, wx, wy, inst)
     if tr.ui then
         -- direkt ueber Blizzards Kartenzuordnung (uiMap der Dungeonkarte); Achsenreihenfolge einmal ermittelt
