@@ -2491,6 +2491,7 @@ end
 -- Verlauf auf einer Textur (Farbe a -> b), ohne Fehler auf Clients ohne SetGradient
 function K.Gradient(tex, dir, a, b)
     if not (CreateColor and tex.SetGradient) then return false end
+    tex.oasisGrad = true   -- 0.6.377: Verlauf - darf beim Ecken-Zuschnitt nie geteilt werden (laesst sich nicht kopieren)
     return pcall(function()
         tex:SetColorTexture(1, 1, 1, 1)
         tex:SetGradient(dir or "HORIZONTAL", CreateColor(a[1], a[2], a[3], a[4] or 1), CreateColor(b[1], b[2], b[3], b[4] or 1))
@@ -4385,7 +4386,10 @@ function K.RoundMask(tex, box, r, corners)
         tex.boxSplit = true
         -- 0.6.316: Farb-/Verlaufsflaechen nicht teilen - ein Verlauf laesst sich nicht auslesen, der Zwilling wurde weiss.
         -- Sie bekommen nur drei Ecken (tl, tr, bl); geteilt werden nur Bilder (Datei oder K.BgImg)
-        if not tex:GetTexture() and not K.bgImgs[tex] then
+        -- nur echte Bilder teilen (Bildpfad oder Datei-ID); Farbflaechen und Verlaeufe melden hier teils auch eine "Datei"
+        local file = tex:GetTexture()
+        local isImg = K.bgImgs[tex] or (type(file) == "string" and file:find("[\\/]")) or (type(file) == "number" and file > 0)
+        if tex.oasisGrad or not isImg then
             for i = 1, 3 do if not tex.roundMasked[set[i]] then tex.roundMasked[set[i]] = true pcall(tex.AddMaskTexture, tex, set[i]) end end
             return
         end
