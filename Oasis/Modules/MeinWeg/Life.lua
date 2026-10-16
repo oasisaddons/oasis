@@ -1070,11 +1070,36 @@ local function recList(parent)
     end)
 end
 
+-- 0.6.398: Kacheln im Stil der Werte-Seite (Glas, schwarzer Rahmen, Symbol im Farbkreis, grosser Wert);
+-- t:Set(wert, zusatz) wie bisher bei K.HudTile
 local function tiles(p, defs)
     p.tiles = {}
+    local G = ns.Insta and ns.Insta.Glass
     for i, d in ipairs(defs) do
-        local t = K.HudTile(p, d[1], L[d[2]], d[3])
-        t:SetHeight(62)
+        local col = d[3] or C.accent
+        local t = CreateFrame("Frame", nil, p)
+        t:SetHeight(64)
+        if G then G(t, { 0.055, 0.055, 0.065, 0.85 }, { 1, 1, 1, 0.08 }, 10) end
+        if K.DarkBoxFrame then K.DarkBoxFrame(t) end
+        t.disc = t:CreateTexture(nil, "ARTWORK")
+        t.disc:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+        t.disc:SetSize(36, 36)
+        t.disc:SetPoint("LEFT", 14, 0)
+        t.disc:SetVertexColor(col[1], col[2], col[3], 0.14)
+        t.icon = K.Glyph(t, 18, d[1], col)
+        t.icon:SetPoint("CENTER", t.disc, "CENTER")
+        t.lbl = K.Text(t, 11, C.muted)
+        t.lbl:SetPoint("TOPLEFT", t, "TOPLEFT", 62, -14)
+        t.lbl:SetPoint("RIGHT", t, "RIGHT", -10, 0)
+        t.lbl:SetWordWrap(false)
+        t.lbl:SetText(L[d[2]])
+        t.val = K.Title(t, 18, C.text)
+        t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -5)
+        t.val:SetPoint("RIGHT", t, "RIGHT", -10, 0)
+        t.val:SetWordWrap(false)
+        function t:Set(v, extra)
+            self.val:SetText(tostring(v or "") .. (extra and ("  |cff888888" .. extra .. "|r") or ""))
+        end
         p.tiles[i] = t
     end
     p:HookScript("OnSizeChanged", function(self, w)
@@ -1124,10 +1149,16 @@ ns.RegisterPage({
         j.fseg = K.Segments(j, { { key = "all", text = L["Alles"] }, { key = "level", text = L["Level"] }, { key = "boss", text = L["Bosse"] },
             { key = "loot", text = L["Beute"] }, { key = "zone", text = L["Gebiete"] }, { key = "record", text = L["Rekorde"] } },
             function(k) j.filter = k refresh() end, nil, { size = 11, pad = 14 })
-        j.fseg:SetPoint("TOPLEFT", 0, -74)
-        j.list = iconList(j, 36)
-        j.list:SetPoint("TOPLEFT", 0, -106)
-        j.list:SetPoint("BOTTOMRIGHT")
+        j.fseg:SetPoint("TOPLEFT", 0, -76)
+        -- 0.6.398: Momente in einer Box wie auf der Werte-Seite
+        j.box = CreateFrame("Frame", nil, j)
+        j.box:SetPoint("TOPLEFT", 0, -106)
+        j.box:SetPoint("BOTTOMRIGHT")
+        if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(j.box, { 0.055, 0.055, 0.065, 0.85 }, { 1, 1, 1, 0.08 }, 12) end
+        if K.DarkBoxFrame then K.DarkBoxFrame(j.box) end
+        j.list = iconList(j.box, 36)
+        j.list:SetPoint("TOPLEFT", 10, -10)
+        j.list:SetPoint("BOTTOMRIGHT", -10, 10)
         j.list.empty:SetText(L["Noch keine Momente - spiel einfach, Oasis schreibt mit."])
 
         -------------------------------------------------- Rekorde
