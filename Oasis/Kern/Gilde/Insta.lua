@@ -2723,10 +2723,10 @@ ns.RegisterPage({
             end)
             soon.embers = em
             -- Portraet: der Rangrahmen bleibt (er zeigt den Rang); Aura, Strahlen und Drehringe entfallen
-            local AS = 1.15
+            local AS = 0.92   -- 0.6.374: Profilbadge kleiner
             soon.av:SetScale(AS)
             soon.av:ClearAllPoints()
-            soon.av:SetPoint("CENTER", hc, "LEFT", 70 / AS, 0)
+            soon.av:SetPoint("CENTER", hc, "LEFT", 66 / AS, 0)
             soon.stage:Hide()
             function soon:AvatarFx()
                 self.stage:Hide()
@@ -2855,7 +2855,7 @@ ns.RegisterPage({
             local function layoutHead()
                 local W = hc:GetWidth() or 0
                 if W < 200 then W = 751 end
-                local bw = math.max(120, W - X2 - 12 - RW - 20)
+                local bw = math.min(430, math.max(120, W - X2 - 12 - RW - 20))   -- 0.6.374: nicht ueber die ganze Breite strecken
                 soon.xpW = bw
                 soon.xpTrack:SetWidth(bw)
                 soon.wTrack:SetWidth(bw)
