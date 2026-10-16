@@ -3049,12 +3049,36 @@ ns.RegisterPage({
                     r:SetPoint("RIGHT", self.pr, "RIGHT", -12, 0)
                 end
                 fillPrio(self, st)
-                -- Leisten: Anteil am groessten Wert der sichtbaren Zeilen
-                local vals, mx = {}, 0
+                -- 0.6.363: Leisten gegen ein Ziel je Wert (voll = Ziel erreicht); Trefferchance gegen die Grenze,
+                -- alles andere gegen einen Richtwert fuer das eigene Level
+                local lvl = num(UnitLevel("player")) or 1
+                local pl = self:Prio()
+                local function goalOf(k)
+                    if k == "hit" then return 9, "%" end
+                    if k == "shit" then return 16, "%" end
+                    if k == "crit" or k == "scrit" then return 5 + lvl * 0.15, "%" end
+                    if k == "dodge" or k == "parry" or k == "block" then return 5 + lvl * 0.1, "%" end
+                    if k and k:match("^stat%d$") then return lvl * 3 + 20 end
+                    if k == "ap" then return lvl * 8 + 40 end
+                    if k == "sp" or k == "heal" then return math.max(10, lvl * 3) end
+                    if k == "armor" then return lvl * 50 end
+                    if k == "def" then return lvl * 5 end
+                    if k == "mp5" then return math.max(2, lvl * 0.3) end
+                    return nil
+                end
+                local vals, goals = {}, {}
                 for i, r in ipairs(self.pr.rows) do
-                    local v = num(r.val:GetText()) or 0
-                    vals[i] = math.abs(v)
-                    if r:IsShown() and vals[i] > mx then mx = vals[i] end
+                    vals[i] = math.abs(num(r.val:GetText()) or 0)
+                    local k = pl and pl[i] and pl[i][1]
+                    local g, unit = goalOf(k)
+                    goals[i] = g
+                    r:EnableMouse(true)
+                    r.goalTip = g and { r.name:GetText() or "", (L["Ziel fuer Level %d: %s"]):format(lvl, (unit == "%") and (("%.1f %%"):format(g)) or tostring(math.floor(g + 0.5))) } or nil
+                    if not r.goalHooked then
+                        r.goalHooked = true
+                        r:SetScript("OnEnter", function(self) if self.goalTip then K.ShowTip(self, self.goalTip) end end)
+                        r:SetScript("OnLeave", function() GameTooltip:Hide() end)
+                    end
                 end
                 for i, r in ipairs(self.pr.rows) do
                     local W = r:GetWidth() or 0
@@ -3067,7 +3091,7 @@ ns.RegisterPage({
                     r.name:SetWordWrap(false)
                     local c = PRIO_COL[i] or PRIO_COL[#PRIO_COL]
                     r.fill:SetColorTexture(c[1], c[2], c[3], 1)
-                    local q = mx > 0 and vals[i] / mx or 0
+                    local q = goals[i] and goals[i] > 0 and vals[i] / goals[i] or 0
                     r.fill:SetWidth(math.max(1, W * 0.32 * math.max(0.04, math.min(1, q))))
                     r.num:SetTextColor(C.amber[1], C.amber[2], C.amber[3])
                     r.val:SetTextColor(C.text[1], C.text[2], C.text[3])
