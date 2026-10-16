@@ -1900,7 +1900,7 @@ ns.RegisterPage({
         for i = 1, 2 do
             local d = sp:CreateTexture(nil, "OVERLAY")
             d:SetTexture(CIRCLE) d:SetSize(5, 5)
-            d:SetPoint("BOTTOMRIGHT", -4 - (2 - i) * 9, 2)
+            d:SetPoint("BOTTOMRIGHT", -24 - (2 - i) * 10, 6)   -- 0.6.340: Platz fuer die Pfeile rechts/links
             sp.dots[i] = d
         end
         local KINDS = {
@@ -1973,26 +1973,27 @@ ns.RegisterPage({
             end
         end
         sp.prog = sp:CreateTexture(nil, "OVERLAY")
-        sp.prog:SetPoint("BOTTOMLEFT", 8, 4)
+        sp.prog:SetPoint("BOTTOMLEFT", 12, 8)
         sp.prog:SetHeight(2)
         sp.prog:SetWidth(1)
         sp.prog:SetColorTexture(1, 0.82, 0.42, 0.7)
         sp.progTrack = sp:CreateTexture(nil, "OVERLAY", nil, -1)
-        sp.progTrack:SetPoint("BOTTOMLEFT", 8, 4) sp.progTrack:SetPoint("BOTTOMRIGHT", -30, 4)
+        sp.progTrack:SetPoint("BOTTOMLEFT", 12, 8) sp.progTrack:SetPoint("BOTTOMRIGHT", -70, 8)
         sp.progTrack:SetHeight(2)
         sp.progTrack:SetColorTexture(1, 1, 1, 0.08)
         local function arrow(dir)
             local b = CreateFrame("Button", nil, sp)
-            b:SetSize(22, 40)
-            b:SetPoint(dir < 0 and "LEFT" or "RIGHT", sp, dir < 0 and "LEFT" or "RIGHT", dir < 0 and 2 or -2, 0)
+            -- 0.6.340: unten rechts neben den Punkten statt ueber dem Klassensymbol
+            b:SetSize(16, 16)
+            b:SetPoint("BOTTOMRIGHT", sp, "BOTTOMRIGHT", dir < 0 and -54 or -6, 1)
             b:SetFrameLevel(sp:GetFrameLevel() + 10)
-            b.t = K.Text(b, 18, C.text, "CENTER")
+            b.t = K.Text(b, 14, C.text, "CENTER")
             b.t:SetPoint("CENTER")
             b.t:SetText(dir < 0 and "<" or ">")
-            b:SetAlpha(0)
+            b:SetAlpha(0.55)
             b:SetScript("OnClick", function() sp:Go(sp.idx + dir) end)
             b:SetScript("OnEnter", function(self) self:SetAlpha(1) end)
-            b:SetScript("OnLeave", function(self) self:SetAlpha(sp:IsMouseOver() and 0.6 or 0) end)
+            b:SetScript("OnLeave", function(self) self:SetAlpha(0.55) end)
             return b
         end
         sp.prev, sp.next = arrow(-1), arrow(1)
@@ -2009,11 +2010,7 @@ ns.RegisterPage({
             self.prog:SetShown(multi and true or false)
             self.progTrack:SetShown(multi and true or false)
             local over = self:IsMouseOver()
-            local a = (multi and over) and 0.6 or 0
-            for _, b in ipairs({ self.prev, self.next }) do
-                b:SetShown(multi and true or false)
-                if not b:IsMouseOver() then b:SetAlpha(a) end
-            end
+            for _, b in ipairs({ self.prev, self.next }) do b:SetShown(multi and true or false) end
             if not multi then return end
             if self.fade then
                 self.t = self.t + el

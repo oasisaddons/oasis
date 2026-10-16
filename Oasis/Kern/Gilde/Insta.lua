@@ -3148,10 +3148,18 @@ ns.RegisterPage({
             if ar.glow then ar.glow:Hide() ar.glow.Show = function() end end
             soon.levelRing = ar
             function soon:FillRing()
+                -- 0.6.341: Cooldowns haben feste Ebenen - hebt das Portraet seine Ebene spaeter an, lagen sie darunter
+                local base = math.min(9000, self.av:GetFrameLevel() + 6)
+                ar:SetFrameLevel(base)
+                local r1 = ar.rings[1]
+                if r1.cd then r1.cd:SetFrameLevel(base + 1) end
+                if r1.cd2 then r1.cd2:SetFrameLevel(base + 4) end
+                if r1.cap then r1.cap:SetFrameLevel(base + 8) end
                 local frac = (num(self.pct and self.pct:GetText()) or 0) / 100
                 frac = math.max(0, math.min(1, frac))
                 ar:Set({ frac, 0, 0 }, false)
             end
+            hc:HookScript("OnShow", function() ns.After(0.05, function() pcall(soon.FillRing, soon) end) end)
             -- 0.6.324: Stift vor "Visitenkarte bearbeiten", Pfeil in der Belohnungskarte
             soon.cardPen = hc:CreateTexture(nil, "ARTWORK")
             soon.cardPen:SetTexture("Interface\\Buttons\\UI-GuildButton-PublicNote-Up")
@@ -3161,14 +3169,28 @@ ns.RegisterPage({
             soon.cardHint:ClearAllPoints()
             soon.cardHint:SetPoint("LEFT", soon.cardPen, "RIGHT", 6, 0)
             soon.cardHint:SetText(L["Visitenkarte bearbeiten"])
+            -- 0.6.340: Hinweis entfaellt (Klick auf Portraet/Name oeffnet die Visitenkarte weiterhin)
+            soon.cardHint:Hide() soon.cardHint.Show = function() end
+            soon.cardPen:Hide()
             if soon.chipR then
                 soon.chipR.chev = K.Text(soon.chipR, 16, C.muted, "RIGHT")
                 soon.chipR.chev:SetPoint("RIGHT", -12, 0)
                 soon.chipR.chev:SetText(">")
                 soon.chipR.value:SetPoint("RIGHT", soon.chipR, "RIGHT", -28, 0)
             end
+            -- 0.6.341: keine roten Box-Rahmen im Profil (Entwurf) - nur Glas mit feiner Kante
+            local function noFrame(x)
+                if not x then return end
+                x.noBoxFrame = true
+                if x.boxFrame then x.boxFrame:Hide() if x.boxFrame.fit then x.boxFrame.fit() end end
+            end
+            function soon:NoFrames()
+                for _, x in ipairs({ hc, self.cs, self.pr, self.consBox, self.roleBox, self.chipR, self.vit }) do noFrame(x) end
+                for _, t in ipairs((self.statTiles and self.statTiles.t) or {}) do noFrame(t) end
+            end
             local up2 = soon.Update
             function soon:Update(fresh)
+                pcall(self.NoFrames, self)
                 up2(self, fresh)
                 -- Name in Weiss (Entwurf), Rang: "Rang N" in Gold, Titel hell
                 local _, cfx = UnitClass("player")
