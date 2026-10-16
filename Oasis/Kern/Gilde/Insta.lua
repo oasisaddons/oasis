@@ -2942,17 +2942,18 @@ ns.RegisterPage({
             -- Kopfbild rechts (Gildenmodul), nach links in den Kopf auslaufend
             if ns.GuildPack then
                 hc.art = hc:CreateTexture(nil, "BACKGROUND", nil, 1)
-                hc.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\hero_bg")
-                hc.art:SetTexCoord(0.25, 1, 0, 356 / 512)
+                -- 0.6.321: "Dunkle Oase bei Nacht" ueber die ganze Karte, dezent
+                hc.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\profile_bg")
+                hc.art:SetTexCoord(0, 1, 0.1 * 356 / 512, 0.9 * 356 / 512)
                 hc.art:SetPoint("TOPRIGHT", -2, -2) hc.art:SetPoint("BOTTOMRIGHT", -2, 2)
-                hc.art:SetPoint("LEFT", hc, "LEFT", 140, 0)
-                hc.art:SetAlpha(0.55)
+                hc.art:SetPoint("LEFT", hc, "LEFT", 2, 0)
+                hc.art:SetAlpha(0.4)
                 hc.artFade = hc:CreateTexture(nil, "BACKGROUND", nil, 2)
                 hc.artFade:SetPoint("TOPLEFT", hc.art, "TOPLEFT") hc.artFade:SetPoint("BOTTOMLEFT", hc.art, "BOTTOMLEFT")
                 hc.artFade:SetWidth(260)
                 local bg = C.bg
                 if not K.Gradient(hc.artFade, "HORIZONTAL", { bg[1], bg[2], bg[3], 1 }, { bg[1], bg[2], bg[3], 0 }) then hc.artFade:Hide() end
-                if K.RoundMask then pcall(K.RoundMask, hc.art, hc, 14, { "tr", "br" }) end
+                if K.RoundMask then pcall(K.RoundMask, hc.art, hc, 14) end
             end
             -- Klasse | Level als schlichter Text statt Pillen
             for _, pl in ipairs({ soon.clsPill, soon.lvlPill }) do
@@ -2976,11 +2977,12 @@ ns.RegisterPage({
             soon.clsSep:SetPoint("LEFT", soon.clsPill, "RIGHT", 12, 0)
 
             -- obere Reihe der Werte-Ansicht: drei Kacheln links, Spezialisierung/Wunschrolle rechts
-            local ROW = 112
+            local ROW = 84   -- 0.6.321: flach halten, die Charakterwerte darunter brauchen den Platz
             cs:ClearAllPoints()
             cs:SetPoint("TOPLEFT", view, "TOPLEFT", 0, -(ROW + 12))
             cs:SetPoint("BOTTOMLEFT")
             cs:SetPoint("RIGHT", view, "RIGHT", -290, 0)
+            if cs.SetClipsChildren then cs:SetClipsChildren(true) end   -- Verbrauchsgueter liefen unten heraus
             local tiles = CreateFrame("Frame", nil, view)
             tiles:SetPoint("TOPLEFT", view, "TOPLEFT", 0, 0)
             tiles:SetPoint("RIGHT", cs, "RIGHT", 0, 0)
@@ -2996,21 +2998,21 @@ ns.RegisterPage({
                 local t = CreateFrame("Frame", nil, tiles)
                 IG.Glass(t, IG.GLASS_FILL, IG.GLASS_LINE, 10)
                 t.icon = t:CreateTexture(nil, "ARTWORK")
-                t.icon:SetSize(30, 30) t.icon:SetPoint("LEFT", 16, 6)
+                t.icon:SetSize(26, 26) t.icon:SetPoint("LEFT", 14, 5)
                 t.icon:SetTexture(d.icon) t.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
                 if K.RoundMask then pcall(K.RoundMask, t.icon, t.icon, 6) end
                 t.lbl = K.Text(t, 11, C.muted)
                 t.lbl:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 12, 2)
                 t.lbl:SetText(L[d.label])
-                t.val = K.Title(t, 20, C.text)
+                t.val = K.Title(t, 17, C.text)
                 t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -4)
                 t.track = t:CreateTexture(nil, "ARTWORK")
                 t.track:SetColorTexture(1, 1, 1, 0.08)
-                t.track:SetHeight(6)
-                t.track:SetPoint("BOTTOMLEFT", 16, 16) t.track:SetPoint("BOTTOMRIGHT", -16, 16)
+                t.track:SetHeight(5)
+                t.track:SetPoint("BOTTOMLEFT", 14, 11) t.track:SetPoint("BOTTOMRIGHT", -14, 11)
                 t.fill = t:CreateTexture(nil, "ARTWORK", nil, 1)
                 t.fill:SetColorTexture(d.col[1], d.col[2], d.col[3], 1)
-                t.fill:SetHeight(6)
+                t.fill:SetHeight(5)
                 t.fill:SetPoint("LEFT", t.track, "LEFT")
                 t.fill:SetWidth(1)
                 if K.RoundMask then pcall(K.RoundMask, t.track, t.track, 3) pcall(K.RoundMask, t.fill, t.fill, 3) end
@@ -3056,6 +3058,7 @@ ns.RegisterPage({
             rb.l1 = K.Text(rb, 11, C.muted)
             rb.l1:SetPoint("TOPLEFT", 12, -10)
             rb.l1:SetText(L["Spezialisierung"])
+            rb.l1:Hide()   -- 0.6.321: kein Platz, die Knoepfe sprechen fuer sich
             soon.roleBox = rb
             local ensure2 = soon.EnsureRoleSeg
             function soon:EnsureRoleSeg()
@@ -3066,25 +3069,26 @@ ns.RegisterPage({
                 local inner = (rb:GetWidth() or 278) - 24
                 if inner < 60 then inner = 254 end
                 bar:ClearAllPoints()
-                bar:SetPoint("TOPLEFT", rb, "TOPLEFT", 12, -26)
+                bar:SetPoint("TOPLEFT", rb, "TOPLEFT", 12 / 0.85, -10 / 0.85)
                 local bw = bar:GetWidth() or inner
-                if bw > inner then bar:SetScale(inner / bw) end
+                bar:SetScale(math.min(0.85, inner / bw))
                 local rc = self.roleChips
                 if rc then
                     rc:ClearAllPoints()
                     rc:SetWidth(inner)
-                    rc:SetPoint("TOPLEFT", rb, "TOPLEFT", 12, -78)
+                    rc:SetPoint("TOPLEFT", rb, "TOPLEFT", 12, -44)
                     if rc.chips then
                         local cw = (inner - 8 * (#rc.chips - 1)) / #rc.chips
                         for i, b in ipairs(rc.chips) do
                             b:ClearAllPoints()
-                            b:SetSize(cw, 26)
+                            b:SetSize(cw, 28)
                             b:SetPoint("LEFT", (i - 1) * (cw + 8), 0)
                         end
                     end
                 end
                 if self.roleLbl then
                     self.roleLbl:ClearAllPoints()
+                    self.roleLbl:Hide()
                     self.roleLbl:SetPoint("TOPLEFT", rb, "TOPLEFT", 12, -62)
                     self.roleLbl:SetJustifyH("LEFT")
                     K.SetFontSafe(self.roleLbl, K.FONT, 11, "", K.FONT)
