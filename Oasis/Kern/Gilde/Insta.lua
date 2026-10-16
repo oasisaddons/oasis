@@ -3068,7 +3068,7 @@ ns.RegisterPage({
                 end
                 local vals, goals = {}, {}
                 for i, r in ipairs(self.pr.rows) do
-                    vals[i] = math.abs(num(r.val:GetText()) or 0)
+                    vals[i] = math.abs(num(strip(r.val:GetText() or "")) or 0)   -- 0.6.365: Farbcodes enthalten Ziffern
                     local k = pl and pl[i] and pl[i][1]
                     local g, unit = goalOf(k)
                     goals[i] = g
@@ -3380,6 +3380,13 @@ ns.RegisterPage({
                     for _, g in ipairs(x.boxFrame.glows or {}) do g:SetVertexColor(0.05, 0.05, 0.06, 1) end
                     for _, pc in ipairs(x.boxFrame.pieces or {}) do pc:SetDesaturated(true) pc:SetVertexColor(0.22, 0.22, 0.24, 1) end
                 end
+            end
+            -- 0.6.365: alte Panel-Flaeche unter dem Glas ausblenden (zweiter Hintergrund)
+            for _, x in ipairs({ cs, pr }) do
+                if x.bg then x.bg:SetAlpha(0) end
+                for _, t in ipairs(x.skinFill or {}) do t:SetAlpha(0) end
+                for _, t in ipairs(x.skinLine or {}) do t:SetAlpha(0) end
+                for _, t in ipairs(x.borders or {}) do t:SetAlpha(0) end
             end
             function soon:NoFrames()
                 for _, x in ipairs({ self.chipR, self.vit, self.consBox }) do noFrame(x) end
