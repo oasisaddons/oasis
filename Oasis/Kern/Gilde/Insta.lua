@@ -3133,7 +3133,7 @@ ns.RegisterPage({
             end
             -- 0.6.324: Stift vor "Visitenkarte bearbeiten", Pfeil in der Belohnungskarte
             soon.cardPen = hc:CreateTexture(nil, "ARTWORK")
-            soon.cardPen:SetTexture("Interface\Buttons\UI-GuildButton-PublicNote-Up")
+            soon.cardPen:SetTexture("Interface\\Buttons\\UI-GuildButton-PublicNote-Up")
             soon.cardPen:SetSize(14, 14)
             soon.cardPen:SetVertexColor(C.muted[1], C.muted[2], C.muted[3])
             soon.cardPen:SetPoint("TOPLEFT", soon.clsPill, "BOTTOMLEFT", 0, -14)
