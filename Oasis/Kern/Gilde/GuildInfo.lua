@@ -1903,9 +1903,9 @@ ns.RegisterPage({
             sp.dots[i] = d
         end
         local KINDS = {
-            -- art: Bild im Gildenmodul, w/h = Bildteil, th = Texturhoehe (0.6.312: Held und Pechvogel mit demselben Bild)
+            -- art: Bild im Gildenmodul, w/h = Bildteil, th = Texturhoehe (0.6.313: Held mit eigenem Bild hero_bg)
             hero = { kick = "Held der Woche", col = { 1, 0.82, 0.42 }, badge = "Interface\\GroupFrame\\UI-Group-LeaderIcon",
-                     art = "unlucky_bg", w = ART_W, h = ART_H, th = 512 },
+                     art = "hero_bg", w = ART_W, h = ART_H, th = 512 },
             unl = { kick = "Pechvogel der Woche", col = { 0.55, 0.7, 1 }, badge = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull",
                     art = "unlucky_bg", w = ART_W, h = ART_H, th = 512 },
         }
