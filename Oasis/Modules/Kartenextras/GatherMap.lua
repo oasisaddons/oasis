@@ -179,6 +179,10 @@ ns.slash.sammeltest = function()
     local wm = WorldMapFrame and WorldMapFrame:IsShown() and WorldMapFrame:GetMapID()
     ns.print(("  diese Karte: %d Fundorte, %d sichtbar | Weltkarte zeigt Karte %s (%d Fundorte) | Weltkarte an=%s | Mindestzahl=%s"):format(
         #here, vis, tostring(wm), wm and #GM.Nodes(wm) or 0, tostring(S().mapGather ~= false), tostring(S().gatherMinCount or 1)))
+    if wm then
+        local okD, errD = pcall(GM.DrawWorld)
+        ns.print(("  Weltkarte neu gezeichnet: ok=%s gezeichnet=%d %s"):format(tostring(okD), GM.WorldCount and GM.WorldCount() or -1, okD and "" or ("Fehler: " .. tostring(errD))))
+    end
     if #GM.diag == 0 then ns.print("Noch kein Zauber seit dem Einloggen - einmal sammeln, dann nochmal /oa sammeltest.") end
     for _, d in ipairs(GM.diag) do
         ns.print(("  %s  Zauber %s (%s) -> %s: %s"):format(date("%H:%M:%S", d.t), tostring(d.id), tostring(d.name), tostring(d.kind or "-"), tostring(d.note)))
@@ -190,6 +194,7 @@ ns.slash.gathertest = ns.slash.sammeltest
 -- Weltkarte (haengt sich an Oasis' Kartenebene) und Minimap
 ------------------------------------------------------------------------
 local wPool, wUsed = {}, 0
+function GM.WorldCount() return wUsed end   -- 0.6.391: fuer /oa sammeltest
 local function wPin(canvas)
     wUsed = wUsed + 1
     local p = wPool[wUsed]
