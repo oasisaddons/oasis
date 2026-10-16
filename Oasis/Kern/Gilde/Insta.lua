@@ -2989,22 +2989,21 @@ ns.RegisterPage({
             if cs.SetClipsChildren then cs:SetClipsChildren(true) end   -- Verbrauchsgueter liefen unten heraus
             local tiles = CreateFrame("Frame", nil, view)
             tiles:SetPoint("TOPLEFT", view, "TOPLEFT", 0, 0)
-            tiles:SetPoint("RIGHT", cs, "RIGHT", 0, 0)
+            tiles:SetPoint("RIGHT", view, "CENTER", -6, 0)   -- 0.6.326: halbe Breite, Kasten rechts bekommt die andere Haelfte
             tiles:SetHeight(ROW)
             soon.statTiles = tiles   -- soon.tiles ist schon belegt (Abzeichen-Kacheln)
             local DEF = {
-                { key = "hp", label = "Gesundheit", icon = "Interface\\Icons\\Spell_Holy_SealOfSacrifice", col = { 0.95, 0.3, 0.32 } },
-                { key = "ap", label = "Angriffskraft", icon = "Interface\\Icons\\Ability_Warrior_BattleShout", col = { 0.95, 0.72, 0.38 } },
-                { key = "crit", label = "Kritische Treffer", icon = "Interface\\Icons\\Ability_CriticalStrike", col = { 0.55, 0.45, 0.95 } },
+                { key = "hp", label = "Gesundheit", icon = "heart", col = { 0.95, 0.3, 0.32 } },
+                { key = "ap", label = "Angriffskraft", icon = "role_dps", col = { 0.95, 0.72, 0.38 } },
+                { key = "crit", label = "Kritische Treffer", icon = "star_on", col = { 0.55, 0.45, 0.95 } },
             }
             tiles.t = {}
             for i, d in ipairs(DEF) do
                 local t = CreateFrame("Frame", nil, tiles)
                 IG.Glass(t, IG.GLASS_FILL, IG.GLASS_LINE, 10)
-                t.icon = t:CreateTexture(nil, "ARTWORK")
-                t.icon:SetSize(26, 26) t.icon:SetPoint("LEFT", 14, 5)
-                t.icon:SetTexture(d.icon) t.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-                if K.RoundMask then pcall(K.RoundMask, t.icon, t.icon, 6) end
+                -- 0.6.326: schlichte Symbole in der Wertfarbe (Entwurf)
+                t.icon = K.Glyph(t, 24, ns.MEDIA .. "icons\\" .. d.icon, d.col)
+                t.icon:SetPoint("LEFT", 16, 5)
                 t.lbl = K.Text(t, 11, C.muted)
                 t.lbl:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 12, 2)
                 t.lbl:SetText(L[d.label])
@@ -3062,7 +3061,8 @@ ns.RegisterPage({
             rb.l1 = K.Text(rb, 11, C.muted)
             rb.l1:SetPoint("TOPLEFT", 12, -10)
             rb.l1:SetText(L["Spezialisierung"])
-            rb.l1:Hide()   -- 0.6.321: kein Platz, die Knoepfe sprechen fuer sich
+            rb.l2 = K.Text(rb, 11, C.muted)
+            rb.l2:SetText(L["Wunschrolle"])
             soon.roleBox = rb
             local ensure2 = soon.EnsureRoleSeg
             function soon:EnsureRoleSeg()
@@ -3073,22 +3073,27 @@ ns.RegisterPage({
                 local inner = (rb:GetWidth() or 278) - 24
                 if inner < 60 then inner = 254 end
                 bar:ClearAllPoints()
-                bar:SetPoint("TOPLEFT", rb, "TOPLEFT", 12 / 0.85, -10 / 0.85)
-                local bw = bar:GetWidth() or inner
-                bar:SetScale(math.min(0.85, inner / bw))
+                -- nebeneinander: links Spezialisierung, rechts Wunschrolle (je mit Ueberschrift)
+                local rcW = self.roleChips and self.roleChips.chips and (#self.roleChips.chips * 72 + (#self.roleChips.chips - 1) * 6) or 0
+                local room = inner - rcW - 16
+                local bw = bar:GetWidth() or room
+                local sc = math.min(1, room / math.max(1, bw))
+                bar:SetScale(sc)
+                bar:SetPoint("TOPLEFT", rb, "TOPLEFT", 12 / sc, -32 / sc)
                 local rc = self.roleChips
                 if rc then
                     rc:ClearAllPoints()
-                    rc:SetWidth(inner)
-                    rc:SetPoint("TOPLEFT", rb, "TOPLEFT", 12, -44)
+                    rc:SetWidth(math.max(1, rcW))
+                    rc:SetPoint("TOPRIGHT", rb, "TOPRIGHT", -12, -32)
                     if rc.chips then
-                        local cw = (inner - 8 * (#rc.chips - 1)) / #rc.chips
                         for i, b in ipairs(rc.chips) do
                             b:ClearAllPoints()
-                            b:SetSize(cw, 28)
-                            b:SetPoint("LEFT", (i - 1) * (cw + 8), 0)
+                            b:SetSize(72, 30)
+                            b:SetPoint("LEFT", (i - 1) * 78, 0)
                         end
                     end
+                    rb.l2:ClearAllPoints()
+                    rb.l2:SetPoint("BOTTOMLEFT", rc, "TOPLEFT", 0, 6)
                 end
                 if self.roleLbl then
                     self.roleLbl:ClearAllPoints()
