@@ -397,7 +397,8 @@ local function showPage(key)
         local ok, e = pcall(def.build, p)
         if not ok then ns.err(L["Aufbau"] .. " " .. key, e) end
     end
-    main.title:SetText((K.Skin and K.Skin("upperTitle")) and K.Upper(L[def.title]) or L[def.title])
+    local tt = def.headTitle or def.title   -- 0.6.327: eigener Kopf-Titel moeglich (Profil -> "Charakterprofil")
+    main.title:SetText((K.Skin and K.Skin("upperTitle")) and K.Upper(L[tt]) or L[tt])
     main.sub:SetText(def.sub and L[def.sub] or "")
     main.icon:SetTexture(ICONS[key])
     def.frame:Show()
@@ -962,9 +963,11 @@ local function buildMain()
     main.icon = K.Glyph(head, 30, nil, C.accent)
     main.icon:SetPoint("TOPLEFT", 24, -18)
     main.title = K.Title(head, 18, C.text)
-    main.title:SetPoint("TOPLEFT", main.icon, "TOPRIGHT", 12, -1)
+    main.title:SetPoint("LEFT", main.icon, "RIGHT", 12, 0)
     main.sub = K.Text(head, 12, C.muted)
-    main.sub:SetPoint("TOPLEFT", main.title, "BOTTOMLEFT", 0, -5)
+    -- 0.6.327: Titel und Untertitel in einer Zeile
+    main.sub:SetPoint("LEFT", main.title, "RIGHT", 14, -1)
+    main.sub:SetWordWrap(false)
     main.sub:SetPoint("RIGHT", head, "RIGHT", -96, 0)
     local hl = K.Divider(head)
     hl:SetPoint("BOTTOMLEFT", 24, 0)
@@ -1030,6 +1033,7 @@ local function buildMain()
     mini:SetWidth(1)
     mini:Hide()
     local sep1 = vsep(mini, 8)
+    main.langAnchor = sep1
 
     -- Bedienung: Einstellungen, Gildenleitung, Sprache
     local gear = iconBtn(sep1, 8)
@@ -1071,9 +1075,16 @@ local function buildMain()
     gear:SetScript("OnLeave", function() gearColor() GameTooltip:Hide() end)
     crown:SetScript("OnLeave", function() gearColor() GameTooltip:Hide() end)
     main.gearColor = gearColor
+    -- 0.6.327: Zahnrad und Krone unten in die Seitenleiste (nebeneinander), oben weg
+    for _, b in ipairs({ gear, crown }) do b:SetParent(main.side) b:SetFrameLevel(main.side:GetFrameLevel() + 5) end
+    gear:ClearAllPoints()
+    gear:SetPoint("BOTTOMRIGHT", main.side, "BOTTOMRIGHT", -12, 9)
+    crown:ClearAllPoints()
+    crown:SetPoint("RIGHT", gear, "LEFT", -4, 0)
+    if main.footGear then main.footGear:Hide() end
 
     -- Sprache: Flagge + Kuerzel, Klick = Auswahl
-    local lang = iconBtn(crown, 2, 28)
+    local lang = iconBtn(sep1, 8, 28)
     lang.flag = lang:CreateTexture(nil, "ARTWORK")
     lang.flag:SetSize(18, 13.5)
     lang.flag:SetPoint("CENTER", 0, 0)
@@ -1697,7 +1708,7 @@ function ns.LayoutNav()
     main.crown:SetShown(not ns.Admin or ns.Admin.ShowCrown())   -- spaeter: nur fuer die Leitung (Gilden-Einstellung)
     lead = true
     main.lang:ClearAllPoints()
-    main.lang:SetPoint("RIGHT", main.crown, "LEFT", -2, 0)
+    main.lang:SetPoint("RIGHT", main.langAnchor or main.crown, "LEFT", main.langAnchor and -8 or -2, 0)
     if main.FitSub then main.FitSub() end
     if main.gearColor then main.gearColor() end
     if current and current ~= "home" and not ns.PageVisible(current) and main:IsShown() then showPage("home") end

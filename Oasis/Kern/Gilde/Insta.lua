@@ -869,7 +869,7 @@ function IG.ProfileTabs(parent, items, onChange)
     return f
 end
 ns.RegisterPage({
-    key = "insta", title = "Profil", order = 0.6,
+    key = "insta", title = "Profil", headTitle = "Charakterprofil", order = 0.6,
     sub = "Dein Charakter: Reise, Erfolge, Abenteuer und Ziele",
     build = function(p)
         p:SetScript("OnShow", function(self) self.fresh = true end)

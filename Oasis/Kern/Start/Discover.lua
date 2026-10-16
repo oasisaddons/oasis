@@ -690,17 +690,6 @@ function D.ShowPicker(mode)
                 h.halo:SetSize(42 + 6 * h.hv, 42 + 6 * h.hv)
                 h.arrow:SetVertexColor(1, 1, 1, 0.6 + 0.4 * h.hv)
                 if h.art then h.art:SetAlpha(0.85 + 0.15 * h.hv) end
-                -- wie die Karten darunter: grau, sobald etwas anderes im Blick ist (Karte gewaehlt oder unter der Maus),
-                -- farbig, wenn die Maus auf "Wie bisher" steht oder noch nichts gewaehlt ist
-                local other = next(self.sel or {}) ~= nil
-                for _, t in ipairs(self.tiles) do if t.hover then other = true break end end
-                local wantDim = (other and not h.hover) and 1 or 0
-                h.dim = (h.dim or 0) + (wantDim - (h.dim or 0)) * k
-                if math.abs(h.dim - wantDim) < 0.01 then h.dim = wantDim end
-                h:SetAlpha(1 - 0.4 * h.dim)
-                local grey = h.dim > 0.5
-                if h.art then h.art:SetDesaturated(grey or self.heroRed == false) end
-                if h.pulse then h.pulse:SetDesaturated(grey or self.heroRed == false) end
                 -- Pulsieren: 3 s ein und aus, beim Drueberfahren kraeftiger
                 h.gT = ((h.gT or 0) + el) % 3
                 if h.pulse then h.pulse:SetAlpha((0.5 - 0.5 * math.cos(h.gT / 3 * math.pi * 2)) * 0.22 + 0.10 * h.hv) end
@@ -732,7 +721,6 @@ function D.ShowPicker(mode)
             grad(self.ebR, "HORIZONTAL", { ac[1], ac[2], ac[3], 0.6 }, { ac[1], ac[2], ac[3], 0 })
             -- die Bilder sind rot gemalt: bei roter Akzentfarbe Original, sonst entsaettigt in der Akzentfarbe
             local red = ac[1] > 0.55 and ac[2] < 0.45 and ac[3] < 0.45
-            self.heroRed = red
             local function paint(tex, boost)
                 if not tex then return end
                 tex:SetDesaturated(not red)
