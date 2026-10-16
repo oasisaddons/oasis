@@ -2302,7 +2302,8 @@ ns.RegisterPage({
             local h = self.cs:GetHeight() or 0
             if h < 60 then h = 300 end
             -- Werte links in einer Spalte, rechts die Einblicke (Treffer, Tempo, Upgrade, Verbrauchsgueter)
-            local perCol = math.max(1, math.floor((h - (self.consBox and 48 or 84) - 18) / 23))   -- unten Luft (auch fuer die Klapp-Leiste)
+            local RH = self.consBox and 19 or 23   -- 0.6.358: Profil kompakter, alles ohne Scrollen
+            local perCol = math.max(1, math.floor((h - (self.consBox and 42 or 84) - 10) / RH))   -- unten Luft (auch fuer die Klapp-Leiste)
             local fits = perCol
             if ns.Insights then pcall(ns.Insights.Fill, self, self.cs, st) end
             local W = self.cs:GetWidth() or 700
@@ -2312,7 +2313,8 @@ ns.RegisterPage({
                 local col = (i - 1) >= perCol and 1 or 0
                 local row = (i - 1) % perCol
                 r:ClearAllPoints()
-                r:SetPoint("TOPLEFT", self.cs, "TOPLEFT", 12 + col * (colW + 20), (self.consBox and -44 or -80) - row * 23)
+                r:SetPoint("TOPLEFT", self.cs, "TOPLEFT", 12 + col * (colW + 20), (self.consBox and -40 or -80) - row * RH)
+                r:SetHeight(RH - 1)
                 r:SetWidth(colW)
             end
             local lvl = num(UnitLevel("player")) or 1
@@ -2337,10 +2339,10 @@ ns.RegisterPage({
                 self.cs.fade:SetHeight(26)
                 if not K.Gradient(self.cs.fade, "VERTICAL", { C.panel[1], C.panel[2], C.panel[3], 0.95 }, { C.panel[1], C.panel[2], C.panel[3], 0 }) then self.cs.fade:SetColorTexture(0, 0, 0, 0.4) end
             end
-            local trackH = fits * 23
+            local trackH = fits * RH
             local scrollable = #st > fits
             self.cs.sbTrack:ClearAllPoints()
-            self.cs.sbTrack:SetPoint("TOPLEFT", self.cs, "TOPLEFT", 12 + colW + 6, (self.consBox and -44 or -80))
+            self.cs.sbTrack:SetPoint("TOPLEFT", self.cs, "TOPLEFT", 12 + colW + 6, (self.consBox and -40 or -80))
             self.cs.sbTrack:SetHeight(trackH)
             self.cs.sbTrack:SetShown(scrollable)
             if scrollable then
@@ -2352,7 +2354,7 @@ ns.RegisterPage({
             end
             self.cs.sbThumb:SetShown(scrollable)
             self.cs.fade:ClearAllPoints()
-            self.cs.fade:SetPoint("BOTTOMLEFT", self.cs, "TOPLEFT", 12, (self.consBox and -44 or -80) - trackH)
+            self.cs.fade:SetPoint("BOTTOMLEFT", self.cs, "TOPLEFT", 12, (self.consBox and -40 or -80) - trackH)
             self.cs.fade:SetWidth(colW)
             self.cs.fade:SetShown(below > 0)
             for i, r in ipairs(self.cs.rows) do
@@ -2500,7 +2502,7 @@ ns.RegisterPage({
             -- nur so viele Prioritaets-Zeilen, wie ueber den Tipp-Kasten passen (keine Ueberlappung)
             local ph = self.pr:GetHeight() or 0
             local tipH = self.pr.tipBox:IsShown() and (42 + 20) or 12
-            local maxRows = math.min(5, math.max(1, math.floor((ph - 36 - tipH) / 26)))   -- 0.6.355: Top 5
+            local maxRows = math.min(6, math.max(1, math.floor((ph - 44 - tipH) / (self.prRowH or 26))))   -- 0.6.359: bis zu 6, hoehere Zeilen
             if ph > 100 then for i, r in ipairs(self.pr.rows) do if i > maxRows then r:Hide() end end end
         end
 
@@ -3003,6 +3005,61 @@ ns.RegisterPage({
             soon.clsSep:SetSize(1, 16)
             soon.clsSep:SetPoint("LEFT", soon.clsPill, "RIGHT", 12, 0)
 
+            -- 0.6.359: Stat-Prioritaet wie im Entwurf - Rangzahl im Kaestchen, Name, Farbleiste, Wert
+            local PRIO_COL = { { 0.93, 0.27, 0.32 }, { 0.86, 0.42, 0.66 }, { 0.86, 0.42, 0.66 }, { 0.55, 0.42, 0.88 }, { 0.55, 0.42, 0.88 }, { 0.55, 0.42, 0.88 } }
+            soon.prRowH = 40
+            for i, r in ipairs(pr.rows) do
+                r:SetHeight(34)
+                r:ClearAllPoints()
+                r:SetPoint("TOPLEFT", pr, "TOPLEFT", 12, -44 - (i - 1) * 40)
+                r:SetPoint("RIGHT", pr, "RIGHT", -12, 0)
+                r.bg:SetColorTexture(1, 1, 1, 0.025)
+                r.box = r:CreateTexture(nil, "ARTWORK")
+                r.box:SetColorTexture(1, 1, 1, 0.05)
+                r.box:SetSize(28, 26)
+                r.box:SetPoint("LEFT", 4, 0)
+                r.num:ClearAllPoints()
+                r.num:SetPoint("CENTER", r.box, "CENTER", 0, 0)
+                K.SetFontSafe(r.num, K.FONT_HEAD, 15, "", K.FONT)
+                r.name:ClearAllPoints()
+                r.name:SetPoint("LEFT", r.box, "RIGHT", 14, 0)
+                K.SetFontSafe(r.name, K.FONT, 13, "", K.FONT)
+                r.val:ClearAllPoints()
+                r.val:SetPoint("RIGHT", r, "RIGHT", -10, 0)
+                K.SetFontSafe(r.val, K.FONT, 13, "", K.FONT)
+                r.track = r:CreateTexture(nil, "ARTWORK")
+                r.track:SetColorTexture(1, 1, 1, 0.07)
+                r.track:SetHeight(9)
+                r.fill = r:CreateTexture(nil, "ARTWORK", nil, 1)
+                r.fill:SetHeight(9)
+                r.fill:SetPoint("LEFT", r.track, "LEFT")
+                if K.RoundMask then pcall(K.RoundMask, r.track, r.track, 3) pcall(K.RoundMask, r.fill, r.fill, 3) pcall(K.RoundMask, r.box, r.box, 4) end
+            end
+            local fillPrio = soon.FillPrio
+            function soon:FillPrio(st)
+                fillPrio(self, st)
+                -- Leisten: Anteil am groessten Wert der sichtbaren Zeilen
+                local vals, mx = {}, 0
+                for i, r in ipairs(self.pr.rows) do
+                    local v = num(r.val:GetText()) or 0
+                    vals[i] = math.abs(v)
+                    if r:IsShown() and vals[i] > mx then mx = vals[i] end
+                end
+                for i, r in ipairs(self.pr.rows) do
+                    local W = r:GetWidth() or 0
+                    if W < 50 then W = 300 end
+                    r.track:ClearAllPoints()
+                    r.track:SetPoint("LEFT", r, "LEFT", W * 0.42, 0)
+                    r.track:SetWidth(W * 0.4)
+                    local c = PRIO_COL[i] or PRIO_COL[#PRIO_COL]
+                    r.fill:SetColorTexture(c[1], c[2], c[3], 1)
+                    local q = mx > 0 and vals[i] / mx or 0
+                    r.fill:SetWidth(math.max(1, W * 0.4 * math.max(0.04, math.min(1, q))))
+                    r.num:SetTextColor(C.amber[1], C.amber[2], C.amber[3])
+                    r.val:SetTextColor(C.text[1], C.text[2], C.text[3])
+                    r.bg:SetColorTexture(1, 1, 1, 0.025)
+                end
+            end
             -- 0.6.354: "So spielst du es" entfaellt im Profil
             if pr.tipBox then
                 pr.tipBox:Hide()
