@@ -329,6 +329,34 @@ local function build()
         bar.art.l:SetPoint("TOPLEFT") bar.art.l:SetPoint("BOTTOMLEFT", 0, -DROP)
         bar.art.r:SetPoint("TOPRIGHT") bar.art.r:SetPoint("BOTTOMRIGHT", 0, -DROP)
         bar.art.m:SetPoint("TOPLEFT", bar.art.l, "TOPRIGHT") bar.art.m:SetPoint("BOTTOMRIGHT", bar.art.r, "BOTTOMLEFT")
+        -- 0.6.311: leichter Schimmer - additive Kopie des Bildes atmet langsam (aus mit "Animationen aus")
+        bar.shine = {}
+        for _, k in ipairs({ "l", "m", "r" }) do
+            local s = bar:CreateTexture(nil, "BACKGROUND", nil, 3)
+            s:SetTexture(GP .. "minibar_" .. k)
+            s:SetBlendMode("ADD")
+            s:SetAllPoints(bar.art[k])
+            s:SetAlpha(0)
+            bar.shine[k] = s
+        end
+        local clock = 0
+        local pulse = CreateFrame("Frame", nil, bar)
+        pulse:SetScript("OnUpdate", function(_, el)
+            local st = ns.db and ns.db.settings
+            local on = not (st and st.noAnim)
+            if on then clock = clock + (el or 0) end
+            local a = on and (0.12 + 0.12 * math.sin(clock * 1.6)) or 0
+            for k, s in pairs(bar.shine) do
+                local base = bar.art[k]
+                s:SetShown(base:IsShown())
+                if base:IsShown() then
+                    local r, g, b = base:GetVertexColor()
+                    s:SetVertexColor(r or 1, g or 1, b or 1)
+                    if base.IsDesaturated then s:SetDesaturated(base:IsDesaturated() and true or false) end
+                    s:SetAlpha(a * (base:GetAlpha() or 1))
+                end
+            end
+        end)
         C_Timer.After(0, function() if ns.ApplyMiniAlpha then pcall(ns.ApplyMiniAlpha) end end)   -- 0.6.263: Deckkraft + Farbe gleich anwenden
         local baseShape = bar.Shape
         function bar:Shape()

@@ -3737,8 +3737,22 @@ function K.ImageFrame(host, k)
         for _, t in ipairs(fr.glows) do t:SetVertexColor(r, g, b, 1) end
     end
     fr.Tint()
-    local acc = 0
-    fr:SetScript("OnUpdate", function(_, el) acc = acc + (el or 0) if acc >= 0.5 then acc = 0 fr.Tint() end end)
+    local acc, clock = 0, 0
+    fr:SetScript("OnUpdate", function(_, el)
+        acc = acc + (el or 0)
+        if acc >= 0.5 then acc = 0 fr.Tint() end
+        -- 0.6.311: leichter Schimmer - die Glut atmet langsam (aus mit "Animationen aus")
+        local st = ns.db and ns.db.settings
+        local a = 1
+        if not (st and st.noAnim) then
+            clock = clock + (el or 0)
+            a = 0.78 + 0.22 * math.sin(clock * 1.6)
+        end
+        if a ~= fr.glowA then
+            fr.glowA = a
+            for _, g in ipairs(fr.glows) do g:SetAlpha(a) end
+        end
+    end)
     -- 0.6.190: Rahmen zum Verschieben anfassbar - vier schmale Griffleisten auf den Baendern (Innenbereich bleibt
     -- frei), sie reichen das Ziehen an das Fenster weiter (dessen eigene Drag-Skripte -> Position wird gespeichert)
     local function grip(p1, p2, w, h)
@@ -3879,7 +3893,10 @@ function K.RefreshBoxFrames()
     local cr, cg, cb = frameGlowColor()
     for fr in pairs(K.boxFrames) do
         fr.fit()
-        for _, g in ipairs(fr.glows) do g:SetVertexColor(cr, cg, cb, 1) end
+        local t = fr.tint   -- eigene Farbe der Box (z. B. Dungeon-Karte nach Schwierigkeit)
+        for _, g in ipairs(fr.glows) do
+            if t then g:SetVertexColor(t[1], t[2], t[3], 1) else g:SetVertexColor(cr, cg, cb, 1) end
+        end
     end
 end
 do

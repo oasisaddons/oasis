@@ -946,6 +946,44 @@ local function lvlColor(d)
     return { 0.6, 0.6, 0.6 }
 end
 
+-- 0.6.311: stufenlose Schwierigkeitsfarbe gruen > gelb > orange > rot; heat 0 (leicht) .. 1 (zu schwer)
+-- Stuetzpunkte nach Abstand Dungeon-Mitte zu eigener Stufe (wie lvlColor); weit unter der Stufe grau, ohne Glut
+local DIFF_STOPS = { { -9, { 0.35, 0.85, 0.4 } }, { -2, { 0.75, 0.85, 0.3 } }, { 0, { 1, 0.82, 0.25 } }, { 3, { 1, 0.55, 0.25 } }, { 6, { 1, 0.28, 0.22 } } }
+local function diffColor(d)
+    if not d.lo then return C.muted, 0 end
+    local me = ns.safe(UnitLevel("player")) or 1
+    local diff = (d.lo + (d.hi or d.lo)) / 2 - me
+    if diff < -9 then return { 0.6, 0.6, 0.6 }, 0 end
+    local heat = math.max(0, math.min(1, (diff + 9) / 15))
+    if diff >= DIFF_STOPS[#DIFF_STOPS][1] then return DIFF_STOPS[#DIFF_STOPS][2], 1 end
+    for i = 1, #DIFF_STOPS - 1 do
+        local a, b = DIFF_STOPS[i], DIFF_STOPS[i + 1]
+        if diff <= b[1] then
+            local q = (diff - a[1]) / (b[1] - a[1])
+            local ca, cb = a[2], b[2]
+            return { ca[1] + (cb[1] - ca[1]) * q, ca[2] + (cb[2] - ca[2]) * q, ca[3] + (cb[3] - ca[3]) * q }, heat
+        end
+    end
+    return DIFF_STOPS[1][2], heat
+end
+-- Glut unter den Karten: rot stark und schnell, gruen schwach und ruhig; Maus drueber legt etwas drauf
+local heatCards = setmetatable({}, { __mode = "k" })
+do
+    local tick, clock = CreateFrame("Frame"), 0
+    tick:SetScript("OnUpdate", function(_, el)
+        clock = clock + (el or 0)
+        for c in pairs(heatCards) do
+            if c:IsVisible() then
+                local h, z = c.heat or 0, c.hz or 0
+                local base = 0.08 + 0.62 * h
+                local a = base
+                if animOn() then a = base * (0.7 + 0.3 * math.sin(clock * (1.2 + 2.2 * h) + (c.bx or 0) * 0.02)) end
+                c.glow:SetAlpha(math.min(1, a + 0.25 * z))
+            end
+        end
+    end)
+end
+
 -- Drop-Chance eines Teils in Prozent aus ns.DungeonDropRate ([NPC] = { [Item] = % }); je Teil der hoechste Wert
 local dropIdx
 function D.DropRate(itemID)
@@ -1051,7 +1089,6 @@ local function cardPose(c, z)
     c.hz = z
     cardArt(c, z)
     c.hov:SetAlpha(z)
-    c.glow:SetAlpha(0.4 * z)
     c:ClearAllPoints()
     c:SetPoint("TOPLEFT", c.bx or 0, -(c.by or 0) + 2 * z)
     local lift = (c.nLoot or 0) > 0 and 32 * z or 0
@@ -1176,16 +1213,35 @@ local function buildCard(parent)
     c.topShade:SetPoint("TOPLEFT") c.topShade:SetPoint("TOPRIGHT")
     c.topShade:SetHeight(42)
     gradient(c.topShade, "VERTICAL", 0, 0.55)
-    c.glow = c:CreateTexture(nil, "OVERLAY")
+    -- 0.6.311: Glut UNTER der Karte (unterste Ebene, ragt unten heraus), pulsiert je nach Schwierigkeit (cardHeat)
+    c.glow = c:CreateTexture(nil, "BACKGROUND", nil, -8)
     c.glow:SetTexture(EMBER)
     c.glow:SetBlendMode("ADD")
-    c.glow:SetPoint("BOTTOMLEFT", -20, -30)
-    c.glow:SetPoint("BOTTOMRIGHT", 20, -30)
-    c.glow:SetHeight(120)
+    c.glow:SetPoint("BOTTOMLEFT", -26, -34)
+    c.glow:SetPoint("BOTTOMRIGHT", 26, -34)
+    c.glow:SetHeight(110)
     c.glow:SetAlpha(0)
+    c.heat = 0
+    heatCards[c] = true
+    -- Farbton nach Schwierigkeit, laeuft von unten aus
+    c.diffTint = c:CreateTexture(nil, "ARTWORK", nil, 1)
+    c.diffTint:SetPoint("BOTTOMLEFT") c.diffTint:SetPoint("BOTTOMRIGHT")
+    c.diffTint:SetHeight(70)
     K.Border(c, C.line)
     -- 0.6.306: Oasis-Bildrahmen (rote Linie, abgeschraegte Ecken) wie bei allen Boxen; die alte Randlinie weicht
-    if K.BoxFrame and K.BoxFrame(c) then for _, x in ipairs(c.borders or {}) do x:Hide() end end
+    if K.BoxFrame and K.BoxFrame(c) then
+        for _, x in ipairs(c.borders or {}) do x:Hide() end
+        -- 0.6.311: Flaechen in die abgeschraegten Ecken des Rahmens schneiden (eine gestreckte Maske, max. 3 je Textur)
+        local ok, m = pcall(c.CreateMaskTexture, c)
+        if ok and m then
+            m:SetTexture(ns.MEDIA .. "skins\\card_mask", "CLAMPTOWHITE", "CLAMPTOWHITE")
+            m:SetPoint("TOPLEFT", 1, -1) m:SetPoint("BOTTOMRIGHT", -1, 1)
+            for _, t in ipairs({ c.bg, c.tone, c.art, c.hov, c.shade, c.topShade, c.diffTint }) do
+                if K.MaskSafe then K.MaskSafe(t) end
+                pcall(t.AddMaskTexture, t, m)
+            end
+        end
+    end
     c.band = c:CreateTexture(nil, "OVERLAY", nil, 2)
     c.band:SetPoint("TOPLEFT", 10, -3) c.band:SetPoint("TOPRIGHT", -10, -3)
     c.band:SetHeight(2)
@@ -1293,13 +1349,22 @@ local function fillCard(c, d)
     cardPose(c, c.hz or 0)
     c.bigIcon:SetTexture(d.icon or "Interface\\Icons\\INV_Misc_Book_09")
     c.bigIcon:SetShown(art == nil)
-    c.glow:SetVertexColor(t[1] * 0.6 + 0.4, t[2] * 0.6 + 0.4, t[3] * 0.6 + 0.4)
     c.name:SetText(d.name)
     c.lvl:SetText(d.level ~= "" and d.level or "?")
     local lc = lvlColor(d)
     c.lvl:SetTextColor(lc[1], lc[2], lc[3])
-    c.lvlEdge:SetColorTexture(lc[1], lc[2], lc[3], 1)
-    c.band:SetColorTexture(lc[1], lc[2], lc[3], fits(d) and 1 or 0.55)
+    -- 0.6.311: keine Striche oben mehr; Farbe laeuft stufenlos gruen > gelb > orange > rot (diffColor)
+    c.lvlEdge:Hide()
+    c.band:Hide()
+    local hc, heat = diffColor(d)
+    c.lvl:SetTextColor(hc[1], hc[2], hc[3])
+    if not K.Gradient(c.diffTint, "VERTICAL", { hc[1], hc[2], hc[3], 0.28 }, { hc[1], hc[2], hc[3], 0 }) then c.diffTint:SetColorTexture(hc[1], hc[2], hc[3], 0.12) end
+    c.heat = d.closed and 0 or heat
+    c.glow:SetVertexColor(hc[1], hc[2], hc[3])
+    if c.boxFrame then
+        c.boxFrame.tint = hc
+        for _, g in ipairs(c.boxFrame.glows) do g:SetVertexColor(hc[1], hc[2], hc[3], 1) end
+    end
     local info = { ups = dungeonUps(d), on = d.closed and {} or othersInRange(d), q = 0 }
     if not d.closed then info.q = questCount(d) end
     c.info = info
