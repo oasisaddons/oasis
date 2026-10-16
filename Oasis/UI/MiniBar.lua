@@ -341,9 +341,9 @@ local function build()
         end
         -- 0.6.330: Lichtstreif laeuft alle 5 s entlang der Glutlinie unten
         local sw = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
-        sw:SetSize(110, 2)   -- 0.6.339: langer Schweif hinter dem Licht
+        sw:SetSize(130, 7)   -- 0.6.375: weiche Glut-Textur, Helligkeit ueber die Farbe (ADD + Alpha sprang)
         sw:SetBlendMode("ADD")
-        if not K.Gradient(sw, "HORIZONTAL", { 1, 0.85, 0.7, 0 }, { 1, 0.85, 0.7, 0.9 }) then sw:SetColorTexture(1, 0.85, 0.7, 0.4) end
+        sw:SetTexture(ns.MEDIA .. "ember")
         local sw2 = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
         sw2:SetBlendMode("ADD")
         if not K.Gradient(sw2, "HORIZONTAL", { 1, 0.85, 0.7, 0.9 }, { 1, 0.85, 0.7, 0 }) then sw2:SetColorTexture(1, 0.85, 0.7, 0.4) end
@@ -376,8 +376,8 @@ local function build()
                         sw:ClearAllPoints()
                         sw:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", x, -3)
                         local a = math.sin(swRun * math.pi) * 0.5 * (bar.art.m:GetAlpha() or 1)
-                        sw:SetAlpha(a) sw2:SetAlpha(a)
-                        sw:Show() sw2:Show()
+                        sw:SetVertexColor(1 * a, 0.85 * a, 0.7 * a, 1)
+                        sw:Show() sw2:Hide()
                     end
                 end
             else

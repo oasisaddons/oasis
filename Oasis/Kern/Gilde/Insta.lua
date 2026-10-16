@@ -2371,7 +2371,7 @@ ns.RegisterPage({
                     -- etwas Luft vor der Klapp-Leiste "Weitere Werte"
                     if x.toggle then
                         local pt, rel, rp, px, py = r:GetPoint(1)
-                        if pt then r:SetPoint(pt, rel, rp, px, py - 8) end
+                        if pt and not self.consBox then r:SetPoint(pt, rel, rp, px, py - 8) end   -- 0.6.375: kompakt ohne Versatz (Zeilen ueberlappten)
                     end
                     r.l:SetText(x[1])
                     r.key = x.key
@@ -3051,8 +3051,8 @@ ns.RegisterPage({
             for _, r in ipairs(pr.rows) do
                 r.sheen = r:CreateTexture(nil, "ARTWORK", nil, 2)
                 r.sheen:SetBlendMode("ADD")
-                r.sheen:SetSize(24, 9)
-                if not K.Gradient(r.sheen, "HORIZONTAL", { 1, 1, 1, 0 }, { 1, 1, 1, 0.35 }) then r.sheen:SetColorTexture(1, 1, 1, 0.12) end
+                r.sheen:SetSize(30, 12)
+                r.sheen:SetTexture(ns.MEDIA .. "ember")   -- 0.6.375: weich, Helligkeit ueber die Farbe
                 r.sheen:Hide()
             end
             local shT = 0
@@ -3066,7 +3066,8 @@ ns.RegisterPage({
                     if r:IsShown() and fw > 30 and q > 0 and q < 1 then
                         r.sheen:ClearAllPoints()
                         r.sheen:SetPoint("LEFT", r.fill, "LEFT", q * (fw - 24), 0)
-                        r.sheen:SetAlpha(math.sin(q * math.pi))
+                        local kk = math.sin(q * math.pi) * 0.45
+                        r.sheen:SetVertexColor(kk, kk, kk, 1)
                         r.sheen:Show()
                     else
                         r.sheen:Hide()
@@ -3099,7 +3100,6 @@ ns.RegisterPage({
                     if not r.prog then
                         r.prog = r:CreateTexture(nil, "BORDER", nil, 1)
                         r.prog:SetPoint("TOPLEFT") r.prog:SetPoint("BOTTOMLEFT")
-                        if not K.Gradient(r.prog, "HORIZONTAL", { ac[1], ac[2], ac[3], 0.16 }, { ac[1], ac[2], ac[3], 0.02 }) then r.prog:SetColorTexture(ac[1], ac[2], ac[3], 0.08) end
                     end
                     local g = r:IsShown() and not r.toggle and soon.GoalOf(r.key)
                     if g and g > 0 then
@@ -3107,7 +3107,12 @@ ns.RegisterPage({
                         local v = math.abs(tonumber(tx:match("%-?%d+%.?%d*") or "") or 0)
                         local w = (r:GetWidth() or 0)
                         if w < 20 then w = 300 end
-                        r.prog:SetWidth(math.max(1, w * math.min(1, v / g)))
+                        local q = v / g
+                        r.prog:SetWidth(math.max(1, w * math.min(1, q)))
+                        -- 0.6.375: Farbe nach Qualitaet - weiss, gruen, blau, episch, legendaer
+                        local qc = (q >= 1 and { 1, 0.5, 0 }) or (q >= 0.75 and { 0.64, 0.21, 0.93 }) or (q >= 0.5 and { 0, 0.44, 0.87 })
+                            or (q >= 0.25 and { 0.12, 1, 0 }) or { 1, 1, 1 }
+                        if not K.Gradient(r.prog, "HORIZONTAL", { qc[1], qc[2], qc[3], 0.18 }, { qc[1], qc[2], qc[3], 0.02 }) then r.prog:SetColorTexture(qc[1], qc[2], qc[3], 0.08) end
                         r.prog:SetShown(v > 0)
                     else
                         r.prog:Hide()
@@ -3508,6 +3513,12 @@ ns.RegisterPage({
                 for _, t in ipairs(x.skinLine or {}) do t:SetAlpha(0) end
                 for _, t in ipairs(x.borders or {}) do t:SetAlpha(0) end
             end
+            -- 0.6.375: Box-Flaechen deckender (vorher sehr durchsichtig)
+            local BOXFILL, BOXLINE = { 0.055, 0.055, 0.065, 0.85 }, { 1, 1, 1, 0.08 }
+            function soon:SolidBoxes()
+                for _, x in ipairs({ self.cs, self.pr, self.roleBox }) do if x then IG.Glass(x, BOXFILL, BOXLINE) end end
+                for _, t in ipairs((self.statTiles and self.statTiles.t) or {}) do IG.Glass(t, BOXFILL, BOXLINE) end
+            end
             function soon:NoFrames()
                 for _, x in ipairs({ self.chipR, self.vit, self.consBox }) do noFrame(x) end
                 for _, x in ipairs({ hc, self.cs, self.pr, self.roleBox }) do withFrame(x) end
@@ -3516,6 +3527,7 @@ ns.RegisterPage({
             local up2 = soon.Update
             function soon:Update(fresh)
                 pcall(self.NoFrames, self)
+                pcall(self.SolidBoxes, self)
                 up2(self, fresh)
                 -- Name in Weiss (Entwurf), Rang: "Rang N" in Gold, Titel hell
                 local _, cfx = UnitClass("player")
