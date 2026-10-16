@@ -4576,25 +4576,49 @@ do
         return out
     end
 
+    -- 0.6.401: Koennen im Stil der Werte-Seite - gerundete Zeilen und Leisten
+    local function roundBar(bar, r)
+        for _, rg in ipairs({ bar:GetRegions() }) do
+            if rg.GetObjectType and rg:GetObjectType() == "Texture" and K.RoundMask then pcall(K.RoundMask, rg, bar, r or 4) end
+        end
+    end
+    local function rowBg(row)
+        local t = row:CreateTexture(nil, "BACKGROUND")
+        t:SetPoint("TOPLEFT", -8, 6) t:SetPoint("BOTTOMRIGHT", 8, -4)
+        t:SetColorTexture(1, 1, 1, 0.03)
+        if K.RoundMask then pcall(K.RoundMask, t, row, 8) end
+        return t
+    end
     function PR.Build(h)
         local left = K.Panel(h, C.panel)
-        left:SetPoint("TOPLEFT") left:SetPoint("BOTTOMLEFT") left:SetWidth(370)
+        left:SetPoint("TOPLEFT") left:SetPoint("BOTTOMLEFT") left:SetPoint("RIGHT", h, "CENTER", -6, 0)
         local hd = K.GameHead(left, L["Berufe"], C.amber)
         hd:SetPoint("TOPLEFT", 12, -12) hd:SetPoint("RIGHT", -12, 0)
         h.profRows = {}
         for i = 1, 6 do
             local r = CreateFrame("Frame", nil, left)
-            r:SetPoint("TOPLEFT", 12, -40 - (i - 1) * 62)
-            r:SetPoint("RIGHT", -12, 0)
+            r:SetPoint("TOPLEFT", 22, -48 - (i - 1) * 70)
+            r:SetPoint("RIGHT", -22, 0)
             r:SetHeight(56)
+            r.bgx = rowBg(r)
+            -- Symbol im Farbkreis
+            r.disc = r:CreateTexture(nil, "BORDER")
+            r.disc:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+            r.disc:SetSize(34, 34)
+            r.disc:SetPoint("LEFT", 0, 0)
+            r.disc:SetVertexColor(C.amber[1], C.amber[2], C.amber[3], 0.14)
+            r.ico = K.Glyph(r, 18, ns.MEDIA .. "icons\\crafting", C.amber)
+            r.ico:SetPoint("CENTER", r.disc, "CENTER")
             r.n = K.Text(r, 13, C.text)
-            r.n:SetPoint("TOPLEFT", 0, 0)
-            r.v = K.Text(r, 12, C.muted, "RIGHT")
-            r.v:SetPoint("TOPRIGHT", 0, 0)
-            r.bar = K.Bar(r, 320, 8)
-            r.bar:SetPoint("TOPLEFT", 0, -20) r.bar:SetPoint("RIGHT", 0, 0)
+            r.n:SetPoint("TOPLEFT", 46, -2)
+            r.v = K.Title(r, 15, C.amber, "RIGHT")
+            r.v:SetPoint("TOPRIGHT", 0, -1)
+            r.bar = K.Bar(r, 320, 9)
+            r.bar:SetPoint("TOPLEFT", 46, -22) r.bar:SetPoint("RIGHT", 0, 0)
+            if not K.Gradient(r.bar.fill, "HORIZONTAL", { 0.95, 0.72, 0.38, 1 }, { 1, 0.5, 0.18, 1 }) then r.bar.fill:SetColorTexture(1, 0.6, 0.25, 1) end
+            roundBar(r.bar, 4)
             r.hint = K.Text(r, 10, C.dim)
-            r.hint:SetPoint("TOPLEFT", 0, -34) r.hint:SetPoint("RIGHT", 0, 0)
+            r.hint:SetPoint("TOPLEFT", 46, -38) r.hint:SetPoint("RIGHT", 0, 0)
             r.hint:SetJustifyH("LEFT")
             r:EnableMouse(true)
             r:SetScript("OnEnter", function(self) if self.tip then K.ShowTip(self, self.tip) end end)
@@ -4609,14 +4633,19 @@ do
         right:SetPoint("TOPLEFT", left, "TOPRIGHT", 10, 0) right:SetPoint("BOTTOMRIGHT")
         local hr = K.GameHead(right, L["Ruf"], C.accent)
         hr:SetPoint("TOPLEFT", 12, -12) hr:SetPoint("RIGHT", -12, 0)
-        h.repList = K.List(right, 34, function(l)
+        h.repList = K.List(right, 42, function(l)
             local r = CreateFrame("Frame", nil, l)
+            r.bgx = r:CreateTexture(nil, "BACKGROUND")
+            r.bgx:SetPoint("TOPLEFT", -6, 2) r.bgx:SetPoint("BOTTOMRIGHT", 6, 4)
+            r.bgx:SetColorTexture(1, 1, 1, 0.03)
+            if K.RoundMask then pcall(K.RoundMask, r.bgx, r, 6) end
             r.n = K.Text(r, 12, C.text)
-            r.n:SetPoint("TOPLEFT", 0, -2)
+            r.n:SetPoint("TOPLEFT", 4, -4)
             r.s = K.Text(r, 11, C.muted, "RIGHT")
-            r.s:SetPoint("TOPRIGHT", 0, -2)
-            r.bar = K.Bar(r, 100, 6)
-            r.bar:SetPoint("TOPLEFT", 0, -20) r.bar:SetPoint("RIGHT", 0, 0)
+            r.s:SetPoint("TOPRIGHT", -4, -4)
+            r.bar = K.Bar(r, 100, 7)
+            r.bar:SetPoint("TOPLEFT", 4, -22) r.bar:SetPoint("RIGHT", -4, 0)
+            roundBar(r.bar, 3)
             return r
         end, function(r, x)
             r.n:SetText(x.name)
@@ -4625,7 +4654,7 @@ do
             r.bar.fill:SetColorTexture(c[1], c[2], c[3], 1)
             r.bar:Set(x.p)
         end)
-        h.repList:SetPoint("TOPLEFT", 12, -40)
+        h.repList:SetPoint("TOPLEFT", 18, -42)
         h.repList:SetPoint("BOTTOMRIGHT", -8, 10)
         h.repList.empty:SetText(L["Noch keine Fraktionen entdeckt."])
     end
