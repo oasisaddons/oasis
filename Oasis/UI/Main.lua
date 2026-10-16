@@ -961,7 +961,7 @@ local function buildMain()
         if l and t then ns.db.settings.mainPos = { math.floor(l + 0.5), math.floor(t + 0.5) } end
     end)
     main.icon = K.Glyph(head, 30, nil, C.accent)
-    main.icon:SetPoint("TOPLEFT", 24, -18)
+    main.icon:SetPoint("LEFT", 24, 0)
     main.title = K.Title(head, 18, C.text)
     main.title:SetPoint("LEFT", main.icon, "RIGHT", 12, 0)
     main.sub = K.Text(head, 12, C.muted)
@@ -983,7 +983,7 @@ local function buildMain()
         if m == "always" then return L["Schliessen (die Topbar bleibt)"] end
         return L["Einklappen (an der Leiste: ganz schliessen)"]
     end, true)
-    close:SetPoint("TOPRIGHT", -12, -12)
+    close:SetPoint("RIGHT", -12, 0)   -- 0.6.328: mittig - rechte Leiste auf einer Linie mit dem Titel
     local function hover(b, round)
         local t = b:CreateTexture(nil, "HIGHLIGHT")
         if round then
