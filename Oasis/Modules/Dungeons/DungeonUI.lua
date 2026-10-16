@@ -1213,13 +1213,14 @@ local function buildCard(parent)
     c.topShade:SetPoint("TOPLEFT") c.topShade:SetPoint("TOPRIGHT")
     c.topShade:SetHeight(42)
     gradient(c.topShade, "VERTICAL", 0, 0.55)
-    -- 0.6.311: Glut UNTER der Karte (unterste Ebene, ragt unten heraus), pulsiert je nach Schwierigkeit (cardHeat)
-    c.glow = c:CreateTexture(nil, "BACKGROUND", nil, -8)
+    -- 0.6.311: Glut pulsiert je nach Schwierigkeit (cardHeat); 0.6.318: in der Karte unten ueber dem Bild
+    -- (unter der Karte war sie verdeckt bzw. abgeschnitten), in die Ecken geschnitten
+    c.glow = c:CreateTexture(nil, "ARTWORK", nil, 2)
     c.glow:SetTexture(EMBER)
     c.glow:SetBlendMode("ADD")
-    c.glow:SetPoint("BOTTOMLEFT", -26, -34)
-    c.glow:SetPoint("BOTTOMRIGHT", 26, -34)
-    c.glow:SetHeight(110)
+    c.glow:SetPoint("BOTTOMLEFT", 0, 0)
+    c.glow:SetPoint("BOTTOMRIGHT", 0, 0)
+    c.glow:SetHeight(120)
     c.glow:SetAlpha(0)
     c.heat = 0
     heatCards[c] = true
@@ -1228,15 +1229,15 @@ local function buildCard(parent)
     c.diffTint:SetPoint("BOTTOMLEFT") c.diffTint:SetPoint("BOTTOMRIGHT")
     c.diffTint:SetHeight(70)
     K.Border(c, C.line)
-    -- 0.6.306: Oasis-Bildrahmen (rote Linie, abgeschraegte Ecken) wie bei allen Boxen; die alte Randlinie weicht
-    if K.BoxFrame and K.BoxFrame(c) then
-        for _, x in ipairs(c.borders or {}) do x:Hide() end
+    -- 0.6.318: Bild-Karten ohne Rahmen (das Bild ist die Flaeche) - nur in abgeschraegte Ecken geschnitten
+    for _, x in ipairs(c.borders or {}) do x:Hide() end
+    do
         -- 0.6.311: Flaechen in die abgeschraegten Ecken des Rahmens schneiden (eine gestreckte Maske, max. 3 je Textur)
         local ok, m = pcall(c.CreateMaskTexture, c)
         if ok and m then
             m:SetTexture(ns.MEDIA .. "skins\\card_mask", "CLAMPTOWHITE", "CLAMPTOWHITE")
             m:SetPoint("TOPLEFT", 1, -1) m:SetPoint("BOTTOMRIGHT", -1, 1)
-            for _, t in ipairs({ c.bg, c.tone, c.art, c.hov, c.shade, c.topShade, c.diffTint }) do
+            for _, t in ipairs({ c.bg, c.tone, c.art, c.hov, c.shade, c.topShade, c.diffTint, c.glow }) do
                 if K.MaskSafe then K.MaskSafe(t) end
                 pcall(t.AddMaskTexture, t, m)
                 t.ownMask = true   -- K.ClipBox laesst sie in Ruhe
