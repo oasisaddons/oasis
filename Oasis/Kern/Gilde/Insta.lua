@@ -880,7 +880,7 @@ ns.RegisterPage({
         soon:SetFrameLevel(p:GetFrameLevel() + 50)
         soon:EnableMouse(true)
         -- deckend: darunter liegt die (noch versteckte) Oasigram-Seite
-        K.Fill(soon, { 0.045, 0.045, 0.052, 1 })   -- 0.6.366: neutral dunkel statt Design-Grundfarbe (wirkte rotbraun)
+        soon.pageBg = K.Fill(soon, { 0.045, 0.045, 0.052, 1 })   -- 0.6.366: neutral dunkel statt Design-Grundfarbe (wirkte rotbraun)
         -- Profil 2026: Hoehen der Kopfzeile/Reiter und Beginn der Inhalte (mit/ohne Unterreiter)
         -- 0.6.318: groesserer Kopf (170) und hoehere Reiterleiste (46) wie im Entwurf
         soon.HEAD_H, soon.NAV_Y, soon.SUB_Y, soon.TOP, soon.TOP_SUB = 150, -160, -216, -218, -248
@@ -3092,10 +3092,27 @@ ns.RegisterPage({
                     local c = PRIO_COL[i] or PRIO_COL[#PRIO_COL]
                     r.fill:SetColorTexture(c[1], c[2], c[3], 1)
                     local q = goals[i] and goals[i] > 0 and vals[i] / goals[i] or 0
+                    r.diag = { vals[i], goals[i], q, W }
                     r.fill:SetWidth(math.max(1, W * 0.32 * math.max(0.04, math.min(1, q))))
                     r.num:SetTextColor(C.amber[1], C.amber[2], C.amber[3])
                     r.val:SetTextColor(C.text[1], C.text[2], C.text[3])
                     r.bg:SetColorTexture(1, 1, 1, 0.025)
+                end
+            end
+            -- 0.6.367: Diagnose fuer den Profil-Kopf/Werte (/oa profildiag) - schreibt die echten Werte in den Chat
+            ns.slash.profildiag = function()
+                local pb = soon.pageBg
+                if pb then
+                    local r, g, b, a = pb:GetVertexColor()
+                    ns.print(("Seitenflaeche: shown=%s alpha=%.2f vc=%.2f,%.2f,%.2f,%.2f layer=%s soonAlpha=%.2f"):format(
+                        tostring(pb:IsShown()), pb:GetAlpha() or -1, r or -1, g or -1, b or -1, a or -1, tostring(pb:GetDrawLayer()), soon:GetAlpha() or -1))
+                end
+                for i, r in ipairs(pr.rows) do
+                    if r:IsShown() then
+                        local d = r.diag or {}
+                        ns.print(("Prio %d %s | text=%q wert=%s ziel=%s q=%s W=%s fill=%s"):format(i, tostring(r.name:GetText()), tostring(r.val:GetText()),
+                            tostring(d[1]), tostring(d[2]), tostring(d[3]), tostring(d[4]), tostring(r.fill and r.fill:GetWidth())))
+                    end
                 end
             end
             -- 0.6.354: "So spielst du es" entfaellt im Profil
