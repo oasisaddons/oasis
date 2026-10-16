@@ -3019,7 +3019,7 @@ ns.RegisterPage({
             if cs.SetClipsChildren then cs:SetClipsChildren(true) end   -- Verbrauchsgueter liefen unten heraus
             local tiles = CreateFrame("Frame", nil, view)
             tiles:SetPoint("TOPLEFT", view, "TOPLEFT", 0, 0)
-            tiles:SetPoint("RIGHT", view, "CENTER", -6, 0)   -- 0.6.326: halbe Breite, Kasten rechts bekommt die andere Haelfte
+            tiles:SetPoint("RIGHT", view, "CENTER", -50, 0)   -- 0.6.344: Kasten rechts braucht etwas mehr Platz   -- 0.6.326: halbe Breite, Kasten rechts bekommt die andere Haelfte
             tiles:SetHeight(ROW)
             soon.statTiles = tiles   -- soon.tiles ist schon belegt (Abzeichen-Kacheln)
             local DEF = {
@@ -3037,7 +3037,7 @@ ns.RegisterPage({
                 t.lbl = K.Text(t, 11, C.muted)
                 t.lbl:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 12, 2)
                 t.lbl:SetText(L[d.label])
-                t.val = K.Title(t, 17, C.text)
+                t.val = K.Title(t, 21, C.text)
                 t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -4)
                 t.track = t:CreateTexture(nil, "ARTWORK")
                 t.track:SetColorTexture(1, 1, 1, 0.08)
@@ -3100,33 +3100,45 @@ ns.RegisterPage({
                 local bar = self.roleSeg
                 if not bar or bar.inBox then return end
                 bar.inBox = true
-                local inner = (rb:GetWidth() or 278) - 24
-                if inner < 60 then inner = 254 end
-                bar:ClearAllPoints()
-                -- nebeneinander: links Spezialisierung, rechts Wunschrolle (je mit Ueberschrift)
-                local rcW = math.floor(inner * 0.46)
-                local room = inner - rcW - 16
-                local bw = bar:GetWidth() or room
-                local sc = math.min(1, room / math.max(1, bw))
-                bar:SetScale(sc)
-                bar:SetPoint("TOPLEFT", rb, "TOPLEFT", 12 / sc, -32 / sc)
+                -- 0.6.344: nebeneinander, beide in natuerlicher Groesse; nur wenn es nicht passt, gemeinsam verkleinern.
+                -- Wird bei jeder Groessenaenderung neu gerechnet (beim Bauen war der Kasten noch 0 breit).
                 local rc = self.roleChips
-                if rc then
-                    rc:ClearAllPoints()
-                    rc:SetWidth(math.max(1, rcW))
-                    rc:SetPoint("TOPRIGHT", rb, "TOPRIGHT", -12, -32)
-                    if rc.chips then
-                        local n = #rc.chips
-                        local cw = (rcW - 6 * (n - 1)) / math.max(1, n)
+                local function layout()
+                    local inner = (rb:GetWidth() or 0) - 24
+                    if inner < 120 then return end
+                    local cwList, cwTotal = {}, 0
+                    if rc and rc.chips then
                         for i, b in ipairs(rc.chips) do
-                            b:ClearAllPoints()
-                            b:SetSize(cw, 30)
-                            b:SetPoint("LEFT", (i - 1) * (cw + 6), 0)
+                            local w = math.ceil((b.label and b.label:GetStringWidth() or 40) + 44)
+                            cwList[i] = w
+                            cwTotal = cwTotal + w + (i > 1 and 6 or 0)
                         end
                     end
-                    rb.l2:ClearAllPoints()
-                    rb.l2:SetPoint("BOTTOMLEFT", rc, "TOPLEFT", 0, 6)
+                    bar:SetScale(1)
+                    local bw = bar:GetWidth() or 200
+                    local sc = math.min(1, inner / math.max(1, bw + 24 + cwTotal))
+                    bar:SetScale(sc)
+                    bar:ClearAllPoints()
+                    bar:SetPoint("TOPLEFT", rb, "TOPLEFT", 12 / sc, -32 / sc)
+                    if rc then
+                        rc:SetScale(sc)
+                        rc:ClearAllPoints()
+                        rc:SetWidth(math.max(1, cwTotal))
+                        rc:SetHeight(30)
+                        rc:SetPoint("TOPRIGHT", rb, "TOPRIGHT", -12 / sc, -32 / sc)
+                        local x = 0
+                        for i, b in ipairs(rc.chips or {}) do
+                            b:ClearAllPoints()
+                            b:SetSize(cwList[i], 30)
+                            b:SetPoint("LEFT", rc, "LEFT", x, 0)
+                            x = x + cwList[i] + 6
+                        end
+                        rb.l2:ClearAllPoints()
+                        rb.l2:SetPoint("BOTTOMLEFT", rc, "TOPLEFT", 0, 6)
+                    end
                 end
+                rb:HookScript("OnSizeChanged", function() pcall(layout) end)
+                pcall(layout)
                 if self.roleLbl then
                     self.roleLbl:ClearAllPoints()
                     self.roleLbl:Hide()
