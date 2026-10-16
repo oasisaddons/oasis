@@ -3504,11 +3504,15 @@ ns.RegisterPage({
                     self.emb:SetFrameLevel(base + 6)
                     self.emb:Show()
                 end
-                local frac = (num(self.pct and self.pct:GetText()) or 0) / 100
+                -- 0.6.403: eigene Zahlerkennung (hier gilt eine lokale num, die "97 %" nicht liest)
+                local pt = tostring(self.pct and self.pct:GetText() or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub(",", ".")
+                local frac = (tonumber(pt:match("%d+%.?%d*") or "") or 0) / 100
                 frac = math.max(0, math.min(1, frac))
+                -- fast leer: kein Gold, nur blasse Spur (die Cooldown-Flaeche zeigt bei ~0 kein verlaessliches Bild)
+                lr.gold:SetVertexColor(am[1], am[2], am[3], frac < 0.01 and 0.15 or 1)
                 if lr.cd then
                     -- abgelaufen = Fortschritt, die dunkle Flaeche deckt den Rest ab
-                    if frac >= 0.999 then lr.cd:Hide() else
+                    if frac >= 0.999 or frac < 0.01 then lr.cd:Hide() else
                         lr.cd:Show()
                         local D = 1000
                         lr.cd:SetCooldown(GetTime() - frac * D, D)
@@ -3517,6 +3521,8 @@ ns.RegisterPage({
                 end
             end
             hc:HookScript("OnShow", function() ns.After(0.05, function() pcall(soon.FillRing, soon) end) end)
+            -- Rang geaendert (Aufstieg, neue XP): Kopf samt Ring neu fuellen
+            ns.Listen("RANK", function() if soon:IsVisible() then pcall(soon.Update, soon) end end)
             -- 0.6.324: Stift vor "Visitenkarte bearbeiten", Pfeil in der Belohnungskarte
             soon.cardPen = hc:CreateTexture(nil, "ARTWORK")
             soon.cardPen:SetTexture("Interface\\Buttons\\UI-GuildButton-PublicNote-Up")
