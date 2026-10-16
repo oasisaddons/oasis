@@ -3094,10 +3094,44 @@ ns.RegisterPage({
                     K.SetFontSafe(self.roleLbl, K.FONT, 11, "", K.FONT)
                 end
             end
+            -- 0.6.322: Ring ums Portraet fuellt sich mit dem Level-Stand (Klassenfarbe, im Uhrzeigersinn)
+            local RING = ns.MEDIA .. "level_ring"
+            local lr = CreateFrame("Frame", nil, hc)
+            lr:SetPoint("CENTER", soon.av, "CENTER", 0, 0)
+            lr:SetFrameLevel(soon.av:GetFrameLevel() + 6)
+            lr.track = lr:CreateTexture(nil, "ARTWORK")
+            lr.track:SetAllPoints()
+            lr.track:SetTexture(RING)
+            lr.track:SetVertexColor(1, 1, 1, 0.08)
+            local okCd, cd = pcall(CreateFrame, "Cooldown", nil, lr)
+            if okCd and cd then
+                cd:SetAllPoints()
+                pcall(cd.SetSwipeTexture, cd, RING)
+                pcall(cd.SetDrawEdge, cd, false)
+                pcall(cd.SetDrawBling, cd, false)
+                pcall(cd.SetHideCountdownNumbers, cd, true)
+                lr.cd = cd
+            end
+            soon.levelRing = lr
+            function soon:FillRing()
+                local s = (self.av:GetWidth() or 70) * (self.av:GetEffectiveScale() / lr:GetEffectiveScale()) + 10
+                lr:SetSize(s, s)
+                local cur, max = num(ns.safe(UnitXP("player"))) or 0, num(ns.safe(UnitXPMax("player"))) or 0
+                local frac = max > 0 and math.max(0, math.min(1, cur / max)) or 1
+                local _, cf = UnitClass("player")
+                local r, g, b = ns.classColor(ns.safe(cf))
+                if not lr.cd then return end
+                lr.cd:SetSwipeColor(r or 1, g or 0.4, b or 0.4, 0.95)
+                -- Cooldown als stehender Fortschritt: Anteil "abgelaufen" = Level-Stand, dann anhalten
+                local D = 1000
+                lr.cd:SetCooldown(GetTime() - D * (1 - frac), D)
+                if lr.cd.Pause then pcall(lr.cd.Pause, lr.cd) end
+            end
             local up2 = soon.Update
             function soon:Update(fresh)
                 up2(self, fresh)
                 pcall(self.FillTiles, self)
+                pcall(self.FillRing, self)
             end
         end
         p.soon = soon
