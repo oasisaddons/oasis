@@ -1261,6 +1261,17 @@ ns.RegisterPage({
         y.timeL = K.Text(y.hero, 11, C.muted, "RIGHT")
         y.timeL:SetPoint("TOPRIGHT", y.timeV, "BOTTOMRIGHT", 0, -4)
         for _, fs in ipairs({ y.kicker, y.name, y.cls, y.since }) do fs:SetPoint("RIGHT", y.hero, "RIGHT", -190, 0) end
+        -- 0.6.395: Portraet, Name und Klasse stehen schon im Profil-Kopf - hier nur Jahr, "seit" und die Spielzeit
+        y.portrait:Hide() y.ring:Hide() y.name:Hide() y.cls:Hide()
+        y.hero:SetHeight(62)
+        y.kicker:ClearAllPoints()
+        y.kicker:SetPoint("TOPLEFT", y.hero, "TOPLEFT", 18, -14)
+        K.SetFontSafe(y.kicker, K.FONT_HEAD, 16, "", K.FONT)
+        y.kicker:SetTextColor(C.text[1], C.text[2], C.text[3])
+        y.since:ClearAllPoints()
+        y.since:SetPoint("TOPLEFT", y.kicker, "BOTTOMLEFT", 0, -6)
+        y.timeV:ClearAllPoints()
+        y.timeV:SetPoint("TOPRIGHT", y.hero, "TOPRIGHT", -18, -12)
 
         -- Kennzahlen: vier Gruppen nebeneinander, je eine Spalte Glas-Kacheln mit Symbol
         -- 0.6.370: Farbe je Gruppe (Symbol im Farbkreis wie die Werte-Kacheln im Profil)
@@ -1334,7 +1345,7 @@ ns.RegisterPage({
             if W < 200 then W = 745 end
             local gap = 10
             local cw = math.floor((W - gap * 3) / 4)
-            local top = 96 + 14
+            local top = (y.hero:GetHeight() or 96) + 14
             for gi, col in ipairs(y.groups) do
                 col:ClearAllPoints()
                 col:SetPoint("TOPLEFT", y.body, "TOPLEFT", (gi - 1) * (cw + gap), -top)

@@ -801,6 +801,13 @@ function IG.ProfileTabs(parent, items, onChange)
     f.ind.shine:SetPoint("BOTTOMRIGHT", f.ind.line, "TOPRIGHT", 6, 0)
     f.ind.shine:SetHeight(10)
     if not K.Gradient(f.ind.shine, "VERTICAL", { ac[1], ac[2], ac[3], 0.35 }, { ac[1], ac[2], ac[3], 0 }) then f.ind.shine:Hide() end
+    -- 0.6.395: Unterstrich und Schein pulsieren sanft (aus mit "Animationen aus")
+    f.ind:SetScript("OnUpdate", function(self)
+        if ns.db and ns.db.settings.noAnim then self.shine:SetAlpha(1) return end
+        local k = 0.65 + 0.35 * math.sin(GetTime() * 2.4)
+        self.shine:SetAlpha(k)
+        self.line:SetAlpha(0.8 + 0.2 * k)
+    end)
     for i, it in ipairs(items) do
         local b = CreateFrame("Button", nil, f)
         b:SetFrameLevel(f.ind:GetFrameLevel() + 2)
@@ -811,6 +818,14 @@ function IG.ProfileTabs(parent, items, onChange)
         b.label:SetText(it.text)
         b.label:SetWordWrap(false)
         b:SetScript("OnClick", function() f:Select(it.key, true) end)
+        -- 0.6.395: leichter Schein beim Drueberfahren
+        b.hov = b:CreateTexture(nil, "BACKGROUND")
+        b.hov:SetPoint("BOTTOMLEFT", 8, 0) b.hov:SetPoint("BOTTOMRIGHT", -8, 0)
+        b.hov:SetHeight(TH - 12)
+        if not K.Gradient(b.hov, "VERTICAL", { 1, 1, 1, 0.06 }, { 1, 1, 1, 0 }) then b.hov:SetColorTexture(1, 1, 1, 0.03) end
+        b.hov:Hide()
+        b:HookScript("OnEnter", function(self) if f.value ~= self.key then self.hov:Show() end end)
+        b:HookScript("OnLeave", function(self) self.hov:Hide() end)
         b:SetScript("OnEnter", function(self)
             if f.value ~= self.key then self.label:SetTextColor(C.text[1], C.text[2], C.text[3]) self.ico:SetVertexColor(C.text[1], C.text[2], C.text[3]) end
         end)
@@ -3057,6 +3072,11 @@ ns.RegisterPage({
                 r.sheen:SetSize(30, 12)
                 r.sheen:SetTexture(ns.MEDIA .. "ember")   -- 0.6.375: weich, Helligkeit ueber die Farbe
                 r.sheen:Hide()
+                -- 0.6.394: feine schraege Streifen laufen dauerhaft ueber den gefuellten Teil
+                r.stripe = r:CreateTexture(nil, "ARTWORK", nil, 3)
+                r.stripe:SetTexture(ns.MEDIA .. "stripes", "REPEAT", "REPEAT")
+                r.stripe:SetHorizTile(true)
+                r.stripe:SetAllPoints(r.fill)
             end
             local shT = 0
             pr:HookScript("OnUpdate", function(_, el)
@@ -3065,10 +3085,16 @@ ns.RegisterPage({
                 shT = (shT + (el or 0)) % 2.4
                 local p = shT / 2.4
                 local br = 0.88 + 0.12 * math.sin(GetTime() * 2.2)
+                local off = -(GetTime() * 0.6) % 1
                 for i, r in ipairs(pr.rows) do
                     local fw = r.fill and r.fill:GetWidth() or 0
                     local q = (p - (i - 1) * 0.08) % 1
                     if r.fill and r.fillCol then local fc = r.fillCol r.fill:SetVertexColor(fc[1] * br, fc[2] * br, fc[3] * br, 1) end
+                    if r.stripe and r.fill then
+                        local fwS = r.fill:GetWidth() or 1
+                        r.stripe:SetTexCoord(off, off + fwS / 16, 0, (r.fill:GetHeight() or 9) / 16)
+                        r.stripe:SetShown(r:IsShown() and fwS > 6)
+                    end
                     if r:IsShown() and fw > 30 then
                         r.sheen:ClearAllPoints()
                         r.sheen:SetPoint("LEFT", r.fill, "LEFT", q * (fw - 24), 0)
