@@ -880,7 +880,7 @@ ns.RegisterPage({
         soon:SetFrameLevel(p:GetFrameLevel() + 50)
         soon:EnableMouse(true)
         -- deckend: darunter liegt die (noch versteckte) Oasigram-Seite
-        K.Fill(soon, { C.bg[1], C.bg[2], C.bg[3], 1 })
+        K.Fill(soon, { 0.045, 0.045, 0.052, 1 })   -- 0.6.366: neutral dunkel statt Design-Grundfarbe (wirkte rotbraun)
         -- Profil 2026: Hoehen der Kopfzeile/Reiter und Beginn der Inhalte (mit/ohne Unterreiter)
         -- 0.6.318: groesserer Kopf (170) und hoehere Reiterleiste (46) wie im Entwurf
         soon.HEAD_H, soon.NAV_Y, soon.SUB_Y, soon.TOP, soon.TOP_SUB = 150, -160, -216, -218, -248
