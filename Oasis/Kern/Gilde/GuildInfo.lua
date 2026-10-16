@@ -1955,30 +1955,78 @@ ns.RegisterPage({
                 d:SetVertexColor(1, 1, 1, on and 0.8 or 0.25)
             end
         end
+        -- 0.6.323: manuell umschalten (Pfeile, Punkte), Ladeleiste bis zum naechsten Wechsel, Pause unter der Maus
+        local SLIDE = 8
+        function sp:Go(to)
+            local l = self.list
+            if not l or #l < 2 or self.fade then return end
+            self.idx = ((to - 1) % #l) + 1
+            self.back = (self.front == self.a) and self.b or self.a
+            self:Fill(self.back, l[self.idx])
+            self:Dots()
+            if ns.db and ns.db.settings.noAnim then
+                self.front:SetAlpha(0) self.back:SetAlpha(1)
+                self.front, self.back = self.back, nil
+                self.t = 0
+            else
+                self.fade, self.t = true, 0
+            end
+        end
+        sp.prog = sp:CreateTexture(nil, "OVERLAY")
+        sp.prog:SetPoint("BOTTOMLEFT", 8, 4)
+        sp.prog:SetHeight(2)
+        sp.prog:SetWidth(1)
+        sp.prog:SetColorTexture(1, 0.82, 0.42, 0.7)
+        sp.progTrack = sp:CreateTexture(nil, "OVERLAY", nil, -1)
+        sp.progTrack:SetPoint("BOTTOMLEFT", 8, 4) sp.progTrack:SetPoint("BOTTOMRIGHT", -30, 4)
+        sp.progTrack:SetHeight(2)
+        sp.progTrack:SetColorTexture(1, 1, 1, 0.08)
+        local function arrow(dir)
+            local b = CreateFrame("Button", nil, sp)
+            b:SetSize(22, 40)
+            b:SetPoint(dir < 0 and "LEFT" or "RIGHT", sp, dir < 0 and "LEFT" or "RIGHT", dir < 0 and 2 or -2, 0)
+            b:SetFrameLevel(sp:GetFrameLevel() + 10)
+            b.t = K.Text(b, 18, C.text, "CENTER")
+            b.t:SetPoint("CENTER")
+            b.t:SetText(dir < 0 and "<" or ">")
+            b:SetAlpha(0)
+            b:SetScript("OnClick", function() sp:Go(sp.idx + dir) end)
+            b:SetScript("OnEnter", function(self) self:SetAlpha(1) end)
+            b:SetScript("OnLeave", function(self) self:SetAlpha(sp:IsMouseOver() and 0.6 or 0) end)
+            return b
+        end
+        sp.prev, sp.next = arrow(-1), arrow(1)
+        for i, d in ipairs(sp.dots) do
+            local hb = CreateFrame("Button", nil, sp)
+            hb:SetSize(10, 10)
+            hb:SetPoint("CENTER", d, "CENTER")
+            hb:SetFrameLevel(sp:GetFrameLevel() + 10)
+            hb:SetScript("OnClick", function() if sp.idx ~= i then sp:Go(i) end end)
+        end
         sp:SetScript("OnUpdate", function(self, el)
             local l = self.list
-            if not l or #l < 2 then return end
-            self.t = self.t + el
+            local multi = l and #l > 1
+            self.prog:SetShown(multi and true or false)
+            self.progTrack:SetShown(multi and true or false)
+            local over = self:IsMouseOver()
+            local a = (multi and over) and 0.6 or 0
+            for _, b in ipairs({ self.prev, self.next }) do
+                b:SetShown(multi and true or false)
+                if not b:IsMouseOver() then b:SetAlpha(a) end
+            end
+            if not multi then return end
             if self.fade then
+                self.t = self.t + el
                 local q = math.min(1, (self.t) / 0.6)
                 self.front:SetAlpha(1 - q)
                 self.back:SetAlpha(q)
                 if q >= 1 then self.front, self.back, self.fade = self.back, nil, nil self.t = 0 end
                 return
             end
-            if self.t >= 8 then
-                self.idx = self.idx % #l + 1
-                self.back = (self.front == self.a) and self.b or self.a
-                self:Fill(self.back, l[self.idx])
-                self:Dots()
-                if ns.db and ns.db.settings.noAnim then
-                    self.front:SetAlpha(0) self.back:SetAlpha(1)
-                    self.front, self.back = self.back, nil
-                    self.t = 0
-                else
-                    self.fade, self.t = true, 0
-                end
-            end
+            if not over then self.t = self.t + el end   -- unter der Maus steht der Wechsel
+            local w = (self.progTrack:GetWidth() or 0)
+            self.prog:SetWidth(math.max(1, w * math.min(1, self.t / SLIDE)))
+            if self.t >= SLIDE then self:Go(self.idx + 1) end
         end)
         sp:SetScript("OnClick", function(self)
             local it = self.list and self.list[self.idx]
