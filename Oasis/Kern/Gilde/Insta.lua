@@ -3019,7 +3019,7 @@ ns.RegisterPage({
             if cs.SetClipsChildren then cs:SetClipsChildren(true) end   -- Verbrauchsgueter liefen unten heraus
             local tiles = CreateFrame("Frame", nil, view)
             tiles:SetPoint("TOPLEFT", view, "TOPLEFT", 0, 0)
-            tiles:SetPoint("RIGHT", view, "CENTER", -50, 0)   -- 0.6.344: Kasten rechts braucht etwas mehr Platz   -- 0.6.326: halbe Breite, Kasten rechts bekommt die andere Haelfte
+            tiles:SetPoint("RIGHT", view, "CENTER", -6, 0)   -- 0.6.345: wieder halbe Breite (Kasten rechts passt sich selbst an)   -- 0.6.326: halbe Breite, Kasten rechts bekommt die andere Haelfte
             tiles:SetHeight(ROW)
             soon.statTiles = tiles   -- soon.tiles ist schon belegt (Abzeichen-Kacheln)
             local DEF = {
@@ -3134,7 +3134,9 @@ ns.RegisterPage({
                             x = x + cwList[i] + 6
                         end
                         rb.l2:ClearAllPoints()
-                        rb.l2:SetPoint("BOTTOMLEFT", rc, "TOPLEFT", 0, 6)
+                        -- Ueberschrift auf einer Hoehe mit "Spezialisierung"
+                        rb.l2:SetPoint("LEFT", rc, "LEFT", 0, 0)
+                        rb.l2:SetPoint("TOP", rb, "TOP", 0, -10)
                     end
                 end
                 rb:HookScript("OnSizeChanged", function() pcall(layout) end)
