@@ -3019,7 +3019,7 @@ ns.RegisterPage({
             if cs.SetClipsChildren then cs:SetClipsChildren(true) end   -- Verbrauchsgueter liefen unten heraus
             local tiles = CreateFrame("Frame", nil, view)
             tiles:SetPoint("TOPLEFT", view, "TOPLEFT", 0, 0)
-            tiles:SetPoint("RIGHT", view, "CENTER", -6, 0)   -- 0.6.345: wieder halbe Breite (Kasten rechts passt sich selbst an)   -- 0.6.326: halbe Breite, Kasten rechts bekommt die andere Haelfte
+            tiles:SetPoint("RIGHT", view, "RIGHT", -162, 0)   -- 0.6.349: Kasten rechts nur noch Spezialisierung (~150), Kacheln bekommen den Rest   -- 0.6.326: halbe Breite, Kasten rechts bekommt die andere Haelfte
             tiles:SetHeight(ROW)
             soon.statTiles = tiles   -- soon.tiles ist schon belegt (Abzeichen-Kacheln)
             local DEF = {
@@ -3104,7 +3104,10 @@ ns.RegisterPage({
                 bar.inBox = true
                 -- 0.6.344: nebeneinander, beide in natuerlicher Groesse; nur wenn es nicht passt, gemeinsam verkleinern.
                 -- Wird bei jeder Groessenaenderung neu gerechnet (beim Bauen war der Kasten noch 0 breit).
-                local rc = self.roleChips
+                -- 0.6.349: Wunschrolle gehoert zu den Gruppen - im Profil nicht mehr zeigen
+                if self.roleChips then self.roleChips:Hide() self.roleChips.Show = function() end end
+                rb.l2:Hide()
+                local rc = nil
                 local function layout()
                     local inner = (rb:GetWidth() or 0) - 24
                     if inner < 120 then return end
@@ -3119,6 +3122,22 @@ ns.RegisterPage({
                             cwTotal = cwTotal + w + (i > 1 and 6 or 0)
                         end
                     end
+                    -- 0.6.349: Spezialisierung ebenfalls nur als Symbole (Name im Tooltip)
+                    local bx = 0
+                    for _, b in ipairs(bar.btns or {}) do
+                        if b.t then b.t:Hide() end
+                        if b.icon then b.icon:ClearAllPoints() b.icon:SetPoint("CENTER") end
+                        b:SetSize(30, 26)
+                        b:ClearAllPoints()
+                        b:SetPoint("LEFT", bar, "LEFT", bx, 0)
+                        bx = bx + 30 + 6
+                        if not b.tipHooked then
+                            b.tipHooked = true
+                            b:HookScript("OnEnter", function(self) if self.t then K.ShowTip(self, { self.t:GetText() or "" }) end end)
+                            b:HookScript("OnLeave", function() GameTooltip:Hide() end)
+                        end
+                    end
+                    bar:SetWidth(math.max(1, bx - 6))
                     bar:SetScale(1)
                     local bw = bar:GetWidth() or 200
                     local sc = math.min(1, inner / math.max(1, bw + 24 + cwTotal))
