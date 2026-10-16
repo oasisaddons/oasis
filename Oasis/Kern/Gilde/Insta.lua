@@ -3136,40 +3136,21 @@ ns.RegisterPage({
                 end
             end
             -- 0.6.322: Ring ums Portraet; 0.6.329: zeigt den Fortschritt im Oasis-Rang (Gold), ab 12 Uhr im Uhrzeigersinn
-            -- 0.6.333: Ring aus 72 Segmenten (Cooldown-Swipe zeigte im Spiel nichts); Gold = Rang-Fortschritt ab 12 Uhr
-            local lr = CreateFrame("Frame", nil, hc)
-            lr:SetPoint("CENTER", soon.av, "CENTER", 0, 0)
-            lr:SetFrameLevel(soon.av:GetFrameLevel() + 6)
-            lr:SetSize(10, 10)
-            lr.seg = {}
-            local NSEG = 72
-            for i = 1, NSEG do
-                local t = lr:CreateTexture(nil, "ARTWORK")
-                t:SetColorTexture(1, 1, 1, 1)
-                lr.seg[i] = t
+            -- 0.6.336: Rang-Ring mit dem bewaehrten Baustein der Tagesziel-Ringe (K.ActivityRings, Cooldown-Swipe);
+            -- haengt am Portraet selbst und liegt damit sicher ueber dessen Rahmen. Nur der aeussere Ring wird genutzt.
+            local am = C.amber
+            local ar = K.ActivityRings(soon.av, (soon.av.size or 70) + 22, { am, am, am })
+            ar:SetPoint("CENTER", soon.av, "CENTER", 0, 0)
+            for i = 2, 3 do
+                local r = ar.rings[i]
+                for _, x in ipairs({ r.track, r.cd, r.cd2, r.fill, r.cap }) do if x then x:Hide() x.Show = function() end end end
             end
-            soon.levelRing = lr
+            if ar.glow then ar.glow:Hide() ar.glow.Show = function() end end
+            soon.levelRing = ar
             function soon:FillRing()
-                -- Radius: knapp ausserhalb des Portraetrahmens
-                -- ueber dem Portraetrahmen halten (der Rahmen setzt seine Ebene spaeter selbst)
-                lr:SetFrameStrata(self.av:GetFrameStrata())
-                lr:SetFrameLevel(math.min(9000, self.av:GetFrameLevel() + 30))
-                lr:Show()
-                local sc = self.av:GetEffectiveScale() / lr:GetEffectiveScale()
-                local rad = ((self.av.size or 70) / 2 + 9) * sc
-                local w, h = math.max(2, rad * 0.06), math.max(4, rad * 0.075)
                 local frac = (num(self.pct and self.pct:GetText()) or 0) / 100
                 frac = math.max(0, math.min(1, frac))
-                local on = math.floor(frac * NSEG + 0.5)
-                local am = C.amber
-                for i, t in ipairs(lr.seg) do
-                    local a = (i - 0.5) / NSEG * math.pi * 2
-                    t:SetSize(w, h)
-                    t:ClearAllPoints()
-                    t:SetPoint("CENTER", lr, "CENTER", rad * math.sin(a), rad * math.cos(a))
-                    t:SetRotation(-a)
-                    if i <= on then t:SetVertexColor(am[1], am[2], am[3], 1) else t:SetVertexColor(1, 1, 1, 0.10) end
-                end
+                ar:Set({ frac, 0, 0 }, false)
             end
             -- 0.6.324: Stift vor "Visitenkarte bearbeiten", Pfeil in der Belohnungskarte
             soon.cardPen = hc:CreateTexture(nil, "ARTWORK")
