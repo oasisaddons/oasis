@@ -2822,7 +2822,7 @@ ns.RegisterPage({
             vit.num:SetPoint("TOPLEFT", vit.lbl, "BOTTOMLEFT", 0, -4)
             K.SetFontSafe(vit.num, K.FONT_HEAD, 18, "", K.FONT)
             vit.pct:ClearAllPoints()
-            vit.pct:SetPoint("LEFT", vit.of, "RIGHT", 8, 0)
+            vit.pct:SetPoint("LEFT", vit.lbl, "RIGHT", 8, 0)   -- 0.6.360: neben der Ueberschrift (stiess sonst an die Abzeichen)
             vit.pct:SetJustifyH("LEFT")
             vit.pct:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
             for i, b in ipairs(vit.icons) do
@@ -3023,7 +3023,8 @@ ns.RegisterPage({
                 K.SetFontSafe(r.num, K.FONT_HEAD, 15, "", K.FONT)
                 r.name:ClearAllPoints()
                 r.name:SetPoint("LEFT", r.box, "RIGHT", 14, 0)
-                K.SetFontSafe(r.name, K.FONT, 13, "", K.FONT)
+                K.SetFontSafe(r.name, K.FONT, 12, "", K.FONT)
+                r.name:SetJustifyH("LEFT")
                 r.val:ClearAllPoints()
                 r.val:SetPoint("RIGHT", r, "RIGHT", -10, 0)
                 K.SetFontSafe(r.val, K.FONT, 13, "", K.FONT)
@@ -3037,6 +3038,16 @@ ns.RegisterPage({
             end
             local fillPrio = soon.FillPrio
             function soon:FillPrio(st)
+                -- 0.6.360: immer 6 Zeilen - Zeilenabstand richtet sich nach der Hoehe der Box
+                local ph = self.pr:GetHeight() or 0
+                local step = ph > 100 and math.max(26, math.min(40, math.floor((ph - 52) / 6))) or 40
+                self.prRowH = step
+                for i, r in ipairs(self.pr.rows) do
+                    r:SetHeight(step - 5)
+                    r:ClearAllPoints()
+                    r:SetPoint("TOPLEFT", self.pr, "TOPLEFT", 12, -44 - (i - 1) * step)
+                    r:SetPoint("RIGHT", self.pr, "RIGHT", -12, 0)
+                end
                 fillPrio(self, st)
                 -- Leisten: Anteil am groessten Wert der sichtbaren Zeilen
                 local vals, mx = {}, 0
@@ -3049,12 +3060,15 @@ ns.RegisterPage({
                     local W = r:GetWidth() or 0
                     if W < 50 then W = 300 end
                     r.track:ClearAllPoints()
-                    r.track:SetPoint("LEFT", r, "LEFT", W * 0.42, 0)
-                    r.track:SetWidth(W * 0.4)
+                    -- Leiste rechts vom Namen; Name endet davor (wird sonst gekuerzt statt ueberlagert)
+                    r.track:SetPoint("LEFT", r, "LEFT", W * 0.5, 0)
+                    r.track:SetWidth(W * 0.32)
+                    r.name:SetPoint("RIGHT", r, "LEFT", W * 0.5 - 10, 0)
+                    r.name:SetWordWrap(false)
                     local c = PRIO_COL[i] or PRIO_COL[#PRIO_COL]
                     r.fill:SetColorTexture(c[1], c[2], c[3], 1)
                     local q = mx > 0 and vals[i] / mx or 0
-                    r.fill:SetWidth(math.max(1, W * 0.4 * math.max(0.04, math.min(1, q))))
+                    r.fill:SetWidth(math.max(1, W * 0.32 * math.max(0.04, math.min(1, q))))
                     r.num:SetTextColor(C.amber[1], C.amber[2], C.amber[3])
                     r.val:SetTextColor(C.text[1], C.text[2], C.text[3])
                     r.bg:SetColorTexture(1, 1, 1, 0.025)
