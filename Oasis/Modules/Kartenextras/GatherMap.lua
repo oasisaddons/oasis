@@ -388,7 +388,9 @@ function GM.DrawMinimap()
                 -- 0.6.386: in der Naehe kein harter Ring (zeigt jeden kleinen Versatz zum echten Punkt), nur weicher Schein
                 if p.ring then p.ring:SetAlpha(close and 0.35 or 1) p.ring:SetShown(frame or close) end   -- 0.6.388: nah: ganz zarter Ring
                 p.close, p.kcol = close and not hv, k.color
-                if p.glow then p.glow:SetShown(p.close and true or false) end
+                -- 0.6.390: kein Leuchten - Oasis weiss nicht, ob dort gerade wirklich etwas steht (leuchteten auch leere Fundorte)
+                if p.glow then p.glow:Hide() end
+                p.close = nil
                 p:ClearAllPoints()
                 p:SetPoint("CENTER", Minimap, "CENTER", nx * half / sc, -ny * half / sc)
                 p:Show()

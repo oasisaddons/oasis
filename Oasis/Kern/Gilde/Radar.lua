@@ -349,7 +349,7 @@ function Radar.ChatUpdateHint(force)
     local msg = (L["%s Neue Version %s vom %s ist da - bitte im Discord herunterladen. Noch alt: %s"]):format(CHAT_MARK, ns.version,
         ns.versionDate or "?", table.concat(names, ", "))
     -- ohne Klick sperrt WoW das Senden -> Hinweis, Klick schickt die Nachricht in den Gildenchat
-    if ns.OfferChat then ns.OfferChat((L["%d Mitglieder mit alter Oasis-Version online"]):format(#old), msg, "GUILD", nil, ns.K.C.amber) end
+    if ns.OfferChat then ns.OfferChat((#old == 1 and L["1 Mitglied mit alter Oasis-Version online"] or (L["%d Mitglieder mit alter Oasis-Version online"]):format(#old)), msg, "GUILD", nil, ns.K.C.amber) end
 end
 -- 0.5.715: /oa updatehint - zeigt, warum (k)ein Update-Hinweis kommt, und bietet ihn sofort an
 ns.slash.updatehint = function()

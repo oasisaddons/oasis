@@ -2399,7 +2399,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
     do
         local th = (title and title ~= "") and (t.title:GetStringHeight() or 14) or 0
         local xh = (text and text ~= "") and ((t.text:GetStringHeight() or 14) + 5) or 0
-        t:SetHeight(math.max(56, th + xh + 22))
+        t:SetHeight(math.max(56, th + xh + 32))   -- 0.6.390: mehr Luft unten (letzte Zeile lag auf der Zeitleiste)
     end
     t.cb = onClick
     t.age, t.expire = 0, (ns.db and ns.db.settings.toastDur) or 7

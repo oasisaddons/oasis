@@ -790,6 +790,7 @@ function IG.ProfileTabs(parent, items, onChange)
     f.ind:SetWidth(60)
     f.ind.glow = f.ind:CreateTexture(nil, "BACKGROUND")
     f.ind.glow:SetAllPoints()
+    f.ind.glow:SetAlpha(0)   -- 0.6.390: kein Kasten hinter dem aktiven Reiter, nur Unterstrich + Schein
     if not K.Gradient(f.ind.glow, "VERTICAL", { ac[1], ac[2], ac[3], 0.06 }, { ac[1], ac[2], ac[3], 0 }) then f.ind.glow:SetColorTexture(ac[1], ac[2], ac[3], 0.08) end
     f.ind.line = f.ind:CreateTexture(nil, "ARTWORK")
     f.ind.line:SetColorTexture(ac[1], ac[2], ac[3], 1)
@@ -805,6 +806,7 @@ function IG.ProfileTabs(parent, items, onChange)
         b:SetFrameLevel(f.ind:GetFrameLevel() + 2)
         b.key = it.key
         b.ico = K.Glyph(b, 18, ns.MEDIA .. "icons\\" .. (it.icon or "stats"), { 0.82, 0.82, 0.85 })
+        if b.ico.SetDesaturated then b.ico:SetDesaturated(true) end   -- 0.6.390: einfarbig (farbige Grafiken wirkten bunt)
         b.label = K.Text(b, 14, { 0.82, 0.82, 0.85 }, "LEFT")
         b.label:SetText(it.text)
         b.label:SetWordWrap(false)
