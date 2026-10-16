@@ -3907,14 +3907,8 @@ function K.ClipBox(box)
     if not (box and box.boxFrame and K.RoundMask) then return end
     local bw, bh = box:GetWidth() or 0, box:GetHeight() or 0
     if bw < 30 or bh < 30 then return end
-    local hasImg
     local function scan(owner)
         for _, t in ipairs({ owner:GetRegions() }) do
-            -- 0.6.318: Bild ueber die ganze Box -> die Box bekommt keinen Rahmen (das Bild ist die Flaeche)
-            if t.GetObjectType and t:GetObjectType() == "Texture" and t:GetTexture() and t:IsShown()
-                and CLIP_LAYERS[t:GetDrawLayer() or ""] and (t:GetWidth() or 0) >= bw - 3 and (t:GetHeight() or 0) >= bh - 3 then
-                hasImg = true
-            end
             if t.GetObjectType and t:GetObjectType() == "Texture" and not t.boxSplit and not t.boxTwinOf
                 and not (t.roundMasked and next(t.roundMasked)) and not t.ownMask
                 and not (t.GetNumMaskTextures and (t:GetNumMaskTextures() or 0) > 0)
@@ -3926,10 +3920,6 @@ function K.ClipBox(box)
     scan(box)
     for _, ch in ipairs({ box:GetChildren() }) do
         if ch ~= box.boxFrame and (ch:GetWidth() or 0) >= bw - 3 and (ch:GetHeight() or 0) >= bh - 3 then scan(ch) end
-    end
-    if hasImg and not box.noBoxFrame then
-        box.noBoxFrame = true
-        if box.boxFrame.fit then box.boxFrame.fit() end
     end
 end
 function K.RefreshBoxFrames()

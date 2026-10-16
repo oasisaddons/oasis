@@ -2935,6 +2935,167 @@ ns.RegisterPage({
                 end
             end
         end
+        ------------------------------------------------------------------
+        -- 0.6.319: Profil nach Entwurf 2 - Kopfbild, Klasse/Level als Text, Werte-Kacheln + Spezialisierungs-Kasten
+        ------------------------------------------------------------------
+        do
+            -- Kopfbild rechts (Gildenmodul), nach links in den Kopf auslaufend
+            if ns.GuildPack then
+                hc.art = hc:CreateTexture(nil, "BACKGROUND", nil, 1)
+                hc.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\hero_bg")
+                hc.art:SetTexCoord(0.25, 1, 0, 356 / 512)
+                hc.art:SetPoint("TOPRIGHT", -2, -2) hc.art:SetPoint("BOTTOMRIGHT", -2, 2)
+                hc.art:SetPoint("LEFT", hc, "LEFT", 220, 0)
+                hc.art:SetAlpha(0.55)
+                hc.artFade = hc:CreateTexture(nil, "BACKGROUND", nil, 2)
+                hc.artFade:SetPoint("TOPLEFT", hc.art, "TOPLEFT") hc.artFade:SetPoint("BOTTOMLEFT", hc.art, "BOTTOMLEFT")
+                hc.artFade:SetWidth(260)
+                local bg = C.bg
+                if not K.Gradient(hc.artFade, "HORIZONTAL", { bg[1], bg[2], bg[3], 1 }, { bg[1], bg[2], bg[3], 0 }) then hc.artFade:Hide() end
+                if K.RoundMask then pcall(K.RoundMask, hc.art, hc, 14, { "tr", "br" }) end
+            end
+            -- Klasse | Level als schlichter Text statt Pillen
+            for _, pl in ipairs({ soon.clsPill, soon.lvlPill }) do
+                local set = pl.Set
+                function pl:Set(text, c)
+                    set(self, text, c)
+                    IG.Glass(self, { 1, 1, 1, 0 }, { 1, 1, 1, 0 })
+                    if self.t then
+                        K.SetFontSafe(self.t, K.FONT, 16, "", K.FONT)
+                        self.t:SetTextColor(C.text[1], C.text[2], C.text[3])
+                        self:SetWidth((self.t:GetStringWidth() or 40) + 4)
+                        self.t:ClearAllPoints() self.t:SetPoint("LEFT", 0, 0)
+                    end
+                end
+            end
+            soon.lvlPill:ClearAllPoints()
+            soon.lvlPill:SetPoint("LEFT", soon.clsPill, "RIGHT", 24, 0)
+            soon.clsSep = hc:CreateTexture(nil, "ARTWORK")
+            soon.clsSep:SetColorTexture(1, 1, 1, 0.3)
+            soon.clsSep:SetSize(1, 16)
+            soon.clsSep:SetPoint("LEFT", soon.clsPill, "RIGHT", 12, 0)
+
+            -- obere Reihe der Werte-Ansicht: drei Kacheln links, Spezialisierung/Wunschrolle rechts
+            local ROW = 112
+            cs:ClearAllPoints()
+            cs:SetPoint("TOPLEFT", view, "TOPLEFT", 0, -(ROW + 12))
+            cs:SetPoint("BOTTOMLEFT")
+            cs:SetPoint("RIGHT", view, "RIGHT", -290, 0)
+            local tiles = CreateFrame("Frame", nil, view)
+            tiles:SetPoint("TOPLEFT", view, "TOPLEFT", 0, 0)
+            tiles:SetPoint("RIGHT", cs, "RIGHT", 0, 0)
+            tiles:SetHeight(ROW)
+            soon.statTiles = tiles   -- soon.tiles ist schon belegt (Abzeichen-Kacheln)
+            local DEF = {
+                { key = "hp", label = "Gesundheit", icon = "Interface\\Icons\\Spell_Holy_SealOfSacrifice", col = { 0.95, 0.3, 0.32 } },
+                { key = "ap", label = "Angriffskraft", icon = "Interface\\Icons\\Ability_Warrior_BattleShout", col = { 0.95, 0.72, 0.38 } },
+                { key = "crit", label = "Kritische Treffer", icon = "Interface\\Icons\\Ability_CriticalStrike", col = { 0.55, 0.45, 0.95 } },
+            }
+            tiles.t = {}
+            for i, d in ipairs(DEF) do
+                local t = CreateFrame("Frame", nil, tiles)
+                IG.Glass(t, IG.GLASS_FILL, IG.GLASS_LINE, 10)
+                t.icon = t:CreateTexture(nil, "ARTWORK")
+                t.icon:SetSize(30, 30) t.icon:SetPoint("LEFT", 16, 6)
+                t.icon:SetTexture(d.icon) t.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+                if K.RoundMask then pcall(K.RoundMask, t.icon, t.icon, 6) end
+                t.lbl = K.Text(t, 11, C.muted)
+                t.lbl:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 12, 2)
+                t.lbl:SetText(L[d.label])
+                t.val = K.Title(t, 20, C.text)
+                t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -4)
+                t.track = t:CreateTexture(nil, "ARTWORK")
+                t.track:SetColorTexture(1, 1, 1, 0.08)
+                t.track:SetHeight(6)
+                t.track:SetPoint("BOTTOMLEFT", 16, 16) t.track:SetPoint("BOTTOMRIGHT", -16, 16)
+                t.fill = t:CreateTexture(nil, "ARTWORK", nil, 1)
+                t.fill:SetColorTexture(d.col[1], d.col[2], d.col[3], 1)
+                t.fill:SetHeight(6)
+                t.fill:SetPoint("LEFT", t.track, "LEFT")
+                t.fill:SetWidth(1)
+                if K.RoundMask then pcall(K.RoundMask, t.track, t.track, 3) pcall(K.RoundMask, t.fill, t.fill, 3) end
+                t.def = d
+                tiles.t[i] = t
+            end
+            local function layoutTiles()
+                local W = tiles:GetWidth() or 0
+                if W < 60 then return end
+                local tw = (W - 2 * 10) / 3
+                for i, t in ipairs(tiles.t) do
+                    t:ClearAllPoints()
+                    t:SetPoint("TOPLEFT", tiles, "TOPLEFT", (i - 1) * (tw + 10), 0)
+                    t:SetSize(tw, ROW)
+                end
+            end
+            tiles:SetScript("OnSizeChanged", layoutTiles)
+            -- Werte: Live-Abfrage (nie im Kampf rechnen - Werte koennen dort geheim sein)
+            function soon:FillTiles()
+                if InCombatLockdown and InCombatLockdown() then return end
+                local lvl = num(UnitLevel("player")) or 1
+                local hp = num(ns.safe(UnitHealthMax("player"))) or 0
+                local b, pos, neg = UnitAttackPower("player")
+                local ap = (num(ns.safe(b)) or 0) + (num(ns.safe(pos)) or 0) + (num(ns.safe(neg)) or 0)
+                local crit = num(ns.safe(GetCritChance and GetCritChance())) or 0
+                local vals = {
+                    { tostring(hp), hp / math.max(1, lvl * 45) },
+                    { tostring(ap), ap / math.max(1, lvl * 12) },
+                    { ("%.1f %%"):format(crit):gsub("%.", ","), crit / 20 },
+                }
+                for i, t in ipairs(tiles.t) do
+                    t.val:SetText(vals[i][1])
+                    local w = t.track:GetWidth() or 0
+                    if w > 2 then t.fill:SetWidth(math.max(1, w * math.max(0, math.min(1, vals[i][2])))) end
+                end
+            end
+            -- Kasten rechts: Spezialisierung + Wunschrolle
+            local rb = CreateFrame("Frame", nil, view)
+            rb:SetPoint("TOPLEFT", tiles, "TOPRIGHT", 12, 0)
+            rb:SetPoint("TOPRIGHT", view, "TOPRIGHT", 0, 0)
+            rb:SetHeight(ROW)
+            IG.Glass(rb, IG.GLASS_FILL, IG.GLASS_LINE, 10)
+            rb.l1 = K.Text(rb, 11, C.muted)
+            rb.l1:SetPoint("TOPLEFT", 12, -10)
+            rb.l1:SetText(L["Spezialisierung"])
+            soon.roleBox = rb
+            local ensure2 = soon.EnsureRoleSeg
+            function soon:EnsureRoleSeg()
+                ensure2(self)
+                local bar = self.roleSeg
+                if not bar or bar.inBox then return end
+                bar.inBox = true
+                local inner = (rb:GetWidth() or 278) - 24
+                if inner < 60 then inner = 254 end
+                bar:ClearAllPoints()
+                bar:SetPoint("TOPLEFT", rb, "TOPLEFT", 12, -26)
+                local bw = bar:GetWidth() or inner
+                if bw > inner then bar:SetScale(inner / bw) end
+                local rc = self.roleChips
+                if rc then
+                    rc:ClearAllPoints()
+                    rc:SetWidth(inner)
+                    rc:SetPoint("TOPLEFT", rb, "TOPLEFT", 12, -78)
+                    if rc.chips then
+                        local cw = (inner - 8 * (#rc.chips - 1)) / #rc.chips
+                        for i, b in ipairs(rc.chips) do
+                            b:ClearAllPoints()
+                            b:SetSize(cw, 26)
+                            b:SetPoint("LEFT", (i - 1) * (cw + 8), 0)
+                        end
+                    end
+                end
+                if self.roleLbl then
+                    self.roleLbl:ClearAllPoints()
+                    self.roleLbl:SetPoint("TOPLEFT", rb, "TOPLEFT", 12, -62)
+                    self.roleLbl:SetJustifyH("LEFT")
+                    K.SetFontSafe(self.roleLbl, K.FONT, 11, "", K.FONT)
+                end
+            end
+            local up2 = soon.Update
+            function soon:Update(fresh)
+                up2(self, fresh)
+                pcall(self.FillTiles, self)
+            end
+        end
         p.soon = soon
         -- links: Profilkarte
         local left = K.Panel(p, C.panel)

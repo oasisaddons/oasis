@@ -1229,8 +1229,8 @@ local function buildCard(parent)
     c.diffTint:SetPoint("BOTTOMLEFT") c.diffTint:SetPoint("BOTTOMRIGHT")
     c.diffTint:SetHeight(70)
     K.Border(c, C.line)
-    -- 0.6.318: Bild-Karten ohne Rahmen (das Bild ist die Flaeche) - nur in abgeschraegte Ecken geschnitten
-    for _, x in ipairs(c.borders or {}) do x:Hide() end
+    -- 0.6.306: Oasis-Bildrahmen (rote Linie, abgeschraegte Ecken) wie bei allen Boxen; die alte Randlinie weicht
+    if K.BoxFrame and K.BoxFrame(c) then for _, x in ipairs(c.borders or {}) do x:Hide() end end
     do
         -- 0.6.311: Flaechen in die abgeschraegten Ecken des Rahmens schneiden (eine gestreckte Maske, max. 3 je Textur)
         local ok, m = pcall(c.CreateMaskTexture, c)

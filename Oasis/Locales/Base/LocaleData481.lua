@@ -3636,3 +3636,5 @@ EN["Leiste ohne Schriftzug, Klick links klappt weiter auf"] = "Bar without the w
 
 DE["Linksklick: Kopierfenster oeffnen"] = "Linksklick: Kopierfenster öffnen"
 EN["Linksklick: Kopierfenster oeffnen"] = "Left click: open copy window"
+DE["Spezialisierung"] = "Spezialisierung"
+EN["Spezialisierung"] = "Specialization"

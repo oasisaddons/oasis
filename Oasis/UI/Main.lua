@@ -926,12 +926,23 @@ local function buildMain()
 
     -- Fusszeile der Seitenleiste
     main.foot = K.Text(side, 11, C.muted, "LEFT")
-    main.foot:SetPoint("BOTTOMLEFT", 16, 30)
+    main.foot:SetPoint("BOTTOMLEFT", 22, 46)
     main.foot:SetWordWrap(true)
     main.foot:SetWidth(SIDEBAR - 32)
-    main.foot2 = K.Text(side, 10, C.dim, "LEFT")
-    main.foot2:SetPoint("BOTTOMLEFT", 16, 13)
-    main.foot2:SetText("v" .. ns.version .. "  ·  /oasis")
+    -- 0.6.319: unten "OASIS  v0.6.x" und rechts ein Zahnrad zu den Einstellungen
+    main.foot2 = K.Text(side, 11, C.muted, "LEFT")
+    main.foot2:SetPoint("BOTTOMLEFT", 22, 16)
+    main.foot2:SetText("OASIS   |cff8a8a90v" .. ns.version .. "|r")
+    if main.foot2.SetSpacing then pcall(main.foot2.SetSpacing, main.foot2, 0) end
+    local fg = CreateFrame("Button", nil, side)
+    fg:SetSize(26, 26)
+    fg:SetPoint("BOTTOMRIGHT", -14, 10)
+    fg.icon = K.Glyph(fg, 18, ns.MEDIA .. "icons\\settings", C.muted)
+    fg.icon:SetPoint("CENTER")
+    fg:SetScript("OnEnter", function(self) self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3]) K.ShowTip(self, { L["Einstellungen"] }) end)
+    fg:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
+    fg:SetScript("OnClick", function() if ns.ShowPage then ns.ShowPage("settings") end end)
+    main.footGear = fg
 
     -- Kopfzeile (zum Verschieben)
     local head = CreateFrame("Frame", nil, main)
