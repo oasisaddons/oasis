@@ -3090,7 +3090,8 @@ ns.RegisterPage({
                     end
                 end
                 for i, r in ipairs(self.pr.rows) do
-                    local W = r:GetWidth() or 0
+                    -- 0.6.371: eine Breite fuer alle Zeilen (aus der Box), sonst begann Zeile 1 woanders
+                    local W = (self.pr:GetWidth() or 0) - 24
                     if W < 50 then W = 300 end
                     r.track:ClearAllPoints()
                     -- Leiste rechts vom Namen; Name endet davor (wird sonst gekuerzt statt ueberlagert)
