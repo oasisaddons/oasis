@@ -794,13 +794,18 @@ function IG.ProfileTabs(parent, items, onChange)
     f.ind.line = f.ind:CreateTexture(nil, "ARTWORK")
     f.ind.line:SetColorTexture(ac[1], ac[2], ac[3], 1)
     f.ind.line:SetPoint("BOTTOMLEFT", 6, 0) f.ind.line:SetPoint("BOTTOMRIGHT", -6, 0)
-    f.ind.line:SetHeight(3)
+    f.ind.line:SetHeight(2)
+    f.ind.shine = f.ind:CreateTexture(nil, "ARTWORK", nil, -1)
+    f.ind.shine:SetPoint("BOTTOMLEFT", f.ind.line, "TOPLEFT", -6, 0)
+    f.ind.shine:SetPoint("BOTTOMRIGHT", f.ind.line, "TOPRIGHT", 6, 0)
+    f.ind.shine:SetHeight(10)
+    if not K.Gradient(f.ind.shine, "VERTICAL", { ac[1], ac[2], ac[3], 0.35 }, { ac[1], ac[2], ac[3], 0 }) then f.ind.shine:Hide() end
     for i, it in ipairs(items) do
         local b = CreateFrame("Button", nil, f)
         b:SetFrameLevel(f.ind:GetFrameLevel() + 2)
         b.key = it.key
-        b.ico = K.Glyph(b, 18, ns.MEDIA .. "icons\\" .. (it.icon or "stats"), C.muted)
-        b.label = K.Text(b, 14, C.muted, "LEFT")
+        b.ico = K.Glyph(b, 18, ns.MEDIA .. "icons\\" .. (it.icon or "stats"), { 0.82, 0.82, 0.85 })
+        b.label = K.Text(b, 14, { 0.82, 0.82, 0.85 }, "LEFT")
         b.label:SetText(it.text)
         b.label:SetWordWrap(false)
         b:SetScript("OnClick", function() f:Select(it.key, true) end)
@@ -808,7 +813,7 @@ function IG.ProfileTabs(parent, items, onChange)
             if f.value ~= self.key then self.label:SetTextColor(C.text[1], C.text[2], C.text[3]) self.ico:SetVertexColor(C.text[1], C.text[2], C.text[3]) end
         end)
         b:SetScript("OnLeave", function(self)
-            if f.value ~= self.key then self.label:SetTextColor(C.muted[1], C.muted[2], C.muted[3]) self.ico:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) end
+            if f.value ~= self.key then self.label:SetTextColor(0.82, 0.82, 0.85) self.ico:SetVertexColor(0.82, 0.82, 0.85) end
         end)
         f.buttons[i] = b
     end
@@ -838,9 +843,10 @@ function IG.ProfileTabs(parent, items, onChange)
         self.value = key
         for _, b in ipairs(self.buttons) do
             local on = b.key == key
-            local c = on and C.text or C.muted
+            -- 0.6.369: inaktive Reiter hell (Entwurf), aktiv: Symbol in Akzentfarbe
+            local c = on and C.text or { 0.82, 0.82, 0.85 }
             b.label:SetTextColor(c[1], c[2], c[3])
-            local ic = on and C.accent or C.muted
+            local ic = on and C.accent or { 0.82, 0.82, 0.85 }
             b.ico:SetVertexColor(ic[1], ic[2], ic[3])
         end
         if user and onChange then onChange(key) end
@@ -890,9 +896,9 @@ ns.RegisterPage({
             { key = "vals", text = L["Werte"], icon = "stats", subs = { "stats" } },
             { key = "over", text = L["Tagebuch"], icon = "chronicle", subs = { "year", "daily" } },
             { key = "success", text = L["Erfolge"], icon = "badges", subs = { "records", "rank" } },
-            { key = "adv", text = L["Abenteuer"], icon = "dungeons", subs = { "journey", "dungeons", "mates", "deaths", "gold" } },   -- Reise gehoert jetzt zu Abenteuer
+            { key = "adv", text = L["Abenteuer"], icon = "map", subs = { "journey", "dungeons", "mates", "deaths", "gold" } },   -- Reise gehoert jetzt zu Abenteuer
             { key = "plan", text = L["Aufgaben"], icon = "checklist", subs = { "weekly", "todo" } },   -- Ziele entfernt
-            { key = "skills", text = L["Koennen"], icon = "crafting", subs = { "prof", "skills2", "weapons" } },
+            { key = "skills", text = L["Koennen"], icon = "star_on", subs = { "prof", "skills2", "weapons" } },
         }
         local SUBTEXT = { year = "Jahrbuch", daily = "Tagesziel", journey = "Reise", records = "Rekorde", stats = "Statistik",
             rank = "Rang & Belohnungen", dungeons = "Dungeons", mates = "Mitspieler", deaths = "Tode", gold = "Gold",
