@@ -2629,7 +2629,7 @@ ns.RegisterPage({
         -- darunter Reiter (34) und ggf. Unterreiter (24); Inhalt ab 164 bzw. 194 px (vorher 254 / 288)
         ------------------------------------------------------------------
         do
-            local PH, X1, X2, RW = soon.HEAD_H, 176, 450, 270   -- 0.6.318: grosses Portraet, breitere Karten rechts
+            local PH, X1, X2, RW = soon.HEAD_H, 150, 330, 220   -- 0.6.320: Kopf ist im Spiel nur ~760 breit -> kompakter
             local ac = C.accent
             hc:ClearAllPoints()
             hc:SetPoint("TOPLEFT", 0, 0)
@@ -2701,10 +2701,10 @@ ns.RegisterPage({
             end)
             soon.embers = em
             -- Portraet: der Rangrahmen bleibt (er zeigt den Rang); Aura, Strahlen und Drehringe entfallen
-            local AS = 1.3
+            local AS = 1.1
             soon.av:SetScale(AS)
             soon.av:ClearAllPoints()
-            soon.av:SetPoint("CENTER", hc, "LEFT", 88 / AS, 4 / AS)
+            soon.av:SetPoint("CENTER", hc, "LEFT", 76 / AS, 4 / AS)
             soon.stage:Hide()
             function soon:AvatarFx()
                 self.stage:Hide()
@@ -2720,7 +2720,7 @@ ns.RegisterPage({
             soon.name:ClearAllPoints()
             soon.name:SetPoint("TOPLEFT", hc, "TOPLEFT", X1, -30)
             soon.name:SetWidth(X2 - X1 - 16)
-            K.SetFontSafe(soon.name, K.FONT_HEAD, 30, "", K.FONT)
+            K.SetFontSafe(soon.name, K.FONT_HEAD, 26, "", K.FONT)
             soon.clsPill:ClearAllPoints()
             soon.clsPill:SetPoint("TOPLEFT", soon.name, "BOTTOMLEFT", 0, -12)
             for _, pl in ipairs({ soon.clsPill, soon.lvlPill }) do
@@ -2788,7 +2788,7 @@ ns.RegisterPage({
             cr.value:ClearAllPoints()
             cr.value:SetPoint("BOTTOMLEFT", 56, 12)
             cr.value:SetPoint("RIGHT", cr, "RIGHT", -12, 0)
-            K.SetFontSafe(cr.value, K.FONT_HEAD, 16, "", K.FONT)
+            K.SetFontSafe(cr.value, K.FONT_HEAD, 14, "", K.FONT)
             soon.chipF:Hide()
             local vit = soon.vit
             vit:ClearAllPoints()
@@ -2808,8 +2808,8 @@ ns.RegisterPage({
             vit.pct:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
             for i, b in ipairs(vit.icons) do
                 b:ClearAllPoints()
-                b:SetSize(30, 30)
-                b:SetPoint("RIGHT", vit, "RIGHT", -12 - (#vit.icons - i) * 34, 0)
+                b:SetSize(24, 24)
+                b:SetPoint("RIGHT", vit, "RIGHT", -10 - (#vit.icons - i) * 27, 0)
                 b.icon:ClearAllPoints()
                 b.icon:SetPoint("TOPLEFT", 3, -3)
                 b.icon:SetPoint("BOTTOMRIGHT", -3, 3)
@@ -2818,7 +2818,7 @@ ns.RegisterPage({
             end
             vit.track:ClearAllPoints()
             vit.track:SetPoint("BOTTOMLEFT", 14, 8)
-            vit.track:SetPoint("BOTTOMRIGHT", vit, "BOTTOMRIGHT", -(12 + #vit.icons * 34 + 6), 8)
+            vit.track:SetPoint("BOTTOMRIGHT", vit, "BOTTOMRIGHT", -(10 + #vit.icons * 27 + 6), 8)
             vit.track:SetHeight(3)
             vit.fill:SetHeight(3)
             -- Breiten an die Fensterbreite anpassen
@@ -2945,7 +2945,7 @@ ns.RegisterPage({
                 hc.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\hero_bg")
                 hc.art:SetTexCoord(0.25, 1, 0, 356 / 512)
                 hc.art:SetPoint("TOPRIGHT", -2, -2) hc.art:SetPoint("BOTTOMRIGHT", -2, 2)
-                hc.art:SetPoint("LEFT", hc, "LEFT", 220, 0)
+                hc.art:SetPoint("LEFT", hc, "LEFT", 140, 0)
                 hc.art:SetAlpha(0.55)
                 hc.artFade = hc:CreateTexture(nil, "BACKGROUND", nil, 2)
                 hc.artFade:SetPoint("TOPLEFT", hc.art, "TOPLEFT") hc.artFade:SetPoint("BOTTOMLEFT", hc.art, "BOTTOMLEFT")
