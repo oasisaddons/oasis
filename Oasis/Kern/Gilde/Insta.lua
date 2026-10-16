@@ -2737,7 +2737,7 @@ ns.RegisterPage({
             soon:AvatarFx()
             soon.emb:SetScale(1.0)
             soon.emb:ClearAllPoints()
-            soon.emb:SetPoint("CENTER", soon.av, "BOTTOM", 0, 12)
+            soon.emb:SetPoint("CENTER", soon.av, "BOTTOM", 0, 1)   -- 0.6.382: weiter unten auf den Ring
             hc.editHit:SetWidth(X2 - 16)
             -- Name gross, darunter Klasse/Level als Pillen, Hinweis Visitenkarte
             soon.name:ClearAllPoints()
