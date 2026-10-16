@@ -3126,8 +3126,12 @@ ns.RegisterPage({
                     local bx = 0
                     for _, b in ipairs(bar.btns or {}) do
                         if b.t then b.t:Hide() end
-                        if b.icon then b.icon:ClearAllPoints() b.icon:SetPoint("CENTER") end
-                        b:SetSize(30, 26)
+                        if b.icon then
+                            b.icon:ClearAllPoints() b.icon:SetPoint("CENTER")
+                            b.icon:SetSize(18, 18)   -- 0.6.350: Luft zum Rand
+                            if K.RoundMask and not b.iconMasked then b.iconMasked = true pcall(K.RoundMask, b.icon, b.icon, 4) end
+                        end
+                        b:SetSize(30, 30)
                         b:ClearAllPoints()
                         b:SetPoint("LEFT", bar, "LEFT", bx, 0)
                         bx = bx + 30 + 6
