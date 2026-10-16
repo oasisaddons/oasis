@@ -360,7 +360,12 @@ function GM.DrawMinimap()
                 -- 0.6.144: durchsichtig - ohne dunkle Scheibe, Bild halb durchsichtig, nur der Ring bleibt kraeftig.
                 -- So sieht man darunter den echten Fundort-Punkt des Spiels (der liegt immer unter Addon-Symbolen).
                 if p.bg then p.bg:SetShown(false) p.ring:SetShown(frame) end
-                p.icon:SetAlpha(0.45)
+                -- 0.6.378: in der Naehe (bis 80 m) nur ein duenner, halb durchsichtiger Ring - dort zeigt das Spiel den
+                -- echten Fundort-Punkt, der immer unter Addon-Symbolen liegt; weiter weg Symbol + Ring wie bisher
+                local rx, ry = (r.x - mx) * w, (r.y - my) * h
+                local close = rx * rx + ry * ry < 80 * 80
+                p.icon:SetAlpha(close and 0 or 0.45)
+                if p.ring then p.ring:SetAlpha(close and 0.5 or 1) p.ring:SetShown(frame or close) end
                 p:ClearAllPoints()
                 p:SetPoint("CENTER", Minimap, "CENTER", nx * half / sc, -ny * half / sc)
                 p:Show()
