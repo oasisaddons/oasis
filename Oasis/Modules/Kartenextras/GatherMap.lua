@@ -173,6 +173,12 @@ ns.slash.sammeltest = function()
     local map, x, y = myPos()
     ns.print(("Sammeltest | Sammelorte teilen=%s | Instanz=%s | Karte=%s (%.3f, %.3f) | Fundorte gesamt=%d"):format(
         tostring(s.shareNodes ~= false), tostring(ns.inInstance()), tostring(map), x or 0, y or 0, #GM.Nodes()))
+    -- 0.6.389: was die Weltkarte zeigt (Karte, sichtbare Fundorte, Schalter)
+    local here, vis = GM.Nodes(map), 0
+    for _, r in ipairs(here) do if shown(r) then vis = vis + 1 end end
+    local wm = WorldMapFrame and WorldMapFrame:IsShown() and WorldMapFrame:GetMapID()
+    ns.print(("  diese Karte: %d Fundorte, %d sichtbar | Weltkarte zeigt Karte %s (%d Fundorte) | Weltkarte an=%s | Mindestzahl=%s"):format(
+        #here, vis, tostring(wm), wm and #GM.Nodes(wm) or 0, tostring(S().mapGather ~= false), tostring(S().gatherMinCount or 1)))
     if #GM.diag == 0 then ns.print("Noch kein Zauber seit dem Einloggen - einmal sammeln, dann nochmal /oa sammeltest.") end
     for _, d in ipairs(GM.diag) do
         ns.print(("  %s  Zauber %s (%s) -> %s: %s"):format(date("%H:%M:%S", d.t), tostring(d.id), tostring(d.name), tostring(d.kind or "-"), tostring(d.note)))
