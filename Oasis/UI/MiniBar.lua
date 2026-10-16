@@ -339,12 +339,43 @@ local function build()
             s:SetAlpha(0)
             bar.shine[k] = s
         end
+        -- 0.6.330: Lichtstreif laeuft alle 5 s entlang der Glutlinie unten
+        local sw = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
+        sw:SetSize(160, 4)
+        sw:SetBlendMode("ADD")
+        if not K.Gradient(sw, "HORIZONTAL", { 1, 0.85, 0.7, 0 }, { 1, 0.85, 0.7, 0.9 }) then sw:SetColorTexture(1, 0.85, 0.7, 0.4) end
+        local sw2 = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
+        sw2:SetBlendMode("ADD")
+        if not K.Gradient(sw2, "HORIZONTAL", { 1, 0.85, 0.7, 0.9 }, { 1, 0.85, 0.7, 0 }) then sw2:SetColorTexture(1, 0.85, 0.7, 0.4) end
+        sw2:SetPoint("TOPLEFT", sw, "TOPRIGHT") sw2:SetPoint("BOTTOMLEFT", sw, "BOTTOMRIGHT") sw2:SetWidth(160)
+        sw:Hide() sw2:Hide()
+        local swT = 0
         local clock = 0
         local pulse = CreateFrame("Frame", nil, bar)
         pulse:SetScript("OnUpdate", function(_, el)
             local st = ns.db and ns.db.settings
             local on = not (st and st.noAnim)
             if on then clock = clock + (el or 0) end
+            -- Streif nur, wenn das Glut-Bild zu sehen ist
+            local showArt = on and bar.art.m:IsShown()
+            if showArt then
+                swT = (swT + (el or 0)) % 5
+                local p = swT / 1.8
+                local W = bar:GetWidth() or 600
+                if p < 1 then
+                    local e = p * p * (3 - 2 * p)
+                    local x = -320 + e * (W + 320)
+                    sw:ClearAllPoints()
+                    sw:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", x, -5)
+                    local a = math.sin(p * math.pi) * (bar.art.m:GetAlpha() or 1)
+                    sw:SetAlpha(a) sw2:SetAlpha(a)
+                    sw:SetShown(x > -160 and x < W) sw2:SetShown(x + 160 > 0 and x + 160 < W)
+                else
+                    sw:Hide() sw2:Hide()
+                end
+            else
+                sw:Hide() sw2:Hide()
+            end
             local a = on and (0.12 + 0.12 * math.sin(clock * 1.6)) or 0
             for k, s in pairs(bar.shine) do
                 local base = bar.art[k]

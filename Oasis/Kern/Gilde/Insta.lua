@@ -2299,7 +2299,7 @@ ns.RegisterPage({
             if ns.Insights then pcall(ns.Insights.Fill, self, self.cs, st) end
             local W = self.cs:GetWidth() or 700
             if W < 100 then W = 700 end
-            local colW = math.floor((W - 24 - 20) / 2)
+            local colW = self.consBox and (W - 24 - 10) or math.floor((W - 24 - 20) / 2)
             for i, r in ipairs(self.cs.rows) do
                 local col = (i - 1) >= perCol and 1 or 0
                 local row = (i - 1) % perCol
@@ -2994,9 +2994,16 @@ ns.RegisterPage({
             -- obere Reihe der Werte-Ansicht: drei Kacheln links, Spezialisierung/Wunschrolle rechts
             local ROW = 84   -- 0.6.321: flach halten, die Charakterwerte darunter brauchen den Platz
             cs:ClearAllPoints()
+            -- 0.6.330: Verbrauchsgueter als eigene Box unter den Charakterwerten (2x2), Werte einspaltig
+            local cb = CreateFrame("Frame", nil, view)
+            cb:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 0, 0)
+            cb:SetPoint("RIGHT", view, "CENTER", -6, 0)
+            cb:SetHeight(150)
+            IG.Glass(cb, IG.GLASS_FILL, IG.GLASS_LINE, 12)
+            soon.consBox = cb
             cs:SetPoint("TOPLEFT", view, "TOPLEFT", 0, -(ROW + 12))
-            cs:SetPoint("BOTTOMLEFT")
-            cs:SetPoint("RIGHT", view, "RIGHT", -290, 0)
+            cs:SetPoint("BOTTOMLEFT", cb, "TOPLEFT", 0, 12)
+            cs:SetPoint("RIGHT", view, "CENTER", -6, 0)
             if cs.SetClipsChildren then cs:SetClipsChildren(true) end   -- Verbrauchsgueter liefen unten heraus
             local tiles = CreateFrame("Frame", nil, view)
             tiles:SetPoint("TOPLEFT", view, "TOPLEFT", 0, 0)
@@ -5095,8 +5102,25 @@ do
         if W < 100 then W = 700 end
         local colW = math.floor((W - 24 - 20) / 2)
         f:ClearAllPoints()
-        f:SetPoint("TOPLEFT", cs, "TOPLEFT", 12 + colW + 28, -80)
-        f:SetPoint("BOTTOMRIGHT", cs, "BOTTOMRIGHT", -12, 10)
+        if soon.consBox then
+            -- 0.6.330: eigene Box unter den Charakterwerten, Verbrauchsgueter 2x2
+            local cb = soon.consBox
+            if f:GetParent() ~= cb then f:SetParent(cb) f:SetFrameLevel(cb:GetFrameLevel() + 2) end
+            f:SetPoint("TOPLEFT", cb, "TOPLEFT", 14, -12)
+            f:SetPoint("BOTTOMRIGHT", cb, "BOTTOMRIGHT", -14, 10)
+            local fw = (cb:GetWidth() or 360) - 28
+            if fw < 100 then fw = 330 end
+            local bw = (fw - 10) / 2
+            for i, b in ipairs(f.cons) do
+                local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
+                b:ClearAllPoints()
+                b:SetPoint("TOPLEFT", f, "TOPLEFT", col * (bw + 10), -30 - row * 50)
+                b:SetSize(bw, 44)
+            end
+        else
+            f:SetPoint("TOPLEFT", cs, "TOPLEFT", 12 + colW + 28, -80)
+            f:SetPoint("BOTTOMRIGHT", cs, "BOTTOMRIGHT", -12, 10)
+        end
         local roleKey = soon.Role and select(1, soon:Role()) or "melee"
         local lvl = UnitLevel("player") or 1
 

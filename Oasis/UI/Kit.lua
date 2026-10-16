@@ -3737,20 +3737,50 @@ function K.ImageFrame(host, k)
         for _, t in ipairs(fr.glows) do t:SetVertexColor(r, g, b, 1) end
     end
     fr.Tint()
+    -- 0.6.330: Schimmer - ein Lichtstreif laeuft alle 5 s ueber die obere (nach rechts) und untere Kante (nach links)
+    fr.sweep = {}
+    for i, side in ipairs({ "TOP", "BOTTOM" }) do
+        local t = fr:CreateTexture(nil, "OVERLAY", nil, 3)
+        t:SetSize(180, math.max(4, (side == "TOP" and BT or BB) * k))
+        t:SetBlendMode("ADD")
+        if not K.Gradient(t, "HORIZONTAL", { 1, 0.85, 0.7, 0 }, { 1, 0.85, 0.7, 0.9 }) then t:SetColorTexture(1, 0.85, 0.7, 0.4) end
+        t.side = side
+        t:Hide()
+        fr.sweep[i] = t
+        -- zweite Haelfte (Verlauf zurueck), damit der Streif in der Mitte am hellsten ist
+        local t2 = fr:CreateTexture(nil, "OVERLAY", nil, 3)
+        t2:SetBlendMode("ADD")
+        if not K.Gradient(t2, "HORIZONTAL", { 1, 0.85, 0.7, 0.9 }, { 1, 0.85, 0.7, 0 }) then t2:SetColorTexture(1, 0.85, 0.7, 0.4) end
+        t2:SetPoint("TOPLEFT", t, "TOPRIGHT") t2:SetPoint("BOTTOMLEFT", t, "BOTTOMRIGHT")
+        t2:SetWidth(180)
+        t2:Hide()
+        t.tail = t2
+    end
     local acc, clock = 0, 0
     fr:SetScript("OnUpdate", function(_, el)
         acc = acc + (el or 0)
         if acc >= 0.5 then acc = 0 fr.Tint() end
-        -- 0.6.311: leichter Schimmer - die Glut atmet langsam (aus mit "Animationen aus")
         local st = ns.db and ns.db.settings
-        local a = 1
-        if not (st and st.noAnim) then
-            clock = clock + (el or 0)
-            a = 0.78 + 0.22 * math.sin(clock * 1.6)
+        if st and st.noAnim then
+            for _, t in ipairs(fr.sweep) do t:Hide() t.tail:Hide() end
+            return
         end
-        if a ~= fr.glowA then
-            fr.glowA = a
-            for _, g in ipairs(fr.glows) do g:SetAlpha(a) end
+        clock = (clock + (el or 0)) % 5
+        local p = clock / 1.6   -- 1,6 s Lauf, dann Pause
+        local W = fr:GetWidth() or 600
+        for _, t in ipairs(fr.sweep) do
+            if p < 1 then
+                local e = p * p * (3 - 2 * p)
+                local x = (t.side == "TOP") and (-360 + e * (W + 360)) or (W - e * (W + 360))
+                t:ClearAllPoints()
+                t:SetPoint(t.side .. "LEFT", fr, t.side .. "LEFT", x, t.side == "TOP" and -1 or 1)
+                -- nur innerhalb des Rahmens zeigen
+                local a = math.sin(p * math.pi)
+                t:SetAlpha(a) t.tail:SetAlpha(a)
+                t:SetShown(x > -180 and x < W) t.tail:SetShown(x + 180 > 0 and x + 180 < W)
+            else
+                t:Hide() t.tail:Hide()
+            end
         end
     end)
     -- 0.6.190: Rahmen zum Verschieben anfassbar - vier schmale Griffleisten auf den Baendern (Innenbereich bleibt
