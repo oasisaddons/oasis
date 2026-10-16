@@ -3343,9 +3343,17 @@ ns.RegisterPage({
                 x.noBoxFrame = true
                 if x.boxFrame then x.boxFrame:Hide() if x.boxFrame.fit then x.boxFrame.fit() end end
             end
+            -- 0.6.361: die Boxen tragen wieder den Oasis-Bildrahmen; nur die kleinen Karten im Kopf bleiben schlicht
+            local function withFrame(x)
+                if not x then return end
+                x.noBoxFrame = nil
+                if not x.boxFrame and K.BoxFrame then pcall(K.BoxFrame, x, 40) end
+                if x.boxFrame then x.boxFrame:Show() if x.boxFrame.fit then x.boxFrame.fit() end end
+            end
             function soon:NoFrames()
-                for _, x in ipairs({ hc, self.cs, self.pr, self.consBox, self.roleBox, self.chipR, self.vit }) do noFrame(x) end
-                for _, t in ipairs((self.statTiles and self.statTiles.t) or {}) do noFrame(t) end
+                for _, x in ipairs({ self.chipR, self.vit, self.consBox }) do noFrame(x) end
+                for _, x in ipairs({ hc, self.cs, self.pr, self.roleBox }) do withFrame(x) end
+                for _, t in ipairs((self.statTiles and self.statTiles.t) or {}) do withFrame(t) end
             end
             local up2 = soon.Update
             function soon:Update(fresh)
