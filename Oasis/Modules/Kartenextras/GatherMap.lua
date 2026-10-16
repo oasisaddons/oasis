@@ -277,7 +277,7 @@ local function mPin()
         p.glow = p:CreateTexture(nil, "BACKGROUND", nil, -1)
         p.glow:SetTexture(ns.MEDIA .. "halo_ring")   -- 0.6.383: weicher Schein um den Ring, Mitte frei
         p.glow:SetBlendMode("ADD")
-        p.glow:SetPoint("TOPLEFT", -11, 11) p.glow:SetPoint("BOTTOMRIGHT", 11, -11)
+        p.glow:SetPoint("TOPLEFT", -14, 14) p.glow:SetPoint("BOTTOMRIGHT", 14, -14)
         p.glow:Hide()
         -- 0.5.929: Symbol im Kreis - dunkle Scheibe, rund zugeschnittenes Symbol, Ring in der Farbe der Art
         p.bg = p:CreateTexture(nil, "BACKGROUND")
@@ -379,7 +379,8 @@ function GM.DrawMinimap()
                 local rx, ry = (r.x - mx) * w, (r.y - my) * h
                 local close = rx * rx + ry * ry < 80 * 80
                 p.icon:SetAlpha(close and 0 or 0.45)
-                if p.ring then p.ring:SetAlpha(close and 0.85 or 1) p.ring:SetShown(frame or close) end
+                -- 0.6.386: in der Naehe kein harter Ring (zeigt jeden kleinen Versatz zum echten Punkt), nur weicher Schein
+                if p.ring then p.ring:SetAlpha(1) p.ring:SetShown(frame and not close) end
                 p.close, p.kcol = close and not hv, k.color
                 if p.glow then p.glow:SetShown(p.close and true or false) end
                 p:ClearAllPoints()
