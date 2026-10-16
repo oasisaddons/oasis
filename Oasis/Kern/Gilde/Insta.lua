@@ -880,7 +880,8 @@ ns.RegisterPage({
         soon:SetFrameLevel(p:GetFrameLevel() + 50)
         soon:EnableMouse(true)
         -- deckend: darunter liegt die (noch versteckte) Oasigram-Seite
-        soon.pageBg = K.Fill(soon, { 0.045, 0.045, 0.052, 1 })   -- 0.6.366: neutral dunkel statt Design-Grundfarbe (wirkte rotbraun)
+        soon.pageBg = K.Fill(soon, { 0.045, 0.045, 0.052, 1 })
+        soon.pageBg:SetAlpha(0)   -- 0.6.368: keine eigene Seitenflaeche - das Fensterbild scheint durch wie auf den anderen Seiten
         -- Profil 2026: Hoehen der Kopfzeile/Reiter und Beginn der Inhalte (mit/ohne Unterreiter)
         -- 0.6.318: groesserer Kopf (170) und hoehere Reiterleiste (46) wie im Entwurf
         soon.HEAD_H, soon.NAV_Y, soon.SUB_Y, soon.TOP, soon.TOP_SUB = 150, -160, -216, -218, -248
@@ -3068,7 +3069,9 @@ ns.RegisterPage({
                 end
                 local vals, goals = {}, {}
                 for i, r in ipairs(self.pr.rows) do
-                    vals[i] = math.abs(num(strip(r.val:GetText() or "")) or 0)   -- 0.6.365: Farbcodes enthalten Ziffern
+                    -- 0.6.368: eigene Zahlerkennung - hier gilt eine lokale num (nur ganze Zahlen), "6.9 %" wurde 0
+                    local tx = strip(r.val:GetText() or ""):gsub(",", ".")
+                    vals[i] = math.abs(tonumber(tx:match("%-?%d+%.?%d*") or "") or 0)
                     local k = pl and pl[i] and pl[i][1]
                     local g, unit = goalOf(k)
                     goals[i] = g
@@ -3104,8 +3107,11 @@ ns.RegisterPage({
                 local pb = soon.pageBg
                 if pb then
                     local r, g, b, a = pb:GetVertexColor()
-                    ns.print(("Seitenflaeche: shown=%s alpha=%.2f vc=%.2f,%.2f,%.2f,%.2f layer=%s soonAlpha=%.2f"):format(
-                        tostring(pb:IsShown()), pb:GetAlpha() or -1, r or -1, g or -1, b or -1, a or -1, tostring(pb:GetDrawLayer()), soon:GetAlpha() or -1))
+                    ns.print(("Seitenflaeche: shown=%s alpha=%.2f vc=%.2f,%.2f,%.2f,%.2f layer=%s soonAlpha=%.2f soonEff=%.2f level=%s strata=%s"):format(
+                        tostring(pb:IsShown()), pb:GetAlpha() or -1, r or -1, g or -1, b or -1, a or -1, tostring(pb:GetDrawLayer()), soon:GetAlpha() or -1,
+                        soon.GetEffectiveAlpha and soon:GetEffectiveAlpha() or -1, tostring(soon:GetFrameLevel()), tostring(soon:GetFrameStrata())))
+                    -- Test: 5 s knallgruen - wird es gruen, ist es diese Flaeche
+
                 end
                 for i, r in ipairs(pr.rows) do
                     if r:IsShown() then
