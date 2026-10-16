@@ -610,6 +610,7 @@ IG.GLASS_FILL = { 1, 1, 1, 0.04 }
 IG.GLASS_LINE = { 1, 1, 1, 0.085 }
 function IG.Glass(f, fill, line, r)
     if not f then return end
+    if f.imgBtn then return end   -- 0.6.400: Bild-Knoepfe tragen ihr eigenes Bild - keine Glasflaeche dahinter
     -- 0.6.282: Bild-Rahmen auch um Glas-Boxen (ab 40 hoch, keine Zeilen). 0.6.284: Flaechen, die ohne Randlinie gebaut
     -- werden (z. B. Chat-Nachrichten, Linie mit Deckkraft 0), bekommen nie einen - auch nicht bei spaeteren Aufrufen
     if line and (line[4] or 1) <= 0 then f.noBoxFrame = true end
@@ -1097,6 +1098,7 @@ ns.RegisterPage({
                     local h = self.rankHost
                     if h.card then h.card:Hide() end
                     if h.week then h.week:SetParent(self.weeklyHost) h.week:ClearAllPoints() h.week:SetAllPoints(self.weeklyHost) self.weekMoved = true end   -- eigener Reiter Aufgaben > Wochenaufgaben
+                    if h.week and self.StyleWeek then pcall(self.StyleWeek, self, h.week) end
                     self:PlaceCounters()
                 end
                 if def and def.refresh then
@@ -2581,6 +2583,7 @@ ns.RegisterPage({
                     local h = self.rankHost
                     if h.card then h.card:Hide() end
                     if h.week then h.week:SetParent(self.weeklyHost) h.week:ClearAllPoints() h.week:SetAllPoints(self.weeklyHost) self.weekMoved = true end   -- eigener Reiter Aufgaben > Wochenaufgaben
+                    if h.week and self.StyleWeek then pcall(self.StyleWeek, self, h.week) end
                     self:PlaceCounters()
                 end
                 if def and def.refresh then pcall(def.refresh, self.rankHost) end
@@ -3588,6 +3591,49 @@ ns.RegisterPage({
                 for _, h in ipairs({ self.rankHost, self.profHost, self.weapHost, self.skillHost, self.weeklyHost, self.lifeHost, self.dailyHost }) do
                     if h and h:IsShown() then walk(h, 1) end
                 end
+            end
+            -- 0.6.399: Wochenaufgaben im Stil der Werte-Seite (Glas, gerundete Zeilen, Haken im Farbkreis, dicker Balken)
+            function soon:StyleWeek(week)
+                if week.styled then return end
+                week.styled = true
+                pcall(IG.Glass, week, BOXFILL, BOXLINE)
+                if K.DarkBoxFrame then pcall(K.DarkBoxFrame, week) end
+                local mint = C.mint
+                for i, r in ipairs(week.rows or {}) do
+                    r:SetHeight(58)
+                    r:ClearAllPoints()
+                    r:SetPoint("TOPLEFT", week, "TOPLEFT", 14, -44 - (i - 1) * 66)
+                    r:SetPoint("RIGHT", week, "RIGHT", -14, 0)
+                    if r.bg then r.bg:SetColorTexture(1, 1, 1, 0.03) if K.RoundMask then pcall(K.RoundMask, r.bg, r, 8) end end
+                    -- Haken im Farbkreis
+                    r.disc = r:CreateTexture(nil, "BORDER")
+                    r.disc:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+                    r.disc:SetSize(32, 32)
+                    r.disc:SetPoint("LEFT", 12, 0)
+                    r.disc:SetVertexColor(mint[1], mint[2], mint[3], 0.12)
+                    r.check:ClearAllPoints()
+                    r.check:SetPoint("CENTER", r.disc, "CENTER")
+                    r.check:SetSize(14, 14)
+                    r.text:ClearAllPoints()
+                    r.text:SetPoint("TOPLEFT", r, "TOPLEFT", 56, -12)
+                    r.text:SetPoint("RIGHT", r, "RIGHT", -90, 0)
+                    K.SetFontSafe(r.text, K.FONT, 13, "", K.FONT)
+                    r.xp:ClearAllPoints()
+                    r.xp:SetPoint("TOPRIGHT", r, "TOPRIGHT", -14, -12)
+                    K.SetFontSafe(r.xp, K.FONT_HEAD, 14, "", K.FONT)
+                    r.track:ClearAllPoints()
+                    r.track:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 56, 13)
+                    r.track:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", -70, 13)
+                    r.track:SetHeight(8)
+                    r.fill:SetHeight(8)
+                    if not K.Gradient(r.fill, "HORIZONTAL", { mint[1] * 0.7, mint[2] * 0.7, mint[3] * 0.7, 1 }, { mint[1], mint[2], mint[3], 1 }) then r.fill:SetColorTexture(mint[1], mint[2], mint[3], 1) end
+                    if K.RoundMask then pcall(K.RoundMask, r.track, r.track, 4) pcall(K.RoundMask, r.fill, r.fill, 4) end
+                    r.prog:ClearAllPoints()
+                    r.prog:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", -14, 9)
+                    K.SetFontSafe(r.prog, K.FONT, 11, "", K.FONT)
+                end
+                if week.bonus then week.bonus:ClearAllPoints() week.bonus:SetPoint("TOPLEFT", week, "TOPLEFT", 16, -44 - 3 * 66 - 6) end
+                if week.x2 then week.x2:ClearAllPoints() week.x2:SetPoint("TOPLEFT", week.bonus, "BOTTOMLEFT", 0, -8) end
             end
             local up2 = soon.Update
             function soon:Update(fresh)

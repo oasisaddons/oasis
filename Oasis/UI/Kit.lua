@@ -674,6 +674,16 @@ function K.Button(parent, text, w, h, style, onClick)
         self:SetEnabled(on)
         self:SetAlpha(on and 1 or 0.45)
     end
+    -- 0.6.400: Bild-Knopf - alle eigenen Flaechen ausser dem Bild ausblenden (Glanz, alte Fuellung, Rand lagen sichtbar dahinter)
+    if b.imgBtn then
+        local keep = {}
+        for _, list in pairs(b.imgBtn) do for _, t in ipairs(list) do keep[t] = true end end
+        for _, rg in ipairs({ b:GetRegions() }) do
+            if rg.GetObjectType and rg:GetObjectType() == "Texture" and not keep[rg] and rg:GetDrawLayer() ~= "HIGHLIGHT" then
+                rg:SetAlpha(0)
+            end
+        end
+    end
     return b
 end
 
