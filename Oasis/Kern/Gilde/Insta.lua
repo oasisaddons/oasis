@@ -2386,6 +2386,7 @@ ns.RegisterPage({
                         r.l:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
                     end
                     local q = x[3] and soon.Quality(x[3])
+                    r.ratio = x[3]   -- 0.6.379: Verhaeltnis zum ueblichen Wert (fuer den Fortschritt im Hintergrund)
                     local c = q and q[2]
                     if c then
                         r.q:SetColorTexture(0, 0, 0, 0)
@@ -3101,17 +3102,19 @@ ns.RegisterPage({
                         r.prog = r:CreateTexture(nil, "BORDER", nil, 1)
                         r.prog:SetPoint("TOPLEFT") r.prog:SetPoint("BOTTOMLEFT")
                     end
-                    local g = r:IsShown() and not r.toggle and soon.GoalOf(r.key)
+                    -- 0.6.379: dieselbe Einordnung wie der Tooltip (Verhaeltnis zum ueblichen Wert fuers Level)
+                    local g = r:IsShown() and not r.toggle and (r.ratio and 1 or soon.GoalOf(r.key))
                     if g and g > 0 then
                         local tx = strip(r.v:GetText() or ""):gsub(",", ".")
                         local v = math.abs(tonumber(tx:match("%-?%d+%.?%d*") or "") or 0)
                         local w = (r:GetWidth() or 0)
                         if w < 20 then w = 300 end
-                        local q = v / g
+                        local q = r.ratio or (v / g)
+                        if r.ratio then v = 1 end
                         r.prog:SetWidth(math.max(1, w * math.min(1, q)))
                         -- 0.6.375: Farbe nach Qualitaet - weiss, gruen, blau, episch, legendaer
-                        local qc = (q >= 1 and { 1, 0.5, 0 }) or (q >= 0.75 and { 0.64, 0.21, 0.93 }) or (q >= 0.5 and { 0, 0.44, 0.87 })
-                            or (q >= 0.25 and { 0.12, 1, 0 }) or { 1, 1, 1 }
+                        local qq = soon.Quality and soon.Quality(q)
+                        local qc = (qq and qq[2]) or { 1, 1, 1 }   -- Durchschnitt = weiss
                         if not K.Gradient(r.prog, "HORIZONTAL", { qc[1], qc[2], qc[3], 0.18 }, { qc[1], qc[2], qc[3], 0.02 }) then r.prog:SetColorTexture(qc[1], qc[2], qc[3], 0.08) end
                         r.prog:SetShown(v > 0)
                     else
@@ -3410,6 +3413,15 @@ ns.RegisterPage({
                 end
                 rb:HookScript("OnSizeChanged", function() pcall(layout) end)
                 pcall(layout)
+                -- 0.6.379: Spezialisierung im Kopf unter "Klasse | Level", ohne Kasten; Kacheln bekommen die volle Breite
+                bar:SetParent(hc)
+                bar:SetFrameLevel(hc:GetFrameLevel() + 20)
+                bar:SetScale(1)
+                bar:ClearAllPoints()
+                bar:SetPoint("TOPLEFT", self.clsPill, "BOTTOMLEFT", 0, -12)
+                rb:Hide()
+                rb.Show = function() end
+                if self.statTiles then self.statTiles:SetPoint("RIGHT", view, "RIGHT", 0, 0) end
                 if self.roleLbl then
                     self.roleLbl:ClearAllPoints()
                     self.roleLbl:Hide()

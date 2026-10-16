@@ -607,6 +607,41 @@ function X.Redraw()
     pcall(X.DrawMini)
 end
 
+-- 0.6.379: Schnellschalter an der Weltkarte (oben rechts): Dungeon-Eingaenge ein/aus - derselbe Schalter wie in
+-- Einstellungen > Tooltips & Karte > Karte. Eigener Knopf als Kind der Karte, an Blizzards Rahmen wird nichts geschrieben.
+local dgBtn
+local function dgBtnPaint()
+    if not dgBtn then return end
+    local onNow = on("mapDungeons")
+    dgBtn.icon:SetVertexColor(onNow and 1 or 0.45, onNow and 0.82 or 0.45, onNow and 0.3 or 0.45)
+    dgBtn.bg:SetColorTexture(0, 0, 0, onNow and 0.55 or 0.35)
+end
+local function makeDgBtn()
+    if dgBtn or not WorldMapFrame then return end
+    local host = WorldMapFrame.ScrollContainer or WorldMapFrame
+    dgBtn = CreateFrame("Button", nil, WorldMapFrame)
+    dgBtn:SetSize(28, 28)
+    dgBtn:SetPoint("TOPRIGHT", host, "TOPRIGHT", -8, -8)
+    dgBtn:SetFrameLevel((host:GetFrameLevel() or 1) + 400)
+    dgBtn.bg = dgBtn:CreateTexture(nil, "BACKGROUND")
+    dgBtn.bg:SetAllPoints()
+    dgBtn.bg:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+    dgBtn.icon = K.Glyph(dgBtn, 16, ns.MEDIA .. "icons\\dungeons", C.text)
+    dgBtn.icon:SetPoint("CENTER")
+    dgBtn:SetScript("OnClick", function()
+        S().mapDungeons = not on("mapDungeons")
+        dgBtnPaint()
+        X.Redraw()
+    end)
+    dgBtn:SetScript("OnEnter", function(self)
+        K.ShowTip(self, { L["Dungeon-Eingaenge"], on("mapDungeons") and L["Klick: ausblenden"] or L["Klick: einblenden"] })
+    end)
+    dgBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    dgBtnPaint()
+end
+ns.Listen("LOGIN", function() pcall(makeDgBtn) end)
+if WorldMapFrame then WorldMapFrame:HookScript("OnShow", function() pcall(makeDgBtn) dgBtnPaint() end) end
+
 ------------------------------------------------------------------------
 -- Besuchte Haendler, Reparatur, Briefkaesten, Flugpunkte -> Sammelkarte (Arten mit poi = true)
 ------------------------------------------------------------------------
