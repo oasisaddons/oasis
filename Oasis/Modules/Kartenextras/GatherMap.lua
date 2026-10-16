@@ -265,6 +265,12 @@ local function mPin()
         p = CreateFrame("Frame", nil, Minimap)
         p:SetSize(14, 14)
         if ns.MiniPinLayer then ns.MiniPinLayer(p, 2) end
+        -- 0.6.380: weicher Glanz, wenn der echte Fundort-Punkt im Ring liegt (Helligkeit ueber die Farbe, ADD)
+        p.glow = p:CreateTexture(nil, "BACKGROUND", nil, -1)
+        p.glow:SetTexture(ns.MEDIA .. "ember")
+        p.glow:SetBlendMode("ADD")
+        p.glow:SetPoint("TOPLEFT", -10, 10) p.glow:SetPoint("BOTTOMRIGHT", 10, -10)
+        p.glow:Hide()
         -- 0.5.929: Symbol im Kreis - dunkle Scheibe, rund zugeschnittenes Symbol, Ring in der Farbe der Art
         p.bg = p:CreateTexture(nil, "BACKGROUND")
         p.bg:SetTexture(ns.MEDIA .. "pindisc")   -- 0.5.932: eigene Texturen, die die Flaeche ganz fuellen (dot/ring sind kleiner und hauchduenn)
@@ -365,7 +371,9 @@ function GM.DrawMinimap()
                 local rx, ry = (r.x - mx) * w, (r.y - my) * h
                 local close = rx * rx + ry * ry < 80 * 80
                 p.icon:SetAlpha(close and 0 or 0.45)
-                if p.ring then p.ring:SetAlpha(close and 0.5 or 1) p.ring:SetShown(frame or close) end
+                if p.ring then p.ring:SetAlpha(close and 0.85 or 1) p.ring:SetShown(frame or close) end
+                p.close, p.kcol = close and not hv, k.color
+                if p.glow then p.glow:SetShown(p.close and true or false) end
                 p:ClearAllPoints()
                 p:SetPoint("CENTER", Minimap, "CENTER", nx * half / sc, -ny * half / sc)
                 p:Show()
@@ -390,6 +398,17 @@ ns.Listen("LOGIN", function()
         if acc < 0.033 then return end
         acc = 0
         pcall(GM.DrawMinimap)
+        -- 0.6.380: nahe Fundorte pulsieren (Ring + Glanz), unabhaengig vom Neuzeichnen
+        local tt = GetTime()
+        local k = 0.45 + 0.35 * math.sin(tt * 4)
+        if ns.db and ns.db.settings.noAnim then k = 0.6 end
+        for i = 1, mUsed do
+            local pin = mPool[i]
+            if pin and pin.close and pin.glow and pin.kcol then
+                local c = pin.kcol
+                pin.glow:SetVertexColor(c[1] * k, c[2] * k, c[3] * k, 1)
+            end
+        end
     end)
 end)
 ns.Listen("STORE", function(coll) if coll == "nodes" and WorldMapFrame and WorldMapFrame:IsShown() then pcall(GM.DrawWorld) end end)
