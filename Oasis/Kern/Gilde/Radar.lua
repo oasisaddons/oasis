@@ -3849,6 +3849,39 @@ end)
 ns.On("SKILL_LINES_CHANGED", function() ns.After(2, function() Radar.SendHello() end) end)
 ns.On("ZONE_CHANGED_NEW_AREA", function() ns.After(3, function() Radar.SendHello() end) end)
 ns.On("PLAYER_GUILD_UPDATE", function() ns.After(2, Radar.RequestRoster) end)
+-- 0.6.376: frisch einer Gilde beigetreten -> sofort mit Oasis melden und den Gildenstand holen (sonst erst
+-- beim naechsten Login bzw. nach bis zu 5 Min sichtbar)
+do
+    local wasIn
+    ns.Listen("LOGIN", function() wasIn = IsInGuild() end)
+    ns.On("PLAYER_GUILD_UPDATE", function()
+        local now = IsInGuild()
+        if wasIn == false and now then
+            ns.After(4, function()
+                Radar.RequestRoster()
+                Radar.SendHello()
+                Comm.Guild("HELLOREQ")
+                if Comm.RequestSync then Comm.RequestSync(true) end
+            end)
+        end
+        wasIn = now
+    end)
+    -- jemand ist der Gilde beigetreten: gezielt fragen, ob er Oasis hat (Antwort = sein Profil)
+    local JOIN = ERR_GUILD_JOIN_S and ERR_GUILD_JOIN_S:gsub("%%s", "(.+)"):gsub("%.", "%%.")
+    ns.On("CHAT_MSG_SYSTEM", function(msg)
+        msg = ns.safe(msg)
+        if not (JOIN and type(msg) == "string") then return end
+        local who = msg:match("^" .. JOIN .. "$")
+        if not who or ns.isMe(who) then return end
+        -- erst die Gildenliste holen, damit seine Antwort als "aus der Gilde" erkannt wird
+        Radar.RequestRoster()
+        ns.After(3, Radar.RequestRoster)
+        ns.After(8, function()
+            local full = ns.fullName and ns.fullName(who) or who
+            Comm.Whisper(full, "HELLOREQ")
+        end)
+    end)
+end
 ns.Listen("MAIN_SHOWN", function() Radar.RequestRoster() end)
 
 -- Filter von aussen setzen (z.B. Uebersicht -> "Inaktiv")
