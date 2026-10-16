@@ -1868,7 +1868,7 @@ function ns.RebuildMain()
 end
 
 function ns.UpdateFooter(text)
-    if main and main.foot then main.foot:SetText(text) end
+    if main and main.foot then main.foot:SetText("") main.foot:Hide() end   -- 0.6.331: Online-Zeile in der Seitenleiste entfaellt
 end
 
 function ns.OpenMain()
