@@ -3154,6 +3154,8 @@ ns.RegisterPage({
                 if cd.SetDrawBling then cd:SetDrawBling(false) end
                 if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(true) end
                 cd.noCooldownCount = true
+                -- 0.6.343: dieser Client zeichnet ohne Umkehr den abgelaufenen Teil -> umkehren = Rest abdecken
+                if cd.SetReverse then cd:SetReverse(true) end
                 lr.cd = cd
             end
             soon.levelRing = lr
@@ -3165,6 +3167,11 @@ ns.RegisterPage({
                 lr:SetFrameLevel(base)
                 if lr.cd then lr.cd:SetFrameLevel(base + 1) end
                 lr:Show()
+                -- Zahl im Sechseck liegt auf dem Ring: Wappen darueber zeigen
+                if self.emb then
+                    self.emb:SetFrameLevel(base + 6)
+                    self.emb:Show()
+                end
                 local frac = (num(self.pct and self.pct:GetText()) or 0) / 100
                 frac = math.max(0, math.min(1, frac))
                 if lr.cd then
