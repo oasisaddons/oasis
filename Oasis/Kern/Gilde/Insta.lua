@@ -3059,15 +3059,18 @@ ns.RegisterPage({
             local shT = 0
             pr:HookScript("OnUpdate", function(_, el)
                 if ns.db and ns.db.settings.noAnim then return end
-                shT = (shT + (el or 0)) % 4.5
-                local p = shT / 1.2
+                -- 0.6.385: dauerhaft - der Schimmer laeuft ohne Pause, die Balken atmen sanft
+                shT = (shT + (el or 0)) % 2.4
+                local p = shT / 2.4
+                local br = 0.88 + 0.12 * math.sin(GetTime() * 2.2)
                 for i, r in ipairs(pr.rows) do
                     local fw = r.fill and r.fill:GetWidth() or 0
-                    local q = p - (i - 1) * 0.08
-                    if r:IsShown() and fw > 30 and q > 0 and q < 1 then
+                    local q = (p - (i - 1) * 0.08) % 1
+                    if r.fill and r.fillCol then local fc = r.fillCol r.fill:SetVertexColor(fc[1] * br, fc[2] * br, fc[3] * br, 1) end
+                    if r:IsShown() and fw > 30 then
                         r.sheen:ClearAllPoints()
                         r.sheen:SetPoint("LEFT", r.fill, "LEFT", q * (fw - 24), 0)
-                        local kk = math.sin(q * math.pi) * 0.45
+                        local kk = math.sin(q * math.pi) * 0.6
                         r.sheen:SetVertexColor(kk, kk, kk, 1)
                         r.sheen:Show()
                     else
@@ -3180,7 +3183,9 @@ ns.RegisterPage({
                     r.name:SetPoint("RIGHT", r, "LEFT", W * 0.5 - 10, 0)
                     r.name:SetWordWrap(false)
                     local c = PRIO_COL[i] or PRIO_COL[#PRIO_COL]
-                    r.fill:SetColorTexture(c[1], c[2], c[3], 1)
+                    r.fill:SetColorTexture(1, 1, 1, 1)
+                    r.fill:SetVertexColor(c[1], c[2], c[3], 1)
+                    r.fillCol = c
                     local q = goals[i] and goals[i] > 0 and vals[i] / goals[i] or 0
                     r.diag = { vals[i], goals[i], q, W }
                     -- 0.6.372: Balken wachsen beim Oeffnen und bei Aenderung von links auf ihren Wert (gestaffelt)
