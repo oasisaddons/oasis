@@ -3020,6 +3020,9 @@ ns.RegisterPage({
             cb:SetHeight(124)
             IG.Glass(cb, IG.GLASS_FILL, IG.GLASS_LINE, 12)
             soon.consBox = cb
+            -- 0.6.356: Verbrauchsgueter im Profil entfernt (Box bleibt unsichtbar, haelt nur die Einblicke)
+            cb:Hide()
+            cb.Show = function() end
             cs:SetPoint("TOPLEFT", view, "TOPLEFT", 0, -(ROW + 12))
             cs:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 0, 0)
             cs:SetPoint("RIGHT", view, "CENTER", -6, 0)
@@ -3027,7 +3030,7 @@ ns.RegisterPage({
             pr:ClearAllPoints()
             pr:SetPoint("TOPLEFT", cs, "TOPRIGHT", 12, 0)
             pr:SetPoint("RIGHT", view, "RIGHT", 0, 0)
-            pr:SetPoint("BOTTOM", cb, "TOP", 0, 12)
+            pr:SetPoint("BOTTOM", view, "BOTTOM", 0, 0)
             if cs.SetClipsChildren then cs:SetClipsChildren(true) end   -- Verbrauchsgueter liefen unten heraus
             local tiles = CreateFrame("Frame", nil, view)
             tiles:SetPoint("TOPLEFT", view, "TOPLEFT", 0, 0)
