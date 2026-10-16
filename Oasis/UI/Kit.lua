@@ -3872,6 +3872,7 @@ function K.BoxFrame(box, minH)
     fr:SetAlpha(BOX.alpha)   -- 0.6.284: schwaecher als der Fensterrahmen
     fr:SetFrameLevel(math.min(9000, box:GetFrameLevel() + 3))
     fr.glows = {}
+    fr.pieces = {}   -- 0.6.364: Linienteile, damit Seiten den Rahmen umfaerben koennen (z. B. Profil schwarz)
     local function piece(x1, y1, x2, y2)
         local t = fr:CreateTexture(nil, "OVERLAY", nil, 1)
         t:SetTexture(TEX)
@@ -3882,6 +3883,7 @@ function K.BoxFrame(box, minH)
         g:SetBlendMode("ADD")
         g:SetAllPoints(t)
         fr.glows[#fr.glows + 1] = g
+        fr.pieces[#fr.pieces + 1] = t
         return t
     end
     local SW, SH, C2, E = B.SW, B.SH, B.C, B.C + 120   -- E: Ende des Kantenstuecks neben der Ecke

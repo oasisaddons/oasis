@@ -3372,7 +3372,14 @@ ns.RegisterPage({
                 if not x then return end
                 x.noBoxFrame = nil
                 if not x.boxFrame and K.BoxFrame then pcall(K.BoxFrame, x, 40) end
-                if x.boxFrame then x.boxFrame:Show() if x.boxFrame.fit then x.boxFrame.fit() end end
+                if x.boxFrame then
+                    x.boxFrame:Show()
+                    if x.boxFrame.fit then x.boxFrame.fit() end
+                    -- 0.6.364: auf der Profil-Seite schwarze Rahmen (Linie dunkel, kein rotes Leuchten)
+                    x.boxFrame.tint = { 0.05, 0.05, 0.06 }
+                    for _, g in ipairs(x.boxFrame.glows or {}) do g:SetVertexColor(0.05, 0.05, 0.06, 1) end
+                    for _, pc in ipairs(x.boxFrame.pieces or {}) do pc:SetDesaturated(true) pc:SetVertexColor(0.22, 0.22, 0.24, 1) end
+                end
             end
             function soon:NoFrames()
                 for _, x in ipairs({ self.chipR, self.vit, self.consBox }) do noFrame(x) end
