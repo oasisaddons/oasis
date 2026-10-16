@@ -3003,6 +3003,12 @@ ns.RegisterPage({
             soon.clsSep:SetSize(1, 16)
             soon.clsSep:SetPoint("LEFT", soon.clsPill, "RIGHT", 12, 0)
 
+            -- 0.6.354: "So spielst du es" entfaellt im Profil
+            if pr.tipBox then
+                pr.tipBox:Hide()
+                pr.tipBox.Show = function() end
+                pr.tipBox.SetShown = function() end
+            end
             -- obere Reihe der Werte-Ansicht: drei Kacheln links, Spezialisierung/Wunschrolle rechts
             local ROW = 78   -- 0.6.353: feste Abstaende (Beschriftung 10, Zahl +7, Leiste 10 vom Rand)
             cs:ClearAllPoints()
