@@ -1845,8 +1845,9 @@ ns.RegisterPage({
             function f:FitArt()
                 local w, h = self:GetWidth() or 0, self:GetHeight() or 0
                 if w <= 0 or h <= 0 then return end
-                local r = (w / h) / (ART_W / ART_H)
-                local v1 = ART_H / 512
+                local aw, ah, th = self.artW or ART_W, self.artH or ART_H, self.artTH or 512
+                local r = (w / h) / (aw / ah)
+                local v1 = ah / th
                 if r >= 1 then
                     local cut = (1 - 1 / r) / 2 * v1
                     self.art:SetTexCoord(0, 1, cut, v1 - cut)
@@ -1902,8 +1903,11 @@ ns.RegisterPage({
             sp.dots[i] = d
         end
         local KINDS = {
-            hero = { kick = "Held der Woche", col = { 1, 0.82, 0.42 }, badge = "Interface\\GroupFrame\\UI-Group-LeaderIcon" },
-            unl = { kick = "Pechvogel der Woche", col = { 0.55, 0.7, 1 }, badge = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull" },
+            -- art: Bild im Gildenmodul, w/h = Bildteil, th = Texturhoehe (0.6.310: Held vorerst mit online_bg)
+            hero = { kick = "Held der Woche", col = { 1, 0.82, 0.42 }, badge = "Interface\\GroupFrame\\UI-Group-LeaderIcon",
+                     art = "online_bg", w = 1024, h = 256, th = 256 },
+            unl = { kick = "Pechvogel der Woche", col = { 0.55, 0.7, 1 }, badge = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull",
+                    art = "unlucky_bg", w = ART_W, h = ART_H, th = 512 },
         }
         function sp:Fill(f, it)
             local k = KINDS[it.kind]
@@ -1912,9 +1916,13 @@ ns.RegisterPage({
             f.headIcon:SetTexture(k.badge)
             f.whyIcon:SetTexture(k.badge)
             f.badge:SetTexture(k.badge)
-            -- Bild nur beim Pechvogel (Gildenmodul), Held bleibt schlicht
-            local art = it.kind == "unl" and ns.GuildPack
-            if art then f.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\unlucky_bg") f:FitArt() end
+            -- Bild je Art (nur mit Gildenmodul)
+            local art = k.art and ns.GuildPack
+            if art then
+                f.artW, f.artH, f.artTH = k.w, k.h, k.th
+                f.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. k.art)
+                f:FitArt()
+            end
             f.art:SetShown(art and true or false)
             f.shade:SetShown(art and true or false)
             local cls = ns.Radar.ClassOf and ns.Radar.ClassOf(it.name)
