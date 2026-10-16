@@ -3004,7 +3004,7 @@ ns.RegisterPage({
             soon.clsSep:SetPoint("LEFT", soon.clsPill, "RIGHT", 12, 0)
 
             -- obere Reihe der Werte-Ansicht: drei Kacheln links, Spezialisierung/Wunschrolle rechts
-            local ROW = 60   -- 0.6.347: noch flacher (Charakterwerte darunter brauchen den Platz)
+            local ROW = 64   -- 0.6.351: etwas Luft fuer die groesseren Zahlen
             cs:ClearAllPoints()
             -- 0.6.330: Verbrauchsgueter als eigene Box unter den Charakterwerten (2x2), Werte einspaltig
             local cb = CreateFrame("Frame", nil, view)
@@ -3035,12 +3035,12 @@ ns.RegisterPage({
                 t.icon = K.Glyph(t, 20, ns.MEDIA .. "icons\\" .. d.icon, d.col)
                 t.icon:SetPoint("LEFT", 14, 4)
                 t.lbl = K.Text(t, 11, C.muted)
-                t.lbl:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 10, 7)
+                t.lbl:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 10, 9)
                 t.lbl:SetPoint("RIGHT", t, "RIGHT", -8, 0)
                 t.lbl:SetWordWrap(false)
                 t.lbl:SetText(L[d.label])
-                t.val = K.Title(t, 18, C.text)
-                t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -2)
+                t.val = K.Title(t, 23, C.text)
+                t.val:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -1)
                 t.track = t:CreateTexture(nil, "ARTWORK")
                 t.track:SetColorTexture(1, 1, 1, 0.08)
                 t.track:SetHeight(5)
