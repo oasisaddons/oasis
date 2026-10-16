@@ -341,13 +341,13 @@ local function build()
         end
         -- 0.6.330: Lichtstreif laeuft alle 5 s entlang der Glutlinie unten
         local sw = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
-        sw:SetSize(50, 2)   -- 0.6.334: feiner
+        sw:SetSize(110, 2)   -- 0.6.339: langer Schweif hinter dem Licht
         sw:SetBlendMode("ADD")
         if not K.Gradient(sw, "HORIZONTAL", { 1, 0.85, 0.7, 0 }, { 1, 0.85, 0.7, 0.9 }) then sw:SetColorTexture(1, 0.85, 0.7, 0.4) end
         local sw2 = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
         sw2:SetBlendMode("ADD")
         if not K.Gradient(sw2, "HORIZONTAL", { 1, 0.85, 0.7, 0.9 }, { 1, 0.85, 0.7, 0 }) then sw2:SetColorTexture(1, 0.85, 0.7, 0.4) end
-        sw2:SetPoint("TOPLEFT", sw, "TOPRIGHT") sw2:SetPoint("BOTTOMLEFT", sw, "BOTTOMRIGHT") sw2:SetWidth(50)
+        sw2:SetPoint("TOPLEFT", sw, "TOPRIGHT") sw2:SetPoint("BOTTOMLEFT", sw, "BOTTOMRIGHT") sw2:SetWidth(14)
         sw:Hide() sw2:Hide()
         local swWait, swRun, swX0 = 4, nil, 0   -- 0.6.338: dezentes Aufleuchten alle 8-12 s statt Dauerlauf
         local clock = 0

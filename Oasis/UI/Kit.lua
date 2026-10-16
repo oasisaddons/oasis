@@ -3739,13 +3739,13 @@ function K.ImageFrame(host, k)
     fr.Tint()
     -- 0.6.338: Schimmer sehr dezent - alle 8-12 s blendet an einer zufaelligen Stelle ein kleiner Lichtpunkt auf,
     -- gleitet ein kurzes Stueck auf der Linie und blendet wieder aus; aus mit "Animationen aus"
-    local TRAIL = 4
+    local TRAIL = 12   -- 0.6.339: langer Schweif
     fr.spark = {}
     for i = 1, TRAIL do
         local t = fr:CreateTexture(nil, "OVERLAY", nil, 3)
         t:SetTexture(ns.MEDIA .. "ember")
         t:SetBlendMode("ADD")
-        local sz = (i == 1) and 14 or math.max(5, 11 - i * 1.5)
+        local sz = (i == 1) and 14 or math.max(4, 12 - i * 0.7)
         t:SetSize(sz, sz)
         t:SetVertexColor(1, 0.82, 0.62)
         t:Hide()
@@ -3798,10 +3798,10 @@ function K.ImageFrame(host, k)
         local fade = math.sin(run * math.pi)  -- ein- und ausblenden
         local d = d0 + run * 110              -- gleitet ~110 px weiter
         for i, t in ipairs(fr.spark) do
-            local x, y = pointAt(segs, total, d - (i - 1) * 6)
+            local x, y = pointAt(segs, total, d - (i - 1) * 5)
             t:ClearAllPoints()
             t:SetPoint("CENTER", fr, "TOPLEFT", x, -y)
-            t:SetAlpha(fade * ((i == 1) and 0.35 or (0.2 * (1 - (i - 1) / TRAIL))))
+            t:SetAlpha(fade * ((i == 1) and 0.35 or (0.22 * (1 - (i - 1) / TRAIL) ^ 1.5)))
             t:Show()
         end
     end)
