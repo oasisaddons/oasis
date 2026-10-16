@@ -2281,7 +2281,15 @@ ns.RegisterPage({
                 c:Show()
             end
             for i = #res + 1, #rb.cells do rb.cells[i]:Hide() end
-            rb:SetShown(#res > 0 or ilvlX ~= nil)
+            rb:SetShown((#res > 0 or ilvlX ~= nil) and not self.consBox)
+            -- 0.6.334: mit eigener Verbrauchsgueter-Box: keine Widerstands-Reihe, Gegenstandsstufe rechts im Kopf
+            if self.consBox then
+                if not self.cs.ilvlTxt then
+                    self.cs.ilvlTxt = K.Text(self.cs, 11, C.muted, "RIGHT")
+                    self.cs.ilvlTxt:SetPoint("TOPRIGHT", self.cs, "TOPRIGHT", -14, -15)
+                end
+                self.cs.ilvlTxt:SetText(ilvlX and (plain(L["Gegenstandsstufe"]) .. "   " .. (il.val:GetText() or "")) or "")
+            end
             self.cs.head.text:SetText(plain(L["Charakterwerte"]) .. "  |cff888888· " .. L["fuer"] .. " " .. roleName .. "|r")
             local view = {}
             for _, x in ipairs(top) do view[#view + 1] = x end
@@ -2294,7 +2302,7 @@ ns.RegisterPage({
             local h = self.cs:GetHeight() or 0
             if h < 60 then h = 300 end
             -- Werte links in einer Spalte, rechts die Einblicke (Treffer, Tempo, Upgrade, Verbrauchsgueter)
-            local perCol = math.max(1, math.floor((h - 84 - 18) / 23))   -- unten Luft (auch fuer die Klapp-Leiste)
+            local perCol = math.max(1, math.floor((h - (self.consBox and 48 or 84) - 18) / 23))   -- unten Luft (auch fuer die Klapp-Leiste)
             local fits = perCol
             if ns.Insights then pcall(ns.Insights.Fill, self, self.cs, st) end
             local W = self.cs:GetWidth() or 700
@@ -2304,7 +2312,7 @@ ns.RegisterPage({
                 local col = (i - 1) >= perCol and 1 or 0
                 local row = (i - 1) % perCol
                 r:ClearAllPoints()
-                r:SetPoint("TOPLEFT", self.cs, "TOPLEFT", 12 + col * (colW + 20), -80 - row * 23)
+                r:SetPoint("TOPLEFT", self.cs, "TOPLEFT", 12 + col * (colW + 20), (self.consBox and -44 or -80) - row * 23)
                 r:SetWidth(colW)
             end
             local lvl = num(UnitLevel("player")) or 1
@@ -2332,7 +2340,7 @@ ns.RegisterPage({
             local trackH = fits * 23
             local scrollable = #st > fits
             self.cs.sbTrack:ClearAllPoints()
-            self.cs.sbTrack:SetPoint("TOPLEFT", self.cs, "TOPLEFT", 12 + colW + 6, -80)
+            self.cs.sbTrack:SetPoint("TOPLEFT", self.cs, "TOPLEFT", 12 + colW + 6, (self.consBox and -44 or -80))
             self.cs.sbTrack:SetHeight(trackH)
             self.cs.sbTrack:SetShown(scrollable)
             if scrollable then
@@ -2344,7 +2352,7 @@ ns.RegisterPage({
             end
             self.cs.sbThumb:SetShown(scrollable)
             self.cs.fade:ClearAllPoints()
-            self.cs.fade:SetPoint("BOTTOMLEFT", self.cs, "TOPLEFT", 12, -80 - trackH)
+            self.cs.fade:SetPoint("BOTTOMLEFT", self.cs, "TOPLEFT", 12, (self.consBox and -44 or -80) - trackH)
             self.cs.fade:SetWidth(colW)
             self.cs.fade:SetShown(below > 0)
             for i, r in ipairs(self.cs.rows) do
@@ -2873,7 +2881,6 @@ ns.RegisterPage({
                 local x = 0
                 for _, b in ipairs(bar.btns) do
                     b:SetHeight(30)
-                    b:SetWidth((b:GetWidth() or 60) + 16)
                     b:ClearAllPoints()
                     b:SetPoint("LEFT", x, 0)
                     x = x + (b:GetWidth() or 60) + 8
@@ -3003,7 +3010,7 @@ ns.RegisterPage({
             local cb = CreateFrame("Frame", nil, view)
             cb:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 0, 0)
             cb:SetPoint("RIGHT", view, "CENTER", -6, 0)
-            cb:SetHeight(150)
+            cb:SetHeight(124)
             IG.Glass(cb, IG.GLASS_FILL, IG.GLASS_LINE, 12)
             soon.consBox = cb
             cs:SetPoint("TOPLEFT", view, "TOPLEFT", 0, -(ROW + 12))
@@ -3097,7 +3104,7 @@ ns.RegisterPage({
                 if inner < 60 then inner = 254 end
                 bar:ClearAllPoints()
                 -- nebeneinander: links Spezialisierung, rechts Wunschrolle (je mit Ueberschrift)
-                local rcW = self.roleChips and self.roleChips.chips and (#self.roleChips.chips * 72 + (#self.roleChips.chips - 1) * 6) or 0
+                local rcW = math.floor(inner * 0.46)
                 local room = inner - rcW - 16
                 local bw = bar:GetWidth() or room
                 local sc = math.min(1, room / math.max(1, bw))
@@ -3109,10 +3116,12 @@ ns.RegisterPage({
                     rc:SetWidth(math.max(1, rcW))
                     rc:SetPoint("TOPRIGHT", rb, "TOPRIGHT", -12, -32)
                     if rc.chips then
+                        local n = #rc.chips
+                        local cw = (rcW - 6 * (n - 1)) / math.max(1, n)
                         for i, b in ipairs(rc.chips) do
                             b:ClearAllPoints()
-                            b:SetSize(72, 30)
-                            b:SetPoint("LEFT", (i - 1) * 78, 0)
+                            b:SetSize(cw, 30)
+                            b:SetPoint("LEFT", (i - 1) * (cw + 6), 0)
                         end
                     end
                     rb.l2:ClearAllPoints()
@@ -5117,8 +5126,8 @@ do
             for i, b in ipairs(f.cons) do
                 local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
                 b:ClearAllPoints()
-                b:SetPoint("TOPLEFT", f, "TOPLEFT", col * (bw + 10), -30 - row * 50)
-                b:SetSize(bw, 44)
+                b:SetPoint("TOPLEFT", f, "TOPLEFT", col * (bw + 10), -26 - row * 40)
+                b:SetSize(bw, 36)
             end
         else
             f:SetPoint("TOPLEFT", cs, "TOPLEFT", 12 + colW + 28, -80)

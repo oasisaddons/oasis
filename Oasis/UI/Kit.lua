@@ -3741,7 +3741,7 @@ function K.ImageFrame(host, k)
     fr.sweep = {}
     for i, side in ipairs({ "TOP", "BOTTOM" }) do
         local t = fr:CreateTexture(nil, "OVERLAY", nil, 3)
-        t:SetSize(180, math.max(4, (side == "TOP" and BT or BB) * k))
+        t:SetSize(60, 2)   -- 0.6.334: feiner Lichtpunkt statt breitem Streif
         t:SetBlendMode("ADD")
         if not K.Gradient(t, "HORIZONTAL", { 1, 0.85, 0.7, 0 }, { 1, 0.85, 0.7, 0.9 }) then t:SetColorTexture(1, 0.85, 0.7, 0.4) end
         t.side = side
@@ -3752,7 +3752,7 @@ function K.ImageFrame(host, k)
         t2:SetBlendMode("ADD")
         if not K.Gradient(t2, "HORIZONTAL", { 1, 0.85, 0.7, 0.9 }, { 1, 0.85, 0.7, 0 }) then t2:SetColorTexture(1, 0.85, 0.7, 0.4) end
         t2:SetPoint("TOPLEFT", t, "TOPRIGHT") t2:SetPoint("BOTTOMLEFT", t, "BOTTOMRIGHT")
-        t2:SetWidth(180)
+        t2:SetWidth(60)
         t2:Hide()
         t.tail = t2
     end
@@ -3771,13 +3771,13 @@ function K.ImageFrame(host, k)
         for _, t in ipairs(fr.sweep) do
             if p < 1 then
                 local e = p * p * (3 - 2 * p)
-                local x = (t.side == "TOP") and (-360 + e * (W + 360)) or (W - e * (W + 360))
+                local x = (t.side == "TOP") and (-120 + e * (W + 120)) or (W - e * (W + 120))
                 t:ClearAllPoints()
-                t:SetPoint(t.side .. "LEFT", fr, t.side .. "LEFT", x, t.side == "TOP" and -1 or 1)
+                t:SetPoint(t.side .. "LEFT", fr, t.side .. "LEFT", x, t.side == "TOP" and -((BT * k) / 2) or ((BB * k) / 2))
                 -- nur innerhalb des Rahmens zeigen
-                local a = math.sin(p * math.pi)
+                local a = math.sin(p * math.pi) * 0.6
                 t:SetAlpha(a) t.tail:SetAlpha(a)
-                t:SetShown(x > -180 and x < W) t.tail:SetShown(x + 180 > 0 and x + 180 < W)
+                t:SetShown(x > -60 and x < W) t.tail:SetShown(x + 60 > 0 and x + 60 < W)
             else
                 t:Hide() t.tail:Hide()
             end
