@@ -2,9 +2,9 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.6.477
+## 0.6.481
 
-- Less background load: the minimap only updates at full speed while you move or turn (twice a second when standing still), and the frame and top bar shimmer update at most 30 times a second.
+- Less background load: the minimap only updates at full speed while you move or turn (twice a second when standing still), the frame and top bar shimmer update at most 30 times a second, and the Oasis rank recalculation is batched and never runs during combat.
 - New option: the guild window key (J) can open Oasis instead of Blizzard's guild window (Quick start and Key bindings).
 - Comfort settings fully translated (Blizzard bars, comfort switches, gathering map, roster check).
 - Long dropdown menus scroll with the mouse wheel and always stay on screen.
@@ -12,6 +12,7 @@ Add a new section at the top for every file that is uploaded. Describe what chan
 - Settings now separate guild organisation, social activities and personal convenience tools. Search, category navigation and subpages each have their own space.
 - Notification types are grouped into collapsible sections with individual and group switches. Existing choices are preserved.
 - Search opens the matching category, reveals advanced options when needed and scrolls to the setting. Reduced-motion preferences are respected.
+- Settings categories are tinted so they stand out from the subpages; the modules page shows simple category lines.
 
 ## 0.6.475
 
