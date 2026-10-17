@@ -595,7 +595,9 @@ local function fromMinimapTooltip()
                     local key = kind .. n .. math.floor(x * 400) .. ":" .. math.floor(y * 400)
                     if not hoverSeen[key] then
                         hoverSeen[key] = true
-                        pcall(GM.Record, kind, n, x, y)
+                        local ok, res = pcall(GM.Record, kind, n, x, y)
+                        -- 0.6.489: kurze Rueckmeldung, damit man sieht, dass es klappt
+                        if ok and res == "neu gespeichert" then ns.print((L["Fundort uebernommen: %s"]):format(n)) end
                     end
                 end
             end
