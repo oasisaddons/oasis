@@ -142,8 +142,8 @@ end
 ------------------------------------------------------------------------
 -- Besondere Emojis: animierte Gilden-Emojis werden nach Rang freigeschaltet
 ------------------------------------------------------------------------
-local EMOJI_STEPS = { 8, 16, 26, 36, 48, 62, 76, 92 }
-local STATIC_STEPS = { 2, 3, 4, 6 }   -- 0.6.417: auch normale Gilden-Emojis erst ab Rang (ohne Rang gesperrt)
+local EMOJI_STEPS = { 14, 22, 32, 42, 54, 66, 80, 95 }   -- 0.6.427: strenger
+local STATIC_STEPS = { 4, 7, 10, 14, 18 }   -- 0.6.427: strenger   -- 0.6.417: auch normale Gilden-Emojis erst ab Rang (ohne Rang gesperrt)
 local emojiLock
 function RW.EmojiLevel(e)
     -- eigenes Emoji einer Gilde mit festem Rang ("@20" im Dateinamen, Oasis_Emojis)
