@@ -1126,7 +1126,12 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 self.newTag:SetShown(it.new and true or false)
                 if it.new then
                     self.newTag:ClearAllPoints()
-                    self.newTag:SetPoint("LEFT", self.name, "LEFT", math.min((self.name:GetStringWidth() or 60) + 8, (self.name:GetWidth() or 200) - 30), 0)
+                    -- 0.6.412: Breite ueber eine ungebundene Messzeile (GetStringWidth der Namenszeile kam vor dem Layout zu klein)
+                    if not self.meas then self.meas = K.Text(self, 13, C.text) self.meas:Hide() end
+                    self.meas:SetText(self.name:GetText() or "")
+                    local w = (self.meas.GetUnboundedStringWidth and self.meas:GetUnboundedStringWidth()) or self.meas:GetStringWidth() or 60
+                    local maxW = (self:GetWidth() or 300) - 50 - 52 - 34
+                    self.newTag:SetPoint("LEFT", self.name, "LEFT", math.min(w + 8, maxW), 0)
                 end
                 self.pickBar:SetShown(sel)
                 self.pickBg:SetShown(sel)

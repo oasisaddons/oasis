@@ -1785,6 +1785,11 @@ ns.RegisterPage({
             online.art:SetAllPoints()
             online.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\online_bg")
             if K.RoundMask then pcall(K.RoundMask, online.art, online, 8) end
+            -- 0.6.412: Bild dezenter - dunkler Schleier darueber
+            local dim = online:CreateTexture(nil, "BACKGROUND", nil, 5)
+            dim:SetAllPoints(online.art)
+            dim:SetColorTexture(0.02, 0.02, 0.03, 0.5)
+            if K.RoundMask then pcall(K.RoundMask, dim, online, 8) end
             if online.bg then online.bg:SetAlpha(0) end
             if online.borders then for _, b in ipairs(online.borders) do b:SetAlpha(0) end end
             if online.skinLine then for _, b in ipairs(online.skinLine) do b:SetAlpha(0) end end
@@ -1843,6 +1848,11 @@ ns.RegisterPage({
             if not K.Gradient(f.shade, "HORIZONTAL", { 0.04, 0.04, 0.05, 0.96 }, { 0.04, 0.04, 0.05, 0.05 }) then f.shade:SetColorTexture(0, 0, 0, 0.5) end
             f.shade:Hide()
             if K.RoundMask then pcall(K.RoundMask, f.art, spotBox, 8) pcall(K.RoundMask, f.shade, spotBox, 8) end
+            -- 0.6.412: Bild dezenter - dunkler Schleier darueber
+            local dim = f:CreateTexture(nil, "BACKGROUND", nil, 5)
+            dim:SetAllPoints(f.art)
+            dim:SetColorTexture(0.02, 0.02, 0.03, 0.5)
+            if K.RoundMask then pcall(K.RoundMask, dim, spotBox, 8) end
             function f:FitArt()
                 local w, h = self:GetWidth() or 0, self:GetHeight() or 0
                 if w <= 0 or h <= 0 then return end
@@ -2870,6 +2880,11 @@ ns.RegisterPage({
             bx.art:SetAllPoints()
             bx.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. file)
             if K.RoundMask then pcall(K.RoundMask, bx.art, bx, 8) end   -- 0.6.315: in die Rahmenecken schneiden
+            -- 0.6.412: Bild dezenter - dunkler Schleier darueber
+            local dim = bx:CreateTexture(nil, "BACKGROUND", nil, 5)
+            dim:SetAllPoints(bx.art)
+            dim:SetColorTexture(0.02, 0.02, 0.03, 0.5)
+            if K.RoundMask then pcall(K.RoundMask, dim, bx, 8) end
             if bx.bg then bx.bg:SetAlpha(0) end
             if bx.borders then for _, b in ipairs(bx.borders) do b:SetAlpha(0) end end
             if bx.skinLine then for _, b in ipairs(bx.skinLine) do b:SetAlpha(0) end end
