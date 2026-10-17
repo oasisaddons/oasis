@@ -673,7 +673,7 @@ local function finish(c)
     elseif c.kit then c.lvl = 2   -- 0.6.434: auch WoW-Klaenge und Oasis-Toene nicht mehr ab Rang 1
     elseif c.cat == "oasis" then c.lvl = 4
     -- 0.6.430: deutlich strenger - kurze ab 10, neue Gilden-Sounds ab 18, lange/Musik erst spaet
-    elseif c.new or c.free then c.lvl = c.guild and 18 or 1
+    -- 0.6.437: "free"/"neu" machen nicht mehr frei (galt fuer viele Gilden-Sounds) - es zaehlt die Laenge
     elseif MUSIC[c.key] or c.music then c.lvl = 80
     elseif d <= 1.5 then c.lvl = 10
     elseif d <= 3 then c.lvl = 22
