@@ -2244,7 +2244,7 @@ local function buildEvents(f)
         if W < 200 then W = 700 end
         self:SetWidth(W)
         -- 0.6.455: rechte Spalte ab 760 px, sonst alles untereinander
-        local RW = (W >= 760) and 230 or 0
+        local RW = (W >= 760) and 230 or ((W >= 520) and 190 or 0)   -- 0.6.456: immer zwei Spalten, rechts schmaler wenn eng
         local w = RW > 0 and (W - RW - 12) or W
         local y = 0
         self.hb:ClearAllPoints()
