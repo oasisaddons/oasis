@@ -2069,7 +2069,7 @@ ns.RegisterPage({
             end
             if r.xpTrack then r.xpTrack:SetShown(r.xpFill:IsShown()) end
             if r.xpGlow then r.xpGlow:SetShown(r.xpFill:IsShown() and m.online and true or false) end
-            r.gain:SetText(cx.gain > 0 and ("+" .. cx.gain) or "")
+            r.gain:SetText("")   -- 0.6.465: Level-Zuwachs (+17) nicht mehr in der Liste
             if hasGlass() then r.gain:SetTextColor(C.mint[1], C.mint[2], C.mint[3], 0.75) end
             r.cstripe:SetColorTexture(cx.cr or 0.5, cx.cg or 0.5, cx.cb or 0.5, m.online and 1 or 0.4)
             local orl, st = cx.orl, cx.st
