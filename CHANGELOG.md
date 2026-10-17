@@ -2,10 +2,17 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.6.468
+## 0.6.474
 
+- Please restart the game after this update (new files).
+- New Community page: profile cards (when you are usually online, time zone, what you are looking for), birthdays with a one-click congratulation, mentors for new members (levelling together gives Oasis XP), a "thank you" button with a Helper of the Week, and weekly guild achievements.
+- New event types for guild events beyond raids: fishing contest, race, photo night, dice tournament.
+- Settings reorganised: one place to turn pages and modules on or off (Features), Chat & comfort, Map & tooltips, Profile & data. Rarely used switches are hidden until you turn on "All options" next to the search.
+- New OASIS logo.
+- All texts translated again in every language; Chinese, Korean and Japanese fonts include all new characters.
 - The dashboard can no longer be hidden; if you hid it before, it is back.
 - Death roll works with friends outside your guild: challenges reach players who are not in your guild, and you can be challenged by guild members, friends and group members (you always accept yourself).
+- Map trails now run up to your current position.
 
 ## 0.6.467
 
