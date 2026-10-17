@@ -3045,7 +3045,7 @@ ns.RegisterPage({
                     set(self, text, c)
                     IG.Glass(self, { 1, 1, 1, 0 }, { 1, 1, 1, 0 })
                     if self.t then
-                        K.SetFontSafe(self.t, K.FONT, 16, "", K.FONT)
+                        K.SetFontSafe(self.t, K.FONT, 13, "", K.FONT)   -- 0.6.492: kleiner
                         self.t:SetTextColor(C.text[1], C.text[2], C.text[3])
                         self:SetWidth((self.t:GetStringWidth() or 40) + 4)
                         self.t:ClearAllPoints() self.t:SetPoint("LEFT", 0, 0)
@@ -3062,7 +3062,7 @@ ns.RegisterPage({
                 K.SetFontSafe(n, K.FONT_HEAD, 28, "", K.FONT)
                 local w = (n.GetUnboundedStringWidth and n:GetUnboundedStringWidth()) or n:GetStringWidth() or 0
                 if w < 10 then return end
-                local size = math.max(16, math.min(44, math.floor(28 * target / w)))
+                local size = math.max(16, math.min(30, math.floor(28 * target / w)))   -- 0.6.492: hoechstens 30 (lief in die Leisten rechts)
                 K.SetFontSafe(n, K.FONT_HEAD, size, "", K.FONT)
                 n:SetWidth(math.max(target + 8, n:GetWidth() or 0))
                 c:ClearAllPoints()
