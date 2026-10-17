@@ -747,8 +747,8 @@ function Map.UpdateWorldPins()
             place(pin, x, y)
         end
     end
-    -- Lagerfeuer
-    if ns.Camp then
+    -- Lagerfeuer (0.6.499: nur mit Schalter "Lagerfeuer auf der Karte", Standard aus)
+    if ns.Camp and ns.db.settings.mapCamp == true then
         for _, f in ipairs(ns.Camp.ActiveFires()) do
             local x, y = translate(f.mapID, (f.x or 0) / 10000, (f.y or 0) / 10000, mapID)
             if x then
@@ -1562,7 +1562,7 @@ ns.Listen("LOGIN", function()
     local hasFires = false
     local fires = {}
     local function checkFires()
-        fires = ns.Camp and ns.Camp.ActiveFires() or {}
+        fires = (ns.Camp and ns.db.settings.mapCamp == true) and ns.Camp.ActiveFires() or {}
         hasFires = fires[1] ~= nil
     end
     function Map.FiresCached() return fires end

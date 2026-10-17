@@ -4076,3 +4076,7 @@ DE["Statt Blizzards Gildenfenster oeffnet und schliesst die Taste das Oasis-Fens
 EN["Statt Blizzards Gildenfenster oeffnet und schliesst die Taste das Oasis-Fenster"] = "The key opens and closes the Oasis window instead of Blizzard's guild window"
 DE["Gildenfenster"] = "Gildenfenster"
 EN["Gildenfenster"] = "guild window"
+DE["Lagerfeuer auf der Karte"] = "Lagerfeuer auf der Karte"
+EN["Lagerfeuer auf der Karte"] = "Campfires on the map"
+DE["Gemeldete Lagerfeuer der Gilde auf Weltkarte und Minimap"] = "Gemeldete Lagerfeuer der Gilde auf Weltkarte und Minimap"
+EN["Gemeldete Lagerfeuer der Gilde auf Weltkarte und Minimap"] = "Guild campfires on the world map and minimap"

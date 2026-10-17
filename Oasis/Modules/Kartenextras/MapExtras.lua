@@ -349,7 +349,7 @@ local function drawTrails(w)
                 l:SetEndPoint("TOPLEFT", tFrame, x * w.cw, -y * w.ch)
                 l:Show()
                 -- weiches Leuchten darunter (additiv), zum Ende hin staerker
-                if glow then
+                if glow and glow > 0 then
                     gUsed = gUsed + 1
                     local gl = gLines[gUsed]
                     if not gl then gl = tFrame:CreateLine(nil, "BACKGROUND") gl:SetBlendMode("ADD") gLines[gUsed] = gl end
@@ -365,13 +365,13 @@ local function drawTrails(w)
             px, py = x, y
         end
         -- Schein am letzten Punkt (aktuelles Ende)
-        if glow and px then
+        if glow ~= nil and px then
             if not endGlow then
                 endGlow = tFrame:CreateTexture(nil, "OVERLAY")
                 endGlow:SetTexture(ns.MEDIA .. "softglow")
                 endGlow:SetBlendMode("ADD")
             end
-            local sz = math.max(18, 34 * w.cs)
+            local sz = math.max(12, 18 * w.cs)   -- 0.6.499: kleiner, dezenter Punkt
             endGlow:SetSize(sz, sz)
             endGlow:ClearAllPoints()
             endGlow:SetPoint("CENTER", tFrame, "TOPLEFT", px * w.cw, -py * w.ch)
@@ -389,7 +389,7 @@ local function drawTrails(w)
         local fade = math.max(0.35, 1 - (k - 1) * 0.15)
         drawPts(r.pts or {}, mr, mg, mb, 0.18 * fade, 0.6 * fade)   -- 0.6.497: etwas kraeftiger
     end
-    if recOn then drawPts(X.rec.pts, mr, mg, mb, 0.45, 1, 0.55) end
+    if recOn then drawPts(X.rec.pts, mr, mg, mb, 0.45, 1, 0) end   -- 0.6.499: kein breites Leuchten mehr (wirkte unruhig)
     if not opt("mapTrails") then return end
     for name, t in pairs(trails) do
         -- 0.6.495: Linien anderer Spieler nur mit eigenem Schalter (Standard aus)
