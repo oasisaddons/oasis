@@ -3039,7 +3039,23 @@ ns.RegisterPage({
                         self:SetWidth((self.t:GetStringWidth() or 40) + 4)
                         self.t:ClearAllPoints() self.t:SetPoint("LEFT", 0, 0)
                     end
+                    if soon.FitName then soon.FitName() end
                 end
+            end
+            -- 0.6.426: Name genau so breit wie "Klasse | Level" darunter, naeher zusammen
+            function soon.FitName()
+                local n, c, l = soon.name, soon.clsPill, soon.lvlPill
+                if not (n and c and l and n.GetStringWidth) then return end
+                local target = (c:GetWidth() or 0) + 24 + (l:GetWidth() or 0)
+                if target < 40 then return end
+                K.SetFontSafe(n, K.FONT_HEAD, 28, "", K.FONT)
+                local w = (n.GetUnboundedStringWidth and n:GetUnboundedStringWidth()) or n:GetStringWidth() or 0
+                if w < 10 then return end
+                local size = math.max(16, math.min(44, math.floor(28 * target / w)))
+                K.SetFontSafe(n, K.FONT_HEAD, size, "", K.FONT)
+                n:SetWidth(math.max(target + 8, n:GetWidth() or 0))
+                c:ClearAllPoints()
+                c:SetPoint("TOPLEFT", n, "TOPLEFT", 1, -(size + 2))
             end
             soon.lvlPill:ClearAllPoints()
             soon.lvlPill:SetPoint("LEFT", soon.clsPill, "RIGHT", 24, 0)
@@ -3684,6 +3700,7 @@ ns.RegisterPage({
                 local me = ns.me and ns.me() or ""
                 self.name:SetText(ns.displayName and ns.displayName(me) or (me:match("^[^-]+") or me))
                 self.name:SetTextColor(1, 1, 1)
+                if soon.FitName then soon.FitName() ns.After(0, soon.FitName) end   -- 0.6.426
                 local rt = (self.rank:GetText() or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
                 local head, rest = rt:match("^(.-)%s%s+[·%s]*(.+)$")
                 -- Rang-Wappen vor "Rang N" (0.6.335)
