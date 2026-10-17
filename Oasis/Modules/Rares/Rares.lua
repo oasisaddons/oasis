@@ -759,28 +759,38 @@ ns.RegisterPage({
         p:HookScript("OnShow", function(self) self.fresh = true end)
         p.fresh = true
 
-        p.list = K.List(p, 40, function(l)
+        p.list = K.List(p, 50, function(l)   -- 0.6.451: Zeilen als ruhige Karten mit mehr Luft
             local r = K.Row(l)
+            if r.stripe then r.stripe:SetAlpha(0) end
+            r.card = r:CreateTexture(nil, "BACKGROUND", nil, -1)
+            r.card:SetPoint("TOPLEFT", 0, -3) r.card:SetPoint("BOTTOMRIGHT", 0, 3)
+            r.card:SetColorTexture(1, 1, 1, 0.035)
+            if K.RoundMask then pcall(K.RoundMask, r.card, r, 8) end
+            r.disc = r:CreateTexture(nil, "BORDER")
+            r.disc:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+            r.disc:SetSize(30, 30)
+            r.disc:SetPoint("LEFT", 8, 0)
+            r.disc:SetVertexColor(0, 0, 0, 0.45)
             r.icon = r:CreateTexture(nil, "ARTWORK")
             r.icon:SetSize(18, 18)
-            r.icon:SetPoint("LEFT", 10, 0)
+            r.icon:SetPoint("CENTER", r.disc, "CENTER")
             r.icon:SetTexture(SKULL)
             r.cols.name = K.Text(r, 13, C.text)
-            r.cols.name:SetPoint("TOPLEFT", 38, -5)
+            r.cols.name:SetPoint("TOPLEFT", 48, -9)
             r.cols.name:SetPoint("RIGHT", r, "RIGHT", -330, 0)
             r.cols.meta = K.Text(r, 11, C.muted)
-            r.cols.meta:SetPoint("BOTTOMLEFT", 38, 5)
+            r.cols.meta:SetPoint("BOTTOMLEFT", 48, 9)
             r.cols.meta:SetPoint("RIGHT", r, "RIGHT", -330, 0)
             r.cols.state = K.Text(r, 11, C.text, "RIGHT")
-            r.cols.state:SetPoint("TOPRIGHT", -78, -6)
+            r.cols.state:SetPoint("TOPRIGHT", -82, -10)
             r.cols.state:SetWidth(250)
             r.cols.next = K.Text(r, 11, C.muted, "RIGHT")
-            r.cols.next:SetPoint("BOTTOMRIGHT", -78, 6)
+            r.cols.next:SetPoint("BOTTOMRIGHT", -82, 10)
             r.cols.next:SetWidth(250)
             r.head = K.Title(r, 12, C.amber)
             r.head:SetPoint("LEFT", 10, -4)
             r.map = K.Button(r, L["Karte"], 62, 22, "ghost")
-            r.map:SetPoint("RIGHT", -8, 0)
+            r.map:SetPoint("RIGHT", -10, 0)
             r.map.label:SetFont(K.FONT, 11, "")
             r:SetScript("OnEnter", function(self)
                 local e = self.item
@@ -801,7 +811,7 @@ ns.RegisterPage({
         end, function(r, e)
             local isHead = e.header
             r.head:SetShown(isHead)
-            for _, f in ipairs({ r.icon, r.cols.name, r.cols.meta, r.cols.state, r.cols.next, r.map }) do f:SetShown(not isHead) end
+            for _, f in ipairs({ r.icon, r.disc, r.card, r.cols.name, r.cols.meta, r.cols.state, r.cols.next, r.map }) do f:SetShown(not isHead) end
             if r.stripe then r.stripe:SetShown(not isHead and r.stripe:IsShown()) end
             if isHead then r.head:SetText(K.Upper(e.text)) return end
             local now = ns.now()

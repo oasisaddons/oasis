@@ -340,7 +340,16 @@ local function fillChar(r, c, extra)
     if c.online then r.onl:SetVertexColor(0.4, 0.86, 0.62, 1) else r.onl:SetVertexColor(0.3, 0.3, 0.3, 1) end
     r.cols.name:SetText(ns.colorName(c.name, c.cls))
     r.cols.st:SetText(stText(c.st))
-    local p = (c.max or 0) > 0 and c.cur / c.max or 1
+    -- 0.6.451: passt Wert und Maximum nicht zusammen (z. B. "1050 / 30"), Stand aus den Klassik-Schwellen der Stufe rechnen
+    if (c.max or 0) <= 0 or (c.cur or 0) > (c.max or 0) then
+        local TH = { [1] = { -42000, -6000 }, [2] = { -6000, -3000 }, [3] = { -3000, 0 }, [4] = { 0, 3000 },
+            [5] = { 3000, 9000 }, [6] = { 9000, 21000 }, [7] = { 21000, 42000 }, [8] = { 42000, 42999 } }
+        local th = TH[tonumber(c.st) or 0]
+        local tot = tonumber(c.total) or ((tonumber(c.cur) or 0) + (th and th[1] or 0))
+        if th and tot >= th[1] and tot <= th[2] then c.cur, c.max = tot - th[1], th[2] - th[1]
+        elseif th then c.cur, c.max = math.min(c.cur or 0, th[2] - th[1]), th[2] - th[1] end
+    end
+    local p = (c.max or 0) > 0 and math.min(1, c.cur / c.max) or 1
     local sc = RP.StandingColor(c.st)
     r.bar.fill:SetColorTexture(sc[1], sc[2], sc[3], 0.9)
     if animNext and not (ns.db and ns.db.settings.noAnim) then
