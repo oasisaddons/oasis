@@ -113,6 +113,16 @@ end
 -- Schalter (descInline); der Aufbau rechnet die zusaetzliche Hoehe DESC_H ein. Ganzer Text weiter beim Drueberfahren.
 local DESC_H = 14
 local descInline = false
+-- 0.6.471: selten gebrauchte Schalter - nur sichtbar mit "Alle Optionen zeigen" (oben neben der Suche);
+-- die uebrigen ruecken nach oben (compact bzw. toggleList ueberspringt sie)
+local ADV = {
+    combatReshow = true, lockWindow = true, minimapLock = true, minimapBadge = true,
+    highContrast = true, frameAccent = true, themeTexture = true, boxFrame = true,
+    toastHoldCombat = true, soundQuietCombat = true, chatSounds = true,
+    tipWanted = true, tipCrafters = true, tipBank = true, tipReagent = true, srTooltip = true, srTooltipGroupOnly = true,
+    mapHeat = true, mapReveal = true,
+}
+local function advHidden(key) return ADV[key] and not (ns.db and ns.db.settings.setAll) end
 local function toggle(p, x, y, label, key, desc, after, w)
     local t = K.Toggle(p, L[label], function() return S()[key] and true or false end, function(v)
         S()[key] = v
@@ -120,6 +130,7 @@ local function toggle(p, x, y, label, key, desc, after, w)
     end)
     t:SetPoint("TOPLEFT", x, y)
     t:SetWidth(w or 340)
+    if advHidden(key) then t:Hide() end
     if desc and descInline then
         t.sub = K.Text(t, 10, C.dim)
         t.sub:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -3)
@@ -3590,6 +3601,10 @@ end
 -- 0.6.0: zweispaltig (links 14, rechts 384) - einspaltig blieb die halbe Karte leer
 local function toggleList(f, list, y, cols)
     cols = cols or 2
+    -- 0.6.471: seltene Schalter nur mit "Alle Optionen zeigen"
+    local vis = {}
+    for _, o in ipairs(list) do if not advHidden(o[2]) then vis[#vis + 1] = o end end
+    list = vis
     local was = descInline
     descInline = true
     for r = 0, math.ceil(#list / cols) - 1 do
@@ -4065,13 +4080,13 @@ ns.RegisterPage({
             local sv = p.saved
             if not p.find then return end
             sv:ClearAllPoints()
-            sv:SetPoint("RIGHT", p.find, "LEFT", -12, 0)
+            sv:SetPoint("RIGHT", p.allOpt or p.find, "LEFT", -12, 0)
             if S().noAnim or not K.Tween then sv:SetAlpha(1) C_Timer.After(1.4, function() sv:SetAlpha(0) end) return end
             K.Tween(sv, 1.8, function(q)
                 local a = q < 0.12 and q / 0.12 or (q > 0.7 and (1 - q) / 0.3 or 1)
                 sv:SetAlpha(a)
                 sv:ClearAllPoints()
-                sv:SetPoint("RIGHT", p.find, "LEFT", -12, (q < 0.12) and (-4 * (1 - q / 0.12)) or 0)
+                sv:SetPoint("RIGHT", p.allOpt or p.find, "LEFT", -12, (q < 0.12) and (-4 * (1 - q / 0.12)) or 0)
             end, function() sv:SetAlpha(0) end)
         end
         p.find = K.Input(p, 170, L["Einstellung suchen ..."], function(t)
@@ -4174,6 +4189,18 @@ ns.RegisterPage({
         end)
         p.find:SetPoint("TOPRIGHT", 0, -45)  -- 0.5.531: zweite Zeile rechts (in der Gruppenzeile ueberlappte es die Reiter)
         p.find:SetWidth(130)
+        -- 0.6.471: "Alle Optionen" - zeigt auch die selten gebrauchten Schalter (Seiten werden neu aufgebaut)
+        p.allOpt = K.Toggle(p, L["Alle Optionen"], function() return S().setAll and true or false end, function(v)
+            S().setAll = v or nil
+            local cur = p.tab
+            for k, fr in pairs(p.tabs) do fr:Hide() if p.scrolls and p.scrolls[k] then p.scrolls[k]:Hide() end end
+            p.tabs, p.scrolls, p.allBuilt = {}, {}, nil
+            setTab(cur)
+        end)
+        p.allOpt:SetPoint("RIGHT", p.find, "LEFT", -16, 0)
+        p.allOpt:SetWidth(130)
+        p.allOpt:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Alle Optionen"], L["Zeigt auch selten gebrauchte Schalter. Aus: nur das Wichtigste."] }) end)
+        p.allOpt:HookScript("OnLeave", function() GameTooltip:Hide() end)
         p.findRes = CreateFrame("Frame", nil, p)
         p.findRes:SetPoint("TOPRIGHT", p.find, "BOTTOMRIGHT", 0, -2)
         p.findRes:SetWidth(308)
