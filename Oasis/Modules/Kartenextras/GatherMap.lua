@@ -123,14 +123,18 @@ function GM.Nodes(map)
     if not map then return allNodes end
     return byMap[map] or {}
 end
-function GM.Record(kind, name)
+function GM.Record(kind, name, px, py)
     if ns.inInstance() then return "Instanz" end
     if ns.db.settings.shareNodes == false then return "Sammelorte teilen ist aus" end
     local map, x, y = myPos()
     if not map then return "keine Kartenposition" end
+    -- 0.6.487: Fundort von der Minimap (Maus ueber Blizzards gelbem Punkt): Position aus dem Mauszeiger
+    local hover = px ~= nil
+    if hover then x, y = px, py end
     -- schon bekannt?
     for _, r in ipairs(GM.Nodes(map)) do
         if r.kind == kind and (r.name == name or name == "") and math.abs(r.x - x) < NEAR and math.abs(r.y - y) < NEAR then
+            if hover then return "schon bekannt" end   -- nur beim echten Abbau Position mitteln
             -- hoechstens alle 10 Minuten neu senden (0.5.935: vorher 6 Stunden - fuer "gerade abgeerntet" braucht die Gilde
             -- den Zeitpunkt); der Zaehler "wie oft gefunden" steigt weiter nur alle 6 Stunden
             local age = ns.now() - (r.ts or 0)
@@ -526,6 +530,88 @@ function GM.MiniPlace(c, x, y)
     local nx, ny = dx / c.radius, dy / c.radius
     return nx * c.half, -ny * c.half, math.sqrt(nx * nx + ny * ny), meters
 end
+
+------------------------------------------------------------------------
+-- 0.6.487: Fundorte von der Minimap uebernehmen - Blizzards gelbe Punkte (Kraeuter-/Erzsuche) kann kein Addon lesen,
+-- aber beim Drueberfahren steht ihr Name im Tooltip. Bekannte Kraeuter-/Erznamen + Mausposition -> Gilden-Sammelkarte.
+------------------------------------------------------------------------
+local NODE_NAMES = {
+    herb = { "Peacebloom", "Friedensblume", "Silverleaf", "Silberblatt", "Earthroot", "Erdwurzel", "Mageroyal", "Maguskoenigskraut",
+        "Briarthorn", "Wilddornrose", "Bruiseweed", "Beulengras", "Stranglekelp", "Wuergetang", "Wild Steelbloom", "Wildstahlblume",
+        "Grave Moss", "Grabmoos", "Kingsblood", "Koenigsblut", "Liferoot", "Lebenswurz", "Fadeleaf", "Blassblatt", "Goldthorn", "Golddorn",
+        "Khadgar's Whisker", "Khadgars Schnurrbart", "Wintersbite", "Winterbiss", "Firebloom", "Feuerbluete", "Purple Lotus", "Lila Lotus",
+        "Arthas' Tears", "Arthas' Traenen", "Sungrass", "Sonnengras", "Blindweed", "Blindkraut", "Ghost Mushroom", "Geisterpilz",
+        "Gromsblood", "Gromsblut", "Golden Sansam", "Goldener Sansam", "Dreamfoil", "Traumblatt", "Mountain Silversage", "Bergsilbersalbei",
+        "Plaguebloom", "Pestbluete", "Icecap", "Eiskappe", "Black Lotus", "Schwarzer Lotus" },
+    ore = { "Copper Vein", "Kupferader", "Tin Vein", "Zinnader", "Silver Vein", "Silberader", "Iron Deposit", "Eisenvorkommen",
+        "Gold Vein", "Goldader", "Mithril Deposit", "Mithrilablagerung", "Truesilver Deposit", "Echtsilberablagerung",
+        "Small Thorium Vein", "Kleine Thoriumader", "Rich Thorium Vein", "Reiche Thoriumader", "Dark Iron Deposit", "Dunkeleisenablagerung",
+        "Incendicite Mineral Vein", "Pyrophormineralvorkommen", "Lesser Bloodstone Deposit", "Geringe Blutsteinablagerung",
+        "Ooze Covered Silver Vein", "Ooze Covered Iron Deposit", "Ooze Covered Mithril Deposit", "Ooze Covered Thorium Vein" },
+}
+local function umlautLess(t) return (t:gsub("\195\164", "ae"):gsub("\195\182", "oe"):gsub("\195\188", "ue"):gsub("\195\159", "ss")) end
+local nameKind
+local function kindForName(n)
+    if not nameKind then
+        nameKind = {}
+        for kind, list in pairs(NODE_NAMES) do for _, x in ipairs(list) do nameKind[x:lower()] = kind end end
+    end
+    local k = nameKind[n:lower()] or nameKind[umlautLess(n):lower()]
+    if k then return k end
+    -- von der Gilde schon einmal abgebaut (jede Sprache)
+    for _, r in ipairs(GM.Nodes()) do
+        if (r.kind == "herb" or r.kind == "ore") and r.name and r.name ~= "" and r.name:lower() == n:lower() then
+            nameKind[n:lower()] = r.kind
+            return r.kind
+        end
+    end
+end
+local hoverSeen = {}
+local function fromMinimapTooltip()
+    if not (Minimap and GameTooltip and GameTooltip:IsShown() and GameTooltip:GetOwner() == Minimap) then return end
+    if ns.db.settings.shareNodes == false or ns.db.settings.gatherHoverOff then return end
+    local c = GM.MiniCtx()
+    if not c then return end
+    local cx, cy = GetCursorPosition()
+    local sc = Minimap:GetEffectiveScale()
+    local mx0, my0 = Minimap:GetCenter()
+    if not (cx and mx0) then return end
+    local ox, oy = cx / sc - mx0, cy / sc - my0
+    -- Pixel -> Meter (umgekehrt zu GM.MiniPlace), Drehung der Minimap rueckgaengig
+    local nx, ny = ox / c.half, -oy / c.half
+    if nx * nx + ny * ny > 1.05 then return end
+    local rx, ry = nx * c.radius, ny * c.radius
+    local dx = rx * c.cosF + ry * c.sinF
+    local dy = -rx * c.sinF + ry * c.cosF
+    local x, y = c.mx + dx / c.w, c.my + dy / c.h
+    for i = 1, GameTooltip:NumLines() do
+        local fs = _G["GameTooltipTextLeft" .. i]
+        local txt = fs and ns.safe(fs:GetText())
+        if type(txt) == "string" then
+            for line in txt:gmatch("[^\n]+") do
+                local n = line:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("^%s+", ""):gsub("%s+$", "")
+                local kind = n ~= "" and kindForName(n)
+                if kind then
+                    local key = kind .. n .. math.floor(x * 400) .. ":" .. math.floor(y * 400)
+                    if not hoverSeen[key] then
+                        hoverSeen[key] = true
+                        pcall(GM.Record, kind, n, x, y)
+                    end
+                end
+            end
+        end
+    end
+end
+if GameTooltip then
+    GameTooltip:HookScript("OnShow", function() pcall(fromMinimapTooltip) end)
+end
+local ghAcc = 0
+CreateFrame("Frame"):SetScript("OnUpdate", function(_, el)
+    ghAcc = ghAcc + (el or 0)
+    if ghAcc < 0.5 then return end
+    ghAcc = 0
+    if Minimap and Minimap:IsMouseOver() then pcall(fromMinimapTooltip) end
+end)
 
 ------------------------------------------------------------------------
 -- Sammelroute (0.5.934): verbindet die sichtbaren Fundorte eines Gebiets zu einer Rundstrecke.
