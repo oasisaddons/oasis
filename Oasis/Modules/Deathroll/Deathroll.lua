@@ -4376,16 +4376,16 @@ do
                         col.crown:ClearAllPoints() col.crown:SetPoint("TOP", col, "TOP", 0, -6) col.crown:SetSize(52, 26)
                         col.cls:ClearAllPoints() col.cls:SetPoint("TOP", col.crown, "BOTTOM", 0, -2)
                     end
-                    col.n:ClearAllPoints() col.n:SetPoint("TOP", col.cls, "BOTTOM", 0, -6) col.n:SetPoint("LEFT", col, "LEFT", 4, 0) col.n:SetPoint("RIGHT", col, "RIGHT", -4, 0)
+                    col.n:ClearAllPoints() col.n:SetPoint("BOTTOM", col.wl, "TOP", 0, 10) col.n:SetPoint("LEFT", col, "LEFT", 4, 0) col.n:SetPoint("RIGHT", col, "RIGHT", -4, 0)
                     col.num:ClearAllPoints() col.num:SetPoint("TOP", col.n, "BOTTOM", 0, -2)
                     K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 24, "", K.FONT)
                     col.wl:ClearAllPoints() col.wl:SetPoint("BOTTOM", 0, 8)
                     -- 0.6.440: schoener - grosse Platzzahl in Medaillenfarbe mit weichem Schein, Name groesser,
                     -- unten dunkler Verlauf hinter Elo/Bilanz
                     local mc = PCOL[place]
-                    K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 26, "", K.FONT)   -- 0.6.443: kleiner, ueberlappte die Elo-Zeile
+                    K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 20, "", K.FONT)   -- 0.6.444: Platzzahl oben links in der Ecke
                     col.num:SetTextColor(math.min(1, mc[1] * 1.1 + 0.1), math.min(1, mc[2] * 1.1 + 0.1), math.min(1, mc[3] * 1.1 + 0.1))
-                    col.num:ClearAllPoints() col.num:SetPoint("BOTTOM", col.wl, "TOP", 0, 4)
+                    col.num:ClearAllPoints() col.num:SetPoint("TOPLEFT", col, "TOPLEFT", 12, -9)
                     K.SetFontSafe(col.n, K.FONT, 12, "", K.FONT)
                     K.SetFontSafe(col.wl, K.FONT, 11, "", K.FONT)
                     if not col.numGlow then
@@ -4399,7 +4399,7 @@ do
                         col.footShade:SetHeight(30)
                         if not K.Gradient(col.footShade, "VERTICAL", { 0, 0, 0, 0.55 }, { 0, 0, 0, 0 }) then col.footShade:Hide() end
                     end
-                    col.numGlow:SetVertexColor(mc[1] * 0.35, mc[2] * 0.3, mc[3] * 0.2, 1)
+                    col.numGlow:Hide()
                     for _, fs in ipairs({ col.n, col.num, col.wl }) do if fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 1) fs:SetShadowOffset(1, -1) end end
                 end
             end
