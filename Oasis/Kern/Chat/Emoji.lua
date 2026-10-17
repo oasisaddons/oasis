@@ -1255,7 +1255,7 @@ local function buildPicker()
         local cols = math.max(1, math.min(4, math.floor((W - 20) / 78)))
         for i, b in ipairs(self.chans or {}) do
             b:ClearAllPoints()
-            if W >= 550 then
+            if W >= 620 then
                 b:SetSize(86, 26)
                 b:SetPoint("TOPRIGHT", -62 - (4 - i) * 92, -12)
             else
@@ -1263,7 +1263,7 @@ local function buildPicker()
                 b:SetPoint("TOPLEFT", 12 + ((i - 1) % cols) * 78, -44 - math.floor((i - 1) / cols) * 24)
             end
         end
-        if W < 550 then searchY = -44 - math.ceil(4 / cols) * 24 end
+        if W < 620 then searchY = -44 - math.ceil(4 / cols) * 24 end
         self.search:ClearAllPoints()
         self.search:SetPoint("TOPLEFT", 12, searchY)
         self.search:SetPoint("TOPRIGHT", -12, searchY)

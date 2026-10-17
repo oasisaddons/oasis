@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.413
+## Version: 0.6.414
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
