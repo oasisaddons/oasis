@@ -93,7 +93,7 @@ function ns.RefreshPage(key, force)
         if not ok then ns.err(L["Seite"] .. " " .. k, e) end
         -- 0.6.448: auf allen Seiten schwarze Box-Rahmen (neu entstandene Boxen nach jedem Aufbau)
         local fr = def.frame
-        if ns.K and ns.K.DarkFramesIn and ns.Debounce then ns.Debounce("darkFrames", 0.1, function() pcall(ns.K.DarkFramesIn, fr) end) end
+        if k ~= "home" and ns.K and ns.K.DarkFramesIn and ns.Debounce then   -- 0.6.453: Dashboard behaelt die roten Rahmen ns.Debounce("darkFrames", 0.1, function() pcall(ns.K.DarkFramesIn, fr) end) end
     end
 end
 -- Reiter stummgeschaltet (Lautsprecher in der Seitenleiste): seine Neuigkeiten gehen nicht an Minimap-Knopf und Topbar.
