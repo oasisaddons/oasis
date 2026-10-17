@@ -1906,6 +1906,9 @@ function Emoji.TogglePicker(anchor)
         picker = nil
     end
     picker = picker or buildPicker()
+    -- 0.6.438: Rahmen wie beim Soundboard (fehlte, wenn das Fenster frueh gebaut wurde)
+    if picker and not picker.boxFrame and K.BoxFrame then pcall(K.BoxFrame, picker, 40) end
+    if picker and picker.boxFrame then picker.boxFrame:Show() end
     picker.tabSig = sig
     if picker:IsShown() then picker:Hide() return end
     Emoji.RememberTarget()
