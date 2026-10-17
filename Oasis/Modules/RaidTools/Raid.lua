@@ -3730,7 +3730,7 @@ local function buildForm(f)
     f.repLbl = label(lc, L["Wiederholen"])
     f.repChips = {}
     for i, n in ipairs(REPEATS) do
-        local b = choiceChip(lc, n == 1 and L["einmalig"] or (L["%d Wochen"]):format(n), 60, 24, function(self)
+        local b = choiceChip(lc, n == 1 and L["Einmalig"] or (L["Alle %d Wochen"]):format(n), 60, 24, function(self)
             st.weeks = n
             pulse(self)
             f.update()
@@ -3908,38 +3908,57 @@ local function buildForm(f)
     sum.cap:SetPoint("TOPLEFT", 16, -14)
     sum.cap:SetText(L["Termin-Vorschau"])
     sum.disc = CreateFrame("Frame", nil, sum)
-    sum.disc:SetSize(40, 40)
-    sum.disc:SetPoint("TOPLEFT", 16, -34)
+    sum.disc:SetSize(76, 76)   -- 0.6.463: grosse Scheibe wie im Entwurf
+    sum.disc:SetPoint("TOPLEFT", 18, -100)
     sum.disc.bg = sum.disc:CreateTexture(nil, "BACKGROUND")
     sum.disc.bg:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
     sum.disc.bg:SetAllPoints()
-    sum.disc.g = K.Glyph(sum.disc, 20, nil, C.text)
+    sum.disc.g = K.Glyph(sum.disc, 40, nil, C.text)
     sum.disc.g:SetPoint("CENTER")
-    sum.title = K.Title(sum, 16, C.text)
-    sum.title:SetPoint("TOPLEFT", sum.disc, "TOPRIGHT", 12, -2)
+    sum.title = K.Title(sum, 22, C.text)
+    sum.title:SetPoint("TOPLEFT", sum.disc, "TOPRIGHT", 14, -18)
     sum.title:SetPoint("RIGHT", sum, "RIGHT", -14, 0)
     sum.title:SetWordWrap(false)
     sum.inst = K.Text(sum, 11, C.muted)
     sum.inst:SetPoint("TOPLEFT", sum.title, "BOTTOMLEFT", 0, -4)
     sum.inst:SetPoint("RIGHT", sum, "RIGHT", -14, 0)
     sum.inst:SetWordWrap(false)
-    -- Datum gross, darunter Countdown
+    -- 0.6.463: Trennlinie, darunter vier Zeilen mit Symbol (Datum, Uhrzeit, Spieler, Wiederholung)
+    sum.div = sum:CreateTexture(nil, "ARTWORK")
+    sum.div:SetHeight(1)
+    sum.div:SetPoint("TOPLEFT", 18, -190) sum.div:SetPoint("TOPRIGHT", -18, -190)
+    sum.div:SetColorTexture(1, 1, 1, 0.1)
+    sum.rows = {}
+    for k, ic in ipairs({ "chronicle", "camp", "groups", "sync" }) do
+        local g = K.Glyph(sum, 16, ns.MEDIA .. "icons\\" .. ic, C.muted)
+        g:SetPoint("TOPLEFT", 22, -204 - (k - 1) * 28)
+        local t = K.Text(sum, 13, C.text)
+        t:SetPoint("LEFT", g, "RIGHT", 14, 0)
+        sum.rows[k] = t
+    end
+    -- Datum gross, darunter Countdown (alt, ausgeblendet - steht in den Zeilen)
     sum.date = K.Title(sum, 20, C.text)
     sum.date:SetPoint("TOPLEFT", 16, -92)
+    sum.date:SetAlpha(0)
     sum.time = K.Text(sum, 12, C.muted)
     sum.time:SetPoint("TOPLEFT", sum.date, "BOTTOMLEFT", 0, -4)
+    sum.time:SetAlpha(0)
     sum.facts = K.Text(sum, 11, C.text)
     sum.facts:SetPoint("TOPLEFT", sum.time, "BOTTOMLEFT", 0, -10)
     sum.facts:SetPoint("RIGHT", sum, "RIGHT", -14, 0)
     sum.facts:SetWordWrap(true)
     sum.facts:SetJustifyH("LEFT")
+    sum.facts:SetAlpha(0)
     f.summary:SetParent(sum)
     f.create:SetParent(sum)
     f.calToggle:SetParent(sum)
     sum.pv = CreateFrame("Button", nil, sum)
-    sum.pv:SetHeight(18)
-    sum.pv.t = K.Text(sum.pv, 11, C.muted)
-    sum.pv.t:SetPoint("LEFT", 0, 0)
+    sum.pv:SetHeight(38)   -- 0.6.463: als umrandeter Knopf mit Symbol
+    if ns.Insta and ns.Insta.Glass then pcall(ns.Insta.Glass, sum.pv, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.14 }, 6) end
+    sum.pv.ic = K.Glyph(sum.pv, 16, ns.MEDIA .. "icons\\groups", C.muted)
+    sum.pv.ic:SetPoint("LEFT", 16, 0)
+    sum.pv.t = K.Text(sum.pv, 12, C.text)
+    sum.pv.t:SetPoint("LEFT", 44, 0)
     sum.pv:SetScript("OnClick", function()
         f.showPv = not f.showPv
         f.layout()
@@ -3987,8 +4006,9 @@ local function buildForm(f)
         lc:SetPoint("TOPLEFT", body, "TOPLEFT", 0, y0)
         -- Kopfzeilen der alten Felder werden nicht mehr gebraucht (Platzhalter sagen alles)
         for _, x in ipairs({ f.kindLbl, f.titleLbl, f.instLbl, f.timeLbl, f.sizeLbl, f.repLbl }) do x:Hide() end
-        -- 0.6.462: jeder Schritt in einem eigenen Kasten (Nummer, Titel, Inhalt eingerueckt)
-        local PX = 14
+        -- 0.6.463: genau nach Entwurf - Ueberschrift "Neuen Termin planen" + Schloss-Hinweis, Schritt-Leiste (1-2-3),
+        -- darunter drei Kaesten; Felder mit Beschriftung, Uhrzeit-Spalte mit Trennlinie, Gruppe zweispaltig
+        local PX = 18
         local CWD = LW - 2 * PX
         f.secBox = f.secBox or {}
         local function sec(k, top, bottom)
@@ -4003,35 +4023,103 @@ local function buildForm(f)
             b:SetPoint("TOPLEFT", lc, "TOPLEFT", 0, -top)
             b:SetSize(LW, bottom - top)
         end
-        -- 1 Was
-        local y = 0
-        local s1 = y
-        y = y + 12
-        f.step1:ClearAllPoints() f.step1:SetPoint("TOPLEFT", PX, -y) f.step1:SetWidth(CWD)
-        y = y + 30
-        local cw = math.floor((CWD - 4 * 6) / 5)
-        for i, b in ipairs(f.kindChips) do
-            b:SetSize(cw, 32)
-            b:ClearAllPoints()
-            b:SetPoint("TOPLEFT", PX + (i - 1) * (cw + 6), -y)
+        local function vline(key, x, top, h)
+            f.vl = f.vl or {}
+            local t = f.vl[key]
+            if not t then t = lc:CreateTexture(nil, "ARTWORK") t:SetColorTexture(1, 1, 1, 0.08) f.vl[key] = t end
+            t:ClearAllPoints()
+            t:SetPoint("TOPLEFT", lc, "TOPLEFT", x, -top)
+            t:SetSize(1, h)
+            t:Show()
         end
-        y = y + 42
-        local tw = math.floor((CWD - 8 - 34) / 2)
-        f.instBox:ClearAllPoints() f.instBox:SetPoint("TOPLEFT", PX, -y) f.instBox:SetSize(tw, 28)
+        -- Kopf
+        if not f.planHead then
+            local ph = {}
+            ph.t = K.Title(lc, 24, C.text)
+            ph.t:SetText(L["Neuen Termin planen"])
+            ph.lock = CreateFrame("Frame", nil, lc)
+            ph.lock:SetHeight(24)
+            if ns.Insta and ns.Insta.Glass then pcall(ns.Insta.Glass, ph.lock, { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.1 }, 6) end
+            ph.lock.t = K.Text(ph.lock, 10, C.muted)
+            ph.lock.t:SetPoint("LEFT", 10, 0)
+            ph.lock.t:SetText("|TInterface\\PetBattles\\PetBattle-LockIcon:12:12|t  " .. L["Nur fuer die Raidleitung"])
+            ph.lock:SetWidth((ph.lock.t:GetStringWidth() or 120) + 22)
+            ph.steps = {}
+            local TXT = { { "Aktivitaet", "Art und Ziel des Termins" }, { "Zeitpunkt", "Datum und Uhrzeit" }, { "Gruppe", "Gruppengroesse und Wiederholung" } }
+            for k = 1, 3 do
+                local st2 = {}
+                st2.ring = lc:CreateTexture(nil, "ARTWORK")
+                st2.ring:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+                st2.ring:SetSize(34, 34)
+                st2.inner = lc:CreateTexture(nil, "ARTWORK", nil, 1)
+                st2.inner:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+                st2.inner:SetSize(30, 30)
+                st2.inner:SetPoint("CENTER", st2.ring)
+                st2.inner:SetVertexColor(0.05, 0.05, 0.06, 1)
+                st2.n = K.Title(lc, 13, C.text, "CENTER")
+                st2.n:SetPoint("CENTER", st2.ring, "CENTER", 0, 0)
+                st2.n:SetText(k)
+                st2.a = K.Title(lc, 12, C.text)
+                st2.a:SetPoint("TOPLEFT", st2.ring, "TOPRIGHT", 10, -3)
+                st2.a:SetText(L[TXT[k][1]])
+                st2.b = K.Text(lc, 9, C.dim)
+                st2.b:SetPoint("TOPLEFT", st2.a, "BOTTOMLEFT", 0, -3)
+                st2.b:SetText(L[TXT[k][2]])
+                st2.line = lc:CreateTexture(nil, "ARTWORK")
+                st2.line:SetHeight(1)
+                st2.line:SetColorTexture(1, 1, 1, 0.12)
+                ph.steps[k] = st2
+            end
+            f.planHead = ph
+        end
+        local ph = f.planHead
+        ph.t:ClearAllPoints() ph.t:SetPoint("TOPLEFT", lc, "TOPLEFT", 0, -4)
+        ph.lock:ClearAllPoints() ph.lock:SetPoint("LEFT", ph.t, "RIGHT", 14, 0)
+        local segW = math.floor(LW / 3)
+        for k, st2 in ipairs(ph.steps) do
+            st2.ring:ClearAllPoints()
+            st2.ring:SetPoint("TOPLEFT", lc, "TOPLEFT", (k - 1) * segW, -44)
+            local on = k == 1
+            st2.ring:SetVertexColor(on and C.accent[1] or 0.45, on and C.accent[2] or 0.45, on and C.accent[3] or 0.48, 1)
+            st2.line:ClearAllPoints()
+            st2.line:SetPoint("LEFT", st2.a, "RIGHT", 10, 0)
+            st2.line:SetPoint("RIGHT", lc, "TOPLEFT", k * segW - 12, 0)
+            st2.line:SetShown(k < 3)
+        end
+        -- 1 Aktivitaet
+        local y = 92
+        local s1 = y
+        y = y + 14
+        f.step1:ClearAllPoints() f.step1:SetPoint("TOPLEFT", PX, -y) f.step1:SetWidth(CWD)
+        y = y + 32
+        local cw = math.floor((CWD - 4 * 8) / 5)
+        for i, b in ipairs(f.kindChips) do
+            b:SetSize(cw, 40)
+            b:ClearAllPoints()
+            b:SetPoint("TOPLEFT", PX + (i - 1) * (cw + 8), -y)
+        end
+        y = y + 52
+        local tw = math.floor((CWD - 16 - 34) / 2)
+        f.instLbl:SetText(L["Instanz / Ziel"]) f.instLbl:Show()
+        f.instLbl:ClearAllPoints() f.instLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", PX, -y)
+        f.titleLbl:SetText(L["Titel"] .. " |cff888888(" .. L["optional"] .. ")|r") f.titleLbl:Show()
+        f.titleLbl:ClearAllPoints() f.titleLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", PX + tw + 50, -y)
+        y = y + 16
+        f.instBox:ClearAllPoints() f.instBox:SetPoint("TOPLEFT", PX, -y) f.instBox:SetSize(tw, 30)
         f.pick:ClearAllPoints() f.pick:SetPoint("LEFT", f.instBox, "RIGHT", 4, 0)
-        f.titleBox:ClearAllPoints() f.titleBox:SetPoint("TOPLEFT", PX + tw + 38, -y) f.titleBox:SetSize(CWD - tw - 38, 28)
-        y = y + 28 + 14
+        f.titleBox:ClearAllPoints() f.titleBox:SetPoint("TOPLEFT", PX + tw + 50, -y) f.titleBox:SetSize(CWD - tw - 50, 30)
+        y = y + 30 + 18
         sec(1, s1, y)
-        y = y + 10
-        -- 2 Wann: Kalender links, Uhrzeiten als Spalte rechts daneben
-        local s2 = y
         y = y + 12
+        -- 2 Zeitpunkt: Kalender links, Trennlinie, Uhrzeiten rechts
+        local s2 = y
+        y = y + 14
         f.step2:ClearAllPoints() f.step2:SetPoint("TOPLEFT", PX, -y) f.step2:SetWidth(CWD)
-        y = y + 30
-        local timeW = 96
-        local calW = math.max(210, CWD - timeW - 14)
+        y = y + 32
+        local timeW = math.max(110, math.floor(CWD * 0.24))
+        local calW = math.max(210, CWD - timeW - 34)
         local cellW = math.floor((calW - 6 * 4) / 7)
-        local cellH = 26
+        local cellH = 28
         rc:ClearAllPoints()
         rc:SetParent(lc)
         rc:SetPoint("TOPLEFT", lc, "TOPLEFT", PX, -y)
@@ -4052,35 +4140,49 @@ local function buildForm(f)
             c:ClearAllPoints()
             c:SetPoint("TOPLEFT", col * (cellW + 4), -46 - row * (cellH + 4))
         end
-        local tx = PX + calW + 14
+        local calH = 46 + 6 * (cellH + 4)
+        vline("cal", PX + calW + 16, y, calH)
+        local tx = PX + calW + 34
+        f.timeLbl:SetText(L["Uhrzeit"]) f.timeLbl:Show()
+        f.timeLbl:ClearAllPoints() f.timeLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", tx, -y)
+        local tStep = math.floor((calH - 18 - 46) / 7)
         for i, b in ipairs(f.timeChips) do
-            b:SetSize(timeW, 24)
+            b:SetSize(timeW, tStep - 4)
             b:ClearAllPoints()
-            b:SetPoint("TOPLEFT", lc, "TOPLEFT", tx, -y - 46 - (i - 1) * 27)
+            b:SetPoint("TOPLEFT", lc, "TOPLEFT", tx, -y - 18 - (i - 1) * tStep)
         end
+        if not f.ownTimeLbl then f.ownTimeLbl = K.Text(lc, 10, C.dim) f.ownTimeLbl:SetText(L["Eigene Uhrzeit"]) end
+        f.ownTimeLbl:ClearAllPoints()
+        f.ownTimeLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", tx, -y - 18 - 7 * tStep)
         f.timeBox:ClearAllPoints()
-        f.timeBox:SetPoint("TOPLEFT", lc, "TOPLEFT", tx, -y - 46 - 7 * 27)
-        f.timeBox:SetSize(timeW, 24)
-        y = y + 46 + 6 * (cellH + 4) + 12
+        f.timeBox:SetPoint("TOPLEFT", lc, "TOPLEFT", tx, -y - 18 - 7 * tStep - 14)
+        f.timeBox:SetSize(timeW, 28)
+        y = y + calH + 16
         sec(2, s2, y)
-        y = y + 10
-        -- 3 Wer
-        local s3 = y
         y = y + 12
+        -- 3 Gruppe: Groesse links, Wiederholung rechts
+        local s3 = y
+        y = y + 14
         f.step3:ClearAllPoints() f.step3:SetPoint("TOPLEFT", PX, -y) f.step3:SetWidth(CWD)
-        y = y + 30
-        local scw = math.floor((CWD - 3 * 6) / 4)
-        for i, b in ipairs(f.sizeChips) do b:SetSize(scw, 26) b:ClearAllPoints() b:SetPoint("TOPLEFT", PX + (i - 1) * (scw + 6), -y) end
         y = y + 32
-        for i, b in ipairs(f.repChips) do b:SetSize(scw, 26) b:ClearAllPoints() b:SetPoint("TOPLEFT", PX + (i - 1) * (scw + 6), -y) end
-        y = y + 26 + 14
+        local half = math.floor((CWD - 33) / 2)
+        f.sizeLbl:SetText(L["Gruppengroesse"]) f.sizeLbl:Show()
+        f.sizeLbl:ClearAllPoints() f.sizeLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", PX, -y)
+        f.repLbl:SetText(L["Wiederholung"]) f.repLbl:Show()
+        f.repLbl:ClearAllPoints() f.repLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", PX + half + 33, -y)
+        vline("grp", PX + half + 16, y, 50)
+        y = y + 18
+        local scw = math.floor((half - 3 * 6) / 4)
+        for i, b in ipairs(f.sizeChips) do b:SetSize(scw, 30) b:ClearAllPoints() b:SetPoint("TOPLEFT", PX + (i - 1) * (scw + 6), -y) end
+        for i, b in ipairs(f.repChips) do b:SetSize(scw, 30) b:ClearAllPoints() b:SetPoint("TOPLEFT", PX + half + 33 + (i - 1) * (scw + 6), -y) end
+        y = y + 30 + 18
         sec(3, s3, y)
         local LH = y
         lc:SetSize(LW, LH)
         -- rechts: Zusammenfassung + anstehende Termine
         local sumCard = f.sumCard
         sumCard:ClearAllPoints()
-        local sumH = 286
+        local sumH = 470   -- 0.6.463
         if two then sumCard:SetPoint("TOPLEFT", body, "TOPLEFT", LW + 18, y0)
         else sumCard:SetPoint("TOPLEFT", body, "TOPLEFT", 0, y0 - LH - 12) end
         sumCard:SetSize(RW, sumH)
@@ -4088,24 +4190,38 @@ local function buildForm(f)
         f.summary:SetPoint("TOPLEFT", sumCard.facts, "BOTTOMLEFT", 0, -8)
         f.summary:SetPoint("RIGHT", sumCard, "RIGHT", -14, 0)
         f.calToggle:ClearAllPoints()
-        f.calToggle:SetPoint("BOTTOMLEFT", 14, 82)
+        f.calToggle:SetPoint("BOTTOMLEFT", 16, 120)
         f.calToggle:SetWidth(RW - 28)
         sumCard.pv:ClearAllPoints()
-        sumCard.pv:SetPoint("BOTTOMLEFT", 16, 58)
+        sumCard.pv:SetPoint("BOTTOMLEFT", 16, 72)
         sumCard.pv:SetWidth(RW - 32)
         f.create:ClearAllPoints()
-        f.create:SetPoint("BOTTOMLEFT", 14, 14)
-        f.create:SetSize(RW - 28, 36)
+        f.create:SetPoint("BOTTOMLEFT", 16, 16)
+        f.create:SetSize(RW - 32, 44)
         local listTop, listX, listW
         if two then listTop, listX, listW = y0 - sumH - 18, LW + 18, RW
         else listTop, listX, listW = y0 - LH - 12 - sumH - 18, 0, w end
         local listH = two and math.max(140, LH - sumH - 18 - 24) or FORM_LISTH
+        -- 0.6.463: "Anstehende Termine" als eigener Kasten, leer mit Symbol und Hinweis
+        if not f.upBox then
+            f.upBox = CreateFrame("Frame", nil, body)
+            if ns.Insta and ns.Insta.Glass then pcall(ns.Insta.Glass, f.upBox, { 0.055, 0.055, 0.065, 0.7 }, { 1, 1, 1, 0.08 }, 12) end
+            f.upBox:SetFrameLevel(math.max(0, body:GetFrameLevel()))
+            f.upEmpty = K.Glyph(f.upBox, 40, ns.MEDIA .. "icons\\chronicle", C.dim)
+        end
+        f.upBox:ClearAllPoints()
+        f.upBox:SetPoint("TOPLEFT", body, "TOPLEFT", listX, listTop)
+        f.upBox:SetSize(listW, listH + 40)
+        f.upEmpty:ClearAllPoints()
+        f.upEmpty:SetPoint("TOP", f.upBox, "TOP", 0, -64)
+        f.upEmpty:SetShown(#(list.data or {}) == 0)
+        list.empty:SetText(L["Noch keine Termine."] .. "\n|cff999999" .. L["Sobald du einen Termin anlegst, wird er hier angezeigt."] .. "|r")
         lh:ClearAllPoints()
-        lh:SetPoint("TOPLEFT", body, "TOPLEFT", listX, listTop)
-        lh:SetWidth(listW)
+        lh:SetPoint("TOPLEFT", body, "TOPLEFT", listX + 16, listTop - 12)
+        lh:SetWidth(listW - 32)
         list:ClearAllPoints()
-        list:SetPoint("TOPLEFT", body, "TOPLEFT", listX, listTop - 24)
-        list:SetSize(listW, listH)
+        list:SetPoint("TOPLEFT", body, "TOPLEFT", listX + 10, listTop - 36)
+        list:SetSize(listW - 20, listH)
         local bottom = math.max(-y0 + LH, -listTop + 24 + listH) + 10
         body:SetHeight(bottom)
     end
@@ -4208,6 +4324,12 @@ local function buildForm(f)
                 sc2.time:SetText((st.time or "") .. " " .. L["Uhr"])
             end
             sc2.facts:SetText((L["%d Spieler"]):format(st.max) .. "  ·  " .. (st.weeks > 1 and (L["%d Wochen"]):format(st.weeks) or L["einmalig"]))
+            if sc2.rows then
+                sc2.rows[1]:SetText(ts and (ns.weekday(ts) .. ", " .. date("%d.", ts) .. " " .. L[MONTHS[tonumber(date("%m", ts))]] .. " " .. date("%Y", ts)) or ("|cff888888" .. L["Tag waehlen"] .. "|r"))
+                sc2.rows[2]:SetText((ts and date("%H:%M", ts) or (st.time or "")) .. " " .. L["Uhr"])
+                sc2.rows[3]:SetText((L["%d Spieler"]):format(st.max))
+                sc2.rows[4]:SetText(st.weeks > 1 and (L["Alle %d Wochen"]):format(st.weeks) or L["Einmalig"])
+            end
             sc2.pv.t:SetText((f.showPv and L["Vorschau ausblenden"] or L["Vorschau fuer die Mitglieder ansehen"]) .. "  >")
             sc2.facts:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
             if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(sc2, { 1, 1, 1, 0.035 }, (ts and ts > ns.now()) and { kc2[1], kc2[2], kc2[3], 0.45 } or { 1, 1, 1, 0.10 }, 14) end
