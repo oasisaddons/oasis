@@ -3010,6 +3010,17 @@ ns.RegisterPage({
             if hero.bg then hero.bg:SetAlpha(0) end
             if hero.borders then for _, b in ipairs(hero.borders) do b:SetAlpha(0) end end
             if hero.skinLine then for _, b in ipairs(hero.skinLine) do b:SetAlpha(0) end end
+            -- 0.6.428: Bild dezenter - dunkler Schleier, Verlauf (Mitte/unten dunkler) und feines Punktmuster
+            local function lay(sub) local t = hero:CreateTexture(nil, "BACKGROUND", nil, sub) t:SetPoint("TOPLEFT", 3, -3) t:SetPoint("BOTTOMRIGHT", -3, 3) return t end
+            hero.dim = lay(3)
+            hero.dim:SetColorTexture(0.02, 0.02, 0.03, 0.45)
+            hero.vgrad = lay(4)
+            if not K.Gradient(hero.vgrad, "VERTICAL", { 0, 0, 0, 0.55 }, { 0, 0, 0, 0 }) then hero.vgrad:Hide() end
+            hero.dots = lay(5)
+            hero.dots:SetTexture(ns.MEDIA .. "dots", "REPEAT", "REPEAT")
+            hero.dots:SetHorizTile(true) hero.dots:SetVertTile(true)
+            hero.dots:SetAlpha(0.08)
+            if K.RoundMask then for _, t in ipairs({ hero.dim, hero.vgrad, hero.dots }) do pcall(K.RoundMask, t, hero, 10) end end
         end
         -- Kaempfer auf leuchtender Plattform (Klick: Auswahl)
         local fc = CreateFrame("Button", nil, hero)
