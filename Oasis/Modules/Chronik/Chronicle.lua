@@ -1817,6 +1817,8 @@ ns.RegisterPage({
     end,
 
     refresh = function(p)
+        -- 0.6.447: schwarze Rahmen auf der ganzen Chronik-Seite
+        if K.DarkFramesIn then ns.After(0.05, function() pcall(K.DarkFramesIn, p) end) end
         local keep = pendingKeep and not p.tl.switch
         local fresh = p.fresh
         local all = Store.List("chronicle")

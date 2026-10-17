@@ -4059,6 +4059,19 @@ function K.DarkBoxFrame(x, off)
     for _, g in ipairs(fr.glows or {}) do g:SetVertexColor(0.05, 0.05, 0.06, 1) end
     for _, pc in ipairs(fr.pieces or {}) do pc:SetDesaturated(true) pc:SetVertexColor(0.22, 0.22, 0.24, 1) end
 end
+-- 0.6.447: alle Box-Rahmen unterhalb eines Fensters/einer Seite schwarz faerben (Chronik ...)
+local darkDone = setmetatable({}, { __mode = "k" })
+function K.DarkFramesIn(root, depth)
+    depth = depth or 0
+    if not root or depth > 6 or not root.GetChildren then return end
+    for _, ch in ipairs({ root:GetChildren() }) do
+        if ch.boxFrame and not darkDone[ch] and not ch.noBoxFrame then
+            darkDone[ch] = true
+            pcall(K.DarkBoxFrame, ch)
+        end
+        K.DarkFramesIn(ch, depth + 1)
+    end
+end
 function K.RefreshBoxFrames()
     local cr, cg, cb = frameGlowColor()
     for fr in pairs(K.boxFrames) do
