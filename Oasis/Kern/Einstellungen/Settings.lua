@@ -4012,6 +4012,15 @@ ns.RegisterPage({
                 b.hl = b:CreateTexture(nil, "HIGHLIGHT")
                 b.hl:SetAllPoints()
                 b.hl:SetColorTexture(1, 1, 1, 0.04)
+                -- 0.6.478: Bereiche oben in Akzentfarbe getoent (heben sich von den grauen Unterreitern ab)
+                b.bg = b:CreateTexture(nil, "BACKGROUND", nil, -2)
+                b.bg:SetAllPoints()
+                b.bg:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.07)
+                if K.RoundMask then pcall(K.RoundMask, b.bg, b, 6) end
+                b.edge = b:CreateTexture(nil, "BORDER")
+                b.edge:SetPoint("TOPLEFT", 0, -6) b.edge:SetPoint("BOTTOMLEFT", 0, 6)
+                b.edge:SetWidth(2)
+                b.edge:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.35)
                 b:SetScript("OnClick", function(self)
                     local tabs = groupTabs(self.g)
                     local last = S().settingsSub and S().settingsSub[self.g.key]
@@ -4041,13 +4050,14 @@ ns.RegisterPage({
         p.subSeg = {}
         function p:UpdateNav(g, key)
             self.curGroup = g
-            nav.ind:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.12)
+            nav.ind:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.26)
             self.context:SetText(L[g.desc])
             for _, b in ipairs(nav.btns) do
                 local on = b.g.key == g.key
                 local c = on and C.text or C.muted
                 b.t:SetTextColor(c[1], c[2], c[3])
-                b.icon:SetVertexColor(c[1], c[2], c[3])
+                b.icon:SetVertexColor(on and C.accent[1] or c[1], on and C.accent[2] or c[2], on and C.accent[3] or c[3])
+                if b.edge then b.edge:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], on and 1 or 0.35) end
                 if on then
                     local x, y, w = b.nx or 0, b.ny or 0, b:GetWidth()
                     local from = nav.position or { x, y }
