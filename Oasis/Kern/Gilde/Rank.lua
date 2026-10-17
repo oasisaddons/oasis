@@ -355,11 +355,14 @@ local queued
 local function queue()
     if queued then return end
     queued = true
-    ns.After(1, function()
+    -- Leistung (0.6.481): bis zu 17 ms je Neuberechnung - seltener (5 s gebuendelt) und nie im Kampf
+    local function run()
+        if ns.inCombat and ns.inCombat() then ns.After(3, run) return end
         queued = false
         pcall(Rank.Update)
         if ns.Rewards then pcall(ns.Rewards.CheckTasks) end
-    end)
+    end
+    ns.After(5, run)
 end
 ns.Listen("LOGIN", function()
     ns.After(15, function()
