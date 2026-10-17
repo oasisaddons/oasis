@@ -3,6 +3,16 @@ local ADDON, ns = ...
 local K, C, L = ns.K, ns.K.C, ns.L
 local M = ns.MEDIA
 
+-- 0.6.507: ruhende Leisten-Symbole mit ganz leichtem Verlauf (oben heller, unten etwas dunkler)
+local function restTint(t)
+    local m = C.muted
+    t:SetVertexColor(m[1], m[2], m[3])
+    if t.SetGradient and CreateColor then
+        pcall(t.SetGradient, t, "VERTICAL", CreateColor(m[1] * 0.82, m[2] * 0.82, m[3] * 0.82, 1),
+            CreateColor(math.min(1, m[1] * 1.15), math.min(1, m[2] * 1.15), math.min(1, m[3] * 1.15), 1))
+    end
+end
+
 ------------------------------------------------------------------------
 -- Drehender Ring (Verlauf Blau > Violett > Pink) um ein rundes Logo
 ------------------------------------------------------------------------
@@ -499,6 +509,7 @@ local function build()
             b.realColor = true
         else
             b.icon = K.Glyph(b, 18, (ns.ICONS and ns.ICONS[q.key]) or (M .. "icons\\home"))
+            restTint(b.icon)
         end
         b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         b.icon:SetPoint("CENTER")
@@ -515,7 +526,7 @@ local function build()
             ns.AttachGlow(b, b.icon, 30)
             b.glowKeepColor = b.realColor
             b.glowOff = function(self)
-                if self.realColor then self.icon:SetVertexColor(1, 1, 1) else self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) end
+                if self.realColor then self.icon:SetVertexColor(1, 1, 1) else restTint(self.icon) end
             end
         end
         b:SetScript("OnClick", function(_, btn) if q.fn then q.fn(btn) else ns.Expand(q.key) end end)
@@ -541,7 +552,7 @@ local function build()
             elseif self.realColor then
                 self.icon:SetVertexColor(1, 1, 1)
             else
-                self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3])
+                restTint(self.icon)
             end
             GameTooltip:Hide()
         end)
@@ -914,7 +925,7 @@ function updateMiniBarNow()
             end
         end
         if not b.glowOn then
-            if b.realColor then b.icon:SetVertexColor(1, 1, 1) else b.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) end
+            if b.realColor then b.icon:SetVertexColor(1, 1, 1) else restTint(b.icon) end
         end
     end
     total = ns.NotifyTotal and ns.NotifyTotal() or 0
