@@ -36,9 +36,12 @@ local NEAR = 0.006   -- Kartenanteil: naeher = gleicher Fundort
 local function S() return ns.db.settings end
 local function showKind(k) return not S()["gatherOff_" .. k] end
 -- 0.5.935: ein Fundort ist sichtbar, wenn Art, Mindestzahl und der Filter je Sorte (Name) passen
+GM.PROF_KINDS = { herb = true, ore = true, fish = true }
 local function shown(r)
     local k = GM.KINDS[r.kind]
     if not k then return false end
+    -- 0.6.431: nur Berufe (Kraeuter, Erz, Angeln) - keine Haendler, Kisten, Schaetze usw.
+    if not GM.PROF_KINDS[r.kind] then return false end
     if k.poi then return S().mapPoi ~= false end
     if S()["gatherOff_" .. r.kind] or (r.n or 1) < (S().gatherMinCount or 1) then return false end
     local hide = S().gatherHide
@@ -247,6 +250,24 @@ local function tipOf(r)
         (L["%dx gefunden"]):format(r.n or 1) .. "  ·  " .. L["zuletzt"] .. " " .. ns.ago(r.ts),
         "|cff888888" .. L["eingetragen von"] .. " " .. ns.displayName(r.by or "?") .. "|r" }
 end
+-- 0.6.431: Kontinent-/Weltkarte - Fundorte der Gebiete darunter umgerechnet (C_Map.GetMapRectOnMap)
+function GM.NodesOn(mapID)
+    local own = GM.Nodes(mapID)
+    if #own > 0 or not (C_Map and C_Map.GetMapRectOnMap) then return own end
+    GM.Nodes()
+    local out = {}
+    for m, list in pairs(byMap or {}) do
+        if m ~= mapID then
+            local ok, x1, x2, y1, y2 = pcall(C_Map.GetMapRectOnMap, m, mapID)
+            if ok and x1 and x2 and y1 and y2 and x2 > x1 and y2 > y1 and (x2 - x1) < 0.9 then
+                for _, r in ipairs(list) do
+                    out[#out + 1] = setmetatable({ x = x1 + (r.x or 0) * (x2 - x1), y = y1 + (r.y or 0) * (y2 - y1) }, { __index = r })
+                end
+            end
+        end
+    end
+    return out
+end
 function GM.DrawWorld()
     for i = 1, wUsed do wPool[i]:Hide() end
     wUsed = 0
@@ -266,7 +287,7 @@ function GM.DrawWorld()
     -- je nach Zoom: hineinzoomen loest die Gruppen wieder auf); Symbole etwas kleiner
     local GAP = 22 * (S().gatherWorldScale or 1)   -- Bildschirm-Pixel
     local groups = {}
-    for _, r in ipairs(GM.Nodes(mapID)) do
+    for _, r in ipairs(GM.NodesOn(mapID)) do
         local k = GM.KINDS[r.kind]
         if k and shown(r) then
             local sx, sy = r.x * cw * cscale, r.y * ch * cscale
