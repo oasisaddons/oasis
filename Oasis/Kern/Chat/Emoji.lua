@@ -345,7 +345,6 @@ end
 -- gesperrte Emojis (erst ab Oasis-Rang): nur als Bild zeigen, wenn der ABSENDER den Rang hat
 local renderSender
 function Emoji.Allowed(e, who)
-    if ns.GuildOpt and ns.GuildOpt("emLock") == false then return true end
     if who and ns.isMe(who) and ns.UnlockAll and ns.UnlockAll() then return true end
     local need = ns.Rewards and ns.Rewards.EmojiLevel and ns.Rewards.EmojiLevel(e)
     if not need then return true end
@@ -1735,7 +1734,7 @@ local function buildPicker()
                 b.tip = { e[2], (#codes > 1 and (table.concat(codes, "   ") .. "\n") or "") .. L["Klick: einfuegen"] }
                 -- besondere Emojis: erst ab einem Oasis-Rang
                 local need = ns.Rewards and ns.Rewards.EmojiLevel(e)
-                local locked = need and ns.GuildOpt("emLock") ~= false and ns.Rank and ns.Rank.Mine().level < need and not (ns.UnlockAll and ns.UnlockAll())
+                local locked = need and ns.Rank and ns.Rank.Mine().level < need and not (ns.UnlockAll and ns.UnlockAll())
                 b.icon:SetDesaturated(locked and true or false)
                 b.icon:SetAlpha(locked and 0.35 or 1)
                 b.lockBg:SetShown(locked and true or false)
