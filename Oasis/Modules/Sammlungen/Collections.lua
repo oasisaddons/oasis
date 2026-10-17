@@ -833,6 +833,20 @@ ns.RegisterPage({
             local pcl = PCOL[place]
             col:SetSize(200, PH[place])
             glass(col, { pcl[1], pcl[2], pcl[3], place == 1 and 0.07 or 0.045 }, { pcl[1], pcl[2], pcl[3], place == 1 and 0.45 or 0.28 }, 14)
+            -- 0.6.445: mit Gildenmodul dieselben Bildkarten wie die Todeswuerfel-Rangliste (Gold/Silber/Bronze + Krone)
+            if ns.GuildPack then
+                local MED = { "gold", "silver", "bronze" }
+                glass(col, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, 14)
+                col.card = col:CreateTexture(nil, "BACKGROUND", nil, 1)
+                col.card:SetAllPoints()
+                col.card:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_podium_" .. MED[place])
+                if place == 1 then
+                    col.crown = col:CreateTexture(nil, "OVERLAY")
+                    col.crown:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_crown")
+                    col.crown:SetSize(44, 22)
+                    col.crown:SetPoint("BOTTOM", col, "TOP", 0, -8)
+                end
+            end
             col.num = K.Text(col, 11, pcl)
             col.num:SetPoint("TOPLEFT", 12, -10)
             col.num:SetText(L[PLACE_TXT[place]])
