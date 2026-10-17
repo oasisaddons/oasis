@@ -2552,7 +2552,7 @@ function DR.Update()
         f.num:SetTextColor(numColor(g.max, g.start))
     end
     f.numLbl:SetText(g.state == "done" and L["Endstand"] or (L["wuerfeln von 1 bis %d"]):format(g.max))
-    f.stake:SetText(((g.stake or "") ~= "" and (L["Einsatz: "] .. g.stake) or "") .. (g.bot and ("  |cff888888" .. L["(Uebungsspiel)"] .. "|r") or ""))
+    f.stake:SetText(((g.stake or "") ~= "" and (L["Notiz: "] .. g.stake) or "") .. (g.bot and ("  |cff888888" .. L["(Uebungsspiel)"] .. "|r") or ""))
     local myTurn = live and ns.isMe(g.turn)
     local c = C.text
     local st = ""
@@ -3176,7 +3176,7 @@ ns.RegisterPage({
         p.start:SetText(startVal)
         local c2 = K.Text(bar, 10, C.dim)
         c2:SetPoint("LEFT", p.start, "RIGHT", 16, 0)
-        c2:SetText(K.Upper(L["Einsatz"]))
+        c2:SetText(K.Upper(L["Notiz"]))   -- 0.6.517: freie Notiz (Gold wird nicht verwaltet)
         p.stake = K.Input(bar, 96, L["z.B. 10g"])
         p.stake:SetPoint("LEFT", c2, "RIGHT", 12, 0)
         p.startLbl, p.stakeLbl = c1, c2
