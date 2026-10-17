@@ -317,7 +317,8 @@ local function drawTrails(w)
     if endGlow then endGlow:Hide() end
     local routes = {}
     for _, r in ipairs(ns.db and ns.db.routes or {}) do if r.show then routes[#routes + 1] = r end end
-    local recOn = X.rec and X.recShow ~= false
+    local recOn = X.rec and X.recShow ~= false and not S().routesOff
+    if S().routesOff then for k = #routes, 1, -1 do routes[k] = nil end end   -- 0.6.502: Linien aus
     if not opt("mapTrails") and #routes == 0 and not recOn then return end
     if not tFrame then tFrame = CreateFrame("Frame", nil, w.canvas) end
     if tFrame:GetParent() ~= w.canvas then tFrame:SetParent(w.canvas) end
@@ -738,6 +739,7 @@ local function rtPaint()
     local shown = false
     for _, r in ipairs(ns.db and ns.db.routes or {}) do if r.show then shown = true break end end
     if X.rec and X.recShow ~= false then shown = true end
+    if S().routesOff then shown = false end
     rtBtn.icon:SetVertexColor(shown and 1 or 0.55, shown and 0.82 or 0.55, shown and 0.3 or 0.55)
     rtBtn.bg:SetColorTexture(0, 0, 0, shown and 0.65 or 0.4)
     if not rtBtn.recDot then
@@ -767,7 +769,7 @@ function X.ToggleRecord()
     if X.rec then
         X.SaveRecord(false)
         -- automatische Aufnahme: gleich die naechste Route beginnen
-        if on("routeAuto") then X.rec = { pts = {} } end
+        X.rec = { pts = {} }   -- 0.6.502: immer gleich weiter aufnehmen
     else
         X.rec = { pts = {} }
         pcall(X.SampleTrails)
@@ -794,18 +796,11 @@ local function makeRtBtn()
         -- 0.6.501: Linksklick schaltet Routen komplett aus (ausblenden + Aufnahme beenden, laufende wird gespeichert)
         -- bzw. wieder an (alle zeigen + Aufnahme starten); Zustand bleibt ueber /reload
         if btn ~= "RightButton" then
+            -- 0.6.502: Aufnahme laeuft immer - der Klick blendet nur die Linien ein oder aus
+            S().routesOff = (not S().routesOff) or nil
             if not S().routesOff then
-                S().routesOff = true
-                if X.rec then pcall(X.SaveRecord, true) end
-                for _, r in ipairs(list) do r.show = nil end
-                K.Toast(L["Meine Routen"], L["Aus - keine Linien, keine Aufnahme. Klick schaltet wieder ein."], C.dim)
-            else
-                S().routesOff = nil
-                list = ns.db.routes or {}
                 for _, r in ipairs(list) do r.show = true end
                 X.recShow = true
-                if on("routeAuto") and X.rec == nil then X.rec = { pts = {} } end
-                K.Toast(L["Meine Routen"], L["An - Routen sichtbar, Aufnahme laeuft."], C.accent)
             end
             rtPaint()
             local w = world() if w then pcall(drawTrails, w) end
@@ -834,7 +829,7 @@ local function makeRtBtn()
         K.ShowMenu(self, items, L["Meine Routen"], 200)
     end)
     rtBtn:SetScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Meine Routen"], (S().routesOff and L["Klick: Routen einschalten"] or L["Klick: Routen komplett ausschalten"]), L["Rechtsklick: einzelne Routen, Aufnahme, Loeschen"],
+        K.ShowTip(self, { L["Meine Routen"], (S().routesOff and L["Klick: Linien einblenden"] or L["Klick: Linien ausblenden"]), L["Rechtsklick: einzelne Routen, Aufnahme, Loeschen"],
             X.rec and ("|cffff6060" .. L["Aufnahme laeuft"] .. "|r") or nil })
     end)
     rtBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -854,7 +849,7 @@ ns.Listen("LOGIN", function()
             pcall(X.SaveRecord, true)
         end
     end
-    if on("routeAuto") and not X.rec and not S().routesOff then X.rec = { pts = {} } end
+    if not X.rec then X.rec = { pts = {} } end   -- 0.6.502: Aufnahme immer aktiv
 end)
 ns.On("PLAYER_LOGOUT", function()
     if X.rec and #X.rec.pts > 0 then ns.db.curRoute = { pts = X.rec.pts, t = time() } end

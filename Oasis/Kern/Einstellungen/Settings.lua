@@ -1144,7 +1144,6 @@ ns.AddPageSettings("map", function(det, y)
         { "Eigene Laufspur", "mapTrails", "Dein Weg der letzten 5 Minuten als duenne Linie", xupd },
         { "Laufspuren anderer Spieler", "mapTrailsGuild", "Die Wege der Gildenmitglieder (nur mit Eigene Laufspur)", xupd },
         { "Lagerfeuer auf der Karte", "mapCamp", "Gemeldete Lagerfeuer der Gilde auf Weltkarte und Minimap", function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end end },
-        { "Routen automatisch aufnehmen", "routeAuto", "Dein Weg wird aufgezeichnet und beim Ausloggen als Route gespeichert (Weltkarte: Knopf Meine Routen)", nil, true },
         { "Koordinaten an der Minimap", "mmCoords", "Eigene Position und Entfernung zum Ziel", xupd },
         { "Layer-Anfragen aus der Gilde annehmen", "layerAsk", "Hinweis, wenn jemand ueber deine Gruppe auf deinen Layer will", xupd, true },
     })
