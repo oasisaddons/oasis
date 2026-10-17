@@ -184,14 +184,17 @@ function Rank.Total()
 end
 
 -- Stand fuer die Anzeige
-function Rank.Mine()
+function Rank.Mine(real)
     local xp = ns.db.rank and ns.db.rank.xp or Rank.Total()
+    -- 0.6.433: Test-Rang (nur Entwickler, /oa testrang N) - nur Anzeige und Freischaltungen, nie an die Gilde
+    local tr = not real and ns.IsDev and ns.IsDev() and tonumber(ns.db.settings.rankTest)
+    if tr and tr >= 1 and Rank.XPFor then xp = Rank.XPFor(tr) end
     local lvl, into, need = Rank.LevelFor(xp)
     return { xp = xp, level = lvl, into = into, need = need, title = Rank.Title(lvl), frame = Rank.Frame(lvl) }
 end
 -- fuer das Profil (an die Gilde): Stufe + XP
 function Rank.ProfileFields(p)
-    local m = Rank.Mine()
+    local m = Rank.Mine(true)
     p.orl, p.orx = m.level, m.xp
 end
 -- Stufe eines anderen Mitglieds (aus seinem Profil)
@@ -369,3 +372,11 @@ ns.slash.rang = function()
     ns.print((L["Oasis-Rang %d"]):format(m.level) .. " - " .. m.title .. "  (" .. m.into .. " / " .. m.need .. " XP)")
 end
 ns.slash.xptest = function() floatText("+25 " .. L["Oasis-XP"]) end
+-- 0.6.433: /oa testrang N (aus mit /oa testrang) - Rang zum Testen der Freischaltungen, echter Stand bleibt
+ns.slash.testrang = function(a)
+    if not (ns.IsDev and ns.IsDev()) then return end
+    local n = tonumber(a)
+    ns.db.settings.rankTest = (n and n >= 1) and math.floor(n) or nil
+    ns.print(ns.db.settings.rankTest and ("Test-Rang: " .. ns.db.settings.rankTest .. "  (aus: /oa testrang)") or "Test-Rang aus - echter Rang gilt wieder.")
+    if ns.Rank and ns.Rank.Update then pcall(ns.Rank.Update, false, true) end
+end
