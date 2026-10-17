@@ -564,7 +564,7 @@ ns.On("CHAT_MSG_LOOT", function(text, playerName)
         if quality < (ns.db.settings.lootMinQuality or 3) then return end
         Store.Put("loot", {
             id = ("loot-%s-%d-%d"):format(ns.short(ns.me()), id or 0, math.floor(ns.now() / 30)),
-            item = full, who = ns.me(), src = "Beute", quality = quality,
+            item = full, who = ns.me(), src = "Beute", quality = quality, raid = ((select(2, IsInInstance())) == "raid" or IsInRaid()) or nil,   -- 0.6.460: Raid-Kennung
             zone = ns.safe(GetRealZoneText()) or "", mapID = C_Map.GetBestMapForUnit("player") or 0, ts = ns.now(),
         })
     end)
@@ -603,7 +603,7 @@ local function scanLootHistory()
                             if quality >= 4 and ns.Badges then ns.Badges.Add("epics", 1) end
                             if quality >= (ns.db.settings.lootMinQuality or 3) then
                                 Store.Put("loot", {
-                                    id = id, item = full or link, who = ns.me(), src = "Beute", quality = quality,
+                                    id = id, item = full or link, who = ns.me(), src = "Beute", quality = quality, raid = ((select(2, IsInInstance())) == "raid" or IsInRaid()) or nil,
                                     zone = ns.safe(enc.encounterName) or ns.safe(GetRealZoneText()) or "",
                                     mapID = C_Map.GetBestMapForUnit("player") or 0, ts = ns.now(),
                                 })
@@ -2303,7 +2303,8 @@ local function buildEvents(f)
         pn.emb:ClearAllPoints() pn.emb:SetPoint("TOPLEFT", 14, -12)
         pn.emb:SetScale(0.8)
         pn.title:ClearAllPoints() pn.title:SetPoint("TOPLEFT", 60, -14)
-        local RB_W, RB_H = 92, 34
+        local RB_H = 34
+        local RB_W = math.max(80, math.floor((inner - 2 * 6) / 3))   -- 0.6.460: ueber die ganze Breite
         local rolesW = 3 * RB_W + 2 * 6
         pn.rLab:ClearAllPoints() pn.rLab:SetPoint("TOPLEFT", 14, -62)
         for k, b in ipairs(self.roleBtns) do
@@ -2314,9 +2315,9 @@ local function buildEvents(f)
             b.t:ClearAllPoints() b.t:SetPoint("LEFT", 36, 0)
         end
         local dayGap = 4
-        local wide = inner >= rolesW + 16 + 7 * 30 + 6 * dayGap
+        local wide = false   -- 0.6.460: Rollen und Tage immer untereinander, je ueber die ganze Breite
         local dx, dy = wide and (14 + rolesW + 16) or 14, wide and -76 or (-76 - RB_H - 26)
-        local dw = math.max(28, math.min(44, math.floor(((wide and (inner - rolesW - 16) or inner) - 6 * dayGap) / 7)))
+        local dw = math.max(28, math.floor((inner - 6 * dayGap) / 7))
         pn.dLab:ClearAllPoints() pn.dLab:SetPoint("TOPLEFT", dx, dy + 14)
         for k, b in ipairs(self.dayBtns) do
             b:ClearAllPoints()
@@ -5612,6 +5613,49 @@ local function srCard(f, i)
     return c
 end
 
+-- 0.6.460: eigene Beute aus allen Gebieten fuer das Profil (Abenteuer > Beute)
+function Raid.ShowMyLoot(host)
+    if not host.lootList then
+        host.head = K.GameHead(host, L["Deine Beute"], C.amber)
+        host.head:SetPoint("TOPLEFT", 0, -2)
+        host.head:SetPoint("RIGHT", host, "RIGHT", 0, 0)
+        host.lootList = K.List(host, 44, function(l)
+            local r = K.Row(l)
+            if r.stripe then r.stripe:SetAlpha(0) end
+            r.card = r:CreateTexture(nil, "BACKGROUND", nil, -1)
+            r.card:SetPoint("TOPLEFT", 0, -3) r.card:SetPoint("BOTTOMRIGHT", 0, 3)
+            r.card:SetColorTexture(1, 1, 1, 0.035)
+            if K.RoundMask then pcall(K.RoundMask, r.card, r, 8) end
+            r.ib = itemButton(r, 30)
+            r.ib:SetPoint("LEFT", 8, 0)
+            r.n = K.Text(r, 12, C.text)
+            r.n:SetPoint("TOPLEFT", 48, -8)
+            r.n:SetPoint("RIGHT", r, "RIGHT", -120, 0)
+            r.n:SetWordWrap(false)
+            r.z = K.Text(r, 10, C.muted)
+            r.z:SetPoint("BOTTOMLEFT", 48, 8)
+            r.t = K.Text(r, 10, C.dim, "RIGHT")
+            r.t:SetPoint("RIGHT", -12, 0)
+            return r
+        end, function(r, x)
+            r.ib:SetItem(x.item)
+            r.n:SetText(x.item or "?")
+            r.z:SetText((x.zone or "") .. ((x.raid or x.src == "Vergabe") and ("  |cffe8b44a" .. L["Raid"] .. "|r") or ""))
+            r.t:SetText(ns.ago(x.ts or x.u))
+        end)
+        host.lootList:SetPoint("TOPLEFT", 0, -30)
+        host.lootList:SetPoint("BOTTOMRIGHT", 0, 0)
+        host.lootEmpty = K.Text(host, 12, C.dim, "CENTER")
+        host.lootEmpty:SetPoint("TOP", 0, -80)
+        host.lootEmpty:SetText(L["Noch keine eigene Beute erfasst (ab Qualitaet 'Selten', einstellbar)."])
+    end
+    local rows = Store.List("loot", function(x) return isMine(x.who) and x.item end)
+    table.sort(rows, function(a, b) return (a.ts or a.u or 0) > (b.ts or b.u or 0) end)
+    host.head:SetCount(#rows > 0 and #rows or nil)
+    host.lootEmpty:SetShown(#rows == 0)
+    host.lootList:SetData(rows)
+end
+
 local function layoutMine(f)
     local W = f.sc:InnerWidth()
     local R = {}
@@ -5750,7 +5794,8 @@ local function refreshMine(f)
             end
         end
     end
-    local rows = Store.List("loot", function(x) return isMine(x.who) end)
+    -- 0.6.460: hier nur Raid-Beute (im Raid erhalten oder vergeben); alles andere steht im Profil > Abenteuer > Beute
+    local rows = Store.List("loot", function(x) return isMine(x.who) and (x.raid or x.src == "Vergabe") end)
     table.sort(rows, function(a, b) return (a.ts or a.u or 0) > (b.ts or b.u or 0) end)
     for _, r in ipairs(f.rows) do r:Hide() end
     local W = f.sc:InnerWidth()

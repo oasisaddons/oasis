@@ -924,12 +924,12 @@ ns.RegisterPage({
             { key = "vals", text = L["Werte"], icon = "stats", subs = { "stats" } },
             { key = "over", text = L["Tagebuch"], icon = "chronicle", subs = { "year", "daily" } },
             { key = "success", text = L["Erfolge"], icon = "badges", subs = { "records", "rank" } },
-            { key = "adv", text = L["Abenteuer"], icon = "map", subs = { "journey", "dungeons", "mates", "deaths", "gold" } },   -- Reise gehoert jetzt zu Abenteuer
+            { key = "adv", text = L["Abenteuer"], icon = "map", subs = { "journey", "dungeons", "mates", "deaths", "gold", "loot" } },   -- 0.6.460: eigene Beute   -- Reise gehoert jetzt zu Abenteuer
             { key = "plan", text = L["Aufgaben"], icon = "checklist", subs = { "weekly", "todo" } },   -- Ziele entfernt
             { key = "skills", text = L["Koennen"], icon = "star_on", subs = { "prof", "skills2", "weapons" } },
         }
         local SUBTEXT = { year = "Jahrbuch", daily = "Tagesziel", journey = "Reise", records = "Rekorde", stats = "Statistik",
-            rank = "Rang & Belohnungen", dungeons = "Dungeons", mates = "Mitspieler", deaths = "Tode", gold = "Gold",
+            rank = "Rang & Belohnungen", dungeons = "Dungeons", mates = "Mitspieler", deaths = "Tode", gold = "Gold", loot = "Beute",
             goals = "Ziele", todo = "Was tun?", prof = "Berufe & Ruf", weekly = "Wochenaufgaben", skills2 = "Fertigkeiten", weapons = "Waffen" }
         -- Ansichten aus "Mein Weg" (Life.lua) - werden im Profil eingebettet
         local LIFE = { year = true, journey = true, records = true, dungeons = true, mates = true, deaths = true, gold = true, goals = true, todo = true }
@@ -972,6 +972,7 @@ ns.RegisterPage({
         soon.weeklyHost = host()
         soon.lifeHost = host()
         soon.dailyHost = host()
+        soon.lootHost = host()
 
         -- Tagesziel (frueher auf dem Dashboard): grosse Ringe + drei Zeilen mit Leiste
         do
@@ -1056,7 +1057,7 @@ ns.RegisterPage({
             local top = hasSub and self.TOP_SUB or self.TOP
             local hosts = { stats = self.view, rank = self.rankHost, prof = self.profHost, weapons = self.weapHost, daily = self.dailyHost }
             local shown
-            for key, h in pairs({ stats = self.view, rank = self.rankHost, prof = self.profHost, weapons = self.weapHost, skills2 = self.skillHost, weekly = self.weeklyHost, life = self.lifeHost, daily = self.dailyHost }) do
+            for key, h in pairs({ stats = self.view, rank = self.rankHost, prof = self.profHost, weapons = self.weapHost, skills2 = self.skillHost, weekly = self.weeklyHost, life = self.lifeHost, daily = self.dailyHost, loot = self.lootHost }) do
                 h:ClearAllPoints()
                 h:SetPoint("TOPLEFT", 0, top)
                 h:SetPoint("BOTTOMRIGHT")
@@ -1077,6 +1078,16 @@ ns.RegisterPage({
                 if not ok then ns.err("Profil/Berufe", e) end
             end
             if k == "daily" then self.dailyHost:Update(user) end
+            if k == "loot" then
+                if ns.Raid and ns.Raid.ShowMyLoot then
+                    local ok, e = pcall(ns.Raid.ShowMyLoot, self.lootHost)
+                    if not ok then ns.err("Profil/Beute", e) end
+                elseif not self.lootHost.off then
+                    self.lootHost.off = K.Text(self.lootHost, 12, C.dim, "CENTER")
+                    self.lootHost.off:SetPoint("TOP", 0, -80)
+                    self.lootHost.off:SetText(L["Das Modul Raidwerkzeuge ist aus."])
+                end
+            end
             if self.StyleHosts then ns.After(0.05, function() pcall(self.StyleHosts, self) end) ns.After(0.6, function() pcall(self.StyleHosts, self) end) end
             if LIFE[k] then
                 local def = ns.PageDef("life")

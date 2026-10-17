@@ -3710,3 +3710,5 @@ DE["Waehle deine Rolle(n) und Wunschtage aus und melde dein Interesse, damit die
 EN["Waehle deine Rolle(n) und Wunschtage aus und melde dein Interesse, damit die Raidleitung planen kann."] = "Pick your role(s) and preferred days and sign up so the raid lead can plan."
 DE["Noch niemand gemeldet."] = "Noch niemand gemeldet."
 EN["Noch niemand gemeldet."] = "Nobody signed up yet."
+DE["Das Modul Raidwerkzeuge ist aus."] = "Das Modul Raidwerkzeuge ist aus."
+EN["Das Modul Raidwerkzeuge ist aus."] = "The raid tools module is off."
