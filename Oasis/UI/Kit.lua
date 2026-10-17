@@ -3976,11 +3976,30 @@ function K.ImageButton(b)
         n.file = BTN_TEX .. st
         sets[st] = K.NineSlice(b, n, r, "BACKGROUND", 3, true)
     end
+    -- 0.6.419: Leuchten beim Drueberfahren - additive Kopie des Bildes blendet weich ein
+    local glow = K.NineSlice(b, (function() local n = {} for k2, v in pairs(BTN_N) do n[k2] = v end n.file = BTN_TEX .. "active" return n end)(), r, "BACKGROUND", 4, true)
+    for _, t in ipairs(glow or {}) do t:SetBlendMode("ADD") t:SetAlpha(0) end
+    local glowA, glowTo = 0, 0
+    local gf = CreateFrame("Frame", nil, b)
+    gf:Hide()
+    gf:SetScript("OnUpdate", function(self, el)
+        local step = (el or 0) * 4
+        if glowA < glowTo then glowA = math.min(glowTo, glowA + step) else glowA = math.max(glowTo, glowA - step) end
+        for _, t in ipairs(glow or {}) do t:SetAlpha(glowA) end
+        if glowA == glowTo then self:Hide() end
+    end)
+    local function glowTo_(v)
+        if ns.db and ns.db.settings.noAnim then glowA = v for _, t in ipairs(glow or {}) do t:SetAlpha(v) end return end
+        glowTo = v gf:Show()
+    end
+    b:HookScript("OnEnter", function(self) if self:IsEnabled() then glowTo_(0.45) end end)
+    b:HookScript("OnLeave", function() glowTo_(0) end)
+    sets.glow = glow
     b.imgBtn = sets
     if b.bg then b.bg:SetAlpha(0) end
     if b.borders then for _, x in ipairs(b.borders) do x:Hide() end end
     local function show(st)
-        for k2, list in pairs(sets) do for _, t in ipairs(list) do t:SetShown(k2 == st) end end
+        for k2, list in pairs(sets) do if k2 ~= "glow" then for _, t in ipairs(list) do t:SetShown(k2 == st) end end end
     end
     local function base() return b.style == "primary" and "active" or "normal" end
     function b:ImgState(st) show(st or base()) end
