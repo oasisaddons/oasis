@@ -552,6 +552,21 @@ local function podSlot(p, parent, i)
     s.hl:SetColorTexture(1, 1, 1, 0.035)
     if K.RoundMask then K.RoundMask(s.hl, s.hl, 10) end
     s.hl:Hide()
+    -- 0.6.445: mit Gildenmodul dieselben Bildkarten wie die Todeswuerfel-Rangliste (Gold/Silber/Bronze + Krone)
+    if ns.GuildPack then
+        local MED = { "gold", "silver", "bronze" }
+        s.card = s:CreateTexture(nil, "BACKGROUND", nil, -2)
+        s.card:SetPoint("TOPLEFT", 0, 4)
+        s.card:SetPoint("BOTTOMRIGHT", 0, 0)
+        s.card:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_podium_" .. MED[i])
+        s.base:SetAlpha(0) s.top:Hide()
+        if i == 1 then
+            s.crown = s:CreateTexture(nil, "OVERLAY")
+            s.crown:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_crown")
+            s.crown:SetSize(40, 20)
+            s.crown:SetPoint("BOTTOM", s.ring, "TOP", 0, -2)
+        end
+    end
     s:SetScript("OnEnter", function(self) self.hl:Show() if self.e then CB.ShowTip(self, self.e.r) end end)
     s:SetScript("OnLeave", function(self) self.hl:Hide() GameTooltip:Hide() end)
     s:SetScript("OnClick", function(self) if self.e then p.sel = self.e.r.who ns.RefreshPage("fight", true) end end)
