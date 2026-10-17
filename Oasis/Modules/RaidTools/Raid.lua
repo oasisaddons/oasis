@@ -2195,8 +2195,8 @@ local function buildEvents(f)
     eb.head = K.GameHead(eb, L["Anstehende Termine"], C.accent)
     eb.head:SetPoint("TOPLEFT", 14, -12)
     eb.head:SetPoint("RIGHT", eb, "RIGHT", -14, 0)
-    eb.disc = famDisc(eb, 54, ns.MEDIA .. "icons\\raid", C.amber)
-    eb.disc:SetPoint("TOP", 0, -56)
+    eb.disc = famDisc(eb, 44, ns.MEDIA .. "icons\\raid", C.amber)
+    eb.disc:SetPoint("TOP", 0, -40)
     eb.t = K.Title(eb, 15, C.text, "CENTER")
     eb.t:SetPoint("TOP", eb.disc, "BOTTOM", 0, -14)
     eb.t:SetText(L["Noch keine Termine"])
@@ -2273,48 +2273,54 @@ local function buildEvents(f)
             t:SetPoint("TOPLEFT", self, "TOPLEFT", ci * (tw + 8), y - rr * 74)
             t:Hide()
         end
-        -- Melde-Feld: Rollen | Tage | grosser Knopf (breit) bzw. untereinander (schmal)
-        local inner = w - 32
-        local rolesW, daysW = 3 * 84 + 2 * 6, 7 * 38 + 6 * 4
-        local wide = inner >= rolesW + 12 + daysW + 12 + 100
-        pn.rLab:ClearAllPoints() pn.rLab:SetPoint("TOPLEFT", 16, -70)
-        for i, b in ipairs(self.roleBtns) do
+        -- 0.6.458: Melde-Feld kompakt - flache Rollen-Knoepfe (Symbol links), niedrige Tages-Chips,
+        -- Knopf und Hinweis in einer Zeile; Kopf ohne Zahlen (stehen rechts im Kasten "Raid-Interesse")
+        local inner = w - 28
+        pn.edge:Hide() pn.glow:Hide()
+        pn.kick:Hide()
+        pn.emb:ClearAllPoints() pn.emb:SetPoint("TOPLEFT", 14, -12)
+        pn.emb:SetScale(0.8)
+        pn.title:ClearAllPoints() pn.title:SetPoint("TOPLEFT", 60, -14)
+        local RB_W, RB_H = 92, 34
+        local rolesW = 3 * RB_W + 2 * 6
+        pn.rLab:ClearAllPoints() pn.rLab:SetPoint("TOPLEFT", 14, -62)
+        for k, b in ipairs(self.roleBtns) do
             b:ClearAllPoints()
-            b:SetPoint("TOPLEFT", pn, "TOPLEFT", 16 + (i - 1) * 90, -84)
+            b:SetSize(RB_W, RB_H)
+            b:SetPoint("TOPLEFT", pn, "TOPLEFT", 14 + (k - 1) * (RB_W + 6), -76)
+            b.disc:ClearAllPoints() b.disc:SetPoint("LEFT", 6, 0) b.disc:SetScale(0.8)
+            b.t:ClearAllPoints() b.t:SetPoint("LEFT", 36, 0)
         end
-        local dx, dy = wide and (16 + rolesW + 12) or 16, wide and -84 or -160
+        local dayGap = 4
+        local wide = inner >= rolesW + 16 + 7 * 30 + 6 * dayGap
+        local dx, dy = wide and (14 + rolesW + 16) or 14, wide and -76 or (-76 - RB_H - 26)
+        local dw = math.max(28, math.min(44, math.floor(((wide and (inner - rolesW - 16) or inner) - 6 * dayGap) / 7)))
         pn.dLab:ClearAllPoints() pn.dLab:SetPoint("TOPLEFT", dx, dy + 14)
-        local dw = 38
-        if not wide then dw = math.max(32, math.min(48, math.floor((inner - 6 * 4) / 7))) end
-        for i, b in ipairs(self.dayBtns) do
+        for k, b in ipairs(self.dayBtns) do
             b:ClearAllPoints()
-            b:SetSize(dw, 52)
-            b:SetPoint("TOPLEFT", pn, "TOPLEFT", dx + (i - 1) * (dw + 4), dy)
+            b:SetSize(dw, RB_H)
+            b:SetPoint("TOPLEFT", pn, "TOPLEFT", dx + (k - 1) * (dw + dayGap), dy)
+            b.t:ClearAllPoints() b.t:SetPoint("CENTER", 0, -1)
+            b.n:ClearAllPoints() b.n:SetPoint("TOPRIGHT", -3, -2)
+            b.fill:SetAlpha(0) b.cap:Hide()
         end
+        local rowY = dy - RB_H - 12
         self.go:ClearAllPoints()
-        local bottom
-        if wide then
-            local gx = dx + daysW + 12
-            self.go:SetSize(math.min(220, w - 16 - gx), 52)
-            self.go:SetPoint("TOPLEFT", pn, "TOPLEFT", gx, -84)
-            bottom = -84 - 52
-        else
-            self.go:SetSize(math.min(220, inner), 30)
-            self.go:SetPoint("TOPRIGHT", pn, "TOPRIGHT", -16, dy - 52 - 10)
-            bottom = dy - 52 - 10 - 30
-        end
+        self.go:SetSize(math.min(190, inner), 30)
+        self.go:SetPoint("TOPRIGHT", pn, "TOPRIGHT", -14, rowY)
         self.best:ClearAllPoints()
-        self.best:SetPoint("TOPLEFT", pn, "TOPLEFT", 16, bottom - 9)
-        self.best:SetPoint("RIGHT", pn, "RIGHT", -16, 0)
-        local ph = -bottom + 28
+        self.best:SetPoint("LEFT", pn, "TOPLEFT", 14, rowY - 15)
+        self.best:SetPoint("RIGHT", self.go, "LEFT", -10, 0)
+        local bottom = rowY - 30
+        local ph = -bottom + 14
         pn:ClearAllPoints()
         pn:SetPoint("TOPLEFT", self, "TOPLEFT", 0, y)
         pn:SetSize(w, ph)
         y = y - ph - 10
         self.eb:ClearAllPoints()
         self.eb:SetPoint("TOPLEFT", self, "TOPLEFT", 0, y)
-        self.eb:SetSize(w, 250)
-        y = y - 250 - 10
+        self.eb:SetSize(w, 180)   -- 0.6.458: niedriger (wurde unten abgeschnitten)
+        y = y - 180 - 10
         if RW > 0 then
             self.sb:ClearAllPoints()
             self.sb:SetPoint("TOPLEFT", self, "TOPLEFT", w + 12, 0)
