@@ -313,7 +313,8 @@ local function drawTrails(w)
     tUsed = 0
     local routes = {}
     for _, r in ipairs(ns.db and ns.db.routes or {}) do if r.show then routes[#routes + 1] = r end end
-    if not opt("mapTrails") and #routes == 0 and not X.rec then return end
+    local recOn = X.rec and X.recShow ~= false
+    if not opt("mapTrails") and #routes == 0 and not recOn then return end
     if not tFrame then tFrame = CreateFrame("Frame", nil, w.canvas) end
     if tFrame:GetParent() ~= w.canvas then tFrame:SetParent(w.canvas) end
     tFrame:SetAllPoints(w.canvas)
@@ -326,9 +327,13 @@ local function drawTrails(w)
     local c = G and G.MiniCtx and G.MiniCtx()
     if c then live["\1me"] = { map = c.map, x = c.mx, y = c.my } end
     -- 0.6.486: gespeicherte Routen (gold) und die laufende Aufnahme (rot)
-    local function drawPts(pts, cr, cg, cb, ca)
+    -- 0.6.495: Deckkraft laeuft von a0 (Anfang) nach a1 (Ende) - alte Routen schwach, zum aktuellen Ende hin kraeftiger
+    local function drawPts(pts, cr, cg, cb, a0, a1)
+        a1 = a1 or a0
         local px, py
-        for _, pt in ipairs(pts) do
+        local n = #pts
+        for i, pt in ipairs(pts) do
+            local ca = a0 + (a1 - a0) * (n > 1 and (i - 1) / (n - 1) or 1)
             local x, y = tr(pt.map, pt.x, pt.y, w.map)
             if x and px and math.abs(x - px) + math.abs(y - py) < 0.35 then
                 tUsed = tUsed + 1
@@ -348,10 +353,16 @@ local function drawTrails(w)
     local mr, mg, mb = 1, 1, 1
     if myClass and ns.classColor then mr, mg, mb = ns.classColor(myClass) end
     mr, mg, mb = mr or 1, mg or 1, mb or 1
-    for _, r in ipairs(routes) do drawPts(r.pts or {}, mr, mg, mb, 0.85) end
-    if X.rec then drawPts(X.rec.pts, mr, mg, mb, 0.9) end
+    -- vergangene Routen schwach (aelteste am schwaechsten), aktuelle Aufnahme kraeftig und zum Ende hin voll
+    for k, r in ipairs(routes) do
+        local fade = math.max(0.35, 1 - (k - 1) * 0.15)
+        drawPts(r.pts or {}, mr, mg, mb, 0.08 * fade, 0.35 * fade)
+    end
+    if recOn then drawPts(X.rec.pts, mr, mg, mb, 0.3, 0.95) end
     if not opt("mapTrails") then return end
     for name, t in pairs(trails) do
+        -- 0.6.495: Linien anderer Spieler nur mit eigenem Schalter (Standard aus)
+        if name == "\1me" or opt("mapTrailsGuild") then
         local r, g, b = 1, 1, 1
         if t.class and ns.classColor then r, g, b = ns.classColor(t.class) end
         local pts = {}
@@ -371,6 +382,7 @@ local function drawTrails(w)
                 l:Show()
             end
             px, py = x, y
+        end
         end
     end
 end
@@ -694,6 +706,7 @@ local function rtPaint()
     if not rtBtn then return end
     local shown = false
     for _, r in ipairs(ns.db and ns.db.routes or {}) do if r.show then shown = true break end end
+    if X.rec and X.recShow ~= false then shown = true end
     rtBtn.icon:SetVertexColor(shown and 1 or 0.55, shown and 0.82 or 0.55, shown and 0.3 or 0.55)
     rtBtn.bg:SetColorTexture(0, 0, 0, shown and 0.65 or 0.4)
     if not rtBtn.recDot then
@@ -750,7 +763,9 @@ local function makeRtBtn()
         if btn ~= "RightButton" then
             local any = false
             for _, r in ipairs(list) do if r.show then any = true break end end
+            if X.rec and X.recShow ~= false then any = true end
             for _, r in ipairs(list) do r.show = (not any) or nil end
+            X.recShow = not any   -- 0.6.495: aktuelle Aufnahme gleich mit ein-/ausblenden
             if #list == 0 then K.Toast(L["Meine Routen"], L["Noch keine Routen gespeichert"], C.dim) end
             rtPaint()
             local w = world() if w then pcall(drawTrails, w) end
