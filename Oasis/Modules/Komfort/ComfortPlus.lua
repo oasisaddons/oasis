@@ -549,6 +549,21 @@ local function flightBar()
     f.text = f:CreateFontString(nil, "OVERLAY")
     if K.SetFontSafe then K.SetFontSafe(f.text, K.FONT, 11, "OUTLINE", K.FONT) else f.text:SetFont(K.FONT, 11, "OUTLINE") end
     f.text:SetPoint("CENTER")
+    -- 0.6.488: Flug unterbrechen - landet am naechsten Flugpunkt (nur wenn das Spiel die Funktion kennt)
+    if TaxiRequestEarlyLanding then
+        f.land = K.Button(f, L["Landen"], 64, 20, "ghost", function(self)
+            local ok = pcall(TaxiRequestEarlyLanding)
+            if ok then
+                self:SetLabel(L["landet ..."])
+                self:Disable()
+                K.Toast(L["Flug unterbrochen"], L["Du landest am naechsten Flugpunkt."], C.accent)
+            end
+        end)
+        f.land:SetPoint("LEFT", f, "RIGHT", 4, 0)
+        f.land:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Flug unterbrechen"], L["Landet am naechsten Flugpunkt auf der Strecke."] }) end)
+        f.land:HookScript("OnLeave", function() GameTooltip:Hide() end)
+        f:HookScript("OnShow", function(self) self.land:SetLabel(L["Landen"]) self.land:Enable() end)
+    end
     f:SetScript("OnUpdate", function(self, el)
         self.acc = (self.acc or 0) + el
         if self.acc < 0.25 then return end
