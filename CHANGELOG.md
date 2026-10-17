@@ -2,8 +2,21 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.6.405
+## 0.6.467
 
+- Please restart the game after this update (new image files).
+- New notice board (Guild > Notice board): every guild member can pin notes - info, looking for, offering, dates, fun. Authors and officers can delete, officers can pin notes to the top. Guild goals are now the second tab there.
+- Member list: role icons next to the name, AFK/DND and "in group" status, offline members show when they were last online, a fine activity bar for the last 7 days, guild anniversaries, gear level next to the rank; calmer rows with more space.
+- Raids: the dates page is rebuilt - raid planning header, compact interest form across the full width, upcoming dates box, and a side column showing raid interest per role (with names) and your own sign-up.
+- Raid lead > New event: step boxes (activity, time, group), labelled fields, time column, and a preview card with date, time, players and repeat.
+- Your own loot now lives in Profile > Adventure > Loot; Raids > Loot only shows raid loot.
+- Crafting exchange: search at the top right, column headers, taller recipe rows with crafter count, online dot and favourite star, larger recipe header, order overview across the full width.
+- Soundboard and emoji picker redesigned: clear header, sounds grouped by category, NEW badge, favourite star always visible.
+- Emojis and sounds unlock with your Oasis rank, spread from rank 2 to 100.
+- Podiums in death roll, collections and combat leaderboard use the same medal cards.
+- Black box frames on all pages except the dashboard; subtle shimmer travelling along the window and top bar frames; image buttons glow on hover.
+- Gathering map shows only profession nodes (herbs, ore, fishing), now also on the continent map.
+- Reputation planner shows correct values when the game reports an odd range.
 - No more notice or sound spam: the same notice shows at most once a minute, the same event sound at most every 8 seconds.
 - Minimap: more free space around the player arrow; nodes shared by others are clearly more transparent than your own.
 
