@@ -687,9 +687,18 @@ if WorldMapFrame then WorldMapFrame:HookScript("OnShow", function() pcall(makeDg
 local rtBtn
 local function rtPaint()
     if not rtBtn then return end
-    local r = X.rec ~= nil
-    rtBtn.icon:SetVertexColor(r and 1 or 0.85, r and 0.3 or 0.82, r and 0.3 or 0.6)
-    rtBtn.bg:SetColorTexture(0, 0, 0, r and 0.7 or 0.4)
+    local shown = false
+    for _, r in ipairs(ns.db and ns.db.routes or {}) do if r.show then shown = true break end end
+    rtBtn.icon:SetVertexColor(shown and 1 or 0.55, shown and 0.82 or 0.55, shown and 0.3 or 0.55)
+    rtBtn.bg:SetColorTexture(0, 0, 0, shown and 0.65 or 0.4)
+    if not rtBtn.recDot then
+        rtBtn.recDot = rtBtn:CreateTexture(nil, "OVERLAY")
+        rtBtn.recDot:SetTexture(ns.MEDIA .. "dot")
+        rtBtn.recDot:SetSize(7, 7)
+        rtBtn.recDot:SetPoint("TOPRIGHT", -2, -2)
+        rtBtn.recDot:SetVertexColor(1, 0.3, 0.3)
+    end
+    rtBtn.recDot:SetShown(X.rec ~= nil)
 end
 -- 0.6.490: laufende Aufnahme speichern (auto = beim Ausloggen, ohne Hinweis und standardmaessig nicht eingeblendet)
 function X.SaveRecord(auto)
@@ -731,8 +740,20 @@ local function makeRtBtn()
     rtBtn.icon = K.Glyph(rtBtn, 16, ns.MEDIA .. "icons\\map", C.text)
     rtBtn.icon:SetPoint("CENTER")
     rtBtn:SetScript("OnClick", function(self, btn)
-        if btn ~= "RightButton" then X.ToggleRecord() return end
-        local items = {}
+        -- 0.6.493: Linksklick = alle Routen zeigen / alle ausblenden; Aufnahme steht im Rechtsklick-Menue
+        local list = ns.db.routes or {}
+        if btn ~= "RightButton" then
+            local any = false
+            for _, r in ipairs(list) do if r.show then any = true break end end
+            for _, r in ipairs(list) do r.show = (not any) or nil end
+            if #list == 0 then K.Toast(L["Meine Routen"], L["Noch keine Routen gespeichert"], C.dim) end
+            rtPaint()
+            local w = world() if w then pcall(drawTrails, w) end
+            return
+        end
+        local items = {
+            { text = X.rec and L["Aufnahme speichern"] or L["Aufnahme starten"], fn = function() X.ToggleRecord() end },
+        }
         for i, r in ipairs(ns.db.routes or {}) do
             items[#items + 1] = { text = r.name or "?", checked = r.show and true or false, fn = function()
                 r.show = not r.show or nil
@@ -753,7 +774,8 @@ local function makeRtBtn()
         K.ShowMenu(self, items, L["Meine Routen"], 200)
     end)
     rtBtn:SetScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Meine Routen"], X.rec and L["Klick: Aufnahme beenden und speichern"] or L["Klick: Route aufnehmen"], L["Rechtsklick: gespeicherte Routen zeigen oder loeschen"] })
+        K.ShowTip(self, { L["Meine Routen"], L["Klick: alle Routen zeigen / ausblenden"], L["Rechtsklick: einzelne Routen, Aufnahme, Loeschen"],
+            X.rec and ("|cffff6060" .. L["Aufnahme laeuft"] .. "|r") or nil })
     end)
     rtBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     rtPaint()
