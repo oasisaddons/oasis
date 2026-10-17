@@ -150,20 +150,20 @@ function RW.EmojiLevel(e)
     if type(e) == "table" and e.lvl then return e.lvl end
     if not emojiLock then
         emojiLock = {}
-        local anim = {}
+        -- 0.6.442: alle Gilden-Emojis gleichmaessig auf Rang 2 bis 100 (normale zuerst, animierte danach)
+        local stat, anim = {}, {}
         for _, cat in ipairs(ns.Emoji and ns.Emoji.CATS or {}) do
-            if cat.custom then for _, x in ipairs(cat.items or {}) do if x.n and x.n > 1 then anim[#anim + 1] = x end end end
+            if cat.custom then for _, x in ipairs(cat.items or {}) do
+                if x.n and x.n > 1 then anim[#anim + 1] = x else stat[#stat + 1] = x end
+            end end
         end
-        table.sort(anim, function(a, b) return tostring(a[2]) < tostring(b[2]) end)
-        local per = math.max(1, math.ceil(#anim / #EMOJI_STEPS))
-        for i, x in ipairs(anim) do emojiLock[x] = EMOJI_STEPS[math.min(#EMOJI_STEPS, math.floor((i - 1) / per) + 1)] end
-        local stat = {}
-        for _, cat in ipairs(ns.Emoji and ns.Emoji.CATS or {}) do
-            if cat.custom then for _, x in ipairs(cat.items or {}) do if not emojiLock[x] then stat[#stat + 1] = x end end end
-        end
-        table.sort(stat, function(a, b) return tostring(a[2]) < tostring(b[2]) end)
-        local sper = math.max(1, math.ceil(#stat / #STATIC_STEPS))
-        for i, x in ipairs(stat) do emojiLock[x] = STATIC_STEPS[math.min(#STATIC_STEPS, math.floor((i - 1) / sper) + 1)] end
+        local function byCode(a, b) return tostring(a[2]) < tostring(b[2]) end
+        table.sort(stat, byCode) table.sort(anim, byCode)
+        local all = {}
+        for _, x in ipairs(stat) do all[#all + 1] = x end
+        for _, x in ipairs(anim) do all[#all + 1] = x end
+        local n = #all
+        for i, x in ipairs(all) do emojiLock[x] = (n > 1) and (2 + math.floor((i - 1) * 98 / (n - 1) + 0.5)) or 2 end
     end
     return emojiLock[e]
 end

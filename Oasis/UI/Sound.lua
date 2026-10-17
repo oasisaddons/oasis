@@ -682,6 +682,21 @@ local function finish(c)
     else c.lvl = 30 end   -- 0.6.439: Start ab Rang 2, dann 6/12/20/30, Musik 45
 end
 for _, c in ipairs(Sound.CHOICES) do finish(c) end
+-- 0.6.442: Freischaltungen gleichmaessig von Rang 2 bis 100 verteilen (kurze/Oasis-Toene zuerst, Musik zuletzt)
+function Sound.Spread()
+    local l = {}
+    for _, c in ipairs(Sound.CHOICES) do
+        if c.key ~= "none" and not c.ownLvl then l[#l + 1] = c end
+    end
+    local function w(c)
+        local base = (c.kit or c.cat == "oasis") and 0 or ((MUSIC[c.key] or c.music) and 2 or 1)
+        return base * 1000 + (c.dur or DUR[c.key] or 5)
+    end
+    table.sort(l, function(a, b) local x, y = w(a), w(b) if x ~= y then return x < y end return tostring(a.key) < tostring(b.key) end)
+    local n = #l
+    for i, c in ipairs(l) do c.lvl = (n > 1) and (2 + math.floor((i - 1) * 98 / (n - 1) + 0.5)) or 2 end
+end
+Sound.Spread()
 -- 0.5.728: Erweiterung durch das Gildenmodul (Oasis_Guild): zusaetzliche Sounds (eigene Dateien unter base) und UI-Soundpakete
 function Sound.AddChoices(list, base)
     for _, c in ipairs(list) do
@@ -692,6 +707,7 @@ function Sound.AddChoices(list, base)
             finish(c)
         end
     end
+    Sound.Spread()
 end
 function Sound.AddUiPack(pack, before)
     if Sound.uiPackByKey[pack.key] then return end
