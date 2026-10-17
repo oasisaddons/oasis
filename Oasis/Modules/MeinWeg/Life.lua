@@ -1259,10 +1259,10 @@ ns.RegisterPage({
         g.spark:SetPoint("TOPRIGHT", 0, -72)
         g.spark:SetSize(300, 28)
         g.spark.bars = {}
-        g.inc = iconList(g, 30)
+        g.inc = iconList(g, 40)   -- 0.6.461: mehr Luft zwischen Name und Prozent
         g.inc:SetPoint("TOPLEFT", 0, -130)
         g.inc:SetPoint("BOTTOMRIGHT", g, "BOTTOM", -6, 0)
-        g.out = iconList(g, 30)
+        g.out = iconList(g, 40)   -- 0.6.461: mehr Luft zwischen Name und Prozent
         g.out:SetPoint("TOPLEFT", g, "TOP", 6, -130)
         g.out:SetPoint("BOTTOMRIGHT")
         g.h1 = K.GameHead(g, L["Einnahmen"], C.mint)
