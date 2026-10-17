@@ -3809,7 +3809,7 @@ function K.ImageFrame(host, k)
         return seg[1].a[1], seg[1].a[2]
     end
     local acc, lastW, lastH, segs, total = 0, 0, 0, nil, 0
-    local wait, run, d0 = 3, nil, 0   -- Pause bis zum naechsten Aufleuchten / laufendes Aufleuchten (0..1)
+    local wait, run, d0, len, dir = 3, nil, 0, 110, 1   -- Pause bis zum naechsten Aufleuchten / laufendes Aufleuchten (0..1)
     fr:SetScript("OnUpdate", function(_, el)
         acc = acc + (el or 0)
         if acc >= 0.5 then acc = 0 fr.Tint() end
@@ -3825,14 +3825,16 @@ function K.ImageFrame(host, k)
             wait = wait - (el or 0)
             for _, t in ipairs(fr.spark) do t:Hide() end
             if wait > 0 then return end
+            -- 0.6.432: wie die Topbar - langes Stueck in zufaelliger Richtung
             run, d0 = 0, math.random() * total
+            len, dir = total * (0.25 + math.random() * 0.25), (math.random() < 0.5) and 1 or -1
         end
-        run = run + (el or 0) / 2.2          -- 2,2 s je Aufleuchten
-        if run >= 1 then run, wait = nil, 4 + math.random() * 2 return end   -- 0.6.373: haeufiger
-        local fade = math.sin(run * math.pi)  -- ein- und ausblenden
-        local d = d0 + run * 110              -- gleitet ~110 px weiter
+        run = run + (el or 0) / 5            -- 0.6.432: 5 s je Lauf
+        if run >= 1 then run, wait = nil, 3 + math.random() * 5 return end
+        local fade = math.sin(run * math.pi) ^ 0.8   -- weich ein- und ausblenden
+        local d = d0 + dir * run * len
         for i, t in ipairs(fr.spark) do
-            local x, y = pointAt(segs, total, d - (i - 1) * 5)
+            local x, y = pointAt(segs, total, d - dir * (i - 1) * 5)
             t:ClearAllPoints()
             t:SetPoint("CENTER", fr, "TOPLEFT", x, -y)
             -- 0.6.375: bei ADD wirkt SetAlpha nicht zuverlaessig -> Helligkeit in die Farbe (weiches Ein-/Ausblenden)

@@ -1721,7 +1721,7 @@ function ns.LayoutNav()
     main.crown:SetShown(not ns.Admin or ns.Admin.ShowCrown())   -- spaeter: nur fuer die Leitung (Gilden-Einstellung)
     lead = true
     main.lang:ClearAllPoints()
-    main.lang:SetPoint("RIGHT", main.langAnchor or main.crown, "LEFT", main.langAnchor and -8 or -2, 0)
+    main.lang:SetPoint("RIGHT", main.gear, "LEFT", -2, 0)   -- 0.6.432: Zahnrad steht wieder oben (lag sonst unter der Flagge)
     if main.FitSub then main.FitSub() end
     if main.gearColor then main.gearColor() end
     if current and current ~= "home" and not ns.PageVisible(current) and main:IsShown() then showPage("home") end
