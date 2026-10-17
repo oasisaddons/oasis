@@ -886,15 +886,17 @@ function Radar.ProfIcons(raw, size, limit)
     end
     for _, pf in ipairs(list) do
       if Radar.IsCraftProf(pf) or GATHER_PROFS[Radar.ProfId(pf) or 0] then
+        -- 0.6.510: ruhiger - Symbol hell-neutral (gemeistert gold), kleiner Abstand, Stufe nach Fortschritt abgestuft
         local maxed = pf.max and pf.rank >= pf.max
-        local c = maxed and C.amber or C.muted
-        local icon = Radar.ProfIcon(pf, size, c)
+        local c = maxed and C.amber or { 0.78, 0.78, 0.82 }
+        local icon = Radar.ProfIcon(pf, (size or 13) + 1, c)
         if icon == "" then icon = (pf.name or "?"):sub(1, 3) end
-        t[#t + 1] = icon .. (maxed and "|cffe8b44a" or "|cffc8c8c8") .. pf.rank .. "|r"
+        local nc = maxed and "|cffe8b44a" or ((pf.rank or 0) >= 150 and "|cffe6e6ea" or "|cff9a9aa2")
+        t[#t + 1] = icon .. " " .. nc .. pf.rank .. "|r"
       end
     end
     if #t == 0 then return "|cff555555-|r" end
-    return table.concat(t, "  ")
+    return table.concat(t, "|cff4a4a50  \194\183  |r")
 end
 
 ------------------------------------------------------------------------
