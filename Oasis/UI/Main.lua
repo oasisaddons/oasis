@@ -3,7 +3,35 @@ local ADDON, ns = ...
 local K, C, L = ns.K, ns.K.C, ns.L
 local M = ns.MEDIA
 
-local W, H, SIDEBAR = 1042, 700, 242
+local W, H, SIDEBAR = 1014, 700, 214   -- 0.6.508: Seitenleiste schmaler (Knoepfe erscheinen erst beim Ueberfahren)
+
+-- 0.6.508: weiches Ein-/Ausblenden der kleinen Knoepfe in der Seitenleiste (Stumm, Favorit, Ausblenden)
+local fading, fadeF = {}, nil
+local function fadeTo(f, a)
+    if not f then return end
+    fading[f] = a
+    if not fadeF then
+        fadeF = CreateFrame("Frame")
+        fadeF:SetScript("OnUpdate", function(self, el)
+            for fr, to in pairs(fading) do
+                local cur = fr:GetAlpha()
+                local step = (el or 0.016) * 6
+                if math.abs(to - cur) <= step then fr:SetAlpha(to) fading[fr] = nil
+                else fr:SetAlpha(cur + (to > cur and step or -step)) end
+            end
+            if not next(fading) then self:Hide() end
+        end)
+    end
+    fadeF:Show()
+end
+-- 0.6.508: ruhende Symbole der Seitenleiste mit ganz leichtem Verlauf (wie die Oasis-Leiste)
+local function restTint(t, c)
+    t:SetVertexColor(c[1], c[2], c[3])
+    if t.SetGradient and CreateColor then
+        pcall(t.SetGradient, t, "VERTICAL", CreateColor(c[1] * 0.82, c[2] * 0.82, c[3] * 0.82, 1),
+            CreateColor(math.min(1, c[1] * 1.15), math.min(1, c[2] * 1.15), math.min(1, c[3] * 1.15), 1))
+    end
+end
 local pages, pageOrder = {}, {}
 local main, current
 
@@ -814,8 +842,7 @@ local function buildMain()
             self.bar:SetShown(on)
             local c = on and C.text or C.muted
             self.label:SetTextColor(c[1], c[2], c[3])
-            local ic = on and C.accent or C.muted
-            self.icon:SetVertexColor(ic[1], ic[2], ic[3])
+            if on then self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3]) else restTint(self.icon, C.muted) end
         end
         b:SetActive(false)
         b.key = def.key
@@ -854,18 +881,18 @@ local function buildMain()
             e:SetPoint("RIGHT", -8, 0)
             e.icon = K.Glyph(e, 13, M .. "icons\\eye_off", C.muted)
             e.icon:SetPoint("CENTER")
-            e:SetAlpha(0.12)
+            e:SetAlpha(0)
             b.eye = e
-            b:HookScript("OnEnter", function(self) self.eye:SetAlpha(0.55) end)
-            b:HookScript("OnLeave", function(self) if not self.eye:IsMouseOver() then self.eye:SetAlpha(0.12) end end)
+            b:HookScript("OnEnter", function(self) fadeTo(self.eye, 0.55) end)
+            b:HookScript("OnLeave", function(self) if not self.eye:IsMouseOver() then fadeTo(self.eye, 0) end end)
             e:SetScript("OnEnter", function(self)
-                self:SetAlpha(1)
+                fadeTo(self, 1)
                 self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3])
                 K.ShowTip(self, { L["Ausblenden"], L["Unter Entdecken jederzeit wieder einschalten"] })
             end)
             e:SetScript("OnLeave", function(self)
                 self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3])
-                self:SetAlpha(b:IsMouseOver() and 0.55 or 0.12)
+                fadeTo(self, b:IsMouseOver() and 0.55 or 0)
                 GameTooltip:Hide()
             end)
             e:SetScript("OnClick", function()
@@ -888,13 +915,14 @@ local function buildMain()
                 self.star.icon:SetTexture(M .. (fav and "icons\\star_on" or "icons\\star_off"))
                 local c = fav and { 1, 0.82, 0.3 } or C.muted
                 self.star.icon:SetVertexColor(c[1], c[2], c[3])
-                self.star:SetAlpha(fav and 0.95 or (self:IsMouseOver() and 0.55 or 0.12))
+                fadeTo(self.star, fav and 0.95 or (self:IsMouseOver() and 0.55 or 0))
             end
             b:UpdateStar()
-            b:HookScript("OnEnter", function(self) if not self.star.fav then self.star:SetAlpha(0.55) end end)
+            st:SetAlpha(b.star.fav and 0.95 or 0)
+            b:HookScript("OnEnter", function(self) if not self.star.fav then fadeTo(self.star, 0.55) end end)
             b:HookScript("OnLeave", function(self) if not self.star:IsMouseOver() then self:UpdateStar() end end)
             st:SetScript("OnEnter", function(self)
-                self:SetAlpha(1)
+                fadeTo(self, 1)
                 if not self.fav then self.icon:SetVertexColor(1, 0.82, 0.3) end
                 K.ShowTip(self, { self.fav and L["Aus Favoriten entfernen"] or L["Zu Favoriten"], L["Favoriten stehen ganz oben in der Navigation"] })
             end)
@@ -919,13 +947,14 @@ local function buildMain()
                     self.mute.icon:SetTexture(M .. (on and "icons\\speaker_off" or "icons\\speaker"))
                     local c = on and C.accent or C.muted
                     self.mute.icon:SetVertexColor(c[1], c[2], c[3])
-                    self.mute:SetAlpha(on and 0.95 or (self:IsMouseOver() and 0.55 or 0.12))
+                    fadeTo(self.mute, on and 0.95 or (self:IsMouseOver() and 0.55 or 0))
                 end
                 b:UpdateMute()
-                b:HookScript("OnEnter", function(self) if not self.mute.on then self.mute:SetAlpha(0.55) end end)
+                mu:SetAlpha(b.mute.on and 0.95 or 0)
+                b:HookScript("OnEnter", function(self) if not self.mute.on then fadeTo(self.mute, 0.55) end end)
                 b:HookScript("OnLeave", function(self) if not self.mute:IsMouseOver() then self:UpdateMute() end end)
                 mu:SetScript("OnEnter", function(self)
-                    self:SetAlpha(1)
+                    fadeTo(self, 1)
                     if not self.on then self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3]) end
                     K.ShowTip(self, { self.on and L["Stummschaltung aufheben"] or L["Stummschalten"], L["Stumm: Neuigkeiten dieses Reiters erscheinen nicht am Minimap-Knopf und in der Topbar"] })
                 end)
