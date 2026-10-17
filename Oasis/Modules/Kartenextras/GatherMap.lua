@@ -568,7 +568,8 @@ local function kindForName(n)
 end
 local hoverSeen = {}
 local function fromMinimapTooltip()
-    if not (Minimap and GameTooltip and GameTooltip:IsShown() and GameTooltip:GetOwner() == Minimap) then return end
+    -- 0.6.506: Besitzer des Tooltips ist je nach Client die Minimap, ihr Rahmen oder ein Kind - entscheidend ist die Maus ueber der Minimap
+    if not (Minimap and GameTooltip and GameTooltip:IsShown() and Minimap:IsMouseOver()) then return end
     if ns.db.settings.shareNodes == false or ns.db.settings.gatherHoverOff then return end
     local c = GM.MiniCtx()
     if not c then return end
@@ -597,7 +598,8 @@ local function fromMinimapTooltip()
                         hoverSeen[key] = true
                         local ok, res = pcall(GM.Record, kind, n, x, y)
                         -- 0.6.489: kurze Rueckmeldung, damit man sieht, dass es klappt
-                        if ok and res == "neu gespeichert" then ns.print((L["Fundort uebernommen: %s"]):format(n)) end
+                        if ok and res == "neu gespeichert" then ns.print((L["Fundort uebernommen: %s"]):format(n))
+                        elseif ok and res == "schon bekannt" then ns.print((L["Fundort schon bekannt: %s"]):format(n)) end
                     end
                 end
             end
