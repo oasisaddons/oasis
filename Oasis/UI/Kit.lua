@@ -3773,13 +3773,13 @@ function K.ImageFrame(host, k)
     fr.Tint()
     -- 0.6.338: Schimmer sehr dezent - alle 8-12 s blendet an einer zufaelligen Stelle ein kleiner Lichtpunkt auf,
     -- gleitet ein kurzes Stueck auf der Linie und blendet wieder aus; aus mit "Animationen aus"
-    local TRAIL = 12   -- 0.6.339: langer Schweif
+    local TRAIL = 20   -- 0.6.436: langer, weich auslaufender Schweif
     fr.spark = {}
     for i = 1, TRAIL do
         local t = fr:CreateTexture(nil, "OVERLAY", nil, 3)
         t:SetTexture(ns.MEDIA .. "ember")
         t:SetBlendMode("ADD")
-        local sz = (i == 1) and 20 or math.max(5, 15 - i * 0.8)   -- 0.6.382: groesser
+        local sz = (i == 1) and 12 or math.max(4, 10 - i * 0.3)   -- 0.6.436: kleiner, dezenter
         t:SetSize(sz, sz)
         t:SetVertexColor(1, 0.82, 0.62)
         t:Hide()
@@ -3834,11 +3834,11 @@ function K.ImageFrame(host, k)
         local fade = math.sin(run * math.pi) ^ 0.8   -- weich ein- und ausblenden
         local d = d0 + dir * run * len
         for i, t in ipairs(fr.spark) do
-            local x, y = pointAt(segs, total, d - dir * (i - 1) * 5)
+            local x, y = pointAt(segs, total, d - dir * (i - 1) * 4)
             t:ClearAllPoints()
             t:SetPoint("CENTER", fr, "TOPLEFT", x, -y)
             -- 0.6.375: bei ADD wirkt SetAlpha nicht zuverlaessig -> Helligkeit in die Farbe (weiches Ein-/Ausblenden)
-            local kk = fade * ((i == 1) and 0.9 or (0.5 * (1 - (i - 1) / TRAIL) ^ 1.5))   -- 0.6.382: heller
+            local kk = fade * ((i == 1) and 0.42 or (0.3 * (1 - (i - 1) / TRAIL) ^ 2))   -- 0.6.436: dezenter, Verlauf
             t:SetAlpha(1)
             t:SetVertexColor(1 * kk, 0.82 * kk, 0.62 * kk, 1)
             t:Show()

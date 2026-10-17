@@ -183,6 +183,17 @@ function Rank.Total()
     return total(ns.db.xpV2 and true or false)
 end
 
+-- 0.6.436: Rang-Neustart (nur Entwickler, einmalig): bisheriger Stand wird als Sockel abgezogen -> zurueck auf Rang 1
+local rawTotal = Rank.Total
+function Rank.Total()
+    local t = rawTotal() or 0
+    if not ns.db.rankResetV1 and ns.IsDev and ns.IsDev() then
+        ns.db.rankResetV1 = true
+        ns.db.rankBase = t
+        ns.db.settings.rankTest = nil
+    end
+    return math.max(0, t - (ns.db.rankBase or 0))
+end
 -- Stand fuer die Anzeige
 function Rank.Mine(real)
     local xp = ns.db.rank and ns.db.rank.xp or Rank.Total()
