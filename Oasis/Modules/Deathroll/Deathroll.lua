@@ -859,7 +859,10 @@ end)
 -- Die Gilden-Lobby (DRQ ueber den Gildenkanal) laeuft zusaetzlich weiter. Abschaltbar: Einstellung drNet.
 ------------------------------------------------------------------------
 local NET_PREFIX, NET_PASS = "OASDR1", "oasisdr"
-local NET_TIERS = { { max = 1000, ch = "OasisDRklein" }, { max = 10000, ch = "OasisDRmittel" }, { max = math.huge, ch = "OasisDRhoch" } }
+-- 0.6.518: nur noch EIN gemeinsamer Kanal - alle mit Oasis finden sich (Einladungen kamen bei verschiedenen Stufen nicht an);
+-- die Lobby zeigt den Startwert ohnehin selbst. Alte Stufen-Kanaele werden beim Beitritt verlassen.
+local NET_TIERS = { { max = math.huge, ch = "OasisDR" } }
+local NET_OLD = { "OasisDRklein", "OasisDRmittel", "OasisDRhoch" }
 DR.net = { chan = nil, sent = 0, recv = 0, kinds = {} }
 local function netOn() return ns.db and ns.db.settings.drNet ~= false and ns.GuildOpt("drLobby") ~= false end
 local function tierChan(start)
@@ -917,6 +920,7 @@ function DR.NetJoin(start)
     for _, t in ipairs(NET_TIERS) do
         if t.ch ~= want and chanIdOf(t.ch) and LeaveChannelByName then pcall(LeaveChannelByName, t.ch) end
     end
+    for _, n in ipairs(NET_OLD) do if chanIdOf(n) and LeaveChannelByName then pcall(LeaveChannelByName, n) end end
     DR.net.joinTry = { ch = want, t = GetTime() }
     if not chanIdOf(want) then pcall(JoinTemporaryChannel, want, NET_PASS) end
     C_Timer.After(3, function()
@@ -943,6 +947,7 @@ DR.NetChanId = chanIdOf
 DR.NET_TIERS = NET_TIERS
 function DR.NetLeave()
     for _, t in ipairs(NET_TIERS) do if chanIdOf(t.ch) and LeaveChannelByName then pcall(LeaveChannelByName, t.ch) end end
+    for _, n in ipairs(NET_OLD) do if chanIdOf(n) and LeaveChannelByName then pcall(LeaveChannelByName, n) end end
     DR.net.chan = nil
     for n, q in pairs(DR.queue) do if q.net then DR.queue[n] = nil end end
 end
