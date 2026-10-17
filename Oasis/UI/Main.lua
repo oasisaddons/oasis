@@ -307,10 +307,12 @@ local HUBS = {
     raidlead = { "raidlead", "raidprepteam", "raidcheck", "raidtime" },
     -- Handel: Handwerk bleibt eigener Punkt; Markt, Wunschliste und Upgrade-Boerse teilen sich einen
     trade = { "trade", "wants", "gearmatch" },
+    -- 0.6.443: Entwickler und Fehlerberichte in einem Navigationspunkt
+    dev = { "dev", "bugs" },
 }
 -- Name des Navigationspunkts bzw. des ersten Reiters, wenn er vom Seitentitel abweichen soll
 local HUB_NAV = { tactics = "Raid-Vorbereitung", trade = "Markt & Wuensche" }
-local HUB_TAB = { raid = "Termine", tactics = "Taktiken", raidprep = "Abend-Check", buffs = "Buffs", loot = "Beute", lockouts = "IDs", lootrules = "Regeln" }
+local HUB_TAB = { dev = "Werkzeuge", raid = "Termine", tactics = "Taktiken", raidprep = "Abend-Check", buffs = "Buffs", loot = "Beute", lockouts = "IDs", lootrules = "Regeln" }
 function ns.HubNavTitle(key) return HUB_NAV[key] end
 ns.PAGE_HUBS = HUBS
 local HUB_OF = {}

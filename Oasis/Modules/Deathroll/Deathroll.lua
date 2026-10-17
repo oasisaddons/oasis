@@ -4376,23 +4376,23 @@ do
                         col.crown:ClearAllPoints() col.crown:SetPoint("TOP", col, "TOP", 0, -6) col.crown:SetSize(52, 26)
                         col.cls:ClearAllPoints() col.cls:SetPoint("TOP", col.crown, "BOTTOM", 0, -2)
                     end
-                    col.n:ClearAllPoints() col.n:SetPoint("TOP", col.cls, "BOTTOM", 0, -4) col.n:SetPoint("LEFT", col, "LEFT", 4, 0) col.n:SetPoint("RIGHT", col, "RIGHT", -4, 0)
+                    col.n:ClearAllPoints() col.n:SetPoint("TOP", col.cls, "BOTTOM", 0, -6) col.n:SetPoint("LEFT", col, "LEFT", 4, 0) col.n:SetPoint("RIGHT", col, "RIGHT", -4, 0)
                     col.num:ClearAllPoints() col.num:SetPoint("TOP", col.n, "BOTTOM", 0, -2)
                     K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 24, "", K.FONT)
                     col.wl:ClearAllPoints() col.wl:SetPoint("BOTTOM", 0, 8)
                     -- 0.6.440: schoener - grosse Platzzahl in Medaillenfarbe mit weichem Schein, Name groesser,
                     -- unten dunkler Verlauf hinter Elo/Bilanz
                     local mc = PCOL[place]
-                    K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 38, "", K.FONT)
+                    K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 26, "", K.FONT)   -- 0.6.443: kleiner, ueberlappte die Elo-Zeile
                     col.num:SetTextColor(math.min(1, mc[1] * 1.1 + 0.1), math.min(1, mc[2] * 1.1 + 0.1), math.min(1, mc[3] * 1.1 + 0.1))
-                    col.num:ClearAllPoints() col.num:SetPoint("TOP", col.n, "BOTTOM", 0, -4)
-                    K.SetFontSafe(col.n, K.FONT, 13, "", K.FONT)
+                    col.num:ClearAllPoints() col.num:SetPoint("BOTTOM", col.wl, "TOP", 0, 4)
+                    K.SetFontSafe(col.n, K.FONT, 12, "", K.FONT)
                     K.SetFontSafe(col.wl, K.FONT, 11, "", K.FONT)
                     if not col.numGlow then
                         col.numGlow = col:CreateTexture(nil, "ARTWORK", nil, 1)
                         col.numGlow:SetTexture(ns.MEDIA .. "softglow")
                         col.numGlow:SetBlendMode("ADD")
-                        col.numGlow:SetSize(90, 60)
+                        col.numGlow:SetSize(60, 40)
                         col.numGlow:SetPoint("CENTER", col.num, "CENTER", 0, 0)
                         col.footShade = col:CreateTexture(nil, "ARTWORK", nil, 1)
                         col.footShade:SetPoint("BOTTOMLEFT", 6, 6) col.footShade:SetPoint("BOTTOMRIGHT", -6, 6)
