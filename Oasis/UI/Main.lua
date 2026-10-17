@@ -93,7 +93,7 @@ function ns.RefreshPage(key, force)
         if not ok then ns.err(L["Seite"] .. " " .. k, e) end
         -- 0.6.448: auf allen Seiten schwarze Box-Rahmen (neu entstandene Boxen nach jedem Aufbau)
         local fr = def.frame
-        if ns.K.DarkFramesIn then ns.Debounce("darkFrames", 0.1, function() pcall(ns.K.DarkFramesIn, fr) end) end
+        if ns.K and ns.K.DarkFramesIn and ns.Debounce then ns.Debounce("darkFrames", 0.1, function() pcall(ns.K.DarkFramesIn, fr) end) end
     end
 end
 -- Reiter stummgeschaltet (Lautsprecher in der Seitenleiste): seine Neuigkeiten gehen nicht an Minimap-Knopf und Topbar.
@@ -312,10 +312,12 @@ local HUBS = {
     trade = { "trade", "wants", "gearmatch" },
     -- 0.6.443: Entwickler und Fehlerberichte in einem Navigationspunkt
     dev = { "dev", "bugs" },
+    -- 0.6.450: Schwarzes Brett mit den Gildenzielen als zweitem Reiter
+    board = { "board", "goals" },
 }
 -- Name des Navigationspunkts bzw. des ersten Reiters, wenn er vom Seitentitel abweichen soll
 local HUB_NAV = { tactics = "Raid-Vorbereitung", trade = "Markt & Wuensche" }
-local HUB_TAB = { dev = "Werkzeuge", raid = "Termine", tactics = "Taktiken", raidprep = "Abend-Check", buffs = "Buffs", loot = "Beute", lockouts = "IDs", lootrules = "Regeln" }
+local HUB_TAB = { dev = "Werkzeuge", board = "Schwarzes Brett", raid = "Termine", tactics = "Taktiken", raidprep = "Abend-Check", buffs = "Buffs", loot = "Beute", lockouts = "IDs", lootrules = "Regeln" }
 function ns.HubNavTitle(key) return HUB_NAV[key] end
 ns.PAGE_HUBS = HUBS
 local HUB_OF = {}

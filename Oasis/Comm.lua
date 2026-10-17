@@ -560,6 +560,7 @@ local RETENTION = {
     bugs = 90 * 86400,         -- Fehlerberichte + Bug-Meldungen (nur der Entwickler sieht sie)
     ggoals = 3650 * 86400,     -- Gildenziele (GuildGoals.lua)
     ggcontrib = 3650 * 86400,  -- Beitraege zu Gildenzielen
+    board = 60 * 86400,        -- Schwarzes Brett (GuildGoals.lua, 0.6.450)
     talents = 120 * 86400,     -- Talent-Export je Charakter (Talents.lua)
     scout = 120 * 86400,       -- Anwerbe-Vorschlaege (Scout.lua)
     perf = 30 * 86400,         -- Leistungs-Messung je Mitglied (PerfShare.lua)

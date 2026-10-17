@@ -818,4 +818,162 @@ ns.RegisterPage({
     end,
 })
 ns.slash.ziele = function() ns.ShowPage("goals") end
+
+------------------------------------------------------------------------
+-- 0.6.450: Schwarzes Brett - jedes Gildenmitglied heftet Notizen an (Suche, Biete, Termin, Hinweis, Spass).
+-- Loeschen: wer sie geschrieben hat oder die Gildenleitung; Anheften (oben halten) nur die Gildenleitung.
+------------------------------------------------------------------------
+local BOARD = "board"
+local BCATS = {
+    { key = "info", text = "Brett: Hinweis", col = { 0.55, 0.72, 1 } },
+    { key = "search", text = "Brett: Suche", col = { 1, 0.72, 0.3 } },
+    { key = "offer", text = "Brett: Biete", col = { 0.4, 0.86, 0.55 } },
+    { key = "event", text = "Brett: Termin", col = { 0.85, 0.55, 1 } },
+    { key = "fun", text = "Brett: Spass", col = { 1, 0.5, 0.6 } },
+}
+local BCAT = {}
+for _, c in ipairs(BCATS) do BCAT[c.key] = c end
+local MAXLEN, SHOWN = 200, 18
+function GG.BoardList(filter)
+    local out = {}
+    for _, r in ipairs(Store.List(BOARD)) do
+        if r.t and r.t ~= "" and (not filter or filter == "all" or r.c == filter) then out[#out + 1] = r end
+    end
+    table.sort(out, function(a, b)
+        if (a.pin and 1 or 0) ~= (b.pin and 1 or 0) then return a.pin and true or false end
+        return (a.created or a.u or 0) > (b.created or b.u or 0)
+    end)
+    return out
+end
+function GG.CanDelNote(r) return r and (ns.isMe(r.by) or ns.isOfficer()) end
+ns.RegisterPage({
+    key = "board", title = "Schwarzes Brett", order = 7.64,
+    sub = "Notizen fuer die ganze Gilde - Suche, Biete, Termine, Hinweise",
+    build = function(p)
+        p.cat, p.filter = "info", "all"
+        p.input = K.Input(p, 400, L["Notiz an das Brett schreiben ..."], function() end)
+        p.input:SetPoint("TOPLEFT", 0, -4)
+        p.input:SetPoint("RIGHT", p, "RIGHT", -270, 0)
+        if p.input.SetMaxLetters then p.input:SetMaxLetters(MAXLEN) end
+        local function post()
+            local t = (p.input:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
+            if t == "" then return end
+            Store.Put(BOARD, { id = ns.newId("nb"), created = ns.now(), t = t, c = p.cat })
+            p.input:SetText("")
+            p.input:ClearFocus()
+            ns.RefreshPage("board", true)
+        end
+        p.input:SetScript("OnEnterPressed", post)
+        p.catBtn = K.Button(p, "", 120, 28, "ghost", function()
+            for i, c in ipairs(BCATS) do if c.key == p.cat then p.cat = BCATS[i % #BCATS + 1].key break end end
+            p:ShowCat()
+        end)
+        p.catBtn:SetPoint("LEFT", p.input, "RIGHT", 8, 0)
+        p.catBtn:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Art der Notiz"], L["Klick: naechste Art"] }) end)
+        p.catBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
+        function p:ShowCat()
+            local c = BCAT[self.cat]
+            self.catBtn:SetLabel(K.hex(c.col) .. L[c.text] .. "|r")
+        end
+        p:ShowCat()
+        p.postBtn = K.Button(p, L["Ans Brett heften"], 130, 28, "primary", post)
+        p.postBtn:SetPoint("LEFT", p.catBtn, "RIGHT", 8, 0)
+        local items = { { key = "all", text = L["Alle"] } }
+        for _, c in ipairs(BCATS) do items[#items + 1] = { key = c.key, text = L[c.text] } end
+        p.seg = K.Segments(p, items, function(k) p.filter = k ns.RefreshPage("board", true) end)
+        p.seg:SetPoint("TOPLEFT", 0, -46)
+        p.empty = K.Text(p, 12, C.dim, "CENTER")
+        p.empty:SetPoint("TOP", 0, -140)
+        p.empty:SetText(L["Noch nichts am Brett. Schreib die erste Notiz - z. B. Suche Gruppe fuer ... oder Biete ..."])
+        p.cards = {}
+        local function card(i)
+            local c = CreateFrame("Frame", nil, p)
+            glass(c, { 0.055, 0.055, 0.065, 0.85 }, { 1, 1, 1, 0.08 }, 10)
+            c.strip = c:CreateTexture(nil, "ARTWORK")
+            c.strip:SetPoint("TOPLEFT", 10, -1) c.strip:SetPoint("TOPRIGHT", -10, -1) c.strip:SetHeight(2)
+            c.cat = K.Text(c, 10, C.dim)
+            c.cat:SetPoint("TOPLEFT", 12, -10)
+            c.pin = c:CreateTexture(nil, "OVERLAY")
+            c.pin:SetTexture(ns.MEDIA .. "icons\\pin")
+            c.pin:SetSize(12, 12)
+            c.pin:SetPoint("LEFT", c.cat, "RIGHT", 6, 0)
+            c.text = K.Text(c, 12, C.text)
+            c.text:SetPoint("TOPLEFT", 12, -28)
+            c.text:SetPoint("RIGHT", c, "RIGHT", -12, 0)
+            c.text:SetJustifyV("TOP")
+            if c.text.SetMaxLines then c.text:SetMaxLines(4) end
+            c.text:SetWordWrap(true)
+            c.who = K.Text(c, 10, C.dim)
+            c.who:SetPoint("BOTTOMLEFT", 12, 10)
+            c.who:SetPoint("RIGHT", c, "RIGHT", -60, 0)
+            c.who:SetWordWrap(false)
+            local function iconBtn(path, tip, fn)
+                local b = CreateFrame("Button", nil, c)
+                b:SetSize(18, 18)
+                b.ic = K.Glyph(b, 12, path, C.muted)
+                b.ic:SetPoint("CENTER")
+                b:SetScript("OnEnter", function(self) self.ic:SetVertexColor(C.text[1], C.text[2], C.text[3]) K.ShowTip(self, tip) end)
+                b:SetScript("OnLeave", function(self) self.ic:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
+                b:SetScript("OnClick", fn)
+                return b
+            end
+            c.del = iconBtn(ns.MEDIA .. "icons\\eraser", L["Loeschen (zweimal klicken)"], function(self)
+                if not (c.r and GG.CanDelNote(c.r)) then return end
+                if self.armed and GetTime() - self.armed < 4 then Store.Delete(BOARD, c.r.id) ns.RefreshPage("board", true)
+                else self.armed = GetTime() K.Toast(L["Schwarzes Brett"], L["Nochmal klicken zum Loeschen."], C.amber) end
+            end)
+            c.del:SetPoint("BOTTOMRIGHT", -8, 7)
+            c.pinBtn = iconBtn(ns.MEDIA .. "icons\\pin", L["Oben anheften (Gildenleitung)"], function()
+                if not (c.r and ns.isOfficer()) then return end
+                local r = {}
+                for k, v in pairs(c.r) do r[k] = v end
+                r.pin = (not r.pin) or nil
+                Store.Put(BOARD, r)
+                ns.RefreshPage("board", true)
+            end)
+            c.pinBtn:SetPoint("RIGHT", c.del, "LEFT", -4, 0)
+            p.cards[i] = c
+            return c
+        end
+        for i = 1, SHOWN do card(i) end
+        p.more = K.Text(p, 10, C.dim, "CENTER")
+    end,
+    refresh = function(p)
+        local list = GG.BoardList(p.filter)
+        local W = p:GetWidth() or 700
+        if W < 300 then W = 700 end
+        local cols = W > 900 and 3 or 2
+        local gap, ch = 12, 116
+        local cw = math.floor((W - gap * (cols - 1)) / cols)
+        p.empty:SetShown(#list == 0)
+        for i, c in ipairs(p.cards) do
+            local r = list[i]
+            c.r = r
+            c:SetShown(r ~= nil)
+            if r then
+                local col = (i - 1) % cols
+                local row = math.floor((i - 1) / cols)
+                c:ClearAllPoints()
+                c:SetPoint("TOPLEFT", p, "TOPLEFT", col * (cw + gap), -84 - row * (ch + gap))
+                c:SetSize(cw, ch)
+                local cat = BCAT[r.c] or BCATS[1]
+                c.strip:SetColorTexture(cat.col[1], cat.col[2], cat.col[3], 0.8)
+                c.cat:SetText(K.hex(cat.col) .. K.Upper(L[cat.text]) .. "|r")
+                c.pin:SetShown(r.pin and true or false)
+                c.text:SetText(r.t)
+                local who = (ns.Radar and ns.Radar.Colored) and ns.Radar.Colored(r.by or "?") or (r.by or "?")
+                c.who:SetText(who .. "  |cff666666" .. (ns.ago and ns.ago(r.created or r.u) or "") .. "|r")
+                c.del:SetShown(GG.CanDelNote(r) and true or false)
+                c.pinBtn:SetShown(ns.isOfficer() and true or false)
+            end
+        end
+        p.more:SetShown(#list > SHOWN)
+        if #list > SHOWN then
+            p.more:ClearAllPoints()
+            p.more:SetPoint("TOP", p, "TOP", 0, -84 - math.ceil(SHOWN / cols) * (ch + gap))
+            p.more:SetText((L["%d aeltere Notizen ausgeblendet"]):format(#list - SHOWN))
+        end
+    end,
+})
+ns.slash.brett = function() ns.ShowPage("board") end
 end)
