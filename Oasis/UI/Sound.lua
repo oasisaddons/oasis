@@ -1025,8 +1025,8 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             c.newTag:SetSize(30, 15)
             c.newTag.bg = c.newTag:CreateTexture(nil, "BACKGROUND")
             c.newTag.bg:SetAllPoints()
-            c.newTag.bg:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.22)
-            c.newTag.t = K.Text(c.newTag, 9, { 1, 0.75, 0.75 }, "CENTER")
+            c.newTag.bg:SetColorTexture(0.25, 0.55, 1, 0.22)
+            c.newTag.t = K.Text(c.newTag, 9, { 0.6, 0.8, 1 }, "CENTER")
             c.newTag.t:SetPoint("CENTER")
             c.newTag.t:SetText(K.Upper(L["NEU"]))
             c.newTag:Hide()
@@ -1124,12 +1124,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 self.newTag:SetShown(it.new and true or false)
                 if it.new then
                     self.newTag:ClearAllPoints()
-                    -- 0.6.412: Breite ueber eine ungebundene Messzeile (GetStringWidth der Namenszeile kam vor dem Layout zu klein)
-                    if not self.meas then self.meas = K.Text(self, 13, C.text) self.meas:Hide() end
-                    self.meas:SetText(self.name:GetText() or "")
-                    local w = (self.meas.GetUnboundedStringWidth and self.meas:GetUnboundedStringWidth()) or self.meas:GetStringWidth() or 60
-                    local maxW = (self:GetWidth() or 300) - 50 - 52 - 34
-                    self.newTag:SetPoint("LEFT", self.name, "LEFT", math.min(w + 8, maxW), 0)
+                    self.newTag:SetPoint("RIGHT", self, "RIGHT", -64, 0)   -- 0.6.416: rechtsbuendig vor der Dauer
                 end
                 self.pickBar:SetShown(sel)
                 self.pickBg:SetShown(sel)
