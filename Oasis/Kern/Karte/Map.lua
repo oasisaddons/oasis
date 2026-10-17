@@ -1583,6 +1583,20 @@ ns.Listen("LOGIN", function()
             if not ok2 then ns.err("Kartenpunkte", e2) end
         end
         if mmUsed == 0 and not next(Map.pos) and not Map.target and not hasFires then return end
+        -- Leistung (0.6.479): volle 20x pro Sekunde nur, wenn ich mich bewege oder drehe bzw. die Minimap zoome -
+        -- im Stand reichen 2 Aktualisierungen pro Sekunde (neue Gildenpositionen kommen ohnehin hoechstens alle 2,5 s)
+        if mmTick % 10 ~= 0 then
+            local px, py
+            if C_Map and C_Map.GetBestMapForUnit and C_Map.GetPlayerMapPosition then
+                local okm, mid = pcall(C_Map.GetBestMapForUnit, "player")
+                local okp, pos = okm and mid and pcall(C_Map.GetPlayerMapPosition, mid, "player")
+                if okp and pos and pos.GetXY then px, py = pos:GetXY() end
+            end
+            local fa = GetPlayerFacing and ns.safe(GetPlayerFacing()) or 0
+            local zm = Minimap and Minimap.GetZoom and Minimap:GetZoom() or 0
+            if px and Map.mmLast and Map.mmLast[1] == px and Map.mmLast[2] == py and Map.mmLast[3] == fa and Map.mmLast[4] == zm then return end
+            Map.mmLast = { px, py, fa, zm }
+        end
         local ok, e = pcall(Map.UpdateMinimap)
         if not ok then ns.err("Minimap", e) end
     end)

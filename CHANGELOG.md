@@ -4,6 +4,7 @@ Add a new section at the top for every file that is uploaded. Describe what chan
 
 ## 0.6.477
 
+- Less background load: the minimap only updates at full speed while you move or turn (twice a second when standing still), and the frame and top bar shimmer update at most 30 times a second.
 - New option: the guild window key (J) can open Oasis instead of Blizzard's guild window (Quick start and Key bindings).
 - Comfort settings fully translated (Blizzard bars, comfort switches, gathering map, roster check).
 - Long dropdown menus scroll with the mouse wheel and always stay on screen.

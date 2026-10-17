@@ -352,7 +352,12 @@ local function build()
         local swWait, swRun, swX0, swLen, swDir = 1.5, nil, 0, 120, 1   -- 0.6.338: dezentes Aufleuchten alle 8-12 s statt Dauerlauf
         local clock = 0
         local pulse = CreateFrame("Frame", nil, bar)
+        local pAcc = 0
         pulse:SetScript("OnUpdate", function(_, el)
+            -- Leistung (0.6.479): die Leiste ist immer sichtbar - Schimmer hoechstens 30x pro Sekunde statt in jedem Bild
+            pAcc = pAcc + (el or 0)
+            if pAcc < 0.033 then return end
+            el, pAcc = pAcc, 0
             local st = ns.db and ns.db.settings
             local on = not (st and st.noAnim)
             if on then clock = clock + (el or 0) end

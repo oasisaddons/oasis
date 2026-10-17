@@ -3839,7 +3839,12 @@ function K.ImageFrame(host, k)
     end
     local acc, lastW, lastH, segs, total = 0, 0, 0, nil, 0
     local wait, run, d0, len, dir = 3, nil, 0, 110, 1   -- Pause bis zum naechsten Aufleuchten / laufendes Aufleuchten (0..1)
+    local fAcc = 0
     fr:SetScript("OnUpdate", function(_, el)
+        -- Leistung (0.6.479): hoechstens 30x pro Sekunde (vorher jedes Bild, 20 Schweif-Punkte)
+        fAcc = fAcc + (el or 0)
+        if fAcc < 0.033 then return end
+        el, fAcc = fAcc, 0
         acc = acc + (el or 0)
         if acc >= 0.5 then acc = 0 fr.Tint() end
         local st = ns.db and ns.db.settings
