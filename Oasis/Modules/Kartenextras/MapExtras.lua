@@ -308,9 +308,13 @@ function X.SampleTrails(now)
 end
 function X.Trails() return trails end
 local tFrame, tLines, tUsed = nil, {}, 0
+local gLines, gUsed, endGlow = {}, 0, nil   -- 0.6.498: Leuchten unter den Routen + Schein am aktuellen Ende
 local function drawTrails(w)
     for i = 1, tUsed do tLines[i]:Hide() end
     tUsed = 0
+    for i = 1, gUsed do gLines[i]:Hide() end
+    gUsed = 0
+    if endGlow then endGlow:Hide() end
     local routes = {}
     for _, r in ipairs(ns.db and ns.db.routes or {}) do if r.show then routes[#routes + 1] = r end end
     local recOn = X.rec and X.recShow ~= false
@@ -328,7 +332,7 @@ local function drawTrails(w)
     if c then live["\1me"] = { map = c.map, x = c.mx, y = c.my } end
     -- 0.6.486: gespeicherte Routen (gold) und die laufende Aufnahme (rot)
     -- 0.6.495: Deckkraft laeuft von a0 (Anfang) nach a1 (Ende) - alte Routen schwach, zum aktuellen Ende hin kraeftiger
-    local function drawPts(pts, cr, cg, cb, a0, a1)
+    local function drawPts(pts, cr, cg, cb, a0, a1, glow)
         a1 = a1 or a0
         local px, py
         local n = #pts
@@ -344,8 +348,35 @@ local function drawTrails(w)
                 l:SetStartPoint("TOPLEFT", tFrame, px * w.cw, -py * w.ch)
                 l:SetEndPoint("TOPLEFT", tFrame, x * w.cw, -y * w.ch)
                 l:Show()
+                -- weiches Leuchten darunter (additiv), zum Ende hin staerker
+                if glow then
+                    gUsed = gUsed + 1
+                    local gl = gLines[gUsed]
+                    if not gl then gl = tFrame:CreateLine(nil, "BACKGROUND") gl:SetBlendMode("ADD") gLines[gUsed] = gl end
+                    local q = n > 1 and (i - 1) / (n - 1) or 1
+                    local ga = glow * q * q
+                    gl:SetColorTexture(cr * ga, cg * ga, cb * ga, 1)
+                    gl:SetThickness(math.max(4, 10 * w.cs))
+                    gl:SetStartPoint("TOPLEFT", tFrame, px * w.cw, -py * w.ch)
+                    gl:SetEndPoint("TOPLEFT", tFrame, x * w.cw, -y * w.ch)
+                    gl:Show()
+                end
             end
             px, py = x, y
+        end
+        -- Schein am letzten Punkt (aktuelles Ende)
+        if glow and px then
+            if not endGlow then
+                endGlow = tFrame:CreateTexture(nil, "OVERLAY")
+                endGlow:SetTexture(ns.MEDIA .. "softglow")
+                endGlow:SetBlendMode("ADD")
+            end
+            local sz = math.max(18, 34 * w.cs)
+            endGlow:SetSize(sz, sz)
+            endGlow:ClearAllPoints()
+            endGlow:SetPoint("CENTER", tFrame, "TOPLEFT", px * w.cw, -py * w.ch)
+            endGlow:SetVertexColor(cr, cg, cb, 1)
+            endGlow:Show()
         end
     end
     -- 0.6.494: Routen und Aufnahme in der eigenen Klassenfarbe (wie die Laufspur)
@@ -358,7 +389,7 @@ local function drawTrails(w)
         local fade = math.max(0.35, 1 - (k - 1) * 0.15)
         drawPts(r.pts or {}, mr, mg, mb, 0.18 * fade, 0.6 * fade)   -- 0.6.497: etwas kraeftiger
     end
-    if recOn then drawPts(X.rec.pts, mr, mg, mb, 0.45, 1) end
+    if recOn then drawPts(X.rec.pts, mr, mg, mb, 0.45, 1, 0.55) end
     if not opt("mapTrails") then return end
     for name, t in pairs(trails) do
         -- 0.6.495: Linien anderer Spieler nur mit eigenem Schalter (Standard aus)
