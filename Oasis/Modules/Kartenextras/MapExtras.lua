@@ -340,7 +340,7 @@ local function drawTrails(w)
                 local l = tLines[tUsed]
                 if not l then l = tFrame:CreateLine(nil, "ARTWORK") tLines[tUsed] = l end
                 l:SetColorTexture(cr, cg, cb, ca)
-                l:SetThickness(math.max(1, 2.5 * w.cs))
+                l:SetThickness(math.max(1.5, 3 * w.cs))
                 l:SetStartPoint("TOPLEFT", tFrame, px * w.cw, -py * w.ch)
                 l:SetEndPoint("TOPLEFT", tFrame, x * w.cw, -y * w.ch)
                 l:Show()
@@ -356,9 +356,9 @@ local function drawTrails(w)
     -- vergangene Routen schwach (aelteste am schwaechsten), aktuelle Aufnahme kraeftig und zum Ende hin voll
     for k, r in ipairs(routes) do
         local fade = math.max(0.35, 1 - (k - 1) * 0.15)
-        drawPts(r.pts or {}, mr, mg, mb, 0.08 * fade, 0.35 * fade)
+        drawPts(r.pts or {}, mr, mg, mb, 0.18 * fade, 0.6 * fade)   -- 0.6.497: etwas kraeftiger
     end
-    if recOn then drawPts(X.rec.pts, mr, mg, mb, 0.3, 0.95) end
+    if recOn then drawPts(X.rec.pts, mr, mg, mb, 0.45, 1) end
     if not opt("mapTrails") then return end
     for name, t in pairs(trails) do
         -- 0.6.495: Linien anderer Spieler nur mit eigenem Schalter (Standard aus)
