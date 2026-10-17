@@ -681,6 +681,10 @@ function K.Button(parent, text, w, h, style, onClick)
         for _, rg in ipairs({ b:GetRegions() }) do
             if rg.GetObjectType and rg:GetObjectType() == "Texture" and not keep[rg] and rg:GetDrawLayer() ~= "HIGHLIGHT" then
                 rg:SetAlpha(0)
+                -- 0.6.418: in einen versteckten Rahmen umhaengen - Hover/Design-Wechsel faerbten die Flaeche sonst wieder sichtbar
+                K.imgBtnTrash = K.imgBtnTrash or CreateFrame("Frame")
+                K.imgBtnTrash:Hide()
+                pcall(rg.SetParent, rg, K.imgBtnTrash)
             end
         end
     end
