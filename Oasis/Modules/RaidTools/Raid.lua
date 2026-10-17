@@ -2152,13 +2152,105 @@ local function buildEvents(f)
     end)
     ip.kHead:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+    -- 0.6.455: Aufbau nach Entwurf - Kopf-Kasten "Raidplanung" mit Termin-Knopf, Melde-Feld, Kasten "Anstehende Termine",
+    -- rechts eine Spalte mit Raid-Interesse (Zahlen je Rolle) und "Deine Anmeldung"
+    local function box(parent)
+        local b = CreateFrame("Frame", nil, parent)
+        if ns.Insta and ns.Insta.Glass then pcall(ns.Insta.Glass, b, { 0.055, 0.055, 0.065, 0.85 }, { 1, 1, 1, 0.08 }, 10)
+        else K.Fill(b, C.panel) K.Border(b, C.line) end
+        return b
+    end
+    local hb = box(ip)
+    hb.ic = famDisc(hb, 34, ns.MEDIA .. "icons\\raid", C.accent)
+    hb.ic:SetPoint("LEFT", 14, 0)
+    hb.t = K.Title(hb, 16, C.text)
+    hb.t:SetPoint("TOPLEFT", 60, -14)
+    hb.t:SetText(L["Raidplanung"])
+    hb.s = K.Text(hb, 11, C.muted)
+    hb.s:SetPoint("TOPLEFT", hb.t, "BOTTOMLEFT", 0, -4)
+    hb.s:SetPoint("RIGHT", hb, "RIGHT", -190, 0)
+    hb.s:SetWordWrap(false)
+    hb.s:SetText(L["Hier findest du anstehende Raid-Termine und kannst dein Interesse anmelden."])
+    hb.new = K.Button(hb, L["Termin anlegen"], 160, 32, "primary", function()
+        if not canEvents() then return end
+        local n = ip.total or 0
+        Raid.prefill = { kind = "raid", max = (n >= 12) and 20 or 10, wd = ip.bestDay }
+        Raid.SetTab("new")
+    end)
+    hb.new:SetPoint("RIGHT", -14, 0)
+    K.LockButton(hb.new, canEvents, ns.Admin and ns.Admin.Need and ns.Admin.Need("raid.events") or "raidlead")
+    ip.hb = hb
+    local eb = box(ip)
+    eb.head = K.GameHead(eb, L["Anstehende Termine"], C.accent)
+    eb.head:SetPoint("TOPLEFT", 14, -12)
+    eb.head:SetPoint("RIGHT", eb, "RIGHT", -14, 0)
+    eb.disc = famDisc(eb, 54, ns.MEDIA .. "icons\\raid", C.amber)
+    eb.disc:SetPoint("TOP", 0, -56)
+    eb.t = K.Title(eb, 15, C.text, "CENTER")
+    eb.t:SetPoint("TOP", eb.disc, "BOTTOM", 0, -14)
+    eb.t:SetText(L["Noch keine Termine"])
+    eb.s = K.Text(eb, 11, C.muted, "CENTER")
+    eb.s:SetPoint("TOP", eb.t, "BOTTOM", 0, -6)
+    eb.s:SetWidth(380)
+    eb.s:SetWordWrap(true)
+    eb.s:SetText(L["Es sind aktuell keine Raid-Termine geplant. Melde dein Interesse an, damit die Raidleitung weiss, wann ein Termin fuer die Gilde passt."])
+    ip.eb = eb
+    local sb = box(ip)
+    sb.ic = famDisc(sb, 30, ns.MEDIA .. "icons\\groups", C.accent)
+    sb.ic:SetPoint("TOPLEFT", 12, -12)
+    sb.t = K.Title(sb, 14, C.text)
+    sb.t:SetPoint("TOPLEFT", 52, -12)
+    sb.t:SetText(L["Raid-Interesse"])
+    sb.n = K.Text(sb, 11, C.muted)
+    sb.n:SetPoint("TOPLEFT", sb.t, "BOTTOMLEFT", 0, -3)
+    sb.rows = {}
+    for i, r in ipairs({ "tank", "heal", "dps" }) do
+        local row = CreateFrame("Frame", nil, sb)
+        row:SetHeight(36)
+        row:SetPoint("TOPLEFT", 10, -54 - (i - 1) * 38)
+        row:SetPoint("RIGHT", sb, "RIGHT", -10, 0)
+        row.line = row:CreateTexture(nil, "ARTWORK")
+        row.line:SetPoint("TOPLEFT") row.line:SetPoint("TOPRIGHT") row.line:SetHeight(1)
+        row.line:SetColorTexture(1, 1, 1, 0.06)
+        row.disc = famDisc(row, 24, roleTex(r), RC[r])
+        row.disc:SetPoint("LEFT", 2, 0)
+        row.l = K.Text(row, 12, C.text)
+        row.l:SetPoint("LEFT", 36, 0)
+        row.l:SetText(L[RNAME[r]])
+        row.v = K.Title(row, 13, C.text, "RIGHT")
+        row.v:SetPoint("RIGHT", -4, 0)
+        row.role = r
+        sb.rows[i] = row
+    end
+    ip.sb = sb
+    local mb = box(ip)
+    mb.ic = famDisc(mb, 30, ns.MEDIA .. "icons\\profile", C.muted)
+    mb.ic:SetPoint("TOPLEFT", 12, -12)
+    mb.t = K.Title(mb, 14, C.text)
+    mb.t:SetPoint("LEFT", mb.ic, "RIGHT", 10, 0)
+    mb.t:SetText(L["Deine Anmeldung"])
+    mb.state = K.Text(mb, 12, C.text, "CENTER")
+    mb.state:SetPoint("TOP", 0, -66)
+    mb.s = K.Text(mb, 11, C.muted, "CENTER")
+    mb.s:SetPoint("TOP", mb.state, "BOTTOM", 0, -10)
+    mb.s:SetPoint("LEFT", 14, 0) mb.s:SetPoint("RIGHT", -14, 0)
+    mb.s:SetWordWrap(true)
+    ip.mb = mb
+
     -- Anordnung je nach Breite (Kacheln 4/2 Spalten, Tage neben/unter den Rollen, Gruppen 4/2 Spalten)
     local GC_H = 8 + 16 + 4 * 18 + 16 + 6
     function ip:Layout()
-        local w = math.floor(ipSc:GetWidth() or 0)
-        if w < 200 then w = 700 end
-        self:SetWidth(w)
+        local W = math.floor(ipSc:GetWidth() or 0)
+        if W < 200 then W = 700 end
+        self:SetWidth(W)
+        -- 0.6.455: rechte Spalte ab 760 px, sonst alles untereinander
+        local RW = (W >= 760) and 230 or 0
+        local w = RW > 0 and (W - RW - 12) or W
         local y = 0
+        self.hb:ClearAllPoints()
+        self.hb:SetPoint("TOPLEFT", self, "TOPLEFT", 0, y)
+        self.hb:SetSize(w, 66)
+        y = y - 66 - 10
         -- Kacheln
         local tc = (w >= 520) and 4 or 2
         local tw = math.floor((w - (tc - 1) * 8) / tc)
@@ -2208,6 +2300,27 @@ local function buildEvents(f)
         pn:SetPoint("TOPLEFT", self, "TOPLEFT", 0, y)
         pn:SetSize(w, ph)
         y = y - ph - 10
+        self.eb:ClearAllPoints()
+        self.eb:SetPoint("TOPLEFT", self, "TOPLEFT", 0, y)
+        self.eb:SetSize(w, 250)
+        y = y - 250 - 10
+        if RW > 0 then
+            self.sb:ClearAllPoints()
+            self.sb:SetPoint("TOPLEFT", self, "TOPLEFT", w + 12, 0)
+            self.sb:SetSize(RW, 176)
+            self.mb:ClearAllPoints()
+            self.mb:SetPoint("TOPLEFT", self.sb, "BOTTOMLEFT", 0, -10)
+            self.mb:SetSize(RW, 190)
+        else
+            self.sb:ClearAllPoints()
+            self.sb:SetPoint("TOPLEFT", self, "TOPLEFT", 0, y)
+            self.sb:SetSize(w, 176)
+            y = y - 186
+            self.mb:ClearAllPoints()
+            self.mb:SetPoint("TOPLEFT", self, "TOPLEFT", 0, y)
+            self.mb:SetSize(w, 150)
+            y = y - 160
+        end
         -- Kader-Ansicht entfernt: nur der Leitungs-Knopf bleibt unter dem Interesse-Feld
         self.kHead:Hide()
         self.comp:Hide()
@@ -2215,7 +2328,7 @@ local function buildEvents(f)
         if self.kEmpty then self.kEmpty:Hide() end
         self.lead:ClearAllPoints()
         self.lead:SetPoint("TOPRIGHT", self, "TOPRIGHT", 0, y)
-        y = y - 34
+        self.lead:Hide()   -- 0.6.455: steckt jetzt im Kopf-Kasten ("Termin anlegen" mit Vorschlag aus dem Interesse)
         self:SetHeight(-y + 2)
     end
     ipSc:SetScript("OnSizeChanged", function()
@@ -2319,6 +2432,18 @@ local function buildEvents(f)
             .. (#all > 0 and ("   " .. K.hex(C.blue) .. (rc.tank or 0) .. " " .. L["Tank"] .. "|r   " .. K.hex(C.mint) .. (rc.heal or 0) .. " " .. L["Heiler"]
                 .. "|r   " .. K.hex(C.red) .. (rc.dps or 0) .. " " .. L["Schaden"] .. "|r") or "")
             .. (mine and ("   |cff66db9e" .. L["du bist dabei"] .. "|r") or ""))
+        ip.sb.n:SetText((L["%d Interessenten"]):format(#all))
+        for _, row in ipairs(ip.sb.rows) do row.v:SetText(rc[row.role] or 0) end
+        if mine then
+            local parts = {}
+            for _, r in ipairs({ "tank", "heal", "dps" }) do if (mine.roles or ""):find(r:sub(1, 1), 1, true) then parts[#parts + 1] = L[RNAME[r]] end end
+            ip.mb.state:SetText("|TInterface\\RaidFrame\\ReadyCheck-Ready:14:14|t " .. L["Du bist gemeldet"])
+            ip.mb.s:SetText(table.concat(parts, ", ") .. ((mine.days or "") ~= "" and ("\n" .. daysText(mine)) or ""))
+        else
+            ip.mb.state:SetText(L["Noch nicht angemeldet."])
+            ip.mb.s:SetText(L["Waehle deine Rolle(n) und Wunschtage aus und melde dein Interesse, damit die Raidleitung planen kann."])
+        end
+        K.UpdateLockButton(ip.hb.new)
         for _, t in ipairs(ip.tiles) do
             local v = vals[t.key]
             local sub = (t.key == "all") and (mine and L["du bist dabei"] or "") or ""
@@ -3243,6 +3368,12 @@ local function refreshEvents(f)
     K.LockButton(f.newBtn, canLead, "raidlead")
         if f.demo then f.demo:SetShown(#evs == 0) end
         if f.interest then
+            -- 0.6.455: ohne Termine fuellt die Interesse-Ansicht die Seite (eigener Kopf-Kasten mit Knopf)
+            f.interest:ClearAllPoints()
+            f.interest:SetPoint("TOPLEFT", f.cards, "TOPLEFT", 0, top)
+            f.interest:SetPoint("BOTTOMRIGHT", f.cards, "BOTTOMRIGHT", 0, 0)
+            f.head:SetShown(#evs > 0)
+            if #evs == 0 then f.newBtn:Hide() end
             f.interest:SetShown(#evs == 0)
             if #evs == 0 then f:UpdateInterest() end
         end
