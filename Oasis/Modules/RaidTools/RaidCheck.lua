@@ -1286,7 +1286,7 @@ local function buildTactics(p, tc)
         r:EnableMouse(not isH)
         if isH then
             r.hdr:SetText(e.hdr .. "  |cff666666" .. e.n .. "|r")
-            r.selBg:Hide() r.sel:Hide()
+            r.selBg:Hide() r.sel:Hide() r.tgt:Hide()   -- 0.6.466: Ziel-Punkt stand auf den Kapitel-Zeilen
             for _, d in ipairs(r.secs) do d:Hide() end
             return
         end

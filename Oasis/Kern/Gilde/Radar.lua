@@ -1947,7 +1947,17 @@ ns.RegisterPage({
                 cx.labelW = nil
             end
             local pr = cx.pr
-            r.cols.grank:SetText(m.rank or "")
+            r.cols.grank:SetText((m.rank or "") .. ((cx.ilvl and cx.ilvl > 0) and ("  |cff6199ff" .. L["iL"] .. " " .. cx.ilvl .. "|r") or ""))
+            -- 0.6.466: Aktivitaet der letzten 7 Tage als feiner Balken unten in der Zeile
+            if not r.actBar then
+                r.actBar = r:CreateTexture(nil, "OVERLAY")
+                r.actBar:SetHeight(2)
+                r.actBar:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 72, 5)
+            end
+            local aq = math.min(1, (cx.act or 0) / 10)
+            r.actBar:SetWidth(math.max(1, 90 * aq))
+            r.actBar:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.55)
+            r.actBar:SetShown(aq > 0)
             if hasGlass() then
                 local np = p.colPos and p.colPos.name
                 if cx.twTxt and np then
@@ -1964,7 +1974,7 @@ ns.RegisterPage({
                     r.tw:SetText(cx.twTxt)
                     r.tw:Show()
                     r.twOn = true
-                    r.cols.name:SetText(cx.plain)
+                    r.cols.name:SetText(cx.plain .. (cx.extra or ""))
                 else
                     if r.twOn and np then
                         r.twOn = nil
@@ -1972,7 +1982,7 @@ ns.RegisterPage({
                         r.cols.name:SetPoint("LEFT", r, "LEFT", np.x, 0)
                     end
                     if r.tw then r.tw:Hide() end
-                    r.cols.name:SetText(cx.label)
+                    r.cols.name:SetText(cx.label .. (cx.extra or ""))
                 end
                 if cx.isNew then
                     -- Breite einmal je Mitglied messen (GetStringWidth ist teuer)
@@ -2180,6 +2190,34 @@ ns.RegisterPage({
             local tag = (w >= 160) and (L["Twink von %s"]):format(mn) or ("\226\134\179 " .. mn)
             return Radar.Colored(name) .. "  |cff7c7c86" .. tag .. "|r"
         end
+        -- 0.6.466: Aktivitaet der letzten 7 Tage und Beitrittsdatum je Mitglied (aus der Chronik, alle 30 s neu)
+        local actCache = { t = -100, act = {}, join = {} }
+        local function actInfo()
+            if GetTime() - actCache.t < 30 then return actCache end
+            local act, join = {}, {}
+            local cut = ns.now() - 7 * 86400
+            local Store = ns.Store
+            for _, r in ipairs(Store and Store.List("chronicle") or {}) do
+                local who = r.who
+                if who then
+                    if (r.ts or 0) > cut then act[who] = (act[who] or 0) + 1 end
+                    if r.kind == "guild" and tostring(r.id or ""):find("^guild%-join%-") then
+                        if not join[who] or r.ts < join[who] then join[who] = r.ts end
+                    end
+                end
+            end
+            actCache = { t = GetTime(), act = act, join = join }
+            return actCache
+        end
+        local function annivText(ts)
+            if not ts then return nil end
+            local d = math.floor((ns.now() - ts) / 86400)
+            for _, x in ipairs({ { 30, "1 Monat" }, { 91, "3 Monate" }, { 182, "6 Monate" } }) do
+                if math.abs(d - x[1]) <= 3 then return L[x[2]] end
+            end
+            local y = math.floor(d / 365 + 0.5)
+            if y >= 1 and math.abs(d - y * 365) <= 3 then return (y == 1) and L["1 Jahr"] or (L["%d Jahre"]):format(y) end
+        end
         function p.RowData(m)
             local cx = p.rowCache[m]
             if cx then return cx end
@@ -2204,6 +2242,15 @@ ns.RegisterPage({
             local roleTxt = ns.Profile and ns.Profile.RoleIcons(name, 14) or ""
             if roleTxt == "" and not (pr or me) then roleTxt = "|cff444444?|r" end
             cx.roleTxt = roleTxt
+            -- 0.6.466: Rolle als Symbol hinter dem Namen, Jahrestag als kleines Abzeichen
+            local ai = actInfo()
+            local extra = ""
+            if roleTxt ~= "" and not roleTxt:find("?", 1, true) then extra = extra .. "  " .. (ns.Profile.RoleIcons(name, 12) or "") end
+            local an = annivText(ai.join[name])
+            if an then extra = extra .. "  |cffe8b44a" .. an .. "|r" end
+            cx.extra = extra
+            cx.act = ai.act[name] or 0
+            cx.ilvl = pr and tonumber(pr.ilvl) or nil
             local bt = ns.Badges and ns.Badges.CountText(name, 12) or ""
             cx.badges = bt:find("|T", 1, true) and bt or ""
             cx.gain = ns.Members and ns.Members.LevelGain(name, 7, m.level) or 0
@@ -2239,7 +2286,9 @@ ns.RegisterPage({
                 local here = m.zone ~= "" and not me and m.zone == (ns.safe(GetRealZoneText()) or "")
                 local lay = here and ns.Map and ns.Map.SameLayer and ns.Map.SameLayer(name)
                 local layTag = lay == true and ("  |cff5f9f74" .. L["gleicher Layer"] .. "|r") or (lay == false and ("  |cffb06a5e" .. L["anderer Layer"] .. "|r") or "")
-                cx.zoneTxt = icon .. (here and ("|cff66db9e" .. m.zone .. "|r  |cff66db9e" .. ("|T%sdot:8:8|t"):format(ns.MEDIA) .. " " .. L["hier"] .. "|r" .. layTag) or m.zone)
+                local stTag = (m.status == 1 and "|cffe8b44aAFK|r  ") or (m.status == 2 and "|cffd9786bDND|r  ") or ""
+                if inGroup then stTag = stTag .. "|cff66db9e" .. L["in Gruppe"] .. "|r  " end
+                cx.zoneTxt = stTag .. icon .. (here and ("|cff66db9e" .. m.zone .. "|r  |cff66db9e" .. ("|T%sdot:8:8|t"):format(ns.MEDIA) .. " " .. L["hier"] .. "|r" .. layTag) or m.zone)
                 cx.lastTxt = "|cff66db9e" .. L["jetzt"] .. "|r"
             else
                 cx.zoneTxt = "|cff666666" .. (m.zone or "") .. "|r"
@@ -2251,6 +2300,8 @@ ns.RegisterPage({
                 else
                     cx.lastTxt = ""
                 end
+                -- 0.6.466: offline zuerst "zuletzt online", dann das letzte Gebiet
+                if cx.lastTxt ~= "" then cx.zoneTxt = cx.lastTxt .. "  |cff555555" .. (m.zone or "") .. "|r" end
             end
             local raw = pr and pr.profs or (ns.db.guildProfs and ns.db.guildProfs[name])
             if hasGlass() then
