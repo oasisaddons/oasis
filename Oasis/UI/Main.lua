@@ -91,6 +91,9 @@ function ns.RefreshPage(key, force)
             if ns.prof then ns.prof.add(def.refresh, "Seite " .. tostring(k), dt) end
         end
         if not ok then ns.err(L["Seite"] .. " " .. k, e) end
+        -- 0.6.448: auf allen Seiten schwarze Box-Rahmen (neu entstandene Boxen nach jedem Aufbau)
+        local fr = def.frame
+        if ns.K.DarkFramesIn then ns.Debounce("darkFrames", 0.1, function() pcall(ns.K.DarkFramesIn, fr) end) end
     end
 end
 -- Reiter stummgeschaltet (Lautsprecher in der Seitenleiste): seine Neuigkeiten gehen nicht an Minimap-Knopf und Topbar.
