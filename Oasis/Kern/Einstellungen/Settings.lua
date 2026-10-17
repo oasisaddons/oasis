@@ -115,10 +115,9 @@ local DESC_H = 14
 local descInline = false
 -- 0.6.471: selten gebrauchte Schalter - nur sichtbar mit "Alle Optionen zeigen" (oben neben der Suche);
 -- die uebrigen ruecken nach oben (compact bzw. toggleList ueberspringt sie)
+-- 0.6.485: nur noch Schalter aus Schalter-Listen (Tooltips, Karte) - auf frei gebauten Seiten (Sound, Design, Fenster)
+-- blieben Luecken bzw. Kaesten ueberlappten sich
 local ADV = {
-    combatReshow = true, lockWindow = true, minimapLock = true, minimapBadge = true,
-    highContrast = true, frameAccent = true, themeTexture = true, boxFrame = true,
-    toastHoldCombat = true, soundQuietCombat = true, chatSounds = true,
     tipWanted = true, tipCrafters = true, tipBank = true, tipReagent = true, srTooltip = true, srTooltipGroupOnly = true,
     mapHeat = true, mapReveal = true,
 }
