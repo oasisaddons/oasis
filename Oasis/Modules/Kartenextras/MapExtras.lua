@@ -278,7 +278,7 @@ local function trailAdd(name, map, x, y, class, now)
     end
 end
 function X.SampleTrails(now)
-    if not opt("mapTrails") then
+    if not opt("mapTrails") and not X.rec then
         if next(trails) then trails = {} end
         return
     end
@@ -291,6 +291,15 @@ function X.SampleTrails(now)
     if c then
         local _, class = UnitClass("player")
         trailAdd("\1me", c.map, c.mx, c.my, class, now)
+        -- 0.6.486: eigene Route aufnehmen (gespeichert in ns.db.routes)
+        local rec = X.rec
+        if rec then
+            local last = rec.pts[#rec.pts]
+            if not last or last.map ~= c.map or math.abs(last.x - c.mx) + math.abs(last.y - c.my) > TRAIL_STEP then
+                rec.pts[#rec.pts + 1] = { map = c.map, x = c.mx, y = c.my }
+                if #rec.pts > 4000 then table.remove(rec.pts, 1) end
+            end
+        end
     end
     for name, t in pairs(trails) do
         while t[1] and now - t[1].t > TRAIL_SEC do table.remove(t, 1) end
@@ -302,7 +311,9 @@ local tFrame, tLines, tUsed = nil, {}, 0
 local function drawTrails(w)
     for i = 1, tUsed do tLines[i]:Hide() end
     tUsed = 0
-    if not opt("mapTrails") then return end
+    local routes = {}
+    for _, r in ipairs(ns.db and ns.db.routes or {}) do if r.show then routes[#routes + 1] = r end end
+    if not opt("mapTrails") and #routes == 0 and not X.rec then return end
     if not tFrame then tFrame = CreateFrame("Frame", nil, w.canvas) end
     if tFrame:GetParent() ~= w.canvas then tFrame:SetParent(w.canvas) end
     tFrame:SetAllPoints(w.canvas)
@@ -314,6 +325,27 @@ local function drawTrails(w)
     local G = ns.Gather
     local c = G and G.MiniCtx and G.MiniCtx()
     if c then live["\1me"] = { map = c.map, x = c.mx, y = c.my } end
+    -- 0.6.486: gespeicherte Routen (gold) und die laufende Aufnahme (rot)
+    local function drawPts(pts, cr, cg, cb, ca)
+        local px, py
+        for _, pt in ipairs(pts) do
+            local x, y = tr(pt.map, pt.x, pt.y, w.map)
+            if x and px and math.abs(x - px) + math.abs(y - py) < 0.35 then
+                tUsed = tUsed + 1
+                local l = tLines[tUsed]
+                if not l then l = tFrame:CreateLine(nil, "ARTWORK") tLines[tUsed] = l end
+                l:SetColorTexture(cr, cg, cb, ca)
+                l:SetThickness(math.max(1, 2.5 * w.cs))
+                l:SetStartPoint("TOPLEFT", tFrame, px * w.cw, -py * w.ch)
+                l:SetEndPoint("TOPLEFT", tFrame, x * w.cw, -y * w.ch)
+                l:Show()
+            end
+            px, py = x, y
+        end
+    end
+    for _, r in ipairs(routes) do drawPts(r.pts or {}, 1, 0.82, 0.3, 0.85) end
+    if X.rec then drawPts(X.rec.pts, 1, 0.3, 0.3, 0.9) end
+    if not opt("mapTrails") then return end
     for name, t in pairs(trails) do
         local r, g, b = 1, 1, 1
         if t.class and ns.classColor then r, g, b = ns.classColor(t.class) end
@@ -650,6 +682,77 @@ local function makeDgBtn()
 end
 ns.Listen("LOGIN", function() pcall(makeDgBtn) end)
 if WorldMapFrame then WorldMapFrame:HookScript("OnShow", function() pcall(makeDgBtn) dgBtnPaint() end) end
+
+-- 0.6.486: eigene Routen - Klick: Aufnahme starten/stoppen und speichern, Rechtsklick: gespeicherte zeigen/loeschen
+local rtBtn
+local function rtPaint()
+    if not rtBtn then return end
+    local r = X.rec ~= nil
+    rtBtn.icon:SetVertexColor(r and 1 or 0.85, r and 0.3 or 0.82, r and 0.3 or 0.6)
+    rtBtn.bg:SetColorTexture(0, 0, 0, r and 0.7 or 0.4)
+end
+function X.ToggleRecord()
+    if X.rec then
+        local rec = X.rec
+        X.rec = nil
+        if #rec.pts >= 2 then
+            ns.db.routes = ns.db.routes or {}
+            table.insert(ns.db.routes, 1, { name = (L["Route %s"]):format(date("%d.%m. %H:%M")), ts = time(), pts = rec.pts, show = true })
+            while #ns.db.routes > 30 do table.remove(ns.db.routes) end
+            K.Toast(L["Route gespeichert"], (L["%d Punkte - Rechtsklick auf den Knopf zeigt alle Routen"]):format(#rec.pts), C.mint)
+        else
+            K.Toast(L["Route verworfen"], L["Zu kurz - lauf ein Stueck, waehrend die Aufnahme laeuft."], C.dim)
+        end
+    else
+        X.rec = { pts = {} }
+        pcall(X.SampleTrails)
+        K.Toast(L["Route wird aufgenommen"], L["Lauf los - nochmal klicken speichert die Route."], C.accent)
+    end
+    rtPaint()
+    local w = world() if w then pcall(drawTrails, w) end
+end
+local function makeRtBtn()
+    if rtBtn or not dgBtn then return end
+    rtBtn = CreateFrame("Button", nil, WorldMapFrame)
+    rtBtn:SetSize(28, 28)
+    rtBtn:SetPoint("TOP", dgBtn, "BOTTOM", 0, -6)
+    rtBtn:SetFrameLevel(dgBtn:GetFrameLevel())
+    rtBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    rtBtn.bg = rtBtn:CreateTexture(nil, "BACKGROUND")
+    rtBtn.bg:SetAllPoints()
+    rtBtn.bg:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+    rtBtn.icon = K.Glyph(rtBtn, 16, ns.MEDIA .. "icons\\map", C.text)
+    rtBtn.icon:SetPoint("CENTER")
+    rtBtn:SetScript("OnClick", function(self, btn)
+        if btn ~= "RightButton" then X.ToggleRecord() return end
+        local items = {}
+        for i, r in ipairs(ns.db.routes or {}) do
+            items[#items + 1] = { text = r.name or "?", checked = r.show and true or false, fn = function()
+                r.show = not r.show or nil
+                local w = world() if w then pcall(drawTrails, w) end
+            end }
+        end
+        if #items == 0 then items[1] = { text = L["Noch keine Routen gespeichert"], disabled = true } end
+        if ns.db.routes and #ns.db.routes > 0 then
+            items[#items + 1] = { text = L["Alle ausblenden"], fn = function()
+                for _, r in ipairs(ns.db.routes) do r.show = nil end
+                local w = world() if w then pcall(drawTrails, w) end
+            end }
+            items[#items + 1] = { text = "|cffff6060" .. L["Neueste Route loeschen"] .. "|r", fn = function()
+                table.remove(ns.db.routes, 1)
+                local w = world() if w then pcall(drawTrails, w) end
+            end }
+        end
+        K.ShowMenu(self, items, L["Meine Routen"], 200)
+    end)
+    rtBtn:SetScript("OnEnter", function(self)
+        K.ShowTip(self, { L["Meine Routen"], X.rec and L["Klick: Aufnahme beenden und speichern"] or L["Klick: Route aufnehmen"], L["Rechtsklick: gespeicherte Routen zeigen oder loeschen"] })
+    end)
+    rtBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    rtPaint()
+end
+ns.Listen("LOGIN", function() ns.After(1, function() pcall(makeRtBtn) end) end)
+if WorldMapFrame then WorldMapFrame:HookScript("OnShow", function() pcall(makeRtBtn) rtPaint() end) end
 
 ------------------------------------------------------------------------
 -- Besuchte Haendler, Reparatur, Briefkaesten, Flugpunkte -> Sammelkarte (Arten mit poi = true)
