@@ -339,6 +339,12 @@ function RW.AttachBar(main, sidebar)
     b.emDot = diamond(b, 3, { 1, 0.95, 0.75 }, "ARTWORK", 3)
     b.emDot:SetPoint("CENTER", b.em)
     b.emGlow:SetPoint("CENTER", b.em)
+    -- 0.6.421: Rang-Abzeichen mit Zahl statt der Raute
+    if K.RankEmblem then
+        b.badge = K.RankEmblem(b, 26)
+        b.badge:SetPoint("CENTER", b.em)
+        b.em:SetAlpha(0) b.emIn:SetAlpha(0) b.emDot:SetAlpha(0) b.emGlow:SetAlpha(0)
+    end
     b.lbl = K.Text(b, 11, GOLD)
     b.lbl:SetPoint("LEFT", b.em, "RIGHT", 12, 0)
     b.title = K.Text(b, 11, { 0.86, 0.86, 0.88 })
@@ -406,6 +412,7 @@ function RW.AttachBar(main, sidebar)
         local r = ns.Rank and ns.Rank.Mine()
         if not r then self:Hide() return end
         self.lbl:SetText((L["Rang %d"]):format(r.level))
+        if self.badge then self.badge:SetRank(r.level) self.badge:Show() end
         self.title:SetText(r.title or "")
         self.text:SetText(r.into .. " / " .. r.need .. " XP")
         local until2 = RW.DoubleUntil()

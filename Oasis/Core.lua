@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.420"
+ns.version = "0.6.421"
 ns.versionDate = "17.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -400,7 +400,8 @@ function ns.ExternTools() return (ns.GuildPack or ns.TOOLS_RELEASED) and true or
 function ns.UnlockAll()
     -- 0.5.562: ohne Rang-Sperre der Gilde (Standard) ist alles fuer alle frei - Emojis UND Sounds
     if ns.GuildOpt and ns.GuildOpt("emLock") == false then return true end   -- 0.6.417: Sperre ist Standard
-    return (ns.IsDev and ns.IsDev()) or (ns.db and ns.db.settings and ns.db.settings.unlockAll == true) or false
+    -- 0.6.421: Entwickler-Modus schaltet nicht mehr automatisch frei (zum Testen der Sperre) - nur der eigene Schalter
+    return (ns.db and ns.db.settings and ns.db.settings.unlockAll == true) or false
 end
 function ns.isOfficer()
     if ns.db and ns.db.settings.adminTest ~= false and ns.IsDev() then return true end   -- Testmodus der Gildenleitung (nur Entwickler)
