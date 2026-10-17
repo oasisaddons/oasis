@@ -154,21 +154,36 @@ local STATE_TXT = {
 local function fmtMB(kb) if not kb then return "" end return ("%.1f MB"):format(kb / 1024) end
 local function build(f)
     local H = ns.SettingsHelpers
-    H.section(f, L["Module"], 0, 0, 730)
-    H.note(f, L["Grosse Bereiche lassen sich abschalten. Was du abschaltest, wird nach dem naechsten /reload gar nicht mehr geladen und belegt keinen Speicher."], 0, -30, 730)
+    -- 0.6.480: schlichte Kategorie-Zeilen statt section() - die automatische Kasten-Umrandung legte sich sonst um die Karten
+    local function cathead(text, yy)
+        local t = K.Text(f, 11, C.dim)
+        t:SetPoint("TOPLEFT", 2, yy)
+        t:SetText(K.Upper(text))
+        local d = f:CreateTexture(nil, "ARTWORK")
+        d:SetHeight(1)
+        d:SetPoint("LEFT", t, "RIGHT", 10, 0)
+        d:SetPoint("RIGHT", f, "LEFT", 738, 0)
+        d:SetColorTexture(1, 1, 1, 0.08)
+    end
+    local intro = K.Text(f, 11, C.muted)
+    intro:SetPoint("TOPLEFT", 2, -4)
+    intro:SetWidth(730)
+    intro:SetJustifyH("LEFT")
+    intro:SetWordWrap(true)
+    intro:SetText(L["Grosse Bereiche lassen sich abschalten. Was du abschaltest, wird nach dem naechsten /reload gar nicht mehr geladen und belegt keinen Speicher."])
     -- 0.5.713: je Modul eine Glas-Karte (Symbol + Name, Schalter rechts, Beschreibung, Zustand unten rechts)
     f.noCompact = true
     f.rows = {}
     local W, TH, GAP = 362, 96, 12
-    local y = -70
+    local y = -40
     -- je Kategorie Ueberschrift + Karten in zwei Spalten
 
     for _, cat in ipairs(M.CATS) do
       local list = {}
       for _, m in ipairs(M.LIST) do if m.cat == cat then list[#list + 1] = m end end
       if #list > 0 then
-        H.section(f, L[cat], 0, y, 730)
-        y = y - 34
+        cathead(L[cat], y)
+        y = y - 26
       end
       for i, m in ipairs(list) do
         local col = (i - 1) % 2
