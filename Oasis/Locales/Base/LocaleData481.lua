@@ -3656,3 +3656,7 @@ DE["Balken: %d %% vom Richtwert fuer Level %d (%s)"] = "Balken: %d %% vom Richtw
 EN["Balken: %d %% vom Richtwert fuer Level %d (%s)"] = "Bar: %d %% of the guide value for level %d (%s)"
 DE["Voll = Richtwert erreicht. Grobe Oasis-Schaetzung, kein Spielwert."] = "Voll = Richtwert erreicht. Grobe Oasis-Schätzung, kein Spielwert."
 EN["Voll = Richtwert erreicht. Grobe Oasis-Schaetzung, kein Spielwert."] = "Full = guide value reached. Rough Oasis estimate, not a game value."
+DE["Soundboard"] = "Soundboard"
+EN["Soundboard"] = "Soundboard"
+DE["Deutsch"] = "Deutsch"
+EN["Deutsch"] = "German"

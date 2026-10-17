@@ -838,7 +838,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
     if not picker then
         local f = CreateFrame("Frame", "OasisSoundPicker", UIParent)
         picker = f
-        f:SetSize(600, 460)
+        f:SetSize(680, 520)   -- 0.6.411: Soundboard groesser
         f:SetFrameStrata("FULLSCREEN_DIALOG")
         f:SetClampedToScreen(true)
         f:EnableMouse(true)
@@ -859,6 +859,13 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         f.head = K.GameHead(f, L["Sounds"], C.accent)
         f.head:SetPoint("TOPLEFT", 12, -10)
         f.head:SetWidth(230)
+        -- 0.6.411: Kopf "OASIS SOUNDBOARD" mit Lautsprecher (Ziel steht in den Kanal-Knoepfen)
+        f.head:Hide()
+        f.logo = K.Glyph(f, 22, ns.MEDIA .. "icons\\speaker", C.accent)
+        f.logo:SetPoint("TOPLEFT", 16, -14)
+        f.title = K.Title(f, 17, C.text)
+        f.title:SetPoint("LEFT", f.logo, "RIGHT", 10, 0)
+        f.title:SetText("OASIS  |cffb8b8bc" .. K.Upper(L["Soundboard"]) .. "|r")
         local x = K.CloseButton(f, function() f:Hide() end)
         x:SetPoint("TOPRIGHT", -6, -6)
         -- Zahnrad: Einstellungen des Fensters
@@ -871,7 +878,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         gear:SetScript("OnClick", function() Sound.ShowPickerOptions() end)
         f.gear = gear
         -- Suche (Enter = ersten Treffer nehmen)
-        f.search = K.Input(f, 470, L["Sound suchen ..."], function(t) f.q = (t or ""):lower() f.sel = nil f:Fill() end)
+        f.search = K.Input(f, 548, L["Sound suchen ..."], function(t) f.q = (t or ""):lower() f.sel = nil f:Fill() end)
         f.search:SetScript("OnEnterPressed", function(self)
             local pick = f:SelItem() or f.firstHit
             self:ClearFocus()
@@ -889,7 +896,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             f.sel = i
             -- in den sichtbaren Bereich scrollen
             local l = f.list
-            local row, vis = math.ceil(i / 2), l:Visible()
+            local row, vis = (f.rowOf and f.rowOf[i]) or math.ceil(i / 2), l:Visible()
             if row <= l.offset then l.offset = row - 1 elseif row > l.offset + vis then l.offset = row - vis end
             l:Refresh()
         end)
@@ -917,7 +924,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         local CHCOL = { GUILD = { 0.25, 1, 0.25 }, PARTY = { 0.67, 0.67, 1 }, RAID = { 1, 0.5, 0 }, WHISPER = { 1, 0.5, 1 } }
         local CH = { { "GUILD", "Gilde" }, { "PARTY", "Gruppe" }, { "RAID", "Raid" }, { "WHISPER", "Fluestern" } }
         for i, d in ipairs(CH) do
-            local b = K.Button(f, L[d[2]], 74, 20, "ghost", function()
+            local b = K.Button(f, L[d[2]], 86, 26, "ghost", function()
                 local tgt
                 if d[1] == "WHISPER" then
                     tgt = Sound.chOverride and Sound.chOverride.tgt
@@ -932,7 +939,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             b.tint = b:CreateTexture(nil, "BACKGROUND", nil, 2)
             b.tint:SetAllPoints()
             b.tint:SetColorTexture(b.col[1], b.col[2], b.col[3], 0)
-            b:SetPoint("TOPRIGHT", -62 - (#CH - i) * 78, -8)
+            b:SetPoint("TOPRIGHT", -62 - (#CH - i) * 92, -12)
             f.chans[i] = b
         end
         function f:MarkChan()
@@ -941,18 +948,25 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             for _, b in ipairs(self.chans) do
                 b:SetShown(self.noNone)
                 local on = b.ch == cur
-                K.SetBorderColor(b, on and b.col or { b.col[1] * 0.45, b.col[2] * 0.45, b.col[3] * 0.45 })
-                b.tint:SetColorTexture(b.col[1], b.col[2], b.col[3], on and 0.28 or 0.06)
-                b.label:SetTextColor(b.col[1], b.col[2], b.col[3], on and 1 or 0.7)
+                -- 0.6.411: aktiver Kanal in Akzentfarbe, die anderen ruhig dunkel
+                local ac = C.accent
+                K.SetBorderColor(b, on and ac or { 1, 1, 1, 0.12 })
+                b.tint:SetColorTexture(ac[1], ac[2], ac[3], on and 0.25 or 0)
+                b.label:SetTextColor(on and 1 or 0.72, on and 1 or 0.72, on and 1 or 0.76, 1)
+                if b.ch == "WHISPER" then
+                    local o = Sound.chOverride
+                    b.label:SetText((on and o and o.tgt) and ns.short(o.tgt) or L["Fluestern"])
+                end
             end
             local o = Sound.chOverride
             local lbl = { GUILD = L["Sound in den Gildenchat schicken"], PARTY = L["Sound an die Gruppe schicken"], RAID = L["Sound an den Schlachtzug schicken"] }
             if self.noNone then
                 self.head.text:SetText(K.Upper((o and o.tgt and (o.ch == "WHISPER" or o.ch == "BN_WHISPER")) and (L["Sound an %s schicken"]):format(ns.short(o.tgt)) or lbl[cur] or lbl.GUILD))
             end
+            if self.title then self.title:SetText("OASIS  |cffb8b8bc" .. K.Upper(L["Soundboard"]) .. "|r") end
         end
         f.gear:SetPoint("RIGHT", x, "LEFT", -6, 0)
-        f.search:SetPoint("TOPLEFT", 12, -34)
+        f.search:SetPoint("TOPLEFT", 14, -52)
         -- Reiter: Favoriten, Zuletzt, Memes, Musik (0.5.590)
         local items = { { key = "fav", text = L["Favoriten"] }, { key = "recent", text = L["Zuletzt"] },
             { key = "often", text = L["Haeufig"] }, { key = "popular", text = L["Beliebt"] },
@@ -964,13 +978,14 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             if K.TabAnim then K.TabAnim(f.tabs, k) end
             f:Fill()
         end)
-        f.tabs:SetPoint("TOPLEFT", 8, -64)
+        f.tabs:SetPoint("TOPLEFT", 10, -88)
         -- zwei Spalten: jede Listenzeile traegt zwei Kacheln (Sound links / rechts)
         local function cell(r)
             local c = CreateFrame("Button", nil, r)
             c.bg = c:CreateTexture(nil, "BACKGROUND")
             c.bg:SetAllPoints()
-            c.bg:SetColorTexture(1, 1, 1, 0.03)
+            c.bg:SetColorTexture(1, 1, 1, 0.035)
+            if K.RoundMask then pcall(K.RoundMask, c.bg, c, 6) end
             c.hl = c:CreateTexture(nil, "HIGHLIGHT")
             c.hl:SetAllPoints()
             c.hl:SetColorTexture(1, 1, 1, 0.06)
@@ -983,12 +998,13 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             c.pickBar:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
             -- Abspielen
             c.play = CreateFrame("Button", nil, c)
-            c.play:SetSize(22, 22)
+            c.play:SetSize(28, 28)
             c.play:SetPoint("LEFT", 6, 0)
-            c.play.bg = K.Fill(c.play, { 1, 1, 1, 0.05 })
+            c.play.bg = K.Fill(c.play, { 1, 1, 1, 0.06 })
+            if K.RoundMask then pcall(K.RoundMask, c.play.bg, c.play, 5) end
             c.play.icon = c.play:CreateTexture(nil, "ARTWORK")
-            c.play.icon:SetPoint("TOPLEFT", 4, -4)
-            c.play.icon:SetPoint("BOTTOMRIGHT", -4, 4)
+            c.play.icon:SetPoint("TOPLEFT", 6, -6)
+            c.play.icon:SetPoint("BOTTOMRIGHT", -6, 6)
             c.play.icon:SetTexture(ns.MEDIA .. "icons\\speaker")
             c.play:SetScript("OnClick", function() if c.item then Sound.Preview(c.item.key) end end)
             if ns.K.NoUiSound then ns.K.NoUiSound(c.play) end
@@ -1004,8 +1020,18 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 b:Hide()
                 c.eq[i] = b
             end
-            c.name = K.Text(c, 12, C.text)
-            c.name:SetPoint("LEFT", 46, 0)
+            c.name = K.Text(c, 13, C.text)
+            c.name:SetPoint("LEFT", 50, 0)
+            -- 0.6.411: "NEU" als kleines Abzeichen hinter dem Namen
+            c.newTag = CreateFrame("Frame", nil, c)
+            c.newTag:SetSize(30, 15)
+            c.newTag.bg = c.newTag:CreateTexture(nil, "BACKGROUND")
+            c.newTag.bg:SetAllPoints()
+            c.newTag.bg:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.22)
+            c.newTag.t = K.Text(c.newTag, 9, { 1, 0.75, 0.75 }, "CENTER")
+            c.newTag.t:SetPoint("CENTER")
+            c.newTag.t:SetText(K.Upper(L["NEU"]))
+            c.newTag:Hide()
             c.name:SetPoint("RIGHT", c, "RIGHT", -52, 0)
             c.name:SetWordWrap(false)
             c.meta = K.Text(c, 10, C.dim, "RIGHT")
@@ -1013,7 +1039,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             -- Favorit: Stern rechts (gesetzt = Akzent, sonst nur beim Ueberfahren sichtbar)
             c.star = CreateFrame("Button", nil, c)
             c.star:SetSize(18, 18)
-            c.star:SetPoint("RIGHT", -6, 0)
+            c.star:SetPoint("RIGHT", -10, 0)
             c.star.icon = c.star:CreateTexture(nil, "ARTWORK")
             c.star.icon:SetAllPoints()
             c.star:SetScript("OnClick", function() if c.item then f:ToggleFav(c.item.key, c) end end)
@@ -1026,7 +1052,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 local fav = self.item and isFav(self.item.key)
                 self.star.icon:SetTexture(ns.MEDIA .. "icons\\" .. (fav and "star_on" or "star_off"))
                 if fav then self.star.icon:SetVertexColor(1, 0.82, 0.3, 1)
-                else self.star.icon:SetVertexColor(1, 1, 1, hover and 0.55 or 0) end
+                else self.star.icon:SetVertexColor(1, 1, 1, hover and 0.7 or 0.3) end   -- 0.6.411: Umriss immer zu sehen
                 self.star:SetShown(self.item ~= nil and self.item.key ~= "none")
             end
             -- Fortschritt beim Abspielen
@@ -1095,9 +1121,13 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 self:Show()
                 local un = Sound.Unlocked(it.key)
                 local sel = it.key == picker.current
-                self.name:SetText(it.key == "none" and L["Kein Sound"] or (cleanName(it) .. (it.new and ("  |cff4fa8ff" .. L["NEU"] .. "|r") or "")))
-                if it.new then self.name:SetTextColor(0.55, 0.78, 1) else
-                self.name:SetTextColor(un and 0.94 or 0.5, un and 0.94 or 0.5, un and 0.94 or 0.5) end
+                self.name:SetText(it.key == "none" and L["Kein Sound"] or cleanName(it))
+                self.name:SetTextColor(un and 0.94 or 0.5, un and 0.94 or 0.5, un and 0.94 or 0.5)
+                self.newTag:SetShown(it.new and true or false)
+                if it.new then
+                    self.newTag:ClearAllPoints()
+                    self.newTag:SetPoint("LEFT", self.name, "LEFT", math.min((self.name:GetStringWidth() or 60) + 8, (self.name:GetWidth() or 200) - 30), 0)
+                end
                 self.pickBar:SetShown(sel)
                 self.pickBg:SetShown(sel)
                 if un then
@@ -1206,10 +1236,18 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 C_Timer.After(0.15, function() pcall(ns.Emoji.Insert, table.concat(codes, " ")) end)
             end
         end
-        f.list = K.List(f, 34, function(l)
+        f.list = K.List(f, 40, function(l)
             local r = K.Row(l)
             if r.hl then r.hl:SetAlpha(0) end
             if r.sel then r.sel:SetAlpha(0) end   -- Auswahl zeigt die Kachel selbst
+            -- 0.6.411: Zwischenueberschrift (Gruppe + Anzahl) ueber die ganze Breite
+            r.hd = K.Text(r, 11, C.muted)
+            r.hd:SetPoint("BOTTOMLEFT", 6, 6)
+            r.hdLine = r:CreateTexture(nil, "ARTWORK")
+            r.hdLine:SetHeight(1)
+            r.hdLine:SetPoint("LEFT", r.hd, "RIGHT", 10, 0)
+            r.hdLine:SetPoint("RIGHT", r, "RIGHT", -6, 0)
+            r.hdLine:SetColorTexture(1, 1, 1, 0.08)
             r.left, r.right = cell(r), cell(r)
             r.left:SetPoint("TOPLEFT", 2, -2)
             r.left:SetPoint("BOTTOMRIGHT", r, "BOTTOM", -3, 2)
@@ -1218,6 +1256,13 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             r:EnableMouse(false)
             return r
         end, function(r, pair)
+            local hd = pair.header
+            r.hd:SetShown(hd ~= nil) r.hdLine:SetShown(hd ~= nil)
+            if hd then
+                r.hd:SetText(K.Upper(hd) .. "  |cff666666" .. (pair.n or "") .. "|r")
+                r.left:Set(nil) r.right:Set(nil)
+                return
+            end
             r.left:Set(pair[1])
             r.right:Set(pair[2])
         end)
@@ -1225,7 +1270,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         function f:PlaceList(dy)
             dy = dy or 0
             self.list:ClearAllPoints()
-            self.list:SetPoint("TOPLEFT", 6, -94 - dy)
+            self.list:SetPoint("TOPLEFT", 8, -122 - dy)
             self.list:SetPoint("BOTTOMRIGHT", -6, self.listBottom + dy)
         end
         f:PlaceList()
@@ -1234,7 +1279,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         f.foot:SetPoint("RIGHT", f, "RIGHT", -12, 0)
         -- Wartezeit bis zum naechsten Sound: duenner Balken unter den Reitern + Text in der Fusszeile
         f.cdBar = f:CreateTexture(nil, "ARTWORK")
-        f.cdBar:SetPoint("TOPLEFT", 8, -90)
+        f.cdBar:SetPoint("TOPLEFT", 8, -118)
         f.cdBar:SetHeight(2)
         f.cdBar:SetColorTexture(1, 0.75, 0.3, 0.85)
         f.cdBar:Hide()
@@ -1368,9 +1413,29 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 if (a.lvl or 1) ~= (b.lvl or 1) then return (a.lvl or 1) < (b.lvl or 1) end
                 return cleanName(a) < cleanName(b)
             end)
-            -- paarweise fuer zwei Spalten
+            -- paarweise fuer zwei Spalten; 0.6.411: im Reiter OASIS nach Gruppen (Gilde, Deutsch, Memes) mit Ueberschrift
             local pairs2 = {}
-            for i = 1, #out, 2 do pairs2[#pairs2 + 1] = { out[i], out[i + 1] } end
+            self.rowOf = {}
+            if self.tab == "guild" and q == "" then
+                local GROUPS = { { "guild", L["Gilde"] }, { "german", L["Deutsch"] }, { "meme", L["Memes"] } }
+                local by = {}
+                for _, it in ipairs(out) do local k = it.cat or "meme" by[k] = by[k] or {} table.insert(by[k], it) end
+                local ordered = {}
+                for _, g in ipairs(GROUPS) do
+                    local l = by[g[1]]
+                    if l and #l > 0 then
+                        pairs2[#pairs2 + 1] = { header = g[2], n = #l }
+                        for i = 1, #l, 2 do
+                            pairs2[#pairs2 + 1] = { l[i], l[i + 1] }
+                            ordered[#ordered + 1] = l[i] self.rowOf[#ordered] = #pairs2
+                            if l[i + 1] then ordered[#ordered + 1] = l[i + 1] self.rowOf[#ordered] = #pairs2 end
+                        end
+                    end
+                end
+                if #ordered > 0 then out = ordered end
+            else
+                for i = 1, #out, 2 do pairs2[#pairs2 + 1] = { out[i], out[i + 1] } end
+            end
             self.shown = out
             if self.sel and self.sel > #out then self.sel = nil end
             if self.lastTab ~= self.tab then self.sel = nil end
