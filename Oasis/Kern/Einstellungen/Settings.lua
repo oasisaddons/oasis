@@ -8,13 +8,13 @@ local QUALITY = { [2] = "Gruen", [3] = "Blau", [4] = "Episch" }
 local TABS = {
     { key = "quick", text = "Schnellstart" },
     { key = "general", text = "Fenster & Minimap" },
-    { key = "pages", text = "Bereiche" },
+    { key = "pages", text = "Seiten" },
     { key = "look", text = "Design" },
     { key = "tips", text = "Tooltips" },
     { key = "mapset", text = "Karte" },
     { key = "toasts", text = "Hinweise" },
     { key = "sound", text = "Sound" },
-    { key = "char", text = "Profil & Sichern" },
+    { key = "char", text = "Main & Twinks" },
     { key = "status", text = "Status" },
     { key = "share", text = "Datenschutz" },
     { key = "lists", text = "Listen & Karte" },
@@ -3396,22 +3396,24 @@ end
 -- statt nach Modulen. Start = Schnellstart mit dem Wichtigsten, Technik liegt unter Erweitert.
 -- "lists" (Listen & Karte) gibt es nicht mehr in der Navigation - alles daraus steht bei Karte bzw. den Bereichen.
 local GROUPS = {
+    -- 0.6.470: neu geordnet - eine Stelle zum Ein-/Ausschalten (Funktionen: Seiten + Module), Chat und Komfort zusammen,
+    -- "Erweitert" nur noch Status und Leistung
     { key = "start", text = "Start", icon = "home", tabs = { "quick" },
         desc = "Das Wichtigste auf einen Blick" },
+    { key = "pages", text = "Funktionen", icon = "modules", tabs = { "pages", "modules" },
+        desc = "Welche Seiten in der Leiste stehen und welche Module laufen" },
     { key = "look", text = "Aussehen", icon = "brush", tabs = { "look", "general", "bar" },
         desc = "Design, Schrift, Fenster, Minimap-Knopf und Topbar" },
     { key = "notify", text = "Hinweise & Klang", icon = "announce", tabs = { "toasts", "sound", "greet" },
         desc = "Welche Meldungen du siehst und hoerst" },
-    { key = "info", text = "Tooltips & Karte", icon = "map", tabs = { "tips", "mapset" },
-        desc = "Zusatzzeilen im Tooltip, Gilde auf Weltkarte und Minimap" },
-    { key = "pages", text = "Bereiche", icon = "modules", tabs = { "pages" },
-        desc = "Bereiche ein- und ausblenden, ihre eigenen Einstellungen" },
-    { key = "help", text = "Spielhilfen", icon = "checklist", tabs = { "comfort", "helpers", "keys" },
-        desc = "Komfort-Funktionen, Helfer, Spielchat und Tastenkuerzel" },
-    { key = "char", text = "Profil", icon = "profile", tabs = { "char", "share" },
+    { key = "info", text = "Karte & Tooltips", icon = "map", tabs = { "mapset", "tips" },
+        desc = "Gilde auf Weltkarte und Minimap, Zusatzzeilen im Tooltip" },
+    { key = "help", text = "Chat & Komfort", icon = "checklist", tabs = { "gamechat", "comfort", "helpers", "keys" },
+        desc = "Spielchat, Komfort-Funktionen, Helfer und Tastenkuerzel" },
+    { key = "char", text = "Profil & Daten", icon = "profile", tabs = { "char", "share", "lexport" },
         desc = "Main und Twinks, Datenschutz, Einstellungen sichern" },
-    { key = "adv", text = "Erweitert", icon = "stats", tabs = { "status", "modules", "perf", "lexport" },
-        desc = "Status, Module, Leistung - fuer Fortgeschrittene" },
+    { key = "adv", text = "Erweitert", icon = "stats", tabs = { "status", "perf" },
+        desc = "Status und Leistung - fuer Fortgeschrittene" },
 }
 local HIDDEN_TABS = { lists = true }   -- weiter aufrufbar (alte Links), aber ohne eigenen Reiter
 local function tabText(key)

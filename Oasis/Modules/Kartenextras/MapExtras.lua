@@ -308,13 +308,22 @@ local function drawTrails(w)
     tFrame:SetAllPoints(w.canvas)
     tFrame:SetFrameStrata(w.canvas:GetFrameStrata())
     tFrame:SetFrameLevel(w.canvas:GetFrameLevel() + 53)
-    for _, t in pairs(trails) do
+    -- 0.6.470: Spur endet immer an der aktuellen Position (vorher hoerte sie beim letzten Messpunkt auf)
+    local live = {}
+    for name, p in pairs(ns.Map and ns.Map.pos or {}) do if p.mapID and p.x and p.y then live[name] = { map = p.mapID, x = p.x, y = p.y } end end
+    local G = ns.Gather
+    local c = G and G.MiniCtx and G.MiniCtx()
+    if c then live["\1me"] = { map = c.map, x = c.mx, y = c.my } end
+    for name, t in pairs(trails) do
         local r, g, b = 1, 1, 1
         if t.class and ns.classColor then r, g, b = ns.classColor(t.class) end
-        local n, px, py = #t, nil, nil
-        for i, pt in ipairs(t) do
+        local pts = {}
+        for i, pt in ipairs(t) do pts[i] = pt end
+        if live[name] then pts[#pts + 1] = live[name] end
+        local n, px, py = #pts, nil, nil
+        for i, pt in ipairs(pts) do
             local x, y = tr(pt.map, pt.x, pt.y, w.map)
-            if x and px and math.abs(x - px) + math.abs(y - py) < 0.2 then   -- Spruenge (Portal, Ruhestein) nicht verbinden
+            if x and px and math.abs(x - px) + math.abs(y - py) < 0.35 then   -- Spruenge (Portal, Ruhestein) nicht verbinden
                 tUsed = tUsed + 1
                 local l = tLines[tUsed]
                 if not l then l = tFrame:CreateLine(nil, "ARTWORK") tLines[tUsed] = l end
