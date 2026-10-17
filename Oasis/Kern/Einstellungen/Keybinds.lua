@@ -172,6 +172,29 @@ local function row(c, i, a, top)
     end
     return r
 end
+-- 0.6.476: Taste des Gildenfensters (Standard J) oeffnet Oasis - als Override-Belegung, nur ausserhalb des Kampfes;
+-- aus = Blizzards Gildenfenster wieder. Fremde Belegungen bleiben unangetastet.
+local gk = CreateFrame("Frame")
+local applying = false
+function KB.ApplyGuildKey()
+    if applying or not (ClearOverrideBindings and SetOverrideBinding and GetBindingKey) then return end
+    if InCombatLockdown and InCombatLockdown() then gk:RegisterEvent("PLAYER_REGEN_ENABLED") return end
+    applying = true
+    ClearOverrideBindings(gk)
+    if ns.db and ns.db.settings.guildKeyOasis then
+        local keys = { GetBindingKey("TOGGLEGUILDTAB") }
+        if #keys == 0 then keys = { "J" } end
+        for _, k in ipairs(keys) do if k then SetOverrideBinding(gk, false, k, "OASIS_TOGGLE") end end
+    end
+    applying = false
+end
+gk:SetScript("OnEvent", function(self, ev)
+    if ev == "PLAYER_REGEN_ENABLED" then self:UnregisterEvent("PLAYER_REGEN_ENABLED") end
+    KB.ApplyGuildKey()
+end)
+gk:RegisterEvent("UPDATE_BINDINGS")
+ns.Listen("DB_READY", function() if ns.After then ns.After(1, KB.ApplyGuildKey) else KB.ApplyGuildKey() end end)
+
 local function build(f)
     f.btns = {}
     local GAP, W = 14, 360
@@ -187,12 +210,16 @@ local function build(f)
     local right = card(f, W + GAP, 0, W, 58 + nPages * ROWH, "home", L["Seiten direkt oeffnen"])
     fill(right, 5, #KB.ACTIONS)
     -- Esc + Hinweis
-    local esc = card(f, 0, -(58 + nWin * ROWH) - GAP, W, 130, "eye_off", L["Esc-Taste"],
+    local esc = card(f, 0, -(58 + nWin * ROWH) - GAP, W, 170, "eye_off", L["Esc-Taste"],
         L["Esc schliesst das Oasis-Fenster (im Kampf nicht - dort gehoert Esc dem Spiel)."])
     f.escFocus = K.Toggle(esc, L["Esc nur, wenn ich zuletzt in Oasis geklickt habe"], function() return ns.db.settings.escFocusOnly and true or false end,
         function(v) ns.db.settings.escFocusOnly = v and true or nil if ns.EscUpdate then ns.EscUpdate() end end)
     f.escFocus:SetWidth(W - 32)
     f.escFocus:SetPoint("TOPLEFT", 16, -72)
+    f.guildKey = K.Toggle(esc, L["Gildenfenster-Taste (J) oeffnet Oasis"], function() return ns.db.settings.guildKeyOasis and true or false end,
+        function(v) ns.db.settings.guildKeyOasis = v and true or nil KB.ApplyGuildKey() end)
+    f.guildKey:SetWidth(W - 32)
+    f.guildKey:SetPoint("TOPLEFT", 16, -108)
     -- Bedienung
     local help = K.Text(f, 11, C.dim)
     help:SetPoint("TOPLEFT", right, "BOTTOMLEFT", 4, -12)
@@ -204,5 +231,6 @@ end
 local function refresh(f)
     for _, b in ipairs(f.btns or {}) do b:Update() end
     if f.escFocus then f.escFocus:Refresh() end
+    if f.guildKey then f.guildKey:Refresh() end
 end
 if ns.AddSettingsTab then ns.AddSettingsTab("keys", "Tastenkuerzel", build, refresh) end

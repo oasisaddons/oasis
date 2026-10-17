@@ -131,7 +131,11 @@ local function toggle(p, x, y, label, key, desc, after, w)
     t:SetPoint("TOPLEFT", x, y)
     t:SetWidth(w or 340)
     t.settingKey = key
-    if advHidden(key) then t:Hide() end
+    if advHidden(key) then
+        t:Hide()
+        -- 0.6.476: der Kasten rueckt nach dem Aufbau zusammen und wird kuerzer (sonst bleibt eine Luecke)
+        if p ~= page and p.SetHeight then p.advGap = true end
+    end
     if desc and descInline then
         t.sub = K.Text(t, 10, C.dim)
         t.sub:SetPoint("TOPLEFT", t.lbl, "BOTTOMLEFT", 0, -3)
@@ -3444,8 +3448,8 @@ end
 ns.SettingsHelpers = { section = section, note = note, toggle = toggle, rowLabel = rowLabel, cardH = cardH }
 
 -- Abstaende zusammenziehen: je Spalte die Elemente der Reihe nach enger stapeln (nur grosse Luecken)
-compact = function(fr)
-    if fr.noCompact then return end
+compact = function(fr, inBox)
+    if fr.noCompact and not inBox then return end
     local items = {}
     local function scan(obj)
         if not obj.GetNumPoints or obj:GetNumPoints() ~= 1 then return end
@@ -3459,6 +3463,7 @@ compact = function(fr)
     local cols = {}
     -- zwei Spalten (links/rechts); Elemente derselben Zeile ruecken gemeinsam
     for _, it in ipairs(items) do local cx = it.x < 380 and 0 or 1 cols[cx] = cols[cx] or {} table.insert(cols[cx], it) end
+    local maxShift = 0
     for _, list in pairs(cols) do
         table.sort(list, function(a, b) if a.y ~= b.y then return a.y > b.y end return a.x < b.x end)
         local shift = 0
@@ -3475,7 +3480,9 @@ compact = function(fr)
                 it.o:SetPoint(pt, rel, rp, x, it.y + shift)
             end
         end
+        if shift > maxShift then maxShift = shift end
     end
+    return maxShift
 end
 -- Themenwahl: Gildenorganisation, soziale Aktivitaeten und persoenliche Helfer getrennt.
 -- Design, Benachrichtigungen, Datenschutz und technische Modulverwaltung haben eigene Themen.
@@ -3597,6 +3604,19 @@ local function setTab(key)
         local ok, e = pcall(BUILD[key], fr)
         page.buildingTab = nil
         if not ok then ns.err(L["Aufbau"] .. " settings/" .. key, e) end
+        -- 0.6.476: Kaesten mit ausgeblendeten Schaltern zuerst zusammenruecken und um die Luecke kuerzen
+        local function boxes(o, depth)
+            if depth > 3 then return end
+            for _, ch in ipairs({ o:GetChildren() }) do
+                if ch.advGap then
+                    ch.advGap = nil
+                    local ok, sh = pcall(compact, ch, true)
+                    if ok and type(sh) == "number" and sh > 0 then ch:SetHeight(math.max(30, (ch:GetHeight() or 0) - sh)) end
+                end
+                boxes(ch, depth + 1)
+            end
+        end
+        pcall(boxes, fr, 0)
         pcall(compact, fr)
         -- nach Neuaufbau (Design-Wechsel o.ae.) dort weitermachen, wo man war
         local function restore()
@@ -3760,6 +3780,7 @@ local function buildQuick(f)
         { "Emojis im Chat anzeigen", "chatEmoji", "Aus :lol: oder <3 wird ein Bild" },
         { "Oasis-Zeilen im Item-Tooltip", "tipOasis", "Gesucht von, Auftraege, Gildenbank und Herkunft unter jedem Item-Tooltip", nil, true },
         { "Animationen reduzieren", "noAnim", "Kein Einblenden und Hochzaehlen - alles erscheint sofort" },
+        { "Gildenfenster-Taste (J) oeffnet Oasis", "guildKeyOasis", "Statt Blizzards Gildenfenster oeffnet die Taste das Oasis-Fenster", function() if ns.Keybinds and ns.Keybinds.ApplyGuildKey then ns.Keybinds.ApplyGuildKey() end end },
     }, y)
     c:SetHeight(-y + 4)
     -- Wegweiser ---------------------------------------------------------

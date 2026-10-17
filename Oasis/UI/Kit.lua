@@ -796,9 +796,7 @@ function K.ShowMenu(owner, items, title, minWidth)
         else
             r.ic:Hide()
         end
-        r:ClearAllPoints()
-        r:SetPoint("TOPLEFT", 1, -4 - (i - 1) * 20)
-        r:SetPoint("RIGHT", m, "RIGHT", -1, 0)
+        r.idx = i
         -- hat das Menue eine Auswahl, treten die uebrigen Eintraege leicht zurueck
         local c = (it.header and C.dim) or (it.disabled and C.dim) or ((anyChecked and not it.checked) and C.muted) or C.text
         r.text:SetTextColor(c[1], c[2], c[3])
@@ -818,7 +816,40 @@ function K.ShowMenu(owner, items, title, minWidth)
         end)
         r:Show()
     end
-    m:SetSize(math.max(minWidth or 150, maxW), #list * 20 + 8)
+    -- 0.6.476: lange Menues scrollen (Mausrad) statt aus dem Bildschirm zu ragen; immer im sichtbaren Bereich
+    local screenH = (UIParent and UIParent:GetHeight()) or 768
+    local vis = math.max(5, math.min(#list, math.floor((screenH * 0.7 - 8) / 20)))
+    m.nList, m.vis, m.off = #list, vis, 0
+    function m:Place()
+        for i, r in ipairs(self.rows) do
+            if r.idx and i <= self.nList then
+                local on = i > self.off and i <= self.off + self.vis
+                r:SetShown(on)
+                if on then
+                    r:ClearAllPoints()
+                    r:SetPoint("TOPLEFT", 1, -4 - (i - 1 - self.off) * 20)
+                    r:SetPoint("RIGHT", self, "RIGHT", -1, 0)
+                end
+            end
+        end
+        if self.more then self.more:SetShown(self.off + self.vis < self.nList) end
+    end
+    if not m.wheelSet then
+        m.wheelSet = true
+        m:EnableMouseWheel(true)
+        m:SetScript("OnMouseWheel", function(self, d)
+            local mx = math.max(0, self.nList - self.vis)
+            self.off = math.max(0, math.min(mx, self.off - d * 3))
+            self:Place()
+        end)
+        m.more = K.Text(m, 10, C.dim, "CENTER")
+        m.more:SetPoint("BOTTOM", 0, 1)
+        m.more:SetText("v")
+        if m.SetClampedToScreen then m:SetClampedToScreen(true) end
+    end
+    for i = #list + 1, #m.rows do m.rows[i].idx = nil end
+    m:Place()
+    m:SetSize(math.max(minWidth or 150, maxW), vis * 20 + 8 + ((#list > vis) and 8 or 0))
     m:ClearAllPoints()
     if owner.isDropdown or not GetCursorPosition then
         m:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", 0, -2)

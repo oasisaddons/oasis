@@ -2,8 +2,12 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.6.476
+## 0.6.477
 
+- New option: the guild window key (J) can open Oasis instead of Blizzard's guild window (Quick start and Key bindings).
+- Comfort settings fully translated (Blizzard bars, comfort switches, gathering map, roster check).
+- Long dropdown menus scroll with the mouse wheel and always stay on screen.
+- Settings boxes with hidden advanced options no longer leave empty space.
 - Settings now separate guild organisation, social activities and personal convenience tools. Search, category navigation and subpages each have their own space.
 - Notification types are grouped into collapsible sections with individual and group switches. Existing choices are preserved.
 - Search opens the matching category, reveals advanced options when needed and scrolls to the setting. Reduced-motion preferences are respected.
