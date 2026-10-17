@@ -381,7 +381,7 @@ local function build()
                     else
                         local x = swX0 + swDir * swRun * swLen
                         sw:ClearAllPoints()
-                        sw:SetPoint("LEFT", bar, "BOTTOMLEFT", x, -6)
+                        sw:SetPoint("LEFT", bar, "BOTTOMLEFT", x, -3)   -- 0.6.425: etwas nach innen
                         local a = math.sin(swRun * math.pi) ^ 1.5 * 0.85 * (bar.art.m:GetAlpha() or 1)   -- 0.6.413: dezenter, weich ein-/ausblenden
                         sw:SetVertexColor(1 * a, 0.85 * a, 0.7 * a, 1)
                         sw:Show() sw2:Hide()
