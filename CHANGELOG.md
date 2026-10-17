@@ -2,6 +2,10 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.518
+
+- Death roll: everyone with Oasis now joins one shared hidden channel, so challenges between players outside the same guild arrive no matter which starting value you use.
+
 ## 0.6.517
 
 - Death roll: challenges to players outside your guild now travel over the death roll lobby channel (WoW Forever does not deliver addon whispers), and players searching in the lobby can challenge you. The "Stake" field is now called "Note".
