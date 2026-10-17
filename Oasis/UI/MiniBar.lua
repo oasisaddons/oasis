@@ -341,7 +341,7 @@ local function build()
         end
         -- 0.6.330: Lichtstreif laeuft alle 5 s entlang der Glutlinie unten
         local sw = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
-        sw:SetSize(90, 3)   -- 0.6.379: duenner Streif genau auf der Glutlinie
+        sw:SetSize(130, 5)   -- 0.6.379: duenner Streif genau auf der Glutlinie
         sw:SetBlendMode("ADD")
         sw:SetTexture(ns.MEDIA .. "ember")
         local sw2 = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
@@ -349,7 +349,7 @@ local function build()
         if not K.Gradient(sw2, "HORIZONTAL", { 1, 0.85, 0.7, 0.9 }, { 1, 0.85, 0.7, 0 }) then sw2:SetColorTexture(1, 0.85, 0.7, 0.4) end
         sw2:SetPoint("TOPLEFT", sw, "TOPRIGHT") sw2:SetPoint("BOTTOMLEFT", sw, "BOTTOMRIGHT") sw2:SetWidth(14)
         sw:Hide() sw2:Hide()
-        local swWait, swRun, swX0, swLen, swDir = 4, nil, 0, 120, 1   -- 0.6.338: dezentes Aufleuchten alle 8-12 s statt Dauerlauf
+        local swWait, swRun, swX0, swLen, swDir = 1.5, nil, 0, 120, 1   -- 0.6.338: dezentes Aufleuchten alle 8-12 s statt Dauerlauf
         local clock = 0
         local pulse = CreateFrame("Frame", nil, bar)
         pulse:SetScript("OnUpdate", function(_, el)
@@ -376,13 +376,13 @@ local function build()
                 else
                     swRun = swRun + (el or 0) / 4.5
                     if swRun >= 1 then
-                        swRun, swWait = nil, 6 + math.random() * 8
+                        swRun, swWait = nil, 3 + math.random() * 5
                         sw:Hide() sw2:Hide()
                     else
                         local x = swX0 + swDir * swRun * swLen
                         sw:ClearAllPoints()
                         sw:SetPoint("LEFT", bar, "BOTTOMLEFT", x, -6)
-                        local a = math.sin(swRun * math.pi) ^ 1.5 * 0.32 * (bar.art.m:GetAlpha() or 1)   -- 0.6.413: dezenter, weich ein-/ausblenden
+                        local a = math.sin(swRun * math.pi) ^ 1.5 * 0.85 * (bar.art.m:GetAlpha() or 1)   -- 0.6.413: dezenter, weich ein-/ausblenden
                         sw:SetVertexColor(1 * a, 0.85 * a, 0.7 * a, 1)
                         sw:Show() sw2:Hide()
                     end
