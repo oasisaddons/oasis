@@ -3790,7 +3790,7 @@ local function buildQuick(f)
         { "Emojis im Chat anzeigen", "chatEmoji", "Aus :lol: oder <3 wird ein Bild" },
         { "Oasis-Zeilen im Item-Tooltip", "tipOasis", "Gesucht von, Auftraege, Gildenbank und Herkunft unter jedem Item-Tooltip", nil, true },
         { "Animationen reduzieren", "noAnim", "Kein Einblenden und Hochzaehlen - alles erscheint sofort" },
-        { "Gildenfenster-Taste (J) oeffnet Oasis", "guildKeyOasis", "Statt Blizzards Gildenfenster oeffnet die Taste das Oasis-Fenster", function() if ns.Keybinds and ns.Keybinds.ApplyGuildKey then ns.Keybinds.ApplyGuildKey() end end },
+        { "Gildenfenster-Taste (J) oeffnet Oasis", "guildKeyOasis", "Statt Blizzards Gildenfenster oeffnet und schliesst die Taste das Oasis-Fenster", function() if ns.Keybinds and ns.Keybinds.ApplyGuildKey then ns.Keybinds.ApplyGuildKey() end end, true },
     }, y)
     c:SetHeight(-y + 4)
     -- Wegweiser ---------------------------------------------------------
