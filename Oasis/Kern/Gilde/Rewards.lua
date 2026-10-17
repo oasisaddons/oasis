@@ -143,6 +143,7 @@ end
 -- Besondere Emojis: animierte Gilden-Emojis werden nach Rang freigeschaltet
 ------------------------------------------------------------------------
 local EMOJI_STEPS = { 8, 16, 26, 36, 48, 62, 76, 92 }
+local STATIC_STEPS = { 2, 3, 4, 6 }   -- 0.6.417: auch normale Gilden-Emojis erst ab Rang (ohne Rang gesperrt)
 local emojiLock
 function RW.EmojiLevel(e)
     -- eigenes Emoji einer Gilde mit festem Rang ("@20" im Dateinamen, Oasis_Emojis)
@@ -156,6 +157,13 @@ function RW.EmojiLevel(e)
         table.sort(anim, function(a, b) return tostring(a[2]) < tostring(b[2]) end)
         local per = math.max(1, math.ceil(#anim / #EMOJI_STEPS))
         for i, x in ipairs(anim) do emojiLock[x] = EMOJI_STEPS[math.min(#EMOJI_STEPS, math.floor((i - 1) / per) + 1)] end
+        local stat = {}
+        for _, cat in ipairs(ns.Emoji and ns.Emoji.CATS or {}) do
+            if cat.custom then for _, x in ipairs(cat.items or {}) do if not emojiLock[x] then stat[#stat + 1] = x end end end
+        end
+        table.sort(stat, function(a, b) return tostring(a[2]) < tostring(b[2]) end)
+        local sper = math.max(1, math.ceil(#stat / #STATIC_STEPS))
+        for i, x in ipairs(stat) do emojiLock[x] = STATIC_STEPS[math.min(#STATIC_STEPS, math.floor((i - 1) / sper) + 1)] end
     end
     return emojiLock[e]
 end

@@ -669,7 +669,8 @@ local function finish(c)
     -- Rang nach Laenge: bis 1,5 s ab Rang 3, bis 3 s ab 6, bis 5 s ab 10, bis 9 s ab 16, laenger/Musik ab 22
     local d = c.dur or 0
     if c.ownLvl then c.lvl = c.ownLvl   -- eigener Sound einer Gilde mit festem Rang ("@20" im Dateinamen)
-    elseif c.key == "none" or c.kit or c.cat == "oasis" or c.new or c.free then c.lvl = 1
+    elseif c.key == "none" or c.kit or c.cat == "oasis" then c.lvl = 1
+    elseif c.new or c.free then c.lvl = c.guild and 2 or 1   -- 0.6.417: Gilden-Sounds nie ohne Rang
     elseif MUSIC[c.key] or c.music then c.lvl = 26
     elseif d <= 1.5 then c.lvl = 3
     elseif d <= 3 then c.lvl = 6

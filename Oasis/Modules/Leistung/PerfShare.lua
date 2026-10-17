@@ -130,18 +130,19 @@ end)
 ------------------------------------------------------------------------
 ns.Listen("LOGIN", function()
     ns.After(20, function()
-        if not (ns.IsDev and ns.IsDev()) or ns.db.emLockFreed then return end
+        -- 0.6.417: umgekehrt - einmalig die Rang-Sperre fuer die Gilde einschalten
+        if not (ns.IsDev and ns.IsDev()) or ns.db.emLockOn then return end
         local A = ns.Admin
         if not (A and A.Cfg and A.Save and A.CanManage and A.CanManage()) then return end
         local ok, cfg = pcall(A.Cfg)
         if not ok or type(cfg) ~= "table" then return end
-        ns.db.emLockFreed = true
-        if cfg.emLock ~= false then
+        ns.db.emLockOn = true
+        if cfg.emLock ~= true then
             local c = {}
             for k, v in pairs(cfg) do c[k] = v end
-            c.emLock = false
+            c.emLock = true
             pcall(A.Save, c)
-            ns.print(L["Emojis und Sounds sind jetzt fuer die ganze Gilde frei."])
+            ns.print(L["Emojis und Sounds gibt es jetzt erst ab dem passenden Oasis-Rang."])
         end
     end)
 end)

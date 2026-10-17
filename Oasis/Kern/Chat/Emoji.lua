@@ -998,7 +998,7 @@ end
 
 -- Reiter "Oasis": alle Emojis, die man mit dem Oasis-Rang freischaltet, sortiert nach Rang
 Emoji.OASIS = { key = "oasis", name = "Oasis", items = {}, custom = true }
-ns.GuildOption({ page = "chat", key = "emLock", default = false, label = "Besondere Emojis erst ab Oasis-Rang",
+ns.GuildOption({ page = "chat", key = "emLock", default = true,   -- 0.6.417: Standard an label = "Besondere Emojis erst ab Oasis-Rang",
     desc = "Aus: alle animierten Gilden-Emojis sind fuer jeden sofort benutzbar" })
 local function refreshOasisCat()
     local out, seen = {}, {}
