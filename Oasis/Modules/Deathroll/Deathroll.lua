@@ -2256,7 +2256,7 @@ local function build()
         f.numLbl:ClearAllPoints() f.numLbl:SetPoint("TOP", f.numRing, "BOTTOM", 0, -2)
         f.num:SetFont(K.FONT_HEAD, 52, "OUTLINE")
         -- 0.6.514: Ziffern sitzen in der Schrift etwas hoch - optisch in die Ringmitte schieben
-        f.num:ClearAllPoints() f.num:SetPoint("CENTER", f.numRing, "CENTER", 1, -4)
+        f.num:ClearAllPoints() f.num:SetPoint("CENTER", f.numRing, "CENTER", -1, -1)
         -- "Du bist dran" auf Bronze-Platte
         f.statusBg = f.front:CreateTexture(nil, "BACKGROUND")
         f.statusBg:SetTexture(MED .. "dr_plate")
