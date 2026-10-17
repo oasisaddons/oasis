@@ -1604,7 +1604,7 @@ ns.RegisterPage({
         p.ho = ho
         ho.t = ho:CreateTexture(nil, "ARTWORK")
         ho.t:SetTexture(ns.MEDIA .. "logo64")
-        ho.t:SetSize(14, 14)
+        ho.t:SetSize(20, 20)   -- 0.6.440
         ho.t:SetPoint("CENTER")
         ho.t:SetDesaturated(true)
         ho.t:SetAlpha(0.6)
@@ -1803,7 +1803,7 @@ ns.RegisterPage({
             -- Oasis-Emblem: farbig = aktiv, blass = installiert aber gerade nicht aktiv, Strich = kein Oasis
             r.addon = r:CreateTexture(nil, "ARTWORK")
             r.addon:SetTexture(ns.MEDIA .. "logo64")
-            r.addon:SetSize(16, 16)
+            r.addon:SetSize(22, 22)   -- 0.6.440: Logo lesbar
             r.addon:SetPoint("RIGHT", hasGlass() and -29 or -3, 0)
             r.noAddon = K.Text(r, 12, C.dim, "CENTER")
             r.noAddon:SetPoint("CENTER", r.addon, "CENTER", 0, 0)

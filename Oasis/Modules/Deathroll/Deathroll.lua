@@ -3978,7 +3978,8 @@ ns.RegisterPage({
                 if s then
                     col.n:SetText(ns.Radar.Colored(s.name))
                     local pe = s.elo or (p.eloMap[s.name] and p.eloMap[s.name].elo)
-                    col.wl:SetText(pe and ("|cffe8b44a" .. pe .. "|r  |cff66db9e" .. s.w .. "|r|cff666666:|r|cffe06060" .. s.l .. "|r")
+                    -- 0.6.440: "1050 Elo  ·  7 : 3" - mit Bezeichnung und Luft
+                    col.wl:SetText(pe and ("|cffe8b44a" .. pe .. "|r |cff888888Elo|r   |cff555555·|r   |cff66db9e" .. s.w .. "|r |cff666666:|r |cffe06060" .. s.l .. "|r")
                         or ("|cff66db9e" .. s.w .. "|r|cff666666:|r|cffe06060" .. s.l .. "|r"))
                     local m = ns.Radar.byName and ns.Radar.byName[s.name]
                     local fk = DR.FighterOf(s.name)
@@ -4379,6 +4380,26 @@ do
                     col.num:ClearAllPoints() col.num:SetPoint("TOP", col.n, "BOTTOM", 0, -2)
                     K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 24, "", K.FONT)
                     col.wl:ClearAllPoints() col.wl:SetPoint("BOTTOM", 0, 8)
+                    -- 0.6.440: schoener - grosse Platzzahl in Medaillenfarbe mit weichem Schein, Name groesser,
+                    -- unten dunkler Verlauf hinter Elo/Bilanz
+                    local mc = PCOL[place]
+                    K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 38, "", K.FONT)
+                    col.num:SetTextColor(math.min(1, mc[1] * 1.1 + 0.1), math.min(1, mc[2] * 1.1 + 0.1), math.min(1, mc[3] * 1.1 + 0.1))
+                    col.num:ClearAllPoints() col.num:SetPoint("TOP", col.n, "BOTTOM", 0, -4)
+                    K.SetFontSafe(col.n, K.FONT, 13, "", K.FONT)
+                    K.SetFontSafe(col.wl, K.FONT, 11, "", K.FONT)
+                    if not col.numGlow then
+                        col.numGlow = col:CreateTexture(nil, "ARTWORK", nil, 1)
+                        col.numGlow:SetTexture(ns.MEDIA .. "softglow")
+                        col.numGlow:SetBlendMode("ADD")
+                        col.numGlow:SetSize(90, 60)
+                        col.numGlow:SetPoint("CENTER", col.num, "CENTER", 0, 0)
+                        col.footShade = col:CreateTexture(nil, "ARTWORK", nil, 1)
+                        col.footShade:SetPoint("BOTTOMLEFT", 6, 6) col.footShade:SetPoint("BOTTOMRIGHT", -6, 6)
+                        col.footShade:SetHeight(30)
+                        if not K.Gradient(col.footShade, "VERTICAL", { 0, 0, 0, 0.55 }, { 0, 0, 0, 0 }) then col.footShade:Hide() end
+                    end
+                    col.numGlow:SetVertexColor(mc[1] * 0.35, mc[2] * 0.3, mc[3] * 0.2, 1)
                     for _, fs in ipairs({ col.n, col.num, col.wl }) do if fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 1) fs:SetShadowOffset(1, -1) end end
                 end
             end
