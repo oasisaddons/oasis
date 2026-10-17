@@ -6,30 +6,38 @@ local M = ns.MEDIA
 local W, H, SIDEBAR = 1014, 700, 214   -- 0.6.508: Seitenleiste schmaler (Knoepfe erscheinen erst beim Ueberfahren)
 
 -- 0.6.508: weiches Ein-/Ausblenden der kleinen Knoepfe in der Seitenleiste (Stumm, Favorit, Ausblenden)
-local fading, fadeF = {}, nil
+local fading, fadeF, hoverRows = {}, nil, {}
 local function fadeTo(f, a)
     if not f then return end
     fading[f] = a
     if not fadeF then
         fadeF = CreateFrame("Frame")
         fadeF:SetScript("OnUpdate", function(self, el)
+            -- 0.6.509: schnelles Wegfahren - OnLeave kommt nicht immer an, darum hier selbst pruefen
+            for row in pairs(hoverRows) do
+                if not row:IsMouseOver() then hoverRows[row] = nil if row.RestKnobs then row:RestKnobs() end end
+            end
             for fr, to in pairs(fading) do
                 local cur = fr:GetAlpha()
                 local step = (el or 0.016) * 6
                 if math.abs(to - cur) <= step then fr:SetAlpha(to) fading[fr] = nil
                 else fr:SetAlpha(cur + (to > cur and step or -step)) end
             end
-            if not next(fading) then self:Hide() end
+            if not next(fading) and not next(hoverRows) then self:Hide() end
         end)
     end
     fadeF:Show()
+end
+local function watchRow(b)
+    hoverRows[b] = true
+    if fadeF then fadeF:Show() end
 end
 -- 0.6.508: ruhende Symbole der Seitenleiste mit ganz leichtem Verlauf (wie die Oasis-Leiste)
 local function restTint(t, c)
     t:SetVertexColor(c[1], c[2], c[3])
     if t.SetGradient and CreateColor then
-        pcall(t.SetGradient, t, "VERTICAL", CreateColor(c[1] * 0.82, c[2] * 0.82, c[3] * 0.82, 1),
-            CreateColor(math.min(1, c[1] * 1.15), math.min(1, c[2] * 1.15), math.min(1, c[3] * 1.15), 1))
+        pcall(t.SetGradient, t, "VERTICAL", CreateColor(c[1] * 0.62, c[2] * 0.62, c[3] * 0.62, 1),
+            CreateColor(math.min(1, c[1] * 1.35), math.min(1, c[2] * 1.35), math.min(1, c[3] * 1.35), 1))   -- 0.6.509: deutlicher
     end
 end
 local pages, pageOrder = {}, {}
@@ -883,7 +891,7 @@ local function buildMain()
             e.icon:SetPoint("CENTER")
             e:SetAlpha(0)
             b.eye = e
-            b:HookScript("OnEnter", function(self) fadeTo(self.eye, 0.55) end)
+            b:HookScript("OnEnter", function(self) fadeTo(self.eye, 0.55) watchRow(self) end)
             b:HookScript("OnLeave", function(self) if not self.eye:IsMouseOver() then fadeTo(self.eye, 0) end end)
             e:SetScript("OnEnter", function(self)
                 fadeTo(self, 1)
@@ -918,6 +926,12 @@ local function buildMain()
                 fadeTo(self.star, fav and 0.95 or (self:IsMouseOver() and 0.55 or 0))
             end
             b:UpdateStar()
+            function b:RestKnobs()
+                if self.eye then fadeTo(self.eye, 0) end
+                self:UpdateStar()
+                if self.UpdateMute then self:UpdateMute() end
+            end
+            b:HookScript("OnEnter", function(self) watchRow(self) end)
             st:SetAlpha(b.star.fav and 0.95 or 0)
             b:HookScript("OnEnter", function(self) if not self.star.fav then fadeTo(self.star, 0.55) end end)
             b:HookScript("OnLeave", function(self) if not self.star:IsMouseOver() then self:UpdateStar() end end)

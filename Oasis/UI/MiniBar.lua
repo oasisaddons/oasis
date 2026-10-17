@@ -8,8 +8,8 @@ local function restTint(t)
     local m = C.muted
     t:SetVertexColor(m[1], m[2], m[3])
     if t.SetGradient and CreateColor then
-        pcall(t.SetGradient, t, "VERTICAL", CreateColor(m[1] * 0.82, m[2] * 0.82, m[3] * 0.82, 1),
-            CreateColor(math.min(1, m[1] * 1.15), math.min(1, m[2] * 1.15), math.min(1, m[3] * 1.15), 1))
+        pcall(t.SetGradient, t, "VERTICAL", CreateColor(m[1] * 0.62, m[2] * 0.62, m[3] * 0.62, 1),
+            CreateColor(math.min(1, m[1] * 1.35), math.min(1, m[2] * 1.35), math.min(1, m[3] * 1.35), 1))
     end
 end
 
