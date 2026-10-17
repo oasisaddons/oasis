@@ -341,7 +341,7 @@ local function build()
         end
         -- 0.6.330: Lichtstreif laeuft alle 5 s entlang der Glutlinie unten
         local sw = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
-        sw:SetSize(130, 5)   -- 0.6.379: duenner Streif genau auf der Glutlinie
+        sw:SetSize(170, 6)   -- 0.6.379: duenner Streif genau auf der Glutlinie
         sw:SetBlendMode("ADD")
         sw:SetTexture(ns.MEDIA .. "ember")
         local sw2 = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
@@ -381,8 +381,8 @@ local function build()
                     else
                         local x = swX0 + swDir * swRun * swLen
                         sw:ClearAllPoints()
-                        sw:SetPoint("LEFT", bar, "BOTTOMLEFT", x, -3)   -- 0.6.425: etwas nach innen
-                        local a = math.sin(swRun * math.pi) ^ 1.5 * 0.85 * (bar.art.m:GetAlpha() or 1)   -- 0.6.413: dezenter, weich ein-/ausblenden
+                        sw:SetPoint("LEFT", bar, "BOTTOMLEFT", x, -4)   -- 0.6.429: minimal tiefer
+                        local a = math.sin(swRun * math.pi) ^ 0.8 * 1.0 * (bar.art.m:GetAlpha() or 1)   -- 0.6.413: dezenter, weich ein-/ausblenden
                         sw:SetVertexColor(1 * a, 0.85 * a, 0.7 * a, 1)
                         sw:Show() sw2:Hide()
                     end
