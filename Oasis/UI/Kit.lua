@@ -2319,11 +2319,9 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         t.logo:SetSize(32, 32)
         t.logo:SetPoint("LEFT", 12, 0)
         if t.imgBox then
-            t.logo:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\toast_logo_base")
-            t.logo:SetSize(36, 36)
-            t.logoTint = t:CreateTexture(nil, "ARTWORK", nil, 2)
-            t.logoTint:SetAllPoints(t.logo)
-            t.logoTint:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\toast_logo_tint")
+            -- 0.6.475: neues OASIS-Logo (Palme im Ring) auch in den Hinweisen mit Gildenmodul
+            t.logo:SetTexture(ns.MEDIA .. "logo256")
+            t.logo:SetSize(38, 38)
         end
         t.title = K.Title(t, 13, C.text)
         t.title:SetPoint("TOPLEFT", t.logo, "TOPRIGHT", 12, 2)
@@ -2402,7 +2400,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         if not K.Gradient(t.timeShine, "HORIZONTAL", { 1, 1, 1, 0 }, { 1, 1, 1, 0.55 }) then t.timeShine:SetVertexColor(1, 1, 1, 0.4) end
         t.timeGlow:Show() t.timeShine:Hide()   -- 0.6.137: laufender Lichtpunkt aus (wirkte unruhig)
         local ac = C.accent
-        t.logoTint:SetVertexColor(ac[1], ac[2], ac[3], 1)
+        if t.logoTint then t.logoTint:SetVertexColor(ac[1], ac[2], ac[3], 1) end
     end
     do
         local ch = ns.Sound and ns.Sound.ChoiceFor and ns.Sound.ChoiceFor(event)

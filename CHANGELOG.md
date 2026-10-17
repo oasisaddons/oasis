@@ -2,7 +2,7 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
-## 0.6.474
+## 0.6.475
 
 - Please restart the game after this update (new files).
 - New Community page: profile cards (when you are usually online, time zone, what you are looking for), birthdays with a one-click congratulation, mentors for new members (levelling together gives Oasis XP), a "thank you" button with a Helper of the Week, and weekly guild achievements.

@@ -2298,6 +2298,8 @@ local function buildSound(f)
             K.ShowTip(self, lines)
         end)
         f.own:HookScript("OnLeave", function() GameTooltip:Hide() end)
+        -- 0.6.475: selten gebraucht - nur mit "Alle Optionen" (lag sonst nach dem Aufruecken auf der Kastenkante)
+        if not S().setAll then f.own:Hide() end
     end
     f.uis:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- einzelne Toene zuweisen: kleines Fenster, je Aktion ein Paket waehlen (mit Vorhoeren)
