@@ -2181,6 +2181,17 @@ local function buildEvents(f)
     K.LockButton(hb.new, canEvents, ns.Admin and ns.Admin.Need and ns.Admin.Need("raid.events") or "raidlead")
     ip.hb = hb
     local eb = box(ip)
+    -- 0.6.457: dezentes Hintergrundbild (Gildenmodul), unten dunkel auslaufend
+    if ns.GuildPack then
+        eb.art = eb:CreateTexture(nil, "BACKGROUND", nil, 2)
+        eb.art:SetPoint("TOPLEFT", 3, -3) eb.art:SetPoint("BOTTOMRIGHT", -3, 3)
+        eb.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\raid_events_bg")
+        eb.art:SetAlpha(0.45)
+        eb.shade = eb:CreateTexture(nil, "BACKGROUND", nil, 3)
+        eb.shade:SetAllPoints(eb.art)
+        if not K.Gradient(eb.shade, "VERTICAL", { 0, 0, 0, 0.5 }, { 0, 0, 0, 0.1 }) then eb.shade:Hide() end
+        if K.RoundMask then pcall(K.RoundMask, eb.art, eb, 10) pcall(K.RoundMask, eb.shade, eb, 10) end
+    end
     eb.head = K.GameHead(eb, L["Anstehende Termine"], C.accent)
     eb.head:SetPoint("TOPLEFT", 14, -12)
     eb.head:SetPoint("RIGHT", eb, "RIGHT", -14, 0)
