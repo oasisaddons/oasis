@@ -319,7 +319,7 @@ local function drawTrails(w)
     for _, r in ipairs(ns.db and ns.db.routes or {}) do if r.show then routes[#routes + 1] = r end end
     local recOn = X.rec and X.recShow ~= false and not S().routesOff
     if S().routesOff then for k = #routes, 1, -1 do routes[k] = nil end end   -- 0.6.502: Linien aus
-    if not opt("mapTrails") and #routes == 0 and not recOn then return end
+    if not opt("mapTrails") and #routes == 0 and not recOn and not S().routesOff then return end
     if not tFrame then tFrame = CreateFrame("Frame", nil, w.canvas) end
     if tFrame:GetParent() ~= w.canvas then tFrame:SetParent(w.canvas) end
     tFrame:SetAllPoints(w.canvas)
@@ -391,14 +391,17 @@ local function drawTrails(w)
         drawPts(r.pts or {}, mr, mg, mb, 0.18 * fade, 0.6 * fade)   -- 0.6.497: etwas kraeftiger
     end
     if recOn then drawPts(X.rec.pts, mr, mg, mb, 0.45, 1) end   -- 0.6.500: ohne Schein am Ende (lag auf dem Spielerpfeil)   -- 0.6.499: kein breites Leuchten mehr (wirkte unruhig)
-    if not opt("mapTrails") or S().routesOff then return end   -- 0.6.503: Knopf "Linien aus" blendet auch die Laufspur aus
+    -- 0.6.504: Linien aus = nur noch ein kurzer, verblassender Schweif hinter dir (letzte 60 s)
+    local tail = S().routesOff
+    if not tail and not opt("mapTrails") then return end
+    local nowT = GetTime()
     for name, t in pairs(trails) do
         -- 0.6.495: Linien anderer Spieler nur mit eigenem Schalter (Standard aus)
-        if name == "\1me" or opt("mapTrailsGuild") then
+        if name == "\1me" or (not tail and opt("mapTrailsGuild")) then
         local r, g, b = 1, 1, 1
         if t.class and ns.classColor then r, g, b = ns.classColor(t.class) end
         local pts = {}
-        for i, pt in ipairs(t) do pts[i] = pt end
+        for _, pt in ipairs(t) do if not tail or nowT - (pt.t or 0) < 60 then pts[#pts + 1] = pt end end
         if live[name] then pts[#pts + 1] = live[name] end
         local n, px, py = #pts, nil, nil
         for i, pt in ipairs(pts) do
@@ -407,7 +410,7 @@ local function drawTrails(w)
                 tUsed = tUsed + 1
                 local l = tLines[tUsed]
                 if not l then l = tFrame:CreateLine(nil, "ARTWORK") tLines[tUsed] = l end
-                l:SetColorTexture(r or 1, g or 1, b or 1, 0.25 + 0.6 * (i / n))
+                l:SetColorTexture(r or 1, g or 1, b or 1, tail and (0.7 * (i / n) ^ 1.5) or (0.25 + 0.6 * (i / n)))
                 l:SetThickness(math.max(1, 2 * w.cs))
                 l:SetStartPoint("TOPLEFT", tFrame, px * w.cw, -py * w.ch)
                 l:SetEndPoint("TOPLEFT", tFrame, x * w.cw, -y * w.ch)
