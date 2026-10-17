@@ -791,13 +791,22 @@ local function makeRtBtn()
     rtBtn:SetScript("OnClick", function(self, btn)
         -- 0.6.493: Linksklick = alle Routen zeigen / alle ausblenden; Aufnahme steht im Rechtsklick-Menue
         local list = ns.db.routes or {}
+        -- 0.6.501: Linksklick schaltet Routen komplett aus (ausblenden + Aufnahme beenden, laufende wird gespeichert)
+        -- bzw. wieder an (alle zeigen + Aufnahme starten); Zustand bleibt ueber /reload
         if btn ~= "RightButton" then
-            local any = false
-            for _, r in ipairs(list) do if r.show then any = true break end end
-            if X.rec and X.recShow ~= false then any = true end
-            for _, r in ipairs(list) do r.show = (not any) or nil end
-            X.recShow = not any   -- 0.6.495: aktuelle Aufnahme gleich mit ein-/ausblenden
-            if #list == 0 then K.Toast(L["Meine Routen"], L["Noch keine Routen gespeichert"], C.dim) end
+            if not S().routesOff then
+                S().routesOff = true
+                if X.rec then pcall(X.SaveRecord, true) end
+                for _, r in ipairs(list) do r.show = nil end
+                K.Toast(L["Meine Routen"], L["Aus - keine Linien, keine Aufnahme. Klick schaltet wieder ein."], C.dim)
+            else
+                S().routesOff = nil
+                list = ns.db.routes or {}
+                for _, r in ipairs(list) do r.show = true end
+                X.recShow = true
+                if on("routeAuto") and X.rec == nil then X.rec = { pts = {} } end
+                K.Toast(L["Meine Routen"], L["An - Routen sichtbar, Aufnahme laeuft."], C.accent)
+            end
             rtPaint()
             local w = world() if w then pcall(drawTrails, w) end
             return
@@ -825,7 +834,7 @@ local function makeRtBtn()
         K.ShowMenu(self, items, L["Meine Routen"], 200)
     end)
     rtBtn:SetScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Meine Routen"], L["Klick: alle Routen zeigen / ausblenden"], L["Rechtsklick: einzelne Routen, Aufnahme, Loeschen"],
+        K.ShowTip(self, { L["Meine Routen"], (S().routesOff and L["Klick: Routen einschalten"] or L["Klick: Routen komplett ausschalten"]), L["Rechtsklick: einzelne Routen, Aufnahme, Loeschen"],
             X.rec and ("|cffff6060" .. L["Aufnahme laeuft"] .. "|r") or nil })
     end)
     rtBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -845,7 +854,7 @@ ns.Listen("LOGIN", function()
             pcall(X.SaveRecord, true)
         end
     end
-    if on("routeAuto") and not X.rec then X.rec = { pts = {} } end
+    if on("routeAuto") and not X.rec and not S().routesOff then X.rec = { pts = {} } end
 end)
 ns.On("PLAYER_LOGOUT", function()
     if X.rec and #X.rec.pts > 0 then ns.db.curRoute = { pts = X.rec.pts, t = time() } end
