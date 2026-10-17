@@ -2,6 +2,18 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.517
+
+- Death roll: challenges to players outside your guild now travel over the death roll lobby channel (WoW Forever does not deliver addon whispers), and players searching in the lobby can challenge you. The "Stake" field is now called "Note".
+- Death roll: Fight and Practice buttons line up with the stat boxes; the countdown number sits centred in its ring.
+- Map routes: your way is always recorded. Left-click on the routes button only shows or hides the lines; with lines hidden you see just a short fading tail. Old routes are drawn fainter, in your class colour.
+- Gathering spots: hovering a yellow herb or ore dot on the minimap adds it to the guild map, with a chat message.
+- Campfires on the map are now optional (off by default).
+- Flight: a "Land" button ends a taxi flight early.
+- Sidebar is narrower; the mute, favourite and hide buttons fade in when you hover an entry. Icons in the sidebar and the Oasis bar have a subtle gradient.
+- Member list: the large member card only opens over the name; professions look calmer and show only their own tooltip.
+- Notice board under Guild and further design updates.
+
 ## 0.6.481
 
 - Less background load: the minimap only updates at full speed while you move or turn (twice a second when standing still), the frame and top bar shimmer update at most 30 times a second, and the Oasis rank recalculation is batched and never runs during combat.
