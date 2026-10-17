@@ -514,7 +514,13 @@ end
 
 Comm.On("DRINV", function(sender, _, id, start, stake, race, sex, silent)
     if type(id) ~= "string" or id == "" or #id > 40 then return end
-    if Comm.FromGuild and not Comm.FromGuild(sender) then return end   -- nur Herausforderungen aus der Gilde
+    -- 0.6.468: Herausforderungen aus der Gilde, von Freunden und aus der eigenen Gruppe (annehmen muss man immer selbst)
+    if Comm.FromGuild and not Comm.FromGuild(sender) then
+        local s = Comm.WhisperName and Comm.WhisperName(sender) or sender
+        local friend = C_FriendList and C_FriendList.IsFriend and pcall(C_FriendList.IsFriend, ns.short(sender)) and C_FriendList.IsFriend(ns.short(sender))
+        local grouped = (UnitInParty and UnitInParty(s)) or (UnitInRaid and UnitInRaid(s))
+        if not (friend or grouped) then return end
+    end
     local g = DR.game
     -- dieselbe Einladung doppelt zugestellt (z. B. Gilden- und Gruppenkanal, erneut gesendet): nur einmal auswerten
     if DR.seenInv[id] or (g and g.id == id) then return end

@@ -13,7 +13,7 @@ ns.Discover = D
 -- immer sichtbar
 D.CORE = { home = true, chat = true, radar = true, settings = true, discover = true, admin = true }
 -- nie ausblendbar (kein Auge); Chat und Mitglieder darf man selbst ausblenden
-D.LOCKED = { settings = true, admin = true }   -- 0.5.550: Dashboard und Entdecken lassen sich auch ausblenden
+D.LOCKED = { settings = true, admin = true, home = true }   -- 0.6.468: Dashboard wieder fest (ausgeblendet liess es sich nicht zurueckholen)   -- 0.5.550: Dashboard und Entdecken lassen sich auch ausblenden
 -- Interessen -> Bereiche
 D.INTERESTS = {
     { key = "level", text = "Leveln & Questen", sub = "Mein Weg (Was tun?, Ziele, Rekorde), Quest-Partner, Questitems", icon = "life", color = C.accent,

@@ -2,6 +2,11 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.468
+
+- The dashboard can no longer be hidden; if you hid it before, it is back.
+- Death roll works with friends outside your guild: challenges reach players who are not in your guild, and you can be challenged by guild members, friends and group members (you always accept yourself).
+
 ## 0.6.467
 
 - Please restart the game after this update (new image files).

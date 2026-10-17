@@ -276,7 +276,11 @@ function Comm.Whisper(target, msgType, ...)
         Comm.SendEx({ ch = gch, prio = URGENT[msgType] }, "W", whoKey(target), msgType, ...)
         return
     end
-    if IsInGuild() then
+    -- 0.6.468: Ziel sicher nicht in der eigenen Gilde (z. B. Freund aus einer anderen Gilde) -> echtes Fluestern,
+    -- ueber den Gildenkanal kaeme es nie an
+    local A = ns.Admin
+    local outside = A and A.InGuildList and A.InGuildList(target) == false
+    if IsInGuild() and not outside then
         Comm.SendEx({ ch = "GUILD", prio = URGENT[msgType] }, "W", whoKey(target), msgType, ...)
     else
         Comm.Send("WHISPER", Comm.WhisperName(target), msgType, ...)

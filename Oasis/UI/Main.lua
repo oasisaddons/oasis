@@ -57,7 +57,7 @@ function ns.PageVisible(key)
     if key == "settings" then return true end
     if key ~= "home" and ns.Admin and not ns.Admin.PageEnabled(key) then return false end
     local hidden = ns.db and ns.db.settings.hiddenPages
-    if hidden and hidden[key] then return false end
+    if hidden and hidden[key] and key ~= "home" then return false end   -- 0.6.468: Dashboard immer sichtbar
     return true
 end
 -- 0.5.572: teure Seiten (letzter Aufbau > 25 ms) hoechstens alle 1,2 s neu aufbauen - weitere Aufrufe in dieser
