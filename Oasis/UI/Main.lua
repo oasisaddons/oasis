@@ -1076,15 +1076,14 @@ local function buildMain()
     crown:SetScript("OnLeave", function() gearColor() GameTooltip:Hide() end)
     main.gearColor = gearColor
     -- 0.6.327: Zahnrad und Krone unten in die Seitenleiste (nebeneinander), oben weg
-    for _, b in ipairs({ gear, crown }) do b:SetParent(main.side) b:SetFrameLevel(main.side:GetFrameLevel() + 5) end
-    gear:ClearAllPoints()
-    gear:SetPoint("BOTTOMRIGHT", main.side, "BOTTOMRIGHT", -12, 9)
+    -- 0.6.422: Zahnrad wieder oben rechts im Kopf, nur die Krone bleibt unten in der Seitenleiste
+    crown:SetParent(main.side) crown:SetFrameLevel(main.side:GetFrameLevel() + 5)
     crown:ClearAllPoints()
-    crown:SetPoint("RIGHT", gear, "LEFT", -4, 0)
+    crown:SetPoint("BOTTOMRIGHT", main.side, "BOTTOMRIGHT", -12, 9)
     if main.footGear then main.footGear:Hide() end
 
     -- Sprache: Flagge + Kuerzel, Klick = Auswahl
-    local lang = iconBtn(sep1, 8, 28)
+    local lang = iconBtn(gear, 2, 28)
     lang.flag = lang:CreateTexture(nil, "ARTWORK")
     lang.flag:SetSize(18, 13.5)
     lang.flag:SetPoint("CENTER", 0, 0)
