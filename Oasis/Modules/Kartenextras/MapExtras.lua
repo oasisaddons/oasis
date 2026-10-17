@@ -761,9 +761,22 @@ end
 ns.Listen("LOGIN", function()
     ns.After(1, function() pcall(makeRtBtn) end)
     -- 0.6.490: Routen werden standardmaessig automatisch aufgenommen und beim Ausloggen gespeichert
+    -- 0.6.491: laufende Aufnahme ueberlebt /reload und kurzes Ausloggen (unter 30 Min.) - sonst wird sie als Route abgelegt
+    local cur = ns.db.curRoute
+    ns.db.curRoute = nil
+    if cur and cur.pts and #cur.pts > 0 then
+        if time() - (cur.t or 0) < 1800 then
+            X.rec = { pts = cur.pts }
+        else
+            X.rec = { pts = cur.pts }
+            pcall(X.SaveRecord, true)
+        end
+    end
     if on("routeAuto") and not X.rec then X.rec = { pts = {} } end
 end)
-ns.On("PLAYER_LOGOUT", function() if X.rec then pcall(X.SaveRecord, true) end end)
+ns.On("PLAYER_LOGOUT", function()
+    if X.rec and #X.rec.pts > 0 then ns.db.curRoute = { pts = X.rec.pts, t = time() } end
+end)
 if WorldMapFrame then WorldMapFrame:HookScript("OnShow", function() pcall(makeRtBtn) rtPaint() end) end
 
 ------------------------------------------------------------------------
