@@ -391,7 +391,7 @@ local function drawTrails(w)
         drawPts(r.pts or {}, mr, mg, mb, 0.18 * fade, 0.6 * fade)   -- 0.6.497: etwas kraeftiger
     end
     if recOn then drawPts(X.rec.pts, mr, mg, mb, 0.45, 1) end   -- 0.6.500: ohne Schein am Ende (lag auf dem Spielerpfeil)   -- 0.6.499: kein breites Leuchten mehr (wirkte unruhig)
-    if not opt("mapTrails") then return end
+    if not opt("mapTrails") or S().routesOff then return end   -- 0.6.503: Knopf "Linien aus" blendet auch die Laufspur aus
     for name, t in pairs(trails) do
         -- 0.6.495: Linien anderer Spieler nur mit eigenem Schalter (Standard aus)
         if name == "\1me" or opt("mapTrailsGuild") then
