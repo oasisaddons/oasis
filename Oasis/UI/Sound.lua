@@ -670,14 +670,14 @@ local function finish(c)
     local d = c.dur or 0
     if c.ownLvl then c.lvl = c.ownLvl   -- eigener Sound einer Gilde mit festem Rang ("@20" im Dateinamen)
     elseif c.key == "none" or c.kit or c.cat == "oasis" then c.lvl = 1
-    -- 0.6.427: strenger - Gilden-Sounds ab Rang 5, laengere deutlich spaeter
-    elseif c.new or c.free then c.lvl = c.guild and 5 or 1
-    elseif MUSIC[c.key] or c.music then c.lvl = 50
-    elseif d <= 1.5 then c.lvl = 6
-    elseif d <= 3 then c.lvl = 12
-    elseif d <= 5 then c.lvl = 20
-    elseif d <= 9 then c.lvl = 30
-    else c.lvl = 40 end
+    -- 0.6.430: deutlich strenger - kurze ab 10, neue Gilden-Sounds ab 18, lange/Musik erst spaet
+    elseif c.new or c.free then c.lvl = c.guild and 18 or 1
+    elseif MUSIC[c.key] or c.music then c.lvl = 80
+    elseif d <= 1.5 then c.lvl = 10
+    elseif d <= 3 then c.lvl = 22
+    elseif d <= 5 then c.lvl = 34
+    elseif d <= 9 then c.lvl = 48
+    else c.lvl = 62 end
 end
 for _, c in ipairs(Sound.CHOICES) do finish(c) end
 -- 0.5.728: Erweiterung durch das Gildenmodul (Oasis_Guild): zusaetzliche Sounds (eigene Dateien unter base) und UI-Soundpakete
