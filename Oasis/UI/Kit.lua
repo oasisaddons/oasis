@@ -2211,6 +2211,12 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
     end
     local event = sound or (ns.Sound and ns.Sound.TakeNext()) or "toast"
     if validUntil and ns.now() > validUntil then return end
+    -- 0.6.405: derselbe Hinweis (Titel + Text) hoechstens einmal pro Minute - kein Zuspammen
+    K.toastSeen = K.toastSeen or {}
+    local sig = tostring(title) .. "|" .. tostring(text)
+    local nowT = (GetTime and GetTime()) or (ns.now and ns.now()) or 0
+    if K.toastSeen[sig] and nowT - K.toastSeen[sig] < 60 then return end
+    K.toastSeen[sig] = nowT
     if ns.db and not ns.db.settings.toasts then return end
     if ns.demoLoading then return end
     -- einzelne Hinweis-Arten abgeschaltet (Einstellungen > Hinweise)

@@ -286,7 +286,9 @@ function Sound.Play(event)
     if event == "none" or not s or not s.sound then return end
     if s.soundQuietCombat and ns.inCombat() then return end
     local now = GetTime()
-    if lastPlay[event] and now - lastPlay[event] < 1.2 then return end
+    -- 0.6.405: derselbe Ereignis-Sound hoechstens alle 8 s (Klick-Ereignisse wie Fenster/Deathroll weiter sofort)
+    local gap = (event == "open" or event == "close" or event == "death" or tostring(event):find("^dr_")) and 1.2 or 8
+    if lastPlay[event] and now - lastPlay[event] < gap then return end
     lastPlay[event] = now
     local key = Sound.PickFor(event)
     -- einmaliger Ersatz-Sound fuer genau dieses Ereignis (eigener Todes-Sound eines Mitglieds)

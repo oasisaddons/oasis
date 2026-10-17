@@ -393,7 +393,11 @@ function GM.DrawMinimap()
                 end
                 p.rec = r
                 p:SetScale(sc)   -- Abstaende zaehlen im Massstab des Symbols -> durch sc teilen
-                p:SetAlpha(alpha * freshness(r, tnow))
+                -- 0.6.405: geteilte Fundorte (von anderen) deutlich durchsichtiger als eigene; nah am Spielerpfeil sanft ausblenden
+                local own = r.by and ns.isMe(r.by)
+                local cd = math.sqrt((nx * half) ^ 2 + (ny * half) ^ 2)
+                local nearFade = math.max(0, math.min(1, (cd - 20) / 14))
+                p:SetAlpha(alpha * freshness(r, tnow) * (own and 1 or 0.45) * nearFade)
                 -- 0.6.144: durchsichtig - ohne dunkle Scheibe, Bild halb durchsichtig, nur der Ring bleibt kraeftig.
                 -- So sieht man darunter den echten Fundort-Punkt des Spiels (der liegt immer unter Addon-Symbolen).
                 if p.bg then p.bg:SetShown(false) p.ring:SetShown(frame) end
