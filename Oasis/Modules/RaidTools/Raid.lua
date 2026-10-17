@@ -2231,8 +2231,30 @@ local function buildEvents(f)
         row.v = K.Title(row, 13, C.text, "RIGHT")
         row.v:SetPoint("RIGHT", -4, 0)
         row.role = r
+        -- 0.6.459: Drueberfahren zeigt, wer sich fuer diese Rolle gemeldet hat
+        row:EnableMouse(true)
+        row:SetScript("OnEnter", function(self)
+            local lines = { L[RNAME[r]] .. "  |cff888888" .. #(self.names or {}) .. "|r" }
+            for _, nm in ipairs(self.names or {}) do lines[#lines + 1] = nm end
+            if #(self.names or {}) == 0 then lines[#lines + 1] = "|cff888888" .. L["Noch niemand gemeldet."] .. "|r" end
+            K.ShowTip(self, lines)
+        end)
+        row:SetScript("OnLeave", function() GameTooltip:Hide() end)
         sb.rows[i] = row
     end
+    sb:EnableMouse(true)
+    sb:SetScript("OnEnter", function(self)
+        local lines = { L["Raid-Interesse"] }
+        for _, x in ipairs(self.all or {}) do lines[#lines + 1] = x end
+        if #(self.all or {}) == 0 then lines[#lines + 1] = "|cff888888" .. L["Noch niemand gemeldet."] .. "|r" end
+        K.ShowTip(self, lines)
+    end)
+    sb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    -- Namen sichtbar unter den Rollen (bis zu drei, Rest als Zahl)
+    sb.who = K.Text(sb, 10, C.muted)
+    sb.who:SetPoint("TOPLEFT", 12, -54 - 3 * 38 - 2)
+    sb.who:SetPoint("RIGHT", sb, "RIGHT", -12, 0)
+    sb.who:SetWordWrap(true)
     ip.sb = sb
     local mb = box(ip)
     mb.ic = famDisc(mb, 30, ns.MEDIA .. "icons\\profile", C.muted)
@@ -2324,7 +2346,7 @@ local function buildEvents(f)
         if RW > 0 then
             self.sb:ClearAllPoints()
             self.sb:SetPoint("TOPLEFT", self, "TOPLEFT", w + 12, 0)
-            self.sb:SetSize(RW, 176)
+            self.sb:SetSize(RW, 196)
             self.mb:ClearAllPoints()
             self.mb:SetPoint("TOPLEFT", self.sb, "BOTTOMLEFT", 0, -10)
             self.mb:SetSize(RW, 190)
@@ -2450,7 +2472,20 @@ local function buildEvents(f)
                 .. "|r   " .. K.hex(C.red) .. (rc.dps or 0) .. " " .. L["Schaden"] .. "|r") or "")
             .. (mine and ("   |cff66db9e" .. L["du bist dabei"] .. "|r") or ""))
         ip.sb.n:SetText((L["%d Interessenten"]):format(#all))
-        for _, row in ipairs(ip.sb.rows) do row.v:SetText(rc[row.role] or 0) end
+        local byRole, allNames = { tank = {}, heal = {}, dps = {} }, {}
+        for _, r in ipairs(all) do
+            local nm = ns.colorName(r.by, ns.Radar and ns.Radar.ClassOf and ns.Radar.ClassOf(r.by))
+            local rs = {}
+            for _, k in ipairs({ "tank", "heal", "dps" }) do
+                if (r.roles or ""):find(k:sub(1, 1), 1, true) then table.insert(byRole[k], nm) rs[#rs + 1] = L[RNAME[k]] end
+            end
+            allNames[#allNames + 1] = nm .. "  |cff888888" .. table.concat(rs, ", ") .. ((r.days or "") ~= "" and ("  ·  " .. daysText(r)) or "") .. "|r"
+        end
+        for _, row in ipairs(ip.sb.rows) do row.v:SetText(rc[row.role] or 0) row.names = byRole[row.role] end
+        ip.sb.all = allNames
+        local shortN = {}
+        for k2, r in ipairs(all) do if k2 <= 3 then shortN[#shortN + 1] = ns.colorName(r.by, ns.Radar and ns.Radar.ClassOf and ns.Radar.ClassOf(r.by)) end end
+        ip.sb.who:SetText(#all > 0 and (table.concat(shortN, ", ") .. (#all > 3 and ("  |cff888888+" .. (#all - 3) .. "|r") or "")) or "")
         if mine then
             local parts = {}
             for _, r in ipairs({ "tank", "heal", "dps" }) do if (mine.roles or ""):find(r:sub(1, 1), 1, true) then parts[#parts + 1] = L[RNAME[r]] end end
