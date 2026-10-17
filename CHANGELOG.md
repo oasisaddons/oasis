@@ -2,6 +2,11 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.405
+
+- No more notice or sound spam: the same notice shows at most once a minute, the same event sound at most every 8 seconds.
+- Minimap: more free space around the player arrow; nodes shared by others are clearly more transparent than your own.
+
 ## 0.6.404
 
 - Please restart the game after this update (new files and folders).

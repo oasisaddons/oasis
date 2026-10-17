@@ -262,24 +262,56 @@ function GM.DrawWorld()
     local s = (1 / math.max(cscale, 0.01)) * (S().gatherWorldScale or 1)
     if GM.DrawRoute then pcall(GM.DrawRoute, mapID, canvas, cw, ch, 1 / math.max(cscale, 0.01)) end
     local alpha, frame, tnow = S().gatherWorldAlpha or 1, not S().gatherRingOff, ns.now()
+    -- 0.6.406: nahe Fundorte derselben Art zu einem Symbol mit Zahl zusammenfassen (Abstand auf dem Bildschirm, also
+    -- je nach Zoom: hineinzoomen loest die Gruppen wieder auf); Symbole etwas kleiner
+    local GAP = 22 * (S().gatherWorldScale or 1)   -- Bildschirm-Pixel
+    local groups = {}
     for _, r in ipairs(GM.Nodes(mapID)) do
         local k = GM.KINDS[r.kind]
         if k and shown(r) then
-            local p = wPin(canvas)
-            local hv = harvested(r, tnow)
-            p:SetAlpha(alpha * freshness(r, tnow))
-            p.bg:SetShown(frame) p.ring:SetShown(frame)
-            p.icon:SetTexture(k.icon)
-            p.icon:SetDesaturated(hv)
-            if hv then p.ring:SetVertexColor(0.5, 0.5, 0.5) else p.ring:SetVertexColor(k.color[1], k.color[2], k.color[3]) end
-            p.tip = tipOf(r)
-            p:SetScale(s)
-            p:ClearAllPoints()
-            p:SetPoint("CENTER", canvas, "TOPLEFT", (r.x * cw) / s, (-r.y * ch) / s)
-            p:SetFrameStrata(canvas:GetFrameStrata())
-            p:SetFrameLevel(math.min(8900, canvas:GetFrameLevel() + 2400))   -- 0.6.393: ueber allen Kartenschichten (bei +55 uebermalt)
-            p:Show()
+            local sx, sy = r.x * cw * cscale, r.y * ch * cscale
+            local hit
+            for _, g in ipairs(groups) do
+                if g.kind == r.kind and (g.sx - sx) ^ 2 + (g.sy - sy) ^ 2 < GAP * GAP then hit = g break end
+            end
+            if hit then
+                hit.n = hit.n + 1
+                hit.x, hit.y = hit.x + r.x, hit.y + r.y
+                hit.list[#hit.list + 1] = r
+                if not harvested(r, tnow) then hit.hv = false end
+            else
+                groups[#groups + 1] = { kind = r.kind, sx = sx, sy = sy, x = r.x, y = r.y, n = 1, list = { r }, hv = harvested(r, tnow) }
+            end
         end
+    end
+    local ps = s * 0.85
+    for _, g in ipairs(groups) do
+        local k = GM.KINDS[g.kind]
+        local r = g.list[1]
+        local p = wPin(canvas)
+        local hv = g.hv
+        p:SetAlpha(alpha * freshness(r, tnow))
+        p.bg:SetShown(frame) p.ring:SetShown(frame)
+        p.icon:SetTexture(k.icon)
+        p.icon:SetDesaturated(hv)
+        if hv then p.ring:SetVertexColor(0.5, 0.5, 0.5) else p.ring:SetVertexColor(k.color[1], k.color[2], k.color[3]) end
+        if not p.cnt then
+            p.cnt = p:CreateFontString(nil, "OVERLAY")
+            p.cnt:SetFont(K.FONT, 9, "OUTLINE")
+            p.cnt:SetPoint("CENTER", p, "BOTTOMRIGHT", 1, 1)
+        end
+        p.cnt:SetText(g.n > 1 and tostring(g.n) or "")
+        if g.n > 1 then
+            p.tip = { (L[k.name] or k.name or "") .. "  |cff888888x" .. g.n .. "|r", L["Mehrere Fundorte nah beieinander - hineinzoomen zeigt sie einzeln."] }
+        else
+            p.tip = tipOf(r)
+        end
+        p:SetScale(ps)
+        p:ClearAllPoints()
+        p:SetPoint("CENTER", canvas, "TOPLEFT", (g.x / g.n * cw) / ps, (-g.y / g.n * ch) / ps)
+        p:SetFrameStrata(canvas:GetFrameStrata())
+        p:SetFrameLevel(math.min(8900, canvas:GetFrameLevel() + 2400))   -- 0.6.393: ueber allen Kartenschichten (bei +55 uebermalt)
+        p:Show()
     end
 end
 
