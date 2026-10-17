@@ -2005,6 +2005,8 @@ ns.Listen("LOGIN", function()
     border:SetSize(53, 53)
     border:SetPoint("TOPLEFT")
     mm:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+    -- 0.6.483: uebliche Feldnamen (wie LibDBIcon), damit Knopf-Sammler (eckige Minimap-Leisten) das Logo finden und mittig setzen
+    mm.icon, mm.background, mm.border = ic, bg, border
     local MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
     -- Neuigkeiten: feiner pulsierender Farbring um das Logo (statt grossem Schein) + Zahl-Abzeichen mit dunklem Rand
     mm.glow = mm:CreateTexture(nil, "ARTWORK", nil, 2)
