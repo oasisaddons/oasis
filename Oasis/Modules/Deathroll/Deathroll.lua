@@ -3210,7 +3210,7 @@ ns.RegisterPage({
             pcall(PlaySound, (SOUNDKIT and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON) or 856, "SFX")
             ns.RefreshPage("deathroll")
         end)
-        p.play:SetPoint("TOP", 0, -8)
+        -- 0.6.513: Knoepfe unten an den vier Kaesten ausgerichtet (siehe unten)
         p.play.label:SetFont(K.FONT_HEAD or K.FONT, 22, "")
         p.play.halo = p.play:CreateTexture(nil, "BACKGROUND")
         p.play.halo:SetTexture(ns.MEDIA .. "shine")
@@ -3222,7 +3222,8 @@ ns.RegisterPage({
             if DR.game then DR.Decline() end
             DR.StartBot("Uebungspuppe", curStart(p), "", 2, 0)
         end)
-        p.practice:SetPoint("TOP", p.play, "BOTTOM", 0, -10)
+        p.practice:SetPoint("BOTTOM", right, "BOTTOM", 0, 46)   -- 0.6.513: Unterkante wie die Kaesten (58 ueber dem Rand)
+        p.play:SetPoint("BOTTOM", p.practice, "TOP", 0, 10)
         -- 0.6.197: Bild-Knoepfe (Gildenmodul): Kampf = rote Lavaplatte, Ueben = dunkle Platte. Eigene Flaechen/Kanten des
         -- Knopfs unsichtbar, Hover hellt das Bild auf; calm()/Glas laesst sie in Ruhe (imgSkin)
         local function imgBtn(b, file, w, h)
