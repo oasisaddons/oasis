@@ -1618,16 +1618,16 @@ ns.RegisterPage({
         p.count:SetPoint("LEFT", p.reset, "RIGHT", 10, 0)
 
         -- 0.5.606: Glas-Karten je Zeile (44 px), Platz-Nummer mit Medaille, groesseres Avatar, Menue- und Einladen-Knopf
-        local list = K.List(p, hasGlass() and 34 or 30, function(l)
+        local list = K.List(p, hasGlass() and 40 or 30, function(l)   -- 0.6.415: mehr Luft
             local r = K.Row(l)
             if hasGlass() then
                 if r.stripe then r.stripe:SetAlpha(0) end
                 r.card = CreateFrame("Frame", nil, r)
-                r.card:SetPoint("TOPLEFT", 0, -2)
-                r.card:SetPoint("BOTTOMRIGHT", 0, 2)
+                r.card:SetPoint("TOPLEFT", 0, -3)
+                r.card:SetPoint("BOTTOMRIGHT", 0, 3)
                 r.card:SetFrameLevel(math.max(0, r:GetFrameLevel() - 1))
                 r.card:EnableMouse(false)
-                glass(r.card, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.07 }, 10)
+                glass(r.card, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.04 }, 10)
                 -- Menue (wie Rechtsklick)
                 r.more = CreateFrame("Button", nil, r)
                 r.more:SetSize(22, 20)
@@ -2130,7 +2130,7 @@ ns.RegisterPage({
                 local cr, cg, cb = cx.cr or 0.5, cx.cg or 0.5, cx.cb or 0.5
                 if group then cr, cg, cb = 0.25, 0.58, 1 end
                 local mid = { cr, cg, cb, 0.025 }
-                if not K.Gradient(r.classTint[1], "HORIZONTAL", { cr, cg, cb, group and 0.16 or 0.095 }, mid) then
+                if not K.Gradient(r.classTint[1], "HORIZONTAL", { cr, cg, cb, group and 0.12 or 0.06 }, mid) then
                     r.classTint[1]:SetColorTexture(cr, cg, cb, 0.045)
                 end
                 if not K.Gradient(r.classTint[2], "HORIZONTAL", mid, { 0, 0, 0, 0.045 }) then
@@ -2142,9 +2142,10 @@ ns.RegisterPage({
                 -- Karte: eigene Zeile mit Akzentrand, sonst ruhig (Platz-Nummern entfernt)
                 local me = ns.isMe(m.name)
                 if me then
-                    glass(r.card, { C.accent[1], C.accent[2], C.accent[3], 0.07 }, { C.accent[1], C.accent[2], C.accent[3], 0.6 })
+                    -- 0.6.415: ruhiger - eigene Zeile nur leicht betont
+                    glass(r.card, { C.accent[1], C.accent[2], C.accent[3], 0.05 }, { C.accent[1], C.accent[2], C.accent[3], 0.32 })
                 else
-                    glass(r.card, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.07 })
+                    glass(r.card, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.04 })
                 end
             end
             -- online deutlich hervorheben: leichter gruener Schimmer; offline klar zurueckgenommen
