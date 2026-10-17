@@ -2692,7 +2692,7 @@ ns.RegisterPage({
         p.ol = buildVList(p, { order = { make = newOrderCard, fill = fillOrderCard } }, false)
         p.orders = p.ol
         p.oEmpty = emptyState(p.ol)
-        p.oEmpty:SetPoint("TOP", 0, -10)
+        p.oEmpty:SetPoint("TOP", 0, -2)
 
         p.sendNow = function()
             if not selected or (p.sentUntil and GetTime() < p.sentUntil) then return end
@@ -2730,7 +2730,7 @@ ns.RegisterPage({
             local RX = LW + 14
             local RW = math.max(240, W - RX)
             self.LW, self.RW = LW, RW
-            local ORD_H = math.max(150, math.min(200, math.floor(H * 0.26)))
+            local ORD_H = math.max(210, math.min(250, math.floor(H * 0.32)))   -- 0.6.467: Leer-Hinweis war unten abgeschnitten
             local mainH = H + TOP_Y - ORD_H - 10
             self.mode.maxW = LW
             self.mode:Layout()
