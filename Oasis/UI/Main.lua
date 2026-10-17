@@ -2007,6 +2007,10 @@ ns.Listen("LOGIN", function()
     mm:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
     -- 0.6.483: uebliche Feldnamen (wie LibDBIcon), damit Knopf-Sammler (eckige Minimap-Leisten) das Logo finden und mittig setzen
     mm.icon, mm.background, mm.border = ic, bg, border
+    -- 0.6.484: das Logo hat einen eigenen roten Ring - Blizzards goldener Ring und der dunkle Grund entfallen
+    border:SetAlpha(0)
+    bg:SetAlpha(0)
+    ic:SetSize(28, 28)
     local MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
     -- Neuigkeiten: feiner pulsierender Farbring um das Logo (statt grossem Schein) + Zahl-Abzeichen mit dunklem Rand
     mm.glow = mm:CreateTexture(nil, "ARTWORK", nil, 2)
