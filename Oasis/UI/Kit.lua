@@ -4359,7 +4359,7 @@ function K.StyleWindow(main)
         end
         if th.tex and s.themeTexture ~= false then
             main.themeTex:SetTexture(ns.MEDIA .. "themes\\" .. th.tex)
-            main.themeTex:SetAlpha((th.texAlpha or 1) * K.WindowAlpha())
+            main.themeTex:SetAlpha((th.texAlpha or 1) * K.WindowAlpha() * 0.55)   -- 0.6.485: Hintergrundgrafik dezenter
             main.themeTex:Show()
         else
             main.themeTex:Hide()

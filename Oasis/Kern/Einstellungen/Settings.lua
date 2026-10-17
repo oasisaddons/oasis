@@ -3704,7 +3704,16 @@ local function toggleList(f, list, y, cols)
     cols = cols or 2
     -- 0.6.471: seltene Schalter nur mit "Alle Optionen zeigen"
     local vis = {}
-    for _, o in ipairs(list) do if not advHidden(o[2]) then vis[#vis + 1] = o end end
+    for _, o in ipairs(list) do
+        if advHidden(o[2]) then
+            -- unsichtbar mitbauen (ohne Platz): so findet die Suche sie und schaltet "Alle Optionen" ein
+            local t = toggle(f, 14, y, o[1], o[2], o[3], o[4], 340)
+            t.noReflow = true
+            f.t[#f.t + 1] = t
+        else
+            vis[#vis + 1] = o
+        end
+    end
     list = vis
     local was = descInline
     descInline = true
