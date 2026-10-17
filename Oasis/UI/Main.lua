@@ -1533,6 +1533,18 @@ function ns.LayoutNav()
     if not main then return end
     local closed = ns.db.settings.navClosed or {}
     local S = ns.db.settings
+    -- 0.6.420: einmalig "Fehlerberichte" direkt unter "Entwickler" (Favoriten und Gruppe)
+    if not S.navBugsAfterDev then
+        S.navBugsAfterDev = true
+        local function fix(list)
+            if type(list) ~= "table" then return end
+            local bi, di
+            for i, k in ipairs(list) do if k == "bugs" then bi = i elseif k == "dev" then di = i end end
+            if bi and di and bi < di then table.remove(list, bi) table.insert(list, di, "bugs") end
+        end
+        fix(S.navFav)
+        for _, l in pairs(S.navOrder or {}) do fix(l) end
+    end
     -- Favoriten (Rechtsklick) stehen in eigener Gruppe ganz oben und nur dort
     local isFav = {}
     for _, k in ipairs(S.navFav or {}) do isFav[k] = true end
