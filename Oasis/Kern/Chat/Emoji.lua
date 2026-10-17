@@ -1135,6 +1135,13 @@ local function buildPicker()
     local title = K.GameHead(f, L["Emojis"], C.accent)
     title:SetPoint("TOPLEFT", 10, -8)
     title:SetWidth(160)
+    -- 0.6.413: Kopf wie beim Soundboard: Symbol + "OASIS EMOJIS"
+    title:Hide()
+    f.logo = K.Glyph(f, 20, ns.MEDIA .. "icons\\smile", C.accent)
+    f.logo:SetPoint("TOPLEFT", 16, -15)
+    f.title = K.Title(f, 17, C.text)
+    f.title:SetPoint("LEFT", f.logo, "RIGHT", 10, 0)
+    f.title:SetText("OASIS  |cffb8b8bc" .. K.Upper(L["Emojis"]) .. "|r")
     local close = K.CloseButton(f, function() f:Hide() end)
     close:SetPoint("TOPRIGHT", -4, -4)
     -- Einstellungen der Auswahl (Zahnrad neben dem X)
@@ -1244,22 +1251,26 @@ local function buildPicker()
     function f:LayoutTabs(W)
         local avail = math.max(100, W - 16)
         -- Breite Fenster wie Sounds; schmale Fenster umbrechen die Ziele unter dem Titel.
-        local searchY = -34
+        local searchY = -52   -- 0.6.413: mehr Luft unter dem Kopf
         local cols = math.max(1, math.min(4, math.floor((W - 20) / 78)))
         for i, b in ipairs(self.chans or {}) do
             b:ClearAllPoints()
             if W >= 550 then
-                b:SetPoint("TOPRIGHT", -62 - (4 - i) * 78, -8)
+                b:SetSize(86, 26)
+                b:SetPoint("TOPRIGHT", -62 - (4 - i) * 92, -12)
             else
-                b:SetPoint("TOPLEFT", 12 + ((i - 1) % cols) * 78, -34 - math.floor((i - 1) / cols) * 24)
+                b:SetSize(74, 20)
+                b:SetPoint("TOPLEFT", 12 + ((i - 1) % cols) * 78, -44 - math.floor((i - 1) / cols) * 24)
             end
         end
-        if W < 550 then searchY = -34 - math.ceil(4 / cols) * 24 end
+        if W < 550 then searchY = -44 - math.ceil(4 / cols) * 24 end
         self.search:ClearAllPoints()
         self.search:SetPoint("TOPLEFT", 12, searchY)
         self.search:SetPoint("TOPRIGHT", -12, searchY)
-        local tabsY = searchY - 30
-        local y = tabsY - wrap(self.tabs, avail, tabsY) * 24 - 2
+        local tabsY = searchY - 34
+        local y
+        if #self.tabs.buttons <= 1 then if self.tabs.Hide then self.tabs:Hide() end y = tabsY   -- 0.6.413: nur eine Gruppe -> kein Extra-Reiter
+        else if self.tabs.Show then self.tabs:Show() end y = tabsY - wrap(self.tabs, avail, tabsY) * 24 - 2 end
         local g = self.groupOf[self.cat or ""]
         for k, sg in pairs(self.subTabs) do sg:SetShown(k == g) end
         local sg = g and self.subTabs[g]
@@ -1284,6 +1295,8 @@ local function buildPicker()
         b.hl:SetPoint("TOPLEFT", 1, -1)
         b.hl:SetPoint("BOTTOMRIGHT", -1, 1)
         b.hl:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.22)
+        -- 0.6.413: runde Kacheln wie im Soundboard
+        if K.RoundMask then pcall(K.RoundMask, b.bg, b, 6) pcall(K.RoundMask, b.hl, b, 6) end
         b.icon = b:CreateTexture(nil, "ARTWORK")
         b.icon:SetPoint("TOPLEFT", 2, -2)
         b.icon:SetPoint("BOTTOMRIGHT", -2, 2)

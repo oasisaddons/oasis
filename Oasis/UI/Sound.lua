@@ -948,11 +948,9 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             for _, b in ipairs(self.chans) do
                 b:SetShown(self.noNone)
                 local on = b.ch == cur
-                -- 0.6.411: aktiver Kanal in Akzentfarbe, die anderen ruhig dunkel
-                local ac = C.accent
-                K.SetBorderColor(b, on and ac or { 1, 1, 1, 0.12 })
-                b.tint:SetColorTexture(ac[1], ac[2], ac[3], on and 0.25 or 0)
-                b.label:SetTextColor(on and 1 or 0.72, on and 1 or 0.72, on and 1 or 0.76, 1)
+                K.SetBorderColor(b, on and b.col or { b.col[1] * 0.45, b.col[2] * 0.45, b.col[3] * 0.45 })
+                b.tint:SetColorTexture(b.col[1], b.col[2], b.col[3], on and 0.28 or 0.06)
+                b.label:SetTextColor(b.col[1], b.col[2], b.col[3], on and 1 or 0.7)
                 if b.ch == "WHISPER" then
                     local o = Sound.chOverride
                     b.label:SetText((on and o and o.tgt) and ns.short(o.tgt) or L["Fluestern"])
