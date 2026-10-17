@@ -777,7 +777,7 @@ end
 function IG.ProfileTabs(parent, items, onChange)
     local f = CreateFrame("Frame", nil, parent)
     -- 0.6.318: hoehere Leiste, aktiver Reiter mit Akzent-Unterstrich + leichtem Schein statt Pille
-    local TH = 46
+    local TH = 36   -- 0.6.410: schmaler
     f:SetHeight(TH)
     f.buttons = {}
     local ac = C.accent
@@ -813,9 +813,9 @@ function IG.ProfileTabs(parent, items, onChange)
         local b = CreateFrame("Button", nil, f)
         b:SetFrameLevel(f.ind:GetFrameLevel() + 2)
         b.key = it.key
-        b.ico = K.Glyph(b, 18, ns.MEDIA .. "icons\\" .. (it.icon or "stats"), { 0.82, 0.82, 0.85 })
+        b.ico = K.Glyph(b, 16, ns.MEDIA .. "icons\\" .. (it.icon or "stats"), { 0.6, 0.6, 0.64 })
         if b.ico.SetDesaturated then b.ico:SetDesaturated(true) end   -- 0.6.390: einfarbig (farbige Grafiken wirkten bunt)
-        b.label = K.Text(b, 14, { 0.82, 0.82, 0.85 }, "LEFT")
+        b.label = K.Text(b, 13, { 0.6, 0.6, 0.64 }, "LEFT")
         b.label:SetText(it.text)
         b.label:SetWordWrap(false)
         b:SetScript("OnClick", function() f:Select(it.key, true) end)
@@ -827,11 +827,21 @@ function IG.ProfileTabs(parent, items, onChange)
         b.hov:Hide()
         b:HookScript("OnEnter", function(self) if f.value ~= self.key then self.hov:Show() end end)
         b:HookScript("OnLeave", function(self) self.hov:Hide() end)
+        -- 0.6.410: Symbol waechst beim Drueberfahren, federt beim Klick (aus mit "Animationen aus")
+        local function grow(to, dur)
+            if (ns.db and ns.db.settings.noAnim) or not K.Tween then b.ico:SetSize(to, to) return end
+            local from = b.ico:GetWidth() or 16
+            K.Tween(b.ico, dur or 0.12, function(q) local v = from + (to - from) * q b.ico:SetSize(v, v) end, function() b.ico:SetSize(to, to) end)
+        end
+        b:HookScript("OnEnter", function() grow(19) end)
+        b:HookScript("OnLeave", function() grow(16) end)
+        b:HookScript("OnMouseDown", function() grow(13, 0.06) end)
+        b:HookScript("OnMouseUp", function(self) grow(self:IsMouseOver() and 19 or 16, 0.14) end)
         b:SetScript("OnEnter", function(self)
             if f.value ~= self.key then self.label:SetTextColor(C.text[1], C.text[2], C.text[3]) self.ico:SetVertexColor(C.text[1], C.text[2], C.text[3]) end
         end)
         b:SetScript("OnLeave", function(self)
-            if f.value ~= self.key then self.label:SetTextColor(0.82, 0.82, 0.85) self.ico:SetVertexColor(0.82, 0.82, 0.85) end
+            if f.value ~= self.key then self.label:SetTextColor(0.6, 0.6, 0.64) self.ico:SetVertexColor(0.6, 0.6, 0.64) end
         end)
         f.buttons[i] = b
     end
@@ -862,9 +872,9 @@ function IG.ProfileTabs(parent, items, onChange)
         for _, b in ipairs(self.buttons) do
             local on = b.key == key
             -- 0.6.369: inaktive Reiter hell (Entwurf), aktiv: Symbol in Akzentfarbe
-            local c = on and C.text or { 0.82, 0.82, 0.85 }
+            local c = on and C.text or { 0.6, 0.6, 0.64 }
             b.label:SetTextColor(c[1], c[2], c[3])
-            local ic = on and C.accent or { 0.82, 0.82, 0.85 }
+            local ic = on and C.accent or { 0.6, 0.6, 0.64 }
             b.ico:SetVertexColor(ic[1], ic[2], ic[3])
         end
         if user and onChange then onChange(key) end
@@ -908,7 +918,7 @@ ns.RegisterPage({
         soon.pageBg:SetAlpha(0)   -- 0.6.368: keine eigene Seitenflaeche - das Fensterbild scheint durch wie auf den anderen Seiten
         -- Profil 2026: Hoehen der Kopfzeile/Reiter und Beginn der Inhalte (mit/ohne Unterreiter)
         -- 0.6.318: groesserer Kopf (170) und hoehere Reiterleiste (46) wie im Entwurf
-        soon.HEAD_H, soon.NAV_Y, soon.SUB_Y, soon.TOP, soon.TOP_SUB = 150, -160, -216, -218, -248
+        soon.HEAD_H, soon.NAV_Y, soon.SUB_Y, soon.TOP, soon.TOP_SUB = 150, -160, -206, -208, -238   -- 0.6.410: Reiter 36 hoch
         -- Profil + "Mein Weg" zusammengefuehrt (07.10.): sechs Bereiche oben, darunter je Bereich Unterreiter
         local MAIN = {
             { key = "vals", text = L["Werte"], icon = "stats", subs = { "stats" } },
@@ -3214,7 +3224,9 @@ ns.RegisterPage({
                     r.track:SetWidth(W * 0.32)
                     r.name:SetPoint("RIGHT", r, "LEFT", W * 0.5 - 10, 0)
                     r.name:SetWordWrap(false)
-                    local c = PRIO_COL[i] or PRIO_COL[#PRIO_COL]
+                    -- 0.6.409: Farbe nach Zielerfuellung statt nach Platz: rot < 50 %, orange < 80 %, gelb < 100 %, gruen ab 100 %
+                    local qf = goals[i] and goals[i] > 0 and vals[i] / goals[i] or 0
+                    local c = (qf >= 1 and { 0.30, 0.85, 0.45 }) or (qf >= 0.8 and { 0.95, 0.82, 0.30 }) or (qf >= 0.5 and { 0.98, 0.58, 0.22 }) or { 0.93, 0.30, 0.32 }
                     -- 0.6.407: Verlauf von dunkler zu heller statt Einfarbig + Atmen
                     if not K.Gradient(r.fill, "HORIZONTAL", { c[1] * 0.55, c[2] * 0.55, c[3] * 0.55, 1 }, { math.min(1, c[1] * 1.1), math.min(1, c[2] * 1.1), math.min(1, c[3] * 1.1), 1 }) then
                         r.fill:SetColorTexture(c[1], c[2], c[3], 1)
@@ -3352,15 +3364,30 @@ ns.RegisterPage({
                 local b, pos, neg = UnitAttackPower("player")
                 local ap = (num(ns.safe(b)) or 0) + (num(ns.safe(pos)) or 0) + (num(ns.safe(neg)) or 0)
                 local crit = num(ns.safe(GetCritChance and GetCritChance())) or 0
+                -- 0.6.409: Balken = Anteil am Richtwert fuer das eigene Level (dieselben Ziele wie die Stat-Prioritaet)
+                local G = soon.GoalOf or function() return nil end
+                local gHp, gAp, gCr = G("hp") or (lvl * 30 + 60), G("ap") or (lvl * 8 + 40), G("crit") or (5 + lvl * 0.15)
                 local vals = {
-                    { tostring(hp), hp / math.max(1, lvl * 45) },
-                    { tostring(ap), ap / math.max(1, lvl * 12) },
-                    { ("%.1f %%"):format(crit):gsub("%.", ","), crit / 20 },
+                    { tostring(hp), hp, gHp, false },
+                    { tostring(ap), ap, gAp, false },
+                    { (("%.1f %%"):format(crit):gsub("%.", ",")), crit, gCr, true },
                 }
                 for i, t in ipairs(tiles.t) do
-                    t.val:SetText(vals[i][1])
+                    local v = vals[i]
+                    t.val:SetText(v[1])
+                    local q = v[3] > 0 and v[2] / v[3] or 0
                     local w = t.track:GetWidth() or 0
-                    if w > 2 then t.fill:SetWidth(math.max(1, w * math.max(0, math.min(1, vals[i][2])))) end
+                    if w > 2 then t.fill:SetWidth(math.max(1, w * math.max(0, math.min(1, q)))) end
+                    local goalTxt = v[4] and (("%.1f %%"):format(v[3]):gsub("%.", ",")) or tostring(math.floor(v[3] + 0.5))
+                    t.tip = { L[t.def.label] .. ":  " .. v[1],
+                        (L["Balken: %d %% vom Richtwert fuer Level %d (%s)"]):format(math.floor(math.min(9.99, q) * 100 + 0.5), lvl, goalTxt),
+                        "|cff888888" .. L["Voll = Richtwert erreicht. Grobe Oasis-Schaetzung, kein Spielwert."] .. "|r" }
+                    if not t.tipHooked then
+                        t.tipHooked = true
+                        t:EnableMouse(true)
+                        t:SetScript("OnEnter", function(self) if self.tip then K.ShowTip(self, self.tip) end end)
+                        t:SetScript("OnLeave", function() GameTooltip:Hide() end)
+                    end
                 end
             end
             -- Kasten rechts: Spezialisierung + Wunschrolle
