@@ -2,6 +2,12 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.476
+
+- Settings now separate guild organisation, social activities and personal convenience tools. Search, category navigation and subpages each have their own space.
+- Notification types are grouped into collapsible sections with individual and group switches. Existing choices are preserved.
+- Search opens the matching category, reveals advanced options when needed and scrolls to the setting. Reduced-motion preferences are respected.
+
 ## 0.6.475
 
 - Please restart the game after this update (new files).

@@ -107,7 +107,7 @@ end
 local INDEX = {}
 local function indexAdd(label, frame, desc)
     if not page or not page.buildingTab then return end
-    INDEX[#INDEX + 1] = { label = label, desc = desc, tab = page.buildingTab, frame = frame, area = page.buildingArea }
+    INDEX[#INDEX + 1] = { label = label, desc = desc, tab = page.buildingTab, frame = frame, area = page.buildingArea, settingKey = frame and frame.settingKey }
 end
 -- 0.6.113: auf den Sammelseiten und in den Bereichen steht die Erklaerung als graue Unterzeile direkt unter dem
 -- Schalter (descInline); der Aufbau rechnet die zusaetzliche Hoehe DESC_H ein. Ganzer Text weiter beim Drueberfahren.
@@ -130,6 +130,7 @@ local function toggle(p, x, y, label, key, desc, after, w)
     end)
     t:SetPoint("TOPLEFT", x, y)
     t:SetWidth(w or 340)
+    t.settingKey = key
     if advHidden(key) then t:Hide() end
     if desc and descInline then
         t.sub = K.Text(t, 10, C.dim)
@@ -1267,22 +1268,44 @@ ns.AddPageSettings("insta", function(det, y)
     return y - 20
 end)
 
+-- Funktionskatalog nach dem Nutzen fuer den Spieler, unabhaengig von der Hauptnavigation.
+local AREA_SCOPE = {
+    home = "personal", discover = "personal", life = "personal", bags = "personal",
+    badges = "personal", legacy = "personal", rank = "personal", fight = "personal",
+    questitems = "personal", dungeons = "personal",
+    insta = "social", chat = "social", community = "social", groups = "social",
+    social = "social", allies = "social", scout = "social", camp = "social", deathroll = "social",
+    radar = "guild", chronicle = "guild", polls = "guild", board = "guild", goals = "guild",
+    bank = "guild", deaths = "guild", raid = "guild", raidlead = "guild", loot = "guild",
+    buffs = "guild", tactics = "guild", crafting = "guild", trade = "guild", wants = "guild",
+    raidboard = "guild", lockouts = "guild", softres = "guild",
+}
+for parent, children in pairs(AREA_CHILDREN) do
+    for _, child in ipairs(children) do
+        if not AREA_SCOPE[child] then AREA_SCOPE[child] = AREA_SCOPE[parent] end
+    end
+end
+local SCOPE_TAB = { guild = "guildtools", social = "socialtools", personal = "personaltools" }
+local function areaTab(key) return SCOPE_TAB[AREA_SCOPE[key] or "personal"] end
+ns.SettingsAreaTab = areaTab
+
 -- Bereiche in der Reihenfolge der Navigation (Gruppen), Rest am Ende
-local function pageGroups()
+local function pageGroups(scope)
     local out, seen = {}, {}
     for _, g in ipairs(ns.NAV_GROUPS or {}) do
         local items = {}
         for _, k in ipairs(g.pages) do
             local d = ns.PageDef(k)
             -- Seiten, die es nicht (mehr) eigenstaendig gibt (z.B. Oasis-Rang steckt im Profil), weglassen
-            if d and d.visible and not d.visible() then seen[k] = true
+            if scope and (AREA_SCOPE[k] or "personal") ~= scope then seen[k] = true
+            elseif d and d.visible and not d.visible() then seen[k] = true
             elseif d and d.nav then items[#items + 1] = d seen[k] = true end   -- 0.5.679: Dashboard mit drin (fest an)
         end
         if #items > 0 then out[#out + 1] = { text = (g.text and g.text ~= "") and g.text or "Start", items = items } end
     end
     local rest = {}
     for _, d in ipairs(ns.Pages()) do
-        if d.nav and not seen[d.key] and d.key ~= "home" and not d.topbar and not (d.visible and not d.visible()) then rest[#rest + 1] = d end
+        if d.nav and not seen[d.key] and d.key ~= "home" and not d.topbar and not (d.visible and not d.visible()) and (not scope or (AREA_SCOPE[d.key] or "personal") == scope) then rest[#rest + 1] = d end
     end
     if #rest > 0 then out[#out + 1] = { text = "Weitere", items = rest } end
     return out
@@ -1296,7 +1319,7 @@ local function setPageShown(key, v)
     if ns.UpdateMiniBar then ns.UpdateMiniBar() end
 end
 
-local function buildPages(f)
+local function buildPages(f, scope)
     f.noCompact = true
     -- Auswahl oben: Knopf mit Symbol, Klick oeffnet eine Bereichs-Karte (Gruppen in zwei Spalten, mit Symbolen)
     local function iconTag(key, c)
@@ -1310,7 +1333,7 @@ local function buildPages(f)
     f.back = K.Button(f, "< " .. L["Alle Bereiche"], 140, 22, "ghost", function() f.sel = nil f:ShowSel() end)
     f.back:SetPoint("TOPLEFT", 0, -6)
     f.back:Hide()
-    f.intro = note(f, L["Karte anklicken: in der Navigation zeigen oder ausblenden. Zahnrad: Einstellungen des Bereichs."], 0, -10, 560, C.dim)
+    f.intro = note(f, L["Schalter: in deiner Navigation anzeigen. Zahnrad: Funktion einstellen. Module schaltest du unter System & Module ab."], 0, -6, 620, C.muted)
     f.pickHint = { SetShown = function(_, v) f.back:SetShown(not v) f.intro:SetShown(v) end }
     -- Rundgang erneut starten (Onboarding.lua)
     f.tourBtn = K.Button(f, L["Rundgang"], 88, 22, "ghost", function() ns.Onboarding.Show() end)
@@ -1318,12 +1341,12 @@ local function buildPages(f)
 
     -- Uebersicht: alle Bereiche als Karten nach Gruppen (Symbol, Name, Kurztext, Schalter, Zahnrad)
     f.ov = CreateFrame("Frame", nil, f)
-    f.ov:SetPoint("TOPLEFT", 0, -40)
-    f.ov:SetPoint("TOPRIGHT", 0, -40)
+    f.ov:SetPoint("TOPLEFT", 0, -54)
+    f.ov:SetPoint("TOPRIGHT", 0, -54)
     f.ov:SetHeight(400)
     f.ov.heads, f.nav = {}, {}
     local G = ns.Insta and ns.Insta.Glass
-    for _, gr in ipairs(pageGroups()) do
+    for _, gr in ipairs(pageGroups(scope)) do
         local h = K.Text(f.ov, 10, C.dim)
         h:SetText(K.Upper(L[gr.text]))
         h.line = K.Divider(f.ov)
@@ -1433,7 +1456,7 @@ local function buildPages(f)
     function f:ShowSel()
         self.ov:SetShown(self.sel == nil)
         self.pickHint:SetShown(self.sel == nil)
-        if self.detScroll then self.detScroll:Hide() self.detScroll = nil end
+        if self.detScroll then self.detScroll:Hide() self.detScroll:SetParent(nil) self.detScroll = nil end
         self.det = nil
         if not self.sel then
             self:Refresh()
@@ -2073,62 +2096,105 @@ local function buildToasts(f)
     reset:SetPoint("LEFT", move, "RIGHT", 8, 0)
     f.posNote = note(f, "", RX + 14, -120, 330, C.muted)
 
-    -- Karte: welche Hinweise
-    local list = {}
-    for _, e in ipairs(ns.Sound and ns.Sound.EVENTS or {}) do
-        if e.key ~= "entrance" and e.key ~= "open" and e.key ~= "close" and not e.dev then list[#list + 1] = e end
+    -- Hinweise nach Anlass; die Auswahl bleibt beim Zu-/Aufklappen erhalten.
+    f.kinds, f.kindGroups = {}, {}
+    local scopes = {
+        { key = "guild", title = "Gilde & Organisation", desc = "Durchsagen, Termine, Handwerk und gemeinsame Fortschritte." },
+        { key = "social", title = "Socializing", desc = "Gruppensuche, neue Mitglieder, Geburtstage und gemeinsame Spiele." },
+        { key = "personal", title = "Meine Erfolge & Allgemeines", desc = "Deine Stufen, Abzeichen und persoenlichen Hinweise." },
+    }
+    local eventScope = {
+        announce = "guild", alert = "guild", order = "guild", wants = "guild", event = "guild",
+        loot = "guild", poll = "guild", death = "guild", chronicle = "guild",
+        request = "social", group = "social", welcome = "social", birthday = "social", camp = "social",
+        dr_invite = "social", dr_turn = "social", dr_win = "social", dr_lose = "social",
+    }
+    local function enabled(key)
+        if key == "death" and S().deathToasts == false then return false end
+        return not (S().toastOff and S().toastOff[key])
     end
-    local rows = math.ceil(#list / 3)
-    local bc = card(f, 0, -228, 738, 60 + rows * 28 + 8)
-    bc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, -228)
-    local kh = K.Header(bc, L["Welche Hinweise willst du sehen?"])
-    kh:SetPoint("TOPLEFT", 14, -12)
-    kh:SetPoint("RIGHT", -140, 0)
-    local kl = K.Divider(bc)
-    kl:SetPoint("TOPLEFT", 14, -32)
-    kl:SetPoint("RIGHT", bc, "RIGHT", -14, 0)
-    local go = K.Button(f, L["Sounds dazu"], 110, 20, "ghost", function() page.SetTab("sound") end)
-    go:SetPoint("TOPRIGHT", bc, "TOPRIGHT", -14, -10)
-    -- 0.5.619: Uebersicht an/aus + alle wieder einschalten (auch was direkt am Hinweis ausgeschaltet wurde)
-    local allOn = K.Button(f, L["Alle an"], 80, 20, "ghost", function()
-        S().toastOff = {}
-        S().toastMuted = nil   -- auch einzeln (am Hinweis selbst) ausgeblendete wieder zeigen
-        S().deathToasts = nil
+    local function change(key, v)
+        S().toastOff = S().toastOff or {}
+        S().toastOff[key] = not v or nil
+        if key == "death" then S().deathToasts = v end
+    end
+    local function layoutKinds()
+        local y = -278
+        for _, g in ipairs(f.kindGroups) do
+            g.card:ClearAllPoints()
+            g.card:SetPoint("TOPLEFT", 0, y)
+            g.card:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, y)
+            local w = g.card:GetWidth() or 738
+            local cw = (w - 42) / 2
+            local rows = math.ceil(#g.items / 2)
+            for i, t in ipairs(g.items) do
+                t:ClearAllPoints()
+                t:SetPoint("TOPLEFT", g.card, "TOPLEFT", 14 + ((i - 1) % 2) * (cw + 14), -76 - math.floor((i - 1) / 2) * 34)
+                t:SetWidth(cw)
+                t:SetShown(not g.closed)
+            end
+            local h = g.closed and 68 or 84 + rows * 34
+            g.card:SetHeight(h)
+            local on = 0
+            for _, t in ipairs(g.items) do if enabled(t.kindKey) then on = on + 1 end end
+            g.fold:SetLabel((g.closed and ">  " or "v  ") .. L[g.title] .. "  (" .. on .. "/" .. #g.items .. ")")
+            y = y - h - 14
+        end
+        local sc = f:GetParent()
+        if sc and sc.Measure then C_Timer.After(0, function() sc.Measure() end) end
+    end
+    local head = K.Header(f, L["Welche Hinweise willst du sehen?"])
+    head:SetPoint("TOPLEFT", 0, -234)
+    local go = K.Button(f, L["Sounds dazu"], 110, 24, "ghost", function() page.SetTab("sound") end)
+    go:SetPoint("TOPRIGHT", -2, -230)
+    local allOn = K.Button(f, L["Alle an"], 80, 24, "ghost", function()
+        S().toastOff, S().toastMuted, S().deathToasts = {}, nil, nil
         ns.RefreshPage("settings")
     end)
-    allOn:SetPoint("RIGHT", go, "LEFT", -6, 0)
-    f.kindSum = K.Text(f, 11, C.muted, "RIGHT")
-    f.kindSum:SetPoint("RIGHT", allOn, "LEFT", -10, 0)
-    f.kinds = {}
-    for i, e in ipairs(list) do
-        local key = e.key
-        local t = K.Toggle(f, L[e.text], function()
-            local off = S().toastOff
-            if key == "death" and S().deathToasts == false then return false end
-            return not (off and off[key])
-        end, function(v)
-            S().toastOff = S().toastOff or {}
-            S().toastOff[key] = (not v) or nil
-            if key == "death" then S().deathToasts = v end
+    allOn:SetPoint("RIGHT", go, "LEFT", -8, 0)
+    f.kindSum = K.Text(f, 11, C.muted)
+    f.kindSum:SetPoint("TOPLEFT", 0, -258)
+    for _, spec in ipairs(scopes) do
+        local g = { title = spec.title, items = {} }
+        g.card = card(f, 0, -278, 738, 100)
+        g.fold = K.Button(g.card, L[spec.title], 320, 26, "ghost", function()
+            g.closed = not g.closed
+            layoutKinds()
+            if not S().noAnim and K.FadeIn and not g.closed then K.FadeIn(g.card, 0) end
         end)
-        t.kindKey = key
-        f.kinds[#f.kinds + 1] = t
-        f.t[#f.t + 1] = t
-    end
-    -- drei Spalten, Breite aus der Karte
-    local function layoutKinds()
-        local w = bc:GetWidth() or 738
-        if w < 200 then w = 738 end
-        local cw = math.floor((w - 28 - 2 * 10) / 3)
-        for i, t in ipairs(f.kinds) do
-            local col, row = (i - 1) % 3, math.floor((i - 1) / 3)
-            t:ClearAllPoints()
-            t:SetPoint("TOPLEFT", bc, "TOPLEFT", 14 + col * (cw + 10), -46 - row * 28)
-            t:SetWidth(cw)
+        g.fold:SetPoint("TOPLEFT", 12, -10)
+        g.fold.label:ClearAllPoints()
+        g.fold.label:SetPoint("LEFT", 8, 0)
+        note(g.card, L[spec.desc], 14, -44, 660, C.muted)
+        g.bulk = K.Button(g.card, L["Gruppe ausschalten"], 170, 24, "ghost", function()
+            local any = false
+            for _, t in ipairs(g.items) do if enabled(t.kindKey) then any = true end end
+            for _, t in ipairs(g.items) do change(t.kindKey, not any) end
+            ns.RefreshPage("settings")
+        end)
+        g.bulk:SetPoint("TOPRIGHT", -14, -10)
+        for _, e in ipairs(ns.Sound and ns.Sound.EVENTS or {}) do
+            if not e.dev and e.key ~= "entrance" and e.key ~= "open" and e.key ~= "close" and (eventScope[e.key] or "personal") == spec.key then
+                local key = e.key
+                local t = K.Toggle(g.card, L[e.text], function() return enabled(key) end, function(v)
+                    change(key, v)
+                    ns.RefreshPage("settings")
+                end)
+                t.kindKey = key
+                indexAdd(L[e.text], t, L[spec.title])
+                g.items[#g.items + 1] = t
+                f.kinds[#f.kinds + 1] = t
+                f.t[#f.t + 1] = t
+            end
         end
+        g.card.ExpandSearch = function() g.closed = false layoutKinds() end
+        g.card:HookScript("OnSizeChanged", function(_, w)
+            if g.width ~= w then g.width = w layoutKinds() end
+        end)
+        f.kindGroups[#f.kindGroups + 1] = g
     end
-    bc:SetScript("OnSizeChanged", layoutKinds)
     layoutKinds()
+
 end
 local function refreshToasts(f)
     for _, t in ipairs(f.t) do t:Refresh() end
@@ -2139,13 +2205,21 @@ local function refreshToasts(f)
         local off = (S().toastOff and S().toastOff[t.kindKey]) or (t.kindKey == "death" and S().deathToasts == false)
         if not off then on = on + 1 end
         if t.lbl then
-            local c = off and { 0.85, 0.42, 0.42 } or C.text
+            local c = off and C.muted or C.text
             t.lbl:SetTextColor(c[1], c[2], c[3])
         end
     end
     if f.kindSum then
         f.kindSum:SetText(("|cff66db9e%d %s|r  |cff666666·|r  %s"):format(on, L["an"],
             n - on > 0 and ("|cffe06060" .. (n - on) .. " " .. L["aus"] .. "|r") or ("|cff888888" .. L["keiner aus"] .. "|r")))
+    end
+    for _, g in ipairs(f.kindGroups or {}) do
+        local on = 0
+        for _, t in ipairs(g.items) do
+            if not (S().toastOff and S().toastOff[t.kindKey]) and not (t.kindKey == "death" and S().deathToasts == false) then on = on + 1 end
+        end
+        g.bulk:SetLabel(on > 0 and L["Gruppe ausschalten"] or L["Gruppe einschalten"])
+        g.fold:SetLabel((g.closed and ">  " or "v  ") .. L[g.title] .. "  (" .. on .. "/" .. #g.items .. ")")
     end
     f.dur:Refresh()
     f.scale:Refresh()
@@ -3403,32 +3477,37 @@ compact = function(fr)
         end
     end
 end
--- Gliederung (0.5.677): sechs Gruppen mit Symbol, darunter Unterreiter (nur wenn eine Gruppe mehrere hat)
--- Topbar = Fensterverhalten (Allgemein), Listen & Karte = was Oasis zeigt (Bereiche), Profil + Daten zusammen
--- 0.5.995: neu geordnet nach der Frage des Spielers ("wie sieht es aus", "was will ich mitbekommen", "was steht im Tooltip/auf der Karte")
--- statt nach Modulen. Start = Schnellstart mit dem Wichtigsten, Technik liegt unter Erweitert.
--- "lists" (Listen & Karte) gibt es nicht mehr in der Navigation - alles daraus steht bei Karte bzw. den Bereichen.
+-- Themenwahl: Gildenorganisation, soziale Aktivitaeten und persoenliche Helfer getrennt.
+-- Design, Benachrichtigungen, Datenschutz und technische Modulverwaltung haben eigene Themen.
 local GROUPS = {
-    -- 0.6.470: neu geordnet - eine Stelle zum Ein-/Ausschalten (Funktionen: Seiten + Module), Chat und Komfort zusammen,
-    -- "Erweitert" nur noch Status und Leistung
-    { key = "start", text = "Start", icon = "home", tabs = { "quick" },
-        desc = "Das Wichtigste auf einen Blick" },
-    { key = "pages", text = "Funktionen", icon = "modules", tabs = { "pages", "modules" },
-        desc = "Welche Seiten in der Leiste stehen und welche Module laufen" },
-    { key = "look", text = "Aussehen", icon = "brush", tabs = { "look", "general", "bar" },
-        desc = "Design, Schrift, Fenster, Minimap-Knopf und Topbar" },
-    { key = "notify", text = "Hinweise & Klang", icon = "announce", tabs = { "toasts", "sound", "greet" },
-        desc = "Welche Meldungen du siehst und hoerst" },
-    { key = "info", text = "Karte & Tooltips", icon = "map", tabs = { "mapset", "tips" },
-        desc = "Gilde auf Weltkarte und Minimap, Zusatzzeilen im Tooltip" },
-    { key = "help", text = "Chat & Komfort", icon = "checklist", tabs = { "gamechat", "comfort", "helpers", "keys" },
-        desc = "Spielchat, Komfort-Funktionen, Helfer und Tastenkuerzel" },
-    { key = "char", text = "Profil & Daten", icon = "profile", tabs = { "char", "share", "lexport" },
-        desc = "Main und Twinks, Datenschutz, Einstellungen sichern" },
-    { key = "adv", text = "Erweitert", icon = "stats", tabs = { "status", "perf" },
-        desc = "Status und Leistung - fuer Fortgeschrittene" },
+    { key = "start", text = "Uebersicht", icon = "home", tabs = { "quick" },
+        desc = "Waehle ein Thema oder suche direkt nach einer Einstellung." },
+    { key = "guild", text = "Gilde & Organisation", icon = "modules", tabs = { "guildtools" },
+        desc = "Mitglieder, Termine, Raids, Handwerk und gemeinsame Gildenziele." },
+    { key = "social", text = "Socializing", icon = "social", tabs = { "socialtools", "greet" },
+        desc = "Leute kennenlernen, Gruppen finden und gemeinsam etwas unternehmen." },
+    { key = "help", text = "Mein Komfort", icon = "checklist", tabs = { "personaltools", "comfort", "helpers", "gamechat", "mapset", "tips", "keys" },
+        desc = "Persoenliche Spielhilfen, Chat, Karte und Tooltips fuer deinen Alltag." },
+    { key = "look", text = "Aussehen & Bedienung", icon = "brush", tabs = { "look", "general", "bar" },
+        desc = "Design, Schrift, Fenster und Leisten an deinen Spielstil anpassen." },
+    { key = "notify", text = "Hinweise & Klang", icon = "announce", tabs = { "toasts", "sound" },
+        desc = "Bestimme, was du mitbekommst, wie es aussieht und wie es klingt." },
+    { key = "char", text = "Profil & Datenschutz", icon = "profile", tabs = { "char", "share", "lexport" },
+        desc = "Charaktere zuordnen, geteilte Daten kontrollieren und Einstellungen sichern." },
+    { key = "adv", text = "System & Module", icon = "settings", tabs = { "modules", "status", "perf" },
+        desc = "Module laden, Verbindung pruefen und Leistung einstellen." },
 }
-local HIDDEN_TABS = { lists = true }   -- weiter aufrufbar (alte Links), aber ohne eigenen Reiter
+for _, entry in ipairs({
+    { "guildtools", "Gildenfunktionen", "guild" },
+    { "socialtools", "Miteinander", "social" },
+    { "personaltools", "Meine Werkzeuge", "personal" },
+}) do
+    local scope = entry[3]
+    BUILD[entry[1]] = function(f) buildPages(f, scope) end
+    REFRESH[entry[1]] = refreshPages
+    TABS[#TABS + 1] = { key = entry[1], text = entry[2] }
+end
+local HIDDEN_TABS = { lists = true, pages = true }   -- weiter aufrufbar (alte Links), aber ohne eigenen Reiter
 local function tabText(key)
     for _, t in ipairs(TABS) do if t.key == key then return L[t.text] end end
     return key
@@ -3448,10 +3527,10 @@ local function groupOf(key)
     for _, g in ipairs(GROUPS) do for _, k in ipairs(groupTabs(g)) do if k == key then return g end end end
     return GROUPS[1]
 end
-local function tabTop(g) return -84 end   -- zweite Zeile immer da (Unterreiter + Suche), mit Luft darueber/darunter
+local function tabTop(g) return page and page.contentTop or -194 end
 local function setTab(key)
     if not page then return end
-    if HIDDEN_TABS[key] then key = "mapset" end   -- alte Links auf "Listen & Karte"
+    if key == "lists" then key = "mapset" elseif key == "pages" then key = "guildtools" end   -- alte Links auf "Listen & Karte"
     if not BUILD[key] then key = "quick" end
     page.tab = key
     local g = groupOf(key)
@@ -3548,7 +3627,7 @@ local function setTab(key)
                 fr:SetPoint("BOTTOMRIGHT", from * (1 - e), 0)
             end)
         end
-        K.FadeIn(fr, 0)
+        if S().noAnim then fr:SetAlpha(1) else K.FadeIn(fr, 0) end
         local stFr = page.tabs[key]
         C_Timer.After(0.02, function() pcall(staggerCards, stFr) end)
         -- 0.5.561: Endposition immer sicher setzen (unterbrochenes Hereingleiten liess den Inhalt eingerueckt stehen)
@@ -3573,8 +3652,9 @@ end
 function ns.OpenAreaSettings(area)
     -- Karten-Schalter haben seit 0.5.995 einen eigenen Reiter
     if area == "map" then ns.OpenSettingsTab("mapset") if ns.OasisFront then ns.OasisFront() end return end
-    ns.OpenSettingsTab("pages")
-    local pf = page and page.tabs and page.tabs.pages
+    local tab = areaTab(area)
+    ns.OpenSettingsTab(tab)
+    local pf = page and page.tabs and page.tabs[tab]
     if pf and pf.ShowSel then
         pf.sel = area
         if pf.pick then pcall(pf.pick.Update, pf.pick) end
@@ -3866,7 +3946,7 @@ local function searchHits(q)
         local id = e.label .. "|" .. (e.area or e.tab)
         if sc and not seen[id] then
             seen[id] = true
-            hits[#hits + 1] = { label = e.label, desc = e.desc, tab = e.tab, area = e.area, frame = e.frame, sc = sc }
+            hits[#hits + 1] = { label = e.label, desc = e.desc, tab = e.tab, area = e.area, frame = e.frame, settingKey = e.settingKey, sc = sc }
         end
     end
     table.sort(hits, function(a, b) if a.sc ~= b.sc then return a.sc < b.sc end return a.label < b.label end)
@@ -3879,196 +3959,127 @@ ns.RegisterPage({
     sub = "Oasis an deinen Stil anpassen",
     build = function(p)
         page = p
+        wipe(INDEX)
         p.SetTab = setTab
         p.tabs = {}
-        -- Navigation: Gruppen-Knoepfe (Symbol + Name) mit gleitender Markierung, darunter Unterreiter
+        -- Suche, Themenwahl und Unterseiten haben jeweils eine eigene Zeile.
         local nav = CreateFrame("Frame", nil, p)
-        nav:SetPoint("TOPLEFT", 0, 0)
-        nav:SetPoint("TOPRIGHT", 0, 0)
-        nav:SetHeight(30)
+        nav:SetPoint("TOPLEFT", 0, -40)
+        nav:SetPoint("TOPRIGHT", 0, -40)
+        nav:SetHeight(68)
         p.nav = nav
-        nav.ind = nav:CreateTexture(nil, "BACKGROUND")
-        nav.ind:SetTexture("Interface\\Buttons\\WHITE8X8")
-        nav.ind:SetHeight(28)
-        nav.bar = nav:CreateTexture(nil, "ARTWORK")
-        nav.bar:SetHeight(2)
         nav.btns = {}
-        local x = 0
+        nav.ind = nav:CreateTexture(nil, "BACKGROUND")
+        nav.ind:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.12)
+        p.context = K.Text(p, 11, C.muted)
+        p.context:SetPoint("TOPLEFT", 0, -120)
+        p.context:SetPoint("RIGHT", -4, 0)
+        p.context:SetWordWrap(false)
         for _, g in ipairs(GROUPS) do
             if #groupTabs(g) > 0 then
                 local b = CreateFrame("Button", nil, nav)
-                b:SetHeight(28)
                 b.g = g
+                b:SetHeight(32)
                 b.icon = K.Glyph(b, 14, ns.MEDIA .. "icons\\" .. g.icon, C.muted)
                 b.icon:SetPoint("LEFT", 8, 0)
                 b.t = K.Text(b, 12, C.muted)
-                b.t:SetPoint("LEFT", b.icon, "RIGHT", 6, 0)
+                b.t:SetPoint("LEFT", b.icon, "RIGHT", 7, 0)
+                b.t:SetPoint("RIGHT", -6, 0)
+                b.t:SetWordWrap(false)
+                b.t:SetJustifyH("LEFT")
                 b.t:SetText(L[g.text])
-                b:SetWidth(8 + 14 + 6 + (b.t:GetStringWidth() or 60) + 9)
-                b:SetPoint("LEFT", nav, "LEFT", x, 0)
-                x = x + b:GetWidth() + 2
                 b.hl = b:CreateTexture(nil, "HIGHLIGHT")
                 b.hl:SetAllPoints()
                 b.hl:SetColorTexture(1, 1, 1, 0.04)
                 b:SetScript("OnClick", function(self)
                     local tabs = groupTabs(self.g)
-                    -- zuletzt offener Unterreiter dieser Gruppe, sonst der erste
                     local last = S().settingsSub and S().settingsSub[self.g.key]
                     local want = tabs[1]
                     for _, k in ipairs(tabs) do if k == last then want = k end end
                     setTab(want)
                 end)
-                b:SetScript("OnEnter", function(self) if p.group ~= self.g.key then self.t:SetTextColor(C.text[1], C.text[2], C.text[3]) self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3]) end end)
-                b:SetScript("OnLeave", function(self) if p.group ~= self.g.key then self.t:SetTextColor(C.muted[1], C.muted[2], C.muted[3]) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) end end)
+                b:SetScript("OnEnter", function(self) K.ShowTip(self, { L[self.g.text], L[self.g.desc] }) end)
+                b:SetScript("OnLeave", function() GameTooltip:Hide() end)
                 nav.btns[#nav.btns + 1] = b
             end
         end
-        nav:SetWidth(x)
-        -- Markierung gleitet zur aktiven Gruppe
-        -- 0.5.534: Reiter gleichmaessig ueber die ganze Breite, Symbol + Text je mittig
         local function justify()
-            local W = nav:GetWidth() or 0
-            local n = #nav.btns
-            if W < 100 or n == 0 then return end
-            -- natuerliche Breite je Reiter + gleicher Zuschlag (gleich breite Reiter liessen lange Namen ueberlappen)
-            local inner, sum = {}, 0
+            local w = nav:GetWidth() or 740
+            if w < 100 then return end
+            local cw = (w - 18) / 4
             for i, b in ipairs(nav.btns) do
-                inner[i] = 14 + 6 + (b.t:GetStringWidth() or 60) + 16
-                sum = sum + inner[i]
-            end
-            local extra = math.max(0, (W - sum - 2 * (n - 1)) / n)
-            local x = 0
-            for i, b in ipairs(nav.btns) do
-                local bw = inner[i] + extra
+                b.nx, b.ny = ((i - 1) % 4) * (cw + 6), -math.floor((i - 1) / 4) * 36
                 b:ClearAllPoints()
-                b:SetPoint("LEFT", nav, "LEFT", x, 0)
-                b:SetWidth(bw)
-                b.icon:ClearAllPoints()
-                b.icon:SetPoint("LEFT", b, "LEFT", 8 + extra / 2, 0)
-                x = x + bw + 2
+                b:SetPoint("TOPLEFT", nav, "TOPLEFT", b.nx, b.ny)
+                b:SetWidth(cw)
             end
-            if p.UpdateNav and p.curGroup then pcall(p.UpdateNav, p, p.curGroup, p.tab) end
+            if p.UpdateNav and p.curGroup then p:UpdateNav(p.curGroup, p.tab) end
         end
-        nav:SetScript("OnSizeChanged", justify)
         nav.Justify = justify
-        C_Timer.After(0, justify)
-        nav.cur = { x = 0, w = 0 }
-        nav.drv = CreateFrame("Frame", nil, nav)
-        nav.drv:SetScript("OnUpdate", function(self, el)
-            local tgt = nav.target
-            if not tgt then return end
-            local k = (S().noAnim) and 1 or math.min(1, el * 14)
-            nav.cur.x = nav.cur.x + (tgt.x - nav.cur.x) * k
-            nav.cur.w = nav.cur.w + (tgt.w - nav.cur.w) * k
-            if math.abs(nav.cur.x - tgt.x) < 0.5 and math.abs(nav.cur.w - tgt.w) < 0.5 then nav.cur.x, nav.cur.w = tgt.x, tgt.w end
-            nav.ind:ClearAllPoints()
-            nav.ind:SetPoint("LEFT", nav, "LEFT", nav.cur.x, 0)
-            nav.ind:SetWidth(math.max(1, nav.cur.w))
-            nav.bar:ClearAllPoints()
-            nav.bar:SetPoint("BOTTOMLEFT", nav, "BOTTOMLEFT", nav.cur.x + 8, -1)
-            nav.bar:SetWidth(math.max(1, nav.cur.w - 16))
-        end)
+        nav:SetScript("OnSizeChanged", justify)
         p.subSeg = {}
         function p:UpdateNav(g, key)
             self.curGroup = g
-            local ac = C.accent
-            nav.ind:SetVertexColor(ac[1], ac[2], ac[3], 0.10)
-            nav.bar:SetColorTexture(ac[1], ac[2], ac[3], 1)
+            nav.ind:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.12)
+            self.context:SetText(L[g.desc])
             for _, b in ipairs(nav.btns) do
                 local on = b.g.key == g.key
                 local c = on and C.text or C.muted
                 b.t:SetTextColor(c[1], c[2], c[3])
-                local ic = on and ac or C.muted
-                b.icon:SetVertexColor(ic[1], ic[2], ic[3])
+                b.icon:SetVertexColor(c[1], c[2], c[3])
                 if on then
-                    local l = (b:GetLeft() and nav:GetLeft()) and (b:GetLeft() - nav:GetLeft()) or select(4, b:GetPoint(1)) or 0
-                    nav.target = { x = l, w = b:GetWidth() }
-                    if nav.cur.w == 0 then nav.cur.x, nav.cur.w = l, b:GetWidth() end
+                    local x, y, w = b.nx or 0, b.ny or 0, b:GetWidth()
+                    local from = nav.position or { x, y }
+                    local function move(q)
+                        nav.position = { from[1] + (x - from[1]) * q, from[2] + (y - from[2]) * q }
+                        nav.ind:ClearAllPoints()
+                        nav.ind:SetPoint("TOPLEFT", nav, "TOPLEFT", nav.position[1], nav.position[2])
+                        nav.ind:SetSize(w, 32)
+                    end
+                    if not S().noAnim and K.Tween then K.Tween(nav, 0.16, move) else move(1) end
                 end
             end
-            -- Unterreiter der Gruppe
             for gk, sg in pairs(self.subSeg) do sg:SetShown(gk == g.key) end
             local tabs = groupTabs(g)
-            if #tabs > 1 then
-                local sg = self.subSeg[g.key]
-                if not sg then
-                    -- 0.5.532: Unterreiter als Kacheln mit Symbol (deutlich unterscheidbar, z. B. Oasis-Fenster vs. Topbar)
-                    local SUBICON = { look = "LOGO", bar = "modules", general = "settings", status = "stats", perf = "stats", toasts = "announce",
-                        sound = "sound", greet = "social", comfort = "checklist", helpers = "heart", char = "profile", share = "sync", pages = "modules" }
-                    sg = CreateFrame("Frame", nil, self)
-                    sg:SetPoint("TOPLEFT", 0, -44)
-                    sg:SetSize(400, 28)
-                    sg.btns = {}
-                    local x = 0
-                    for _, k in ipairs(tabs) do
-                        local b = CreateFrame("Button", nil, sg)
-                        b:SetHeight(26)
-                        b.key = k
-                        b.bg = b:CreateTexture(nil, "BACKGROUND")
-                        b.bg:SetAllPoints()
-                        if K.Border then K.Border(b, C.line) end
-                        local ik = SUBICON[k]
-                        if ik == "LOGO" then
-                            b.icon = b:CreateTexture(nil, "ARTWORK")
-                            b.icon:SetTexture(ns.MEDIA .. "logo64")
-                            b.icon:SetSize(15, 15)
-                        else
-                            b.icon = K.Glyph(b, 14, ns.MEDIA .. "icons\\" .. (ik or "settings"), C.muted)
-                        end
-                        b.icon:SetPoint("LEFT", 10, 0)
-                        b.t = K.Text(b, 13, C.muted)
-                        b.t:SetPoint("LEFT", b.icon, "RIGHT", 7, 0)
-                        b.t:SetText(tabText(k))
-                        b:SetWidth(10 + 15 + 7 + math.max(30, b.t:GetStringWidth() or 50) + 14)
-                        b:SetPoint("LEFT", sg, "LEFT", x, 0)
-                        x = x + b:GetWidth() + 6
-                        b:SetScript("OnClick", function(self2) setTab(self2.key) end)
-                        b:SetScript("OnEnter", function(self2) if not self2.on then self2.bg:SetColorTexture(1, 1, 1, 0.06) end end)
-                        b:SetScript("OnLeave", function(self2) if not self2.on then self2.bg:SetColorTexture(1, 1, 1, 0.025) end end)
-                        sg.btns[#sg.btns + 1] = b
-                    end
-                    -- 0.5.928: reichen die Reiter bis unter das Suchfeld (rechts, 130 breit), ruecken sie zusammen:
-                    -- erst ohne Symbole, dann mit engerem Rand
-                    local avail = (self:GetWidth() or 740) - 130 - 14
-                    if x - 6 > avail then
-                        local function relayout(pad)
-                            local xx = 0
-                            for _, b in ipairs(sg.btns) do
-                                b.icon:Hide()
-                                b.t:ClearAllPoints()
-                                b.t:SetPoint("LEFT", pad, 0)
-                                b:SetWidth(pad + math.max(30, b.t:GetStringWidth() or 50) + pad)
-                                b:ClearAllPoints()
-                                b:SetPoint("LEFT", sg, "LEFT", xx, 0)
-                                xx = xx + b:GetWidth() + 4
-                            end
-                            return xx - 4
-                        end
-                        if relayout(11) > avail then relayout(6) end
-                    end
-                    function sg:Select(key2)
-                        local ac = C.accent
-                        for _, b in ipairs(self.btns) do
-                            b.on = b.key == key2
-                            b.bg:SetColorTexture(b.on and ac[1] or 1, b.on and ac[2] or 1, b.on and ac[3] or 1, b.on and 0.16 or 0.025)
-                            if K.SetBorderColor then K.SetBorderColor(b, b.on and { ac[1], ac[2], ac[3], 0.7 } or C.line) end
-                            local c = b.on and C.text or C.muted
-                            b.t:SetTextColor(c[1], c[2], c[3])
-                            if b.icon.SetVertexColor and b.key ~= "look" then
-                                local ic = b.on and ac or C.muted
-                                b.icon:SetVertexColor(ic[1], ic[2], ic[3])
-                            end
-                            if b.key == "look" then b.icon:SetDesaturated(not b.on) b.icon:SetAlpha(b.on and 1 or 0.6) end
-                        end
-                    end
-                    self.subSeg[g.key] = sg
+            local sg = self.subSeg[g.key]
+            if not sg then
+                sg = CreateFrame("Frame", nil, self)
+                sg:SetPoint("TOPLEFT", 0, -144)
+                sg:SetPoint("TOPRIGHT", 0, -144)
+                sg.btns = {}
+                for _, k in ipairs(tabs) do
+                    local b = K.Button(sg, tabText(k), 100, 26, "ghost", function() setTab(k) end)
+                    b.key = k
+                    b.mark = b:CreateTexture(nil, "ARTWORK")
+                    b.mark:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+                    b.mark:SetPoint("BOTTOMLEFT", 8, 0)
+                    b.mark:SetPoint("BOTTOMRIGHT", -8, 0)
+                    b.mark:SetHeight(2)
+                    sg.btns[#sg.btns + 1] = b
                 end
-                sg:Show()
-                sg:Select(key)
+                self.subSeg[g.key] = sg
             end
+            local x, row, avail = 0, 0, self:GetWidth() or 740
+            for _, b in ipairs(sg.btns) do
+                local w = math.min(avail, math.max(80, (b.label and b.label:GetStringWidth() or #tabText(b.key) * 7) + 24))
+                if x > 0 and x + w > avail then x, row = 0, row + 1 end
+                b:ClearAllPoints()
+                b:SetPoint("TOPLEFT", x, -row * 32)
+                b:SetWidth(w)
+                b.mark:SetShown(b.key == key)
+                x = x + w + 6
+            end
+            sg:SetHeight((row + 1) * 32)
+            sg:Show()
+            self.contentTop = -144 - (row + 1) * 32 - 16
+            -- Bei Groessenaenderungen bleibt der Inhalt unter den umgebrochenen Unterreitern.
+            local sc = self.scrolls and self.scrolls[key]
+            if sc then sc:ClearAllPoints() sc:SetPoint("TOPLEFT", 0, self.contentTop) sc:SetPoint("BOTTOMRIGHT") end
             S().settingsSub = S().settingsSub or {}
             S().settingsSub[g.key] = key
         end
+        justify()
+        C_Timer.After(0, justify)
         -- alte Schnittstelle (andere Module/Tests rufen p.seg:Select)
         p.seg = { Select = function(_, k) if k ~= p.tab then setTab(k) end end, Hide = function() end, Show = function() end,
             GetWidth = function() return nav:GetWidth() end }
@@ -4101,31 +4112,24 @@ ns.RegisterPage({
                 p.allBuilt = true
                 local cur = p.tab
                 for _, tb in ipairs(TABS) do
-                    if not p.tabs[tb.key] and BUILD[tb.key] then
-                        local fr = CreateFrame("Frame", nil, p)
-                        fr:SetPoint("TOPLEFT", 0, -40) fr:SetPoint("BOTTOMRIGHT")
-                        p.tabs[tb.key] = fr
-                        p.buildingTab = tb.key
-                        pcall(BUILD[tb.key], fr)
-                        p.buildingTab = nil
-                        pcall(compact, fr)
-                        fr:Hide()
-                    end
+                    if not HIDDEN_TABS[tb.key] and not p.tabs[tb.key] and BUILD[tb.key] then setTab(tb.key) end
                 end
-                -- Bereichs-Einstellungen einmal aufbauen, damit die Suche sie kennt
-                local pf = p.tabs.pages
-                if pf and pf.nav and pf.ShowSel then
-                    local keep = pf.sel
-                    p.buildingTab = "pages"
-                    for _, t in ipairs(pf.nav) do
-                        p.buildingArea = t.key
-                        pf.sel = t.key
+                for _, tab in ipairs({ "guildtools", "socialtools", "personaltools" }) do
+                    local pf = p.tabs[tab]
+                    if pf and pf.nav and pf.ShowSel then
+                        local keep = pf.sel
+                        p.buildingTab = tab
+                        for _, t in ipairs(pf.nav) do
+                            p.buildingArea = t.key
+                            pf.sel = t.key
+                            pcall(pf.ShowSel, pf)
+                        end
+                        p.buildingArea, p.buildingTab = nil, nil
+                        pf.sel = keep
                         pcall(pf.ShowSel, pf)
                     end
-                    p.buildingArea, p.buildingTab = nil, nil
-                    pf.sel = keep
-                    pcall(pf.ShowSel, pf)
                 end
+                setTab(cur)
                 if p.tabs[cur] then p.tabs[cur]:Show() end
             end
             local n = 0
@@ -4153,12 +4157,29 @@ ns.RegisterPage({
                     b:SetScript("OnClick", function()
                         res:Hide()
                         p.find:ClearFocus()
+                        local rebuilt = e.settingKey and advHidden(e.settingKey)
+                        if rebuilt then
+                            S().setAll = true
+                            for k, fr in pairs(p.tabs) do
+                                fr:Hide()
+                                if p.scrolls and p.scrolls[k] then p.scrolls[k]:Hide() end
+                            end
+                            p.tabs, p.scrolls, p.allBuilt = {}, {}, nil
+                            wipe(INDEX)
+                            if p.allOpt.Refresh then p.allOpt:Refresh() end
+                        end
                         setTab(e.tab)
                         if e.isTab then return end
                         local f = e.frame
+                        if rebuilt and not e.area then
+                            f = nil
+                            for _, item in ipairs(INDEX) do
+                                if item.tab == e.tab and item.settingKey == e.settingKey then f = item.frame break end
+                            end
+                        end
                         -- Bereichs-Einstellung: Bereich oeffnen und den frisch gebauten Schalter suchen
-                        if e.area and p.tabs.pages then
-                            local pf = p.tabs.pages
+                        if e.area and p.tabs[e.tab] then
+                            local pf = p.tabs[e.tab]
                             pf.sel = e.area
                             if pf.pick then pf.pick:Update() end
                             pf:ShowSel()
@@ -4168,7 +4189,21 @@ ns.RegisterPage({
                             end
                             if not f then return end
                         end
-                        -- kurz aufleuchten lassen
+                        local parent = f and f:GetParent()
+                        if parent and parent.ExpandSearch then parent.ExpandSearch() end
+                        local sc = p.scrolls[e.tab]
+                        if e.area then sc = p.tabs[e.tab].detScroll end
+                        if sc and f and f.GetTop then
+                            local child = sc:GetScrollChild()
+                            local ct, ft = child and child:GetTop(), f:GetTop()
+                            if ct and ft then
+                                local limit = math.max(0, child:GetHeight() - sc:GetHeight())
+                                sc:SetVerticalScroll(math.min(limit, math.max(0, ct - ft - 16)))
+                                if sc.UpdateBar then sc:UpdateBar() elseif sc.Measure then sc.Measure() end
+                            end
+                        end
+                        if not f then return end
+                        -- Fundstelle kurz markieren; reduzierte Bewegung bleibt statisch.
                         if not f.flash then
                             f.flash = f:CreateTexture(nil, "BACKGROUND")
                             f.flash:SetPoint("TOPLEFT", -6, 4) f.flash:SetPoint("BOTTOMRIGHT", 6, -4)
@@ -4179,7 +4214,7 @@ ns.RegisterPage({
                         f:SetScript("OnUpdate", function(self)
                             local d = GetTime() - t0
                             if d > 1.6 then self.flash:Hide() self:SetScript("OnUpdate", nil) return end
-                            self.flash:SetAlpha(0.5 + 0.5 * math.cos(d * 8))
+                            self.flash:SetAlpha(S().noAnim and 0.6 or math.max(0, 1 - d / 1.6))
                         end)
                     end)
                     b:Show()
@@ -4189,22 +4224,24 @@ ns.RegisterPage({
             res.none:SetShown(n == 0)
             res:Show()
         end)
-        p.find:SetPoint("TOPRIGHT", 0, -45)  -- 0.5.531: zweite Zeile rechts (in der Gruppenzeile ueberlappte es die Reiter)
-        p.find:SetWidth(130)
+        p.find:SetPoint("TOPLEFT", 0, 0)
+        p.find:SetWidth(280)
         -- 0.6.471: "Alle Optionen" - zeigt auch die selten gebrauchten Schalter (Seiten werden neu aufgebaut)
         p.allOpt = K.Toggle(p, L["Alle Optionen"], function() return S().setAll and true or false end, function(v)
             S().setAll = v or nil
             local cur = p.tab
             for k, fr in pairs(p.tabs) do fr:Hide() if p.scrolls and p.scrolls[k] then p.scrolls[k]:Hide() end end
             p.tabs, p.scrolls, p.allBuilt = {}, {}, nil
+            wipe(INDEX)
+            p.findRes:Hide()
             setTab(cur)
         end)
-        p.allOpt:SetPoint("RIGHT", p.find, "LEFT", -16, 0)
+        p.allOpt:SetPoint("TOPRIGHT", 0, 0)
         p.allOpt:SetWidth(130)
         p.allOpt:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Alle Optionen"], L["Zeigt auch selten gebrauchte Schalter. Aus: nur das Wichtigste."] }) end)
         p.allOpt:HookScript("OnLeave", function() GameTooltip:Hide() end)
         p.findRes = CreateFrame("Frame", nil, p)
-        p.findRes:SetPoint("TOPRIGHT", p.find, "BOTTOMRIGHT", 0, -2)
+        p.findRes:SetPoint("TOPLEFT", p.find, "BOTTOMLEFT", 0, -4)
         p.findRes:SetWidth(308)
         p.findRes:SetFrameLevel(p:GetFrameLevel() + 50)
         K.Fill(p.findRes, { 0.05, 0.05, 0.06, 0.98 })
@@ -4215,8 +4252,8 @@ ns.RegisterPage({
         p.findRes.none:SetText(L["Nichts gefunden."])
         p.findRes:Hide()
         local line = K.Divider(p)
-        line:SetPoint("TOPLEFT", 0, -28)
-        line:SetPoint("TOPRIGHT", 0, -28)
+        line:SetPoint("TOPLEFT", 0, -32)
+        line:SetPoint("TOPRIGHT", 0, -32)
         -- 0.5.995: nach dem Umbau einmal auf dem Schnellstart beginnen
         if not S().settingsV2 then S().settingsV2 = true S().settingsTab = "quick" S().settingsSub = nil end
         local tab = S().settingsTab
