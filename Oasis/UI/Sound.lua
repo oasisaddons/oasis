@@ -669,7 +669,9 @@ local function finish(c)
     -- Rang nach Laenge: bis 1,5 s ab Rang 3, bis 3 s ab 6, bis 5 s ab 10, bis 9 s ab 16, laenger/Musik ab 22
     local d = c.dur or 0
     if c.ownLvl then c.lvl = c.ownLvl   -- eigener Sound einer Gilde mit festem Rang ("@20" im Dateinamen)
-    elseif c.key == "none" or c.kit or c.cat == "oasis" then c.lvl = 1
+    elseif c.key == "none" then c.lvl = 1
+    elseif c.kit then c.lvl = 2   -- 0.6.434: auch WoW-Klaenge und Oasis-Toene nicht mehr ab Rang 1
+    elseif c.cat == "oasis" then c.lvl = 4
     -- 0.6.430: deutlich strenger - kurze ab 10, neue Gilden-Sounds ab 18, lange/Musik erst spaet
     elseif c.new or c.free then c.lvl = c.guild and 18 or 1
     elseif MUSIC[c.key] or c.music then c.lvl = 80
