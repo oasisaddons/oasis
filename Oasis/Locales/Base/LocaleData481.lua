@@ -4050,3 +4050,7 @@ DE["Landet am naechsten Flugpunkt auf der Strecke."] = "Landet am nächsten Flug
 EN["Landet am naechsten Flugpunkt auf der Strecke."] = "Lands at the next flight point on the route."
 DE["Fundort uebernommen: %s"] = "Fundort übernommen: %s"
 EN["Fundort uebernommen: %s"] = "Gathering spot added: %s"
+DE["Routen automatisch aufnehmen"] = "Routen automatisch aufnehmen"
+EN["Routen automatisch aufnehmen"] = "Record routes automatically"
+DE["Dein Weg wird aufgezeichnet und beim Ausloggen als Route gespeichert (Weltkarte: Knopf Meine Routen)"] = "Dein Weg wird aufgezeichnet und beim Ausloggen als Route gespeichert (Weltkarte: Knopf „Meine Routen“)"
+EN["Dein Weg wird aufgezeichnet und beim Ausloggen als Route gespeichert (Weltkarte: Knopf Meine Routen)"] = "Your path is recorded and saved as a route when you log out (world map: My routes button)"

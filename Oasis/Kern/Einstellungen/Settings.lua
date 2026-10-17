@@ -1142,6 +1142,7 @@ ns.AddPageSettings("map", function(det, y)
         { "Haendler, Reparatur, Briefkaesten und Flugpunkte", "mapPoi", "Orte, die jemand aus der Gilde schon besucht hat", xupd, true },
         { "Questgeber der Dungeon-Quests", "mapQuestGivers", "Wo Dungeon-Quests in der offenen Welt beginnen", xupd },
         { "Laufspuren der Gilde", "mapTrails", "Der Weg der letzten 5 Minuten als duenne Linie", xupd },
+        { "Routen automatisch aufnehmen", "routeAuto", "Dein Weg wird aufgezeichnet und beim Ausloggen als Route gespeichert (Weltkarte: Knopf Meine Routen)", nil, true },
         { "Koordinaten an der Minimap", "mmCoords", "Eigene Position und Entfernung zum Ziel", xupd },
         { "Layer-Anfragen aus der Gilde annehmen", "layerAsk", "Hinweis, wenn jemand ueber deine Gruppe auf deinen Layer will", xupd, true },
     })

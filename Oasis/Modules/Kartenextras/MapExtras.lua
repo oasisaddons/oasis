@@ -691,18 +691,25 @@ local function rtPaint()
     rtBtn.icon:SetVertexColor(r and 1 or 0.85, r and 0.3 or 0.82, r and 0.3 or 0.6)
     rtBtn.bg:SetColorTexture(0, 0, 0, r and 0.7 or 0.4)
 end
+-- 0.6.490: laufende Aufnahme speichern (auto = beim Ausloggen, ohne Hinweis und standardmaessig nicht eingeblendet)
+function X.SaveRecord(auto)
+    local rec = X.rec
+    X.rec = nil
+    if not rec then return end
+    if #rec.pts >= 2 then
+        ns.db.routes = ns.db.routes or {}
+        table.insert(ns.db.routes, 1, { name = (L["Route %s"]):format(date("%d.%m. %H:%M")), ts = time(), pts = rec.pts, show = (not auto) or nil })
+        while #ns.db.routes > 30 do table.remove(ns.db.routes) end
+        if not auto then K.Toast(L["Route gespeichert"], (L["%d Punkte - Rechtsklick auf den Knopf zeigt alle Routen"]):format(#rec.pts), C.mint) end
+    elseif not auto then
+        K.Toast(L["Route verworfen"], L["Zu kurz - lauf ein Stueck, waehrend die Aufnahme laeuft."], C.dim)
+    end
+end
 function X.ToggleRecord()
     if X.rec then
-        local rec = X.rec
-        X.rec = nil
-        if #rec.pts >= 2 then
-            ns.db.routes = ns.db.routes or {}
-            table.insert(ns.db.routes, 1, { name = (L["Route %s"]):format(date("%d.%m. %H:%M")), ts = time(), pts = rec.pts, show = true })
-            while #ns.db.routes > 30 do table.remove(ns.db.routes) end
-            K.Toast(L["Route gespeichert"], (L["%d Punkte - Rechtsklick auf den Knopf zeigt alle Routen"]):format(#rec.pts), C.mint)
-        else
-            K.Toast(L["Route verworfen"], L["Zu kurz - lauf ein Stueck, waehrend die Aufnahme laeuft."], C.dim)
-        end
+        X.SaveRecord(false)
+        -- automatische Aufnahme: gleich die naechste Route beginnen
+        if on("routeAuto") then X.rec = { pts = {} } end
     else
         X.rec = { pts = {} }
         pcall(X.SampleTrails)
@@ -751,7 +758,12 @@ local function makeRtBtn()
     rtBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     rtPaint()
 end
-ns.Listen("LOGIN", function() ns.After(1, function() pcall(makeRtBtn) end) end)
+ns.Listen("LOGIN", function()
+    ns.After(1, function() pcall(makeRtBtn) end)
+    -- 0.6.490: Routen werden standardmaessig automatisch aufgenommen und beim Ausloggen gespeichert
+    if on("routeAuto") and not X.rec then X.rec = { pts = {} } end
+end)
+ns.On("PLAYER_LOGOUT", function() if X.rec then pcall(X.SaveRecord, true) end end)
 if WorldMapFrame then WorldMapFrame:HookScript("OnShow", function() pcall(makeRtBtn) rtPaint() end) end
 
 ------------------------------------------------------------------------
@@ -787,7 +799,7 @@ ns.Listen("LOGIN", function()
         if tacc >= 4 then
             tacc = 0
             pcall(X.SampleTrails)
-            if opt("mapTrails") then local w = world() if w then pcall(drawTrails, w) end end
+            local w = world() if w then pcall(drawTrails, w) end   -- 0.6.490: auch fuer Routen (drawTrails prueft selbst)
         end
     end)
 end)
