@@ -343,8 +343,13 @@ local function drawTrails(w)
             px, py = x, y
         end
     end
-    for _, r in ipairs(routes) do drawPts(r.pts or {}, 1, 0.82, 0.3, 0.85) end
-    if X.rec then drawPts(X.rec.pts, 1, 0.3, 0.3, 0.9) end
+    -- 0.6.494: Routen und Aufnahme in der eigenen Klassenfarbe (wie die Laufspur)
+    local _, myClass = UnitClass("player")
+    local mr, mg, mb = 1, 1, 1
+    if myClass and ns.classColor then mr, mg, mb = ns.classColor(myClass) end
+    mr, mg, mb = mr or 1, mg or 1, mb or 1
+    for _, r in ipairs(routes) do drawPts(r.pts or {}, mr, mg, mb, 0.85) end
+    if X.rec then drawPts(X.rec.pts, mr, mg, mb, 0.9) end
     if not opt("mapTrails") then return end
     for name, t in pairs(trails) do
         local r, g, b = 1, 1, 1
