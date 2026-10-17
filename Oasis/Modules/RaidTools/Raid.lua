@@ -3895,21 +3895,20 @@ local function buildForm(f)
     if ns.GuildPack then
         sum.art = sum:CreateTexture(nil, "BACKGROUND", nil, 2)
         sum.art:SetPoint("TOPLEFT", 3, -3) sum.art:SetPoint("TOPRIGHT", -3, -3)
-        sum.art:SetHeight(150)
+        sum.art:SetHeight(104)
         sum.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\raid_preview_bg")
-        sum.art:SetTexCoord(0, 1, 0.08, 0.78)
+        sum.art:SetTexCoord(0, 1, 0.12, 0.6)
         sum.art:SetAlpha(0.4)
-        sum.artFade = sum:CreateTexture(nil, "BACKGROUND", nil, 3)
-        sum.artFade:SetAllPoints(sum.art)
-        if not K.Gradient(sum.artFade, "VERTICAL", { 0.035, 0.035, 0.045, 1 }, { 0.035, 0.035, 0.045, 0.1 }) then sum.artFade:Hide() end
-        if K.RoundMask then pcall(K.RoundMask, sum.art, sum, 14, { "tl", "tr" }) pcall(K.RoundMask, sum.artFade, sum, 14, { "tl", "tr" }) end
+        -- 0.6.464: niedriger, unten weich ins Transparente auslaufend (Verlauf auf dem Bild selbst)
+        if sum.art.SetGradient and CreateColor then pcall(sum.art.SetGradient, sum.art, "VERTICAL", CreateColor(1, 1, 1, 0), CreateColor(1, 1, 1, 1)) end
+        if K.RoundMask then pcall(K.RoundMask, sum.art, sum, 14, { "tl", "tr" }) end
     end
     sum.cap = K.Text(sum, 12, C.text)
     sum.cap:SetPoint("TOPLEFT", 16, -14)
     sum.cap:SetText(L["Termin-Vorschau"])
     sum.disc = CreateFrame("Frame", nil, sum)
     sum.disc:SetSize(76, 76)   -- 0.6.463: grosse Scheibe wie im Entwurf
-    sum.disc:SetPoint("TOPLEFT", 18, -100)
+    sum.disc:SetPoint("TOPLEFT", 18, -66)
     sum.disc.bg = sum.disc:CreateTexture(nil, "BACKGROUND")
     sum.disc.bg:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
     sum.disc.bg:SetAllPoints()
@@ -3926,12 +3925,12 @@ local function buildForm(f)
     -- 0.6.463: Trennlinie, darunter vier Zeilen mit Symbol (Datum, Uhrzeit, Spieler, Wiederholung)
     sum.div = sum:CreateTexture(nil, "ARTWORK")
     sum.div:SetHeight(1)
-    sum.div:SetPoint("TOPLEFT", 18, -190) sum.div:SetPoint("TOPRIGHT", -18, -190)
+    sum.div:SetPoint("TOPLEFT", 18, -156) sum.div:SetPoint("TOPRIGHT", -18, -156)
     sum.div:SetColorTexture(1, 1, 1, 0.1)
     sum.rows = {}
     for k, ic in ipairs({ "chronicle", "camp", "groups", "sync" }) do
         local g = K.Glyph(sum, 16, ns.MEDIA .. "icons\\" .. ic, C.muted)
-        g:SetPoint("TOPLEFT", 22, -204 - (k - 1) * 28)
+        g:SetPoint("TOPLEFT", 22, -170 - (k - 1) * 28)
         local t = K.Text(sum, 13, C.text)
         t:SetPoint("LEFT", g, "RIGHT", 14, 0)
         sum.rows[k] = t
@@ -4182,7 +4181,7 @@ local function buildForm(f)
         -- rechts: Zusammenfassung + anstehende Termine
         local sumCard = f.sumCard
         sumCard:ClearAllPoints()
-        local sumH = 470   -- 0.6.463
+        local sumH = 436   -- 0.6.464
         if two then sumCard:SetPoint("TOPLEFT", body, "TOPLEFT", LW + 18, y0)
         else sumCard:SetPoint("TOPLEFT", body, "TOPLEFT", 0, y0 - LH - 12) end
         sumCard:SetSize(RW, sumH)

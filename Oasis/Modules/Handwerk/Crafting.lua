@@ -741,7 +741,7 @@ local CHECK_TEX = "Interface\\RaidFrame\\ReadyCheck-Ready"
 local GOLD_TEX = "Interface\\MoneyFrame\\UI-GoldIcon"
 local QCOL = { [0] = { 0.62, 0.62, 0.62 }, [1] = { 0.86, 0.86, 0.88 }, [2] = { 0.12, 1, 0 }, [3] = { 0.1, 0.5, 0.95 },
     [4] = { 0.64, 0.21, 0.93 }, [5] = { 1, 0.5, 0 }, [6] = { 0.9, 0.8, 0.5 } }
-local H_HEAD, H_ROW, H_CRAFTER, H_ORDER = 26, 36, 34, 54
+local H_HEAD, H_ROW, H_CRAFTER, H_ORDER = 26, 52, 34, 64   -- 0.6.464: Zeilen hoeher wie im Entwurf
 local TOP_Y = -2             -- Kacheln entfallen, Inhalt beginnt oben
 local MTABS = {
     { key = "recipes", text = "Rezepte", glyph = ICO .. "crafting", color = C.accent },
@@ -1355,22 +1355,37 @@ local function newRecipeRow(TL)
     r.hov = r:CreateTexture(nil, "BORDER")
     r.hov:SetAllPoints()
     r.hov:Hide()
-    r.av = makeAvatar(r, 26)
-    r.av:SetPoint("LEFT", 6, 0)
-    r.name = K.Text(r, 12, C.text)
-    r.name:SetPoint("TOPLEFT", 40, -4)
+    r.av = makeAvatar(r, 38)
+    r.av:SetPoint("LEFT", 8, 0)
+    r.name = K.Text(r, 13, C.text)
+    r.name:SetPoint("LEFT", 58, 0)
+    r.name:SetWordWrap(false)
     r.sub = K.Text(r, 10, C.dim)
+    r.sub:Hide()
+    -- 0.6.464: Spalten "Handwerker" (Punkt + Anzahl) und "Online" (Punkt)
+    r.cnt = K.Text(r, 11, C.muted)
+    r.cntDot = r:CreateTexture(nil, "OVERLAY")
+    r.cntDot:SetTexture(ns.MEDIA .. "dot")
+    r.cntDot:SetSize(8, 8)
+    r.cntDot:SetPoint("RIGHT", r.cnt, "LEFT", -6, 0)
+    r.onl = r:CreateTexture(nil, "OVERLAY")
+    r.onl:SetTexture(ns.MEDIA .. "dot")
+    r.onl:SetSize(12, 12)
+    r.card = r:CreateTexture(nil, "BACKGROUND", nil, -1)
+    r.card:SetPoint("TOPLEFT", 0, -1) r.card:SetPoint("BOTTOMRIGHT", 0, 1)
+    r.card:SetColorTexture(1, 1, 1, 0.03)
+    if K.RoundMask then pcall(K.RoundMask, r.card, r, 6) end
     r.dots = {}
     r.fav = CreateFrame("Button", nil, r)
-    r.fav:SetSize(16, 16)
-    r.fav:SetPoint("RIGHT", -6, 0)
+    r.fav:SetSize(18, 18)
+    r.fav:SetPoint("RIGHT", -12, 0)
     r.fav.t = r.fav:CreateTexture(nil, "OVERLAY")
     r.fav.t:SetAllPoints()
-    r.fav.t:SetTexture(ns.MEDIA .. "diamond")   -- eigenes Symbol (fremde Dateien koennen den Client abstuerzen lassen)
+    r.fav.t:SetTexture(ns.MEDIA .. "icons\\star_on")   -- 0.6.464: Stern wie im Entwurf (eigenes Symbol)
     r.fav:SetScript("OnClick", function(self)
         local e = r.item and r.item.e
         toggleFav(e)
-        if animOn() then K.Tween(self.t, 0.3, function(q) local s = 16 + 8 * math.sin(math.pi * q) self:SetSize(s, s) end, function() self:SetSize(16, 16) end) end
+        if animOn() then K.Tween(self.t, 0.3, function(q) local s = 18 + 8 * math.sin(math.pi * q) self:SetSize(s, s) end, function() self:SetSize(18, 18) end) end
     end)
     r.fav:SetScript("OnEnter", function(self)
         rowHover(r, true)
@@ -1410,41 +1425,22 @@ local function fillRecipeRow(r, it)
     local fv = isFav(e)
     r.fav.t:SetVertexColor(fv and 1 or 0.6, fv and 0.82 or 0.6, fv and 0.3 or 0.62)
     r.fav:SetAlpha(fv and 1 or (r.hovered and 0.75 or 0.3))
-    local reserve = 28
-    local function place(b, show)
-        b:SetShown(show)
-        if not show then return end
-        b:ClearAllPoints()
-        b:SetPoint("RIGHT", r, "RIGHT", -reserve, 0)
-        reserve = reserve + (b:GetWidth() or 40) + 4
-    end
-    place(r.bWant, it.wanted)
-    place(r.bCan, it.can)
+    -- 0.6.464: Spalten wie im Entwurf: Name | Handwerker | Online | Stern (Abzeichen "kannst du"/"gesucht" stehen im Tooltip/Filter)
+    r.bWant:Hide() r.bCan:Hide()
+    for _, d in ipairs(r.dots) do d.ring:Hide() d.dot:Hide() end
     r.name:SetText(hl(e.name, Crafting.QualityHex(e.itemID)))
-    r.name:SetWidth(math.max(40, W - 40 - reserve))
-    -- Handwerker als Klassenpunkte (online = gruener Ring)
+    local cntX, onX = W - 200, W - 66
+    r.name:SetWidth(math.max(40, cntX - 58 - 24))
     local list = it.crafters or {}
-    local n = math.min(6, #list)
-    for i = 1, n do
-        local d = r.dots[i] or newDot(r)
-        r.dots[i] = d
-        local c = list[i]
-        local cr, cg, cb = classRGB(c.name)
-        d.ring:ClearAllPoints()
-        d.ring:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 40 + (i - 1) * 11, 4)
-        if c.online then d.ring:SetVertexColor(C.mint[1], C.mint[2], C.mint[3]) d.ring:SetAlpha(1)
-        else d.ring:SetVertexColor(C.line[1], C.line[2], C.line[3]) d.ring:SetAlpha(0.7) end
-        d.dot:SetVertexColor(cr, cg, cb)
-        d.dot:SetAlpha(c.online and 1 or 0.45)
-        d.ring:Show() d.dot:Show()
-    end
-    for i = n + 1, #r.dots do r.dots[i].ring:Hide() r.dots[i].dot:Hide() end
-    local txt = (L["%d koennen"]):format(#list)
-    if it.on > 0 then txt = txt .. "  |cff555555·|r  |cff66db9e" .. (L["%d online"]):format(it.on) .. "|r" end
-    r.sub:SetText(txt)
-    r.sub:ClearAllPoints()
-    r.sub:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 40 + n * 11 + (n > 0 and 4 or 0), 4)
-    r.sub:SetPoint("RIGHT", r, "RIGHT", -reserve, 0)
+    r.cnt:ClearAllPoints()
+    r.cnt:SetPoint("LEFT", r, "LEFT", cntX + 14, 0)
+    r.cnt:SetText((L["%d Handwerker"]):format(#list))
+    local anyOn = (it.on or 0) > 0
+    r.cntDot:SetVertexColor(anyOn and C.mint[1] or 0.45, anyOn and C.mint[2] or 0.45, anyOn and C.mint[3] or 0.48, 1)
+    r.onl:ClearAllPoints()
+    r.onl:SetPoint("CENTER", r, "LEFT", onX, 0)
+    r.onl:SetVertexColor(anyOn and C.mint[1] or 0.35, anyOn and C.mint[2] or 0.35, anyOn and C.mint[3] or 0.38, 1)
+    r.fav.t:SetDesaturated(not fv)
 end
 
 -- Handwerker-Zeile: Klassenkreis, online-Punkt, Fertigkeit als Balken
@@ -2138,7 +2134,7 @@ local function buildCard(p)
     local bn = CreateFrame("Frame", nil, body)
     bn:SetPoint("TOPLEFT", 1, -1)
     bn:SetPoint("TOPRIGHT", -1, -1)
-    bn:SetHeight(58)
+    bn:SetHeight(100)   -- 0.6.464: grosser Kopf wie im Entwurf
     bn.grad = bn:CreateTexture(nil, "BACKGROUND", nil, 1)
     bn.grad:SetAllPoints()
     bn.line = bn:CreateTexture(nil, "ARTWORK")
@@ -2146,33 +2142,33 @@ local function buildCard(p)
     bn.line:SetPoint("BOTTOMRIGHT")
     bn.line:SetHeight(1)
     p.banner = bn
-    p.cAv = makeAvatar(bn, 44)
-    p.cAv:SetPoint("LEFT", 10, 0)
+    p.cAv = makeAvatar(bn, 70)
+    p.cAv:SetPoint("LEFT", 16, 0)
     p.cAv.glow:Hide()
     p.cAvBtn = CreateFrame("Button", nil, bn)
     p.cAvBtn:SetAllPoints(p.cAv)
     p.cAvBtn:SetScript("OnEnter", function(self) if selected then recipeTip(self, selected, L["Shift-Klick: verlinken"]) end end)
     p.cAvBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     p.cAvBtn:SetScript("OnClick", function() if selected and linkClick() then linkItem(selected.itemID) end end)
-    p.cName = K.Title(bn, 15, C.text)
-    p.cName:SetPoint("TOPLEFT", 64, -12)
+    p.cName = K.Title(bn, 20, C.text)
+    p.cName:SetPoint("TOPLEFT", 104, -24)
     p.cName:SetPoint("RIGHT", bn, "RIGHT", -34, 0)
-    p.cSub = K.Text(bn, 11, C.muted)
-    p.cSub:SetPoint("TOPLEFT", 64, -34)
+    p.cSub = K.Text(bn, 12, C.muted)
+    p.cSub:SetPoint("TOPLEFT", 104, -54)
     p.cSub:SetPoint("RIGHT", bn, "RIGHT", -12, 0)
     p.cFav = CreateFrame("Button", nil, bn)
-    p.cFav:SetSize(18, 18)
-    p.cFav:SetPoint("TOPRIGHT", -10, -9)
+    p.cFav:SetSize(24, 24)
+    p.cFav:SetPoint("TOPRIGHT", -14, -14)
     p.cFav.t = p.cFav:CreateTexture(nil, "OVERLAY")
     p.cFav.t:SetAllPoints()
-    p.cFav.t:SetTexture(ns.MEDIA .. "diamond")
+    p.cFav.t:SetTexture(ns.MEDIA .. "icons\\star_on")
     p.cFav:SetScript("OnClick", function() toggleFav(selected) end)
     p.cFav:SetScript("OnEnter", function(self) K.ShowTip(self, { isFav(selected) and L["Favorit entfernen"] or L["Als Favorit merken"], L["Favoriten stehen immer oben."] }) end)
     p.cFav:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- 1: Handwerker
     p.h1 = sectionHead(body, 1, L["Handwerker waehlen"])
-    p.h1:SetPoint("TOPLEFT", 12, -68)
+    p.h1:SetPoint("TOPLEFT", 12, -112)
     p.h1:SetPoint("RIGHT", body, "RIGHT", -12, 0)
     p.h1.right:SetText(L["Klick: waehlen  ·  Rechtsklick: Menue"])
     p.cChips = {}
@@ -2284,7 +2280,8 @@ local function fillCard(p)
     p.cSub:SetText(sub)
     local fv = isFav(e)
     p.cFav.t:SetVertexColor(fv and 1 or 0.6, fv and 0.82 or 0.6, fv and 0.3 or 0.62)
-    p.cFav:SetAlpha(fv and 1 or 0.45)
+    p.cFav.t:SetDesaturated(not fv)
+    p.cFav:SetAlpha(fv and 1 or 0.55)
 
     -- 1: Handwerker-Chips ("Alle" zuerst), fliessend in bis zu zwei Zeilen
     local crafters = Crafting.CraftersOf(e)
@@ -2296,7 +2293,7 @@ local function fillCard(p)
         for _, c in ipairs(opts) do if c.name == chosenCrafter then found = true end end
         if not found then chosenCrafter = nil end
     end
-    local x, y, row, shown, stop = 12, -88, 1, 0, false
+    local x, y, row, shown, stop = 12, -132, 1, 0, false
     local maxX = RW - 12
     local animChip = p.chipAnim
     p.chipAnim = nil
@@ -2665,6 +2662,18 @@ ns.RegisterPage({
             crafter = { make = newCrafterRow, fill = fillCrafterRow },
         }, true)
         p.list = p.tl
+        -- 0.6.464: Spaltenkoepfe ueber der Liste
+        p.colHead = {}
+        for k, t in ipairs({ "Name", "Handwerker", "Online" }) do
+            local fs = K.Text(p, 11, C.dim)
+            fs:SetText(L[t])
+            p.colHead[k] = fs
+        end
+        p.ordTitle = K.Title(p, 16, C.text)
+        p.ordTitle:SetText(L["Auftragsuebersicht"])
+        p.ordBox = CreateFrame("Frame", nil, p)
+        glass(p.ordBox, 12, 0.03)
+        p.ordBox:SetFrameLevel(math.max(0, p:GetFrameLevel()))
         p.empty = emptyState(p.tl)
         p.empty:SetPoint("TOP", 0, -30)
 
@@ -2715,21 +2724,22 @@ ns.RegisterPage({
                 t.bx, t.bw = (i - 1) * (tw + gap), tw
                 t:Place()
             end
-            local LW = math.max(280, math.min(390, math.floor(W * 0.47)))
+            -- 0.6.464: Aufbau nach Entwurf - links Reiter/Beruf/Filter/Liste, rechts oben Suche und Rezept-Karte,
+            -- unten ueber die ganze Breite die Auftragsuebersicht
+            local LW = math.max(300, math.min(480, math.floor(W * 0.46)))
             local RX = LW + 14
             local RW = math.max(240, W - RX)
             self.LW, self.RW = LW, RW
-            -- links oben: Reiter + Suche
-            self.mode.maxW = math.max(120, LW - 150)
+            local ORD_H = math.max(150, math.min(200, math.floor(H * 0.26)))
+            local mainH = H + TOP_Y - ORD_H - 10
+            self.mode.maxW = LW
             self.mode:Layout()
-            local sw = math.max(110, LW - (self.mode:GetWidth() or 160) - 10)
             self.search:ClearAllPoints()
-            self.search:SetPoint("TOPRIGHT", self, "TOPLEFT", LW, TOP_Y - 3)
-            self.search:SetWidth(sw)
+            self.search:SetPoint("TOPLEFT", self, "TOPLEFT", RX, TOP_Y - 3)
+            self.search:SetWidth(RW)
             self.profBar:ClearAllPoints()
-            self.profBar:SetPoint("TOPLEFT", 0, TOP_Y - 36)
+            self.profBar:SetPoint("TOPLEFT", 0, TOP_Y - 40)
             self.profBar:SetWidth(LW)
-            -- Filter-Schalter: was nicht passt, wird ausgeblendet
             local x = 0
             for _, c in ipairs(self.chips) do
                 local w = c:GetWidth() or 80
@@ -2737,15 +2747,19 @@ ns.RegisterPage({
                 c:SetShown(show)
                 if show then
                     c:ClearAllPoints()
-                    c:SetPoint("TOPLEFT", self, "TOPLEFT", x, TOP_Y - 66)
-                    x = x + w + 5
+                    c:SetPoint("TOPLEFT", self, "TOPLEFT", x, TOP_Y - 72)
+                    x = x + w + 6
                 end
             end
-            self.count:ClearAllPoints()
-            self.count:SetPoint("TOPRIGHT", self, "TOPLEFT", LW - 12, TOP_Y - 71)
-            self.count:SetWidth(math.max(1, LW - x - 14))
-            self.count:SetShown(LW - x > 60)
-            local listTop = TOP_Y - 96
+            self.count:Hide()
+            local listTop = TOP_Y - 104
+            -- Spaltenkoepfe
+            local cntX, onX = LW - 10 - 200, LW - 10 - 66
+            self.colHead[1]:ClearAllPoints() self.colHead[1]:SetPoint("TOPLEFT", self, "TOPLEFT", 12, listTop)
+            self.colHead[2]:ClearAllPoints() self.colHead[2]:SetPoint("TOPLEFT", self, "TOPLEFT", cntX + 14, listTop)
+            self.colHead[3]:ClearAllPoints() self.colHead[3]:SetPoint("TOPLEFT", self, "TOPLEFT", onX - 16, listTop)
+            for _, fs in ipairs(self.colHead) do fs:SetShown(mode ~= "crafters") end
+            listTop = listTop - 20
             if self.cfStrip:IsShown() then
                 self.cfStrip:ClearAllPoints()
                 self.cfStrip:SetPoint("TOPLEFT", 0, listTop)
@@ -2754,21 +2768,27 @@ ns.RegisterPage({
             end
             self.tl:ClearAllPoints()
             self.tl:SetPoint("TOPLEFT", 0, listTop)
-            self.tl:SetPoint("BOTTOMLEFT", 0, 0)
-            self.tl:SetWidth(LW)
-            -- rechts: Karte oben, Auftraege darunter
-            local cardH = math.max(250, math.min(320, H + TOP_Y - 150))
+            self.tl:SetSize(LW, math.max(80, mainH + listTop))
+            -- rechts: Rezept-Karte unter der Suche
+            local cardH = math.max(250, mainH - 40)
             self.cardH = cardH
             self.card:ClearAllPoints()
-            self.card:SetPoint("TOPLEFT", RX, TOP_Y)
+            self.card:SetPoint("TOPLEFT", RX, TOP_Y - 40)
             self.card:SetSize(RW, cardH)
-            self.oTabs.maxW = RW
+            -- unten: Auftragsuebersicht ueber die ganze Breite
+            local oy = TOP_Y - mainH - 10
+            self.ordBox:ClearAllPoints()
+            self.ordBox:SetPoint("TOPLEFT", self, "TOPLEFT", 0, oy)
+            self.ordBox:SetSize(W, ORD_H)
+            self.ordTitle:ClearAllPoints()
+            self.ordTitle:SetPoint("TOPLEFT", self, "TOPLEFT", 16, oy - 12)
+            self.oTabs.maxW = W - 32
             self.oTabs:Layout()
             self.oTabs:ClearAllPoints()
-            self.oTabs:SetPoint("TOPLEFT", RX, TOP_Y - cardH - 8)
+            self.oTabs:SetPoint("TOPLEFT", 12, oy - 36)
             self.ol:ClearAllPoints()
-            self.ol:SetPoint("TOPLEFT", RX, TOP_Y - cardH - 44)
-            self.ol:SetPoint("BOTTOMRIGHT", 0, 0)
+            self.ol:SetPoint("TOPLEFT", 12, oy - 72)
+            self.ol:SetPoint("BOTTOMRIGHT", -12, 8)
         end
         p:HookScript("OnSizeChanged", function(self)
             self:Layout()

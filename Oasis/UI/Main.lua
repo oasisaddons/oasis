@@ -360,8 +360,23 @@ local function hubStrip(hub, key)
         s.line:SetPoint("BOTTOMLEFT", 0, 4)
         s.line:SetPoint("BOTTOMRIGHT", 0, 4)
         s.sig = sig
+        -- 0.6.464: Reiter gleichmaessig ueber die ganze Breite verteilen
+        function s:Fit()
+            local W = self:GetWidth() or 0
+            local btns = self.seg.buttons or {}
+            if W < 100 or #btns == 0 then return end
+            local bw = math.floor(W / #btns)
+            self.seg:SetWidth(W)
+            for i, b in ipairs(btns) do
+                b:SetWidth(bw)
+                b:ClearAllPoints()
+                b:SetPoint("TOPLEFT", self.seg, "TOPLEFT", (i - 1) * bw, 0)
+            end
+        end
+        s:SetScript("OnSizeChanged", function(self) self:Fit() end)
         main.hubStrips[hub] = s
     end
+    s:Fit()
     s.seg:Select(key)
     s:Show()
 end
