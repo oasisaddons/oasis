@@ -519,7 +519,9 @@ Comm.On("DRINV", function(sender, _, id, start, stake, race, sex, silent)
         local s = Comm.WhisperName and Comm.WhisperName(sender) or sender
         local friend = C_FriendList and C_FriendList.IsFriend and pcall(C_FriendList.IsFriend, ns.short(sender)) and C_FriendList.IsFriend(ns.short(sender))
         local grouped = (UnitInParty and UnitInParty(s)) or (UnitInRaid and UnitInRaid(s))
-        if not (friend or grouped) then return end
+        -- 0.6.512: auch wer in der Lobby sucht (oder ich selbst suche) darf herausfordern - annehmen muss man trotzdem selbst
+        local lobby = DR.inQueue or (DR.queue and (DR.queue[sender] or DR.queue[s]))
+        if not (friend or grouped or lobby) then return end
     end
     local g = DR.game
     -- dieselbe Einladung doppelt zugestellt (z. B. Gilden- und Gruppenkanal, erneut gesendet): nur einmal auswerten
@@ -932,6 +934,11 @@ function DR.NetJoin(start)
     end)
 end
 DR.NetQueueLen = function() return #netQ end
+-- 0.6.512: Todeswuerfel-Nachrichten an Spieler ausserhalb der Gilde laufen ueber den Netz-Kanal (Addon-Fluestern kommt nicht an)
+Comm.DirectChannel = function(msgType)
+    if type(msgType) ~= "string" or msgType:sub(1, 2) ~= "DR" or not netOn() or not DR.net.chan then return nil end
+    return chanIdOf(DR.net.chan)
+end
 DR.NetChanId = chanIdOf
 DR.NET_TIERS = NET_TIERS
 function DR.NetLeave()

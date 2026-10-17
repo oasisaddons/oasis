@@ -283,7 +283,14 @@ function Comm.Whisper(target, msgType, ...)
     if IsInGuild() and not outside then
         Comm.SendEx({ ch = "GUILD", prio = URGENT[msgType] }, "W", whoKey(target), msgType, ...)
     else
-        Comm.Send("WHISPER", Comm.WhisperName(target), msgType, ...)
+        -- 0.6.512: Forever stellt Addon-Fluestern nicht zu - gibt es einen gemeinsamen Kanal (Todeswuerfel-Netz),
+        -- dort mit Empfaenger senden; nur der Empfaenger wertet aus
+        local cid = Comm.DirectChannel and Comm.DirectChannel(msgType)
+        if cid then
+            Comm.SendEx({ ch = "CHANNEL", target = cid, prio = URGENT[msgType] }, "W", whoKey(target), msgType, ...)
+        else
+            Comm.Send("WHISPER", Comm.WhisperName(target), msgType, ...)
+        end
     end
 end
 function Comm.Group(msgType, ...)

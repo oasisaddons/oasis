@@ -1899,15 +1899,33 @@ ns.RegisterPage({
                 self.bg:SetColorTexture(C.mint[1] * 0.25, C.mint[2] * 0.25, C.mint[3] * 0.25, 0.95)
                 if not self:GetParent():IsMouseOver() then self:Hide() end
             end)
+            -- 0.6.511: die grosse Karte nur ueber dem Namen; ueber Berufen, Abzeichen usw. nur deren eigener Tooltip
+            local function nameHover(self, el)
+                self.nhT = (self.nhT or 0) + (el or 0)
+                if self.nhT < 0.05 then return end
+                self.nhT = 0
+                local nm = self.cols and self.cols.name
+                local over = self.item and nm and nm:IsShown() and nm:IsMouseOver()
+                if over and not self.cardOn then
+                    self.cardOn = true
+                    -- Level-Fortschritt, Gruppe, Status stehen jetzt im Tooltip selbst (nicht doppelt anhaengen)
+                    Radar.ShowMemberTip(self, self.item, { xpPct = self.xpPct, hint = L["Klick: Profil  ·  Doppelklick: anfluestern  ·  Rechtsklick: Menue"] })
+                elseif not over and self.cardOn then
+                    self.cardOn = nil
+                    GameTooltip:Hide()
+                end
+            end
             r:SetScript("OnEnter", function(self)
                 if not self.item then return end
-                -- Level-Fortschritt, Gruppe, Status stehen jetzt im Tooltip selbst (nicht doppelt anhaengen)
-                Radar.ShowMemberTip(self, self.item, { xpPct = self.xpPct, hint = L["Klick: Profil  ·  Doppelklick: anfluestern  ·  Rechtsklick: Menue"] })
+                self.cardOn, self.nhT = nil, 1
+                self:SetScript("OnUpdate", nameHover)
+                nameHover(self, 0)
                 local m = self.item
                 self.inv:SetShown(m.online and not ns.isMe(m.name) and not (UnitInParty(ns.short(m.name)) or UnitInRaid(ns.short(m.name))))
             end)
             r:SetScript("OnLeave", function(self)
-                GameTooltip:Hide()
+                self:SetScript("OnUpdate", nil)
+                if self.cardOn then self.cardOn = nil GameTooltip:Hide() end
                 if not hasGlass() and not self.inv:IsMouseOver() then self.inv:Hide() end
             end)
             return r
