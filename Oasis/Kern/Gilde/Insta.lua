@@ -3099,7 +3099,7 @@ ns.RegisterPage({
                         r.stripe:SetTexCoord(off, off + fwS / 16, 0, (r.fill:GetHeight() or 9) / 16)
                         r.stripe:SetShown(r:IsShown() and fwS > 6)
                     end
-                    if r:IsShown() and fw > 30 then
+                    if false and r:IsShown() and fw > 30 then   -- 0.6.407: weisser Lichtfleck entfernt
                         r.sheen:ClearAllPoints()
                         r.sheen:SetPoint("LEFT", r.fill, "LEFT", q * (fw - 24), 0)
                         local kk = math.sin(q * math.pi) * 0.6
@@ -3215,9 +3215,11 @@ ns.RegisterPage({
                     r.name:SetPoint("RIGHT", r, "LEFT", W * 0.5 - 10, 0)
                     r.name:SetWordWrap(false)
                     local c = PRIO_COL[i] or PRIO_COL[#PRIO_COL]
-                    r.fill:SetColorTexture(1, 1, 1, 1)
-                    r.fill:SetVertexColor(c[1], c[2], c[3], 1)
-                    r.fillCol = c
+                    -- 0.6.407: Verlauf von dunkler zu heller statt Einfarbig + Atmen
+                    if not K.Gradient(r.fill, "HORIZONTAL", { c[1] * 0.55, c[2] * 0.55, c[3] * 0.55, 1 }, { math.min(1, c[1] * 1.1), math.min(1, c[2] * 1.1), math.min(1, c[3] * 1.1), 1 }) then
+                        r.fill:SetColorTexture(c[1], c[2], c[3], 1)
+                    end
+                    r.fillCol = nil
                     local q = goals[i] and goals[i] > 0 and vals[i] / goals[i] or 0
                     r.diag = { vals[i], goals[i], q, W }
                     -- 0.6.372: Balken wachsen beim Oeffnen und bei Aenderung von links auf ihren Wert (gestaffelt)

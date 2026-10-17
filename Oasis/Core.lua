@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.406"
+ns.version = "0.6.407"
 ns.versionDate = "16.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -382,7 +382,7 @@ end
 function ns.MiniPinVisible(px, py)
     local s = ns.db and ns.db.settings
     if s and s.miniCenterClear == false then return true end
-    return (px or 0) * (px or 0) + (py or 0) * (py or 0) >= 20 * 20   -- 0.6.406: groesser, Spielerpfeil bleibt frei
+    return (px or 0) * (px or 0) + (py or 0) * (py or 0) >= 20 * 20   -- 0.6.407: groesser, Spielerpfeil bleibt frei
 end
 function ns.MiniPinLayer(p, add)
     if not (p and Minimap) then return end
@@ -460,7 +460,7 @@ function ns.OfferChat(title, msg, channel, target, color)
     -- 0.6.236: an Zeichengrenze kuerzen (vorher mitten in UTF-8-Zeichen wie "–" -> kaputte Zeichen),
     -- "Klick: senden" in eine eigene Zeile (ueberlagerte sonst den Text)
     if #preview > 160 then preview = ns.Utf8Cut(preview, 157) .. "..." end
-    -- 0.6.406: Nachricht gedaempft in Anfuehrungszeichen, "Klick: senden" als eigener Hinweis unten rechts
+    -- 0.6.407: Nachricht gedaempft in Anfuehrungszeichen, "Klick: senden" als eigener Hinweis unten rechts
     K.toastHint = "|cffe8b44a" .. L["Klick: senden"] .. "|r"
     K.Toast(title, "|cffa8a8ae\226\128\158" .. preview .. "\226\128\156|r", color or K.C.accent,
         function() ns.SendChat(msg, channel, target) end)
