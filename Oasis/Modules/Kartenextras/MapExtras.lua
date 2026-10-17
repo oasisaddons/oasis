@@ -307,7 +307,7 @@ local function drawTrails(w)
     if tFrame:GetParent() ~= w.canvas then tFrame:SetParent(w.canvas) end
     tFrame:SetAllPoints(w.canvas)
     tFrame:SetFrameStrata(w.canvas:GetFrameStrata())
-    tFrame:SetFrameLevel(w.canvas:GetFrameLevel() + 53)
+    tFrame:SetFrameLevel(math.min(8800, w.canvas:GetFrameLevel() + 2300))   -- 0.6.482: ueber den Kartenschichten (bei +53 verdeckt, Spur wirkte abgebrochen)
     -- 0.6.470: Spur endet immer an der aktuellen Position (vorher hoerte sie beim letzten Messpunkt auf)
     local live = {}
     for name, p in pairs(ns.Map and ns.Map.pos or {}) do if p.mapID and p.x and p.y then live[name] = { map = p.mapID, x = p.x, y = p.y } end end
