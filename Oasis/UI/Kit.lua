@@ -679,7 +679,7 @@ function K.Button(parent, text, w, h, style, onClick)
         local keep = {}
         for _, list in pairs(b.imgBtn) do for _, t in ipairs(list) do keep[t] = true end end
         for _, rg in ipairs({ b:GetRegions() }) do
-            if rg.GetObjectType and rg:GetObjectType() == "Texture" and not keep[rg] and rg:GetDrawLayer() ~= "HIGHLIGHT" then
+            if rg.GetObjectType and rg:GetObjectType() == "Texture" and not keep[rg] then   -- 0.6.424: auch HIGHLIGHT (dunkle Flaeche beim Hovern)
                 rg:SetAlpha(0)
                 -- 0.6.418: in einen versteckten Rahmen umhaengen - Hover/Design-Wechsel faerbten die Flaeche sonst wieder sichtbar
                 K.imgBtnTrash = K.imgBtnTrash or CreateFrame("Frame")
@@ -3979,6 +3979,15 @@ function K.ImageButton(b)
     -- 0.6.419: Leuchten beim Drueberfahren - additive Kopie des Bildes blendet weich ein
     local glow = K.NineSlice(b, (function() local n = {} for k2, v in pairs(BTN_N) do n[k2] = v end n.file = BTN_TEX .. "active" return n end)(), r, "BACKGROUND", 4, true)
     for _, t in ipairs(glow or {}) do t:SetBlendMode("ADD") t:SetAlpha(0) end
+    -- weicher Schein um den Knopf (0.6.424)
+    local halo = b:CreateTexture(nil, "BACKGROUND", nil, -8)
+    halo:SetTexture(ns.MEDIA .. "softglow")
+    halo:SetBlendMode("ADD")
+    halo:SetPoint("TOPLEFT", -14, 10) halo:SetPoint("BOTTOMRIGHT", 14, -10)
+    halo:SetVertexColor(1, 0.25, 0.2)
+    halo:SetAlpha(0)
+    glow = glow or {}
+    glow[#glow + 1] = halo
     local glowA, glowTo = 0, 0
     local gf = CreateFrame("Frame", nil, b)
     gf:Hide()
@@ -3992,10 +4001,11 @@ function K.ImageButton(b)
         if ns.db and ns.db.settings.noAnim then glowA = v for _, t in ipairs(glow or {}) do t:SetAlpha(v) end return end
         glowTo = v gf:Show()
     end
-    b:HookScript("OnEnter", function(self) if self:IsEnabled() then glowTo_(0.45) end end)
+    b:HookScript("OnEnter", function(self) if self:IsEnabled() then glowTo_(0.8) end end)
     b:HookScript("OnLeave", function() glowTo_(0) end)
     sets.glow = glow
     b.imgBtn = sets
+    if b.GetHighlightTexture and b:GetHighlightTexture() then b:GetHighlightTexture():SetAlpha(0) end
     if b.bg then b.bg:SetAlpha(0) end
     if b.borders then for _, x in ipairs(b.borders) do x:Hide() end end
     local function show(st)
