@@ -353,6 +353,14 @@ function Members.ShowMenu(owner, m)
             if not ns.Map.ShowMember(m.name, m.zone) then ns.print(L["Position und Gebiet unbekannt."]) end
         end },
     }
+    -- 0.6.469: Danke sagen und Pate werden (Modul Gemeinschaft)
+    local CO = ns.Community
+    if CO and not me and not m.demo then
+        items[#items + 1] = { text = L["Danke sagen"], icon = I .. "heart", fn = function() CO.Thank(m.name, "") end }
+        if ns.Welcome and ns.Welcome.IsNew and ns.Welcome.IsNew(m.name) and not CO.MentorOf(m.name) then
+            items[#items + 1] = { text = L["Pate werden"], icon = I .. "groups", fn = function() CO.BecomeMentor(m.name) end }
+        end
+    end
     if Members.CanEditOfficerNote() and not m.demo and m.index then
         items[#items + 1] = { text = L["Offiziersnotiz bearbeiten"], icon = I .. "checklist", fn = function() Members.EditOfficerNote(m) end }
     end

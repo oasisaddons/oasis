@@ -2248,6 +2248,8 @@ ns.RegisterPage({
             if roleTxt ~= "" and not roleTxt:find("?", 1, true) then extra = extra .. "  " .. (ns.Profile.RoleIcons(name, 12) or "") end
             local an = annivText(ai.join[name])
             if an then extra = extra .. "  |cffe8b44a" .. an .. "|r" end
+            local ptag = ns.Community and ns.Community.Tag and ns.Community.Tag(name)
+            if ptag then extra = extra .. "  " .. ptag end
             cx.extra = extra
             cx.act = ai.act[name] or 0
             cx.ilvl = pr and tonumber(pr.ilvl) or nil

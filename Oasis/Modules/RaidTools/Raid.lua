@@ -143,6 +143,11 @@ Raid.KINDS = {
     { key = "meet", text = "Treffen", icon = "camp", color = { 0.4, 0.86, 0.62 } },
     { key = "pvp", text = "PvP", icon = "deathroll", color = { 0.98, 0.76, 0.34 } },
     { key = "other", text = "Sonstiges", icon = "chronicle", color = { 0.7, 0.7, 0.75 } },
+    -- 0.6.469: Gilden-Events jenseits von Raids
+    { key = "fish", text = "Angelwettbewerb", icon = "map", color = { 0.36, 0.68, 0.98 } },
+    { key = "race", text = "Rennen", icon = "stats", color = { 0.98, 0.82, 0.3 } },
+    { key = "photo", text = "Fotoabend", icon = "camera", color = { 0.85, 0.55, 1 } },
+    { key = "dice", text = "Wuerfelturnier", icon = "deathroll", color = { 0.93, 0.3, 0.32 } },
 }
 Raid.KIND = {}
 for _, k in ipairs(Raid.KINDS) do Raid.KIND[k.key] = k end
@@ -4095,9 +4100,9 @@ local function buildForm(f)
         for i, b in ipairs(f.kindChips) do
             b:SetSize(cw, 40)
             b:ClearAllPoints()
-            b:SetPoint("TOPLEFT", PX + (i - 1) * (cw + 8), -y)
+            b:SetPoint("TOPLEFT", PX + ((i - 1) % 5) * (cw + 8), -y - math.floor((i - 1) / 5) * 46)
         end
-        y = y + 52
+        y = y + 52 + math.floor((#f.kindChips - 1) / 5) * 46
         local tw = math.floor((CWD - 16 - 34) / 2)
         f.instLbl:SetText(L["Instanz / Ziel"]) f.instLbl:Show()
         f.instLbl:ClearAllPoints() f.instLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", PX, -y)

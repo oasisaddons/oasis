@@ -21,6 +21,7 @@ M.LIST = {
     { cat = "Spielinhalte", addon = "Oasis_Waffenlehrer", title = "Waffenlehrer", icon = "map", desc = "Welche Waffe lernst du in welcher Hauptstadt" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Deathroll", title = "Todeswuerfeln", icon = "deathroll", desc = "Deathroll-Duelle mit Rangliste" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Umfragen", title = "Umfragen", icon = "polls", desc = "Abstimmungen in der Gilde" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Gemeinschaft", title = "Gemeinschaft", icon = "heart", desc = "Steckbriefe, Geburtstage, Paten fuer Neulinge, Danke und Helfer der Woche, Gilden-Erfolge" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Kampf", title = "Kampf-Rangliste", icon = "stats", desc = "Schaden und Heilung der Gilde nach jedem Kampf, echte Crits" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Upgrades", title = "Upgrade-Suche", icon = "wants", desc = "Handelbare Ausruestung der Gilde, die fuer dich besser waere" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Talente", title = "Talente", icon = "profile", desc = "Talente von Gildenmitgliedern und betrachteten Spielern ansehen" },
