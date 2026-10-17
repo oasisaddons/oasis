@@ -824,6 +824,7 @@ ns.slash.ziele = function() ns.ShowPage("goals") end
 -- Loeschen: wer sie geschrieben hat oder die Gildenleitung; Anheften (oben halten) nur die Gildenleitung.
 ------------------------------------------------------------------------
 local BOARD = "board"
+if ns.ICONS then ns.ICONS.board = ns.MEDIA .. "icons\\announce" end   -- 0.6.452: Symbol in der Seitenleiste
 local BCATS = {
     { key = "info", text = "Brett: Hinweis", col = { 0.55, 0.72, 1 } },
     { key = "search", text = "Brett: Suche", col = { 1, 0.72, 0.3 } },
