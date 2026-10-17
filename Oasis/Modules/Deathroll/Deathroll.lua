@@ -3224,8 +3224,8 @@ ns.RegisterPage({
             if DR.game then DR.Decline() end
             DR.StartBot("Uebungspuppe", curStart(p), "", 2, 0)
         end)
-        p.practice:SetPoint("BOTTOM", right, "BOTTOM", 0, 46)   -- 0.6.513: Unterkante wie die Kaesten (58 ueber dem Rand)
-        p.play:SetPoint("BOTTOM", p.practice, "TOP", 0, 10)
+        p.practice:SetPoint("BOTTOM", right, "BOTTOM", 0, 2)   -- 0.6.515: Ueben auf Hoehe von Startwert/Einsatz, Kampf auf Hoehe der Kaesten
+        p.play:SetPoint("BOTTOM", p.practice, "TOP", 0, 16)
         -- 0.6.197: Bild-Knoepfe (Gildenmodul): Kampf = rote Lavaplatte, Ueben = dunkle Platte. Eigene Flaechen/Kanten des
         -- Knopfs unsichtbar, Hover hellt das Bild auf; calm()/Glas laesst sie in Ruhe (imgSkin)
         local function imgBtn(b, file, w, h)
