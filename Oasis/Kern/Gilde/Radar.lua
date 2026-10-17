@@ -1563,7 +1563,7 @@ ns.RegisterPage({
         Radar.ApplyListBg()
         if not hasGlass() then p.tbl:Hide() end
         hdr:SetPoint("TOPLEFT", seg, "TOPLEFT", 18, TBLY - (hasGlass() and 6 or 2))
-        hdr:SetPoint("RIGHT", p, "RIGHT", 0, 0)
+        hdr:SetPoint("RIGHT", p, "RIGHT", hasGlass() and -12 or 0, 0)
         hdr:SetHeight(18)
         p.heads = {}
         p.hdr, p.headBy = hdr, {}
@@ -2010,7 +2010,7 @@ ns.RegisterPage({
                 local me = ns.isMe(m.name)
                 local t, _, _, fresh = (not me and ns.Comm and ns.Comm.PeerSync) and ns.Comm.PeerSync(m.name)
                 r.sync:ClearAllPoints()
-                r.sync:SetPoint("RIGHT", r.cols.name, "RIGHT", 0, 0)
+                r.sync:SetPoint("RIGHT", r.cols.grank, "LEFT", -14, 0)   -- 0.6.441: mittig in der Zeile (mit Twink-Zeile stand es zu hoch)
                 if me then
                     -- eigene Zeile: letzter Abgleich mit der Gilde (0.5.552)
                     local last = ns.db.meta.lastSync or 0
@@ -2395,12 +2395,12 @@ ns.RegisterPage({
                 r.cols.badges:SetWidth(bp.w - 4)
                 -- Oasis als kleiner Punkt (Logo 10 px) direkt hinter den Abzeichen
                 r.addon:ClearAllPoints()
-                r.addon:SetSize(10, 10)
+                r.addon:SetSize(18, 18)   -- 0.6.441: lesbar
                 r.addon:SetPoint("CENTER", r, "RIGHT", -84, 0)
             end
         end
         list:SetPoint("TOPLEFT", seg, "TOPLEFT", 18, TBLY - (hasGlass() and 26 or 20))
-        list:SetPoint("BOTTOMRIGHT", hasGlass() and -4 or 0, hasGlass() and 44 or 40)
+        list:SetPoint("BOTTOMRIGHT", hasGlass() and -16 or 0, hasGlass() and 44 or 40)   -- 0.6.441: rechts gleicher Abstand wie links
         p.listInset = hasGlass()
         if p.LayoutCols then
             list:HookScript("OnSizeChanged", function(self, w) p.LayoutCols(w) self:Refresh() end)
@@ -3425,7 +3425,7 @@ ns.RegisterPage({
                     x = x + w + 6
                 end
             end
-            p.list:SetPoint("BOTTOMRIGHT", p.listInset and -4 or 0, show and 100 or (p.listInset and 44 or 40))
+            p.list:SetPoint("BOTTOMRIGHT", p.listInset and -16 or 0, show and 100 or (p.listInset and 44 or 40))
         end
         PM("Zuletzt online")
         -- Gebiete der Online-Mitglieder, meiste zuerst - 0.5.595 abgeschaltet
