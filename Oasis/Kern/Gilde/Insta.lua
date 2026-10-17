@@ -2391,7 +2391,7 @@ ns.RegisterPage({
                     -- etwas Luft vor der Klapp-Leiste "Weitere Werte"
                     if x.toggle then
                         local pt, rel, rp, px, py = r:GetPoint(1)
-                        if pt and not self.consBox then r:SetPoint(pt, rel, rp, px, py - 8) end   -- 0.6.375: kompakt ohne Versatz (Zeilen ueberlappten)
+                        if pt then r:SetPoint(pt, rel, rp, px, py - (self.consBox and (self.showAll and 0 or 6) or 8)) end   -- 0.6.408: zugeklappt etwas Luft, ausgeklappt buendig
                     end
                     r.l:SetText(x[1])
                     r.key = x.key
