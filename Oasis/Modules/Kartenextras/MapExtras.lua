@@ -889,10 +889,13 @@ ns.Listen("LOGIN", function()
             acc = 0
             pcall(X.DrawMini)
         end
-        if tacc >= 4 then
+        -- 0.6.505: bei offener Weltkarte jede Sekunde messen und zeichnen (Schweif folgt sofort), sonst alle 4 s
+        local wm = WorldMapFrame and WorldMapFrame:IsShown()
+        if tacc >= (wm and 1 or 4) then
             tacc = 0
+            local w = world()
             pcall(X.SampleTrails)
-            local w = world() if w then pcall(drawTrails, w) end   -- 0.6.490: auch fuer Routen (drawTrails prueft selbst)
+            if w then pcall(drawTrails, w) end   -- 0.6.490: auch fuer Routen (drawTrails prueft selbst)
         end
     end)
 end)
