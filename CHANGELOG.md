@@ -2,6 +2,19 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.551
+
+- New page under Guild: **Guildotchi**. Every guild member using Oasis has an animal walking around a meadow. Feed, pet and brush it - mood drops over time, neglected animals turn grey, lie down and eventually run away (one click brings them back). Daily care builds a streak with small extras (sparkle, star, golden name, crown).
+- Guildotchi: higher Oasis ranks unlock other animals (rabbit, chicken, toad, squirrel, prairie dog, fawn, cow, stag) and colours (black sheep from rank 50, rainbow at 100), chosen with a live model preview. Ranks are checked by every client, so editing your own files unlocks nothing.
+- Guildotchi: click another member's animal to feed it once a day (shows in the chronicle), animals occasionally walk up to each other for a death roll, names float above them, and the page can be used as a full-screen AFK screen.
+- Guild leadership is simpler: 14 tabs grouped into 6 areas (Today, Members, Announce, Raid, Officers, Settings) with a small sub-tab row.
+- Guild leadership > Emojis & Sounds: manage your guild pack from oasisaddon.com/#studio - rank per entry, switch entries off, leaders-only entries, release to the guild and see who has it installed.
+- Guild packs from the Oasis Studio now come as one folder (Oasis_GuildPack) instead of two.
+- Threat bar is now off by default (Settings > My group).
+- Comfort settings: hiding the Blizzard menu bar and bag bar (optionally fading in on mouse-over) is back.
+- Member list: the search box no longer overlaps the Invite and Blizzard guild buttons. Sidebar search added.
+- Fixes: hidden sub-pages (bug reports, guild goals) could become unreachable; guild roster is no longer requested during combat.
+
 ## 0.6.518
 
 - Death roll: everyone with Oasis now joins one shared hidden channel, so challenges between players outside the same guild arrive no matter which starting value you use.
