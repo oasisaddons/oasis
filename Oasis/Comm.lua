@@ -563,6 +563,7 @@ local RETENTION = {
     lballots = 90 * 86400,
     gpackhave = 60 * 86400,    -- 0.6.533: welches Gildenpaket jemand installiert hat (jeder meldet nur sich)
     sheep = 60 * 86400,        -- 0.6.539: Schafweide - gewaehlter Schaf-Skin (jeder meldet nur sich)
+    gfeed = 3 * 86400,         -- 0.6.548: Guildotchi - fremdes Tier gefuettert (jeder meldet nur sich, 1x am Tag je Tier)
     rrating = 180 * 86400,     -- 0.6.527: Bewertungen der Bewerber (nur Offiziere)
     kader = 3650 * 86400,      -- Raid-Kader (Stamm/Ersatz)
     absent = 30 * 86400,       -- Abmeldungen vom Raid
@@ -691,7 +692,7 @@ local function mayRelay(name, feature)
 end
 local OWNED = { posts = true, comments = true, likes = true, follows = true, rep = true, deaths = true,
     profcd = true, trace = true, lfgreq = true, orders = true, dgjoin = true, lvotes = true, lballots = true,
-    rrating = true, wccontrib = true, meets = true, meetatt = true, absent = true, gpackhave = true, sheep = true }   -- 0.6.527
+    rrating = true, wccontrib = true, meets = true, meetatt = true, absent = true, gpackhave = true, sheep = true, gfeed = true }   -- 0.6.527
 -- Weitergereichte Datensaetze (Abgleich): wer nicht selbst Autor ist, darf nur NEUE, unkritische Saetze
 -- weitergeben. Aendern/Loeschen fremder Saetze und alles hier drin nur durch Offiziere (oder den Autor selbst).
 -- (nur Bank/Raenge: alles andere MUSS weitergereicht werden duerfen, sonst bekommen Offline-Mitglieder

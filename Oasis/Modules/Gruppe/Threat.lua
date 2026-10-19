@@ -66,7 +66,7 @@ ticker:SetScript("OnUpdate", function(_, el)
     acc = acc + el
     if acc < 0.25 then return end
     acc = 0
-    if S().threatBar == false or not IsInGroup() or not UnitExists("target") or not UnitCanAttack("player", "target") then
+    if S().threatBar ~= true or not IsInGroup() or not UnitExists("target") or not UnitCanAttack("player", "target") then
         if f then f:Hide() end
         return
     end

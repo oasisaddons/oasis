@@ -417,7 +417,7 @@ ns.AddPageSettings("party", function(det, y)
     local defs = {
         { "Gruppen-XP-Leiste", "partyXP", "Kleine Leiste mit dem Erfahrungsbalken jedes Gruppenmitglieds mit Oasis (5er-Gruppe)", true, function() if ns.Party.UpdateXP then ns.Party.UpdateXP() end end },
         { "Pull-Warnung", "pullWarn", "Hinweis, wenn du vor dem Tank in den Kampf kommst oder als Nicht-Tank die Aggro hast", true },
-        { "Bedrohungsleiste", "threatBar", "Deine Bedrohung auf dem Ziel in Prozent (nur wenn das Spiel den Wert liefert)", true },
+        { "Bedrohungsleiste", "threatBar", "Deine Bedrohung auf dem Ziel in Prozent (nur wenn das Spiel den Wert liefert)", false },   -- 0.6.548: standardmaessig aus
         { "Gebiet und Stufe im Chat", "chatZones", "Vor Gilden-, Gruppen- und Raidzeilen steht klein Stufe und Gebiet der Person", false },
     }
     for _, d in ipairs(defs) do
