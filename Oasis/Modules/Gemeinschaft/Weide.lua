@@ -355,8 +355,8 @@ local function bodyW(y) return 0.35 + 1.25 * (y or 0) ^ 1.8 end
 local function crowded(s, x, y, flock)
     for _, o in ipairs(flock or {}) do
         if o ~= s and o:IsShown() and o.who then
-            local need = 0.1 * (bodyW(y) + bodyW(o.y))
-            local needY = GAP_Y * (0.7 + 0.6 * math.max(y, o.y))
+            local need = 0.17 * (bodyW(y) + bodyW(o.y))   -- 0.6.559: seitlich ist ein Schaf fast doppelt so lang wie breit
+            local needY = GAP_Y * (0.9 + 0.9 * math.max(y, o.y))
             if math.abs(o.x - x) < need and math.abs(o.y - y) < needY then return o end
         end
     end
