@@ -411,25 +411,41 @@ ns.RegisterPage({
         -- 0.6.543: Rahmen im Stil des Logos (Gold, Petrol-Innenkante, Edelsteine), 9-teilig damit die Ecken scharf bleiben
         if ns.GuildPack then
             local fr = CreateFrame("Frame", nil, p)
-            fr:SetPoint("TOPLEFT", field, "TOPLEFT", -3, 3)
-            fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 3, -3)
+            fr:SetPoint("TOPLEFT", field, "TOPLEFT", -6, 6)
+            fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 6, -6)
             fr:SetFrameLevel(field:GetFrameLevel() + 55)
-            local TEX, E, T = "Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_frame", 8, 8 / 64
-            local function piece(l, r, t, b)
+            -- 0.6.552: Rahmen aus der Vorlage (1448x1086, als 1024x768 in 1024x1024): Ecken und Mittelschmuck unverzerrt, Kanten gestreckt
+            local TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_frame"
+            local SW, SH, KK = 1448, 1086, 0.3
+            local function piece(x1, y1, x2, y2)
                 local x = fr:CreateTexture(nil, "OVERLAY")
                 x:SetTexture(TEX)
-                x:SetTexCoord(l, r, t, b)
+                x:SetTexCoord(x1 / SW, x2 / SW, y1 / SH * 0.75, y2 / SH * 0.75)
+                x:SetSize((x2 - x1) * KK, (y2 - y1) * KK)
                 return x
             end
-            local tl, tr, bl, br = piece(0, T, 0, T), piece(1 - T, 1, 0, T), piece(0, T, 1 - T, 1), piece(1 - T, 1, 1 - T, 1)
-            for _, c in ipairs({ tl, tr, bl, br }) do c:SetSize(E, E) end
+            local CO, EW = 115, 60          -- Eckgroesse, Kantenstaerke (Vorlage)
+            local tl, tr = piece(0, 0, CO, CO), piece(SW - CO, 0, SW, CO)
+            local bl, br = piece(0, SH - CO, CO, SH), piece(SW - CO, SH - CO, SW, SH)
             tl:SetPoint("TOPLEFT") tr:SetPoint("TOPRIGHT") bl:SetPoint("BOTTOMLEFT") br:SetPoint("BOTTOMRIGHT")
-            local top, bot = piece(T, 1 - T, 0, T), piece(T, 1 - T, 1 - T, 1)
-            top:SetPoint("TOPLEFT", tl, "TOPRIGHT") top:SetPoint("BOTTOMRIGHT", tr, "BOTTOMLEFT")
-            bot:SetPoint("TOPLEFT", bl, "TOPRIGHT") bot:SetPoint("BOTTOMRIGHT", br, "BOTTOMLEFT")
-            local lf, rt = piece(0, T, T, 1 - T), piece(1 - T, 1, T, 1 - T)
-            lf:SetPoint("TOPLEFT", tl, "BOTTOMLEFT") lf:SetPoint("BOTTOMRIGHT", bl, "TOPRIGHT")
-            rt:SetPoint("TOPLEFT", tr, "BOTTOMLEFT") rt:SetPoint("BOTTOMRIGHT", br, "TOPRIGHT")
+            local tm, bm = piece(600, 0, 848, 80), piece(600, SH - 80, 848, SH)
+            tm:SetPoint("TOP") bm:SetPoint("BOTTOM")
+            local lm, rm = piece(0, 505, EW, 585), piece(SW - EW, 505, SW, 585)
+            lm:SetPoint("LEFT") rm:SetPoint("RIGHT")
+            local function hseg(a, b, y1, y2, top)
+                local x = piece(300, y1, 500, y2)
+                if top then x:SetPoint("TOPLEFT", a, "TOPRIGHT") x:SetPoint("TOPRIGHT", b, "TOPLEFT")
+                else x:SetPoint("BOTTOMLEFT", a, "BOTTOMRIGHT") x:SetPoint("BOTTOMRIGHT", b, "BOTTOMLEFT") end
+            end
+            hseg(tl, tm, 0, EW, true) hseg(tm, tr, 0, EW, true)
+            hseg(bl, bm, SH - EW, SH, false) hseg(bm, br, SH - EW, SH, false)
+            local function vseg(a, b, x1, x2, left)
+                local x = piece(x1, 250, x2, 450)
+                if left then x:SetPoint("TOPLEFT", a, "BOTTOMLEFT") x:SetPoint("BOTTOMLEFT", b, "TOPLEFT")
+                else x:SetPoint("TOPRIGHT", a, "BOTTOMRIGHT") x:SetPoint("BOTTOMRIGHT", b, "TOPRIGHT") end
+            end
+            vseg(tl, lm, 0, EW, true) vseg(lm, bl, 0, EW, true)
+            vseg(tr, rm, SW - EW, SW, false) vseg(rm, br, SW - EW, SW, false)
             p.frameArt = fr
         end
         -- 0.6.542: Logo oben mittig, ragt ueber die Wiese hinaus (nur mit Gildenmodul)
