@@ -420,7 +420,7 @@ function RW.AttachBar(main, sidebar)
         self.lbl:SetText((L["Rang %d"]):format(r.level))
         if self.badge then self.badge:SetRank(r.level) self.badge:Show() end
         self.title:SetText(r.title or "")
-        self.text:SetText(r.into .. " / " .. r.need .. " XP")
+        self.text:SetText(r.need and ((r.into or 0) .. " / " .. r.need .. " XP") or ((r.xp or r.into or 0) .. " XP"))   -- 0.6.563: hoechster Rang hat kein "need"
         local until2 = RW.DoubleUntil()
         self.x2:SetText(until2 and ("2x XP  ·  " .. L["XP-Wochenende"]) or "")
         local w = innerW()
