@@ -664,7 +664,7 @@ ns.RegisterPage({
         bar.afk:SetWidth(190)
         bar.afk:SetPoint("RIGHT", bar, "RIGHT", 0, -2)
         bar.snd = K.Toggle(bar, L["Maeh-Geraeusche"], function() return ns.db.settings.gotchiSound ~= false end,
-            function(v) ns.db.settings.gotchiSound = (not v) and false or nil end)
+            function(v) if v then ns.db.settings.gotchiSound = nil else ns.db.settings.gotchiSound = false end end)
         bar.snd:SetWidth(170)
         bar.snd:SetPoint("RIGHT", bar.afk, "LEFT", -12, 0)
         -- 0.6.556: Text "Aussehen" endet vor den Schaltern (lag darunter)

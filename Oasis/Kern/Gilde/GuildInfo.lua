@@ -4484,7 +4484,7 @@ local function addSettings()
             { "dashWelcome", "Begruessung mit Rueckblick", "Einmal je Sitzung: was seit deinem letzten Besuch passiert ist" },
         }) do
             local tg = K.Toggle(det, L[d[2]], function() return S()[d[1]] ~= false end,
-                function(v) S()[d[1]] = (not v) and false or nil relayout() end, L[d[3]])
+                function(v) if v then S()[d[1]] = nil else S()[d[1]] = false end relayout() end, L[d[3]])
             tg:SetPoint("TOPLEFT", 14, y)
             tg:SetWidth(600)
             if det.t then det.t[#det.t + 1] = tg end

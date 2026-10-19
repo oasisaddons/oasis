@@ -422,7 +422,7 @@ ns.AddPageSettings("party", function(det, y)
     }
     for _, d in ipairs(defs) do
         local t = K.Toggle(det, L[d[1]], function() if d[4] then return S[d[2]] ~= false end return S[d[2]] == true end, function(v)
-            if d[4] then S[d[2]] = (not v) and false or nil else S[d[2]] = v and true or nil end
+            if d[4] then if v then S[d[2]] = nil else S[d[2]] = false end else S[d[2]] = v and true or nil end
             if d[5] then d[5]() end
         end, L[d[3]])
         t:SetPoint("TOPLEFT", 14, y)
