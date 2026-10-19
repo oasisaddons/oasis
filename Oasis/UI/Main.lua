@@ -989,6 +989,33 @@ local function buildMain()
       end
     end
     main.side = side
+    -- 0.6.528: Suche ueber dem Dashboard - filtert die Navigation; Enter oeffnet den ersten Treffer,
+    -- sonst ein passendes Gildenmitglied (Profil). Esc leert die Suche.
+    main.navSearch = K.Input(side, SIDEBAR - 30, L["Suchen ..."], function(t)
+        local q = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+        if q == (main.navQuery or "") then return end
+        main.navQuery = q
+        main.navOff = 0
+        ns.LayoutNav()
+    end)
+    main.navSearch:SetHeight(22)
+    main.navSearch:SetPoint("TOPLEFT", side, "TOPLEFT", 15, -86)
+    main.navSearch:HookScript("OnEnterPressed", function(self)
+        local q = main.navQuery or ""
+        if q == "" then self:ClearFocus() return end
+        if main.navFirst then showPage(main.navFirst) self:ClearFocus() return end
+        for _, m in ipairs(ns.Radar and ns.Radar.roster or {}) do
+            if ns.short(m.name):lower():find(q, 1, true) then
+                if ns.Profile then ns.Profile.Show(m.name) end
+                self:ClearFocus()
+                return
+            end
+        end
+        ns.print((L["Nichts gefunden fuer \"%s\"."]):format(q))
+    end)
+    main.navSearch:HookScript("OnEscapePressed", function(self) self:SetText("") self:ClearFocus() end)
+    main.navSearch:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Suchen"], L["Seiten finden - Enter oeffnet den ersten Treffer, sonst ein Gildenmitglied mit dem Namen."] }) end)
+    main.navSearch:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- Fusszeile der Seitenleiste
     main.foot = K.Text(side, 11, C.muted, "LEFT")
@@ -1644,6 +1671,23 @@ function ns.LayoutNav()
     local rest = {}
     for _, d in ipairs(pageOrder) do if d.nav and not inGroup[d.key] and not isFav[d.key] and ns.PageVisible(d.key) then rest[#rest + 1] = d end end
     if #rest > 0 then groups[#groups + 1] = { g = { key = "more", text = "Weitere" }, items = ordered("more", rest) } end
+    -- 0.6.528: Suche - nur passende Seiten, alle Gruppen aufgeklappt
+    main.navFirst = nil
+    local q = main.navQuery or ""
+    if q ~= "" then
+        closed = {}
+        for _, gr in ipairs(groups) do
+            local keep = {}
+            for _, d in ipairs(gr.items) do
+                local t = (L[d.title or ""] or ""):lower()
+                if t:find(q, 1, true) or (d.title or ""):lower():find(q, 1, true) or d.key:find(q, 1, true) then
+                    keep[#keep + 1] = d
+                    main.navFirst = main.navFirst or d.key
+                end
+            end
+            gr.items = keep
+        end
+    end
     -- Hoehe: Kopfzeilen + sichtbare Eintraege muessen zwischen Logo und Fusszeile passen
     local n, heads = 0, 0
     for _, gr in ipairs(groups) do
@@ -1652,10 +1696,10 @@ function ns.LayoutNav()
             for _, d in ipairs(gr.items) do if not closed[gr.g.key] or d.key == current then n = n + 1 end end
         end
     end
-    local room = H - 92 - 56 - heads * 22
+    local room = H - 120 - 56 - heads * 22
     -- nicht mehr quetschen: lieber scrollen (Mausrad / Leiste rechts)
     local step = math.max(26, math.min(28, math.floor(room / math.max(n, 1))))
-    local TOP, BOTTOM = -90, -(H - 56)
+    local TOP, BOTTOM = -118, -(H - 56)
     local total = heads * 22 + n * step
     local avail = TOP - BOTTOM
     local maxOff = math.max(0, total - avail)
@@ -1676,7 +1720,7 @@ function ns.LayoutNav()
         if not f.navY then f.navY, f.navA = (from or top), 0 end
         target(f, top, inside)
     end
-    local y = -90
+    local y = -118
     for _, gr in ipairs(groups) do
         if #gr.items > 0 then
             local isClosed = (not gr.g.nohead) and closed[gr.g.key]
