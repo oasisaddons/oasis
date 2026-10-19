@@ -412,7 +412,7 @@ ns.RegisterPage({
         if ns.GuildPack then
             local fr = CreateFrame("Frame", nil, p)
             fr:SetPoint("TOPLEFT", field, "TOPLEFT", -6, 6)
-            fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 6, -6)
+            fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 7, -2)   -- unten liegt das Band im Bild hoeher (Rand 53 statt 43 px)
             fr:SetFrameLevel(field:GetFrameLevel() + 55)
             -- 0.6.552: Rahmen aus der Vorlage (1448x1086, als 1024x768 in 1024x1024): Ecken und Mittelschmuck unverzerrt, Kanten gestreckt
             local TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_frame"
