@@ -489,6 +489,12 @@ local OPTS = {
         { "upgradeIconOff", "Keine Verbesserungs-Pfeile auf Items", "Sonst: gruener Pfeil oben = besser, roter Pfeil unten = schlechter (Taschen, Beute-Fenster).", function() if ns.Upgrade then ns.Upgrade.RefreshBadges() end end },
         { "invTooltipOff", "Keine Twink-Bestaende im Tooltip", "Sonst: Item-Tooltip zeigt, welcher deiner Charaktere es wie oft hat." },
     } },
+    -- 0.6.549: wieder da (User) - nur Deckkraft, Tasten gehen weiter
+    { "Blizzard-Leisten", {
+        { "cfHideMicro", "Menueleiste ausblenden", "Die Knoepfe fuer Charakter, Zauberbuch, Talente usw. Tasten (C, P, N ...) gehen weiter.", CF.ApplyBars },
+        { "cfHideBags", "Taschenleiste ausblenden", "Taste B oeffnet die Taschen weiterhin.", CF.ApplyBars },
+        { "cfBarsHover", "Beim Drueberfahren einblenden", "Ausgeblendete Leisten erscheinen, sobald die Maus dort ist.", CF.ApplyBars },
+    } },
 }
 CF.CHAT_OPTS = OPTS[4][2]   -- fuer den Reiter Spielchat (0.6.524: Blizzard-Leisten-Gruppe entfernt)
 local function build(f)
@@ -498,9 +504,9 @@ local function build(f)
     local byName = {}
     for _, grp in ipairs(OPTS) do byName[grp[1]] = grp end
     local LEFT = { "Haendler", "Quests & Annehmen", "Komfort" }
-    local RIGHT = { "Blocker & Gruppen", "Chat" }
+    local RIGHT = { "Blocker & Gruppen", "Blizzard-Leisten", "Chat" }
     -- 0.6.111: Chat-Schalter stehen im Reiter Spielchat - hier nur, wenn das Spielchat-Modul aus ist
-    if ns.GameChat then RIGHT[2] = nil end
+    if ns.GameChat then RIGHT[3] = nil end
     -- 0.5.720: je Gruppe eine Glas-Karte (Titel in der Karte, Schalter darin) - ohne Abstandsautomatik, sonst ueberlappen die Karten
     f.noCompact = true
     local ICON = { ["Haendler"] = "bank", ["Quests & Annehmen"] = "chronicle", ["Komfort"] = "home",

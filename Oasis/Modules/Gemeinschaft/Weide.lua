@@ -356,12 +356,33 @@ local function crowded(s, x, y, flock)
         end
     end
 end
-local function pickTarget(s, flock)
-    for _ = 1, 8 do
-        s.tx = math.max(0.02, math.min(0.98, s.x + (math.random() - 0.5) * 0.6))
-        s.ty = math.max(0, math.min(1, s.y + (math.random() - 0.5) * 0.7))   -- y: 0 = hinten (klein), 1 = vorne (gross)
-        if not crowded(s, s.tx, s.ty, flock) then break end
+-- 0.6.549: Ziel mit moeglichst viel Platz - von 10 Vorschlaegen (halb in der Naehe, halb irgendwo auf der Wiese)
+-- gewinnt der mit dem groessten Abstand zum naechsten Tier -> die Herde verteilt sich ueber die ganze Flaeche
+local function room(s, x, y, flock)
+    local best = 9
+    for _, o in ipairs(flock or {}) do
+        if o ~= s and o:IsShown() and o.who then
+            local ox, oy = o.tx or o.x, o.ty or o.y   -- auch dahin, wo die anderen gerade hinlaufen
+            local d = math.sqrt((ox - x) ^ 2 + ((oy - y) * 1.3) ^ 2)
+            if d < best then best = d end
+        end
     end
+    return best
+end
+local function pickTarget(s, flock)
+    local bx, by, bs = s.x, s.y, -1
+    for i = 1, 10 do
+        local x, y
+        if i % 2 == 0 then
+            x, y = 0.03 + math.random() * 0.94, math.random()
+        else
+            x = math.max(0.02, math.min(0.98, s.x + (math.random() - 0.5) * 0.5))
+            y = math.max(0, math.min(1, s.y + (math.random() - 0.5) * 0.6))   -- y: 0 = hinten (klein), 1 = vorne (gross)
+        end
+        local sc = room(s, x, y, flock)
+        if sc > bs then bx, by, bs = x, y, sc end
+    end
+    s.tx, s.ty = bx, by
     s.wait = nil
 end
 
@@ -797,10 +818,12 @@ ns.RegisterPage({
                 if not s then break end
                 field.sheep[i] = s
                 s.x, s.y = math.random() * 0.9 + 0.05, math.random()
-                -- Startplatz: freie Stelle
-                for _ = 1, 10 do
-                    s.x, s.y = math.random() * 0.9 + 0.05, math.random()
-                    if not crowded(s, s.x, s.y, field.sheep) then break end
+                -- Startplatz: die freieste von 12 Stellen
+                local bs = -1
+                for _ = 1, 12 do
+                    local x, y = math.random() * 0.9 + 0.05, math.random()
+                    local sc = room(s, x, y, field.sheep)
+                    if sc > bs then s.x, s.y, bs = x, y, sc end
                 end
                 pickTarget(s, field.sheep)
                 s.wait = math.random() * 3
