@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.532
+## Version: 0.6.533
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -173,6 +173,7 @@ Kern\Einstellungen\Keybinds.lua
 Modules\Fluestern\WhisperForward.lua
 Kern\Einstellungen\Compat.lua
 Kern\Chat\GuildPack.lua
+Kern\Chat\GuildPackAdmin.lua
 Kern\Einstellungen\ModuleLoader.lua
 Kern\Gilde\LevelBadges.lua
 Kern\Diagnose\MeterProbe.lua

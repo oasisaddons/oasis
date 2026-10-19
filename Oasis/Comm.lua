@@ -561,6 +561,7 @@ local RETENTION = {
     lvotes = 90 * 86400,       -- 0.6.526: Abstimmungen der Leitung (nur Offizierskanal)
     gpack = 3650 * 86400,      -- 0.6.532: offizielles Gildenpaket (Version, Fingerabdruck, Rangsperren)
     lballots = 90 * 86400,
+    gpackhave = 60 * 86400,    -- 0.6.533: welches Gildenpaket jemand installiert hat (jeder meldet nur sich)
     rrating = 180 * 86400,     -- 0.6.527: Bewertungen der Bewerber (nur Offiziere)
     kader = 3650 * 86400,      -- Raid-Kader (Stamm/Ersatz)
     absent = 30 * 86400,       -- Abmeldungen vom Raid
@@ -689,7 +690,7 @@ local function mayRelay(name, feature)
 end
 local OWNED = { posts = true, comments = true, likes = true, follows = true, rep = true, deaths = true,
     profcd = true, trace = true, lfgreq = true, orders = true, dgjoin = true, lvotes = true, lballots = true,
-    rrating = true, wccontrib = true, meets = true, meetatt = true, absent = true }   -- 0.6.527
+    rrating = true, wccontrib = true, meets = true, meetatt = true, absent = true, gpackhave = true }   -- 0.6.527
 -- Weitergereichte Datensaetze (Abgleich): wer nicht selbst Autor ist, darf nur NEUE, unkritische Saetze
 -- weitergeben. Aendern/Loeschen fremder Saetze und alles hier drin nur durch Offiziere (oder den Autor selbst).
 -- (nur Bank/Raenge: alles andere MUSS weitergereicht werden duerfen, sonst bekommen Offline-Mitglieder

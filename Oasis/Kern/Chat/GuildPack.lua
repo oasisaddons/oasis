@@ -65,11 +65,13 @@ end
 -- Offizieller Eintrag der Leitung
 ------------------------------------------------------------------------
 local offEm, offSo, offAt
+-- "code:stufe,..." - Stufe 0 = von der Leitung ausgeschaltet
 local function parseMap(s)
     local t = {}
-    for k, v in tostring(s or ""):gmatch("([%w_]+):(%d+)") do t[k] = math.max(1, math.min(100, tonumber(v))) end
+    for k, v in tostring(s or ""):gmatch("([%w_]+):(%d+)") do v = tonumber(v) t[k] = (v == 0) and 0 or math.max(1, math.min(100, v)) end
     return t
 end
+MP.OFF = 101   -- ausgeschaltet: Stufe, die niemand erreicht (Oasis-Rang geht bis 100)
 function MP.Official()
     local r = Store.Get("gpack", OFFICIAL)
     if not r or not tonumber(r.v) then return nil end
@@ -79,17 +81,34 @@ end
 -- offizielle Stufe eines eigenen Emojis (Code ohne Doppelpunkte) / Sounds (Schluessel x_...): nil = keine Vorgabe
 function MP.EmojiLock(code)
     if not MP.Official() or not code then return nil end
-    return offEm[code] or 100   -- nicht im offiziellen Paket -> nur fuer die Hoechsten
+    local v = offEm[code]
+    if v == 0 then return MP.OFF end
+    return v or 100   -- nicht im offiziellen Paket -> nur fuer die Hoechsten
 end
+-- von der Leitung ausgeschaltet?
+function MP.IsOff(kind, key)
+    if not MP.Official() then return false end
+    return ((kind == "sound") and offSo or offEm)[key] == 0
+end
+-- offizielle Einstellung je Eintrag (fuer den Leitungs-Reiter): Stufe, 0 = aus, nil = nicht freigegeben
+function MP.OfficialLevel(kind, key)
+    if not MP.Official() then return nil end
+    return ((kind == "sound") and offSo or offEm)[key]
+end
+-- Inhalt des installierten Pakets mit eigener Stufe aus den Dateien
+function MP.Items() local em, so = localItems() return em, so end
 function MP.SoundLock(key)
     if not MP.Official() or not key then return nil end
-    return offSo[key] or 100
+    local v = offSo[key]
+    if v == 0 then return MP.OFF end
+    return v or 100
 end
 function MP.CanPublish()
     return ns.Admin and ns.Admin.MayAuthor and ns.Admin.MayAuthor(ns.me(), "guildcfg") == true
 end
 -- Freigeben: Version, Fingerabdruck und die Stufen, die bei MIR gerade gelten (Rewards/Sound rechnen sie aus)
-function MP.Publish()
+function MP.Publish(over)
+    over = over or {}
     local m = MP.Mine()
     if not m or not MP.CanPublish() then return false end
     local fp = MP.Fingerprint()
@@ -99,12 +118,12 @@ function MP.Publish()
     local byCode = ns.Emoji and ns.Emoji.Entry
     for _, e in ipairs(em) do
         local entry = byCode and byCode(":" .. e[1] .. ":")
-        local lvl = e[2] or (entry and ns.Rewards and ns.Rewards.EmojiLevel and ns.Rewards.EmojiLevel(entry)) or 2
+        local lvl = (over.em and over.em[e[1]]) or e[2] or (entry and ns.Rewards and ns.Rewards.EmojiLevel and ns.Rewards.EmojiLevel(entry)) or 2
         el[#el + 1] = e[1] .. ":" .. math.floor(lvl)
     end
     for _, s in ipairs(so) do
         local c = ns.Sound and ns.Sound.byKey and ns.Sound.byKey[s[1]]
-        sl[#sl + 1] = s[1] .. ":" .. math.floor(s[2] or (c and c.lvl) or 2)
+        sl[#sl + 1] = s[1] .. ":" .. math.floor((over.so and over.so[s[1]]) or s[2] or (c and c.lvl) or 2)
     end
     MP.publishing = nil
     Store.Put("gpack", { id = OFFICIAL, v = m.v, made = m.made, fp = fp, el = table.concat(el, ","), sl = table.concat(sl, ","),
@@ -130,6 +149,32 @@ local function check()
 end
 ns.Listen("STORE", function(name) if name == "gpack" then ns.After(2, function() pcall(check) end) ns.RefreshPage("settings") end end)
 ns.Listen("LOGIN", function() C_Timer.After(40, function() pcall(check) end) end)
+function MP.ReportMine()
+    local m = MP.Mine()
+    if not m or not IsInGuild() then return end
+    local fp = MP.Fingerprint()
+    local id = "gph-" .. ns.NameKey(ns.me())
+    local old = Store.Get("gpackhave", id)
+    if old and old.v == m.v and old.fp == fp and (old.ts or 0) > ns.now() - 7 * 86400 then return end
+    Store.Put("gpackhave", { id = id, v = m.v, fp = fp, by = ns.me(), ts = ns.now() })
+end
+ns.Listen("LOGIN", function() C_Timer.After(60, function() pcall(MP.ReportMine) end) end)
+-- Mitglieder (Mains) und ihr Paketstand: { name, v, ok (= offizielle Version + gleicher Inhalt) }
+function MP.Holders()
+    local o = MP.Official()
+    local have = {}
+    for _, r in ipairs(Store.List("gpackhave")) do if r.by then have[ns.NameKey(r.by)] = r end end
+    local out = {}
+    for _, m in ipairs(ns.Radar and ns.Radar.roster or {}) do
+        local isAlt = ns.Alts and ns.Alts.IsAlt and ns.Alts.IsAlt(m.name)
+        if not isAlt and (m.online or (m.offDays or 99) < 14) then
+            local h = have[ns.NameKey(m.name)]
+            out[#out + 1] = { name = m.name, v = h and h.v, ok = (o and h and h.v == o.v and h.fp == o.fp) and true or false }
+        end
+    end
+    table.sort(out, function(a, b) if a.ok ~= b.ok then return not a.ok end return a.name < b.name end)
+    return out
+end
 
 ------------------------------------------------------------------------
 -- Einstellungs-Reiter
