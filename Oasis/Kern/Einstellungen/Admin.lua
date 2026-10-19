@@ -457,6 +457,8 @@ Admin.AUTH = {
         if rec.id and rec.by and rec.id ~= "gcfg-" .. rec.by then return false end
         return level(actor, "guildcfg")
     end,
+    -- 0.6.532: offizielles Gildenpaket nur von der Leitung (Recht guildcfg), nur der feste Datensatz
+    gpack = function(rec, actor) if rec.id ~= "gpack-official" then return false end return level(actor, "guildcfg") end,
     bans = function(rec, actor) return level(actor, "bans") end,
     sndmute = function(rec, actor) return level(actor, "sndmute") end,
     recruits = function(rec, actor) return level(actor, "recruits") end,

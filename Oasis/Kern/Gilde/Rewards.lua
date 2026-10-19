@@ -146,6 +146,12 @@ local EMOJI_STEPS = { 10, 18, 26, 34, 44, 56, 70, 85 }   -- 0.6.439
 local STATIC_STEPS = { 2, 4, 7, 10, 14 }   -- 0.6.439: ab Rang 2   -- 0.6.417: auch normale Gilden-Emojis erst ab Rang (ohne Rang gesperrt)
 local emojiLock
 function RW.EmojiLevel(e)
+    -- 0.6.532: eigenes Gilden-Emoji -> Stufe aus der Freigabe der Gildenleitung (nicht aus den Dateien)
+    local own = type(e) == "table" and type(e[1]) == "string" and e[1]:match("^x\\(.+)$")
+    if own and ns.MediaPack and not ns.MediaPack.publishing then
+        local lk = ns.MediaPack.EmojiLock(own)
+        if lk then return lk end
+    end
     -- eigenes Emoji einer Gilde mit festem Rang ("@20" im Dateinamen, Oasis_Emojis)
     if type(e) == "table" and e.lvl then return e.lvl end
     if not emojiLock then

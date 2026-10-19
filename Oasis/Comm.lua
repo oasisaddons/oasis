@@ -559,6 +559,7 @@ local RETENTION = {
     attend = 120 * 86400,      -- Raid-Anwesenheit (je Raidtag und Instanz)
     formers = 365 * 86400,     -- 0.5.617: Ehemalige 1 Jahr statt 10
     lvotes = 90 * 86400,       -- 0.6.526: Abstimmungen der Leitung (nur Offizierskanal)
+    gpack = 3650 * 86400,      -- 0.6.532: offizielles Gildenpaket (Version, Fingerabdruck, Rangsperren)
     lballots = 90 * 86400,
     rrating = 180 * 86400,     -- 0.6.527: Bewertungen der Bewerber (nur Offiziere)
     kader = 3650 * 86400,      -- Raid-Kader (Stamm/Ersatz)
@@ -677,7 +678,7 @@ Store.FUTURE_SLACK = FUTURE_SLACK
 -- Damit beim Abgleich die Berechtigten zuerst antworten, warten Mitglieder ohne Rechte laenger (SYNCREQ).
 -- 0.5.643: Umfragen nicht mehr - sonst kam eine Umfrage nie an, wenn der Ersteller offline war und nur Mitglieder
 -- sie hatten. Der Ersteller wird weiter geprueft (AUTH polls), Aendern/Loeschen fremder Saetze bleibt Offizieren vorbehalten.
-local STRICT_RELAY = { wchal = "officer", kader = "raid.plan.sort", guildcfg = "officer", notices = "officer", bans = "officer", points = "officer", sndmute = "officer",
+local STRICT_RELAY = { gpack = "officer", wchal = "officer", kader = "raid.plan.sort", guildcfg = "officer", notices = "officer", bans = "officer", points = "officer", sndmute = "officer",
     recruits = "officer", events = "raid.plan.sort", raidplan = "raid.plan.sort", tactics = "raid.plan.sort" }
 local function mayRelay(name, feature)
     local A = ns.Admin

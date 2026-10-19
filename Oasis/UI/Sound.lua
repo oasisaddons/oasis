@@ -421,6 +421,17 @@ function Sound.PlayEntrance(name, src)
     local key = p and p.es
     if key == "none" or (key and not Sound.byKey[key]) then key = nil end
     if key and Sound.byKey[key].dev and Sound.byKey[key].dev ~= "entrance" then key = nil end
+    -- 0.6.532: Rangsperre beim EMPFAENGER pruefen - der Sound eines anderen spielt nur, wenn sein verifizierter
+    -- Oasis-Rang reicht (eigene Gilden-Sounds: Stufe aus der Freigabe der Leitung). Sonst der Standardton.
+    if key and key ~= "none" then
+        local c = Sound.byKey[key]
+        local need = (c.own and ns.MediaPack and ns.MediaPack.SoundLock(key)) or c.lvl or 1
+        local lvl = ns.Rank and ns.Rank.Of and ns.Rank.Of(full)
+        if need > 1 and (lvl or 1) < need then
+            elog(name, ("Sound %s gesperrt (Rang %s, braucht %d)"):format(key, tostring(lvl or "?"), need))
+            key = nil
+        end
+    end
     s.muteEntrance = s.muteEntrance or {}
     local who = ns.short(full)
     local muted = s.muteEntrance[who]
