@@ -349,11 +349,15 @@ local function setAnim(m, id)
 end
 -- zu nah an einem anderen Tier? (x quer in Anteilen der Breite, y = Tiefe)
 local GAP_X, GAP_Y = 0.13, 0.12   -- 0.6.548: deutlich mehr Abstand
+-- 0.6.558: Abstand nach der echten Groesse (wie beim Zeichnen: 0.35 + 1.25 * y^1.8) - vorne waren die Tiere
+-- dreimal so breit wie der feste Abstand und liefen ineinander
+local function bodyW(y) return 0.35 + 1.25 * (y or 0) ^ 1.8 end
 local function crowded(s, x, y, flock)
     for _, o in ipairs(flock or {}) do
         if o ~= s and o:IsShown() and o.who then
-            local need = GAP_X * (0.5 + 0.5 * math.max(y, o.y))   -- vorne sind die Tiere groesser -> mehr Abstand
-            if math.abs(o.x - x) < need and math.abs(o.y - y) < GAP_Y then return o end
+            local need = 0.1 * (bodyW(y) + bodyW(o.y))
+            local needY = GAP_Y * (0.7 + 0.6 * math.max(y, o.y))
+            if math.abs(o.x - x) < need and math.abs(o.y - y) < needY then return o end
         end
     end
 end
