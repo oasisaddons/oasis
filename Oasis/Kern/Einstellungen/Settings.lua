@@ -1137,6 +1137,7 @@ ns.AddPageSettings("map", function(det, y)
         { "Laufspuren anderer Spieler", "mapTrailsGuild", "Die Wege der Gildenmitglieder der letzten 5 Minuten (nur wer seine Position teilt)", xupd },
         { "Lagerfeuer auf der Karte", "mapCamp", "Gemeldete Lagerfeuer der Gilde auf Weltkarte und Minimap", function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end end },
         { "Koordinaten an der Minimap", "mmCoords", "Eigene Position und Entfernung zum Ziel", xupd },
+        { "Ziele auch als TomTom-Wegpunkt", "tomtom", "Nur wenn TomTom installiert ist: Ziele aus Oasis bekommen zusaetzlich einen TomTom-Pfeil", nil, true },
         { "Layer-Anfragen aus der Gilde annehmen", "layerAsk", "Hinweis, wenn jemand ueber deine Gruppe auf deinen Layer will", xupd, true },
     })
 
@@ -1272,7 +1273,8 @@ end)
 local AREA_SCOPE = {
     home = "personal", discover = "personal", life = "personal", bags = "personal",
     badges = "personal", legacy = "personal", rank = "personal", fight = "personal",
-    questitems = "personal", dungeons = "personal",
+    -- 0.6.530: Questitems und Dungeons sind Zusammenspiel; neue Seiten Meine Gruppe, Gildenleben, Raid-Kader
+    questitems = "social", dungeons = "social", party = "social", guildlife = "guild", kader = "guild",
     insta = "social", chat = "social", community = "social", groups = "social",
     social = "social", allies = "social", scout = "social", camp = "social", deathroll = "social",
     radar = "guild", chronicle = "guild", polls = "guild", board = "guild", goals = "guild",
@@ -3485,11 +3487,11 @@ end
 local GROUPS = {
     { key = "start", text = "Uebersicht", icon = "home", tabs = { "quick" },
         desc = "Waehle ein Thema oder suche direkt nach einer Einstellung." },
-    { key = "guild", text = "Gilde & Organisation", icon = "modules", tabs = { "guildtools" },
+    { key = "guild", text = "Gilde & Organisation", icon = "modules", tabs = { "guildtools", "helpers" },
         desc = "Mitglieder, Termine, Raids, Handwerk und gemeinsame Gildenziele." },
     { key = "social", text = "Socializing", icon = "social", tabs = { "socialtools", "greet" },
         desc = "Leute kennenlernen, Gruppen finden und gemeinsam etwas unternehmen." },
-    { key = "help", text = "Mein Komfort", icon = "checklist", tabs = { "personaltools", "comfort", "helpers", "gamechat", "mapset", "tips", "keys" },
+    { key = "help", text = "Mein Komfort", icon = "checklist", tabs = { "personaltools", "comfort", "gamechat", "mapset", "tips", "keys" },
         desc = "Persoenliche Spielhilfen, Chat, Karte und Tooltips fuer deinen Alltag." },
     { key = "look", text = "Aussehen & Bedienung", icon = "brush", tabs = { "look", "general", "bar" },
         desc = "Design, Schrift, Fenster und Leisten an deinen Spielstil anpassen." },

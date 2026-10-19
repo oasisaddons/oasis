@@ -414,5 +414,5 @@ local function build(f)
     body:SetHeight(-bottom + 40)
     ns.After(0.1, updBar)
 end
-if ns.AddSettingsTab then ns.AddSettingsTab("helpers", "Helfer", build) end
+if ns.AddSettingsTab then ns.AddSettingsTab("helpers", "Gilden-Helfer", build) end   -- 0.6.530: steht unter Gilde & Organisation
 end)

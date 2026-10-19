@@ -102,7 +102,7 @@ end
 ------------------------------------------------------------------------
 local tomUid
 function CP.TomTomTarget(t)
-    if not t or ns.db.settings.tomtomOff then return end
+    if not t or ns.db.settings.tomtom == false then return end
     local T = rawget(_G, "TomTom")
     if type(T) ~= "table" or type(T.AddWaypoint) ~= "function" then return end
     if tomUid and type(T.RemoveWaypoint) == "function" then pcall(T.RemoveWaypoint, T, tomUid) end
