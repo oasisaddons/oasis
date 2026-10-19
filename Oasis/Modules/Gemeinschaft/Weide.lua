@@ -194,9 +194,15 @@ local function newSheep(field)
         local okm, id = pcall(self.GetModelFileID, self)
         if not okm or not id or id == 0 then self:LoadSheep() end
     end)
-    -- Sprechblase
+    -- Name (dezent) und darueber die Sprechblase
+    m.name = K.Text(field, 10, C.text, "CENTER")
+    m.name:SetPoint("BOTTOM", m, "TOP", 0, -10)
+    m.name:SetDrawLayer("OVERLAY", 6)
+    m.name:SetShadowOffset(1, -1)
+    m.name:SetShadowColor(0, 0, 0, 0.9)
+    m.name:SetAlpha(0.75)
     m.say = K.Text(field, 11, C.text, "CENTER")
-    m.say:SetPoint("BOTTOM", m, "TOP", 0, -6)
+    m.say:SetPoint("BOTTOM", m.name, "TOP", 0, 5)
     m.say:SetDrawLayer("OVERLAY", 7)
     m.sayBg = field:CreateTexture(nil, "OVERLAY")
     m.sayBg:SetColorTexture(0, 0, 0, 0.55)
@@ -455,9 +461,15 @@ ns.RegisterPage({
             s.mood, s.wish = nd.mood, nil
             for _, n in ipairs(Weide.NEEDS) do if nd[n.key] < 25 then s.wish = L[n.say] break end end
             s:SetAlpha(who.online and 1 or 0.75)
+            s.name:SetText(ns.short(who.name))
+            s.name:SetAlpha(who.online and 0.75 or 0.45)
+            s.name:Show()
             s:Show()
         end
-        for i = n + 1, #field.sheep do field.sheep[i]:Hide() field.sheep[i].who = nil end
+        for i = n + 1, #field.sheep do
+            local s = field.sheep[i]
+            s:Hide() s.who = nil s.name:Hide() s.say:Hide() s.sayBg:Hide()
+        end
         field.empty:SetText(#flock == 0 and L["Noch keine Schafe auf der Weide."] or "")
 
         -- Tier- und Farb-Knoepfe
