@@ -195,12 +195,13 @@ local function newSheep(field)
         if not okm or not id or id == 0 then self:LoadSheep() end
     end)
     -- Name (dezent) und darueber die Sprechblase
-    m.name = K.Text(field, 10, C.text, "CENTER")
-    m.name:SetPoint("BOTTOM", m, "TOP", 0, -10)
+    m.name = K.Text(field, 12, C.text, "CENTER")
+    m.name:SetPoint("BOTTOM", m, "TOP", 0, -14)
+    do local fnt, sz = m.name:GetFont() if fnt then m.name:SetFont(fnt, sz or 12, "OUTLINE") end end
     m.name:SetDrawLayer("OVERLAY", 6)
     m.name:SetShadowOffset(1, -1)
     m.name:SetShadowColor(0, 0, 0, 0.9)
-    m.name:SetAlpha(0.75)
+    m.name:SetAlpha(0.95)
     m.say = K.Text(field, 11, C.text, "CENTER")
     m.say:SetPoint("BOTTOM", m.name, "TOP", 0, 5)
     m.say:SetDrawLayer("OVERLAY", 7)
@@ -250,7 +251,7 @@ ns.RegisterPage({
     build = function(p)
         -- Wiese
         local field = CreateFrame("Frame", nil, p)
-        field:SetPoint("TOPLEFT", 10, -10)   -- Platz fuer den Rahmen
+        field:SetPoint("TOPLEFT", 4, -4)   -- Platz fuer den Rahmen
         field:SetPoint("BOTTOMRIGHT", -(LIST_W + 24), 106)
         -- kein SetClipsChildren: 3D-Modelle werden in beschnittenen Rahmen nicht gezeichnet (0.6.540)
         p.field = field
@@ -265,10 +266,10 @@ ns.RegisterPage({
         -- 0.6.543: Rahmen im Stil des Logos (Gold, Petrol-Innenkante, Edelsteine), 9-teilig damit die Ecken scharf bleiben
         if ns.GuildPack then
             local fr = CreateFrame("Frame", nil, p)
-            fr:SetPoint("TOPLEFT", field, "TOPLEFT", -10, 10)
-            fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 10, -10)
+            fr:SetPoint("TOPLEFT", field, "TOPLEFT", -3, 3)
+            fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 3, -3)
             fr:SetFrameLevel(field:GetFrameLevel() + 55)
-            local TEX, E, T = "Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_frame", 34, 34 / 256
+            local TEX, E, T = "Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_frame", 8, 8 / 64
             local function piece(l, r, t, b)
                 local x = fr:CreateTexture(nil, "OVERLAY")
                 x:SetTexture(TEX)
@@ -498,7 +499,7 @@ ns.RegisterPage({
             for _, n in ipairs(Weide.NEEDS) do if nd[n.key] < 25 then s.wish = L[n.say] break end end
             s:SetAlpha(who.online and 1 or 0.75)
             s.name:SetText(ns.short(who.name))
-            s.name:SetAlpha(who.online and 0.75 or 0.45)
+            s.name:SetAlpha(who.online and 0.95 or 0.6)
             s.name:Show()
             s:Show()
         end
