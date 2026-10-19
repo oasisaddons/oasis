@@ -20,6 +20,7 @@ local function rows()
     for _, e in ipairs(em) do
         local d = draft.em[e[1]]
         local lvl = d ~= nil and d or MP.OfficialLevel("emoji", e[1]) or e[2]
+        if lvl == 200 then lvl = 200 end
         out[#out + 1] = { kind = "emoji", key = e[1], lvl = lvl, file = e[2], frames = e[3] }
     end
     for _, s in ipairs(so) do
@@ -30,7 +31,7 @@ local function rows()
     end
     local res = {}
     for _, r in ipairs(out) do
-        if filter == "all" or (filter == "off" and r.lvl == 0) or r.kind == filter then res[#res + 1] = r end
+        if filter == "all" or (filter == "off" and r.lvl == 0) or (filter == "lead" and r.lvl == 200) or r.kind == filter then res[#res + 1] = r end
     end
     return res
 end
@@ -66,7 +67,7 @@ local function build(f)
     f.link = K.Button(f, L["Link zur Bau-Seite"], 150, 24, "ghost", MP.ShowUrl)
     f.link:SetPoint("RIGHT", f.ann, "LEFT", -6, 0)
     -- Filter + Sammelaktionen
-    f.seg = K.Segments(f, { { key = "all", text = L["Alle"] }, { key = "emoji", text = L["Emojis"] }, { key = "sound", text = L["Sounds"] }, { key = "off", text = L["Ausgeschaltet"] } },
+    f.seg = K.Segments(f, { { key = "all", text = L["Alle"] }, { key = "emoji", text = L["Emojis"] }, { key = "sound", text = L["Sounds"] }, { key = "lead", text = L["Nur Leitung"] }, { key = "off", text = L["Ausgeschaltet"] } },
         function(k) filter = k ns.RefreshPage("admin") end, nil, { size = 12, pad = 16 })
     f.seg:SetPoint("TOPLEFT", 0, -78)
     f.free = K.Button(f, L["Alle auf frei"], 110, 22, "ghost", function()
@@ -90,6 +91,9 @@ local function build(f)
         r.plus:SetPoint("LEFT", 512, 0)
         r.onoff = K.Button(r, "", 96, 22, "ghost", function() local it = r.item if it and canEdit() then setLvl(it, it.lvl == 0 and (it.file or 2) or 0) end end)
         r.onoff:SetPoint("RIGHT", -10, 0)
+        -- 0.6.534: nur Gildenmeister und Offiziere (Blizzard-Gildenrang)
+        r.lead = K.Button(r, "", 110, 22, "ghost", function() local it = r.item if it and canEdit() then setLvl(it, it.lvl == 200 and (it.file or 2) or 200) end end)
+        r.lead:SetPoint("RIGHT", r.onoff, "LEFT", -6, 0)
         return r
     end, function(r, it)
         r.item = it
@@ -103,11 +107,12 @@ local function build(f)
             r.code:SetText(it.text or it.key)
         end
         r.kindT:SetText(isSound and L["Sound"] or ((it.frames and it.frames > 1) and L["Emoji, animiert"] or L["Emoji"]))
-        local off = it.lvl == 0
-        r.lvlT:SetText(off and "|cff777777-|r" or ((not it.lvl or it.lvl <= 2) and L["frei"] or ((L["ab %d"]):format(it.lvl))))
+        local off, lead = it.lvl == 0, it.lvl == 200
+        r.lvlT:SetText(off and "|cff777777-|r" or (lead and ("|cffe8b44a" .. L["Leitung"] .. "|r")) or ((not it.lvl or it.lvl <= 2) and L["frei"] or ((L["ab %d"]):format(it.lvl))))
         r.onoff:SetLabel(off and L["Einschalten"] or L["Ausschalten"])
+        r.lead:SetLabel(lead and L["Fuer alle"] or L["Nur Leitung"])
         local ed = canEdit()
-        r.minus:SetShown(ed and not off) r.plus:SetShown(ed and not off) r.onoff:SetShown(ed)
+        r.minus:SetShown(ed and not off and not lead) r.plus:SetShown(ed and not off and not lead) r.onoff:SetShown(ed) r.lead:SetShown(ed and not off)
         r.code:SetAlpha(off and 0.45 or 1) r.icon:SetAlpha(off and 0.35 or 1)
     end)
     f.list:SetPoint("TOPLEFT", 0, -108)

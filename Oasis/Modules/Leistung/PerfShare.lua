@@ -199,7 +199,7 @@ ns.RegisterPage({
         local a = devCard(p, "star_on", L["Freischaltungen"], L["Emojis und Sounds fuer die Gilde oder nur fuer dich"])
         a:SetPoint("TOPLEFT", 0, 0)
         a:SetPoint("RIGHT", p, "CENTER", -7, 0)
-        a:SetHeight(128)
+        a:SetHeight(160)
         p.lock = K.Toggle(a, L["Emojis & Sounds erst ab Oasis-Rang (Gilde)"], function() local c = guildCfg() return c and c.emLock == true or false end, function(v)
             local cfg = guildCfg()
             if not cfg then return end
@@ -217,8 +217,10 @@ ns.RegisterPage({
         local w = devCard(p, "settings", L["Werkzeuge"], L["Diagnose und Abgleich"])
         w:SetPoint("TOPRIGHT", 0, 0)
         w:SetPoint("LEFT", p, "CENTER", 7, 0)
-        w:SetHeight(128)
+        w:SetHeight(160)
         local tools = {
+            -- 0.6.534: Fehlerberichte direkt erreichbar (vorher nur Rechtsklick auf das Kaefer-Symbol bzw. Reiter)
+            { L["Fehlerberichte"], function() ns.ShowPage("bugs") end, true },
             { L["Fehler melden"], function() if ns.slash.bug then ns.slash.bug() end end },
             { L["Blockiert-Protokoll"], function() if ns.slash.fehler then ns.slash.fehler() end end },
             { L["Leistung messen (60 s)"], function() if ns.slash.leistung then ns.slash.leistung("60") end end },
@@ -228,8 +230,9 @@ ns.RegisterPage({
         }
         p.tools = {}
         for i, t in ipairs(tools) do
-            local b = K.Button(w, t[1], 150, 24, "ghost", t[2])
+            local b = K.Button(w, t[1], 150, 24, t[3] and "primary" or "ghost", t[2])
             p.tools[i] = b
+            if t[3] then p.bugsBtn = b end
         end
         local function layoutTools()
             local cw = (w:GetWidth() or 360) - 28
@@ -244,7 +247,7 @@ ns.RegisterPage({
         layoutTools()
         -- Leistung der Mitglieder (volle Breite)
         local t = devCard(p, "stats", L["Leistung der Mitglieder"], L["Oasis-Rechenzeit je Bild bei jedem Mitglied - gruen gut, gelb mittel, rot hoch"])
-        t:SetPoint("TOPLEFT", 0, -142)
+        t:SetPoint("TOPLEFT", 0, -174)
         t:SetPoint("BOTTOMRIGHT", 0, 0)
         p.req = K.Button(t, L["Alle jetzt messen"], 150, 24, "primary", function() P.RequestAll() end)
         p.req:SetPoint("TOPRIGHT", -14, -12)
@@ -299,6 +302,11 @@ ns.RegisterPage({
         p.more:SetPoint("BOTTOMLEFT", 14, 10)
     end,
     refresh = function(p)
+        -- 0.6.534: Zahl der neuen Fehlerberichte am Knopf
+        if p.bugsBtn then
+            local n = ns.Bugs and ns.Bugs.NewCount and ns.Bugs.NewCount() or 0
+            p.bugsBtn:SetLabel(L["Fehlerberichte"] .. (n > 0 and ("  (" .. n .. ")") or ""))
+        end
         if p.lock then p.lock:Refresh() p.mine:Refresh() end
         local list = Store.List(COLL)
         -- 0.5.663: ein Eintrag je Spieler (Twinks zusammen, z. B. Anna + Tomas) - die neueste Messung zaehlt

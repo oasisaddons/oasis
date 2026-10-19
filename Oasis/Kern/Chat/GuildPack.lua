@@ -68,10 +68,33 @@ local offEm, offSo, offAt
 -- "code:stufe,..." - Stufe 0 = von der Leitung ausgeschaltet
 local function parseMap(s)
     local t = {}
-    for k, v in tostring(s or ""):gmatch("([%w_]+):(%d+)") do v = tonumber(v) t[k] = (v == 0) and 0 or math.max(1, math.min(100, v)) end
+    for k, v in tostring(s or ""):gmatch("([%w_]+):(%d+)") do v = tonumber(v) t[k] = (v == 0 or v == 200) and v or math.max(1, math.min(100, v)) end
     return t
 end
 MP.OFF = 101   -- ausgeschaltet: Stufe, die niemand erreicht (Oasis-Rang geht bis 100)
+MP.LEAD = 200  -- 0.6.534: nur Gildenleitung (Gildenmeister + Offiziere nach Blizzard-Gildenrang), unabhaengig vom Oasis-Rang
+-- gehoert der Spieler zur Leitung? (Gildenrang aus der Gildenliste; ich selbst ueber Admin.Role)
+function MP.IsLead(name)
+    local A = ns.Admin
+    if not A then return false end
+    local role
+    if not name or ns.isMe(name) then role = A.Role and A.Role() else role = A.RoleOf and A.RoleOf(name) end
+    return role == "lead" or role == "officer" or role == "dev"
+end
+-- darf "who" einen eigenen Eintrag nutzen? nil = keine Vorgabe der Leitung (dann gelten die normalen Regeln)
+-- need = Stufe aus der Freigabe; Oasis-Rang des Absenders/Spielers aus Rank.Of (verifiziert)
+function MP.MayUse(kind, key, who)
+    local need = (kind == "sound") and MP.SoundLock(key) or MP.EmojiLock(key)
+    if not need then return nil end
+    if need == MP.OFF then return false end
+    if need == MP.LEAD then return MP.IsLead(who) end
+    if need <= 1 then return true end
+    local lvl
+    if not who or ns.isMe(who) then lvl = ns.Rank and ns.Rank.Mine and ns.Rank.Mine().level or 1
+    else lvl = ns.Rank and ns.Rank.Of and ns.Rank.Of(who) end
+    if ns.UnlockAll and ns.UnlockAll() and (not who or ns.isMe(who)) then return true end
+    return (lvl or 1) >= need
+end
 function MP.Official()
     local r = Store.Get("gpack", OFFICIAL)
     if not r or not tonumber(r.v) then return nil end
@@ -83,6 +106,7 @@ function MP.EmojiLock(code)
     if not MP.Official() or not code then return nil end
     local v = offEm[code]
     if v == 0 then return MP.OFF end
+    if v == 200 then return MP.LEAD end
     return v or 100   -- nicht im offiziellen Paket -> nur fuer die Hoechsten
 end
 -- von der Leitung ausgeschaltet?
@@ -101,6 +125,7 @@ function MP.SoundLock(key)
     if not MP.Official() or not key then return nil end
     local v = offSo[key]
     if v == 0 then return MP.OFF end
+    if v == 200 then return MP.LEAD end
     return v or 100
 end
 function MP.CanPublish()

@@ -427,7 +427,9 @@ function Sound.PlayEntrance(name, src)
         local c = Sound.byKey[key]
         local need = (c.own and ns.MediaPack and ns.MediaPack.SoundLock(key)) or c.lvl or 1
         local lvl = ns.Rank and ns.Rank.Of and ns.Rank.Of(full)
-        if need > 1 and (lvl or 1) < need then
+        local may = c.own and ns.MediaPack and ns.MediaPack.MayUse("sound", key, full)   -- 0.6.534: aus / nur Leitung / Rang
+        if may == nil then may = not (need > 1 and (lvl or 1) < need) end
+        if not may then
             elog(name, ("Sound %s gesperrt (Rang %s, braucht %d)"):format(key, tostring(lvl or "?"), need))
             key = nil
         end
@@ -733,6 +735,10 @@ function Sound.MyRank()
 end
 function Sound.Unlocked(key)
     local c = Sound.byKey[key]
+    if c and c.own and ns.MediaPack then   -- 0.6.534: Vorgabe der Leitung fuer eigene Gilden-Sounds
+        local may = ns.MediaPack.MayUse("sound", key, nil)
+        if may ~= nil then return may end
+    end
     return c and Sound.MyRank() >= (c.lvl or 1)
 end
 

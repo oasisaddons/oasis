@@ -345,6 +345,12 @@ end
 -- gesperrte Emojis (erst ab Oasis-Rang): nur als Bild zeigen, wenn der ABSENDER den Rang hat
 local renderSender
 function Emoji.Allowed(e, who)
+    -- 0.6.534: eigene Gilden-Emojis -> Vorgabe der Leitung (Rang, aus, nur Leitung) zuerst
+    local own = type(e) == "table" and type(e[1]) == "string" and e[1]:match("^x\\(.+)$")
+    if own and ns.MediaPack then
+        local ok = ns.MediaPack.MayUse("emoji", own, who)
+        if ok ~= nil then return ok end
+    end
     if who and ns.isMe(who) and ns.UnlockAll and ns.UnlockAll() then return true end
     local need = ns.Rewards and ns.Rewards.EmojiLevel and ns.Rewards.EmojiLevel(e)
     if not need then return true end
@@ -1735,6 +1741,13 @@ local function buildPicker()
                 -- besondere Emojis: erst ab einem Oasis-Rang
                 local need = ns.Rewards and ns.Rewards.EmojiLevel(e)
                 local locked = need and ns.Rank and ns.Rank.Mine().level < need and not (ns.UnlockAll and ns.UnlockAll())
+                -- 0.6.534: Vorgabe der Leitung fuer eigene Gilden-Emojis (aus / nur Leitung / Rang)
+                local ownCode = type(e[1]) == "string" and e[1]:match("^x\\(.+)$")
+                local mayOwn = ownCode and ns.MediaPack and ns.MediaPack.MayUse("emoji", ownCode, nil)
+                if mayOwn ~= nil then
+                    locked = not mayOwn
+                    if need == ns.MediaPack.LEAD then need = L["Leitung"] elseif need == ns.MediaPack.OFF then need = L["aus"] end
+                end
                 b.icon:SetDesaturated(locked and true or false)
                 b.icon:SetAlpha(locked and 0.35 or 1)
                 b.lockBg:SetShown(locked and true or false)
