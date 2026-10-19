@@ -560,6 +560,13 @@ local RETENTION = {
     formers = 365 * 86400,     -- 0.5.617: Ehemalige 1 Jahr statt 10
     lvotes = 90 * 86400,       -- 0.6.526: Abstimmungen der Leitung (nur Offizierskanal)
     lballots = 90 * 86400,
+    rrating = 180 * 86400,     -- 0.6.527: Bewertungen der Bewerber (nur Offiziere)
+    kader = 3650 * 86400,      -- Raid-Kader (Stamm/Ersatz)
+    absent = 30 * 86400,       -- Abmeldungen vom Raid
+    wchal = 60 * 86400,        -- Wochenaufgabe der Gilde
+    wccontrib = 60 * 86400,
+    meets = 60 * 86400,        -- Gildentreffen (Jahrbuch braucht den Vormonat)
+    meetatt = 60 * 86400,
     tactics = 3650 * 86400,
     markers = 8 * 86400,       -- Kartenmarker der Gilde (MapExtras; laufen selbst frueher ab)
     nodes = 365 * 86400,      -- Gilden-Sammelkarte (GatherMap)    -- Boss-Taktiken (RaidCheck)    -- Ehemalige (GuildHistory)
@@ -586,7 +593,7 @@ local RETENTION = {
 
 -- 0.5.617 Datenschutz: Leitungs-Sammlungen (Protokoll, Ehemalige, Bannliste, Bewerber, Bank-Protokoll) gehen nur
 -- ueber den Offizierskanal, werden nur von Offizieren angenommen und bei allen anderen geloescht
-local OFFICER_ONLY = { audit = true, formers = true, bans = true, recruits = true, banklog = true, lvotes = true, lballots = true }   -- 0.6.526: Abstimmungen der Leitung
+local OFFICER_ONLY = { audit = true, formers = true, bans = true, recruits = true, banklog = true, lvotes = true, lballots = true, rrating = true }   -- 0.6.526: Abstimmungen der Leitung
 Store.OFFICER_ONLY = OFFICER_ONLY
 local function amOfficer() return ns.isOfficer() and true or false end
 local function isOfficerName(name)
@@ -670,7 +677,7 @@ Store.FUTURE_SLACK = FUTURE_SLACK
 -- Damit beim Abgleich die Berechtigten zuerst antworten, warten Mitglieder ohne Rechte laenger (SYNCREQ).
 -- 0.5.643: Umfragen nicht mehr - sonst kam eine Umfrage nie an, wenn der Ersteller offline war und nur Mitglieder
 -- sie hatten. Der Ersteller wird weiter geprueft (AUTH polls), Aendern/Loeschen fremder Saetze bleibt Offizieren vorbehalten.
-local STRICT_RELAY = { guildcfg = "officer", notices = "officer", bans = "officer", points = "officer", sndmute = "officer",
+local STRICT_RELAY = { wchal = "officer", kader = "raid.plan.sort", guildcfg = "officer", notices = "officer", bans = "officer", points = "officer", sndmute = "officer",
     recruits = "officer", events = "raid.plan.sort", raidplan = "raid.plan.sort", tactics = "raid.plan.sort" }
 local function mayRelay(name, feature)
     local A = ns.Admin
@@ -680,7 +687,8 @@ local function mayRelay(name, feature)
     return r
 end
 local OWNED = { posts = true, comments = true, likes = true, follows = true, rep = true, deaths = true,
-    profcd = true, trace = true, lfgreq = true, orders = true, dgjoin = true, lvotes = true, lballots = true }
+    profcd = true, trace = true, lfgreq = true, orders = true, dgjoin = true, lvotes = true, lballots = true,
+    rrating = true, wccontrib = true, meets = true, meetatt = true, absent = true }   -- 0.6.527
 -- Weitergereichte Datensaetze (Abgleich): wer nicht selbst Autor ist, darf nur NEUE, unkritische Saetze
 -- weitergeben. Aendern/Loeschen fremder Saetze und alles hier drin nur durch Offiziere (oder den Autor selbst).
 -- (nur Bank/Raenge: alles andere MUSS weitergereicht werden duerfen, sonst bekommen Offline-Mitglieder

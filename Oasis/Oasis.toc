@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.526
+## Version: 0.6.527
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -96,6 +96,7 @@ Modules\RaidTools\BuffPage.lua
 Modules\Lager\Camp.lua
 Modules\RaidTools\LootPoints.lua
 Modules\RaidTools\RaidPlanner.lua
+Modules\RaidTools\Roster.lua
 Modules\RaidTools\RaidTime.lua
 Modules\RaidTools\Raid.lua
 Modules\Chronik\Chronicle.lua
@@ -105,6 +106,7 @@ Kern\Gilde\Rank.lua
 Kern\Gilde\Rewards.lua
 Modules\Umfragen\Polls.lua
 Modules\Gemeinschaft\Community.lua
+Modules\Gemeinschaft\Together.lua
 Kern\Gilde\Profile.lua
 Kern\Start\Welcome.lua
 Modules\Gildenbank\GuildBank.lua
@@ -132,6 +134,7 @@ Kern\Einstellungen\Export.lua
 Modules\Gildenpflege\Officer.lua
 Modules\Gildenpflege\GuildHistory.lua
 Modules\Gildenpflege\Leadership.lua
+Modules\Gildenpflege\Apply.lua
 Modules\Gildenpflege\Suspect.lua
 Modules\RaidTools\LootMaster.lua
 Modules\Kartenextras\GatherMap.lua

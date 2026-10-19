@@ -43,7 +43,11 @@ function LD.Inbox()
             if (r.st or "app") == "app" then apps[#apps + 1] = r.name
             elseif r.st == "trial" and O.TrialLeft and O.TrialLeft(r) == 0 then trialDone[#trialDone + 1] = r.name end
         end
-        if #apps > 0 then add(1, "groups", (L["%d Bewerbung(en) warten auf eine Antwort"]):format(#apps), table.concat(apps, ", "), L["Bewerber"], open("members", "recruits")) end
+        if #apps > 0 then
+            local one = #apps == 1 and ns.Apply and apps[1]
+            add(1, "groups", (L["%d Bewerbung(en) warten auf eine Antwort"]):format(#apps), table.concat(apps, ", "), one and L["Mappe"] or L["Bewerber"],
+                one and function() ns.Apply.ShowFile(one) end or open("members", "recruits"))
+        end
         if #trialDone > 0 then add(1, "checklist", (L["Probezeit vorbei: %s"]):format(table.concat(trialDone, ", ")), L["Aufnehmen oder verlaengern?"], L["Entscheiden"], open("members", "recruits")) end
     end
     -- Befoerderung faellig
@@ -280,6 +284,25 @@ function LD.ShowDossier(name)
     y = line(f, y, L["Im Rang seit"], ago(d.rankSince))
     if d.att then y = line(f, y, L["Raid-Anwesenheit"], ("%d%%  |cff777777(%d/%d, 28 Tage)|r"):format(math.floor(d.att * 100 + 0.5), d.attHere or 0, d.attTotal or 0)) end
     y = line(f, y, L["Danke bekommen"], (L["%d in 30 Tagen"]):format(d.thanks or 0))
+    if ns.GuildLife and ns.GuildLife.Contributions then
+        for _, e in ipairs(ns.GuildLife.Contributions(30)) do
+            if ns.SameName(e.name, name) then
+                local p = {}
+                if (e.orders or 0) > 0 then p[#p + 1] = (L["%d Auftraege hergestellt"]):format(e.orders) end
+                if (e.mats or 0) > 0 then p[#p + 1] = (L["%d Material gespendet"]):format(e.mats) end
+                if (e.meets or 0) > 0 then p[#p + 1] = (L["%d x beim Treffen"]):format(e.meets) end
+                if #p > 0 then y = line(f, y, L["Beitrag (30 Tage)"], table.concat(p, "  ·  ")) end
+            end
+        end
+    end
+    if ns.Kader then
+        local teams = {}
+        for _, t in ipairs(ns.Kader.Teams()) do
+            for n in tostring(t.stamm or ""):gmatch("[^,]+") do if ns.SameName(n, name) then teams[#teams + 1] = (t.name or "") .. " (" .. L["Stamm"] .. ")" end end
+            for n in tostring(t.ersatz or ""):gmatch("[^,]+") do if ns.SameName(n, name) then teams[#teams + 1] = (t.name or "") .. " (" .. L["Ersatz"] .. ")" end end
+        end
+        if #teams > 0 then y = line(f, y, L["Raid-Kader"], table.concat(teams, ", ")) end
+    end
     if d.mentor then y = line(f, y, L["Pate"], short(d.mentor)) end
     if (d.mentees or 0) > 0 then y = line(f, y, L["Pate fuer"], (L["%d Neuling(e)"]):format(d.mentees)) end
     if d.chars and #d.chars > 1 then
