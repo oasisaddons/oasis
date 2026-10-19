@@ -351,7 +351,7 @@ end
 local GAP_X, GAP_Y = 0.13, 0.12   -- 0.6.548: deutlich mehr Abstand
 -- 0.6.558: Abstand nach der echten Groesse (wie beim Zeichnen: 0.35 + 1.25 * y^1.8) - vorne waren die Tiere
 -- dreimal so breit wie der feste Abstand und liefen ineinander
-local function bodyW(y) return 0.35 + 1.25 * (y or 0) ^ 1.8 end
+local function bodyW(y) return 0.16 + 1.44 * (y or 0) ^ 1.6 end   -- 0.6.560: hinten viel kleiner (wie beim Zeichnen)
 local function crowded(s, x, y, flock)
     for _, o in ipairs(flock or {}) do
         if o ~= s and o:IsShown() and o.who then
@@ -605,7 +605,7 @@ ns.RegisterPage({
                         if self:IsVisible() and (not s.form or s.form.key == "sheep") then Weide.Maeh() end
                     end
                     -- Groesse: nur nach Tiefe
-                    local size = 140 * (0.35 + 1.25 * s.y ^ 1.8) * math.max(0.6, H / 520)   -- 0.6.548: Groesse nur nach Tiefe, nicht nach Rang
+                    local size = 140 * bodyW(s.y) * math.max(0.6, H / 520)   -- 0.6.548: Groesse nur nach Tiefe, nicht nach Rang
                     size = size * (1 - 0.15 * (s.sad or 0))   -- 0.6.548: vernachlaessigt etwas kleiner
                     local feet = H * (MEADOW_TOP + s.y * (MEADOW_BOTTOM - MEADOW_TOP))
                     -- 0.6.547: Namen hinten kleiner, vorne groesser (9-14 pt)
