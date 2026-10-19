@@ -194,18 +194,20 @@ local function newSheep(field)
         local okm, id = pcall(self.GetModelFileID, self)
         if not okm or not id or id == 0 then self:LoadSheep() end
     end)
-    -- Name (dezent) und darueber die Sprechblase
-    m.name = K.Text(field, 12, C.text, "CENTER")
+    -- Name (dezent) und darueber die Sprechblase - eigener Rahmen direkt ueber diesem Tier (0.6.546)
+    m.lab = CreateFrame("Frame", nil, field)
+    m.lab:SetAllPoints(m)
+    m.name = K.Text(m.lab, 12, C.text, "CENTER")
     m.name:SetPoint("BOTTOM", m, "TOP", 0, -14)
     do local fnt, sz = m.name:GetFont() if fnt then m.name:SetFont(fnt, sz or 12, "OUTLINE") end end
     m.name:SetDrawLayer("OVERLAY", 6)
     m.name:SetShadowOffset(1, -1)
     m.name:SetShadowColor(0, 0, 0, 0.9)
     m.name:SetAlpha(0.95)
-    m.say = K.Text(field, 11, C.text, "CENTER")
+    m.say = K.Text(m.lab, 11, C.text, "CENTER")
     m.say:SetPoint("BOTTOM", m.name, "TOP", 0, 5)
     m.say:SetDrawLayer("OVERLAY", 7)
-    m.sayBg = field:CreateTexture(nil, "OVERLAY")
+    m.sayBg = m.lab:CreateTexture(nil, "OVERLAY")
     m.sayBg:SetColorTexture(0, 0, 0, 0.55)
     m.sayBg:SetPoint("TOPLEFT", m.say, "TOPLEFT", -6, 3)
     m.sayBg:SetPoint("BOTTOMRIGHT", m.say, "BOTTOMRIGHT", 6, -3)
@@ -235,16 +237,29 @@ end
 local function setAnim(m, id)
     if m.anim ~= id then m.anim = id pcall(m.SetAnimation, m, id) end
 end
-local function pickTarget(s)
-    s.tx = math.max(0.02, math.min(0.98, s.x + (math.random() - 0.5) * 0.6))
-    s.ty = math.max(0, math.min(1, s.y + (math.random() - 0.5) * 0.7))   -- y: 0 = hinten (klein), 1 = vorne (gross)
+-- zu nah an einem anderen Tier? (x quer in Anteilen der Breite, y = Tiefe)
+local GAP_X, GAP_Y = 0.07, 0.09
+local function crowded(s, x, y, flock)
+    for _, o in ipairs(flock or {}) do
+        if o ~= s and o:IsShown() and o.who then
+            local need = GAP_X * (0.5 + 0.5 * math.max(y, o.y))   -- vorne sind die Tiere groesser -> mehr Abstand
+            if math.abs(o.x - x) < need and math.abs(o.y - y) < GAP_Y then return o end
+        end
+    end
+end
+local function pickTarget(s, flock)
+    for _ = 1, 8 do
+        s.tx = math.max(0.02, math.min(0.98, s.x + (math.random() - 0.5) * 0.6))
+        s.ty = math.max(0, math.min(1, s.y + (math.random() - 0.5) * 0.7))   -- y: 0 = hinten (klein), 1 = vorne (gross)
+        if not crowded(s, s.tx, s.ty, flock) then break end
+    end
     s.wait = nil
 end
 
 ------------------------------------------------------------------------
 -- Seite
 ------------------------------------------------------------------------
-local LIST_W = 250
+local LIST_W = 190   -- 0.6.546: schmaler, mehr Platz fuer die Wiese
 ns.RegisterPage({
     key = "pasture", title = "Guildotchi", order = 7.64,
     sub = "Jedes Mitglied mit Oasis hat ein Schaf - fuettern, streicheln, buersten. Je hoeher der Rang, desto groesser, ab hoeheren Raengen neue Farben.",
@@ -304,7 +319,8 @@ ns.RegisterPage({
         field.empty:SetPoint("CENTER")
 
         -- Bewegung: ein OnUpdate fuer alle Schafe
-        local tick, hue = 0, 0
+        local tick, hue, sortT = 0, 0, 0
+        local order = {}
         field:SetScript("OnUpdate", function(self, dt)
             dt = math.min(dt or 0, 0.1)
             local W, H = self:GetWidth(), self:GetHeight()
@@ -312,12 +328,29 @@ ns.RegisterPage({
             tick, hue = tick + dt, (hue + dt * 0.15) % 1
             local rb = tick > 0.12
             if rb then tick = 0 end
+            -- 0.6.546: Zeichenreihenfolge nach Tiefe - ein Tier weiter vorne liegt immer vor den hinteren (je Tier eigene Ebene)
+            sortT = sortT + dt
+            if sortT > 0.1 then
+                sortT = 0
+                wipe(order)
+                for _, s in ipairs(self.sheep) do if s:IsShown() then order[#order + 1] = s end end
+                table.sort(order, function(a, b) return a.y < b.y end)
+                local base = self:GetFrameLevel() + 2
+                for i, s in ipairs(order) do
+                    local lv = base + i * 3
+                    if s.lvlSet ~= lv then
+                        s.lvlSet = lv
+                        s:SetFrameLevel(lv)
+                        s.lab:SetFrameLevel(lv + 1)
+                    end
+                end
+            end
             for _, s in ipairs(self.sheep) do
                 if s:IsShown() and s.who then
                     if s.wait then
                         s.wait = s.wait - dt
                         setAnim(s, 0)
-                        if s.wait <= 0 then pickTarget(s) end
+                        if s.wait <= 0 then pickTarget(s, self.sheep) end
                         s.sayIn = (s.sayIn or 10) - dt
                     else
                         local dx, dy = s.tx - s.x, s.ty - s.y
@@ -328,8 +361,16 @@ ns.RegisterPage({
                         else
                             local v = 0.045 * (0.6 + 0.6 * s.y) * (s.mood and (0.45 + s.mood / 120) or 1)   -- vorne schneller, traurige Schafe trotten
                             local step = math.min(d, v * dt)
-                            s.x, s.y = s.x + dx / d * step, s.y + dy / d * step
-                            setAnim(s, 4)
+                            local nx, ny = s.x + dx / d * step, s.y + dy / d * step
+                            local o = crowded(s, nx, ny, self.sheep)
+                            -- 0.6.546: nicht ineinanderlaufen - wer vor einem anderen Tier steht, bleibt kurz stehen und sucht sich ein neues Ziel
+                            if o and not crowded(s, s.x, s.y, self.sheep) then
+                                s.wait = 0.6 + math.random() * 1.5
+                                setAnim(s, 0)
+                            else
+                                s.x, s.y = nx, ny
+                                setAnim(s, 4)
+                            end
                             -- Blickrichtung: 0 = zur Kamera, rechts = -pi/2, weg = pi
                             local face = math.atan2 and math.atan2(-dx, dy) or 0
                             if not s.face or math.abs(face - s.face) > 0.05 then s.face = face pcall(s.SetFacing, s, face) end
@@ -350,8 +391,7 @@ ns.RegisterPage({
                     s:SetSize(size, size)
                     s:ClearAllPoints()
                     s:SetPoint("BOTTOMLEFT", self, "TOPLEFT", s.x * (W - size), -feet - size * 0.08)   -- Unterkante = Fuesse (kleiner Rand im Modell)
-                    local lvl = 5 + math.floor(s.y * 40)
-                    if s.lvlSet ~= lvl then s.lvlSet = lvl s:SetFrameLevel(self:GetFrameLevel() + lvl) end
+
                     if rb and s.skin and s.skin.rainbow then
                         local r, g, b = 0.5 + 0.5 * math.sin(hue * 6.283), 0.5 + 0.5 * math.sin(hue * 6.283 + 2.09), 0.5 + 0.5 * math.sin(hue * 6.283 + 4.19)
                         light(s, s.skin, r, g, b)
@@ -480,7 +520,7 @@ ns.RegisterPage({
         -- Mein Gildotchi: Laune, drei Balken, drei Knoepfe
         side.me = K.Text(side, 13, C.text)
         side.me:SetPoint("TOPLEFT", 12, -10)
-        side.me:SetText(L["Mein Gildotchi"])
+        side.me:SetText(L["Mein Guildotchi"])
         side.mood = K.Text(side, 11, C.muted)
         side.mood:SetPoint("TOPLEFT", side.me, "BOTTOMLEFT", 0, -3)
         side.need = {}
@@ -489,9 +529,9 @@ ns.RegisterPage({
             local r = {}
             r.t = K.Text(side, 11, C.text)
             r.t:SetPoint("TOPLEFT", 12, y)
-            r.bar = K.Bar(side, LIST_W - 120, 6)
-            r.bar:SetPoint("TOPLEFT", 12, y - 16)
-            r.btn = K.Button(side, L[n.act], 86, 22, "ghost", function()
+            r.bar = K.Bar(side, LIST_W - 24, 6)
+            r.bar:SetPoint("TOPLEFT", 12, y - 20)
+            r.btn = K.Button(side, L[n.act], 76, 20, "ghost", function()
                 local ok, left = Weide.Care(n.key)
                 if ok then
                     K.Toast(L["Gildotchi"], L["Maeh! Danke!"], C.mint)
@@ -500,7 +540,7 @@ ns.RegisterPage({
                 end
                 ns.RefreshPage("pasture", true)
             end)
-            r.btn:SetPoint("TOPRIGHT", side, "TOPRIGHT", -10, y - 4)
+            r.btn:SetPoint("TOPRIGHT", side, "TOPRIGHT", -10, y + 3)
             r.need = n
             side.need[i] = r
         end
@@ -539,7 +579,12 @@ ns.RegisterPage({
                 if not s then break end
                 field.sheep[i] = s
                 s.x, s.y = math.random() * 0.9 + 0.05, math.random()
-                pickTarget(s)
+                -- Startplatz: freie Stelle
+                for _ = 1, 10 do
+                    s.x, s.y = math.random() * 0.9 + 0.05, math.random()
+                    if not crowded(s, s.x, s.y, field.sheep) then break end
+                end
+                pickTarget(s, field.sheep)
                 s.wait = math.random() * 3
             end
             local who = flock[i]
