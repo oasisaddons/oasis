@@ -383,8 +383,6 @@ ns.RegisterPage({
             r.where:SetPoint("LEFT", r, "RIGHT", -215, 0)
             r.where:SetPoint("RIGHT", -10, 0)
             r.where:SetWordWrap(false)
-            r.need = K.Glyph(r, 14, ns.MEDIA .. "icons\\wants", C.accent)
-            r.need:SetPoint("TOPLEFT", r.icon, "TOPRIGHT", -8, 4)
             r.needT = K.Text(r, 10, C.accent)
             r.needT:SetPoint("TOPLEFT", r.name, "BOTTOMLEFT", 0, -1)
             r.needT:SetPoint("RIGHT", r, "RIGHT", -230, 0)
@@ -414,7 +412,7 @@ ns.RegisterPage({
             local hd = it.header and true or false
             for _, x in ipairs({ r.icon, r.q, r.name, r.n, r.where }) do x:SetShown(not hd) end
             local nd = not hd and it.needs ~= nil
-            r.need:SetShown(nd) r.needT:SetShown(nd)
+            r.needT:SetShown(nd)
             r.name:ClearAllPoints()
             r.name:SetPoint("LEFT", 46, nd and 6 or 0)
             r.name:SetPoint("RIGHT", r, "RIGHT", -270, 0)
@@ -467,8 +465,20 @@ ns.RegisterPage({
                 b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
                 b.q = b:CreateTexture(nil, "OVERLAY")
                 b.q:SetPoint("BOTTOMLEFT", 3, 3) b.q:SetPoint("BOTTOMRIGHT", -3, 3) b.q:SetHeight(2)
-                b.need = K.Glyph(b, 14, ns.MEDIA .. "icons\\wants", C.accent)
-                b.need:SetPoint("TOPRIGHT", 2, 2)
+                -- 0.6.525: "Gilde braucht" = Zahl in einer kleinen Marke oben rechts + Rahmen in Akzentfarbe
+                -- (vorher ein 14-px-Symbol, das bei dieser Groesse nur ein roter Fleck war)
+                b.need = CreateFrame("Frame", nil, b)
+                b.need:SetSize(16, 14)
+                b.need:SetPoint("TOPRIGHT", 3, 3)
+                b.need:SetFrameLevel(b:GetFrameLevel() + 3)
+                K.Fill(b.need, { C.accent[1], C.accent[2], C.accent[3], 0.95 })
+                b.need.t = b.need:CreateFontString(nil, "OVERLAY")
+                K.SetFontSafe(b.need.t, K.FONT_HEAD or K.FONT, 10, "OUTLINE", K.FONT)
+                b.need.t:SetPoint("CENTER", 0, 0)
+                b.need.t:SetTextColor(1, 1, 1)
+                b.ring = CreateFrame("Frame", nil, b)
+                b.ring:SetAllPoints()
+                K.Border(b.ring, { C.accent[1], C.accent[2], C.accent[3], 0.9 })
                 b.n = b:CreateFontString(nil, "OVERLAY")
                 K.SetFontSafe(b.n, K.FONT_HEAD or K.FONT, 11, "OUTLINE", K.FONT)
                 b.n:SetPoint("BOTTOMRIGHT", -3, 4)
@@ -494,7 +504,9 @@ ns.RegisterPage({
                 local it = line[c]
                 b.it = it
                 b:SetShown(it ~= nil and c <= (p.gridCols or 10))
-                b.need:SetShown(it ~= nil and it.needs ~= nil)
+                local nd = it ~= nil and it.needs ~= nil
+                b.need:SetShown(nd) b.ring:SetShown(nd)
+                if nd then b.need.t:SetText(#it.needs > 9 and "9+" or #it.needs) end
                 if it then
                     b.icon:SetTexture(C_Item.GetItemIconByID and C_Item.GetItemIconByID(it.id) or 134400)
                     local qc = qualityOf(it.id)

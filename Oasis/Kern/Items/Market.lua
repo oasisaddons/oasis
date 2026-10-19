@@ -36,6 +36,9 @@ function Market.Price(item)
         if ok and p then return p, "midas" end
     end
     local id = ns.itemID(item)
+    -- 0.6.525: ohne Midas den Auktionator-Preis nehmen, wenn installiert
+    local ap = id and ns.Compat and ns.Compat.AuctionatorPrice and ns.Compat.AuctionatorPrice(id)
+    if ap then return ap, "auctionator" end
     local r = id and Store.Get("prices", "p-" .. id)
     if r and r.price then return r.price, "oasis", r.ts end
     return nil

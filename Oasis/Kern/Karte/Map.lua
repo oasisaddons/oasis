@@ -852,9 +852,11 @@ function Map.SetTarget(t)
     Map.UpdateWorldPins()
     if Map.UpdateMinimap then Map.UpdateMinimap() end
     K.Toast(L["Ziel gesetzt"], (t.label or "") .. ((t.sub or "") ~= "" and ("  ·  " .. t.sub) or ""), C.amber, function() Map.ClearTarget() end)
+    if ns.Compat and ns.Compat.TomTomTarget then pcall(ns.Compat.TomTomTarget, t) end   -- 0.6.525: auch als TomTom-Wegpunkt
 end
 function Map.ClearTarget()
     Map.target = nil
+    if ns.Compat and ns.Compat.TomTomClear then pcall(ns.Compat.TomTomClear) end
     Map.dirty = true
     if Map.UpdateMinimap then Map.UpdateMinimap() end
     if WorldMapFrame and WorldMapFrame:IsShown() then Map.UpdateWorldPins() end

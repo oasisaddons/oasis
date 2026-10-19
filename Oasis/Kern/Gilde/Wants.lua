@@ -1586,14 +1586,19 @@ ns.RegisterPage({
         p.search:SetPoint("RIGHT", p.sort, "LEFT", -6, 0)
         -- FojjiCore geladen und dort stehen Wuensche, die hier fehlen: mit einem Klick uebernehmen (die Gilde sieht sie dann)
         p.fojji = K.Button(p, "", 150, 22, "ghost", function()
-            if ns.Fojji then
+            if ns.Fojji and ns.Fojji.Has() then
                 local n = ns.Fojji.ImportWishes()
                 if n > 0 and K.Toast then K.Toast(L["Wunschliste"], (L["%d Wuensche aus FojjiCore in die Oasis-Wunschliste uebernommen."]):format(n), C.mint) end
+            end
+            local NW = ns.Compat and ns.Compat.Naowh
+            if NW and NW.Has() then
+                local n = NW.ImportWishes()
+                if n > 0 and K.Toast then K.Toast(L["Wunschliste"], (L["%d BiS-Teile aus Naowh in die Oasis-Wunschliste uebernommen."]):format(n), C.mint) end
             end
             ns.RefreshPage("wants")
         end)
         p.fojji:SetPoint("RIGHT", p.search, "LEFT", -6, 0)
-        p.fojji:SetScript("OnEnter", function(self) K.ShowTip(self, { "FojjiCore", L["Uebernimmt, was du in FojjiCores Wunschliste markiert hast. Die Gilde sieht diese Wuensche dann hier."] }) end)
+        p.fojji:SetScript("OnEnter", function(self) K.ShowTip(self, { self.src or "FojjiCore", L["Uebernimmt, was du in FojjiCores Wunschliste oder Naowhs BiS-Liste stehen hast (nur, was du noch nicht besitzt). Die Gilde sieht diese Wuensche dann hier."] }) end)
         p.fojji:SetScript("OnLeave", function() GameTooltip:Hide() end)
         p.fojji:Hide()
         -- Liste + Leerzustand
@@ -1624,9 +1629,14 @@ ns.RegisterPage({
     refresh = function(p)
         do
             local nf = ns.Fojji and ns.Fojji.Has() and #ns.Fojji.NewWishes() or 0
+            local NW = ns.Compat and ns.Compat.Naowh
+            local nn = NW and NW.Has() and #NW.NewWishes() or 0
             local was = p.fojji:IsShown()
-            p.fojji:SetShown(nf > 0)
-            if nf > 0 then p.fojji:SetLabel((L["Aus FojjiCore (%d)"]):format(nf)) end
+            p.fojji:SetShown(nf + nn > 0)
+            p.fojji.src = (nf > 0 and nn > 0) and "FojjiCore + Naowh" or (nn > 0 and "Naowh Forever" or "FojjiCore")
+            if nf > 0 and nn > 0 then p.fojji:SetLabel((L["Aus Addons (%d)"]):format(nf + nn))
+            elseif nn > 0 then p.fojji:SetLabel((L["Aus Naowh-BiS (%d)"]):format(nn))
+            elseif nf > 0 then p.fojji:SetLabel((L["Aus FojjiCore (%d)"]):format(nf)) end
             if was ~= p.fojji:IsShown() then p:Layout() end
         end
         local fresh, switch = p.fresh, p.switch

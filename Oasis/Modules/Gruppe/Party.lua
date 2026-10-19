@@ -338,6 +338,13 @@ ns.RegisterPage({
         glass(p.mlist, { 1, 1, 1, 0.025 }, { 1, 1, 1, 0.07 }, 10)
         p.sum = K.Text(p.members, 11, C.muted)
         p.sum:SetPoint("BOTTOMLEFT", 4, 8)
+        -- 0.6.525: Naowh Forever zeigt Ausruestung/Talente der ganzen Gruppe im Detail - dorthin verweisen statt nachbauen
+        p.naowh = K.Button(p.members, L["Ausruestung in Naowh"], 150, 22, "ghost", function()
+            local NW = ns.Compat and ns.Compat.Naowh
+            if NW then NW.OpenGroupInspect() end
+        end)
+        p.naowh:SetPoint("BOTTOMRIGHT", -4, 4)
+        p.naowh:Hide()
         -- Quests
         p.quests = CreateFrame("Frame", nil, p)
         p.quests:SetPoint("TOPLEFT", 0, -36)
@@ -370,6 +377,8 @@ ns.RegisterPage({
         p.quests:SetShown(tab == "quests" and grouped)
         if tab == "members" and grouped then
             p.mlist:SetData(m)
+            local NW = ns.Compat and ns.Compat.Naowh
+            p.naowh:SetShown(NW ~= nil and NW.CanGroupInspect())
             local oasis, sum, cnt = 0, 0, 0
             for _, x in ipairs(m) do
                 if x.me or (x.info and x.info.oasis) then oasis = oasis + 1 end

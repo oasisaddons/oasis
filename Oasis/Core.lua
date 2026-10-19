@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.524"
+ns.version = "0.6.525"
 ns.versionDate = "19.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -374,7 +374,10 @@ function ns.ForeignChat()
     if type(E) == "table" and type(E._chatCFD) == "function" then return true end
     -- Bereits beim Laden erkennen, bevor die fremde Fensterzuordnung bereitsteht.
     local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
-    return loaded and loaded("EllesmereUIChat") and true or false
+    -- 0.6.525: auch Chattynator und Prat zeichnen den Chat selbst
+    if not loaded then return false end
+    for _, n in ipairs({ "EllesmereUIChat", "Chattynator", "Prat-3.0" }) do if loaded(n) then return true end end
+    return false
 end
 -- Minimap-Symbole von Oasis (0.5.960): die Mitte bleibt frei, damit der eigene Pfeil sichtbar ist, und die Symbole liegen in der
 -- Ebene der Minimap selbst (vorher eine Ebene hoeher - dann verdeckten sie Rahmen und Kompass).
