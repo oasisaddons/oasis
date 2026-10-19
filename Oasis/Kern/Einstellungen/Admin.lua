@@ -2876,6 +2876,7 @@ function Admin.UpdateOchatTab()
             b:SetShown(canOfficerChat() or Admin.TestMode())
         end
     end
+    if page.seg.Fit then page.seg:Fit(page:GetWidth()) end
 end
 
 local OFFICER_GROUPS = {
@@ -3057,6 +3058,8 @@ ns.RegisterPage({
         for _, t in ipairs(TABS) do items[#items + 1] = { key = t.key, text = L[t.text] } end
         p.seg = K.Segments(p, items, function(k) Admin.SetTab(k) end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
+        p:HookScript("OnSizeChanged", function(self, w) if self.seg and self.seg.Fit then self.seg:Fit(w) end end)
+        C_Timer.After(0, function() if p.seg and p.seg.Fit then p.seg:Fit(p:GetWidth()) end end)
         local line = K.Divider(p)
         line:SetPoint("TOPLEFT", 0, -28)
         line:SetPoint("TOPRIGHT", 0, -28)

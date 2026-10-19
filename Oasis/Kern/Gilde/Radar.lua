@@ -1545,10 +1545,6 @@ ns.RegisterPage({
         calmBtn(p.reset)
         glass(p.search, { 1, 1, 1, 0.04 }, { 1, 1, 1, 0.10 }, 8)
         -- Suche rechts neben den Filtern (gleiche Zeile)
-        p.search:ClearAllPoints()
-        p.search:SetPoint("TOPLEFT", seg, "TOPLEFT", x, ROWY)
-        x = x + (p.search:GetWidth() or 250) + 6
-        p.reset:SetPoint("TOPLEFT", seg, "TOPLEFT", x, ROWY)
         -- 0.6.519: gezielt einladen + Blizzards Gildenfenster (Raenge/Rechte) - rechts in der Filterzeile
         p.blizz = K.Button(p, L["Blizzard-Gilde"], 0, 24, "ghost", function() ns.GuildTools.OpenBlizzard() end)
         p.blizz:SetWidth(math.max(90, p.blizz.label:GetStringWidth() + 20))
@@ -1560,6 +1556,13 @@ ns.RegisterPage({
         calmBtn(p.invite)
         p.invite:SetPoint("RIGHT", p.blizz, "LEFT", -6, 0)
         p.invite:SetShown(ns.GuildTools.CanInvite())
+        -- 0.6.536: Suche fuellt nur den Platz bis zu "Filter aus"/"Einladen"/"Blizzard-Gilde" (ueberlappte vorher rechts)
+        local rightOf = p.invite:IsShown() and p.invite or p.blizz
+        p.reset:SetPoint("TOP", seg, "TOP", 0, ROWY)
+        p.reset:SetPoint("RIGHT", rightOf, "LEFT", -6, 0)
+        p.search:ClearAllPoints()
+        p.search:SetPoint("TOPLEFT", seg, "TOPLEFT", x, ROWY)
+        p.search:SetPoint("RIGHT", p.reset, "LEFT", -6, 0)
 
         -- Spaltenkoepfe (Klick: sortieren)
         local hdr = CreateFrame("Frame", nil, p)

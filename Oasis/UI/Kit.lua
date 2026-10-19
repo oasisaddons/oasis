@@ -958,6 +958,27 @@ function K.Segments(parent, items, onChange, w, opts)
         f.buttons[#f.buttons + 1] = b
     end
     f:SetWidth(x)
+    -- 0.6.536: in maxW einpassen - nur sichtbare Knoepfe, erst Abstand, dann Schrift verkleinern (Gildenleitung ragte rechts hinaus)
+    function f:Fit(maxW)
+        if not maxW or maxW <= 0 then return end
+        local vis = {}
+        for _, b in ipairs(self.buttons) do if b:IsShown() then vis[#vis + 1] = b end end
+        local function total(sz, pd)
+            local t = 0
+            for _, b in ipairs(vis) do if not b.face then b.face, _, b.fflags = b.label:GetFont() end if b.face then b.label:SetFont(b.face, sz, b.fflags or "") end t = t + math.max(30, b.label:GetStringWidth() + pd) + 2 end
+            return t
+        end
+        local sz, pd = size, pad
+        while total(sz, pd) > maxW and pd > 10 do pd = pd - 2 end
+        while total(sz, pd) > maxW and sz > 10 do sz = sz - 1 end
+        local xx = 0
+        for _, b in ipairs(vis) do
+            local bw = math.max(30, b.label:GetStringWidth() + pd)
+            b:SetWidth(bw) b:ClearAllPoints() b:SetPoint("LEFT", xx, 0)
+            xx = xx + bw + 2
+        end
+        self:SetWidth(xx)
+    end
     function f:Select(key, user)
         self.value = key
         for _, b in ipairs(self.buttons) do
