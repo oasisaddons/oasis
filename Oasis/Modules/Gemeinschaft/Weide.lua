@@ -364,6 +364,8 @@ local function room(s, x, y, flock)
         if o ~= s and o:IsShown() and o.who then
             local ox, oy = o.tx or o.x, o.ty or o.y   -- auch dahin, wo die anderen gerade hinlaufen
             local d = math.sqrt((ox - x) ^ 2 + ((oy - y) * 1.3) ^ 2)
+            -- 0.6.555: vorne sind die Tiere bis zu dreimal so gross - gleicher Abstand wirkt dort viel enger
+            d = d / (0.45 + 0.9 * math.max(y, oy))
             if d < best then best = d end
         end
     end
@@ -374,7 +376,7 @@ local function pickTarget(s, flock)
     for i = 1, 10 do
         local x, y
         if i % 2 == 0 then
-            x, y = 0.03 + math.random() * 0.94, math.random()
+            x, y = 0.03 + math.random() * 0.94, math.random() ^ 1.4   -- 0.6.555: eher hinten (dort ist mehr Platz)
         else
             x = math.max(0.02, math.min(0.98, s.x + (math.random() - 0.5) * 0.5))
             y = math.max(0, math.min(1, s.y + (math.random() - 0.5) * 0.6))   -- y: 0 = hinten (klein), 1 = vorne (gross)
@@ -412,7 +414,7 @@ ns.RegisterPage({
         if ns.GuildPack then
             local fr = CreateFrame("Frame", nil, p)
             fr:SetPoint("TOPLEFT", field, "TOPLEFT", -6, 6)
-            fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 7, -2)   -- unten liegt das Band im Bild hoeher (Rand 53 statt 43 px)
+            fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 7, -12)   -- 0.6.555: Wiese ragte unten heraus   -- unten liegt das Band im Bild hoeher (Rand 53 statt 43 px)
             fr:SetFrameLevel(field:GetFrameLevel() + 55)
             -- 0.6.552: Rahmen aus der Vorlage (1448x1086, als 1024x768 in 1024x1024): Ecken und Mittelschmuck unverzerrt, Kanten gestreckt
             local TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_frame"
@@ -660,6 +662,9 @@ ns.RegisterPage({
             function(v) ns.db.settings.gotchiSound = (not v) and false or nil end)
         bar.snd:SetWidth(170)
         bar.snd:SetPoint("RIGHT", bar.afk, "LEFT", -12, 0)
+        -- 0.6.556: Text "Aussehen" endet vor den Schaltern (lag darunter)
+        bar.cur:SetPoint("RIGHT", bar.snd, "LEFT", -12, 0)
+        bar.cur:SetJustifyH("LEFT") bar.cur:SetWordWrap(false)
 
         local pick = CreateFrame("Frame", nil, p)
         pick:SetPoint("TOPLEFT", field, "TOPLEFT", 16, -60)
