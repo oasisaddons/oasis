@@ -361,6 +361,9 @@ function Members.ShowMenu(owner, m)
             items[#items + 1] = { text = L["Pate werden"], icon = I .. "groups", fn = function() CO.BecomeMentor(m.name) end }
         end
     end
+    if ns.Leadership and ns.isOfficer() and not me and not m.demo then
+        items[#items + 1] = { text = L["Akte oeffnen"], icon = I .. "admin", fn = function() ns.Leadership.ShowDossier(m.name) end }   -- 0.6.526
+    end
     if Members.CanEditOfficerNote() and not m.demo and m.index then
         items[#items + 1] = { text = L["Offiziersnotiz bearbeiten"], icon = I .. "checklist", fn = function() Members.EditOfficerNote(m) end }
     end

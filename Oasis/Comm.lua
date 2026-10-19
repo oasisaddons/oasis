@@ -558,6 +558,8 @@ local RETENTION = {
     chatpin = 30 * 86400,      -- Gildenchat: angepinnte Nachricht
     attend = 120 * 86400,      -- Raid-Anwesenheit (je Raidtag und Instanz)
     formers = 365 * 86400,     -- 0.5.617: Ehemalige 1 Jahr statt 10
+    lvotes = 90 * 86400,       -- 0.6.526: Abstimmungen der Leitung (nur Offizierskanal)
+    lballots = 90 * 86400,
     tactics = 3650 * 86400,
     markers = 8 * 86400,       -- Kartenmarker der Gilde (MapExtras; laufen selbst frueher ab)
     nodes = 365 * 86400,      -- Gilden-Sammelkarte (GatherMap)    -- Boss-Taktiken (RaidCheck)    -- Ehemalige (GuildHistory)
@@ -584,7 +586,7 @@ local RETENTION = {
 
 -- 0.5.617 Datenschutz: Leitungs-Sammlungen (Protokoll, Ehemalige, Bannliste, Bewerber, Bank-Protokoll) gehen nur
 -- ueber den Offizierskanal, werden nur von Offizieren angenommen und bei allen anderen geloescht
-local OFFICER_ONLY = { audit = true, formers = true, bans = true, recruits = true, banklog = true }
+local OFFICER_ONLY = { audit = true, formers = true, bans = true, recruits = true, banklog = true, lvotes = true, lballots = true }   -- 0.6.526: Abstimmungen der Leitung
 Store.OFFICER_ONLY = OFFICER_ONLY
 local function amOfficer() return ns.isOfficer() and true or false end
 local function isOfficerName(name)
@@ -678,7 +680,7 @@ local function mayRelay(name, feature)
     return r
 end
 local OWNED = { posts = true, comments = true, likes = true, follows = true, rep = true, deaths = true,
-    profcd = true, trace = true, lfgreq = true, orders = true, dgjoin = true }
+    profcd = true, trace = true, lfgreq = true, orders = true, dgjoin = true, lvotes = true, lballots = true }
 -- Weitergereichte Datensaetze (Abgleich): wer nicht selbst Autor ist, darf nur NEUE, unkritische Saetze
 -- weitergeben. Aendern/Loeschen fremder Saetze und alles hier drin nur durch Offiziere (oder den Autor selbst).
 -- (nur Bank/Raenge: alles andere MUSS weitergereicht werden duerfen, sonst bekommen Offline-Mitglieder

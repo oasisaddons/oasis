@@ -83,6 +83,7 @@ CP.KNOWN = {
     { "EllesmereUIChat", "EllesmereUI", "Chatfenster dort; Oasis-Gildenchat bleibt im Oasis-Fenster" },
     { "Gargul", "Gargul", "Pluendern im Raid dort; Oasis-Reservierungen und Lootpunkte als Gildenablage" },
     { "RCLootCouncil", "RCLootCouncil", "Pluendern im Raid dort; Oasis-Lootpunkte als Gildenablage" },
+    { "Guild_Roster_Manager", "Guild Roster Manager", "Eigene Historie dort; Oasis ergaenzt mit gildenweit geteilten Daten (Anwesenheit, Danke, Paten, Abstimmungen)" },
     { "MRT", "Method Raid Tools", "Raid-Notizen dort; Oasis-Raidplanung und Anmeldungen ergaenzen" },
 }
 function CP.Detected()

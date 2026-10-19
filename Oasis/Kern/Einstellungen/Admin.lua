@@ -1135,6 +1135,17 @@ local TABS = {
 
 local page
 local draft
+-- 0.6.526: Module koennen Reiter beisteuern (Gildenpflege: "Heute", "Entscheiden"); pos = Stelle in der Reiterleiste
+local HELP_EXTRA = {}
+function Admin.AddTab(key, text, build, refresh, help, pos)
+    for _, t in ipairs(TABS) do if t.key == key then return end end
+    -- "Heute" ersetzt die alte Start-Seite mit den Kacheln (Reiterleiste sonst zu voll)
+    if key == "today" then for i, t in ipairs(TABS) do if t.key == "start" then table.remove(TABS, i) break end end end
+    table.insert(TABS, math.max(1, math.min(pos or #TABS + 1, #TABS + 1)), { key = key, text = text })
+    Admin.EXTRA_BUILD = Admin.EXTRA_BUILD or {}
+    Admin.EXTRA_BUILD[key] = { build = build, refresh = refresh }
+    HELP_EXTRA[key] = help
+end
 local function copyCfg(c)
     local t = {}
     for k in pairs(DEFAULTS) do t[k] = c[k] end
@@ -3005,6 +3016,8 @@ local function refreshStart(f)
 end
 BUILD.start = buildStart
 REFRESH.start = refreshStart
+for k, e in pairs(Admin.EXTRA_BUILD or {}) do BUILD[k], REFRESH[k] = e.build, e.refresh end
+for k, h in pairs(HELP_EXTRA) do HELP[k] = h end
 
 function Admin.SetTab(key)
     if not page or not BUILD[key] then return end
@@ -3057,7 +3070,10 @@ ns.RegisterPage({
 
         p.testTag.label:SetTextColor(C.amber[1], C.amber[2], C.amber[3])
         p.rebuildDraftViews = function() end
-        Admin.SetTab("start")
+        -- 0.6.526: Module (Gildenpflege) melden ihre Reiter erst nach dieser Datei an
+        for k, e in pairs(Admin.EXTRA_BUILD or {}) do BUILD[k], REFRESH[k] = e.build, e.refresh end
+        for k, h in pairs(HELP_EXTRA) do HELP[k] = h end
+        Admin.SetTab(BUILD.today and "today" or "start")
     end,
     refresh = function(p)
         if not Admin.CanManage() then
@@ -3291,6 +3307,9 @@ function GR.MemberMenu(owner, m)
     local canP, canD = GR.CanPromote(), GR.CanDemote()
     local mine = myRank() or 99
     local items = { { text = short .. "  |cff888888" .. (names[cur] or "?") .. "|r", header = true } }
+    if ns.Leadership and ns.isOfficer() then
+        items[#items + 1] = { text = L["Akte oeffnen"], fn = function() ns.Leadership.ShowDossier(m.name) end }   -- 0.6.526
+    end
     items[#items + 1] = { text = "▲  " .. L["Befoerdern"], disabled = not canP or cur <= 0 or (cur - 1 <= mine and not GR.IsLeader()),
         fn = function() GR.Confirm((L["%s befoerdern auf \"%s\"?"]):format(short, names[cur - 1] or "?"), function() GR.Promote(m.name) end) end }
     items[#items + 1] = { text = "▼  " .. L["Zurueckstufen"], disabled = not canD or cur >= n - 1 or (cur <= mine and not GR.IsLeader()),

@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.525
+## Version: 0.6.526
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -131,6 +131,7 @@ Modules\Gildenpflege\OfficerData.lua
 Kern\Einstellungen\Export.lua
 Modules\Gildenpflege\Officer.lua
 Modules\Gildenpflege\GuildHistory.lua
+Modules\Gildenpflege\Leadership.lua
 Modules\Gildenpflege\Suspect.lua
 Modules\RaidTools\LootMaster.lua
 Modules\Kartenextras\GatherMap.lua
