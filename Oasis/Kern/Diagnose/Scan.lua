@@ -151,4 +151,4 @@ function Scan.Run()
     end
     ns.print((L["Scan fertig: %d Pruefungen, %d Fehler. Jetzt /reload, dann ist das Ergebnis gespeichert."]):format(n, bad))
 end
-ns.slash.scan = Scan.Run
+ns.slash.scan = function(...) if ns.IsDev and ns.IsDev() then return Scan.Run(...) end end   -- 0.6.524: nur Entwicklermodus

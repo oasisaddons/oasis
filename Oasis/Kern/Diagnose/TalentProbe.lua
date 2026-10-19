@@ -159,4 +159,4 @@ local function probe()
         ns.print(("Talent-Pruefung: %d Zeilen gespeichert - jetzt /reload, dann sind sie gespeichert."):format(#out))
     end)
 end
-ns.slash.talentprobe = probe
+ns.slash.talentprobe = function(...) if ns.IsDev and ns.IsDev() then return probe(...) end end   -- 0.6.524: nur Entwicklermodus

@@ -408,6 +408,20 @@ local function others()
     return out
 end
 QI.Others = others
+-- 0.6.524: [itemID] = { { who, title, have, need }, ... } - offene Questitem-Bedarfe der anderen (Taschen & Twinks)
+function QI.NeedsByItem()
+    local out = {}
+    for _, r in ipairs(others()) do
+        local p = parseRec(r)
+        for _, o in ipairs(p.needs) do
+            if o.id and (o.have or 0) < (o.need or 1) then
+                out[o.id] = out[o.id] or {}
+                table.insert(out[o.id], { who = r.who, title = p.titles[o.qid or 0], have = o.have, need = o.need })
+            end
+        end
+    end
+    return out
+end
 
 local function inGroup(who)
     if ns.Social and ns.Social.InMyGroup then return ns.Social.InMyGroup(who) end

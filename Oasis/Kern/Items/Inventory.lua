@@ -211,9 +211,42 @@ local CAT = {
 }
 local OTHER = { 11, "Sonstiges", { 0.6, 0.6, 0.65 } }
 -- Filter-Reiter: die wichtigsten Gruppen, Rest unter Sonstiges
-local FILTERS = { { key = 0, text = "Alle" }, { key = 1, text = "Waffen" }, { key = 2, text = "Ruestung" }, { key = 3, text = "Verbrauch" },
+local FILTERS = { { key = 0, text = "Alle" }, { key = 50, text = "Gilde braucht" }, { key = 1, text = "Waffen" }, { key = 2, text = "Ruestung" }, { key = 3, text = "Verbrauch" },
     { key = 4, text = "Handwerk" }, { key = 7, text = "Quest" }, { key = 99, text = "Sonstiges" } }
-local function inFilter(cat)
+-- 0.6.524: Was braucht die Gilde von dem, was du hast? Gesucht-Liste, Questitems anderer, offene Handwerks-Auftraege
+-- [itemID] = { { who, kind = "want"|"quest"|"order", text }, ... } - einmal je Seitenaufbau berechnet
+function Inv.GuildNeeds()
+    local out = {}
+    local function add(id, e) if id and id > 0 then out[id] = out[id] or {} table.insert(out[id], e) end end
+    local Store = ns.Store
+    for _, w in ipairs(Store and Store.List("wants") or {}) do
+        if w.who and not ns.isMe(w.who) and not w.done then
+            add(tonumber(w.itemID), { who = w.who, kind = "want", text = (w.qty and w.qty > 1) and ("x" .. w.qty) or nil })
+        end
+    end
+    if ns.QuestItems and ns.QuestItems.NeedsByItem then
+        local ok, m = pcall(ns.QuestItems.NeedsByItem)
+        if ok and type(m) == "table" then
+            for id, list in pairs(m) do for _, e in ipairs(list) do add(id, { who = e.who, kind = "quest", text = e.title }) end end
+        end
+    end
+    for _, o in ipairs(Store and Store.List("orders") or {}) do
+        if o.status == "open" and o.from and not ns.isMe(o.from) then add(tonumber(o.item), { who = o.from, kind = "order", text = o.qty and ("x" .. o.qty) or nil }) end
+    end
+    return out
+end
+local NEED_KIND = { want = "Gesucht", quest = "Quest", order = "Auftrag" }
+local function needText(list)
+    local parts = {}
+    for i, e in ipairs(list) do
+        if i > 3 then parts[#parts + 1] = "+" .. (#list - 3) break end
+        parts[#parts + 1] = L[NEED_KIND[e.kind] or "Gesucht"] .. ": " .. ns.displayName(e.who) .. (e.text and (" |cff888888(" .. e.text .. ")|r") or "")
+    end
+    return table.concat(parts, "  ·  ")
+end
+Inv.NeedText = needText
+local function inFilter(cat, x)
+    if catFilter == 50 then return x ~= nil and x.needs ~= nil end   -- 0.6.524: nur was die Gilde braucht
     if catFilter == 0 then return true end
     if catFilter == 99 then return cat[1] >= 5 and cat[1] ~= 7 end
     return cat[1] == catFilter
@@ -350,6 +383,12 @@ ns.RegisterPage({
             r.where:SetPoint("LEFT", r, "RIGHT", -215, 0)
             r.where:SetPoint("RIGHT", -10, 0)
             r.where:SetWordWrap(false)
+            r.need = K.Glyph(r, 14, ns.MEDIA .. "icons\\wants", C.accent)
+            r.need:SetPoint("TOPLEFT", r.icon, "TOPRIGHT", -8, 4)
+            r.needT = K.Text(r, 10, C.accent)
+            r.needT:SetPoint("TOPLEFT", r.name, "BOTTOMLEFT", 0, -1)
+            r.needT:SetPoint("RIGHT", r, "RIGHT", -230, 0)
+            r.needT:SetWordWrap(false)
             r.hd = K.Text(r, 12, C.text)
             r.hd:SetPoint("BOTTOMLEFT", 10, 6)
             r.hdN = K.Text(r, 10, C.dim, "RIGHT")
@@ -360,6 +399,7 @@ ns.RegisterPage({
                 if not self.item or self.item.header then return end
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 pcall(GameTooltip.SetItemByID, GameTooltip, self.item.id)
+                if self.item.needs then GameTooltip:AddLine("|cffff1200Oasis|r  " .. L["Die Gilde braucht das:"] .. " " .. needText(self.item.needs), 0.85, 0.85, 0.85, true) end
                 GameTooltip:AddLine("|cff888888" .. L["Shift-Klick: in den Chat einfuegen"] .. "|r")
                 GameTooltip:Show()
             end)
@@ -373,6 +413,12 @@ ns.RegisterPage({
         end, function(r, it, i)
             local hd = it.header and true or false
             for _, x in ipairs({ r.icon, r.q, r.name, r.n, r.where }) do x:SetShown(not hd) end
+            local nd = not hd and it.needs ~= nil
+            r.need:SetShown(nd) r.needT:SetShown(nd)
+            r.name:ClearAllPoints()
+            r.name:SetPoint("LEFT", 46, nd and 6 or 0)
+            r.name:SetPoint("RIGHT", r, "RIGHT", -270, 0)
+            if nd then r.needT:SetText(needText(it.needs)) end
             r.hd:SetShown(hd) r.hdN:SetShown(hd) r.hdLine:SetShown(hd)
             if r.hl then r.hl:SetAlpha(hd and 0 or 1) end
             if hd then
@@ -391,6 +437,19 @@ ns.RegisterPage({
         end)
         p.items:SetPoint("TOPLEFT", 6, -72)
         p.items:SetPoint("BOTTOMRIGHT", -6, 8)
+        -- 0.6.524: Hinweis "Die Gilde braucht ..." (Klick = Filter "Gilde braucht")
+        p.needBar = CreateFrame("Button", nil, rp)
+        p.needBar:SetHeight(22)
+        p.needBar:SetPoint("BOTTOMLEFT", 10, 10)
+        p.needBar:SetPoint("BOTTOMRIGHT", -10, 10)
+        p.needBar:SetFrameLevel(rp:GetFrameLevel() + 20)
+        glass(p.needBar, 6, 0.10)
+        p.needBar.ic = K.Glyph(p.needBar, 14, ns.MEDIA .. "icons\\wants", C.accent)
+        p.needBar.ic:SetPoint("LEFT", 8, 0)
+        p.needBar.t = K.Text(p.needBar, 11, C.text)
+        p.needBar.t:SetPoint("LEFT", 28, 0)
+        p.needBar:SetScript("OnClick", function() catFilter = 50 p.fresh = true ns.RefreshPage("bags") end)
+        p.needBar:Hide()
 
         -- Rasteransicht: Taschen-Look, eine Zeile = mehrere Felder
         local CELL = 40
@@ -408,6 +467,8 @@ ns.RegisterPage({
                 b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
                 b.q = b:CreateTexture(nil, "OVERLAY")
                 b.q:SetPoint("BOTTOMLEFT", 3, 3) b.q:SetPoint("BOTTOMRIGHT", -3, 3) b.q:SetHeight(2)
+                b.need = K.Glyph(b, 14, ns.MEDIA .. "icons\\wants", C.accent)
+                b.need:SetPoint("TOPRIGHT", 2, 2)
                 b.n = b:CreateFontString(nil, "OVERLAY")
                 K.SetFontSafe(b.n, K.FONT_HEAD or K.FONT, 11, "OUTLINE", K.FONT)
                 b.n:SetPoint("BOTTOMRIGHT", -3, 4)
@@ -416,6 +477,7 @@ ns.RegisterPage({
                     glass(self, 6, 0.10)
                     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                     pcall(GameTooltip.SetItemByID, GameTooltip, self.it.id)
+                    if self.it.needs then GameTooltip:AddLine("|cffff1200Oasis|r  " .. L["Die Gilde braucht das:"] .. " " .. needText(self.it.needs), 0.85, 0.85, 0.85, true) end
                     GameTooltip:Show()
                 end)
                 b:SetScript("OnLeave", function(self) glass(self, 6, 0.03) GameTooltip:Hide() end)
@@ -432,6 +494,7 @@ ns.RegisterPage({
                 local it = line[c]
                 b.it = it
                 b:SetShown(it ~= nil and c <= (p.gridCols or 10))
+                b.need:SetShown(it ~= nil and it.needs ~= nil)
                 if it then
                     b.icon:SetTexture(C_Item.GetItemIconByID and C_Item.GetItemIconByID(it.id) or 134400)
                     local qc = qualityOf(it.id)
@@ -541,17 +604,27 @@ ns.RegisterPage({
 
         -- Kategorien + Filter
         local shown = {}
+        local needs, nNeed = Inv.GuildNeeds(), 0
         for _, x in ipairs(out) do
             local ok, _, _, _, _, _, classID = pcall(C_Item.GetItemInfoInstant, x.id)
             x.cat = (ok and CAT[classID or -1]) or OTHER
-            if inFilter(x.cat) then shown[#shown + 1] = x end
+            x.needs = needs[x.id]
+            if inFilter(x.cat, x) then shown[#shown + 1] = x end
+            if x.needs then nNeed = nNeed + 1 end
         end
         if #out > 0 and #shown == 0 then
-            em.t:SetText(L["Nichts in dieser Kategorie"])
-            em.d:SetText(L["Andere Kategorie waehlen."])
+            em.t:SetText(catFilter == 50 and L["Gerade braucht niemand etwas davon"] or L["Nichts in dieser Kategorie"])
+            em.d:SetText(catFilter == 50 and L["Hier erscheinen Items aus der Gesucht-Liste, Questitems anderer und offene Handwerks-Auftraege."] or L["Andere Kategorie waehlen."])
         end
+        -- Hinweisleiste: wie viele Items die Gilde gerade braucht (Klick = Filter)
+        p.needBar:SetShown(nNeed > 0 and catFilter ~= 50)
+        local bot = (nNeed > 0 and catFilter ~= 50) and 38 or 8
+        p.items:SetPoint("BOTTOMRIGHT", -6, bot)
+        p.grid:SetPoint("BOTTOMRIGHT", -6, bot)
+        p.needBar.t:SetText((L["%d deiner Items braucht gerade jemand aus der Gilde - anzeigen"]):format(nNeed))
         table.sort(shown, function(a, b)
             if a.cat[1] ~= b.cat[1] then return a.cat[1] < b.cat[1] end
+            if (a.needs ~= nil) ~= (b.needs ~= nil) then return a.needs ~= nil end
             local na, nb = itemName(a.id) or "", itemName(b.id) or ""
             if na ~= nb then return na < nb end
             return a.id < b.id

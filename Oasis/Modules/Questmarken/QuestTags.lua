@@ -13,7 +13,8 @@ end
 
 local function decorate(btn, questID, isGroup)
     if not btn or not questID then return end
-    local new = ns.IsForeverQuest(questID) and not (ns.db and ns.db.settings.questTags == false)
+    -- 0.6.524: Fokus auf Gruppenquests - "NEU" fuer Forever-Quests nur noch mit eigenem Schalter (Standard aus)
+    local new = ns.IsForeverQuest(questID) and ns.db and ns.db.settings.questTagsNew == true
     local grp = isGroup and not (ns.db and ns.db.settings.questTags == false)
     if not DECO[btn] then
         if not (new or grp) then return end
@@ -184,7 +185,7 @@ do
         local b = pick and rewardButton(pick)
         if b then mark(b, kind) end
     end
-    ns.QuestRewardMarks = true   -- nesUI zeichnet dann nicht selbst
-    ns.On("QUEST_COMPLETE", function() ns.After(0.05, function() pcall(rate) end) end)
+    -- 0.6.524: Questbelohnung markieren ist ein Ein-Spieler-Helfer -> abgeschaltet (Code bleibt zum Nachschlagen)
+    local _ = rate
 end
 end)

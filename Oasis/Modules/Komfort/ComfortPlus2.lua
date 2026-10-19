@@ -1,3 +1,5 @@
+-- 0.6.524: nur noch Gilden-/Gruppen-Helfer (Berufs-Abklingzeiten der Gilde, Quest-Fortschritt der Gruppe, Rare-Warnung).
+-- Instanz-Zaehler, Lehrer, Twink-Gold, Jaeger, Nachkaufen, Ruhestein, Angeln, Sets, Reichweite: Archiv/Komfort/ComfortPlus2_bis_0.6.523.lua
 -- Oasis - Helfer, Teil 2: Instanz-Zaehler, neue Zauber beim Lehrer, Berufs-Abklingzeiten der Gilde,
 -- Gegenstaende/Gold aller eigenen Charaktere, Quest-Fortschritt der Gruppe, Jaeger-Begleiter,
 -- Reagenzien kaufen, Rare-Warnung, Ruhestein/IDs, Angel-Helfer, Ausruestungs-Sets, Reichweite.
@@ -109,113 +111,10 @@ ns.Listen("LOGIN", function()
     if not s.cp2Init then
         s.cp2Init = true
         -- 0.6.522: nur Gilden-/Gruppen-Helfer an (Raid-IDs, Berufs-Abklingzeiten der Gilde, Quest-Fortschritt der Gruppe, Rare-Warnung)
-        for _, k in ipairs({ "cpInstances", "cpProfCD", "cpQuestShare", "cpRare" }) do
+        for _, k in ipairs({ "cpProfCD", "cpQuestShare", "cpRare" }) do
             if s[k] == nil then s[k] = true end
         end
     end
-end)
-
-------------------------------------------------------------------------
--- 1. Instanz-Zaehler (hoechstens 5 neue Instanzen pro Stunde, gilt fuer den ganzen Account)
-------------------------------------------------------------------------
-local function instList()
-    ns.db.instHour = ns.db.instHour or {}
-    local cut, out = time() - 3600, {}
-    for _, e in ipairs(ns.db.instHour) do if e.ts > cut then out[#out + 1] = e end end
-    ns.db.instHour = out
-    return out
-end
-function H2.InstanceStatus()
-    local list = instList()
-    local n = #list
-    local nextFree = n >= 5 and (list[1].ts + 3600 - time()) or nil
-    return n, nextFree, list
-end
-local lastInst
-ns.On("PLAYER_ENTERING_WORLD", function()
-    if not on("cpInstances") then return end
-    local inInst, typ = IsInInstance()
-    if not inInst or (typ ~= "party" and typ ~= "raid") then lastInst = nil return end
-    local name, _, _, _, _, _, _, mapID = GetInstanceInfo()
-    if not mapID then return end
-    local list = instList()
-    -- dieselbe (nicht zurueckgesetzte) Instanz zaehlt nicht nochmal
-    for _, e in ipairs(list) do if e.map == mapID and not e.reset then lastInst = mapID return end end
-    if lastInst == mapID then return end
-    lastInst = mapID
-    table.insert(ns.db.instHour, { ts = time(), map = mapID, name = name, who = ns.me() })
-    local n, nextFree = H2.InstanceStatus()
-    local col = n >= 5 and C.red or (n >= 4 and (C.amber or C.red) or C.accent)
-    local txt = (L["%d von 5 Instanzen in dieser Stunde"]):format(n)
-    if n >= 5 then txt = txt .. " - " .. (L["naechste frei in %s"]):format(fmtLeft(nextFree)) end
-    K.Toast(L["Instanz-Zaehler"], txt, col)
-end)
-ns.On("CHAT_MSG_SYSTEM", function(msg)
-    if type(msg) ~= "string" or (issecretvalue and issecretvalue(msg)) then return end
-    -- "X wurde zurueckgesetzt": alle offenen Eintraege gelten als neue Instanz beim naechsten Betreten
-    local pat = INSTANCE_RESET_SUCCESS and INSTANCE_RESET_SUCCESS:gsub("%%s", "(.+)")
-    if pat and msg:match(pat) then
-        for _, e in ipairs(instList()) do e.reset = true end
-        lastInst = nil
-    end
-end)
--- Warnung beim Betreten-Versuch, wenn die Stunde voll ist (Gruppe, Instanzportal in der Naehe gibt es nicht als Ereignis)
-ns.On("ZONE_CHANGED_NEW_AREA", function()
-    if not on("cpInstances") then return end
-    local n, nextFree = H2.InstanceStatus()
-    if n >= 5 and not IsInInstance() then
-        K.Toast(L["Instanz-Zaehler"], (L["5 von 5 - die naechste Instanz geht erst in %s"]):format(fmtLeft(nextFree)), C.red)
-    end
-end)
-
-------------------------------------------------------------------------
--- 2. Neue Zauber beim Lehrer (Liste lernt Oasis beim Lehrer-Besuch)
-------------------------------------------------------------------------
-local function readTrainer()
-    if not GetNumTrainerServices or (IsTradeskillTrainer and IsTradeskillTrainer()) then return end
-    -- alle Filter kurz an, damit auch die noch nicht lernbaren Zauber kommen
-    local saved = {}
-    if GetTrainerServiceTypeFilter and SetTrainerServiceTypeFilter then
-        for _, f in ipairs({ "available", "unavailable", "used" }) do
-            saved[f] = GetTrainerServiceTypeFilter(f)
-            SetTrainerServiceTypeFilter(f, 1)
-        end
-    end
-    local list = {}
-    for i = 1, GetNumTrainerServices() do
-        local name, rank, cat = GetTrainerServiceInfo(i)
-        if name and cat ~= "used" and cat ~= "header" then
-            local req = GetTrainerServiceLevelReq and GetTrainerServiceLevelReq(i) or 0
-            local cost = GetTrainerServiceCost and GetTrainerServiceCost(i) or 0
-            list[#list + 1] = { n = name, r = rank or "", l = req or 0, c = cost or 0 }
-        end
-    end
-    for f, v in pairs(saved) do SetTrainerServiceTypeFilter(f, v and 1 or 0) end
-    char().trainer = { ts = time(), list = list }
-end
-ns.On("TRAINER_SHOW", function() if on("cpTrainer") then pcall(readTrainer) end end)
-function H2.TrainerDue(lvl)
-    local t = char().trainer
-    if not t then return nil end
-    local out, cost = {}, 0
-    for _, s in ipairs(t.list) do
-        if s.l <= lvl then out[#out + 1] = s cost = cost + s.c end
-    end
-    return out, cost
-end
-ns.On("PLAYER_LEVEL_UP", function(lvl)
-    if not on("cpTrainer") or type(lvl) ~= "number" then return end
-    ns.After(2, function()
-        local due, cost = H2.TrainerDue(lvl)
-        if not due then
-            if lvl % 2 == 0 then K.Toast(L["Neue Zauber?"], L["Besuch deinen Klassenlehrer - danach erinnert Oasis dich genau."], C.accent) end
-            return
-        end
-        if #due == 0 then return end
-        local names = {}
-        for i = 1, math.min(4, #due) do names[#names + 1] = due[i].n .. (due[i].r ~= "" and (" (" .. due[i].r .. ")") or "") end
-        K.Toast((L["Neue Zauber verfuegbar (%d)"]):format(#due), table.concat(names, ", ") .. (#due > 4 and " ..." or "") .. "  |  " .. money(cost), C.mint)
-    end)
 end)
 
 ------------------------------------------------------------------------
@@ -276,80 +175,6 @@ function H2.GuildProfCDs()
     table.sort(out, function(a, b) if a.key ~= b.key then return a.key < b.key end return a.ready < b.ready end)
     return out
 end
-
-------------------------------------------------------------------------
--- 4. Gegenstaende und Gold aller eigenen Charaktere
-------------------------------------------------------------------------
-local function scanBags(from, to)
-    local t = {}
-    if not C_Container then return t end
-    for b = from, to do
-        for s = 1, (C_Container.GetContainerNumSlots(b) or 0) do
-            local ok, info = pcall(C_Container.GetContainerItemInfo, b, s)
-            if ok and type(info) == "table" and info.itemID then t[info.itemID] = (t[info.itemID] or 0) + (info.stackCount or 1) end
-        end
-    end
-    return t
-end
-local bagPending
-local function saveBags()
-    local c = char()
-    c.bags = scanBags(0, 4)
-    c.money = GetMoney()
-    c.class = select(2, UnitClass("player"))
-    c.lvl = UnitLevel("player")
-    c.seen = time()
-end
-ns.On("BAG_UPDATE_DELAYED", function()
-    if bagPending then return end
-    bagPending = true
-    ns.After(2, function() bagPending = nil pcall(saveBags) end)
-end)
-ns.On("PLAYER_MONEY", function() char().money = GetMoney() end)
-ns.On("BANKFRAME_OPENED", function()
-    pcall(function()
-        local bank = scanBags(5, 11)
-        local main = scanBags(-1, -1)
-        for id, n in pairs(main) do bank[id] = (bank[id] or 0) + n end
-        char().bank = bank
-    end)
-end)
-ns.Listen("LOGIN", function() ns.After(5, function() pcall(saveBags) end) end)
--- Tooltip-Zeilen
-local function altLines(tt)
-    if not on("cpAltItems") or TIPM[tt] then return end
-    local _, link = tt:GetItem()
-    if not link or (issecretvalue and issecretvalue(link)) then return end
-    local id = tonumber(link:match("item:(%d+)"))
-    if not id then return end
-    TIPM[tt] = true
-    local total, lines = 0, {}
-    for name, c in pairs(ns.db.chars) do
-        local b = (c.bags and c.bags[id]) or 0
-        local k = (c.bank and c.bank[id]) or 0
-        if (b + k) > 0 then
-            total = total + b + k
-            local parts = {}
-            if b > 0 then parts[#parts + 1] = (L["Taschen %d"]):format(b) end
-            if k > 0 then parts[#parts + 1] = (L["Bank %d"]):format(k) end
-            local cc = c.class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[c.class]
-            lines[#lines + 1] = { (ns.displayName and ns.displayName(name) or ns.short(name)), table.concat(parts, ", "), cc }
-        end
-    end
-    if #lines == 0 then return end
-    for _, l in ipairs(lines) do
-        local cc = l[3]
-        tt:AddDoubleLine(l[1], l[2], cc and cc.r or 0.8, cc and cc.g or 0.8, cc and cc.b or 0.8, 0.8, 0.8, 0.8)
-    end
-    if #lines > 1 then tt:AddDoubleLine(L["Gesamt"], tostring(total), 0.6, 0.6, 0.6, 1, 1, 1) end
-    tt:Show()
-end
-if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
-    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tt) if tt == GameTooltip or tt == ItemRefTooltip then pcall(altLines, tt) end end)
-elseif GameTooltip and GameTooltip:HasScript("OnTooltipSetItem") then
-    GameTooltip:HookScript("OnTooltipSetItem", function(tt) pcall(altLines, tt) end)
-end
-if GameTooltip then GameTooltip:HookScript("OnTooltipCleared", function(tt) TIPM[tt] = nil end) end
 
 ------------------------------------------------------------------------
 -- 5. Quest-Fortschritt der Gruppe (nur Oasis-Mitspieler)
@@ -450,80 +275,6 @@ end
 function H2.PartyQuests() return partyQ end
 
 ------------------------------------------------------------------------
--- 6. Jaeger-Begleiter: Laune + Futter
-------------------------------------------------------------------------
-local lastHappy
-local function petCheck()
-    if not on("cpPet") or not GetPetHappiness or not UnitExists("pet") then lastHappy = nil return end
-    local h = GetPetHappiness()
-    if not h then return end
-    if h < 3 and h ~= lastHappy then
-        K.Toast(L["Begleiter"], h == 1 and L["Dein Begleiter ist unzufrieden - fuettern!"] or L["Dein Begleiter hat Hunger."], h == 1 and C.red or (C.amber or C.red))
-    end
-    lastHappy = h
-end
-ns.On("UNIT_HAPPINESS", function(u) if u == "pet" then pcall(petCheck) end end)
-ns.On("UNIT_PET", function(u) if u == "player" then ns.After(1, function() pcall(petCheck) end) end end)
-ns.On("MERCHANT_SHOW", function()
-    if not on("cpPet") or select(2, UnitClass("player")) ~= "HUNTER" or not UnitExists("pet") then return end
-    pcall(function()
-        local foods = GetPetFoodTypes and { GetPetFoodTypes() } or {}
-        local h = GetPetHappiness and GetPetHappiness() or 3
-        if h < 3 or #foods > 0 then
-            K.Toast(L["Begleiter-Futter?"], (L["Dein Begleiter frisst: %s"]):format(table.concat(foods, ", ")), C.accent)
-        end
-    end)
-end)
-
-------------------------------------------------------------------------
--- 7. Reagenzien automatisch nachkaufen (bis zur Zielmenge)
-------------------------------------------------------------------------
-H2.REAG_TARGET = { [17020] = 20, [17031] = 10, [17032] = 5, [17028] = 20, [17029] = 10, [5140] = 10, [17030] = 5,
-    [21177] = 20, [17033] = 5, [17034] = 10, [17026] = 10 }
-local AMMO_TARGET = 1000
-ns.On("MERCHANT_SHOW", function()
-    if not on("cpReagBuy") or not GetMerchantNumItems or IsShiftKeyDown() then return end
-    ns.After(0.3, function()
-        pcall(function()
-            local want = {}
-            for id, n in pairs(H2.REAG_TARGET) do
-                local have = itemCount(id)
-                -- nur was man schon benutzt (einmal im Besitz gesehen)
-                if (S().cpReagSeen or {})[tostring(id)] and have < n then want[id] = n - have end
-            end
-            -- Munition: gleiche Sorte wie die angelegte
-            local ammoSlot = GetInventorySlotInfo and select(1, pcall(GetInventorySlotInfo, "AmmoSlot")) and GetInventorySlotInfo("AmmoSlot")
-            local ammoID = ammoSlot and GetInventoryItemID and GetInventoryItemID("player", ammoSlot)
-            if ammoID then
-                local have = itemCount(ammoID)
-                if have < AMMO_TARGET then want[ammoID] = AMMO_TARGET - have end
-            end
-            local bought = {}
-            for i = 1, GetMerchantNumItems() do
-                local id = GetMerchantItemID and GetMerchantItemID(i)
-                local need = id and want[id]
-                if need and need > 0 then
-                    local _, _, price, per = GetMerchantItemInfo(i)
-                    per = (per and per > 0) and per or 1
-                    local maxStack = GetMerchantItemMaxStack and GetMerchantItemMaxStack(i) or 20
-                    local packs = math.ceil(need / per)
-                    if price and price * packs <= GetMoney() then
-                        local left = packs
-                        while left > 0 do
-                            local q = math.min(left, math.max(1, math.floor(maxStack / per)))
-                            BuyMerchantItem(i, q)
-                            left = left - q
-                        end
-                        bought[#bought + 1] = (GetMerchantItemInfo(i)) .. " x" .. (packs * per)
-                    end
-                end
-            end
-            if #bought > 0 then ns.print(L["Nachgekauft: "] .. table.concat(bought, ", ")) end
-        end)
-    end)
-end)
-
-------------------------------------------------------------------------
 -- 8. Rare-Warnung (+ an die Gilde)
 ------------------------------------------------------------------------
 local rareSeen = {}
@@ -560,146 +311,6 @@ Comm.On("RARE", function(sender, _, name, zone, x, y)
 end)
 
 ------------------------------------------------------------------------
--- 9. Ruhestein + Instanz-IDs aller eigenen Charaktere
-------------------------------------------------------------------------
-local function saveBind()
-    local c = char()
-    c.bind = GetBindLocation and GetBindLocation() or c.bind
-    local ids = {}
-    if GetNumSavedInstances then
-        for i = 1, GetNumSavedInstances() do
-            local name, id, reset, _, locked = GetSavedInstanceInfo(i)
-            if name and locked and reset and reset > 0 then ids[#ids + 1] = { n = name, id = id, until_ = time() + reset } end
-        end
-    end
-    c.ids = ids
-end
-ns.On("UPDATE_INSTANCE_INFO", function() pcall(saveBind) end)
-ns.On("HEARTHSTONE_BOUND", function() pcall(saveBind) end)
-ns.Listen("LOGIN", function() if RequestRaidInfo then RequestRaidInfo() end ns.After(6, function() pcall(saveBind) end) end)
-
-------------------------------------------------------------------------
--- 10. Angel-Helfer: Doppel-Rechtsklick wirft aus + Fang-Statistik
-------------------------------------------------------------------------
-local FISHING = 7620   -- Angeln (Zauber), Name kommt aus dem Spiel
-local fishBtn
-local function poleEquipped()
-    local link = GetInventoryItemLink("player", 16)
-    if not link then return false end
-    local _, _, _, _, _, _, _, _, _, _, _, classID, subID = (C_Item and C_Item.GetItemInfo or GetItemInfo)(link)
-    return classID == 2 and subID == 20
-end
-local function setupFishing()
-    if fishBtn or InCombatLockdown() then return end
-    fishBtn = CreateFrame("Button", "OasisFishButton", UIParent, "SecureActionButtonTemplate")
-    fishBtn:SetAttribute("type", "spell")
-    fishBtn:SetAttribute("spell", spellName(FISHING) or "Angeln")
-    fishBtn:RegisterForClicks("AnyUp", "AnyDown")
-    fishBtn:SetSize(1, 1)
-    fishBtn:SetPoint("TOPLEFT", -10, 10)
-    fishBtn:HookScript("PostClick", function()
-        if not InCombatLockdown() then ClearOverrideBindings(fishBtn) end
-    end)
-end
-local lastRight = 0
-if WorldFrame then
-    WorldFrame:HookScript("OnMouseDown", function(_, button)
-        if button ~= "RightButton" or not on("cpFishing") or InCombatLockdown() then return end
-        if GetTime() - lastRight < 0.4 and poleEquipped() then
-            setupFishing()
-            if fishBtn then SetOverrideBindingClick(fishBtn, true, "BUTTON2", "OasisFishButton") end
-            lastRight = 0
-        else
-            lastRight = GetTime()
-        end
-    end)
-end
-ns.On("LOOT_OPENED", function()
-    if not on("cpFishing") or not (IsFishingLoot and IsFishingLoot()) then return end
-    ns.db.fishing = ns.db.fishing or { casts = 0, items = {} }
-    local f = ns.db.fishing
-    f.casts = f.casts + 1
-    for i = 1, GetNumLootItems() do
-        local link = GetLootSlotLink(i)
-        local _, _, qty = GetLootSlotInfo(i)
-        local id = link and tonumber(link:match("item:(%d+)"))
-        if id then f.items[id] = (f.items[id] or 0) + (qty or 1) end
-    end
-end)
-
-------------------------------------------------------------------------
--- 11. Ausruestungs-Sets (eigene, ohne Blizzard-Manager)
-------------------------------------------------------------------------
-local SET_SLOTS = { 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }
-function H2.SaveSet(name)
-    if not name or name == "" then return end
-    local set = {}
-    for _, s in ipairs(SET_SLOTS) do set[s] = GetInventoryItemLink("player", s) or false end
-    char().sets = char().sets or {}
-    char().sets[name] = set
-    ns.print((L["Set gespeichert: %s"]):format(name))
-end
-function H2.EquipSet(name)
-    if InCombatLockdown() then ns.print(L["Erst nach dem Kampf moeglich."]) return end
-    local set = char().sets and char().sets[name]
-    if not set then return end
-    local missing = 0
-    for _, s in ipairs(SET_SLOTS) do
-        local want = set[s]
-        local cur = GetInventoryItemLink("player", s)
-        if want and want ~= cur then
-            local ok = pcall(EquipItemByName, want, s)
-            if not ok then missing = missing + 1 end
-        end
-    end
-    ns.print((L["Set angelegt: %s"]):format(name) .. (missing > 0 and ((L[" (%d Teile fehlen)"]):format(missing)) or ""))
-end
-function H2.DeleteSet(name) if char().sets then char().sets[name] = nil end end
-ns.slash.set = function(arg)
-    arg = (arg or ""):gsub("^%s+", ""):gsub("%s+$", "")
-    local cmd, rest = arg:match("^(%S+)%s*(.*)$")
-    if cmd == "save" or cmd == "speichern" then H2.SaveSet(rest)
-    elseif cmd == "del" or cmd == "loeschen" then H2.DeleteSet(rest)
-    elseif arg ~= "" then H2.EquipSet(arg)
-    else H2.Overview("sets") end
-end
-
-------------------------------------------------------------------------
--- 12. Reichweite auf den Aktionsleisten (Knopf rot, wenn das Ziel zu weit weg ist)
-------------------------------------------------------------------------
--- 0.5.504: KEINE Felder mehr auf Blizzards gesicherten Aktionsknoepfen und kein Aufruf von deren
--- UpdateUsable aus Oasis heraus - das "beruehrte" die Aktionsleisten (Blockiert UNKNOWN im Kampf,
--- Leiste verschwand, Fehler beim Zaubern). Merker in eigener Tabelle, Farbe selbst berechnen.
-local rangeRed = setmetatable({}, { __mode = "k" })
-local function secret(v) return issecretvalue and issecretvalue(v) end
-local function rangeHook(self, checksRange, inRange)
-    if not on("cpRange") then return end
-    if secret(checksRange) or secret(inRange) then return end
-    local icon = self.icon or self.Icon
-    if not icon then return end
-    if checksRange and inRange == false then
-        icon:SetVertexColor(0.85, 0.22, 0.2)
-        rangeRed[self] = true
-    elseif rangeRed[self] then
-        rangeRed[self] = nil
-        local usable, noMana = true, false
-        local act = self.action
-        local IU = (C_ActionBar and C_ActionBar.IsUsableAction) or IsUsableAction
-        if act and not secret(act) and IU then
-            local ok, u, m = pcall(IU, act)
-            if ok and not secret(u) and not secret(m) then usable, noMana = u, m end
-        end
-        if usable then icon:SetVertexColor(1, 1, 1)
-        elseif noMana then icon:SetVertexColor(0.5, 0.5, 1)
-        else icon:SetVertexColor(0.4, 0.4, 0.4) end
-    end
-end
-if ActionButton_UpdateRangeIndicator then hooksecurefunc("ActionButton_UpdateRangeIndicator", rangeHook) end
-if ActionBarActionButtonMixin and ActionBarActionButtonMixin.UpdateRangeIndicator then
-    hooksecurefunc(ActionBarActionButtonMixin, "UpdateRangeIndicator", rangeHook)
-end
-
-------------------------------------------------------------------------
 -- Uebersichtsfenster: Charaktere, Gilden-Abklingzeiten, Sets, Angeln
 ------------------------------------------------------------------------
 local ov
@@ -733,30 +344,6 @@ end
 local function classColored(name, cls)
     return ns.colorName and ns.colorName(ns.displayName and ns.displayName(name) or name, cls) or name
 end
-local function fillChars(f)
-    local y = 0
-    local n, nextFree = H2.InstanceStatus()
-    y = row(f, y, "|cffffd24a" .. L["Instanzen diese Stunde"] .. "|r", n .. " / 5" .. (nextFree and ("  -  " .. (L["frei in %s"]):format(fmtLeft(nextFree))) or ""))
-    y = y - 6
-    local total = 0
-    local names = {}
-    for name in pairs(ns.db.chars) do names[#names + 1] = name end
-    table.sort(names, function(a, b) return (ns.db.chars[a].money or 0) > (ns.db.chars[b].money or 0) end)
-    for _, name in ipairs(names) do
-        local c = ns.db.chars[name]
-        total = total + (c.money or 0)
-        y = row(f, y, classColored(name, c.class) .. (c.lvl and ("  |cff888888" .. c.lvl .. "|r") or ""), money(c.money or 0))
-        local sub = {}
-        if c.bind then sub[#sub + 1] = "|TInterface\\Icons\\INV_Misc_Rune_01:12:12|t " .. c.bind end
-        for _, id in ipairs(c.ids or {}) do
-            if id.until_ > time() then sub[#sub + 1] = id.n .. " (" .. fmtLeft(id.until_ - time()) .. ")" end
-        end
-        if #sub > 0 then y = row(f, y, "   |cff999999" .. table.concat(sub, "   ") .. "|r", "") end
-    end
-    y = y - 4
-    y = row(f, y, "|cffffd24a" .. L["Gold gesamt"] .. "|r", money(total))
-    return y
-end
 local function fillCDs(f)
     local y = 0
     local list = H2.GuildProfCDs()
@@ -776,64 +363,7 @@ local function fillCDs(f)
     end
     return y
 end
-local function fillFish(f)
-    local y = 0
-    local fs = ns.db.fishing
-    y = row(f, y, L["Doppelter Rechtsklick wirft die Angel aus (Angel muss angelegt sein)."], "", C.dim)
-    if not fs or fs.casts == 0 then return row(f, y, L["Noch nichts geangelt."], "", C.dim) end
-    y = row(f, y, "|cffffd24a" .. L["Faenge"] .. "|r", tostring(fs.casts))
-    local items = {}
-    for id, n in pairs(fs.items) do items[#items + 1] = { id = id, n = n } end
-    table.sort(items, function(a, b) return a.n > b.n end)
-    for i = 1, math.min(14, #items) do
-        local name = (C_Item and C_Item.GetItemInfo or GetItemInfo)(items[i].id) or ("#" .. items[i].id)
-        y = row(f, y, "   " .. name, items[i].n .. "  |cff888888(" .. math.floor(items[i].n / fs.casts * 100 + 0.5) .. " %)|r")
-    end
-    return y
-end
-local function fillSets(f)
-    local y = 0
-    f.setBtns = f.setBtns or {}
-    for _, b in ipairs(f.setBtns) do b:Hide() end
-    y = row(f, y, L["Aktuelle Ausruestung als Set speichern:"], "", C.dim)
-    if not f.setName then
-        f.setName = K.Input(f.body, 180, L["Name, z.B. Angeln"], function() end)
-        f.setSave = K.Button(f.body, L["Speichern"], 100, 24, "primary", function()
-            H2.SaveSet((f.setName:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", ""))
-            f.setName:SetText("")
-            H2.Overview("sets")
-        end)
-        f.setSave:SetPoint("LEFT", f.setName, "RIGHT", 8, 0)
-    end
-    f.setName:ClearAllPoints()
-    f.setName:SetPoint("TOPLEFT", f.body, "TOPLEFT", 0, y)
-    f.setName:Show() f.setSave:Show()
-    y = y - 34
-    local names = {}
-    for n in pairs(char().sets or {}) do names[#names + 1] = n end
-    table.sort(names)
-    if #names == 0 then return row(f, y, L["Noch keine Sets."], "", C.dim) end
-    for i, n in ipairs(names) do
-        local b = f.setBtns[i]
-        if not b then
-            b = K.Button(f.body, "", 200, 24, "ghost")
-            b.del = K.Button(f.body, L["Loeschen"], 80, 24, "ghost")
-            f.setBtns[i] = b
-        end
-        b:SetLabel(n)
-        b:SetScript("OnClick", function() H2.EquipSet(n) end)
-        b.del:SetScript("OnClick", function() H2.DeleteSet(n) H2.Overview("sets") end)
-        b:ClearAllPoints()
-        b:SetPoint("TOPLEFT", f.body, "TOPLEFT", 0, y)
-        b.del:ClearAllPoints()
-        b.del:SetPoint("LEFT", b, "RIGHT", 6, 0)
-        b:Show() b.del:Show()
-        y = y - 28
-    end
-    row(f, y - 4, L["Auch per Befehl: /oa set Name"], "", C.dim)
-    return y
-end
-local FILL = { chars = fillChars, cds = fillCDs, sets = fillSets, fish = fillFish }
+local FILL = { cds = fillCDs }
 local function buildOverview()
     local f = CreateFrame("Frame", "OasisHelperOverview", UIParent)
     f:SetSize(460, 440)
@@ -848,11 +378,10 @@ local function buildOverview()
     if K.ApplySkin then K.ApplySkin(f, "panel", { 0.04, 0.04, 0.05, 0.96 }) end
     local title = K.Title(f, 14, C.text)
     title:SetPoint("TOPLEFT", 16, -14)
-    title:SetText(L["Charaktere & Helfer"])
+    title:SetText(L["Gilden-Abklingzeiten"])
     local x = K.CloseButton(f, function() f:Hide() end)
     x:SetPoint("TOPRIGHT", -6, -6)
-    f.seg = K.Segments(f, { { key = "chars", text = L["Charaktere"] }, { key = "cds", text = L["Abklingzeiten"] },
-        { key = "sets", text = L["Sets"] }, { key = "fish", text = L["Angeln"] } }, function(k) H2.Overview(k) end, nil, { size = 12, pad = 16 })
+    f.seg = K.Segments(f, { { key = "cds", text = L["Abklingzeiten"] } }, function(k) H2.Overview(k) end, nil, { size = 12, pad = 16 })
     f.seg:SetPoint("TOPLEFT", 12, -40)
     f.body = CreateFrame("Frame", nil, f)
     f.body:SetPoint("TOPLEFT", 16, -76)
@@ -863,39 +392,24 @@ local function buildOverview()
 end
 function H2.Overview(tab)
     if not ov then ov = buildOverview() end
-    tab = tab or ov.tab or "chars"
+    tab = FILL[tab] and tab or "cds"
     ov.tab = tab
     ov.seg:Select(tab)
     clearRows(ov)
-    if ov.setName then ov.setName:Hide() ov.setSave:Hide() end
-    for _, b in ipairs(ov.setBtns or {}) do b:Hide() b.del:Hide() end
-    pcall(saveBags) pcall(saveBind)
     local ok, e = pcall(FILL[tab], ov)
     if not ok then ns.err("Helfer-Uebersicht", e) end
     ov:Show()
     ov:Raise()
 end
-ns.slash.chars = function() H2.Overview("chars") end
 ns.slash.cds = function() H2.Overview("cds") end
 
 -- fuer die Einstellungen (Reiter "Helfer")
 H2.OPTS = {
-    { "Instanzen & Lehrer", {
-        { "cpInstances", "Instanz-Zaehler (5 pro Stunde)", "Meldet beim Betreten, wie viele Instanzen du in der letzten Stunde hattest" },
-        { "cpTrainer", "Neue Zauber beim Lehrer", "Beim Levelaufstieg: was du jetzt lernen kannst und was es kostet" },
-        { "cpReagBuy", "Reagenzien und Munition nachkaufen", "Beim Haendler automatisch auffuellen (Munition bis 1000). Shift = aussetzen" },
-        { "cpPet", "Jaeger: Begleiter-Laune und Futter", "Warnt, wenn der Begleiter hungrig ist, Futter-Hinweis beim Haendler" },
-    } },
     { "Gilde & Gruppe", {
         { "cpProfCD", "Berufs-Abklingzeiten mit der Gilde teilen", "Transmutation, Mondstoff, Salzstreuer - wer ist bereit? (Uebersicht)" },
         { "cpQuestShare", "Quest-Fortschritt der Gruppe", "Im Tooltip von Mitspielern mit Oasis, Meldung wenn ein Ziel fertig ist" },
         { "cpRare", "Rare-Warnung", "Ton + Hinweis bei seltenen Gegnern in der Naehe" },
         { "cpRareShare", "Rares an die Gilde melden", "Andere mit Oasis sehen, wo du einen Rare gefunden hast" },
-    } },
-    { "Charaktere & Ausruestung", {
-        { "cpAltItems", "Gegenstaende aller Charaktere im Tooltip", "Taschen und Bank deiner Twinks, Gold in der Uebersicht" },
-        { "cpFishing", "Angel-Helfer", "Doppelter Rechtsklick wirft aus, Fang-Statistik in der Uebersicht" },
-        { "cpRange", "Reichweite auf den Aktionsleisten", "Knopf wird rot, wenn das Ziel zu weit weg ist" },
     } },
 }
 end)

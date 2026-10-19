@@ -43,7 +43,7 @@ M.LIST = {
     { cat = "Komfort und Karte", addon = "Oasis_Komfort", title = "Komfort", icon = "home", desc = "Automatisch reparieren und verkaufen, Quests, Einladungen, Leisten, Tooltips" },
     { cat = "Komfort und Karte", addon = "Oasis_Kartenextras", title = "Karten-Extras", icon = "pin", desc = "Sammelorte der Gilde, Marker, Laufspuren, Gefahrenzonen, Zielpfeil" },
     { cat = "Komfort und Karte", addon = "Oasis_MeinWeg", title = "Mein Weg", icon = "chronicle", desc = "Zeitleiste und Rekorde deines Charakters" },
-    { cat = "Komfort und Karte", addon = "Oasis_Questmarken", title = "Quest-Markierungen", icon = "checklist", desc = "Neue Forever-Quests und Gruppenquests im Questlog markieren" },
+    { cat = "Komfort und Karte", addon = "Oasis_Questmarken", title = "Quest-Markierungen", icon = "checklist", desc = "Gruppenquests im Questlog markieren" },
     { cat = "Komfort und Karte", addon = "Oasis_Leistung", dev = true, title = "Leistungsmessung", icon = "stats", desc = "Live-Anzeige der Rechenzeit und Messwerte der Gilde" },
     { cat = "Komfort und Karte", addon = "Oasis_Fojji", title = "FojjiCore", icon = "sync", desc = "Zusammenarbeit mit dem Addon FojjiCore" },
 }
