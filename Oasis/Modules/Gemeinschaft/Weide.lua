@@ -212,7 +212,7 @@ local function newSheep(field)
     m.sayIn = 3 + math.random() * 20
     m:SetScript("OnModelLoaded", function(self)
         pcall(self.SetPortraitZoom, self, 0)
-        pcall(self.SetCamDistanceScale, self, 1.1)
+        pcall(self.SetCamDistanceScale, self, 0.85)   -- naeher dran: Tier fuellt den Rahmen
         pcall(self.SetPosition, self, 0, 0, 0)
         if self.skin then light(self, self.skin, 1, 1, 1) end
         self.anim = nil
@@ -245,7 +245,7 @@ end
 ------------------------------------------------------------------------
 local LIST_W = 250
 ns.RegisterPage({
-    key = "pasture", title = "Gildotchi", order = 7.64,
+    key = "pasture", title = "Guildotchi", order = 7.64,
     sub = "Jedes Mitglied mit Oasis hat ein Schaf - fuettern, streicheln, buersten. Je hoeher der Rang, desto groesser, ab hoeheren Raengen neue Farben.",
     build = function(p)
         -- Wiese
@@ -262,6 +262,18 @@ ns.RegisterPage({
             field.bg:SetTexCoord(0, 1, 0, 0.75)
         end
         K.Border(field, C.line)
+        -- 0.6.542: Logo oben mittig, ragt ueber die Wiese hinaus (nur mit Gildenmodul)
+        if ns.GuildPack then
+            local logo = CreateFrame("Frame", nil, p)
+            logo:SetSize(300, 110)
+            logo:SetPoint("TOP", field, "TOP", 0, 34)
+            logo:SetFrameLevel(field:GetFrameLevel() + 60)
+            logo.t = logo:CreateTexture(nil, "OVERLAY")
+            logo.t:SetAllPoints()
+            logo.t:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_logo")
+            logo.t:SetTexCoord(0, 1, 0, 187 / 256)
+            p.logo = logo
+        end
         field.sheep = {}
         field.empty = K.Text(field, 13, C.text, "CENTER")
         field.empty:SetPoint("CENTER")
@@ -308,7 +320,7 @@ ns.RegisterPage({
                         s.say:Show() s.sayBg:Show() s.sayLeft = 3
                     end
                     -- Groesse: Rang (1-100) und Tiefe
-                    local size = (40 + math.min(100, s.who.lvl) * 0.8) * (0.35 + 0.65 * s.y) * math.max(0.6, H / 520)
+                    local size = (85 + math.min(100, s.who.lvl) * 1.15) * (0.4 + 0.6 * s.y) * math.max(0.6, H / 520)   -- 0.6.542: deutlich groesser
                     local feet = H * (MEADOW_TOP + s.y * (MEADOW_BOTTOM - MEADOW_TOP))
                     s:SetSize(size, size)
                     s:ClearAllPoints()
