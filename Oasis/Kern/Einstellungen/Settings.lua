@@ -3493,7 +3493,7 @@ local GROUPS = {
         desc = "Leute kennenlernen, Gruppen finden und gemeinsam etwas unternehmen." },
     { key = "help", text = "Mein Komfort", icon = "checklist", tabs = { "personaltools", "comfort", "gamechat", "mapset", "tips", "keys" },
         desc = "Persoenliche Spielhilfen, Chat, Karte und Tooltips fuer deinen Alltag." },
-    { key = "look", text = "Aussehen & Bedienung", icon = "brush", tabs = { "look", "general", "bar" },
+    { key = "look", text = "Aussehen & Bedienung", icon = "brush", tabs = { "look", "general", "bar", "ownmedia" },
         desc = "Design, Schrift, Fenster und Leisten an deinen Spielstil anpassen." },
     { key = "notify", text = "Hinweise & Klang", icon = "announce", tabs = { "toasts", "sound" },
         desc = "Bestimme, was du mitbekommst, wie es aussieht und wie es klingt." },
