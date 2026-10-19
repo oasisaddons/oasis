@@ -56,6 +56,9 @@ ICONS.rank = M .. "icons\\badges"
 ICONS.insta = M .. "icons\\profile"
 ICONS.allies = M .. "icons\\badges\\loyal"
 ICONS.life = M .. "icons\\chronicle"
+ICONS.pasture = M .. "icons\\guildotchi"   -- 0.6.545: farbiges Emblem (nicht einfaerben)
+local ICON_COLOR = { pasture = true }
+ns.ICON_COLOR = ICON_COLOR
 ns.ICONS = ICONS
 
 -- Seite registrieren: { key, title, sub, order, build(page), refresh(page), visible() }
@@ -461,6 +464,7 @@ local function showPage(key)
     main.title:SetText((K.Skin and K.Skin("upperTitle")) and K.Upper(L[tt]) or L[tt])
     main.sub:SetText(def.sub and L[def.sub] or "")
     main.icon:SetTexture(ICONS[key])
+    if ICON_COLOR[key] then main.icon:SetVertexColor(1, 1, 1) else main.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3]) end
     def.frame:Show()
     local hub = HUB_OF[key]
     hubStrip(hub and pages[hub] and hub or nil, key)
@@ -765,6 +769,11 @@ local function buildMain()
         b.bar:SetPoint("BOTTOMLEFT")
         b.bar:SetWidth(2)
         b.icon = K.Glyph(b, 18, ICONS[def.key])
+        if ICON_COLOR[def.key] then   -- farbige Symbole behalten ihre Farbe (auch bei Hover/Auswahl)
+            local orig = b.icon.SetVertexColor
+            orig(b.icon, 1, 1, 1)
+            b.icon.SetVertexColor = function(t) orig(t, 1, 1, 1) end
+        end
         b.icon:SetPoint("LEFT", 10, 0)
         b.label = K.Text(b, 13, C.muted)
         b.label:SetPoint("LEFT", b.icon, "RIGHT", 9, 0)

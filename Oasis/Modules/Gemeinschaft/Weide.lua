@@ -13,7 +13,7 @@ local SHEEP_NPC = 1933        -- Schaf (wie beim Todeswuerfeln)
 local SHEEP_DISPLAY = 856     -- Schaf-Modell (Verwandlung), geht auch ohne Kreatur im Zwischenspeicher
 local MAX_SHEEP = 40          -- mehr Modelle kosten zu viel Leistung
 local ART = "Interface\\AddOns\\Oasis_Guild\\Media\\weide_bg"   -- Bild nur im Gildenmodul
-local MEADOW_TOP, MEADOW_BOTTOM = 0.56, 0.96   -- Laufbereich (Fuesse), Anteil der Hoehe von oben: hinten an den Baeumen bis ganz vorne - nie im Himmel
+local MEADOW_TOP, MEADOW_BOTTOM = 0.50, 0.80   -- Laufbereich (Fuesse), Anteil der Hoehe von oben: hinten an den Baeumen bis ganz vorne - nie im Himmel
 
 -- Skins: Licht-Farbe auf dem Schafmodell. lvl = ab Oasis-Rang
 Weide.SKINS = {
@@ -167,28 +167,28 @@ end
 ------------------------------------------------------------------------
 -- Ein Schaf: eigenes Modell, laeuft zu zufaelligen Zielen, bleibt mal stehen und grast
 ------------------------------------------------------------------------
+-- Tier in ein Modell laden; laedt es nicht (nicht im Zwischenspeicher), wird es ein Schaf
+function Weide.LoadForm(m, f)
+    pcall(m.ClearModel, m)
+    if f and f.npc then
+        pcall(m.SetCreature, m, f.npc)
+    else
+        local ok = m.SetDisplayInfo and pcall(m.SetDisplayInfo, m, SHEEP_DISPLAY)
+        if not ok then pcall(m.SetCreature, m, SHEEP_NPC) end
+    end
+    C_Timer.After(0.5, function()
+        local okm, id = pcall(m.GetModelFileID, m)
+        if not okm or not id or id == 0 then
+            local ok2 = m.SetDisplayInfo and pcall(m.SetDisplayInfo, m, SHEEP_DISPLAY)
+            if not ok2 then pcall(m.SetCreature, m, SHEEP_NPC) end
+        end
+    end)
+end
 local function newSheep(field)
     local ok, m = pcall(CreateFrame, "PlayerModel", nil, field)
     if not ok or not m then return nil end
     m:EnableMouse(true)
-    function m:LoadSheep()
-        pcall(self.ClearModel, self)
-        local f = self.form
-        if f and f.npc then
-            pcall(self.SetCreature, self, f.npc)
-        else
-            local ok = self.SetDisplayInfo and pcall(self.SetDisplayInfo, self, SHEEP_DISPLAY)
-            if not ok then pcall(self.SetCreature, self, SHEEP_NPC) end
-        end
-        C_Timer.After(0.5, function()
-            local okm, id = pcall(self.GetModelFileID, self)
-            if not okm or not id or id == 0 then
-                -- Tier nicht geladen (noch nicht im Zwischenspeicher): Schaf nehmen
-                local ok2 = self.SetDisplayInfo and pcall(self.SetDisplayInfo, self, SHEEP_DISPLAY)
-                if not ok2 then pcall(self.SetCreature, self, SHEEP_NPC) end
-            end
-        end)
-    end
+    function m:LoadSheep() Weide.LoadForm(self, self.form) end
     m:LoadSheep()
     m:SetScript("OnShow", function(self)
         local okm, id = pcall(self.GetModelFileID, self)
@@ -252,7 +252,7 @@ ns.RegisterPage({
         -- Wiese
         local field = CreateFrame("Frame", nil, p)
         field:SetPoint("TOPLEFT", 4, -4)   -- Platz fuer den Rahmen
-        field:SetPoint("BOTTOMRIGHT", -(LIST_W + 24), 106)
+        field:SetPoint("BOTTOMRIGHT", -(LIST_W + 24), 46)
         -- kein SetClipsChildren: 3D-Modelle werden in beschnittenen Rahmen nicht gezeichnet (0.6.540)
         p.field = field
         field.bg = field:CreateTexture(nil, "BACKGROUND")
@@ -360,61 +360,115 @@ ns.RegisterPage({
             end
         end)
 
-        -- Skins: eigene Farbe waehlen
+        -- 0.6.545: Aussehen waehlen - Knopf unter der Wiese oeffnet eine Auswahl mit Modell-Vorschau
         local bar = CreateFrame("Frame", nil, p)
-        bar:SetPoint("TOPLEFT", field, "BOTTOMLEFT", 0, -20)
+        bar:SetPoint("TOPLEFT", field, "BOTTOMLEFT", 0, -12)
         bar:SetPoint("RIGHT", field, "RIGHT", 0, 0)
-        bar:SetHeight(84)
+        bar:SetHeight(26)
         p.bar = bar
-        bar.t = K.Text(bar, 11, C.muted)
-        bar.t:SetPoint("TOPLEFT", 0, 0)
-        bar.t:SetText(L["Dein Tier:"])
-        bar.t2 = K.Text(bar, 11, C.muted)
-        bar.t2:SetText(L["Farbe:"])
-        bar.fbtn = {}
-        for i, f in ipairs(Weide.FORMS) do
-            local b = K.Button(bar, L[f.text], 0, 22, "ghost", function()
-                if Weide.SetMyForm(f.key) then
-                    ns.RefreshPage("pasture", true)
-                else
-                    K.Toast(L["Gildotchi"], (L["%s gibt es ab Oasis-Rang %d."]):format(L[f.text], f.lvl), C.amber or C.accent)
-                end
-            end)
-            b:SetWidth(math.max(54, b.label:GetStringWidth() + 18))
-            b.form = f
-            bar.fbtn[i] = b
-        end
-        bar.btn = {}
-        for i, s in ipairs(Weide.SKINS) do
-            local b = K.Button(bar, L[s.text], 0, 22, "ghost", function()
-                if Weide.SetMySkin(s.key) then
-                    ns.RefreshPage("pasture", true)
-                else
-                    K.Toast(L["Schafweide"], (L["%s gibt es ab Oasis-Rang %d."]):format(L[s.text], s.lvl), C.amber or C.accent)
-                end
-            end)
-            b:SetWidth(math.max(54, b.label:GetStringWidth() + 18))
-            b.skin = s
-            bar.btn[i] = b
-        end
-        function bar:Layout()
-            local w = self:GetWidth() or 600
-            local function row(list, label, y0)
-                label:ClearAllPoints()
-                label:SetPoint("TOPLEFT", 0, y0 - 5)
-                local x, y = 70, y0
-                for _, b in ipairs(list) do
-                    if x + b:GetWidth() > w and x > 70 then x, y = 70, y - 24 end
-                    b:ClearAllPoints()
-                    b:SetPoint("TOPLEFT", x, y)
-                    x = x + b:GetWidth() + 4
-                end
-                return y - 26
+        bar.btn = K.Button(bar, L["Aussehen aendern"], 150, 24, "primary", function()
+            p.pick:SetShown(not p.pick:IsShown())
+            if p.pick:IsShown() then p.pick:Update() end
+        end)
+        bar.btn:SetPoint("LEFT", 0, 0)
+        bar.cur = K.Text(bar, 11, C.muted)
+        bar.cur:SetPoint("LEFT", bar.btn, "RIGHT", 12, 0)
+        -- 0.6.545: als AFK-Bildschirm (Vollbild, sobald du AFK bist)
+        bar.afk = K.Toggle(bar, L["Als AFK-Bildschirm"], function() return ns.db.settings.gotchiAfk == true end,
+            function(v) ns.db.settings.gotchiAfk = v and true or nil end)
+        bar.afk:SetWidth(190)
+        bar.afk:SetPoint("RIGHT", bar, "RIGHT", 0, -2)
+
+        local pick = CreateFrame("Frame", nil, p)
+        pick:SetPoint("TOPLEFT", field, "TOPLEFT", 16, -60)
+        pick:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", -16, 16)
+        pick:SetFrameLevel(field:GetFrameLevel() + 80)
+        pick:EnableMouse(true)
+        pick:Hide()
+        K.Fill(pick, { 0.03, 0.04, 0.06, 0.92 })
+        K.Border(pick, C.line)
+        p.pick = pick
+        pick.close = K.Button(pick, L["Fertig"], 80, 22, "ghost", function() pick:Hide() end)
+        pick.close:SetPoint("TOPRIGHT", -10, -8)
+        pick.h1 = K.Text(pick, 12, C.text)
+        pick.h1:SetPoint("TOPLEFT", 14, -12)
+        pick.h1:SetText(L["Dein Tier"])
+        pick.h2 = K.Text(pick, 12, C.text)
+        pick.h2:SetText(L["Farbe"])
+        local TILE = 74
+        local function tile(kind, def)
+            local t = CreateFrame("Button", nil, pick)
+            t:SetSize(TILE, TILE + 18)
+            t.bg = K.Fill(t, { 1, 1, 1, 0.04 })
+            t.sel = t:CreateTexture(nil, "BORDER")
+            t.sel:SetPoint("TOPLEFT", -2, 2) t.sel:SetPoint("BOTTOMRIGHT", 2, -2)
+            t.sel:SetColorTexture(C.accent2[1], C.accent2[2], C.accent2[3], 0.7)
+            t.sel:Hide()
+            local ok, m = pcall(CreateFrame, "PlayerModel", nil, t)
+            if ok and m then
+                m:SetPoint("TOPLEFT", 2, -2)
+                m:SetSize(TILE - 4, TILE - 4)
+                m:SetScript("OnModelLoaded", function(self)
+                    pcall(self.SetPortraitZoom, self, 0)
+                    pcall(self.SetCamDistanceScale, self, 0.95)
+                    pcall(self.SetFacing, self, -0.5)
+                    if self.skin then light(self, self.skin, 1, 0.6, 0.9) end
+                end)
+                t.m = m
             end
-            local y = row(self.fbtn, self.t, 0)
-            row(self.btn, self.t2, y - 4)
+            t.label = K.Text(t, 10, C.text, "CENTER")
+            t.label:SetPoint("BOTTOM", 0, 3)
+            t.label:SetWidth(TILE)
+            t.label:SetWordWrap(false)
+            t.lock = K.Text(t, 11, C.amber or C.accent, "CENTER")
+            t.lock:SetPoint("CENTER", 0, 8)
+            t.kind, t.def = kind, def
+            t:SetScript("OnClick", function(self)
+                local d = self.def
+                local ok2 = (self.kind == "form") and Weide.SetMyForm(d.key) or (self.kind == "skin" and Weide.SetMySkin(d.key))
+                if not ok2 then
+                    K.Toast(L["Guildotchi"], (L["%s gibt es ab Oasis-Rang %d."]):format(L[d.text], d.lvl), C.amber or C.accent)
+                end
+                ns.RefreshPage("pasture", true)
+                pick:Update()
+            end)
+            return t
         end
-        bar:SetScript("OnSizeChanged", function(self) self:Layout() end)
+        pick.ft, pick.st = {}, {}
+        for i, f in ipairs(Weide.FORMS) do pick.ft[i] = tile("form", f) end
+        for i, sk in ipairs(Weide.SKINS) do pick.st[i] = tile("skin", sk) end
+        function pick:Update()
+            local w = math.max(200, (self:GetWidth() or 600) - 28)
+            local per = math.max(1, math.floor((w + 6) / (TILE + 6)))
+            local mine = myRank()
+            local curF, curS = Weide.FormOf(ns.me(), mine), Weide.SkinOf(ns.me(), mine)
+            local function place(list, y0)
+                for i, t in ipairs(list) do
+                    local c, r = (i - 1) % per, math.floor((i - 1) / per)
+                    t:ClearAllPoints()
+                    t:SetPoint("TOPLEFT", 14 + c * (TILE + 6), y0 - r * (TILE + 24))
+                    local d = t.def
+                    local open = mine >= d.lvl
+                    local form = t.kind == "form" and d or curF
+                    local skin = t.kind == "skin" and d or curS
+                    if t.m then
+                        if t.m.form ~= form or not t.m.loaded then t.m.form = form t.m.loaded = true Weide.LoadForm(t.m, form) end
+                        t.m.skin = skin
+                        if skin.rainbow then light(t.m, skin, 1, 0.6, 0.9) else light(t.m, skin, 1, 1, 1) end
+                        t.m:SetAlpha(open and 1 or 0.35)
+                    end
+                    t.label:SetText(L[d.text])
+                    t.lock:SetText(open and "" or ((L["ab %d"]):format(d.lvl)))
+                    t.sel:SetShown((t.kind == "form" and d == curF) or (t.kind == "skin" and d == curS))
+                end
+                return y0 - math.ceil(#list / per) * (TILE + 24)
+            end
+            local y = place(self.ft, -34)
+            self.h2:ClearAllPoints()
+            self.h2:SetPoint("TOPLEFT", 14, y - 6)
+            place(self.st, y - 26)
+        end
+        pick:SetScript("OnSizeChanged", function(self) if self:IsShown() then self:Update() end end)
 
         -- Rangliste rechts
         local side = CreateFrame("Frame", nil, p)
@@ -509,24 +563,10 @@ ns.RegisterPage({
         end
         field.empty:SetText(#flock == 0 and L["Noch keine Schafe auf der Weide."] or "")
 
-        -- Tier- und Farb-Knoepfe
-        local mine, cur = myRank(), Weide.SkinOf(ns.me(), myRank())
-        local curF = Weide.FormOf(ns.me(), mine)
-        for _, b in ipairs(p.bar.fbtn) do
-            local f = b.form
-            local open = mine >= f.lvl
-            b:SetLabel((f == curF and "> " or "") .. L[f.text] .. (open and "" or ("  |cff777777" .. f.lvl .. "|r")))
-            b:SetWidth(math.max(54, b.label:GetStringWidth() + 18))
-            b:SetAlpha(open and 1 or 0.55)
-        end
-        for _, b in ipairs(p.bar.btn) do
-            local s = b.skin
-            local open = mine >= s.lvl
-            b:SetLabel((s == cur and "> " or "") .. L[s.text] .. (open and "" or ("  |cff777777" .. s.lvl .. "|r")))
-            b:SetWidth(math.max(54, b.label:GetStringWidth() + 18))
-            b:SetAlpha(open and 1 or 0.55)
-        end
-        p.bar:Layout()
+        -- aktuelles Aussehen
+        local mine = myRank()
+        p.bar.cur:SetText(L[Weide.FormOf(ns.me(), mine).text] .. " - " .. L[Weide.SkinOf(ns.me(), mine).text])
+        if p.pick:IsShown() then p.pick:Update() end
 
         -- Mein Gildotchi
         local side = p.side
@@ -562,6 +602,60 @@ ns.RegisterPage({
 ns.Listen("STORE", function(name) if name == "sheep" then ns.RefreshPage("pasture") end end)
 ns.slash.weide = function() ns.ShowPage("pasture") end
 ns.slash.gildotchi = ns.slash.weide
+
+-- 0.6.545: AFK-Bildschirm - eigene Wiese im Vollbild, solange du AFK bist (nie im Kampf).
+-- Klick, Taste oder "nicht mehr AFK" schliesst ihn.
+local saver
+function Weide.ShowSaver(force)
+    if not force and ns.db.settings.gotchiAfk ~= true then return end
+    if InCombatLockdown and InCombatLockdown() then return end
+    local def = ns.PageDef and ns.PageDef("pasture")
+    if not def then return end
+    if not saver then
+        saver = CreateFrame("Frame", nil, UIParent)
+        saver:SetFrameStrata("FULLSCREEN_DIALOG")
+        saver:SetAllPoints(UIParent)
+        saver:EnableMouse(true)
+        K.Fill(saver, { 0, 0, 0, 1 })
+        local inner = CreateFrame("Frame", nil, saver)
+        inner:SetAllPoints()
+        local ok, e = pcall(def.build, inner)
+        if not ok then ns.err(L["Aufbau"] .. " Guildotchi AFK", e) saver:Hide() saver = nil return end
+        inner.field:ClearAllPoints()
+        inner.field:SetAllPoints(saver)
+        for _, k in ipairs({ "bar", "side", "pick", "frameArt" }) do if inner[k] then inner[k]:Hide() end end
+        if inner.logo then
+            inner.logo:ClearAllPoints()
+            inner.logo:SetPoint("TOP", saver, "TOP", 0, -24)
+            inner.logo:SetSize(480, 176)
+        end
+        saver.inner = inner
+        saver.hint = K.Text(saver, 13, C.text, "CENTER")
+        saver.hint:SetPoint("BOTTOM", 0, 24)
+        saver.hint:SetAlpha(0.7)
+        saver.hint:SetText(L["Du bist AFK - Klick oder Taste schliesst den Bildschirm."])
+        saver:SetScript("OnMouseDown", function(self) self:Hide() end)
+        saver:SetScript("OnKeyDown", function(self)
+            if self.SetPropagateKeyboardInput and not InCombatLockdown() then pcall(self.SetPropagateKeyboardInput, self, true) end
+            self:Hide()
+        end)
+        local t = 0
+        saver:HookScript("OnUpdate", function(self, dt)
+            t = t + (dt or 0)
+            if t > 30 then t = 0 pcall(def.refresh, self.inner) end
+        end)
+    end
+    pcall(saver.EnableKeyboard, saver, true)
+    pcall(def.refresh, saver.inner)
+    saver:Show()
+end
+function Weide.HideSaver() if saver then saver:Hide() end end
+ns.On("PLAYER_FLAGS_CHANGED", function(unit)
+    if unit ~= "player" then return end
+    if UnitIsAFK and UnitIsAFK("player") then Weide.ShowSaver() else Weide.HideSaver() end
+end)
+ns.On("PLAYER_REGEN_DISABLED", function() Weide.HideSaver() end)
+ns.slash.afkschafe = function() Weide.ShowSaver(true) end
 -- Diagnose: laden die Schafmodelle?
 ns.slash.schaftest = function()
     local def = ns.PageDef and ns.PageDef("pasture")

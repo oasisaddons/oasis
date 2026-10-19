@@ -146,3 +146,5 @@ music.tga  <-  "musical-notes" by Delapouite, https://game-icons.net/1x1/delapou
 rights.tga  <-  "padlock" by Lorc, https://game-icons.net/1x1/lorc/padlock.html
 checklist.tga  <-  "checklist" by Delapouite, https://game-icons.net/1x1/delapouite/checklist.html
 bug.tga  <-  "ladybug" by Delapouite, https://game-icons.net/1x1/delapouite/ladybug.html
+
+guildotchi.tga: Guildotchi-Emblem, eigenes Werk des Oasis-Autors.
