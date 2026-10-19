@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.520
+## Version: 0.6.521
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -125,6 +125,7 @@ Kern\Start\Onboarding.lua
 Kern\Start\Discover.lua
 Modules\Begruessung\Greeter.lua
 Modules\Komfort\Comfort.lua
+Modules\Komfort\ActionBars.lua
 Modules\Komfort\ComfortPlus.lua
 Modules\Komfort\ComfortPlus2.lua
 Kern\Karte\MapRevealData.lua
@@ -135,6 +136,7 @@ Modules\Gildenpflege\GuildHistory.lua
 Modules\Gildenpflege\Suspect.lua
 Modules\RaidTools\LootMaster.lua
 Modules\Kartenextras\GatherMap.lua
+Modules\Kartenextras\Glimmer.lua
 Modules\Rares\Rares.lua
 Modules\Kartenextras\MapExtras.lua
 Modules\Sammlungen\Collections.lua
@@ -199,6 +201,12 @@ Modules\RaidTools\WipeReport.lua
 Modules\RaidTools\LootRules.lua
 Modules\RaidTools\SoftRes.lua
 Modules\Deathroll\Deathroll.lua
+Modules\Gruppe\Party.lua
+Modules\Gruppe\PartyXP.lua
+Modules\Gruppe\Blessings.lua
+Modules\Gruppe\Threat.lua
+Modules\Gruppe\Gamble.lua
+Modules\Gruppe\ChatZones.lua
 Modules\Legacy\Legacy.lua
 Modules\QuestItems\QuestItems.lua
 # Demo-Daten je Bereich (nur /oa demo, Entwicklerversion)

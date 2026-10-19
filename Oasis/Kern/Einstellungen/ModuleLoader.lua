@@ -19,6 +19,7 @@ M.LIST = {
     { cat = "Spielinhalte", addon = "Oasis_Rares", title = "Seltene Gegner", icon = "star_on", desc = "Gildenweit geteilte Sichtungen von Rares und Weltbossen mit Wiederkehr-Schaetzung" },
     { cat = "Spielinhalte", addon = "Oasis_Ruf", title = "Ruf-Planer", icon = "badges", desc = "Eigener Ruf und der Stand der Gilde je Fraktion" },
     { cat = "Spielinhalte", addon = "Oasis_Waffenlehrer", title = "Waffenlehrer", icon = "map", desc = "Welche Waffe lernst du in welcher Hauptstadt" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Gruppe", title = "Meine Gruppe", icon = "groups", desc = "Gruppenuebersicht, Quests teilen, Gruppen-XP, Segen-Plan, Bedrohung und Pull-Warnung, Wuerfelrunde, Gebiet im Chat" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Deathroll", title = "Todeswuerfeln", icon = "deathroll", desc = "Deathroll-Duelle mit Rangliste" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Umfragen", title = "Umfragen", icon = "polls", desc = "Abstimmungen in der Gilde" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Gemeinschaft", title = "Gemeinschaft", icon = "heart", desc = "Steckbriefe, Geburtstage, Paten fuer Neulinge, Danke und Helfer der Woche, Gilden-Erfolge" },

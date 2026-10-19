@@ -1040,6 +1040,34 @@ ns.AddPageSettings("bags", function(det, y)
     det.t[#det.t + 1] = toggle(det, 14, y, "Bank-Platzhalter", "bankGhosts", "Leiste ueber der Bank: Belegung merken, leere Plaetze zeigen ein blasses Symbol (Oasis verschiebt nichts)",
         function() if ns.BankSlots then ns.BankSlots.Refresh() end end, 600)
     y = y - 32
+    -- 0.6.521: Aktionsleisten speichern/laden (Komfort-Modul)
+    if ns.ActionBars then
+        y = y - 8
+        rowLabel(det, "|cffe8b44a" .. L["Aktionsleisten"] .. "|r", 14, y)
+        y = y - 28
+        local name = K.Input(det, 160, L["Name, z. B. Raid"])
+        name:SetPoint("TOPLEFT", 14, y)
+        local sv = K.Button(det, L["Speichern"], 90, 24, "ghost", function() ns.ActionBars.Save(name:GetText()) end)
+        sv:SetPoint("LEFT", name, "RIGHT", 8, 0)
+        local ld
+        ld = K.Button(det, L["Laden ..."], 90, 24, "ghost", function()
+            local items = {}
+            for _, n in ipairs(ns.ActionBars.Names()) do
+                items[#items + 1] = { text = n, fn = function() ns.ActionBars.Load(n) end }
+            end
+            if #items == 0 then items[1] = { text = L["Noch keine Leisten gespeichert."], fn = function() end } end
+            K.ShowMenu(ld, items, L["Aktionsleisten laden"])
+        end)
+        ld:SetPoint("LEFT", sv, "RIGHT", 6, 0)
+        local del
+        del = K.Button(det, L["Loeschen ..."], 90, 24, "ghost", function()
+            local items = {}
+            for _, n in ipairs(ns.ActionBars.Names()) do items[#items + 1] = { text = n, fn = function() ns.ActionBars.Delete(n) end } end
+            if #items > 0 then K.ShowMenu(del, items, L["Loeschen"]) end
+        end)
+        del:SetPoint("LEFT", ld, "RIGHT", 6, 0)
+        y = y - 36
+    end
     return y - 10
 end)
 
@@ -1164,6 +1192,8 @@ ns.AddPageSettings("map", function(det, y)
         { "Fundorte nach Frische einfaerben", "gatherFresh", "Frische Stellen kraeftig, alte verblassen", gupd },
         { "Gerade abgeerntete Stellen grau zeigen", "gatherHarvest", "Wenn dort in den letzten 5 Minuten gesammelt wurde", gupd },
         { "Sammelroute", "gatherRoute", "Rundstrecke durch die Fundorte, Pfeil an der Minimap zum naechsten", symUpd },
+        { "Glimmer: Fundorte in der Naehe leuchten", "glimmer", "Bekannte Fundorte bis 60 m pulsieren an der Minimap, ab 25 m ein leiser Ton", gupd, true },
+        { "Glimmer-Ton", "glimmerSound", "Leiser Ton, wenn du einem Fundort nahe kommst", nil, true },
         { "Fundorte aller Berufe zeigen", "gatherAllProfs", "Aus = nur Kraeuter/Erz/Angelstellen deiner eigenen Sammelberufe", function() if ns.Gather and ns.Gather.ResetOwnKinds then ns.Gather.ResetOwnKinds() end gupd() end },
     })
     local sorts
