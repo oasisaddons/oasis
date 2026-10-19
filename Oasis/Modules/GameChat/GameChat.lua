@@ -304,6 +304,10 @@ function GC.Decorate(text, event, args, size, s)
 end
 -- "ruhiger Text": Kanal und Name behalten die Kanalfarbe, die Nachricht selbst wird neutral
 local QUIET = { CHAT_MSG_CHANNEL = true, CHAT_MSG_SAY = true, CHAT_MSG_YELL = true }
+GC.COMMUNITY = { CHAT_MSG_GUILD = true, CHAT_MSG_OFFICER = true, CHAT_MSG_PARTY = true, CHAT_MSG_PARTY_LEADER = true,
+    CHAT_MSG_RAID = true, CHAT_MSG_RAID_LEADER = true, CHAT_MSG_RAID_WARNING = true, CHAT_MSG_INSTANCE_CHAT = true,
+    CHAT_MSG_INSTANCE_CHAT_LEADER = true, CHAT_MSG_WHISPER = true, CHAT_MSG_WHISPER_INFORM = true,
+    CHAT_MSG_BN_WHISPER = true, CHAT_MSG_BN_WHISPER_INFORM = true, CHAT_MSG_GUILD_ACHIEVEMENT = true }
 function GC.Quiet(text, headEnd, r, g, b)
     local cc = hexColor(r, g, b)
     local head = text:sub(1, headEnd):gsub("|r", "|r" .. cc)
@@ -550,6 +554,12 @@ local function post(frame, text, r, g, b, _, _, _, event, args)
     if not text or text == "" or #text > LINE_MAX then return end
     event, args = str(event), tbl(args)
     local chat = event ~= nil and args ~= nil and event:find("^CHAT_MSG_") ~= nil
+    -- 0.6.522: Oasis bleibt bei Gilde und Gruppe - andere Zeilen (Kanaele, Sagen, Schreien, System) bleiben unveraendert,
+    -- ausser der Schalter "Auch oeffentliche Kanaele" ist an. Suche/Verlauf bekommen die Zeile trotzdem.
+    if not s.gcAllChannels and not (chat and GC.COMMUNITY[event]) then
+        push(frame, GC.Plain(text), num(r), num(g), num(b))
+        return
+    end
     -- Chatzeilen ueber ihre Ereignisdaten wiederfinden, nicht ueber den Text: ein anderes Addon kann die Zeile
     -- auf dem Weg ins Fenster schon umgebaut haben (gekuerzte Kanalnamen, gefaerbte Uhrzeit) - dann stimmte der
     -- Text nie ueberein und der Spielchat aenderte gar nichts.

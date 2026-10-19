@@ -264,10 +264,11 @@ local function build(f)
 
     -- linke Spalte
     local y = 0
-    local c = H.cardH(body, 0, y, W, 116, "checklist", L["Spielchat"])
+    local c = H.cardH(body, 0, y, W, 152, "checklist", L["Spielchat"])
     H.toggle(c, 14, -48, "Blizzards Chatfenster verbessern", "gcOn", "Hauptschalter fuer alles auf dieser Seite. Wirkt auf neue Nachrichten; im Kampf geschuetzte Nachrichten bleiben unveraendert.", apply, IN)
-    H.note(c, L["Oasis ersetzt nichts an Blizzards Chat, sondern passt die Zeilen nachtraeglich an."], 14, -80, IN)
-    y = y - 116 - 12
+    H.toggle(c, 14, -80, "Auch oeffentliche Kanaele, Sagen und Schreien", "gcAllChannels", "Standard: nur Gilde, Gruppe, Raid und Fluestern. Erst damit wirken die Filter fuer Handel und Allgemein.", apply, IN)
+    H.note(c, L["Oasis ersetzt nichts an Blizzards Chat, sondern passt die Zeilen nachtraeglich an."], 14, -116, IN)
+    y = y - 152 - 12
 
     local h = 50 + #NAMES * 28 + 40
     c = H.cardH(body, 0, y, W, h, "profile", L["Namen und Symbole"])

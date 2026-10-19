@@ -40,12 +40,11 @@ end
 -- neue Helfer standardmaessig an (einmalig), Weltkarte aufdecken bleibt aus
 ns.Listen("LOGIN", function()
     local s = S()
-    if s.cpDisenchant == nil then s.cpDisenchant = true end   -- neu in 0.5.856: auch fuer bestehende Nutzer an
-    if s.fojjiBridge == nil then s.fojjiBridge = true end
-    if s.cpQuestReward == nil then s.cpQuestReward = true end
+    -- 0.6.522: Oasis bleibt bei Gilde und Gruppe - persoenliche Helfer (Entzaubern, Questbelohnung, FojjiCore, XP, Post,
+    -- Reagenzien, Flugzeit, Haendlerpreis) sind fuer neue Spieler aus; wer sie schon an hatte, behaelt sie
     if not s.cpInit then
         s.cpInit = true
-        for _, k in ipairs({ "cpXP", "cpTooltip", "cpTooltipGuild", "cpMail", "cpReagents", "cpFlight", "cpChatLinks", "cpInspect" }) do
+        for _, k in ipairs({ "cpTooltipGuild", "cpChatLinks", "cpInspect" }) do
             if s[k] == nil then s[k] = true end
         end
     end
@@ -898,7 +897,7 @@ local TRACK = { [2383] = true, [2580] = true, [2481] = true, [1494] = true, [198
 ns.Listen("LOGIN", function()
     if S().cpTrackInit == nil then
         S().cpTrackInit = true
-        if S().cpTracking == nil then S().cpTracking = true end
+        -- 0.6.522: persoenlicher Helfer - fuer neue Spieler aus
     end
 end)
 local function trackingActive()

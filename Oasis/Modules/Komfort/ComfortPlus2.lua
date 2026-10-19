@@ -108,7 +108,8 @@ ns.Listen("LOGIN", function()
     local s = S()
     if not s.cp2Init then
         s.cp2Init = true
-        for _, k in ipairs({ "cpInstances", "cpTrainer", "cpProfCD", "cpAltItems", "cpQuestShare", "cpPet", "cpRare", "cpFishing", "cpRange" }) do
+        -- 0.6.522: nur Gilden-/Gruppen-Helfer an (Raid-IDs, Berufs-Abklingzeiten der Gilde, Quest-Fortschritt der Gruppe, Rare-Warnung)
+        for _, k in ipairs({ "cpInstances", "cpProfCD", "cpQuestShare", "cpRare" }) do
             if s[k] == nil then s[k] = true end
         end
     end
