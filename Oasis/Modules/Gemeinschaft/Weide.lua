@@ -327,20 +327,21 @@ local function newSheep(field)
     return m
 end
 -- 0.6.547: Maeh-Geraeusch (CC0, "Sheep Baa" von AntumDeluge nach mikewest, opengameart.org/node/132779) - nur mit Gildenmodul,
--- folgt dem Oasis-Lautstaerkeregler, hoechstens alle 12 s, nur wenn die Wiese sichtbar ist
-local MAEH = "Interface\\AddOns\\Oasis_Guild\\Media\\sounds\\maeh\\"
-local lastMaeh = 0
+-- folgt dem Oasis-Lautstaerkeregler, nur wenn die Wiese sichtbar ist
+-- 0.6.557: jedes Maeh eines Schafs ist zu hoeren (Toene duerfen sich ueberlagern), zufaellig aus fuenf Stimmen;
+-- vier davon CC0 von Joseph Sardin / BigSoundBank (sheep 3, 4, 5, 7)
+local SND = "Interface\\AddOns\\Oasis_Guild\\Media\\sounds\\"
+local VOICES = { "maeh", "maeh03", "maeh04", "maeh05", "maeh07" }
 function Weide.Maeh()
     if not ns.GuildPack or ns.db.settings.gotchiSound == false then return end
-    if GetTime() - lastMaeh < 12 then return end
     local vol = math.floor(tonumber(ns.db.settings.soundVol or 14) or 14)
     if vol <= 0 then return end
-    lastMaeh = GetTime()
+    local dir = SND .. VOICES[math.random(#VOICES)] .. "\\"
     vol = math.min(vol, 20)
     while vol > 0 do
         local lv = math.min(10, vol)
         vol = vol - lv
-        pcall(PlaySoundFile, MAEH .. lv .. ".ogg", "Master")
+        pcall(PlaySoundFile, dir .. lv .. ".ogg", "Master")
     end
 end
 local function setAnim(m, id)
