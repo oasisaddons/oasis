@@ -1142,6 +1142,7 @@ ns.AddPageSettings("map", function(det, y)
         { "Haendler, Reparatur, Briefkaesten und Flugpunkte", "mapPoi", "Orte, die jemand aus der Gilde schon besucht hat", xupd, true },
         { "Questgeber der Dungeon-Quests", "mapQuestGivers", "Wo Dungeon-Quests in der offenen Welt beginnen", xupd },
         { "Eigene Laufspur", "mapTrails", "Dein Weg der letzten 5 Minuten als duenne Linie", xupd },
+        { "Lange Laufspur: ganze Sitzung", "trailSession", "Aus = nur die letzten 10 Minuten deiner Route, aeltere Wege verblassen", function() ns.db.settings.trailMinutes = ns.db.settings.trailSession and 0 or nil xupd() end },
         { "Laufspuren anderer Spieler", "mapTrailsGuild", "Die Wege der Gildenmitglieder (nur mit Eigene Laufspur)", xupd },
         { "Lagerfeuer auf der Karte", "mapCamp", "Gemeldete Lagerfeuer der Gilde auf Weltkarte und Minimap", function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end end },
         { "Koordinaten an der Minimap", "mmCoords", "Eigene Position und Entfernung zum Ziel", xupd },
@@ -1163,6 +1164,7 @@ ns.AddPageSettings("map", function(det, y)
         { "Fundorte nach Frische einfaerben", "gatherFresh", "Frische Stellen kraeftig, alte verblassen", gupd },
         { "Gerade abgeerntete Stellen grau zeigen", "gatherHarvest", "Wenn dort in den letzten 5 Minuten gesammelt wurde", gupd },
         { "Sammelroute", "gatherRoute", "Rundstrecke durch die Fundorte, Pfeil an der Minimap zum naechsten", symUpd },
+        { "Fundorte aller Berufe zeigen", "gatherAllProfs", "Aus = nur Kraeuter/Erz/Angelstellen deiner eigenen Sammelberufe", function() if ns.Gather and ns.Gather.ResetOwnKinds then ns.Gather.ResetOwnKinds() end gupd() end },
     })
     local sorts
     sorts = K.Button(det, L["Einzelne Sorten filtern"], 226, 24, nil, function()

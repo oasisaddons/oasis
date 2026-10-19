@@ -811,6 +811,18 @@ local function revealRefresh()
         local ok, ex = pcall(C_MapExplorationInfo.GetExploredMapTextures, mapID)
         if ok and type(ex) == "table" then
             for _, e in ipairs(ex) do known[(e.offsetX or 0) .. ":" .. (e.offsetY or 0)] = true end
+            -- 0.6.520: Forever hat manche Karten neu gezeichnet (z. B. Mulgore). Passen die erkundeten Flaechen des
+            -- Spiels nicht zu unseren 1.15-Daten, ist die Karte geaendert -> nichts aufdecken (sonst alte Karte drueber)
+            if #ex > 0 then
+                local mine = {}
+                for _, entry in ipairs(list) do
+                    local ox, oy = entry:match("^%d+:%d+:(%d+):(%d+):")
+                    if ox then mine[ox .. ":" .. oy] = true end
+                end
+                local miss = 0
+                for _, e in ipairs(ex) do if not mine[(e.offsetX or 0) .. ":" .. (e.offsetY or 0)] then miss = miss + 1 end end
+                if miss > 0 then return end
+            end
         end
     end
     local canvas = WorldMapFrame:GetCanvas()

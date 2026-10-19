@@ -862,13 +862,14 @@ end
 
 local function setupWorldMap()
     if provider or not WorldMapFrame or not MapCanvasDataProviderMixin then return end
-    provider = CreateFromMixins(MapCanvasDataProviderMixin)
-    function provider:RemoveAllData() releaseAll() end
-    function provider:RefreshAllData() Map.UpdateWorldPins() end
-    function provider:OnMapChanged() Map.UpdateWorldPins() end
-    function provider:OnCanvasScaleChanged() Map.UpdateWorldPins() end
-    local ok, e = pcall(WorldMapFrame.AddDataProvider, WorldMapFrame, provider)
-    if not ok then ns.err("Weltkarte", e) return end
+    -- 0.6.520: KEIN eigener DataProvider mehr - Blizzard ruft die Provider in einer Schleife auf; nach unserem
+    -- (unsicheren) Provider liefen Blizzards Pins verseucht -> im Kampf "Blocked: Button:SetPassThroughButtons()".
+    -- Nachgelagerte Hooks laufen getrennt und verseuchen Blizzards Ablauf nicht.
+    provider = true
+    local function upd() local ok, e = pcall(Map.UpdateWorldPins) if not ok then ns.err("Weltkarte", e) end end
+    if WorldMapFrame.OnMapChanged then hooksecurefunc(WorldMapFrame, "OnMapChanged", upd) end
+    if WorldMapFrame.OnCanvasScaleChanged then hooksecurefunc(WorldMapFrame, "OnCanvasScaleChanged", upd) end
+    if WorldMapFrame.RefreshAllDataProviders then hooksecurefunc(WorldMapFrame, "RefreshAllDataProviders", upd) end
     WorldMapFrame:HookScript("OnShow", function() Map.UpdateWorldPins() Map.ShowMapBar() end)
     WorldMapFrame:HookScript("OnHide", function() if Map.bar then Map.bar:Hide() end end)
 end

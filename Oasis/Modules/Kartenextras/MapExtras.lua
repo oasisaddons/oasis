@@ -293,10 +293,10 @@ function X.SampleTrails(now)
         trailAdd("\1me", c.map, c.mx, c.my, class, now)
         -- 0.6.486: eigene Route aufnehmen (gespeichert in ns.db.routes)
         local rec = X.rec
-        if rec then
+        if rec and not (UnitOnTaxi and UnitOnTaxi("player")) then   -- 0.6.520: Flugstrecken nicht aufnehmen
             local last = rec.pts[#rec.pts]
             if not last or last.map ~= c.map or math.abs(last.x - c.mx) + math.abs(last.y - c.my) > TRAIL_STEP then
-                rec.pts[#rec.pts + 1] = { map = c.map, x = c.mx, y = c.my }
+                rec.pts[#rec.pts + 1] = { map = c.map, x = c.mx, y = c.my, t = time() }
                 if #rec.pts > 4000 then table.remove(rec.pts, 1) end
             end
         end
@@ -390,7 +390,21 @@ local function drawTrails(w)
         local fade = math.max(0.35, 1 - (k - 1) * 0.15)
         drawPts(r.pts or {}, mr, mg, mb, 0.18 * fade, 0.6 * fade)   -- 0.6.497: etwas kraeftiger
     end
-    if recOn then drawPts(X.rec.pts, mr, mg, mb, 0.45, 1) end   -- 0.6.500: ohne Schein am Ende (lag auf dem Spielerpfeil)   -- 0.6.499: kein breites Leuchten mehr (wirkte unruhig)
+    -- 0.6.520: laufende Aufnahme nur so lang wie eingestellt (Standard 10 Min.), aeltere Punkte verschwinden;
+    -- hoechstens 600 Linien (Karte ruckelte mit tausenden Strichen)
+    if recOn then
+        local mins = S().trailMinutes or 10
+        local all, pts = X.rec.pts, {}
+        local cut = mins > 0 and (time() - mins * 60) or nil
+        for _, pt in ipairs(all) do if not cut or (pt.t and pt.t >= cut) then pts[#pts + 1] = pt end end
+        if #pts > 600 then
+            local step, thin = #pts / 600, {}
+            for i = 1, 600 do thin[i] = pts[math.floor((i - 1) * step) + 1] end
+            thin[#thin + 1] = pts[#pts]
+            pts = thin
+        end
+        drawPts(pts, mr, mg, mb, 0.1, 1)
+    end   -- 0.6.500: ohne Schein am Ende (lag auf dem Spielerpfeil)   -- 0.6.499: kein breites Leuchten mehr (wirkte unruhig)
     -- 0.6.504: Linien aus = nur noch ein kurzer, verblassender Schweif hinter dir (letzte 60 s)
     local tail = S().routesOff
     if not tail and not opt("mapTrails") then return end

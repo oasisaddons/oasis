@@ -37,6 +37,23 @@ local function S() return ns.db.settings end
 local function showKind(k) return not S()["gatherOff_" .. k] end
 -- 0.5.935: ein Fundort ist sichtbar, wenn Art, Mindestzahl und der Filter je Sorte (Name) passen
 GM.PROF_KINDS = { herb = true, ore = true, fish = true }
+-- 0.6.520: Standard nur Fundorte der eigenen Sammelberufe (Kraeuterkunde 182, Bergbau 186, Angeln 356); Schalter zeigt alle
+local KIND_SKILL = { herb = 182, ore = 186, fish = 356 }
+local ownKinds, ownAt
+local function ownKind(kind)
+    if S().gatherAllProfs or not GetProfessions then return true end
+    local now = GetTime and GetTime() or 0
+    if not ownKinds or now - (ownAt or 0) > 30 then
+        ownAt, ownKinds = now, {}
+        local ok, list = pcall(ns.Radar and ns.Radar.myProfessions or function() return {} end)
+        if ok and type(list) == "table" then
+            for _, p in ipairs(list) do for k, id in pairs(KIND_SKILL) do if p.id == id then ownKinds[k] = true end end end
+        end
+    end
+    return ownKinds[kind] == true
+end
+GM.OwnKind = ownKind
+function GM.ResetOwnKinds() ownKinds = nil end
 local function shown(r)
     local k = GM.KINDS[r.kind]
     if not k then return false end
@@ -44,6 +61,7 @@ local function shown(r)
     if not GM.PROF_KINDS[r.kind] then return false end
     if k.poi then return S().mapPoi ~= false end
     if S()["gatherOff_" .. r.kind] or (r.n or 1) < (S().gatherMinCount or 1) then return false end
+    if not ownKind(r.kind) then return false end
     local hide = S().gatherHide
     if hide and r.name and r.name ~= "" and hide[r.name] then return false end
     return true
