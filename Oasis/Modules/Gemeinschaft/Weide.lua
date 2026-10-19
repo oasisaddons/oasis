@@ -13,7 +13,7 @@ local SHEEP_NPC = 1933        -- Schaf (wie beim Todeswuerfeln)
 local SHEEP_DISPLAY = 856     -- Schaf-Modell (Verwandlung), geht auch ohne Kreatur im Zwischenspeicher
 local MAX_SHEEP = 40          -- mehr Modelle kosten zu viel Leistung
 local ART = "Interface\\AddOns\\Oasis_Guild\\Media\\weide_bg"   -- Bild nur im Gildenmodul
-local MEADOW_TOP, MEADOW_BOTTOM = 0.50, 0.80   -- Laufbereich (Fuesse), Anteil der Hoehe von oben: hinten an den Baeumen bis ganz vorne - nie im Himmel
+local MEADOW_TOP, MEADOW_BOTTOM = 0.34, 0.82   -- 0.6.562: weiter in die Tiefe   -- Laufbereich (Fuesse), Anteil der Hoehe von oben: hinten an den Baeumen bis ganz vorne - nie im Himmel
 
 -- Skins: Licht-Farbe auf dem Schafmodell. lvl = ab Oasis-Rang
 Weide.SKINS = {
@@ -376,12 +376,20 @@ local function room(s, x, y, flock)
     end
     return best
 end
+-- 0.6.562: zu nah -> langsam auseinanderschieben, ohne sich umzudrehen (vorher: wegrennen, blockieren, umdrehen -> Zappeln)
+local function push(s, o, dt)
+    local dx, dy = s.x - o.x, s.y - o.y
+    if math.abs(dx) + math.abs(dy) < 0.001 then dx = (math.random() - 0.5) end
+    local len = math.sqrt(dx * dx + dy * dy)
+    s.x = math.max(0.02, math.min(0.98, s.x + dx / len * 0.05 * dt))
+    s.y = math.max(0, math.min(1, s.y + dy / len * 0.05 * dt))
+end
 local function pickTarget(s, flock)
     local bx, by, bs = s.x, s.y, -1
     for i = 1, 10 do
         local x, y
         if i % 2 == 0 then
-            x, y = 0.03 + math.random() * 0.94, math.random() ^ 1.4   -- 0.6.555: eher hinten (dort ist mehr Platz)
+            x, y = 0.03 + math.random() * 0.94, math.random() ^ 1.8   -- 0.6.562: deutlich eher hinten (dort ist mehr Platz)
         else
             x = math.max(0.02, math.min(0.98, s.x + (math.random() - 0.5) * 0.5))
             y = math.max(0, math.min(1, s.y + (math.random() - 0.5) * 0.6))   -- y: 0 = hinten (klein), 1 = vorne (gross)
@@ -560,12 +568,10 @@ ns.RegisterPage({
                         s.wait = s.wait - dt
                         setAnim(s, 0)
                         if s.wait <= 0 then pickTarget(s, self.sheep) end
-                        -- steht es zu nah an einem anderen (z. B. nach dem Start)? sofort weg da
-                        if not s.duel and crowded(s, s.x, s.y, self.sheep) then
+                        -- steht es zu nah an einem anderen (z. B. nach dem Start)? sanft auseinander
+                        if not s.duel then
                             local o = crowded(s, s.x, s.y, self.sheep)
-                            s.tx = math.max(0.02, math.min(0.98, s.x + (s.x >= o.x and 1 or -1) * (0.12 + math.random() * 0.15)))
-                            s.ty = math.max(0, math.min(1, s.y + (math.random() - 0.5) * 0.3))
-                            s.wait = nil
+                            if o then push(s, o, dt) end
                         end
                         s.sayIn = (s.sayIn or 10) - dt
                     else
@@ -583,15 +589,19 @@ ns.RegisterPage({
                             -- 0.6.546: nicht ineinanderlaufen - wer vor einem anderen Tier steht, bleibt kurz stehen und sucht sich ein neues Ziel
                             local away = o and (math.abs(nx - o.x) + math.abs(ny - o.y)) > (math.abs(s.x - o.x) + math.abs(s.y - o.y))
                             if o and not away then
-                                s.wait = 0.6 + math.random() * 1.5
+                                -- 0.6.562: im Weg -> sanft zur Seite, nach 1 s ein neues Ziel mit Platz (kein Umdrehen auf der Stelle)
+                                push(s, o, dt)
                                 setAnim(s, 0)
+                                s.blocked = (s.blocked or 0) + dt
+                                if s.blocked > 1 then s.blocked = 0 pickTarget(s, self.sheep) end
                             else
+                                s.blocked = 0
                                 s.x, s.y = nx, ny
                                 setAnim(s, 4)
+                                -- Blickrichtung: 0 = zur Kamera, rechts = -pi/2, weg = pi; nur beim Laufen und erst ab merklicher Aenderung
+                                local face = math.atan2 and math.atan2(-dx, dy) or 0
+                                if not s.face or math.abs(face - s.face) > 0.25 then s.face = face pcall(s.SetFacing, s, face) end
                             end
-                            -- Blickrichtung: 0 = zur Kamera, rechts = -pi/2, weg = pi
-                            local face = math.atan2 and math.atan2(-dx, dy) or 0
-                            if not s.face or math.abs(face - s.face) > 0.05 then s.face = face pcall(s.SetFacing, s, face) end
                         end
                     end
                     -- Sprechblase: alle 15-40 s kurz "Maeh!" oder was gerade fehlt
