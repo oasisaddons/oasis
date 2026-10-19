@@ -20,6 +20,8 @@ KB.ACTIONS = {
     { cmd = "OASIS_GROUPS", text = "Gruppen", icon = "groups", page = "groups" },
     { cmd = "OASIS_RAID", text = "Raids", icon = "raid", page = "raid" },
     { cmd = "OASIS_PROFILE", text = "Profil", icon = "profile", page = "insta" },
+    { cmd = "OASIS_BLIZZGUILD", text = "Blizzard-Gildenfenster", icon = "social" },
+    { cmd = "OASIS_INVITE", text = "Spieler in die Gilde einladen", icon = "social" },
 }
 -- Namen fuer WoWs Tastaturbelegung (erst wenn alle Texte geladen sind - LocaleData481 steht in der toc dahinter)
 local function names() for _, a in ipairs(KB.ACTIONS) do _G["BINDING_NAME_" .. a.cmd] = L[a.text] end end
@@ -34,6 +36,10 @@ function KB.Run(cmd)
                 ns.Fire("TOGGLE_MAIN")
             elseif cmd == "OASIS_TOPBAR" then
                 if ns.db.settings.collapsed then ns.HideMiniBar(true) else ns.ShowMiniBar() end
+            elseif cmd == "OASIS_BLIZZGUILD" then
+                if ns.GuildTools then ns.GuildTools.OpenBlizzard() end
+            elseif cmd == "OASIS_INVITE" then
+                if ns.GuildTools then ns.GuildTools.AskInvite() end
             elseif cmd == "OASIS_EMOJI" then
                 if ns.Emoji and ns.Emoji.TogglePicker then ns.Emoji.TogglePicker() end
             elseif a.page then
@@ -92,7 +98,7 @@ local function keyButton(parent, a)
     function b:Update()
         local k = GetBindingKey(a.cmd)
         -- 0.6.496: Gildenfenster-Taste zaehlt als Belegung fuer "Oasis oeffnen / schliessen"
-        if not k and a.cmd == "OASIS_TOGGLE" and ns.db and ns.db.settings.guildKeyOasis ~= false then
+        if not k and a.cmd == "OASIS_TOGGLE" and ns.db and ns.db.settings.guildKeyOasis == true then
             local gk = GetBindingKey("TOGGLEGUILDTAB") or "J"
             self:SetLabel(capture == self and ("|cffffd27a" .. L["Taste druecken ..."] .. "|r") or (keyText(gk) .. " |cff888888(" .. L["Gildenfenster"] .. ")|r"))
             return
@@ -187,7 +193,7 @@ function KB.ApplyGuildKey()
     if InCombatLockdown and InCombatLockdown() then gk:RegisterEvent("PLAYER_REGEN_ENABLED") return end
     applying = true
     ClearOverrideBindings(gk)
-    if ns.db and ns.db.settings.guildKeyOasis ~= false then   -- 0.6.496: Standard an
+    if ns.db and ns.db.settings.guildKeyOasis == true then   -- 0.6.519: wieder Standard aus (J = Blizzard)
         local keys = { GetBindingKey("TOGGLEGUILDTAB") }
         if #keys == 0 then keys = { "J" } end
         for _, k in ipairs(keys) do if k then SetOverrideBinding(gk, false, k, "OASIS_TOGGLE") end end
@@ -222,8 +228,8 @@ local function build(f)
         function(v) ns.db.settings.escFocusOnly = v and true or nil if ns.EscUpdate then ns.EscUpdate() end end)
     f.escFocus:SetWidth(W - 32)
     f.escFocus:SetPoint("TOPLEFT", 16, -72)
-    f.guildKey = K.Toggle(esc, L["Gildenfenster-Taste (J) oeffnet Oasis"], function() return ns.db.settings.guildKeyOasis ~= false end,
-        function(v) ns.db.settings.guildKeyOasis = (not v) and false or nil KB.ApplyGuildKey() end)
+    f.guildKey = K.Toggle(esc, L["Gildenfenster-Taste (J) oeffnet Oasis"], function() return ns.db.settings.guildKeyOasis == true end,
+        function(v) ns.db.settings.guildKeyOasis = v and true or nil KB.ApplyGuildKey() end)
     f.guildKey:SetWidth(W - 32)
     f.guildKey:SetPoint("TOPLEFT", 16, -108)
     -- Bedienung

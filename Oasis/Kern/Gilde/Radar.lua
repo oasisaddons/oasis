@@ -1549,6 +1549,17 @@ ns.RegisterPage({
         p.search:SetPoint("TOPLEFT", seg, "TOPLEFT", x, ROWY)
         x = x + (p.search:GetWidth() or 250) + 6
         p.reset:SetPoint("TOPLEFT", seg, "TOPLEFT", x, ROWY)
+        -- 0.6.519: gezielt einladen + Blizzards Gildenfenster (Raenge/Rechte) - rechts in der Filterzeile
+        p.blizz = K.Button(p, L["Blizzard-Gilde"], 0, 24, "ghost", function() ns.GuildTools.OpenBlizzard() end)
+        p.blizz:SetWidth(math.max(90, p.blizz.label:GetStringWidth() + 20))
+        calmBtn(p.blizz)
+        p.blizz:SetPoint("TOP", seg, "TOP", 0, ROWY)
+        p.blizz:SetPoint("RIGHT", p, "RIGHT", -8, 0)
+        p.invite = K.Button(p, L["Einladen ..."], 0, 24, "ghost", function() ns.GuildTools.AskInvite() end)
+        p.invite:SetWidth(math.max(80, p.invite.label:GetStringWidth() + 20))
+        calmBtn(p.invite)
+        p.invite:SetPoint("RIGHT", p.blizz, "LEFT", -6, 0)
+        p.invite:SetShown(ns.GuildTools.CanInvite())
 
         -- Spaltenkoepfe (Klick: sortieren)
         local hdr = CreateFrame("Frame", nil, p)

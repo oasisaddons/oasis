@@ -33,4 +33,10 @@
 	<Binding name="OASIS_PROFILE">
 		Oasis_KeyAction("OASIS_PROFILE")
 	</Binding>
+	<Binding name="OASIS_BLIZZGUILD">
+		Oasis_KeyAction("OASIS_BLIZZGUILD")
+	</Binding>
+	<Binding name="OASIS_INVITE">
+		Oasis_KeyAction("OASIS_INVITE")
+	</Binding>
 </Bindings>
