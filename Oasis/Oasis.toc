@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.538
+## Version: 0.6.539
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -107,6 +107,7 @@ Kern\Gilde\Rewards.lua
 Modules\Umfragen\Polls.lua
 Modules\Gemeinschaft\Community.lua
 Modules\Gemeinschaft\Together.lua
+Modules\Gemeinschaft\Weide.lua
 Kern\Gilde\Profile.lua
 Kern\Start\Welcome.lua
 Modules\Gildenbank\GuildBank.lua

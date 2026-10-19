@@ -1480,7 +1480,7 @@ end
 local NAV_GROUPS = {
     { key = "top", text = "", pages = { "home" }, nohead = true },   -- Dashboard: ganz oben, ohne Gruppen-Ueberschrift
     { key = "me", text = "Ich", pages = { "life", "insta", "bags", "badges", "legacy", "rank" } },
-    { key = "guild", text = "Gilde", pages = { "chat", "radar", "fight", "chronicle", "polls", "community", "board", "goals", "bank", "deaths" } },
+    { key = "guild", text = "Gilde", pages = { "chat", "radar", "fight", "chronicle", "polls", "community", "pasture", "board", "goals", "bank", "deaths" } },
     { key = "play", text = "Zusammen spielen", pages = { "groups", "social", "questitems", "allies", "scout", "dungeons", "camp" } },
     { key = "raid", text = "Raid", pages = { "raid", "raidlead", "loot", "buffs", "tactics" } },
     { key = "trade", text = "Handel", pages = { "crafting", "trade", "wants" } },
