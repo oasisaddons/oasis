@@ -541,6 +541,7 @@ local function rebuild()
                 if not cache.chars[who] then cache.chars[who] = { by = who, m = -1, p = -1, t = -1 } end
             end
         end
+        cache.src[kind] = srcOf   -- 0.6.529: Quelle je Person (Sammlung einer Person ansehen)
         for who, set in pairs(cache.own[kind]) do
             for id in pairs(set) do
                 local e = cache.index[kind][id]
@@ -552,6 +553,100 @@ local function rebuild()
     cache.dirty = false
 end
 function Coll.Index(kind) rebuild() return cache.index[kind] or {} end
+-- 0.6.529: was eine Person hat -> { { id, src, name, icon, mine }, ... } alphabetisch
+function Coll.OwnedBy(kind, who)
+    rebuild()
+    local set = cache.own[kind] and cache.own[kind][who]
+    local src = cache.src[kind] and cache.src[kind][who] or "j"
+    local mine = {}
+    for k, v in pairs(cache.own[kind] or {}) do if ns.isMe(k) then mine = v break end end
+    local out = {}
+    for id in pairs(set or {}) do
+        local n, ic = Coll.Name(kind, id, src)
+        out[#out + 1] = { id = id, src = src, name = n, icon = ic, mine = mine[id] == true }
+    end
+    table.sort(out, function(a, b) return (a.name or "") < (b.name or "") end)
+    return out
+end
+
+------------------------------------------------------------------------
+-- 0.6.529: Sammlung einer Person ansehen (Klick in der Rangliste)
+------------------------------------------------------------------------
+local pv
+local function personView()
+    if pv then return pv end
+    local f = CreateFrame("Frame", "OasisCollPerson", UIParent)
+    f:SetSize(440, 520)
+    f:SetPoint("CENTER", 140, 0)
+    f:SetFrameStrata("DIALOG")
+    f:SetMovable(true) f:EnableMouse(true) f:SetClampedToScreen(true) f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", f.StartMoving) f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    local G = ns.Insta and ns.Insta.Glass
+    if not (G and pcall(G, f, { 0.04, 0.04, 0.05, 0.97 }, { 1, 1, 1, 0.10 }, 12)) then K.Fill(f, { 0.04, 0.04, 0.05, 0.97 }) K.Border(f, C.line) end
+    f.title = K.Title(f, 16, C.text) f.title:SetPoint("TOPLEFT", 18, -16) f.title:SetPoint("RIGHT", -40, 0)
+    f.sub = K.Text(f, 11, C.muted) f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -4) f.sub:SetPoint("RIGHT", -18, 0)
+    local x = K.CloseButton(f, function() f:Hide() end) x:SetPoint("TOPRIGHT", -6, -6)
+    f.kind, f.missing = "mount", false
+    f.seg = K.Segments(f, { { key = "mount", text = L["Reittiere"] }, { key = "pet", text = L["Haustiere"] }, { key = "toy", text = L["Spielzeuge"] } },
+        function(k) f.kind = k f:Fill() end, nil, { size = 12 })
+    f.seg:SetPoint("TOPLEFT", 14, -60)
+    f.miss = K.Toggle(f, L["Nur was mir fehlt"], function() return f.missing end, function(v) f.missing = v and true or false f:Fill() end)
+    f.miss:SetPoint("TOPLEFT", 18, -90)
+    f.miss:SetWidth(260)
+    f.list = K.List(f, 30, function(l)
+        local r = K.Row(l)
+        r.icon = K.Icon(r, 22, nil) r.icon:SetPoint("LEFT", 8, 0)
+        r.n = K.Text(r, 12, C.text) r.n:SetPoint("LEFT", 38, 0) r.n:SetPoint("RIGHT", -110, 0) r.n:SetWordWrap(false)
+        r.tag = K.Text(r, 10, C.dim, "RIGHT") r.tag:SetPoint("RIGHT", -10, 0)
+        r:SetScript("OnEnter", function(self)
+            local e = self.item
+            if not e then return end
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            local ok = false
+            if e.src == "b" or f.kind == "toy" then ok = pcall(GameTooltip.SetItemByID, GameTooltip, e.id)
+            elseif f.kind == "mount" and C_MountJournal and C_MountJournal.GetMountInfoByID then
+                local okM, _, spell = pcall(C_MountJournal.GetMountInfoByID, e.id)
+                if okM and ns.safe(spell) then ok = pcall(GameTooltip.SetSpellByID, GameTooltip, spell) end
+            end
+            if not ok then GameTooltip:AddLine(e.name or "?") end
+            GameTooltip:Show()
+        end)
+        r:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        return r
+    end, function(r, e)
+        r.icon:SetTexture(e.icon or KIND_ICON[f.kind])
+        r.n:SetText(e.name or ("#" .. e.id))
+        r.tag:SetText(f.self and "" or (e.mine and ("|cff66db9e" .. L["hast du auch"] .. "|r") or ("|cffe8b44a" .. L["fehlt dir"] .. "|r")))
+    end)
+    f.list:SetPoint("TOPLEFT", 12, -124) f.list:SetPoint("BOTTOMRIGHT", -12, 14)
+    function f:Fill()
+        local all = Coll.OwnedBy(self.kind, self.who)
+        local list, both = {}, 0
+        for _, e in ipairs(all) do
+            if e.mine then both = both + 1 end
+            if not (self.missing and e.mine) then list[#list + 1] = e end
+        end
+        self.list:SetData(list)
+        self.list.empty:SetText(#all == 0 and L["Davon hat Oasis bei dieser Person noch nichts gesehen."] or (#list == 0 and L["Du hast alles davon."] or ""))
+        self.sub:SetText(self.self and ((L["%d Stueck"]):format(#all))
+            or ((L["%d Stueck  -  %d hast du auch, %d fehlen dir"]):format(#all, both, #all - both)))
+        self.miss:SetShown(not self.self)
+        self.seg:Select(self.kind)
+    end
+    if ns.EscClose then ns.EscClose("OasisCollPerson") end
+    pv = f
+    return f
+end
+function Coll.ShowPerson(who, kind)
+    if not who then return end
+    local f = personView()
+    f.who, f.self = who, ns.isMe(who)
+    if kind then f.kind = kind end
+    f.title:SetText((L["Sammlung von %s"]):format(ns.Radar and ns.Radar.Colored and ns.Radar.Colored(who) or ns.short(who)))
+    f:Fill()
+    f:Show()
+    f:Raise()
+end
 function Coll.Chars() rebuild() return cache.chars or {} end
 
 local function countOf(c, kind)
@@ -918,8 +1013,9 @@ ns.RegisterPage({
             r.det:SetPoint("RIGHT", r.sum, "LEFT", -12, 0)
             r:SetScript("OnEnter", function(self)
                 local e = self.item
-                if e then K.ShowTip(self, { ns.displayName(e.name), L["Reittiere"] .. ": " .. e.m, L["Haustiere"] .. ": " .. e.p }) end
+                if e then K.ShowTip(self, { ns.displayName(e.name), L["Reittiere"] .. ": " .. e.m, L["Haustiere"] .. ": " .. e.p, "|cff888888" .. L["Klick: ansehen, was genau"] .. "|r" }) end
             end)
+            r:SetScript("OnClick", function(self) if self.item then Coll.ShowPerson(self.item.name, rankSort) end end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
             return r
         end, function(r, e)
