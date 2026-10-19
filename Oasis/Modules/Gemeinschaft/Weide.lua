@@ -234,6 +234,23 @@ local function newSheep(field)
     m:SetScript("OnLeave", function() GameTooltip:Hide() end)
     return m
 end
+-- 0.6.547: Maeh-Geraeusch (CC0, "Sheep Baa" von AntumDeluge nach mikewest, opengameart.org/node/132779) - nur mit Gildenmodul,
+-- folgt dem Oasis-Lautstaerkeregler, hoechstens alle 12 s, nur wenn die Wiese sichtbar ist
+local MAEH = "Interface\\AddOns\\Oasis_Guild\\Media\\sounds\\maeh\\"
+local lastMaeh = 0
+function Weide.Maeh()
+    if not ns.GuildPack or ns.db.settings.gotchiSound == false then return end
+    if GetTime() - lastMaeh < 12 then return end
+    local vol = math.floor(tonumber(ns.db.settings.soundVol or 14) or 14)
+    if vol <= 0 then return end
+    lastMaeh = GetTime()
+    vol = math.min(vol, 20)
+    while vol > 0 do
+        local lv = math.min(10, vol)
+        vol = vol - lv
+        pcall(PlaySoundFile, MAEH .. lv .. ".ogg", "Master")
+    end
+end
 local function setAnim(m, id)
     if m.anim ~= id then m.anim = id pcall(m.SetAnimation, m, id) end
 end
@@ -305,8 +322,8 @@ ns.RegisterPage({
         -- 0.6.542: Logo oben mittig, ragt ueber die Wiese hinaus (nur mit Gildenmodul)
         if ns.GuildPack then
             local logo = CreateFrame("Frame", nil, p)
-            logo:SetSize(300, 110)
-            logo:SetPoint("TOP", field, "TOP", 0, 34)
+            logo:SetSize(210, 77)   -- 0.6.547: kleiner
+            logo:SetPoint("TOP", field, "TOP", 0, 24)
             logo:SetFrameLevel(field:GetFrameLevel() + 70)
             logo.t = logo:CreateTexture(nil, "OVERLAY")
             logo.t:SetAllPoints()
@@ -384,10 +401,18 @@ ns.RegisterPage({
                         s.sayIn = 15 + math.random() * 25
                         s.say:SetText(s.wish or L["Maeh!"])
                         s.say:Show() s.sayBg:Show() s.sayLeft = 3
+                        if self:IsVisible() and (not s.form or s.form.key == "sheep") then Weide.Maeh() end
                     end
                     -- Groesse: Rang (1-100) und Tiefe
                     local size = (85 + math.min(100, s.who.lvl) * 1.15) * (0.35 + 1.25 * s.y ^ 1.8) * math.max(0.6, H / 520)   -- 0.6.543: vorne bis 1,6-fach
                     local feet = H * (MEADOW_TOP + s.y * (MEADOW_BOTTOM - MEADOW_TOP))
+                    -- 0.6.547: Namen hinten kleiner, vorne groesser (9-14 pt)
+                    local fs = 9 + math.floor(s.y * 5 + 0.5)
+                    if s.fs ~= fs then
+                        s.fs = fs
+                        local face, _, flags = s.name:GetFont()
+                        if face then s.name:SetFont(face, fs, flags or "OUTLINE") end
+                    end
                     s:SetSize(size, size)
                     s:ClearAllPoints()
                     s:SetPoint("BOTTOMLEFT", self, "TOPLEFT", s.x * (W - size), -feet - size * 0.08)   -- Unterkante = Fuesse (kleiner Rand im Modell)
@@ -418,6 +443,10 @@ ns.RegisterPage({
             function(v) ns.db.settings.gotchiAfk = v and true or nil end)
         bar.afk:SetWidth(190)
         bar.afk:SetPoint("RIGHT", bar, "RIGHT", 0, -2)
+        bar.snd = K.Toggle(bar, L["Maeh-Geraeusche"], function() return ns.db.settings.gotchiSound ~= false end,
+            function(v) ns.db.settings.gotchiSound = (not v) and false or nil end)
+        bar.snd:SetWidth(170)
+        bar.snd:SetPoint("RIGHT", bar.afk, "LEFT", -12, 0)
 
         local pick = CreateFrame("Frame", nil, p)
         pick:SetPoint("TOPLEFT", field, "TOPLEFT", 16, -60)

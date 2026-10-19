@@ -4981,3 +4981,5 @@ DE["Du bist AFK - Klick oder Taste schliesst den Bildschirm."] = "Du bist AFK �
 EN["Du bist AFK - Klick oder Taste schliesst den Bildschirm."] = "You are AFK - click or press a key to close this screen."
 DE["Mein Guildotchi"] = "Mein Guildotchi"
 EN["Mein Guildotchi"] = "My Guildotchi"
+DE["Maeh-Geraeusche"] = "Mäh-Geräusche"
+EN["Maeh-Geraeusche"] = "Baa sounds"
