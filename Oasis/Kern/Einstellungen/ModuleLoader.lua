@@ -18,7 +18,6 @@ M.LIST = {
     { cat = "Spielinhalte", addon = "Oasis_Questitems", title = "Questitems", icon = "checklist", desc = "Questitems der Gilde suchen und anbieten" },
     { cat = "Spielinhalte", addon = "Oasis_Rares", title = "Seltene Gegner", icon = "star_on", desc = "Gildenweit geteilte Sichtungen von Rares und Weltbossen mit Wiederkehr-Schaetzung" },
     { cat = "Spielinhalte", addon = "Oasis_Ruf", title = "Ruf-Planer", icon = "badges", desc = "Eigener Ruf und der Stand der Gilde je Fraktion" },
-    { cat = "Spielinhalte", addon = "Oasis_Waffenlehrer", title = "Waffenlehrer", icon = "map", desc = "Welche Waffe lernst du in welcher Hauptstadt" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Gruppe", title = "Meine Gruppe", icon = "groups", desc = "Gruppenuebersicht, Quests teilen, Gruppen-XP, Segen-Plan, Bedrohung und Pull-Warnung, Wuerfelrunde, Gebiet im Chat" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Deathroll", title = "Todeswuerfeln", icon = "deathroll", desc = "Deathroll-Duelle mit Rangliste" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Umfragen", title = "Umfragen", icon = "polls", desc = "Abstimmungen in der Gilde" },
@@ -26,7 +25,6 @@ M.LIST = {
     { cat = "Gilde und Gruppe", addon = "Oasis_Kampf", title = "Kampf-Rangliste", icon = "stats", desc = "Schaden und Heilung der Gilde nach jedem Kampf, echte Crits" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Upgrades", title = "Upgrade-Suche", icon = "wants", desc = "Handelbare Ausruestung der Gilde, die fuer dich besser waere" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Talente", title = "Talente", icon = "profile", desc = "Talente von Gildenmitgliedern und betrachteten Spielern ansehen" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Begegnungen", title = "Begegnungen", icon = "groups", desc = "Spieler ausserhalb der Gilde: Ausruestung beim Betrachten merken" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Discord", title = "Discord", icon = "speaker", desc = "Discord-Bruecke und Sprachkanal der Gilde" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Handwerk", title = "Handwerk", icon = "crafting", desc = "Wer kann was herstellen, Handwerks-Auftraege an die Gilde, Materialien im Tooltip" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Gildenbank", title = "Gildenbank", icon = "bank", desc = "Inhalt und Verlauf der Gildenbank" },
@@ -45,10 +43,8 @@ M.LIST = {
     { cat = "Komfort und Karte", addon = "Oasis_Komfort", title = "Komfort", icon = "home", desc = "Automatisch reparieren und verkaufen, Quests, Einladungen, Leisten, Tooltips" },
     { cat = "Komfort und Karte", addon = "Oasis_Kartenextras", title = "Karten-Extras", icon = "pin", desc = "Sammelorte der Gilde, Marker, Laufspuren, Gefahrenzonen, Zielpfeil" },
     { cat = "Komfort und Karte", addon = "Oasis_MeinWeg", title = "Mein Weg", icon = "chronicle", desc = "Zeitleiste und Rekorde deines Charakters" },
-    { cat = "Komfort und Karte", addon = "Oasis_Itemvergleich", title = "Item-Vergleich", icon = "wants", desc = "Vergleichsfenster neben dem Item-Tooltip" },
     { cat = "Komfort und Karte", addon = "Oasis_Questmarken", title = "Quest-Markierungen", icon = "checklist", desc = "Neue Forever-Quests und Gruppenquests im Questlog markieren" },
-    { cat = "Komfort und Karte", addon = "Oasis_Bankplaetze", title = "Bankplaetze", icon = "bank", desc = "Feste Plaetze in der eigenen Bank merken" },
-    { cat = "Komfort und Karte", addon = "Oasis_Leistung", title = "Leistungsmessung", icon = "stats", desc = "Live-Anzeige der Rechenzeit und Messwerte der Gilde" },
+    { cat = "Komfort und Karte", addon = "Oasis_Leistung", dev = true, title = "Leistungsmessung", icon = "stats", desc = "Live-Anzeige der Rechenzeit und Messwerte der Gilde" },
     { cat = "Komfort und Karte", addon = "Oasis_Fojji", title = "FojjiCore", icon = "sync", desc = "Zusammenarbeit mit dem Addon FojjiCore" },
 }
 M.state = {}   -- [addon] = "loaded" | "off" | "missing" | "disabled" | Fehlertext
@@ -181,7 +177,8 @@ local function build(f)
 
     for _, cat in ipairs(M.CATS) do
       local list = {}
-      for _, m in ipairs(M.LIST) do if m.cat == cat then list[#list + 1] = m end end
+      -- 0.6.523: Entwickler-Module (Leistungsmessung) nur im Entwicklermodus
+      for _, m in ipairs(M.LIST) do if m.cat == cat and (not m.dev or (ns.IsDev and ns.IsDev())) then list[#list + 1] = m end end
       if #list > 0 then
         cathead(L[cat], y)
         y = y - 26

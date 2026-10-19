@@ -1138,10 +1138,7 @@ local socialPage = {
                             Social.ShareRep(a.name)
                             refreshSocial()
                         end },
-                        { text = L["Ausruestung ansehen"], fn = function() if ns.Scout then ns.Scout.ShowGear(a.name) end end },
                         { text = L["Talente ansehen"], fn = function() if ns.Talents then ns.Talents.Show(a.name) end end },
-                        { text = L["Zum Anwerben vorschlagen"], disabled = not ns.Scout or (ns.Scout.Suggested and ns.Scout.Suggested(a.name) ~= nil),
-                          fn = function() ns.Scout.Suggest(a.name) end },
                         { text = L["Notiz bearbeiten"], fn = function()
                             selected = a.name
                             refreshSocial()

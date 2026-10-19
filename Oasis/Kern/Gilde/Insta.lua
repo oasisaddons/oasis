@@ -926,7 +926,7 @@ ns.RegisterPage({
             { key = "success", text = L["Erfolge"], icon = "badges", subs = { "records", "rank" } },
             { key = "adv", text = L["Abenteuer"], icon = "map", subs = { "journey", "dungeons", "mates", "deaths", "gold", "loot" } },   -- 0.6.460: eigene Beute   -- Reise gehoert jetzt zu Abenteuer
             { key = "plan", text = L["Aufgaben"], icon = "checklist", subs = { "weekly", "todo" } },   -- Ziele entfernt
-            { key = "skills", text = L["Koennen"], icon = "star_on", subs = { "prof", "skills2", "weapons" } },
+            { key = "skills", text = L["Koennen"], icon = "star_on", subs = { "prof" } },   -- 0.6.523: Fertigkeiten/Waffen (Waffenlehrer) im Archiv
         }
         local SUBTEXT = { year = "Jahrbuch", daily = "Tagesziel", journey = "Reise", records = "Rekorde", stats = "Statistik",
             rank = "Rang & Belohnungen", dungeons = "Dungeons", mates = "Mitspieler", deaths = "Tode", gold = "Gold", loot = "Beute",

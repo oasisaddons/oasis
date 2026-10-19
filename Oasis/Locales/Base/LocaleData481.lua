@@ -4289,3 +4289,5 @@ DE["Auch oeffentliche Kanaele, Sagen und Schreien"] = "Auch öffentliche Kanäle
 EN["Auch oeffentliche Kanaele, Sagen und Schreien"] = "Also public channels, say and yell"
 DE["Standard: nur Gilde, Gruppe, Raid und Fluestern. Erst damit wirken die Filter fuer Handel und Allgemein."] = "Standard: nur Gilde, Gruppe, Raid und Flüstern. Erst damit wirken die Filter für Handel und Allgemein."
 EN["Standard: nur Gilde, Gruppe, Raid und Fluestern. Erst damit wirken die Filter fuer Handel und Allgemein."] = "Default: only guild, party, raid and whispers. The filters for Trade and General only work with this on."
+DE["Die Wege der Gildenmitglieder der letzten 5 Minuten (nur wer seine Position teilt)"] = "Die Wege der Gildenmitglieder der letzten 5 Minuten (nur wer seine Position teilt)"
+EN["Die Wege der Gildenmitglieder der letzten 5 Minuten (nur wer seine Position teilt)"] = "Guild members' paths of the last 5 minutes (only those sharing their position)"

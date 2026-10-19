@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.522
+## Version: 0.6.523
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -114,7 +114,6 @@ Kern\Diagnose\Scan.lua
 Kern\Items\Market.lua
 Modules\Handel\Trade.lua
 Modules\Mitspieler\Social.lua
-Modules\Begegnungen\Scout.lua
 Modules\Ruf\RepPlanner.lua
 Kern\Gilde\Members.lua
 Kern\Start\Demo.lua
@@ -125,7 +124,6 @@ Kern\Start\Onboarding.lua
 Kern\Start\Discover.lua
 Modules\Begruessung\Greeter.lua
 Modules\Komfort\Comfort.lua
-Modules\Komfort\ActionBars.lua
 Modules\Komfort\ComfortPlus.lua
 Modules\Komfort\ComfortPlus2.lua
 Kern\Karte\MapRevealData.lua
@@ -145,14 +143,12 @@ Kern\Items\Upgrade.lua
 Modules\MeinWeg\Life.lua
 Kern\Gilde\Contacts.lua
 Kern\Gilde\NoGuild.lua
-Modules\Itemvergleich\ItemCompare.lua
 Modules\Upgrades\GearMatch.lua
 Modules\RaidTools\RaidCheck.lua
 Modules\Fluestern\WhisperLog.lua
 Import.lua
 Kern\Einstellungen\Import.lua
 Modules\Questmarken\QuestTags.lua
-Modules\Waffenlehrer\Weapons.lua
 Kern\Chat\Emoji.lua
 Modules\EmojiVorschlaege\EmojiComplete.lua
 Kern\Gilde\OasisMark.lua
@@ -166,7 +162,6 @@ Kern\Diagnose\Taint.lua
 Kern\Gilde\WishAlerts.lua
 Modules\Handwerk\ReagentTip.lua
 Modules\Gildenziele\GuildGoals.lua
-Modules\Bankplaetze\BankSlots.lua
 Kern\Diagnose\TalentProbe.lua
 Kern\Diagnose\BlizzProbe.lua
 Modules\Leistung\PerfShare.lua

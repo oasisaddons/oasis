@@ -1034,43 +1034,6 @@ ns.AddPageSettings("goals", function(det, y)
     return y - 10
 end)
 
--- Bereich "Taschen & Twinks": Bank-Platzhalter (0.5.481)
-ns.AddPageSettings("bags", function(det, y)
-    if S().bankGhosts == nil then S().bankGhosts = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Bank-Platzhalter", "bankGhosts", "Leiste ueber der Bank: Belegung merken, leere Plaetze zeigen ein blasses Symbol (Oasis verschiebt nichts)",
-        function() if ns.BankSlots then ns.BankSlots.Refresh() end end, 600)
-    y = y - 32
-    -- 0.6.521: Aktionsleisten speichern/laden (Komfort-Modul)
-    if ns.ActionBars then
-        y = y - 8
-        rowLabel(det, "|cffe8b44a" .. L["Aktionsleisten"] .. "|r", 14, y)
-        y = y - 28
-        local name = K.Input(det, 160, L["Name, z. B. Raid"])
-        name:SetPoint("TOPLEFT", 14, y)
-        local sv = K.Button(det, L["Speichern"], 90, 24, "ghost", function() ns.ActionBars.Save(name:GetText()) end)
-        sv:SetPoint("LEFT", name, "RIGHT", 8, 0)
-        local ld
-        ld = K.Button(det, L["Laden ..."], 90, 24, "ghost", function()
-            local items = {}
-            for _, n in ipairs(ns.ActionBars.Names()) do
-                items[#items + 1] = { text = n, fn = function() ns.ActionBars.Load(n) end }
-            end
-            if #items == 0 then items[1] = { text = L["Noch keine Leisten gespeichert."], fn = function() end } end
-            K.ShowMenu(ld, items, L["Aktionsleisten laden"])
-        end)
-        ld:SetPoint("LEFT", sv, "RIGHT", 6, 0)
-        local del
-        del = K.Button(det, L["Loeschen ..."], 90, 24, "ghost", function()
-            local items = {}
-            for _, n in ipairs(ns.ActionBars.Names()) do items[#items + 1] = { text = n, fn = function() ns.ActionBars.Delete(n) end } end
-            if #items > 0 then K.ShowMenu(del, items, L["Loeschen"]) end
-        end)
-        del:SetPoint("LEFT", ld, "RIGHT", 6, 0)
-        y = y - 36
-    end
-    return y - 10
-end)
-
 -- Bereich "Lagerfeuer": Hinweise anderer, nur eigenes Gebiet, eigene Bestaetigung
 ns.AddPageSettings("camp", function(det, y)
     local s = S()
@@ -1171,7 +1134,7 @@ ns.AddPageSettings("map", function(det, y)
         { "Questgeber der Dungeon-Quests", "mapQuestGivers", "Wo Dungeon-Quests in der offenen Welt beginnen", xupd },
         { "Eigene Laufspur", "mapTrails", "Dein Weg der letzten 5 Minuten als duenne Linie", xupd },
         { "Lange Laufspur: ganze Sitzung", "trailSession", "Aus = nur die letzten 10 Minuten deiner Route, aeltere Wege verblassen", function() ns.db.settings.trailMinutes = ns.db.settings.trailSession and 0 or nil xupd() end },
-        { "Laufspuren anderer Spieler", "mapTrailsGuild", "Die Wege der Gildenmitglieder (nur mit Eigene Laufspur)", xupd },
+        { "Laufspuren anderer Spieler", "mapTrailsGuild", "Die Wege der Gildenmitglieder der letzten 5 Minuten (nur wer seine Position teilt)", xupd },
         { "Lagerfeuer auf der Karte", "mapCamp", "Gemeldete Lagerfeuer der Gilde auf Weltkarte und Minimap", function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end end },
         { "Koordinaten an der Minimap", "mmCoords", "Eigene Position und Entfernung zum Ziel", xupd },
         { "Layer-Anfragen aus der Gilde annehmen", "layerAsk", "Hinweis, wenn jemand ueber deine Gruppe auf deinen Layer will", xupd, true },
@@ -3557,7 +3520,7 @@ local function groupTabs(g)
     if g.dev and not (ns.IsDev and ns.IsDev()) then return {} end
     local out, known = {}, {}
     for _, gg in ipairs(GROUPS) do for _, k in ipairs(gg.tabs) do known[k] = true end end
-    for _, k in ipairs(g.tabs) do if BUILD[k] then out[#out + 1] = k end end
+    for _, k in ipairs(g.tabs) do if BUILD[k] and (k ~= "perf" or (ns.IsDev and ns.IsDev())) then out[#out + 1] = k end end   -- 0.6.523: Leistung nur fuer Entwickler
     if g.key == "help" then
         for _, t in ipairs(TABS) do if not known[t.key] and not HIDDEN_TABS[t.key] and BUILD[t.key] then out[#out + 1] = t.key end end
     end

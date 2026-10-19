@@ -278,7 +278,7 @@ local function trailAdd(name, map, x, y, class, now)
     end
 end
 function X.SampleTrails(now)
-    if not opt("mapTrails") and not X.rec then
+    if not opt("mapTrails") and not opt("mapTrailsGuild") and not X.rec then
         if next(trails) then trails = {} end
         return
     end
@@ -319,7 +319,7 @@ local function drawTrails(w)
     for _, r in ipairs(ns.db and ns.db.routes or {}) do if r.show then routes[#routes + 1] = r end end
     local recOn = X.rec and X.recShow ~= false and not S().routesOff
     if S().routesOff then for k = #routes, 1, -1 do routes[k] = nil end end   -- 0.6.502: Linien aus
-    if not opt("mapTrails") and #routes == 0 and not recOn and not S().routesOff then return end
+    if not opt("mapTrails") and not opt("mapTrailsGuild") and #routes == 0 and not recOn and not S().routesOff then return end
     if not tFrame then tFrame = CreateFrame("Frame", nil, w.canvas) end
     if tFrame:GetParent() ~= w.canvas then tFrame:SetParent(w.canvas) end
     tFrame:SetAllPoints(w.canvas)
@@ -407,11 +407,12 @@ local function drawTrails(w)
     end   -- 0.6.500: ohne Schein am Ende (lag auf dem Spielerpfeil)   -- 0.6.499: kein breites Leuchten mehr (wirkte unruhig)
     -- 0.6.504: Linien aus = nur noch ein kurzer, verblassender Schweif hinter dir (letzte 60 s)
     local tail = S().routesOff
-    if not tail and not opt("mapTrails") then return end
+    if not tail and not opt("mapTrails") and not opt("mapTrailsGuild") then return end
     local nowT = GetTime()
     for name, t in pairs(trails) do
         -- 0.6.495: Linien anderer Spieler nur mit eigenem Schalter (Standard aus)
-        if name == "\1me" or (not tail and opt("mapTrailsGuild")) then
+        -- 0.6.523: eigene Spur nur mit "Eigene Laufspur", Gildenmitglieder unabhaengig davon mit eigenem Schalter
+        if (name == "\1me" and (tail or opt("mapTrails"))) or (name ~= "\1me" and not tail and opt("mapTrailsGuild")) then
         local r, g, b = 1, 1, 1
         if t.class and ns.classColor then r, g, b = ns.classColor(t.class) end
         local pts = {}
