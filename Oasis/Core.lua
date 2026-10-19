@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.536"
+ns.version = "0.6.538"
 ns.versionDate = "2026-10-19"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -174,7 +174,7 @@ function ns.RequestGuildRoster()
     -- 0.5.788: wieder standardmaessig AN - die Blockierung kam nachweislich von den Discord-Abfragen, nicht von hier. Ohne den Aufruf
     -- bleibt die Gildenliste stehen (wer online kommt, wird erst spaet bemerkt). Abschalten nur noch zum Testen: rosterCall = false
     if s and s.rosterCall == false then return end
-    -- 0.6.536: im Kampf nicht (Blockiert UNKNOWN() bei Daito 0.6.518 kam direkt nach GuildRoster, UNIT_AURA davor) - nach dem Kampf reicht GUILD_ROSTER_UPDATE
+    -- 0.6.537: im Kampf nicht (Blockiert UNKNOWN() bei Daito 0.6.518 kam direkt nach GuildRoster, UNIT_AURA davor) - nach dem Kampf reicht GUILD_ROSTER_UPDATE
     if InCombatLockdown and InCombatLockdown() then return end
     if C_GuildInfo and C_GuildInfo.GuildRoster then
         if ns.Trace then ns.Trace("C_GuildInfo.GuildRoster") end
@@ -376,7 +376,7 @@ function ns.ForeignChat()
     if type(E) == "table" and type(E._chatCFD) == "function" then return true end
     -- Bereits beim Laden erkennen, bevor die fremde Fensterzuordnung bereitsteht.
     local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
-    -- 0.6.536: auch Chattynator und Prat zeichnen den Chat selbst
+    -- 0.6.537: auch Chattynator und Prat zeichnen den Chat selbst
     if not loaded then return false end
     for _, n in ipairs({ "EllesmereUIChat", "Chattynator", "Prat-3.0" }) do if loaded(n) then return true end end
     return false

@@ -1135,6 +1135,19 @@ local TABS = {
     { key = "tools", text = "Protokoll" },
 }
 
+-- 0.6.537: Reiter zu 6 Bereichen zusammengefasst (vorher 14 nebeneinander, zu viel fuer Laien und zu breit).
+-- Ein Bereich mit mehreren Teilen bekommt darunter eine zweite, kleine Reiterzeile. Unbekannte Reiter (von Modulen) bleiben eigene Bereiche.
+local GROUPS = {
+    { key = "g_today", text = "Heute", kids = { "today", "start" } },
+    { key = "g_members", text = "Mitglieder", kids = { "overview", "members" }, sub = { overview = "Liste", members = "Gildenpflege" } },
+    { key = "g_news", text = "Ankuendigen", kids = { "notices", "events", "media" } },
+    { key = "g_raid", text = "Raid", kids = { "raidtools" } },
+    { key = "g_off", text = "Offiziere", kids = { "ochat", "decide" }, sub = { decide = "Abstimmen" } },
+    { key = "g_set", text = "Einstellungen", kids = { "modules", "rights", "tools" } },
+}
+local GROUP_OF = {}
+for _, g in ipairs(GROUPS) do for _, k in ipairs(g.kids) do GROUP_OF[k] = g end end
+
 local page
 local draft
 -- 0.6.526: Module koennen Reiter beisteuern (Gildenpflege: "Heute", "Entscheiden"); pos = Stelle in der Reiterleiste
@@ -2870,11 +2883,18 @@ ns.On("CHAT_MSG_OFFICER", function()
 end)
 function Admin.UpdateOchatTab()
     if not (page and page.seg and page.seg.buttons) then return end
-    for _, b in ipairs(page.seg.buttons) do
-        if b.key == "ochat" then
-            b.label:SetText(L["Offizierschat"] .. (ochatUnread > 0 and (" |cffff1200" .. ochatUnread .. "|r") or ""))
-            b:SetShown(canOfficerChat() or Admin.TestMode())
+    local badge = ochatUnread > 0 and (" |cffff1200" .. ochatUnread .. "|r") or ""
+    for _, s in pairs(page.subs or {}) do
+        for _, b in ipairs(s.buttons) do
+            if b.key == "ochat" then
+                b.label:SetText(L["Offizierschat"] .. badge)
+                b:SetShown(canOfficerChat() or Admin.TestMode())
+                if s.Fit then s:Fit(page:GetWidth()) end
+            end
         end
+    end
+    for _, b in ipairs(page.seg.buttons) do
+        if b.key == "g_off" then b.label:SetText(L["Offiziere"] .. badge) end
     end
     if page.seg.Fit then page.seg:Fit(page:GetWidth()) end
 end
@@ -3025,11 +3045,17 @@ for k, h in pairs(HELP_EXTRA) do HELP[k] = h end
 function Admin.SetTab(key)
     if not page or not BUILD[key] then return end
     page.tab = key
-    page.seg:Select(key)
+    local g = GROUP_OF[key]
+    if g then
+        page.lastKid[g.key] = key
+        page.seg:Select(g.key)
+        for gk, s in pairs(page.subs) do s:SetShown(gk == g.key) end
+        if page.subs[g.key] then page.subs[g.key]:Select(key) end
+    end
     for k, fr in pairs(page.tabs) do fr:SetShown(k == key) end
     if not page.tabs[key] then
         local fr = CreateFrame("Frame", nil, page)
-        fr:SetPoint("TOPLEFT", 0, -62)   -- Platz fuer die Erklaerzeile unter den Reitern
+        fr:SetPoint("TOPLEFT", 0, -86)   -- Platz fuer Bereich, Unterreiter und Erklaerzeile
         fr:SetPoint("BOTTOMRIGHT", 0, DRAFT_TABS[key] and 40 or 0)
         page.tabs[key] = fr
         local ok, e = pcall(BUILD[key], fr)
@@ -3054,17 +3080,55 @@ ns.RegisterPage({
         page = p
         draft = copyCfg(Admin.Cfg())
         p.tabs = {}
+        -- Bereiche aus den vorhandenen Reitern (Reihenfolge wie GROUPS, uebrige Reiter hinten als eigene Bereiche)
+        for k, e in pairs(Admin.EXTRA_BUILD or {}) do BUILD[k], REFRESH[k] = e.build, e.refresh end
+        local present, textOf = {}, {}
+        for _, t in ipairs(TABS) do present[t.key] = true textOf[t.key] = t.text end
+        p.groups, p.subs, p.lastKid = {}, {}, {}
+        for _, g in ipairs(GROUPS) do
+            local kids = {}
+            for _, k in ipairs(g.kids) do if present[k] and BUILD[k] then kids[#kids + 1] = k end end
+            if #kids > 0 then p.groups[#p.groups + 1] = { key = g.key, text = g.text, kids = kids, sub = g.sub } end
+        end
+        for _, t in ipairs(TABS) do
+            if not GROUP_OF[t.key] and BUILD[t.key] then
+                local g = { key = "g_" .. t.key, text = t.text, kids = { t.key } }
+                GROUP_OF[t.key] = g
+                p.groups[#p.groups + 1] = g
+            end
+        end
         local items = {}
-        for _, t in ipairs(TABS) do items[#items + 1] = { key = t.key, text = L[t.text] } end
-        p.seg = K.Segments(p, items, function(k) Admin.SetTab(k) end)
+        for _, g in ipairs(p.groups) do items[#items + 1] = { key = g.key, text = L[g.text] } end
+        p.seg = K.Segments(p, items, function(gk)
+            for _, g in ipairs(p.groups) do
+                if g.key == gk then
+                    local want = p.lastKid[gk]
+                    if not want or (want == "ochat" and not (canOfficerChat() or Admin.TestMode())) then
+                        want = nil
+                        for _, k in ipairs(g.kids) do if k ~= "ochat" or canOfficerChat() or Admin.TestMode() then want = k break end end
+                    end
+                    if want then Admin.SetTab(want) end
+                end
+            end
+        end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
+        for _, g in ipairs(p.groups) do
+            if #g.kids > 1 then
+                local si = {}
+                for _, k in ipairs(g.kids) do si[#si + 1] = { key = k, text = L[(g.sub and g.sub[k]) or textOf[k] or k] } end
+                local s = K.Segments(p, si, function(k) Admin.SetTab(k) end, nil, { size = 12, pad = 18 })
+                s:SetPoint("TOPLEFT", 0, -34)
+                s:Hide()
+                p.subs[g.key] = s
+            end
+        end
         p:HookScript("OnSizeChanged", function(self, w) if self.seg and self.seg.Fit then self.seg:Fit(w) end end)
         C_Timer.After(0, function() if p.seg and p.seg.Fit then p.seg:Fit(p:GetWidth()) end end)
         local line = K.Divider(p)
         line:SetPoint("TOPLEFT", 0, -28)
         line:SetPoint("TOPRIGHT", 0, -28)
         p.help = K.Text(p, 11, C.muted)
-        p.help:SetPoint("TOPLEFT", 2, -37)
+        p.help:SetPoint("TOPLEFT", 2, -64)
         p.help:SetPoint("RIGHT", p, "RIGHT", -4, 0)
         p.help:SetJustifyH("LEFT")
         p.help:SetWordWrap(false)
@@ -3421,7 +3485,7 @@ local function lockPage(key)
         if K.Lock then
             -- Reiterleiste (p.seg, Linie bei -28) bleibt scharf und sichtbar, gesperrt/verschwommen nur der Inhalt darunter
             p.rightsLock = K.Lock(p, { check = function() return Admin.CanManage() end, who = "lead",
-                top = p.seg and 30 or nil, keep = { p.seg } })
+                top = p.seg and 58 or nil, keep = { p.seg, unpack((function() local t = {} for _, s in pairs(p.subs or {}) do t[#t + 1] = s end return t end)()) } })
             p.rightsLock:Update(true)
             p:HookScript("OnShow", function(self) self.rightsLock:Update() end)
         end
