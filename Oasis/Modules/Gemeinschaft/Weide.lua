@@ -250,8 +250,8 @@ ns.RegisterPage({
     build = function(p)
         -- Wiese
         local field = CreateFrame("Frame", nil, p)
-        field:SetPoint("TOPLEFT", 0, 0)
-        field:SetPoint("BOTTOMRIGHT", -(LIST_W + 14), 96)
+        field:SetPoint("TOPLEFT", 10, -10)   -- Platz fuer den Rahmen
+        field:SetPoint("BOTTOMRIGHT", -(LIST_W + 24), 106)
         -- kein SetClipsChildren: 3D-Modelle werden in beschnittenen Rahmen nicht gezeichnet (0.6.540)
         p.field = field
         field.bg = field:CreateTexture(nil, "BACKGROUND")
@@ -262,12 +262,36 @@ ns.RegisterPage({
             field.bg:SetTexCoord(0, 1, 0, 0.75)
         end
         K.Border(field, C.line)
+        -- 0.6.543: Rahmen im Stil des Logos (Gold, Petrol-Innenkante, Edelsteine), 9-teilig damit die Ecken scharf bleiben
+        if ns.GuildPack then
+            local fr = CreateFrame("Frame", nil, p)
+            fr:SetPoint("TOPLEFT", field, "TOPLEFT", -10, 10)
+            fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 10, -10)
+            fr:SetFrameLevel(field:GetFrameLevel() + 55)
+            local TEX, E, T = "Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_frame", 34, 34 / 256
+            local function piece(l, r, t, b)
+                local x = fr:CreateTexture(nil, "OVERLAY")
+                x:SetTexture(TEX)
+                x:SetTexCoord(l, r, t, b)
+                return x
+            end
+            local tl, tr, bl, br = piece(0, T, 0, T), piece(1 - T, 1, 0, T), piece(0, T, 1 - T, 1), piece(1 - T, 1, 1 - T, 1)
+            for _, c in ipairs({ tl, tr, bl, br }) do c:SetSize(E, E) end
+            tl:SetPoint("TOPLEFT") tr:SetPoint("TOPRIGHT") bl:SetPoint("BOTTOMLEFT") br:SetPoint("BOTTOMRIGHT")
+            local top, bot = piece(T, 1 - T, 0, T), piece(T, 1 - T, 1 - T, 1)
+            top:SetPoint("TOPLEFT", tl, "TOPRIGHT") top:SetPoint("BOTTOMRIGHT", tr, "BOTTOMLEFT")
+            bot:SetPoint("TOPLEFT", bl, "TOPRIGHT") bot:SetPoint("BOTTOMRIGHT", br, "BOTTOMLEFT")
+            local lf, rt = piece(0, T, T, 1 - T), piece(1 - T, 1, T, 1 - T)
+            lf:SetPoint("TOPLEFT", tl, "BOTTOMLEFT") lf:SetPoint("BOTTOMRIGHT", bl, "TOPRIGHT")
+            rt:SetPoint("TOPLEFT", tr, "BOTTOMLEFT") rt:SetPoint("BOTTOMRIGHT", br, "TOPRIGHT")
+            p.frameArt = fr
+        end
         -- 0.6.542: Logo oben mittig, ragt ueber die Wiese hinaus (nur mit Gildenmodul)
         if ns.GuildPack then
             local logo = CreateFrame("Frame", nil, p)
             logo:SetSize(300, 110)
             logo:SetPoint("TOP", field, "TOP", 0, 34)
-            logo:SetFrameLevel(field:GetFrameLevel() + 60)
+            logo:SetFrameLevel(field:GetFrameLevel() + 70)
             logo.t = logo:CreateTexture(nil, "OVERLAY")
             logo.t:SetAllPoints()
             logo.t:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_logo")
@@ -320,7 +344,7 @@ ns.RegisterPage({
                         s.say:Show() s.sayBg:Show() s.sayLeft = 3
                     end
                     -- Groesse: Rang (1-100) und Tiefe
-                    local size = (85 + math.min(100, s.who.lvl) * 1.15) * (0.4 + 0.6 * s.y) * math.max(0.6, H / 520)   -- 0.6.542: deutlich groesser
+                    local size = (85 + math.min(100, s.who.lvl) * 1.15) * (0.35 + 1.25 * s.y ^ 1.8) * math.max(0.6, H / 520)   -- 0.6.543: vorne bis 1,6-fach
                     local feet = H * (MEADOW_TOP + s.y * (MEADOW_BOTTOM - MEADOW_TOP))
                     s:SetSize(size, size)
                     s:ClearAllPoints()
@@ -337,7 +361,7 @@ ns.RegisterPage({
 
         -- Skins: eigene Farbe waehlen
         local bar = CreateFrame("Frame", nil, p)
-        bar:SetPoint("TOPLEFT", field, "BOTTOMLEFT", 0, -10)
+        bar:SetPoint("TOPLEFT", field, "BOTTOMLEFT", 0, -20)
         bar:SetPoint("RIGHT", field, "RIGHT", 0, 0)
         bar:SetHeight(84)
         p.bar = bar
@@ -393,7 +417,7 @@ ns.RegisterPage({
 
         -- Rangliste rechts
         local side = CreateFrame("Frame", nil, p)
-        side:SetPoint("TOPLEFT", field, "TOPRIGHT", 14, 0)
+        side:SetPoint("TOPLEFT", field, "TOPRIGHT", 24, 10)
         side:SetPoint("BOTTOMRIGHT", 0, 0)
         p.side = side
         side.bg = K.Fill(side, C.panel or { 0, 0, 0, 0.4 })
