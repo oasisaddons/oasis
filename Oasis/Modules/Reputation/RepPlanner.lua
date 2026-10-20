@@ -6,7 +6,7 @@
 -- Datensatz "repfac": { id = "rf-<char>", c = char, cls, wk = Woche, f = "id:stufe:wert:max:woche:name;..." }
 -- Teilen ueber ns.PlannerSync (RaidTime.lua, steht in der toc davor).
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Ruf", function()   -- Modul Ruf-Planer (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Reputation", function()   -- Modul Ruf-Planer (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 

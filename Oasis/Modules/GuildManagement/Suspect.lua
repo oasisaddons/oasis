@@ -6,7 +6,7 @@
 -- etwas gemeldet haben (ein Einzelner kann so niemanden anschwaerzen).
 -- Wer in kurzer Zeit sehr viel Gefaelschtes schickt, wird fuer eine Stunde ignoriert.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Gildenpflege", function()   -- Modul Gildenpflege (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_GuildManagement", function()   -- Modul Gildenpflege (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
 

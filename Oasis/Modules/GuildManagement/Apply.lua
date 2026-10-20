@@ -6,7 +6,7 @@
 --    Bewertungen, Einladen / Probezeit / Ablehnen mit einem Klick.
 -- Nichts geht automatisch in den Chat; Bewerbungen kommen nur ueber Oasis-Addon-Nachrichten.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Gildenpflege", function()
+ns.ModuleFile("Oasis_GuildManagement", function()
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
 local AP = {}

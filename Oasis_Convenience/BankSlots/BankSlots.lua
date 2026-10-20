@@ -4,7 +4,7 @@
 -- NUR Anzeige: Oasis verschiebt keine Items (Verschieben/Benutzen aus Addon-Code sperrt der Client).
 -- Die Overlays sind eigene Frames an UIParent, nur an Blizzards Knoepfen ausgerichtet (nichts an deren Frames setzen).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Bankplaetze", function()   -- Modul Bankplaetze (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_BankSlots", function()   -- Modul Bankplaetze (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 

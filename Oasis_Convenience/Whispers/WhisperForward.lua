@@ -3,7 +3,7 @@
 -- Grundlage: Twink-Zuordnung aus Oasis (Alts.lua: Profile + Gildennotizen) und die Online-Anzeige der Gildenliste.
 -- Ein/Aus: Einstellungen > Bereiche > Chat oder /oa weiterleiten
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Fluestern", function()   -- Modul Fluestern (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Whispers", function()   -- Modul Fluestern (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 
 local WF = {}

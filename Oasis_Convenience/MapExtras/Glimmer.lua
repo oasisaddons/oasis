@@ -3,7 +3,7 @@
 -- Instanzen. Ab 60 m ein weicher, pulsierender Ring auf dem Fundort, ab 25 m einmal ein leiser Ton.
 -- Schalter: Einstellungen > Karte (Gilden-Sammelkarte)
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Kartenextras", function()
+ns.ModuleFile("Oasis_MapExtras", function()
 local GM = ns.Gather
 local function S() return ns.db.settings end
 local NEAR, PING = 60, 25

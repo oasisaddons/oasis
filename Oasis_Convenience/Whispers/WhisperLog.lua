@@ -4,7 +4,7 @@
 -- Reaktionen, Zitieren, Entwuerfe je Gespraech. Alles bleibt lokal (ns.char) - nur eine Reaktion
 -- geht auf Wunsch per Addon-Nachricht an den Gespraechspartner (wenn er Oasis hat).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Fluestern", function()   -- Modul Fluestern (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Whispers", function()   -- Modul Fluestern (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 

@@ -4,7 +4,7 @@
 -- Nur Hooks (keine ersetzten Skripte) an der Chat-Eingabe, damit nichts an Blizzards Chat kaputtgeht.
 -- Abschalten: Einstellungen > Komfort > Chat > "Emoji-Vorschlaege beim Tippen".
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_EmojiVorschlaege", function()   -- Modul Emoji-Vorschlaege (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_EmojiSuggest", function()   -- Modul Emoji-Vorschlaege (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 

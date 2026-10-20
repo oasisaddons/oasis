@@ -1,6 +1,6 @@
 -- Oasis: Gemeinschaft (0.6.469) - Steckbrief, Geburtstage, Paten, Danke und Helfer der Woche, Gilden-Erfolge
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Gemeinschaft", function()   -- Modul Gemeinschaft (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Community", function()   -- Modul Gemeinschaft (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 

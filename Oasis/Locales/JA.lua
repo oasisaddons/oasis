@@ -3280,6 +3280,7 @@ T["Karten: WoW-Client  ·  Boss-Positionen: Forever Atlas (GPL) / SimpleDungeonM
 T["Kategorien ein- und ausschalten, kompakt, festsetzen"] = "カテゴリの切り替え、コンパクト、固定"
 T["Katze"] = "ネコ"
 T["Katzen"] = "ネコ"
+T["Cats"] = "ネコ"
 T["Kaum sichtbare Lichtpunkte schweben langsam nach oben (Standard-Design)"] = "かすかな光の粒がゆっくり上へ漂います (標準テーマ)"
 T["Kawaii"] = "Kawaii"
 T["Kein 3D-Modell fuer diesen Boss"] = "このボスの3Dモデルなし"

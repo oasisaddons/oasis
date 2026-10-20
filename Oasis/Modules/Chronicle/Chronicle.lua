@@ -1,6 +1,6 @@
 -- Oasis Modul 6: Gilden-Chronik (Level, epische Beute, Legacy, Bosse, neue Mitglieder)
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Chronik", function()   -- Modul Chronik (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Chronicle", function()   -- Modul Chronik (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
 -- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):

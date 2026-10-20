@@ -6,7 +6,7 @@
 --  * Befoerderung faellig: aktive Mitglieder, die lange genug im Rang sind (Gilden-Option)
 -- Reiter in der Gildenleitung > Mitglieder: Verlauf, Ehemalige, Befoerderung.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Gildenpflege", function()   -- Modul Gildenpflege (abschaltbar, siehe ModuleLoader.lua); erweitert deren Protokoll (O.AuditText)
+ns.ModuleFile("Oasis_GuildManagement", function()   -- Modul Gildenpflege (abschaltbar, siehe ModuleLoader.lua); erweitert deren Protokoll (O.AuditText)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 -- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):

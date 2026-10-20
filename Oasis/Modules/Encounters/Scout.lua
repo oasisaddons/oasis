@@ -5,7 +5,7 @@
 --  * Anwerben: gute, aktive Spieler ohne Gilde aus Gruppen; "Vorschlagen" teilt sie mit der Gilde (Store "scout")
 -- Daten ueber Fremde bleiben in der Gilde (nur Vorschlaege werden geteilt), nie im Oasis-Netz.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Begegnungen", function()   -- Modul Begegnungen (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Encounters", function()   -- Modul Begegnungen (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 

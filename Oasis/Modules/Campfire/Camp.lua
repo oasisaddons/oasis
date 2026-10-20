@@ -1,6 +1,6 @@
 -- Oasis Modul 3: Lagerfeuer-Planer (Camping-Buffs, Hersteller, Lagerfeuer-Signale)
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Lager", function()   -- Modul Lagerfeuer (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Campfire", function()   -- Modul Lagerfeuer (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
 -- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):

@@ -1,7 +1,7 @@
 -- Oasis - Gildenpflege (nur Gildenleitung): Inaktive, Bewerber, Werbung, Ausruestung, Anwesenheit,
 -- Protokoll, Bannliste, Export, Wappen. Alles mit Abklingzeiten - nichts geht automatisch raus.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Gildenpflege", function()   -- Modul Gildenpflege (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_GuildManagement", function()   -- Modul Gildenpflege (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 local O = ns.Officer

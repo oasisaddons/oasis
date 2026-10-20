@@ -4,7 +4,7 @@
 --  * Datenaustausch nur im Gruppenkanal (PARTY/RAID), gedrosselt; ohne Oasis sieht man Klasse/Stufe von Blizzard
 -- Weitere Teile in diesem Ordner: PartyXP.lua (XP-Leiste), Blessings.lua (Segen), Threat.lua, Gamble.lua
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Gruppe", function()
+ns.ModuleFile("Oasis_Group", function()
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
 
@@ -409,7 +409,7 @@ ns.slash.party = ns.slash.gruppe
 end)
 
 -- Einstellungen der Seite "Meine Gruppe"
-ns.ModuleFile("Oasis_Gruppe", function()
+ns.ModuleFile("Oasis_Group", function()
 local L, K = ns.L, ns.K
 if not ns.AddPageSettings then return end
 ns.AddPageSettings("party", function(det, y)

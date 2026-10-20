@@ -3,7 +3,7 @@
 -- Reagenzien kaufen, Rare-Warnung, Ruhestein/IDs, Angel-Helfer, Ausruestungs-Sets, Reichweite.
 -- Einstellungen: Reiter "Helfer"; Uebersicht: /oa chars oder Knopf im Reiter.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Komfort", function()   -- Modul Komfort (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Comfort", function()   -- Modul Komfort (abschaltbar, siehe ModuleLoader.lua)
 local TIPM = setmetatable({}, { __mode = "k" })   -- Merker je Tooltip (nie Felder auf Blizzard-Frames schreiben)
 local L = ns.L
 local K, C = ns.K, ns.K.C

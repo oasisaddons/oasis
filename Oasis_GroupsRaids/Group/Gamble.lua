@@ -4,7 +4,7 @@
 --  * Mitglieder mit Oasis bekommen einen Hinweis zum Mitwuerfeln (Klick wuerfelt); gezaehlt wird der echte Systemchat
 --  * Ansagen gehen nur per Klick in den Chat (ns.OfferChat) - automatische Chatnachrichten sind gesperrt
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Gruppe", function()
+ns.ModuleFile("Oasis_Group", function()
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
 local P = ns.Party

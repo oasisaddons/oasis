@@ -5,7 +5,7 @@
 --  * Warnung, wenn du als Nicht-Tank die Aggro hast (nur wenn lesbar)
 -- Schalter: Einstellungen > Meine Gruppe
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Gruppe", function()
+ns.ModuleFile("Oasis_Group", function()
 local L = ns.L
 local K, C = ns.K, ns.K.C
 local P = ns.Party

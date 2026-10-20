@@ -1,6 +1,6 @@
 -- Oasis: Mitspieler (Quest-Partner in der Gilde, kuerzliche Mitspieler von ausserhalb, Neuling-Kennzeichen)
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Mitspieler", function()   -- Modul Mitspieler (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Social", function()   -- Modul Mitspieler (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
 -- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):

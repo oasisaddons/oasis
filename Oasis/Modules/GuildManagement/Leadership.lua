@@ -9,7 +9,7 @@
 -- Andere Addons: Guild Roster Manager (GRM) fuehrt eigene Historie - Oasis ergaenzt mit gildenweit geteilten Daten
 -- (Anwesenheit, Danke, Paten, Abstimmungen); nichts wird aus GRM gelesen oder veraendert.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Gildenpflege", function()
+ns.ModuleFile("Oasis_GuildManagement", function()
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 local LD = {}

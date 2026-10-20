@@ -1,7 +1,7 @@
 -- Oasis - Daten fuer die Gildenpflege: Ausruestung, Anwesenheit, Gildenprotokoll, Bannliste, Bewerber, Export.
 -- Alles laeuft ueber die normale Oasis-Synchronisation (Store). Nichts wird automatisch gefluestert oder gepostet.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Gildenpflege", function()   -- Modul Gildenpflege (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_GuildManagement", function()   -- Modul Gildenpflege (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
 local Store = ns.Store

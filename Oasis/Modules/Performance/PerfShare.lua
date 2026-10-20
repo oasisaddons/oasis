@@ -3,7 +3,7 @@
 --  * alle 15 Min (und auf Anfrage des Entwicklers) eine Zusammenfassung in den geteilten Store "perf"
 --  * Seite Entwickler in der Seitenleiste (nur im Entwicklermodus): Freischaltungen, Werkzeuge, Leistungs-Tabelle
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Leistung", function()   -- Modul Leistungsmessung (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Performance", function()   -- Modul Leistungsmessung (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 

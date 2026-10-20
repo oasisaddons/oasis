@@ -3280,6 +3280,7 @@ T["Karten: WoW-Client  ·  Boss-Positionen: Forever Atlas (GPL) / SimpleDungeonM
 T["Kategorien ein- und ausschalten, kompakt, festsetzen"] = "Przełączanie kategorii, tryb kompaktowy, blokada"
 T["Katze"] = "Kot"
 T["Katzen"] = "Koty"
+T["Cats"] = "Koty"
 T["Kaum sichtbare Lichtpunkte schweben langsam nach oben (Standard-Design)"] = "Ledwo widoczne punkciki światła powoli unoszą się w górę (motyw standardowy)"
 T["Kawaii"] = "Kawaii"
 T["Kein 3D-Modell fuer diesen Boss"] = "Brak modelu 3D tego bossa"

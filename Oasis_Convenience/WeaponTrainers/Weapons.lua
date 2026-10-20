@@ -1,7 +1,7 @@
 -- Oasis - Waffenlehrer: in welcher Hauptstadt lernt man welche Waffe? Passend zu Fraktion (Volk) und Klasse,
 -- mit dem, was du schon kannst. Stand: Classic (WoW Forever kann abweichen).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Waffenlehrer", function()   -- Modul Waffenlehrer (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_WeaponTrainers", function()   -- Modul Waffenlehrer (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 

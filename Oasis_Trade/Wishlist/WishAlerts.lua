@@ -4,7 +4,7 @@
 --  * Sets: Wuensche zu einem eigenen Set zusammenfassen ("Pre-Raid 7/12"); erledigte (geloeschte) zaehlen mit
 -- Quelle der Drops: ns.Dungeons.Source (Oasis-Dungeon-Datenbank + Dungeonkompass).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Wunschliste", function()   -- abschaltbar, siehe ModuleLoader.lua
+ns.ModuleFile("Oasis_Wishlist", function()   -- abschaltbar, siehe ModuleLoader.lua
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 

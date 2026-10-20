@@ -3,7 +3,7 @@
 -- uebrig sind (Quest schon abgeschlossen / mehr als noetig), und teilbare Quests. Alles gildenweit geteilt
 -- (eine Zeile je Spieler, gedrosselt) und gegeneinander abgeglichen: wer kann mir helfen, wem kann ich helfen.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Questitems", function()   -- Modul Questitems (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_QuestItems", function()   -- Modul Questitems (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
 

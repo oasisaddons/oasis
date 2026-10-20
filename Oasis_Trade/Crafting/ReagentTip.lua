@@ -3,7 +3,7 @@
 -- eigene Berufs-Scans, fehlende im Hintergrund ueber C_TradeSkillUI.GetRecipeSchematic nachgeladen).
 -- Tooltip-Abfrage ist nur ein Tabellenzugriff; der Index wird im Hintergrund (ausserhalb des Kampfes) gebaut.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Handwerk", function()   -- Modul Handwerk (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Crafting", function()   -- Modul Handwerk (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 
 local RT = {}

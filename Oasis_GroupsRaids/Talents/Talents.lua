@@ -5,7 +5,7 @@
 -- WoW Forever nutzt das Retail-Talentsystem (C_ClassTalents / C_Traits, gemessen per /oa talentprobe 08.10.).
 -- Baum-Aufbau fuer fremde Klassen: Blizzards "Ansichts-Loadout" (C_ClassTalents.InitializeViewLoadout).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Talente", function()   -- Modul Talente (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Talents", function()   -- Modul Talente (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 

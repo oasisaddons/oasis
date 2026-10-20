@@ -2,7 +2,7 @@
 -- WoW gibt die Bank nur heraus, solange jemand am Gildentresor steht. Oasis liest dann alle
 -- Faecher + Protokoll aus und teilt den Stand mit der Gilde.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Gildenbank", function()   -- Modul Gildenbank (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_GuildBank", function()   -- Modul Gildenbank (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 

@@ -5,7 +5,7 @@
 --   AH-Stand fuer die Gilde (wer hat wann gescannt), Wert-Verlauf der Gildenbank und eine freiwillige
 --   Haendler-Rangliste ("Goldmacher der Woche").
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Handel", function()   -- Modul Handel (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Market", function()   -- Modul Handel (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
 -- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):

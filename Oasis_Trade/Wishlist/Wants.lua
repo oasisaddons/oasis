@@ -1,6 +1,6 @@
 -- Oasis: Einkaufsliste der Gilde + "Wer braucht was"-Tooltip
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Wunschliste", function()   -- abschaltbar, siehe ModuleLoader.lua
+ns.ModuleFile("Oasis_Wishlist", function()   -- abschaltbar, siehe ModuleLoader.lua
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
 -- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):

@@ -3,7 +3,7 @@
 --  Chat-Links/Klassenfarben/Zeitstempel, Gegenstandsstufe beim Betrachten, Weltkarte aufdecken)
 -- Alles einzeln schaltbar (Einstellungen > Komfort > Helfer, Weltkarte: Bereiche > Karte).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Komfort", function()   -- Modul Komfort (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Comfort", function()   -- Modul Komfort (abschaltbar, siehe ModuleLoader.lua)
 local TIPM = setmetatable({}, { __mode = "k" })   -- Merker je Tooltip (nie Felder auf Blizzard-Frames schreiben)
 local L = ns.L
 local K, C = ns.K, ns.K.C

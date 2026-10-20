@@ -3,7 +3,7 @@
 -- Nur ausserhalb des Kampfes. /oa leisten [speichern|laden|loeschen] Name, ohne Namen: Liste
 -- Einstellungen > Komfort: Knoepfe dazu.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Komfort", function()
+ns.ModuleFile("Oasis_Comfort", function()
 local L = ns.L
 local AB = {}
 ns.ActionBars = AB

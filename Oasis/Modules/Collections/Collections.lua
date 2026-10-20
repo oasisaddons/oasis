@@ -4,7 +4,7 @@
 --  Eigene Sammlungen "coll_chars", "coll_mounts", "coll_pets", "coll_toys" (NICHT "collections" - so heisst
 --  in Export.lua die Liste der geteilten Store-Sammlungen). Eigene Nachrichten OARU/OARQ/OARA/OARB wie Rares.lua.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Sammlungen", function()   -- Modul Sammlungen (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Collections", function()   -- Modul Sammlungen (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
 -- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):

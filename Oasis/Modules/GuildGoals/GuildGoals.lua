@@ -5,7 +5,7 @@
 -- Store "ggcontrib": Beitrag je Mitglied und Material (id = ziel|nr|name, n = Menge) - Summe = Stand.
 -- Beide Sammlungen sind geteilt und werden abgeglichen (RETENTION in Comm.lua).
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Gildenziele", function()   -- Modul Gildenziele (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_GuildGoals", function()   -- Modul Gildenziele (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 

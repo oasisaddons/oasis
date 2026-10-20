@@ -7,7 +7,7 @@
 -- Blizzard die Werte freigibt (ADDON_RESTRICTION_STATE_CHANGED, Bossende, Verlassen der Instanz, sonst alle 20 s).
 -- Geheime Werte werden nie verglichen oder geraten.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Kampf", function()   -- Modul Kampf-Rangliste (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Combat", function()   -- Modul Kampf-Rangliste (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 

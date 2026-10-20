@@ -1,7 +1,7 @@
 -- Oasis - Komfort: kleine Helfer fuer den Alltag (alles einzeln schaltbar, Standard aus).
 -- Eigene Umsetzung in Oasis (Ideen wie in Komfort-Addons ueblich).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Komfort", function()   -- Modul Komfort (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Comfort", function()   -- Modul Komfort (abschaltbar, siehe ModuleLoader.lua)
 local EBM = setmetatable({}, { __mode = "k" })    -- Merker je Chat-Eingabe/Leiste (nie Felder auf Blizzard-Frames schreiben)
 local L = ns.L
 local K, C = ns.K, ns.K.C

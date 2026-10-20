@@ -2,7 +2,7 @@
 -- Hauptaddon stecken (Ausrichtung auf Gilde/Gruppe). Wer sie will, installiert dieses Addon zusaetzlich.
 -- Haengt an der globalen Tabelle Oasis (= ns des Hauptaddons).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Komfort", function()   -- 0.6.569: frueher Plugin Oasis_Comfort, jetzt Teil von Oasis Convenience
+ns.ModuleFile("Oasis_Comfort", function()   -- 0.6.569: frueher Plugin Oasis_Comfort, jetzt Teil von Oasis Convenience
 local O = ns
 local K = O.K
 

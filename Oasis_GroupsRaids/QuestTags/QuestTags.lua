@@ -1,7 +1,7 @@
 -- Oasis - neue WoW-Forever-Quests erkennen und im Questlog markieren (bläulicher Verlauf + "Neu"),
 -- Gruppenquests hervorheben. Forever-Quests haben eigene, hohe Quest-IDs (Classic geht nur bis ca. 10000).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Questmarken", function()   -- Modul Quest-Markierungen (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_QuestTags", function()   -- Modul Quest-Markierungen (abschaltbar, siehe ModuleLoader.lua)
 local DECO = setmetatable({}, { __mode = "k" })   -- eigene Texturen je Questlog-Knopf (keine Felder auf Blizzard-Knoepfen)
 local L = ns.L
 local K, C = ns.K, ns.K.C

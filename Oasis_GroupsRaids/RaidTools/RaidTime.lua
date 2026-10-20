@@ -7,7 +7,7 @@
 -- Teilen: eigene Nachrichten (RPLU/RPLQ/RPLA/RPLB), weil Comm.lua nur bekannte Sammlungen annimmt.
 -- Die kleine Sync-Hilfe ns.PlannerSync nutzt auch RepPlanner.lua.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Raidwerkzeuge", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
 -- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):

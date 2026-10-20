@@ -3,7 +3,7 @@
 -- Quelle: Gildenliste (Blizzard) und Raidliste; Fremde ohne Daten bleiben unveraendert. Standard aus,
 -- Schalter: Einstellungen > Meine Gruppe. Mit fremdem Chat-Addon (ns.ForeignChat) greift Oasis nicht ein.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Gruppe", function()
+ns.ModuleFile("Oasis_Group", function()
 local P = ns.Party
 local function S() return ns.db and ns.db.settings or {} end
 local issecret = issecretvalue or function() return false end

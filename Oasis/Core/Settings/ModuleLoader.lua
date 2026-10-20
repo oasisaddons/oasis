@@ -13,47 +13,59 @@ ns.ModuleLoader = M
 M.CATS = { "Spielinhalte", "Gilde und Gruppe", "Chat", "Komfort und Karte" }
 M.LIST = {
     { cat = "Spielinhalte", addon = "Oasis_Dungeons", title = "Dungeons", icon = "dungeons", desc = "Dungeon-Datenbank, Bosse, Karten, Questorte und die Dungeon-Seite" },
-    { cat = "Spielinhalte", addon = "Oasis_Raidwerkzeuge", title = "Raids und Termine", icon = "raid", desc = "Termine und Anmeldungen, Raid-Planer, Raid-Check, Buffs, Pluendermeister und Lootpunkte, Taktik-Karte, Raid-IDs, Kampfberichte" },
+    { cat = "Spielinhalte", addon = "Oasis_RaidTools", title = "Raids und Termine", icon = "raid", desc = "Termine und Anmeldungen, Raid-Planer, Raid-Check, Buffs, Pluendermeister und Lootpunkte, Taktik-Karte, Raid-IDs, Kampfberichte" },
     { cat = "Spielinhalte", addon = "Oasis_Legacy", title = "Legacy", icon = "legacy", desc = "Legacy-Erfolge und Sammelstuecke" },
-    { cat = "Spielinhalte", addon = "Oasis_Questitems", title = "Questitems", icon = "checklist", desc = "Questitems der Gilde suchen und anbieten" },
+    { cat = "Spielinhalte", addon = "Oasis_QuestItems", title = "Questitems", icon = "checklist", desc = "Questitems der Gilde suchen und anbieten" },
     { cat = "Spielinhalte", addon = "Oasis_Rares", title = "Seltene Gegner", icon = "star_on", desc = "Gildenweit geteilte Sichtungen von Rares und Weltbossen mit Wiederkehr-Schaetzung" },
-    { cat = "Spielinhalte", addon = "Oasis_Ruf", title = "Ruf-Planer", icon = "badges", desc = "Eigener Ruf und der Stand der Gilde je Fraktion" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Gruppe", title = "Meine Gruppe", icon = "groups", desc = "Gruppenuebersicht, Quests teilen, Gruppen-XP, Segen-Plan, Bedrohung und Pull-Warnung, Wuerfelrunde, Gebiet im Chat" },
+    { cat = "Spielinhalte", addon = "Oasis_Reputation", title = "Ruf-Planer", icon = "badges", desc = "Eigener Ruf und der Stand der Gilde je Fraktion" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Group", title = "Meine Gruppe", icon = "groups", desc = "Gruppenuebersicht, Quests teilen, Gruppen-XP, Segen-Plan, Bedrohung und Pull-Warnung, Wuerfelrunde, Gebiet im Chat" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Deathroll", title = "Todeswuerfeln", icon = "deathroll", desc = "Deathroll-Duelle mit Rangliste" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Umfragen", title = "Umfragen", icon = "polls", desc = "Abstimmungen in der Gilde" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Gemeinschaft", title = "Gemeinschaft", icon = "heart", desc = "Steckbriefe, Geburtstage, Paten fuer Neulinge, Danke und Helfer der Woche, Gilden-Erfolge" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Kampf", title = "Kampf-Rangliste", icon = "stats", desc = "Schaden und Heilung der Gilde nach jedem Kampf, echte Crits" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Polls", title = "Umfragen", icon = "polls", desc = "Abstimmungen in der Gilde" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Community", title = "Gemeinschaft", icon = "heart", desc = "Steckbriefe, Geburtstage, Paten fuer Neulinge, Danke und Helfer der Woche, Gilden-Erfolge" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Combat", title = "Kampf-Rangliste", icon = "stats", desc = "Schaden und Heilung der Gilde nach jedem Kampf, echte Crits" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Upgrades", title = "Upgrade-Suche", icon = "wants", desc = "Handelbare Ausruestung der Gilde, die fuer dich besser waere" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Talente", title = "Talente", icon = "profile", desc = "Talente von Gildenmitgliedern und betrachteten Spielern ansehen" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Talents", title = "Talente", icon = "profile", desc = "Talente von Gildenmitgliedern und betrachteten Spielern ansehen" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Discord", title = "Discord", icon = "speaker", desc = "Discord-Bruecke und Sprachkanal der Gilde" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Handwerk", title = "Handwerk", icon = "crafting", desc = "Wer kann was herstellen, Handwerks-Auftraege an die Gilde, Materialien im Tooltip" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Gildenbank", title = "Gildenbank", icon = "bank", desc = "Inhalt und Verlauf der Gildenbank" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Handel", title = "Handel", icon = "bank", desc = "Kaufen und verkaufen in der Gilde, Marktwerte" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Wunschliste", title = "Wunschliste", icon = "wants", desc = "Gesuchte Items der Gilde, Wer-braucht-was im Tooltip, Hinweise im Dungeon" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Chronik", title = "Chronik", icon = "chronicle", desc = "Was in der Gilde passiert ist: Level, Abzeichen, Erfolge" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Lager", title = "Lagerfeuer", icon = "camp", desc = "Lagerfeuer fuer die Gilde melden und auf der Karte zeigen" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Tode", title = "Tode", icon = "deaths", desc = "Tode in der Gilde, Sterbeorte auf der Karte" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Mitspieler", title = "Mitspieler", icon = "groups", desc = "Quest-Partner in der Gilde, kuerzliche Mitspieler von ausserhalb, Neulinge" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Sammlungen", title = "Sammlungen", icon = "star_on", desc = "Reittiere, Haustiere und Spielzeuge der Gilde" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Gildenziele", title = "Gildenziele", icon = "checklist", desc = "Gemeinsame Vorhaben mit Schritten und Fortschritt" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Begruessung", title = "Begruessung", icon = "smile", desc = "Abgestimmter Gruss im Gildenchat, wenn jemand online kommt" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Gildenpflege", title = "Gildenpflege", icon = "admin", desc = "Nur Gildenleitung: Inaktive, Bewerber, Werbung, Anwesenheit, Protokoll mit Gildenverlauf, Bannliste, Verdachts-Monitor" },
-    { cat = "Chat", addon = "Oasis_Fluestern", title = "Fluesterverlauf", icon = "social", desc = "Gespraeche im Fluesterchat, privater Reiter im Gildenchat, Weiterleitung an Twinks" },
-    { cat = "Chat", addon = "Oasis_Spielchat", title = "Spielchat", icon = "social", desc = "Blizzards Chatfenster lesbarer: Namen, Stufen und Symbole, Filter, Suche, Verlauf und Stichwort-Alarme" },
-    { cat = "Chat", addon = "Oasis_EmojiVorschlaege", title = "Emoji-Vorschlaege", icon = "smile", desc = "Beim Tippen passende Emojis vorschlagen" },
-    { cat = "Komfort und Karte", addon = "Oasis_Komfort", title = "Komfort", icon = "home", desc = "Automatisch reparieren und verkaufen, Quests, Einladungen, Leisten, Tooltips" },
-    { cat = "Komfort und Karte", addon = "Oasis_Kartenextras", title = "Karten-Extras", icon = "pin", desc = "Sammelorte der Gilde, Marker, Laufspuren, Gefahrenzonen, Zielpfeil" },
-    { cat = "Komfort und Karte", addon = "Oasis_MeinWeg", title = "Mein Weg", icon = "chronicle", desc = "Zeitleiste und Rekorde deines Charakters" },
-    { cat = "Komfort und Karte", addon = "Oasis_Questmarken", title = "Quest-Markierungen", icon = "checklist", desc = "Gruppenquests im Questlog markieren" },
-    { cat = "Spielinhalte", addon = "Oasis_Waffenlehrer", title = "Waffenlehrer", icon = "map", desc = "Welche Waffe lernst du in welcher Hauptstadt" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Begegnungen", title = "Begegnungen", icon = "groups", desc = "Spieler ausserhalb der Gilde: Ausruestung beim Betrachten merken" },
-    { cat = "Komfort und Karte", addon = "Oasis_Itemvergleich", title = "Item-Vergleich", icon = "wants", desc = "Vergleichsfenster neben dem Item-Tooltip" },
-    { cat = "Komfort und Karte", addon = "Oasis_Bankplaetze", title = "Bankplaetze", icon = "bank", desc = "Feste Plaetze in der eigenen Bank merken" },
-    { cat = "Komfort und Karte", addon = "Oasis_Leistung", dev = true, title = "Leistungsmessung", icon = "stats", desc = "Live-Anzeige der Rechenzeit und Messwerte der Gilde" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Crafting", title = "Handwerk", icon = "crafting", desc = "Wer kann was herstellen, Handwerks-Auftraege an die Gilde, Materialien im Tooltip" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_GuildBank", title = "Gildenbank", icon = "bank", desc = "Inhalt und Verlauf der Gildenbank" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Market", title = "Handel", icon = "bank", desc = "Kaufen und verkaufen in der Gilde, Marktwerte" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Wishlist", title = "Wunschliste", icon = "wants", desc = "Gesuchte Items der Gilde, Wer-braucht-was im Tooltip, Hinweise im Dungeon" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Chronicle", title = "Chronik", icon = "chronicle", desc = "Was in der Gilde passiert ist: Level, Abzeichen, Erfolge" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Campfire", title = "Lagerfeuer", icon = "camp", desc = "Lagerfeuer fuer die Gilde melden und auf der Karte zeigen" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Deaths", title = "Tode", icon = "deaths", desc = "Tode in der Gilde, Sterbeorte auf der Karte" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Social", title = "Mitspieler", icon = "groups", desc = "Quest-Partner in der Gilde, kuerzliche Mitspieler von ausserhalb, Neulinge" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Collections", title = "Sammlungen", icon = "star_on", desc = "Reittiere, Haustiere und Spielzeuge der Gilde" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_GuildGoals", title = "Gildenziele", icon = "checklist", desc = "Gemeinsame Vorhaben mit Schritten und Fortschritt" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Greeting", title = "Begruessung", icon = "smile", desc = "Abgestimmter Gruss im Gildenchat, wenn jemand online kommt" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_GuildManagement", title = "Gildenpflege", icon = "admin", desc = "Nur Gildenleitung: Inaktive, Bewerber, Werbung, Anwesenheit, Protokoll mit Gildenverlauf, Bannliste, Verdachts-Monitor" },
+    { cat = "Chat", addon = "Oasis_Whispers", title = "Fluesterverlauf", icon = "social", desc = "Gespraeche im Fluesterchat, privater Reiter im Gildenchat, Weiterleitung an Twinks" },
+    { cat = "Chat", addon = "Oasis_GameChat", title = "Spielchat", icon = "social", desc = "Blizzards Chatfenster lesbarer: Namen, Stufen und Symbole, Filter, Suche, Verlauf und Stichwort-Alarme" },
+    { cat = "Chat", addon = "Oasis_EmojiSuggest", title = "Emoji-Vorschlaege", icon = "smile", desc = "Beim Tippen passende Emojis vorschlagen" },
+    { cat = "Komfort und Karte", addon = "Oasis_Comfort", title = "Komfort", icon = "home", desc = "Automatisch reparieren und verkaufen, Quests, Einladungen, Leisten, Tooltips" },
+    { cat = "Komfort und Karte", addon = "Oasis_MapExtras", title = "Karten-Extras", icon = "pin", desc = "Sammelorte der Gilde, Marker, Laufspuren, Gefahrenzonen, Zielpfeil" },
+    { cat = "Komfort und Karte", addon = "Oasis_MyJourney", title = "Mein Weg", icon = "chronicle", desc = "Zeitleiste und Rekorde deines Charakters" },
+    { cat = "Komfort und Karte", addon = "Oasis_QuestTags", title = "Quest-Markierungen", icon = "checklist", desc = "Gruppenquests im Questlog markieren" },
+    { cat = "Spielinhalte", addon = "Oasis_WeaponTrainers", title = "Waffenlehrer", icon = "map", desc = "Welche Waffe lernst du in welcher Hauptstadt" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Encounters", title = "Begegnungen", icon = "groups", desc = "Spieler ausserhalb der Gilde: Ausruestung beim Betrachten merken" },
+    { cat = "Komfort und Karte", addon = "Oasis_ItemCompare", title = "Item-Vergleich", icon = "wants", desc = "Vergleichsfenster neben dem Item-Tooltip" },
+    { cat = "Komfort und Karte", addon = "Oasis_BankSlots", title = "Bankplaetze", icon = "bank", desc = "Feste Plaetze in der eigenen Bank merken" },
+    { cat = "Komfort und Karte", addon = "Oasis_Performance", dev = true, title = "Leistungsmessung", icon = "stats", desc = "Live-Anzeige der Rechenzeit und Messwerte der Gilde" },
 }
 M.state = {}   -- [addon] = "loaded" | "off" | "missing" | "disabled" | Fehlertext
 
-local function off() return (ns.db and ns.db.settings.modOff) or {} end
+-- 0.6.571: Modul-Schluessel englisch - abgeschaltete Module unter dem alten Namen einmalig uebernehmen
+M.RENAMED = { Oasis_Bankplaetze = "Oasis_BankSlots", Oasis_Begegnungen = "Oasis_Encounters", Oasis_Begruessung = "Oasis_Greeting", Oasis_Chronik = "Oasis_Chronicle", Oasis_EmojiVorschlaege = "Oasis_EmojiSuggest", Oasis_Fluestern = "Oasis_Whispers", Oasis_Gemeinschaft = "Oasis_Community", Oasis_Gildenbank = "Oasis_GuildBank", Oasis_Gildenpflege = "Oasis_GuildManagement", Oasis_Gildenziele = "Oasis_GuildGoals", Oasis_Gruppe = "Oasis_Group", Oasis_Handel = "Oasis_Market", Oasis_Handwerk = "Oasis_Crafting", Oasis_Itemvergleich = "Oasis_ItemCompare", Oasis_Kampf = "Oasis_Combat", Oasis_Kartenextras = "Oasis_MapExtras", Oasis_Komfort = "Oasis_Comfort", Oasis_Lager = "Oasis_Campfire", Oasis_Leistung = "Oasis_Performance", Oasis_MeinWeg = "Oasis_MyJourney", Oasis_Mitspieler = "Oasis_Social", Oasis_Questitems = "Oasis_QuestItems", Oasis_Questmarken = "Oasis_QuestTags", Oasis_Raidwerkzeuge = "Oasis_RaidTools", Oasis_Ruf = "Oasis_Reputation", Oasis_Sammlungen = "Oasis_Collections", Oasis_Spielchat = "Oasis_GameChat", Oasis_Talente = "Oasis_Talents", Oasis_Tode = "Oasis_Deaths", Oasis_Umfragen = "Oasis_Polls", Oasis_Waffenlehrer = "Oasis_WeaponTrainers", Oasis_Wunschliste = "Oasis_Wishlist" }
+local migrated
+local function off()
+    local mo = ns.db and ns.db.settings.modOff
+    if mo and not migrated then
+        migrated = true
+        for old, new in pairs(M.RENAMED) do
+            if mo[old] then mo[new] = true mo[old] = nil end
+        end
+    end
+    return mo or {}
+end
 function M.IsOn(addon) return not off()[addon] end
 function M.Loaded(addon) return M.state[addon] == "loaded" end
 -- Ordner aus 0.5.564-0.5.579 (eigene Zusatz-Addons): werden nicht mehr gebraucht
@@ -64,9 +76,9 @@ M.OLD_FOLDERS = { "Oasis_Dungeons", "Oasis_Raidwerkzeuge", "Oasis_Deathroll", "O
 -- Oasis laedt sie hier selbst, BEVOR die Module laufen - so haengen sie wie bisher an ns.ModuleFile und laufen vor DB_READY.
 -- Ist ein Teil nicht installiert oder in der AddOn-Liste aus, fehlen seine Module (Zustand "missing").
 M.PARTS = {
-    { addon = "Oasis_GroupsRaids", title = "Oasis - Groups & Raids", modules = { "Oasis_Gruppe", "Oasis_Dungeons", "Oasis_Questmarken", "Oasis_Raidwerkzeuge", "Oasis_Kampf", "Oasis_Talente", "Oasis_Rares" } },
-    { addon = "Oasis_Trade", title = "Oasis - Trade", modules = { "Oasis_Handwerk", "Oasis_Handel", "Oasis_Wunschliste" } },
-    { addon = "Oasis_Convenience", title = "Oasis - Convenience", modules = { "Oasis_Komfort", "Oasis_Kartenextras", "Oasis_Spielchat", "Oasis_Fluestern", "Oasis_Upgrades", "Oasis_Itemvergleich", "Oasis_Waffenlehrer", "Oasis_Bankplaetze" } },
+    { addon = "Oasis_GroupsRaids", title = "Oasis - Groups & Raids", modules = { "Oasis_Group", "Oasis_Dungeons", "Oasis_QuestTags", "Oasis_RaidTools", "Oasis_Combat", "Oasis_Talents", "Oasis_Rares" } },
+    { addon = "Oasis_Trade", title = "Oasis - Trade", modules = { "Oasis_Crafting", "Oasis_Market", "Oasis_Wishlist" } },
+    { addon = "Oasis_Convenience", title = "Oasis - Convenience", modules = { "Oasis_Comfort", "Oasis_MapExtras", "Oasis_GameChat", "Oasis_Whispers", "Oasis_Upgrades", "Oasis_ItemCompare", "Oasis_WeaponTrainers", "Oasis_BankSlots" } },
 }
 M.partOf = {}
 for _, p in ipairs(M.PARTS) do for _, k in ipairs(p.modules) do M.partOf[k] = p end end

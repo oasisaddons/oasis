@@ -11,7 +11,7 @@
 -- Alles nur fuer den eigenen Charakter (ns.char.life), nichts wird gesendet.
 -- Kampfwerte (Crits, Schaden, Leben) sind in Forever im Kampf gesperrt -> keine Crit-Rekorde, Analyse ohne Schadenszahlen.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_MeinWeg", function()   -- Modul Mein Weg (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_MyJourney", function()   -- Modul Mein Weg (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 

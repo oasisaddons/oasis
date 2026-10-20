@@ -3,7 +3,7 @@
 -- Datenquelle: Blizzards Addon-Profiler (C_AddOnProfiler) - misst das ganze Addon (Fenster, Ereignisse, Timer), nicht nur die Oasis-Funktionen.
 -- Gemessen wird nur, solange der Reiter offen ist (ein Aufruf pro Sekunde, praktisch gratis).
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Leistung", function()   -- Modul Leistungsmessung (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Performance", function()   -- Modul Leistungsmessung (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 

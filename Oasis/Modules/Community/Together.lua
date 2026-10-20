@@ -8,7 +8,7 @@
 --  * Jahrbuch: Monatsseite der Gilde (Neue, Level-Meilensteine, Bosse, Treffen, Helfer, Todeswuerfeln, Friedhof)
 --    zum Ansehen und als Text fuer Discord (Kopierfenster)
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Gemeinschaft", function()
+ns.ModuleFile("Oasis_Community", function()
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 local GL = {}

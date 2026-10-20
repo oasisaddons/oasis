@@ -1,7 +1,7 @@
 -- Oasis - Login-Begruessung: zufaelliger, selbst geschriebener Gruss im Gildenchat, wenn jemand online kommt.
 -- Abgestimmt: wer zuerst gruesst, sagt es den anderen Oasis-Nutzern - so gruesst nie die halbe Gilde gleichzeitig.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Begruessung", function()   -- Modul Begruessung (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Greeting", function()   -- Modul Begruessung (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
 -- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):

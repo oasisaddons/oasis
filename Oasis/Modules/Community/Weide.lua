@@ -3,7 +3,7 @@
 -- Den eigenen Skin meldet jeder selbst (Sammlung "sheep", OWNED); beim Anzeigen wird der Rang des Besitzers
 -- geprueft - wer sich einen Skin ueber seinem Rang einstellt, erscheint bei den anderen trotzdem weiss.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Gemeinschaft", function()
+ns.ModuleFile("Oasis_Community", function()
 local K, C, L = ns.K, ns.K.C, ns.L
 local Store = ns.Store
 local Weide = {}

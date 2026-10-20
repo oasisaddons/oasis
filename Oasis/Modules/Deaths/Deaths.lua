@@ -1,6 +1,6 @@
 -- Oasis: Friedhof (Tode der Gilde, Rangliste, Sterbeorte auf der Karte)
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Tode", function()   -- Modul Tode (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Deaths", function()   -- Modul Tode (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 -- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):

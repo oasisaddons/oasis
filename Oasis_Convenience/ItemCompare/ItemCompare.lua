@@ -6,7 +6,7 @@
 -- Ist nesUI geladen und dessen Vergleich an, zeigt Oasis nichts (kein doppeltes Fenster).
 -- Kein Taint: nur hooksecurefunc / HookScript / TooltipDataProcessor, nichts Geschuetztes wird ersetzt.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Itemvergleich", function()   -- Modul Item-Vergleich (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_ItemCompare", function()   -- Modul Item-Vergleich (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 

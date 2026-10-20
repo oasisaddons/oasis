@@ -1,6 +1,6 @@
 -- Oasis: Umfragen ("Raid Mittwoch oder Donnerstag?")
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Umfragen", function()   -- Modul Umfragen (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Polls", function()   -- Modul Umfragen (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 -- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
