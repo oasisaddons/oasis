@@ -907,7 +907,10 @@ function Map.ShowMapBar()
             { "gatherRoute", "Sammelroute", function() if ns.Gather and ns.Gather.Refresh then ns.Gather.Refresh() end end, 3, "Verbindet die Fundorte des Gebiets zu einer Rundstrecke" },
         }
         local SW_W, SW_H, KNOB = 22, 12, 8
+        -- 0.6.569: Aufdecken und Sammelpunkte stecken in Oasis Convenience - ohne das Teil-Addon keine Schalter
+        local need = { mapReveal = ns.ComfortPlus, mapGather = ns.Gather, gatherRoute = ns.Gather }
         for _, d in ipairs(defs) do
+          if need[d[1]] ~= nil or (d[1] ~= "mapReveal" and d[1] ~= "mapGather" and d[1] ~= "gatherRoute") then
             local t = CreateFrame("Button", nil, b)
             t:SetHeight(26)
             t.hl = t:CreateTexture(nil, "HIGHLIGHT")
@@ -947,6 +950,7 @@ function Map.ShowMapBar()
                 if self:IsMouseOver() then self:GetScript("OnEnter")(self) end
             end)
             b.boxes[#b.boxes + 1] = t
+          end
         end
         for i = 1, 2 do
             local sp = b:CreateTexture(nil, "ARTWORK")

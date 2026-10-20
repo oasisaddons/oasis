@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.568
+## Version: 0.6.569
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -115,9 +115,6 @@ Kern\Gilde\NewSince.lua
 Kern\Start\Onboarding.lua
 Kern\Start\Discover.lua
 Modules\Begruessung\Greeter.lua
-Modules\Komfort\Comfort.lua
-Modules\Komfort\ComfortPlus.lua
-Modules\Komfort\ComfortPlus2.lua
 Kern\Karte\MapRevealData.lua
 Modules\Gildenpflege\OfficerData.lua
 Kern\Einstellungen\Export.lua
@@ -126,17 +123,12 @@ Modules\Gildenpflege\GuildHistory.lua
 Modules\Gildenpflege\Leadership.lua
 Modules\Gildenpflege\Apply.lua
 Modules\Gildenpflege\Suspect.lua
-Modules\Kartenextras\GatherMap.lua
-Modules\Kartenextras\Glimmer.lua
-Modules\Kartenextras\MapExtras.lua
 Modules\Sammlungen\Collections.lua
 Kern\Items\Inventory.lua
 Kern\Items\Upgrade.lua
 Modules\MeinWeg\Life.lua
 Kern\Gilde\Contacts.lua
 Kern\Gilde\NoGuild.lua
-Modules\Upgrades\GearMatch.lua
-Modules\Fluestern\WhisperLog.lua
 Import.lua
 Kern\Einstellungen\Import.lua
 Kern\Chat\Emoji.lua
@@ -154,7 +146,6 @@ Kern\Diagnose\TalentProbe.lua
 Kern\Diagnose\BlizzProbe.lua
 Modules\Leistung\PerfShare.lua
 Kern\Einstellungen\Keybinds.lua
-Modules\Fluestern\WhisperForward.lua
 Kern\Einstellungen\Compat.lua
 Kern\Chat\GuildPack.lua
 Kern\Chat\GuildPackAdmin.lua
@@ -165,8 +156,6 @@ CritImport.lua
 Kern\Start\UpdateStart.lua
 Kern\Start\WhatsNew.lua
 Locales\Base\LocaleData481.lua
-Modules\GameChat\GameChat.lua
-Modules\GameChat\GameChatUI.lua
 Modules\Deathroll\Deathroll.lua
 Modules\Legacy\Legacy.lua
 Modules\QuestItems\QuestItems.lua
@@ -177,3 +166,4 @@ Modules\DemoSeeds\Gilde.lua
 Modules\DemoSeeds\Zusammen.lua
 Modules\DemoSeeds\RaidHandel.lua
 Modules\DemoSeeds\Leitung.lua
+Modules\Begegnungen\Scout.lua

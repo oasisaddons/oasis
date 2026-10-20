@@ -7,7 +7,7 @@
 -- damit gelagerte bessere Teile (z.B. Tank-Schild) kein schlechteres "Upgrade" ausloesen. Schluessel wie g
 -- (Platznummer), dazu 21 = Zweihand, 22 = Schild, 23 = Nebenhand-Gegenstand. Alte Clients ohne gb: wie bisher.
 -- Bewertung kommt aus Upgrade.lua (UP.Score / UP.Role / UP.CanWearFor) - hier wird nichts nachgebaut.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Upgrades", function()   -- Modul Upgrade-Suche (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store

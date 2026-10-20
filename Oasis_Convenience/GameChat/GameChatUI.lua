@@ -1,5 +1,5 @@
 -- Oasis: Spielchat - Fenster "Chat durchsuchen" / "Alarm-Treffer" und die Einstellungen (Spielhilfen > Spielchat)
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Spielchat", function()   -- Modul Spielchat (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C

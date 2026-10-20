@@ -1,6 +1,6 @@
 -- Oasis - Komfort: kleine Helfer fuer den Alltag (alles einzeln schaltbar, Standard aus).
 -- Eigene Umsetzung in Oasis (Ideen wie in Komfort-Addons ueblich).
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Komfort", function()   -- Modul Komfort (abschaltbar, siehe ModuleLoader.lua)
 local EBM = setmetatable({}, { __mode = "k" })    -- Merker je Chat-Eingabe/Leiste (nie Felder auf Blizzard-Frames schreiben)
 local L = ns.L
@@ -449,11 +449,6 @@ ns.Listen("LOGIN", function()
         s.cfChatArrowsInit = true
         if s.cfChatArrows == nil then s.cfChatArrows = true end
     end
-    -- 0.6.524: persoenliche Helfer ohne Schalter mehr (Archiv) - einmalig aus, Blizzard-Leisten/Fehlermeldungen kommen zurueck
-    if not s.cf0524 then
-        s.cf0524 = true
-        for _, k in ipairs({ "cfFastLoot", "cfHideErrors", "cfDurability", "cfHideMicro", "cfHideBags", "cfBarsHover" }) do s[k] = nil end
-    end
     ns.After(2, CF.ApplyAll)
     ns.After(3, function() pcall(restoreChat) end)
 end)
@@ -472,6 +467,11 @@ local OPTS = {
         { "cfSummon", "Beschwoerung und Wiederbelebung annehmen", "Beschwoerung nicht im Kampf." },
         { "cfBlockShared", "Von anderen geteilte Quests ablehnen" },
     } },
+    { "Blizzard-Leisten", {
+        { "cfHideMicro", "Menueleiste ausblenden", "Die Knoepfe fuer Charakter, Zauberbuch, Talente usw. Tasten (C, P, N ...) gehen weiter.", CF.ApplyBars },
+        { "cfHideBags", "Taschenleiste ausblenden", "Taste B oeffnet die Taschen weiterhin.", CF.ApplyBars },
+        { "cfBarsHover", "Beim Drueberfahren einblenden", "Ausgeblendete Leisten erscheinen, sobald die Maus dort ist.", CF.ApplyBars },
+    } },
     { "Blocker & Gruppen", {
         { "cfBlockDuels", "Duelle ablehnen" },
         { "cfInvites", "Einladungen nur von Gilde und Freunden", "Andere werden abgelehnt, Gilde/Freunde angenommen." },
@@ -485,18 +485,15 @@ local OPTS = {
         { "emojiNoComplete", "Keine Emoji-Vorschlaege beim Tippen", "Sonst: ':' + 2 Buchstaben zeigt passende Emojis, Tab setzt ein." },
     } },
     { "Komfort", {
+        { "cfFastLoot", "Schneller pluendern (mit Auto-Pluendern)" },
+        { "cfHideErrors", "Rote Fehlermeldungen ausblenden", nil, CF.ApplyErrors },
+        { "cfDurability", "Haltbarkeit anzeigen und warnen", nil, durUpdate },
         { "upgradeTipOff", "Kein Verbesserungs-Pfeil im Tooltip", "Sonst: gruener Pfeil, wenn ein Item fuer deine Klasse und Rolle besser ist." },
         { "upgradeIconOff", "Keine Verbesserungs-Pfeile auf Items", "Sonst: gruener Pfeil oben = besser, roter Pfeil unten = schlechter (Taschen, Beute-Fenster).", function() if ns.Upgrade then ns.Upgrade.RefreshBadges() end end },
         { "invTooltipOff", "Keine Twink-Bestaende im Tooltip", "Sonst: Item-Tooltip zeigt, welcher deiner Charaktere es wie oft hat." },
     } },
-    -- 0.6.549: wieder da (User) - nur Deckkraft, Tasten gehen weiter
-    { "Blizzard-Leisten", {
-        { "cfHideMicro", "Menueleiste ausblenden", "Die Knoepfe fuer Charakter, Zauberbuch, Talente usw. Tasten (C, P, N ...) gehen weiter.", CF.ApplyBars },
-        { "cfHideBags", "Taschenleiste ausblenden", "Taste B oeffnet die Taschen weiterhin.", CF.ApplyBars },
-        { "cfBarsHover", "Beim Drueberfahren einblenden", "Ausgeblendete Leisten erscheinen, sobald die Maus dort ist.", CF.ApplyBars },
-    } },
 }
-CF.CHAT_OPTS = OPTS[4][2]   -- fuer den Reiter Spielchat (0.6.524: Blizzard-Leisten-Gruppe entfernt)
+CF.CHAT_OPTS = OPTS[5][2]   -- fuer den Reiter Spielchat
 local function build(f)
     local H = ns.SettingsHelpers
     local x, y = 0, 0

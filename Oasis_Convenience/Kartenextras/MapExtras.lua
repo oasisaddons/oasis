@@ -2,7 +2,7 @@
 -- Questgeber der Dungeon-Quests, Koordinaten und Zielpfeil an der Minimap, besuchte Haendler/Briefkaesten/Flugpunkte.
 -- Haengt sich wie GatherMap an Map.UpdateWorldPins; Minimap-Rechnung kommt aus GatherMap (GM.MiniCtx / GM.MiniPlace).
 -- Alles einzeln abschaltbar: Einstellungen > Bereiche > Karte.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Kartenextras", function()   -- Modul Karten-Extras (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store

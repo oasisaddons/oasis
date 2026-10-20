@@ -2,7 +2,7 @@
 -- 0.5.912: Standard AUS und nie von selbst senden (Blizzard: Chat nur per Klick) - Oasis bietet es per Hinweis an (ns.OfferChat).
 -- Grundlage: Twink-Zuordnung aus Oasis (Alts.lua: Profile + Gildennotizen) und die Online-Anzeige der Gildenliste.
 -- Ein/Aus: Einstellungen > Bereiche > Chat oder /oa weiterleiten
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Fluestern", function()   -- Modul Fluestern (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 

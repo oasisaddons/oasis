@@ -4,7 +4,7 @@
 -- Forever ist streng: Blizzards AddMessage wird NIE ersetzt. Oasis schaut per hooksecurefunc nach und aendert oder
 -- entfernt die Zeile erst danach ueber die oeffentlichen Methoden des Chatfensters (TransformMessages,
 -- RemoveMessagesByPredicate). Geheime Werte (Kampf) werden nie gelesen, verglichen oder veraendert.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Spielchat", function()   -- Modul Spielchat (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 

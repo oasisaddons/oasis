@@ -664,6 +664,45 @@ ns.AddPageSettings("badges", function(det, y)
     return y - 10
 end)
 
+-- Bereich "Taschen & Twinks": Bank-Platzhalter (0.5.481)
+ns.AddPageSettings("bags", function(det, y)
+    -- 0.6.569: Bankplaetze und Aktionsleisten stecken in Oasis Convenience - ohne das Teil-Addon keine Zeilen
+    if not (ns.BankSlots or ns.ActionBars) then return y end
+    if S().bankGhosts == nil then S().bankGhosts = true end
+    if ns.BankSlots then det.t[#det.t + 1] = toggle(det, 14, y, "Bank-Platzhalter", "bankGhosts", "Leiste ueber der Bank: Belegung merken, leere Plaetze zeigen ein blasses Symbol (Oasis verschiebt nichts)",
+        function() if ns.BankSlots then ns.BankSlots.Refresh() end end, 600)
+    y = y - 32 end
+    -- 0.6.521: Aktionsleisten speichern/laden (Komfort-Modul)
+    if ns.ActionBars then
+        y = y - 8
+        rowLabel(det, "|cffe8b44a" .. L["Aktionsleisten"] .. "|r", 14, y)
+        y = y - 28
+        local name = K.Input(det, 160, L["Name, z. B. Raid"])
+        name:SetPoint("TOPLEFT", 14, y)
+        local sv = K.Button(det, L["Speichern"], 90, 24, "ghost", function() ns.ActionBars.Save(name:GetText()) end)
+        sv:SetPoint("LEFT", name, "RIGHT", 8, 0)
+        local ld
+        ld = K.Button(det, L["Laden ..."], 90, 24, "ghost", function()
+            local items = {}
+            for _, n in ipairs(ns.ActionBars.Names()) do
+                items[#items + 1] = { text = n, fn = function() ns.ActionBars.Load(n) end }
+            end
+            if #items == 0 then items[1] = { text = L["Noch keine Leisten gespeichert."], fn = function() end } end
+            K.ShowMenu(ld, items, L["Aktionsleisten laden"])
+        end)
+        ld:SetPoint("LEFT", sv, "RIGHT", 6, 0)
+        local del
+        del = K.Button(det, L["Loeschen ..."], 90, 24, "ghost", function()
+            local items = {}
+            for _, n in ipairs(ns.ActionBars.Names()) do items[#items + 1] = { text = n, fn = function() ns.ActionBars.Delete(n) end } end
+            if #items > 0 then K.ShowMenu(del, items, L["Loeschen"]) end
+        end)
+        del:SetPoint("LEFT", ld, "RIGHT", 6, 0)
+        y = y - 36
+    end
+    return y - 10
+end)
+
 -- Bereich "Chat": Tippen-Anzeige, @-Vorschlaege, Erwaehnungs-Ton, Emoji-Groesse, Stummgeschaltete
 ns.AddPageSettings("chat", function(det, y)
     -- Privat-Reiter (0.5.857)

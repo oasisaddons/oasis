@@ -2,7 +2,7 @@
 -- Wer Kraeuter pflueckt, Erz abbaut oder eine Truhe oeffnet, traegt den Fundort ein (Store "nodes").
 -- Alle mit Oasis sehen die Punkte auf Weltkarte und Minimap. Gleicher Fundort (sehr nah, gleicher Name)
 -- = ein Punkt, der mitzaehlt, wie oft er gefunden wurde.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Kartenextras", function()   -- Modul Karten-Extras (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store

@@ -45,6 +45,10 @@ M.LIST = {
     { cat = "Komfort und Karte", addon = "Oasis_Kartenextras", title = "Karten-Extras", icon = "pin", desc = "Sammelorte der Gilde, Marker, Laufspuren, Gefahrenzonen, Zielpfeil" },
     { cat = "Komfort und Karte", addon = "Oasis_MeinWeg", title = "Mein Weg", icon = "chronicle", desc = "Zeitleiste und Rekorde deines Charakters" },
     { cat = "Komfort und Karte", addon = "Oasis_Questmarken", title = "Quest-Markierungen", icon = "checklist", desc = "Gruppenquests im Questlog markieren" },
+    { cat = "Spielinhalte", addon = "Oasis_Waffenlehrer", title = "Waffenlehrer", icon = "map", desc = "Welche Waffe lernst du in welcher Hauptstadt" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Begegnungen", title = "Begegnungen", icon = "groups", desc = "Spieler ausserhalb der Gilde: Ausruestung beim Betrachten merken" },
+    { cat = "Komfort und Karte", addon = "Oasis_Itemvergleich", title = "Item-Vergleich", icon = "wants", desc = "Vergleichsfenster neben dem Item-Tooltip" },
+    { cat = "Komfort und Karte", addon = "Oasis_Bankplaetze", title = "Bankplaetze", icon = "bank", desc = "Feste Plaetze in der eigenen Bank merken" },
     { cat = "Komfort und Karte", addon = "Oasis_Leistung", dev = true, title = "Leistungsmessung", icon = "stats", desc = "Live-Anzeige der Rechenzeit und Messwerte der Gilde" },
 }
 M.state = {}   -- [addon] = "loaded" | "off" | "missing" | "disabled" | Fehlertext
@@ -62,6 +66,7 @@ M.OLD_FOLDERS = { "Oasis_Dungeons", "Oasis_Raidwerkzeuge", "Oasis_Deathroll", "O
 M.PARTS = {
     { addon = "Oasis_GroupsRaids", title = "Oasis - Groups & Raids", modules = { "Oasis_Gruppe", "Oasis_Dungeons", "Oasis_Questmarken", "Oasis_Raidwerkzeuge", "Oasis_Kampf", "Oasis_Talente", "Oasis_Rares" } },
     { addon = "Oasis_Trade", title = "Oasis - Trade", modules = { "Oasis_Handwerk", "Oasis_Handel", "Oasis_Wunschliste" } },
+    { addon = "Oasis_Convenience", title = "Oasis - Convenience", modules = { "Oasis_Komfort", "Oasis_Kartenextras", "Oasis_Spielchat", "Oasis_Fluestern", "Oasis_Upgrades", "Oasis_Itemvergleich", "Oasis_Waffenlehrer", "Oasis_Bankplaetze" } },
 }
 M.partOf = {}
 for _, p in ipairs(M.PARTS) do for _, k in ipairs(p.modules) do M.partOf[k] = p end end

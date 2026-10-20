@@ -2,7 +2,7 @@
 -- Nur Kraeuter/Erz/Angelstellen deiner eigenen Sammelberufe (wie die Sammelkarte), nur ausserhalb von Kampf und
 -- Instanzen. Ab 60 m ein weicher, pulsierender Ring auf dem Fundort, ab 25 m einmal ein leiser Ton.
 -- Schalter: Einstellungen > Karte (Gilden-Sammelkarte)
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Kartenextras", function()
 local GM = ns.Gather
 local function S() return ns.db.settings end
