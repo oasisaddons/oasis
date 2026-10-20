@@ -3,7 +3,7 @@
 -- Dungeonfinder (Stufenbereiche) und die Questlogs der Gilde (Dungeon-Quests).
 -- Ist "Forever Dungeon Journal" (Exehn) installiert, nutzt Oasis zusaetzlich dessen
 -- gepflegte Quest- und Beutedaten (nur gelesen, nichts davon ist in Oasis enthalten).
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store

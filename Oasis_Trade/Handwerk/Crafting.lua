@@ -1,5 +1,5 @@
 -- Oasis Modul 2: Handwerks-Boerse (Rezepte der Gilde + Auftraege)
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Handwerk", function()   -- Modul Handwerk (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store

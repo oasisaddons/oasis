@@ -29,6 +29,7 @@ M.LIST = {
     { cat = "Gilde und Gruppe", addon = "Oasis_Handwerk", title = "Handwerk", icon = "crafting", desc = "Wer kann was herstellen, Handwerks-Auftraege an die Gilde, Materialien im Tooltip" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Gildenbank", title = "Gildenbank", icon = "bank", desc = "Inhalt und Verlauf der Gildenbank" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Handel", title = "Handel", icon = "bank", desc = "Kaufen und verkaufen in der Gilde, Marktwerte" },
+    { cat = "Gilde und Gruppe", addon = "Oasis_Wunschliste", title = "Wunschliste", icon = "wants", desc = "Gesuchte Items der Gilde, Wer-braucht-was im Tooltip, Hinweise im Dungeon" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Chronik", title = "Chronik", icon = "chronicle", desc = "Was in der Gilde passiert ist: Level, Abzeichen, Erfolge" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Lager", title = "Lagerfeuer", icon = "camp", desc = "Lagerfeuer fuer die Gilde melden und auf der Karte zeigen" },
     { cat = "Gilde und Gruppe", addon = "Oasis_Tode", title = "Tode", icon = "deaths", desc = "Tode in der Gilde, Sterbeorte auf der Karte" },
@@ -59,7 +60,8 @@ M.OLD_FOLDERS = { "Oasis_Dungeons", "Oasis_Raidwerkzeuge", "Oasis_Deathroll", "O
 -- Oasis laedt sie hier selbst, BEVOR die Module laufen - so haengen sie wie bisher an ns.ModuleFile und laufen vor DB_READY.
 -- Ist ein Teil nicht installiert oder in der AddOn-Liste aus, fehlen seine Module (Zustand "missing").
 M.PARTS = {
-    { addon = "Oasis_Raid", title = "Oasis - Raid", modules = { "Oasis_Raidwerkzeuge", "Oasis_Kampf", "Oasis_Talente", "Oasis_Rares" } },
+    { addon = "Oasis_GroupsRaids", title = "Oasis - Groups & Raids", modules = { "Oasis_Gruppe", "Oasis_Dungeons", "Oasis_Questmarken", "Oasis_Raidwerkzeuge", "Oasis_Kampf", "Oasis_Talente", "Oasis_Rares" } },
+    { addon = "Oasis_Trade", title = "Oasis - Trade", modules = { "Oasis_Handwerk", "Oasis_Handel", "Oasis_Wunschliste" } },
 }
 M.partOf = {}
 for _, p in ipairs(M.PARTS) do for _, k in ipairs(p.modules) do M.partOf[k] = p end end

@@ -3,7 +3,7 @@
 --  * Quests: wer hat welche Quest - "Bitte teilen" fragt ein Gruppenmitglied mit Oasis, ob es die Quest teilt
 --  * Datenaustausch nur im Gruppenkanal (PARTY/RAID), gedrosselt; ohne Oasis sieht man Klasse/Stufe von Blizzard
 -- Weitere Teile in diesem Ordner: PartyXP.lua (XP-Leiste), Blessings.lua (Segen), Threat.lua, Gamble.lua
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Gruppe", function()
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm

@@ -1,7 +1,7 @@
 -- Oasis: Dungeon-Datenbank fuer WoW Forever (nur Fakten: Namen, Stufen, Bosse, Item-/Quest-IDs).
 -- Zusammengestellt am 28.09.2026 aus oeffentlichen Quellen (foreverchanges.pro, wowforevertalents.com),
 -- deutsche Dungeon-Namen nach dem deDE-Client. Item- und Questnamen zeigt Oasis im Spiel aus dem Client an.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
 ns.DungeonData = (function()
 -- WoW Forever dungeon data (facts only). Generated 2026-09-28 from:

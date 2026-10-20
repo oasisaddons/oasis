@@ -1,0 +1,47 @@
+## Interface: 16001
+## Title: Oasis - Groups & Raids
+## Notes: Groups and raids for Oasis: my group (share quests, group XP, blessings, threat), dungeon database with bosses, maps and quest spots, quest markers, raid schedule and sign-ups, raid lead, loot master, buffs, tactics map, raid check, combat ranking, talents, rare spawns.
+## Notes-deDE: Gruppen und Raids fuer Oasis: meine Gruppe (Quests teilen, Gruppen-XP, Segen, Bedrohung), Dungeon-Datenbank mit Bossen, Karten und Questorten, Quest-Markierungen, Raid-Termine und Anmeldungen, Raidleitung, Plundermeister, Buffs, Taktik-Karte, Raid-Check, Kampf-Rangliste, Talente, seltene Gegner.
+## Author: Oasis Addons
+## Version: 0.6.568
+## Category: Oasis
+## Dependencies: Oasis
+## LoadOnDemand: 1
+## IconTexture: Interface\AddOns\Oasis\Media\logo64
+
+Questmarken\QuestTags.lua
+Dungeons\DungeonData.lua
+Dungeons\BossPos.lua
+Dungeons\DungeonMaps.lua
+Dungeons\DungeonTrace.lua
+Dungeons\DungeonNpcs.lua
+Dungeons\BossTactics.lua
+Dungeons\DropRates.lua
+Dungeons\QuestLocations.lua
+Dungeons\Dungeons.lua
+Dungeons\DungeonUI.lua
+Gruppe\Party.lua
+Gruppe\PartyXP.lua
+Gruppe\Blessings.lua
+Gruppe\Threat.lua
+Gruppe\Gamble.lua
+Gruppe\ChatZones.lua
+RaidTools\BuffMonitor.lua
+RaidTools\BuffPage.lua
+RaidTools\LootPoints.lua
+RaidTools\RaidPlanner.lua
+RaidTools\Roster.lua
+RaidTools\RaidTime.lua
+RaidTools\Raid.lua
+RaidTools\LootMaster.lua
+Rares\Rares.lua
+RaidTools\RaidCheck.lua
+Kampf\CombatBoard.lua
+Kampf\CombatCrit.lua
+Talente\Talents.lua
+RaidTools\RaidBoard.lua
+RaidTools\Lockouts.lua
+RaidTools\RaidPrep.lua
+RaidTools\WipeReport.lua
+RaidTools\LootRules.lua
+RaidTools\SoftRes.lua

@@ -1,7 +1,7 @@
 -- Oasis: Dungeon-Journal-Oberflaeche
 -- Startseite mit Dungeon-Karten (Blizzards Ladebildschirme), Dungeon-Seite mit Banner und Reitern
 -- Bosse (Liste + 3D-Modell + Beute), Beute, Quests, Gilde.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store

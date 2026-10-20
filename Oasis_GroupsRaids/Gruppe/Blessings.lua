@@ -2,7 +2,7 @@
 --  * Reiter "Segen" auf der Seite Meine Gruppe: Zeile je Paladin, Spalte je Klasse in der Gruppe, Klick wechselt den Segen
 --  * "Vorschlag" verteilt automatisch (Koenige > Macht/Weisheit > Rettung > Licht > Refugium)
 --  * Plan wird im Gruppenkanal geteilt ("GPB"); aendern duerfen Gruppenleitung und die Paladine selbst
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Gruppe", function()
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm

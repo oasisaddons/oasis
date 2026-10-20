@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.567
+## Version: 0.6.568
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -86,8 +86,6 @@ UI\MiniBar.lua
 Kern\Gilde\GuildTools.lua
 Kern\Gilde\Radar.lua
 Kern\Gilde\Alts.lua
-Modules\Handwerk\Crafting.lua
-Kern\Gilde\Wants.lua
 Kern\Items\ItemSearch.lua
 Kern\Gilde\Groups.lua
 Modules\Lager\Camp.lua
@@ -107,7 +105,6 @@ Kern\Gilde\GuildInfo.lua
 Modules\Tode\Deaths.lua
 Kern\Diagnose\Scan.lua
 Kern\Items\Market.lua
-Modules\Handel\Trade.lua
 Modules\Mitspieler\Social.lua
 Modules\Ruf\RepPlanner.lua
 Kern\Gilde\Members.lua
@@ -142,7 +139,6 @@ Modules\Upgrades\GearMatch.lua
 Modules\Fluestern\WhisperLog.lua
 Import.lua
 Kern\Einstellungen\Import.lua
-Modules\Questmarken\QuestTags.lua
 Kern\Chat\Emoji.lua
 Modules\EmojiVorschlaege\EmojiComplete.lua
 Kern\Gilde\OasisMark.lua
@@ -153,8 +149,6 @@ Kern\Gilde\GuildChat.lua
 Kern\Gilde\Insta.lua
 Kern\Einstellungen\Admin.lua
 Kern\Diagnose\Taint.lua
-Kern\Gilde\WishAlerts.lua
-Modules\Handwerk\ReagentTip.lua
 Modules\Gildenziele\GuildGoals.lua
 Kern\Diagnose\TalentProbe.lua
 Kern\Diagnose\BlizzProbe.lua
@@ -173,23 +167,7 @@ Kern\Start\WhatsNew.lua
 Locales\Base\LocaleData481.lua
 Modules\GameChat\GameChat.lua
 Modules\GameChat\GameChatUI.lua
-Modules\Dungeons\DungeonData.lua
-Modules\Dungeons\BossPos.lua
-Modules\Dungeons\DungeonMaps.lua
-Modules\Dungeons\DungeonTrace.lua
-Modules\Dungeons\DungeonNpcs.lua
-Modules\Dungeons\BossTactics.lua
-Modules\Dungeons\DropRates.lua
-Modules\Dungeons\QuestLocations.lua
-Modules\Dungeons\Dungeons.lua
-Modules\Dungeons\DungeonUI.lua
 Modules\Deathroll\Deathroll.lua
-Modules\Gruppe\Party.lua
-Modules\Gruppe\PartyXP.lua
-Modules\Gruppe\Blessings.lua
-Modules\Gruppe\Threat.lua
-Modules\Gruppe\Gamble.lua
-Modules\Gruppe\ChatZones.lua
 Modules\Legacy\Legacy.lua
 Modules\QuestItems\QuestItems.lua
 # Demo-Daten je Bereich (nur /oa demo, Entwicklerversion)

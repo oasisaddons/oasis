@@ -1,6 +1,6 @@
 -- Oasis: Gruppen-XP (0.6.521) - kleine, verschiebbare Leiste mit einem Erfahrungsbalken je Gruppenmitglied
 -- (nur 5er-Gruppe, Daten aus "GPI" von Mitgliedern mit Oasis). Schalter: Einstellungen > Meine Gruppe.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Gruppe", function()
 local L = ns.L
 local K, C = ns.K, ns.K.C

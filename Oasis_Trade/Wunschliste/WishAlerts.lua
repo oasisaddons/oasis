@@ -3,7 +3,8 @@
 --  * Wunsch-Item gelootet: "Ziel erreicht!" (Klick = abhaken), Eintrag in "Mein Weg"
 --  * Sets: Wuensche zu einem eigenen Set zusammenfassen ("Pre-Raid 7/12"); erledigte (geloeschte) zaehlen mit
 -- Quelle der Drops: ns.Dungeons.Source (Oasis-Dungeon-Datenbank + Dungeonkompass).
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
+ns.ModuleFile("Oasis_Wunschliste", function()   -- abschaltbar, siehe ModuleLoader.lua
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -184,3 +185,4 @@ end)
 
 -- Test im Spiel: /oa wunschtest -> tut so, als haettest du gerade einen Dungeon betreten
 ns.slash.wunschtest = function() lastKey = nil pcall(onEnter) end
+end)

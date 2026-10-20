@@ -1,7 +1,7 @@
 -- Oasis - selbst erkundete Dungeon-Karten: Fuer Dungeons ohne Karte im Client (neue Forever-Dungeons)
 -- merkt sich Oasis die Laufwege der Oasis-Spieler (grobes Raster) und wo Bosse gelegt wurden.
 -- Daraus entsteht in der Dungeon-Ansicht eine Umriss-Karte. Geteilt wird ueber die normale Synchronisation.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C

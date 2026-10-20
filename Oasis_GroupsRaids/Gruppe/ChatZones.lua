@@ -2,7 +2,7 @@
 -- Vor Gilden-, Offiziers-, Gruppen- und Raidzeilen steht klein "[23 Brachland]" der sprechenden Person.
 -- Quelle: Gildenliste (Blizzard) und Raidliste; Fremde ohne Daten bleiben unveraendert. Standard aus,
 -- Schalter: Einstellungen > Meine Gruppe. Mit fremdem Chat-Addon (ns.ForeignChat) greift Oasis nicht ein.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Gruppe", function()
 local P = ns.Party
 local function S() return ns.db and ns.db.settings or {} end

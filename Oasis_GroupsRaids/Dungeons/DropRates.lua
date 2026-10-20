@@ -1,7 +1,7 @@
 -- Oasis: Drop-Chancen der Dungeon-Bosse in Prozent ([NPC-ID] = { [Item-ID] = Chance }).
 -- Erzeugt von Tools/make_droprates.py aus AtlasLootClassic (GPL-2.0, Autoren: Lag, Daviesh und weitere) - Stand Classic.
 -- In WoW Forever koennen einzelne Werte abweichen; neue Forever-Teile fehlen hier.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
 ns.DungeonDropRate = {
     [642] = { [1937] = 9.48, [2169] = 52.23 },

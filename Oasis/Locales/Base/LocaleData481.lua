@@ -5025,3 +5025,5 @@ DE["Jedes Mitglied mit Oasis hat ein Tier auf der Weide - fuettern, streicheln, 
 EN["Jedes Mitglied mit Oasis hat ein Tier auf der Weide - fuettern, streicheln, buersten. Hoehere Raenge schalten neue Tiere und Farben frei."] = "Every guild member with Oasis has an animal on the pasture - feed, pet and brush it. Higher ranks unlock new animals and colours."
 DE["%s fehlt"] = "%s fehlt"
 EN["%s fehlt"] = "%s missing"
+DE["Gesuchte Items der Gilde, Wer-braucht-was im Tooltip, Hinweise im Dungeon"] = "Gesuchte Items der Gilde, Wer-braucht-was im Tooltip, Hinweise im Dungeon"
+EN["Gesuchte Items der Gilde, Wer-braucht-was im Tooltip, Hinweise im Dungeon"] = "Items the guild is looking for, who-needs-what in tooltips, hints in dungeons"

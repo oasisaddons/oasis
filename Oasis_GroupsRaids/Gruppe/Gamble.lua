@@ -3,7 +3,7 @@
 --  * Hoechster Wurf gewinnt, niedrigster verliert - die Differenz ist der "Einsatz" (nur Anzeige, kein Gold-Handel)
 --  * Mitglieder mit Oasis bekommen einen Hinweis zum Mitwuerfeln (Klick wuerfelt); gezaehlt wird der echte Systemchat
 --  * Ansagen gehen nur per Klick in den Chat (ns.OfferChat) - automatische Chatnachrichten sind gesperrt
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Gruppe", function()
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm

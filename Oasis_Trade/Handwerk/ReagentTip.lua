@@ -2,7 +2,7 @@
 -- Quellen: Rezeptlisten der Gilde (ns.db.recipes, per Abgleich), Material je Rezept (ns.db.reagents:
 -- eigene Berufs-Scans, fehlende im Hintergrund ueber C_TradeSkillUI.GetRecipeSchematic nachgeladen).
 -- Tooltip-Abfrage ist nur ein Tabellenzugriff; der Index wird im Hintergrund (ausserhalb des Kampfes) gebaut.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Handwerk", function()   -- Modul Handwerk (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 

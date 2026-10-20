@@ -4,7 +4,7 @@
 --  * Pull-Warnung: du (kein Tank) kommst in den Kampf, waehrend der Tank deiner Gruppe noch nicht kaempft
 --  * Warnung, wenn du als Nicht-Tank die Aggro hast (nur wenn lesbar)
 -- Schalter: Einstellungen > Meine Gruppe
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Gruppe", function()
 local L = ns.L
 local K, C = ns.K, ns.K.C

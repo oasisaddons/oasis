@@ -1,7 +1,7 @@
 -- Oasis: Dungeon-Karten aus den Kartenbildern des WoW-Clients (Interface\Worldmap\<Ordner>, 4x3 Kacheln je Ebene).
 -- Boss-Positionen (x/y in %, Ebene) uebernommen aus "Forever Atlas" (GPL-2.0, Fork von AtlasLootClassic),
 -- dort teils aus SimpleDungeonMap von Babilounet (MIT). Siehe Media/CREDITS_MAPS.txt.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
 ns.DungeonMapsData = {
   ragefire = { folder = "Ragefire", floors = { 1 }, pins = { { "Oggleflint", 55.51687, 33.38851, 1 }, { "Taragaman the Hungerer", 39.64844, 50.19870, 1 }, { "Jergosh the Invoker", 33.49609, 71.30299, 1 }, { "Bazzalan", 41.01563, 75.38490, 1 } } },

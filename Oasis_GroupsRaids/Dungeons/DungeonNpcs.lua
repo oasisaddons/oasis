@@ -1,7 +1,7 @@
 -- Oasis: NPC-IDs der Dungeon-Bosse fuer die 3D-Modelle (Boss-Reiter).
 -- Nachgeschlagen am 28.09.2026 per Wowhead-Suche (Abteilung classic, fuer neue Forever-Bosse /forever/).
 -- Schluessel = englischer Bossname wie in DungeonData.lua. Nur Zahlen, keine Texte.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
 ns.DungeonNpc = {
     ["Agathelos the Raging"] = 4422,

@@ -4,7 +4,7 @@
 --   tags = Besonderheiten, aus denen die Klassen-Tipps entstehen:
 --     kick = Zauber zum Unterbrechen, magic/curse/poison/disease = Schwaechung zum Entfernen,
 --     purge = Staerkung beim Boss zum Wegnehmen, fear = Furcht, cc = Begleiter zum Festhalten, cleave = trifft alle vor sich
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Dungeons", function()
 local T = {}
 ns.BossTactics = T

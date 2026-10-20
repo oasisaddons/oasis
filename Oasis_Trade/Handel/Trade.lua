@@ -4,7 +4,7 @@
 --   Wunschliste-Alarm (guenstige Wunsch-Items im AH), Preisabfrage im Gildenchat ("pc [Item]"),
 --   AH-Stand fuer die Gilde (wer hat wann gescannt), Wert-Verlauf der Gildenbank und eine freiwillige
 --   Haendler-Rangliste ("Goldmacher der Woche").
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Handel", function()   -- Modul Handel (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
