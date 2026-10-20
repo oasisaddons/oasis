@@ -13,7 +13,10 @@ local SHEEP_NPC = 1933        -- sheep (like in Deathroll)
 local SHEEP_DISPLAY = 856     -- sheep model (polymorph), works even without the creature in the cache
 local MAX_SHEEP = 40          -- more models cost too much performance
 local ART = "Interface\\AddOns\\Oasis\\Media\\art\\weide_bg"   -- image only in the guild module
-local MEADOW_TOP, MEADOW_BOTTOM = 0.34, 0.82   -- 0.6.562: further into depth   -- walking area (feet), fraction of height from the top: from the trees at the back to the very front - never in the sky
+-- walking area (feet), fraction of the meadow height from the top. 0.6.579: the grass in the picture starts at ~41 %;
+-- before, the animals walked up to 34 % (tiny, at the tree line, names floating without a visible animal)
+local MEADOW_TOP, MEADOW_BOTTOM = 0.47, 0.88
+local SHADOW = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"   -- soft round mask, tinted black = ground shadow
 
 -- Skins: light color on the sheep model. lvl = from Oasis rank
 Weide.SKINS = {
@@ -98,9 +101,59 @@ end
 function Weide.GuildFed(name)
     local key, best, by = ns.NameKey(name), nil, nil
     for _, g in ipairs(Store.List("gfeed")) do
-        if g.target == key and (tonumber(g.ts) or 0) > (best or 0) then best, by = tonumber(g.ts), g.by end
+        if g.target == key and not g.kind and (tonumber(g.ts) or 0) > (best or 0) then best, by = tonumber(g.ts), g.by end
     end
     return best, by
+end
+-- 0.6.580: friends - members who fed each other's animals lately; their animals like to graze side by side
+function Weide.Friends()
+    local fed, out = {}, {}
+    for _, g in ipairs(Store.List("gfeed")) do
+        if not g.kind and g.by and g.target then
+            local a = ns.NameKey(g.by)
+            fed[a] = fed[a] or {}
+            fed[a][g.target] = (fed[a][g.target] or 0) + 1
+        end
+    end
+    for a, list in pairs(fed) do
+        local best, score
+        for b, n in pairs(list) do
+            local sc = n + ((fed[b] and fed[b][a]) and 10 or 0)   -- mutual counts much more
+            if not score or sc > score then best, score = b, sc end
+        end
+        out[a] = best
+        if best and not out[best] then out[best] = a end   -- the one fed walks to the feeder as well
+    end
+    return out
+end
+-- 0.6.580: small reactions to someone else's animal (no free text): heart, wave, cheer - shown to everyone on the pasture
+Weide.REACTS = {
+    { text = "Send a heart", say = "%s sends a heart!", icon = "heart" },
+    { text = "Wave", say = "%s waves!", icon = "smile" },
+    { text = "Cheer", say = "%s cheers!", icon = "star_on" },
+}
+local lastReact = {}
+function Weide.React(name, idx)
+    local r = Weide.REACTS[idx]
+    if not r or not name or ns.isMe(name) or not IsInGuild() then return false end
+    local key = ns.NameKey(name)
+    if (lastReact[key] or 0) > ns.now() - 600 then return false end   -- at most every 10 minutes per animal
+    lastReact[key] = ns.now()
+    Store.Put("gfeed", { id = "gr-" .. ns.NameKey(ns.me()) .. "-" .. key .. "-" .. ns.now(), kind = "r", e = idx, target = key, by = ns.me(), ts = ns.now() })
+    return true
+end
+-- reactions for an animal not yet seen on this PC (newest first, at most a day old)
+function Weide.NewReacts(name)
+    local key, out = ns.NameKey(name), {}
+    ns.db.settings.gotchiSeen = ns.db.settings.gotchiSeen or {}
+    local seen = ns.db.settings.gotchiSeen
+    for _, g in ipairs(Store.List("gfeed")) do
+        if g.kind == "r" and g.target == key and not seen[g.id] and (tonumber(g.ts) or 0) > ns.now() - 86400 and Weide.REACTS[tonumber(g.e) or 0] then
+            out[#out + 1] = g
+        end
+    end
+    table.sort(out, function(a, b) return (tonumber(a.ts) or 0) > (tonumber(b.ts) or 0) end)
+    return out
 end
 local function today(off) return date("%Y-%m-%d", (ns.now() + (off or 0) * 86400)) end
 -- last care at all (own or by the guild); nil = never cared for
@@ -111,7 +164,8 @@ function Weide.LastCare(name)
     if gf and gf > (last or 0) then last = gf end
     return last
 end
--- 0.6.548: after 7 days without care the animal has run away (not on the pasture, "Bring back" returns it immediately)
+-- 0.6.548: after 7 days without care the animal is away (not on the pasture, "Bring back" returns it immediately).
+-- 0.6.579: told as "visiting grandma's farm" - no punishment, it comes back any time
 Weide.AWAY = 7 * 86400
 function Weide.IsAway(name)
     local last = Weide.LastCare(name)
@@ -120,13 +174,64 @@ end
 function Weide.Recall()
     local g = careRec(ns.me())
     for _, n in ipairs(Weide.NEEDS) do g[n.key] = ns.now() - n.span * 0.5 end   -- back to half content
+    Weide.welcome = true
     Weide.Report()
 end
 -- 0.6.548: care streak - consecutive days with at least one care; only counts if cared for today or yesterday
+-- 0.6.579: one missed day per week is forgiven (like a streak freeze) - a long streak does not drop to zero at once
+local function week(off) return date("%Y-%W", ns.now() + (off or 0) * 86400) end
 function Weide.Streak(name)
     local r = careRec(name)
     if r.sd == today() or r.sd == today(-1) then return tonumber(r.sn) or 0 end
+    if r.sd == today(-2) and r.fz ~= week() then return tonumber(r.sn) or 0 end
     return 0
+end
+-- 0.6.581: care book - small memories with the date they happened (only on this PC, nothing is sent)
+Weide.BOOK = {
+    { key = "first", text = "First care" },
+    { key = "st3", text = "3 days in a row" }, { key = "st7", text = "A whole week" }, { key = "st14", text = "Two weeks of care" }, { key = "st30", text = "A month together" },
+    { key = "helper", text = "Fed someone else's animal" },
+    { key = "gift", text = "First gift at the fence" },
+    { key = "friend", text = "Found a friend" },
+    { key = "react", text = "Got a hello from the guild" },
+    { key = "brush", text = "Brushed out all the burrs" },
+    { key = "fest", text = "Celebrated a flock festival" },
+    { key = "t1", text = "Became a Shepherd" }, { key = "t2", text = "Became a Herder" },
+    { key = "t3", text = "Became a Flock master" }, { key = "t4", text = "Became a Legendary shepherd" },
+}
+function Weide.Note(key)
+    local g = ns.db.settings.gildotchi
+    if not g then ns.db.settings.gildotchi = {} g = ns.db.settings.gildotchi end
+    g.ms = g.ms or {}
+    if g.ms[key] then return false end
+    g.ms[key] = date("%d.%m.%Y")
+    local def
+    for _, b in ipairs(Weide.BOOK) do if b.key == key then def = b end end
+    if def and K.Toast then K.Toast(L["Care book"], L[def.text], C.accent2 or C.mint) end
+    return true
+end
+-- 0.6.579: lifetime care count -> shepherd titles (only grow, never lost)
+Weide.TITLES = {
+    { n = 10, text = "Shepherd" }, { n = 50, text = "Herder" }, { n = 150, text = "Flock master" }, { n = 365, text = "Legendary shepherd" },
+}
+function Weide.Title(name)
+    local tc, best = tonumber(careRec(name).tc) or 0, nil
+    for _, t in ipairs(Weide.TITLES) do if tc >= t.n then best = t end end
+    return best, tc
+end
+-- 0.6.579: weekly flock festival - all cares of the guild this week fill one shared bar (everyone reports only their own count)
+function Weide.WeekCares(name)
+    local r = careRec(name)
+    return (r.wk == week()) and (tonumber(r.wn) or 0) or 0
+end
+function Weide.Festival(flockSize)
+    local sum = Weide.WeekCares(ns.me())
+    for _, r in ipairs(Store.List("sheep")) do
+        if r.by and not ns.isMe(r.by) and r.wk == week() then sum = sum + (tonumber(r.wn) or 0) end
+    end
+    -- goal grows with the flock, but stays reachable: ~6 cares per active member and week
+    local goal = math.max(20, math.min(300, 6 * math.max(3, flockSize or 3)))
+    return sum, goal, sum >= goal
 end
 Weide.EXTRAS = {
     { n = 3, text = "Sparkle" },
@@ -155,7 +260,7 @@ function Weide.Report()
     if not IsInGuild() then return end
     local g = ns.db.settings.gildotchi or {}
     Store.Put("sheep", { id = "shp-" .. ns.NameKey(ns.me()), skin = ns.db.settings.sheepSkin, form = ns.db.settings.sheepForm,
-        f = g.f, j = g.j, c = g.c, sd = g.sd, sn = g.sn, by = ns.me(), ts = ns.now() })
+        f = g.f, j = g.j, c = g.c, sd = g.sd, sn = g.sn, fz = g.fz, tc = g.tc, wk = g.wk, wn = g.wn, by = ns.me(), ts = ns.now() })
 end
 local report = function() Weide.Report() end
 local function fmtLeft(sec)
@@ -170,25 +275,59 @@ function Weide.Care(key)
         if n.key == key then
             local left = (tonumber(g[key]) or 0) + n.cd - ns.now()
             if left > 0 then return false, left end
+            local before = Weide.LastCare(ns.me())
             g[key] = ns.now()
-            -- Streak: already counted today? else yesterday -> +1, longer ago -> restart at 1
+            -- Streak: already counted today? else yesterday -> +1, a day missed once this week -> +1 (freeze used),
+            -- longer ago -> restart at 1
             if g.sd ~= today() then
-                g.sn = (g.sd == today(-1)) and ((tonumber(g.sn) or 0) + 1) or 1
+                if g.sd == today(-1) then g.sn = (tonumber(g.sn) or 0) + 1
+                elseif g.sd == today(-2) and g.fz ~= week() then g.sn = (tonumber(g.sn) or 0) + 1 g.fz = week()
+                else g.sn = 1 end
                 g.sd = today()
             end
+            g.tc = (tonumber(g.tc) or 0) + 1
+            Weide.Note("first")
+            for _, n2 in ipairs({ 3, 7, 14, 30 }) do if (tonumber(g.sn) or 0) >= n2 then Weide.Note("st" .. n2) end end
+            for i, t in ipairs(Weide.TITLES) do if g.tc >= t.n then Weide.Note("t" .. i) end end
+            if g.wk ~= week() then g.wk, g.wn = week(), 0 end
+            g.wn = (tonumber(g.wn) or 0) + 1
             report()
+            -- 0.6.579: welcome back after a longer break - joy instead of reproach
+            Weide.welcome = before and (ns.now() - before) > 3 * 86400 or nil
             return true
         end
     end
     return false, 0
 end
 
+-- 0.6.579: whoever feeds someone else's animal leaves a small gift at the fence (fixed icons, no free text)
+Weide.GIFTS = {
+    { text = "Apple", icon = "Interface\\Icons\\INV_Misc_Food_19" },
+    { text = "Flower", icon = "Interface\\Icons\\INV_Misc_Flower_02" },
+    { text = "Bread", icon = "Interface\\Icons\\INV_Misc_Food_11" },
+    { text = "Clover", icon = "Interface\\Icons\\INV_Misc_Herb_11" },
+}
+-- gifts / feedings for an animal in the last days (newest first): { by, gift, ts }
+function Weide.Gifts(name)
+    local key, out = ns.NameKey(name), {}
+    for _, g in ipairs(Store.List("gfeed")) do
+        if g.target == key and g.by and not g.kind then out[#out + 1] = { by = g.by, gift = Weide.GIFTS[tonumber(g.gift) or 0], ts = tonumber(g.ts) or 0 } end
+    end
+    table.sort(out, function(a, b) return a.ts > b.ts end)
+    return out
+end
 -- feed someone else's animal: once a day per animal
 function Weide.FeedOther(name)
     if not name or ns.isMe(name) or not IsInGuild() then return false end
     local id = "gf-" .. ns.NameKey(ns.me()) .. "-" .. ns.NameKey(name) .. "-" .. today()
     if Store.Get("gfeed", id) then return false, "today" end
-    Store.Put("gfeed", { id = id, target = ns.NameKey(name), by = ns.me(), ts = ns.now() })
+    Store.Put("gfeed", { id = id, target = ns.NameKey(name), by = ns.me(), ts = ns.now(), gift = math.random(#Weide.GIFTS) })
+    Weide.Note("helper")
+    -- helping counts toward the weekly flock festival too
+    local g = careRec(ns.me())
+    if g.wk ~= week() then g.wk, g.wn = week(), 0 end
+    g.wn = (tonumber(g.wn) or 0) + 1
+    report()
     local f = Weide.FormOf(name, (ns.Rank and ns.Rank.Of and ns.Rank.Of(name)) or 1)
     if ns.Chronicle and ns.Chronicle.Add then
         pcall(ns.Chronicle.Add, "guild", "gfc-" .. id, "fed %s", { (L["%s's %s"]):format(ns.short(name), L[f.text]) })
@@ -299,20 +438,47 @@ local function newSheep(field)
         GameTooltip:AddLine(L["Mood"] .. ": " .. L[mt], mc[1], mc[2], mc[3])
         local st = Weide.Streak(self.who.name)
         if st >= 2 then GameTooltip:AddLine((L["Cared for %d days in a row"]):format(st), 1, 0.82, 0.3) end
-        if not ns.isMe(self.who.name) then GameTooltip:AddLine(L["Click: feed (once a day)"], 0.6, 0.8, 1) end
+        local tt, tc = Weide.Title(self.who.name)
+        if tt then GameTooltip:AddLine(L[tt.text] .. "  |cff9a9a9a" .. (L["%d cares in total"]):format(tc) .. "|r", 0.55, 0.85, 1) end
+        if not self.who.online then GameTooltip:AddLine(L["Dozing - the owner is offline"], 0.6, 0.6, 0.7) end
+        if not ns.isMe(self.who.name) then GameTooltip:AddLine(L["Click: feed or say hello"], 0.6, 0.8, 1) end
         GameTooltip:Show()
     end)
     m:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    -- 0.6.580: click on someone else's animal: feed (once a day) or send a small reaction
     m:SetScript("OnMouseUp", function(self)
-        if not self.who or ns.isMe(self.who.name) then return end
-        local ok = Weide.FeedOther(self.who.name)
-        if ok then
-            K.Toast(L["Guildotchi"], (L["You fed %s."]):format(ns.short(self.who.name)), C.mint)
-            self.say:SetText(L["Baa! Thanks!"]) self.say:Show() self.sayBg:Show() self.sayLeft = 3
-            ns.RefreshPage("pasture", true)
-        else
-            K.Toast(L["Guildotchi"], L["Already fed today - again tomorrow."], C.amber or C.accent)
+        if not self.who then return end
+        -- 0.6.581: your own animal: a click pets it (counts as "Pet" when it is due, otherwise just a happy reaction)
+        if ns.isMe(self.who.name) then
+            local ok = Weide.Care("j")
+            self:Hearts()
+            self.say:SetText(ok and L["Baa! Thanks!"] or L["Baa!"]) self.say:Show() self.sayBg:Show() self.sayLeft = 2.5
+            if ok then ns.RefreshPage("pasture", true) end
+            return
         end
+        local who = self.who.name
+        local items = { { text = L["Feed (once a day)"], fn = function()
+            local ok = Weide.FeedOther(who)
+            if ok then
+                K.Toast(L["Guildotchi"], (L["You fed %s and left a little gift at the fence."]):format(ns.short(who)), C.mint)
+                self.say:SetText(L["Baa! Thanks!"]) self.say:Show() self.sayBg:Show() self.sayLeft = 3
+                self:Hearts()
+                ns.RefreshPage("pasture", true)
+            else
+                K.Toast(L["Guildotchi"], L["Already fed today - again tomorrow."], C.amber or C.accent)
+            end
+        end } }
+        for i, r in ipairs(Weide.REACTS) do
+            items[#items + 1] = { text = "|T" .. ns.MEDIA .. "icons\\" .. r.icon .. ":14|t " .. L[r.text], fn = function()
+                if Weide.React(who, i) then
+                    self.say:SetText((L[r.say]):format(ns.short(ns.me()))) self.say:Show() self.sayBg:Show() self.sayLeft = 3
+                    if i == 1 then self:Hearts() end
+                else
+                    K.Toast(L["Guildotchi"], L["One reaction per animal every 10 minutes."], C.amber or C.accent)
+                end
+            end }
+        end
+        K.ShowMenu(self, items, ns.short(who))
     end)
     -- sparkle (care streak of 3+ days)
     m.spark = {}
@@ -324,6 +490,22 @@ local function newSheep(field)
         t:Hide()
         m.spark[i] = t
     end
+    -- 0.6.579: soft ground shadow (on the meadow, below every model) - the animals stand on the grass instead of floating
+    m.shadow = field:CreateTexture(nil, "ARTWORK")
+    m.shadow:SetTexture(SHADOW)
+    m.shadow:SetVertexColor(0, 0, 0, 0.32)
+    m.shadow:Hide()
+    -- 0.6.579: little hearts rise when the animal is cared for or fed
+    m.hearts = {}
+    for i = 1, 4 do
+        local t = m.lab:CreateTexture(nil, "OVERLAY", nil, 7)
+        t:SetTexture(ns.MEDIA .. "icons\\heart")
+        t:SetVertexColor(1, 0.45, 0.6)
+        t:SetSize(14, 14)
+        t:Hide()
+        m.hearts[i] = t
+    end
+    function m:Hearts() self.heartT = 0 end
     return m
 end
 -- 0.6.547: baa sound (CC0, "Sheep Baa" by AntumDeluge after mikewest, opengameart.org/node/132779) - only with guild module,
@@ -344,6 +526,7 @@ function Weide.Maeh()
         pcall(PlaySoundFile, dir .. lv .. ".ogg", "Master")
     end
 end
+local ANIM_SLEEP = 100   -- creature "sleep" animation (lying, eyes closed); models without it simply stand
 local function setAnim(m, id)
     if m.anim ~= id then m.anim = id pcall(m.SetAnimation, m, id) end
 end
@@ -351,7 +534,8 @@ end
 local GAP_X, GAP_Y = 0.13, 0.12   -- 0.6.548: clearly more distance
 -- 0.6.558: distance by actual size (like when drawing: 0.35 + 1.25 * y^1.8) - at the front the animals were
 -- three times as wide as the fixed distance and walked into each other
-local function bodyW(y) return 0.16 + 1.44 * (y or 0) ^ 1.6 end   -- 0.6.560: much smaller at the back (like when drawing)
+-- 0.6.579: gentler perspective - at the back still clearly visible (0.42), at the front 1.42 (before 0.16 .. 1.60)
+local function bodyW(y) return 0.42 + 1.0 * (y or 0) ^ 1.35 end
 local function crowded(s, x, y, flock)
     for _, o in ipairs(flock or {}) do
         if o ~= s and o:IsShown() and o.who then
@@ -385,6 +569,18 @@ local function push(s, o, dt)
     s.y = math.max(0, math.min(1, s.y + dy / len * 0.05 * dt))
 end
 local function pickTarget(s, flock)
+    -- 0.6.580: friends graze side by side - now and then walk next to the friend's animal
+    if s.friend and math.random() < 0.45 then
+        for _, o in ipairs(flock or {}) do
+            if o ~= s and o:IsShown() and o.who and ns.NameKey(o.who.name) == s.friend then
+                local side = (o.x > 0.5) and -1 or 1
+                s.tx = math.max(0.03, math.min(0.97, o.x + side * (0.07 + 0.06 * o.y)))
+                s.ty = math.max(0, math.min(1, o.y + (math.random() - 0.5) * 0.08))
+                s.wait = nil
+                return
+            end
+        end
+    end
     local bx, by, bs = s.x, s.y, -1
     for i = 1, 10 do
         local x, y
@@ -559,8 +755,8 @@ ns.RegisterPage({
             for _, s in ipairs(self.sheep) do
                 if s:IsShown() and s.who then
                     if s.lying then
-                        -- 0.6.548: totally neglected - lies in the grass
-                        setAnim(s, 1)
+                        -- 0.6.548: totally neglected - lies in the grass; 0.6.579: asleep instead of the death pose
+                        setAnim(s, ANIM_SLEEP)
                         s.sayIn = (s.sayIn or 10) - dt
                     elseif s.duel and s.duel.phase ~= "walk" then
                         setAnim(s, 0)
@@ -579,7 +775,8 @@ ns.RegisterPage({
                         local d = math.sqrt(dx * dx + dy * dy)
                         s.sayIn = (s.sayIn or 10) - dt
                         if d < 0.01 then
-                            s.wait = (1.5 + math.random() * 4) * (s.mood and s.mood < 30 and 2.5 or 1)
+                            -- 0.6.579: animals of offline owners doze - long breaks, rarely on the move
+                            s.wait = (1.5 + math.random() * 4) * (s.mood and s.mood < 30 and 2.5 or 1) * (s.who.online and 1 or 4)
                         else
                             local v = 0.045 * (0.6 + 0.6 * s.y) * (s.mood and (0.45 + s.mood / 120) or 1)   -- faster at the front, sad sheep trudge
                             local step = math.min(d, v * dt)
@@ -612,7 +809,7 @@ ns.RegisterPage({
                         s.sayIn = 15 + math.random() * 25
                         s.say:SetText(s.wish or L["Baa!"])
                         s.say:Show() s.sayBg:Show() s.sayLeft = 3
-                        if self:IsVisible() and (not s.form or s.form.key == "sheep") then Weide.Maeh() end
+                        if self:IsVisible() and s.who.online and (not s.form or s.form.key == "sheep") then Weide.Maeh() end
                     end
                     -- size: only by depth
                     local size = 140 * bodyW(s.y) * math.max(0.6, H / 520)   -- 0.6.548: size only by depth, not by rank
@@ -628,6 +825,38 @@ ns.RegisterPage({
                     s:SetSize(size, size)
                     s:ClearAllPoints()
                     s:SetPoint("BOTTOMLEFT", self, "TOPLEFT", s.x * (W - size), -feet - size * 0.08)   -- bottom edge = feet (small margin in the model)
+                    -- 0.6.579: ground shadow under the feet, name right above the head (the model fills only the lower part of its square)
+                    s.shadow:ClearAllPoints()
+                    s.shadow:SetPoint("CENTER", self, "TOPLEFT", s.x * (W - size) + size * 0.5, -feet + size * 0.01)
+                    s.shadow:SetSize(size * (s.lying and 0.62 or 0.5), size * 0.12)
+                    s.shadow:SetAlpha(0.6 + 0.4 * s.y)
+                    s.shadow:Show()
+                    if math.abs((s.nameOff or 0) - size) > 2 then
+                        s.nameOff = size
+                        s.name:ClearAllPoints()
+                        s.name:SetPoint("BOTTOM", s, "TOP", 0, -size * (s.lying and 0.55 or 0.36))
+                    end
+                    -- names further back fade a little; offline owners dimmer
+                    s.nameA = (s.who.online and 0.95 or 0.6) * (0.55 + 0.45 * s.y)
+                    if not s.nameHidden then s.name:SetAlpha(s.nameA) end
+                    -- hearts: rise and fade for 1.6 s
+                    if s.heartT then
+                        s.heartT = s.heartT + dt
+                        local hs = math.max(10, size * 0.14)
+                        for i, t in ipairs(s.hearts) do
+                            local ph = s.heartT - (i - 1) * 0.18
+                            if ph > 0 and ph < 1.4 then
+                                t:ClearAllPoints()
+                                t:SetPoint("CENTER", s, "TOP", (i - 2.5) * hs * 0.9 + math.sin(ph * 6 + i) * 4, -size * 0.35 + ph * size * 0.35)
+                                t:SetSize(hs, hs)
+                                t:SetAlpha(math.min(1, (1.4 - ph) * 1.5))
+                                t:Show()
+                            else
+                                t:Hide()
+                            end
+                        end
+                        if s.heartT > 2.2 then s.heartT = nil for _, t in ipairs(s.hearts) do t:Hide() end end
+                    end
 
                     -- sparkle (streak of 3+ days): three little stars briefly circle the head
                     if (s.streak or 0) >= 3 then
@@ -653,7 +882,248 @@ ns.RegisterPage({
                     end
                 end
             end
+            -- 0.6.581: brushing mini game - burrs stick to the own animal until swept off (20 s)
+            local br = self.brush
+            if br then
+                br.t = br.t + dt
+                local s = br.s
+                local size = s:GetWidth() or 60
+                for _, b in ipairs(self.burrs) do
+                    if not b.done then
+                        b:ClearAllPoints()
+                        b:SetPoint("CENTER", s, "TOPLEFT", size * b.ox, -size * b.oy)
+                        local bs = math.max(12, size * 0.11)
+                        b:SetSize(bs, bs)
+                    end
+                end
+                if br.left <= 0 then
+                    self.brush = nil
+                    s.wait = 1
+                    local ok = Weide.Care("c")
+                    if ok then Weide.cared = true Weide.Note("brush") end
+                    s:Hearts()
+                    s.say:SetText(L["So fluffy! Thanks!"]) s.say:Show() s.sayBg:Show() s.sayLeft = 3
+                    ns.RefreshPage("pasture", true)
+                elseif br.t > 20 or not s:IsShown() then
+                    self.brush = nil
+                    s.wait = 1
+                    for _, b in ipairs(self.burrs) do b:Hide() end
+                end
+            end
+            -- 0.6.580: now and then a few animals follow the one with the longest care streak (little herds)
+            self.herdIn = (self.herdIn or (40 + math.random() * 60)) - dt
+            if self.herdIn <= 0 then
+                self.herdIn = 70 + math.random() * 90
+                local lead, cand = nil, {}
+                for _, s in ipairs(self.sheep) do
+                    if s:IsShown() and s.who and not s.lying and not s.duel then
+                        if s.who.online and (s.streak or 0) >= 2 and (not lead or s.streak > lead.streak) then lead = s end
+                        cand[#cand + 1] = s
+                    end
+                end
+                if lead then
+                    local n = 0
+                    for i = #cand, 2, -1 do local j = math.random(i) cand[i], cand[j] = cand[j], cand[i] end
+                    for _, s in ipairs(cand) do
+                        if s ~= lead and n < 3 then
+                            n = n + 1
+                            local back = (lead.tx and lead.tx < lead.x) and 1 or -1
+                            s.tx = math.max(0.03, math.min(0.97, (lead.tx or lead.x) + back * (0.06 + 0.05 * n)))
+                            s.ty = math.max(0, math.min(1, (lead.ty or lead.y) + (n - 2) * 0.07))
+                            s.wait = nil
+                        end
+                    end
+                end
+            end
+            -- 0.6.579: names must not cover each other - nearer animals (and your own) win, hovering shows all again
+            self.labT = (self.labT or 0) + dt
+            if self.labT > 0.25 then
+                self.labT = 0
+                local list = {}
+                for _, s in ipairs(self.sheep) do if s:IsShown() and s.who then list[#list + 1] = s end end
+                table.sort(list, function(a, b)
+                    local am, bm = ns.isMe(a.who.name), ns.isMe(b.who.name)
+                    if am ~= bm then return am end
+                    return a.y > b.y
+                end)
+                local taken = {}
+                for _, s in ipairs(list) do
+                    local l, r, t, b = s.name:GetLeft(), s.name:GetRight(), s.name:GetTop(), s.name:GetBottom()
+                    local hide = false
+                    if l and r and t and b and not self.showAll then
+                        for _, q in ipairs(taken) do
+                            if l < q[2] + 2 and r > q[1] - 2 and b < q[3] + 1 and t > q[4] - 1 then hide = true break end
+                        end
+                    end
+                    s.nameHidden = hide
+                    s.name:SetAlpha(hide and 0 or (s.nameA or 0.9))
+                    if not hide and l then taken[#taken + 1] = { l, r, t, b } end
+                end
+            end
+            -- 0.6.579: time of day (local clock): dawn, day, dusk, night with fireflies
+            if self.sky then
+                self.skyT = (self.skyT or 99) + dt
+                if self.skyT > 20 then
+                    self.skyT = 0
+                    local tm = date("*t")
+                    local hr = tm.hour + tm.min / 60
+                    local col, a
+                    if hr < 5 or hr >= 22 then col, a = { 0.04, 0.07, 0.22 }, 0.5
+                    elseif hr < 7 then col, a = { 1, 0.6, 0.35 }, 0.18 * (7 - hr) / 2 + 0.05
+                    elseif hr >= 19 then col, a = { 0.9, 0.45, 0.35 }, 0.1 + 0.25 * (hr - 19) / 3
+                    else col, a = { 1, 1, 1 }, 0 end
+                    if ns.db.settings.gotchiDayNight == false then a = 0 end
+                    self.sky.t:SetColorTexture(col[1], col[2], col[3], 1)
+                    self.sky.t:SetAlpha(a)
+                    self.night = a >= 0.4
+                end
+                local bugs = self.sky.bugs
+                for i, f in ipairs(bugs) do
+                    if self.night then
+                        f.ph = (f.ph or math.random() * 10) + dt * f.sp
+                        f:ClearAllPoints()
+                        f:SetPoint("CENTER", self, "TOPLEFT", W * (f.x + 0.04 * math.sin(f.ph * 0.7)), -H * (f.y + 0.03 * math.cos(f.ph)))
+                        f:SetAlpha(0.35 + 0.65 * math.max(0, math.sin(f.ph * 2.3)))
+                        f:Show()
+                    else
+                        f:Hide()
+                    end
+                end
+            end
+            -- 0.6.580: seasons by the calendar: snow (Dec-Feb), blossoms (Mar-May), butterflies (Jun-Aug), leaves (Sep-Nov)
+            if self.season and self.seasonKind and ns.db.settings.gotchiDayNight ~= false then
+                local kind = self.seasonKind
+                for i, f in ipairs(self.season) do
+                    f.ph = (f.ph or math.random() * 20) + dt * f.sp
+                    local x, y
+                    if kind == "fly" then
+                        x = f.x + 0.06 * math.sin(f.ph * 0.9 + i)
+                        y = f.y + 0.04 * math.sin(f.ph * 1.7)
+                        f:SetAlpha(0.85)
+                        local w = 6 + 4 * math.abs(math.sin(f.ph * 9))   -- wings flap
+                        f:SetSize(w, 7)
+                    else
+                        local fall = (f.ph * 0.05) % 1.1
+                        x = f.x + 0.03 * math.sin(f.ph * 1.3 + i)
+                        y = fall - 0.05
+                        f:SetAlpha(math.min(1, (1.05 - fall) * 3) * 0.85)
+                    end
+                    f:ClearAllPoints()
+                    f:SetPoint("CENTER", self, "TOPLEFT", W * x, -H * y)
+                    f:Show()
+                end
+            elseif self.season then
+                for _, f in ipairs(self.season) do f:Hide() end
+            end
+            -- 0.6.579: flock festival reached this week - colourful sparks float up across the meadow
+            if self.party and self.fest then
+                for i, f in ipairs(self.party) do
+                    f.ph = (f.ph or math.random() * 6) + dt * f.sp
+                    local ph = f.ph % 6
+                    f:ClearAllPoints()
+                    f:SetPoint("CENTER", self, "TOPLEFT", W * f.x + 10 * math.sin(ph * 2 + i), -H * (0.95 - ph / 6 * 0.6))
+                    f:SetAlpha(math.min(1, ph) * math.min(1, (6 - ph) / 2) * 0.9)
+                    f:Show()
+                end
+            elseif self.party then
+                for _, f in ipairs(self.party) do f:Hide() end
+            end
         end)
+        -- 0.6.579: sky tint + fireflies above the animals (no mouse - clicks go through to the animals)
+        local sky = CreateFrame("Frame", nil, field)
+        sky:SetAllPoints()
+        sky:SetFrameLevel(field:GetFrameLevel() + 50)
+        sky.t = sky:CreateTexture(nil, "OVERLAY")
+        sky.t:SetAllPoints()
+        sky.t:SetBlendMode("BLEND")
+        sky.t:SetAlpha(0)
+        sky.bugs = {}
+        for i = 1, 14 do
+            local f = sky:CreateTexture(nil, "OVERLAY", nil, 7)
+            f:SetTexture(ns.MEDIA .. "icons\\star_on")
+            f:SetBlendMode("ADD")
+            f:SetVertexColor(0.85, 1, 0.45)
+            f:SetSize(9, 9)
+            f.x, f.y, f.sp = 0.05 + math.random() * 0.9, 0.42 + math.random() * 0.45, 0.4 + math.random() * 0.6
+            f:Hide()
+            sky.bugs[i] = f
+        end
+        field.sky = sky
+        -- 0.6.581: burrs for the brushing mini game (buttons above the animals, removed by moving the mouse over them)
+        field.burrs = {}
+        for i = 1, 6 do
+            local b = CreateFrame("Frame", nil, field)
+            b:SetSize(18, 18)
+            b:SetFrameLevel(field:GetFrameLevel() + 48)
+            b:EnableMouse(true)
+            b.t = b:CreateTexture(nil, "OVERLAY")
+            b.t:SetAllPoints()
+            b.t:SetTexture(ns.MEDIA .. "dot")
+            b.t:SetVertexColor(0.45, 0.3, 0.12)
+            b.spike = b:CreateTexture(nil, "OVERLAY", nil, 1)
+            b.spike:SetPoint("CENTER")
+            b.spike:SetSize(22, 22)
+            b.spike:SetTexture(ns.MEDIA .. "icons\\star_on")
+            b.spike:SetVertexColor(0.55, 0.38, 0.15)
+            b:SetScript("OnEnter", function(self)
+                if not field.brush then return end
+                self:Hide()
+                self.done = true
+                field.brush.left = field.brush.left - 1
+                if PlaySound and SOUNDKIT and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON then pcall(PlaySound, SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON) end
+            end)
+            b:Hide()
+            field.burrs[i] = b
+        end
+        function field:StartBrush()
+            local mine
+            for _, s in ipairs(self.sheep) do if s:IsShown() and s.who and ns.isMe(s.who.name) and not s.lying then mine = s end end
+            if not mine then return false end
+            local g = ns.db.settings.gildotchi or {}
+            local left = (tonumber(g.c) or 0) + Weide.NEEDS[3].cd - ns.now()
+            if left > 0 then
+                K.Toast(L["Gildotchi"], (L["Again in %s."]):format(fmtLeft(left)), C.amber or C.accent)
+                return true
+            end
+            self.brush = { s = mine, left = #self.burrs, t = 0 }
+            mine.wait, mine.tx, mine.ty = 30, mine.x, mine.y   -- stand still while being brushed
+            for _, b in ipairs(self.burrs) do
+                b.ox, b.oy, b.done = 0.28 + math.random() * 0.44, 0.45 + math.random() * 0.3, nil
+                b:Show()
+            end
+            mine.say:SetText(L["Sweep the burrs off with your mouse!"]) mine.say:Show() mine.sayBg:Show() mine.sayLeft = 4
+            return true
+        end
+        -- 0.6.580: season particles (below the sky tint, above the animals)
+        field.season = {}
+        local mon = tonumber(date("%m")) or 6
+        local SK = (mon == 12 or mon <= 2) and "snow" or (mon <= 5 and "bloom") or (mon <= 8 and "fly") or "leaf"
+        local SCOL = { snow = { { 1, 1, 1 } }, bloom = { { 1, 0.75, 0.85 }, { 1, 0.9, 0.95 } },
+            fly = { { 1, 0.9, 0.35 }, { 1, 1, 1 }, { 0.6, 0.8, 1 } }, leaf = { { 0.95, 0.55, 0.15 }, { 0.8, 0.3, 0.1 }, { 0.95, 0.8, 0.25 } } }
+        for i = 1, (SK == "fly" and 7 or 22) do
+            local f = sky:CreateTexture(nil, "OVERLAY", nil, 5)
+            f:SetTexture(ns.MEDIA .. "dot")
+            local c = SCOL[SK][i % #SCOL[SK] + 1]
+            f:SetVertexColor(c[1], c[2], c[3])
+            local sz = SK == "snow" and (3 + math.random() * 3) or (4 + math.random() * 3)
+            f:SetSize(sz, sz * (SK == "leaf" and 0.6 or 1))
+            f.x, f.y, f.sp = math.random(), 0.5 + math.random() * 0.4, 0.5 + math.random() * 0.8
+            f:Hide()
+            field.season[i] = f
+        end
+        field.seasonKind = SK
+        field.party = {}
+        local PCOL = { { 1, 0.45, 0.6 }, { 1, 0.85, 0.3 }, { 0.5, 0.85, 1 }, { 0.6, 1, 0.55 } }
+        for i = 1, 16 do
+            local f = sky:CreateTexture(nil, "OVERLAY", nil, 6)
+            f:SetTexture(ns.MEDIA .. "icons\\" .. (i % 3 == 0 and "heart" or "star_on"))
+            local c = PCOL[i % #PCOL + 1]
+            f:SetVertexColor(c[1], c[2], c[3])
+            f:SetSize(12, 12)
+            f.x, f.sp = 0.04 + math.random() * 0.92, 0.6 + math.random() * 0.8
+            f:Hide()
+            field.party[i] = f
+        end
 
         -- 0.6.545: choose look - button below the meadow opens a picker with model preview
         local bar = CreateFrame("Frame", nil, p)
@@ -666,8 +1136,14 @@ ns.RegisterPage({
             if p.pick:IsShown() then p.pick:Update() end
         end)
         bar.btn:SetPoint("LEFT", 0, 0)
+        -- 0.6.581: care book
+        bar.book = K.Button(bar, L["Care book"], 110, 24, "ghost", function()
+            p.book:SetShown(not p.book:IsShown())
+            if p.book:IsShown() then p.pick:Hide() p.book:Update() end
+        end)
+        bar.book:SetPoint("LEFT", bar.btn, "RIGHT", 8, 0)
         bar.cur = K.Text(bar, 11, C.muted)
-        bar.cur:SetPoint("LEFT", bar.btn, "RIGHT", 12, 0)
+        bar.cur:SetPoint("LEFT", bar.book, "RIGHT", 12, 0)
         -- 0.6.545: as AFK screen (fullscreen as soon as you are AFK)
         bar.afk = K.Toggle(bar, L["As AFK screen"], function() return ns.db.settings.gotchiAfk == true end,
             function(v) ns.db.settings.gotchiAfk = v and true or nil end)
@@ -677,8 +1153,13 @@ ns.RegisterPage({
             function(v) if v then ns.db.settings.gotchiSound = nil else ns.db.settings.gotchiSound = false end end)
         bar.snd:SetWidth(170)
         bar.snd:SetPoint("RIGHT", bar.afk, "LEFT", -12, 0)
+        -- 0.6.579: time of day on the meadow (local clock)
+        bar.day = K.Toggle(bar, L["Day, night & seasons"], function() return ns.db.settings.gotchiDayNight ~= false end,
+            function(v) if v then ns.db.settings.gotchiDayNight = nil else ns.db.settings.gotchiDayNight = false end field.skyT = 99 end)
+        bar.day:SetWidth(160)
+        bar.day:SetPoint("RIGHT", bar.snd, "LEFT", -12, 0)
         -- 0.6.556: text "Look" ends before the toggles (was underneath)
-        bar.cur:SetPoint("RIGHT", bar.snd, "LEFT", -12, 0)
+        bar.cur:SetPoint("RIGHT", bar.day, "LEFT", -12, 0)
         bar.cur:SetJustifyH("LEFT") bar.cur:SetWordWrap(false)
 
         local pick = CreateFrame("Frame", nil, p)
@@ -772,6 +1253,39 @@ ns.RegisterPage({
         end
         pick:SetScript("OnSizeChanged", function(self) if self:IsShown() then self:Update() end end)
 
+        local book = CreateFrame("Frame", nil, p)
+        book:SetPoint("TOPLEFT", field, "TOPLEFT", 16, -60)
+        book:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", -16, 16)
+        book:SetFrameLevel(field:GetFrameLevel() + 80)
+        book:EnableMouse(true)
+        book:Hide()
+        K.Fill(book, { 0.03, 0.04, 0.06, 0.93 })
+        K.Border(book, C.line)
+        p.book = book
+        book.close = K.Button(book, L["Done"], 80, 22, "ghost", function() book:Hide() end)
+        book.close:SetPoint("TOPRIGHT", -10, -8)
+        book.h = K.Text(book, 13, C.text)
+        book.h:SetPoint("TOPLEFT", 14, -12)
+        book.rows = {}
+        for i, b in ipairs(Weide.BOOK) do
+            local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
+            local r = K.Text(book, 12, C.text)
+            r:SetPoint("TOPLEFT", 16 + col * 300, -44 - row * 24)
+            r:SetWidth(290) r:SetJustifyH("LEFT") r:SetWordWrap(false)
+            r.def = b
+            book.rows[i] = r
+        end
+        function book:Update()
+            local ms = (ns.db.settings.gildotchi or {}).ms or {}
+            local n = 0
+            for _, r in ipairs(self.rows) do
+                local d = ms[r.def.key]
+                if d then n = n + 1 end
+                r:SetText(d and ("|T" .. ns.MEDIA .. "icons\\star_on:14|t " .. L[r.def.text] .. "  |cff8a8a8a" .. d .. "|r")
+                    or ("|cff5a5a5a|T" .. ns.MEDIA .. "icons\\star_off:14|t " .. L[r.def.text] .. "|r"))
+            end
+            self.h:SetText((L["Care book - %d of %d memories"]):format(n, #self.rows))
+        end
         -- ranking on the right
         local side = CreateFrame("Frame", nil, p)
         side:SetPoint("TOPLEFT", field, "TOPRIGHT", 24, 10)
@@ -791,7 +1305,7 @@ ns.RegisterPage({
         -- 0.6.548: ran away -> bring back
         side.recall = K.Button(side, L["Bring back"], 100, 20, "primary", function()
             Weide.Recall()
-            K.Toast(L["Guildotchi"], L["Your animal is back on the pasture."], C.mint)
+            K.Toast(L["Guildotchi"], L["Your animal is back from grandma's farm and happy to see you."], C.mint)
             ns.RefreshPage("pasture", true)
         end)
         side.recall:SetPoint("TOPRIGHT", side, "TOPRIGHT", -10, -8)
@@ -805,8 +1319,11 @@ ns.RegisterPage({
             r.bar = K.Bar(side, LIST_W - 24, 6)
             r.bar:SetPoint("TOPLEFT", 12, y - 20)
             r.btn = K.Button(side, L[n.act], 76, 20, "ghost", function()
+                -- 0.6.581: brushing is a small mini game: sweep the burrs off your animal with the mouse
+                if n.key == "c" and p.field.StartBrush and p.field:StartBrush() then return end
                 local ok, left = Weide.Care(n.key)
                 if ok then
+                    Weide.cared = true
                     K.Toast(L["Gildotchi"], L["Baa! Thanks!"], C.mint)
                 else
                     K.Toast(L["Gildotchi"], (L["Again in %s."]):format(fmtLeft(left)), C.amber or C.accent)
@@ -817,8 +1334,23 @@ ns.RegisterPage({
             r.need = n
             side.need[i] = r
         end
+        -- 0.6.579: weekly flock festival (shared bar of the whole guild)
+        side.fest = K.Text(side, 11, C.text)
+        side.fest:SetPoint("TOPLEFT", 12, -172)
+        side.fest:SetPoint("RIGHT", side, "RIGHT", -8, 0)
+        side.fest:SetJustifyH("LEFT")
+        side.fest:SetWordWrap(false)
+        side.festBar = K.Bar(side, LIST_W - 24, 6)
+        side.festBar:SetPoint("TOPLEFT", 12, -190)
+        -- 0.6.579: gifts at the fence - who fed your animal recently (feed them back by clicking their animal)
+        side.gifts = K.Text(side, 11, C.muted)
+        side.gifts:SetPoint("TOPLEFT", 12, -204)
+        side.gifts:SetPoint("RIGHT", side, "RIGHT", -8, 0)
+        side.gifts:SetJustifyH("LEFT")
+        side.gifts:SetWordWrap(true)
+        side.gifts:SetMaxLines(2)
         side.h = K.Text(side, 13, C.text)
-        side.h:SetPoint("TOPLEFT", 12, -178)
+        side.h:SetPoint("TOPLEFT", 12, -244)
         side.h:SetText(L["Flock leaderboard"])
         side.sum = K.Text(side, 11, C.muted)
         side.sum:SetPoint("TOPLEFT", side.h, "BOTTOMLEFT", 0, -3)
@@ -826,7 +1358,7 @@ ns.RegisterPage({
         for i = 1, 16 do
             local r = CreateFrame("Frame", nil, side)
             r:SetHeight(20)
-            r:SetPoint("TOPLEFT", 10, -214 - (i - 1) * 21)
+            r:SetPoint("TOPLEFT", 10, -280 - (i - 1) * 21)
             r:SetPoint("RIGHT", side, "RIGHT", -10, 0)
             r.pos = K.Text(r, 11, C.dim, "RIGHT")
             r.pos:SetPoint("LEFT", 0, 0) r.pos:SetWidth(22)
@@ -845,6 +1377,13 @@ ns.RegisterPage({
         local flock = {}
         for _, f in ipairs(all) do if not f.away then flock[#flock + 1] = f end end   -- runaway animals are not on the pasture
         local field = p.field
+        local friends = Weide.Friends()
+        -- seen reactions older than two days are forgotten again (keeps the saved list small)
+        if ns.db.settings.gotchiSeen and next(ns.db.settings.gotchiSeen) then
+            local live = {}
+            for _, g in ipairs(Store.List("gfeed")) do if g.kind == "r" then live[g.id] = true end end
+            for id in pairs(ns.db.settings.gotchiSeen) do if not live[id] then ns.db.settings.gotchiSeen[id] = nil end end
+        end
         -- assign sheep (known ones keep their spot)
         local n = math.min(#flock, MAX_SHEEP)
         for i = 1, n do
@@ -878,7 +1417,21 @@ ns.RegisterPage({
             if math.abs((s.sad or 0) - sad) > 0.05 then s.sad = sad light(s, s.skin, 1, 1, 1) end
             s.lying = nd.mood < 8 and not s.duel
             if s.lying then s.wish = L["Zzz ..."] s.wait = nil end
+            if not who.online and not s.wish then s.wish = L["Zzz ..."] end
             s.streak = Weide.Streak(who.name)
+            s.friend = friends[ns.NameKey(who.name)]
+            -- 0.6.580: new reactions from guildmates: the animal shows them once (heart, wave, cheer)
+            if p:IsVisible() then
+                local nr = Weide.NewReacts(who.name)
+                if #nr > 0 then
+                    for _, g in ipairs(nr) do ns.db.settings.gotchiSeen[g.id] = true end
+                    if ns.isMe(who.name) then Weide.Note("react") end
+                    local g, r = nr[1], Weide.REACTS[tonumber(nr[1].e)]
+                    s.say:SetText((L[r.say]):format(ns.short(g.by)) .. (#nr > 1 and ("  |cff9a9a9a+" .. (#nr - 1) .. "|r") or ""))
+                    s.say:Show() s.sayBg:Show() s.sayLeft = 5
+                    if tonumber(g.e) == 1 then s:Hearts() end
+                end
+            end
             s:SetAlpha(who.online and 1 or 0.75)
             local st, nm = s.streak or 0, ns.short(who.name)
             if st >= 30 then nm = (ns.ART and "|TInterface\\AddOns\\Oasis\\Media\\art\\dr_crown:0|t " or "|T" .. ns.MEDIA .. "icons\\star_on:0|t ") .. "|cffffd24a" .. nm .. "|r"
@@ -891,7 +1444,7 @@ ns.RegisterPage({
         end
         for i = n + 1, #field.sheep do
             local s = field.sheep[i]
-            s:Hide() s.who = nil s.name:Hide() s.say:Hide() s.sayBg:Hide()
+            s:Hide() s.who = nil s.name:Hide() s.say:Hide() s.sayBg:Hide() s.shadow:Hide()
         end
         field.empty:SetText(#flock == 0 and L["No sheep on the pasture yet."] or "")
 
@@ -907,6 +1460,8 @@ ns.RegisterPage({
         local st = Weide.Streak(ns.me())
         local nextX
         for _, x in ipairs(Weide.EXTRAS) do if st < x.n then nextX = x break end end
+        local tt = Weide.Title(ns.me())
+        side.me:SetText(L["My Guildotchi"] .. (tt and ("  |cff8ad4ff" .. L[tt.text] .. "|r") or ""))
         side.mood:SetText(L["Mood"] .. ": " .. K.hex(mc) .. L[mt] .. "|r   " .. (L["Streak: %d days"]):format(st)
             .. (nextX and ("  |cff8a8a8a(" .. (L["%s from %d"]):format(L[nextX.text], nextX.n) .. ")|r") or ""))
         side.recall:SetShown(Weide.IsAway(ns.me()))
@@ -918,17 +1473,46 @@ ns.RegisterPage({
             local left = (tonumber(g[r.need.key]) or 0) + r.need.cd - ns.now()
             r.btn:SetAlpha(left > 0 and 0.5 or 1)
         end
+        -- 0.6.579: flock festival of the week
+        local fs, fg, fdone = Weide.Festival(#flock)
+        field.fest = fdone
+        side.fest:SetText(fdone and ("|cffffd24a" .. L["Flock festival! The meadow celebrates."] .. "|r")
+            or ((L["Flock festival: %d / %d cares this week"]):format(fs, fg)))
+        side.festBar:Set(math.min(1, fs / fg))
+        if fdone then Weide.Note("fest") end
+        if friends[ns.NameKey(ns.me())] then Weide.Note("friend") end
+        -- gifts at the fence
+        local gifts = Weide.Gifts(ns.me())
+        if #gifts > 0 then Weide.Note("gift") end
+        if #gifts == 0 then
+            side.gifts:SetText(L["No gifts at the fence yet - feed others' animals, they may return the favour."])
+        else
+            local icons, names, seen = "", {}, {}
+            for i, g in ipairs(gifts) do
+                if i <= 5 and g.gift then icons = icons .. "|T" .. g.gift.icon .. ":14|t " end
+                local nm = ns.short(g.by)
+                if not seen[nm] and #names < 3 then seen[nm] = true names[#names + 1] = nm end
+            end
+            side.gifts:SetText(icons .. "|cffc8c8c8" .. (L["from %s"]):format(table.concat(names, ", ")) .. (#gifts > 3 and " ..." or "") .. "|r")
+        end
+        -- welcome back / hearts on my own animal after caring
+        if Weide.welcome or Weide.cared then
+            for _, s in ipairs(field.sheep) do if s:IsShown() and s.who and ns.isMe(s.who.name) then s:Hearts() end end
+            if Weide.welcome then K.Toast(L["Guildotchi"], L["Your animal is overjoyed to see you again!"], C.mint) end
+            Weide.welcome, Weide.cared = nil, nil
+        end
         -- Ranking
         local on = 0
         for _, f in ipairs(flock) do if f.online then on = on + 1 end end
         side.sum:SetText((L["%d sheep, %d online now"]):format(#flock, on))
+        local maxRows = math.max(3, math.floor(((side:GetHeight() or 600) - 290) / 21))
         for i, r in ipairs(side.rows) do
-            local f = all[i]
+            local f = i <= maxRows and all[i] or nil
             r:SetShown(f ~= nil)
             if f then
                 r.pos:SetText(i .. ".")
                 r.n:SetText(ns.short(f.name) .. (ns.isMe(f.name) and ("  |cff9a9a9a" .. L["(you)"] .. "|r") or "")
-                    .. (f.away and ("  |cffe8a040" .. L["ran away"] .. "|r") or ""))
+                    .. (f.away and ("  |cffe8a040" .. L["visiting grandma's farm"] .. "|r") or ""))
                 r.l:SetText(f.lvl)
                 local sk = Weide.SkinOf(f.name, f.lvl)
                 local c = sk.amb or { 1, 0.4, 0.4 }
