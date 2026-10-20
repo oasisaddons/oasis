@@ -11,7 +11,9 @@ ns.Weide = Weide
 
 local SHEEP_NPC = 1933        -- sheep (like in Deathroll)
 local SHEEP_DISPLAY = 856     -- sheep model (polymorph), works even without the creature in the cache
-local MAX_SHEEP = 40          -- more models cost too much performance
+-- 0.6.585: at most 30 animals on the meadow - more do not fit without the models sliding into each other
+-- (measured with 100 simulated animals); the rest graze "behind the hill" (counted below the meadow)
+local MAX_SHEEP = 30
 local ART = "Interface\\AddOns\\Oasis\\Media\\art\\weide_bg"   -- image only in the guild module
 -- walking area (feet), fraction of the meadow height from the top. 0.6.579: the grass in the picture starts at ~41 %;
 -- before, the animals walked up to 34 % (tiny, at the tree line, names floating without a visible animal)
@@ -603,8 +605,11 @@ local function crowded(s, x, y, flock)
     for _, o in ipairs(flock or {}) do
         if o ~= s and o:IsShown() and o.who then
             local need = 0.17 * (bodyW(y) + bodyW(o.y))   -- 0.6.559: from the side a sheep is almost twice as long as wide
-            local needY = GAP_Y * (0.9 + 0.9 * math.max(y, o.y)) * crowdScale
-            if math.abs(o.x - x) < need and math.abs(o.y - y) < needY then return o end
+            -- 0.6.585: oval zone instead of a box, clearly deeper - animals standing almost behind each other
+            -- slid into one another (the models then overlap half)
+            local needY = 1.5 * GAP_Y * (0.9 + 0.9 * math.max(y, o.y)) * crowdScale
+            local dx, dy = (o.x - x) / need, (o.y - y) / needY
+            if dx * dx + dy * dy < 1 then return o end
         end
     end
 end
@@ -832,7 +837,7 @@ ns.RegisterPage({
                         if not s.duel then
                             s.cw = ((s.cw or math.random(0, 5)) + 1) % 6   -- 0.6.584: standing animals check only every sixth frame
                             local o = s.cw == 0 and crowded(s, s.x, s.y, self.sheep) or nil
-                            if o then push(s, o, dt) end
+                            if o then push(s, o, dt * 6) end   -- checked only every sixth frame - push with the full strength
                         end
                         s.sayIn = (s.sayIn or 10) - dt
                     else
@@ -1462,7 +1467,21 @@ ns.RegisterPage({
             for id in pairs(ns.db.settings.gotchiSeen) do if not live[id] then ns.db.settings.gotchiSeen[id] = nil end end
         end
         -- assign sheep (known ones keep their spot)
-        local n = math.min(#flock, Weide.sim and 100 or MAX_SHEEP)   -- 0.6.583: the simulation may show up to 100
+        -- 0.6.585: who gets a place: you, your friend, owners online now, then the longest care streaks
+        local myKey = ns.NameKey(ns.me())
+        local function prio(f)
+            if ns.isMe(f.name) then return 1e6 end
+            local pr = 0
+            if friends[myKey] and ns.NameKey(f.name) == friends[myKey] then pr = pr + 1e5 end
+            if f.online then pr = pr + 1e4 end
+            return pr + Weide.Streak(f.name) * 10 + (f.lvl or 1) / 100
+        end
+        if #flock > MAX_SHEEP then
+            for _, f in ipairs(flock) do f.prio = prio(f) end
+            table.sort(flock, function(a, b) if a.prio ~= b.prio then return a.prio > b.prio end return a.name < b.name end)
+        end
+        local n = math.min(#flock, MAX_SHEEP)
+        field.behind = #flock - n
         for i = 1, n do
             local s = field.sheep[i]
             if not s then
@@ -1526,9 +1545,15 @@ ns.RegisterPage({
             s:Hide() s.who = nil s.name:Hide() s.say:Hide() s.sayBg:Hide() s.shadow:Hide()
         end
         field.empty:SetText(#flock == 0 and L["No sheep on the pasture yet."] or "")
+        if not field.hill then
+            field.hill = K.Text(field, 11, C.text, "LEFT")
+            field.hill:SetPoint("BOTTOMLEFT", 14, 10)
+            field.hill:SetShadowOffset(1, -1)
+        end
+        field.hill:SetText(field.behind > 0 and ((L["+%d more graze behind the hill"]):format(field.behind)) or "")
         -- 0.6.584: crowd: up to ~18 animals at full size, then smaller (40 -> 0.67, 100 -> 0.42)
         field.crowd = n
-        crowdScale = math.min(1, math.sqrt(18 / math.max(18, n)))
+        crowdScale = math.min(1, math.sqrt(14 / math.max(14, n)))   -- 0.6.585: full size up to 14 animals, 30 -> 0.68
         field.myFriend = friends[ns.NameKey(ns.me())]
         field.talking = 0
         for i = 1, n do local s = field.sheep[i] if s and s.sayLeft then field.talking = field.talking + 1 end end
