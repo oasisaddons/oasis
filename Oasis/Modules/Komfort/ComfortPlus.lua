@@ -357,7 +357,6 @@ local OPTS = {
         { "cpTooltipGuild", "Tooltip: Gildeninfos", "Oasis-Rang, Twink von ... und Berufe bei Gildenmitgliedern" },
         { "cpInspect", "Gegenstandsstufe beim Betrachten", "Im Betrachten-Fenster und danach im Tooltip, mit Vergleich zu dir" },
         { "cpChatLinks", "Chat: Links kopieren, Klassenfarben", "Links anklicken = Kopierfenster. Uhrzeit im Chat: Blizzards Chat-Einstellung (Zeitstempel).", CP.ApplyChat },
-        { "fojjiBridge", "Mit FojjiCore zusammenarbeiten", "Ist FojjiCore installiert, oeffnet Oasis dessen Dungeon-Journal und kann dessen Wunschliste in die Gilden-Wunschliste uebernehmen" },
     } },
 }
 local function build(f)

@@ -61,7 +61,6 @@ function CP.UserSet(key) local s = ns.db and ns.db.settings if s and s.compatSet
 -- Liste fuer Einstellungen > Status: welche Addons erkannt wurden und was Oasis deshalb tut
 CP.KNOWN = {
     { "NaowhForever", "Naowh Forever", "BiS-Liste in die Gilden-Wunschliste, Journal und Gruppen-Betrachten oeffnen; Oasis-XP-Leiste, Bedrohung und Glimmer aus" },
-    { "FojjiCore", "FojjiCore", "Journal, Karten und Routen dort; Wunschliste in die Gilden-Wunschliste" },
     { "RareScanner", "RareScanner", "Rare-Warnung kommt von RareScanner; Oasis meldet Sichtungen weiter an die Gilde" },
     { "Baganator", "Baganator", "Taschen dort; Oasis zeigt nur, was die Gilde braucht" },
     { "Syndicator", "Syndicator", "Twink-Bestaende im Tooltip dort" },

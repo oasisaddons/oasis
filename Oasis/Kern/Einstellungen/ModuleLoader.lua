@@ -45,7 +45,6 @@ M.LIST = {
     { cat = "Komfort und Karte", addon = "Oasis_MeinWeg", title = "Mein Weg", icon = "chronicle", desc = "Zeitleiste und Rekorde deines Charakters" },
     { cat = "Komfort und Karte", addon = "Oasis_Questmarken", title = "Quest-Markierungen", icon = "checklist", desc = "Gruppenquests im Questlog markieren" },
     { cat = "Komfort und Karte", addon = "Oasis_Leistung", dev = true, title = "Leistungsmessung", icon = "stats", desc = "Live-Anzeige der Rechenzeit und Messwerte der Gilde" },
-    { cat = "Komfort und Karte", addon = "Oasis_Fojji", title = "FojjiCore", icon = "sync", desc = "Zusammenarbeit mit dem Addon FojjiCore" },
 }
 M.state = {}   -- [addon] = "loaded" | "off" | "missing" | "disabled" | Fehlertext
 

@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.566
+## Version: 0.6.567
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -88,7 +88,6 @@ Kern\Gilde\Radar.lua
 Kern\Gilde\Alts.lua
 Modules\Handwerk\Crafting.lua
 Kern\Gilde\Wants.lua
-Modules\Fojji\FojjiBridge.lua
 Kern\Items\ItemSearch.lua
 Kern\Gilde\Groups.lua
 Modules\Lager\Camp.lua
