@@ -325,8 +325,8 @@ local function build()
 
     -- 0.6.244: pinned at the top = ember bar as image (guild module, Tools/make_minibar.py): straight on top, round at the bottom.
     -- three parts (ends + stretchable middle), so the roundings stay round at any width. Otherwise the normal bar.
-    if ns.GuildPack then
-        local GP = "Interface\\AddOns\\Oasis_Guild\\Media\\"
+    if ns.ART then
+        local GP = "Interface\\AddOns\\Oasis\\Media\\art\\"
         bar.art = {}
         for _, k in ipairs({ "l", "m", "r" }) do
             local t = bar:CreateTexture(nil, "BACKGROUND", nil, 2)

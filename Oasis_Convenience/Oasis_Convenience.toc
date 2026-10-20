@@ -3,7 +3,7 @@
 ## Notes: Personal convenience helpers for Oasis: auto repair/sell, quest helpers, best quest reward, item comparison, weapon trainers, bank slots, action bar sets, XP/hour, mail, ammo, flight time, vendor price, disenchant, map extras, game chat, whisper log, upgrade search.
 ## Notes-deDE: Persoenliche Komfort-Helfer fuer Oasis: reparieren/verkaufen, Quest-Helfer, beste Questbelohnung, Item-Vergleich, Waffenlehrer, Bankplaetze, Aktionsleisten, XP/Stunde, Post, Munition, Flugzeit, Haendlerpreis, Entzaubern, Karten-Extras, Spielchat, Fluesterverlauf, Upgrade-Suche.
 ## Author: Oasis Addons
-## Version: 0.6.574
+## Version: 0.6.575
 ## Category: Oasis
 ## Dependencies: Oasis
 ## LoadOnDemand: 1

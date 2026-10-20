@@ -2187,10 +2187,10 @@ local function buildEvents(f)
     ip.hb = hb
     local eb = box(ip)
     -- 0.6.457: subtle background image (guild module), fading dark at the bottom
-    if ns.GuildPack then
+    if ns.ART then
         eb.art = eb:CreateTexture(nil, "BACKGROUND", nil, 2)
         eb.art:SetPoint("TOPLEFT", 3, -3) eb.art:SetPoint("BOTTOMRIGHT", -3, 3)
-        eb.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\raid_events_bg")
+        eb.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\raid_events_bg")
         eb.art:SetAlpha(0.45)
         eb.shade = eb:CreateTexture(nil, "BACKGROUND", nil, 3)
         eb.shade:SetAllPoints(eb.art)
@@ -3897,11 +3897,11 @@ local function buildForm(f)
     if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(sum, { 1, 1, 1, 0.035 }, { 1, 1, 1, 0.10 }, 14) end
     f.sumCard = sum
     -- 0.6.462: subtle background image (guild module) at the top of the preview, fading out downward
-    if ns.GuildPack then
+    if ns.ART then
         sum.art = sum:CreateTexture(nil, "BACKGROUND", nil, 2)
         sum.art:SetPoint("TOPLEFT", 3, -3) sum.art:SetPoint("TOPRIGHT", -3, -3)
         sum.art:SetHeight(104)
-        sum.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\raid_preview_bg")
+        sum.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\raid_preview_bg")
         sum.art:SetTexCoord(0, 1, 0.12, 0.6)
         sum.art:SetAlpha(0.4)
         -- 0.6.464: lower, fading softly into transparency at the bottom (gradient on the image itself)

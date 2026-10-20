@@ -239,23 +239,7 @@ local function build(f)
       end
       if #list > 0 then y = y - (TH + GAP) - 8 end
     end
-    -- 0.5.728: guild module = separate addon "Oasis_Guild" (meme sounds, music, guild emojis, bug reports); toggleable
-    -- individually here and in the game's AddOn list. In the public version the folder is not included at all.
-    local gm = H.cardH(f, 0, y, 2 * W + 14, 72, "home", L["Guild module"],
-        L["Meme sounds, music, guild emojis and bug reports - a separate add-on for the guild only."])
-    gm.s:SetWordWrap(true)
-    gm.s:SetPoint("RIGHT", -70, 0)
-    f.gmState = K.Text(gm, 10, C.dim, "RIGHT")
-    f.gmState:SetPoint("BOTTOMRIGHT", -14, 10)
-    f.gmT = K.Toggle(gm, "", function() return M.GuildEnabled() end, function(v)
-        M.SetGuildEnabled(v)
-        if f.reload then f.reload:Show() f.hint:Show() end
-        f.gmState:SetText("|cffe8b44a" .. L[v and "on after /reload" or "off after /reload"] .. "|r")
-    end)
-    f.gmT:SetWidth(46)
-    f.gmT:SetPoint("TOPRIGHT", -14, -12)
-    f.gmT:SetShown(M.GuildInstalled())
-    y = y - 72 - GAP - 8
+    -- 0.6.575: the private guild module is gone (everything ships with Oasis or the own guild pack)
     f.total = K.Text(f, 11, C.muted)
     f.total:SetPoint("TOPLEFT", 0, y)
     f.hint = K.Text(f, 11, C.amber or C.accent)

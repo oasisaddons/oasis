@@ -2298,8 +2298,8 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         K.Border(t, C.line)
         -- 0.6.133: image box and image logo (guild module). Two layers each: neutral base layer + color layer tinted in the
         -- notice or accent color - so they match any color choice.
-        if ns.GuildPack then
-            local GP = "Interface\\AddOns\\Oasis_Guild\\Media\\"
+        if ns.ART then
+            local GP = "Interface\\AddOns\\Oasis\\Media\\art\\"
             t.boxBase = t:CreateTexture(nil, "BACKGROUND", nil, 3)
             t.boxBase:SetAllPoints()
             t.boxBase:SetTexture(GP .. "toast_box_base")
@@ -3766,7 +3766,7 @@ function K.ImageFrame(host, k)
     local BT, BB, BL, BR = 20, 20, 14, 13        -- bands (up to the inner edge)
     local CW, CHT, CHB = 60, 60, 60              -- corners (bevel)
     local M1, M2 = 599, 799                      -- light dot top/bottom stays unstretched
-    local TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\window_frame"
+    local TEX = "Interface\\AddOns\\Oasis\\Media\\art\\window_frame"
     local OV = 2                                 -- how far the inner edge overlaps the window
     local fr = CreateFrame("Frame", nil, host)
     fr:EnableMouse(false)
@@ -3947,7 +3947,7 @@ local BOX = { SW = 1398, SH = 1028, BT = 20, BB = 20, BL = 14, BR = 13, C = 60, 
 local BOX_BEVEL = BOX.C * BOX.k   -- edge length of the bevel (K.RoundMask cuts boxes with border the same way)
 local function boxOn()
     local st = ns.db and ns.db.settings
-    return ns.GuildPack ~= nil and not (st and (st.imageFrame == false or st.boxFrame == false))
+    return ns.ART ~= nil and not (st and (st.imageFrame == false or st.boxFrame == false))
 end
 local function frameGlowColor()
     local st = ns.db and ns.db.settings
@@ -3957,9 +3957,9 @@ local function frameGlowColor()
 end
 -- minH: smallest height for a border (glass boxes: 40, so rows and buttons stay free)
 function K.BoxFrame(box, minH)
-    if not box or box.boxFrame or box.noBoxFrame or not ns.GuildPack then return end
+    if not box or box.boxFrame or box.noBoxFrame or not ns.ART then return end
     local B, k = BOX, BOX.k
-    local TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\window_frame"
+    local TEX = "Interface\\AddOns\\Oasis\\Media\\art\\window_frame"
     local fr = CreateFrame("Frame", nil, box)
     fr:SetAllPoints()
     fr:EnableMouse(false)
@@ -4020,7 +4020,7 @@ end
 -- 0.6.283: buttons as images (guild module, Tools/make_buttons.py): normal / hover (brighter line) / active (filled red,
 -- on press and permanently for main buttons). Follows the same switches as the box border (imageFrame, boxFrame).
 -- images 512x128, corner 24 px (bevel) -> 9-slice via K.NineSlice, ember not recolored (image is red).
-local BTN_TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\btn_"
+local BTN_TEX = "Interface\\AddOns\\Oasis\\Media\\art\\btn_"
 local BTN_N = { w = 1, h = 1, cx = 24 / 512, cy = 24 / 128, center = true }
 K.imageButtons = setmetatable({}, { __mode = "k" })
 function K.ImageButton(b)

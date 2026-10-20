@@ -3012,10 +3012,10 @@ ns.RegisterPage({
         ------------------------------------------------------------------
         do
             -- Header image on the right (guild module), fading out to the left into the header
-            if ns.GuildPack then
+            if ns.ART then
                 hc.art = hc:CreateTexture(nil, "BACKGROUND", nil, 1)
                 -- 0.6.321: "Dark oasis at night" across the whole card, subtle
-                hc.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\profile_bg")
+                hc.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\profile_bg")
                 hc.art:SetTexCoord(0, 1, 0.1 * 356 / 512, 0.9 * 356 / 512)
                 hc.art:SetPoint("TOPRIGHT", -2, -2) hc.art:SetPoint("BOTTOMRIGHT", -2, 2)
                 hc.art:SetPoint("LEFT", hc, "LEFT", 2, 0)

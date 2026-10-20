@@ -12,7 +12,7 @@ ns.Weide = Weide
 local SHEEP_NPC = 1933        -- sheep (like in Deathroll)
 local SHEEP_DISPLAY = 856     -- sheep model (polymorph), works even without the creature in the cache
 local MAX_SHEEP = 40          -- more models cost too much performance
-local ART = "Interface\\AddOns\\Oasis_Guild\\Media\\weide_bg"   -- image only in the guild module
+local ART = "Interface\\AddOns\\Oasis\\Media\\art\\weide_bg"   -- image only in the guild module
 local MEADOW_TOP, MEADOW_BOTTOM = 0.34, 0.82   -- 0.6.562: further into depth   -- walking area (feet), fraction of height from the top: from the trees at the back to the very front - never in the sky
 
 -- Skins: light color on the sheep model. lvl = from Oasis rank
@@ -330,10 +330,10 @@ end
 -- follows the Oasis volume slider, only while the meadow is visible
 -- 0.6.557: every baa of a sheep can be heard (sounds may overlap), randomly from five voices;
 -- four of them CC0 by Joseph Sardin / BigSoundBank (sheep 3, 4, 5, 7)
-local SND = "Interface\\AddOns\\Oasis_Guild\\Media\\sounds\\"
+local SND = "Interface\\AddOns\\Oasis\\Media\\sounds\\"
 local VOICES = { "maeh", "maeh03", "maeh04", "maeh05", "maeh07" }
 function Weide.Maeh()
-    if not ns.GuildPack or ns.db.settings.gotchiSound == false then return end
+    if not ns.ART or ns.db.settings.gotchiSound == false then return end
     local vol = math.floor(tonumber(ns.db.settings.soundVol or 14) or 14)
     if vol <= 0 then return end
     local dir = SND .. VOICES[math.random(#VOICES)] .. "\\"
@@ -418,19 +418,19 @@ ns.RegisterPage({
         field.bg = field:CreateTexture(nil, "BACKGROUND")
         field.bg:SetAllPoints()
         field.bg:SetColorTexture(0.32, 0.55, 0.22, 1)   -- without guild module: plain green meadow
-        if ns.GuildPack then   -- flag: guild module loaded
+        if ns.ART then   -- flag: guild module loaded
             field.bg:SetTexture(ART)
             field.bg:SetTexCoord(0, 1, 0, 0.75)
         end
         K.Border(field, C.line)
         -- 0.6.543: frame in the style of the logo (gold, petrol inner edge, gems), 9-slice so the corners stay sharp
-        if ns.GuildPack then
+        if ns.ART then
             local fr = CreateFrame("Frame", nil, p)
             fr:SetPoint("TOPLEFT", field, "TOPLEFT", -6, 6)
             fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 7, -12)   -- 0.6.555: meadow stuck out at the bottom   -- at the bottom the band sits higher in the image (edge 53 instead of 43 px)
             fr:SetFrameLevel(field:GetFrameLevel() + 55)
             -- 0.6.552: frame from the template (1448x1086, as 1024x768 in 1024x1024): corners and center ornament undistorted, edges stretched
-            local TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_frame"
+            local TEX = "Interface\\AddOns\\Oasis\\Media\\art\\gildotchi_frame"
             local SW, SH, KK = 1448, 1086, 0.3
             local function piece(x1, y1, x2, y2)
                 local x = fr:CreateTexture(nil, "OVERLAY")
@@ -464,14 +464,14 @@ ns.RegisterPage({
             p.frameArt = fr
         end
         -- 0.6.542: logo top center, sticks out over the meadow (only with guild module)
-        if ns.GuildPack then
+        if ns.ART then
             local logo = CreateFrame("Frame", nil, p)
             logo:SetSize(210, 77)   -- 0.6.547: smaller
             logo:SetPoint("TOP", field, "TOP", 0, 24)
             logo:SetFrameLevel(field:GetFrameLevel() + 70)
             logo.t = logo:CreateTexture(nil, "OVERLAY")
             logo.t:SetAllPoints()
-            logo.t:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_logo")
+            logo.t:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\gildotchi_logo")
             logo.t:SetTexCoord(0, 1, 0, 187 / 256)
             p.logo = logo
         end
@@ -881,7 +881,7 @@ ns.RegisterPage({
             s.streak = Weide.Streak(who.name)
             s:SetAlpha(who.online and 1 or 0.75)
             local st, nm = s.streak or 0, ns.short(who.name)
-            if st >= 30 then nm = (ns.GuildPack and "|TInterface\\AddOns\\Oasis_Guild\\Media\\dr_crown:0|t " or "|T" .. ns.MEDIA .. "icons\\star_on:0|t ") .. "|cffffd24a" .. nm .. "|r"
+            if st >= 30 then nm = (ns.ART and "|TInterface\\AddOns\\Oasis\\Media\\art\\dr_crown:0|t " or "|T" .. ns.MEDIA .. "icons\\star_on:0|t ") .. "|cffffd24a" .. nm .. "|r"
             elseif st >= 14 then nm = "|T" .. ns.MEDIA .. "icons\\star_on:0|t |cffffd24a" .. nm .. "|r"
             elseif st >= 7 then nm = "|T" .. ns.MEDIA .. "icons\\star_on:0|t " .. nm end
             s.name:SetText(nm)

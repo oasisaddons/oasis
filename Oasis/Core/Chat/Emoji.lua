@@ -96,7 +96,7 @@ for _, cat in ipairs(Emoji.CATS) do
         if e[2] and not codeOf[e[1]] then codeOf[e[1]] = e[2] end
     end
 end
-local GPATH = "Interface\\AddOns\\Oasis_Guild\\Media\\emoji\\"   -- Textures of the guild emojis (guild module)
+local GPATH = "Interface\\AddOns\\Oasis\\Media\\art\\emoji\\"   -- Textures of the guild emojis (guild module)
 local TEX_PAT = "|T" .. PATH:gsub("%p", "%%%0") .. "([^:|]+)[^|]*|t"
 local TEX_PAT_G = "|T" .. GPATH:gsub("%p", "%%%0") .. "([^:|]+)[^|]*|t"
 function Emoji.Unrender(msg)

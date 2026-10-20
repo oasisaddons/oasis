@@ -152,7 +152,7 @@ function D.ShowPicker(mode)
     if not pick then
         local W, COLS, TW, TH, GAP = 660, 3, 196, 128, 12
         -- 0.6.124: wider with image tiles - tile 228 x 56 = exactly the 4:1 image format (previously clipped on the right)
-        if ns.GuildPack then W, TW = 760, 228 end
+        if ns.ART then W, TW = 760, 228 end
         local f = CreateFrame("Frame", "OasisInterests", UIParent)
         f:SetSize(W, 500)
         f:SetPoint("CENTER", 0, 30)
@@ -220,12 +220,12 @@ function D.ShowPicker(mode)
         -- 0.6.130: as a function - called directly on every open (new windows are already "visible",
         -- so the first call got no OnShow and the image was missing until the second open)
         function f:ApplyArt()
-            if not ns.GuildPack then return end
+            if not ns.ART then return end
             local r = (f:GetWidth() or 660) / math.max(1, f:GetHeight() or 350) / 2   -- Image is 2:1
             local l, rr = 0, 1
             if r < 1 then l, rr = (1 - r) / 2, 1 - (1 - r) / 2 end
-            f.artTop:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\updatebg")
-            f.artBot:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\updatebg")
+            f.artTop:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\updatebg")
+            f.artBot:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\updatebg")
             pcall(f.artTop.SetTexCoord, f.artTop, l, rr, 0, 0.5)
             pcall(f.artBot.SetTexCoord, f.artBot, l, rr, 0.5, 1)
             if not f.artRound then
@@ -297,7 +297,7 @@ function D.ShowPicker(mode)
             for _, t in ipairs({ f.topTex, f.edgeL, f.edgeR, f.inner, f.bottomLine }) do t:SetAlpha(0) end
         end
         -- 0.6.189: with guild module the same image frame as the main window (decorative lines then off)
-        if ns.GuildPack and K.ImageFrame then
+        if ns.ART and K.ImageFrame then
             local ok, fr = pcall(K.ImageFrame, f, 0.3)
             if ok and fr then
                 f.imageFrame = fr
@@ -375,10 +375,10 @@ function D.ShowPicker(mode)
         -- and the translated text lies on top
         local de = ns.lang == "de" or (not ns.lang and GetLocale and GetLocale() == "deDE")
         hero.artFile = de and "start_keep" or "start_keep_blank"
-        if ns.GuildPack then
+        if ns.ART then
             hero.art = hero:CreateTexture(nil, "ARTWORK", nil, 4)
             hero.art:SetAllPoints()
-            hero.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. hero.artFile)
+            hero.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\" .. hero.artFile)
             hero.art:SetTexCoord(0, 1, 0, 1)
             for _, x in ipairs({ hero.bg, hero.tint, hero.halo, hero.icon, hero.arrow }) do x:Hide() end
             if de then hero.t:Hide() hero.s:Hide()
@@ -407,7 +407,7 @@ function D.ShowPicker(mode)
         if hero.art then
             hero.pulse = hero:CreateTexture(nil, "ARTWORK", nil, 5)
             hero.pulse:SetAllPoints(hero.art)
-            hero.pulse:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. hero.artFile)
+            hero.pulse:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\" .. hero.artFile)
             hero.pulse:SetBlendMode("ADD")
             hero.pulse:SetAlpha(0)
         end
@@ -463,15 +463,15 @@ function D.ShowPicker(mode)
             t.bar:SetColorTexture(c[1], c[2], c[3], 1)
             -- Icon in the color circle (grows on hover)
             -- 0.6.119: image tile (frame, icon and scene in the image) - only with guild module
-            if ns.GuildPack then
+            if ns.ART then
                 t.art = t:CreateTexture(nil, "BORDER", nil, -1)
                 t.art:SetAllPoints()
-                t.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key .. "_clean")   -- 0.6.150: image without the old circle
+                t.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\interest_" .. it.key .. "_clean")   -- 0.6.150: image without the old circle
                 -- 0.6.142: circle badge as its own round graphic on top (Tools/make_interest_badges.py) -
                 -- in the images the circles differ in size and are oval; this way all are equally round and large
                 t.badge = t:CreateTexture(nil, "BORDER", nil, 0)
                 t.badge:SetPoint("CENTER", t, "LEFT", 34, 0)
-                t.badge:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key .. "_badge")
+                t.badge:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\interest_" .. it.key .. "_badge")
                 -- dark gradient behind the name (right of the icon) so the text stays readable
                 t.shade = t:CreateTexture(nil, "BORDER", nil, 1)
                 t.shade:SetPoint("TOPLEFT", t, "TOPLEFT", 4, -4)
@@ -622,7 +622,7 @@ function D.ShowPicker(mode)
         f.ok:SetPoint("BOTTOMRIGHT", -24, 22)
         -- 0.6.125: image button at the bottom center (guild module) - own plain button made only of the image, the
         -- default button drew a surface and border around the semi-transparent edges
-        if ns.GuildPack then
+        if ns.ART then
             f.ok:Hide()
             f.ok.Show = function() end
             local g = CreateFrame("Button", nil, f)
@@ -630,7 +630,7 @@ function D.ShowPicker(mode)
             g:SetPoint("BOTTOM", f, "BOTTOM", 0, 14)
             g.art = g:CreateTexture(nil, "ARTWORK")
             g.art:SetAllPoints()
-            g.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\start_go")
+            g.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\start_go")
             g.label = K.Text(g, 12, { 1, 0.92, 0.85 }, "CENTER")
             g.label:SetPoint("CENTER", -10, 0)
             g:SetScript("OnClick", function() local fn = f.ok:GetScript("OnClick") if fn and f.ok:IsEnabled() then fn(f.ok, "LeftButton") end end)
@@ -638,7 +638,7 @@ function D.ShowPicker(mode)
             g:SetScript("OnLeave", function(self) self.hl:Hide() end)
             g.hl = g:CreateTexture(nil, "ARTWORK", nil, 2)
             g.hl:SetAllPoints()
-            g.hl:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\start_go")
+            g.hl:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\start_go")
             g.hl:SetBlendMode("ADD")
             g.hl:SetAlpha(0.25)
             g.hl:Hide()
@@ -656,7 +656,7 @@ function D.ShowPicker(mode)
             if ns.UpdateStart and ns.UpdateStart.AllOn then ns.UpdateStart.AllOn() else D.ShowAll() end
             f:Hide()
         end)
-        if ns.GuildPack then f.all:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -24, 28) else f.all:SetPoint("RIGHT", f.ok, "LEFT", -12, 0) end
+        if ns.ART then f.all:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -24, 28) else f.all:SetPoint("RIGHT", f.ok, "LEFT", -12, 0) end
         f.min = textBtn(f, L["Essentials only"], 116, function()
             if ns.UpdateStart then ns.UpdateStart.Minimal() end
             S().interestsDone = ns.now()

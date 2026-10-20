@@ -495,10 +495,10 @@ function Sound.EntrancePopup(name, key, handle, isTest)
         pop.fillTex = K.Fill(pop, { 0.04, 0.04, 0.05, 0.96 })
         K.Border(pop, { C.accent[1] * 0.7, C.accent[2] * 0.7, C.accent[3] * 0.7, 1 })
         -- 0.6.151: same image box as the other notices (K.Toast, guild module) instead of surface and Oasis border
-        if ns.GuildPack then
+        if ns.ART then
             pop.boxBase = pop:CreateTexture(nil, "BACKGROUND", nil, 3)
             pop.boxBase:SetAllPoints()
-            pop.boxBase:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\toast_box_base")
+            pop.boxBase:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\toast_box_base")
             if pop.fillTex then pop.fillTex:SetAlpha(0) end
             pop.imgBox = true
         end

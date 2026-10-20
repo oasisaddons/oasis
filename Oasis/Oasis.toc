@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.574
+## Version: 0.6.575
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -116,3 +116,6 @@ Modules\DemoSeeds\Together.lua
 Modules\DemoSeeds\RaidTrade.lua
 Modules\DemoSeeds\Leadership.lua
 Modules\Encounters\Scout.lua
+Core\Diagnostics\Dev.lua
+Core\Diagnostics\Bugs.lua
+Core\Settings\LocalExport.lua

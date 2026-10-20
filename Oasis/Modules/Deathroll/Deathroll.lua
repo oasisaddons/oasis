@@ -1239,7 +1239,7 @@ end
 local picker
 -- Music: quiet background music in the menu, in combat one of four battle tracks (loop)
 -- battle music is only local in Media\music (not in the package) - if missing, it stays silent
-local GM = "Interface\\AddOns\\Oasis_Guild\\Media\\"   -- 0.5.728: battle music lives in the guild module (Oasis_Guild); if missing, it stays silent
+local GM = "Interface\\AddOns\\Oasis_GuildPack\\Media\\"   -- 0.6.575: battle music is private (own guild pack only); if missing, it stays silent
 local MUSIC_BG = { file = GM .. "sounds\\drmusic.ogg", len = 105 }
 local FIGHT = {
     { file = GM .. "music\\fight1.ogg", len = 233 }, { file = GM .. "music\\fight2.ogg", len = 179 },
@@ -1345,16 +1345,16 @@ local function buildPicker()
     plat:SetBlendMode("ADD")
     plat:SetVertexColor(1, 0.35, 0.25, 0.8)
     -- 0.6.209: guild module: ritual circle in the throne room as stage, figure stands on the circle; spotlight/platform off
-    if ns.GuildPack then
+    if ns.ART then
         stage.art = stage:CreateTexture(nil, "BACKGROUND", nil, 1)
         if K.BgImg then K.BgImg(stage.art) end   -- 0.6.227: brightness adjustable
         stage.art:SetAllPoints()
-        stage.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_pick_bg")
+        stage.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\dr_pick_bg")
         -- 0.6.239: torch/ember light flickers softly and irregularly - additive copy of the image whose brightness
         -- smoothly follows random target values (new target every 0.15-0.6 s, no jumping)
         stage.flick = stage:CreateTexture(nil, "BACKGROUND", nil, 2)
         stage.flick:SetAllPoints(stage.art)
-        stage.flick:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_pick_bg")
+        stage.flick:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\dr_pick_bg")
         stage.flick:SetBlendMode("ADD")
         stage.flick:SetAlpha(0)
         local cur, goal, wait = 0, 0, 0
@@ -1477,7 +1477,7 @@ local function buildPicker()
     ns.EscClose("OasisFighterSelect")
     picker = f
     -- 0.6.210: the same image frame as the main window and /oa start (can be turned off via "Decorated window frame")
-    if ns.GuildPack and K.ImageFrame then
+    if ns.ART and K.ImageFrame then
         local ok, fr = pcall(K.ImageFrame, f, 0.3)
         if ok and fr then f.imageFrame = fr if K.ApplyFrameStyle then K.ApplyFrameStyle(f) end end
     end
@@ -1811,7 +1811,7 @@ function DR.ArtSide(f, sd)
     -- glowing plate (same plate additively on top), pulses softly while it's this side's turn
     if not top.glowBg and top.bg then
         top.glowBg = top:CreateTexture(nil, "BACKGROUND", nil, -1)
-        top.glowBg:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. "dr_plate")
+        top.glowBg:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\" .. "dr_plate")
         top.glowBg:SetAllPoints(top.bg)
         top.glowBg:SetBlendMode("ADD")
         top.glowBg:SetAlpha(0)
@@ -1889,8 +1889,8 @@ local function build()
     f.arena:SetTexture(ns.MEDIA .. "dr\\arena")
     f.arena:SetAlpha(0.95)
     -- 0.6.219: guild module: throne room arena with own frame (transparent outside), two glow circles for the fighters
-    if ns.GuildPack then
-        f.arena:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_game_bg")
+    if ns.ART then
+        f.arena:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\dr_game_bg")
         f.arena:ClearAllPoints() f.arena:SetAllPoints()
         f.arena:SetAlpha(1)
         f.artMode = true
@@ -2233,7 +2233,7 @@ local function build()
     -- 0.6.220: game window in ornament style (only with the throne room image): golden title, number with ornament ring,
     -- "Your turn" on a bronze plate, buttons as image plates, name plates with medallion, figures whole
     if f.artMode then
-        local MED = "Interface\\AddOns\\Oasis_Guild\\Media\\"
+        local MED = "Interface\\AddOns\\Oasis\\Media\\art\\"
         local GOLD = { 1, 0.82, 0.45 }
         local function shadow(fs) if fs and fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 1) fs:SetShadowOffset(1, -1) end end
         -- Title
@@ -3020,8 +3020,8 @@ ns.RegisterPage({
         hero.top:SetColorTexture(C.red[1], C.red[2], C.red[3], 0.9)
         -- 0.6.194: with guild module background "Gothic fortress above lava chasm" with own frame - arena image,
         -- red top edge and panel edge then off; right side slightly darkened for the buttons
-        if ns.GuildPack then
-            hero.arena:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\deathroll_bg")
+        if ns.ART then
+            hero.arena:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\deathroll_bg")
             hero.arena:SetTexCoord(0, 1, 0, 1)   -- 0.6.196: image frame stays visible (0.6.195 had cut it off)
             hero.arena:ClearAllPoints() hero.arena:SetAllPoints()
             hero.arena:SetAlpha(1)
@@ -3063,7 +3063,7 @@ ns.RegisterPage({
         fc.n = K.Title(fc, 13, C.text, "CENTER")
         fc.n:SetPoint("BOTTOM", 0, 6)
         fc.n:SetWidth(200)
-        if ns.GuildPack then   -- 0.6.198: name tag floats above the head (gentle up and down)
+        if ns.ART then   -- 0.6.198: name tag floats above the head (gentle up and down)
             fc.tag = CreateFrame("Frame", nil, fc)
             fc.tag:SetAllPoints()
             fc.tag:SetFrameLevel(fc.m:GetFrameLevel() + 3)   -- above the 3D model
@@ -3089,9 +3089,9 @@ ns.RegisterPage({
                 self.n:SetPoint("TOP", self, "TOP", 0, -26 + 3 * math.sin(self.bob / 3 * math.pi * 2))
             end)
         end
-        if ns.GuildPack then   -- 0.6.197: dark plate behind the name
+        if ns.ART then   -- 0.6.197: dark plate behind the name
             fc.nBg = (fc.tag or fc):CreateTexture(nil, "OVERLAY", nil, -1)
-            fc.nBg:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. "dr_plate")
+            fc.nBg:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\" .. "dr_plate")
             fc.nBg:SetSize(176, 32)
             fc.nBg:SetPoint("CENTER", fc.n, "CENTER", 0, 0)
         end
@@ -3131,9 +3131,9 @@ ns.RegisterPage({
             end
         end
         hero.cls:SetShown(hasCls)
-        if hasCls and ns.GuildPack then
+        if hasCls and ns.ART then
             hero.clsRing = hero:CreateTexture(nil, "OVERLAY", nil, 2)
-            hero.clsRing:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\online_ring")
+            hero.clsRing:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\online_ring")
             hero.clsRing:SetSize(40, 40)
             hero.clsRing:SetPoint("CENTER", hero.cls)
             local cr, cg, cb = ns.classColor(myClass)
@@ -3185,7 +3185,7 @@ ns.RegisterPage({
         p.stake = K.Input(bar, 96, L["e.g. 10g"])
         p.stake:SetPoint("LEFT", c2, "RIGHT", 12, 0)
         p.startLbl, p.stakeLbl = c1, c2
-        if ns.GuildPack then   -- 0.6.200: brighter + shadow on the lava image
+        if ns.ART then   -- 0.6.200: brighter + shadow on the lava image
             for _, fs in ipairs({ c1, c2 }) do
                 fs:SetTextColor(0.8, 0.76, 0.72)
                 if fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 1) fs:SetShadowOffset(1, -1) end
@@ -3234,16 +3234,16 @@ ns.RegisterPage({
         -- 0.6.197: image buttons (guild module): fight = red lava plate, practice = dark plate. The button's own surfaces/edges
         -- invisible, hover brightens the image; calm()/glass leaves them alone (imgSkin)
         local function imgBtn(b, file, w, h)
-            if not (ns.GuildPack and b) then return end
+            if not (ns.ART and b) then return end
             b.imgSkin = true
             if b.sheen then b.sheen:Hide() end
             b.img = b:CreateTexture(nil, "BACKGROUND", nil, -8)
-            b.img:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. file)
+            b.img:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\" .. file)
             b.img:SetSize(w, h)
             b.img:SetPoint("CENTER")
             -- 0.6.198: glow on hover = the same image additively on top (instead of recoloring the button surface)
             b.imgGlow = b:CreateTexture(nil, "BACKGROUND", nil, -7)
-            b.imgGlow:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. file)
+            b.imgGlow:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\" .. file)
             b.imgGlow:SetAllPoints(b.img)
             b.imgGlow:SetBlendMode("ADD")
             b.imgGlow:SetAlpha(0)
@@ -3273,7 +3273,7 @@ ns.RegisterPage({
             end)
         end
         imgBtn(p.play, "dr_fight_btn", 226, 66)
-        if p.play.halo and ns.GuildPack then p.play.halo:SetAlpha(0.35) end
+        if p.play.halo and ns.ART then p.play.halo:SetAlpha(0.35) end
         p.practice:SetHeight(30)
         imgBtn(p.practice, "dr_plate", 214, 40)
         p.playHint = K.Text(right, 10, C.muted, "CENTER")
@@ -4132,7 +4132,7 @@ do
             for _, b in ipairs(self.buttons) do
                 if b.under then b.under:Hide() end
                 local on = b.key == key
-                if ns.GuildPack then
+                if ns.ART then
                     -- 0.6.203: instead of image plates (didn't fit when small) calm surfaces: active dark red with accent edge,
                     -- otherwise almost black with a fine bronze edge
                     if on then glass(b, { ac[1] * 0.45, ac[2] * 0.45, ac[3] * 0.45, 0.85 }, { ac[1], ac[2], ac[3], 0.75 }, 6)
@@ -4248,8 +4248,8 @@ do
             local hero = p.hero
             -- stage: dark glass, arena only a hint, mist + particles
             -- 0.6.195: with the guild module image no glass on top (made the image almost invisible and drew an edge)
-            if not ns.GuildPack then glass(hero, { 0.03, 0.03, 0.04, 0.92 }, { 1, 1, 1, 0.10 }, 14) end
-            if hero.arena then hero.arena:SetAlpha(ns.GuildPack and 1 or 0.22) round(hero.arena, hero, 14) end
+            if not ns.ART then glass(hero, { 0.03, 0.03, 0.04, 0.92 }, { 1, 1, 1, 0.10 }, 14) end
+            if hero.arena then hero.arena:SetAlpha(ns.ART and 1 or 0.22) round(hero.arena, hero, 14) end
             if hero.glow then round(hero.glow, hero, 14) end
             if hero.top then hero.top:Hide() end
             hero.fx = addFx(hero, ac, 12)
@@ -4262,7 +4262,7 @@ do
             -- stats as glass pills
             local stats = { { p.stBal, "Record" }, { p.stQuote, "Rate" }, { p.stStreak, "Streak" }, { p.stRank, "Rank" } }
             -- 0.6.200: on the lava image dark, almost opaque tiles with bronze edge (glass was barely readable)
-            local onArt = ns.GuildPack and true or false
+            local onArt = ns.ART and true or false
             local BRONZE = { 0.85, 0.55, 0.25, 0.6 }
             for i, s in ipairs(stats) do
                 local st = s[1]
@@ -4304,7 +4304,7 @@ do
             for i, fl in ipairs(hero.flames or {}) do fl:SetTexture(FX .. "glow128") fl:SetVertexColor(1 * 0.6, (0.5 + i * 0.1) * 0.6, 0.1) end
             calm(p.practice) calm(p.go) calm(p.resetBtn)
             for _, e in ipairs({ p.start, p.stake, p.name }) do
-                if ns.GuildPack then glass(e, { 0.035, 0.02, 0.02, 0.86 }, { 0.85, 0.55, 0.25, 0.45 }, 8)   -- 0.6.200
+                if ns.ART then glass(e, { 0.035, 0.02, 0.02, 0.86 }, { 0.85, 0.55, 0.25, 0.45 }, 8)   -- 0.6.200
                 else glass(e, { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.12 }, 8) end
             end
             -- opponents + ranking as glass surfaces, headers written normally
@@ -4313,12 +4313,12 @@ do
             if ch.head then ch.head.text:SetText(L["Opponents"]) end
             -- 0.6.201: opponent box with tavern image (own frame), header in gold, online count with green dot,
             -- empty: DEATHROLL emblem above the notice
-            if ns.GuildPack and not ch.art then
+            if ns.ART and not ch.art then
                 glass(ch, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, 12)
                 ch.art = ch:CreateTexture(nil, "BACKGROUND", nil, 4)
                 if K.BgImg then K.BgImg(ch.art) end   -- 0.6.227: brightness adjustable
                 ch.art:SetAllPoints()
-                ch.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. "dr_opp_bg")
+                ch.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\" .. "dr_opp_bg")
                 -- 0.6.203: show whole (don't cut the image frame), heavily darkened = subtle
                 ch.art:SetTexCoord(0, 1, 0, 1)
                 ch.art:SetVertexColor(0.22, 0.21, 0.20)   -- 0.6.285: even more subtle (before 0.38)
@@ -4354,7 +4354,7 @@ do
                 ch.dot:SetSize(12, 12)
                 ch.dot:SetPoint("RIGHT", p.lobCount, "LEFT", -2, 0)
                 ch.emb = ch:CreateTexture(nil, "ARTWORK")
-                ch.emb:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. "dr_emblem")
+                ch.emb:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\" .. "dr_emblem")
                 ch.emb:SetBlendMode("ADD")
                 ch.emb:SetSize(120, 120)
                 ch.emb:SetPoint("BOTTOM", p.onList.empty, "TOP", 0, 4)
@@ -4369,7 +4369,7 @@ do
             pills(p.rightSeg) pills(p.lastSeg) pills(p.seasonSeg)
             -- podium: calm glass blocks in medal color
             local PCOL = { { 1, 0.80, 0.25 }, { 0.80, 0.83, 0.90 }, { 0.85, 0.55, 0.32 } }
-            p.podium.cardStyle = ns.GuildPack and true or false
+            p.podium.cardStyle = ns.ART and true or false
             p.podium:Layout()
             for place, col in pairs(p.podium.cols) do
                 local pc = PCOL[place]
@@ -4383,7 +4383,7 @@ do
                     col.block:ClearAllPoints() col.block:SetAllPoints(col)
                     -- 0.6.242: card as an image with its own frame in gold/silver/bronze (Tools/make_podium_cards.py)
                     local MED = { "gold", "silver", "bronze" }
-                    col.block:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_podium_" .. MED[place])
+                    col.block:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\dr_podium_" .. MED[place])
                     col.block:SetVertexColor(1, 1, 1, 1)
                     col.block:SetTexCoord(0, 1, 0, 1)
                     col.edge:SetAlpha(0)
@@ -4391,7 +4391,7 @@ do
                     col.cls:ClearAllPoints() col.cls:SetPoint("TOP", 0, -24) col.cls:SetSize(30, 30)
                     if col.crown then
                         -- 0.6.243: painted crown (Tools/make_crown.py) at the top of the gold card, class icon moves below it
-                        col.crown:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_crown")
+                        col.crown:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\dr_crown")
                         col.crown:SetTexCoord(0, 1, 0, 1)
                         col.crown:SetVertexColor(1, 1, 1, 1)
                         col.crown:ClearAllPoints() col.crown:SetPoint("TOP", col, "TOP", 0, -6) col.crown:SetSize(52, 26)
@@ -4434,17 +4434,17 @@ do
             -- 0.6.299: places 1-3 with the ranking's picture card (gold/silver/bronze), crown above place 1
             local st = p.stRank
             local MED = { "gold", "silver", "bronze" }
-            local card = ns.GuildPack and p.rankPos and MED[p.rankPos]
+            local card = ns.ART and p.rankPos and MED[p.rankPos]
             if card then
                 if not st.card then
                     st.card = st:CreateTexture(nil, "BACKGROUND", nil, 1)
                     st.card:SetAllPoints()
                     st.crown = st:CreateTexture(nil, "OVERLAY")
-                    st.crown:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_crown")
+                    st.crown:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\dr_crown")
                     st.crown:SetSize(40, 20)
                     st.crown:SetPoint("BOTTOM", st, "TOP", 0, -6)
                 end
-                st.card:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_podium_" .. card)
+                st.card:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\dr_podium_" .. card)
                 st.card:Show()
                 st.crown:SetShown(p.rankPos == 1)
                 glass(st, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, 10)   -- glass off, the card has its own frame

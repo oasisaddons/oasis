@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.574"
+ns.version = "0.6.575"
 ns.versionDate = "20.10.2026"
 ns.SUPPORT_URL = ""   -- Link for "Copy report" (e.g. Discord invite); empty = text only
 ns.WAGO_ID = ""       -- Wago project ID for Wago Analytics (empty = off)   -- Version date: update with EVERY new version (update notice in guild chat)
@@ -342,10 +342,12 @@ function ns.inInstance()
     local inInst = IsInInstance()
     return inInst and true or false
 end
--- Developer mode: only exists with the guild module (Oasis_Guild/Dev.lua replaces ns.IsDev and registers /oa entwickler).
--- In the public version nobody is a developer: demo data, guild leadership test mode and developer queries
--- stay off - even if someone sets the stored switch by hand. Always call as ns.IsDev(), never cache it.
+-- Developer mode: off by default; Core/Diagnostics/Dev.lua replaces ns.IsDev and registers /oa entwickler <code>
+-- (only a hash of the code is in the source). Always call as ns.IsDev(), never cache it.
 function ns.IsDev() return false end
+-- 0.6.575: the artwork (backgrounds, deathroll, Guildotchi, start tiles) ships with Oasis (Media\art). Former guild
+-- module checks for pictures ask ns.ART; ns.GuildPack stays nil (behaviour of the public version).
+ns.ART = true
 -- 0.6.275: own position on the map (mapID, x, y 0..1) - formerly Camp.MyPosition, used by map, camp, etc.
 function ns.MyMapPosition()
     local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
@@ -361,7 +363,7 @@ end
 -- in the toc). ModuleLoader.LoadAll runs only the enabled ones at startup; after that ns.ModuleFile accepts nothing.
 ns.moduleFiles = {}
 ns.moduleOrder = {}   -- 0.6.285: toc order (modules that build on others load afterwards)
--- chronicle entry "joined the guild" (German template from Oasis before 0.6.574 or English)
+-- chronicle entry "joined the guild" (German template from Oasis before 0.6.575 or English)
 function ns.IsJoinTk(tk) return type(tk) == "string" and (tk:find("^tritt") or tk:find("^joined the guild")) and true or false end
 function ns.ModuleFile(key, fn)
     local files = ns.moduleFiles

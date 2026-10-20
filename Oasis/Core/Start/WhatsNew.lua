@@ -43,7 +43,7 @@ function W.Items(seen)
 end
 
 local win
-local BG = "Interface\\AddOns\\Oasis_Guild\\Media\\news_bg"
+local BG = "Interface\\AddOns\\Oasis\\Media\\art\\news_bg"
 local WIDTH, ROW, HEAD, FOOT = 700, 58, 104, 66
 -- Split an entry into title, text and icon (old entries: "Title: Text")
 local function parts(it)
@@ -72,7 +72,7 @@ local function build()
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
     f:SetClampedToScreen(true)
     -- 0.6.144: background as an image with its own frame (guild module), otherwise glass surface
-    if ns.GuildPack then
+    if ns.ART then
         f.bg = f:CreateTexture(nil, "BACKGROUND")
         f.bg:SetAllPoints()
         f.bg:SetTexture(BG)

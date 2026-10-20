@@ -533,17 +533,17 @@ local function buildMain()
     K.Border(main, C.line)
     -- 0.6.128: ember graphic in the content area on the right, like the left in the accent color (grayscale mask + ADD), plus
     -- the fine dot grid; corners rounded on the right. Guild module only.
-    if ns.GuildPack then
+    if ns.ART then
         local art = main:CreateTexture(nil, "ARTWORK", nil, -8)
         art:SetPoint("TOPLEFT", main, "TOPLEFT", SIDEBAR, 0)
         art:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", 0, 0)
         -- 0.6.146: rock image with ember cracks instead of ember gradient - drawn normally, cropped to the aspect ratio
         -- of the content area (image 4:3)
         -- 0.6.154: two layers (Tools/split_glow.py) - rock in gray, on top only the ember in the chosen color
-        art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\content_bg_base")
+        art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\content_bg_base")
         local artGlow = main:CreateTexture(nil, "ARTWORK", nil, -8)
         artGlow:SetAllPoints(art)
-        artGlow:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\content_bg_glow")
+        artGlow:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\content_bg_glow")
         artGlow:SetBlendMode("ADD")
         local function fitArt()
             local w, h = art:GetWidth() or 0, art:GetHeight() or 0
@@ -625,16 +625,16 @@ local function buildMain()
     -- 0.6.126: ember graphic behind the bar in the user's accent color (guild module only).
     -- The file is a grayscale mask (ember bright, ground black); "ADD" + accent color = ember in any color,
     -- the black part doesn't change the bar. Color changes in the settings apply immediately.
-    if ns.GuildPack then
+    if ns.ART then
         side.art = side:CreateTexture(nil, "ARTWORK", nil, -8)
         if K.BgImg then K.BgImg(side.art, "L") end   -- 0.6.227: brightness adjustable
         side.art:SetAllPoints()
         -- 0.6.148: slate image with fine ember veins instead of ember mask (drawn normally, aspect ratio fits almost exactly)
         -- 0.6.154: two layers like on the right - slate in gray, on top only the ember veins in the chosen color
-        side.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg_base")
+        side.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\sidebar_bg_base")
         side.glow = side:CreateTexture(nil, "ARTWORK", nil, -8)
         side.glow:SetAllPoints(side.art)
-        side.glow:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg_glow")
+        side.glow:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\sidebar_bg_glow")
         side.glow:SetBlendMode("ADD")
         -- 0.6.157: soft light glow in the chosen color, falls into the bar from above and fades downward
         side.wash = side:CreateTexture(nil, "ARTWORK", nil, -7)
@@ -719,7 +719,7 @@ local function buildMain()
         if sk and sk.line ~= "round_line" then for _, t in ipairs(main.frameLines.corners) do t:Hide() end end
         if main.lineFrame then main.lineFrame:SetAlpha(0.35) end
         -- 0.6.186: with guild module image border outside around the window - decorative lines and gray edge then off
-        if ns.GuildPack and K.ImageFrame then
+        if ns.ART and K.ImageFrame then
             local ok, f = pcall(K.ImageFrame, main, 0.3)
             if ok and f then
                 main.imageFrame = f

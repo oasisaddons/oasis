@@ -553,16 +553,16 @@ local function podSlot(p, parent, i)
     if K.RoundMask then K.RoundMask(s.hl, s.hl, 10) end
     s.hl:Hide()
     -- 0.6.445: with the guild module the same image cards as the deathroll leaderboard (gold/silver/bronze + crown)
-    if ns.GuildPack then
+    if ns.ART then
         local MED = { "gold", "silver", "bronze" }
         s.card = s:CreateTexture(nil, "BACKGROUND", nil, -2)
         s.card:SetPoint("TOPLEFT", 0, 4)
         s.card:SetPoint("BOTTOMRIGHT", 0, 0)
-        s.card:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_podium_" .. MED[i])
+        s.card:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\dr_podium_" .. MED[i])
         s.base:SetAlpha(0) s.top:Hide()
         if i == 1 then
             s.crown = s:CreateTexture(nil, "OVERLAY")
-            s.crown:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_crown")
+            s.crown:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\dr_crown")
             s.crown:SetSize(40, 20)
             s.crown:SetPoint("BOTTOM", s.ring, "TOP", 0, -2)
         end

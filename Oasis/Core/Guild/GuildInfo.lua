@@ -508,9 +508,9 @@ local function memberCell(parent)
     c.letter:SetPoint("CENTER", c.ring)
     -- 0.6.178: ornament ring (guild module) instead of color circle; class icon fills the opening (without mask -
     -- corners lie under the ring). Opening ~74 %, ring up to ~90 % of the image.
-    if ns.GuildPack then
+    if ns.ART then
         c.frame = c:CreateTexture(nil, "OVERLAY", nil, 1)
-        c.frame:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\online_ring")
+        c.frame:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\online_ring")
         c.frame:SetPoint("CENTER", c.ring)
     end
     c.lvlBg = c:CreateTexture(nil, "OVERLAY")
@@ -1779,11 +1779,11 @@ ns.RegisterPage({
         online.head:Live(true)
         -- 0.6.177: background image (night oasis with its own decorative frame, guild module) - stretched to the box,
         -- the box's own edge recedes so there is no double frame
-        if ns.GuildPack then
+        if ns.ART then
             online.art = online:CreateTexture(nil, "BACKGROUND", nil, 2)
             if K.BgImg then K.BgImg(online.art) end   -- 0.6.227: brightness adjustable
             online.art:SetAllPoints()
-            online.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\online_bg")
+            online.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\online_bg")
             if K.RoundMask then pcall(K.RoundMask, online.art, online, 8) end
             -- 0.6.412: image more subtle - dark veil on top
             local dim = online:CreateTexture(nil, "BACKGROUND", nil, 5)
@@ -1879,9 +1879,9 @@ ns.RegisterPage({
             f.icon = f:CreateTexture(nil, "ARTWORK", nil, 1)
             f.icon:SetSize(30, 30) f.icon:SetPoint("CENTER", f.ring)
             -- 0.6.173: ornament ring as badge frame around the class icon (guild module); inner radius ~70 % of the image
-            if ns.GuildPack then
+            if ns.ART then
                 f.frame = f:CreateTexture(nil, "OVERLAY", nil, 2)
-                f.frame:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\badge_ring")
+                f.frame:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\badge_ring")
                 -- 0.6.174: smaller (56), class icon fills the opening (~70 % = 40)
                 f.frame:SetSize(56, 56) f.frame:SetPoint("CENTER", f.ring)
                 f.ring:SetAlpha(0)   -- Frame comes from the image
@@ -1928,10 +1928,10 @@ ns.RegisterPage({
             f.whyIcon:SetTexture(k.badge)
             f.badge:SetTexture(k.badge)
             -- Image per type (only with guild module)
-            local art = k.art and ns.GuildPack
+            local art = k.art and ns.ART
             if art then
                 f.artW, f.artH, f.artTH = k.w, k.h, k.th
-                f.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. k.art)
+                f.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\" .. k.art)
                 f:FitArt()
             end
             f.art:SetShown(art and true or false)
@@ -2878,7 +2878,7 @@ ns.RegisterPage({
             bx.art = bx:CreateTexture(nil, "BACKGROUND", nil, 2)
             if K.BgImg then K.BgImg(bx.art) end   -- 0.6.227: brightness adjustable
             bx.art:SetAllPoints()
-            bx.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. file)
+            bx.art:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\" .. file)
             if K.RoundMask then pcall(K.RoundMask, bx.art, bx, 8) end   -- 0.6.315: cut into the frame corners
             -- 0.6.412: image more subtle - dark veil on top
             local dim = bx:CreateTexture(nil, "BACKGROUND", nil, 5)
@@ -2889,7 +2889,7 @@ ns.RegisterPage({
             if bx.borders then for _, b in ipairs(bx.borders) do b:SetAlpha(0) end end
             if bx.skinLine then for _, b in ipairs(bx.skinLine) do b:SetAlpha(0) end end
         end
-        if ns.GuildPack then
+        if ns.ART then
             boxArt(feed, "feed_bg")
             boxArt(nextBox, "next_bg")
         elseif K.FrameLines then
