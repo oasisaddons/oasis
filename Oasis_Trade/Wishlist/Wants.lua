@@ -1,17 +1,17 @@
--- Oasis: Einkaufsliste der Gilde + "Wer braucht was"-Tooltip
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Wishlist", function()   -- abschaltbar, siehe ModuleLoader.lua
+-- Oasis: guild shopping list + "Who needs what" tooltip
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Wishlist", function()   -- can be disabled, see ModuleLoader.lua
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be manipulated):
+-- sanitize texts, clamp numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -60,7 +60,7 @@ end
 local Wants = {}
 ns.Wants = Wants
 
--- Gilden-Optionen (Gildenleitung)
+-- guild options (guild leadership)
 ns.GuildOption({ page = "wants", key = "wnOffMod", default = true, lead = true, label = "Officers remove others' wants",
     desc = "Officers may delete other members' entries from the wanted list" })
 ns.GuildOption({ page = "wants", key = "wnLootCd", default = 5, min = 1, max = 60, step = 1, label = "Loot hint at most every",
@@ -68,7 +68,7 @@ ns.GuildOption({ page = "wants", key = "wnLootCd", default = 5, min = 1, max = 6
     fmt = function(v) return v .. " min" end })
 
 ------------------------------------------------------------------------
--- Daten
+-- data
 ------------------------------------------------------------------------
 function Wants.All()
     return Store.List("wants")
@@ -86,7 +86,7 @@ function Wants.Count(itemID)
     return ok and ns.safe(n) or 0
 end
 
--- Eintrag aus Link oder Name
+-- entry from link or name
 function Wants.Add(text, qty, note, extra)
     text = (text or ""):gsub("^%s+", ""):gsub("%s+$", "")
     if text == "" then return end
@@ -96,7 +96,7 @@ function Wants.Add(text, qty, note, extra)
         local n, link = C_Item.GetItemInfo(text)
         if n then itemID, name = ns.itemID(link), n end
     end
-    -- nur Name getippt: in den bekannten Items nachschlagen
+    -- only a name typed: look it up in the known items
     if not itemID and ns.ItemSearch then
         local id, n = ns.ItemSearch.ExactID(text)
         if id then itemID, name = id, n end
@@ -123,7 +123,7 @@ function Wants.Add(text, qty, note, extra)
 end
 
 function Wants.Offer(w)
-    -- zaehlt nur einmal pro Wunsch und nicht fuer eigene Wuensche
+    -- counts only once per wish and not for own wishes
     ns.db.helpedSeen = ns.db.helpedSeen or {}
     if ns.Badges and not ns.isMe(w.who) and not ns.db.helpedSeen[w.id] then
         ns.db.helpedSeen[w.id] = true
@@ -135,7 +135,7 @@ function Wants.Offer(w)
 end
 Comm.On("HAVE", function(sender, _, id, name, have)
     have = SEC.Num(have, 0, 100000, true) or 0
-    -- nur fuer einen eigenen, offenen Wunsch; Name aus dem eigenen Datensatz; je Absender gedrosselt
+    -- only for an own, open wish; name from the own record; throttled per sender
     local w = type(id) == "string" and Store.Get("wants", id)
     if not w or w.del or not ns.isMe(w.who) then return end
     if not SEC.Rate("have:" .. sender .. ":" .. id, 60) then return end
@@ -147,7 +147,7 @@ Comm.On("HAVE", function(sender, _, id, name, have)
 end)
 
 ------------------------------------------------------------------------
--- Hinweis beim Looten: jemand sucht genau das
+-- notice when looting: someone is looking for exactly this
 ------------------------------------------------------------------------
 local notified = {}
 ns.On("CHAT_MSG_LOOT", function(text, playerName)
@@ -187,10 +187,10 @@ ns.Listen("STORE", function(coll, rec, old)
 end)
 
 ------------------------------------------------------------------------
--- Tooltip: Gesucht von / offene Auftraege / herstellbar von
+-- tooltip: wanted by / open orders / craftable by
 ------------------------------------------------------------------------
--- Zeilen je Item zwischenspeichern (Performance 0.5.482: Tooltips werden ~5x/s neu aufgebaut, vorher jedes Mal
--- volle Scans von Wunschliste, Auftraegen und Gildenbank). Geleert bei Aenderungen und spaetestens nach 10 s.
+-- cache lines per item (performance 0.5.482: tooltips are rebuilt ~5x/s, previously every time
+-- full scans of wishlist, orders and guild bank). Cleared on changes and after 10 s at the latest.
 local tipCache, tipCacheT = {}, 0
 local TIP_COLLS = { wants = true, orders = true, bank = true, prices = true }
 ns.Listen("STORE", function(coll) if TIP_COLLS[coll] then tipCache = {} end end)
@@ -206,7 +206,7 @@ local function addOasisLines(tt, itemID)
         tipCache[itemID] = lines
     end
     if #lines == 0 then return end
-    tt:AddLine(" ")   -- 0.5.869: nur Abstand, keine rote "Oasis"-Ueberschrift mehr (wirkte im Tooltip wie eine Warnung)
+    tt:AddLine(" ")   -- 0.5.869: only spacing, no red "Oasis" header anymore (looked like a warning in the tooltip)
     for _, l in ipairs(lines) do tt:AddLine(l, 0.9, 0.88, 1, true) end
 end
 function buildLines(itemID, st)
@@ -277,12 +277,12 @@ local function hookTooltips()
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- page
 ------------------------------------------------------------------------
 local filter = "all"
 local formQty = 1
 
--- Woher bekommt man ein Item? (fuer Zeile, Filter und Knoepfe)
+-- where do you get an item? (for row, filter and buttons)
 function Wants.Sources(w)
     local id = w.itemID and w.itemID > 0 and w.itemID or nil
     local s = { have = Wants.Count(id), bank = id and ns.GuildBank and ns.GuildBank.Count(id) or 0 }
@@ -301,7 +301,7 @@ end
 
 
 ------------------------------------------------------------------------
--- Optik (wie Questitems/Chronik/Gildeninfo): Kacheln, Reiter, Karten
+-- look (like quest items/chronicle/guild info): tiles, tabs, cards
 ------------------------------------------------------------------------
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local EMBER = ns.MEDIA .. "ember"
@@ -338,7 +338,7 @@ local page, flashKey
 
 local function S() return ns.db.settings end
 local function animOn() return not S().noAnim end
--- Glas 2026: ruhige Flaeche + feine Kante (Kante optional in Farbe)
+-- glass 2026: calm fill + fine edge (edge optionally in color)
 local GLINE = { 1, 1, 1, 0.10 }
 local function glass(f, r, a, line)
     local IG = ns.Insta
@@ -384,7 +384,7 @@ local function colored(who)
 end
 local function isDemo(w) return type(w.id) == "string" and w.id:find("^demo") ~= nil end
 
--- Item-Daten (fehlende beim Client anfordern; GET_ITEM_INFO_RECEIVED laedt nach)
+-- item data (request missing ones from the client; GET_ITEM_INFO_RECEIVED reloads)
 local requested = {}
 local function request(id)
     if id and not requested[id] and C_Item and api(C_Item, "RequestLoadItemDataByID") then
@@ -416,7 +416,7 @@ local function linkItem(w)
 end
 
 ------------------------------------------------------------------------
--- Aktionen (Demo-Eintraege fluestern niemanden an)
+-- actions (demo entries whisper nobody)
 ------------------------------------------------------------------------
 local function offer(w)
     if isDemo(w) then ns.print((L["Demo: would notify %s."]):format(ns.displayName(w.who))) return end
@@ -443,7 +443,7 @@ local function canDelete(w)
 end
 
 ------------------------------------------------------------------------
--- Bausteine
+-- building blocks
 ------------------------------------------------------------------------
 local function emptyState(parent)
     local f = CreateFrame("Frame", nil, parent)
@@ -495,7 +495,7 @@ local function emptyState(parent)
     return f
 end
 
--- Reiterleiste: Symbol + Text + Zaehler, gleitender Balken in der Reiterfarbe
+-- tab bar: icon + text + counter, sliding bar in the tab color
 local function buildTabs(p, onPick)
     local f = CreateFrame("Frame", nil, p)
     f:SetHeight(34)
@@ -611,7 +611,7 @@ local function buildTabs(p, onPick)
     return f
 end
 
--- Kennzahl-Kachel (Verlauf, Glow, Hover-Lift, hochzaehlend), Klick = Filter
+-- KPI tile (gradient, glow, hover lift, counting up), click = filter
 local function buildTile(parent, d, onClick)
     local c = d.color
     local t = CreateFrame("Button", nil, parent)
@@ -676,7 +676,7 @@ local function buildTile(parent, d, onClick)
     return t
 end
 
--- rundes Item-Bild im Qualitaetsring, Symbol-Ersatz statt Fragezeichen
+-- round item image in quality ring, icon fallback instead of question mark
 local function makeAvatar(parent, s)
     local a = CreateFrame("Frame", nil, parent)
     a:SetSize(s, s)
@@ -727,7 +727,7 @@ local function setAvatar(a, id, color, hot)
 end
 
 ------------------------------------------------------------------------
--- Liste: Lage-Kapitel (oben angeheftet) + Karten, Zeilen je Schluessel wiederverwendet
+-- list: location chapters (pinned on top) + cards, rows reused per key
 ------------------------------------------------------------------------
 local function buildList(p)
     local TL = CreateFrame("Frame", nil, p)
@@ -804,7 +804,7 @@ local function buildList(p)
         if not vm or not vm.menu then return end
         K.ShowMenu(owner or r, vm.menu(), plain(vm.name), 210)
     end
-    -- Quellen-Chip: Symbol oder Klassenkreise + Text
+    -- source chip: icon or class circles + text
     local function newChip(r)
         local b = CreateFrame("Button", nil, r)
         b:SetHeight(18)
@@ -984,7 +984,7 @@ local function buildList(p)
         r.tint:Hide()
         r.edge:Hide()
         if not r.hovered then glass(r, 10, 0.03) end
-        -- rechts: Hauptaktion + Symbolknoepfe (beim Ueberfahren)
+        -- right: main action + icon buttons (on mouseover)
         local reserve = 10
         r.prim:ClearAllPoints()
         if vm.primary then
@@ -1014,7 +1014,7 @@ local function buildList(p)
         r.acts:SetPoint("RIGHT", r, "RIGHT", -reserve, 0)
         r.acts:SetShown(r.hovered and #acts > 0)
         reserve = reserve + #acts * 26 + 6
-        -- Zeile 1: "10x Heiltrank" in Qualitaetsfarbe + Gold-Chip
+        -- line 1: "10x Healing Potion" in quality color + gold chip
         local nc = (q and q >= 1 and QCOL[q]) or C.text
         r.name:SetText(K.hex(nc) .. (vm.qty or 1) .. "x  " .. vm.name .. "|r")
         local avail = W - 58 - reserve
@@ -1033,12 +1033,12 @@ local function buildList(p)
             r.price:ClearAllPoints()
             r.price:SetPoint("LEFT", r.name, "RIGHT", 8, 0)
         end
-        -- Zeile 2: Wer (Klassenfarbe) · Notiz · Zeit
+        -- line 2: who (class color) · note · time
         r.meta:SetText(vm.meta or "")
         r.meta:ClearAllPoints()
         r.meta:SetPoint("TOPLEFT", 58, it.slim and -30 or -29)
         r.meta:SetPoint("RIGHT", r, "RIGHT", -reserve, 0)
-        -- Zeile 3: Quellen-Chips
+        -- line 3: source chips
         local x, shown = 58, 0
         local chips = vm.chips or {}
         for i, c in ipairs(chips) do
@@ -1063,7 +1063,7 @@ local function buildList(p)
             r.more:ClearAllPoints()
             r.more:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", x + 2, 12)
         end
-        -- frisch eingetragen: kurz aufleuchten
+        -- freshly added: flash briefly
         if flashKey and vm.key == flashKey then
             flashKey = nil
             if animOn() then
@@ -1185,7 +1185,7 @@ local function buildList(p)
     TL:SetScript("OnSizeChanged", function(self) self:Layout(true) end)
     TL:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) self.off = self.target end)
 
-    -- keep = Leseposition halten (Nachladen): Anker ist der oberste sichtbare Eintrag
+    -- keep = keep reading position (reload): anchor is the topmost visible entry
     function TL:SetItems(items, keep)
         local anchorKey, anchorDy
         if keep and self.off > 0 then
@@ -1229,7 +1229,7 @@ local function buildList(p)
 end
 
 ------------------------------------------------------------------------
--- Eintraege aufbereiten (eine Beschreibung je Karte)
+-- prepare entries (one description per card)
 ------------------------------------------------------------------------
 local function shortDungeon(s)
     s = plain(s)
@@ -1247,12 +1247,12 @@ local function vmWant(w)
     local v = { key = "w:" .. tostring(w.id), w = w, id = id, name = name, qty = w.qty or 1, price = tonumber(w.price), mine = mine, group = group,
         color = color, hot = deliver, chips = {}, acts = {}, tip = {}, t = w.created or w.u or 0 }
     local who = ns.displayName(w.who)
-    -- Zeile 2
+    -- line 2
     local meta = colored(w.who) .. (mine and ("  |cff888888(" .. L["you"] .. ")|r") or "")
     if (w.note or "") ~= "" then meta = meta .. "  |cff555555·|r  |cffc8c8cc" .. w.note .. "|r" end
     meta = meta .. "  |cff555555·|r  |cff777777" .. ns.ago(w.u or w.created) .. "|r"
     v.meta = meta
-    -- Quellen
+    -- sources
     if s.have > 0 then
         v.chips[#v.chips + 1] = { glyph = "checklist", text = (L["You have %d"]):format(s.have), color = C.mint,
             tip = { (L["You have %d"]):format(s.have), "|cff888888" .. L["in your bags"] .. "|r" }, fn = (not mine) and function() offer(w) end or nil }
@@ -1292,11 +1292,11 @@ local function vmWant(w)
         local st = ns.WishAlerts.SetText(w.set)
         if st then v.chips[#v.chips + 1] = { glyph = "checklist", text = st, color = C.mint, tip = { L["Set"], st, "|cff888888" .. L["Right-click: change set"] .. "|r" } } end
     end
-    -- Tooltip-Zeilen
+    -- tooltip lines
     v.tip[1] = (L["Wanted by %s"]):format(colored(w.who)) .. "  |cffffc24d" .. (w.qty or 1) .. "x|r"
     if (w.note or "") ~= "" then v.tip[#v.tip + 1] = "|cffc8c8cc" .. w.note .. "|r" end
     if v.price then v.tip[#v.tip + 1] = "|cffe8b44a" .. (L["pays %dg each"]):format(v.price) .. "|r" end
-    -- Hauptaktion je nach Lage
+    -- main action depending on location
     local others = 0
     for _, c in ipairs(s.crafters or {}) do if not ns.isMe(c.name) then others = others + 1 end end
     if not mine and s.have > 0 then
@@ -1308,7 +1308,7 @@ local function vmWant(w)
     elseif mine then
         v.primary = { text = L["Done"], tip = L["Tick off and remove the wish"], fn = function() done(w) end }
     end
-    -- weitere Aktionen beim Ueberfahren
+    -- more actions on mouseover
     if not mine then
         v.acts[#v.acts + 1] = { glyph = "announce", tip = (L["Whisper %s"]):format(who), fn = function() whisper(w) end }
     end
@@ -1340,7 +1340,7 @@ local function vmWant(w)
     return v
 end
 
--- Daten + Zaehler + Filter
+-- data + counters + filters
 local function collect()
     local all, counts = {}, { all = 0, deliver = 0, bank = 0, craft = 0, mine = 0 }
     for _, w in ipairs(Store.List("wants")) do
@@ -1415,7 +1415,7 @@ local function onTile(k)
 end
 
 ------------------------------------------------------------------------
--- Eintragen-Zeile
+-- add-entry row
 ------------------------------------------------------------------------
 local function setQty(p, n)
     formQty = math.max(1, math.min(999, math.floor(tonumber(n) or 1)))
@@ -1447,7 +1447,7 @@ local function buildForm(p)
             end
         end)
     end
-    -- Mengen-Stepper: [-] n [+], Mausrad, Shift = 10er-Schritte
+    -- amount stepper: [-] n [+], mouse wheel, Shift = steps of 10
     local st = CreateFrame("Frame", nil, f)
     st:SetSize(82, 26)
     glass(st, 8, 0.04)
@@ -1466,7 +1466,7 @@ local function buildForm(p)
     st:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Qty"], "|cff888888" .. L["Mouse wheel or +/-, Shift for steps of 10"] .. "|r" }) end)
     st:SetScript("OnLeave", function() GameTooltip:Hide() end)
     f.step = st
-    -- Preisangebot mit Gold-Symbol
+    -- price offer with gold icon
     local price = K.Input(f, 78, L["Price"])
     price:SetHeight(26)
     glass(price, 8, 0.04)
@@ -1506,7 +1506,7 @@ local function buildForm(p)
         flashKey = "w:" .. tostring(rec.id)
         p.scrollTo = flashKey
         if filter ~= "all" and filter ~= "mine" then filter = "all" p.switch = true end
-        -- Bestaetigung: Knopf und Zeile leuchten kurz gruen
+        -- confirmation: button and row flash green briefly
         add:SetLabel(L["Added!"])
         ns.After(1.4, function() add:SetLabel(L["Add"]) end)
         if animOn() then
@@ -1536,9 +1536,9 @@ local function buildForm(p)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- page
 ------------------------------------------------------------------------
-local FORM_Y, TAB_Y, LIST_Y = 0, -76, -116   -- 0.5.853: Kennzahl-Kacheln entfallen
+local FORM_Y, TAB_Y, LIST_Y = 0, -76, -116   -- 0.5.853: KPI tiles dropped
 ns.RegisterPage({
     key = "wants", title = "Wanted", order = 2.5,
     sub = "The guild's shopping list – anyone who has or can craft something gets notified on loot and in the tooltip",
@@ -1546,7 +1546,7 @@ ns.RegisterPage({
         page = p
         p.fresh = true
         p:HookScript("OnShow", function(self) self.fresh = true end)
-        -- Kennzahl-Kacheln (Klick = Filter)
+        -- KPI tiles (click = filter)
         p.tileRow = CreateFrame("Frame", nil, p)
         p.tileRow:SetPoint("TOPLEFT", 0, 0)
         p.tileRow:SetPoint("TOPRIGHT", 0, 0)
@@ -1554,11 +1554,11 @@ ns.RegisterPage({
         p.tiles = {}
         for i, d in ipairs(TILES) do p.tiles[i] = buildTile(p.tileRow, d, onTile) end
         p.tileRow:Hide()
-        -- Eintragen
+        -- add entry
         p.form = buildForm(p)
         p.form:SetPoint("TOPLEFT", 0, FORM_Y)
         p.form:SetPoint("TOPRIGHT", 0, FORM_Y)
-        -- Reiter + Suche + Sortierung
+        -- tabs + search + sorting
         p.tabs = buildTabs(p, function(k) switchTo(k) end)
         p.tabs:SetPoint("TOPLEFT", 0, TAB_Y)
         p.tabLine = p:CreateTexture(nil, "BACKGROUND")
@@ -1585,7 +1585,7 @@ ns.RegisterPage({
         end)
         p.search:SetHeight(22)
         p.search:SetPoint("RIGHT", p.sort, "LEFT", -6, 0)
-        -- FojjiCore geladen und dort stehen Wuensche, die hier fehlen: mit einem Klick uebernehmen (die Gilde sieht sie dann)
+        -- FojjiCore loaded and it has wishes missing here: import with one click (the guild then sees them)
         p.fojji = K.Button(p, "", 150, 22, "ghost", function()
             if ns.Fojji and ns.Fojji.Has() then
                 local n = ns.Fojji.ImportWishes()
@@ -1602,7 +1602,7 @@ ns.RegisterPage({
         p.fojji:SetScript("OnEnter", function(self) K.ShowTip(self, { self.src or "FojjiCore", L["Copies what is on your FojjiCore wishlist or Naowh BiS list (only what you don't own yet). The guild then sees these wishes here."] }) end)
         p.fojji:SetScript("OnLeave", function() GameTooltip:Hide() end)
         p.fojji:Hide()
-        -- Liste + Leerzustand
+        -- list + empty state
         p.tl = buildList(p)
         p.tl:SetPoint("TOPLEFT", 0, LIST_Y)
         p.tl:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -1643,7 +1643,7 @@ ns.RegisterPage({
         local fresh, switch = p.fresh, p.switch
         p.fresh, p.switch = false, nil
         local all, counts = collect()
-        -- Kacheln
+        -- tiles
         for i, t in ipairs(p.tiles) do
             local n = counts[t.key] or 0
             t:SetSel(filter == t.key)
@@ -1657,7 +1657,7 @@ ns.RegisterPage({
         if fresh and animOn() then for i, t in ipairs(p.tiles) do K.FadeIn(t, (i - 1) * 0.05) end end
         p.tabs:SetCounts(counts)
         p.tabs:Select(filter, not fresh)
-        -- Karten
+        -- cards
         local vms = {}
         for _, w in ipairs(all) do
             local ok, v = pcall(vmWant, w)
@@ -1676,7 +1676,7 @@ ns.RegisterPage({
                 if it.y < p.tl.off or it.y + it.h > p.tl.off + H then p.tl:ScrollTo(it.y - H_HEAD, true) end
             end
         end
-        -- Leerzustand
+        -- empty state
         p.empty:SetShown(#items == 0)
         if #items == 0 then
             local function focusForm() p.itemBox:SetFocus() end
@@ -1700,12 +1700,12 @@ ns.RegisterPage({
                 p.empty:Set("crafting", C.blue, L["No recipe in the guild for any wish."], L["All wishes"], function() switchTo("all") end)
             end
         end
-        -- Sortierknopf
+        -- sort button
         local sl
         for _, s in ipairs(SORTS) do if s.key == sortBy then sl = L[s.text] end end
         p.sort:SetLabel("|cff888888" .. L["Sort:"] .. "|r " .. (sl or "") .. "  |cff666666v|r")
         p.sort:SetWidth(math.floor((p.sort.label:GetStringWidth() or 100) + 24))
-        -- Vorschau des gewaehlten Items
+        -- preview of the selected item
         local f = p.form
         local id = p.itemBox.pickedID
         if id then
@@ -1725,7 +1725,7 @@ ns.RegisterPage({
     end,
 })
 
--- Item-Daten kommen nach: sichtbare Karten nachfuellen (gedrosselt, Leseposition bleibt)
+-- item data arrives later: refill visible cards (throttled, reading position stays)
 local itemPend
 local function itemsArrived()
     if itemPend or not (page and page.IsVisible and page:IsVisible()) then return end

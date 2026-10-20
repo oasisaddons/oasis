@@ -1,9 +1,9 @@
--- Oasis: Boss-Taktiken, einfach erklaert (eigene Texte, Stand Classic; in WoW Forever kann ein Boss abweichen).
--- Schluessel = englischer Bossname wie in DungeonData.lua. Bosse ohne Eintrag zeigen "noch keine Taktik".
---   s = worum es geht (1-2 Saetze), tank/heal/dps = je ein Satz fuer die Rolle
---   tags = Besonderheiten, aus denen die Klassen-Tipps entstehen:
---     kick = Zauber zum Unterbrechen, magic/curse/poison/disease = Schwaechung zum Entfernen,
---     purge = Staerkung beim Boss zum Wegnehmen, fear = Furcht, cc = Begleiter zum Festhalten, cleave = trifft alle vor sich
+-- Oasis: boss tactics, simply explained (own texts, Classic state; in WoW Forever a boss may differ).
+-- Key = English boss name as in DungeonData.lua. Bosses without entry show "no tactic yet".
+--   s = what it is about (1-2 sentences), tank/heal/dps = one sentence per role
+--   tags = special mechanics, from which the class tips are built:
+--     kick = spell to interrupt, magic/curse/poison/disease = debuff to remove,
+--     purge = boss buff to strip, fear = fear, cc = add to hold, cleave = hits everyone in front
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Dungeons", function()
 local T = {}
@@ -220,7 +220,7 @@ T.data = {
     ["Amnennar the Coldbringer"] = { s = "Endboss, ein Lich. Frostblitze, friert alle in der Nähe fest und ruft Geister zu Hilfe.",
         tank = "Boss festhalten und die Geister mit aufnehmen.", heal = "Einzelne Spieler bekommen harte Frostblitze.",
         dps = "Frostblitze unterbrechen. Geister töten, wenn sie zum Heiler laufen.", tags = { kick = "Frostblitz" } },
-    -- ===== neue Forever-Dungeons: aus oeffentlichen Guides zur Beta zusammengefasst (forever = true), kann sich aendern =====
+    -- ===== new Forever dungeons: summarized from public beta guides (forever = true), may change =====
     -- Die Halle der Thane
     ["Faldrim Anvilmar"] = { forever = true, s = "Einfacher erster Boss. Wirkt einen Gedankenschlag und belegt den Tank mit einem Fluch, der Angriffe langsamer macht.",
         tank = "Halte die Bedrohung, damit der Fluch nur dich trifft.", heal = "Wenig Schaden, nur der Tank.",
@@ -289,7 +289,7 @@ T.data = {
         heal = "Bleib auf Abstand. Bei der Massenverwandlung hinter die Wand.",
         dps = "Verteilt stehen, nicht in einer Linie. Bei der Massenverwandlung hinter der Wand verstecken." },
 
-    -- ===== einfache und seltene Gegner der unteren Dungeons =====
+    -- ===== normal and rare mobs of the lower dungeons =====
     ["Miner Johnson"] = { s = "Seltener Gegner in den Todesminen. Einfacher Nahkämpfer.",
         tank = "Festhalten.", heal = "Wenig Schaden.",
         dps = "Voller Schaden." },
@@ -741,7 +741,7 @@ T.data = {
         dps = "Wellen zügig töten, dann voller Schaden auf ihn." },
 }
 
--- wer kann was (Classic-Grundausstattung)
+-- who can do what (Classic base kit)
 local CAN = {
     kick = { WARRIOR = "Unterbrich %s (Zuschlagen oder Schildhieb).", ROGUE = "Unterbrich %s mit Tritt.", SHAMAN = "Unterbrich %s mit Erdschock.", MAGE = "Unterbrich %s mit Gegenzauber." },
     magic = { PRIEST = "Entferne %s von Mitspielern (Magiebannung).", PALADIN = "Entferne %s von Mitspielern (Reinigung des Glaubens)." },
@@ -755,7 +755,7 @@ local CAN = {
     cleave = { ROGUE = "Steh immer hinter dem Boss.", WARRIOR = "Als Schadenskrieger: hinter dem Boss stehen.", DRUID = "In Katzengestalt: hinter dem Boss stehen.",
         SHAMAN = "Im Nahkampf: hinter dem Boss stehen.", PALADIN = "Im Nahkampf: hinter dem Boss stehen." },
 }
--- Grundregel je Klasse, steht immer da
+-- Base rule per class, always shown
 local BASE = {
     WARRIOR = "Als Tank: erst Bedrohung aufbauen, Boss von der Gruppe wegdrehen. Als Schaden: dem Tank ein paar Sekunden Vorsprung lassen.",
     PALADIN = "Als Heiler: Tank zuerst. Als Tank: Weihe unter alle Gegner legen. Segen vor dem Kampf verteilen.",
@@ -773,7 +773,7 @@ local ORDER = { "kick", "magic", "curse", "poison", "disease", "purge", "fear", 
 function T.For(name)
     return name and T.data[name] or nil
 end
--- Tipps fuer eine Klasse bei diesem Boss: besondere Aufgaben zuerst, dann die Grundregel
+-- Tips for a class on this boss: special tasks first, then the base rule
 function T.ClassLines(entry, class)
     local out, special = {}, 0
     for _, tag in ipairs(ORDER) do

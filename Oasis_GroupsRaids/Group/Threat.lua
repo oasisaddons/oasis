@@ -1,9 +1,9 @@
--- Oasis: Bedrohung und Pull-Warnung (0.6.521)
---  * kleine Leiste: deine Bedrohung auf dem Ziel in % (nur solange das Spiel den Wert liefert - Forever macht
---    Kampfwerte teils "secret", dann bleibt die Leiste einfach weg; nie mit geheimen Werten rechnen)
---  * Pull-Warnung: du (kein Tank) kommst in den Kampf, waehrend der Tank deiner Gruppe noch nicht kaempft
---  * Warnung, wenn du als Nicht-Tank die Aggro hast (nur wenn lesbar)
--- Schalter: Einstellungen > Meine Gruppe
+-- Oasis: threat and pull warning (0.6.521)
+--  * small bar: your threat on the target in % (only as long as the game provides the value - Forever makes
+--    combat values are sometimes "secret", then the bar simply stays hidden; never compute with secret values)
+--  * Pull warning: you (not a tank) enter combat while your group's tank is not fighting yet
+--  * Warning when you, as non-tank, have aggro (only if readable)
+-- Toggle: Settings > My Group
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Group", function()
 local L = ns.L
@@ -25,7 +25,7 @@ local function tankUnits()
     return out
 end
 
--- Pull-Warnung
+-- Pull warning
 ns.On("PLAYER_REGEN_DISABLED", function()
     if S().pullWarn == false or not IsInGroup() or myRole() == "TANK" then return end
     local tanks = tankUnits()

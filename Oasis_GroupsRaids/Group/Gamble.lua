@@ -1,8 +1,8 @@
--- Oasis: Wuerfelrunde (0.6.521) - klassisches Gruppenwuerfeln
---  * Wer startet, legt das Maximum fest (z. B. 100); alle in der Gruppe wuerfeln einmal /roll 1-N
---  * Hoechster Wurf gewinnt, niedrigster verliert - die Differenz ist der "Einsatz" (nur Anzeige, kein Gold-Handel)
---  * Mitglieder mit Oasis bekommen einen Hinweis zum Mitwuerfeln (Klick wuerfelt); gezaehlt wird der echte Systemchat
---  * Ansagen gehen nur per Klick in den Chat (ns.OfferChat) - automatische Chatnachrichten sind gesperrt
+-- Oasis: dice round (0.6.521) - classic group rolling
+--  * The starter sets the maximum (e.g. 100); everyone in the group rolls once /roll 1-N
+--  * Highest roll wins, lowest loses - the difference is the "stake" (display only, no gold trading)
+--  * Members with Oasis get a hint to join the roll (click rolls); the real system chat is what counts
+--  * Announcements go to chat only on click (ns.OfferChat) - automatic chat messages are blocked
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Group", function()
 local L = ns.L
@@ -95,7 +95,7 @@ ns.On("CHAT_MSG_SYSTEM", function(msg)
 end)
 
 ------------------------------------------------------------------------
--- Reiter "Wuerfelrunde"
+-- Tab "Dice round"
 ------------------------------------------------------------------------
 local lines = {}
 P.AddTab({

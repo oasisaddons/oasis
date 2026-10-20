@@ -1,10 +1,10 @@
--- Oasis: Bank-Platzhalter - feste Plaetze in der eigenen Bank
--- "Belegung merken" speichert, welches Item auf welchem Bankplatz liegt (ns.char.bankPlan).
--- Ist so ein Platz spaeter leer, zeigt Oasis dort ein blasses Symbol des Items, damit die Ordnung bleibt.
--- NUR Anzeige: Oasis verschiebt keine Items (Verschieben/Benutzen aus Addon-Code sperrt der Client).
--- Die Overlays sind eigene Frames an UIParent, nur an Blizzards Knoepfen ausgerichtet (nichts an deren Frames setzen).
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_BankSlots", function()   -- Modul Bankplaetze (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis: bank placeholders - fixed slots in your own bank
+-- "Remember layout" stores which item sits in which bank slot (ns.char.bankPlan).
+-- If such a slot is empty later, Oasis shows a faded icon of the item there so the order stays.
+-- Display ONLY: Oasis moves no items (the client blocks moving/using from addon code).
+-- The overlays are own frames on UIParent, only aligned to Blizzard's buttons (never set anything on their frames).
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_BankSlots", function()   -- module bank slots (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
@@ -17,7 +17,7 @@ local function plan()
     return ns.char.bankPlan
 end
 
--- Bank-Behaelter: klassisch (-1 + Taschen 5..11) und Retail-Reiter (Enum.BagIndex.CharacterBankTab_*)
+-- Bank containers: classic (-1 + bags 5..11) and Retail tabs (Enum.BagIndex.CharacterBankTab_*)
 local function bankBags()
     local out, seen = {}, {}
     local function add(b) if b and not seen[b] then seen[b] = true out[#out + 1] = b end end
@@ -60,7 +60,7 @@ function BS.Count()
 end
 
 ------------------------------------------------------------------------
--- Blizzards Bank-Knoepfe finden (ohne sie zu veraendern)
+-- find Blizzard's bank buttons (without changing them)
 ------------------------------------------------------------------------
 local function slotOf(btn)
     if btn.GetBankTabID and btn.GetContainerSlotID then
@@ -72,7 +72,7 @@ local function slotOf(btn)
         local ok, bag = pcall(btn.GetBagID, btn)
         if ok and bag then return bag, btn:GetID() end
     end
-    -- klassische Bank: BankFrameItemN, Behaelter-ID am Elternrahmen
+    -- classic bank: BankFrameItemN, container ID on the parent frame
     local name = btn.GetName and btn:GetName()
     if name and name:find("^BankFrameItem%d+$") then return BANK_CONTAINER or -1, btn:GetID() end
     return nil
@@ -142,7 +142,7 @@ function BS.Refresh()
     end
 end
 
--- kleine Oasis-Leiste ueber der Bank: merken / vergessen / an-aus
+-- small Oasis bar above the bank: remember / forget / on-off
 local bar
 local function buildBar()
     bar = CreateFrame("Frame", nil, UIParent)

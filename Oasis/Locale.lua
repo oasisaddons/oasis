@@ -7,12 +7,12 @@ local DE, EN = {}, {}
 ns.LOCALE_DE, ns.LOCALE_EN = DE, EN
 ns.LOCALES = { de = DE, en = EN, fr = {}, es = {}, ru = {}, pt = {}, it = {}, zh = {}, ko = {}, tw = {}, ja = {}, pl = {} }
 
--- Reihenfolge im Umschalter; flag = Media\flags\<flag>.tga, cyr = braucht kyrillische Schrift
+-- order in the switcher; flag = Media\flags\<flag>.tga, cyr = needs a Cyrillic font
 ns.LANGS = {
-    -- Reihenfolge = geschaetzte Zahl der WoW-Spieler je Sprache, groesste zuerst (Schaetzung, keine
-    -- amtliche Zahl). cjk = eigene Schrift (die normalen WoW-Schriften haben die Zeichen nicht); ext = braucht
-    -- polnische Buchstaben, Zierschriften ohne sie weichen auf PT Sans aus. tw wird aus zh erzeugt (Tools/make_tw.py).
-    -- Japanisch und Polnisch haben keinen eigenen WoW-Client: waehlt man im Umschalter.
+    -- order = estimated number of WoW players per language, largest first (estimate, not an
+    -- official figure). cjk = own font (the normal WoW fonts lack the characters); ext = needs
+    -- Polish letters, decorative fonts without them fall back to PT Sans. tw is generated from zh (Tools/make_tw.py).
+    -- Japanese and Polish have no WoW client of their own: chosen in the switcher.
     { key = "en", name = "English", flag = "gb", client = { enUS = true, enGB = true } },
     { key = "zh", name = "简体中文", flag = "cn", client = { zhCN = true }, cjk = "notosc" },
     { key = "de", name = "Deutsch", flag = "de", client = { deDE = true } },
@@ -36,8 +36,8 @@ function ns.ClientLang()
 end
 ns.lang = ns.ClientLang()
 
--- fehlt ein DE-Eintrag: Umlaute aus dem Schluessel ableiten (fuer -> für, Staerke -> Stärke),
--- ausser bei echten Vokalfolgen (neue, Feuer, Dauer, Quest, aktuell, Duell ...)
+-- missing DE entry: derive umlauts from the key (fuer -> für, Staerke -> Stärke),
+-- except for real vowel sequences (neue, Feuer, Dauer, Quest, aktuell, Duell ...)
 local umlautCache = {}
 local SKIP = { "zuerst", "Zuerst", "uenc", "uenz", "Aero", "aero", "uell", "Duell", "duell", "Statue", "Poesie", "Oboe", "Michael", "Israel", "Queue", "queue" }
 local function autoUmlaut(s)
@@ -53,7 +53,7 @@ local function autoUmlaut(s)
         out = out:gsub("([%a]?)([AaOoUu])e", function(pre, v)
             local lv = v:lower()
             if lv == "u" and (pre == "q" or pre == "Q" or pre == "e" or pre == "a" or pre == "E" or pre == "A") then return nil end
-            if lv == "a" and (pre == "e" or pre == "E") then return nil end   -- z.B. "Raphael" selten, "eae" kommt kaum vor
+            if lv == "a" and (pre == "e" or pre == "E") then return nil end   -- e.g. "Raphael" rare, "eae" hardly occurs
             if lv == "o" and (pre == "o" or pre == "O") then return nil end
             local map = { A = "Ä", a = "ä", O = "Ö", o = "ö", U = "Ü", u = "ü" }
             return pre .. map[v]
@@ -66,13 +66,13 @@ end
 ns.AutoUmlaut = autoUmlaut
 
 -- 0.5.580: Fremdsprachen liegen in Locales\XX.lua. Jede Datei verpackt ihren Inhalt in ns.LangFile("xx", function() ... end);
--- ausgefuehrt wird beim Start nur die gewaehlte Sprache, die anderen Funktionen werden verworfen (kein Speicher).
--- Die nicht gebrauchte Grundsprache (Englisch bei Deutsch, Deutsch bei allen anderen) wird ebenfalls verworfen.
+-- at startup only the chosen language is executed, the other functions are discarded (no memory).
+-- The unused base language (English for German, German for all others) is discarded too.
 local FOREIGN = { fr = true, es = true, ru = true, pt = true, it = true, zh = true, ko = true, tw = true, ja = true, pl = true }
-ns.langFiles = {}   -- [lang] = { fn, ... } bis zum Start
+ns.langFiles = {}   -- [lang] = { fn, ... } until startup
 ns.langLoaded, ns.langDropped = {}, {}
 function ns.LangFile(lang, fn)
-    if not ns.langFiles then return end   -- nach dem Start: nichts mehr annehmen
+    if not ns.langFiles then return end   -- after startup: accept nothing more
     local t = ns.langFiles[lang] or {}
     ns.langFiles[lang] = t
     t[#t + 1] = fn
@@ -93,9 +93,9 @@ function ns.EnsureLang(lang)
 end
 local function sink(t)
     for k in pairs(t) do t[k] = nil end
-    setmetatable(t, { __newindex = function() end })   -- spaeter geladene Module schreiben ins Leere
+    setmetatable(t, { __newindex = function() end })   -- modules loaded later write into the void
 end
--- einmal beim Start (ADDON_LOADED, Sprache bekannt)
+-- once at startup (ADDON_LOADED, language known)
 function ns.PrepareLang()
     ns.EnsureLang(ns.lang)
     if ns.lang == "de" then
@@ -103,20 +103,20 @@ function ns.PrepareLang()
     else
         if not ns.langDropped.de then sink(DE) ns.langDropped.de = true end
     end
-    ns.langFiles = nil   -- uebrige Fremdsprachen verwerfen
+    ns.langFiles = nil   -- discard remaining foreign languages
     umlautCache = {}
     ns.RelabelAll()
 end
--- braucht die Sprache Verworfenes? Dann geht der Wechsel erst nach /reload
+-- does the language need something discarded? Then the switch only works after /reload
 function ns.LangNeedsReload(lang)
     if FOREIGN[lang] and not ns.langLoaded[lang] and not (ns.langFiles and ns.langFiles[lang]) then return true end
     if lang == "de" then return ns.langDropped.de and true or false end
     return ns.langDropped.en and true or false
 end
 
--- Texte, die schon beim Laden einer Datei gelesen werden (Tabellen mit Beschriftungen), stuenden sonst fuer immer
--- in der Client-Sprache: die Sprache des Nutzers steht erst bei ADDON_LOADED fest. fn laeuft sofort und nach
--- jedem Festlegen oder Wechseln der Sprache erneut.
+-- Texts read while a file loads (tables with labels) would otherwise stay forever
+-- in the client language: the user's language is only known at ADDON_LOADED. fn runs immediately and again after
+-- each setting or switching of the language.
 local relabel = {}
 function ns.Relabel(fn)
     relabel[#relabel + 1] = fn

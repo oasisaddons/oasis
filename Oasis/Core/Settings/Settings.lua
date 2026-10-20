@@ -1,6 +1,6 @@
--- Oasis - Einstellungen (persoenlich) mit Reitern
+-- Oasis - settings (personal) with tabs
 local ADDON, ns = ...
-local resetButton   -- 0.6.180: Vorab-Deklaration (wird weiter unten belegt, schon frueher benutzt)
+local resetButton   -- 0.6.180: forward declaration (assigned further down, used earlier)
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
 
@@ -24,9 +24,9 @@ local page
 local compact
 local function S() return ns.db.settings end
 
--- kleine Helfer fuer einheitliche Formulare
--- Ueberschriften merken: nach dem Aufbau bekommt jede, die noch nicht in einer Karte steht, automatisch
--- eine Glas-Karte um sich und ihren Inhalt (0.5.554 - einheitliches Design auch fuer Seiten anderer Module)
+-- small helpers for consistent forms
+-- Remember headings: after building, every one not yet inside a card automatically gets
+-- a glass card around itself and its content (0.5.554 - consistent design for other modules' pages too)
 local secParents = setmetatable({}, { __mode = "k" })
 local function section(p, text, x, y, w)
     local h = K.Header(p, text)
@@ -103,20 +103,20 @@ local function note(p, text, x, y, w, color)
     fs:SetText(text)
     return fs
 end
--- Suchindex: jede Einstellung mit Reiter (fuer die Suche oben rechts)
+-- Search index: every setting with its tab (for the search at the top right)
 local INDEX = {}
 local function indexAdd(label, frame, desc)
     if not page or not page.buildingTab then return end
     INDEX[#INDEX + 1] = { label = label, desc = desc, tab = page.buildingTab, frame = frame, area = page.buildingArea, settingKey = frame and frame.settingKey }
 end
--- 0.6.113: auf den Sammelseiten und in den Bereichen steht die Erklaerung als graue Unterzeile direkt unter dem
--- Schalter (descInline); der Aufbau rechnet die zusaetzliche Hoehe DESC_H ein. Ganzer Text weiter beim Drueberfahren.
+-- 0.6.113: on the summary pages and in the sections, the explanation is a grey subline directly under the
+-- toggle (descInline); the layout adds the extra height DESC_H. Full text still on hover.
 local DESC_H = 14
 local descInline = false
--- 0.6.471: selten gebrauchte Schalter - nur sichtbar mit "Alle Optionen zeigen" (oben neben der Suche);
--- die uebrigen ruecken nach oben (compact bzw. toggleList ueberspringt sie)
--- 0.6.485: nur noch Schalter aus Schalter-Listen (Tooltips, Karte) - auf frei gebauten Seiten (Sound, Design, Fenster)
--- blieben Luecken bzw. Kaesten ueberlappten sich
+-- 0.6.471: rarely used toggles - only visible with "Alle Optionen zeigen" (next to the search);
+-- the others move up (compact or toggleList skips them)
+-- 0.6.485: only toggles from toggle lists (tooltips, map) - on freely built pages (sound, design, window)
+-- gaps remained or boxes overlapped
 local ADV = {
     tipWanted = true, tipCrafters = true, tipBank = true, tipReagent = true, srTooltip = true, srTooltipGroupOnly = true,
     mapHeat = true, mapReveal = true,
@@ -132,7 +132,7 @@ local function toggle(p, x, y, label, key, desc, after, w)
     t.settingKey = key
     if advHidden(key) then
         t:Hide()
-        -- 0.6.476: der Kasten rueckt nach dem Aufbau zusammen und wird kuerzer (sonst bleibt eine Luecke)
+        -- 0.6.476: the box contracts after building and gets shorter (otherwise a gap remains)
         if p ~= page and p.SetHeight then p.advGap = true end
     end
     if desc and descInline then
@@ -144,7 +144,7 @@ local function toggle(p, x, y, label, key, desc, after, w)
         t.sub:SetText(L[desc])
         t.hasSub = true
     end
-    -- Erklaerung (ganz) beim Drueberfahren
+    -- Explanation (full) on hover
     if desc then
         t.tipText = L[desc]
         if not t.hasSub then
@@ -158,8 +158,8 @@ local function toggle(p, x, y, label, key, desc, after, w)
     indexAdd(L[label], t, desc and L[desc])
     return t
 end
--- alles, was im selben Rahmen unter einem Schalter mit Unterzeile steht, um DESC_H nach unten ruecken; gibt die
--- gesamte zusaetzliche Hoehe zurueck. Schalter mit noReflow (eigenes Raster) werden uebersprungen.
+-- move everything in the same frame below a toggle with subline down by DESC_H; returns the
+-- total extra height. Toggles with noReflow (own grid) are skipped.
 local function reflowDescs(fr)
     local ys = {}
     for _, c in ipairs({ fr:GetChildren() }) do
@@ -200,16 +200,16 @@ local function rowLabel(p, text, x, y)
 end
 
 ------------------------------------------------------------------------
--- Allgemein
+-- General
 ------------------------------------------------------------------------
--- Karte als Hintergrund fuer einen Abschnitt (dezent abgesetzt)
+-- Card as background for a section (subtly set apart)
 local function card(f, x, y, w, h)
     local c = CreateFrame("Frame", nil, f)
     c._isCard = true
     c:SetPoint("TOPLEFT", x, y)
     c:SetSize(w, h)
     c:SetFrameLevel(math.max(1, f:GetFrameLevel() - 1))
-    -- 0.5.544: Glas-Karte (halbtransparent, runde Ecken) - sonst flach mit Rahmen
+    -- 0.5.544: glass card (semi-transparent, rounded corners) - otherwise flat with border
     local G = ns.Insta and ns.Insta.Glass
     if G and pcall(G, c, { 1, 1, 1, 0.035 }, { 1, 1, 1, 0.10 }, 12) then
         c.glass = true
@@ -220,12 +220,12 @@ local function card(f, x, y, w, h)
     local bar = c:CreateTexture(nil, "ARTWORK")
     bar:SetPoint("TOPLEFT") bar:SetPoint("TOPRIGHT") bar:SetHeight(2)
     bar:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.7)
-    -- Design-Rahmen (Modern rund, Future Neon, Fantasy Bronze, Classic Blizzard ...)
+    -- Design frames (Modern rund, Future Neon, Fantasy Bronze, Classic Blizzard ...)
     if c.glass then bar:Hide()
     elseif K.ApplySkin and K.ApplySkin(c, "panel", { C.panel[1], C.panel[2], C.panel[3], 0.55 }) then bar:Hide() end
     return c
 end
--- Karte mit Kopf (Symbol, Titel, Kurzbeschreibung) - 0.5.517
+-- Card with header (icon, title, short description) - 0.5.517
 local function cardH(f, x, y, w, h, icon, title, sub, right)
     local c = card(f, x, y, w, h)
     if right then c:ClearAllPoints() c:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, y) end
@@ -241,7 +241,7 @@ local function cardH(f, x, y, w, h, icon, title, sub, right)
         c.s:SetJustifyH("LEFT")
         c.s:SetText(sub)
     end
-    -- leichtes Aufhellen, solange die Maus ueber der Karte ist
+    -- slight brightening while the mouse is over the card
     c.hl = c:CreateTexture(nil, "BACKGROUND", nil, 2)
     c.hl:SetAllPoints()
     c.hl:SetColorTexture(1, 1, 1, 0.025)
@@ -249,7 +249,7 @@ local function cardH(f, x, y, w, h, icon, title, sub, right)
     c.hl:SetAlpha(0)
     c.hl:Show()
     c:SetScript("OnUpdate", function(self, el)
-        -- 0.5.722: nur 10x pro Sekunde nachsehen (vorher jeder Frame je Karte)
+        -- 0.5.722: check only 10x per second (previously every frame per card)
         self.hAcc = (self.hAcc or 0) + (el or 0)
         if self.hAcc < 0.1 then return end
         self.hAcc = 0
@@ -273,7 +273,7 @@ local function cardH(f, x, y, w, h, icon, title, sub, right)
     end)
     return c
 end
--- 0.5.563: Karten erscheinen beim Reiterwechsel nacheinander (Hintergrund blendet ein, Symbol springt auf)
+-- 0.5.563: cards appear one after another on tab switch (background fades in, icon pops up)
 local function staggerCards(fr)
     if not fr or S().noAnim or not K.Tween then return end
     local list = {}
@@ -300,14 +300,14 @@ end
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local refreshSoundSpk
 local function buildGeneral(f)
-    -- Allgemein = das Oasis-Fenster selbst (Groesse, Start, Verhalten) + Sprache + Minimap-Knopf.
-    -- Alles, was zu einem Bereich gehoert (Chat, Deathroll ...), steht unter Bereiche.
+    -- General = the Oasis window itself (size, startup, behavior) + language + minimap button.
+    -- Everything belonging to a section (chat, deathroll ...) is under Sections.
     f.noCompact = true
-    local LX, SX = 14, 136     -- Beschriftung, Regler (relativ zur Seite; linke Spalte beginnt bei 0)
+    local LX, SX = 14, 136     -- Label, slider (relative to the page; left column starts at 0)
     local RX = 376
 
-    -- Fenster -------------------------------------------------------------
-    -- 0.5.677: Sprache als Zeile hier (vorher eigene Karte), Minimap-Karte auf den Inhalt gekuerzt
+    -- Window -------------------------------------------------------------
+    -- 0.5.677: language as a row here (previously its own card), minimap card trimmed to its content
     cardH(f, 0, 0, 362, 196, "home", L["Window"], L["How Oasis starts - size and transparency are under Appearance"])
     rowLabel(f, L["On login"], LX, -60)
     f.openSeg = K.Segments(f, {
@@ -326,7 +326,7 @@ local function buildGeneral(f)
         K.Toast(L["Window"], L["Back in the middle of the screen."], C.mint)
     end)
     rp:SetPoint("TOPLEFT", LX, -164)
-    -- Sprache (auch oben neben der Krone umschaltbar)
+    -- Language (can also be switched at the top next to the crown)
     rowLabel(f, L["Language"], LX, -128)
     f.lang = K.Button(f, "", 200, 24, "ghost")
     f.lang.isDropdown = true
@@ -334,20 +334,20 @@ local function buildGeneral(f)
     f.lang:SetScript("OnClick", function(self) ns.ShowLanguageMenu(self) end)
     indexAdd(L["Language"], f.lang)
 
-    -- Verhalten -----------------------------------------------------------
+    -- Behavior -----------------------------------------------------------
     cardH(f, 0, -210, 362, 176, "settings", L["Behaviour"], L["How the window behaves in game"])
     f.hideCombat = toggle(f, LX, -262, "Hide in combat", "hideInCombat", "The Oasis window disappears as soon as combat starts (Esc cannot close it in combat)", function() if f.reshow then f.reshow:Refresh() end end, 330)
-    -- 0.5.596: danach wieder zeigen (an) oder geschlossen lassen (aus)
+    -- 0.5.596: show again afterwards (on) or keep closed (off)
     f.reshow = toggle(f, LX + 20, -290, "Show again after combat", "combatReshow", "On: the window comes back after combat. Off: it stays closed.", nil, 310)
     f.lockWin = toggle(f, LX, -318, "Lock window", "lockWindow", "The window can no longer be moved by accident", nil, 330)
     f.noAnim = toggle(f, LX, -346, "Reduce animations", "noAnim", "No fades or count-ups - everything appears instantly", nil, 330)
 
-    -- Minimap-Knopf (mit Vorschau zum Ziehen) -----------------------------
+    -- Minimap button (with preview for dragging) -----------------------------
     cardH(f, RX, 0, 362, 400, "map", L["Minimap button"], L["Drag the button in the preview or fine-tune below"], true)
     local MX = RX + 14
     if S().minimapBadge == nil then S().minimapBadge = true end
     local function place() if ns.PlaceMinimap then ns.PlaceMinimap() end end
-    -- Vorschau: runde Minimap, Knopf liegt auf dem Rand
+    -- Preview: round minimap, button sits on the edge
     local pv = CreateFrame("Frame", nil, f)
     pv:SetSize(140, 140)
     pv:SetPoint("TOPLEFT", f, "TOPLEFT", MX, -58)
@@ -383,7 +383,7 @@ local function buildGeneral(f)
         self.btn:SetPoint("CENTER", self, "CENTER", math.cos(a) * r, math.sin(a) * r)
         self.btn:SetAlpha(st.minimap and 1 or 0.35)
     end
-    -- Ziehen: Winkel aus der Mausposition (5-Grad-Schritte), Minimap-Knopf wandert live mit
+    -- Drag: angle from the mouse position (5-degree steps), minimap button moves along live
     pv:SetScript("OnMouseDown", function(self) self.drag = true end)
     pv:SetScript("OnMouseUp", function(self) self.drag = nil ns.RefreshPage("settings") end)
     pv:SetScript("OnUpdate", function(self, el)
@@ -408,12 +408,12 @@ local function buildGeneral(f)
     pv:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Minimap button"], L["Click and drag: move the button around the minimap"] }) end)
     pv:SetScript("OnLeave", function() GameTooltip:Hide() end)
     f.mmPreview = pv
-    -- Schalter rechts neben der Vorschau
+    -- Toggle to the right of the preview
     local TX = MX + 156
     f.t1 = toggle(f, TX, -62, "Show", "minimap", "Left-click opens Oasis, right-click the settings", function() ns.UpdateMinimapButton() pv:Update() end, 180)
     f.mmLock = toggle(f, TX, -92, "Lock", "minimapLock", "The button can no longer be dragged", nil, 180)
     f.mmBadge = toggle(f, TX, -122, "News counter", "minimapBadge", "Small number on the button when there is something new", function() if ns.UpdateNotify then ns.UpdateNotify() end end, 180)
-    -- Feineinstellung
+    -- Fine-tuning
     rowLabel(f, L["Position"], MX, -226)
     f.mmAngle = K.Slider(f, 170, 0, 355, 5, function() return math.floor(((S().minimapAngle or 215) % 360) / 5 + 0.5) * 5 end,
         function(v) S().minimapAngle = v place() pv:Update() end, function(v) return v .. "°" end)
@@ -450,9 +450,9 @@ local function refreshGeneral(f)
 end
 
 ------------------------------------------------------------------------
--- Bereiche: jeder Bereich der Navigation per Auswahl oben, mit seinen Einstellungen
+-- Sections: each navigation section via a picker at the top, with its settings
 ------------------------------------------------------------------------
--- Einstellungen je Bereich (dieselben Schalter wie in den anderen Reitern, nur hier gesammelt)
+-- Settings per section (same toggles as in the other tabs, just collected here)
 local function updPins() if ns.Map and ns.Map.UpdateWorldPins then ns.Map.UpdateWorldPins() end end
 local PAGE_OPTS = {
     chat = {
@@ -468,13 +468,13 @@ local PAGE_OPTS = {
     deathroll = { { "Deathroll leise wuerfeln", "drSilent", "Unter Oasis-Spielern fair per Addon statt /roll - nichts im Chat" } },
     raid = { lootQuality = true },
 }
--- andere Module koennen eigene Bereichs-Einstellungen anmelden: build(frame, y) -> neue y
+-- other modules can register their own section settings: build(frame, y) -> new y
 local PAGE_EXTRA = {}
--- Unterseiten (kein eigener Navigationspunkt) -> ihre Einstellungen erscheinen beim Hauptbereich
+-- Subpages (no own navigation entry) -> their settings appear under the main section
 local AREA_CHILDREN = { insta = { "life" } }
--- Bereiche, deren Tooltip-/Kartenschalter jetzt unter Tooltips & Karte stehen: { Reiter, Knopftext }
--- Wege zu den Sammelseiten: Bereiche zeigen nur ihre eigenen Schalter, Tooltip-, Karten-, Hinweis-, Klang- und
--- Teilen-Schalter stehen gesammelt (0.6.112: Hinweise und Teilen auch nicht mehr doppelt in den Bereichen)
+-- Sections whose tooltip/map toggles now live under Tooltips & Map: { tab, button text }
+-- Paths to the summary pages: sections only show their own toggles; tooltip, map, notice, sound and
+-- sharing toggles are collected (0.6.112: notices and sharing no longer duplicated in the sections either)
 local LK = {
     map = { "mapset", "Map and minimap settings" }, tips = { "tips", "Tooltip line settings" },
     toast = { "toasts", "Turn notifications on and off" }, share = { "share", "Sharing and privacy" },
@@ -488,8 +488,8 @@ local AREA_LINKS = {
     trade = { LK.share }, insta = { LK.share },
 }
 function ns.AddPageSettings(key, build) PAGE_EXTRA[key] = build end
--- 0.6.289: Module haengen eigene Schalter an einen bestehenden Bereich an (z. B. Discord an "chat"), egal in welcher
--- Reihenfolge geladen wird - frueher musste DiscordBridge.lua dafuer vor dieser Datei stehen
+-- 0.6.289: modules attach their own toggles to an existing section (e.g. Discord to "chat"), regardless of the
+-- order it is loaded in - previously DiscordBridge.lua had to come before this file for that
 function ns.AppendPageSettings(key, build)
     local prev = PAGE_EXTRA[key]
     PAGE_EXTRA[key] = function(det, y)
@@ -500,9 +500,9 @@ function ns.AppendPageSettings(key, build)
     end
 end
 
--- Bereich "Profil": was jeder fuer sich selbst einstellt (Ueber mich, Sichtbarkeit, Belohnungen)
+-- Section "Profil": what everyone sets for themselves (about me, visibility, rewards)
 local function sendProfile() if ns.Radar and ns.Radar.SendHello then ns.After(0.5, function() pcall(ns.Radar.SendHello) end) end end
--- Auswahlknopf mit Bild-Vorschau; Klick oeffnet Kacheln (freigeschaltet + gesperrt mit Rang)
+-- Picker button with image preview; click opens tiles (unlocked + locked with rank)
 local DICE = "Interface\\Icons\\INV_Misc_Dice_01"
 local function rewardVisual(kind, r)
     if kind == "dice" then return DICE, r and r.color or { 1, 1, 1 }, false end
@@ -564,7 +564,7 @@ local function rewardPicker(parent, kind, x, y, label, get, set)
     b:Update()
     return b
 end
--- Bereich "Abzeichen": Hinweise, Chronik, Gildenchat, Vitrine (bis zu 4 Lieblings-Abzeichen auf der Profilkarte)
+-- Section "Abzeichen": notices, chronicle, guild chat, showcase (up to 4 favorite badges on the profile card)
 ns.AddPageSettings("badges", function(det, y)
     local s = S()
     local B = ns.Badges
@@ -586,7 +586,7 @@ ns.AddPageSettings("badges", function(det, y)
     det.t[#det.t + 1] = toggle(det, 14, y, "Celebrate gold badges in guild chat", "badgeAnnounce", "Posts a short line in guild chat for gold badges and guild titles", nil, 600)
     y = y - 40
 
-    -- Vitrine
+    -- Showcase
     rowLabel(det, "|cffe8b44a" .. L["Your showcase"] .. "|r", 14, y)
     note(det, L["Your profile card shows these badges first - for you and the guild."], 150, y - 2, 450, C.dim)
     y = y - 34
@@ -649,7 +649,7 @@ ns.AddPageSettings("badges", function(det, y)
             if #items == 1 then items[2] = { key = false, text = L["No badges yet"], color = { 0.3, 0.3, 0.3 }, round = true, locked = " " } end
             K.TilePicker(self, (L["Showcase - slot %d"]):format(i), items, function(k)
                 local sc = S().badgeShowcase or {}
-                -- dasselbe Abzeichen nicht doppelt
+                -- the same badge not twice
                 for j = 1, 4 do if j ~= i and sc[j] == k then sc[j] = nil end end
                 sc[i] = k or nil
                 S().badgeShowcase = sc
@@ -664,15 +664,15 @@ ns.AddPageSettings("badges", function(det, y)
     return y - 10
 end)
 
--- Bereich "Taschen & Twinks": Bank-Platzhalter (0.5.481)
+-- Section "Taschen & Twinks": bank placeholder (0.5.481)
 ns.AddPageSettings("bags", function(det, y)
-    -- 0.6.569: Bankplaetze und Aktionsleisten stecken in Oasis Convenience - ohne das Teil-Addon keine Zeilen
+    -- 0.6.569: bank slots and action bars live in Oasis Convenience - no rows without that sub-addon
     if not (ns.BankSlots or ns.ActionBars) then return y end
     if S().bankGhosts == nil then S().bankGhosts = true end
     if ns.BankSlots then det.t[#det.t + 1] = toggle(det, 14, y, "Bank placeholders", "bankGhosts", "Bar above the bank: remember the layout, empty slots show a faded icon (Oasis moves nothing)",
         function() if ns.BankSlots then ns.BankSlots.Refresh() end end, 600)
     y = y - 32 end
-    -- 0.6.521: Aktionsleisten speichern/laden (Komfort-Modul)
+    -- 0.6.521: save/load action bars (convenience module)
     if ns.ActionBars then
         y = y - 8
         rowLabel(det, "|cffe8b44a" .. L["Action bars"] .. "|r", 14, y)
@@ -703,9 +703,9 @@ ns.AddPageSettings("bags", function(det, y)
     return y - 10
 end)
 
--- Bereich "Chat": Tippen-Anzeige, @-Vorschlaege, Erwaehnungs-Ton, Emoji-Groesse, Stummgeschaltete
+-- Section "Chat": typing indicator, @ suggestions, mention sound, emoji size, muted people
 ns.AddPageSettings("chat", function(det, y)
-    -- Privat-Reiter (0.5.857)
+    -- Private tab (0.5.857)
     do
         local st = S()
         if st.wlGroupAlts == nil then st.wlGroupAlts = true end
@@ -733,12 +733,12 @@ ns.AddPageSettings("chat", function(det, y)
         function() if ns.GuildChat and ns.GuildChat.ApplyLook then ns.GuildChat.ApplyLook() end end)
     det.esize:SetPoint("TOPLEFT", 184, y)
     y = y - 40
-    -- Darstellung: Schrift, Abstaende, Farben (gleiche Regler wie am Zahnrad im Chat)
+    -- Appearance: font, spacing, colors (same sliders as the gear in the chat)
     if ns.GuildChat and ns.GuildChat.BuildLook then
         local ok, ny = pcall(ns.GuildChat.BuildLook, det, y, { x = 14, width = 600 })
         if ok and type(ny) == "number" then y = ny - 6 end
     end
-    -- Stummgeschaltete Personen
+    -- Muted people
     rowLabel(det, "|cffe8b44a" .. L["Muted"] .. "|r", 14, y)
     y = y - 26
     det.muteBox = CreateFrame("Frame", nil, det)
@@ -781,7 +781,7 @@ ns.AddPageSettings("chat", function(det, y)
     return y - 36
 end)
 
--- Bereich "Mitglieder": Hinweise, Neu-Markierung, Spielzeit mitschreiben
+-- Section "Mitglieder": notices, new marker, track playtime
 ns.AddPageSettings("radar", function(det, y)
     local s = S()
     if s.trackPlay == nil then s.trackPlay = true end
@@ -796,11 +796,11 @@ ns.AddPageSettings("radar", function(det, y)
     return y - 36
 end)
 
--- Bereich "Kampf-Rangliste": Kampflog-Datei mitschreiben (Standard an) - Grundlage fuer den Crit-Import
+-- Section "Kampf-Rangliste": write the combat log file (default on) - basis for the crit import
 ns.AddPageSettings("fight", function(det, y)
     local s = S()
-    if s.cbAutoLog == nil then s.cbAutoLog = ns.GuildPack and true or false end   -- oeffentliche Version: aus
-    -- die Logdatei nuetzt nur mit dem Crit-Import ueber OasisSync, und der wird nicht verteilt - nur mit Gildenmodul
+    if s.cbAutoLog == nil then s.cbAutoLog = ns.GuildPack and true or false end   -- public version: off
+    -- the log file is only useful with the crit import via OasisSync, which is not distributed - guild module only
     if ns.GuildPack then
         det.t[#det.t + 1] = toggle(det, 14, y, "Write combat log (/combatlog)", "cbAutoLog",
             "Turns on combat logging at login (like /combatlog). OasisSync reads group and dungeon crits from it.",
@@ -817,12 +817,12 @@ ns.AddPageSettings("fight", function(det, y)
     return y - 36
 end)
 
--- ==== Bereiche Zusammen spielen / Raid / Handel / Gilde & Spass ====
+-- ==== Sections Play together / Raid / Trade / Guild & Fun ====
 -- [A]
--- Gruppe A (Zusammen spielen): groups, social, allies, dungeons, buffs
--- Standard = bisheriges Verhalten (nil -> wie bisher). Standard-AN-Schalter werden hier auf true vorbelegt.
+-- Group A (Play together): groups, social, allies, dungeons, buffs
+-- Default = previous behavior (nil -> as before). Default-ON toggles are preset to true here.
 
--- Bereich "Gruppen"
+-- Section "Gruppen"
 ns.AddPageSettings("groups", function(det, y)
     local s = S()
     if s.lfgAccept == nil then s.lfgAccept = true end
@@ -843,7 +843,7 @@ ns.AddPageSettings("groups", function(det, y)
     return y - 10
 end)
 
--- Bereich "Gemeinsam questen"
+-- Section "Gemeinsam questen"
 ns.AddPageSettings("social", function(det, y)
     local s = S()
     if s.socialQuestHint == nil then s.socialQuestHint = true end
@@ -859,7 +859,7 @@ ns.AddPageSettings("social", function(det, y)
     return y - 10
 end)
 
--- Bereich "Spielerbuch" (shareRep steht schon oben aus PAGE_OPTS)
+-- Section "Spielerbuch" (shareRep is already above from PAGE_OPTS)
 ns.AddPageSettings("allies", function(det, y)
     local s = S()
     for _, k in ipairs({ "allyRemember", "allyWarnWhisper", "allyWarnGroup", "allyWarnGuild", "allyTooltip" }) do
@@ -879,7 +879,7 @@ ns.AddPageSettings("allies", function(det, y)
     return y - 10
 end)
 
--- Bereich "Dungeons"
+-- Section "Dungeons"
 ns.AddPageSettings("dungeons", function(det, y)
     local s = S()
     for _, k in ipairs({ "dgForYou", "dgDimUnfit", "dgMarkers", "dgPreload" }) do
@@ -916,7 +916,7 @@ ns.AddPageSettings("dungeons", function(det, y)
     return y - 10
 end)
 
--- Bereich "Buff-Monitor"
+-- Section "Buff-Monitor"
 ns.AddPageSettings("buffs", function(det, y)
     local s = S()
     if s.buffCons == nil then s.buffCons = true end
@@ -957,9 +957,9 @@ ns.AddPageSettings("raid", function(det, y)
 end)
 
 -- [C]
--- Gruppe C (Handel): Handwerks-Boerse, Markt, Wunschliste, Gildenbank
+-- Group C (Trade): crafting exchange, market, wish list, guild bank
 
--- Bereich "Handwerks-Boerse": Hinweise, Zaehler, Tooltip
+-- Section "Handwerks-Boerse": notices, counter, tooltip
 ns.AddPageSettings("crafting", function(det, y)
     local s = S()
     if s.craftStatusToasts == nil then s.craftStatusToasts = true end
@@ -973,7 +973,7 @@ ns.AddPageSettings("crafting", function(det, y)
     return y - 10
 end)
 
--- Bereich "Markt": Wunschliste-Alarm, Preisabfragen, Handelsbilanz (gleiche Schalter wie auf der Markt-Seite)
+-- Section "Markt": wish list alert, price queries, trade balance (same toggles as on the market page)
 ns.AddPageSettings("trade", function(det, y)
     local s = S()
     if s.wantAlarm == nil then s.wantAlarm = true end
@@ -992,7 +992,7 @@ ns.AddPageSettings("trade", function(det, y)
     return y - 10
 end)
 
--- Bereich "Wunschliste": Hinweise, Zaehler, Tooltip, Item-Vorschlaege
+-- Section "Wunschliste": notices, counter, tooltip, item suggestions
 ns.AddPageSettings("wants", function(det, y)
     local s = S()
     for _, k in ipairs({ "wantsLootHint", "wantsBagHint", "wantsBadge", "tipOasis", "tipWanted", "itemSuggest", "wantsDungeonHint", "wantsGotHint", "tipReagent" }) do
@@ -1014,7 +1014,7 @@ ns.AddPageSettings("wants", function(det, y)
     return y - 10
 end)
 
--- Bereich "Gildenbank": Einlesen/Teilen, Tooltip, Start-Filter des Protokolls
+-- Section "Gildenbank": scan/share, tooltip, start filter of the log
 ns.AddPageSettings("bank", function(det, y)
     local s = S()
     if s.bankShareScan == nil then s.bankShareScan = true end
@@ -1034,9 +1034,9 @@ ns.AddPageSettings("bank", function(det, y)
     return y - 10
 end)
 -- [D]
--- Gruppe D: Chronik, Umfragen, Lagerfeuer, Deathroll, Friedhof, Legacy, Karte
+-- Group D: chronicle, polls, campfire, deathroll, graveyard, legacy, map
 
--- Bereich "Chronik": Hinweise, Level-Hinweise, Legacy-Posts
+-- Section "Chronik": notices, level notices, legacy posts
 ns.AddPageSettings("chronicle", function(det, y)
     local s = S()
     if s.chrToastLevels == nil then s.chrToastLevels = true end
@@ -1050,7 +1050,7 @@ ns.AddPageSettings("chronicle", function(det, y)
     return y - 10
 end)
 
--- Bereich "Umfragen": neue Umfrage, Ergebnis, Zaehler
+-- Section "Umfragen": new poll, result, counter
 ns.AddPageSettings("polls", function(det, y)
     local s = S()
     if s.pollEndToast == nil then s.pollEndToast = true end
@@ -1065,7 +1065,7 @@ ns.AddPageSettings("polls", function(det, y)
     return y - 10
 end)
 
--- Bereich "Gildenziele" (0.5.481)
+-- Section "Gildenziele" (0.5.481)
 ns.AddPageSettings("goals", function(det, y)
     if S().ggHint == nil then S().ggHint = true end
     det.t[#det.t + 1] = toggle(det, 14, y, "Notice for new guild goals", "ggHint", "Shows a notice as soon as someone creates a guild goal", nil, 600)
@@ -1073,7 +1073,7 @@ ns.AddPageSettings("goals", function(det, y)
     return y - 10
 end)
 
--- Bereich "Lagerfeuer": Hinweise anderer, nur eigenes Gebiet, eigene Bestaetigung
+-- Section "Lagerfeuer": others' notices, own zone only, own confirmation
 ns.AddPageSettings("camp", function(det, y)
     local s = S()
     if s.campOwnToast == nil then s.campOwnToast = true end
@@ -1087,7 +1087,7 @@ ns.AddPageSettings("camp", function(det, y)
     return y - 10
 end)
 
--- Bereich "Deathroll": Herausforderungen, offene Einladungen, Spielzug
+-- Section "Deathroll": challenges, open invitations, move
 ns.AddPageSettings("deathroll", function(det, y)
     local s = S()
     if s.drOpenInvites == nil then s.drOpenInvites = true end
@@ -1095,7 +1095,7 @@ ns.AddPageSettings("deathroll", function(det, y)
     y = y - 28
     det.t[#det.t + 1] = toggle(det, 14, y, "Notify on open guild game invites", "drOpenInvites", "Off: players looking for an opponent only show up on the Deathroll page", nil, 600)
     y = y - 32
-    -- 0.6.213: gildenuebergreifende Lobby ueber versteckte Kanaele (Standard an)
+    -- 0.6.213: cross-guild lobby via hidden channels (default on)
     if s.drNet == nil then s.drNet = true end
     det.t[#det.t + 1] = toggle(det, 14, y, "Find opponents outside the guild too", "drNet", "Hidden channel per stake level - players from other guilds appear quietly in the list", function(v)
         local DR = ns.Deathroll
@@ -1105,7 +1105,7 @@ ns.AddPageSettings("deathroll", function(det, y)
     return y - 10
 end)
 
--- Bereich "Friedhof": Todes-Hinweise, Todesursache
+-- Section "Friedhof": death notices, cause of death
 ns.AddPageSettings("deaths", function(det, y)
     local s = S()
     if s.deathKiller == nil then s.deathKiller = true end
@@ -1116,7 +1116,7 @@ ns.AddPageSettings("deaths", function(det, y)
     return y - 10
 end)
 
--- Bereich "Legacy": Mitstreiter-Suchen
+-- Section "Legacy": companion searches
 ns.AddPageSettings("legacy", function(det, y)
     rowLabel(det, "|cffe8b44a" .. L["Personal"] .. "|r", 14, y)
     y = y - 28
@@ -1125,8 +1125,8 @@ ns.AddPageSettings("legacy", function(det, y)
     return y - 10
 end)
 
--- Bereich "Karte & Radar": weitere Kartenebenen, Sendetakt
--- 0.6.113: Karte zweispaltig und nach Themen (Weltkarte, Sammelkarte, Symbole, Senden); Erklaerung als Unterzeile
+-- Section "Karte & Radar": further map layers, send interval
+-- 0.6.113: map card in two columns and by topic (world map, collection map, icons, sending); explanation as subline
 ns.AddPageSettings("map", function(det, y)
     det.t, det.refreshers = det.t or {}, det.refreshers or {}
     local function upd() if ns.Map then ns.Map.UpdateWorldPins() end end
@@ -1136,7 +1136,7 @@ ns.AddPageSettings("map", function(det, y)
         if ns.Map then pcall(ns.Map.UpdateMinimap) pcall(ns.Map.UpdateWorldPins) end
     end
     local function xupd() symUpd() if ns.MapExtras then ns.MapExtras.Redraw() end end
-    -- zwei Spalten; Reihe so hoch wie ihr hoechster Schalter (mit oder ohne Unterzeile)
+    -- two columns; row as tall as its tallest toggle (with or without subline)
     local function grid(list)
         local was = descInline
         descInline = true
@@ -1220,7 +1220,7 @@ ns.AddPageSettings("map", function(det, y)
 
     head("Adjust icons")
     local function pct(v) return math.floor(v * 100 + 0.5) .. "%" end
-    local SYM = {   -- { Text, Schluessel, von, bis, Schritt, Standard, Format }
+    local SYM = {   -- { text, key, from, to, step, default, format }
         { "Gathering nodes minimap: size", "gatherMiniScale", 0.6, 2, 0.05, 1 },
         { "Gathering nodes minimap: opacity", "gatherMiniAlpha", 0.2, 1, 0.05, 1 },
         { "Gathering nodes world map: size", "gatherWorldScale", 0.6, 2.5, 0.05, 1 },
@@ -1265,7 +1265,7 @@ ns.AddPageSettings("insta", function(det, y)
     local s = S()
     if s.profShareQuests == nil then s.profShareQuests = true end
     if s.profShareGear == nil then s.profShareGear = true end
-    -- Ueber mich
+    -- About me
     rowLabel(det, L["About me"], 14, y - 2)
     local bio = K.Input(det, 330, L["One line about you, e.g. Always up for dungeons"])
     bio:SetMaxLetters(80)
@@ -1281,10 +1281,10 @@ ns.AddPageSettings("insta", function(det, y)
     y = y - 30
     note(det, L["Shown on your profile card for the guild."], 164, y, 330, C.dim)
     y = y - 30
-    -- Sichtbarkeit
+    -- Visibility
     det.t[#det.t + 1] = toggle(det, 14, y, "Show Oasis XP on screen", "xpFloat", "New Oasis experience briefly floats up as +XP in the middle of the screen", nil, 600)
     y = y - 40
-    -- Belohnungen aus dem Oasis-Rang
+    -- Rewards from the Oasis rank
     rowLabel(det, "|cffe8b44a" .. L["Your rewards"] .. "|r", 14, y)
     y = y - 30
     det.rw = {}
@@ -1308,11 +1308,11 @@ ns.AddPageSettings("insta", function(det, y)
     return y - 20
 end)
 
--- Funktionskatalog nach dem Nutzen fuer den Spieler, unabhaengig von der Hauptnavigation.
+-- Feature catalog by usefulness to the player, independent of the main navigation.
 local AREA_SCOPE = {
     home = "personal", discover = "personal", life = "personal", bags = "personal",
     badges = "personal", legacy = "personal", rank = "personal", fight = "personal",
-    -- 0.6.530: Questitems und Dungeons sind Zusammenspiel; neue Seiten Meine Gruppe, Gildenleben, Raid-Kader
+    -- 0.6.530: quest items and dungeons are interplay; new pages My group, Guild life, Raid roster
     questitems = "social", dungeons = "social", party = "social", guildlife = "guild", kader = "guild",
     insta = "social", chat = "social", community = "social", groups = "social",
     social = "social", allies = "social", scout = "social", camp = "social", deathroll = "social",
@@ -1330,17 +1330,17 @@ local SCOPE_TAB = { guild = "guildtools", social = "socialtools", personal = "pe
 local function areaTab(key) return SCOPE_TAB[AREA_SCOPE[key] or "personal"] end
 ns.SettingsAreaTab = areaTab
 
--- Bereiche in der Reihenfolge der Navigation (Gruppen), Rest am Ende
+-- Sections in navigation order (groups), rest at the end
 local function pageGroups(scope)
     local out, seen = {}, {}
     for _, g in ipairs(ns.NAV_GROUPS or {}) do
         local items = {}
         for _, k in ipairs(g.pages) do
             local d = ns.PageDef(k)
-            -- Seiten, die es nicht (mehr) eigenstaendig gibt (z.B. Oasis-Rang steckt im Profil), weglassen
+            -- leave out pages that don't exist on their own (anymore) (e.g. Oasis rank lives in the profile)
             if scope and (AREA_SCOPE[k] or "personal") ~= scope then seen[k] = true
             elseif d and d.visible and not d.visible() then seen[k] = true
-            elseif d and d.nav then items[#items + 1] = d seen[k] = true end   -- 0.5.679: Dashboard mit drin (fest an)
+            elseif d and d.nav then items[#items + 1] = d seen[k] = true end   -- 0.5.679: dashboard included (always on)
         end
         if #items > 0 then out[#out + 1] = { text = (g.text and g.text ~= "") and g.text or "Start", items = items } end
     end
@@ -1362,25 +1362,25 @@ end
 
 local function buildPages(f, scope)
     f.noCompact = true
-    -- Auswahl oben: Knopf mit Symbol, Klick oeffnet eine Bereichs-Karte (Gruppen in zwei Spalten, mit Symbolen)
+    -- Picker at the top: button with icon, click opens a section card (groups in two columns, with icons)
     local function iconTag(key, c)
         local path = ns.ICONS and ns.ICONS[key]
         if not path then return "" end
         c = c or C.text
         return ("|T%s:14:14:0:0:64:64:0:64:0:64:%d:%d:%d|t  "):format(path, c[1] * 255, c[2] * 255, c[3] * 255)
     end
-    -- 0.5.550: kein Dropdown mehr - Uebersicht als Karten (wie "Entdecken"), Zahnrad oeffnet die Einstellungen
+    -- 0.5.550: no more dropdown - overview as cards (like "Entdecken"), gear opens the settings
     f.pick = { Update = function() end }
     f.back = K.Button(f, "< " .. L["All sections"], 140, 22, "ghost", function() f.sel = nil f:ShowSel() end)
     f.back:SetPoint("TOPLEFT", 0, -6)
     f.back:Hide()
     f.intro = note(f, L["Switch: show in your navigation. Cog: configure this feature. Disable modules under System & modules."], 0, -6, 620, C.muted)
     f.pickHint = { SetShown = function(_, v) f.back:SetShown(not v) f.intro:SetShown(v) end }
-    -- Rundgang erneut starten (Onboarding.lua)
+    -- Restart the tour (Onboarding.lua)
     f.tourBtn = K.Button(f, L["Tour"], 88, 22, "ghost", function() ns.Onboarding.Show() end)
     f.tourBtn:SetPoint("TOPRIGHT", 0, -6)
 
-    -- Uebersicht: alle Bereiche als Karten nach Gruppen (Symbol, Name, Kurztext, Schalter, Zahnrad)
+    -- Overview: all sections as cards by group (icon, name, short text, toggle, gear)
     f.ov = CreateFrame("Frame", nil, f)
     f.ov:SetPoint("TOPLEFT", 0, -54)
     f.ov:SetPoint("TOPRIGHT", 0, -54)
@@ -1416,7 +1416,7 @@ local function buildPages(f, scope)
             t.sub:SetWordWrap(true)
             t.sub:SetHeight(24)
             t.sub:SetText(d.sub and L[d.sub] or "")
-            -- Schalter (oben rechts) + Zahnrad daneben
+            -- Toggle (top right) + gear next to it
             t.sw = K.Pill(t, 24, 13)
             t.sw:SetPoint("TOPRIGHT", -34, -13)
             t.knob = K.KnobCircle(t.sw, 10)
@@ -1429,7 +1429,7 @@ local function buildPages(f, scope)
             t.gear:SetScript("OnEnter", function(self) self.ic:SetVertexColor(C.text[1], C.text[2], C.text[3]) K.ShowTip(self, { L[d.title], L["Settings of this area"] }) end)
             t.gear:SetScript("OnLeave", function(self) self.ic:SetVertexColor(C.dim[1], C.dim[2], C.dim[3]) GameTooltip:Hide() end)
             t.key = key
-            -- Dashboard laesst sich nicht ausblenden: kein Schalter, Klick oeffnet seine Einstellungen
+            -- Dashboard cannot be hidden: no toggle, click opens its settings
             local fixed = key == "home"
             if fixed then t.sw:Hide() t.gear:ClearAllPoints() t.gear:SetPoint("TOPRIGHT", -8, -9) end
             function t:Refresh()
@@ -1486,14 +1486,14 @@ local function buildPages(f, scope)
             y = y - math.ceil(#g.ts / cols) * 70 - 10
         end
         f.ov:SetHeight(-y + 10)
-        -- Rollbereich der Einstellungsseite neu vermessen
+        -- Re-measure the scroll area of the settings page
         local sc = f:GetParent()
         if sc and sc.Measure then pcall(sc.Measure) end
     end
     f.ov:SetScript("OnSizeChanged", layoutOv)
     layoutOv()
 
-    -- Einzelner Bereich: wird bei jeder Auswahl neu aufgebaut
+    -- Single section: rebuilt on every selection
     function f:ShowSel()
         self.ov:SetShown(self.sel == nil)
         self.pickHint:SetShown(self.sel == nil)
@@ -1509,13 +1509,13 @@ local function buildPages(f, scope)
         local d = ns.PageDef(self.sel)
         if not d then return end
         local key = d.key
-        -- scrollbar, falls ein Bereich mehr Einstellungen hat als Platz ist (Mausrad + schmale Leiste)
+        -- scrollable in case a section has more settings than fit (mouse wheel + thin bar)
         local sf = CreateFrame("ScrollFrame", nil, self)
         sf:SetPoint("TOPLEFT", 0, -46)
         sf:SetPoint("BOTTOMRIGHT", 0, 0)
         self.detScroll = sf
-        -- 0.5.615: war die Bereichs-Uebersicht nach unten gerollt, lag der Bereich ausserhalb des Sichtfelds und das
-        -- Mausrad landete nur noch hier -> aeusseren Rollbereich nach oben setzen und diesen hier an dessen Unterkante binden
+        -- 0.5.615: if the section overview was scrolled down, the section lay outside the view and the
+        -- mouse wheel only landed here -> scroll the outer area to the top and anchor this one to its bottom edge
         local outer = self:GetParent()
         while outer and not (outer.Measure and outer.SetVerticalScroll) do outer = outer:GetParent() end
         if outer then
@@ -1555,8 +1555,8 @@ local function buildPages(f, scope)
         end)
         self.det = det
         det.t = {}
-        -- 0.5.912: kein Kopf mehr mit Symbol, "Bereich oeffnen" und "In meiner Navigation zeigen" - das Ein-/Ausblenden
-        -- steht schon eine Ebene hoeher in der Bereichsliste. Die Karte traegt den Namen des Bereichs.
+        -- 0.5.912: no more header with icon, "Bereich oeffnen" and "In meiner Navigation zeigen" - showing/hiding
+        -- is already one level up in the section list. The card carries the section name.
         local adminOff = ns.Admin and not ns.Admin.PageEnabled(key)
         local c2 = card(det, 0, 0, 740, 300)
         c2:SetPoint("TOPRIGHT", det, "TOPRIGHT", -2, 0)
@@ -1567,10 +1567,10 @@ local function buildPages(f, scope)
         det:SetScript("OnSizeChanged", nil)
         local Y0 = -46
         local y = Y0
-        descInline = true   -- Erklaerungen als Unterzeile, danach nachruecken (reflowDescs)
+        descInline = true   -- Explanations as subline, then reflow (reflowDescs)
         local opts = PAGE_OPTS[key] or {}
         for _, o in ipairs(opts) do
-            if o[5] and S()[o[2]] == nil then S()[o[2]] = true end   -- Standard an
+            if o[5] and S()[o[2]] == nil then S()[o[2]] = true end   -- Default on
             det.t[#det.t + 1] = toggle(det, 14, y, o[1], o[2], o[3], o[4], 600)
             y = y - 32
         end
@@ -1610,7 +1610,7 @@ local function buildPages(f, scope)
             if ok and type(ny) == "number" then y = ny
             elseif not ok then ns.err(L["Setup"] .. " settings/pages/" .. key, ny) end
         end
-        -- Unterseiten ohne eigenen Navigationspunkt: Einstellungen beim Hauptbereich zeigen
+        -- Subpages without own navigation entry: show settings under the main section
         for _, ck in ipairs(AREA_CHILDREN[key] or {}) do
             local cd = ns.PageDef(ck)
             if cd and (PAGE_OPTS[ck] or PAGE_EXTRA[ck]) then
@@ -1629,7 +1629,7 @@ local function buildPages(f, scope)
                 end
             end
         end
-        -- 0.5.995: Tooltip- und Karten-Schalter stehen gesammelt unter Tooltips & Karte - hier nur der Weg dorthin
+        -- 0.5.995: tooltip and map toggles are collected under Tooltips & Map - here only the way there
         local links = AREA_LINKS[key]
         if links then
             y = y - 6
@@ -1651,7 +1651,7 @@ local function buildPages(f, scope)
         sf:UpdateBar()
         self:Refresh()
     end
-    -- 0.5.524: jedes Element nur aktualisieren, wenn es das kann (vorher brach die Seite bei einem fehlenden Refresh ab)
+    -- 0.5.524: refresh each element only if it can (previously the page broke on a missing Refresh)
     local function rf(x) if x and x.Refresh then pcall(x.Refresh, x) end end
     function f:Refresh()
         for _, t in ipairs(self.nav) do
@@ -1681,7 +1681,7 @@ end
 local function refreshPages(f) f:Refresh() end
 
 ------------------------------------------------------------------------
--- Darstellung
+-- Appearance
 ------------------------------------------------------------------------
 local SAMPLE = "Oasis Gildenzentrale  äöü ÄÖÜ ß 1234"
 local function fontList(f, x, y, w, h, fonts, field, head)
@@ -1715,7 +1715,7 @@ local function fontList(f, x, y, w, h, fonts, field, head)
     list:SetData(fonts)
     return list
 end
--- Design wechseln: Palette tauschen, Fenster neu aufbauen (gebremst)
+-- Switch design: swap palette, rebuild window (throttled)
 local themeGen = 0
 local function rebuildSoon()
     themeGen = themeGen + 1
@@ -1723,11 +1723,11 @@ local function rebuildSoon()
     ns.After(0.25, function()
         if gen ~= themeGen then return end
         if K.ApplyTheme then K.ApplyTheme() end
-        -- ApplyBrand -> ApplyAccent baut das Fenster selbst (gebremst) neu auf; hier nicht nochmal (sonst laedt es doppelt)
+        -- ApplyBrand -> ApplyAccent rebuilds the window itself (throttled); not again here (otherwise it loads twice)
         if ns.Admin then ns.Admin.ApplyBrand(true) elseif ns.RebuildMain then ns.RebuildMain() end
     end)
 end
--- Zustand der Farb-Einstellungen merken -> Funktion, die ihn wiederherstellt (Farbwaehler "Abbrechen")
+-- Remember the state of the color settings -> function that restores it (color picker "Cancel")
 local LOOK_KEYS = { "theme", "duoBase", "duoAccent", "duoSide", "accent", "themeGrad", "glowColor", "glowColorSide", "glowStrengthL", "glowStrengthR", "glowBreath" }
 local function lookSnapshot()
     local t, s = {}, S()
@@ -1738,7 +1738,7 @@ local function lookSnapshot()
         rebuildSoon()
     end
 end
--- kleine Vorschaukarte je Design (zeigt Hintergrund/Verlauf, Seitenleiste, Akzent, Rahmen)
+-- small preview card per design (shows background/gradient, sidebar, accent, frame)
 local function themeCard(f, th, x, y, w, h)
     local b = CreateFrame("Button", nil, f)
     b:SetPoint("TOPLEFT", x, y)
@@ -1759,13 +1759,13 @@ local function themeCard(f, th, x, y, w, h)
     sd:SetPoint("TOPLEFT", 1, -1) sd:SetPoint("BOTTOMLEFT", 1, 1) sd:SetWidth(22)
     sd:SetColorTexture(side[1], side[2], side[3], 1)
     local nameX = 30
-    local own   -- Design mit eigener Vorschau (Zusatzmodul): th.preview(b) -> Abstand des Namens, Textfarbe
+    local own   -- Design with its own preview (add-on module): th.preview(b) -> name spacing, text color
     if th.preview then
         local ok, nx, tc = pcall(th.preview, b)
         if ok and nx then own, nameX, text = true, nx, tc or text end
     end
     if not own then
-        for i = 1, 3 do   -- angedeutete Navigation
+        for i = 1, 3 do   -- hinted navigation
             local n = b:CreateTexture(nil, "ARTWORK")
             n:SetSize(12, 2) n:SetPoint("TOPLEFT", 6, -12 - i * 7)
             local c = i == 1 and acc or text
@@ -1798,23 +1798,23 @@ local function themeCard(f, th, x, y, w, h)
     end)
     b:SetScript("OnClick", function()
         local s = S()
-        -- Design-Klick = Basis neu setzen: eigene Akzentfarbe/Verlauf gehen auf die Werte des Designs zurueck
-        -- (Kontrast, Rahmen, Grafik, Deckkraft bleiben - die sind unabhaengig vom Design)
+        -- Design click = reset base: own accent color/gradient revert to the design's values
+        -- (contrast, border, graphics, opacity stay - they are independent of the design)
         local cur = K.CurrentTheme()
         local hadOverride = (s.accent or "") ~= (cur.accent or "") or s.themeGrad ~= nil
         if hadOverride and s.theme ~= th.key and K.Toast then
             K.Toast(L[th.name], L["Accent colour and gradient reset to the design"], C.accent)
         end
         s.theme = th.key
-        s.colorOn = nil                      -- Design-Klick = Farben des Designs (eigene Farben wieder aus)
-        s.themeGrad = nil                    -- Verlauf wieder wie im Design vorgesehen
-        s.accent = th.accent                 -- Standard = Farbe der Gilde
-        -- 0.6.160: Design-Klick = alles auf Standard - auch eigene Grund-/Akzent-/Leistenfarbe, Glut-Farben,
-        -- Glut-Staerke und Atmen
+        s.colorOn = nil                      -- Design click = the design's colors (own colors off again)
+        s.themeGrad = nil                    -- Gradient back to what the design intends
+        s.accent = th.accent                 -- Default = guild color
+        -- 0.6.160: design click = everything to default - including own base/accent/bar color, glow colors,
+        -- glow strength and breathing
         s.duoBase, s.duoAccent, s.duoSide, s.glowColor, s.glowColorSide, s.frameColor = nil, nil, nil, nil, nil, nil
         s.glowStrengthL, s.glowStrengthR, s.glowBreath = nil, nil, nil
         if th.font and K.fontByKey[th.font] then s.uiFont = th.font K.ApplyUserFonts() end
-        -- Design mit eigenem Klick-Soundpaket (th.uiPack); wer Klick-Toene aus hat, bleibt bei aus
+        -- Design with its own click sound pack (th.uiPack); whoever has click sounds off stays off
         if th.uiPack and ns.Sound and ns.Sound.SetUiPack and ns.Sound.UiPack() ~= "none" then ns.Sound.SetUiPack(th.uiPack) end
         if ns.Sound and ns.Sound.Next then pcall(ns.Sound.Next, "click") end
         rebuildSoon()
@@ -1823,7 +1823,7 @@ local function themeCard(f, th, x, y, w, h)
 end
 
 local function buildLook(f)
-    -- 0.5.544: luftig in voller Breite (Seite scrollt), Glas-Karten, Design-Karten heben sich beim Ueberfahren
+    -- 0.5.544: airy at full width (page scrolls), glass cards, design cards lift on hover
     f.noCompact = true
     local LX = 16
     local function cardW(y, h, icon, title, sub)
@@ -1833,7 +1833,7 @@ local function buildLook(f)
     end
 
     -- Design ---------------------------------------------------------------
-    -- 0.5.555: zwei Spalten - links Design + Schrift, rechts Eigene Farben + Details
+    -- 0.5.555: two columns - left design + font, right own colors + details
     local RXc = 376
     local themeRows = math.ceil(#K.THEMES / 2)
     local designH = 54 + themeRows * 72 + 4
@@ -1858,16 +1858,16 @@ local function buildLook(f)
         indexAdd(L[th.name], b, L["Theme"])
     end
 
-    -- Eigene Farben ----------------------------------------------------------
+    -- Own colors ----------------------------------------------------------
     local Y = 0
     local RX0 = RXc + 16
-    -- Hoehe aus der Zahl der Vorlagen (6 je Reihe)
+    -- Height from the number of presets (6 per row)
     local duoRows = math.ceil(#K.DUO_PRESETS / 6)
-    local farbH = 68 + duoRows * 28 + 8 + 24 + 20 + 30 + 34 + 104   -- 0.6.232: zwei Regler (Glut, Bild-Helligkeit)   -- 0.6.136/0.6.149 Knopfzeilen; 0.6.158: Glut-Staerke und Atmen
+    local farbH = 68 + duoRows * 28 + 8 + 24 + 20 + 30 + 34 + 104   -- 0.6.232: two sliders (glow, image brightness)   -- 0.6.136/0.6.149 button rows; 0.6.158: glow strength and breathing
     cardH(f, RXc, Y, 362, farbH, "heart", L["Own colours"], L["Mix two colours - base, accent and sidebar individually"], true)
     local function applyDuo(base, acc)
         local s = S()
-        -- 0.5.786: eigene Farben faerben das GEWAEHLTE Design um - das Design selbst (Stil, Rahmen, Schrift) bleibt
+        -- 0.5.786: own colors recolor the SELECTED design - the design itself (style, border, font) stays
         s.colorOn, s.duoBase, s.duoAccent, s.accent, s.themeGrad = true, base, acc, acc, nil
         if ns.Sound and ns.Sound.Next then pcall(ns.Sound.Next, "click") end
         rebuildSoon()
@@ -1901,10 +1901,10 @@ local function buildLook(f)
     f.duoAcc = K.ColorPickButton(f, function() return S().duoAccent or "ff4d6d" end, function(hex) applyDuo(S().duoBase or "15171d", hex) end, L["Accent / highlight"], lookSnapshot)
     f.duoAcc:SetWidth(162)
     f.duoAcc:SetPoint("LEFT", f.duoBase, "RIGHT", 6, 0)
-    -- 0.6.170: klare Namen + Erklaerung, was genau gefaerbt wird
+    -- 0.6.170: clear names + explanation of exactly what gets colored
     f.duoBase:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Window background"], L["Base colour of the whole Oasis window (surfaces and cards)."] }) end)
     f.duoAcc:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Accent / highlight"], L["Colour for frames, buttons, markers and active entries."] }) end)
-    -- 0.6.159: aktuelle Grund-/Akzentfarbe behalten (vorher Standardfarben -> rechts aenderte sich alles mit)
+    -- 0.6.159: keep the current base/accent color (previously default colors -> everything on the right changed too)
     local function curBase() return S().duoBase or (C.bg and K.ToHex(C.bg)) or "15171d" end
     local function curAcc() return S().duoAccent or (C.accent and K.ToHex(C.accent)) or "ff4d6d" end
     f.duoSide = K.ColorPickButton(f, function()
@@ -1922,7 +1922,7 @@ local function buildLook(f)
     end)
     f.duoSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Navigation (left)"], L["Background colour of the navigation bar on the left. Right-click: automatic again."] }) end)
     f.duoSide:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    -- 0.6.136: eigene Farbe fuer die Glut-Hintergruende (Leiste links und Inhalt rechts); ohne Wahl = Akzentfarbe
+    -- 0.6.136: own color for the glow backgrounds (bar on the left and content on the right); no choice = accent color
     f.glowCol = K.ColorPickButton(f, function()
         return (S().glowColor and S().glowColor ~= "") and S().glowColor or K.ToHex(C.accent)
     end, function(hex) S().glowColor = hex end, L["Embers in content"], lookSnapshot)
@@ -1934,11 +1934,11 @@ local function buildLook(f)
     end)
     f.glowCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Embers in content"], L["Colour of the glowing ember veins in the large content area on the right. Right-click: same as accent again."] }) end)
     f.glowCol:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    -- 0.6.149: eigene Farbe fuer den Hintergrund der Leiste links (ohne Wahl wie rechts bzw. Akzentfarbe)
+    -- 0.6.149: own color for the background of the left bar (no choice: like the right or accent color)
     f.glowSide = K.ColorPickButton(f, function()
         local v = S().glowColorSide
         if v and v ~= "" then return v end
-        return K.ToHex(C.accent)   -- 0.6.159: wie rechts - ohne Wahl die Akzentfarbe
+        return K.ToHex(C.accent)   -- 0.6.159: like the right - no choice = accent color
     end, function(hex) S().glowColorSide = hex end, L["Embers in navigation"], lookSnapshot)
     f.glowSide:SetWidth(162)
     f.glowSide:SetPoint("TOPLEFT", f.duoSide, "BOTTOMLEFT", 0, -6)
@@ -1948,7 +1948,7 @@ local function buildLook(f)
     end)
     f.glowSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Embers in navigation"], L["Colour of the glowing ember veins in the navigation bar on the left. Right-click: same as accent again."] }) end)
     f.glowSide:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    -- 0.6.191: Farbe der Glut im Fensterrahmen (Bild-Rahmen); ohne Wahl wie die Akzentfarbe
+    -- 0.6.191: color of the glow in the window frame (image frame); no choice = like the accent color
     f.frameCol = K.ColorPickButton(f, function()
         local v = S().frameColor
         if v and v ~= "" then return v end
@@ -1962,7 +1962,7 @@ local function buildLook(f)
     end)
     f.frameCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Window frame"], L["Colour of the embers in the window frame. Right-click: same as accent again."] }) end)
     f.frameCol:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    -- 0.6.158: Glut-Staerke links/rechts und "Glut atmet"
+    -- 0.6.158: glow strength left/right and "Glut atmet"
     local pct = function(v) return (L["%d%%"]):format(v * 100 + 0.5) end
     local function glowRow(label, key, below, dy, def)
         local lb = K.Text(f, 13, C.text)
@@ -1974,7 +1974,7 @@ local function buildLook(f)
         indexAdd(L[label], sl)
         return lb, sl
     end
-    -- 0.6.231: vereinfacht auf drei Regler, die jeweils links UND rechts setzen (vorher sechs einzelne)
+    -- 0.6.231: simplified to three sliders that each set left AND right (previously six separate ones)
     local function pairRow(label, keys, below, dy, maxV, def, tipKey, after)
         local lb = K.Text(f, 13, C.text)
         lb:SetPoint("TOPLEFT", below, "BOTTOMLEFT", 0, dy)
@@ -1993,7 +1993,7 @@ local function buildLook(f)
     local applyBg = function() if K.ApplyBgBright then K.ApplyBgBright() end end
     f.glowAllLbl, f.glowAll = pairRow("Embers", { "glowStrengthR", "glowStrengthL" }, f.glowSide, -16, 2, 1,
         "Glow strength of the ember veins left and right. 0 % = off.")
-    -- 0.6.232: Bild-Deckkraft entfaellt (Helligkeit 0 % = schwarz deckt das ab); alte Werte einmalig auf 100 %
+    -- 0.6.232: image opacity dropped (brightness 0 % = black covers it); old values reset to 100 % once
     S().bgBright, S().bgBrightL = nil, nil
     f.bgLiLbl, f.bgLi = pairRow("Image brightness", { "bgLight", "bgLightL" }, f.glowAllLbl, -14, 2, 1,
         "0 % = black, 100 % = normal, above that stronger and brighter.", applyBg)
@@ -2002,13 +2002,13 @@ local function buildLook(f)
     f.glowBreath:SetPoint("TOPLEFT", f.bgLiLbl, "BOTTOMLEFT", 0, -12)
     f.glowBreath:SetWidth(330)
     indexAdd(L["Glow breathes"], f.glowBreath)
-    -- Schrift (links) + Details (rechts) --------------------------------------
+    -- Font (left) + details (right) --------------------------------------
     local Y3 = -designH - 14
     cardH(f, 0, Y3, 362, 300, "chronicle", L["Font"], L["Applies to the whole Oasis interface. Takes effect right away, some spots after /reload."])
     f.head = fontList(f, LX, Y3 - 54, 330, 232, K.PickFonts(), "uiFont", true)
     Y3 = Y - farbH - 14
-    -- 0.6.107: Details als ruhige Liste - drei Schalter in voller Breite, darunter Groesse und Durchsicht, unten
-    -- Zuruecksetzen (vorher Kacheln mit abgeschnittenem Titel und einer grossen Luecke vor den Reglern)
+    -- 0.6.107: details as a calm list - three toggles at full width, below them size and transparency, at the bottom
+    -- reset (previously tiles with truncated titles and a big gap before the sliders)
     cardH(f, RXc, Y3, 362, 362, "settings", L["Details"], L["Contrast, border, texture, size and transparency"], true)
     local MX = RXc + 16
     local restyle = function() local m = ns.MainFrame and ns.MainFrame() if m and K.StyleWindow then K.StyleWindow(m) end end
@@ -2020,7 +2020,7 @@ local function buildLook(f)
         S().themeTexture = v and true or false
         restyle()
     end, 330)
-    -- 0.6.192: Bild-Rahmen (Lavaglut) an/aus - aus = schlanker moderner Rahmen mit Schimmer wie vorher
+    -- 0.6.192: image frame (lava glow) on/off - off = slim modern frame with shimmer as before
     f.imgFrame = toggle(f, MX, Y3 - 158, "Ornate window frame", "imageFrame", "Ornate frame with embers (off: slim modern frame)", function(v)
         S().imageFrame = v and true or false
         if K.ApplyFrameStyle then
@@ -2030,13 +2030,13 @@ local function buildLook(f)
         end
         if K.RefreshBoxFrames then K.RefreshBoxFrames() end
     end, 330)
-    -- 0.6.281: derselbe Rahmen schmal um alle Boxen (nur mit Gildenmodul, nur wenn der verzierte Rahmen an ist)
+    -- 0.6.281: the same frame, thin, around all boxes (only with guild module, only if the ornate frame is on)
     if S().boxFrame == nil then S().boxFrame = true end
     f.boxFrameT = toggle(f, MX, Y3 - 190, "Frame around boxes too", "boxFrame", "The red line also thin around cards and boxes in the addon", function(v)
         S().boxFrame = v and true or false
         if K.RefreshBoxFrames then K.RefreshBoxFrames() end
     end, 330)
-    f.logoSeg = { Select = function() end }   -- 0.5.681: keine Logo-Auswahl mehr (Stub fuer refreshLook)
+    f.logoSeg = { Select = function() end }   -- 0.5.681: no more logo picker (stub for refreshLook)
     local dv = K.Divider(f)
     dv:SetPoint("TOPLEFT", MX, Y3 - 226)
     dv:SetWidth(330)
@@ -2094,12 +2094,12 @@ local function refreshLook(f)
 end
 
 ------------------------------------------------------------------------
--- Hinweise
+-- Notices
 ------------------------------------------------------------------------
 local function buildToasts(f)
     f.noCompact = true
     f.t = {}
-    -- Karte: Allgemein
+    -- Card: General
     card(f, 0, 0, 362, 214)
     section(f, L["Notifications"], 14, -12, 334)
     f.t[1] = toggle(f, 14, -46, "Show notifications", "toasts", "Orders, events, group searches, announcements ...", nil, 320)
@@ -2114,7 +2114,7 @@ local function buildToasts(f)
     end)
     test:SetPoint("TOPLEFT", 14, -174)
 
-    -- Karte: Groesse und Position
+    -- Card: size and position
     local RX = 376
     local rc = card(f, RX, 0, 362, 214)
     rc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, 0)
@@ -2137,7 +2137,7 @@ local function buildToasts(f)
     reset:SetPoint("LEFT", move, "RIGHT", 8, 0)
     f.posNote = note(f, "", RX + 14, -120, 330, C.muted)
 
-    -- Hinweise nach Anlass; die Auswahl bleibt beim Zu-/Aufklappen erhalten.
+    -- Notices by occasion; the selection is kept when collapsing/expanding.
     f.kinds, f.kindGroups = {}, {}
     local scopes = {
         { key = "guild", title = "Guild & organisation", desc = "Announcements, events, crafting and shared progress." },
@@ -2239,7 +2239,7 @@ local function buildToasts(f)
 end
 local function refreshToasts(f)
     for _, t in ipairs(f.t) do t:Refresh() end
-    -- ausgeschaltete Hinweis-Arten rot markieren, Zaehler oben
+    -- mark disabled notice types red, counter at the top
     local on, n = 0, 0
     for _, t in ipairs(f.kinds or {}) do
         n = n + 1
@@ -2269,7 +2269,7 @@ local function refreshToasts(f)
 end
 
 ------------------------------------------------------------------------
--- Sound & Musik
+-- Sound & music
 ------------------------------------------------------------------------
 local function choiceText(key)
     local c = ns.Sound.byKey[key]
@@ -2293,7 +2293,7 @@ local function buildSound(f)
     if S().chatSounds == nil then S().chatSounds = true end
     if S().entrancePopup == nil then S().entrancePopup = true end
 
-    -- schlichte Sound-Auswahl: Lautsprecher (anhoeren) + Name, Klick oeffnet die Auswahl
+    -- simple sound picker: speaker (listen) + name, click opens the picker
     local function chip(parent, w, getKey, onPick, title)
         local b = CreateFrame("Button", nil, parent)
         b:SetSize(w, 24)
@@ -2306,8 +2306,8 @@ local function buildSound(f)
         b.play.icon = K.Glyph(b.play, 14, ns.MEDIA .. "icons\\speaker", C.muted)
         b.play.icon:SetPoint("CENTER")
         b.play:SetScript("OnClick", function() local k = getKey() if k and k ~= "none" then Snd.Preview(k) b.playAt = GetTime() end end)
-        if K.NoUiSound then K.NoUiSound(b.play) end   -- Anhoeren: nur der Sound, kein Klick-Ton davor
-        -- waehrend die eigene Vorschau laeuft: kleiner Equalizer statt Lautsprecher
+        if K.NoUiSound then K.NoUiSound(b.play) end   -- Listen: only the sound, no click sound before it
+        -- while your own preview is playing: small equalizer instead of the speaker
         b.eq = K.Equalizer(b.play, 3, 11, 11, C.accent2, function() return b.playAt and GetTime() - b.playAt < 1.6 end)
         b.eq:SetPoint("CENTER", 0, 0)
         b.eq:Hide()
@@ -2343,7 +2343,7 @@ local function buildSound(f)
         return b
     end
 
-    -- Karte: Wiedergabe ---------------------------------------------------
+    -- Card: Playback ---------------------------------------------------
     local X = 14
     card(f, 0, 0, 362, ns.TOOLS_RELEASED and 270 or 228)
     section(f, L["Playback"], X, -12, 334)
@@ -2356,7 +2356,7 @@ local function buildSound(f)
         function(v) return v == 0 and L["off"] or Snd.VolText(v) end,
         function(v) Snd.Preview("glocke", v) end)
     f.vol:SetPoint("TOPLEFT", X + 116, -138)
-    -- UI-Soundpaket: Klick-Toene bei Knoepfen, Reitern, Schaltern und Fenster auf/zu
+    -- UI sound pack: click sounds for buttons, tabs, toggles and window open/close
     rowLabel(f, L["Click sounds"], X, -168)
     f.uis = K.Button(f, "", 160, 24, "ghost")
     f.uis:SetPoint("TOPLEFT", X + 116, -164)
@@ -2383,8 +2383,8 @@ local function buildSound(f)
         K.ShowMenu(self, list, nil, 160)
     end)
     f.uis:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Click sounds"], L["Sound pack for buttons, tabs, switches and windows"] }) end)
-    -- 0.5.948: eigene Sounds und Emojis einer Gilde - wie es geht und was gerade geladen ist
-    -- haengt an ns.TOOLS_RELEASED (Core.lua): die Vorlage dazu liegt in Oasis-Tools auf GitHub/Discord
+    -- 0.5.948: a guild's own sounds and emojis - how it works and what is currently loaded
+    -- depends on ns.TOOLS_RELEASED (Core.lua): the template is in Oasis-Tools on GitHub/Discord
     if ns.TOOLS_RELEASED then
         local STEPS = {
             "1. Get the template Oasis-Tools from the Oasis Discord (channel oasis-download).",
@@ -2404,7 +2404,7 @@ local function buildSound(f)
             for _, t in ipairs(STEPS) do ns.print("  " .. L[t]) end
             ns.print("  " .. loaded())
         end)
-        f.own:SetPoint("TOPLEFT", X, -236)   -- 0.6.111: unter die Klick-Lautstaerke (lag vorher genau darauf)
+        f.own:SetPoint("TOPLEFT", X, -236)   -- 0.6.111: below the click volume (previously sat right on top of it)
         f.own:HookScript("OnEnter", function(self)
             local lines = { L["Your own sounds and emojis for your guild"] }
             for _, t in ipairs(STEPS) do lines[#lines + 1] = L[t] end
@@ -2413,11 +2413,11 @@ local function buildSound(f)
             K.ShowTip(self, lines)
         end)
         f.own:HookScript("OnLeave", function() GameTooltip:Hide() end)
-        -- 0.6.475: selten gebraucht - nur mit "Alle Optionen" (lag sonst nach dem Aufruecken auf der Kastenkante)
+        -- 0.6.475: rarely needed - only with "Alle Optionen" (otherwise sat on the box edge after reflow)
         if not S().setAll then f.own:Hide() end
     end
     f.uis:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    -- einzelne Toene zuweisen: kleines Fenster, je Aktion ein Paket waehlen (mit Vorhoeren)
+    -- assign individual sounds: small window, pick a pack per action (with preview)
     f.uiRoles = K.Button(f, "...", 44, 24, "ghost", function(self)
         local w = Snd.rolePop
         if not w then
@@ -2427,7 +2427,7 @@ local function buildSound(f)
             w:SetFrameStrata("DIALOG")
             w:SetClampedToScreen(true)
             w:EnableMouse(true)
-            -- deckend (Glas-Flaechen sind halbtransparent -> die Liste dahinter schien durch)
+            -- opaque (glass surfaces are semi-transparent -> the list behind showed through)
             local solid = { C.bg[1], C.bg[2], C.bg[3], 0.98 }
             K.Fill(w, solid)
             K.Border(w, C.line)
@@ -2443,7 +2443,7 @@ local function buildSound(f)
                 local b = K.Button(w, "", 170, 24, "ghost")
                 b:SetPoint("TOPLEFT", 112, -44 - (i - 1) * 32)
                 local lb = K.Text(w, 12, C.muted)
-                lb:SetPoint("RIGHT", b, "LEFT", -8, 0)   -- mittig zur Zeile
+                lb:SetPoint("RIGHT", b, "LEFT", -8, 0)   -- centered on the row
                 lb:SetWidth(88)
                 lb:SetJustifyH("LEFT")
                 lb:SetText(L[r[2]])
@@ -2493,25 +2493,25 @@ local function buildSound(f)
     f.uiRoles:SetPoint("LEFT", f.uis, "RIGHT", 6, 0)
     f.uiRoles:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Click sounds one by one"], L["Pick the sound for each action from any pack"] }) end)
     f.uiRoles:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    -- eigene Lautstaerke fuer die Klick-Toene (ohne Wert: 70 % der Sound-Lautstaerke)
+    -- own volume for the click sounds (no value: 70 % of the sound volume)
     rowLabel(f, L["Click volume"], X, -202)
     f.uivol = K.Slider(f, 160, 0, Snd.VOL_MAX, 1, function() return K.UiVolume() end,
         function(v) S().uiVol = v end,
         function(v) return v == 0 and L["off"] or Snd.VolText(v) end,
         function() K.UiSound("ui_click") end)
     f.uivol:SetPoint("TOPLEFT", X + 116, -200)
-    -- Equalizer oben rechts in der Karte: tanzt bei jeder Vorschau
+    -- Equalizer at the top right of the card: dances on every preview
     f.eq = K.Equalizer(f, 16, 92, 17, C.accent2, function() return Snd.previewAt and GetTime() - Snd.previewAt < 1.6 end)
     f.eq:SetPoint("TOPRIGHT", f, "TOPLEFT", 362 - 16, -12)
     f.eq:EnableMouse(true)
     f.eq:SetScript("OnMouseDown", function() Snd.Preview("glocke") end)
     f.eq:SetScript("OnEnter", function(self) K.ShowTip(self, L["Click to listen"]) end)
     f.eq:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    -- Lautsprecher vor der Lautstaerke: zeigt den Pegel
+    -- Speaker before the volume: shows the level
     f.spk = K.Glyph(f, 14, ns.MEDIA .. "icons\\speaker", C.muted)
     f.spk:SetPoint("TOPLEFT", X + 92, -142)
 
-    -- Karte: Online kommen --------------------------------------------------
+    -- Card: Coming online --------------------------------------------------
     local RX = 376
     local rc = card(f, RX, 0, 362, 228)
     rc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, 0)
@@ -2531,7 +2531,7 @@ local function buildSound(f)
     f.entr = toggle(f, RX + 14, -110, "Play other players' online sounds", "soundEntrance", nil, nil, 320)
     f.epop = toggle(f, RX + 14, -138, "Show when someone comes online", "entrancePopup", nil, nil, 320)
 
-    -- Karte: Sounds je Hinweis -----------------------------------------------
+    -- Card: Sounds per notice -----------------------------------------------
     local bc = card(f, 0, -242, 738, 260)
     bc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, -242)
     bc:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 4)
@@ -2546,7 +2546,7 @@ local function buildSound(f)
         ns.RefreshPage("settings")
     end)
     def:SetPoint("TOPRIGHT", -14, -10)
-    -- Vorlagen: setzt alle Hinweis-Sounds auf einmal
+    -- Presets: set all notice sounds at once
     local pre = K.Button(bc, L["Choose preset"], 130, 20, "ghost", function(self)
         local list = {}
         for _, p in ipairs(Snd.PRESETS) do
@@ -2565,7 +2565,7 @@ local function buildSound(f)
         r.name:SetPoint("LEFT", 32, 0)
         r.name:SetPoint("RIGHT", r, "CENTER", -10, 0)
         r.name:SetWordWrap(false)
-        -- Ueberfahren: Name rueckt etwas nach rechts, Symbol nimmt Akzentfarbe an
+        -- Hover: name shifts slightly right, icon takes the accent color
         r:HookScript("OnEnter", function(self)
             self.ic:SetVertexColor(C.accent2[1], C.accent2[2], C.accent2[3])
             if K.Tween and not S().noAnim then K.Tween(self.name, 0.14, function(q) self.name:SetPoint("LEFT", 32 + 4 * q, 0) end) end
@@ -2589,13 +2589,13 @@ local function buildSound(f)
     f.list:SetPoint("BOTTOMRIGHT", bc, "BOTTOMRIGHT", -6, 6)
     f.list:SetData(events)
 
-    -- Musik-Bereich entfernt; Oasis spielt keine Fenster-Musik mehr
+    -- Music section removed; Oasis no longer plays window music
     S().music = "off"
     if Snd.StopMusic then Snd.StopMusic() end
 end
 local function refreshSound(f)
     for _, t in ipairs({ f.on, f.quiet, f.chs, f.uis, f.uivol, f.entr, f.epop, f.vol, f.evol }) do t:Refresh() end
-    -- Sounds aus: alles darunter wirkt sichtbar ruhig
+    -- Sounds off: everything below looks visibly calm
     local on = S().sound ~= false
     for _, t in ipairs({ f.quiet, f.chs, f.vol, f.eq, f.list }) do if t then t:SetAlpha(on and 1 or 0.4) end end
     if f.spk then
@@ -2610,23 +2610,23 @@ local function refreshSound(f)
 end
 
 ------------------------------------------------------------------------
--- Karte & Teilen
+-- Map & sharing
 ------------------------------------------------------------------------
--- 0.5.617: Datenschutz - alles, was dich selbst betrifft, an einer Stelle an-/abschaltbar
+-- 0.5.617: privacy - everything concerning yourself can be toggled in one place
 local PRIV_ON = { "shareDeaths", "shareNodes", "shareTrace", "shareInstPos", "sharePerf", "shareCombat", "rtShare", "rtTrack",
     "trackPlay", "scoutSeen", "wrShare", "lkShare", "profShareGear", "profShareQuests", "shareErrors", "campAuto", "cpProfCD",
-    "chatSounds", "entrancePopup", "soundEntrance" }   -- 0.6.112: Klang-Standards (setzte vorher nur die Bereichsseite)
+    "chatSounds", "entrancePopup", "soundEntrance" }   -- 0.6.112: sound defaults (previously only set the section page)
 ns.Listen("DB_READY", function()
     local s = ns.db and ns.db.settings
     if not s then return end
     for _, k in ipairs(PRIV_ON) do if s[k] == nil then s[k] = true end end
-    -- einmalig: datenschutzfreundliche Standards auch fuer bestehende Nutzer
+    -- once: privacy-friendly defaults for existing users too
     if not s.priv617 then
         s.priv617 = true
         s.shareMap, s.shareRep, s.rareShare, s.cpRareShare = false, false, false, false
         if s.oasisNet ~= true then s.oasisNet = nil end
     end
-    -- 0.5.674: Fluester-Reaktionen immer senden (Schalter entfernt) - einmalig wieder an
+    -- 0.5.674: always send whisper reactions (toggle removed) - turn back on once
     if not s.wlr674 then s.wlr674 = true s.wlReactSend = nil end
 end)
 local function buildShare(f)
@@ -2641,7 +2641,7 @@ local function buildShare(f)
         f.rk[#f.rk + 1] = { key }
         return t
     end
-    -- links: was die Gilde von dir sieht
+    -- left: what the guild sees of you
     local ROW = 27
     local L1 = {
         { "Share position on the world map", "shareMap", "Guild map and minimap dots for others. Default: off" },
@@ -2671,7 +2671,7 @@ local function buildShare(f)
         yy = yy - ROW - (r[3] and DESC_H or 0)
     end
     c1:SetHeight(-yy + 6)
-    -- rechts oben: Technik
+    -- top right: technical
     local L2 = {
         { "Error reports to the guild", "shareErrors", "Helps fix bugs" },
         { "Include list of other addons", "shareAddonList", "Only for debugging. Default: off" },
@@ -2687,21 +2687,21 @@ local function buildShare(f)
     descInline = false
     local low = math.min(-(c1:GetHeight() or 0), yy - 10)
     resetButton(f, low - 16, function() if ns.Radar and ns.Radar.SendHello then pcall(ns.Radar.SendHello) end end)
-    -- 0.5.675: Oasis-Netz ist immer an - kein Schalter mehr
-    -- 0.5.673: Karte "Nur auf diesem PC" entfernt - Spielzeiten, Online-Zeiten, Begegnungen laufen immer, Raid-Check ohne Namen
+    -- 0.5.675: Oasis network is always on - no toggle anymore
+    -- 0.5.673: card "Nur auf diesem PC" removed - playtimes, online times, encounters always run, raid check without names
 end
 local function refreshShare(f)
     for _, t in ipairs(f.t) do if t.Refresh then t:Refresh() end end
 end
 
--- 0.5.617: Listen + Karten-Anzeige (vorher unter "Teilen & Karte")
+-- 0.5.617: lists + map display (previously under "Teilen & Karte")
 
 ------------------------------------------------------------------------
--- Charakter
+-- Character
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
--- Einstellungen sichern: Export/Import als Text + gespeicherte Profile
--- eigenes, sicheres Format (kein loadstring): Tabellen, Texte, Zahlen, true/false
+-- Back up settings: export/import as text + saved profiles
+-- own safe format (no loadstring): tables, strings, numbers, true/false
 ------------------------------------------------------------------------
 local NOEXPORT = { mainPos = true, miniPos = true, toastPos = true, mainOpen = true, collapsed = true, lastPage = true,
     settingsTab = true, debug = true, adminTest = true, soundRecent = true, cardClosed = true }
@@ -2725,7 +2725,7 @@ local function ser(v, depth)
         return "{" .. table.concat(parts, ",") .. "}"
     end
 end
--- Leser fuer genau dieses Format; liefert nil bei jedem Fehler
+-- Reader for exactly this format; returns nil on any error
 local function deser(str)
     local pos = 1
     local function ws() pos = str:find("[^%s]", pos) or (#str + 1) end
@@ -2788,10 +2788,10 @@ local function deser(str)
 end
 local PREFIX = "OASIS-EINSTELLUNGEN:1:"
 local function exportString() return PREFIX .. ser(S()) end
--- uebernehmen: Werte setzen (Positionen u.a. bleiben), danach alles neu anwenden
+-- apply: set values (positions etc. stay), then reapply everything
 local function applySettings(t)
     local s = S()
-    -- fremder Text (z.B. aus dem Chat kopiert): nur bekannte Typen uebernehmen, Texte entschaerfen
+    -- foreign text (e.g. copied from chat): only accept known types, sanitize strings
     for k, v in pairs(t) do
         if type(k) == "string" and #k <= 64 and not NOEXPORT[k] then
             local cur = s[k]
@@ -2817,7 +2817,7 @@ local function importString(str)
     return true
 end
 ns.SettingsIO = { Export = exportString, Import = importString,
-    -- gespeichertes Profil laden (Einstellungen > Profil & Daten)
+    -- load a saved profile (Settings > Profile & Data)
     LoadPreset = function(name)
         local p = ns.db.presets and ns.db.presets[name]
         local t = p and deser(p.s)
@@ -2828,7 +2828,7 @@ ns.SettingsIO = { Export = exportString, Import = importString,
 local function buildChar(f)
     f.noCompact = true
     local X = 14
-    -- Karte links: Profil ---------------------------------------------------
+    -- Left card: Profile ---------------------------------------------------
     card(f, 0, 0, 362, 470)
     section(f, L["Main and alts"], X, -12, 334)
     rowLabel(f, L["Main character"], X, -46)
@@ -2844,13 +2844,13 @@ local function buildChar(f)
         K.ShowMenu(self, items, nil, 180)
     end)
     note(f, L["Oasis detects your alts automatically after their first login."], X, -76, 334, C.muted)
-    -- 0.5.794: der Schalter "Twinks ausserhalb der Gilde zeigen" stand doppelt (hier und unter Datenschutz, dieselbe Einstellung) -
-    -- jetzt nur noch unter Datenschutz; hier ein Verweis mit Sprung dorthin
+    -- 0.5.794: the toggle "Twinks ausserhalb der Gilde zeigen" existed twice (here and under privacy, same setting) -
+    -- now only under privacy; here a reference that jumps there
     f.altsLink = K.Button(f, L["Alts outside the guild: see Privacy"], 334, 22, "ghost", function() if page and page.SetTab then page.SetTab("share") end end)
     f.altsLink:SetPoint("TOPLEFT", X, -98)
     f.altsLink:SetHeight(20)
-    -- von dir bestaetigte Twinks auf anderen WoW-Accounts: Liste mit Entfernen
-    -- 0.5.874: sitzt in der Zeile "Main-Charakter" darunter passte er nicht (Geburtstag ueberlagerte sich) -> eigene schmale Zeile direkt unter dem Verweis
+    -- alts on other WoW accounts confirmed by you: list with remove
+    -- 0.5.874: sits in the "Main-Charakter" row; below it didn't fit (overlapped birthday) -> own narrow row directly under the reference
     f.extraAlts = K.Button(f, "", 334, 18, "ghost")
     f.extraAlts.isDropdown = true
     f.extraAlts:SetPoint("TOPLEFT", X, -122)
@@ -2887,10 +2887,10 @@ local function buildChar(f)
     f.bstate:SetPoint("LEFT", f.bday, "RIGHT", 10, 0)
     note(f, L["Optional. The guild gets a notice on the day and can congratulate you."], X, -204, 334)
 
-    -- 0.5.926: fuer jede Gilde (vorher nur mit dem Gildenmodul) - Daten fuer die eigene Webseite / den eigenen Discord-Bot
-    -- 0.5.956: wieder nur mit dem Gildenmodul, solange die Export-Werkzeuge nicht veroeffentlicht sind
+    -- 0.5.926: for every guild (previously only with the guild module) - data for your own website / Discord bot
+    -- 0.5.956: guild module only again, as long as the export tools are not published
     if ns.ExternTools() then
-        -- Gilden-Webseite: Daten fuer OasisSync (Paket Oasis-Tools) bereitstellen
+        -- Guild website: provide data for OasisSync (package Oasis-Tools)
         section(f, L["Guild website"], X, -240, 334)
         f.webEx = K.Toggle(f, L["Provide data for the guild website"],
             function() return ns.Officer and ns.Officer.ExportWanted and ns.Officer.ExportWanted() or S().webExport == true end,
@@ -2900,9 +2900,9 @@ local function buildChar(f)
         note(f, L["Members, events, guild bank etc. are written to saved data on logout - OasisSync (folder Oasis/Tools) can send them to the guild website. Never included: officer notes, chats, whispers."], X, -300, 334)
     end
 
-    -- 0.5.793: Oasis-Netz (realmweiter Kanal) komplett entfernt
+    -- 0.5.793: Oasis network (realm-wide channel) completely removed
 
-    -- Karte rechts: Sichern -------------------------------------------------
+    -- Right card: Backup -------------------------------------------------
     local RX, MX = 376, 390
     local rc = card(f, RX, 0, 362, 470)
     rc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, 0)
@@ -2935,7 +2935,7 @@ local function buildChar(f)
     end)
     im:SetPoint("LEFT", ex, "RIGHT", 8, 0)
 
-    -- Gespeicherte Profile
+    -- Saved profiles
     section(f, L["Saved profiles"], MX, -194, 330)
     f.pname = K.Input(f, 200, L["Name, e.g. Raid night"])
     f.pname:SetPoint("TOPLEFT", MX, -226)
@@ -2966,7 +2966,7 @@ local function buildChar(f)
         r.load:SetPoint("RIGHT", -64, 0)
         r.del = K.Button(r, L["Put out"], 56, 20, "danger", function()
             if not r.item then return end
-            -- zweimal klicken zum Loeschen
+            -- click twice to delete
             if r.armed ~= r.item.name then
                 r.armed = r.item.name
                 r.del:SetLabel(L["Sure?"])
@@ -3003,7 +3003,7 @@ end
 ------------------------------------------------------------------------
 -- Status
 ------------------------------------------------------------------------
--- Namen der gespeicherten Sammlungen fuer die Anzeige
+-- Display names of the saved collections
 local STORE_NAMES = {
     orders = "Crafting orders", events = "Events", signups = "Sign-ups", chronicle = "Chronicle",
     loot = "Loot", campCatalog = "Buff catalog", campfires = "Campfire", wants = "Wish list",
@@ -3021,11 +3021,11 @@ local STORE_NAMES = {
     gearmatch = "Upgrade Exchange", lockouts = "Raid Lockouts", qitems = "Quest items", rtweek = "Raid Time", repfac = "Reputation Planner",
 }
 local function buildStatus(f)
-    -- 0.5.570: Glas-Karten mit Kopf, Datenliste passt in die Karte (vorher liefen 30 Zeilen unten hinaus, Ueberschriften fehlten)
+    -- 0.5.570: glass cards with header, data list fits into the card (previously 30 rows ran off the bottom, headings were missing)
     f.noCompact = true
     local hc = card(f, 0, 0, 738, 104)
     hc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, 0)
-    f.logo = ns.Wordmark(hc, 160, 40, false)   -- 0.5.683: hier steht das Addon, nicht die Gilde -> Oasis-Wortmarke
+    f.logo = ns.Wordmark(hc, 160, 40, false)   -- 0.5.683: this is about the addon, not the guild -> Oasis wordmark
     f.logo:SetPoint("LEFT", hc, "LEFT", 22, 0)
     f.ver = K.Title(hc, 16, C.text)
     f.ver:SetPoint("TOPLEFT", hc, "TOPLEFT", 214, -20)
@@ -3038,7 +3038,7 @@ local function buildStatus(f)
     f.lead:SetPoint("TOPLEFT", f.author, "BOTTOMLEFT", 0, -5)
     f.tour = K.Button(hc, L["Start tour"], 140, 24, "ghost", function() if ns.Onboarding then ns.Onboarding.Show() end end)
     f.tour:SetPoint("RIGHT", hc, "RIGHT", -18, 16)
-    -- 0.5.949: Beispieldaten fuer alle - zum Ausprobieren und Einrichten, bevor die eigene Gilde Daten hat
+    -- 0.5.949: sample data for everyone - for trying out and setting up before your own guild has data
     f.demoBtn = K.Button(hc, "", 140, 24, "ghost", function(self)
         if not ns.Demo then return end
         if ns.Demo.IsActive() then ns.Demo.Remove() else ns.Demo.Load() end
@@ -3058,7 +3058,7 @@ local function buildStatus(f)
             L["While they are on, the window shows 'Demo on' at the top. One click there or here removes everything again."] })
     end)
     f.demoBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    -- 0.5.996: Entwickler - Leitungsrechte (Gildenleitung, Offiziere, Raidleitung) per Knopf statt nur /oa testleitung
+    -- 0.5.996: developer - leadership rights (guild leadership, officers, raid leadership) via button instead of only /oa testleitung
     f.devLead = K.Button(hc, "", 170, 24, "ghost", function(self)
         if ns.slash.testleitung then ns.slash.testleitung() end
         self:Refresh()
@@ -3089,7 +3089,7 @@ local function buildStatus(f)
         f.tiles[i] = t
     end
 
-    -- Gespeicherte Daten: 2 Spalten x 9 Zeilen, groesste zuerst
+    -- Saved data: 2 columns x 9 rows, largest first
     local ROWS = 9
     local dc = cardH(f, 0, -188, 470, 56 + ROWS * 20 + 14, "stats", L["Stored data"], L["What Oasis currently knows from the guild"])
     f.dataRows = {}
@@ -3109,7 +3109,7 @@ local function buildStatus(f)
     f.dataEmpty:SetPoint("TOPLEFT", 14, -60)
     f.dataEmpty:SetText(L["No data from the guild yet."])
 
-    -- Verbindung
+    -- Connection
     local cc = cardH(f, 484, -188, 254, 56 + ROWS * 20 + 14, "sync", L["Connection"], L["Exchange with the guild"], true)
     f.netDot = cc:CreateTexture(nil, "ARTWORK")
     f.netDot:SetTexture(ns.MEDIA .. "dot")
@@ -3127,7 +3127,7 @@ local function buildStatus(f)
         f.net[i] = v
     end
     note(cc, L["Oasis only exchanges data with guild members who also use Oasis. Exchange pauses in combat and instances."], 14, -162, 226, C.dim)
-    -- Credits und Lizenzen unten (Core/Start/Credits.lua, laedt nach dieser Datei - beim Aufbau des Reiters ist es da)
+    -- Credits and licenses at the bottom (Core/Start/Credits.lua, loads after this file - it exists when the tab is built)
     if ns.Credits and ns.Credits.Build then
         local ok, e = pcall(ns.Credits.Build, f, 0, -188 - (56 + ROWS * 20 + 14) - 26, 738)
         if not ok then ns.err(L["Setup"] .. " settings/credits", e) end
@@ -3161,7 +3161,7 @@ local function refreshStatus(f)
     for i, row in ipairs(f.dataRows) do
         local e = list[i]
         if i == nr and #list > nr then
-            -- letzte Zelle: Rest zusammenfassen
+            -- last cell: summarize the rest
             local rest = 0
             for j = nr, #list do rest = rest + list[j][2] end
             row.name:SetText("|cff888888" .. (L["+%d more"]):format(#list - nr + 1) .. "|r")
@@ -3185,9 +3185,9 @@ end
 ------------------------------------------------------------------------
 local BUILD = { general = buildGeneral, pages = buildPages, look = buildLook, toasts = buildToasts, sound = buildSound, share = buildShare, char = buildChar, status = buildStatus }
 local REFRESH = { general = refreshGeneral, pages = refreshPages, look = refreshLook, toasts = refreshToasts, sound = refreshSound, share = refreshShare, char = refreshChar, status = refreshStatus }
--- Reiter "Leiste": was die angeheftete Oasis-Leiste zeigt
+-- Tab "Leiste": what the pinned Oasis bar shows
 local function buildBar(f)
-    -- 0.5.549: Topbar-Seite im Glas-Stil, volle Breite (Seite scrollt); die echte Leiste ist waehrenddessen sichtbar
+    -- 0.5.549: topbar page in glass style, full width (page scrolls); the real bar is visible meanwhile
     f.noCompact = true
     f:HookScript("OnShow", function() if ns.PreviewMiniBar then ns.PreviewMiniBar(true) end end)
     f:HookScript("OnHide", function() if ns.PreviewMiniBar then ns.PreviewMiniBar(false) end end)
@@ -3225,7 +3225,7 @@ local function buildBar(f)
         local def = ns.PageDef and ns.PageDef(k)
         return def and L[def.title] or k
     end
-    -- Auswahl-Kachel (Titel, Text, optional Symbol + Zeichnung), Gruppe mit :Select
+    -- Choice tile (title, text, optional icon + drawing), group with :Select
     local function choiceGroup(list, x, y, w, h, onPick)
         local g = { btns = {} }
         for i, it in ipairs(list) do
@@ -3275,7 +3275,7 @@ local function buildBar(f)
         end
         return g
     end
-    -- kleine Bildschirm-Zeichnung fuer die Stil-Kacheln
+    -- small screen drawing for the style tiles
     local function screen(b, w, h, full, kind)
         local sw, sh = 120, h - 22
         local sc = b:CreateTexture(nil, "ARTWORK")
@@ -3297,7 +3297,7 @@ local function buildBar(f)
         end
         b.mini:SetTexture("Interface\\Buttons\\WHITE8X8")
     end
-    -- Schalter-Kachel (wie unter Oasis > Details)
+    -- Toggle tile (as under Oasis > Details)
     local function optTile(x, y, w, icon, title, desc, key, after)
         local b = CreateFrame("Button", nil, f)
         b:SetSize(w, 58)
@@ -3342,11 +3342,11 @@ local function buildBar(f)
         return b
     end
 
-    -- Wann erscheint die Leiste? -------------------------------------------
-    -- 0.5.555: zwei Spalten - links Wann + Stil, rechts Leiste + Knoepfe
+    -- When does the bar appear? -------------------------------------------
+    -- 0.5.555: two columns - left When + Style, right Bar + Buttons
     local RXc, RX0 = 376, 392
     local function stackY(g, gap)
-        -- Kacheln einer Gruppe untereinander statt nebeneinander
+        -- Tiles of a group stacked instead of side by side
         for i, b in ipairs(g.btns) do
             local _, _, _, x, y = b:GetPoint(1)
             b:ClearAllPoints()
@@ -3366,7 +3366,7 @@ local function buildBar(f)
     stackY(f.modeSeg, 6)
     indexAdd(L["When does the top bar show?"], f.modeSeg.btns[1], L["Always show the top bar or never"])
 
-    -- Stil ----------------------------------------------------------------
+    -- Style ----------------------------------------------------------------
     local YS = -(50 + 3 * 54 + 8) - 14
     cardH(f, 0, YS, 362, 50 + 4 * 66 + 8, "brush", L["Style"], L["How the bar looks - the real bar above changes instantly"])
     f.styleSeg = choiceGroup({
@@ -3382,7 +3382,7 @@ local function buildBar(f)
     stackY(f.styleSeg, 6)
     indexAdd(L["Style"], f.styleSeg.btns[2], L["Compact top bar across the full screen width"])
 
-    -- Leiste ---------------------------------------------------------------
+    -- Bar ---------------------------------------------------------------
     local Y2 = 0
     cardH(f, RXc, Y2, 362, 292, "settings", L["Bar"], nil, true)
     f.autoHide = optTile(RX0, Y2 - 46, 330, "eye_off", "Roll up", "only the edge stays visible, mouse at the top brings it back", "miniAutoHide",
@@ -3409,7 +3409,7 @@ local function buildBar(f)
     end)
     r:SetPoint("LEFT", c, "RIGHT", 8, 0)
 
-    -- Knoepfe in der Leiste ------------------------------------------------
+    -- Buttons in the bar ------------------------------------------------
     local keys = {}
     for _, k in ipairs(ns.MINI_QUICK_ALL or {}) do if ns.PageDef and ns.PageDef(k) then keys[#keys + 1] = k end end
     keys[#keys + 1] = "mark"
@@ -3475,16 +3475,16 @@ end
 BUILD.bar, REFRESH.bar = buildBar, refreshBar
 table.insert(TABS, #TABS, { key = "bar", text = "Top bar" })
 
--- weitere Reiter aus anderen Modulen (vor dem ersten Oeffnen der Einstellungen anmelden)
+-- further tabs from other modules (register before the settings are first opened)
 function ns.AddSettingsTab(key, text, build, refresh)
     if BUILD[key] then return end
-    table.insert(TABS, #TABS, { key = key, text = text })   -- vor "Status"
+    table.insert(TABS, #TABS, { key = key, text = text })   -- before "Status"
     BUILD[key] = build
     REFRESH[key] = refresh or function() end
 end
 ns.SettingsHelpers = { section = section, note = note, toggle = toggle, rowLabel = rowLabel, cardH = cardH }
 
--- Abstaende zusammenziehen: je Spalte die Elemente der Reihe nach enger stapeln (nur grosse Luecken)
+-- Tighten spacing: stack each column's elements more tightly in order (only large gaps)
 compact = function(fr, inBox)
     if fr.noCompact and not inBox then return end
     local items = {}
@@ -3498,7 +3498,7 @@ compact = function(fr, inBox)
     for _, c in ipairs({ fr:GetChildren() }) do scan(c) end
     for _, r in ipairs({ fr:GetRegions() }) do scan(r) end
     local cols = {}
-    -- zwei Spalten (links/rechts); Elemente derselben Zeile ruecken gemeinsam
+    -- two columns (left/right); elements of the same row move together
     for _, it in ipairs(items) do local cx = it.x < 380 and 0 or 1 cols[cx] = cols[cx] or {} table.insert(cols[cx], it) end
     local maxShift = 0
     for _, list in pairs(cols) do
@@ -3508,7 +3508,7 @@ compact = function(fr, inBox)
             if i > 1 then
                 local prev = list[i - 1]
                 local gap = (prev.y - it.y) - prev.h
-                local want = (prev.h <= 2) and 8 or 6    -- nach Trennlinien etwas mehr
+                local want = (prev.h <= 2) and 8 or 6    -- a bit more after separator lines
                 if gap > want + 6 then shift = shift + (gap - want) end
             end
             if shift > 0 then
@@ -3521,8 +3521,8 @@ compact = function(fr, inBox)
     end
     return maxShift
 end
--- Themenwahl: Gildenorganisation, soziale Aktivitaeten und persoenliche Helfer getrennt.
--- Design, Benachrichtigungen, Datenschutz und technische Modulverwaltung haben eigene Themen.
+-- Topic picker: guild organization, social activities and personal helpers kept separate.
+-- Design, notifications, privacy and technical module management have their own topics.
 local GROUPS = {
     { key = "start", text = "Overview", icon = "home", tabs = { "quick" },
         desc = "Choose a topic or search for a setting directly." },
@@ -3551,17 +3551,17 @@ for _, entry in ipairs({
     REFRESH[entry[1]] = refreshPages
     TABS[#TABS + 1] = { key = entry[1], text = entry[2] }
 end
-local HIDDEN_TABS = { lists = true, pages = true }   -- weiter aufrufbar (alte Links), aber ohne eigenen Reiter
+local HIDDEN_TABS = { lists = true, pages = true }   -- still reachable (old links), but without its own tab
 local function tabText(key)
     for _, t in ipairs(TABS) do if t.key == key then return L[t.text] end end
     return key
 end
--- Reiter einer Gruppe, die es wirklich gibt (Module melden sich per AddSettingsTab an; unbekannte -> Spielhilfen)
+-- Tabs of a group that really exist (modules register via AddSettingsTab; unknown -> game aids)
 local function groupTabs(g)
     if g.dev and not (ns.IsDev and ns.IsDev()) then return {} end
     local out, known = {}, {}
     for _, gg in ipairs(GROUPS) do for _, k in ipairs(gg.tabs) do known[k] = true end end
-    for _, k in ipairs(g.tabs) do if BUILD[k] and (k ~= "perf" or (ns.IsDev and ns.IsDev())) then out[#out + 1] = k end end   -- 0.6.523: Leistung nur fuer Entwickler
+    for _, k in ipairs(g.tabs) do if BUILD[k] and (k ~= "perf" or (ns.IsDev and ns.IsDev())) then out[#out + 1] = k end end   -- 0.6.523: performance only for developers
     if g.key == "help" then
         for _, t in ipairs(TABS) do if not known[t.key] and not HIDDEN_TABS[t.key] and BUILD[t.key] then out[#out + 1] = t.key end end
     end
@@ -3574,7 +3574,7 @@ end
 local function tabTop(g) return page and page.contentTop or -194 end
 local function setTab(key)
     if not page then return end
-    if key == "lists" then key = "mapset" elseif key == "pages" then key = "guildtools" end   -- alte Links auf "Listen & Karte"
+    if key == "lists" then key = "mapset" elseif key == "pages" then key = "guildtools" end   -- old links to "Listen & Karte"
     if not BUILD[key] then key = "quick" end
     page.tab = key
     local g = groupOf(key)
@@ -3587,7 +3587,7 @@ local function setTab(key)
         if page.scrolls[k] then page.scrolls[k]:SetShown(k == key) end
     end
     if not page.tabs[key] then
-        -- 0.5.538: jede Seite liegt in einem Rollbereich - ist der Inhalt hoeher als das Fenster, scrollt das Mausrad
+        -- 0.5.538: every page sits in a scroll area - if the content is taller than the window, the mouse wheel scrolls
         local sc = CreateFrame("ScrollFrame", nil, page)
         sc:SetPoint("TOPLEFT", 0, top)
         sc:SetPoint("BOTTOMRIGHT")
@@ -3641,7 +3641,7 @@ local function setTab(key)
         local ok, e = pcall(BUILD[key], fr)
         page.buildingTab = nil
         if not ok then ns.err(L["Setup"] .. " settings/" .. key, e) end
-        -- 0.6.476: Kaesten mit ausgeblendeten Schaltern zuerst zusammenruecken und um die Luecke kuerzen
+        -- 0.6.476: first contract boxes with hidden toggles and shorten them by the gap
         local function boxes(o, depth)
             if depth > 3 then return end
             for _, ch in ipairs({ o:GetChildren() }) do
@@ -3655,7 +3655,7 @@ local function setTab(key)
         end
         pcall(boxes, fr, 0)
         pcall(compact, fr)
-        -- nach Neuaufbau (Design-Wechsel o.ae.) dort weitermachen, wo man war
+        -- after a rebuild (design switch etc.) continue where you were
         local function restore()
             local v = ns._setScroll and ns._setScroll[key]
             if v and v > 0 then
@@ -3668,7 +3668,7 @@ local function setTab(key)
     end
     local fr = page.scrolls[key] or page.tabs[key]
     if fr then
-        -- weich hereingleiten (12 px von rechts) + einblenden
+        -- slide in smoothly (12 px from the right) + fade in
         fr:ClearAllPoints()
         fr:SetPoint("TOPLEFT", 0, top)
         fr:SetPoint("BOTTOMRIGHT")
@@ -3687,7 +3687,7 @@ local function setTab(key)
         if S().noAnim then fr:SetAlpha(1) else K.FadeIn(fr, 0) end
         local stFr = page.tabs[key]
         C_Timer.After(0.02, function() pcall(staggerCards, stFr) end)
-        -- 0.5.561: Endposition immer sicher setzen (unterbrochenes Hereingleiten liess den Inhalt eingerueckt stehen)
+        -- 0.5.561: always set the final position safely (an interrupted slide-in left the content indented)
         local snapFr, snapTop = fr, top
         C_Timer.After(0.25, function()
             if not snapFr then return end
@@ -3699,15 +3699,15 @@ local function setTab(key)
     S().settingsTab = key
     ns.RefreshPage("settings")
 end
--- Einstellungen auf einem bestimmten Reiter oeffnen (z. B. Klick aufs Logo)
+-- Open settings on a specific tab (e.g. click on the logo)
 function ns.OpenSettingsTab(key)
     if ns.db then ns.db.settings.settingsTab = key end
     ns.ShowPage("settings")
     if page then setTab(key) end
 end
--- Einstellungen eines Bereichs oeffnen (z. B. "map" aus der Leiste unter der Weltkarte); holt Oasis vor die Karte
+-- Open a section's settings (e.g. "map" from the bar under the world map); brings Oasis in front of the map
 function ns.OpenAreaSettings(area)
-    -- Karten-Schalter haben seit 0.5.995 einen eigenen Reiter
+    -- Map toggles have their own tab since 0.5.995
     if area == "map" then ns.OpenSettingsTab("mapset") if ns.OasisFront then ns.OasisFront() end return end
     local tab = areaTab(area)
     ns.OpenSettingsTab(tab)
@@ -3721,30 +3721,30 @@ function ns.OpenAreaSettings(area)
 end
 
 ------------------------------------------------------------------------
--- 0.5.995: Schnellstart, Tooltips, Karte
--- Schnellstart = das Wichtigste + Wegweiser zu allen Gruppen; Tooltips und Karte sammeln, was vorher
--- verstreut in sechs Bereichen und zwei Reitern stand.
+-- 0.5.995: quick start, tooltips, map
+-- Quick start = the essentials + signposts to all groups; Tooltips and Map collect what was previously
+-- scattered over six sections and two tabs.
 ------------------------------------------------------------------------
--- Glas-Karte ueber die volle Breite mit Titel; liefert die Karte und die erste freie Zeile
+-- Glass card across the full width with title; returns the card and the first free row
 local function wideCard(f, y, icon, title, sub)
     local c = cardH(f, 0, y, 740, 100, icon, title, sub)
     c:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, y)
     return c, y - (sub and 62 or 46)
 end
--- Zwischenueberschrift in einer Karte (gleiche Art wie in den Bereichen)
+-- Subheading in a card (same style as in the sections)
 local function subHead(f, text, y)
     rowLabel(f, "|cffe8b44a" .. L[text] .. "|r", 14, y)
     return y - 28
 end
--- Liste { Text, Schluessel, Erklaerung, nachher, Standard an } als Schalter untereinander
--- 0.6.0: zweispaltig (links 14, rechts 384) - einspaltig blieb die halbe Karte leer
+-- List { text, key, explanation, after, default on } as toggles stacked
+-- 0.6.0: two columns (left 14, right 384) - single column left half the card empty
 local function toggleList(f, list, y, cols)
     cols = cols or 2
-    -- 0.6.471: seltene Schalter nur mit "Alle Optionen zeigen"
+    -- 0.6.471: rare toggles only with "Alle Optionen zeigen"
     local vis = {}
     for _, o in ipairs(list) do
         if advHidden(o[2]) then
-            -- unsichtbar mitbauen (ohne Platz): so findet die Suche sie und schaltet "Alle Optionen" ein
+            -- build invisibly (without space): so the search finds them and turns on "Alle Optionen"
             local t = toggle(f, 14, y, o[1], o[2], o[3], o[4], 340)
             t.noReflow = true
             f.t[#f.t + 1] = t
@@ -3775,8 +3775,8 @@ local function toggleList(f, list, y, cols)
     return y
 end
 
--- 0.6.115: "Diese Seite zuruecksetzen" - jeder Schalter der Seite auf seinen Standard (Kern-Standard, Datenschutz-
--- Standard an, oder der beim Schalter vermerkte Standard an); danach Seite neu zeichnen
+-- 0.6.115: "Diese Seite zuruecksetzen" - every toggle on the page to its default (core default, privacy
+-- default on, or the default on noted at the toggle); then redraw the page
 local PRIV_SET = {}
 for _, k in ipairs(PRIV_ON) do PRIV_SET[k] = true end
 local function resetPage(f, after)
@@ -3793,8 +3793,8 @@ local function resetPage(f, after)
     for _, fn in ipairs(f.refreshers or {}) do pcall(fn) end
     if K.Toast then K.Toast(L["Reset"], L["The switches on this page are back to default."], C.accent) end
 end
-function resetButton(f, y, after)   -- 0.6.180: oben vorab als local deklariert (Seite 'Teilen' rief sie vorher auf -> nil)
-    -- zweistufig: erster Klick fragt nach, zweiter (innerhalb von 4 s) setzt zurueck
+function resetButton(f, y, after)   -- 0.6.180: declared local up front (page 'Teilen' called it earlier -> nil)
+    -- two-step: first click asks, second (within 4 s) resets
     local b
     b = K.Button(f, L["Reset this page"], 190, 22, "ghost", function(self)
         if self.armed and GetTime() - self.armed < 4 then
@@ -3814,9 +3814,9 @@ end
 local function buildQuick(f)
     f.noCompact = true
     f.t = {}
-    -- Das Wichtigste ----------------------------------------------------
+    -- The essentials ----------------------------------------------------
     local c, y = wideCard(f, 0, "settings", L["The essentials"], L["The switches almost everyone needs at some point - everything else is sorted by topic below"])
-    -- Sprache steht oben im Fenster (Flagge) immer bereit - hier nicht doppelt
+    -- Language is always available at the top of the window (flag) - not duplicated here
     y = toggleList(f, {
         { "Show notifications", "toasts", "Short messages at the edge of the screen: orders, events, group searches, announcements ..." },
         { "Play sounds", "sound", "All Oasis sounds on or off" },
@@ -3829,7 +3829,7 @@ local function buildQuick(f)
         { "Guild window key (J) opens Oasis", "guildKeyOasis", "The key opens and closes the Oasis window instead of Blizzard's guild window", function() if ns.Keybinds and ns.Keybinds.ApplyGuildKey then ns.Keybinds.ApplyGuildKey() end end },
     }, y)
     c:SetHeight(-y + 4)
-    -- Wegweiser ---------------------------------------------------------
+    -- Signposts ---------------------------------------------------------
     y = y - 18
     local h = K.Text(f, 10, C.dim)
     h:SetPoint("TOPLEFT", 0, y)
@@ -3875,7 +3875,7 @@ local function buildQuick(f)
     end
     f:HookScript("OnSizeChanged", layout)
     layout()
-    -- Rundgang erneut starten (Onboarding.lua)
+    -- Restart the tour (Onboarding.lua)
     if ns.Onboarding and ns.Onboarding.Show then
         local tb = K.Button(f, L["Start tour"], 140, 22, "ghost", function() ns.Onboarding.Show() end)
         tb:SetPoint("TOPLEFT", 0, y - math.ceil(#f.tiles / 3) * 64 - 8)
@@ -3890,7 +3890,7 @@ local function refreshQuick(f)
     end
 end
 
--- Tooltips: alle Zusatzzeilen an einer Stelle (vorher bei Wunschliste, Handwerk, Gildenbank, Softres, Spielerbuch und Chat)
+-- Tooltips: all extra lines in one place (previously under wish list, crafting, guild bank, softres, player book and chat)
 local function buildTips(f)
     f.noCompact = true
     f.t = {}
@@ -3918,7 +3918,7 @@ local function buildTips(f)
 end
 local function refreshTips(f) for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end end
 
--- Karte: alles zu Weltkarte und Minimap (vorher Bereiche > Mitglieder > Karte, dazu Listen & Karte und Friedhof)
+-- Map: everything about world map and minimap (previously Sections > Members > Map, plus Lists & Map and Graveyard)
 local function buildMapTab(f)
     f.noCompact = true
     f.t, f.refreshers = {}, {}
@@ -3930,7 +3930,7 @@ local function buildMapTab(f)
         { "Skulls on the map", "deathPins", "Where guild members died" },
         { "Reveal world map", "mapReveal", "Shows unexplored areas dimmed (off by default)", function() if ns.ComfortPlus then ns.ComfortPlus.ApplyReveal() end end },
     }, y)
-    -- die ausfuehrlichen Karten-Schalter (Sammelkarte, Extras, Symbole) aus Modules/Settings "map"
+    -- the detailed map toggles (collection map, extras, icons) from Modules/Settings "map"
     if PAGE_EXTRA.map then
         y = y - 8
         local ok, ny = pcall(PAGE_EXTRA.map, f, y)
@@ -3948,7 +3948,7 @@ BUILD.tips, REFRESH.tips = buildTips, refreshTips
 BUILD.mapset, REFRESH.mapset = buildMapTab, refreshMapTab
 
 ------------------------------------------------------------------------
--- 0.6.114: Suche mit Synonymen, ohne Umlaut-Unterschied, mit Reiter-/Bereichsnamen und sortiert
+-- 0.6.114: search with synonyms, ignoring umlauts, with tab/section names and sorted
 ------------------------------------------------------------------------
 local function norm(x)
     x = tostring(x or ""):lower()
@@ -3956,7 +3956,7 @@ local function norm(x)
     return (x:gsub("\195\164", "ae"):gsub("\195\182", "oe"):gsub("\195\188", "ue"):gsub("\195\159", "ss")
         :gsub("\195\132", "ae"):gsub("\195\150", "oe"):gsub("\195\156", "ue"))
 end
--- Wortgruppen: sucht man eines, zaehlen alle
+-- Word groups: searching for one counts all
 local SYN = {
     { "ton", "toene", "sound", "klang", "laut", "audio", "musik" },
     { "hinweis", "meldung", "toast", "benachrichtig", "popup", "notification" },
@@ -3997,7 +3997,7 @@ local function searchHits(q)
         if r:find(q, 1, true) then return 4 end
         for _, v in ipairs(vs) do if r:find(v, 1, true) then return 5 end end
     end
-    -- Reiter selbst
+    -- Tabs themselves
     for _, tb in ipairs(TABS) do
         if BUILD[tb.key] and not HIDDEN_TABS[tb.key] then
             local sc = score(L[tb.text], "")
@@ -4019,7 +4019,7 @@ local function searchHits(q)
     table.sort(hits, function(a, b) if a.sc ~= b.sc then return a.sc < b.sc end return a.label < b.label end)
     return hits
 end
-ns.SettingsSearch = searchHits   -- fuer Tests
+ns.SettingsSearch = searchHits   -- for tests
 
 ns.RegisterPage({
     key = "settings", title = "Settings", order = 8, topbar = true,
@@ -4029,7 +4029,7 @@ ns.RegisterPage({
         wipe(INDEX)
         p.SetTab = setTab
         p.tabs = {}
-        -- Suche, Themenwahl und Unterseiten haben jeweils eine eigene Zeile.
+        -- Search, topic picker and subpages each have their own row.
         local nav = CreateFrame("Frame", nil, p)
         nav:SetPoint("TOPLEFT", 0, -40)
         nav:SetPoint("TOPRIGHT", 0, -40)
@@ -4058,7 +4058,7 @@ ns.RegisterPage({
                 b.hl = b:CreateTexture(nil, "HIGHLIGHT")
                 b.hl:SetAllPoints()
                 b.hl:SetColorTexture(1, 1, 1, 0.04)
-                -- 0.6.478: Bereiche oben in Akzentfarbe getoent (heben sich von den grauen Unterreitern ab)
+                -- 0.6.478: sections at the top tinted in accent color (stand out from the grey sub-tabs)
                 b.bg = b:CreateTexture(nil, "BACKGROUND", nil, -2)
                 b.bg:SetAllPoints()
                 b.bg:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.07)
@@ -4149,7 +4149,7 @@ ns.RegisterPage({
             sg:SetHeight((row + 1) * 32)
             sg:Show()
             self.contentTop = -144 - (row + 1) * 32 - 16
-            -- Bei Groessenaenderungen bleibt der Inhalt unter den umgebrochenen Unterreitern.
+            -- On resize the content stays below the wrapped sub-tabs.
             local sc = self.scrolls and self.scrolls[key]
             if sc then sc:ClearAllPoints() sc:SetPoint("TOPLEFT", 0, self.contentTop) sc:SetPoint("BOTTOMRIGHT") end
             S().settingsSub = S().settingsSub or {}
@@ -4157,11 +4157,11 @@ ns.RegisterPage({
         end
         justify()
         C_Timer.After(0, justify)
-        -- alte Schnittstelle (andere Module/Tests rufen p.seg:Select)
+        -- old interface (other modules/tests call p.seg:Select)
         p.seg = { Select = function(_, k) if k ~= p.tab then setTab(k) end end, Hide = function() end, Show = function() end,
             GetWidth = function() return nav:GetWidth() end }
-        -- Suche: findet jede Einstellung, springt hin und laesst sie aufleuchten
-        -- 0.5.563: jede Aenderung bestaetigt sich kurz mit einem Haken
+        -- Search: finds every setting, jumps there and highlights it
+        -- 0.5.563: every change confirms itself briefly with a check mark
         p.saved = K.Text(p, 11, C.good or { 0.4, 0.86, 0.62 }, "RIGHT")
         p.saved:SetText("|TInterface\\RaidFrame\\ReadyCheck-Ready:12:12|t " .. L["Saved"])
         p.saved:SetAlpha(0)
@@ -4184,7 +4184,7 @@ ns.RegisterPage({
             local res = p.findRes
             for _, b in ipairs(res.btns) do b:Hide() end
             if #t < 2 then res:Hide() return end
-            -- alle Reiter einmal aufbauen, damit alles im Index ist
+            -- build all tabs once so everything is in the index
             if not p.allBuilt then
                 p.allBuilt = true
                 local cur = p.tab
@@ -4254,7 +4254,7 @@ ns.RegisterPage({
                                 if item.tab == e.tab and item.settingKey == e.settingKey then f = item.frame break end
                             end
                         end
-                        -- Bereichs-Einstellung: Bereich oeffnen und den frisch gebauten Schalter suchen
+                        -- Section setting: open the section and find the freshly built toggle
                         if e.area and p.tabs[e.tab] then
                             local pf = p.tabs[e.tab]
                             pf.sel = e.area
@@ -4280,7 +4280,7 @@ ns.RegisterPage({
                             end
                         end
                         if not f then return end
-                        -- Fundstelle kurz markieren; reduzierte Bewegung bleibt statisch.
+                        -- Briefly highlight the match; reduced motion stays static.
                         if not f.flash then
                             f.flash = f:CreateTexture(nil, "BACKGROUND")
                             f.flash:SetPoint("TOPLEFT", -6, 4) f.flash:SetPoint("BOTTOMRIGHT", 6, -4)
@@ -4303,7 +4303,7 @@ ns.RegisterPage({
         end)
         p.find:SetPoint("TOPLEFT", 0, 0)
         p.find:SetWidth(280)
-        -- 0.6.471: "Alle Optionen" - zeigt auch die selten gebrauchten Schalter (Seiten werden neu aufgebaut)
+        -- 0.6.471: "Alle Optionen" - also shows the rarely used toggles (pages are rebuilt)
         p.allOpt = K.Toggle(p, L["All options"], function() return S().setAll and true or false end, function(v)
             S().setAll = v or nil
             local cur = p.tab
@@ -4331,10 +4331,10 @@ ns.RegisterPage({
         local line = K.Divider(p)
         line:SetPoint("TOPLEFT", 0, -32)
         line:SetPoint("TOPRIGHT", 0, -32)
-        -- 0.5.995: nach dem Umbau einmal auf dem Schnellstart beginnen
+        -- 0.5.995: after the rework, start on the quick start once
         if not S().settingsV2 then S().settingsV2 = true S().settingsTab = "quick" S().settingsSub = nil end
         local tab = S().settingsTab
-        -- gemerkter Reiter nur, wenn es ihn noch gibt (z.B. "Teilen" ist entfallen)
+        -- remembered tab only if it still exists (e.g. "Teilen" was dropped)
         local known = false
         for _, t in ipairs(TABS) do if t.key == tab and not HIDDEN_TABS[tab] then known = true end end
         setTab(known and REFRESH[tab] and tab or "quick")
@@ -4347,8 +4347,8 @@ ns.RegisterPage({
         end
     end,
 })
--- 0.5.733: nach einer Groessenaenderung (Fenstergroesse/Skalierung) die Rollbereiche neu vermessen - sonst bleiben die alten Hoehen
--- stehen und das Mausrad scrollt nicht mehr
+-- 0.5.733: after a resize (window size/scaling) re-measure the scroll areas - otherwise the old heights
+-- remain and the mouse wheel stops scrolling
 local function remeasureAll()
     for _, sc in pairs(page and page.scrolls or {}) do
         if sc.Measure then pcall(sc.Measure) end
@@ -4357,12 +4357,12 @@ end
 ns.Settings = { SetTab = function(k) ns.ShowPage("settings") setTab(k) end, Remeasure = remeasureAll }
 ns.Listen("BRAND", function() ns.RefreshPage("settings") end)
 
--- Minimap-Zaehler: offene Auftraege fuer mich
+-- Minimap counter: open tasks for me
 ns.Listen("BADGES", function()
     ns.SetMinimapBadge((ns.Crafting and ns.Crafting.badge) or 0)
 end)
 
--- englische Befehle als Alias
+-- English commands as alias
 ns.slash.award = ns.slash.vergabe
 ns.slash.campfire = ns.slash.lagerfeuer
 ns.slash.roll = ns.slash.wuerfeln

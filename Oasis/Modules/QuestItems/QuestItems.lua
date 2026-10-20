@@ -1,9 +1,9 @@
--- Oasis: Questitems - "Wer hat das Questitem, das ich brauche?"
--- Liest aus dem eigenen Questlog die benoetigten Gegenstaende (n/m), findet Questitems in den Taschen, die
--- uebrig sind (Quest schon abgeschlossen / mehr als noetig), und teilbare Quests. Alles gildenweit geteilt
--- (eine Zeile je Spieler, gedrosselt) und gegeneinander abgeglichen: wer kann mir helfen, wem kann ich helfen.
+-- Oasis: quest items - "Who has the quest item I need?"
+-- Reads the required items (n/m) from your own quest log, finds quest items in the bags that
+-- are left over (quest already done / more than needed), and shareable quests. Everything shared guild-wide
+-- (one row per player, throttled) and matched against each other: who can help me, whom can I help.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_QuestItems", function()   -- Modul Questitems (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_QuestItems", function()   -- Quest items module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
 
@@ -11,20 +11,20 @@ local QI = {}
 ns.QuestItems = QI
 if ns.ICONS then ns.ICONS.questitems = ns.MEDIA .. "icons\\wants" end
 
-local COLL = "qitems"            -- Sammlung im Store (eigene Nachricht QIU, Sync per QIREQ)
-local KEEP = 3 * 86400           -- Eintraege anderer Spieler nach 3 Tagen ohne Lebenszeichen vergessen
+local COLL = "qitems"            -- collection in the store (own message QIU, sync via QIREQ)
+local KEEP = 3 * 86400           -- forget other players' entries after 3 days without a heartbeat
 local MAX_NEED, MAX_SPARE, MAX_PUSH = 25, 25, 15
-local SEND_MIN = 30              -- hoechstens alle 30 s senden
-local HEARTBEAT = 1800           -- spaetestens alle 30 Min neu senden (Lebenszeichen)
+local SEND_MIN = 30              -- send at most every 30 s
+local HEARTBEAT = 1800           -- resend at the latest every 30 min (heartbeat)
 local TOAST_KEY_GAP, TOAST_GAP = 1800, 120
-local FS, ES = "{", "}"          -- Feld- / Eintragstrenner in den geteilten Listen
+local FS, ES = "{", "}"          -- field / entry separator in the shared lists
 local NOICON = 134400
 
 local view = "help"              -- help | can | mine
-local refreshPage                -- weiter unten belegt
+local refreshPage                -- assigned further below
 local lastSent, lastHash, sendPending = 0, nil, false
 local toastAt, toastKeys = 0, {}
-local demoMine = nil             -- Demo: eigene Beduerfnisse
+local demoMine = nil             -- Demo: own needs
 
 local function S() return ns.db.settings end
 local function demoOn() return ns.Demo and ns.Demo.IsActive and ns.Demo.IsActive() end
@@ -34,7 +34,7 @@ local function myKey() return "qi:" .. Comm.whoKey(ns.me()) end
 local function api(t, f) return t ~= nil and type(t[f]) == "function" end
 
 ------------------------------------------------------------------------
--- Questlog lesen
+-- Read quest log
 ------------------------------------------------------------------------
 -- "Zhevrahufe: 3/4", "3/4 Zhevrahufe", "- Zhevrahufe (3/4)" -> Name, n, m
 local function parseObjective(text)
@@ -49,7 +49,7 @@ local function parseObjective(text)
 end
 QI.ParseObjective = parseObjective
 
--- Taschen: Name -> { id, n } (fuer Namensaufloesung und Bestand), plus Questinfo je Platz
+-- bags: name -> { id, n } (for name resolution and stock), plus quest info per slot
 local function scanBags()
     local byName, slots = {}, {}
     local CC = C_Container
@@ -90,7 +90,7 @@ local function isDone(qid)
 end
 QI.IsDone = isDone
 
--- Pflicht-Gegenstaende einer Quest ueber die alte Schnittstelle (Name -> ID)
+-- a quest's required items via the old API (name -> ID)
 local function requiredLinks(qid, logIndex)
     local out = {}
     if not (GetNumQuestLogRequiredItems and GetQuestLogItemLink) then return out end
@@ -118,8 +118,8 @@ local function nameCache()
     ns.db.qiNames[loc] = ns.db.qiNames[loc] or {}
     return ns.db.qiNames[loc]
 end
--- Item-ID zu einem Namen: Questlog-Link > Taschen > eigener Merker > Oasis-Itemsuche
-local noID = {}   -- 0.5.726: Namen ohne Treffer 10 Min nicht erneut suchen (die Itemsuche war der teure Teil: bis 80 ms je Durchlauf)
+-- item ID for a name: quest log link > bags > own memo > Oasis item search
+local noID = {}   -- 0.5.726: don't search names without a hit again for 10 min (the item search was the expensive part: up to 80 ms per pass)
 local function resolve(name, req, bags)
     local k = low(name)
     local id = (req and req[k]) or (bags and bags[k] and bags[k].id) or nameCache()[k]
@@ -132,14 +132,14 @@ local function resolve(name, req, bags)
     return id
 end
 
--- eigene Quests: { id, title, lvl, done, push, needs = { {id, name, have, need, done} } }
+-- own quests: { id, title, lvl, done, push, needs = { {id, name, have, need, done} } }
 function QI.MyQuests(bags)
     local out = {}
     local Q = C_QuestLog
     if not (api(Q, "GetNumQuestLogEntries") and api(Q, "GetInfo")) then return out, false end
     bags = bags or scanBags()
     local okN, num = pcall(Q.GetNumQuestLogEntries)
-    local zone                       -- Questlog-Kopfzeile (Gebiet) fuer die Gruppierung auf der Seite
+    local zone                       -- quest log header (zone) for grouping on the page
     for i = 1, (okN and tonumber(num) or 0) do
         local ok, info = pcall(Q.GetInfo, i)
         if ok and type(info) == "table" and info.isHeader then zone = ns.safe(info.title) end
@@ -161,7 +161,7 @@ function QI.MyQuests(bags)
                 if type(ob) == "table" and ns.safe(ob.type) == "item" then
                     local name, a, b = parseObjective(ob.text)
                     if name then
-                        -- Questlog-Links nur holen, wenn Taschen und Merker den Namen nicht schon kennen (SetSelectedQuest ist teuer)
+                        -- only fetch quest log links if bags and memo don't already know the name (SetSelectedQuest is expensive)
                         local lk = low(name)
                         if not req and not ((bags and bags[lk] and bags[lk].id) or nameCache()[lk]) then req = requiredLinks(qid, i) end
                         local have = tonumber(ns.safe(ob.numFulfilled)) or a or 0
@@ -178,13 +178,13 @@ function QI.MyQuests(bags)
     return out, true
 end
 
--- Item -> Quest merken, damit Reste nach dem Abgeben als "Quest abgeschlossen" erkannt werden
+-- remember item -> quest so leftovers are recognized as "quest completed" after turn-in
 local function itemQuestMemo()
     ns.char.qiItemQuest = ns.char.qiItemQuest or {}
     return ns.char.qiItemQuest
 end
 
--- uebrige Questitems in den Taschen: { id, name, n, qid, why = "d" (Quest fertig) | "x" (mehr als noetig) | "o" (keine aktive Quest) }
+-- leftover quest items in the bags: { id, name, n, qid, why = "d" (quest done) | "x" (more than needed) | "o" (no active quest) }
 function QI.MySpare(quests, bags, slots)
     local out, seen = {}, {}
     local needBy = {}
@@ -217,7 +217,7 @@ function QI.MySpare(quests, bags, slots)
 end
 
 ------------------------------------------------------------------------
--- Eigenen Stand bauen, kodieren, senden
+-- build, encode, send own state
 ------------------------------------------------------------------------
 local function join(list, fn)
     local t = {}
@@ -274,7 +274,7 @@ local function publishSnapshot(force, rec)
     local now = ns.now()
     if not force and h == lastHash and now - lastSent < HEARTBEAT then return end
     if now - lastSent < SEND_MIN then
-        -- gedrosselt: spaeter nochmal
+        -- throttled: try again later
         if not sendPending then
             sendPending = true
             ns.After(SEND_MIN - (now - lastSent) + 1, function() sendPending = false sendNow(force) end)
@@ -287,7 +287,7 @@ local function publishSnapshot(force, rec)
     Store.merge(COLL, rec)
     Comm.Guild("QIU", Comm.encodeRecord(rec))
 end
--- Scan in drei Bildern: Taschen, Questlog und Auswertung bekommen getrennte Script-Zeitbudgets.
+-- scan across three frames: bags, quest log and evaluation get separate script time budgets.
 local scanPending, pendingForce
 sendNow = function(force)
     if not ns.loggedIn or not IsInGuild() or S().qiShare == false then return end
@@ -329,17 +329,17 @@ ns.On("QUEST_TURNED_IN", changed)
 ns.On("BAG_UPDATE_DELAYED", changed)
 ns.On("GROUP_ROSTER_UPDATE", function() if refreshPage then refreshPage() end end)
 
--- Empfang: nur den eigenen Eintrag des Absenders annehmen
+-- receive: only accept the sender's own entry
 Comm.On("QIU", function(sender, _, recStr)
     if not recStr then return end
     local rec = Comm.decodeRecord(recStr)
     if not rec then return end
     if rec.id ~= "qi:" .. Comm.whoKey(sender) then return end
     rec.who, rec.by, rec.mb, rec.demo = sender, sender, nil, nil
-    rec.u = math.min(tonumber(rec.u) or ns.now(), ns.now() + 300)   -- keine Zeit in der Zukunft
+    rec.u = math.min(tonumber(rec.u) or ns.now(), ns.now() + 300)   -- no time in the future
     Store.merge(COLL, rec, true, sender)
 end)
--- Abgleich: wer neu kommt, fragt; jeder antwortet mit dem eigenen Eintrag (zufaellig verzoegert, gedrosselt)
+-- sync: newcomers ask; everyone answers with their own entry (randomly delayed, throttled)
 local reqPending = false
 Comm.On("QIREQ", function()
     if reqPending or S().qiShare == false then return end
@@ -359,7 +359,7 @@ local function prune()
 end
 
 ------------------------------------------------------------------------
--- Abgleich
+-- Sync
 ------------------------------------------------------------------------
 local function parseRec(r)
     if r._p and r._pu == r.u then return r._p end
@@ -408,7 +408,7 @@ local function others()
     return out
 end
 QI.Others = others
--- 0.6.524: [itemID] = { { who, title, have, need }, ... } - offene Questitem-Bedarfe der anderen (Taschen & Twinks)
+-- 0.6.524: [itemID] = { { who, title, have, need }, ... } - others' open quest item needs (bags & alts)
 function QI.NeedsByItem()
     local out = {}
     for _, r in ipairs(others()) do
@@ -427,7 +427,7 @@ local function inGroup(who)
     if ns.Social and ns.Social.InMyGroup then return ns.Social.InMyGroup(who) end
     return false
 end
--- Mitglied mit Quest-Liste (Profilfeld qs aus Gemeinsam questen)
+-- member with quest list (profile field qs from Quest together)
 local function profileQuests(name)
     local key = Comm.whoKey(name)
     for n, p in pairs(ns.db.members or {}) do
@@ -439,7 +439,7 @@ local function profileQuests(name)
     end
 end
 
--- Hilfe fuer mich: je meiner offenen Item-Ziele die Spieler, die es uebrig haben / auch sammeln; teilbare Quests
+-- help for me: for each of my open item goals the players who have it left over / also collect it; shareable quests
 function QI.HelpForMe(quests)
     local rows = {}
     local list = others()
@@ -468,7 +468,7 @@ function QI.HelpForMe(quests)
             end
         end
     end
-    -- Quests, die mir jemand (online) teilen kann
+    -- quests someone (online) can share with me
     for _, r in ipairs(list) do
         if online(r.who) then
             local p = parseRec(r)
@@ -490,7 +490,7 @@ function QI.HelpForMe(quests)
     return rows
 end
 
--- Ich kann helfen: wer braucht etwas, das ich habe (uebrig oder in den Taschen); wem in der Gruppe kann ich eine Quest teilen
+-- I can help: who needs something I have (leftover or in the bags); whom in the group can I share a quest with
 function QI.ICanHelp(quests, spare, bags)
     local rows = {}
     local needMine = {}
@@ -503,7 +503,7 @@ function QI.ICanHelp(quests, spare, bags)
             if have == 0 and bags then
                 local b = bags[low(o.name)]
                 local mineNd = needMine[low(o.name)]
-                -- in den Taschen, aber selbst gebraucht -> nur der Ueberschuss zaehlt
+                -- in the bags but needed myself -> only the surplus counts
                 if b then have = math.max(0, b.n - (mineNd and mineNd.need or 0)) why = "b" end
             end
             if have > 0 then
@@ -511,7 +511,7 @@ function QI.ICanHelp(quests, spare, bags)
             end
         end
     end
-    -- Quest teilen: Gruppenmitglieder ohne diese Quest
+    -- share quest: group members without this quest
     if IsInGroup and IsInGroup() then
         local raid = IsInRaid and IsInRaid()
         for _, q in ipairs(quests) do
@@ -538,7 +538,7 @@ function QI.ICanHelp(quests, spare, bags)
 end
 
 ------------------------------------------------------------------------
--- Aktionen
+-- Actions
 ------------------------------------------------------------------------
 local function linkOf(id, name)
     if id and ns.ItemSearch and ns.ItemSearch.Link then
@@ -564,7 +564,7 @@ function QI.Invite(who, demo)
     if demo then ns.print((L["Demo: would invite %s."]):format(ns.displayName(who))) return end
     if ns.InviteName then ns.InviteName(who) end
 end
--- Quest an die Gruppe teilen
+-- share quest with the group
 function QI.Push(qid)
     if ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return end
     local Q = C_QuestLog
@@ -581,7 +581,7 @@ function QI.Push(qid)
 end
 
 ------------------------------------------------------------------------
--- Hinweis, wenn mir jemand helfen kann (gedrosselt)
+-- notice when someone can help me (throttled)
 ------------------------------------------------------------------------
 local function checkToast()
     if S().qiToast == false or ns.demoLoading or not ns.loggedIn then return end
@@ -611,7 +611,7 @@ ns.Listen("STORE", function(name)
     if refreshPage then refreshPage() end
     if toastPend then return end
     toastPend = true
-    -- 0.5.724: laenger sammeln (Login-Abgleich liefert viele Eintraege auf einmal) und nie im Kampf - der erste Durchlauf kostete bis zu 56 ms am Stueck
+    -- 0.5.724: collect longer (login sync delivers many entries at once) and never in combat - the first pass cost up to 56 ms in one go
     ns.After(20, function()
         toastPend = nil
         if ns.inCombat() then return end
@@ -620,7 +620,7 @@ ns.Listen("STORE", function(name)
 end)
 
 ------------------------------------------------------------------------
--- Tooltip: "Gebraucht von: Name (Quest) n/m"
+-- Tooltip: "Needed by: name (quest) n/m"
 ------------------------------------------------------------------------
 local function tipLine(tt, itemID)
     if S().qiTooltip == false or not itemID then return end
@@ -653,7 +653,7 @@ QI.TipLine = tipLine
 ------------------------------------------------------------------------
 -- Demo
 ------------------------------------------------------------------------
--- je Mitspieler: Name, brauche (id{name{quest{n{m}...), uebrig (id{name{anzahl{quest{grund}...), teilbar, Questtitel
+-- per companion: name, needs (id{name{quest{n{m}...), leftover (id{name{count{quest{reason}...), shareable, quest titles
 local DEMO = {
     { "Grukthar", "0{Raptorkopf{870{1{4", "5086{Zhevrahufe{6{881{d", "887", "870{Die vergessenen Teiche}881{Echeyakee}887{Suedmeerfreibeuter" },
     { "Mokrash", "5086{Zhevrahufe{1062{1{4}0{Federn der Harpyie{1062{3{8", "", "", "1062{Ziegenwaerter" },
@@ -680,7 +680,7 @@ function QI.RemoveDemo()
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local EMBER = ns.MEDIA .. "ember"
@@ -735,7 +735,7 @@ end
 local function compact() return ns.char.qiCompact ~= false end
 
 local function animOn() return not S().noAnim end
--- Glas-Bausteine wie Chronik und Mitglieder; ohne Insta bleibt die Basis-UI erhalten.
+-- glass building blocks like chronicle and members; without Insta the base UI stays.
 local function hasGlass() return ns.Insta and ns.Insta.Glass end
 local function glass(f, fill, line, radius)
     if hasGlass() then ns.Insta.Glass(f, fill, line, radius or 10) end
@@ -789,7 +789,7 @@ local function plain(s)
     return (tostring(s or ""):gsub("|H.-|h(.-)|h", "%1"):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|T.-|t", ""))
 end
 
--- Item-Daten: ID (auch ueber den Namen), Symbol, Qualitaet; Fehlendes beim Client anfordern (GET_ITEM_INFO_RECEIVED laedt nach)
+-- item data: ID (also via name), icon, quality; request missing ones from the client (GET_ITEM_INFO_RECEIVED loads later)
 local requested = {}
 local function request(id)
     if id and not requested[id] and C_Item and api(C_Item, "RequestLoadItemDataByID") then
@@ -822,7 +822,7 @@ local function qualityOf(id)
     if not q then request(id) end
     return q
 end
--- Questlevel-Farbe wie im Questlog
+-- quest level color as in the quest log
 local function questColor(lvl)
     if not lvl then return C.muted end
     if GetQuestDifficultyColor then
@@ -860,9 +860,9 @@ end
 QI.LinkItem = linkItem
 
 ------------------------------------------------------------------------
--- Bausteine
+-- Building blocks
 ------------------------------------------------------------------------
--- Leerzustand: Symbol im Kreis + Text + bis zu zwei Aktionen
+-- empty state: icon in a circle + text + up to two actions
 local function emptyState(parent)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(340, 120)
@@ -913,7 +913,7 @@ local function emptyState(parent)
     return f
 end
 
--- Reiterleiste: Symbol + Text + Zaehler, gleitender Balken in der Reiterfarbe
+-- tab bar: icon + text + counter, sliding bar in the tab color
 local function buildTabs(p, onPick)
     local f = CreateFrame("Frame", nil, p)
     f:SetHeight(34)
@@ -1037,7 +1037,7 @@ local function buildTabs(p, onPick)
     return f
 end
 
--- Kennzahl-Kachel: Glas, dezenter Hover-Lift, hochzaehlend; Klick = Filter
+-- stat tile: glass, subtle hover lift, counting up; click = filter
 local function buildTile(parent, d, onClick)
     local c = d.color
     local t = CreateFrame("Button", nil, parent)
@@ -1123,7 +1123,7 @@ local function buildTile(parent, d, onClick)
     return t
 end
 
--- Schalter-Chip ("Nur mit Helfern")
+-- toggle chip ("Only with helpers")
 local function buildChip(parent, text, get, set)
     local b = calmButton(K.Button(parent, text, 80, 22, "ghost"))
     K.SetFontSafe(b.label, K.FONT, 11, "", K.FONT)
@@ -1141,7 +1141,7 @@ local function buildChip(parent, text, get, set)
     return b
 end
 
--- Status-Pille: Punkt (gruen = frisch geteilt) + Text + "Jetzt teilen"
+-- status pill: dot (green = freshly shared) + text + "Share now"
 local function buildStatus(p, onShare)
     local f = CreateFrame("Frame", nil, p)
     f:SetHeight(24)
@@ -1214,7 +1214,7 @@ local function buildStatus(p, onShare)
     return f
 end
 
--- rundes Item-Bild mit Ring (Qualitaet bzw. Artfarbe), Symbol-Ersatz statt rotem Fragezeichen
+-- round item image with ring (quality or type color), icon fallback instead of a red question mark
 local function makeAvatar(parent, s)
     local a = CreateFrame("Frame", nil, parent)
     a:SetSize(s, s)
@@ -1275,7 +1275,7 @@ local function hideEntry(key)
 end
 
 ------------------------------------------------------------------------
--- Liste: Gebiets-Kapitel (oben angeheftet) + Karten, Zeilen werden je Schluessel wiederverwendet
+-- list: zone chapters (pinned at the top) + cards, rows are reused per key
 ------------------------------------------------------------------------
 local function buildList(p)
     local TL = CreateFrame("Frame", nil, p)
@@ -1287,7 +1287,7 @@ local function buildList(p)
     TL.thumb:SetWidth(3)
     TL.thumb:SetColorTexture(C.line[1], C.line[2], C.line[3], 1)
 
-    -- Kapitel --------------------------------------------------------
+    -- Chapters --------------------------------------------------------
     local function newHead(parent)
         local r = CreateFrame("Button", nil, parent or TL)
         r:SetScript("OnClick", function(self)
@@ -1321,9 +1321,9 @@ local function buildList(p)
         r.mark:SetColorTexture(c[1], c[2], c[3], 1)
     end
 
-    -- Karten ---------------------------------------------------------
+    -- Cards ---------------------------------------------------------
     local function cardHover(r, on)
-        if not on and r.IsMouseOver and r:IsMouseOver() then return end   -- nur auf Chip/Knopf gewechselt
+        if not on and r.IsMouseOver and r:IsMouseOver() then return end   -- only switched on chip/button
         if r.hovered == on then return end
         r.hovered = on
         r.hov:Show()
@@ -1512,7 +1512,7 @@ local function buildList(p)
         gradient(r.tint, "HORIZONTAL", ring, vm.hot and 0.14 or 0.07, 0, vm.hot and 0.07 or 0.035)
         r.edge:SetColorTexture(ring[1], ring[2], ring[3], vm.hot and 1 or 0.45)
         if not r.hovered then K.SetBorderColor(r, C.line) end
-        -- Rechts: Hauptaktion und dauerhaft sichtbare Zusatzaktionen.
+        -- Right: main action and permanently visible extra actions.
         local reserve = 10
         r.prim:ClearAllPoints()
         if vm.primary then
@@ -1542,7 +1542,7 @@ local function buildList(p)
         r.acts:SetPoint("RIGHT", r, "RIGHT", -reserve, 0)
         r.acts:SetShown(#acts > 0)
         reserve = reserve + #acts * 26 + 6
-        -- Zeile 1: Name in Qualitaetsfarbe + Fortschritt bzw. Marke
+        -- line 1: name in quality color + progress or tag
         local nc = vm.nameColor or ((q and q >= 2 and QCOL[q]) or C.text)
         if vm.done then nc = C.mint end
         r.name:SetText(K.hex(nc) .. (vm.name or "?") .. "|r")
@@ -1582,7 +1582,7 @@ local function buildList(p)
             r.badge:ClearAllPoints()
             r.badge:SetPoint("LEFT", r.name, "RIGHT", 8, 0)
         end
-        -- Zeile 2: Quest (Levelfarbe) bzw. Erklaerung
+        -- line 2: quest (level color) or explanation
         local qline = vm.qline or ""
         if it.slim and #(vm.chips or {}) > 0 then
             local online = 0
@@ -1593,7 +1593,7 @@ local function buildList(p)
         r.qline:ClearAllPoints()
         r.qline:SetPoint("TOPLEFT", 58, it.slim and -27 or -29)
         r.qline:SetPoint("RIGHT", r, "RIGHT", -reserve, 0)
-        -- Zeile 3: Helfer-Chips
+        -- line 3: helper chips
         local x, shown = 58, 0
         local chips = vm.chips or {}
         for i, c in ipairs(chips) do
@@ -1624,7 +1624,7 @@ local function buildList(p)
     local MAKE = { head = newHead, card = newCard }
     local FILL = { head = fillHead, card = fillCard }
 
-    -- angeheftetes Kapitel
+    -- pinned chapter
     TL.sticky = CreateFrame("Frame", nil, TL)
     TL.sticky:SetHeight(H_HEAD - 4)
     TL.sticky:SetFrameLevel((TL:GetFrameLevel() or 1) + 20)
@@ -1685,7 +1685,7 @@ local function buildList(p)
                 break
             end
         end
-        -- Kapitel oben anheften, vom naechsten sanft hinausschieben
+        -- pin chapter at the top, gently pushed out by the next one
         if first and off > 0 then
             local push = 0
             if nextH then push = math.min(0, (nextH.y - off) - (H_HEAD - 4)) end
@@ -1732,7 +1732,7 @@ local function buildList(p)
     TL:SetScript("OnSizeChanged", function(self) self:Layout(true) end)
     TL:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) self.off = self.target saveUI() end)
 
-    -- keep = Leseposition halten (Daten nachgeladen): Anker ist der oberste sichtbare Eintrag
+    -- keep = hold reading position (data reloaded): anchor is the topmost visible entry
     function TL:SetItems(items, keep)
         local anchorKey, anchorDy
         if keep and self.off > 0 then
@@ -1760,7 +1760,7 @@ local function buildList(p)
         self.target = math.max(0, math.min(self:MaxOff(), self.target))
         self:Layout()
     end
-    -- sichtbare Karten gestaffelt einblenden (nur beim Oeffnen/Reiterwechsel)
+    -- fade in visible cards staggered (only on open/tab change)
     function TL:Stagger()
         if not animOn() then return end
         local list = {}
@@ -1777,7 +1777,7 @@ local function buildList(p)
 end
 
 ------------------------------------------------------------------------
--- Eintraege aufbereiten (eine Beschreibung je Karte)
+-- prepare entries (one description per card)
 ------------------------------------------------------------------------
 local function chipNames(list)
     local t = {}
@@ -1960,7 +1960,7 @@ local function vmSpare(s)
     return v
 end
 
--- nach Gebiet gruppieren, sortieren, Kapitel davor
+-- group by zone, sort, chapter before them
 local function closeness(v) return v.need and ((v.have or 0) / math.max(1, v.need)) or -1 end
 local function arrange(vms, color)
     local groups, byZone = {}, {}
@@ -2000,7 +2000,7 @@ local function arrange(vms, color)
     for _, g in ipairs(groups) do
         local info = (L["%d entries"]):format(#g.list)
         if g.hot > 0 and view == "help" then info = info .. "  ·  " .. K.hex(C.mint) .. (L["%d with helpers online"]):format(g.hot) .. "|r" end
-        -- Bei einer Suche alle Treffer zeigen, ohne den gespeicherten Klappzustand zu verlieren.
+        -- on a search show all hits without losing the saved collapse state.
         local here = ns.safe(GetRealZoneText()) or ""
         local folded = collapsed[g.zone]
         if folded == nil then folded = view == "help" and zoneMode == "focus" and g.zone ~= here and g.hot == 0 end
@@ -2016,7 +2016,7 @@ local function arrange(vms, color)
     return items
 end
 
--- Reiter-/Filterwechsel: Inhalt weich ueberblenden, Leseposition zuruecksetzen
+-- tab/filter change: crossfade content softly, reset reading position
 local function switchTo(newView, newTile)
     saveUI()
     view, tileFilter = newView, newTile
@@ -2053,7 +2053,7 @@ ns.RegisterPage({
         p.status = buildStatus(p, function() lastHash = nil sendNow(true) ns.RefreshPage("questitems") end)
         p.status:SetPoint("TOPRIGHT", 0, -5)
 
-        -- Kennzahl-Kacheln
+        -- Stat tiles
         p.tileRow = CreateFrame("Frame", nil, p)
         p.tileRow:SetPoint("TOPLEFT", 0, -46)
         p.tileRow:SetPoint("TOPRIGHT", 0, -46)
@@ -2061,7 +2061,7 @@ ns.RegisterPage({
         p.tiles = {}
         for i, d in ipairs(TILES) do p.tiles[i] = buildTile(p.tileRow, d, onTile) end
 
-        -- Werkzeugleiste: Suche, Sortierung, "nur mit Helfern", Ausgeblendete, Anzahl
+        -- toolbar: search, sorting, "only with helpers", hidden, count
         p.search = K.Input(p, 170, L["Search ..."], function(t)
             local s = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
             if s == search then return end
@@ -2116,7 +2116,7 @@ ns.RegisterPage({
         p.count = K.Text(p, 11, C.dim, "RIGHT")
         p.count:SetPoint("TOPRIGHT", p, "TOPRIGHT", -12, TOOL_Y - 6)
 
-        -- Liste + Leerzustand
+        -- list + empty state
         p.tl = buildList(p)
         p.tl:SetPoint("TOPLEFT", 0, TOOL_Y - 32)
         p.tl:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -2126,20 +2126,20 @@ ns.RegisterPage({
         function p:Layout()
             local W = self:GetWidth() or 760
             if W < 50 then return end
-            -- Kacheln
+            -- Tiles
             local n, gap = #self.tiles, 8
             local tw = math.floor((W - gap * (n - 1)) / n)
             for i, t in ipairs(self.tiles) do
                 t.bx, t.bw = (i - 1) * (tw + gap), tw
                 t:Place()
             end
-            -- Kopfzeile: Status rechts, Reiter nehmen den Rest
+            -- header row: status on the right, tabs take the rest
             self.statusMax = math.floor(W * 0.46)
             local sa = self.statusArgs or { C.dim, "", "" }
             self.status:Set(sa[1], sa[2], sa[3], sa[4], self.statusMax)
             self.tabs.maxW = math.max(160, W - (self.status:GetWidth() or 240) - 16)
             self.tabs:Layout()
-            -- Werkzeugleiste
+            -- Toolbar
             self.search:SetWidth(W < 640 and 130 or 170)
             local x = (W < 640 and 130 or 170) + 8 + (self.sort:GetWidth() or 150)
             local row = 0
@@ -2173,7 +2173,7 @@ ns.RegisterPage({
         local help = QI.HelpForMe(quests)
         local can = QI.ICanHelp(quests, spare, bags)
 
-        -- Kennzahlen
+        -- Stats
         local open, helpers, pushN, mineN = 0, {}, 0, #spare
         for _, q in ipairs(quests) do
             for _, nd in ipairs(q.needs) do
@@ -2202,7 +2202,7 @@ ns.RegisterPage({
         p.tabs:SetCounts({ help = #help, can = #can, mine = mineN })
         p.tabs:Select(view, not fresh)
 
-        -- Status-Pille
+        -- Status pill
         local n = #others()
         local dot, long, short
         if S().qiShare == false then
@@ -2216,7 +2216,7 @@ ns.RegisterPage({
         p.statusArgs = { dot, long, short, { L["Guild quest items"], long,
             "|cff888888" .. L["Only members with Oasis. Shared: open quest items, spare quest items and shareable quests."] .. "|r" } }
 
-        -- Eintraege des Reiters
+        -- entries of the tab
         local vms, nHidden, total = {}, 0, 0
         local hid = hidden()
         local function add(v)
@@ -2250,7 +2250,7 @@ ns.RegisterPage({
         end
         if fresh or switch then p.tl:Stagger() end
 
-        -- Leerzustand mit passender Aktion
+        -- empty state with a fitting action
         p.empty:SetShown(#items == 0)
         if #items == 0 then
             local filtered = zoneMode == "here" or search ~= "" or (view == "help" and (onlyHelp or tileFilter ~= nil)) or nHidden > 0
@@ -2279,7 +2279,7 @@ ns.RegisterPage({
             end
         end
 
-        -- Werkzeugleiste
+        -- Toolbar
         local sl
         for _, s in ipairs(SORTS) do if s.key == sortBy then sl = L[s.text] end end
         p.sort:SetLabel("|cff888888" .. L["Sort:"] .. "|r " .. (sl or "") .. "  |cff666666v|r")
@@ -2298,7 +2298,7 @@ ns.RegisterPage({
     end,
 })
 
--- Item-Daten kommen nach: sichtbare Karten nachfuellen (gedrosselt, Leseposition bleibt)
+-- item data arrives later: refill visible cards (throttled, reading position stays)
 local itemPend
 local function itemsArrived()
     if itemPend or not (page and page.IsVisible and page:IsVisible()) then return end
@@ -2313,7 +2313,7 @@ pcall(ns.On, "ITEM_DATA_LOAD_RESULT", itemsArrived)
 refreshPage = function() ns.RefreshPage("questitems") end
 
 ------------------------------------------------------------------------
--- Einstellungen des Bereichs
+-- settings of the section
 ------------------------------------------------------------------------
 if ns.AddPageSettings then
     ns.AddPageSettings("questitems", function(det, y)
@@ -2340,7 +2340,7 @@ if ns.AddPageSettings then
 end
 
 ------------------------------------------------------------------------
--- /oa probe questitems: was liefern die Schnittstellen im Spiel?
+-- /oa probe questitems: what do the APIs deliver in the game?
 ------------------------------------------------------------------------
 function QI.Probe()
     local Q, CC = C_QuestLog, C_Container

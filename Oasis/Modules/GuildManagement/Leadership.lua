@@ -1,13 +1,13 @@
--- Oasis: Entscheidungshilfen fuer die Gildenleitung (0.6.526)
---  * Reiter "Heute": was steht an (Bewerber, Probezeit vorbei, Befoerderung faellig, Inaktive, Neulinge ohne Paten,
---    Termine mit zu wenig Anmeldungen, Verdachtsmeldungen, offene Abstimmungen, altes Oasis) - je Zeile ein Knopf zur Aktion
---  * Gilden-Puls: aktive Mitglieder, Beitritte/Austritte (30 Tage), Klassenverteilung der Aktiven -> "Es fehlen" fuer Werbung
---  * Reiter "Entscheiden": Abstimmungen nur unter Offizieren (Ja / Nein / Enthaltung, Frist, Ergebnis) - Offizierskanal
---  * Mitglieder-Akte: alles zu einer Person auf einen Blick (Rang seit, Beitritt, zuletzt online, Anwesenheit, Danke,
---    Pate, Twinks, Verlauf, Notizen) - aus Mitglieder-Liste, Rechtsklick-Menue und /oa akte Name
---  * Wochenrueckblick: kurze Zeile fuer den Gildenchat (nur per Klick, ns.OfferChat)
--- Andere Addons: Guild Roster Manager (GRM) fuehrt eigene Historie - Oasis ergaenzt mit gildenweit geteilten Daten
--- (Anwesenheit, Danke, Paten, Abstimmungen); nichts wird aus GRM gelesen oder veraendert.
+-- Oasis: decision aids for guild leadership (0.6.526)
+--  * Tab "Today": what's pending (applicants, trial over, promotion due, inactive, newcomers without mentor,
+--    events with too few signups, suspicion reports, open votes, old Oasis) - one action button per row
+--  * Guild pulse: active members, joins/leaves (30 days), class distribution of the active -> "Missing" for recruiting
+--  * Tab "Decide": votes among officers only (Yes / No / Abstain, deadline, result) - officer channel
+--  * Member file: everything about a person at a glance (rank since, joined, last online, attendance, thanks,
+--    mentor, alts, history, notes) - from the member list, right-click menu and /oa akte Name
+--  * Weekly recap: short line for guild chat (only by click, ns.OfferChat)
+-- Other addons: Guild Roster Manager (GRM) keeps its own history - Oasis complements it with guild-wide shared data
+-- (attendance, thanks, mentors, votes); nothing is read from or changed in GRM.
 local ADDON, ns = ...
 ns.ModuleFile("Oasis_GuildManagement", function()
 local L = ns.L
@@ -28,15 +28,15 @@ if ns.GuildOption then
 end
 
 ------------------------------------------------------------------------
--- Heute anstehend
+-- Pending today
 ------------------------------------------------------------------------
--- { prio (1 = dringend), icon, text, sub, btn, fn }
+-- { prio (1 = urgent), icon, text, sub, btn, fn }
 function LD.Inbox()
     local out = {}
     local O, GH, CO, SP = ns.Officer, ns.GuildHistory, ns.Community, ns.Suspect
     local function add(prio, icon, text, sub, btn, fn) out[#out + 1] = { prio = prio, icon = icon, text = text, sub = sub, btn = btn, fn = fn } end
     local function open(group, sub) return function() if ns.Admin and ns.Admin.OpenOfficer then ns.Admin.OpenOfficer(group, sub) end end end
-    -- Bewerber und Probezeit
+    -- Applicants and trial
     if O and O.Recruits then
         local apps, trialDone = {}, {}
         for _, r in ipairs(O.Recruits()) do
@@ -50,7 +50,7 @@ function LD.Inbox()
         end
         if #trialDone > 0 then add(1, "checklist", (L["Trial over: %s"]):format(table.concat(trialDone, ", ")), L["Accept or extend?"], L["Decide"], open("members", "recruits")) end
     end
-    -- Befoerderung faellig
+    -- Promotion due
     if GH and GH.PromoDue then
         local ok, due = pcall(GH.PromoDue)
         if ok and type(due) == "table" and #due > 0 then
@@ -59,14 +59,14 @@ function LD.Inbox()
             add(2, "badges", (L["%d member(s) long in the same rank"]):format(#due), table.concat(names, ", "), L["Promote"], open("members", "promo"))
         end
     end
-    -- Inaktive (ohne Twinks und ohne Leitung)
+    -- Inactive (without alts and without leadership)
     local lim, inact = inactiveDays(), 0
     local leadRank = ns.Admin and ns.Admin.LeaderRank and ns.Admin.LeaderRank() or 1
     for _, m in ipairs(roster()) do
         if not m.online and (m.offDays or 0) >= lim and not isAlt(m.name) and (m.rankIndex or 0) > leadRank then inact = inact + 1 end
     end
     if inact > 0 then add(3, "deaths", (L["%d members offline for %d+ days"]):format(inact, lim), L["Check in, adjust rank or clean up"], L["View"], open("members", "inactive")) end
-    -- Neulinge ohne Paten
+    -- Newcomers without mentor
     if CO and CO.MentorOf and ns.Welcome and ns.Welcome.IsNew then
         local list = {}
         for _, m in ipairs(roster()) do
@@ -76,7 +76,7 @@ function LD.Inbox()
         if #list > 0 then add(2, "heart", (L["%d newcomer(s) without a mentor"]):format(#list), table.concat(list, ", ", 1, math.min(#list, 5)),
             L["Community"], function() if ns.Expand then ns.Expand("community") else ns.ShowPage("community") end end) end
     end
-    -- Termine in den naechsten 3 Tagen mit wenig Zusagen
+    -- events in the next 3 days with few signups
     if ns.Raid and ns.Raid.Events and ns.Raid.Signups then
         local now = ns.now()
         for _, ev in ipairs(ns.Raid.Events()) do
@@ -91,18 +91,18 @@ function LD.Inbox()
             end
         end
     end
-    -- Verdachtsmeldungen (mehrere Offiziere unabhaengig)
+    -- suspicion reports (several officers independently)
     if SP and SP.List then
         local ok, list = pcall(SP.List)
         local n = 0
         for _, e in ipairs(ok and list or {}) do if (e.reporters or 0) >= 2 then n = n + 1 end end
         if n > 0 then add(1, "bug", (L["%d issue(s) in the suspicion monitor"]):format(n), L["Reported by several officers"], L["Log"], function() if ns.Admin then ns.Admin.SetTab("tools") end end) end
     end
-    -- offene Abstimmungen ohne meine Stimme
+    -- open votes without my vote
     local open_ = 0
     for _, v in ipairs(LD.Votes(true)) do if not LD.MyBallot(v.id) then open_ = open_ + 1 end end
     if open_ > 0 then add(1, "polls", (L["%d vote(s) waiting for you"]):format(open_), nil, L["Vote"], function() if ns.Admin then ns.Admin.SetTab("decide") end end) end
-    -- altes Oasis
+    -- old Oasis
     if ns.Radar and ns.Radar.VerNum then
         local mine, old = ns.Radar.VerNum(ns.version), 0
         for _, m in ipairs(roster()) do
@@ -116,7 +116,7 @@ function LD.Inbox()
 end
 
 ------------------------------------------------------------------------
--- Gilden-Puls
+-- Guild pulse
 ------------------------------------------------------------------------
 local CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
 function LD.Pulse()
@@ -138,11 +138,11 @@ function LD.Pulse()
             elseif r.kind == "leave" or r.kind == "kick" then p.leaves = p.leaves + 1 end
         end
     end
-    -- "Es fehlen": Klassen deutlich unter dem Schnitt (Horde-Gilde: Paladin gibt es nicht immer -> nur Klassen mit Mitgliedern im Spiel)
+    -- "Missing": classes clearly below average (Horde guild: Paladins don't always exist -> only classes with members in the game)
     local _, myFaction = UnitFactionGroup and UnitFactionGroup("player")
     local avg = p.mains / 8
     p.need = {}
-    if p.mains < 15 then return p end   -- bei kleinen Gilden waere "es fehlen" nur Raten
+    if p.mains < 15 then return p end   -- for small guilds "missing" would just be guessing
     for _, c in ipairs(CLASSES) do
         if not ((c == "PALADIN" and myFaction == "Horde") or (c == "SHAMAN" and myFaction == "Alliance")) then
             if (p.classes[c] or 0) < avg * 0.6 then p.need[#p.need + 1] = c end
@@ -154,7 +154,7 @@ local function className(c) return (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLA
 LD.ClassName = className
 
 ------------------------------------------------------------------------
--- Abstimmungen unter Offizieren (Sammlungen lvotes/lballots, nur Offizierskanal)
+-- votes among officers (collections lvotes/lballots, officer channel only)
 ------------------------------------------------------------------------
 function LD.Votes(onlyOpen)
     local now = ns.now()
@@ -189,7 +189,7 @@ function LD.Close(vid)
 end
 
 ------------------------------------------------------------------------
--- Mitglieder-Akte
+-- Member file
 ------------------------------------------------------------------------
 function LD.Dossier(name)
     local d = { name = name }
@@ -350,7 +350,7 @@ ns.slash.akte = function(arg) if arg and arg ~= "" then LD.ShowDossier(ns.fullNa
 ns.slash.dossier = ns.slash.akte
 
 ------------------------------------------------------------------------
--- Wochenrueckblick fuer den Gildenchat
+-- Weekly recap for guild chat
 ------------------------------------------------------------------------
 function LD.WeekRecap()
     local cut = ns.now() - 7 * DAY
@@ -366,7 +366,7 @@ function LD.WeekRecap()
 end
 
 ------------------------------------------------------------------------
--- Reiter in der Gildenleitung
+-- tab in guild leadership
 ------------------------------------------------------------------------
 local function glass(f, a) local G = ns.Insta and ns.Insta.Glass if not (G and pcall(G, f, { 1, 1, 1, a or 0.035 }, { 1, 1, 1, 0.09 }, 10)) then K.Fill(f, { 1, 1, 1, 0.03 }) end end
 local PRIO = { [1] = C.red or C.accent, [2] = C.amber or C.accent, [3] = C.blue or C.muted, [4] = C.muted }
@@ -398,7 +398,7 @@ local function buildToday(f)
     f.list:SetPoint("TOPLEFT", 0, -30)
     f.list:SetPoint("BOTTOMRIGHT", -330, 0)
     glass(f.list, 0.025)
-    -- rechts: Gilden-Puls
+    -- right: guild pulse
     f.pulse = CreateFrame("Frame", nil, f)
     f.pulse:SetPoint("TOPLEFT", f.list, "TOPRIGHT", 14, 0)
     f.pulse:SetPoint("BOTTOMRIGHT", 0, 0)

@@ -1,6 +1,6 @@
--- Oasis: Gemeinschaft (0.6.469) - Steckbrief, Geburtstage, Paten, Danke und Helfer der Woche, Gilden-Erfolge
+-- Oasis: Community (0.6.469) - profile card, birthdays, mentors, thanks and helper of the week, guild achievements
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Community", function()   -- Modul Gemeinschaft (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Community", function()   -- Community module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -17,9 +17,9 @@ local function glass(f, a)
 end
 
 ------------------------------------------------------------------------
--- Daten
+-- Data
 ------------------------------------------------------------------------
--- Steckbrief je Charakter: wann meist online, Zeitzone, "ich suche gerade", Geburtstag (TT.MM, freiwillig)
+-- profile card per character: usually online when, time zone, "currently looking for", birthday (DD.MM, optional)
 function CO.Card(name) return Store.Get(CARD, "c-" .. tostring(name or "")) end
 function CO.SaveCard(t)
     local me = ns.me()
@@ -34,7 +34,7 @@ function CO.Cards()
     return out
 end
 
--- Paten: ein Datensatz je Neuling (id = m-<Neuling>), angelegt vom Paten
+-- Mentors: one record per newcomer (id = m-<newcomer>), created by the mentor
 function CO.MentorOf(name) local r = Store.Get(MENTOR, "m-" .. tostring(name or "")) return r and r.by end
 function CO.MenteesOf(name)
     local out = {}
@@ -47,14 +47,14 @@ function CO.BecomeMentor(newbie)
     K.Toast(L["Mentor"], (L["You are now mentor of %s."]):format(ns.displayName(newbie)), C.mint)
     if ns.OfferChat then ns.OfferChat(L["Mentor"], (L["Hi %s, I am your mentor in the guild - feel free to ask me anything!"]):format(ns.short(newbie)), "WHISPER", newbie) end
 end
--- kurzer Zusatz fuer die Mitgliederliste
+-- short addition for the member list
 function CO.Tag(name)
     local me = ns.me()
     if CO.MentorOf(name) and ns.SameName(CO.MentorOf(name), me) then return "|cff66db9e" .. L["Mentee"] .. "|r" end
     if CO.MentorOf(me) and ns.SameName(CO.MentorOf(me), name) then return "|cff66db9e" .. L["your mentor"] .. "|r" end
     return nil
 end
--- gemeinsames Leveln: Pate/Patenkind in der Gruppe -> Oasis-XP
+-- leveling together: mentor/mentee in the group -> Oasis XP
 ns.On("PLAYER_LEVEL_UP", function()
     local me = ns.me()
     local partners = CO.MenteesOf(me)
@@ -69,7 +69,7 @@ ns.On("PLAYER_LEVEL_UP", function()
     end
 end)
 
--- Danke: ein Datensatz je Dank (id = t-<von>-<Zeit>)
+-- Thanks: one record per thank-you (id = t-<from>-<time>)
 function CO.Thank(to, why)
     if not to or ns.isMe(to) then return end
     Store.Put(THANKS, { id = ("t-%s-%d"):format(ns.short(ns.me()), math.floor(ns.now())), to = to, why = cut(why, 60), ts = ns.now() })
@@ -80,7 +80,7 @@ function CO.Thanks(since)
     table.sort(out, function(a, b) return (a.ts or 0) > (b.ts or 0) end)
     return out
 end
--- Helfer der Woche: wer in den letzten 7 Tagen am oefteren Danke bekam
+-- Helper of the week: who got thanked most often in the last 7 days
 function CO.Helper()
     local n, best, bn = {}, nil, 0
     for _, r in ipairs(CO.Thanks(ns.now() - WEEK)) do
@@ -90,7 +90,7 @@ function CO.Helper()
     return best, bn
 end
 
--- Gilden-Erfolge der Woche aus der Chronik
+-- guild achievements of the week from the chronicle
 local GOALS = {
     { kind = "boss", text = "Bosses defeated", goal = 25, color = { 0.98, 0.58, 0.22 } },
     { kind = "level", text = "Level milestones", goal = 30, color = { 0.45, 0.6, 1 } },
@@ -108,7 +108,7 @@ function CO.WeekGoals()
     return out
 end
 
--- Geburtstage: beim Einloggen einmal am Tag Hinweis mit Gratulieren per Klick
+-- Birthdays: on login once a day a notice with click-to-congratulate
 ns.Listen("LOGIN", function()
     ns.After(25, function()
         local today = date("%d.%m")
@@ -128,7 +128,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 if ns.ICONS then ns.ICONS.community = ns.MEDIA .. "icons\\heart" end
 local function box(p, title)
@@ -151,7 +151,7 @@ ns.RegisterPage({
     key = "community", title = "Community", order = 7.63,
     sub = "Profiles, mentors, thanks and shared guild goals",
     build = function(p)
-        -- Mein Steckbrief
+        -- My profile card
         local sb = box(p, L["My profile card"])
         p.sb = sb
         sb.lOn, sb.on = field(sb, L["Usually online"], 200, L["e.g. evenings from 7 pm"])
@@ -163,7 +163,7 @@ ns.RegisterPage({
             K.Toast(L["Profile card"], L["Saved - the guild can see it now."], C.mint)
             ns.RefreshPage("community", true)
         end)
-        -- Paten
+        -- Mentors
         local pb = box(p, L["Mentors for newcomers"])
         p.pb = pb
         pb.mine = K.Text(pb, 11, C.text)
@@ -180,7 +180,7 @@ ns.RegisterPage({
         end
         pb.none = K.Text(pb, 11, C.dim)
         pb.none:SetText(L["No new members without a mentor right now."])
-        -- Gilden-Erfolge
+        -- Guild achievements
         local gb = box(p, L["Guild achievements this week"])
         p.gb = gb
         gb.rows = {}
@@ -195,7 +195,7 @@ ns.RegisterPage({
             r.fill:SetHeight(6)
             gb.rows[i] = r
         end
-        -- Danke
+        -- Thanks
         local db = box(p, L["Say thanks"])
         p.db = db
         db.helper = K.Text(db, 12, C.text)
@@ -215,7 +215,7 @@ ns.RegisterPage({
         db.list = K.Text(db, 11, C.muted)
         db.list:SetJustifyV("TOP")
         db.list:SetWordWrap(true)
-        -- Steckbriefe der Gilde
+        -- the guild's profile cards
         local cb = box(p, L["Guild profile cards"])
         p.cb = cb
         cb.list = K.List(cb, 30, function(l)
@@ -246,7 +246,7 @@ ns.RegisterPage({
             if W < 100 then return end
             local half = math.floor((W - 12) / 2)
             local rx = half + 12
-            -- links oben: Steckbrief
+            -- top left: profile card
             sb:ClearAllPoints() sb:SetPoint("TOPLEFT", 0, 0) sb:SetSize(half, 196)
             sb.lOn:ClearAllPoints() sb.lOn:SetPoint("TOPLEFT", 14, -42)
             sb.on:ClearAllPoints() sb.on:SetPoint("TOPLEFT", 14, -56) sb.on:SetWidth(half - 28 - 100)
@@ -257,7 +257,7 @@ ns.RegisterPage({
             sb.lBd:ClearAllPoints() sb.lBd:SetPoint("TOPLEFT", 14, -138)
             sb.bd:ClearAllPoints() sb.bd:SetPoint("TOPLEFT", 14, -152) sb.bd:SetWidth(90)
             sb.save:ClearAllPoints() sb.save:SetPoint("BOTTOMRIGHT", -14, 14)
-            -- rechts oben: Gilden-Erfolge
+            -- top right: guild achievements
             gb:ClearAllPoints() gb:SetPoint("TOPLEFT", rx, 0) gb:SetSize(W - rx, 196)
             for i, r in ipairs(gb.rows) do
                 local y = -44 - (i - 1) * 29
@@ -266,14 +266,14 @@ ns.RegisterPage({
                 r.track:ClearAllPoints() r.track:SetPoint("TOPLEFT", gb, "TOPLEFT", 14, y - 15) r.track:SetPoint("RIGHT", gb, "RIGHT", -14, 0)
                 r.fill:ClearAllPoints() r.fill:SetPoint("LEFT", r.track, "LEFT")
             end
-            -- links Mitte: Paten
+            -- middle left: mentors
             pb:ClearAllPoints() pb:SetPoint("TOPLEFT", 0, -208) pb:SetSize(half, 176)
             pb.mine:ClearAllPoints() pb.mine:SetPoint("TOPLEFT", 14, -40) pb.mine:SetPoint("RIGHT", pb, "RIGHT", -14, 0)
             for i, r in ipairs(pb.rows) do
                 r:ClearAllPoints() r:SetPoint("TOPLEFT", pb, "TOPLEFT", 14, -62 - (i - 1) * 28) r:SetPoint("RIGHT", pb, "RIGHT", -14, 0)
             end
             pb.none:ClearAllPoints() pb.none:SetPoint("TOPLEFT", 14, -70)
-            -- rechts Mitte: Danke
+            -- middle right: thanks
             db:ClearAllPoints() db:SetPoint("TOPLEFT", rx, -208) db:SetSize(W - rx, 176)
             db.helper:ClearAllPoints() db.helper:SetPoint("TOPLEFT", 14, -40) db.helper:SetPoint("RIGHT", db, "RIGHT", -14, 0)
             db.lTo:ClearAllPoints() db.lTo:SetPoint("TOPLEFT", 14, -62)
@@ -282,7 +282,7 @@ ns.RegisterPage({
             db.why:ClearAllPoints() db.why:SetPoint("TOPLEFT", 152, -76) db.why:SetPoint("RIGHT", db, "RIGHT", -112, 0)
             db.send:ClearAllPoints() db.send:SetPoint("TOPRIGHT", -14, -76)
             db.list:ClearAllPoints() db.list:SetPoint("TOPLEFT", 14, -112) db.list:SetPoint("BOTTOMRIGHT", -14, 10)
-            -- unten: Steckbriefe
+            -- bottom: profile cards
             cb:ClearAllPoints() cb:SetPoint("TOPLEFT", 0, -396) cb:SetPoint("BOTTOMRIGHT", 0, 0)
             cb.list:ClearAllPoints() cb.list:SetPoint("TOPLEFT", 8, -38) cb.list:SetPoint("BOTTOMRIGHT", -8, 8)
             cb.empty:ClearAllPoints() cb.empty:SetPoint("TOP", 0, -50)
@@ -293,13 +293,13 @@ ns.RegisterPage({
     refresh = function(p)
         p:Layout()
         local me = ns.me()
-        -- Steckbrief nur fuellen, solange niemand tippt
+        -- fill profile card only while nobody is typing
         local c = CO.Card(me)
         local sb = p.sb
         if c and not (sb.on:HasFocus() or sb.tz:HasFocus() or sb.seek:HasFocus() or sb.bd:HasFocus()) then
             sb.on:SetText(c.on or "") sb.tz:SetText(c.tz or "") sb.seek:SetText(c.seek or "") sb.bd:SetText(c.bday or "")
         end
-        -- Paten
+        -- Mentors
         local pb = p.pb
         local mine = {}
         local m = CO.MentorOf(me)
@@ -321,7 +321,7 @@ ns.RegisterPage({
             if cand[i] then r.n:SetText((ns.Radar and ns.Radar.Colored(cand[i]) or cand[i]) .. "  |cff66db9e" .. L["NEW"] .. "|r") end
         end
         pb.none:SetShown(#cand == 0)
-        -- Gilden-Erfolge
+        -- Guild achievements
         for i, g in ipairs(CO.WeekGoals()) do
             local r = p.gb.rows[i]
             r.l:SetText(L[g.text])
@@ -330,7 +330,7 @@ ns.RegisterPage({
             r.fill:SetWidth(math.max(1, w * math.min(1, g.n / g.goal)))
             r.fill:SetColorTexture(g.color[1], g.color[2], g.color[3], 0.9)
         end
-        -- Danke + Helfer der Woche
+        -- Thanks + helper of the week
         local h, hn = CO.Helper()
         p.db.helper:SetText(h and (L["Helper of the week:"] .. "  " .. (ns.Radar and ns.Radar.Colored(h) or h) .. "  |cff888888" .. (L["thanked %d times"]):format(hn) .. "|r")
             or ("|cff888888" .. L["No helper of the week yet - say thanks when someone helps you."] .. "|r"))
@@ -341,7 +341,7 @@ ns.RegisterPage({
                 .. ((t.why or "") ~= "" and ("  |cff888888" .. t.why .. "|r") or "")
         end
         p.db.list:SetText(table.concat(lines, "\n"))
-        -- Steckbriefe
+        -- Profile cards
         local cards = CO.Cards()
         p.cb.list:SetData(cards)
         p.cb.empty:SetShown(#cards == 0)

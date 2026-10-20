@@ -1,6 +1,6 @@
--- Oasis - Texte Italienisch (maschinell uebersetzt, fehlende Texte fallen auf Englisch zurueck)
+-- Oasis - Italian texts (machine translated, missing texts fall back to English)
 local ADDON, ns = ...
-ns.LangFile("it", function()   -- wird nur ausgefuehrt, wenn diese Sprache gewaehlt ist
+ns.LangFile("it", function()   -- only runs when this language is selected
 local T = ns.LOCALES.it
 T["  ·  Click to whisper"] = "  -  Clic per sussurrare"
 T["  ·  Click to let them know"] = "  -  Clic per avvisare"
@@ -2233,7 +2233,7 @@ T["|cffffc24dWanted by:|r "] = "|cffffc24dCercato da:|r "
 T["|cffffc24dNo addon: "] = "|cffffc24dSenza addon: "
 T["|r  ·  data "] = "|r  ·  dati "
 T["|r  ·  needs "] = "|r  ·  richiede "
--- 0.5.684: Nachtrag (alle bis dahin fehlenden Texte)
+-- 0.5.684: addendum (all texts missing until then)
 T[" (%d items missing)"] = " (mancano %d pezzi)"
 T[" withdraws"] = " si ritira"
 T["%.1f %% of %d %%"] = "%.1f %% di %d %%"
@@ -7302,7 +7302,7 @@ T["Scan done: %d checks, %d errors. Now /reload to save the results."] = "Scansi
 T["This is what Oasis looks like with a guild: sample data on your PC only, nothing is sent. Remove it with /oa demo off."] = "Ecco Oasis con una gilda: dati di esempio solo sul tuo PC, non viene inviato nulla. Rimuovili con /oa demo off."
 T["While they are on, the window shows 'Demo on' at the top. One click there or here removes everything again."] = "Finché sono attivi, la finestra mostra 'Demo attiva' in alto. Un clic lì o qui rimuove tutto."
 T["Meeting point, caution or note: pick a kind, then click the map"] = "Punto di ritrovo, pericolo o nota: scegli un tipo, poi clicca sulla mappa"
--- 0.6.472: ergaenzt (fehlende Texte nachgetragen)
+-- 0.6.472: missing texts added
 T["Invited %d signed-up players."] = "Invitati %d giocatori iscritti."
 T["%d years"] = "%d anni"
 T["%d players searching from other guilds"] = "%d giocatori in cerca da altre gilde"
@@ -7759,7 +7759,7 @@ T["from the guild"] = "dalla gilda"
 T["e.g. group for Monastery"] = "ad es. gruppo per il Monastero"
 T["e.g. help in Monastery"] = "ad es. aiuto nel Monastero"
 T["e.g. evenings from 7 pm"] = "ad es. la sera dalle 19"
--- 0.6.476: Komfort, Sammelkarte, Kader-Check
+-- 0.6.476: comfort, gathering map, roster check
 T["Current"] = "Attuale"
 T["Hidden bars appear as soon as the mouse is over them."] = "Le barre nascoste compaiono appena il mouse ci passa sopra."
 T["Show on mouseover"] = "Mostra al passaggio del mouse"

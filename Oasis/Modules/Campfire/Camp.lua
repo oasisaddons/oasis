@@ -1,17 +1,17 @@
--- Oasis Modul 3: Lagerfeuer-Planer (Camping-Buffs, Hersteller, Lagerfeuer-Signale)
+-- Oasis module 3: campfire planner (camping buffs, crafters, campfire signals)
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Campfire", function()   -- Modul Lagerfeuer (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Campfire", function()   -- Campfire module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be tampered with):
+-- sanitize texts, cap numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- escape sequences (|c |r |n |H |T |K |A ...) and control characters neutralized; links: valid item/spell links are kept
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -64,7 +64,7 @@ Camp.state = {}   -- [name] = { t, buffs = { [spellId] = expTs }, demo }
 local FIRE_TIME = 900
 
 ------------------------------------------------------------------------
--- Eigene Buffs lesen (nur ausserhalb des Kampfes, Secret-Werte werden ignoriert)
+-- Read own buffs (only out of combat, secret values are ignored)
 ------------------------------------------------------------------------
 function Camp.MyBuffs()
     local out = {}
@@ -95,7 +95,7 @@ local function catalogIds()
 end
 
 ------------------------------------------------------------------------
--- Status teilen: welche Katalog-Buffs habe ich gerade?
+-- share status: which catalog buffs do I have right now?
 ------------------------------------------------------------------------
 local lastSent = ""
 local function shareState(force)
@@ -131,9 +131,9 @@ Comm.On("CSTATE", function(sender, _, s)
     ns.RefreshPage("camp")
 end)
 
--- neu eingeloggte Mitglieder bekommen unseren Stand
+-- newly logged-in members get our state
 Comm.On("HELLOREQ", function()
-    if not SEC.Rate("helloreq", 20) then return end   -- auf Zuruf hoechstens alle 20 s senden
+    if not SEC.Rate("helloreq", 20) then return end   -- on request send at most every 20 s
     ns.After(math.random(20, 90) / 10, function() shareState(true) end)
 end)
 
@@ -151,7 +151,7 @@ ns.On("PLAYER_REGEN_ENABLED", function() ns.After(2, shareState) end)
 
 local function demoOn() return ns.Demo and ns.Demo.IsActive() end
 
--- wer hat Buff X gerade aktiv?
+-- who has buff X active right now?
 function Camp.ActiveHolders(spellId)
     local out, now = {}, ns.now()
     local demo = demoOn()
@@ -164,7 +164,7 @@ function Camp.ActiveHolders(spellId)
 end
 
 ------------------------------------------------------------------------
--- Katalog
+-- Catalog
 ------------------------------------------------------------------------
 function Camp.AddToCatalog(b, recipe)
     Store.Put("campCatalog", {
@@ -173,7 +173,7 @@ function Camp.AddToCatalog(b, recipe)
     ns.After(1, function() shareState(true) end)
 end
 
--- Buffname in der eigenen Sprache (per Zauber-ID)
+-- buff name in the client's own language (via spell ID)
 function Camp.BuffName(e)
     if e.spell and not e.demo and C_Spell and C_Spell.GetSpellName then
         local ok, n = pcall(C_Spell.GetSpellName, e.spell)
@@ -182,8 +182,8 @@ function Camp.BuffName(e)
     return e.name or "?"
 end
 
--- Hersteller: aus den geteilten Rezepten (Name enthaelt Rezept- oder Buffname)
--- liefert Liste + Berufs-ID des ersten passenden Rezepts
+-- Crafters: from the shared recipes (name contains recipe or buff name)
+-- returns list + profession ID of the first matching recipe
 function Camp.Makers(entry)
     local q = ((entry.recipe or "") ~= "" and entry.recipe or Camp.BuffName(entry)):lower()
     local out, prof = {}, nil
@@ -215,9 +215,9 @@ local function onlineCount(list)
 end
 
 ------------------------------------------------------------------------
--- Lagerfeuer-Signal
+-- Campfire signal
 ------------------------------------------------------------------------
--- 0.6.275: steht jetzt allgemein in Core.lua (ns.MyMapPosition), hier nur noch der alte Name
+-- 0.6.275: now lives generally in Core.lua (ns.MyMapPosition), here only the old name
 Camp.MyPosition = ns.MyMapPosition
 
 ns.GuildOption({ page = "camp", key = "cpTime", default = 15, min = 5, max = 60, step = 5,
@@ -242,10 +242,10 @@ end
 ns.slash.lagerfeuer = function(rest) Camp.Signal(rest) end
 
 ------------------------------------------------------------------------
--- Automatisch melden (Einstellung campAuto, Standard an):
---  1. ich zuende selbst ein Lagerfeuer an (Zauber, dessen Name "Lagerfeuer"/"Campfire" enthaelt - ohne feste ID)
---  2. ich bekomme einen Lagerfeuer-Buff (Katalog oder Name mit Feuer), und in der Naehe ist noch kein Feuer
---     gemeldet -> jemand (auch ohne Oasis) hat hier ein Feuer -> fuer die Gilde eintragen
+-- Report automatically (setting campAuto, default on):
+--  1. I light a campfire myself (spell whose name contains "Lagerfeuer"/"Campfire" - no fixed ID)
+--  2. I get a campfire buff (catalog or name with fire), and no fire has been reported nearby yet
+--     -> someone (even without Oasis) has a fire here -> record it for the guild
 ------------------------------------------------------------------------
 local FIRE_WORDS = { "lagerfeuer", "campfire", "feu de camp", "hoguera", "fogueira", "falò", "костёр", "костер" }
 local function isFireName(n)
@@ -255,10 +255,10 @@ local function isFireName(n)
     return false
 end
 local function autoOn() return ns.db and ns.db.settings.campAuto ~= false end
--- schon ein Feuer (von mir oder der Gilde) in der Naehe?
+-- already a fire (mine or the guild's) nearby?
 local function fireNearby()
     local mapID, x, y = Camp.MyPosition()
-    if not mapID then return true end   -- ohne Position nichts melden
+    if not mapID then return true end   -- no position, report nothing
     for _, r in ipairs(Camp.ActiveFires()) do
         if r.mapID == mapID and not r.demo then
             local dx, dy = (r.x or 0) / 10000 - x, (r.y or 0) / 10000 - y
@@ -280,13 +280,13 @@ ns.On("UNIT_SPELLCAST_SUCCEEDED", function(unit, _, spellID)
     if not spellID then return end
     local name = (C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(spellID)) or (GetSpellInfo and GetSpellInfo(spellID))
     if isFireName(ns.safe(name)) then
-        -- eigenes Feuer: immer melden (auch wenn in der Naehe schon eins steht, ersetzt mein altes)
+        -- own fire: always report (even if one is already nearby; replaces my old one)
         lastAuto = ns.now()
         ns.After(1, function() pcall(Camp.Signal, "") end)
     end
 end)
 local hadFireBuff = false
--- gebuendelt: hoechstens alle 0,5 s pruefen (vorher bei JEDER Auren-Aenderung 40 Auren-Abfragen)
+-- batched: check at most every 0.5 s (before: 40 aura queries on EVERY aura change)
 local function fireBuffCheck()
     if not autoOn() or ns.inCombat() then return end
     local ids = catalogIds()
@@ -323,7 +323,7 @@ function Camp.ActiveFires()
     local now, demo = ns.now(), demoOn()
     return sortFires(Store.List("campfires", function(r) return (r.exp or 0) > now and (demo or not r.demo) end))
 end
--- alle Feuer der letzten Stunde (auch erloschene)
+-- all fires of the last hour (including extinguished ones)
 function Camp.AllFires()
     local demo = demoOn()
     return sortFires(Store.List("campfires", function(r) return demo or not r.demo end))
@@ -342,10 +342,10 @@ ns.Listen("STORE", function(coll, rec, old)
 end)
 
 ------------------------------------------------------------------------
--- Demo-Daten (nur lokal, wie Demo.lua)
+-- Demo data (local only, like Demo.lua)
 ------------------------------------------------------------------------
 local DEMO_BUFFS = {
-    -- id, Name, Symbol, Rezept, Beruf, Wirkung, Hersteller, aktiv bei (Name = Restminuten, 0 = ohne Ablauf)
+    -- id, name, icon, recipe, profession, effect, crafter, active for (name = minutes left, 0 = no expiry)
     { 990101, "Hearty Campfire Stew", "Interface\\Icons\\INV_Misc_Food_65", "Campfire Stew", 185, "+12 Stamina and +6 Spirit, 30 min", "Hoknar,Nakira,Mokrash", { Grukthar = 22, Hoknar = 25, Tavira = 11, ["Zul'mira"] = 25 } },
     { 990102, "Sharpened Blades", "Interface\\Icons\\INV_Stone_02", "Fireside Whetstone", 164, "+8 weapon damage for melee, 30 min", "Grukthar,Drogbar", { Grukthar = 18, Mokrash = 18 } },
     { 990103, "Warming Blankets", "Interface\\Icons\\INV_Fabric_Wool_03", "Camp Blanket", 197, "Rested XP builds 50% faster", "Zul'mira,Tavira", { Tavira = 0 } },
@@ -355,7 +355,7 @@ local DEMO_BUFFS = {
     { 990107, "Rune Ember", "Interface\\Icons\\INV_Enchant_ShardGlimmeringSmall", "Ember Rune", 333, "+4 Intellect and +4 Spirit, 30 min", "Tavira,Zul'mira", { Tavira = 27, Hoknar = 4 } },
 }
 local DEMO_FIRES = {
-    -- Wer, mapID, x, y, Gebiet, Unterzone, Notiz, Rest (s), seit (s)
+    -- who, mapID, x, y, zone, subzone, note, remaining (s), since (s)
     { "Hoknar", 1413, 0.516, 0.297, "The Barrens", "The Crossroads", "Stew + herbal steam, come by", 640, 260 },
     { "Tavira", 1441, 0.463, 0.512, "Tausend Nadeln", "Freewind Post", "Rune Ember for casters", 380, 520 },
     { "Grukthar", 1411, 0.522, 0.431, "Durotar", "Razor Hill", "Smithing break, sharpening blades", 820, 80 },
@@ -401,7 +401,7 @@ function Camp.RemoveDemo()
     ns.RefreshPage("camp")
 end
 
--- Live: ab und zu zuendet jemand ein neues Feuer an
+-- Live: now and then someone lights a new fire
 local function demoTick()
     if not demoOn() or math.random() > 0.35 then return end
     if #Store.List("campfires", function(r) return r.demo and (r.exp or 0) > ns.now() end) >= 4 then return end
@@ -413,7 +413,7 @@ local function demoTick()
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local view, catFilter, catSearch, selected = "home", "all", "", nil
 local recipeBox
@@ -530,19 +530,19 @@ ns.RegisterPage({
         p.lightTop:SetPoint("TOPRIGHT", 0, 0)
 
         ----------------------------------------------------------------
-        -- Uebersicht
+        -- Overview
         ----------------------------------------------------------------
         p.home = CreateFrame("Frame", nil, p)
         p.home:SetPoint("TOPLEFT", 0, -40)
         p.home:SetPoint("BOTTOMRIGHT")
         p.cards = {}
-        -- Kacheln wie auf den anderen Seiten (Zahl zaehlt hoch, farbige Kante)
+        -- Tiles like on the other pages (number counts up, colored edge)
         local TD = { { ns.ICONS.camp, "Fires burning", C.red }, { ns.ICONS.crafting, "Buffs in catalog", C.amber },
             { ns.ICONS.social, "Active buffs (guild)", C.mint }, { ns.ICONS.badges, "Your catalog buffs", C.blue } }
         for i, d in ipairs(TD) do
             local c = K.HudTile(p.home, d[1], L[d[2]], d[3])
             c:SetHeight(62)
-            c:Hide()   -- Kennzahlen-Kacheln entfallen; die Zahlen stehen in den Karten-Ueberschriften
+            c:Hide()   -- Stat tiles dropped; the numbers are in the card headers
             p.cards[i] = c
         end
         local function layoutCards(w)
@@ -558,7 +558,7 @@ ns.RegisterPage({
         p:HookScript("OnShow", function(self) self.fresh = true end)
         p.fresh = true
 
-        -- brennt gerade
+        -- burning right now
         local fp = panel(p.home, L["Burning now"])
         fp:SetPoint("TOPLEFT", 0, 0)
         fp:SetSize(370, 200)
@@ -567,7 +567,7 @@ ns.RegisterPage({
         p.homeFires:SetPoint("BOTTOMRIGHT", -4, 6)
         p.homeFires.empty:SetText(L["No campfire reported right now.\nLight one yourself – the guild gets notified."])
 
-        -- Lagerfeuer anzuenden
+        -- light a campfire
         local lp = panel(p.home, L["Light a campfire"])
         lp:SetPoint("TOPLEFT", 380, 0)
         lp:SetPoint("TOPRIGHT", 0, 0)
@@ -599,7 +599,7 @@ ns.RegisterPage({
         sl:SetPoint("BOTTOMLEFT", 12, 10)
         sl:SetText(L["Faster: /oa lagerfeuer <note>"])
 
-        -- gerade aktiv in der Gilde
+        -- currently active in the guild
         local ap = panel(p.home, L["Active in the guild"])
         ap:SetPoint("TOPLEFT", 0, -210)
         ap:SetPoint("BOTTOMLEFT")
@@ -623,11 +623,11 @@ ns.RegisterPage({
         p.topBuffs:SetPoint("BOTTOMRIGHT", -4, 6)
         p.topBuffs.empty:SetText(L["The catalog is still empty."])
 
-        -- deine Buffs
+        -- your buffs
         local bp = panel(p.home, L["Your buffs right now"])
         bp:SetPoint("TOPLEFT", 380, -210)
         bp:SetPoint("BOTTOMRIGHT")
-        -- zwei gleich breite Spalten, egal wie breit das Fenster ist
+        -- two equally wide columns, no matter how wide the window is
         p.homePanels = { fp, lp, ap, bp }
         local function layoutHome(w)
             w = w or p.home:GetWidth() or 0
@@ -680,7 +680,7 @@ ns.RegisterPage({
         p.myBuffs.empty:SetText(L["No buffs (or in combat).\nGreen = already in catalog, \"+\" = add."])
 
         ----------------------------------------------------------------
-        -- Buff-Katalog
+        -- Buff catalog
         ----------------------------------------------------------------
         p.cat = CreateFrame("Frame", nil, p)
         p.cat:SetPoint("TOPLEFT", 0, -40)
@@ -732,7 +732,7 @@ ns.RegisterPage({
         p.catList:SetWidth(400)
         p.catList.empty:SetText(L["Empty so far. Sit at a campfire and add\nthe buff in the overview with \"+\"."])
 
-        -- Detailkarte
+        -- Detail card
         local d = K.Panel(p.cat, C.panel)
         d:SetPoint("TOPLEFT", 412, 0)
         d:SetPoint("BOTTOMRIGHT")
@@ -784,7 +784,7 @@ ns.RegisterPage({
         p.dEmpty:SetText(L["Pick a buff on the left."])
 
         ----------------------------------------------------------------
-        -- Feuer (aktiv + letzte Stunde)
+        -- Fires (active + last hour)
         ----------------------------------------------------------------
         p.fires = K.List(p, 44, function(l)
             local r = fireRow(l)
@@ -863,7 +863,7 @@ ns.RegisterPage({
             return
         end
 
-        -- Katalog
+        -- Catalog
         local list, sel = {}, nil
         for _, e in ipairs(cat) do
             local ok = catFilter == "all" or (catFilter == "active" and e._n > 0) or (catFilter == "makers" and #e._makers > 0)
@@ -913,7 +913,7 @@ ns.Listen("LOGIN", function()
     ns.After(12, function() shareState(true) end)
     ns.Every(30, function() ns.RefreshPage("camp") end)
     ns.Every(45, demoTick)
-    -- Demo: Lagerfeuer-Daten mitladen/-entfernen
+    -- Demo: load/remove campfire data too
     local D = ns.Demo
     if D and not D.campHooked then
         D.campHooked = true

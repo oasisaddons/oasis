@@ -1,7 +1,7 @@
--- Oasis - Oasis-Kontakte: Oasis-Nutzer ausserhalb der Gilde merken (ueber den Gruppenkanal)
--- WoW Forever stellt Addon-Fluestern nicht zu; PARTY/RAID funktioniert. Deshalb tauschen Gruppenmitglieder
--- ein kleines "OCHI"-Paket aus: Version, Klasse, Level, Volk, Rollen und (nur solange in der Gruppe) Quest-IDs.
--- Gespeichert in ns.db.oasisContacts[name] = { cls, lvl, race, v, seen, roles, qs }; nach 180 Tagen weg.
+-- Oasis - Oasis contacts: remember Oasis users outside the guild (via the group channel)
+-- WoW Forever does not deliver addon whispers; PARTY/RAID works. So group members exchange
+-- a small "OCHI" packet: version, class, level, race, roles and (only while in the group) quest IDs.
+-- Stored in ns.db.oasisContacts[name] = { cls, lvl, race, v, seen, roles, qs }; removed after 180 days.
 local ADDON, ns = ...
 local K, C, L = ns.K, ns.K.C, ns.L
 local Comm = ns.Comm
@@ -24,12 +24,12 @@ function Contacts.Get(name)
     local t = db()
     local c = t[name]
     if c then return c end
-    -- auch ohne Realm-Teil finden ("Fremdi" == "Fremdi-Realm" auf dem eigenen Realm)
+    -- also find without realm part ("Fremdi" == "Fremdi-Realm" on own realm)
     local full = ns.fullName and ns.fullName(name)
     return full and t[full] or nil
 end
 
--- eigene Daten fuer das Paket
+-- own data for the packet
 local function myRoles()
     local P = ns.Profile
     if P and P.RolesOf then
@@ -49,7 +49,7 @@ local function myRace()
     return tonumber(ns.safe(id)) or 0
 end
 
--- senden (gedrosselt): beim Gruppenbeitritt / Aenderung und als Antwort auf ein neues Paket
+-- send (throttled): on joining a group / change and in reply to a new packet
 local lastSend = 0
 function Contacts.Send(force)
     local ch = ns.groupChannel and ns.groupChannel()
@@ -71,14 +71,14 @@ local function sendSoon(delay)
 end
 Contacts.SendSoon = sendSoon
 
--- gehoert der Name zu meiner Gruppe?
+-- does the name belong to my group?
 function Contacts.InGroup(name)
     if not name then return false end
     local s = ns.ChatName and ns.ChatName(name) or ns.short(name)
     return ((UnitInParty and UnitInParty(s)) or (UnitInRaid and UnitInRaid(s))) and true or false
 end
 
--- Empfang: nur ueber den Gruppenkanal, Felder streng pruefen
+-- Receive: only via the group channel, validate fields strictly
 local GROUP_CH = { PARTY = true, RAID = true, INSTANCE_CHAT = true }
 local answered = {}
 Comm.On("OCHI", function(sender, channel, v, cls, lvl, race, roles, qs)
@@ -93,7 +93,7 @@ Comm.On("OCHI", function(sender, channel, v, cls, lvl, race, roles, qs)
     race = tonumber(race)
     if race then race = math.max(0, math.min(200, math.floor(race))) end
     roles = tostring(roles or ""):gsub("[^thd]", ""):sub(1, 3)
-    -- Quest-IDs: nur Ziffern und Kommas, hoechstens 30 Stueck
+    -- Quest IDs: digits and commas only, at most 30
     local ids = {}
     for id in tostring(qs or ""):gmatch("%d+") do
         if #ids >= 30 then break end
@@ -102,7 +102,7 @@ Comm.On("OCHI", function(sender, channel, v, cls, lvl, race, roles, qs)
     local t = db()
     local c = t[sender]
     if not c then
-        -- Speicher begrenzen: aeltesten Kontakt verdraengen
+        -- Limit storage: evict the oldest contact
         local n, oldest, oldT = 0, nil, math.huge
         for k, x in pairs(t) do
             n = n + 1
@@ -120,7 +120,7 @@ Comm.On("OCHI", function(sender, channel, v, cls, lvl, race, roles, qs)
     c.qs = table.concat(ids, ",")
     c.seen = ns.now()
     c.guild = (ns.Comm.FromGuild and ns.Comm.FromGuild(sender)) or nil
-    -- einmal je Absender und Minute antworten, damit beide Seiten sich kennen
+    -- reply once per sender and minute so both sides know each other
     if not answered[sender] or GetTime() - answered[sender] > 60 then
         answered[sender] = GetTime()
         sendSoon(1 + math.random() * 2)
@@ -129,7 +129,7 @@ Comm.On("OCHI", function(sender, channel, v, cls, lvl, race, roles, qs)
     if ns.RefreshPage then ns.RefreshPage("noguild") ns.RefreshPage("social") ns.RefreshPage("deathroll") end
 end)
 
--- Gruppe gewechselt: senden; wer nicht mehr in der Gruppe ist, verliert die Quest-Liste
+-- Group changed: send; whoever is no longer in the group loses the quest list
 ns.On("GROUP_ROSTER_UPDATE", function()
     local t = db()
     for name, c in pairs(t) do
@@ -137,12 +137,12 @@ ns.On("GROUP_ROSTER_UPDATE", function()
     end
     if ns.groupChannel and ns.groupChannel() then sendSoon() end
 end)
--- Quests geaendert: in der Gruppe neu melden (gedrosselt)
+-- Quests changed: report again in the group (throttled)
 for _, ev in ipairs({ "QUEST_ACCEPTED", "QUEST_REMOVED", "QUEST_TURNED_IN" }) do
     ns.On(ev, function() if ns.groupChannel and ns.groupChannel() then sendSoon(4) end end)
 end
 
--- aufraeumen: nach 180 Tagen ohne Kontakt weg; Quest-Listen nie ueber den Login hinaus
+-- cleanup: removed after 180 days without contact; quest lists never kept beyond the login
 ns.Listen("LOGIN", function()
     local t = db()
     local cut = ns.now() - KEEP_DAYS * 86400
@@ -152,7 +152,7 @@ ns.Listen("LOGIN", function()
     ns.After(6, function() if ns.groupChannel and ns.groupChannel() then Contacts.Send(true) end end)
 end)
 
--- Freundesliste: online?
+-- Friends list: online?
 function Contacts.FriendOnline(name)
     if not (C_FriendList and C_FriendList.GetFriendInfo) then return false, false end
     local ok, info = pcall(C_FriendList.GetFriendInfo, ns.ChatName and ns.ChatName(name) or ns.short(name))
@@ -160,7 +160,7 @@ function Contacts.FriendOnline(name)
     return info.connected and true or false, true
 end
 
--- Liste fuer Anzeigen: zuletzt gesehen zuerst; Gildenmitglieder nur auf Wunsch
+-- List for display: most recently seen first; guild members only on request
 function Contacts.List(withGuild)
     local out = {}
     for name, c in pairs(db()) do
@@ -178,7 +178,7 @@ function Contacts.List(withGuild)
     return out
 end
 
--- Deathroll-Gegner ohne Gilde: Gruppenmitglieder + Oasis-Kontakte, die Freund und online sind
+-- Deathroll opponents without guild: group members + Oasis contacts who are friends and online
 function Contacts.Candidates()
     local out, seen = {}, {}
     local function addUnit(u)
@@ -211,7 +211,7 @@ function Contacts.Candidates()
     return out
 end
 
--- kurzer Tooltip-Text
+-- short tooltip text
 function Contacts.TipLine(c)
     if not c then return nil end
     return (L["uses Oasis (version %s, last seen %s)"]):format(c.v or "?", ns.ago and ns.ago(c.seen or 0) or "?")

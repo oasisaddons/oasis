@@ -1,6 +1,6 @@
--- Oasis: "Was ist neu" - einmal je neuer Version ein kleines Fenster mit hoechstens 5 Punkten
--- Gezeigt wird alles aus NEWS, was neuer ist als die zuletzt gesehene Version (settings.newsSeen).
--- Ganz neue Nutzer bekommen es nicht (Rundgang). Abschaltbar: settings.newsOff.
+-- Oasis: "What's new" - once per new version a small window with at most 5 points
+-- Everything from NEWS newer than the last seen version (settings.newsSeen) is shown.
+-- Brand-new users don't get it (tour). Can be turned off: settings.newsOff.
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -9,9 +9,9 @@ local W = {}
 ns.WhatsNew = W
 local function S() return ns.db.settings end
 
--- neueste zuerst; Texte = Schluessel in LocaleData481 (deutsch ohne Umlaute)
+-- newest first; texts = keys in LocaleData481 (German without umlauts)
 local NEWS = {
-    -- 0.6.144: Punkte mit Titel (t), Text (d) und Symbol (icon = Schluessel in ns.ICONS)
+    -- 0.6.144: points with title (t), text (d) and icon (icon = key in ns.ICONS)
     { v = "0.6.117", items = {
         { t = "Settings", d = "Search also finds related words and jumps straight to the right switch.", icon = "settings" },
         { t = "Clearer overview", d = "Every switch now says in a short line what it does.", icon = "polls" },
@@ -31,7 +31,7 @@ local function vnum(v)
     if not a then return 0 end
     return tonumber(a) * 1000000 + tonumber(b) * 1000 + (tonumber(c) or 0)
 end
--- Punkte, die seit "seen" dazugekommen sind (hoechstens 5, neueste zuerst)
+-- Points added since "seen" (at most 5, newest first)
 function W.Items(seen)
     local out, from = {}, vnum(seen)
     for _, n in ipairs(NEWS) do
@@ -45,7 +45,7 @@ end
 local win
 local BG = "Interface\\AddOns\\Oasis_Guild\\Media\\news_bg"
 local WIDTH, ROW, HEAD, FOOT = 700, 58, 104, 66
--- Eintrag in Titel, Text und Symbol zerlegen (alte Eintraege: "Titel: Text")
+-- Split an entry into title, text and icon (old entries: "Title: Text")
 local function parts(it)
     if type(it) == "table" then return L[it.t], L[it.d], it.icon end
     local text = L[it]
@@ -71,7 +71,7 @@ local function build()
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
     f:SetClampedToScreen(true)
-    -- 0.6.144: Hintergrund als Bild mit eigenem Rahmen (Gildenmodul), sonst Glas-Flaeche
+    -- 0.6.144: background as an image with its own frame (guild module), otherwise glass surface
     if ns.GuildPack then
         f.bg = f:CreateTexture(nil, "BACKGROUND")
         f.bg:SetAllPoints()
@@ -83,7 +83,7 @@ local function build()
             K.Border(f, C.line)
         end
     end
-    -- Kopf: Logo, Titel mit Versionsschild, Unterzeile
+    -- Header: logo, title with version badge, subline
     f.logo = f:CreateTexture(nil, "ARTWORK")
     f.logo:SetTexture(ns.MEDIA .. "logo64")
     f.logo:SetSize(48, 48)
@@ -103,7 +103,7 @@ local function build()
     local close = K.CloseButton(f, function() f:Hide() end)
     close:SetPoint("TOPRIGHT", -22, -22)
     f.rows = {}
-    -- Fussleiste: Trennlinie, "Nicht mehr zeigen" links, Knoepfe rechts
+    -- Footer: separator, "Nicht mehr zeigen" on the left, buttons on the right
     f.footLine = line(f, 0.10)
     f.footLine:SetPoint("BOTTOMLEFT", 24, FOOT)
     f.footLine:SetPoint("BOTTOMRIGHT", -24, FOOT)
@@ -177,19 +177,19 @@ function W.Show(items)
     f:Show()
     return true
 end
-function W.IsShown() return win and win:IsShown() or false end   -- fuer Tests
+function W.IsShown() return win and win:IsShown() or false end   -- for tests
 ns.slash.neu = function() W.Show(W.Items("0.0.0")) end
 ns.slash.news = ns.slash.neu
 
--- einmal je Version nach dem Einloggen; nach dem Start-Fenster (UpdateStart) und nie im Kampf
+-- once per version after login; after the start window (UpdateStart) and never in combat
 ns.Listen("LOGIN", function()
     local s = S()
     if s.newsSeen == nil then
-        -- ganz neu: nichts zeigen, ab jetzt mitzaehlen. Bestehende Nutzer (startVersion gesetzt): ab ihrer Version
-        s.newsSeen = (s.onboarded or s.interestsDone) and "0.5.994" or ns.version   -- 0.5.994 = letzte oeffentliche Version davor
+        -- brand new: show nothing, start counting from now. Existing users (startVersion set): from their version
+        s.newsSeen = (s.onboarded or s.interestsDone) and "0.5.994" or ns.version   -- 0.5.994 = last public version before that
     end
     if s.newsOff or s.newsSeen == ns.version then return end
-    -- warten, bis das Start-Fenster (Interessen-Auswahl) zu ist und kein Kampf laeuft (hoechstens 5 Minuten)
+    -- wait until the start window (interest picker) is closed and no combat is running (at most 5 minutes)
     local tries = 0
     local function try()
         tries = tries + 1

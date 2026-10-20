@@ -1,6 +1,6 @@
--- Oasis: Item-Vorschlaege beim Tippen
--- Sammelt alle Items, die Oasis kennt (Taschen, Gildenbank, Rezepte + Material, Beute, Gesucht,
--- Dungeon-Beute, Midas-Scans), merkt sich ihre Namen je Sprache und schlaegt beim Tippen passende vor.
+-- Oasis: item suggestions while typing
+-- Collects all items Oasis knows (bags, guild bank, recipes + materials, loot, wanted,
+-- dungeon loot, Midas scans), remembers their names per language and suggests matches while typing.
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
@@ -12,12 +12,12 @@ local ids = {}          -- [itemID] = { bag = true, bank = true, ... }
 local queue, queued = {}, {}
 local collected = 0
 
-local NAMES_MAX = 2000   -- Speicherdatei klein halten (der Client liefert Namen jederzeit wieder)
+local NAMES_MAX = 2000   -- Keep the saved variables file small (the client delivers names again at any time)
 local namesCount
 local function names()
     ns.db.itemNames = ns.db.itemNames or {}
     local loc = GetLocale and GetLocale() or "deDE"
-    -- andere Sprachen nicht mitschleppen
+    -- don't carry other languages along
     for k in pairs(ns.db.itemNames) do if k ~= loc then ns.db.itemNames[k] = nil end end
     ns.db.itemNames[loc] = ns.db.itemNames[loc] or {}
     return ns.db.itemNames[loc]
@@ -31,7 +31,7 @@ local function add(id, src)
     if src then e[src] = true end
 end
 
--- Name aus Cache oder Client; unbekannte Items zum Nachladen vormerken
+-- Name from cache or client; queue unknown items for loading
 function IS.Name(id)
     local N = names()
     if N[id] then return N[id] end
@@ -42,7 +42,7 @@ function IS.Name(id)
 end
 
 function IS.Collect()
-    -- eigene Taschen
+    -- own bags
     if C_Container and C_Container.GetContainerNumSlots then
         for bag = 0, (NUM_BAG_SLOTS or 4) do
             for slot = 1, (C_Container.GetContainerNumSlots(bag) or 0) do
@@ -50,35 +50,35 @@ function IS.Collect()
             end
         end
     end
-    -- Gildenbank
+    -- Guild bank
     if ns.GuildBank and ns.GuildBank.AllItems then
         for _, e in ipairs(ns.GuildBank.AllItems()) do add(e.id, "bank") end
     end
-    -- Rezepte der Gilde + Material
+    -- Guild recipes + materials
     if ns.Crafting then
         for _, e in ipairs(ns.Crafting.Index()) do if e.itemID then add(e.itemID, "craft") end end
     end
     for _, r in pairs(ns.db.reagents or {}) do for item in tostring(r):gmatch("(%d+):") do add(item, "mat") end end
-    -- Gesucht, Beute
+    -- Wanted, loot
     for _, w in ipairs(Store.List("wants")) do add(w.itemID) end
     for _, x in ipairs(Store.List("loot")) do add(ns.itemID(x.item)) end
-    -- Dungeon-Beute
+    -- Dungeon loot
     for _, d in ipairs(ns.DungeonData or {}) do
         for _, b in ipairs(d.bosses or {}) do
             for _, it in ipairs(b.loot or {}) do add(it[1], "dungeon") end
         end
     end
-    -- Midas: alles, was im Auktionshaus gescannt wurde
+    -- Midas: everything scanned at the auction house
     local db = _G.MidasDB
     for _, realm in pairs(db and db.realms or {}) do
         if type(realm) == "table" then for k in pairs(realm) do add(k, "ah") end end
     end
-    -- schon bekannte Namen
+    -- already known names
     for id in pairs(names()) do add(id) end
     collected = GetTime()
 end
 
--- Namen im Hintergrund nachladen (gedrosselt)
+-- Load names in the background (throttled)
 local loader = CreateFrame("Frame")
 local acc = 0
 loader:SetScript("OnUpdate", function(_, el)
@@ -99,7 +99,7 @@ ns.On("GET_ITEM_INFO_RECEIVED", function(id, ok)
             local t = names()
             if t[id] == nil then
                 if not namesCount then namesCount = 0 for _ in pairs(t) do namesCount = namesCount + 1 end end
-                -- Obergrenze: zu gross -> neu anfangen (der Client liefert Namen jederzeit wieder)
+                -- Upper limit: too big -> start over (the client delivers names again at any time)
                 if namesCount >= NAMES_MAX then wipe(t) namesCount = 0 end
                 namesCount = namesCount + 1
             end
@@ -108,7 +108,7 @@ ns.On("GET_ITEM_INFO_RECEIVED", function(id, ok)
     end
 end)
 
--- Suche: Wortanfang schlaegt Teiltreffer, Items mit Bezug (Taschen, Bank ...) zuerst
+-- Search: word start beats partial match, items with a connection (bags, bank ...) first
 local PRIO = { bag = 3, bank = 3, craft = 2, mat = 1, dungeon = 1, ah = 0 }
 function IS.Find(q, max)
     q = (q or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
@@ -137,7 +137,7 @@ function IS.Find(q, max)
     for i = 1, math.min(max or 8, #out) do res[i] = out[i] end
     return res
 end
--- exakter Name -> ID (fuer Eingaben ohne Link)
+-- exact name -> ID (for input without a link)
 function IS.ExactID(text)
     local q = (text or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
     if q == "" then return nil end
@@ -155,7 +155,7 @@ function IS.Link(id)
 end
 
 ------------------------------------------------------------------------
--- Vorschlagsliste unter einem Eingabefeld
+-- Suggestion list below an input field
 ------------------------------------------------------------------------
 local ROWS = 8
 local box, owner
@@ -255,7 +255,7 @@ local function move(d)
     for i, r in ipairs(box.rows) do r.sel:SetShown(i == box.index) end
 end
 
--- Eingabefeld mit Vorschlaegen ausstatten; onPick(itemID) optional
+-- Equip an input field with suggestions; onPick(itemID) optional
 function IS.Attach(eb, onPick)
     eb.onPick = onPick
     eb:HookScript("OnTextChanged", function(self, user)
@@ -274,7 +274,7 @@ function IS.Attach(eb, onPick)
     eb:HookScript("OnTabPressed", function(self)
         if box and box:IsShown() and owner == self and box.list then IS.Pick(box.list[box.index or 1].id) end
     end)
-    -- Enter: markierten Vorschlag nehmen, sonst normales Enter des Feldes
+    -- Enter: take the highlighted suggestion, otherwise the field's normal Enter
     local enter = eb.onEnter
     eb.onEnter = function(text)
         if box and box:IsShown() and owner == eb and box.list and not eb.pickedID then

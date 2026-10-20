@@ -1,7 +1,7 @@
--- Oasis - Gildenpflege (nur Gildenleitung): Inaktive, Bewerber, Werbung, Ausruestung, Anwesenheit,
--- Protokoll, Bannliste, Export, Wappen. Alles mit Abklingzeiten - nichts geht automatisch raus.
+-- Oasis - Guild care (guild leadership only): inactive, applicants, recruiting, gear, attendance,
+-- log, ban list, export, emblem. Everything with cooldowns - nothing goes out automatically.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_GuildManagement", function()   -- Modul Gildenpflege (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_GuildManagement", function()   -- Guild care module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 local O = ns.Officer
@@ -16,7 +16,7 @@ local TABS = {
 local page
 local function S() return ns.db.settings end
 O.frames = {}
--- die Gildenpflege lebt in der Gildenleitung: immer die gerade offene Seite neu zeichnen
+-- guild care lives in guild leadership: always redraw the currently open page
 function O.Refresh() ns.RefreshPage(ns.CurrentPage and ns.CurrentPage() or "admin") end
 local function cname(name, class)
     if ns.Radar and ns.Radar.Colored then return ns.Radar.Colored(name) end
@@ -29,7 +29,7 @@ local function fmtAgo(sec)
     if h >= 1 then return (L["%dh ago"]):format(h) end
     return L["just now"]
 end
--- Chatzeile mit Befehl vorbefuellen (Enter druecken = du entscheidest)
+-- prefill chat line with a command (pressing Enter = you decide)
 local function prefill(text)
     if ChatFrame_OpenChat then ChatFrame_OpenChat(text) end
 end
@@ -42,7 +42,7 @@ local function input(parent, w, ph, fn)
     local e = K.Input(parent, w, ph, fn)
     return e
 end
--- einfache Liste mit Spalten
+-- simple list with columns
 local function makeList(parent, top, rowH, cols, fill, extra)
     local list = K.List(parent, rowH or 28, function(l)
         local r = K.Row(l)
@@ -63,7 +63,7 @@ local function heads(parent, y, defs)
 end
 
 ------------------------------------------------------------------------
--- Inaktive
+-- Inactive
 ------------------------------------------------------------------------
 local BUILD, REFRESH = {}, {}
 BUILD.inactive = function(f)
@@ -77,7 +77,7 @@ BUILD.inactive = function(f)
     t2:SetText(L["days"])
     f.sum = K.Text(f, 11, C.dim, "RIGHT")
     f.sum:SetPoint("TOPRIGHT", 0, -2)
-    -- mehrere auf einmal entfernen: ankreuzen, dann je Klick einer (WoW erlaubt Entfernen nur per Klick)
+    -- remove several at once: tick them, then one per click (WoW only allows removing by click)
     f.sel = {}
     f.kickSel = smallBtn(f, "", 230, function(self)
         local q = {}
@@ -145,7 +145,7 @@ REFRESH.inactive = function(f)
     local thr = S().inactiveDays or 30
     if not f.days:HasFocus() then f.days:SetText(tostring(thr)) end
     local out = {}
-    -- letzte Aktivitaet je Main: ist ein Twink des Spielers aktiv, nicht vorschlagen
+    -- last activity per main: if one of the player's alts is active, don't suggest
     local mainActive = {}
     for _, m in ipairs((ns.Radar and ns.Radar.roster) or {}) do
         local mn = ns.Alts and ns.Alts.Main(m.name) or m.name
@@ -181,7 +181,7 @@ REFRESH.inactive = function(f)
 end
 
 ------------------------------------------------------------------------
--- Bewerber + Probezeit
+-- Applicants + trial
 ------------------------------------------------------------------------
 BUILD.recruits = function(f)
     f.name = input(f, 180, L["Name"], nil)
@@ -258,7 +258,7 @@ REFRESH.recruits = function(f)
 end
 
 ------------------------------------------------------------------------
--- Werbung: Text posten (15 Min. Pause), Spielersuche (/wer, 20 s Pause), Anschreiben (30 s, max. 10/Std)
+-- Recruiting: post text (15 min pause), player search (/who, 20 s pause), messaging (30 s, max. 10/h)
 ------------------------------------------------------------------------
 local AD_CD, WHO_CD, WHISPER_CD, WHISPER_MAX = 900, 20, 30, 10
 local lastAd, lastWho, whispers = 0, 0, {}
@@ -288,7 +288,7 @@ local function multiBox(parent, w, h, getter, setter)
     box.Load = function() if not eb:HasFocus() then eb:SetText(getter() or "") end end
     return box
 end
--- Vorlagen fuer Werbung/Anschreiben nennen die EIGENE Gilde: "<Oasis>" im Text ist nur der Platzhalter (0.5.912)
+-- templates for recruiting/messages name your OWN guild: "<Oasis>" in the text is only the placeholder (0.5.912)
 local function ownGuild(s)
     local g = (ns.Admin and ns.Admin.GuildName and ns.Admin.GuildName()) or (GetGuildInfo and GetGuildInfo("player")) or "Oasis"
     return (s:gsub("<Oasis>", function() return "<" .. tostring(g) .. ">" end))
@@ -388,7 +388,7 @@ end
 REFRESH.ads = function(f)
     f.ad.Load()
     if not f.wmsg:HasFocus() then f.wmsg:SetText(S().recruitWhisper or "") end
-    -- Kanaele, in denen du bist
+    -- channels you are in
     for _, b in ipairs(f.chanBtns) do b:Hide() end
     local x, i = 60, 0
     local list = { GetChannelList() }
@@ -426,10 +426,10 @@ ns.On("WHO_LIST_UPDATE", function()
         end
     end
     f.results = out
-    -- kein HideUIPanel aus Oasis heraus: das "beruehrt" Blizzards Fensterverwaltung und blockiert spaeter Esc
+    -- no HideUIPanel from within Oasis: that "touches" Blizzard's window management and later blocks Esc
     O.Refresh()
 end)
--- Stichwort im Fluestern -> Hinweis mit Einladen-Knopf (Klick = du entscheidest)
+-- keyword in a whisper -> notice with invite button (click = you decide)
 ns.On("CHAT_MSG_WHISPER", function(msg, sender)
     msg, sender = ns.safe(msg), ns.safe(sender)
     local kw = S() and S().recruitKeyword
@@ -443,7 +443,7 @@ ns.On("CHAT_MSG_WHISPER", function(msg, sender)
 end)
 
 ------------------------------------------------------------------------
--- Ausruestung: fehlende Verzauberungen (aus den Profilen)
+-- Gear: missing enchants (from the profiles)
 ------------------------------------------------------------------------
 BUILD.gear = function(f)
     local t = K.Text(f, 11, C.muted)
@@ -484,7 +484,7 @@ REFRESH.gear = function(f)
 end
 
 ------------------------------------------------------------------------
--- Anwesenheit
+-- Attendance
 ------------------------------------------------------------------------
 BUILD.attend = function(f)
     f.info = K.Text(f, 11, C.muted)
@@ -530,7 +530,7 @@ REFRESH.attend = function(f)
 end
 
 ------------------------------------------------------------------------
--- Protokoll
+-- Log
 ------------------------------------------------------------------------
 local KIND_COL = { promote = C.mint, demote = C.amber, kick = C.red, join = C.blue, leave = C.dim }
 BUILD.audit = function(f)
@@ -547,7 +547,7 @@ end
 REFRESH.audit = function(f) f.list:SetData(O.Audit()) end
 
 ------------------------------------------------------------------------
--- Bannliste
+-- Ban list
 ------------------------------------------------------------------------
 BUILD.bans = function(f)
     f.name = input(f, 180, L["Name"], nil)
@@ -583,7 +583,7 @@ REFRESH.bans = function(f)
 end
 
 ------------------------------------------------------------------------
--- Sound-Sperre: Mitglieder fuer Soundeffekte sperren
+-- Sound block: block members from sound effects
 ------------------------------------------------------------------------
 BUILD.sndmute = function(f)
     f.name = input(f, 180, L["Name"], nil)
@@ -593,7 +593,7 @@ BUILD.sndmute = function(f)
     local function add(n)
         n = tostring(n or ""):gsub("^%s+", ""):gsub("%s+$", "")
         if n == "" then return end
-        -- Namen aus der Gildenliste aufloesen (Vorname reicht), sonst so nehmen wie getippt
+        -- resolve names from the guild roster (first name is enough), otherwise take as typed
         local full = n
         for _, m in ipairs(ns.Radar and ns.Radar.roster or {}) do
             if ns.SameName(m.name, n) or ns.short(m.name):lower() == n:lower() or ns.displayName(m.name):lower() == n:lower() then full = m.name break end
@@ -604,7 +604,7 @@ BUILD.sndmute = function(f)
     end
     local b = K.Button(f, L["Mute sounds"], 130, 24, "danger", function() add(f.name:GetText()) end)
     b:SetPoint("LEFT", f.reason, "RIGHT", 8, 0)
-    -- aus der Gildenliste waehlen (wer gerade online ist)
+    -- pick from the guild roster (who is online right now)
     local pick = K.Button(f, L["Pick member"], 130, 24, "ghost", function(self)
         local items = {}
         for _, m in ipairs(ns.Radar and ns.Radar.roster or {}) do
@@ -709,7 +709,7 @@ BUILD.export = function(f)
     eb:SetFont(K.FONT, 11, "")
     eb:SetTextColor(C.text[1], C.text[2], C.text[3])
     eb:SetWidth(700)
-    -- Breite folgt dem sichtbaren Bereich (kein festes Mass)
+    -- width follows the visible area (no fixed size)
     sf:HookScript("OnSizeChanged", function(_, w) if w and w > 50 then eb:SetWidth(w - 8) end end)
     eb:SetScript("OnEscapePressed", eb.ClearFocus)
     eb:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
@@ -731,7 +731,7 @@ REFRESH.export = function(f)
 end
 
 ------------------------------------------------------------------------
--- Wappen
+-- Emblem
 ------------------------------------------------------------------------
 local CRESTS = { "leader", "loyal", "veteran", "fire", "heart", "owl", "reaper", "saint", "dice", "pack", "family", "innkeeper",
     "globetrotter", "duelist", "master", "angel", "fishking", "nightking", "platzhirsch", "survivor" }
@@ -813,7 +813,7 @@ REFRESH.crest = function(f)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local function setTab(key)
     page.tab = key
@@ -834,7 +834,7 @@ end
 ns.RegisterPage({
     key = "officer", title = "Guild care", order = 9.1, topbar = true, parent = "admin",
     sub = "Inactive, applicants, recruiting, gear, attendance, log, ban list, export and crest",
-    visible = function() return true end,   -- fuer alle sichtbar, ohne Rechte gesperrt (Admin.lua lockPage)
+    visible = function() return true end,   -- visible to everyone, locked without permissions (Admin.lua lockPage)
     build = function(p)
         page = p
         p.tabs = {}
@@ -861,12 +861,12 @@ ns.RegisterPage({
 
 
 ------------------------------------------------------------------------
--- Einbettung in die Gildenleitung: Gruppe mit Unterreitern
+-- embedding in guild leadership: group with sub-tabs
 ------------------------------------------------------------------------
 local TEXT = {}
 for _, t in ipairs(TABS) do TEXT[t.key] = t.text end
 TEXT.lootlog = "Loot log"
--- fuer Erweiterungen (GuildHistory.lua)
+-- for extensions (GuildHistory.lua)
 O.BUILD, O.REFRESH, O.TEXT, O.KIND_COL = BUILD, REFRESH, TEXT, KIND_COL
 O.makeList = makeList
 function O.BuildGroup(fr, keys)

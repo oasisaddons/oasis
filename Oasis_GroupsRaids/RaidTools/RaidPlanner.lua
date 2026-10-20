@@ -1,8 +1,8 @@
--- Oasis: Raid-Planer - Aufstellung per Klick vorbauen, dann alle einladen und in ihre Gruppen sortieren
--- Plan = { id = "plan-<Termin>", ev, size, g = "Name:Gruppe:Rolle,..." }  (wird mit der Gilde geteilt)
+-- Oasis: raid planner - pre-build lineup by click, then invite everyone and sort into their groups
+-- Plan = { id = "plan-<event>", ev, size, g = "Name:Group:Role,..." }  (shared with the guild)
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
--- ns.Group kommt aus Core\Diagnostics\RaidSim.lua; fehlt die Datei, gelten die echten Blizzard-Abfragen
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
+-- ns.Group comes from Core\Diagnostics\RaidSim.lua; if the file is missing, the real Blizzard queries apply
 if not ns.Group then ns.Group = { IsSim = function() return false end, IsInGroup = function() return (IsInGroup and IsInGroup()) and true or false end, IsInRaid = function() return (IsInRaid and IsInRaid()) and true or false end, Num = function() return (GetNumGroupMembers and GetNumGroupMembers()) or 0 end, InInstance = function() if IsInInstance then return IsInInstance() end return false, "none" end, Instance = function() return nil end, Members = function() return {} end, Member = function() return nil end, IsLeader = function() return (UnitIsGroupLeader and UnitIsGroupLeader("player")) and true or false end, IsAssist = function() return false end } end
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
@@ -14,9 +14,9 @@ local ROLE_NAMES = { tank = "Tank", heal = "Healer", dps = "Damage" }
 local function roleColor(k) return ns.Profile and ns.Profile.ROLE_COLORS[k] or C.muted end
 
 ------------------------------------------------------------------------
--- Plan lesen/schreiben
+-- Read/write plan
 ------------------------------------------------------------------------
--- Glas 2026: Flaeche + Kante (Kante zeigt Auswahl/Ziel beim Ziehen)
+-- Glass 2026: surface + edge (edge shows selection/target while dragging)
 local function glass(f, line, fill, r)
     local IG = ns.Insta
     if IG and IG.Glass then IG.Glass(f, fill or { 1, 1, 1, 0.035 }, line or { 1, 1, 1, 0.08 }, r or 6) return true end
@@ -25,7 +25,7 @@ local function sline(s, c)
     if s.glassFill then glass(s, c and { c[1], c[2], c[3], 0.8 } or nil) else K.SetBorderColor(s, c or C.line) end
 end
 local function simOn() return ns.Sim and ns.Sim.Active() or false end
--- Raid-Simulator: eigener, nur lokaler Plan (demo-sim-ID -> wird nie geteilt, beim Stopp entfernt)
+-- Raid simulator: own local-only plan (demo-sim ID -> never shared, removed on stop)
 function Planner.PlanId(evId) return (simOn() and (ns.Sim.PREFIX or "demo-sim-") or "") .. "plan-" .. (evId or "frei") end
 function Planner.Get(evId)
     local rec = Store.Get("raidplan", Planner.PlanId(evId))
@@ -55,7 +55,7 @@ function Planner.Members(plan, group)
 end
 function Planner.Groups(plan) return math.max(1, math.ceil((plan.size or 20) / 5)) end
 
--- Rolle eines Kandidaten: Anmeldung > Profil > Schaden
+-- Role of a candidate: signup > profile > damage
 local SIM_ROLE = { TANK = "tank", HEALER = "heal", DAMAGER = "dps" }
 function Planner.RoleOf(name, evId)
     local sm = simOn() and ns.Group.Member(name)
@@ -71,7 +71,7 @@ function Planner.RoleOf(name, evId)
     return "dps"
 end
 
--- Kandidaten: Angemeldete / Online / Alle
+-- Candidates: signed up / online / all
 function Planner.Candidates(plan, mode)
     local out, seen = {}, {}
     local function add(name, extra)
@@ -86,7 +86,7 @@ function Planner.Candidates(plan, mode)
         out[#out + 1] = { name = name, role = Planner.RoleOf(name, plan.ev), online = ns.isMe(name) or (m and m.online) or false,
             level = m and m.level or 0, class = m and m.class, status = extra }
     end
-    -- Raid-Simulator: der simulierte Raid steht oben im Pool (zum Ziehen)
+    -- Raid simulator: the simulated raid is at the top of the pool (for dragging)
     if simOn() then for _, sm in ipairs(ns.Group.Members()) do add(sm.name, "yes") end end
     if plan.ev and mode ~= "all" and mode ~= "online" then
         for _, s in ipairs(ns.Raid.Signups(plan.ev)) do if s.status ~= "no" then add(s.who, s.status) end end
@@ -107,7 +107,7 @@ function Planner.Candidates(plan, mode)
     return out
 end
 
--- Automatisch fuellen: Tanks und Heiler gleichmaessig auf die Gruppen, Rest Schaden
+-- Auto-fill: tanks and healers evenly across groups, rest damage
 function Planner.AutoFill(plan, mode)
     local groups = Planner.Groups(plan)
     local free = {}
@@ -139,7 +139,7 @@ function Planner.AutoFill(plan, mode)
 end
 
 ------------------------------------------------------------------------
--- Im Spiel umsetzen: einladen, Schlachtzug, Gruppen sortieren
+-- Apply in game: invite, raid, sort groups
 ------------------------------------------------------------------------
 Planner.running = nil
 local function rosterIndex()
@@ -165,13 +165,13 @@ local function rosterIndex()
 end
 local function canLead() return ns.Group.IsLeader() or (IsInRaid() and UnitIsGroupAssistant and UnitIsGroupAssistant("player")) end
 
--- einen Schritt sortieren (Server mag keine Flut): true = es gab noch etwas zu tun
+-- sort one step (server dislikes floods): true = there was still something to do
 local function sortStep(plan)
     if not ns.Group.IsInRaid() or not canLead() or ns.inCombat() then return false end
     ns.Trace("Raid sortieren")
     local idx, count = rosterIndex()
     if simOn() then
-        -- simuliert: Gruppen direkt umsetzen (eine Aenderung je Schritt, wie im Spiel)
+        -- simulated: apply groups directly (one change per step, like in game)
         for name, s in pairs(plan.slots) do
             local cur = idx[name]
             if cur and cur.group ~= s.group then
@@ -194,7 +194,7 @@ local function sortStep(plan)
             if (count[s.group] or 0) < 5 then
                 pcall(SetRaidSubgroup, cur.i, s.group)
             else
-                -- Platz tauschen mit jemandem, der nicht in diese Gruppe gehoert
+                -- Swap slot with someone who doesn't belong in this group
                 for other, o in pairs(idx) do
                     local want = plan.slots[other]
                     if o.group == s.group and (not want or want.group ~= s.group) then
@@ -230,7 +230,7 @@ local function tick()
     local r = Planner.running
     if not r then return end
     local plan = Planner.Get(r.ev)
-    -- Gruppe groesser als 5 geplant -> Schlachtzug
+    -- Group planned larger than 5 -> raid
     local n = ns.Group.Num()
     local want = 0
     for _ in pairs(plan.slots) do want = want + 1 end
@@ -238,9 +238,9 @@ local function tick()
         pcall(C_PartyInfo.ConvertToRaid)
         return
     end
-    -- noch nicht Eingeladene einladen (online, einmal pro 60 s)
+    -- invite those not yet invited (online, once per 60 s)
     local idx = rosterIndex()
-    -- offene Einladungen zaehlen: ohne Schlachtzug passen nur 5 (inkl. Einladungen) in die Gruppe
+    -- count open invites: without a raid only 5 (incl. invites) fit in the group
     local pending = 0
     for name, t in pairs(r.invited) do
         local inGrp = idx[name] or (UnitInParty and UnitInParty(ns.short(name)))
@@ -251,7 +251,7 @@ local function tick()
         local m = ns.Radar.byName[name]
         local online = m and m.online
         if not inGrp and online and (not r.invited[name] or GetTime() - r.invited[name] > 60) then
-            -- ohne Schlachtzug passen nur 5 in die Gruppe
+            -- without a raid only 5 fit in the group
             if ns.Group.IsInRaid() or (math.max(n, 1) + pending) < 5 then
                 r.invited[name] = GetTime()
                 if simOn() then ns.print(L["(Raid sim) Invite to "] .. ns.displayName(name))
@@ -276,7 +276,7 @@ function Planner.Stop()
     if ticker then ticker:Cancel() ticker = nil end
     ns.RefreshPage("raid")
 end
--- Live: laeuft ein Raid und ich leite ihn, werden Aenderungen sofort umgesetzt
+-- Live: if a raid is running and I lead it, changes apply immediately
 function Planner.LiveApply(plan)
     if ns.Group.IsInRaid() and canLead() then
         Planner.running = Planner.running or { ev = plan.ev, invited = {}, t = GetTime(), sim = simOn() or nil }
@@ -286,14 +286,14 @@ end
 ns.On("GROUP_ROSTER_UPDATE", function() ns.RefreshPage("raid") end)
 
 ------------------------------------------------------------------------
--- Reiter "Aufstellung" (wird von der Raid-Seite eingebunden)
+-- Tab "Lineup" (embedded by the raid page)
 ------------------------------------------------------------------------
 local selEv, poolMode, picked, pickedSlot = nil, "signed", nil, nil
 local drag, ghost, pageF
 
 function Planner.Build(f)
     pageF = f
-    -- Termin waehlen, Groesse, Aktionen
+    -- Choose event, size, actions
     f.evDrop = K.Dropdown(f, 190, L["Event"], function()
         local items = { { key = "frei", text = L["No event"] } }
         for _, e in ipairs(ns.Raid.Events()) do
@@ -309,7 +309,7 @@ function Planner.Build(f)
     f.size = K.Segments(f, { { key = 10, text = "10" }, { key = 20, text = "20" }, { key = 40, text = "40" } }, function(k)
         local plan = Planner.Get(selEv)
         plan.size = k
-        -- Leute aus wegfallenden Gruppen zurueck in den Pool
+        -- People from dropped groups back to the pool
         for name, s in pairs(plan.slots) do if s.group > Planner.Groups(plan) then plan.slots[name] = nil end end
         Planner.Save(plan)
     end, 44)
@@ -327,7 +327,7 @@ function Planner.Build(f)
         Planner.Save(plan)
     end)
     f.clear:SetPoint("LEFT", f.auto, "RIGHT", 6, 0)
-    -- ein Klick: alle Zusagen auf die Gruppen verteilen und sofort einladen/sortieren
+    -- one click: spread all commitments across groups and invite/sort immediately
     f.oneClick = K.Button(f, L["Assign & start"], 150, 24, "ghost", function()
         if not selEv then ns.print(L["Pick a date above first."]) return end
         local plan = Planner.Get(selEv)
@@ -338,7 +338,7 @@ function Planner.Build(f)
     f.oneClick:SetPoint("LEFT", f.clear, "RIGHT", 6, 0)
     f.oneClick:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Assign sign-ups & start"], L["Distribute all sign-ups into groups, invite and sort right away."] }) end)
     f.oneClick:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    -- schmales Fenster: Knoepfe enger bzw. "Einteilen & starten" in die zweite Zeile rechts
+    -- narrow window: buttons tighter or "Assign & start" in the second row on the right
     f:HookScript("OnSizeChanged", function(self, w)
         w = w or 0
         local need = 190 + 12 + (self.size:GetWidth() or 130) + 12 + 104 + 6 + 64 + 6 + 150
@@ -351,7 +351,7 @@ function Planner.Build(f)
     f.lockHint:SetText(L["View only - editing: leadership, raid leaders, raid assistants"])
     f.lockHint:Hide()
 
-    -- links: Kandidaten
+    -- left: candidates
     f.pool = K.Segments(f, { { key = "signed", text = L["Signed up"] }, { key = "online", text = L["Online"] }, { key = "all", text = L["All"] } }, function(k)
         poolMode = k
         ns.RefreshPage("raid")
@@ -397,7 +397,7 @@ function Planner.Build(f)
     glass(f.candsBg, { 1, 1, 1, 0.08 }, { 1, 1, 1, 0.025 }, 12)
     f.cands.empty:SetText(L["No candidates.\nPick 'Online' or 'All' above."])
 
-    -- rechts: Gruppen
+    -- right: groups
     f.groups = {}
     for g = 1, 8 do
         local box = CreateFrame("Frame", nil, f)
@@ -445,7 +445,7 @@ function Planner.Build(f)
         f.groups[g] = box
     end
 
-    -- unten: Zusammenfassung + Umsetzen
+    -- bottom: summary + apply
     f.sum = K.Text(f, 12, C.text)
     f.sum:SetPoint("BOTTOMLEFT", 0, 22)
     f.sum:SetWidth(330)
@@ -486,7 +486,7 @@ local function buildGhost()
     ghost:SetScript("OnUpdate", function(self, el)
         if not drag then self:Hide() return end
         self.t = (self.t or 0) + el
-        -- weich einblenden + leicht schweben
+        -- fade in softly + float slightly
         local a = math.min(1, self.t * 6)
         self:SetAlpha(0.35 + 0.6 * a)
         self:SetScale(0.85 + 0.15 * a)
@@ -494,7 +494,7 @@ local function buildGhost()
         local sc = UIParent:GetEffectiveScale() * self:GetScale()
         self:ClearAllPoints()
         self:SetPoint("LEFT", UIParent, "BOTTOMLEFT", x / sc + 14, y / sc - 2 + math.sin(self.t * 6) * 2)
-        -- Platz unter der Maus hervorheben
+        -- Highlight slot under the mouse
         local over = slotUnderMouse()
         if over ~= self.over then
             if self.over then sline(self.over, nil) end
@@ -517,7 +517,7 @@ function Planner.BeginDrag(name, fromSlot)
     ghost:Show()
     GameTooltip:Hide()
 end
--- kurzes Aufleuchten nach dem Ablegen
+-- brief flash after dropping
 local function flash(slot)
     if not slot then return end
     slot.flash = slot.flash or slot:CreateTexture(nil, "OVERLAY")
@@ -545,13 +545,13 @@ function Planner.EndDrag()
         if d.from and d.from == target then return end
         local occupant = target.who
         if d.from then
-            -- Platz -> Platz: verschieben bzw. tauschen
+            -- Slot -> slot: move or swap
             local ga = plan.slots[d.name] and plan.slots[d.name].group
             if not ga then return end
             plan.slots[d.name].group = target.group
             if occupant then plan.slots[occupant].group = ga end
         else
-            -- Kandidat -> Platz: wer dort sass, geht zurueck in den Pool
+            -- Candidate -> slot: whoever sat there goes back to the pool
             if occupant then plan.slots[occupant] = nil end
             if not occupant and #Planner.Members(plan, target.group) >= 5 then return end
             plan.slots[d.name] = { group = target.group, role = Planner.RoleOf(d.name, selEv) }
@@ -561,7 +561,7 @@ function Planner.EndDrag()
         Planner.LiveApply(plan)
         ns.After(0.05, function() flash(slotUnderMouse() or target) end)
     elseif d.from and pageF and pageF.cands:IsMouseOver() then
-        -- zurueck in die Kandidatenliste = entfernen
+        -- back to the candidate list = remove
         plan.slots[d.name] = nil
         Planner.Save(plan)
         Planner.LiveApply(plan)
@@ -575,7 +575,7 @@ function Planner.ClickSlot(s, btn)
         return
     end
     if picked then
-        -- Kandidat auf den Platz; wer dort war, geht zurueck in den Pool
+        -- Candidate onto the slot; whoever was there goes back to the pool
         if s.who then plan.slots[s.who] = nil end
         if #Planner.Members(plan, s.group) >= 5 and not s.who then return end
         plan.slots[picked] = { group = s.group, role = Planner.RoleOf(picked, selEv) }
@@ -585,7 +585,7 @@ function Planner.ClickSlot(s, btn)
         return
     end
     if pickedSlot and pickedSlot ~= s then
-        -- zwei Plaetze tauschen / verschieben
+        -- swap / move two slots
         local a = pickedSlot.who
         if a then
             local b = s.who
@@ -638,7 +638,7 @@ function Planner.Refresh(f)
                     s.role:Show()
                     local m = ns.Radar.byName[name]
                     s.text:SetText(ns.colorName(name, m and m.class))
-                    -- Status: gruen = im Raid richtig, gelb = im Raid falsche Gruppe, grau = noch nicht da
+                    -- Status: green = in raid correctly, yellow = in raid wrong group, gray = not there yet
                     local cur = idx[name]
                     local c = (cur and cur.group == g) and C.mint or (cur and C.amber) or ((m and m.online or ns.isMe(name)) and C.dim or C.red)
                     s.state:SetVertexColor(c[1], c[2], c[3])

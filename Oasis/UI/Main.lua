@@ -1,11 +1,11 @@
--- Oasis - Hauptfenster, Navigation, Minimap-Knopf
+-- Oasis - main window, navigation, minimap button
 local ADDON, ns = ...
 local K, C, L = ns.K, ns.K.C, ns.L
 local M = ns.MEDIA
 
-local W, H, SIDEBAR = 1014, 700, 214   -- 0.6.508: Seitenleiste schmaler (Knoepfe erscheinen erst beim Ueberfahren)
+local W, H, SIDEBAR = 1014, 700, 214   -- 0.6.508: narrower sidebar (buttons only appear on hover)
 
--- 0.6.508: weiches Ein-/Ausblenden der kleinen Knoepfe in der Seitenleiste (Stumm, Favorit, Ausblenden)
+-- 0.6.508: soft fade in/out of the small buttons in the sidebar (mute, favorite, hide)
 local fading, fadeF, hoverRows = {}, nil, {}
 local function fadeTo(f, a)
     if not f then return end
@@ -13,7 +13,7 @@ local function fadeTo(f, a)
     if not fadeF then
         fadeF = CreateFrame("Frame")
         fadeF:SetScript("OnUpdate", function(self, el)
-            -- 0.6.509: schnelles Wegfahren - OnLeave kommt nicht immer an, darum hier selbst pruefen
+            -- 0.6.509: fast mouse-out - OnLeave doesn't always arrive, so check here ourselves
             for row in pairs(hoverRows) do
                 if not row:IsMouseOver() then hoverRows[row] = nil if row.RestKnobs then row:RestKnobs() end end
             end
@@ -32,18 +32,18 @@ local function watchRow(b)
     hoverRows[b] = true
     if fadeF then fadeF:Show() end
 end
--- 0.6.508: ruhende Symbole der Seitenleiste mit ganz leichtem Verlauf (wie die Oasis-Leiste)
+-- 0.6.508: idle sidebar icons with a very light gradient (like the Oasis bar)
 local function restTint(t, c)
     t:SetVertexColor(c[1], c[2], c[3])
     if t.SetGradient and CreateColor then
         pcall(t.SetGradient, t, "VERTICAL", CreateColor(c[1] * 0.62, c[2] * 0.62, c[3] * 0.62, 1),
-            CreateColor(math.min(1, c[1] * 1.35), math.min(1, c[2] * 1.35), math.min(1, c[3] * 1.35), 1))   -- 0.6.509: deutlicher
+            CreateColor(math.min(1, c[1] * 1.35), math.min(1, c[2] * 1.35), math.min(1, c[3] * 1.35), 1))   -- 0.6.509: clearer
     end
 end
 local pages, pageOrder = {}, {}
 local main, current
 
--- Eigene Symbole (game-icons.net, CC BY 3.0 - siehe Media\\icons\\CREDITS.txt), weiss, im Spiel eingefaerbt
+-- own icons (game-icons.net, CC BY 3.0 - see Media\\icons\\CREDITS.txt), white, tinted in game
 local ICONS = {}
 for _, k in ipairs({ "radar", "crafting", "wants", "groups", "camp", "legacy", "raid", "chronicle", "map", "deathroll", "polls", "home", "bank", "deaths", "social", "dungeons", "badges", "settings" }) do ICONS[k] = M .. "icons\\" .. k end
 ICONS.admin = M .. "icons\\admin"
@@ -56,13 +56,13 @@ ICONS.rank = M .. "icons\\badges"
 ICONS.insta = M .. "icons\\profile"
 ICONS.allies = M .. "icons\\badges\\loyal"
 ICONS.life = M .. "icons\\chronicle"
-ICONS.pasture = M .. "icons\\guildotchi"   -- 0.6.545: farbiges Emblem (nicht einfaerben)
+ICONS.pasture = M .. "icons\\guildotchi"   -- 0.6.545: colored emblem (don't tint)
 local ICON_COLOR = { pasture = true }
 ns.ICON_COLOR = ICON_COLOR
 ns.ICONS = ICONS
 
--- Seite registrieren: { key, title, sub, order, build(page), refresh(page), visible() }
--- title/sub sind Sprach-Schluessel und werden erst bei der Anzeige uebersetzt
+-- register page: { key, title, sub, order, build(page), refresh(page), visible() }
+-- title/sub are language keys and are only translated on display
 function ns.RegisterPage(def)
     pages[def.key] = def
     table.insert(pageOrder, def)
@@ -74,19 +74,19 @@ function ns.MainFrame() return main end
 function ns.MainShown() return main ~= nil and main:IsShown() end
 function ns.HideMain() if main then main:Hide() end end
 function ns.PageDef(key) return pages[key] end
--- Ohne Gilde: diese Seiten brauchen eine Gilde und verschwinden aus der Navigation (Hinweis statt leerer Seite)
+-- without guild: these pages need a guild and disappear from the navigation (notice instead of an empty page)
 local GUILD_ONLY = { radar = true, chat = true, chronicle = true, polls = true, bank = true, raid = true, raidcheck = true,
     raidboard = true, raidprep = true, raidtime = true, softres = true, wipes = true, groups = true, crafting = true, trade = true,
     wants = true, camp = true, deaths = true, admin = true, officer = true, map = true, gearmatch = true, questitems = true,
     lockouts = true, repplan = true, rares = true }
 function ns.InGuild() return not IsInGuild or IsInGuild() and true or false end
--- Mit Beispieldaten (/oa demo) sind die Gildenseiten auch ohne Gilde zu sehen: zum Ausprobieren, alles bleibt auf diesem PC
+-- with sample data (/oa demo) the guild pages are visible without a guild too: for trying out, everything stays on this PC
 function ns.GuildView()
     if ns.InGuild() then return true end
     return ns.Demo ~= nil and ns.Demo.IsActive ~= nil and ns.Demo.IsActive() or false
 end
 function ns.GuildOnly(key) return GUILD_ONLY[key] == true and not ns.GuildView() end
--- sichtbar = eigene Bedingung + von der Gildenleitung eingeschaltet + nicht selbst ausgeblendet
+-- visible = own condition + enabled by the guild leadership + not hidden by oneself
 function ns.PageVisible(key)
     local def = pages[key]
     if not def then return false end
@@ -96,13 +96,13 @@ function ns.PageVisible(key)
     if key == "settings" then return true end
     if key ~= "home" and ns.Admin and not ns.Admin.PageEnabled(key) then return false end
     local hidden = ns.db and ns.db.settings.hiddenPages
-    -- 0.6.535: Unterreiter (Fehlerberichte unter Entwickler, Gildenziele unter Schwarzes Brett ...) folgen ihrem
-    -- Hauptpunkt - ein altes "ausgeblendet" darf sie nicht unerreichbar machen (Reiter und Links waren sonst tot)
-    if hidden and hidden[key] and key ~= "home" and not def.hubChild then return false end   -- 0.6.468: Dashboard immer sichtbar
+    -- 0.6.535: subtabs (error reports under developer, guild goals under bulletin board ...) follow their
+    -- main item - an old "hidden" must not make it unreachable (tabs and links were dead otherwise)
+    if hidden and hidden[key] and key ~= "home" and not def.hubChild then return false end   -- 0.6.468: dashboard always visible
     return true
 end
--- 0.5.572: teure Seiten (letzter Aufbau > 25 ms) hoechstens alle 1,2 s neu aufbauen - weitere Aufrufe in dieser
--- Zeit werden gebuendelt nachgeholt (Abgleich/Profile/Chat riefen die Mitglieder-Seite sonst dutzendfach auf)
+-- 0.5.572: rebuild expensive pages (last build > 25 ms) at most every 1.2 s - further calls in that
+-- time are bundled and caught up (sync/profiles/chat otherwise called the members page dozens of times)
 local refreshAt, refreshCost = {}, {}
 local refreshBusy = {}
 function ns.RefreshPage(key, force)
@@ -111,7 +111,7 @@ function ns.RefreshPage(key, force)
     local def = pages[current]
     if def and def.frame and def.refresh then
         local k = current
-        -- Layout-/Store-Haken duerfen keinen verschachtelten Seitenaufbau starten.
+        -- layout/store hooks must not start a nested page build.
         if refreshBusy[k] then
             ns.Debounce("pageRefresh:" .. k, 0.15, function() ns.RefreshPage(k) end)
             return
@@ -132,13 +132,13 @@ function ns.RefreshPage(key, force)
             if ns.prof then ns.prof.add(def.refresh, "Seite " .. tostring(k), dt) end
         end
         if not ok then ns.err(L["Page"] .. " " .. k, e) end
-        -- 0.6.448: auf allen Seiten schwarze Box-Rahmen (neu entstandene Boxen nach jedem Aufbau)
+        -- 0.6.448: black box borders on all pages (newly created boxes after each build)
         local fr = def.frame
         if k ~= "home" and ns.K and ns.K.DarkFramesIn and ns.Debounce then ns.Debounce("darkFrames", 0.1, function() pcall(ns.K.DarkFramesIn, fr) end) end
     end
 end
--- Reiter stummgeschaltet (Lautsprecher in der Seitenleiste): seine Neuigkeiten gehen nicht an Minimap-Knopf und Topbar.
--- Gilt auch fuer die Unterseiten eines Hubs. Die Zahl in der Seitenleiste selbst bleibt sichtbar.
+-- tab muted (speaker in the sidebar): its news doesn't go to the minimap button and top bar.
+-- Also applies to the subpages of a hub. The number in the sidebar itself stays visible.
 function ns.NavMuted(key)
     local m = ns.db and ns.db.settings and ns.db.settings.navMute
     if not (m and key) then return false end
@@ -167,9 +167,9 @@ function ns.SetNavBadge(key, text)
     if ns.GlowNoteBadge then ns.GlowNoteBadge(key, text) end
     if ns.UpdateNotify then ns.UpdateNotify() end
 end
--- Summe aller Neuigkeiten ("3", "@2", "!1", "99+") -> Zahl, erwaehnt?, Liste fuer den Tooltip
--- 0.5.569: ohne "all" zaehlt nur, was seit dem letzten Ansehen der Seite NEU dazukam (Blase am Minimap-Knopf/Topbar
--- verschwand vorher nie: offene Gruppen, Auftraege, Wunschliste sind Dauerzaehler). Ausgeblendete Seiten zaehlen nicht.
+-- sum of all news ("3", "@2", "!1", "99+") -> number, mentioned?, list for the tooltip
+-- 0.5.569: without "all" only what was NEWLY added since the page was last viewed counts (bubble on minimap button/top bar
+-- never disappeared before: open groups, orders, wish list are permanent counters). Hidden pages don't count.
 function ns.NotifyTotal(all)
     local total, mention, lines = 0, false, {}
     local ack = ns._glowAck or {}
@@ -190,10 +190,10 @@ function ns.NotifyTotal(all)
     return total, mention, lines
 end
 
--- Leuchten bei Neuigkeiten (Seitenleiste + Topbar): pulsiert, bis die Seite angesehen wurde
+-- glow on news (sidebar + top bar): pulses until the page has been viewed
 local glowAck, glowMax, glowPingAt = {}, {}, {}
 ns._glowAck = glowAck
--- "gesehen" ueber /reload hinaus merken
+-- remember "seen" across /reload
 ns.Listen("DB_READY", function()
     for k, v in pairs(ns.db.badgeAck or {}) do if glowAck[k] == nil then glowAck[k] = v end end
     ns.db.badgeAck = glowAck
@@ -207,17 +207,17 @@ end
 ns.BadgeNum = badgeNum
 local function glowEnabled() return not (ns.db and ns.db.settings and ns.db.settings.navGlow == false) end
 local function noAnim() return ns.db and ns.db.settings and ns.db.settings.noAnim end
--- neuer Badge-Stand: steigt die Zahl ueber das bisher Gezeigte, kurz "pingen"
+-- new badge state: if the number rises above what was shown so far, "ping" briefly
 local function glowNote(key, n)
     if n <= 0 then glowAck[key], glowMax[key] = nil, nil return end
-    -- Seite ist gerade offen: gilt sofort als gesehen
+    -- page is currently open: counts as seen immediately
     if main and main:IsShown() and current == key then glowAck[key], glowMax[key] = n, n return end
     if n > (glowMax[key] or glowAck[key] or 0) then
         if GetTime and GetTime() > glowQuietUntil then glowPingAt[key] = GetTime() end
         glowMax[key] = n
     end
 end
--- leuchtet die Seite (oder eine Unterseite ihres Hubs)? -> an, Zeitpunkt des letzten Pings
+-- is the page (or a subpage of its hub) glowing? -> on, time of the last ping
 function ns.GlowState(key)
     if key == "home" or not glowEnabled() then return false end
     local on, ping = false, nil
@@ -232,7 +232,7 @@ function ns.GlowState(key)
     end
     return on, ping
 end
--- Tooltip-Zeile zur Neuigkeit (NewSince liefert "x neu seit deinem letzten Besuch")
+-- tooltip line for the news (NewSince returns "x new since your last visit")
 function ns.BadgeTip(key)
     if ns.NewSince and ns.NewSince.TipFor then
         local t = ns.NewSince.TipFor(key)
@@ -282,7 +282,7 @@ local function glowDriver()
     end)
     return glowDrv
 end
--- b = Knopf, icon = Symbol-Textur, size = Glow-Groesse
+-- b = button, icon = icon texture, size = glow size
 function ns.AttachGlow(b, icon, size)
     if b.nglow then return end
     b.glowIcon, b.glowSize = icon, size or 30
@@ -323,7 +323,7 @@ function ns.RefreshGlows()
     end
     if ns.UpdateMiniBar then pcall(ns.UpdateMiniBar) end
 end
--- Seite angesehen: Leuchten aus (bis wieder mehr Neues kommt)
+-- page viewed: glow off (until more news arrives)
 function ns.GlowAck(key)
     local n = badgeNum(ns._badges and ns._badges[key])
     glowAck[key] = n > 0 and n or nil
@@ -331,7 +331,7 @@ function ns.GlowAck(key)
     glowPingAt[key] = nil
     if ns.UpdateNotify then ns.UpdateNotify() end
 end
--- aus SetNavBadge: Stand merken (Ping) und Nav-Eintrag (bzw. Hub) neu leuchten lassen
+-- from SetNavBadge: remember state (ping) and make the nav entry (or hub) glow again
 function ns.GlowNoteBadge(key, text)
     glowNote(key, badgeNum(text))
     local d = pages[key]
@@ -341,22 +341,22 @@ function ns.GlowNoteBadge(key, text)
 end
 ns.Listen("LOGIN", function() glowQuietUntil = (GetTime and GetTime() or 0) + 20 end)
 
--- Zusammengefasste Seiten: EIN Navigationspunkt, die weiteren Seiten als Reiter oben auf der Seite
--- 0.5.846: Raid in DREI Navigationspunkte statt fuenf:
---   Raids (Termine, Beute, Reservierungen, Regeln, IDs) | Raid-Vorbereitung (Taktik, Karte, Abend-Check, Buffs, Berichte) | Raidleitung
--- Die frueheren Eintraege "Beute" und "Buff-Monitor" sind jetzt Reiter; ns.ShowPage("loot"/"buffs") funktioniert unveraendert.
+-- grouped pages: ONE navigation item, the other pages as tabs at the top of the page
+-- 0.5.846: raid in THREE navigation items instead of five:
+--   Raids (events, loot, reservations, rules, IDs) | Raid preparation (tactics, map, evening check, buffs, reports) | Raid leadership
+-- The former entries "Loot" and "Buff monitor" are now tabs; ns.ShowPage("loot"/"buffs") works unchanged.
 local HUBS = {
     raid = { "raid", "loot", "softres", "lootrules", "lockouts" },
     tactics = { "tactics", "raidboard", "raidprep", "buffs", "wipes" },
     raidlead = { "raidlead", "raidprepteam", "raidcheck", "raidtime" },
-    -- Handel: Handwerk bleibt eigener Punkt; Markt, Wunschliste und Upgrade-Boerse teilen sich einen
+    -- Trade: crafting stays its own item; market, wish list and upgrade exchange share one
     trade = { "trade", "wants", "gearmatch" },
-    -- 0.6.443: Entwickler und Fehlerberichte in einem Navigationspunkt
+    -- 0.6.443: developer and error reports in one navigation item
     dev = { "dev", "bugs" },
-    -- 0.6.450: Schwarzes Brett mit den Gildenzielen als zweitem Reiter
+    -- 0.6.450: bulletin board with the guild goals as second tab
     board = { "board", "goals" },
 }
--- Name des Navigationspunkts bzw. des ersten Reiters, wenn er vom Seitentitel abweichen soll
+-- name of the navigation item or the first tab, if it should differ from the page title
 local HUB_NAV = { tactics = "Raid prep", trade = "Market & wishes" }
 local HUB_TAB = { dev = "Tools", board = "Notice board", raid = "Events", tactics = "Tactics", raidprep = "Raid night check", buffs = "Buffs", loot = "Loot", lockouts = "Lockouts", lootrules = "Rules" }
 function ns.HubNavTitle(key) return HUB_NAV[key] end
@@ -365,7 +365,7 @@ local HUB_OF = {}
 for hub, list in pairs(HUBS) do for _, k in ipairs(list) do HUB_OF[k] = hub end end
 local HUB_TABS_H = 38
 function ns.HubOf(key) return HUB_OF[key] end
--- Unterseiten bekommen ihren Hub als "parent" (kein eigener Nav-Eintrag, Hub bleibt markiert)
+-- subpages get their hub as "parent" (no own nav entry, hub stays highlighted)
 local function applyHubs()
     for hub, list in pairs(HUBS) do
         if pages[hub] then
@@ -401,7 +401,7 @@ local function hubStrip(hub, key)
         s.line:SetPoint("BOTTOMLEFT", 0, 4)
         s.line:SetPoint("BOTTOMRIGHT", 0, 4)
         s.sig = sig
-        -- 0.6.464: Reiter gleichmaessig ueber die ganze Breite verteilen
+        -- 0.6.464: distribute tabs evenly across the full width
         function s:Fit()
             local W = self:GetWidth() or 0
             local btns = self.seg.buttons or {}
@@ -423,7 +423,7 @@ local function hubStrip(hub, key)
 end
 
 local function showPage(key)
-    -- ohne Gilde: Start/Dashboard -> eigener Startbildschirm, Gildenseiten -> Hinweis mit "Gilde finden"
+    -- without guild: start/dashboard -> own start screen, guild pages -> notice with "Find a guild"
     if pages.noguild and ns.GuildOnly(key) then
         pages.noguild.blocked = (key ~= "home") and key or nil
         key = "noguild"
@@ -440,7 +440,7 @@ local function showPage(key)
     current = key
     if main and main.UpdateContentArt then pcall(main.UpdateContentArt) end
     ns.Trace("Seite " .. key)
-    -- aus einer zugeklappten Gruppe geoeffnet: Navigation neu setzen, damit der Eintrag sichtbar ist
+    -- opened from a collapsed group: reset navigation so the entry is visible
     local closed = ns.db and ns.db.settings.navClosed
     if closed and next(closed) and ns.LayoutNav and prevKey ~= key then ns.LayoutNav() end
     for _, d in ipairs(pageOrder) do
@@ -460,7 +460,7 @@ local function showPage(key)
         local ok, e = pcall(def.build, p)
         if not ok then ns.err(L["Setup"] .. " " .. key, e) end
     end
-    local tt = def.headTitle or def.title   -- 0.6.327: eigener Kopf-Titel moeglich (Profil -> "Charakterprofil")
+    local tt = def.headTitle or def.title   -- 0.6.327: own header title possible (profile -> "Character profile")
     main.title:SetText((K.Skin and K.Skin("upperTitle")) and K.Upper(L[tt]) or L[tt])
     main.sub:SetText(def.sub and L[def.sub] or "")
     main.icon:SetTexture(ICONS[key])
@@ -468,11 +468,11 @@ local function showPage(key)
     def.frame:Show()
     local hub = HUB_OF[key]
     hubStrip(hub and pages[hub] and hub or nil, key)
-    ns.RefreshPage(key, true)   -- Seitenwechsel: immer sofort
-    -- Klick-Toene fuer alle Knoepfe der Seite (auch spaeter aufgebaute Zeilen beim naechsten Wechsel)
-    if C_Timer and K.SoundifyTree then C_Timer.After(0.4, function() K.SoundifyTree(main) end) end   -- nach der Auf-Animation
+    ns.RefreshPage(key, true)   -- page switch: always immediately
+    -- click sounds for all buttons of the page (also rows built later, on the next switch)
+    if C_Timer and K.SoundifyTree then C_Timer.After(0.4, function() K.SoundifyTree(main) end) end   -- after the open animation
     ns.db.settings.lastPage = key
-    -- angesehen: "neu seit letztem Besuch" zuruecksetzen, Leuchten aus
+    -- viewed: reset "new since last visit", glow off
     if ns.OnPageSeen then pcall(ns.OnPageSeen, key) end
     ns.GlowAck(key)
     ns.RefreshGlows()
@@ -483,7 +483,7 @@ ns.ShowPage = function(key)
         ns.profileTab = "rank"
         key = "insta"
     end
-    -- "Mein Weg" ist ins Profil gewandert
+    -- "My path" has moved into the profile
     if key == "life" and pages.insta then
         ns.profileTab = (ns.Life and ns.Life.view) or "journey"
         key = "insta"
@@ -493,9 +493,9 @@ end
 
 local function buildMain()
     main = CreateFrame("Frame", "OasisMainFrame", UIParent)
-    _G.OasisMainFrame = main   -- nach Neuaufbau (Design/Kontrast) zeigt der Name sicher aufs neue Fenster
+    _G.OasisMainFrame = main   -- after rebuild (design/contrast) the name surely points to the new window
     main:SetSize(W, H)
-    -- gemerkte Position (obere linke Ecke) - sonst Bildschirmmitte
+    -- remembered position (top-left corner) - otherwise screen center
     local pos = ns.db.settings.mainPos
     if pos and pos[1] and pos[2] then
         main:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", pos[1], pos[2])
@@ -504,20 +504,20 @@ local function buildMain()
     end
     main:SetFrameStrata("HIGH")
     main:SetToplevel(true)
-    -- 0.5.565: Esc schliesst Oasis, solange es den Fokus hat (zuletzt hineingeklickt / gerade geoeffnet)
-    -- 0.5.594: Esc schliesst Oasis IMMER zuerst (wie Blizzards Fenster), ausser man stellt "nur bei Fokus" ein
+    -- 0.5.565: Esc closes Oasis while it has focus (last clicked into / just opened)
+    -- 0.5.594: Esc ALWAYS closes Oasis first (like Blizzard's frames), unless "only with focus" is set
     ns.mainFocus = true
     if ns.EscClose then ns.EscClose(main, function() return not ns.db.settings.escFocusOnly or ns.mainFocus ~= false end,
-        function() if ns.Collapse then ns.Collapse() else main:Hide() end end) end   -- Esc schliesst wie der X-Knopf (mit Animation)
+        function() if ns.Collapse then ns.Collapse() else main:Hide() end end) end   -- Esc closes like the X button (with animation)
     main:HookScript("OnShow", function() ns.mainFocus = true if ns.EscUpdate then ns.EscUpdate() end end)
-    -- Klick-Toene: neu aufgebaute Knoepfe (Listenzeilen ...) regelmaessig nachruesten, solange Oasis offen ist
+    -- click sounds: regularly retrofit newly built buttons (list rows ...) while Oasis is open
     if C_Timer and C_Timer.NewTicker and not ns.sndTicker then
         ns.sndTicker = C_Timer.NewTicker(2, function() if main and main:IsShown() and K.SoundifyTree then K.SoundifyTree(main) end end)
     end
     main:SetMovable(true)
     main:SetClampedToScreen(true)
-    -- Mac mit Notch: WoW legt die Oberflaeche unter die Kamera-Aussparung -> oben ueber den Rand
-    -- hinaus schieben erlauben, damit das Fenster bis an die echte Bildschirmkante andocken kann
+    -- Mac with notch: WoW puts the UI under the camera cutout -> allow pushing beyond the top edge
+    -- so the window can dock to the real screen edge
     if IsMacClient and IsMacClient() then
         main:SetClampRectInsets(0, 0, -50, 0)
     end
@@ -526,20 +526,20 @@ local function buildMain()
     ns.EscClose("OasisMainFrame")
 
     main.bgTex = K.Fill(main, C.bg)
-    -- 0.5.600: Flaeche erst rechts der Seitenleiste (die hat ihre eigene Flaeche) -> braucht nur die rechten Ecken-Masken
+    -- 0.5.600: surface only right of the sidebar (it has its own surface) -> needs only the right corner masks
     main.bgTex:ClearAllPoints()
     main.bgTex:SetPoint("TOPLEFT", main, "TOPLEFT", SIDEBAR, 0)
     main.bgTex:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", 0, 0)
     K.Border(main, C.line)
-    -- 0.6.128: Glut-Grafik im Inhaltsbereich rechts, wie links in der Akzentfarbe (Graustufen-Maske + ADD), dazu
-    -- das feine Punktraster; Ecken rechts gerundet. Nur mit Gildenmodul.
+    -- 0.6.128: ember graphic in the content area on the right, like the left in the accent color (grayscale mask + ADD), plus
+    -- the fine dot grid; corners rounded on the right. Guild module only.
     if ns.GuildPack then
         local art = main:CreateTexture(nil, "ARTWORK", nil, -8)
         art:SetPoint("TOPLEFT", main, "TOPLEFT", SIDEBAR, 0)
         art:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", 0, 0)
-        -- 0.6.146: Felsbild mit Glutrissen statt Glut-Verlauf - normal gezeichnet, auf das Seitenverhaeltnis
-        -- des Inhaltsbereichs zugeschnitten (Bild 4:3)
-        -- 0.6.154: zwei Ebenen (Tools/split_glow.py) - Fels in Grau, darueber nur die Glut in der gewaehlten Farbe
+        -- 0.6.146: rock image with ember cracks instead of ember gradient - drawn normally, cropped to the aspect ratio
+        -- of the content area (image 4:3)
+        -- 0.6.154: two layers (Tools/split_glow.py) - rock in gray, on top only the ember in the chosen color
         art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\content_bg_base")
         local artGlow = main:CreateTexture(nil, "ARTWORK", nil, -8)
         artGlow:SetAllPoints(art)
@@ -560,9 +560,9 @@ local function buildMain()
         end
         main.contentGlow = artGlow
         main.contentArt = art
-        art.oasisBgNoAlpha = true   -- 0.6.230: Deckkraft macht tint() selbst (40 % Grundwert), Helligkeit ueber BgImg
+        art.oasisBgNoAlpha = true   -- 0.6.230: tint() handles opacity itself (40 % base value), brightness via BgImg
         if K.BgImg then K.BgImg(art) end
-        -- 0.6.147: Vignette ueber dem Bild - zu den Raendern dunkler, Inhalt in der Mitte bleibt ruhig
+        -- 0.6.147: vignette over the image - darker towards the edges, content in the middle stays calm
         local vig = main:CreateTexture(nil, "ARTWORK", nil, -7)
         vig:SetAllPoints(art)
         vig:SetTexture(ns.MEDIA .. "vignette")
@@ -576,33 +576,33 @@ local function buildMain()
         dots:SetVertexColor(1, 1, 1, 0.035)
         local function fitDots()
             local w, h = dots:GetWidth() or 0, dots:GetHeight() or 0
-            if w > 0 and h > 0 then dots:SetTexCoord(0, w / 8, 0, h / 8) end   -- 0.6.143: so fein wie links (K.DotGrid)
+            if w > 0 and h > 0 then dots:SetTexCoord(0, w / 8, 0, h / 8) end   -- 0.6.143: as fine as on the left (K.DotGrid)
         end
         main:HookScript("OnSizeChanged", function() fitDots() fitArt() end)
         fitDots()
-        -- 0.6.131: das Dashboard hat sein eigenes Hintergrundbild - dort keine Glut und kein Raster
+        -- 0.6.131: the dashboard has its own background image - no ember and no grid there
         function main.UpdateContentArt()
             local home = ns.CurrentPage and ns.CurrentPage() == "home"
             art:SetShown(not home)
             artGlow:SetShown(not home)
-            vig:SetShown(false)   -- 0.6.231: Vignette aus
+            vig:SetShown(false)   -- 0.6.231: vignette off
             dots:SetShown(not home)
         end
         local last, acc = nil, 0
         local function tint()
             local gh = ns.db and ns.db.settings.glowColor
-            local ac = (gh and gh ~= "" and K.FromHex(gh)) or C.accent or { 1, 0.2, 0.2 }   -- 0.6.136: eigene Hintergrundfarbe
+            local ac = (gh and gh ~= "" and K.FromHex(gh)) or C.accent or { 1, 0.2, 0.2 }   -- 0.6.136: own background color
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             local bv = K.BgBright and K.BgBright() or 1
             local lv = K.BgLight and K.BgLight() or 1
             key = key .. ":" .. bv .. ":" .. lv .. ":" .. tostring(C.accent and C.accent[1]) .. tostring(C.accent and C.accent[2]) .. tostring(C.accent and C.accent[3])
             if key == last then return end
             last = key
-            -- 0.6.154: nur die Glut nimmt die Farbe an, der Fels bleibt grau (40 % wie bisher)
-            -- 0.6.227: Helligkeit (bgBright): Fels kraeftiger, Vignette schwaecher
+            -- 0.6.154: only the ember takes the color, the rock stays gray (40 % as before)
+            -- 0.6.227: brightness (bgBright): rock stronger, vignette weaker
             art:SetVertexColor(1, 1, 1, 0.40 * bv)
-            vig:Hide()   -- 0.6.231: Vignette rechts ganz weg (Wunsch)
-            artGlow:SetVertexColor(ac[1], ac[2], ac[3], 1)   -- 0.6.158: Staerke ueber SetAlpha (Standard 0,8 = wie bisher)
+            vig:Hide()   -- 0.6.231: vignette on the right removed entirely (requested)
+            artGlow:SetVertexColor(ac[1], ac[2], ac[3], 1)   -- 0.6.158: strength via SetAlpha (default 0.8 = as before)
         end
         tint()
         main:HookScript("OnUpdate", function(_, el)
@@ -616,31 +616,31 @@ local function buildMain()
     end
 
 
-    -- Seitenleiste
+    -- sidebar
     local side = CreateFrame("Frame", nil, main)
     side:SetPoint("TOPLEFT", 1, -1)
     side:SetPoint("BOTTOMLEFT", 1, 1)
     side:SetWidth(SIDEBAR)
     main.sideTex = K.Fill(side, C.side)
-    -- 0.6.126: Glut-Grafik hinter der Leiste in der Akzentfarbe des Nutzers (nur mit Gildenmodul).
-    -- Die Datei ist eine Graustufen-Maske (Glut hell, Grund schwarz); "ADD" + Akzentfarbe = Glut in jeder Farbe,
-    -- der schwarze Teil veraendert die Leiste nicht. Farbwechsel in den Einstellungen wird sofort uebernommen.
+    -- 0.6.126: ember graphic behind the bar in the user's accent color (guild module only).
+    -- The file is a grayscale mask (ember bright, ground black); "ADD" + accent color = ember in any color,
+    -- the black part doesn't change the bar. Color changes in the settings apply immediately.
     if ns.GuildPack then
         side.art = side:CreateTexture(nil, "ARTWORK", nil, -8)
-        if K.BgImg then K.BgImg(side.art, "L") end   -- 0.6.227: Helligkeit einstellbar
+        if K.BgImg then K.BgImg(side.art, "L") end   -- 0.6.227: brightness adjustable
         side.art:SetAllPoints()
-        -- 0.6.148: Schieferbild mit feinen Glutadern statt Glut-Maske (normal gezeichnet, Seitenverhaeltnis passt fast genau)
-        -- 0.6.154: zwei Ebenen wie rechts - Schiefer in Grau, darueber nur die Glutadern in der gewaehlten Farbe
+        -- 0.6.148: slate image with fine ember veins instead of ember mask (drawn normally, aspect ratio fits almost exactly)
+        -- 0.6.154: two layers like on the right - slate in gray, on top only the ember veins in the chosen color
         side.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg_base")
         side.glow = side:CreateTexture(nil, "ARTWORK", nil, -8)
         side.glow:SetAllPoints(side.art)
         side.glow:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\sidebar_bg_glow")
         side.glow:SetBlendMode("ADD")
-        -- 0.6.157: weicher Lichtschein in der gewaehlten Farbe, faellt von oben in die Leiste und verblasst nach unten
+        -- 0.6.157: soft light glow in the chosen color, falls into the bar from above and fades downward
         side.wash = side:CreateTexture(nil, "ARTWORK", nil, -7)
-        -- 0.6.237: Farbverlauf ueber die ganze Leiste - oben in der Farbe, nach unten auslaufend
+        -- 0.6.237: color gradient over the whole bar - colored at the top, fading out downward
         side.wash:SetAllPoints(side.art)
-        -- 0.6.149: wie rechts eingepasst statt gestreckt (Bild 668:2000, mittig zugeschnitten)
+        -- 0.6.149: fitted like on the right instead of stretched (image 668:2000, center-cropped)
         local function fitSide()
             local w, h = side.art:GetWidth() or 0, side.art:GetHeight() or 0
             if w <= 0 or h <= 0 then return end
@@ -659,14 +659,14 @@ local function buildMain()
         end
         local last
         local function tint()
-            -- 0.6.159: links wie rechts - eigene Farbe (glowColorSide), ohne Wahl die Akzentfarbe
+            -- 0.6.159: left like right - own color (glowColorSide), accent color if none chosen
             local gh = ns.db and ns.db.settings.glowColorSide
             local ac = (gh and gh ~= "" and K.FromHex(gh)) or C.accent or { 1, 0.2, 0.2 }
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3] .. ":" .. tostring(ns.db and ns.db.settings.duoSide)
             if key == last then return end
             last = key
-            -- 0.6.154: nur die Glutadern nehmen die Farbe an, der Schiefer bleibt grau
-            -- 0.6.159: "Leiste links" (duoSide) faerbt den Schiefer selbst ein - das Bild deckt die Leistenflaeche ab
+            -- 0.6.154: only the ember veins take the color, the slate stays gray
+            -- 0.6.159: "Left bar" (duoSide) tints the slate itself - the image covers the bar surface
             local sh = ns.db and ns.db.settings.duoSide
             local sc = sh and sh ~= "" and K.FromHex(sh)
             if sc then
@@ -676,7 +676,7 @@ local function buildMain()
                 side.art:SetVertexColor(1, 1, 1, 1)
             end
             side.glow:SetVertexColor(ac[1], ac[2], ac[3], 1)
-            -- 0.6.237: Farbverlauf in der Farbe "Hintergrund links" (sonst Akzentfarbe), unabhaengig von der Glut
+            -- 0.6.237: color gradient in the color "Background left" (otherwise accent color), independent of the ember
             if not K.Gradient(side.wash, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.11 }) then   -- 0.6.255: halb so stark
                 side.wash:SetColorTexture(ac[1], ac[2], ac[3], 0.04)
             end
@@ -684,8 +684,8 @@ local function buildMain()
         end
         tint()
         if K.DotGrid then side.dots = K.DotGrid(side, 0.045, 4) end
-        -- 0.6.158: Glut-Staerke links/rechts (glowStrengthL/R, 0..2) und "Glut atmet" (glowBreath) - jedes Bild
-        -- einmal, danach nur SetAlpha; beim Atmen pulsiert die Glut in 5 s langsam auf und ab
+        -- 0.6.158: ember strength left/right (glowStrengthL/R, 0..2) and "Ember breathes" (glowBreath) - each image
+        -- once, after that only SetAlpha; when breathing the ember pulses slowly up and down over 5 s
         local gt = 0
         main:HookScript("OnUpdate", function(_, el)
             local st = ns.db and ns.db.settings
@@ -695,7 +695,7 @@ local function buildMain()
                 gt = (gt + (el or 0)) % 5
                 b = 0.55 + 0.45 * (0.5 - 0.5 * math.cos(gt / 5 * math.pi * 2))
             end
-            local sl, sr = tonumber(st.glowStrengthL) or 0, tonumber(st.glowStrengthR) or 1   -- 0.6.161: links Standard 0 (aus)
+            local sl, sr = tonumber(st.glowStrengthL) or 0, tonumber(st.glowStrengthR) or 1   -- 0.6.161: left default 0 (off)
             if side.glow then side.glow:SetAlpha(math.min(1, sl * b)) end
             if main.contentGlow then main.contentGlow:SetAlpha(math.min(1, sr * b * 0.8)) end
         end)
@@ -707,23 +707,23 @@ local function buildMain()
             tint()
         end)
     end
-    if K.SkinWindow then pcall(K.SkinWindow, main) end     -- Design: echter Rahmen/Seitenleiste
-    if K.StyleWindow then pcall(K.StyleWindow, main) end   -- Design: Verlauf + Rahmenfarbe
-    -- 0.6.165: Zierrahmen mit Schimmer - gemeinsam mit dem Startfenster (K.FrameLines in Kit.lua)
-    -- 0.6.168: erst NACH dem Design - Eckenradius vom Design uebernehmen (rund = 14, sonst lagen zwei Boegen
-    -- nebeneinander), die graue Design-Kante zuruecknehmen; eckige/Metall-Designs ohne Boegen
+    if K.SkinWindow then pcall(K.SkinWindow, main) end     -- design: real border/sidebar
+    if K.StyleWindow then pcall(K.StyleWindow, main) end   -- design: gradient + border color
+    -- 0.6.165: decorative border with shimmer - shared with the start window (K.FrameLines in Kit.lua)
+    -- 0.6.168: only AFTER the design - take the corner radius from the design (round = 14, otherwise two arcs lay
+    -- side by side), pull back the gray design edge; square/metal designs without arcs
     do
         local sk = main.skinDef
         main.frameLines = K.FrameLines(main, (sk and sk.r) or 12)
         main.frameShimmer = main.frameLines.shimmer
         if sk and sk.line ~= "round_line" then for _, t in ipairs(main.frameLines.corners) do t:Hide() end end
         if main.lineFrame then main.lineFrame:SetAlpha(0.35) end
-        -- 0.6.186: mit Gildenmodul Bild-Rahmen aussen ums Fenster - Zierlinien und graue Kante dann aus
+        -- 0.6.186: with guild module image border outside around the window - decorative lines and gray edge then off
         if ns.GuildPack and K.ImageFrame then
             local ok, f = pcall(K.ImageFrame, main, 0.3)
             if ok and f then
                 main.imageFrame = f
-                K.ApplyFrameStyle(main)   -- 0.6.192: abschaltbar (Einstellungen > Details)
+                K.ApplyFrameStyle(main)   -- 0.6.192: can be turned off (Settings > Details)
             end
         end
     end
@@ -733,15 +733,15 @@ local function buildMain()
     sep:SetPoint("TOPRIGHT")
     sep:SetPoint("BOTTOMRIGHT")
     sep:SetWidth(1)
-    if K.Skin and K.Skin("noRules") then sep:Hide() end   -- Design mit eigenem Rahmen trennt Leiste und Inhalt selbst
+    if K.Skin and K.Skin("noRules") then sep:Hide() end   -- design with its own border separates bar and content itself
 
-    -- Logo: Oasis-Wortmarke oder Gildenname (stellt die Gildenleitung ein)
-    -- Logo und Untertitel: gleich breit (156), linksbuendig mit der Navigation
-    local BRAND_X = 18   -- linksbuendig mit den Symbolen der Navigation (0.5.919, vorher mittig in der Leiste)
-    local logo = ns.GuildLogo(side, 156, 39, false)   -- ohne Strich darunter
+    -- logo: Oasis wordmark or guild name (set by the guild leadership)
+    -- logo and subtitle: same width (156), left-aligned with the navigation
+    local BRAND_X = 18   -- left-aligned with the navigation icons (0.5.919, previously centered in the bar)
+    local logo = ns.GuildLogo(side, 156, 39, false)   -- without a line below
     logo:SetPoint("TOPLEFT", BRAND_X, -12)
     logo:MakeClickable()
-    -- Untertitel genauso breit wie der Strich unter dem Logo, mit etwas Abstand
+    -- subtitle as wide as the line under the logo, with a little spacing
     local gsub = K.Tracked(side, 9, C.muted)
     gsub:SetPoint("TOPLEFT", logo, "BOTTOMLEFT", 0, -9)
     main.gsub = gsub
@@ -756,7 +756,7 @@ local function buildMain()
     topSep:SetPoint("TOPRIGHT", -BRAND_X, -84)
     topSep:Hide()
 
-    -- Navigation (Positionen setzt layoutNav, abgeschaltete Seiten fallen raus)
+    -- navigation (layoutNav sets positions, disabled pages drop out)
     applyHubs()
     for _, def in ipairs(pageOrder) do
       if not def.topbar and not def.parent then
@@ -769,7 +769,7 @@ local function buildMain()
         b.bar:SetPoint("BOTTOMLEFT")
         b.bar:SetWidth(2)
         b.icon = K.Glyph(b, 18, ICONS[def.key])
-        if ICON_COLOR[def.key] then   -- farbige Symbole behalten ihre Farbe (auch bei Hover/Auswahl)
+        if ICON_COLOR[def.key] then   -- colored icons keep their color (also on hover/selection)
             local orig = b.icon.SetVertexColor
             orig(b.icon, 1, 1, 1)
             b.icon.SetVertexColor = function(t) orig(t, 1, 1, 1) end
@@ -778,7 +778,7 @@ local function buildMain()
         b.label = K.Text(b, 13, C.muted)
         b.label:SetPoint("LEFT", b.icon, "RIGHT", 9, 0)
         b.label:SetText(L[(ns.HubNavTitle and ns.HubNavTitle(def.key)) or def.title])
-        -- Zahl rechts: runde Pille in Akzentfarbe, Breite folgt der Zahl (1 Ziffer = Kreis)
+        -- number on the right: round pill in accent color, width follows the number (1 digit = circle)
         local DOTM = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
         b.badgeBg = CreateFrame("Frame", nil, b)
         b.badgeBg:SetSize(18, 16)
@@ -809,9 +809,9 @@ local function buildMain()
         b.hl:SetColorTexture(1, 1, 1, 0.035)
         function b:SetActive(on)
             self.isActive = on
-            local pill = K.Skin and K.Skin("navPill")   -- Design mit Pillen-Navigation: liefert die Farbe
+            local pill = K.Skin and K.Skin("navPill")   -- design with pill navigation: provides the color
             if pill then
-                -- aktiver Eintrag als farbige Pille mit schwarzer Schrift
+                -- active entry as a colored pill with black text
                 if not self.lp then
                     local PM = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
                     local h = self:GetHeight()
@@ -835,8 +835,8 @@ local function buildMain()
                 self.icon:SetVertexColor(c[1], c[2], c[3])
                 return
             end
-            -- 0.6.202: aktiver Eintrag mit Verlauf in der Akzentfarbe (links kraeftig, nach rechts aus), feiner Kante oben/
-            -- unten, die ebenfalls auslaeuft, und hellem Strich links - wie eine glimmende Platte
+            -- 0.6.202: active entry with gradient in the accent color (strong on the left, fading out to the right), fine edge top/
+            -- bottom that also fades out, and a bright bar on the left - like a glowing plate
             if not self.act then
                 local a = {}
                 a.fill = self:CreateTexture(nil, "BACKGROUND", nil, 2) a.fill:SetAllPoints()
@@ -867,7 +867,7 @@ local function buildMain()
         b.key = def.key
         b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         b:SetScript("OnClick", function(self, mb)
-            if self.dragEnd and GetTime() - self.dragEnd < 0.25 then return end   -- Loslassen nach dem Ziehen
+            if self.dragEnd and GetTime() - self.dragEnd < 0.25 then return end   -- release after dragging
             if mb == "RightButton" then ns.NavMenu(self, def) return end
             if ns.NoGuild and ns.NoGuild.AutoWho then pcall(ns.NoGuild.AutoWho) end
             showPage(def.key)
@@ -875,7 +875,7 @@ local function buildMain()
         b:RegisterForDrag("LeftButton")
         b:SetScript("OnDragStart", function(self) ns.NavDragStart(self) end)
         b:SetScript("OnDragStop", function(self) ns.NavDragStop(self) end)
-        -- Neuigkeiten: Leuchten hinter dem Symbol + Tooltip
+        -- news: glow behind the icon + tooltip
         if def.key ~= "home" then
             ns.AttachGlow(b, b.icon, 34)
             b.glowOff = function(self) self:SetActive(self.isActive) end
@@ -892,7 +892,7 @@ local function buildMain()
         end
         def.nav = b
         if b.nglow then ns.SetGlow(b, ns.GlowState(def.key)) end
-        -- rechts: durchgestrichenes Auge (ganz schwach, beim Ueberfahren deutlicher) = Bereich ausblenden
+        -- right: crossed-out eye (very faint, clearer on hover) = hide section
         local e
         if not (ns.Discover and (ns.Discover.LOCKED or ns.Discover.CORE)[def.key]) then
             e = CreateFrame("Button", nil, b)
@@ -921,7 +921,7 @@ local function buildMain()
             end)
         end
         do
-            -- Stern links neben dem Auge: Favorit an/aus (Favorit = goldener Stern, immer sichtbar)
+            -- star left of the eye: favorite on/off (favorite = golden star, always visible)
             local st = CreateFrame("Button", nil, b)
             st:SetSize(18, 18)
             st:SetPoint("RIGHT", e or b, e and "LEFT" or "RIGHT", e and -2 or -8, 0)
@@ -957,7 +957,7 @@ local function buildMain()
                 if ns.NavSetFav then ns.NavSetFav(def.key, not (ns.NavIsFav and ns.NavIsFav(def.key))) end
                 b:UpdateStar()
             end)
-            -- Lautsprecher links vom Stern: Reiter stummschalten (nichts mehr an Minimap-Knopf / Topbar)
+            -- speaker left of the star: mute tab (nothing more to minimap button / top bar)
             local mu = st
             if def.key ~= "home" then
                 mu = CreateFrame("Button", nil, b)
@@ -990,7 +990,7 @@ local function buildMain()
                     b:UpdateMute()
                 end)
             end
-            -- langer Name endet vor den Knoepfen statt darunter zu laufen
+            -- long name ends before the buttons instead of running underneath
             b.label:SetPoint("RIGHT", mu, "LEFT", -2, 0)
             b.label:SetWordWrap(false)
             b.label:SetJustifyH("LEFT")
@@ -1000,8 +1000,8 @@ local function buildMain()
       end
     end
     main.side = side
-    -- 0.6.528: Suche ueber dem Dashboard - filtert die Navigation; Enter oeffnet den ersten Treffer,
-    -- sonst ein passendes Gildenmitglied (Profil). Esc leert die Suche.
+    -- 0.6.528: search above the dashboard - filters the navigation; Enter opens the first match,
+    -- otherwise a matching guild member (profile). Esc clears the search.
     main.navSearch = K.Input(side, SIDEBAR - 30, L["Search ..."], function(t)
         local q = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
         if q == (main.navQuery or "") then return end
@@ -1028,12 +1028,12 @@ local function buildMain()
     main.navSearch:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Search"], L["Find pages - Enter opens the first match, otherwise a guild member with that name."] }) end)
     main.navSearch:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
-    -- Fusszeile der Seitenleiste
+    -- sidebar footer
     main.foot = K.Text(side, 11, C.muted, "LEFT")
     main.foot:SetPoint("BOTTOMLEFT", 22, 46)
     main.foot:SetWordWrap(true)
     main.foot:SetWidth(SIDEBAR - 32)
-    -- 0.6.319: unten "OASIS  v0.6.x" und rechts ein Zahnrad zu den Einstellungen
+    -- 0.6.319: "OASIS  v0.6.x" at the bottom and a gear to the settings on the right
     main.foot2 = K.Text(side, 11, C.muted, "LEFT")
     main.foot2:SetPoint("BOTTOMLEFT", 22, 16)
     main.foot2:SetText("OASIS   |cff8a8a90v" .. ns.version .. "|r")
@@ -1048,7 +1048,7 @@ local function buildMain()
     fg:SetScript("OnClick", function() if ns.ShowPage then ns.ShowPage("settings") end end)
     main.footGear = fg
 
-    -- Kopfzeile (zum Verschieben)
+    -- header (for moving)
     local head = CreateFrame("Frame", nil, main)
     head:SetPoint("TOPLEFT", SIDEBAR + 1, -1)
     head:SetPoint("TOPRIGHT", -1, -1)
@@ -1056,10 +1056,10 @@ local function buildMain()
     head:EnableMouse(true)
     head:RegisterForDrag("LeftButton")
     head:SetScript("OnDragStart", function() if not ns.db.settings.lockWindow then main:StartMoving() end end)
-    main.dragHead = head   -- 0.6.190: Griffleisten am Bildrahmen nutzen dieselben Skripte (Sperre, Position speichern)
+    main.dragHead = head   -- 0.6.190: grip strips on the image frame use the same scripts (lock, save position)
     head:SetScript("OnDragStop", function()
         main:StopMovingOrSizing()
-        -- Position merken (auch ueber /reload und Neustart)
+        -- remember position (also across /reload and restart)
         local l, t = main:GetLeft(), main:GetTop()
         if l and t then ns.db.settings.mainPos = { math.floor(l + 0.5), math.floor(t + 0.5) } end
     end)
@@ -1068,25 +1068,25 @@ local function buildMain()
     main.title = K.Title(head, 18, C.text)
     main.title:SetPoint("LEFT", main.icon, "RIGHT", 12, 0)
     main.sub = K.Text(head, 12, C.muted)
-    -- 0.6.327: Titel und Untertitel in einer Zeile
+    -- 0.6.327: title and subtitle on one line
     main.sub:SetPoint("LEFT", main.title, "RIGHT", 14, -1)
     main.sub:SetWordWrap(false)
     main.sub:SetPoint("RIGHT", head, "RIGHT", -96, 0)
     local hl = K.Divider(head)
     hl:SetPoint("BOTTOMLEFT", 24, 0)
     hl:SetPoint("BOTTOMRIGHT", -24, 0)
-    if K.Skin and K.Skin("noRules") then hl:Hide() end   -- Design mit eigenem Rahmen: dessen Balken statt Linie
+    if K.Skin and K.Skin("noRules") then hl:Hide() end   -- design with its own border: its bar instead of a line
 
-    -- Rechts oben, von rechts nach links:
-    --   [Schliessen][Einklappen] | [Einstellungen][Gildenleitung][Sprache] | Status: [Demo][AH][Abgleich]
-    -- X: je nach Einstellungen > Topbar einklappen (Leiste auf) oder einfach schliessen
+    -- top right, from right to left:
+    --   [Close][Collapse] | [Settings][Guild leadership][Language] | Status: [Demo][AH][Sync]
+    -- X: depending on Settings > Top bar, collapse (bar open) or simply close
     local close = K.CloseButton(head, function() if ns.Collapse then ns.Collapse() else main:Hide() end end, function()
         local m = ns.TopbarMode and ns.TopbarMode() or "collapse"
         if m == "off" then return L["Close (/oasis opens again)"] end
         if m == "always" then return L["Close (the top bar stays)"] end
         return L["Collapse (close fully from the bar)"]
     end, true)
-    close:SetPoint("RIGHT", -12, 0)   -- 0.6.328: mittig - rechte Leiste auf einer Linie mit dem Titel
+    close:SetPoint("RIGHT", -12, 0)   -- 0.6.328: centered - right bar on one line with the title
     local function hover(b, round)
         local t = b:CreateTexture(nil, "HIGHLIGHT")
         if round then
@@ -1114,7 +1114,7 @@ local function buildMain()
         return b
     end
 
-    -- Einklappen: Hauptfenster zu, schmale Oasis-Leiste auf
+    -- collapse: main window closed, narrow Oasis bar open
     local mini = CreateFrame("Button", nil, head)
     mini:SetSize(22, 22)
     mini:SetPoint("RIGHT", close, "LEFT", -4, 0)
@@ -1132,13 +1132,13 @@ local function buildMain()
         GameTooltip:Hide()
     end)
     mini:SetScript("OnClick", function() ns.Collapse() end)
-    -- das X klappt schon ein -> eigener Knopf ueberfluessig (bleibt nur als unsichtbarer Anker)
+    -- the X already collapses -> own button unnecessary (stays only as an invisible anchor)
     mini:SetWidth(1)
     mini:Hide()
     local sep1 = vsep(mini, 8)
     main.langAnchor = sep1
 
-    -- Bedienung: Einstellungen, Gildenleitung, Sprache
+    -- controls: settings, guild leadership, language
     local gear = iconBtn(sep1, 8)
     gear.icon = K.Glyph(gear, 16, ICONS.settings)
     gear.icon:SetPoint("CENTER")
@@ -1161,7 +1161,7 @@ local function buildMain()
         end
     end)
     crown:SetScript("OnClick", function()
-        -- ohne Rechte: Testmodus einschalten (nur lokal), sonst direkt zur Gildenleitung
+        -- without rights: enable test mode (local only), otherwise straight to the guild leadership
         if not ns.PageVisible("admin") then
             if ns.IsDev() and ns.slash.testleitung then ns.slash.testleitung() end
             return
@@ -1178,14 +1178,14 @@ local function buildMain()
     gear:SetScript("OnLeave", function() gearColor() GameTooltip:Hide() end)
     crown:SetScript("OnLeave", function() gearColor() GameTooltip:Hide() end)
     main.gearColor = gearColor
-    -- 0.6.327: Zahnrad und Krone unten in die Seitenleiste (nebeneinander), oben weg
-    -- 0.6.422: Zahnrad wieder oben rechts im Kopf, nur die Krone bleibt unten in der Seitenleiste
+    -- 0.6.327: gear and crown at the bottom of the sidebar (side by side), removed from the top
+    -- 0.6.422: gear back at the top right in the header, only the crown stays at the bottom of the sidebar
     crown:SetParent(main.side) crown:SetFrameLevel(main.side:GetFrameLevel() + 5)
     crown:ClearAllPoints()
     crown:SetPoint("BOTTOMRIGHT", main.side, "BOTTOMRIGHT", -12, 9)
     if main.footGear then main.footGear:Hide() end
 
-    -- Sprache: Flagge + Kuerzel, Klick = Auswahl
+    -- language: flag + code, click = selection
     local lang = iconBtn(gear, 2, 28)
     lang.flag = lang:CreateTexture(nil, "ARTWORK")
     lang.flag:SetSize(18, 13.5)
@@ -1197,7 +1197,7 @@ local function buildMain()
     function lang:Update()
         local l = ns.langByKey[ns.lang] or ns.LANGS[1]
         self.flag:SetTexture(M .. "flags\\" .. l.flag)
-        self.code:SetText("")   -- nur die Flagge, Name steht im Tooltip
+        self.code:SetText("")   -- only the flag, the name is in the tooltip
         self.langName = l.name
     end
     lang:SetScript("OnClick", function(self) ns.ShowLanguageMenu(self) end)
@@ -1205,12 +1205,12 @@ local function buildMain()
     lang:SetScript("OnLeave", function() GameTooltip:Hide() end)
     lang:Update()
     main.lang = lang
-    -- Bug melden (fuer alle); Entwickler: Rechtsklick = eingegangene Berichte, Zahl = neue
+    -- report bug (for everyone); developer: right-click = received reports, number = new
     local bugBtn = iconBtn(lang, 2)
     if ns.Bugs and ns.Bugs.AttachHeader then ns.Bugs.AttachHeader(bugBtn) end
     main.bugBtn = bugBtn
     local sep2 = vsep(bugBtn, 8)
-    -- 0.5.725: Fehlerberichte gibt es nur im Gildenmodul (Modules/Bugs.lua fehlt in der oeffentlichen Version) -> Knopf ausblenden
+    -- 0.5.725: error reports exist only in the guild module (Modules/Bugs.lua is missing in the public version) -> hide button
     if not (ns.Bugs and ns.Bugs.AttachHeader) then
         bugBtn:SetSize(1, 28)
         bugBtn:EnableMouse(false)
@@ -1218,7 +1218,7 @@ local function buildMain()
         sep2:Hide()
     end
 
-    -- Status-Kacheln: Punkt (Zustand) + Symbol + kurzer Text, alle gleich aufgebaut
+    -- status tiles: dot (state) + icon + short text, all built the same
     local DOT = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
     local function chip(iconPath, glyph)
         local c = CreateFrame("Button", nil, head)
@@ -1247,18 +1247,18 @@ local function buildMain()
         function c:Set(dot, text, tc)
             self.dot:SetVertexColor(dot[1], dot[2], dot[3], 1)
             self.text:SetText(text)
-            -- Text gedaempft; nur Hervorhebungen (z. B. "Demo an", "gleicht ab") farbig
+            -- text dimmed; only highlights (e.g. "Demo on", "syncing") in color
             local t = (tc and tc ~= C.text) and tc or C.muted
             self.tc = t
             self.text:SetTextColor(t[1], t[2], t[3])
-            -- 0.6.329: Kacheln mit Symbol (AH, Abgleich) nur noch Punkt + Symbol, der Text steht im Tooltip
+            -- 0.6.329: tiles with icon (AH, sync) now only dot + icon, the text is in the tooltip
             self.text:SetShown(not self.icon)
             self:SetWidth(self.icon and 32 or math.ceil(16 + (self.text:GetStringWidth() or 40)))
         end
         return c
     end
 
-    -- Abgleich mit der Gilde: Klick = jetzt abgleichen
+    -- sync with the guild: click = sync now
     local sync = chip(M .. "icons\\sync", true)
     sync:SetPoint("RIGHT", sep2, "LEFT", -10, 0)
     main.sync = sync
@@ -1291,7 +1291,7 @@ local function buildMain()
         syncState()
     end)
     sync:SetScript("OnEnter", function(self)
-        -- 0.5.543: schlank - Technik-Diagnose nur noch mit gedrueckter Shift-Taste
+        -- 0.5.543: slim - technical diagnosis only with Shift held
         local last = ns.db.meta.lastSync or 0
         local lines = { L["Sync with the guild"] }
         lines[#lines + 1] = (last > 0 and ("|cff66db9e" .. ns.ago(last) .. "|r") or L["never"])
@@ -1308,9 +1308,9 @@ local function buildMain()
     ns.Listen("SYNCED", syncState)
     syncState()
 
-    -- AH-Stand (nur mit Midas oder wenn jemand in der Gilde gescannt hat), Klick = Markt
+    -- AH state (only with Midas or if someone in the guild has scanned), click = market
     local ah = chip("Interface\\MoneyFrame\\UI-GoldIcon")
-    -- Demo-Daten (nur lokal, wird nie gesendet), Klick = an/aus
+    -- demo data (local only, never sent), click = on/off
     local demo = chip()
     local function layoutChips()
         demo:ClearAllPoints()
@@ -1350,8 +1350,8 @@ local function buildMain()
     ns.UpdateAHChip = function() ah:Update() end
 
     function demo:Update()
-        -- oben nur, solange Beispieldaten laufen (damit man sieht, dass es Beispiele sind, und sie mit einem Klick loswird);
-        -- Entwickler sehen den Schalter immer. Einschalten geht fuer alle ueber Einstellungen oder /oa demo.
+        -- at the top only while sample data is running (so you can see they're samples and get rid of them with one click);
+        -- developers always see the switch. Anyone can turn it on via Settings or /oa demo.
         local on = ns.Demo and ns.Demo.IsActive()
         if not on and not ns.IsDev() then self:Hide() return end
         self:Show()
@@ -1376,7 +1376,7 @@ local function buildMain()
     demo:SetScript("OnLeave", function() GameTooltip:Hide() end)
     main.demo = demo
     ns.UpdateDemoSwitch = function() demo:Update() end
-    -- Gruppensuche laeuft: Chip mit drehendem Ring (Klick = Gruppen-Seite)
+    -- group search running: chip with spinning ring (click = groups page)
     local lfg = chip()
     lfg:SetPoint("RIGHT", demo, "LEFT", -12, 0)
     if ns.SpinRing then lfg.spin = ns.SpinRing(lfg, lfg.dot, 17, 2.2) lfg.spin:SetFrameLevel(lfg:GetFrameLevel() + 5) end
@@ -1394,7 +1394,7 @@ local function buildMain()
         K.ShowTip(self, { L["Group search active"], g and g.title or "", "|cff777777" .. L["Click: open groups"] .. "|r" })
     end)
     lfg:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    -- eigener Takt (OnUpdate eines versteckten Chips laeuft nicht)
+    -- own tick (OnUpdate of a hidden chip doesn't run)
     local lfgTick = CreateFrame("Frame", nil, main)
     lfgTick:SetScript("OnUpdate", function(self, el)
         self.t = (self.t or 0) + el
@@ -1404,30 +1404,30 @@ local function buildMain()
     main.lfgChip = lfg
     demo:Update()
     ah:Update()
-    -- Seitenbeschreibung endet vor den Status-Kacheln
+    -- page description ends before the status tiles
     main.sub:SetPoint("RIGHT", demo, "LEFT", -16, 0)
 
-    -- Anheften: kleiner Reiter oben mittig am Fenster -> Oasis wird zur schmalen Leiste oben am Bildschirm
-    -- Pin oben am Fenster entfernt (Einklappen ueber den Knopf oben rechts)
+    -- pin: small tab at the top center of the window -> Oasis becomes the narrow bar at the top of the screen
+    -- pin at the top of the window removed (collapse via the button at the top right)
 
-    -- Oasis-XP-Leiste unten am Fenster (immer sichtbar)
-    -- Spielerkarte unter dem Fenster (Portraet, Level, Oasis-Rang) statt der duennen XP-Leiste
-    -- unten nur die schlanke Gildenrang-XP-Leiste (die grosse Profilkarte mit "Profil anzeigen" ist weg)
+    -- Oasis XP bar at the bottom of the window (always visible)
+    -- player card below the window (portrait, level, Oasis rank) instead of the thin XP bar
+    -- at the bottom only the slim guild rank XP bar (the large profile card with "Show profile" is gone)
     if ns.Rewards and ns.Rewards.AttachBar then main.xpbar = ns.Rewards.AttachBar(main, SIDEBAR) end
 
-    -- Inhaltsbereich
+    -- content area
     main.content = CreateFrame("Frame", nil, main)
     main.content:SetPoint("TOPLEFT", SIDEBAR + 25, -86)
-    main.content:SetPoint("BOTTOMRIGHT", -24, 46)   -- unten Platz fuer die Rang-Leiste (Text + Balken, 6..28) + 18 px Luft
-    -- Design mit eigenem Fensterrahmen (aus einem Zusatzmodul, K.WindowDecor): liegt unter dem Inhalt
+    main.content:SetPoint("BOTTOMRIGHT", -24, 46)   -- room at the bottom for the rank bar (text + bar, 6..28) + 18 px spacing
+    -- design with its own window frame (from an add-on module, K.WindowDecor): lies below the content
     if K.WindowDecor then
         pcall(K.WindowDecor, main, SIDEBAR, -71, 25)
         if main.decor and main.decor:IsShown() then main.content:SetFrameLevel(main.decor:GetFrameLevel() + 1) end
     end
 
-    -- 0.5.599: HookScript statt SetScript - SetScript loeschte die vorher angehaengten Haken (Esc-Stapel, Fokus,
-    -- Akzentrahmen) -> Esc schloss Oasis nur beim ersten Mal
-    -- 0.5.603: beim ersten Oeffnen nach dem Start die Schriften nachziehen (eigene Schriften sind dann oft noch nicht geladen)
+    -- 0.5.599: HookScript instead of SetScript - SetScript deleted the previously attached hooks (Esc stack, focus,
+    -- accent border) -> Esc closed Oasis only the first time
+    -- 0.5.603: on the first open after startup refresh the fonts (custom fonts are often not loaded yet then)
     local fontFixes = 0
     main:HookScript("OnShow", function()
         if fontFixes < 2 and K.RefreshFonts then
@@ -1438,20 +1438,20 @@ local function buildMain()
     end)
     main:HookScript("OnShow", function()
         ns.db.settings.mainOpen = true
-        -- kein zweiter Ton, wenn der Klick (Kreuz/Knopf) gerade schon einen gespielt hat (auch waehrend der Animation)
+        -- no second sound if the click (cross/button) has just played one (also during the animation)
         if ns.Sound and not (K._uiLast and GetTime() - K._uiLast < 0.8) then ns.Sound.Play("open") end
         ns.Fire("MAIN_SHOWN")
         ns.RefreshPage()
     end)
     main:HookScript("OnHide", function()
-        -- beim Ladebildschirm schliesst WoW alle Fenster: das zaehlt nicht als "zugemacht"
+        -- on the loading screen WoW closes all frames: that doesn't count as "closed"
         if not ns.rebuilding and not ns.loadingScreen then ns.db.settings.mainOpen = false end
         if ns.Sound and not (K._uiLast and GetTime() - K._uiLast < 0.8) then ns.Sound.Play("close") end
         ns.Fire("MAIN_HIDDEN")
     end)
     main:Hide()
-    -- Blizzard-Fenster (Karte, Freunde "O", Charakter, Zauberbuch, Gilde ...) liegen ueber Oasis:
-    -- oeffnet sich eines, rutscht Oasis nach hinten; Klick in Oasis / neu oeffnen holt es wieder nach vorn
+    -- Blizzard frames (map, friends "O", character, spellbook, guild ...) lie above Oasis:
+    -- if one opens, Oasis moves back; clicking in Oasis / reopening brings it to the front again
     local function back() if main then main:SetFrameStrata("LOW") if K.FixEdge then K.FixEdge(main) end end end
     local function front() if main then main:SetFrameStrata("HIGH") main:Raise() if K.FixEdge then K.FixEdge(main) end end end
     ns.OasisFront, ns.OasisBack = front, back
@@ -1462,8 +1462,8 @@ local function buildMain()
     end
     main:SetScript("OnMouseDown", front)
     head:HookScript("OnMouseDown", front)
-    -- Klick irgendwo IN Oasis (auch auf Knoepfe/Listen) holt es nach vorn, Klick in die Weltkarte schickt es
-    -- nach hinten -> das zuletzt angeklickte Fenster liegt oben (wie bei normalen Fenstern)
+    -- a click anywhere IN Oasis (also on buttons/lists) brings it to the front, a click on the world map sends it
+    -- back -> the last clicked window is on top (like normal windows)
     if not main.zTick then
         main.zTick = CreateFrame("Frame", nil, main)
         local wasDown = false
@@ -1472,7 +1472,7 @@ local function buildMain()
             if down and not wasDown then
                 if main:IsMouseOver() and main:GetFrameStrata() ~= "HIGH" then
                     local overMap = WorldMapFrame and WorldMapFrame:IsShown() and WorldMapFrame:IsMouseOver()
-                    -- liegt die Karte darueber und die Maus auf beiden: nur wenn Oasis wirklich sichtbar ist
+                    -- if the map is on top and the mouse over both: only if Oasis is really visible
                     if not overMap then front() end
                 elseif WorldMapFrame and WorldMapFrame:IsShown() and WorldMapFrame:IsMouseOver() and not main:IsMouseOver() then
                     back()
@@ -1485,9 +1485,9 @@ local function buildMain()
     ns.LayoutNav()
 end
 
--- Gruppen der Navigation (einklappbar, Zustand wird gemerkt)
+-- navigation groups (collapsible, state is remembered)
 local NAV_GROUPS = {
-    { key = "top", text = "", pages = { "home" }, nohead = true },   -- Dashboard: ganz oben, ohne Gruppen-Ueberschrift
+    { key = "top", text = "", pages = { "home" }, nohead = true },   -- dashboard: at the very top, without group heading
     { key = "me", text = "Me", pages = { "life", "insta", "bags", "badges", "legacy", "rank" } },
     { key = "guild", text = "Guild", pages = { "chat", "radar", "chronicle", "polls", "community", "pasture", "board", "goals", "bank", "deaths" } },
     { key = "play", text = "Play together", pages = { "social", "questitems", "allies", "scout", "camp" } },
@@ -1496,7 +1496,7 @@ local NAV_GROUPS = {
     { key = "raid", text = "Groups & Raids", addon = "Oasis_GroupsRaids", pages = { "groups", "dungeons", "fight", "raid", "raidlead", "loot", "buffs", "tactics" } },
     { key = "trade", text = "Trade", addon = "Oasis_Trade", pages = { "crafting", "trade", "wants" } },
     { key = "convenience", text = "Convenience", addon = "Oasis_Convenience", pages = {} },
-    { key = "dev", text = "Developer", pages = { "dev", "bugs" } },   -- nur im Entwicklermodus sichtbar
+    { key = "dev", text = "Developer", pages = { "dev", "bugs" } },   -- only visible in developer mode
 }
 ns.NAV_GROUPS = NAV_GROUPS
 local function navHead(g)
@@ -1527,7 +1527,7 @@ local function navHead(g)
     return h
 end
 
--- Favoriten + Reihenfolge der Navigation (Rechtsklick-Menue, Ziehen innerhalb der Gruppe)
+-- favorites + navigation order (right-click menu, dragging within the group)
 function ns.NavIsFav(key)
     for _, k in ipairs(ns.db.settings.navFav or {}) do if k == key then return true end end
     return false
@@ -1546,7 +1546,7 @@ function ns.NavSetFav(key, on)
 end
 function ns.NavMenu(owner, def)
     local fav = ns.NavIsFav(def.key)
-    -- Symbol vor dem Eintrag (eingefaerbt, Glyphen aus Media\icons)
+    -- icon before the entry (tinted, glyphs from Media\icons)
     local function ic(file, r, g, b)
         local path = file:find("\\", 1, true) and file or (M .. "icons\\" .. file)
         return ("|T%s:14:14:0:0:64:64:0:64:0:64:%d:%d:%d|t  "):format(path, math.floor((r or 0.75) * 255), math.floor((g or 0.75) * 255), math.floor((b or 0.8) * 255))
@@ -1555,7 +1555,7 @@ function ns.NavMenu(owner, def)
         { text = ic(fav and "star_on" or "star_off", 1, 0.82, 0.3) .. (fav and L["Remove from favourites"] or L["Add to favourites"]), fn = function() ns.NavSetFav(def.key, not fav) end },
         { text = ic(ICONS[def.key] or "home") .. L["Open"], fn = function() showPage(def.key) end },
     }
-    -- Ausblenden (nicht fuer Kernseiten, die immer sichtbar bleiben)
+    -- hide (not for core pages, which always stay visible)
     if not (ns.Discover and (ns.Discover.LOCKED or ns.Discover.CORE)[def.key]) then
         items[#items + 1] = { text = ic("eye_off") .. L["Hide"], fn = function()
             if ns.Discover and ns.Discover.Set then ns.Discover.Set(def.key, false) end
@@ -1589,14 +1589,14 @@ function ns.NavDragStart(b)
         if not d or d.b ~= self then self:SetScript("OnUpdate", nil) return end
         local sl = main.navSlots[d.group]
         if not sl or #sl == 0 then return end
-        -- nur innerhalb der eigenen Gruppe: zwischen erstem und letztem Platz
+        -- only within the own group: between the first and last slot
         local y = cursorTop() + d.grab
-        -- etwas Spielraum ueber dem ersten / unter dem letzten Platz (sonst kommt man nie ganz nach oben)
+        -- some leeway above the first / below the last slot (otherwise you never get all the way to the top)
         y = math.min(sl[1].top + 10, math.max(sl[#sl].top - 10, y))
         self.navY = y
         self:ClearAllPoints()
         self:SetPoint("TOPLEFT", main.side, "TOPLEFT", 8, y)
-        -- neue Reihenfolge: nach Hoehe sortieren (die anderen an ihrem Ziel, der gezogene an der Maus)
+        -- new order: sort by height (the others at their target, the dragged one at the mouse)
         local list = {}
         for _, s2 in ipairs(sl) do list[#list + 1] = { key = s2.key, y = (s2.key == self.key) and y or s2.top } end
         table.sort(list, function(a, c)
@@ -1632,12 +1632,12 @@ function ns.NavDragStop(b)
     if main.navAnimDriver then main.navAnimDriver:Show() end
 end
 
--- Navigation neu anordnen (Module an/aus, eigene Auswahl, Rechte)
+-- rearrange navigation (modules on/off, own selection, rights)
 function ns.LayoutNav()
     if not main then return end
     local closed = ns.db.settings.navClosed or {}
     local S = ns.db.settings
-    -- 0.6.420: einmalig "Fehlerberichte" direkt unter "Entwickler" (Favoriten und Gruppe)
+    -- 0.6.420: once "Error reports" directly below "Developer" (favorites and group)
     if not S.navBugsAfterDev then
         S.navBugsAfterDev = true
         local function fix(list)
@@ -1649,10 +1649,10 @@ function ns.LayoutNav()
         fix(S.navFav)
         for _, l in pairs(S.navOrder or {}) do fix(l) end
     end
-    -- Favoriten (Rechtsklick) stehen in eigener Gruppe ganz oben und nur dort
+    -- favorites (right-click) are in their own group at the very top and only there
     local isFav = {}
     for _, k in ipairs(S.navFav or {}) do isFav[k] = true end
-    -- eigene Reihenfolge je Gruppe (Ziehen); beim Ziehen gilt die vorlaeufige Reihenfolge
+    -- own order per group (dragging); while dragging the provisional order applies
     local function ordered(gkey, items)
         local drag = main.navDrag
         local ord = (drag and drag.group == gkey and drag.order) or (gkey == "fav" and S.navFav) or (S.navOrder and S.navOrder[gkey])
@@ -1663,7 +1663,7 @@ function ns.LayoutNav()
         table.sort(items, function(a, b2) return (idx[a.key] or (1000 + base[a.key])) < (idx[b2.key] or (1000 + base[b2.key])) end)
         return items
     end
-    -- Seiten den Gruppen zuordnen; was in keiner Gruppe steht, kommt ans Ende
+    -- assign pages to groups; whatever is in no group goes to the end
     local inGroup, groups = {}, {}
     for gi, g in ipairs(NAV_GROUPS) do
         local items = {}
@@ -1684,7 +1684,7 @@ function ns.LayoutNav()
     local rest = {}
     for _, d in ipairs(pageOrder) do if d.nav and not inGroup[d.key] and not isFav[d.key] and ns.PageVisible(d.key) then rest[#rest + 1] = d end end
     if #rest > 0 then groups[#groups + 1] = { g = { key = "more", text = "More" }, items = ordered("more", rest) } end
-    -- 0.6.528: Suche - nur passende Seiten, alle Gruppen aufgeklappt
+    -- 0.6.528: search - only matching pages, all groups expanded
     main.navFirst = nil
     local q = main.navQuery or ""
     if q ~= "" then
@@ -1701,7 +1701,7 @@ function ns.LayoutNav()
             gr.items = keep
         end
     end
-    -- Hoehe: Kopfzeilen + sichtbare Eintraege muessen zwischen Logo und Fusszeile passen
+    -- height: headers + visible entries must fit between logo and footer
     local n, heads = 0, 0
     for _, gr in ipairs(groups) do
         if #gr.items > 0 then
@@ -1710,7 +1710,7 @@ function ns.LayoutNav()
         end
     end
     local room = H - 120 - 56 - heads * 22
-    -- nicht mehr quetschen: lieber scrollen (Mausrad / Leiste rechts)
+    -- no more squeezing: scroll instead (mouse wheel / bar on the right)
     local step = math.max(26, math.min(28, math.floor(room / math.max(n, 1))))
     local TOP, BOTTOM = -118, -(H - 56)
     local total = heads * 22 + n * step
@@ -1718,7 +1718,7 @@ function ns.LayoutNav()
     local maxOff = math.max(0, total - avail)
     main.navOff = math.max(0, math.min(main.navOff or 0, maxOff))
     local off = main.navOff
-    -- Ziel je Eintrag setzen; die Bewegung macht der Animator (weiches Gleiten + Ein-/Ausblenden)
+    -- set target per entry; the animator does the movement (smooth gliding + fade in/out)
     main.navAnim = main.navAnim or {}
     local seen = {}
     local function target(f, top, want)
@@ -1729,7 +1729,7 @@ function ns.LayoutNav()
     local function place(f, yy, hgt, from)
         local top = yy + off
         local inside = top <= TOP + 0.5 and top - hgt >= BOTTOM - 0.5
-        -- neu erscheinende Eintraege kommen unter ihrer Ueberschrift hervor
+        -- newly appearing entries come out from under their heading
         if not f.navY then f.navY, f.navA = (from or top), 0 end
         target(f, top, inside)
     end
@@ -1755,21 +1755,21 @@ function ns.LayoutNav()
                     slots[#slots + 1] = { key = d.key, top = y + off, h = step - 2 }
                     y = y - step
                 elseif d.nav.navY then
-                    target(d.nav, headTop, false)      -- zuklappen: unter die Ueberschrift gleiten
+                    target(d.nav, headTop, false)      -- collapse: glide under the heading
                 end
             end
             y = y - 2
         end
     end
-    -- alles andere (ausgeblendete Seiten/Gruppen) ausblenden
+    -- hide everything else (hidden pages/groups)
     for f in pairs(main.navAnim) do
         if not seen[f] then f.navWant = false end
     end
-    -- nie platzierte Eintraege (z. B. Gildenseiten ohne Gilde) gar nicht erst zeigen
+    -- never show entries that were never placed (e.g. guild pages without a guild)
     for _, d in ipairs(pageOrder) do
         if d.nav and not seen[d.nav] and not main.navAnim[d.nav] then d.nav:Hide() end
     end
-    -- erster Aufbau oder "Animationen reduzieren": sofort an die Stelle
+    -- first build or "Reduce animations": straight to the position
     local instant = not main.navAnimReady or (ns.db.settings.noAnim)
     main.navAnimReady = true
     local function apply(f)
@@ -1791,7 +1791,7 @@ function ns.LayoutNav()
         main.navAnimDriver = drv
         drv:SetScript("OnUpdate", function(self, el)
             local busy = false
-            local k = math.min(1, el * 12)          -- Geschwindigkeit des Gleitens
+            local k = math.min(1, el * 12)          -- gliding speed
             for f in pairs(main.navAnim) do
               if not (main.navDrag and main.navDrag.b == f) then
                 local ty, ta = f.navTarget or f.navY or 0, f.navWant and 1 or 0
@@ -1803,7 +1803,7 @@ function ns.LayoutNav()
                 else
                     f.navY, f.navA = ty, ta
                 end
-                -- ausserhalb des Navigationsbereichs (Scrollen) nicht ueber Logo/Fusszeile zeichnen
+                -- outside the navigation area (scrolling) don't draw over logo/footer
                 if f.navY > TOP + 4 or f.navY - 18 < BOTTOM - 4 then f.navA = math.min(f.navA, 0) end
                 apply(f)
               end
@@ -1812,7 +1812,7 @@ function ns.LayoutNav()
         end)
     end
     if main.navAnimDriver and not instant then main.navAnimDriver:Show() end
-    -- Scrollleiste
+    -- scrollbar
     if not main.navBar then
         local tr = main.side:CreateTexture(nil, "ARTWORK")
         tr:SetWidth(3)
@@ -1839,27 +1839,27 @@ function ns.LayoutNav()
         main.navThumb:SetHeight(th)
     end
     local lead = ns.PageVisible("admin")
-    -- Krone immer zeigen (ohne Rechte grau: Klick startet den Testmodus)
-    main.crown:SetShown(not ns.Admin or ns.Admin.ShowCrown())   -- spaeter: nur fuer die Leitung (Gilden-Einstellung)
+    -- always show the crown (gray without rights: click starts test mode)
+    main.crown:SetShown(not ns.Admin or ns.Admin.ShowCrown())   -- later: only for the leadership (guild setting)
     lead = true
     main.lang:ClearAllPoints()
-    main.lang:SetPoint("RIGHT", main.gear, "LEFT", -2, 0)   -- 0.6.432: Zahnrad steht wieder oben (lag sonst unter der Flagge)
+    main.lang:SetPoint("RIGHT", main.gear, "LEFT", -2, 0)   -- 0.6.432: gear is back at the top (otherwise lay below the flag)
     if main.FitSub then main.FitSub() end
     if main.gearColor then main.gearColor() end
     if current and current ~= "home" and not ns.PageVisible(current) and main:IsShown() then showPage("home") end
     if current == "noguild" and ns.InGuild() and main:IsShown() then showPage("home") end
 end
--- Gilde betreten/verlassen: Navigation sofort anpassen
+-- join/leave guild: adjust navigation immediately
 ns.On("PLAYER_GUILD_UPDATE", function() if ns.LayoutNav and main then ns.LayoutNav() end end)
 ns.Listen("BRAND", function() ns.LayoutNav() end)
 
 ------------------------------------------------------------------------
--- Sprache wechseln: Fenster wird mit den neuen Texten neu aufgebaut
+-- switch language: window is rebuilt with the new texts
 ------------------------------------------------------------------------
 local function flagTag(l) return "|T" .. M .. "flags\\" .. l.flag .. ":12:16:0:0:64:64:0:64:0:48|t  " end
--- 0.5.922: eigene Liste mit SICHEREN Knoepfen. ReloadUI() aus Addon-Code ist in diesem Client gesperrt (der Klick tat
--- nichts) - ein sicherer Knopf mit dem Makro "/reload" darf es. Vor dem Klick (PreClick) wird die Sprache gemerkt.
--- Sichere Knoepfe lassen sich im Kampf nicht anlegen/aendern: dann gibt es nur einen Hinweis.
+-- 0.5.922: own list with SECURE buttons. ReloadUI() from addon code is blocked in this client (the click did
+-- nothing) - a secure button with the macro "/reload" may do it. Before the click (PreClick) the language is remembered.
+-- secure buttons can't be created/changed in combat: then there is only a notice.
 local langMenu
 function ns.ShowLanguageMenu(owner)
     if InCombatLockdown and InCombatLockdown() then
@@ -1905,13 +1905,13 @@ function ns.ShowLanguageMenu(owner)
             r.selBar:SetWidth(2)
             r.text = K.Text(r, 12, C.text)
             r.text:SetPoint("LEFT", 10, 0)
-            -- laeuft VOR dem sicheren Makro: Sprache merken (und Klick-Ton)
+            -- runs BEFORE the secure macro: remember language (and click sound)
             r:SetScript("PreClick", function(self)
                 if self.isCurrent then return end
                 ns.db.settings.lang = self.key
             end)
             r:SetScript("PostClick", function(self)
-                -- gleiche Sprache gewaehlt (kein Neuladen): Liste einfach schliessen
+                -- same language chosen (no reload): just close the list
                 if self.isCurrent and not (InCombatLockdown and InCombatLockdown()) then m:Hide() end
             end)
             m.rows[i] = r
@@ -1924,7 +1924,7 @@ function ns.ShowLanguageMenu(owner)
         local l = r.lang
         local on = r.key == cur
         r.isCurrent = on
-        -- nur ein Wechsel laedt neu
+        -- only a switch reloads
         r:SetAttribute("type", (not on) and "macro" or nil)
         r:SetAttribute("macrotext", (not on) and "/reload" or nil)
         K.SetFontSafe(r.text, K.fontByKey[l.cjk or "ptsans"].path, 12, "", K.FONT)
@@ -1940,8 +1940,8 @@ function ns.ShowLanguageMenu(owner)
     end
     m:SetWidth(maxW)
     m:ClearAllPoints()
-    -- Die Liste ist durch ihre sicheren Knoepfe selbst geschuetzt und darf nicht an Oasis-Elemente geankert werden
-    -- ("Cannot anchor protected frames to regions") -> Bildschirm-Koordinaten des Knopfes ausrechnen, an UIParent haengen
+    -- the list is itself protected by its secure buttons and must not be anchored to Oasis elements
+    -- ("Cannot anchor protected frames to regions") -> compute the button's screen coordinates, attach to UIParent
     local right, bottom = owner and owner.GetRight and owner:GetRight(), owner and owner.GetBottom and owner:GetBottom()
     if right and bottom then
         local k = (owner:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1)
@@ -1952,10 +1952,10 @@ function ns.ShowLanguageMenu(owner)
     m.catcher:Show()
     m:Show()
 end
--- Kampfbeginn: Liste schliessen, solange das noch erlaubt ist (sichere Knoepfe lassen sich im Kampf nicht ausblenden)
+-- combat start: close the list while that is still allowed (secure buttons can't be hidden in combat)
 ns.On("PLAYER_REGEN_DISABLED", function() if langMenu and langMenu:IsShown() then pcall(langMenu.Hide, langMenu) end end)
--- reload = true (Klick im Sprach-Umschalter): Sprache merken und sofort neu laden - dann stimmt ueberall alles
--- (ohne Neuladen blieben Schriften und schon gebaute Stellen in der alten Sprache). ReloadUI braucht den Klick.
+-- reload = true (click in the language switcher): remember language and reload immediately - then everything is right everywhere
+-- (without reloading, fonts and already built spots stayed in the old language). ReloadUI needs the click.
 function ns.SetLanguage(key, reload)
     local before = ns.db.settings.lang or "auto"
     ns.db.settings.lang = key
@@ -1964,7 +1964,7 @@ function ns.SetLanguage(key, reload)
         if key ~= before or want ~= ns.lang then ReloadUI() end
         return
     end
-    -- 0.5.564: Grundsprache wurde beim Start verworfen (Speicher) -> Wechsel nach /reload
+    -- 0.5.564: base language was discarded at startup (memory) -> switch after /reload
     if ns.LangNeedsReload and ns.LangNeedsReload(want) then
         local l = ns.langByKey[want]
         K.Toast(l and l.name or want, L["This language applies after the next /reload - click here to reload."], C.accent, function() ReloadUI() end)
@@ -1982,7 +1982,7 @@ function ns.SetLanguage(key, reload)
     local l = ns.langByKey[ns.lang]
     K.Toast(l and l.name or ns.lang, L["Oasis texts switched. A /reload updates the remaining spots too."], C.accent)
 end
--- Hauptfenster verwerfen und mit den aktuellen Texten neu aufbauen
+-- discard the main window and rebuild it with the current texts
 function ns.RebuildMain()
     if not main then return end
     ns.rebuilding = true
@@ -2001,12 +2001,12 @@ function ns.RebuildMain()
 end
 
 function ns.UpdateFooter(text)
-    if main and main.foot then main.foot:SetText("") main.foot:Hide() end   -- 0.6.331: Online-Zeile in der Seitenleiste entfaellt
+    if main and main.foot then main.foot:SetText("") main.foot:Hide() end   -- 0.6.331: online line in the sidebar removed
 end
 
 function ns.OpenMain()
     if not main then buildMain() end
-    -- angeheftete Topbar bleibt stehen, auch wenn das grosse Fenster offen ist
+    -- pinned top bar stays even if the large window is open
     if not main:IsShown() then main:Show() end
     if ns.OasisFront then ns.OasisFront() end
     if not current then
@@ -2014,12 +2014,12 @@ function ns.OpenMain()
         showPage(start or pageOrder[1].key)
     end
 end
--- Fenster wieder in die Bildschirmmitte (Einstellungen > Allgemein)
+-- window back to the screen center (Settings > General)
 function ns.ResetWindowPos()
     ns.db.settings.mainPos = nil
     if main then main:ClearAllPoints() main:SetPoint("CENTER") end
 end
--- Fokus: Klick ins Oasis-Fenster (oder andere Oasis-Fenster/Topbar) = Fokus, Klick in die Welt/andere Fenster = weg
+-- focus: click into the Oasis window (or other Oasis frames/top bar) = focus, click into the world/other frames = gone
 do
     local fx = CreateFrame("Frame")
     local function isOasis(fr)
@@ -2034,7 +2034,7 @@ do
             fr = fr.GetParent and fr:GetParent()
             n = n + 1
         end
-        return nil   -- unbekannt (namenlose Menues): Fokus bleibt, wie er ist
+        return nil   -- unknown (nameless menus): focus stays as it is
     end
     if pcall(fx.RegisterEvent, fx, "GLOBAL_MOUSE_DOWN") then
         fx:SetScript("OnEvent", function()
@@ -2061,14 +2061,14 @@ end)
 function ns.SetScale(s)
     ns.db.settings.scale = s
     if main then main:SetScale(s) end
-    -- Rollbereiche der Einstellungen neu vermessen, sobald WoW die neue Groesse berechnet hat
+    -- re-measure the settings' scroll areas as soon as WoW has calculated the new size
     for _, d in ipairs({ 0.05, 0.3 }) do
         C_Timer.After(math.max(0, tonumber(d) or 0), function() if ns.Settings and ns.Settings.Remeasure then ns.Settings.Remeasure() end end)
     end
 end
 
 ------------------------------------------------------------------------
--- Minimap-Knopf im Blizzard-Stil (Logo im runden Rahmen)
+-- minimap button in Blizzard style (logo in a round frame)
 ------------------------------------------------------------------------
 local mm
 local function placeMinimap()
@@ -2078,7 +2078,7 @@ local function placeMinimap()
     local sc = st.minimapScale or 1
     mm:SetScale(sc)
     mm:ClearAllPoints()
-    -- Versatz gilt im Massstab des Knopfs -> durch die Groesse teilen
+    -- offset applies in the button's scale -> divide by the size
     mm:SetPoint("CENTER", Minimap, "CENTER", math.cos(a) * r / sc, math.sin(a) * r / sc)
 end
 function ns.PlaceMinimap() if mm then placeMinimap() end end
@@ -2099,20 +2099,20 @@ ns.Listen("LOGIN", function()
     local ic = mm:CreateTexture(nil, "ARTWORK")
     ic:SetTexture(M .. "logo64")
     ic:SetSize(21, 21)
-    ic:SetPoint("CENTER", 0, 0)   -- 0.6.482: genau mittig (bei eckigen Minimap-Knoepfen sonst sichtbar versetzt)
+    ic:SetPoint("CENTER", 0, 0)   -- 0.6.482: exactly centered (otherwise visibly offset with square minimap buttons)
     local border = mm:CreateTexture(nil, "OVERLAY")
     border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
     border:SetSize(53, 53)
     border:SetPoint("TOPLEFT")
     mm:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
-    -- 0.6.483: uebliche Feldnamen (wie LibDBIcon), damit Knopf-Sammler (eckige Minimap-Leisten) das Logo finden und mittig setzen
+    -- 0.6.483: usual field names (like LibDBIcon), so button collectors (square minimap bars) find the logo and center it
     mm.icon, mm.background, mm.border = ic, bg, border
-    -- 0.6.484: das Logo hat einen eigenen roten Ring - Blizzards goldener Ring und der dunkle Grund entfallen
+    -- 0.6.484: the logo has its own red ring - Blizzard's golden ring and the dark background are dropped
     border:SetAlpha(0)
     bg:SetAlpha(0)
     ic:SetSize(28, 28)
     local MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
-    -- Neuigkeiten: feiner pulsierender Farbring um das Logo (statt grossem Schein) + Zahl-Abzeichen mit dunklem Rand
+    -- news: fine pulsing color ring around the logo (instead of a large glow) + number badge with dark border
     mm.glow = mm:CreateTexture(nil, "ARTWORK", nil, 2)
     mm.glow:SetTexture(M .. "ring")
     mm.glow:SetSize(26, 26)
@@ -2136,7 +2136,7 @@ ns.Listen("LOGIN", function()
         if not self.pulseOn then return end
         self.gt = (self.gt or 0) + el
         local q = 0.5 + 0.5 * math.sin(self.gt * 2.5)
-        -- Abzeichen pulsiert leicht in der Groesse
+        -- badge pulses slightly in size
         local sz = 15 + q * 1.5
         self.pill:SetSize(sz, sz)
     end)
@@ -2172,7 +2172,7 @@ ns.Listen("LOGIN", function()
     ns.UpdateMinimapButton()
 end)
 function ns.SetMinimapBadge() if ns.UpdateNotify then ns.UpdateNotify() end end
--- Minimap-Knopf + Oasis-Leiste mit allen Neuigkeiten aktualisieren
+-- update minimap button + Oasis bar with all news
 function ns.UpdateNotify()
     local total, mention = ns.NotifyTotal()
     if mm then
@@ -2182,14 +2182,14 @@ function ns.UpdateNotify()
         mm.glow:SetVertexColor(c[1], c[2], c[3])
         mm.pill:SetShown(on)
         mm.pillEdge:SetShown(on)
-        mm.glow:SetShown(false)   -- kein Ring mehr (lag auf Blizzards Rahmen)
+        mm.glow:SetShown(false)   -- no ring anymore (lay on Blizzard's border)
         mm.pulseOn = on
         mm.badge:SetText(on and (total > 99 and "99" or tostring(total)) or "")
     end
     if ns.UpdateMiniBar then ns.UpdateMiniBar() end
 end
 
--- Ladebildschirm: danach wieder oeffnen, wenn Oasis vorher offen war
+-- loading screen: reopen afterwards if Oasis was open before
 ns.On("LOADING_SCREEN_ENABLED", function() ns.loadingScreen = true end)
 ns.On("LOADING_SCREEN_DISABLED", function()
     ns.After(0.6, function()
@@ -2199,28 +2199,28 @@ ns.On("LOADING_SCREEN_DISABLED", function()
         if ns.db and ns.db.settings.collapsed and ns.ShowMiniBar then ns.ShowMiniBar() end
     end)
 end)
--- war Oasis beim /reload offen: wieder oeffnen (gleiche Stelle, gleiche Seite)
+-- was Oasis open at /reload: reopen it (same spot, same page)
 ns.Listen("LOGIN", function()
     local mode = ns.db.settings.openOnLogin
     if mode == "never" then return end
     if mode == "always" or ns.db.settings.mainOpen then ns.After(1, function() if not ns.inCombat() then ns.OpenMain() end end) end
 end)
 
--- Hintergrund-Deckkraft (Einstellungen > Aussehen)
--- Fenster, Seitenleiste (+ Schimmer) und Grafik mit EINEM Faktor; die Flaechen im Fenster
--- (Karten, Felder) bekommen denselben Faktor ueber K.ApplyTheme -> beim Loslassen des Reglers Neuaufbau
+-- background opacity (Settings > Appearance)
+-- window, sidebar (+ shimmer) and graphic with ONE factor; the surfaces in the window
+-- (cards, fields) get the same factor via K.ApplyTheme -> rebuild on slider release
 function ns.ApplyWindowAlpha(m)
     m = m or main
     if not (m and m.bgTex) then return end
     local a = K.WindowAlpha and K.WindowAlpha() or (ns.db and ns.db.settings.windowAlpha or 1)
-    -- Flaechen mit gemerkter Farbe: Deckkraft in die Farbe rechnen (wirkt auch auf Verlaeufe)
+    -- surfaces with remembered color: calculate opacity into the color (also works on gradients)
     if not (K.RepaintWindowTex and K.RepaintWindowTex(m.bgTex)) then m.bgTex:SetAlpha(a) end
     if m.sideTex and not (K.RepaintWindowTex and K.RepaintWindowTex(m.sideTex)) then m.sideTex:SetAlpha(a) end
     if m.sideGlow then m.sideGlow:SetAlpha(a) end
     if m.themeTex and K.CurrentTheme then m.themeTex:SetAlpha((K.CurrentTheme().texAlpha or 1) * a) end
 end
 ns.Listen("LOGIN", function() C_Timer.After(0.5, function() pcall(ns.ApplyWindowAlpha) end) end)
--- im Kampf ausblenden und danach wieder zeigen
+-- hide in combat and show again afterwards
 local hiddenForCombat
 ns.On("PLAYER_REGEN_DISABLED", function()
     local m = main
@@ -2233,11 +2233,11 @@ ns.On("PLAYER_REGEN_ENABLED", function()
     if hiddenForCombat then
         hiddenForCombat = nil
         local m = main
-        -- 0.5.596: "Nach dem Kampf wieder zeigen" aus -> bleibt zu
+        -- 0.5.596: "Show again after combat" off -> stays closed
         if m and ns.db.settings.combatReshow ~= false then m:Show() end
     end
 end)
--- 0.5.596: Ausblenden im Kampf ist jetzt Standard (einmalig fuer alle eingeschaltet), danach wieder zeigen an
+-- 0.5.596: hiding in combat is now default (turned on once for everyone), show again afterwards on
 ns.Listen("DB_READY", function()
     local s = ns.db and ns.db.settings
     if s and not s.combat596 then
@@ -2247,7 +2247,7 @@ ns.Listen("DB_READY", function()
     end
 end)
 
--- Pruefbefehl: /oa ecke -> welche sichtbaren Flaechen reichen bis in die Ecke unten rechts (eckige Kante ueber der Rundung)
+-- check command: /oa ecke -> which visible surfaces reach into the bottom-right corner (square edge over the rounding)
 ns.slash.ecke = function()
     local m = main
     if not (m and m:IsShown()) then print("Oasis: erst das Fenster oeffnen") return end
@@ -2286,7 +2286,7 @@ ns.slash.ecke = function()
     print("Oasis Ecke: " .. found .. " Treffer")
 end
 
--- Pruefbefehl: /oa rahmen -> zeigt, was mit dem Akzentrahmen los ist
+-- check command: /oa rahmen -> shows what's going on with the accent border
 ns.slash.rahmen = function()
     local m = main
     if not m then print("Oasis: Fenster noch nicht gebaut - erst /oa oeffnen") return end
@@ -2298,7 +2298,7 @@ ns.slash.rahmen = function()
         tostring(ns.db.settings.frameAccent), tostring(e ~= nil), tostring(e and e:IsVisible()),
         m:GetFrameStrata(), m:GetFrameLevel(), e and e:GetFrameStrata() or "-", e and e:GetFrameLevel() or -1,
         e and e:GetWidth() or -1, b and b:GetAlpha() or -1, tostring(b and b:IsShown())))
-    -- 0.6.165: Zierrahmen mit Schimmer pruefen (wird auch in OasisDB.frameDiag gespeichert)
+    -- 0.6.165: check decorative border with shimmer (also stored in OasisDB.frameDiag)
     local fl = m.frameLines
     local d = { "Zierrahmen=" .. tostring(fl ~= nil) }
     if fl then

@@ -1,7 +1,7 @@
--- Oasis: Gildenwerkzeuge (0.6.519)
---  * Spieler gezielt per Name in die Gilde einladen (Mitglieder-Seite, Tastenkuerzel, /oa einladen Name)
---  * Blizzards Gildenfenster oeffnen (Raenge, Rechte, Gildenbank-Rechte) - auch wenn J auf Oasis liegt
--- Die Gildenbank selbst laesst sich nur am Bankier oeffnen (Blizzard-Vorgabe).
+-- Oasis: guild tools (0.6.519)
+--  * Invite players into the guild by name (Members page, key binding, /oa einladen Name)
+--  * Open Blizzard's guild window (ranks, permissions, guild bank permissions) - even when J is bound to Oasis
+-- The guild bank itself can only be opened at the banker (Blizzard restriction).
 local ADDON, ns = ...
 local L = ns.L
 local GT = {}
@@ -19,7 +19,7 @@ function GT.Invite(name)
     ns.print((L["Guild invite sent to %s."]):format(name))
 end
 
--- NIE "StaticPopupDialogs = ..." zuweisen (siehe GuildInfo.lua)
+-- NEVER assign "StaticPopupDialogs = ..." (see GuildInfo.lua)
 StaticPopupDialogs["OASIS_GUILD_INVITE"] = {
     text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 64,
     OnShow = function(self)

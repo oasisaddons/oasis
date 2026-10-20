@@ -1,14 +1,14 @@
--- Oasis: "Neu seit deinem letzten Besuch" - generischer Zaehler je Seite
--- Merkt sich je Seite, wann sie zuletzt angesehen wurde (ns.db.pageSeen[key]), zaehlt neue Store-Eintraege
--- seitdem und setzt sie als Badge - aber nur, wenn das Modul selbst keinen Badge setzt.
--- Eigene Eintraege und Demo-Daten (ausser Demo aktiv) zaehlen nicht. Erster Start: nichts ist neu.
+-- Oasis: "New since your last visit" - generic counter per page
+-- Remembers per page when it was last viewed (ns.db.pageSeen[key]), counts new store entries
+-- since then and sets them as a badge - but only if the module does not set a badge itself.
+-- Own entries and demo data (unless demo is active) do not count. First start: nothing is new.
 local ADDON, ns = ...
 local L = ns.L
 
 local NS = {}
 ns.NewSince = NS
 
--- Seite -> Sammlung + Zeitfelder (erstes vorhandenes zaehlt)
+-- Page -> collection + time fields (first one present counts)
 local SOURCES = {
     chronicle = { coll = "chronicle", time = { "ts", "created", "u" } },
     raid      = { coll = "events",    time = { "created", "u" } },
@@ -22,8 +22,8 @@ NS.SOURCES = SOURCES
 local BY_COLL = {}
 for key, s in pairs(SOURCES) do BY_COLL[s.coll] = key end
 
-local counts = {}   -- key -> Anzahl neu (nur wenn wir den Badge setzen)
-local mine = {}     -- key -> Text, den wir selbst gesetzt haben
+local counts = {}   -- key -> number of new entries (only if we set the badge)
+local mine = {}     -- key -> text we set ourselves
 local pending, timerOn = {}, false
 
 local function seenTable()
@@ -47,7 +47,7 @@ local function isOwn(r)
 end
 local function isDemo(r) return r.demo or tostring(r.id or ""):find("demo-", 1, true) end
 
--- Anzahl neuer Eintraege seit dem letzten Ansehen
+-- Number of new entries since last viewed
 function NS.Count(key)
     local src, seen = SOURCES[key], seenTable()
     if not src or not seen or not seen[key] or not ns.Store then return 0 end
@@ -63,11 +63,11 @@ function NS.Update(key)
     if not src or not ns.SetNavBadge then return end
     local seen = seenTable()
     if not seen then return end
-    -- Seite gerade offen: gilt als gesehen
+    -- Page currently open: counts as seen
     if ns.MainShown and ns.MainShown() and ns.CurrentPage and ns.CurrentPage() == key then seen[key] = ns.now() end
     if not seen[key] then seen[key] = ns.now() end
     local cur = ns._badges and ns._badges[key]
-    -- das Modul setzt selbst einen Badge: nicht ueberschreiben
+    -- the module sets a badge itself: do not overwrite
     if cur ~= nil and tostring(cur) ~= "" and cur ~= mine[key] then
         mine[key], counts[key] = nil, nil
         return
@@ -82,7 +82,7 @@ function NS.Update(key)
 end
 function NS.UpdateAll() for key in pairs(SOURCES) do NS.Update(key) end end
 
--- Tooltip: nur fuer Badges, die von hier kommen
+-- Tooltip: only for badges that come from here
 function NS.TipFor(key)
     local n = counts[key]
     local cur = ns._badges and ns._badges[key]
@@ -91,7 +91,7 @@ function NS.TipFor(key)
     end
 end
 
--- Haken aus UI\Main.lua (showPage)
+-- Hook from UI\Main.lua (showPage)
 function ns.OnPageSeen(key)
     local seen = seenTable()
     if not seen then return end
@@ -99,7 +99,7 @@ function ns.OnPageSeen(key)
     if SOURCES[key] then NS.Update(key) end
 end
 
--- Store-Aenderungen gedrosselt sammeln
+-- Collect store changes, throttled
 local function flush()
     timerOn = false
     local list = pending
@@ -119,14 +119,14 @@ end)
 ns.Listen("LOGIN", function()
     local seen = seenTable()
     if seen then
-        -- erster Start: ab jetzt zaehlen
+        -- first start: count from now on
         local now = ns.now()
         for key in pairs(SOURCES) do if not seen[key] then seen[key] = now end end
     end
     if C_Timer and C_Timer.After then C_Timer.After(5, function() pcall(NS.UpdateAll) end) end
 end)
 
--- /oa probe neu : zeigt die Zaehler
+-- /oa probe neu : shows the counters
 ns.probes = ns.probes or {}
 ns.probes.neu = function()
     local seen = seenTable() or {}

@@ -1,22 +1,22 @@
--- Oasis: Markt & Handel - Midas fuer die ganze Gilde
--- Midas (AH-Addon von Rebo) ist NICHT Teil von Oasis - wer es selbst installiert, bekommt hier mehr.
--- Ohne Midas laeuft alles wie bisher (Preise nur aus Oasis' eigener AH-Beobachtung). Mit Midas gibt es:
---   Wunschliste-Alarm (guenstige Wunsch-Items im AH), Preisabfrage im Gildenchat ("pc [Item]"),
---   AH-Stand fuer die Gilde (wer hat wann gescannt), Wert-Verlauf der Gildenbank und eine freiwillige
---   Haendler-Rangliste ("Goldmacher der Woche").
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Market", function()   -- Modul Handel (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis: Market & Trade - Midas for the whole guild
+-- Midas (AH addon by Rebo) is NOT part of Oasis - whoever installs it gets more here.
+-- Without Midas everything works as before (prices only from Oasis' own AH observation). With Midas you get:
+--   wishlist alert (cheap wishlist items in the AH), price check in guild chat ("pc [Item]"),
+--   AH status for the guild (who scanned when), guild bank value history and a voluntary
+--   trader leaderboard ("Goldmaker of the week").
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Market", function()   -- module trade (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be manipulated):
+-- sanitize texts, clamp numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -69,9 +69,9 @@ local function S() return ns.db.settings end
 local function api() return _G.MidasAPI end
 
 ------------------------------------------------------------------------
--- Hilfen
+-- helpers
 ------------------------------------------------------------------------
--- Gold ohne Farbcodes (Gildenchat erlaubt keine |c-Codes)
+-- gold without color codes (guild chat allows no |c codes)
 function Trade.Plain(copper)
     if not copper then return "?" end
     copper = math.floor(copper + 0.5)
@@ -80,14 +80,14 @@ function Trade.Plain(copper)
     if s > 0 then return c > 0 and (s .. "s " .. c .. "c") or (s .. "s") end
     return c .. "c"
 end
--- +/- mit Farbe
+-- +/- with color
 function Trade.Signed(copper)
     if not copper then return "–" end
     local txt = ns.Market.Format(math.abs(copper))
     return copper >= 0 and ("|cff66db9e+|r" .. txt) or ("|cffff5a4a-|r" .. txt)
 end
 
--- Marktdaten eines Items: { cur, fair, floor7, fresh } oder nil
+-- market data of an item: { cur, fair, floor7, fresh } or nil
 function Trade.Info(itemID)
     if not itemID or itemID == 0 or not ns.Market then return nil end
     local info = ns.Market.Info(itemID)
@@ -105,7 +105,7 @@ function Trade.Info(itemID)
 end
 
 ------------------------------------------------------------------------
--- 4) AH-Stand: wann wurde zuletzt gescannt und von wem
+-- 4) AH status: when was the last scan and by whom
 ------------------------------------------------------------------------
 function Trade.MyScanTime()
     local a = api()
@@ -113,7 +113,7 @@ function Trade.MyScanTime()
     local ok, t = pcall(a.GetLastScanTime)
     return (ok and type(t) == "number" and t > 0) and t or nil
 end
--- neuester Scan in der Gilde -> ts, Name
+-- newest scan in the guild -> ts, name
 function Trade.LatestScan()
     local best, who = Trade.MyScanTime(), ns.me()
     for name, p in pairs(ns.db.members) do
@@ -124,7 +124,7 @@ function Trade.LatestScan()
     if not best then return nil end
     return best, who
 end
--- Farbe nach Alter: frisch gruen, heute grau, aelter gelb
+-- color by age: fresh green, today grey, older yellow
 function Trade.ScanColor(ts)
     if not ts then return C.dim end
     local age = ns.now() - ts
@@ -132,7 +132,7 @@ function Trade.ScanColor(ts)
 end
 
 ------------------------------------------------------------------------
--- 1) Wunschliste-Alarm
+-- 1) Wishlist alert
 ------------------------------------------------------------------------
 ns.GuildOption({ page = "trade", key = "trCheap", default = 85, min = 50, max = 95, step = 5, label = "Want alert at price",
     desc = "A want counts as cheap if it costs at most this share of the fair price",
@@ -142,7 +142,7 @@ ns.GuildOption({ page = "trade", key = "trAlrtH", default = 12, min = 1, max = 4
     fmt = function(v) return v .. " Std" end })
 ns.GuildOption({ page = "trade", key = "trPcAns", default = true, label = "Answer price questions in guild chat",
     desc = "Oasis automatically answers pc / price with an item link in guild chat" })
-local function CHEAPF() return (tonumber(ns.GuildOpt("trCheap")) or 85) / 100 end   -- Anteil vom fairen Preis
+local function CHEAPF() return (tonumber(ns.GuildOpt("trCheap")) or 85) / 100 end   -- share of the fair price
 local function ALERTF() return (tonumber(ns.GuildOpt("trAlrtH")) or 12) * 3600 end
 
 local function alerted(key)
@@ -150,12 +150,12 @@ local function alerted(key)
     local t = ns.db.ahAlerts[key]
     if t and ns.now() - t < ALERTF() then return true end
     ns.db.ahAlerts[key] = ns.now()
-    -- alte Eintraege aufraeumen
+    -- clean up old entries
     for k, v in pairs(ns.db.ahAlerts) do if ns.now() - v > 7 * 86400 then ns.db.ahAlerts[k] = nil end end
     return false
 end
 
--- guenstige Wunsch-Items der ganzen Gilde -> { {want, info, pct}, ... }
+-- cheap wishlist items of the whole guild -> { {want, info, pct}, ... }
 function Trade.CheapWants()
     local out, seen = {}, {}
     for _, w in ipairs(Store.List("wants")) do
@@ -181,13 +181,13 @@ local function wantToast(itemID, name, cur, fair, finder)
     K.Toast(title, body, C.mint, function() ns.ShowPage("trade") end, "announce")
 end
 
--- nach einem eigenen Scan: eigene Wuensche melden, andere Wuenschende per Addon-Nachricht informieren
+-- after an own scan: report own wishes, inform other wishers via addon message
 function Trade.CheckWants()
     if S().wantAlarm == false then return end
     for _, hit in ipairs(Trade.CheapWants()) do
         local w, info = hit.want, hit.info
         if w.demo or tostring(w.id or ""):find("^demo") then
-            -- Demo-Wunsch: nie jemanden anfluestern
+            -- demo wish: never whisper anyone
         elseif ns.isMe(w.who) then
             if not alerted("me-" .. w.itemID) then wantToast(w.itemID, w.link or w.name, info.cur, info.fair) end
         elseif not alerted(w.who .. "-" .. w.itemID) then
@@ -198,7 +198,7 @@ end
 Comm.On("WANTAH", function(sender, _, id, cur, fair)
     id, cur, fair = SEC.Num(id, 1, 1e8, true), SEC.Num(cur, 0, 1e11), SEC.Num(fair, 0, 1e11)
     if not (id and cur) or S().wantAlarm == false then return end
-    -- nur, wenn es wirklich noch auf meiner Wunschliste steht
+    -- only if it is really still on my wishlist
     local mine
     for _, w in ipairs(Store.List("wants")) do if w.itemID == id and ns.isMe(w.who) and not w.offer then mine = w end end
     if not mine or alerted("me-" .. id) then return end
@@ -206,12 +206,12 @@ Comm.On("WANTAH", function(sender, _, id, cur, fair)
 end)
 
 ------------------------------------------------------------------------
--- 3) Preisabfrage im Gildenchat: "pc [Item]" / "preis [Item]"
--- Genau einer antwortet: jeder mit Preisdaten wartet kurz (frische Daten kuerzer),
--- der Erste meldet per Addon-Nachricht "erledigt", alle anderen lassen es.
+-- 3) Price check in guild chat: "pc [Item]" / "preis [Item]"
+-- Exactly one replies: everyone with price data waits briefly (fresh data shorter),
+-- the first reports "done" via addon message, all others skip it.
 ------------------------------------------------------------------------
-local claimed = {}   -- Frage-Hash -> Zeitpunkt der Antwort (1 Minute gesperrt)
-local asked = {}     -- Frage-Hash -> Zeitpunkt, zu dem die Frage im Gildenchat stand
+local claimed = {}   -- question hash -> time of the reply (locked for 1 minute)
+local asked = {}     -- question hash -> time the question appeared in guild chat
 local TRIGGERS = { "pc", "preis", "price", "prix", "precio", "preco", "prezzo", "цена", "?" }
 
 local function isQuestion(msg)
@@ -242,14 +242,14 @@ ns.On("CHAT_MSG_GUILD", function(msg, sender)
     if not id then return end
     local key = ns.hash(msg)
     asked[key] = GetTime()
-    -- automatische Antwort im Gildenchat drosseln: je Fragendem alle 30 s, insgesamt alle 8 s
+    -- throttle automatic guild chat replies: every 30 s per asker, every 8 s overall
     local who = ns.safe(sender) or "?"
     if not SEC.Rate("pcq:" .. who, 30) or not SEC.Rate("pcq-all", 8) then return end
     if claimed[key] and GetTime() - claimed[key] < 60 then return end
     local line = Trade.PriceLine(id, link)
     if not line then return end
     local info = Trade.Info(id)
-    -- frische Midas-Daten antworten zuerst, eigene Frage zuletzt
+    -- fresh Midas data replies first, own question last
     local base = (info and info.fresh and info.src == "midas") and 0.3 or 1.6
     if ns.isMe(ns.safe(sender) or "") then base = base + 2 end
     local delay = base + (tonumber(ns.hash(ns.me() .. key), 16) % 12) / 10
@@ -260,8 +260,8 @@ ns.On("CHAT_MSG_GUILD", function(msg, sender)
         ns.OfferChat(L["Price question in guild chat"], line:sub(1, 250), "GUILD", nil, ns.K.C.amber)
     end)
 end)
--- "erledigt" nur fuer eine Frage, die gerade wirklich im Gildenchat stand, und nur von Gildenmitgliedern
--- (sonst koennte ein gefaelschtes PCDONE jede Antwort im Voraus unterdruecken)
+-- "done" only for a question that really just appeared in guild chat, and only from guild members
+-- (otherwise a forged PCDONE could suppress every reply in advance)
 Comm.On("PCDONE", function(sender, _, key)
     if not key or not asked[key] or GetTime() - asked[key] > 30 then return end
     if Comm.FromGuild and not Comm.FromGuild(sender) then return end
@@ -269,7 +269,7 @@ Comm.On("PCDONE", function(sender, _, key)
 end)
 
 ------------------------------------------------------------------------
--- 5) Gildenbank: Wert je Tag (geteilt, damit alle den Verlauf sehen)
+-- 5) Guild bank: value per day (shared so everyone sees the history)
 ------------------------------------------------------------------------
 local function dayKey(ts) return date("%Y%m%d", ts or ns.now()) end
 
@@ -291,7 +291,7 @@ function Trade.RecordBankWorth(worth)
     if old and old.worth and math.abs(old.worth - worth) <= old.worth * 0.02 then return end
     Store.Put("bankworth", { id = id, day = dayKey(), worth = math.floor(worth), ts = ns.now() })
 end
--- Verlauf der letzten n Tage (fehlende Tage = nil) -> Liste, Wert vor 7 Tagen
+-- history of the last n days (missing days = nil) -> list, value 7 days ago
 function Trade.BankHistory(n)
     n = n or 30
     local byDay = {}
@@ -338,10 +338,10 @@ function Trade.Sparkline(parent, w, h, n)
 end
 
 ------------------------------------------------------------------------
--- 6) Haendler-Rangliste (freiwillig): Bilanz der letzten 7 Tage aus Midas
+-- 6) Trader leaderboard (voluntary): balance of the last 7 days from Midas
 ------------------------------------------------------------------------
--- liest nur das Handelsprotokoll aus Midas' gespeicherten Daten (MidasDB.trade.log), aendert nichts
-local DAY0 = time({ year = 2020, month = 1, day = 1, hour = 0 })   -- Midas' Tageszaehlung
+-- only reads the trade log from Midas' saved data (MidasDB.trade.log), changes nothing
+local DAY0 = time({ year = 2020, month = 1, day = 1, hour = 0 })   -- Midas' daily count
 function Trade.HasMidas() return _G.MidasAPI ~= nil end
 function Trade.MyWeek()
     local db = _G.MidasDB
@@ -358,7 +358,7 @@ function Trade.MyWeek()
     end
     return net, sold, bought
 end
--- Felder fuer das eigene Profil (nur, wenn geteilt)
+-- fields for the own profile (only if shared)
 function Trade.ProfileFields(p)
     p.ah = Trade.MyScanTime()
     if S().shareTrade then
@@ -366,7 +366,7 @@ function Trade.ProfileFields(p)
         if net then p.gw, p.gws, p.gwt = math.floor(net), sold, ns.now() end
     end
 end
--- Rangliste: alle, die teilen und in den letzten 8 Tagen gemeldet haben
+-- leaderboard: everyone who shares and reported within the last 8 days
 function Trade.Ranking()
     local out, seenMain = {}, {}
     for name, p in pairs(ns.db.members) do
@@ -391,14 +391,14 @@ function Trade.GoldmakerOfWeek()
 end
 
 ------------------------------------------------------------------------
--- Midas-Ereignisse
+-- Midas events
 ------------------------------------------------------------------------
 ns.Listen("LOGIN", function()
     ns.After(6, function()
         local a = api()
         if a and a.RegisterCallback then
             pcall(a.RegisterCallback, "SCAN_COMPLETE", function()
-                -- Gilde ueber den neuen Stand informieren, danach Wuensche pruefen (nach der Analyse)
+                -- inform the guild about the new state, then check wishes (after the analysis)
                 ns.After(2, function() if ns.Radar then ns.Radar.SendHello() end end)
                 ns.After(4, Trade.CheckWants)
                 ns.RefreshPage("trade")
@@ -413,8 +413,8 @@ ns.Listen("LOGIN", function()
 end)
 ns.Listen("PROFILE", function() ns.RefreshPage("trade") if ns.UpdateAHChip then ns.UpdateAHChip() end end)
 
--- Midas-Fenster oeffnen und VOR das Oasis-Fenster holen (Midas liegt sonst eine Ebene tiefer,
--- genau dahinter, und man sieht nichts). Ist es schon offen, nur nach vorne holen.
+-- open the Midas window and bring it IN FRONT of the Oasis window (otherwise Midas lies one level lower,
+-- right behind it, and you see nothing). If already open, just bring it to front.
 function Trade.OpenMidas()
     if not (SlashCmdList and SlashCmdList.MIDAS) then return end
     local f = _G.MidasFrame
@@ -427,11 +427,11 @@ function Trade.OpenMidas()
 end
 
 ------------------------------------------------------------------------
--- Demo-Modus: Beispielpreise, Scan und Rangliste - nur fuer die Anzeige dieser Seite.
--- Nichts davon wird gespeichert oder gesendet; Preisfragen und Wunsch-Alarm nutzen weiter nur echte Daten.
+-- Demo mode: sample prices, scan and leaderboard - only for displaying this page.
+-- None of it is saved or sent; price questions and wish alerts still use only real data.
 ------------------------------------------------------------------------
 local function demoOn() return (ns.Demo and ns.Demo.IsActive and ns.Demo.IsActive()) and true or false end
--- ItemID, Name (falls der Client das Item noch nicht kennt), Qualitaet, Kategorie, fair, aktuell (Kupfer)
+-- item ID, name (in case the client does not know the item yet), quality, category, fair, current (copper)
 local DEMO_ITEMS = {
     { 2589, "Linen Cloth", 1, "cloth", 62, 41 },
     { 2592, "Wollstoff", 1, "cloth", 115, 108 },
@@ -507,7 +507,7 @@ local function demoRanking()
     return out
 end
 
--- Marktdaten fuer die Anzeige: im Demo-Modus die Beispielpreise, sonst echte Daten
+-- market data for display: sample prices in demo mode, otherwise real data
 function Trade.PageInfo(itemID)
     if demoOn() then
         local d = demoData()[itemID]
@@ -516,7 +516,7 @@ function Trade.PageInfo(itemID)
     return Trade.Info(itemID)
 end
 
--- wie Trade.CheapWants, aber mit Anzeige-Daten (Demo eingeschlossen)
+-- like Trade.CheapWants, but with display data (demo included)
 local function pageCheapWants()
     local out, seen = {}, {}
     for _, w in ipairs(Store.List("wants")) do
@@ -534,7 +534,7 @@ local function pageCheapWants()
     return out
 end
 
--- Items fuer die Preisliste ohne Demo: Wunschlisten, Gildenbank, eigene AH-Beobachtung
+-- items for the price list without demo: wishlists, guild bank, own AH observation
 local function realItemIds()
     local ids, seen = {}, {}
     local function add(id)
@@ -554,7 +554,7 @@ local function realItemIds()
         end
     end
     for _, r in ipairs(Store.List("prices")) do add(r.itemID) end
-    -- eigener Midas-Scan: die interessantesten Items (aktuell gesehen, nach Midas-Wertung), einmal je Scan berechnet
+    -- own Midas scan: the most interesting items (currently seen, by Midas rating), computed once per scan
     for _, id in ipairs(Trade.MidasTopIds()) do add(id) end
     return ids
 end
@@ -587,7 +587,7 @@ function Trade.MidasTopIds()
 end
 
 ------------------------------------------------------------------------
--- Seite "Markt"
+-- page "Market"
 ------------------------------------------------------------------------
 local ICO = ns.MEDIA .. "icons\\"
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
@@ -625,7 +625,7 @@ local view, search, onlyCheap, sortBy = "over", "", false, "save"
 local page
 
 local function animOn() return not S().noAnim end
--- Glas 2026: ruhige Flaeche + feine Kante
+-- glass 2026: calm fill + fine edge
 local GLINE = { 1, 1, 1, 0.10 }
 local function glass(f, r, a, line)
     local IG = ns.Insta
@@ -674,7 +674,7 @@ local function colored(name)
     return ns.displayName(name)
 end
 
--- Item-Daten aus dem Client (fehlt etwas, wird es angefordert und kommt per Ereignis nach)
+-- item data from the client (if something is missing, it is requested and arrives via event)
 local requested = {}
 local function request(id)
     if id and not requested[id] and C_Item and C_Item.RequestLoadItemDataByID then
@@ -719,7 +719,7 @@ local function insertLink(link)
     if ns.OpenChat then ns.OpenChat(link) end
 end
 
--- Kupfer -> Gold/Silber/Kupfer mit Muenzsymbolen (kleinste Stelle entfaellt ab 1 Gold)
+-- copper -> gold/silver/copper with coin icons (smallest unit dropped from 1 gold)
 local function money(copper)
     if not copper then return "–" end
     copper = math.floor(math.abs(copper) + 0.5)
@@ -738,7 +738,7 @@ local function shortGold(copper)
     return (copper >= 0 and "+" or "-") .. (g > 0 and (g .. "g") or money(copper))
 end
 
--- Datenmodell fuer eine Aktualisierung
+-- data model for an update
 local function priceRow(id, info, fbName, fbQ)
     local q = itemQuality(id, (info and info.q) or fbQ)
     local name = itemName(id, (info and info.name) or fbName)
@@ -775,9 +775,9 @@ local function gather()
 end
 
 ------------------------------------------------------------------------
--- Bausteine
+-- building blocks
 ------------------------------------------------------------------------
--- Reiterleiste: Symbol + Text + Zaehler, gleitender Balken in der Reiterfarbe
+-- tab bar: icon + text + counter, sliding bar in the tab color
 local function buildTabs(p, onPick)
     local f = CreateFrame("Frame", nil, p)
     f:SetHeight(34)
@@ -899,7 +899,7 @@ local function buildTabs(p, onPick)
     return f
 end
 
--- Kennzahl-Kachel (Verlauf, Glow, Hover), Klick = Reiter/Filter
+-- KPI tile (gradient, glow, hover), click = tab/filter
 local function buildTile(parent, d, onClick)
     local c = d.color
     local t = CreateFrame("Button", nil, parent)
@@ -944,7 +944,7 @@ local function buildTile(parent, d, onClick)
     return t
 end
 
--- Panel mit Kopfzeile im Spiel-Stil (Farbmarke + Titel + Info rechts)
+-- panel with header in game style (color mark + title + info on the right)
 local function card(parent, title, color)
     local f = CreateFrame("Frame", nil, parent)
     glass(f, 14, 0.025)
@@ -967,7 +967,7 @@ local function card(parent, title, color)
     return f
 end
 
--- rundes Item-Symbol mit Qualitaetsring
+-- round item icon with quality ring
 local function itemBadge(parent, size)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(size, size)
@@ -987,7 +987,7 @@ local function itemBadge(parent, size)
     return f
 end
 
--- Mini-Verlauf aus Balken (Farbe nach Trend)
+-- mini history of bars (color by trend)
 local function miniSpark(parent, w, h, n)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(w, h)
@@ -1020,7 +1020,7 @@ local function miniSpark(parent, w, h, n)
     return f
 end
 
--- Trend-Text: Abweichung vom fairen Preis (gruen = guenstiger)
+-- trend text: deviation from the fair price (green = cheaper)
 local function trendText(pct)
     local n = math.floor(math.abs(pct) * 100 + 0.5)
     if n == 0 then return "|cff8888880%|r" end
@@ -1038,7 +1038,7 @@ local function setArrow(tex, pct)
     tex:Show()
 end
 
--- kleine Item-Zeile (Uebersicht): Symbol, Name, Preis, Zusatz
+-- small item row (overview): icon, name, price, extra
 local function newMiniRow(parent)
     local r = CreateFrame("Button", nil, parent)
     r:SetHeight(32)
@@ -1072,7 +1072,7 @@ local function newMiniRow(parent)
     return r
 end
 
--- Schalter-Zeile: Symbol, Titel, Erklaerung, Schalter rechts
+-- toggle row: icon, title, explanation, toggle on the right
 local function optRow(parent, glyph, color, label, desc, get, set)
     local f = CreateFrame("Button", nil, parent)
     f:SetHeight(56)
@@ -1104,7 +1104,7 @@ local function optRow(parent, glyph, color, label, desc, get, set)
     return f
 end
 
--- Sperr-Hinweis ohne Midas: was die Seite kann + Demo / woher Midas kommt
+-- lock notice without Midas: what the page can do + demo / where Midas comes from
 local function buildLock(p)
     local o = CreateFrame("Frame", nil, p)
     o:SetAllPoints()
@@ -1177,7 +1177,7 @@ local function buildLock(p)
 end
 
 ------------------------------------------------------------------------
--- Ansichten
+-- views
 ------------------------------------------------------------------------
 local function switchTo(v, cheap)
     if v == view and cheap == nil then return end
@@ -1195,7 +1195,7 @@ end
 local function buildOverview(p, body)
     local v = CreateFrame("Frame", nil, body)
     v:SetAllPoints()
-    -- links: guenstig jetzt
+    -- left: cheap now
     v.cheap = card(v, "Cheap now", C.mint)
     v.cheap.rows = {}
     for i = 1, 9 do
@@ -1206,7 +1206,7 @@ local function buildOverview(p, body)
     end
     v.cheap.more = K.Button(v.cheap, L["All prices"], 110, 22, "ghost", function() switchTo("prices", false) end)
     v.cheap.more:SetPoint("BOTTOMRIGHT", -12, 10)
-    -- rechts oben: Wunschliste-Treffer
+    -- top right: wishlist hits
     v.wants = card(v, "Wishlist hits", C.pink)
     v.wants.rows = {}
     for i = 1, 4 do
@@ -1215,7 +1215,7 @@ local function buildOverview(p, body)
         r:SetPoint("RIGHT", -14, 0)
         v.wants.rows[i] = r
     end
-    -- rechts unten: Haendler der Woche (Top 3) + AH-Stand
+    -- bottom right: traders of the week (top 3) + AH status
     v.top = card(v, "Traders of the week", C.amber)
     v.top.rows = {}
     for i = 1, 3 do
@@ -1259,7 +1259,7 @@ local function buildOverview(p, body)
         self.top:ClearAllPoints()
         self.top:SetPoint("TOPLEFT", cw + 10, -(wh + 10))
         self.top:SetSize(W - cw - 10, H - wh - 10)
-        -- nur so viele Zeilen wie hineinpassen
+        -- only as many rows as fit
         local nc = math.max(0, math.floor((H - 38 - 40) / 36))
         for i, r in ipairs(self.cheap.rows) do r.fits = i <= nc end
         local nw = math.max(0, math.floor((wh - 44) / 36))
@@ -1367,7 +1367,7 @@ local function buildPrices(p, body)
     v.count = K.Text(v, 11, C.dim, "RIGHT")
     v.count:SetPoint("TOPRIGHT", -4, -6)
     v.count:SetText("")
-    -- Spaltenkoepfe
+    -- column headers
     v.hd = CreateFrame("Frame", nil, v)
     v.hd:SetHeight(18)
     v.hd:SetPoint("TOPLEFT", 0, -30)
@@ -1434,7 +1434,7 @@ local function buildPrices(p, body)
         r.badge:Set(e.id, e.q)
         r.name:SetText(K.hex(QCOL[e.q] or QCOL[1]) .. e.name .. "|r" .. (e.cheap and ("  " .. K.hex(C.mint) .. L["Cheap now"] .. "|r") or ""))
         r.sub:SetText((e.cat and L[CATS[e.cat]] or "") .. (e.info.floor7 and (((e.cat and "  |cff555555·|r  ") or "") .. L["7-day low"] .. " " .. money(e.info.floor7)) or ""))
-        -- Spalten von rechts: Verlauf | Trend | aktuell | fair
+        -- columns from the right: history | trend | current | fair
         local x = -8
         r.spark:ClearAllPoints()
         if wide and e.info.hist then
@@ -1469,7 +1469,7 @@ local function buildPrices(p, body)
     function v:Layout(W)
         self.search:SetWidth(W < 640 and 130 or 170)
         self.count:SetShown(W > 600)
-        -- Spaltenkoepfe wie in den Zeilen
+        -- column headers like in the rows
         local x = -16
         if W > 568 then x = x - 64 end
         self.hTrend:ClearAllPoints() self.hTrend:SetPoint("RIGHT", self.hd, "RIGHT", x, 0)
@@ -1565,7 +1565,7 @@ local function buildRank(p, body)
             .. (idx == 1 and e.net > 0 and ("  |cffe8b44a" .. L["Goldmaker of the week"] .. "|r") or ""))
         r.sub:SetText((L["%d sales"]):format(e.sold or 0))
         r.val:SetText(signedMoney(e.net))
-        -- Balken: Anteil am Besten
+        -- bar: share of the best
         local W = r:GetWidth() or 600
         local x0 = 220
         local bw = math.max(40, W - x0 - 140)
@@ -1656,7 +1656,7 @@ local function buildOpts(p, body)
     return v
 end
 
-local TOP_Y, BODY_Y = 0, -44   -- 0.5.853: Kennzahl-Kacheln entfallen, Inhalt beginnt direkt unter den Reitern
+local TOP_Y, BODY_Y = 0, -44   -- 0.5.853: KPI tiles dropped, content starts directly below the tabs
 ns.RegisterPage({
     key = "trade", title = "Market", order = 2.3,
     sub = "Auction House prices for the guild - one scans, everyone benefits",
@@ -1666,7 +1666,7 @@ ns.RegisterPage({
         p:HookScript("OnShow", function(self) self.fresh = true end)
         p.tabs = buildTabs(p, function(k) switchTo(k) end)
         p.tabs:SetPoint("TOPLEFT", 0, TOP_Y)
-        -- AH-Stand rechts oben
+        -- AH status top right
         p.pill = CreateFrame("Frame", nil, p)
         p.pill:SetHeight(24)
         p.pill:SetPoint("TOPRIGHT", 0, -5)
@@ -1682,7 +1682,7 @@ ns.RegisterPage({
         p.pill:EnableMouse(true)
         p.pill:SetScript("OnEnter", function(self) if self.tip then K.ShowTip(self, self.tip) end end)
         p.pill:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        -- Kacheln
+        -- tiles
         p.tileRow = CreateFrame("Frame", nil, p)
         p.tileRow:SetPoint("TOPLEFT", 0, -42)
         p.tileRow:SetPoint("TOPRIGHT", 0, -42)
@@ -1696,7 +1696,7 @@ ns.RegisterPage({
         end
         for i, d in ipairs(TILES) do p.tiles[i] = buildTile(p.tileRow, d, onTile) end
         p.tileRow:Hide()
-        -- Inhalt
+        -- content
         p.body = CreateFrame("Frame", nil, p)
         p.body:SetPoint("TOPLEFT", 0, BODY_Y)
         p.body:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -1728,12 +1728,12 @@ ns.RegisterPage({
         p.fresh, p.switch = false, nil
         local m = gather()
 
-        -- Sperre nur ohne Midas, ohne Scan in der Gilde und ohne Demo
+        -- lock only without Midas, without a scan in the guild and without demo
         local locked = not m.hasMidas and not m.ts and not m.demo
         p.lock:SetShown(locked)
         if locked then p.lock:Update() end
 
-        -- AH-Stand
+        -- AH status
         local c = m.ts and Trade.ScanColor(m.ts) or C.dim
         p.pill.dot:SetVertexColor(c[1], c[2], c[3])
         p.pill.text:SetText((m.demo and (K.hex(C.amber) .. L["Demo"] .. "|r  |cff555555·|r  ") or "")
@@ -1743,7 +1743,7 @@ ns.RegisterPage({
             or { L["No scan yet"], "|cff888888" .. L["As soon as someone with Oasis scans the AH, it shows up here."] .. "|r" }
         if m.demo then p.pill.tip[#p.pill.tip + 1] = K.hex(C.amber) .. L["Demo: sample prices, only visible to you"] .. "|r" end
 
-        -- Kacheln
+        -- tiles
         local vals = {
             scan = { m.ts and ns.ago(m.ts) or "–", m.ts and ns.displayName(m.who) or "", m.ts and Trade.ScanColor(m.ts) or C.dim },
             items = { #m.items, m.cheapN > 0 and (L["%d cheap"]):format(m.cheapN) or "", #m.items > 0 and C.text or C.dim },
@@ -1772,7 +1772,7 @@ ns.RegisterPage({
     end,
 })
 
--- Item-Daten kommen nach: sichtbare Seite neu zeichnen (gedrosselt)
+-- item data arrives later: redraw visible page (throttled)
 local itemPend
 local function itemsArrived()
     if itemPend or not (page and page.IsVisible and page:IsVisible()) then return end
@@ -1785,7 +1785,7 @@ end
 pcall(ns.On, "GET_ITEM_INFO_RECEIVED", itemsArrived)
 pcall(ns.On, "ITEM_DATA_LOAD_RESULT", itemsArrived)
 
--- Demo an/aus: Seite sofort umstellen (Beispieldaten liegen nur hier, nichts im Store)
+-- demo on/off: switch page immediately (sample data lives only here, nothing in the store)
 ns.Listen("LOGIN", function()
     local D = ns.Demo
     if D and not D.tradeHooked and D.Load and D.Remove then
@@ -1798,8 +1798,8 @@ end)
 
 ns.slash.markt = function() ns.ShowPage("trade") end
 
--- Midas-Auto-Scan: beim Oeffnen des Auktionshauses scannt Midas im Hintergrund (Midas' eigene Funktion,
--- Midas haelt die Server-Sperre von ~15 Min selbst ein). Schalter: Einstellungen > Bereiche > Markt.
+-- Midas auto scan: when opening the auction house Midas scans in the background (Midas' own function,
+-- Midas itself respects the ~15 min server lock). Toggle: Settings > Areas > Market.
 function ns.ApplyMidasAutoScan()
     local cfg = _G.MidasDB and _G.MidasDB.config
     if type(cfg) ~= "table" then return end

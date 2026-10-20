@@ -1,16 +1,16 @@
--- Oasis: Beute verteilen (Master-Loot) - ersetzt Gargul / RCLootCouncil fuer die Gilde
---  * Plundermeister/Anfuehrer startet eine Runde mit ALLEN Items einer Leiche (oder per /oa beute [Link])
---  * Jeder im Raid bekommt ein kompaktes Wahlfenster: Bedarf / Zweitspec / Transmog / Passen (+ Notiz),
---    Klick wuerfelt dabei echt (/roll 100), Zeitbalken laeuft ab -> wer nichts waehlt, passt
---  * Reihenfolge: Soft-Reserve > Bedarf > Zweitspec > Transmog, dann Punkte (Prioritaet) bzw. Plus-Eins, dann Wurf
---  * Beuterat (Gilden-Option): Offiziere stimmen je Item ab, der Plundermeister vergibt
---  * Vergeben gibt das Item direkt per Master-Loot weiter (sonst: Merkliste zum Handeln)
---  * Alles landet im Beute-Verlauf (Store "loot") und bucht Punkte (LootPoints), Plus-Eins zaehlt je Raidabend
--- Aufbau angelehnt an das, was sich bewaehrt hat: links Item-Reiter, rechts Bewerbertabelle mit Spalten
--- (Name, Rang, Wahl, Wurf, +1/Punkte, getragene Items, Stimmen, Notiz); fuer Mitglieder ein schmales Wurf-Fenster.
+-- Oasis: distribute loot (master loot) - replaces Gargul / RCLootCouncil for the guild
+--  * Master looter/leader starts a round with ALL items of a corpse (or via /oa beute [link])
+--  * Everyone in the raid gets a compact choice window: Need / Offspec / Transmog / Pass (+ note),
+--    Clicking really rolls (/roll 100), time bar runs out -> whoever picks nothing passes
+--  * Order: soft reserve > need > offspec > transmog, then points (priority) or plus-one, then roll
+--  * Loot council (guild option): officers vote per item, the master looter awards
+--  * Award hands the item over directly via master loot (else: reminder list for trading)
+--  * Everything lands in the loot history (store "loot") and books points (LootPoints); plus-one counts per raid night
+-- Layout based on what has proven itself: item tabs left, applicant table with columns right
+-- (name, rank, choice, roll, +1/points, equipped items, votes, note); for members a slim roll window.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
--- ns.Group kommt aus Core\Diagnostics\RaidSim.lua; fehlt die Datei, gelten die echten Blizzard-Abfragen
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
+-- ns.Group comes from Core\Diagnostics\RaidSim.lua; if the file is missing, the real Blizzard queries apply
 if not ns.Group then ns.Group = { IsSim = function() return false end, IsInGroup = function() return (IsInGroup and IsInGroup()) and true or false end, IsInRaid = function() return (IsInRaid and IsInRaid()) and true or false end, Num = function() return (GetNumGroupMembers and GetNumGroupMembers()) or 0 end, InInstance = function() if IsInInstance then return IsInInstance() end return false, "none" end, Instance = function() return nil end, Members = function() return {} end, Member = function() return nil end, IsLeader = function() return (UnitIsGroupLeader and UnitIsGroupLeader("player")) and true or false end, IsAssist = function() return false end } end
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
@@ -20,8 +20,8 @@ ns.LootMaster = LM
 local function simOn() return ns.Sim and ns.Sim.Active() or false end
 
 ------------------------------------------------------------------------
--- Sicherheit beim Empfang: Addon-Nachrichten anderer koennen manipuliert sein
--- (Texte entschaerfen, Zahlen begrenzen, Absender pruefen, Flut drosseln)
+-- Security on receipt: others' addon messages may be manipulated
+-- (sanitize texts, limit numbers, check sender, throttle floods)
 ------------------------------------------------------------------------
 local SEC = {}
 do
@@ -29,7 +29,7 @@ do
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich machen; links: gueltige Item-/Zauberlinks bleiben
+    -- Neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -48,7 +48,7 @@ do
         if keep then s = s:gsub("\1%d*$", ""):gsub("\1(%d+)\2", function(i) return keep[tonumber(i)] or "" end) end
         return s
     end
-    -- genau ein gueltiger Itemlink (sonst nil)
+    -- exactly one valid item link (else nil)
     function SEC.Link(s)
         if type(s) ~= "string" or #s > 300 then return nil end
         local col = s:match("^|c([^|]-)|Hitem:[%d:%-]+|h%[[^|%]]*%]|h|r$")
@@ -77,7 +77,7 @@ do
 end
 LM.SEC = SEC
 local GROUP_CH = { RAID = true, PARTY = true, INSTANCE_CHAT = true, RAID_WARNING = true }
--- Absender in meiner Gruppe? (Simulator: Sim-Mitglieder; ohne RaidSim.lua: Blizzard-Abfrage)
+-- Sender in my group? (simulator: sim members; without RaidSim.lua: Blizzard query)
 local function inMyGroup(name)
     if not name then return false end
     if simOn() then return ns.Group.Member(name) ~= nil end
@@ -86,7 +86,7 @@ local function inMyGroup(name)
     if (UnitInRaid and UnitInRaid(s)) or (UnitInParty and UnitInParty(s)) then return true end
     return false
 end
--- darf der Absender eine Beute-Runde starten? (Anfuehrer/Assistent/Plundermeister der eigenen Gruppe)
+-- may the sender start a loot round? (leader/assistant/master looter of own group)
 local function mayLead(name)
     if simOn() then return ns.Group.IsAssist(name) end
     if ns.Group.IsAssist and ns.Group.IsAssist(name) then return true end
@@ -171,7 +171,7 @@ end
 local function isLeader() local s = LM.session return s and ns.isMe(s.leader) end
 
 ------------------------------------------------------------------------
--- Plus-Eins: Bedarf-Gewinne je Main und Abend (alle Clients zaehlen mit, ueber LMAWARD)
+-- Plus-one: need wins per main and night (all clients count along, via LMAWARD)
 ------------------------------------------------------------------------
 local function plusTable()
     ns.db.lmPlus = ns.db.lmPlus or {}
@@ -224,7 +224,7 @@ function LM.Ranked(it)
 end
 
 ------------------------------------------------------------------------
--- Beute-Statistik je Spieler (aus dem Beute-Verlauf, Main + Twinks zusammen)
+-- Loot stats per player (from the loot history, main + alts combined)
 ------------------------------------------------------------------------
 function LM.Stats(name)
     local main = mainOf(name)
@@ -283,7 +283,7 @@ local function gotBid(name, i, amount)
     amount = SEC.Num(amount, 1, 10000000, true)
     if not amount then return end
     it.bids[name] = math.max(it.bids[name] or 0, amount)
-    -- spaete Gebote verlaengern die Runde (wie bei Auktionen)
+    -- late bids extend the round (like auctions)
     if s.ends - GetTime() < 10 then s.ends = GetTime() + 10 end
     LM.Refresh()
 end
@@ -301,7 +301,7 @@ end
 Comm.On("LMBID", function(sender, _, sid, i, amount)
     local s = LM.session
     if not s or s.sid ~= sid or ns.isMe(sender) or s.mode ~= "gdkp" then return end
-    if not s.sim and not inMyGroup(sender) then return end   -- nur Mitspieler der eigenen Gruppe bieten
+    if not s.sim and not inMyGroup(sender) then return end   -- only offer to members of own group
     gotBid(sender, SEC.Num(i, 1, 40, true), amount)
 end)
 function LM.PostPayout()
@@ -312,7 +312,7 @@ function LM.PostPayout()
 end
 
 ------------------------------------------------------------------------
--- Runde starten / beenden
+-- Start / end round
 ------------------------------------------------------------------------
 local function newSession(sid, leader, mode, timer)
     LM.session = { sid = sid, leader = leader, mode = mode, items = {}, ends = GetTime() + timer, timer = timer, started = ns.now() }
@@ -364,11 +364,11 @@ end
 
 Comm.On("LMSTART", function(sender, channel, sid, mode, timer, n)
     if ns.isMe(sender) then return end
-    -- nur ueber den Gruppenkanal, nur Anfuehrer/Assistent/Plundermeister der eigenen Gruppe
+    -- only via the group channel, only leader/assistant/master looter of own group
     if not GROUP_CH[channel or ""] or not inMyGroup(sender) or not mayLead(sender) then return end
     sid = tostring(sid or "")
     if not sid:match("^%d+$") or #sid > 12 then return end
-    -- laufende Runde eines anderen Verteilers nicht kapern
+    -- don't hijack another distributor's running round
     local cur = LM.session
     if cur and not cur.closed and cur.leader ~= sender and GetTime() < (cur.ends or 0) and mayLead(cur.leader) then return end
     newSession(sid, sender, MODES[mode] and mode or "roll", SEC.Num(timer, 10, 300) or 60)
@@ -376,11 +376,11 @@ end)
 Comm.On("LMITEM", function(sender, _, sid, i, link)
     local s = LM.session
     if not s or s.sid ~= sid or ns.isMe(sender) then return end
-    if not (ns.Admin and ns.Admin.SameName and ns.Admin.SameName(sender, s.leader) or sender == s.leader) then return end   -- nur der Verteiler selbst
+    if not (ns.Admin and ns.Admin.SameName and ns.Admin.SameName(sender, s.leader) or sender == s.leader) then return end   -- only the distributor themself
     i, link = SEC.Num(i, 1, 40, true), SEC.Link(link)
     if not i or not link then return end
     addItem(s, i, link)
-    -- kurz sammeln, dann Fenster zeigen
+    -- collect briefly, then show window
     if LM.showTimer then LM.showTimer:Cancel() end
     LM.showTimer = C_Timer.NewTimer(0.4, function()
         LM.ShowRoll()
@@ -393,7 +393,7 @@ Comm.On("LMEND", function(sender, _, sid)
 end)
 
 ------------------------------------------------------------------------
--- Antworten, Wuerfe, Stimmen
+-- Replies, rolls, votes
 ------------------------------------------------------------------------
 local function takeRoll(name, it)
     local q = LM.pendingRolls[name]
@@ -419,7 +419,7 @@ function LM.Choose(i, choice)
     local simRoll
     if choice ~= "pass" then
         if s.sim then
-            -- Raid-Simulator: nur lokal wuerfeln, kein /roll im Chat
+            -- Raid simulator: roll locally only, no /roll in chat
             simRoll = math.random(1, 100)
             ns.print((L["Raid sim: you roll %d"]):format(simRoll))
         else
@@ -435,13 +435,13 @@ end
 Comm.On("LMRESP", function(sender, _, sid, i, choice, e1, e2, note)
     local s = LM.session
     if not s or s.sid ~= sid or ns.isMe(sender) or s.closed then return end
-    if not s.sim and not inMyGroup(sender) then return end   -- nur Mitspieler, niemand "im Namen" anderer
+    if not s.sim and not inMyGroup(sender) then return end   -- only group members, nobody "on behalf of" others
     if not CH[choice or ""] then return end
     local function iid(v) v = tostring(v or "") return v:match("^%d+$") and #v <= 9 and v or "" end
     gotResp(sender, SEC.Num(i, 1, 40, true), choice, iid(e1), iid(e2), SEC.Text(note, 60))
 end)
 
--- Wuerfe aus dem Systemchat (nur 1-100) dem naechsten offenen Wunsch des Spielers zuordnen
+-- Assign rolls from system chat (1-100 only) to the player's next open wish
 local rollPats
 local function buildPats()
     rollPats = {}
@@ -465,7 +465,7 @@ ns.On("CHAT_MSG_SYSTEM", function(text)
     local name = ns.fullName(who)
     roll = SEC.Num(roll, 1, 100, true)
     if not name or not roll then return end
-    -- an das erste Item mit Wunsch, aber ohne Wurf
+    -- to the first item with a wish but no roll
     for _, it in ipairs(s.items) do
         local r = it.resp[name]
         if not r then
@@ -473,7 +473,7 @@ ns.On("CHAT_MSG_SYSTEM", function(text)
         end
         if r and r.c ~= "pass" and not r.roll and not it.winner then r.roll = roll LM.Refresh() return end
     end
-    -- nur Mitspieler; je Spieler hoechstens so viele Wuerfe vormerken, wie Items in der Runde sind
+    -- only group members; per player queue at most as many rolls as there are items in the round
     if not s.sim and not inMyGroup(name) then return end
     LM.pendingRolls[name] = LM.pendingRolls[name] or {}
     if #LM.pendingRolls[name] >= math.max(1, #s.items) then return end
@@ -494,14 +494,14 @@ Comm.On("LMVOTE", function(sender, _, sid, i, cand, on)
     local s = LM.session
     local it = s and s.sid == sid and s.items[tonumber(i)]
     if not it or ns.isMe(sender) or not LM.IsCouncil(sender) then return end
-    if not it.resp[cand or ""] then return end   -- nur fuer echte Bewerber
+    if not it.resp[cand or ""] then return end   -- only for real applicants
     it.votes[cand] = it.votes[cand] or {}
     it.votes[cand][sender] = (on == "1") or nil
     LM.Refresh()
 end)
 
 ------------------------------------------------------------------------
--- Raid-Simulator: Beute-Runde mit simulierten Antworten, Wuerfen und Stimmen (alles lokal)
+-- Raid simulator: loot round with simulated replies, rolls and votes (all local)
 ------------------------------------------------------------------------
 function LM.SimRound(items)
     if not simOn() or not items or #items == 0 then return end
@@ -536,7 +536,7 @@ function LM.SimRound(items)
 end
 
 ------------------------------------------------------------------------
--- Vergeben
+-- Award
 ------------------------------------------------------------------------
 function LM.IsMasterLooter()
     local ok, method, partyID, raidID = pcall(function()
@@ -549,7 +549,7 @@ function LM.IsMasterLooter()
     if raidID and UnitIsUnit and UnitIsUnit("raid" .. raidID, "player") then return true end
     return false
 end
--- Item per Master-Loot uebergeben, wenn das Beutefenster noch offen ist
+-- Hand over item via master loot if the loot window is still open
 local function giveLoot(link, name)
     if not (GetNumLootItems and GiveMasterLoot and GetMasterLootCandidate) then return false end
     for slot = 1, (GetNumLootItems() or 0) do
@@ -575,7 +575,7 @@ function LM.Award(i, name, why)
     it.winner, it.wchoice = name, choice
     local gold = s.mode == "gdkp" and it.bids and it.bids[name] or nil
     if s.sim then
-        -- Raid-Simulator: nichts uebergeben, keine Punkte/Plus-Eins buchen, Beute-Eintrag nur lokal (demo-sim-ID)
+        -- Raid simulator: hand over nothing, book no points/plus-one, loot entry local only (demo-sim ID)
         Store.merge("loot", { id = "demo-sim-lm-" .. s.sid .. "-" .. i, sim = true, item = it.link, who = name, src = "Vergabe", choice = choice,
             roll = r and r.roll or nil, gold = gold, why = why, zone = L["Raid sim"], mapID = 0, ts = ns.now(), u = ns.now(), by = ns.me(), quality = 4 })
         ns.SendChat(L["[Oasis] "] .. it.link .. " > " .. ns.short(name) .. " (" .. (gold and (gold .. " g") or L[(CH[choice] or CH.ms).text]) .. ")", "RAID")
@@ -592,7 +592,7 @@ function LM.Award(i, name, why)
     local given = giveLoot(it.link, name)
     if not given and not ns.isMe(name) then LM.toTrade[#LM.toTrade + 1] = { link = it.link, who = name, t = ns.now() } end
     if not gold and ns.Points and ns.Points.CanManage and ns.Points.CanManage() and choice ~= "pass" then
-        -- Wahl auf die Punkte-Begriffe abbilden (Zweitspec = "greed" -> Viertelpreis, Transmog = "mog" -> gratis)
+        -- Map choice to point terms (offspec = "greed" -> quarter price, transmog = "mog" -> free)
         local pc = ({ ms = "need", os = "greed", tm = "mog" })[choice] or "need"
         local cost = ns.Points.ItemCost(it.link, pc)
         if cost and cost > 0 then ns.Points.Charge(name, cost, it.link, pc) end
@@ -607,7 +607,7 @@ function LM.Award(i, name, why)
     Comm.Group("LMAWARD", s.sid, i, name, choice)
     local ch = ns.groupChannel()
     if ch then ns.SendChat(L["[Oasis] "] .. it.link .. " > " .. ns.short(name) .. " (" .. (gold and (gold .. " g") or L[(CH[choice] or CH.ms).text]) .. ")", ch) end
-    -- alles vergeben -> Runde zu
+    -- everything awarded -> round closed
     local open = false
     for _, x in ipairs(s.items) do if not x.winner then open = true end end
     if not open then ns.After(2, LM.End) end
@@ -617,7 +617,7 @@ Comm.On("LMAWARD", function(sender, _, sid, i, name, choice)
     local s = LM.session
     local it = s and s.sid == sid and s.items[tonumber(i)]
     if not it or ns.isMe(sender) then return end
-    if not (ns.Admin and ns.Admin.SameName and ns.Admin.SameName(sender, s.leader) or sender == s.leader) then return end   -- nur der Verteiler selbst
+    if not (ns.Admin and ns.Admin.SameName and ns.Admin.SameName(sender, s.leader) or sender == s.leader) then return end   -- only the distributor themself
     name = SEC.Name(name)
     if not name or not CH[choice or ""] then return end
     it.winner, it.wchoice = name, choice
@@ -625,7 +625,7 @@ Comm.On("LMAWARD", function(sender, _, sid, i, name, choice)
     if ns.isMe(name) then K.Toast(L["You get the item!"], it.link, C.mint) end
     LM.Refresh()
 end)
--- alle offenen Items nach Rangfolge vergeben (Wuerfeln/Punkte)
+-- award all open items by ranking (rolls/points)
 function LM.AwardAll()
     local s = LM.session
     if not s or not isLeader() then return end
@@ -636,7 +636,7 @@ function LM.AwardAll()
         end
     end
 end
--- Handel-Erinnerung (wenn Master-Loot nicht direkt ging)
+-- Trade reminder (when master loot didn't work directly)
 ns.On("TRADE_SHOW", function()
     local who = ns.safe(ns.UnitName("NPC"))
     if not who then return end
@@ -650,13 +650,13 @@ ns.On("TRADE_SHOW", function()
 end)
 
 ------------------------------------------------------------------------
--- Darstellung: gemeinsame Helfer (auch fuer Raid.lua: Meine Beute, Beute-Log, Verteilung)
+-- Rendering: shared helpers (also for Raid.lua: My Loot, Loot Log, distribution)
 ------------------------------------------------------------------------
 local function animOn() return not (ns.db and ns.db.settings and ns.db.settings.noAnim) end
 local QHEX = { ["9d9d9d"] = 0, ["ffffff"] = 1, ["1eff00"] = 2, ["0070dd"] = 3, ["a335ee"] = 4, ["ff8000"] = 5, ["e6cc80"] = 6 }
 local QCOL = { [0] = { 0.62, 0.62, 0.62 }, [1] = { 0.92, 0.92, 0.92 }, [2] = { 0.12, 1, 0 }, [3] = { 0.1, 0.5, 0.95 },
     [4] = { 0.64, 0.21, 0.93 }, [5] = { 1, 0.5, 0 }, [6] = { 0.9, 0.8, 0.5 } }
--- Qualitaet eines Items (Zahl 0..6): angegeben, aus der Item-Info oder aus der Farbe im Link
+-- Item quality (number 0..6): given, from item info or from the link color
 function LM.Quality(link, q)
     q = tonumber(q)
     if not q and link then
@@ -674,7 +674,7 @@ function LM.Quality(link, q)
 end
 function LM.QColor(q) return QCOL[tonumber(q) or 1] or QCOL[1] end
 function LM.ItemName(link) return tostring(link or ""):match("%[(.-)%]") or tostring(link or "?") end
--- Item-Knopf: Symbol mit Rahmen in Qualitaetsfarbe und weichem Schein, Tooltip, Shift-Klick = Link in den Chat
+-- Item button: icon with border in quality color and soft glow, tooltip, shift-click = link in chat
 function LM.ItemButton(parent, size)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(size, size)
@@ -714,7 +714,7 @@ function LM.ItemButton(parent, size)
     end
     return b
 end
--- an x/y (oben links) setzen und als Rechteck merken (fuer den Ueberlappungs-Test)
+-- place at x/y (top left) and remember as rectangle (for the overlap test)
 local function put(rects, grp, key, o, x, y, w, h)
     o:ClearAllPoints()
     o:SetPoint("TOPLEFT", x, -y)
@@ -723,7 +723,7 @@ local function put(rects, grp, key, o, x, y, w, h)
     if rects then rects[#rects + 1] = { grp = grp, key = key, x = x, y = y, w = w or 0, h = h or 0 } end
 end
 LM.Put = put
--- kleine Pille (Fuellung in Farbe, Text hell)
+-- small pill (fill in color, light text)
 local function pill(parent, size)
     local p = CreateFrame("Frame", nil, parent)
     p:SetSize(60, 18)
@@ -744,7 +744,7 @@ local function pill(parent, size)
     return p
 end
 LM.Pill = pill
--- Farbe des Zeitbalkens: gruen -> gelb -> rot
+-- Time bar color: green -> yellow -> red
 local function timeColor(p)
     local a, b, t
     if p > 0.5 then a, b, t = C.amber, C.mint, (p - 0.5) * 2 else a, b, t = C.red, C.amber, p * 2 end
@@ -756,7 +756,7 @@ local function modeText(m)
     local t = { roll = L["Roll"], points = L["Points"], council = L["Loot council"], gdkp = L["GDKP"] }
     return t[m] or tostring(m or "")
 end
--- mein Platz in der Rangfolge eines Items (nur wer nicht gepasst hat), sonst nil
+-- my place in an item's ranking (only those who didn't pass), else nil
 function LM.MyPlace(it)
     if not it then return nil end
     local list = LM.Ranked(it)
@@ -771,7 +771,7 @@ function LM.MyPlace(it)
 end
 
 ------------------------------------------------------------------------
--- Fenster fuer alle: Wurf-Fenster mit Item-Karten und animiertem Zeitbalken
+-- Window for everyone: roll window with item cards and animated time bar
 ------------------------------------------------------------------------
 local function window(name, w, h, title)
     local f = CreateFrame("Frame", name, UIParent)
@@ -817,7 +817,7 @@ local function buildRollCard(f, i)
     r.info = K.Text(r, 10, C.muted)
     r.info:SetWordWrap(false)
     put(r.rects, "card", "info", r.info, x0, 28, tw, 14)
-    -- Wahl-Knoepfe: gleiche Breite, farbige Unterkante je Wahl
+    -- Choice buttons: same width, colored bottom edge per choice
     r.btn = {}
     local bw = math.floor((tw - 3 * 4) / 4)
     for k, c in ipairs(CHOICES) do
@@ -834,10 +834,10 @@ local function buildRollCard(f, i)
         b:HookScript("OnLeave", function() GameTooltip:Hide() end)
         r.btn[c.key] = b
     end
-    -- Ergebnis nach der Wahl: Pille mit Wahl, Wurf und Platz
+    -- Result after choosing: pill with choice, roll and place
     r.state = pill(r, 12)
     put(nil, "card", "state", r.state, x0, 50, tw, 26)
-    -- GDKP: Hoechstgebot, Eingabe, Bieten
+    -- GDKP: highest bid, input, bid
     r.high = K.Text(r, 11, C.amber)
     r.high:SetWordWrap(false)
     put(r.rects, "gdkp", "high", r.high, x0, 56, tw - 172, 16)
@@ -868,7 +868,7 @@ function LM.ShowRoll()
         f.left = K.Title(f, 15, C.text, "RIGHT")
         f.left:SetPoint("RIGHT", f.close, "LEFT", -8, 0)
         f.left:SetWidth(60)
-        -- Zeitbalken: Spur, Fuellung (Farbe laeuft gruen -> rot), Funke an der Spitze
+        -- Time bar: track, fill (color runs green -> red), spark at the tip
         local track = CreateFrame("Frame", nil, f)
         track:SetPoint("TOPLEFT", 12, -36)
         track:SetSize(ROLL_W - 24, 6)
@@ -899,7 +899,7 @@ function LM.ShowRoll()
             local left = math.max(0, ss.ends - GetTime())
             self.bar:Set(left / math.max(1, ss.timer or 60))
             self.left:SetText(("%d s"):format(math.ceil(left)))
-            -- letzte 10 Sekunden: Balken pulsiert (nur mit Animationen)
+            -- last 10 seconds: bar pulses (only with animations)
             if left > 0 and left < 10 and animOn() then
                 self.pt = ((self.pt or 0) + (el or 0)) % 0.8
                 self.bar.fill:SetAlpha(0.55 + 0.45 * (0.5 + 0.5 * math.cos(self.pt / 0.8 * math.pi * 2)))
@@ -1003,7 +1003,7 @@ function LM.RefreshRoll()
                 r.state:Hide()
                 r.lastState = nil
             end
-            -- kurzes Aufleuchten, wenn sich das Ergebnis aendert
+            -- brief flash when the result changes
             if r.lastState and r.lastState ~= was and animOn() then
                 local c = (it.winner and ns.isMe(it.winner)) and C.mint or (r.icon.qc or C.text)
                 K.Tween(r.shine, 0.6, function(p) r.shine:SetColorTexture(c[1], c[2], c[3], 0.16 * (1 - p)) end, function() r.shine:SetColorTexture(1, 1, 1, 0) end)
@@ -1013,10 +1013,10 @@ function LM.RefreshRoll()
 end
 
 ------------------------------------------------------------------------
--- Fenster Plundermeister / Beuterat: links Item-Leiste, oben das gewaehlte Item gross,
--- darunter Rangfolge der Bewerber (Spalten passen sich der Fensterbreite an; Fenster ziehbar/groessenveraenderbar)
+-- Master looter / loot council window: item bar left, selected item large at top,
+-- below it the applicant ranking (columns adapt to window width; window draggable/resizable)
 ------------------------------------------------------------------------
--- prio: wer zuerst wegfaellt, wenn es eng wird (hoeher = frueher weg)
+-- prio: who drops out first when it gets tight (higher = earlier out)
 local COLS = {
     { key = "pos", text = "#", w = 26, j = "CENTER", prio = 0 },
     { key = "name", text = "Name", w = 150, prio = 0 },
@@ -1030,7 +1030,7 @@ local COLS = {
     { key = "note", text = "Note", w = 110, prio = 5, flex = true },
 }
 local GIVE_W, RAIL_W, MIN_W, MIN_H = 64, 64, 620, 380
--- sichtbare Spalten fuer eine Listenbreite: { {key, x, w, j}, ... }
+-- visible columns for a list width: { {key, x, w, j}, ... }
 function LM.Columns(listW, council)
     local use = {}
     for _, c in ipairs(COLS) do if not c.council or council then use[#use + 1] = c end end
@@ -1069,7 +1069,7 @@ local function buildMaster()
     f.tbar.fill = f.tbar:CreateTexture(nil, "ARTWORK")
     f.tbar.fill:SetPoint("TOPLEFT") f.tbar.fill:SetPoint("BOTTOMLEFT")
     f.tabs = {}
-    -- Kopf: gewaehltes Item
+    -- Header: selected item
     f.headCard = K.Panel(f, C.panel)
     f.headCard.edge = f.headCard:CreateTexture(nil, "ARTWORK")
     f.headCard.edge:SetPoint("TOPLEFT") f.headCard.edge:SetPoint("BOTTOMLEFT") f.headCard.edge:SetWidth(3)
@@ -1083,7 +1083,7 @@ local function buildMaster()
     f.hinfo:SetWordWrap(false)
     f.hup = K.Text(f.headCard, 11, C.muted)
     f.hup:SetWordWrap(false)
-    -- Zusammenfassung der Wahlen
+    -- Summary of choices
     f.sum = K.Text(f, 11, C.muted)
     f.sum:SetWordWrap(false)
     -- Fussleiste
@@ -1094,7 +1094,7 @@ local function buildMaster()
     f.newBtn = K.Button(f, L["Items from loot window"], 170, 24, "ghost", function() LM.StartFromLoot() end)
     f.hint = K.Text(f, 10, C.dim)
     f.hint:SetWordWrap(false)
-    -- GDKP-Topf: vier Kennzahlen + Auszahlung
+    -- GDKP pot: four stats + payout
     f.potBox = K.Panel(f, C.panel)
     f.potBox.edge = f.potBox:CreateTexture(nil, "ARTWORK")
     f.potBox.edge:SetPoint("TOPLEFT") f.potBox.edge:SetPoint("BOTTOMLEFT") f.potBox.edge:SetWidth(3)
@@ -1121,7 +1121,7 @@ local function buildMaster()
         K.ShowTip(self, lines)
     end)
     f.potHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    -- Spaltenkoepfe
+    -- Column headers
     f.colHead = {}
     for _, c in ipairs(COLS) do
         local t = K.Text(f, 10, C.dim, c.j or "LEFT")
@@ -1148,7 +1148,7 @@ local function buildMaster()
         r.vote = K.Button(r, "+", 24, 20, "ghost")
         r.give = K.Button(r, L["Give"], GIVE_W - 6, 22, "primary")
         r.give:SetPoint("RIGHT", -4, 0)
-        -- Beute-Statistik beim Drueberfahren
+        -- Loot stats on hover
         r:SetScript("OnEnter", function(self)
             local e = self.item
             if not e then return end
@@ -1169,7 +1169,7 @@ local function buildMaster()
         local s = LM.session
         local it = s and s.items[f2.sel]
         local mode = s and s.mode
-        -- Spalten an die aktuelle Breite anpassen
+        -- Fit columns to the current width
         if r.colVer ~= f2.colVer then
             r.colVer = f2.colVer
             for _, t in pairs(r.cols) do t:Hide() end
@@ -1197,7 +1197,7 @@ local function buildMaster()
                 if c.key == "gear" then r.hasGear = true end
             end
         end
-        -- Platz: 1-3 in Gold/Silber/Bronze, Gepasste ohne Platz
+        -- Place: 1-3 in gold/silver/bronze, passers without place
         local pos = e.choice ~= "pass" and idx or nil
         local PC = { { 1, 0.82, 0.3 }, { 0.8, 0.82, 0.86 }, { 0.85, 0.55, 0.3 } }
         r.cols.pos:SetText(pos and tostring(pos) or "-")
@@ -1241,7 +1241,7 @@ local function buildMaster()
         r.vote:SetLabel(voted and "|cff66db9e" .. L["Yes"] .. "|r" or "+")
         r.vote:SetWidth(voted and 30 or 24)
         r.vote:SetScript("OnClick", function() LM.Vote(f2.sel, e.name) end)
-        -- Stimmen-Balken (Anteil an der hoechsten Stimmenzahl)
+        -- Vote bar (share of the highest vote count)
         local maxV = f2.maxVotes or 0
         r.vbar:SetShown(council and r.hasVotes and e.votes > 0 and maxV > 0 and true or false)
         if r.hasVotes then r.vbar:SetWidth(math.max(2, (r.hasVotes - 34) * (e.votes / math.max(1, maxV)))) end
@@ -1251,7 +1251,7 @@ local function buildMaster()
         if r.stripe and it and it.winner == e.name then r.stripe:Show() end
     end)
     f.list.empty:SetText(L["No answers yet."])
-    -- Ziehgriff unten rechts
+    -- Resize grip bottom right
     f.grip = CreateFrame("Button", nil, f)
     f.grip:SetSize(16, 16)
     f.grip:SetPoint("BOTTOMRIGHT", -2, 2)
@@ -1281,7 +1281,7 @@ local function buildMaster()
         end
     end)
 
-    -- Aufbau nach Breite/Hoehe; merkt Rechtecke in f.rects (Test)
+    -- Layout by width/height; stores rectangles in f.rects (test)
     function f:Layout(W, H)
         W = W or self:GetWidth() or 900
         H = H or self:GetHeight() or 460
@@ -1293,13 +1293,13 @@ local function buildMaster()
         local mw = W - mx - 12
         self.tbarW = W - 24
         put(nil, "win", "tbar", self.tbar, 12, 34, W - 24, 2)
-        -- Item-Leiste links (bei vielen Items kleiner)
+        -- Item bar left (smaller with many items)
         local n = s and #s.items or 0
         local size = (n * 54 <= H - 90) and 48 or 38
         for i, t in ipairs(self.tabs) do
             if i <= n then put(R, "rail", "tab" .. i, t, 12, 44 + (i - 1) * (size + 6), size, size) end
         end
-        -- Kopf-Karte
+        -- Header card
         put(R, "main", "head", self.headCard, mx, 44, mw, 72)
         local hx = 76
         put(R, "head", "hname", self.hname, hx, 12, mw - hx - 12, 18)
@@ -1324,7 +1324,7 @@ local function buildMaster()
             put(R, "pot", "payout", self.payout, mw - 150, 10, 140, 24)
             listBottom = py - 8
         end
-        -- rechts in der Fussleiste von rechts nach links: Runde beenden, Alle vergeben, An mich
+        -- right in the footer from right to left: end round, award all, to me
         local x = W - 12
         local fb = {}
         for _, b in ipairs({ self.endBtn, self.awardAll, self.toMe }) do
@@ -1339,7 +1339,7 @@ local function buildMaster()
         if self.newBtn:IsShown() then put(R, "foot", "new", self.newBtn, mx, fy, 170, 24) end
         local hx0 = self.newBtn:IsShown() and (mx + 180) or mx
         put(R, "foot", "hint", self.hint, hx0, fy + 5, math.max(10, x - hx0 - 4), 14)
-        -- Liste
+        -- List
         local council = s and s.mode == "council"
         self.cols = LM.Columns(mw - 8, council)
         self.colVer = self.colVer + 1
@@ -1443,7 +1443,7 @@ function LM.Refresh()
         f.hup:SetText(type(up) == "string" and (L["For you"] .. ": " .. up) or ("|cff666666" .. L["For you: no comparison"] .. "|r"))
         if ns.Upgrade and ns.Upgrade.Badge then pcall(ns.Upgrade.Badge, f.head, it.link) end
         list = LM.Ranked(it)
-        -- Zusammenfassung: wie viele je Wahl, wer fehlt noch
+        -- Summary: how many per choice, who is still missing
         local cn = { ms = 0, os = 0, tm = 0, pass = 0 }
         local maxV = 0
         for _, e in ipairs(list) do
@@ -1494,7 +1494,7 @@ function LM.Refresh()
 end
 
 ------------------------------------------------------------------------
--- Beutefenster: Knopf "Mit Oasis verteilen" fuer Plundermeister
+-- Loot window: button "Distribute with Oasis" for master looters
 ------------------------------------------------------------------------
 local function lootItems()
     local out = {}

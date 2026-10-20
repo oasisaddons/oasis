@@ -1,17 +1,17 @@
--- Oasis Modul 6: Gilden-Chronik (Level, epische Beute, Legacy, Bosse, neue Mitglieder)
+-- Oasis module 6: guild chronicle (level, epic loot, Legacy, bosses, new members)
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Chronicle", function()   -- Modul Chronik (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Chronicle", function()   -- Chronicle module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be tampered with):
+-- sanitize texts, cap numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- escape sequences (|c |r |n |H |T |K |A ...) and control characters neutralized; links: valid item/spell links are kept
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -75,8 +75,8 @@ ns.Relabel(function()
     KINDS.guild[1], KINDS.duel[1], KINDS.badge[1], KINDS.news[1] = L["Guild"], L["Roll"], L["Badge"], L["Guild news"]
 end)
 
--- Eintraege speichern eine Textvorlage (tk) + Werte (a1..a3), damit jeder Client
--- sie in seiner eigenen Sprache anzeigt
+-- Entries store a text template (tk) + values (a1..a3) so that every client
+-- displays them in its own language
 function Chronicle.Add(kind, id, tk, args, extra)
     if Store.Get("chronicle", id) then return end
     local rec = { id = id, kind = kind, who = ns.me(), tk = tk, ts = ns.now() }
@@ -125,7 +125,7 @@ function Chronicle.Item(e)
     return e.item
 end
 
--- Gilden-Optionen (Gildenleitung): was in die Chronik kommt und ob im Gildenchat gepostet werden darf
+-- Guild options (guild leadership): what goes into the chronicle and whether posting to guild chat is allowed
 ns.GuildOption({ page = "chronicle", key = "chLvStep", default = 5, min = 1, max = 10, step = 1,
     label = "Level entry every", desc = "A level milestone is recorded every this many levels (level 60 always).",
     fmt = function(v) return v .. " Level" end })
@@ -144,7 +144,7 @@ local function announce(text)
 end
 
 ------------------------------------------------------------------------
--- Quellen
+-- Sources
 ------------------------------------------------------------------------
 ns.Listen("LEVEL_UP", function(level)
     local step = math.max(1, math.floor(tonumber(ns.GuildOpt("chLvStep")) or 5))
@@ -161,9 +161,9 @@ ns.Listen("STORE", function(coll, rec, old)
     local age = ns.now() - (tonumber(rec.ts) or 0)
     if coll == "chronicle" and not old and not rec.del and not ns.isMe(rec.who) and age >= -5 and age <= 30 then
         if rec.kind == "level" and ns.db.settings.chrToastLevels == false then
-            -- persoenlich: Level-Hinweise anderer aus
+            -- personal: level notices of others off
         elseif (rec.kind == "level" or rec.kind == "boss" or rec.kind == "legacy" or rec.kind == "duel" or rec.kind == "badge")
-            -- nur eigene Meldungen (Ersteller = betroffene Person), je Person gedrosselt, Texte entschaerft
+            -- only own reports (creator = affected person), throttled per person, texts sanitized
             and SEC.Name(rec.who) and (not rec.by or Comm.whoKey(rec.by) == Comm.whoKey(rec.who))
             and SEC.Rate("chrtoast:" .. rec.who, 20) then
             K.Toast(ns.displayName(rec.who) .. " " .. SEC.Text(Chronicle.Text(rec), 120), SEC.Text(Chronicle.Item(rec) or ns.zoneName(rec.mapID, rec.zone), 120, true), (KINDS[rec.kind] or KINDS.guild)[2],
@@ -180,7 +180,7 @@ ns.Listen("LEGACY_DONE", function(e)
     if ns.db.settings.chrPostLegacy ~= false then announce(L["Legacy challenge done: "] .. e.name) end
 end)
 
--- Bosskills: der Gruppenanfuehrer traegt ein
+-- Boss kills: the group leader records them
 ns.On("ENCOUNTER_END", function(encounterID, encounterName, difficultyID, groupSize, success)
     encounterID, encounterName, success = ns.safe(encounterID), ns.safe(encounterName), ns.safe(success)
     if success ~= 1 or not encounterName then return end
@@ -206,7 +206,7 @@ ns.On("ENCOUNTER_END", function(encounterID, encounterName, difficultyID, groupS
     end)
 end)
 
--- Beitritt / Austritt (jeder Client sieht die Systemmeldung, gleiche ID verhindert Doppelte)
+-- Join / leave (every client sees the system message, same ID prevents duplicates)
 local function toPattern(fmt)
     if not fmt then return nil end
     local p = fmt:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
@@ -241,12 +241,12 @@ ns.On("CHAT_MSG_SYSTEM", function(text)
 end)
 
 ------------------------------------------------------------------------
--- Seite: Reiterleiste, Wochen-Kacheln, Zeitleiste (Tageskapitel, Karten, Buendel), rechte Spalte
+-- Page: tab bar, weekly tiles, timeline (day chapters, cards, bundles), right column
 ------------------------------------------------------------------------
 local filter, whoFilter, search = "all", nil, ""
 local onlyMine, onlyOnline = false, false
-local expanded = {}          -- aufgeklappte Buendel (id des neuesten Eintrags)
-local firstKill = {}         -- Boss-Name -> id des ersten Kills (fuer "Erstkill")
+local expanded = {}          -- expanded bundles (id of the newest entry)
+local firstKill = {}         -- boss name -> id of the first kill (for "first kill")
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local EMBER = ns.MEDIA .. "ember"
 local CLASS_SHEET = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes"
@@ -261,7 +261,7 @@ local WEEK_LABEL = { level = "Level milestones", loot = "Epic loot", boss = "Bos
     badge = "Badge", guild = "New members", duel = "Dice games" }
 local BUNDLE_TEXT = { badge = "earned %d badges", loot = "looted %d items", boss = "und Gruppe besiegen %d Bosse",
     duel = "played %d dice games", news = "%d guild news", legacy = "completed %d Legacy challenges" }
-local BUNDLE_GAP = 3 * 3600  -- gleiche Ereignisse einer Person innerhalb von 3 Std. = eine Karte
+local BUNDLE_GAP = 3 * 3600  -- same events of one person within 3 hours = one card
 local QHEX = { ["9d9d9d"] = 0, ffffff = 1, ["1eff00"] = 2, ["0070dd"] = 3, a335ee = 4, ff8000 = 5, e6cc80 = 6 }
 local QCOL = { [0] = { 0.62, 0.62, 0.62 }, [1] = { 0.9, 0.9, 0.9 }, [2] = { 0.12, 1, 0 }, [3] = { 0.1, 0.5, 0.95 },
     [4] = { 0.64, 0.21, 0.93 }, [5] = { 1, 0.5, 0 }, [6] = { 0.9, 0.8, 0.5 } }
@@ -308,7 +308,7 @@ local function lineText(e)
     return Chronicle.Text(e) .. (item and (" " .. item) or "")
 end
 local function levelOf(e) return (not e.rank) and tonumber(e.lvl or e.a1) or nil end
--- Highlight: epische Beute, Level 60, Boss-Erstkill, neues Mitglied (+ Gewicht fuer "Highlight der Woche")
+-- Highlight: epic loot, level 60, boss first kill, new member (+ weight for "highlight of the week")
 local function highlight(e)
     if e.kind == "loot" then
         local q = itemQuality(e) or 0
@@ -329,7 +329,7 @@ local function highlight(e)
     return 1
 end
 local function plainLine(e) return ns.displayName(e.who or "") .. " " .. plain(lineText(e)) end
--- Suchtreffer im Klartext gelb hervorheben (nur Texte ohne Farbcodes/Links)
+-- highlight search hits in plain text in yellow (only texts without color codes/links)
 local function mark(text)
     if search == "" or text:find("|", 1, true) then return text end
     local lo = text:lower()
@@ -346,7 +346,7 @@ local function mark(text)
     return table.concat(out)
 end
 
--- Klassensymbol (Atlas oder Symbolblatt) wie im Dashboard
+-- class icon (atlas or icon sheet) like in the dashboard
 local function setClassIcon(tex, class)
     if ns.GuildInfo and ns.GuildInfo.SetClassIcon then
         local ok, r = pcall(ns.GuildInfo.SetClassIcon, tex, class)
@@ -369,11 +369,11 @@ local function circleMask(owner, tex)
     end)
 end
 
--- 2026: Glas-Optik wie Mitglieder/Legacy/Abzeichen (Helfer aus ns.Insta; fehlen sie, bleibt das alte Aussehen)
+-- 2026: glass look like Members/Legacy/Badges (helpers from ns.Insta; if missing, the old look stays)
 local function hasGlass() return ns.Insta and ns.Insta.Glass and true or false end
 local function glass(f, fill, line, r) if hasGlass() then ns.Insta.Glass(f, fill, line, r) end end
 local function round(t, box, r) if K.RoundMask and t then K.RoundMask(t, box or t, r) end end
--- Klasse einer Person, notfalls ueber einen ihrer Charaktere (Main/Twinks); je Refresh gecacht
+-- class of a person, if needed via one of their characters (main/alts); cached per refresh
 local classCache = {}
 local function classFor(who)
     if not who then return nil end
@@ -399,8 +399,8 @@ local function calmBtn(b, primary)
     return b
 end
 
--- Rundes Bild: Klassenkreis (Person) bzw. Item-/Abzeichen-Symbol, Ring in Klassen-/Qualitaets-/Artfarbe,
--- kleine Art-Marke unten rechts
+-- Round image: class circle (person) or item/badge icon, ring in class/quality/type color,
+-- small type tag at the bottom right
 local function makeAvatar(parent)
     local a = CreateFrame("Frame", nil, parent)
     a.glow = a:CreateTexture(nil, "BACKGROUND", nil, 2)
@@ -461,7 +461,7 @@ local function setAvatar(a, e)
         a.iconM:Show()
         mini = false
     elseif e.kind == "level" and ns.LevelBadges and ns.LevelBadges.Exact(levelOf(e), true) then
-        -- 0.5.571: Stufe 10/20/.../60 -> Stufen-Abzeichen
+        -- 0.5.571: level 10/20/.../60 -> level badges
         a.iconM:SetTexture(ns.LevelBadges.Exact(levelOf(e), true))
         a.iconM:SetTexCoord(0, 1, 0, 1)
         a.iconM:Show()
@@ -497,7 +497,7 @@ local function setAvatar(a, e)
 end
 
 ------------------------------------------------------------------------
--- Aktionen (Klick, Rechtsklick, Tooltip)
+-- Actions (click, right-click, tooltip)
 ------------------------------------------------------------------------
 local refreshSoon
 local function showProfile(who)
@@ -607,7 +607,7 @@ local function entryTip(owner, e, kids)
 end
 
 ------------------------------------------------------------------------
--- Daten aufbereiten: filtern, buendeln, Tageskapitel
+-- Prepare data: filter, bundle, day chapters
 ------------------------------------------------------------------------
 local function passBase(e)
     if whoFilter and e.who ~= whoFilter then return false end
@@ -619,7 +619,7 @@ local function passBase(e)
     end
     return true
 end
--- neueste zuerst; Level einer Person am selben Tag und gleiche Ereignisse kurz hintereinander -> eine Karte
+-- newest first; a person's levels on the same day and identical events in quick succession -> one card
 local function bundle(rows)
     local out, open = {}, {}
     for _, e in ipairs(rows) do
@@ -667,7 +667,7 @@ local function kidLabel(k)
 end
 
 ------------------------------------------------------------------------
--- Bausteine
+-- Building blocks
 ------------------------------------------------------------------------
 local function gradient(tex, dir, c, a1, a2, fallbackA)
     if not K.Gradient(tex, dir, { c[1], c[2], c[3], a1 }, { c[1], c[2], c[3], a2 }) then
@@ -725,7 +725,7 @@ local function emptyState(parent, color, text)
     return f
 end
 
--- Reiterleiste: Symbol + Text + Zaehler, gleitender Balken in der Farbe der Art
+-- Tab bar: icon + text + counter, sliding bar in the color of the type
 local function buildTabs(p, onPick)
     local f = CreateFrame("Frame", nil, p)
     f:SetHeight(34)
@@ -790,7 +790,7 @@ local function buildTabs(p, onPick)
             b:SetSize(bw, 33)
             b.x, b.w = x, bw
             x = x + bw + gap
-            -- Gruppe (Symbol, Text, Zahl) mittig; zu eng -> Text gekuerzt (Tooltip kommt automatisch)
+            -- group (icon, text, number) centered; too narrow -> text shortened (tooltip comes automatically)
             local cw = (b.count:GetText() or "") ~= "" and ((b.count:GetStringWidth() or 0) + 5) or 0
             local iw = withIcon and 19 or 0
             local tw = math.max(10, math.min(b.label:GetStringWidth() or 0, bw - iw - cw - 12))
@@ -824,7 +824,7 @@ local function buildTabs(p, onPick)
         self.ind:SetColorTexture(c[1], c[2], c[3], 1)
         gradient(self.indGlow, "VERTICAL", c, 0.22, 0, 0.1)
         if hasGlass() then
-            -- schlanke Akzentlinie unten im Glas, kein Schein
+            -- slim accent line at the bottom of the glass, no glow
             self.indGlow:Hide()
             self.ind:SetHeight(2)
             round(self.ind, self.ind, 1)
@@ -858,7 +858,7 @@ local function buildTabs(p, onPick)
     return f
 end
 
--- Wochen-Kachel (Verlauf, Glow, Hover-Lift, hochzaehlend), Klick = Filter
+-- Weekly tile (gradient, glow, hover lift, counting up), click = filter
 local function buildTile(parent, kind, onClick)
     local c = kindOf(kind)[2]
     local t = CreateFrame("Button", nil, parent)
@@ -900,7 +900,7 @@ local function buildTile(parent, kind, onClick)
     t.label:SetPoint("RIGHT", t.icon, "LEFT", -4, 0)
     t.label:SetText(K.Upper and K.Upper(L[TILE_LABEL[kind]]) or L[TILE_LABEL[kind]]:upper())
     if hasGlass() then
-        -- Glaskachel: grosse Zahl, kleine Farbmarke, "+3 heute" als Pille, ruhiges Symbol
+        -- Glass tile: big number, small color mark, "+3 today" as a pill, calm icon
         t.grad:Hide() t.top:Hide() t.gloss:Hide()
         t.iconGlow:SetTexture(nil) t.iconGlow:SetAlpha(0)
         t.hov:SetColorTexture(1, 1, 1, 0.035)
@@ -970,7 +970,7 @@ local function buildTile(parent, kind, onClick)
     return t
 end
 
--- Schalter-Chip ("Nur meine", "Nur online")
+-- Toggle chip ("Only mine", "Only online")
 local function buildChip(parent, text, get, set)
     local b = K.Button(parent, text, 80, 22, "ghost")
     b.label:SetFont(K.FONT, 11, "")
@@ -993,7 +993,7 @@ local function buildChip(parent, text, get, set)
 end
 
 ------------------------------------------------------------------------
--- Zeitleiste: eigene Liste mit unterschiedlichen Zeilenhoehen, weichem Scrollen, Tageskapitel oben angeheftet
+-- Timeline: own list with varying row heights, smooth scrolling, day chapters pinned at the top
 ------------------------------------------------------------------------
 local function buildTimeline(p)
     local TL = CreateFrame("Frame", nil, p)
@@ -1010,7 +1010,7 @@ local function buildTimeline(p)
     TL.thumb:SetWidth(3)
     TL.thumb:SetColorTexture(C.line[1], C.line[2], C.line[3], 1)
 
-    -- Zeilen ----------------------------------------------------------
+    -- Rows ----------------------------------------------------------
     local function newDay()
         local r = CreateFrame("Frame", nil, TL)
         r.knot = r:CreateTexture(nil, "ARTWORK")
@@ -1072,7 +1072,7 @@ local function buildTimeline(p)
         r.edge = r:CreateTexture(nil, "ARTWORK")
         r.edge:SetPoint("TOPLEFT") r.edge:SetPoint("BOTTOMLEFT")
         r.edge:SetWidth(2)
-        -- Knoten auf der Zeitleiste + Verbinder
+        -- node on the timeline + connector
         r.conn = r:CreateTexture(nil, "BACKGROUND")
         r.conn:SetHeight(1)
         r.conn:SetPoint("LEFT", r, "LEFT", LINE_X - CARD_X + 1, 0)
@@ -1109,7 +1109,7 @@ local function buildTimeline(p)
         r.chev = K.Text(r, 14, C.muted, "CENTER")
         r.chev:SetPoint("BOTTOMRIGHT", -12, 7)
         r.chev:SetSize(14, 14)
-        -- Name klickbar (Profil)
+        -- name clickable (profile)
         r.nameBtn = CreateFrame("Button", nil, r)
         r.nameBtn:SetPoint("TOPLEFT", r.name, "TOPLEFT", -2, 3)
         r.nameBtn:SetPoint("BOTTOMRIGHT", r.name, "BOTTOMRIGHT", 2, -3)
@@ -1184,7 +1184,7 @@ local function buildTimeline(p)
         r.av.glow:SetShown(big and not hasGlass())
         r.av.glow:SetAlpha(0.45)
         local ax = big and 62 or 54
-        -- Name + Text in Zeile 1, Zeit/Ort in Zeile 2
+        -- name + text in line 1, time/place in line 2
         K.SetFontSafe(r.name, K.FONT, big and 14 or 13, "", K.FONT)
         K.SetFontSafe(r.text, K.FONT, big and 14 or 13, "", K.FONT)
         local nm = e.who and ns.displayName(e.who) or ""
@@ -1203,7 +1203,7 @@ local function buildTimeline(p)
         r.text:ClearAllPoints()
         r.text:SetPoint("LEFT", r.name, "RIGHT", nm ~= "" and 5 or 0, 0)
         r.text:SetPoint("RIGHT", r.pill, "LEFT", -8, 0)
-        -- Zeile 2
+        -- line 2
         local sub = { date("%H:%M", e.ts or 0), ns.ago(e.ts) }
         if #g.kids > 1 then
             local names, seen = {}, {}
@@ -1221,9 +1221,9 @@ local function buildTimeline(p)
         r.sub:ClearAllPoints()
         r.sub:SetPoint("BOTTOMLEFT", ax, big and 12 or 9)
         r.sub:SetPoint("RIGHT", r, "RIGHT", #g.kids > 1 and -30 or -10, 0)
-        -- Marke rechts: Highlight-Stichwort oder Art
+        -- tag on the right: highlight keyword or type
         if hasGlass() then
-            -- Kategorie als kleine farbige Pille (Highlight-Stichwort normal geschrieben)
+            -- category as a small colored pill (highlight keyword written normally)
             local pc = g.tag and (ring or kc) or kc
             r.pill:Set(g.tag or kd[1], pc)
             glass(r.pill, { pc[1], pc[2], pc[3], 0.12 }, { pc[1], pc[2], pc[3], 0.40 }, 8)
@@ -1294,7 +1294,7 @@ local function buildTimeline(p)
     local FILL = { day = fillDay, card = fillCard, kid = fillKid }
     local XOFF = { day = CARD_X, card = CARD_X, kid = CARD_X }
 
-    -- angeheftetes Tageskapitel
+    -- pinned day chapter
     TL.sticky = CreateFrame("Frame", nil, TL)
     TL.sticky:SetHeight(H_DAY - 4)
     TL.sticky:SetFrameLevel((TL:GetFrameLevel() or 1) + 20)
@@ -1354,7 +1354,7 @@ local function buildTimeline(p)
                 break
             end
         end
-        -- Tageskapitel oben anheften, vom naechsten Kapitel sanft hinausschieben
+        -- pin day chapter at the top, gently pushed out by the next chapter
         if firstDay and off > 0 then
             local push = 0
             if nextDay then push = math.min(0, (nextDay.y - off) - (H_DAY - 4)) end
@@ -1366,12 +1366,12 @@ local function buildTimeline(p)
         else
             self.sticky:Hide()
         end
-        -- Linie nur so lang wie der Inhalt
+        -- line only as long as the content
         self.line:ClearAllPoints()
         self.line:SetPoint("TOPLEFT", self, "TOPLEFT", LINE_X, off > 0 and 0 or -(H_DAY / 2))
         self.line:SetHeight(math.max(1, math.min(H, self.total - off - 10) - (off > 0 and 0 or H_DAY / 2)))
         self.line:SetShown(#self.items > 0)
-        -- Rollbalken
+        -- scrollbar
         local maxOff = self:MaxOff()
         if maxOff > 0 and H > 0 then
             local th = math.max(24, H * H / math.max(H, self.total))
@@ -1391,7 +1391,7 @@ local function buildTimeline(p)
             self:Layout()
             return
         end
-        -- OnUpdate nur waehrend der Bewegung (und nur solange sichtbar)
+        -- OnUpdate only while moving (and only while visible)
         self:SetScript("OnUpdate", function(s, el)
             local d = s.target - s.off
             if math.abs(d) < 0.6 then
@@ -1407,7 +1407,7 @@ local function buildTimeline(p)
     TL:SetScript("OnSizeChanged", function(self) self:Layout(true) end)
     TL:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) self.off = self.target end)
 
-    -- Daten setzen; keepAnchor = Leseposition halten, wenn oben Neues dazukommt (kein Springen beim Nachladen)
+    -- Set data; keepAnchor = keep reading position when new items arrive at the top (no jumping on reload)
     function TL:SetItems(items, keepAnchor)
         local anchorKey, anchorDy
         if keepAnchor and self.off > 0 then
@@ -1431,7 +1431,7 @@ local function buildTimeline(p)
         self.target = math.max(0, math.min(self:MaxOff(), self.target))
         self:Layout(true)
     end
-    -- sichtbare Karten gestaffelt einblenden (nur beim Oeffnen/Filterwechsel)
+    -- fade in visible cards staggered (only on open/filter change)
     function TL:Stagger()
         if not animOn() then return end
         local list = {}
@@ -1444,7 +1444,7 @@ local function buildTimeline(p)
         end
         ns.After(1.2, function() for _, r in pairs(self.used) do r:SetAlpha(1) end end)
     end
-    -- Glow der Highlights atmet leise (OnUpdate nur solange die Seite sichtbar ist)
+    -- highlight glow breathes softly (OnUpdate only while the page is visible)
     local pulse = CreateFrame("Frame", nil, TL)
     pulse.t = 0
     pulse:SetScript("OnUpdate", function(s, el)
@@ -1462,7 +1462,7 @@ local function buildTimeline(p)
 end
 
 ------------------------------------------------------------------------
--- Rechte Spalte
+-- Right column
 ------------------------------------------------------------------------
 local function sideBox(parent, title, color)
     local f = K.Panel(parent, C.panel)
@@ -1705,11 +1705,11 @@ local function buildTop(p)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local page
 local pending, pendingKeep = false, true
--- gebuendeltes Neuzeichnen: viele Datensaetze beim Abgleich -> ein Durchlauf
+-- batched redraw: many records during sync -> one pass
 refreshSoon = function(now)
     if now then
         pendingKeep = false
@@ -1754,7 +1754,7 @@ ns.RegisterPage({
         p.tabs:SetPoint("TOPLEFT", 0, 0)
         p.tabs:SetPoint("TOPRIGHT", 0, 0)
 
-        -- Kennzahl-Kacheln dieser Woche
+        -- this week's stat tiles
         p.tileRow = CreateFrame("Frame", nil, p)
         p.tileRow:SetPoint("TOPLEFT", 0, -42)
         p.tileRow:SetPoint("TOPRIGHT", 0, -42)
@@ -1772,7 +1772,7 @@ ns.RegisterPage({
         p.tileRow:SetScript("OnSizeChanged", function(_, w) layoutTiles(w) end)
         layoutTiles(p.tileRow:GetWidth())
 
-        -- Werkzeugleiste: Suche, Schalter, Personenfilter, Anzahl
+        -- Toolbar: search, toggles, person filter, count
         local TOOL_Y = -108
         p.search = K.Input(p, 170, L["Search ..."], function(t)
             search = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
@@ -1790,12 +1790,12 @@ ns.RegisterPage({
         p.chip.label:SetFont(K.FONT, 11, "")
         p.count = K.Text(p, 11, C.dim, "RIGHT")
 
-        -- Zeitleiste
+        -- Timeline
         p.tl = buildTimeline(p)
         p.empty = emptyState(p.tl, C.accent, "")
         p.empty:SetPoint("TOP", 0, -50)
 
-        -- rechte Spalte
+        -- right column
         p.hl = buildHighlight(p)
         p.week = buildWeek(p, function(x) setFilter(x, true) end)
         p.top = buildTop(p)
@@ -1821,13 +1821,13 @@ ns.RegisterPage({
                 p.top:SetPoint("TOPRIGHT", p.week, "BOTTOMRIGHT", 0, -8)
                 p.top:SetPoint("BOTTOM", p, "BOTTOM", 0, 0)
                 p.top:SetWidth(SIDE)
-                -- wenig Hoehe: Highlight weglassen, damit "Am aktivsten" Platz behaelt
+                -- little height: drop the highlight so "Most active" keeps its space
                 local H = p:GetHeight() or 500
                 local small = H < 470
                 p.hl:SetShown(not small)
                 if small then p.week:ClearAllPoints() p.week:SetPoint("TOPRIGHT", 0, TOOL_Y) end
             end
-            -- Chips nur, wenn Platz ist (sonst ueberlappt die Anzahl)
+            -- chips only if there is room (otherwise the count overlaps)
             local avail = W - right
             p.online:SetShown(avail >= 430)
             p.count:SetShown(avail >= 470)
@@ -1837,7 +1837,7 @@ ns.RegisterPage({
     end,
 
     refresh = function(p)
-        -- 0.6.447: schwarze Rahmen auf der ganzen Chronik-Seite
+        -- 0.6.447: black borders on the whole chronicle page
         if K.DarkFramesIn then ns.After(0.05, function() pcall(K.DarkFramesIn, p) end) end
         local keep = pendingKeep and not p.tl.switch
         local fresh = p.fresh
@@ -1846,7 +1846,7 @@ ns.RegisterPage({
         local now = ns.now()
         local since, today = now - 7 * 86400, dayKey(now)
 
-        -- Erstkills (fruehester Kill je Boss) + Wochenzahlen
+        -- first kills (earliest kill per boss) + weekly counts
         wipe(firstKill)
         local fkTs = {}
         local week, todayN, per = {}, {}, {}
@@ -1874,7 +1874,7 @@ ns.RegisterPage({
             end
         end
 
-        -- Filter + Zaehler je Reiter
+        -- filter + counter per tab
         local base, counts = {}, { all = 0 }
         for _, e in ipairs(all) do
             if passBase(e) then
@@ -1891,7 +1891,7 @@ ns.RegisterPage({
         end)
         local groups = bundle(rows)
 
-        -- Zeitleiste: Tageskapitel + Karten (+ aufgeklappte Einzeleintraege)
+        -- Timeline: day chapters + cards (+ expanded single entries)
         local items, curDay, head = {}, nil, nil
         for _, g in ipairs(groups) do
             local k = dayKey(g.e.ts)
@@ -1913,7 +1913,7 @@ ns.RegisterPage({
         if fresh or p.tl.switch then p.tl:Stagger() end
         p.tl.switch = nil
 
-        -- Leerzustand mit passender Aktion
+        -- empty state with a fitting action
         local filtered = filter ~= "all" or whoFilter or search ~= "" or onlyMine or onlyOnline
         p.empty:SetShown(#items == 0)
         if #items == 0 then
@@ -1930,7 +1930,7 @@ ns.RegisterPage({
             end
         end
 
-        -- Kopf
+        -- Header
         p.tabs:SetCounts(counts)
         p.tabs:Select(filter, not fresh)
         for _, t in ipairs(p.tiles) do
@@ -1963,7 +1963,7 @@ ns.RegisterPage({
         end
         p.count:SetText((L["%d entries"]):format(#rows))
 
-        -- rechte Spalte
+        -- right column
         p.hl:Set(best, bestTag)
         p.week:Set(week, filter, fresh)
         local top, max = {}, 1

@@ -1,8 +1,8 @@
--- Oasis: Dungeon-Karten aus den Kartenbildern des WoW-Clients (Interface\Worldmap\<Ordner>, 4x3 Kacheln je Ebene).
--- Boss-Positionen (x/y in %, Ebene) uebernommen aus "Forever Atlas" (GPL-2.0, Fork von AtlasLootClassic),
--- dort teils aus SimpleDungeonMap von Babilounet (MIT). Siehe Media/CREDITS_MAPS.txt.
+-- Oasis: dungeon maps from the WoW client's map images (Interface\Worldmap\<folder>, 4x3 tiles per layer).
+-- Boss positions (x/y in %, layer) taken from "Forever Atlas" (GPL-2.0, fork of AtlasLootClassic),
+-- partly from SimpleDungeonMap by Babilounet (MIT) there. See Media/CREDITS_MAPS.txt.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Dungeons", function()   -- Module Dungeons (can be disabled, see ModuleLoader.lua)
 ns.DungeonMapsData = {
   ragefire = { folder = "Ragefire", floors = { 1 }, pins = { { "Oggleflint", 55.51687, 33.38851, 1 }, { "Taragaman the Hungerer", 39.64844, 50.19870, 1 }, { "Jergosh the Invoker", 33.49609, 71.30299, 1 }, { "Bazzalan", 41.01563, 75.38490, 1 } } },
   wailingcaverns = { folder = "WailingCaverns", floors = { 1 }, pins = { { "Lady Anacondra", 30.1, 37.3, 1 }, { "Lord Cobrahn", 15.5, 49.3, 1 }, { "Kresh", 37.6, 30.4, 1 }, { "Lord Pythas", 69.0, 54.7, 1 }, { "Skum", 53.9, 77.3, 1 }, { "Lord Serpentis", 60.1, 46.7, 1 }, { "Verdan the Everliving", 66.0, 72.5, 1 }, { "Mutanus the Devourer", 54.0, 40.6, 1 } } },

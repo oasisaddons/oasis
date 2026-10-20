@@ -1,6 +1,6 @@
--- Oasis: Taschen & Twinks (wie Bagnon/Altoholic) - "Wo ist mein Leinenstoff?"
--- Jeder Charakter merkt sich seine Taschen und Bank (nur auf diesem Account, nichts wird gesendet).
--- Suche ueber alle eigenen Chars + Gildenbank, Zeile im Item-Tooltip, Bestand in der Handwerks-Boerse.
+-- Oasis: bags & alts (like Bagnon/Altoholic) - "Where is my linen cloth?"
+-- Each character remembers its bags and bank (only on this account, nothing is sent).
+-- Search across all your own chars + guild bank, line in the item tooltip, stock in the crafting exchange.
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -14,7 +14,7 @@ local function meKey() return ns.me() end
 local function S() return ns.db.settings end
 
 ------------------------------------------------------------------------
--- Einlesen
+-- Scanning
 ------------------------------------------------------------------------
 local function readBags(list)
     local out, used, total = {}, 0, 0
@@ -38,9 +38,9 @@ local function bankList()
     for b = first, first + (NUM_BANKBAGSLOTS or 7) - 1 do t[#t + 1] = b end
     return t
 end
--- 0.5.783: derselbe Charakter stand zweimal in der Liste, weil sich die Schreibweise des eigenen Namens geaendert hat
--- (Forever: "Vorname-Realm" und "Vorname Nachname-Realm"). Gleicher Vorname + gleicher Realm = derselbe Charakter:
--- alten Eintrag in den aktuellen uebernehmen (Bank bleibt erhalten, falls der neue noch keine kennt) und loeschen.
+-- 0.5.783: the same character appeared twice in the list because the spelling of your own name changed
+-- (Forever: "Firstname-Realm" and "Firstname Lastname-Realm"). Same first name + same realm = same character:
+-- merge the old entry into the current one (bank is kept if the new one doesn't know one yet) and delete it.
 local merged = false
 local function mergeMine()
     if merged then return end
@@ -101,9 +101,9 @@ ns.On("PLAYERBANKSLOTS_CHANGED", soon)
 ns.Listen("LOGIN", function() pcall(mergeMine) ns.After(5, function() pcall(Inv.ScanBags) end) end)
 
 ------------------------------------------------------------------------
--- Abfragen
+-- Queries
 ------------------------------------------------------------------------
--- alle Fundstellen eines Items: { {who, bags, bank} ... }, Summe, Gildenbank
+-- all locations of an item: { {who, bags, bank} ... }, total, guild bank
 function Inv.Where(itemID)
     local out, total = {}, 0
     for who, e in pairs(db()) do
@@ -117,7 +117,7 @@ function Inv.Where(itemID)
     local gb = ns.GuildBank and ns.GuildBank.Count and ns.GuildBank.Count(itemID) or 0
     return out, total, gb
 end
--- Bestand bei den ANDEREN eigenen Chars (fuer die Handwerks-Boerse)
+-- Stock on your OTHER chars (for the crafting exchange)
 function Inv.OtherCount(itemID)
     local n = 0
     for who, e in pairs(db()) do
@@ -129,10 +129,10 @@ function Inv.OtherCount(itemID)
 end
 
 ------------------------------------------------------------------------
--- Tooltip: wer hat es noch?
+-- Tooltip: who else has it?
 ------------------------------------------------------------------------
--- 0.5.612: eigener Block statt einer Sammelzeile - Kopf mit Gesamtzahl, je Charakter eine Zeile
--- (Klassensymbol + Name links, "Taschen x  Bank y" rechts), Gildenbank extra
+-- 0.5.612: own block instead of a single summary line - header with total, one line per character
+-- (class icon + name on the left, "Taschen x  Bank y" on the right), guild bank separately
 local function clsIcon(cls)
     local tc = cls and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[cls]
     if not tc then return "" end
@@ -173,10 +173,10 @@ if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and
 end
 
 ------------------------------------------------------------------------
--- Seite "Taschen & Twinks"
+-- Page "Taschen & Twinks"
 ------------------------------------------------------------------------
-local selChar            -- Charakter rechts; "*" = alle zusammen
-local catFilter = 0      -- 0 = alle Kategorien, sonst Rang aus CAT
+local selChar            -- Character on the right; "*" = all together
+local catFilter = 0      -- 0 = all categories, otherwise rank from CAT
 local mode = "list"      -- "list" | "grid"
 local ALL = "*"
 local CLASS_CIRCLES = "Interface\\TargetingFrame\\UI-Classes-Circles"
@@ -201,7 +201,7 @@ local function coins(c)
     if not c or not GetCoinTextureString then return "" end
     return GetCoinTextureString(c - c % 100)
 end
--- Kategorien (Rang, Name, Farbe)
+-- Categories (rank, name, color)
 local CAT = {
     [2] = { 1, "Weapons", { 0.95, 0.45, 0.35 } }, [4] = { 2, "Armour", { 0.45, 0.65, 1.0 } },
     [0] = { 3, "Consumables", { 0.45, 0.85, 0.55 } }, [7] = { 4, "Trade goods", { 0.95, 0.75, 0.35 } },
@@ -210,11 +210,11 @@ local CAT = {
     [6] = { 9, "Ammo", { 0.8, 0.8, 0.8 } }, [11] = { 9, "Ammo", { 0.8, 0.8, 0.8 } }, [13] = { 10, "Keys", { 0.8, 0.8, 0.8 } },
 }
 local OTHER = { 11, "Miscellaneous", { 0.6, 0.6, 0.65 } }
--- Filter-Reiter: die wichtigsten Gruppen, Rest unter Sonstiges
+-- Filter tabs: the most important groups, rest under Other
 local FILTERS = { { key = 0, text = "All" }, { key = 50, text = "Guild needs" }, { key = 1, text = "Weapons" }, { key = 2, text = "Armour" }, { key = 3, text = "Consumables" },
     { key = 4, text = "Crafting" }, { key = 7, text = "Quest" }, { key = 99, text = "Miscellaneous" } }
--- 0.6.524: Was braucht die Gilde von dem, was du hast? Gesucht-Liste, Questitems anderer, offene Handwerks-Auftraege
--- [itemID] = { { who, kind = "want"|"quest"|"order", text }, ... } - einmal je Seitenaufbau berechnet
+-- 0.6.524: what does the guild need from what you have? Wanted list, others' quest items, open crafting orders
+-- [itemID] = { { who, kind = "want"|"quest"|"order", text }, ... } - computed once per page build
 function Inv.GuildNeeds()
     local out = {}
     local function add(id, e) if id and id > 0 then out[id] = out[id] or {} table.insert(out[id], e) end end
@@ -246,7 +246,7 @@ local function needText(list)
 end
 Inv.NeedText = needText
 local function inFilter(cat, x)
-    if catFilter == 50 then return x ~= nil and x.needs ~= nil end   -- 0.6.524: nur was die Gilde braucht
+    if catFilter == 50 then return x ~= nil and x.needs ~= nil end   -- 0.6.524: only what the guild needs
     if catFilter == 0 then return true end
     if catFilter == 99 then return cat[1] >= 5 and cat[1] ~= 7 end
     return cat[1] == catFilter
@@ -264,7 +264,7 @@ ns.RegisterPage({
         p.sum:SetPoint("TOPRIGHT", 0, -6)
 
         ----------------------------------------------------------------
-        -- links: Charakterkarten
+        -- left: character cards
         ----------------------------------------------------------------
         local ch = CreateFrame("Frame", nil, p)
         glass(ch, 14, 0.025)
@@ -290,7 +290,7 @@ ns.RegisterPage({
             r.name:SetWordWrap(false)
             r.gold = K.Text(r, 10, C.muted)
             r.gold:SetPoint("TOPLEFT", r.name, "BOTTOMLEFT", 0, -3)
-            -- Taschen-Fuellstand
+            -- Bag fill level
             r.track = r:CreateTexture(nil, "ARTWORK")
             r.track:SetColorTexture(1, 1, 1, 0.07)
             r.track:SetHeight(3)
@@ -332,7 +332,7 @@ ns.RegisterPage({
             local frac = (c.used and c.slots and c.slots > 0) and (c.used / c.slots) or 0
             r.track:SetShown(c.slots ~= nil)
             r.fill:SetShown(c.slots ~= nil and frac > 0)
-            -- fast voll = Warnfarbe
+            -- almost full = warning color
             local fc = frac >= 0.9 and C.red or (frac >= 0.75 and C.amber or C.mint)
             r.fill:SetColorTexture(fc[1], fc[2], fc[3], 0.85)
             r.fill:SetWidth(math.max(1, 130 * frac))
@@ -340,11 +340,11 @@ ns.RegisterPage({
         end)
         p.chars:SetPoint("TOPLEFT", 8, -40)
         p.chars:SetPoint("BOTTOMRIGHT", -8, 8)
-        -- Balkenbreite folgt der Kartenbreite
+        -- Bar width follows the card width
         ch:SetScript("OnSizeChanged", function() ns.RefreshPage("bags") end)
 
         ----------------------------------------------------------------
-        -- rechts: Inhalt
+        -- right: content
         ----------------------------------------------------------------
         local rp = CreateFrame("Frame", nil, p)
         glass(rp, 14, 0.025)
@@ -357,7 +357,7 @@ ns.RegisterPage({
         p.rinfo:SetPoint("LEFT", p.rtitle, "RIGHT", 10, -1)
         p.rinfo:SetPoint("RIGHT", rp, "RIGHT", -110, 0)
         p.rinfo:SetWordWrap(false)
-        -- Ansicht: Liste / Raster
+        -- View: list / grid
         p.mode = K.Segments(rp, { { key = "list", text = L["List"] }, { key = "grid", text = L["Grid"] } },
             function(k) mode = k p.fresh = true ns.RefreshPage("bags") end, nil, { size = 11, pad = 14 })
         p.mode:SetPoint("TOPRIGHT", -10, -9)
@@ -366,7 +366,7 @@ ns.RegisterPage({
         p.cat = K.Segments(rp, fl, function(k) catFilter = k p.fresh = true ns.RefreshPage("bags") end, nil, { size = 11, pad = 14 })
         p.cat:SetPoint("TOPLEFT", 10, -40)
 
-        -- Listenansicht
+        -- List view
         p.items = K.List(rp, 36, function(l)
             local r = K.Row(l)
             r.icon = K.Icon(r, 26, nil)
@@ -435,7 +435,7 @@ ns.RegisterPage({
         end)
         p.items:SetPoint("TOPLEFT", 6, -72)
         p.items:SetPoint("BOTTOMRIGHT", -6, 8)
-        -- 0.6.524: Hinweis "Die Gilde braucht ..." (Klick = Filter "Gilde braucht")
+        -- 0.6.524: notice "Die Gilde braucht ..." (click = filter "Gilde braucht")
         p.needBar = CreateFrame("Button", nil, rp)
         p.needBar:SetHeight(22)
         p.needBar:SetPoint("BOTTOMLEFT", 10, 10)
@@ -449,7 +449,7 @@ ns.RegisterPage({
         p.needBar:SetScript("OnClick", function() catFilter = 50 p.fresh = true ns.RefreshPage("bags") end)
         p.needBar:Hide()
 
-        -- Rasteransicht: Taschen-Look, eine Zeile = mehrere Felder
+        -- Grid view: bag look, one row = several slots
         local CELL = 40
         p.grid = K.List(rp, CELL + 6, function(l)
             local r = K.Row(l)
@@ -465,8 +465,8 @@ ns.RegisterPage({
                 b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
                 b.q = b:CreateTexture(nil, "OVERLAY")
                 b.q:SetPoint("BOTTOMLEFT", 3, 3) b.q:SetPoint("BOTTOMRIGHT", -3, 3) b.q:SetHeight(2)
-                -- 0.6.525: "Gilde braucht" = Zahl in einer kleinen Marke oben rechts + Rahmen in Akzentfarbe
-                -- (vorher ein 14-px-Symbol, das bei dieser Groesse nur ein roter Fleck war)
+                -- 0.6.525: "Gilde braucht" = number in a small badge at the top right + frame in accent color
+                -- (previously a 14 px icon that was just a red blob at this size)
                 b.need = CreateFrame("Frame", nil, b)
                 b.need:SetSize(16, 14)
                 b.need:SetPoint("TOPRIGHT", 3, 3)
@@ -520,7 +520,7 @@ ns.RegisterPage({
         p.grid:SetPoint("BOTTOMRIGHT", -6, 8)
         p.gridCell = CELL
 
-        -- leer: Hinweis mit Erklaerung
+        -- empty: hint with explanation
         local em = CreateFrame("Frame", nil, rp)
         em:SetSize(380, 120)
         em:SetPoint("CENTER", 0, -10)
@@ -565,7 +565,7 @@ ns.RegisterPage({
             return table.concat(w, "  ·  ")
         end
         if q ~= "" or selChar == ALL then
-            -- Suche bzw. alle Charaktere zusammen (+ Gildenbank bei Suche)
+            -- Search or all characters together (+ guild bank when searching)
             local ids = {}
             for _, e in pairs(db()) do
                 for _, t in ipairs({ e.bags or {}, e.bank or {} }) do for id in pairs(t) do ids[id] = true end end
@@ -614,7 +614,7 @@ ns.RegisterPage({
             em.d:SetText(L["Log in once with this character."])
         end
 
-        -- Kategorien + Filter
+        -- Categories + filter
         local shown = {}
         local needs, nNeed = Inv.GuildNeeds(), 0
         for _, x in ipairs(out) do
@@ -628,7 +628,7 @@ ns.RegisterPage({
             em.t:SetText(catFilter == 50 and L["Nobody needs any of this right now"] or L["Nothing in this category"])
             em.d:SetText(catFilter == 50 and L["Items from the wanted list, other members' quest items and open crafting orders show up here."] or L["Choose another category."])
         end
-        -- Hinweisleiste: wie viele Items die Gilde gerade braucht (Klick = Filter)
+        -- Notice bar: how many items the guild currently needs (click = filter)
         p.needBar:SetShown(nNeed > 0 and catFilter ~= 50)
         local bot = (nNeed > 0 and catFilter ~= 50) and 38 or 8
         p.items:SetPoint("BOTTOMRIGHT", -6, bot)

@@ -1,12 +1,12 @@
--- Oasis: Ruf-Planer
---  * liest den eigenen Ruf (C_Reputation bzw. Classic GetFactionInfo, alles per pcall)
---  * teilt je Charakter einen kompakten Stand mit der Gilde (nur bei Aenderung, hoechstens alle 5 Min)
---  * Seite: je Fraktion wer wie weit ist, "kurz vor Respektvoll/Ehrfuerchtig", "gemeinsam farmen" (online + Einladen),
---    Fortschritt diese Woche; Raid-/Classic-Fraktionen (Hydraxianer, Argentumdaemmerung, Holzschlund ...) hervorgehoben
--- Datensatz "repfac": { id = "rf-<char>", c = char, cls, wk = Woche, f = "id:stufe:wert:max:woche:name;..." }
--- Teilen ueber ns.PlannerSync (RaidTime.lua, steht in der toc davor).
+-- Oasis: reputation planner
+--  * reads your own reputation (C_Reputation or Classic GetFactionInfo, all via pcall)
+--  * shares a compact state per character with the guild (only on change, at most every 5 min)
+--  * Page: per faction who is how far, "close to Revered/Exalted", "farm together" (online + invite),
+--    progress this week; raid/Classic factions (Hydraxian, Argent Dawn, Timbermaw ...) highlighted
+-- record "repfac": { id = "rf-<char>", c = char, cls, wk = week, f = "id:standing:value:max:week:name;..." }
+-- Sharing via ns.PlannerSync (RaidTime.lua, comes before it in the toc).
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Reputation", function()   -- Modul Ruf-Planer (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Reputation", function()   -- Reputation planner module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -30,7 +30,7 @@ end
 local function S() return ns.db.settings end
 local function weekKey(ts) return date("%Y-%W", ts or ns.now()) end
 
--- wichtige Fraktionen (Classic/Forever-Raids): ID -> Name (Ersatz, falls der Client ihn nicht liefert) + Hinweis
+-- important factions (Classic/Forever raids): ID -> name (fallback if the client doesn't deliver it) + hint
 local KEY_FACTIONS = {
     [749] = { "Hydraxian Waterlords", "Molten Core: Aqual Quintessence douses the runes" },
     [529] = { "Argent Dawn", "Scholomance, Stratholme, Naxxramas attunement" },
@@ -57,7 +57,7 @@ end
 function RP.StandingColor(st) return ST_COLOR[tonumber(st) or 4] or ST_COLOR[4] end
 
 ------------------------------------------------------------------------
--- Ruf lesen (per pcall; fehlt die API -> nil)
+-- read reputation (via pcall; API missing -> nil)
 ------------------------------------------------------------------------
 local function clean(s) return (tostring(s or ""):gsub("[:;]", " ")) end
 function RP.ReadOwn()
@@ -94,11 +94,11 @@ function RP.ReadOwn()
     return nil, "none"
 end
 
--- Fraktionsschluessel: ID, sonst Name
+-- faction key: ID, otherwise name
 local function fkey(e) return (e.id and e.id ~= 0) and ("i" .. e.id) or ("n" .. e.name) end
 RP.FKey = fkey
 
--- eigener Stand + Wochen-Basis -> Kodierung
+-- own state + weekly baseline -> encoding
 local function encodeOwn(list)
     local c = ns.char
     local wk = weekKey()
@@ -129,7 +129,7 @@ function RP.Decode(s)
 end
 
 ------------------------------------------------------------------------
--- Teilen: nur bei Aenderung, hoechstens alle 5 Minuten
+-- sharing: only on change, at most every 5 minutes
 ------------------------------------------------------------------------
 local lastSent, lastHash, scheduled = 0, nil, false
 function RP.Share(force)
@@ -141,7 +141,7 @@ function RP.Share(force)
     local _, cls = UnitClass("player")
     local rec = { id = "rf-" .. ns.me(), c = ns.me(), cls = ns.safe(cls) or "", wk = wk, f = f }
     if S().repShare == false then
-        -- nur lokal fuehren
+        -- keep local only
         Store.merge(COLL, { id = rec.id, c = rec.c, cls = rec.cls, wk = wk, f = f, u = ns.now(), by = ns.me(), demo = nil })
         ns.RefreshPage("repplan")
         return
@@ -153,7 +153,7 @@ function RP.Share(force)
             scheduled = true
             ns.After(wait + 1, function() scheduled = false RP.Share() end)
         end
-        -- lokal schon mal aktuell
+        -- locally already up to date
         local old = Store.Get(COLL, rec.id)
         Store.merge(COLL, { id = rec.id, c = rec.c, cls = rec.cls, wk = wk, f = f, u = old and old.u or ns.now(), by = ns.me() })
         ns.RefreshPage("repplan")
@@ -177,7 +177,7 @@ ns.On("UPDATE_FACTION", onRepChange)
 ns.On("PLAYER_REGEN_ENABLED", function() if lastHash == nil and ns.loggedIn then onRepChange() end end)
 
 ------------------------------------------------------------------------
--- Auswertung
+-- Evaluation
 ------------------------------------------------------------------------
 local function isOnline(name)
     local m = ns.Radar and ns.Radar.byName and ns.Radar.byName[name]
@@ -185,7 +185,7 @@ local function isOnline(name)
     return m and m.online and true or false
 end
 RP.IsOnline = isOnline
--- alle Fraktionen: { key, id, name, key = true/false, chars = { { name, cls, st, cur, max, gain, online } } }
+-- all factions: { key, id, name, key = true/false, chars = { { name, cls, st, cur, max, gain, online } } }
 function RP.Factions()
     local by, order = {}, {}
     local wk = weekKey()
@@ -220,7 +220,7 @@ function RP.Factions()
     end)
     return order
 end
--- "kurz davor": Wohlwollend -> Respektvoll bzw. Respektvoll -> Ehrfuerchtig, ab 75 %
+-- "almost there": Friendly -> Honored or Honored -> Revered, from 75 %
 function RP.NearList(minP)
     minP = minP or 0.75
     local out = {}
@@ -237,7 +237,7 @@ function RP.NearList(minP)
     end)
     return out
 end
--- gemeinsam farmen: Mitglieder, die eine Fraktion mit mir teilen, bei der ich noch nicht Ehrfuerchtig bin
+-- farm together: members who share a faction with me where I'm not yet Exalted
 function RP.FarmList()
     local out = {}
     for _, fa in ipairs(RP.Factions()) do
@@ -260,7 +260,7 @@ function RP.FarmList()
 end
 
 ------------------------------------------------------------------------
--- Demo-Daten (nur lokal)
+-- Demo data (local only)
 ------------------------------------------------------------------------
 local DEMO = {
     { "Grukthar", "WARRIOR", { [749] = { 6, 9800, 12000 }, [529] = { 5, 3100, 6000 }, [59] = { 5, 5200, 6000 }, [576] = { 4, 1200, 3000 } }, { [749] = 1800 } },
@@ -291,7 +291,7 @@ function RP.RemoveDemo()
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local view, selKey = "factions", nil
 local STAR = "|TInterface\\COMMON\\ReputationStar:12:12:0:0:32:32:0:16:0:16|t "
@@ -340,7 +340,7 @@ local function fillChar(r, c, extra)
     if c.online then r.onl:SetVertexColor(0.4, 0.86, 0.62, 1) else r.onl:SetVertexColor(0.3, 0.3, 0.3, 1) end
     r.cols.name:SetText(ns.colorName(c.name, c.cls))
     r.cols.st:SetText(stText(c.st))
-    -- 0.6.451: passt Wert und Maximum nicht zusammen (z. B. "1050 / 30"), Stand aus den Klassik-Schwellen der Stufe rechnen
+    -- 0.6.451: if value and maximum don't match (e.g. "1050 / 30"), compute the standing from the Classic thresholds of the tier
     if (c.max or 0) <= 0 or (c.cur or 0) > (c.max or 0) then
         local TH = { [1] = { -42000, -6000 }, [2] = { -6000, -3000 }, [3] = { -3000, 0 }, [4] = { 0, 3000 },
             [5] = { 3000, 9000 }, [6] = { 9000, 21000 }, [7] = { 21000, 42000 }, [8] = { 42000, 42999 } }
@@ -353,7 +353,7 @@ local function fillChar(r, c, extra)
     local sc = RP.StandingColor(c.st)
     r.bar.fill:SetColorTexture(sc[1], sc[2], sc[3], 0.9)
     if animNext and not (ns.db and ns.db.settings.noAnim) then
-        -- Ansicht gewechselt: Zeile blendet ein, Balken waechst
+        -- view changed: row fades in, bar grows
         local d = math.min(r.index or 1, 14) * 0.03
         r.bar:Set(0)
         r:SetAlpha(0)
@@ -380,7 +380,7 @@ ns.RegisterPage({
         p.hint = K.Text(p, 11, C.muted)
         p.hint:SetPoint("LEFT", p.seg, "RIGHT", 14, 0)
         p.hint:SetPoint("RIGHT", p, "RIGHT", -10, 0)
-        ------------------------------------------------------------ Fraktionen: links Liste, rechts Detail
+        ------------------------------------------------------------ Factions: list on the left, detail on the right
         local fv = CreateFrame("Frame", nil, p)
         fv:SetPoint("TOPLEFT", 0, -34) fv:SetPoint("BOTTOMRIGHT")
         p.fv = fv
@@ -432,7 +432,7 @@ ns.RegisterPage({
         fv.chars = K.List(fv.card, 32, charRow, function(r, c) fillChar(r, c) end)
         fv.chars:SetPoint("TOPLEFT", 4, -56)
         fv.chars:SetPoint("BOTTOMRIGHT", -4, 4)
-        ------------------------------------------------------------ Kurz davor
+        ------------------------------------------------------------ Almost there
         local nv = CreateFrame("Frame", nil, p)
         nv:SetPoint("TOPLEFT", 0, -34) nv:SetPoint("BOTTOMRIGHT")
         p.nv = nv
@@ -443,7 +443,7 @@ ns.RegisterPage({
         end)
         nv.list:SetPoint("TOPLEFT") nv.list:SetPoint("BOTTOMRIGHT")
         nv.list.empty:SetText(L["Nobody is close to Revered or Exalted (from 75 %)."])
-        ------------------------------------------------------------ Gemeinsam farmen
+        ------------------------------------------------------------ Farm together
         local gv = CreateFrame("Frame", nil, p)
         gv:SetPoint("TOPLEFT", 0, -34) gv:SetPoint("BOTTOMRIGHT")
         p.gv = gv
@@ -467,7 +467,7 @@ ns.RegisterPage({
         local onlineFarm, weekSum = 0, 0
         for _, e in ipairs(farm) do if e.c.online then onlineFarm = onlineFarm + 1 end end
         for _, fa in ipairs(facs) do weekSum = weekSum + fa.weekGain end
-        -- Zaehler an den Reitern (frueher eigene Kacheln): Kurz davor / Gemeinsam farmen (davon online)
+        -- counters on the tabs (formerly own tiles): Almost there / Farm together (of which online)
         for _, b in ipairs(p.seg.buttons or {}) do
             local base = (b.key == "factions" and L["Factions"]) or (b.key == "near" and L["Almost there"]) or L["Farm together"]
             local n = (b.key == "factions" and #facs) or (b.key == "near" and #near) or onlineFarm
@@ -497,9 +497,9 @@ ns.RegisterPage({
 })
 
 ------------------------------------------------------------------------
--- Einstellungen
+-- Settings
 ------------------------------------------------------------------------
--- Settings.lua laedt erst nach diesem Modul -> Anmeldung nachholen, sobald alles geladen ist
+-- Settings.lua loads only after this module -> register later once everything is loaded
 local function addSettings(build)
     if ns.AddPageSettings then ns.AddPageSettings("repplan", build)
     else ns.Listen("DB_READY", function() if ns.AddPageSettings then ns.AddPageSettings("repplan", build) end end) end

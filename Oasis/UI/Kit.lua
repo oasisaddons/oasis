@@ -1,5 +1,5 @@
--- Oasis - UI-Baukasten
--- Ruhige, dunkle Flaechen, eine Akzentfarbe (Oasis-Violett), WoW-Schrift fuer Ueberschriften.
+-- Oasis - UI toolkit
+-- Calm, dark surfaces, one accent color (Oasis violet), WoW font for headings.
 local ADDON, ns = ...
 local L = ns.L
 local K = {}
@@ -8,8 +8,8 @@ ns.K = K
 K.FONT = "Fonts\\ARIALN.TTF"
 K.FONT_HEAD = "Fonts\\FRIZQT__.TTF"
 
--- Schriften: WoW-eigene + mitgelieferte (Media\fonts, SIL OFL - siehe LICENSE-FONTS.txt)
--- ui = als Fliesstext geeignet (gut lesbar auch klein)
+-- Fonts: WoW's own + bundled (Media\fonts, SIL OFL - see LICENSE-FONTS.txt)
+-- ui = suitable as body text (readable even when small)
 local MF = "Interface\\AddOns\\Oasis\\Media\\fonts\\"
 K.FONTS = {
     { key = "arialn", text = "Arial Narrow", path = "Fonts\\ARIALN.TTF", ui = true },
@@ -43,14 +43,14 @@ K.FONTS = {
     { key = "shojumaru", text = "Shojumaru", path = MF .. "Shojumaru.ttf" },
     { key = "potta", text = "Potta One", path = MF .. "PottaOne.ttf" },
     { key = "stick", text = "Stick", path = MF .. "Stick.ttf", noext = true },
-    -- nur fuer Chinesisch/Koreanisch/Japanisch (auf die Oasis-Texte reduziert), nicht in den Auswahllisten
-    -- noext = ohne polnische Buchstaben (Latin Extended-A): bei Polnisch wird PT Sans genommen
+    -- only for Chinese/Korean/Japanese (reduced to the Oasis texts), not in the selection lists
+    -- noext = without Polish letters (Latin Extended-A): for Polish PT Sans is used
     { key = "notosc", text = "Noto Sans SC", path = MF .. "NotoSansSC.ttf", hidden = true, cyr = true },
     { key = "notokr", text = "Noto Sans KR", path = MF .. "NotoSansKR.ttf", hidden = true, cyr = true },
     { key = "nototc", text = "Noto Sans TC", path = MF .. "NotoSansTC.ttf", hidden = true, cyr = true },
     { key = "notojp", text = "Noto Sans JP", path = MF .. "NotoSansJP.ttf", hidden = true, cyr = true },
 }
--- Schriften fuer Auswahllisten (ohne die reduzierten CJK-Schriften)
+-- fonts for selection lists (without the reduced CJK fonts)
 function K.PickFonts(filter)
     local out = {}
     for _, f in ipairs(K.FONTS) do
@@ -61,15 +61,15 @@ end
 K.fontByKey = {}
 for _, f in ipairs(K.FONTS) do K.fontByKey[f.key] = f end
 
--- Schriften VORLADEN (0.5.479): WoW nimmt eine eigene Schriftdatei erst richtig auf, wenn sie schon
--- waehrend des Ladebildschirms benutzt wurde - sonst bleibt der Text beim ersten Mal leer bzw. es
--- erscheint eine andere Schrift, erst nach /reload stimmt es ("Inter nicht beim Start",
--- "manche Schriften zeigen gar nichts"). Deshalb hier beim Laden jede Schrift einmal benutzen.
+-- PRELOAD fonts (0.5.479): WoW only properly picks up a custom font file if it was already
+-- used during the loading screen - otherwise the text stays empty the first time or
+-- a different font appears, only correct after /reload ("Inter not at startup",
+-- "some fonts show nothing at all"). So use each font once here while loading.
 do
     local pre = CreateFrame("Frame", nil, UIParent)
     pre:SetSize(1, 1)
-    -- 0.5.647: AUF dem Bildschirm (unten links), fast durchsichtig - ausserhalb zeichnet WoW nichts und laedt die
-    -- Schrift nicht -> beim ersten Start erschien eine Ersatzschrift. Nach dem Ladebildschirm wieder weg.
+    -- 0.5.647: ON the screen (bottom left), almost transparent - off-screen WoW draws nothing and doesn't load the
+    -- font -> on first start a fallback font appeared. Gone again after the loading screen.
     pre:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
     pre:SetAlpha(0.01)
     K.preloadFrame = pre
@@ -86,15 +86,15 @@ do
     end
 end
 
--- nach dem Ladebildschirm alle Oasis-Texte einmal neu mit ihrer Schrift belegen
--- (faengt Texte ab, die vor dem Vorladen entstanden sind und leer/falsch blieben)
+-- after the loading screen reassign all Oasis texts once with their font
+-- (catches texts created before preloading that stayed empty/wrong)
 function K.RefreshFonts()
     if K.RecalcFontScale then pcall(K.RecalcFontScale) end
     for obj in pairs(K._fontObjs or {}) do
         local ok, path, size, flags = pcall(obj.GetFont, obj)
         if ok and path and size then
-            -- 0.5.603: erst kurz auf eine Blizzard-Schrift, dann zurueck - dieselbe Schrift nochmal setzen ignoriert WoW,
-            -- dann blieb die Ersatzschrift vom ersten Start stehen
+            -- 0.5.603: briefly switch to a Blizzard font first, then back - WoW ignores setting the same font again,
+            -- then the fallback font from the first start stayed
             if path ~= STANDARD_TEXT_FONT then pcall(obj.SetFont, obj, STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", size, flags or "") end
             pcall(obj.SetFont, obj, path, size, flags or "")
             if obj.GetText and obj.SetText then
@@ -105,8 +105,8 @@ function K.RefreshFonts()
     end
 end
 
--- Schrift passend zum Text: hat der Text Zeichen, die die Schrift nicht kann (Kyrillisch, Koreanisch,
--- Chinesisch/Japanisch), auf eine Schrift ausweichen, die sie hat (z.B. Gildennamen im Logo)
+-- Font matching the text: if the text has characters the font can't do (Cyrillic, Korean,
+-- Chinese/Japanese), fall back to a font that has them (e.g. guild names in the logo)
 K.fontByPath = {}
 for _, f in ipairs(K.FONTS) do K.fontByPath[f.path] = f end
 function K.FontFor(path, text)
@@ -115,9 +115,9 @@ function K.FontFor(path, text)
     if text:find("[\208\209][\128-\191]") then
         if not (f and f.cyr) then return K.fontByKey.ptsansbold.path end
     elseif text:find("[\234-\237][\128-\191][\128-\191]") then
-        return "Fonts\\2002.TTF"                 -- Hangul (Blizzard-Schrift mit Koreanisch)
+        return "Fonts\\2002.TTF"                 -- Hangul (Blizzard font with Korean)
     elseif text:find("[\227-\233][\128-\191][\128-\191]") then
-        return "Fonts\\ARHei.ttf"                -- Chinesisch/Japanisch; fehlt sie, faengt SetFontSafe ab
+        return "Fonts\\ARHei.ttf"                -- Chinese/Japanese; if missing, SetFontSafe catches it
     end
     return path
 end
@@ -126,11 +126,11 @@ function K.FontPath(key, fallback)
     return f and f.path or fallback or K.FONT
 end
 
--- persoenliche Schriften anwenden; Sprachen mit kyrillischer Schrift brauchen passende Schriften
+-- apply personal fonts; languages with Cyrillic script need matching fonts
 function K.ApplyUserFonts()
     local s = ns.db and ns.db.settings
     if not s then return end
-    -- eine Schrift fuer alles
+    -- one font for everything
     local b = K.fontByKey[s.uiFont or "inter"]
     local h = b
     local lang = ns.langByKey and ns.langByKey[ns.lang]
@@ -145,16 +145,16 @@ function K.ApplyUserFonts()
     K.SetFonts(b and b.path or "Fonts\\ARIALN.TTF", h and h.path or "Fonts\\FRIZQT__.TTF")
 end
 
--- Schrift setzen; fehlt die Datei, bleibt der FontString ohne Schrift -> Ersatzschrift
+-- set font; if the file is missing, the FontString stays without font -> fallback font
 function K.SetFontSafe(fs, path, size, flags, fallback)
     local ok = pcall(fs.SetFont, fs, path, size, flags or "")
     if not ok or not fs:GetFont() then fs:SetFont(fallback or "Fonts\\FRIZQT__.TTF", size, flags or "") end
 end
 
--- Text genau auf eine Breite bringen: Schriftgroesse so waehlen, dass er w Pixel breit ist
+-- fit text exactly to a width: choose the font size so it is w pixels wide
 function K.FitText(fs, path, text, w, minSize, maxSize, fallback)
     local size = 20
-    -- erst Schrift, dann Text: SetText auf einem FontString ohne Schrift wirft in WoW einen Fehler
+    -- font first, then text: SetText on a FontString without a font throws an error in WoW
     for _ = 1, 4 do
         K.SetFontSafe(fs, path, size, "", fallback or K.FONT_HEAD)
         fs:SetText(text or "")
@@ -167,20 +167,20 @@ function K.FitText(fs, path, text, w, minSize, maxSize, fallback)
     return size
 end
 
--- Grossbuchstaben inkl. Umlaute (string.upper kennt nur ASCII)
+-- uppercase including umlauts (string.upper only knows ASCII)
 local UPPER = { ["ä"] = "Ä", ["ö"] = "Ö", ["ü"] = "Ü", ["é"] = "É", ["è"] = "È", ["à"] = "À", ["ç"] = "Ç", ["ñ"] = "Ñ",
     ["ã"] = "Ã", ["õ"] = "Õ", ["ê"] = "Ê", ["á"] = "Á", ["í"] = "Í", ["ó"] = "Ó", ["ú"] = "Ú", ["ò"] = "Ò", ["ì"] = "Ì", ["ù"] = "Ù",
     ["â"] = "Â", ["î"] = "Î", ["ô"] = "Ô", ["û"] = "Û", ["ë"] = "Ë", ["ï"] = "Ï", ["œ"] = "Œ", ["æ"] = "Æ", ["ÿ"] = "Ÿ", ["ё"] = "Ё" }
 function K.Upper(s)
     s = tostring(s or ""):upper()
     for lo, up in pairs(UPPER) do s = s:gsub(lo, up) end
-    -- Kyrillisch: Kleinbuchstaben а-я (U+0430-044F) -> А-Я
+    -- Cyrillic: lowercase а-я (U+0430-044F) -> А-Я
     s = s:gsub("\208([\176-\191])", function(c) return "\208" .. string.char(c:byte() - 32) end)
     s = s:gsub("\209([\128-\143])", function(c) return "\208" .. string.char(c:byte() + 32) end)
     return s
 end
 
--- Sperrschrift: Buchstaben einzeln so verteilen, dass der Text genau w Pixel breit ist
+-- letter-spaced font: distribute letters individually so the text is exactly w pixels wide
 function K.Tracked(parent, size, color)
     local f = CreateFrame("Frame", nil, parent)
     f:SetHeight(size + 4)
@@ -208,8 +208,8 @@ function K.Tracked(parent, size, color)
         for i = #list + 1, #self.chars do self.chars[i]:Hide() end
         self:Layout(#list)
     end
-    -- Groesse so waehlen, dass die Buchstaben ohne Abstand w fuellen (hoechstens maxSize),
-    -- den Rest der Breite fuellen gleichmaessige Abstaende
+    -- choose the size so the letters without spacing fill w (at most maxSize),
+    -- even spacing fills the rest of the width
     function f:Fit(text, w, font, maxSize)
         self:Set(text, w, font, 20)
         local n, total = 0, 0
@@ -234,7 +234,7 @@ function K.Tracked(parent, size, color)
             fs:SetPoint("LEFT", self, "LEFT", x, 0)
             x = x + (fs:GetStringWidth() or 0) + gap
         end
-        -- Schrift wird ggf. erst beim ersten Gebrauch geladen -> nachmessen
+        -- font may only load on first use -> measure again
         local text = self.text
         ns.After(0.3, function() if self.text == text then self:Relayout() end end)
     end
@@ -254,12 +254,12 @@ function K.Tracked(parent, size, color)
     return f
 end
 
--- Oberflaechen-Schrift live tauschen. Jeder Oasis-Text merkt sich beim Erzeugen seine Rolle
--- ("body" / "head"); sind beide Schriften gleich, laesst sich die Rolle nicht mehr am Pfad ablesen.
+-- swap the UI font live. Every Oasis text remembers its role when created
+-- ("body" / "head"); if both fonts are the same, the role can no longer be read from the path.
 local fontObjs = setmetatable({}, { __mode = "k" })
-K._fontObjs = fontObjs   -- fuer K.RefreshFonts
--- Breitenausgleich: breite Schriften werden etwas kleiner gesetzt, damit Texte so breit bleiben
--- wie mit der schmalen Standardschrift (sonst ueberlagern sie sich in festen Layouts)
+K._fontObjs = fontObjs   -- for K.RefreshFonts
+-- width compensation: wide fonts are set slightly smaller so texts stay as wide
+-- as with the narrow default font (otherwise they overlap in fixed layouts)
 K.fontScale = { body = 1, head = 1 }
 local REF_TEXT = "Gildenzentrale Einstellungen Abzeichen Handwerks-Boerse 12345"
 local REF_FONT = "Fonts\\ARIALN.TTF"
@@ -295,13 +295,13 @@ function K.SetFonts(body, head)
         if ok and size then
             local p = norm(path)
             local r
-            -- Pfad eindeutig? (Module setzen teils nachtraeglich K.FONT_HEAD auf einen Fliesstext)
+            -- path unique? (modules sometimes set K.FONT_HEAD to a body font afterwards)
             if ob ~= oh and p == oh then r = "head"
             elseif ob ~= oh and p == ob then r = "body"
             elseif p == ob or p == oh then r = role
             end
             if r then
-                -- Grundgroesse aus der bisherigen Skalierung zurueckrechnen
+                -- calculate the base size back from the previous scaling
                 local base = size / (oldScale[r] or 1)
                 local sc = K.fontScale[r] or 1
                 pcall(obj.SetFont, obj, r == "head" and head or body, math.max(6, base * sc), flags or "")
@@ -310,8 +310,8 @@ function K.SetFonts(body, head)
     end
     if K.ReCenterAll then K.ReCenterAll() end
 end
--- 0.5.799: Breitenausgleich nachmessen. Direkt nach einem frischen Spielstart ist die eigene Schriftdatei beim ersten
--- Messen (ApplyUserFonts) oft noch nicht geladen -> Ausgleich blieb 1, alle Texte zu gross/abgeschnitten, erst nach /reload richtig.
+-- 0.5.799: re-measure width compensation. Right after a fresh game start the custom font file is often not loaded yet at the first
+-- measurement (ApplyUserFonts) -> compensation stayed 1, all texts too large/cut off, only correct after /reload.
 function K.RecalcFontScale()
     local old = K.fontScale
     local new = { body = K.FontScaleFor(K.FONT), head = K.FontScaleFor(K.FONT_HEAD) }
@@ -346,7 +346,7 @@ K.C = {
     dim     = { 0.420, 0.420, 0.440, 1 },
     accent  = { 1.000, 0.071, 0.000, 1 },   -- #ff1200
     accent2 = { 0.700, 0.050, 0.000, 1 },
-    -- Datenfarben (Rollen, Status, Qualitaet)
+    -- Data colors (roles, status, quality)
     blue    = { 0.380, 0.600, 1.000, 1 },
     violet  = { 1.000, 0.071, 0.000, 1 },
     pink    = { 1.000, 0.470, 0.220, 1 },
@@ -359,22 +359,22 @@ C.panel2 = C.raised
 C.hover = { 0.140, 0.140, 0.150, 1 }
 
 function K.hex(c) return ("|cff%02x%02x%02x"):format(c[1] * 255, c[2] * 255, c[3] * 255) end
--- Live-Vorschau (Farbwaehler): Flaechen/Texte/Symbole merken sich ihre Palettenfarbe (Tabelle aus K.C,
--- wird beim Designwechsel IN PLACE geaendert) -> K.LiveRecolor faerbt alles neu, ohne das Fenster neu zu bauen
+-- Live preview (color picker): surfaces/texts/icons remember their palette color (table from K.C,
+-- changed IN PLACE on design switch) -> K.LiveRecolor recolors everything without rebuilding the window
 local liveTex = setmetatable({}, { __mode = "k" })
 local liveFs = setmetatable({}, { __mode = "k" })
 local liveGlyph = setmetatable({}, { __mode = "k" })
 local function col(t, c, a)
     liveTex[t] = { c, a }
-    -- Flaeche eines geskinnten Frames: Farbe an den Design-Rahmen weitergeben
+    -- surface of a skinned frame: pass color on to the design border
     if t.skinOwner and K.SkinFill then K.SkinFill(t.skinOwner, c, a) return end
     t:SetColorTexture(c[1], c[2], c[3], a or c[4] or 1)
 end
--- Gekuerzte Texte ("...") beim Ueberfahren vollstaendig als Tooltip zeigen - fuer alle K.Text/K.Title.
--- Ein leichter Takt (0,2 s) prueft nur, solange das Oasis-Fenster offen ist.
+-- Show truncated texts ("...") fully as tooltip on hover - for all K.Text/K.Title.
+-- A light tick (0.2 s) checks only while the Oasis window is open.
 local truncTip = CreateFrame("Frame")
 local truncOwner
--- eigener Merker statt Feld am GameTooltip (Blizzard-Tooltip nicht beschreiben)
+-- own flag instead of a field on GameTooltip (don't write to the Blizzard tooltip)
 local tipTrunc = false
 if GameTooltip then GameTooltip:HookScript("OnHide", function() tipTrunc = false end) end
 truncTip.t = 0
@@ -384,9 +384,9 @@ truncTip:SetScript("OnUpdate", function(self, el)
     self.t = 0
     local m = ns.MainFrame and ns.MainFrame()
     if not (m and m:IsShown()) then return end
-    -- Performance 0.5.482: liveFs enthaelt tausende Texte (WoW gibt Widgets nie frei). Nur jede Sekunde die
-    -- sichtbaren gekuerzten heraussuchen, im 0,2-s-Takt dann nur diese wenigen auf "Maus drueber" pruefen.
-    -- Maus nicht ueber dem Fenster: gar nicht suchen.
+    -- Performance 0.5.482: liveFs contains thousands of texts (WoW never frees widgets). Only once per second pick out the
+    -- visible truncated ones, then in the 0.2 s tick check only those few for "mouse over".
+    -- mouse not over the window: don't search at all.
     local over = m:IsMouseOver()
     local hit
     if over then
@@ -407,7 +407,7 @@ truncTip:SetScript("OnUpdate", function(self, el)
     end
     if hit then
         if truncOwner == hit then return end
-        if GameTooltip:IsShown() and not tipTrunc then return end   -- eigener Tooltip hat Vorrang
+        if GameTooltip:IsShown() and not tipTrunc then return end   -- own tooltip takes precedence
         truncOwner = hit
         GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
         tipTrunc = true
@@ -426,13 +426,13 @@ function K.LiveRecolor()
     end
     for fs, c in pairs(liveFs) do pcall(fs.SetTextColor, fs, c[1], c[2], c[3], c[4] or 1) end
     for g, c in pairs(liveGlyph) do pcall(g.SetVertexColor, g, c[1], c[2], c[3]) end
-    -- Fenster + Leiste (Verlauf) mit neuer Palette
+    -- window + bar (gradient) with new palette
     local m = ns.MainFrame and ns.MainFrame()
     if m and K.StyleWindow then pcall(K.StyleWindow, m) end
 end
 
 ------------------------------------------------------------------------
--- Grundbausteine
+-- Basic building blocks
 ------------------------------------------------------------------------
 function K.Fill(frame, c, layer)
     local t = frame:CreateTexture(nil, layer or "BACKGROUND")
@@ -466,7 +466,7 @@ function K.SetBorderColor(frame, c, a)
     for _, t in ipairs(frame.borders) do col(t, c, a) end
 end
 
--- duenne Trennlinie
+-- thin divider
 function K.Divider(parent, c)
     local t = parent:CreateTexture(nil, "ARTWORK")
     col(t, c or C.line)
@@ -487,7 +487,7 @@ function K.Text(parent, size, color, justify, font, layer)
     fs:SetShadowOffset(1, -1)
     fs:SetWordWrap(false)
     track(fs, (font == nil or font == K.FONT) and "body" or "head")
-    -- fremde Schriftzeichen (Koreanisch, Chinesisch, Kyrillisch) automatisch mit passender Schrift
+    -- foreign scripts (Korean, Chinese, Cyrillic) automatically with a matching font
     local orig = fs.SetText
     fs.SetText = function(self, t, ...)
         if type(t) == "string" and ns.FixItemLinks then t = ns.FixItemLinks(t) end
@@ -507,10 +507,10 @@ function K.Title(parent, size, color, justify)
     return fs
 end
 
--- Zahlen genau mittig in ein Feld setzen (Level-Kaestchen, Zaehler-Pillen, Wappen ...).
--- WoW mittelt die Zeilenbox, nicht die Ziffern: je Schrift sitzen Ziffern hoeher/tiefer
--- (gemessen mit fontTools, Anteil der Zeilenhoehe, + = Ziffern sitzen zu hoch). Dazu wirft
--- der Schatten (1,-1) das Schriftbild einen halben Pixel nach rechts unten.
+-- place numbers exactly centered in a field (level boxes, counter pills, crests ...).
+-- WoW centers the line box, not the digits: depending on the font, digits sit higher/lower
+-- (measured with fontTools, fraction of line height, + = digits sit too high). Additionally
+-- the shadow (1,-1) shifts the glyphs half a pixel to the bottom right.
 local NUM_DY = {
     almendra = -0.052, bangers = 0.014, bebasneue = 0.042, blackopsone = 0.028, cinzel = 0.028,
     cinzeldecorative = -0.009, creepster = -0.007, germaniaone = 0.001, marcellussc = -0.016,
@@ -518,7 +518,7 @@ local NUM_DY = {
     notosanssc = -0.047, orbitron = -0.019, ptsansnarrow = -0.016, ptsansnarrowbold = -0.016,
     pirataone = 0.022, pottaone = -0.045, russoone = 0.022, shojumaru = 0.014, stick = -0.06,
     teko = 0.053, uncialantiqua = -0.051, unifrakturmaguntia = 0.08, arialn = -0.008,
-    frizqt__ = -0.16,   -- Friz Quadrata (Blizzard-Standard): Ziffern sitzen sichtbar zu tief (im Spiel nachgemessen)
+    frizqt__ = -0.16,   -- Friz Quadrata (Blizzard default): digits sit visibly too low (measured in game)
 }
 local centered = setmetatable({}, { __mode = "k" })
 local function placeNum(fs)
@@ -553,7 +553,7 @@ function K.Panel(parent, c, withBorder)
     return f
 end
 
--- Abschnittsueberschrift
+-- Section heading
 function K.Header(parent, text)
     local f = CreateFrame("Frame", nil, parent)
     f:SetHeight(18)
@@ -565,7 +565,7 @@ function K.Header(parent, text)
     return f
 end
 
--- WoW-Icon, Rand leicht beschnitten
+-- WoW icon, edge slightly cropped
 function K.Icon(parent, size, path)
     local t = parent:CreateTexture(nil, "ARTWORK")
     t:SetSize(size, size)
@@ -575,9 +575,9 @@ function K.Icon(parent, size, path)
 end
 
 ------------------------------------------------------------------------
--- Knoepfe: "primary" (gefuellt), "ghost" (Rahmen), "danger"
+-- Buttons: "primary" (filled), "ghost" (outline), "danger"
 ------------------------------------------------------------------------
--- Oberflaechen-Klicks aus dem gewaehlten UI-Soundpaket (ns.Sound.UI_PACKS): Knopf, Reiter, Schalter - abschaltbar
+-- UI clicks from the chosen UI sound pack (ns.Sound.UI_PACKS): button, tab, switch - can be turned off
 function K.UiSound(key)
     local s = ns.db and ns.db.settings
     if not s or s.sound == false or s.uiSounds == false or not (ns.Sound and ns.Sound.PlayChoice) then return end
@@ -588,21 +588,21 @@ function K.UiSound(key)
     K._uiLast = now
     pcall(ns.Sound.PlayChoice, key, vol)
 end
--- Lautstaerke der Klick-Toene (Stufen zu 5 %, siehe Sound.VOL_MAX): eigener Regler settings.uiVol, sonst 70 % der Sound-Lautstaerke
+-- volume of click sounds (steps of 5 %, see Sound.VOL_MAX): own slider settings.uiVol, otherwise 70 % of the sound volume
 function K.UiVolume()
     local s = ns.db and ns.db.settings
     local v = s and tonumber(s.uiVol)
     if v then return math.max(0, math.min(40, math.floor(v))) end
     return math.max(1, math.floor(((s and tonumber(s.soundVol)) or 7) * 0.7 + 0.5))
 end
--- Knoepfe, die ihren Ton selbst spielen (Reiter, Schalter, Chips ...) - Merker als Weak-Table
+-- buttons that play their own sound (tabs, switches, chips ...) - flags as weak table
 local ownSound = setmetatable({}, { __mode = "k" })
 K.OwnSound = ownSound
 local function genericClick(self)
     if not ownSound[self] and self:GetScript("OnClick") then K.UiSound("ui_click") end
 end
--- alle klickbaren Oasis-Knoepfe unter f bekommen einen Klick-Ton (PreClick, laeuft vor OnClick).
--- Nur eigene Frames; geschuetzte und Knoepfe mit eigenem PreClick bleiben unberuehrt.
+-- all clickable Oasis buttons under f get a click sound (PreClick, runs before OnClick).
+-- Own frames only; protected ones and buttons with their own PreClick stay untouched.
 local soundified = setmetatable({}, { __mode = "k" })
 local function soundify(f, depth)
     if depth > 40 or not f.GetChildren then return end
@@ -644,12 +644,12 @@ function K.Button(parent, text, w, h, style, onClick)
     end)
     b:SetScript("OnMouseDown", function(self) if self:IsEnabled() then self.label:SetPoint("CENTER", 0, -1) end end)
     b:SetScript("OnMouseUp", function(self) self.label:SetPoint("CENTER", 0, 0) end)
-    -- Ton vor jedem Klick (PreClick bleibt, auch wenn OnClick spaeter neu gesetzt wird)
+    -- sound before every click (PreClick stays even if OnClick is set again later)
     b:SetScript("PreClick", function(self) if self:GetScript("OnClick") and not ownSound[self] then K.UiSound(self.style == "primary" and "ui_confirm" or "ui_click") end end)
     if onClick then b:SetScript("OnClick", onClick) end
     function b:SetLabel(t) self.label:SetText(t) end
     if K.SkinButton then K.SkinButton(b, base) end
-    -- Glas 2026: Hauptknopf in voller Akzentfarbe + heller Glanz oben (alle Knoepfe)
+    -- Glas 2026: main button in full accent color + bright gloss on top (all buttons)
     local th = K.CurrentTheme and K.CurrentTheme()
     if th and th.orbs then
         if style == "primary" then
@@ -674,14 +674,14 @@ function K.Button(parent, text, w, h, style, onClick)
         self:SetEnabled(on)
         self:SetAlpha(on and 1 or 0.45)
     end
-    -- 0.6.400: Bild-Knopf - alle eigenen Flaechen ausser dem Bild ausblenden (Glanz, alte Fuellung, Rand lagen sichtbar dahinter)
+    -- 0.6.400: image button - hide all own surfaces except the image (gloss, old fill, border were visible behind it)
     if b.imgBtn then
         local keep = {}
         for _, list in pairs(b.imgBtn) do for _, t in ipairs(list) do keep[t] = true end end
         for _, rg in ipairs({ b:GetRegions() }) do
-            if rg.GetObjectType and rg:GetObjectType() == "Texture" and not keep[rg] then   -- 0.6.424: auch HIGHLIGHT (dunkle Flaeche beim Hovern)
+            if rg.GetObjectType and rg:GetObjectType() == "Texture" and not keep[rg] then   -- 0.6.424: also HIGHLIGHT (dark surface on hover)
                 rg:SetAlpha(0)
-                -- 0.6.418: in einen versteckten Rahmen umhaengen - Hover/Design-Wechsel faerbten die Flaeche sonst wieder sichtbar
+                -- 0.6.418: reparent into a hidden frame - otherwise hover/design switch made the surface visible again
                 K.imgBtnTrash = K.imgBtnTrash or CreateFrame("Frame")
                 K.imgBtnTrash:Hide()
                 pcall(rg.SetParent, rg, K.imgBtnTrash)
@@ -691,8 +691,8 @@ function K.Button(parent, text, w, h, style, onClick)
     return b
 end
 
--- Schliessen-Kreuz aus zwei Linien
--- arrow = true: Pfeil nach oben (Einklappen) statt Kreuz
+-- close cross from two lines
+-- arrow = true: up arrow (collapse) instead of cross
 function K.CloseButton(parent, onClick, tip, arrow)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(22, 22)
@@ -712,7 +712,7 @@ function K.CloseButton(parent, onClick, tip, arrow)
     end
     b:SetScript("OnEnter", function(self)
         for _, t in ipairs(lines) do col(t, C.text) end
-        local t = type(tip) == "function" and tip() or tip   -- Text darf von Einstellungen abhaengen
+        local t = type(tip) == "function" and tip() or tip   -- text may depend on settings
         if t then K.ShowTip(self, t) end
     end)
     b:SetScript("OnLeave", function()
@@ -724,9 +724,9 @@ function K.CloseButton(parent, onClick, tip, arrow)
     return b
 end
 
--- Kleiner Text-Knopf ("+"), "x" wird zum Kreuz
--- Auswahlmenue: Knopf mit Pfeil, Klick oeffnet eine Liste
--- items() liefert { { key, text }, ... }; key == nil bedeutet "Alle"
+-- small text button ("+"), "x" becomes the cross
+-- dropdown: button with arrow, click opens a list
+-- items() returns { { key, text }, ... }; key == nil means "All"
 local menu
 local function menuFrame()
     if menu then return menu end
@@ -737,7 +737,7 @@ local function menuFrame()
     K.Fill(menu, C.raised)
     K.Border(menu, C.line)
     menu.rows = {}
-    -- Klick daneben schliesst
+    -- click outside closes
     menu.catcher = CreateFrame("Button", nil, UIParent)
     menu.catcher:SetAllPoints(UIParent)
     menu.catcher:SetFrameStrata("FULLSCREEN")
@@ -747,7 +747,7 @@ local function menuFrame()
     menu:Hide()
     return menu
 end
--- Menue an einem Knopf/einer Zeile: items = { { text, fn, disabled, checked }, ... }, title optional
+-- menu on a button/row: items = { { text, fn, disabled, checked }, ... }, title optional
 function K.ShowMenu(owner, items, title, minWidth)
     local m = menuFrame()
     if m:IsShown() and m.owner == owner then m:Hide() return end
@@ -757,7 +757,7 @@ function K.ShowMenu(owner, items, title, minWidth)
     if title then list[1] = { text = title, header = true } end
     for _, it in ipairs(items) do list[#list + 1] = it end
     local maxW = 0
-    -- Symbole: hat ein Eintrag "icon", bekommen alle Zeilen eine Symbolspalte (Text buendig)
+    -- icons: if an entry has "icon", all rows get an icon column (text aligned)
     local anyIcon, anyChecked = false, false
     for _, it in ipairs(list) do
         if it.icon then anyIcon = true end
@@ -771,7 +771,7 @@ function K.ShowMenu(owner, items, title, minWidth)
             r.hl = r:CreateTexture(nil, "HIGHLIGHT")
             r.hl:SetAllPoints()
             r.hl:SetColorTexture(1, 1, 1, 0.06)
-            -- gewaehlter Eintrag (0.5.920): getoente Flaeche + schmale Akzentkante links, wie der aktive Punkt der Navigation
+            -- selected entry (0.5.920): tinted surface + thin accent edge on the left, like the active nav item
             r.sel = r:CreateTexture(nil, "BACKGROUND")
             r.sel:SetAllPoints()
             r.selBar = r:CreateTexture(nil, "ARTWORK")
@@ -797,7 +797,7 @@ function K.ShowMenu(owner, items, title, minWidth)
             r.ic:Hide()
         end
         r.idx = i
-        -- hat das Menue eine Auswahl, treten die uebrigen Eintraege leicht zurueck
+        -- if the menu has a selection, the other entries recede slightly
         local c = (it.header and C.dim) or (it.disabled and C.dim) or ((anyChecked and not it.checked) and C.muted) or C.text
         r.text:SetTextColor(c[1], c[2], c[3])
         K.SetFontSafe(r.text, it.font or K.FONT, 12, "", K.FONT)
@@ -816,7 +816,7 @@ function K.ShowMenu(owner, items, title, minWidth)
         end)
         r:Show()
     end
-    -- 0.6.476: lange Menues scrollen (Mausrad) statt aus dem Bildschirm zu ragen; immer im sichtbaren Bereich
+    -- 0.6.476: long menus scroll (mouse wheel) instead of sticking out of the screen; always within the visible area
     local screenH = (UIParent and UIParent:GetHeight()) or 768
     local vis = math.max(5, math.min(#list, math.floor((screenH * 0.7 - 8) / 20)))
     m.nList, m.vis, m.off = #list, vis, 0
@@ -890,7 +890,7 @@ function K.Dropdown(parent, w, label, items, getValue, onPick)
     return b
 end
 
--- einfarbiges Symbol (Media\\icons), eingefaerbt statt WoW-Icon
+-- monochrome icon (Media\\icons), tinted instead of a WoW icon
 function K.Glyph(parent, size, path, color)
     local t = parent:CreateTexture(nil, "ARTWORK")
     t:SetSize(size, size)
@@ -923,13 +923,13 @@ function K.IconButton(parent, glyph, size, onClick, tip)
     if onClick then b:SetScript("OnClick", onClick) end
     return b
 end
--- Knopf spielt selbst einen Sound (Anhoeren/Vorschau): kein Klick-Ton davor (0.5.662)
+-- button plays a sound itself (listen/preview): no click sound before it (0.5.662)
 function K.NoUiSound(b) if b then ownSound[b] = true end return b end
 
 ------------------------------------------------------------------------
--- Reiter (Filter), Breite passt sich dem Text an
+-- tabs (filter), width adapts to the text
 ------------------------------------------------------------------------
--- opts (optional): { size = Schriftgroesse, pad = Innenabstand }
+-- opts (optional): { size = font size, pad = padding }
 function K.Segments(parent, items, onChange, w, opts)
     local f = CreateFrame("Frame", nil, parent)
     f:SetHeight(24)
@@ -958,7 +958,7 @@ function K.Segments(parent, items, onChange, w, opts)
         f.buttons[#f.buttons + 1] = b
     end
     f:SetWidth(x)
-    -- 0.6.536: in maxW einpassen - nur sichtbare Knoepfe, erst Abstand, dann Schrift verkleinern (Gildenleitung ragte rechts hinaus)
+    -- 0.6.536: fit into maxW - visible buttons only, shrink spacing first, then font (guild leadership stuck out on the right)
     function f:Fit(maxW)
         if not maxW or maxW <= 0 then return end
         local vis = {}
@@ -996,7 +996,7 @@ function K.Segments(parent, items, onChange, w, opts)
 end
 
 ------------------------------------------------------------------------
--- Eingabefeld
+-- Edit box
 ------------------------------------------------------------------------
 function K.Input(parent, w, placeholder, onChange)
     local e = CreateFrame("EditBox", nil, parent)
@@ -1027,7 +1027,7 @@ function K.Input(parent, w, placeholder, onChange)
     return e
 end
 
--- kleine Feldbeschriftung
+-- small field label
 function K.Label(parent, text)
     local fs = K.Text(parent, 11, C.muted)
     fs:SetText(text)
@@ -1035,9 +1035,9 @@ function K.Label(parent, text)
 end
 
 ------------------------------------------------------------------------
--- Schalter
+-- Switch
 ------------------------------------------------------------------------
--- runde Schiene (Pille) aus zwei Kreisen + Mittelstueck; :SetColor(r, g, b, a) - 0.5.556
+-- round rail (pill) from two circles + middle piece; :SetColor(r, g, b, a) - 0.5.556
 local PILL_CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 function K.Pill(parent, w, h, layer)
     local p = CreateFrame("Frame", nil, parent)
@@ -1064,15 +1064,15 @@ function K.Toggle(parent, label, getter, setter, desc)
     local track = CreateFrame("Frame", nil, f)
     track:SetSize(30, 16)
     track:SetPoint("TOPLEFT", 0, -3)
-    -- Classic: Blizzard-Haekchen statt Schiebeschalter
+    -- Classic: Blizzard checkbox instead of slide switch
     local sk = K.Skin and K.Skin("toggle")
     local round = not (sk and sk.check)
     local knob
     if round then
-        -- 0.5.556: runder Schalter (Pille + Kreis-Knopf), gleitet weich
+        -- 0.5.556: round switch (pill + circle knob), slides smoothly
         track.pill = K.Pill(track, 30, 16)
         track.pill:SetAllPoints()
-        knob = K.KnobCircle(track.pill, 12)   -- auf der Pille, sonst liegt die Pille darueber
+        knob = K.KnobCircle(track.pill, 12)   -- on the pill, otherwise the pill lies above it
     else
         track.bg = K.Fill(track, C.field)
         K.Border(track, C.line)
@@ -1133,7 +1133,7 @@ function K.Toggle(parent, label, getter, setter, desc)
         setter(not getter())
         self:Refresh()
         if K.OnSaved then pcall(K.OnSaved) end
-        -- 0.5.563: kleine Freude beim Umschalten
+        -- 0.5.563: small joy when toggling
         if round and K.Tween and not (ns.db and ns.db.settings.noAnim) then
             local on = getter() and true or false
             if on then
@@ -1158,7 +1158,7 @@ function K.Toggle(parent, label, getter, setter, desc)
             end)
         end
     end)
-    -- Knopf waechst leicht beim Ueberfahren
+    -- button grows slightly on hover
     if round then
         f:HookScript("OnEnter", function() if K.Tween and not (ns.db and ns.db.settings.noAnim) then K.Tween(knob, 0.1, function(q) knob:SetSize(12 + 2 * q, 12 + 2 * q) end) end end)
         f:HookScript("OnLeave", function() knob:SetSize(12, 12) end)
@@ -1167,7 +1167,7 @@ function K.Toggle(parent, label, getter, setter, desc)
     return f
 end
 
--- 0.5.563: Equalizer - n Balken, tanzen waehrend active() true ist, sonst leise Welle
+-- 0.5.563: equalizer - n bars, dance while active() is true, otherwise a quiet wave
 function K.Equalizer(parent, n, w, h, color, active)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(w, h)
@@ -1208,7 +1208,7 @@ function K.Equalizer(parent, n, w, h, color, active)
     return f
 end
 
--- Chip: An/Aus mit Farbpunkt (z.B. Rollen)
+-- chip: on/off with color dot (e.g. roles)
 function K.Chip(parent, text, color, getter, setter, w)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(w or 76, 24)
@@ -1241,7 +1241,7 @@ function K.Chip(parent, text, color, getter, setter, w)
 end
 
 ------------------------------------------------------------------------
--- Schieberegler: getter/setter, min/max/step, fmt(v) fuer die Anzeige, onRelease optional
+-- slider: getter/setter, min/max/step, fmt(v) for display, onRelease optional
 ------------------------------------------------------------------------
 function K.Slider(parent, w, minV, maxV, step, getter, setter, fmt, onRelease)
     local f = CreateFrame("Button", nil, parent)
@@ -1290,7 +1290,7 @@ function K.Slider(parent, w, minV, maxV, step, getter, setter, fmt, onRelease)
     ownSound[f] = true
     f:SetScript("OnMouseUp", function(self)
         self:SetScript("OnUpdate", nil)
-        if not onRelease then K.UiSound("ui_select") end   -- mit onRelease spielt meist eine Vorschau
+        if not onRelease then K.UiSound("ui_select") end   -- with onRelease usually a preview plays
         if onRelease then onRelease(getter()) end
         if K.OnSaved then pcall(K.OnSaved) end
     end)
@@ -1308,7 +1308,7 @@ function K.Slider(parent, w, minV, maxV, step, getter, setter, fmt, onRelease)
     return f
 end
 
--- Farbfeld (Klick waehlt), zeigt Rahmen wenn aktiv
+-- color swatch (click selects), shows border when active
 function K.Swatch(parent, c, size, onClick, tip)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(size or 20, size or 20)
@@ -1327,7 +1327,7 @@ function K.Swatch(parent, c, size, onClick, tip)
     return b
 end
 
--- WoW-Farbwaehler (Farbrad) oeffnen; onChange(hex) bei jeder Aenderung, bei Abbrechen mit dem Ausgangswert
+-- open WoW color picker (color wheel); onChange(hex) on every change, on cancel with the initial value
 function K.OpenColorPicker(startHex, onChange, onCancel)
     local CPF = ColorPickerFrame
     if not CPF then return false end
@@ -1337,7 +1337,7 @@ function K.OpenColorPicker(startHex, onChange, onCancel)
         return K.ToHex({ r, g, b })
     end
     local function cancel() if onCancel then onCancel() else onChange(startHex or "") end end
-    -- solange der Waehler offen ist: nur live umfaerben, Neuaufbau erst beim Schliessen (sonst zuckt alles)
+    -- while the picker is open: only recolor live, rebuild only on close (otherwise everything twitches)
     K.pickerOpen = true
     if not CPF.oasisHooked then
         CPF.oasisHooked = true
@@ -1365,12 +1365,12 @@ function K.OpenColorPicker(startHex, onChange, onCancel)
     return true
 end
 
--- Knopf "Farbwaehler" mit Farbvorschau
--- getRaw (optional): gespeicherter Wert, der bei "Abbrechen" zurueckkommt (z.B. "" = wie die Gilde);
--- liefert getRaw eine FUNKTION, wird diese beim Abbrechen aufgerufen (stellt z.B. mehrere Einstellungen her)
+-- "Color picker" button with color preview
+-- getRaw (optional): stored value returned on "Cancel" (e.g. "" = same as the guild);
+-- if getRaw returns a FUNCTION, it is called on cancel (e.g. restores several settings)
 function K.ColorPickButton(parent, getHex, onChange, label, getRaw)
     local b = K.Button(parent, label or L["Color picker …"], 120, 24, "ghost", function(_, btn)
-        if btn == "RightButton" then return end   -- Rechtsklick = eigene Sonderfunktion (z.B. zuruecksetzen)
+        if btn == "RightButton" then return end   -- right-click = own special function (e.g. reset)
         local raw
         if getRaw then raw = getRaw() else raw = getHex() end
         K.OpenColorPicker(getHex(), onChange, function()
@@ -1391,9 +1391,9 @@ function K.ColorPickButton(parent, getHex, onChange, label, getRaw)
 end
 
 ------------------------------------------------------------------------
--- Aktivitaetsringe wie auf einer Smartwatch: drei dicke Ringe mit Fortschritt (Cooldown-Swipe auf
--- Ring-Textur), dunkle Spur, leuchtende Kappe am Ende, ueber 100 % laeuft der Ring weiter (zweite Runde heller)
--- K.ActivityRings(parent, size, colors) -> f; f:Set({r1, r2, r3}, animiert)
+-- activity rings like on a smartwatch: three thick rings with progress (cooldown swipe on
+-- ring texture), dark track, glowing cap at the end, above 100 % the ring keeps going (second lap brighter)
+-- K.ActivityRings(parent, size, colors) -> f; f:Set({r1, r2, r3}, animated)
 ------------------------------------------------------------------------
 local RING_TEX = { "ring_a", "ring_b", "ring_c" }
 local RING_SCALE = { 1, 0.74, 0.48 }
@@ -1421,7 +1421,7 @@ function K.ActivityRings(parent, size, colors)
         r.track:SetTexture(path)
         r.track:SetSize(s, s)
         r.track:SetPoint("CENTER")
-        r.track:SetVertexColor(c[1], c[2], c[3], 0.16)   -- leise Spur in Ringfarbe statt dunkler Scheibe
+        r.track:SetVertexColor(c[1], c[2], c[3], 0.16)   -- subtle track in ring color instead of a dark disc
         if canSwipe then
             local cd = CreateFrame("Cooldown", nil, f)
             cd:SetSize(s, s)
@@ -1435,7 +1435,7 @@ function K.ActivityRings(parent, size, colors)
             cd.noCooldownCount = true
             cd:SetFrameLevel(f:GetFrameLevel() + i)
             r.cd = cd
-            -- zweite Runde (> 100 %): heller, liegt darueber
+            -- second lap (> 100 %): brighter, lies on top
             local cd2 = CreateFrame("Cooldown", nil, f)
             cd2:SetSize(s, s)
             cd2:SetPoint("CENTER")
@@ -1449,13 +1449,13 @@ function K.ActivityRings(parent, size, colors)
             cd2:SetFrameLevel(f:GetFrameLevel() + i + 3)
             r.cd2 = cd2
         else
-            -- Ersatz ohne Swipe: Ring einfach heller je Fortschritt
+            -- fallback without swipe: ring simply brighter per progress
             r.fill = f:CreateTexture(nil, "ARTWORK")
             r.fill:SetTexture(path)
             r.fill:SetSize(s, s)
             r.fill:SetPoint("CENTER")
         end
-        -- Kappe am Ende (leuchtender Punkt)
+        -- cap at the end (glowing dot)
         r.cap = CreateFrame("Frame", nil, f)
         r.cap:SetSize(1, 1)
         r.cap:SetFrameLevel(f:GetFrameLevel() + 8)
@@ -1508,14 +1508,14 @@ function K.ActivityRings(parent, size, colors)
             for i, r in ipairs(self.rings) do setRing(r, vals[i] or 0) end
         end
     end
-    -- Swipe-Stand bleibt nur pausiert stehen, solange sichtbar; beim Wiederzeigen neu setzen
+    -- swipe state only stays paused while visible; set again when shown again
     f:SetScript("OnShow", function(self) if self.vals then self:Set(self.vals, false) end end)
     return f
 end
 
--- Pfeil hoch/runter im Eingabefeld: zuletzt gesendete Texte zurueckholen.
--- getList() liefert die Liste NEUESTE ZUERST. OnArrowPressed feuert nicht in jedem Client -> zusaetzlich
--- OnKeyDown (doppelte Ausloesung innerhalb 50 ms wird ignoriert).
+-- arrow up/down in the edit box: recall recently sent texts.
+-- getList() returns the list NEWEST FIRST. OnArrowPressed doesn't fire in every client -> additionally
+-- OnKeyDown (double trigger within 50 ms is ignored).
 function K.InputHistory(eb, getList)
     if not eb then return end
     if eb.SetAltArrowKeyMode then pcall(eb.SetAltArrowKeyMode, eb, false) end
@@ -1541,8 +1541,8 @@ function K.InputHistory(eb, getList)
     eb:HookScript("OnEditFocusLost", function(self) self.histIdx = nil end)
 end
 
--- Kennzeichen "nur fuer den Schlachtzugsleiter": kleine Plakette mit Krone + Tooltip, wer das ist und wo man es einstellt.
--- small = nur die Krone (fuer enge Stellen)
+-- badge "raid leader only": small plaque with crown + tooltip saying who that is and where to set it.
+-- small = crown only (for tight spots)
 function K.LeadTag(parent, small)
     local f = CreateFrame("Frame", nil, parent)
     f:SetHeight(16)
@@ -1566,15 +1566,15 @@ function K.LeadTag(parent, small)
 end
 
 ------------------------------------------------------------------------
--- Sperren: Bereiche/Knoepfe, die normale Mitglieder nicht benutzen duerfen, bleiben sichtbar,
--- werden abgedunkelt und sagen, wer das darf. Die Rechtepruefung in der Logik bleibt unveraendert.
+-- Locks: areas/buttons normal members may not use stay visible,
+-- are dimmed and say who may. The permission check in the logic stays unchanged.
 ------------------------------------------------------------------------
 local LOCK_ICON = "Interface\\PetBattles\\PetBattle-LockIcon"
-local FROST_TEX = "Interface\\AddOns\\Oasis\\Media\\frost"   -- Rausch-Kachel fuer Milchglas (K.Lock)
-local BLUR_TEX = { "Interface\\AddOns\\Oasis\\Media\\blurpage", "Interface\\AddOns\\Oasis\\Media\\blurpage2" }  -- unscharfe Seiten-Attrappen
+local FROST_TEX = "Interface\\AddOns\\Oasis\\Media\\frost"   -- noise tile for frosted glass (K.Lock)
+local BLUR_TEX = { "Interface\\AddOns\\Oasis\\Media\\blurpage", "Interface\\AddOns\\Oasis\\Media\\blurpage2" }  -- blurred page mock-ups
 local locks = setmetatable({}, { __mode = "k" })
 local lockBtns = setmetatable({}, { __mode = "k" })
--- fertige Gruende (Titel, Unterzeile)
+-- predefined reasons (title, subline)
 K.LOCK_WHO = {
     raidlead = { "Raid leaders only" },
     raidassist = { "Raid leaders & raid assistants only" },
@@ -1584,8 +1584,8 @@ K.LOCK_WHO = {
     rank = { "Your guild rank can't do this" },
 }
 local function lockAllowed(check)
-    -- Entwickler sehen gesperrte Seiten nur im Testmodus offen (sonst Sperre wie bei allen: der Entwickler-
-    -- Schalter gilt account-weit, auf Twinks ohne Rechte war die Seite offen, aber leer - 08.10.)
+    -- developers see locked pages open only in test mode (otherwise locked like everyone: the developer
+    -- switch is account-wide, on alts without rights the page was open but empty - 08.10.)
     if ns.Admin and ns.Admin.TestMode and ns.Admin.TestMode() then return true end
     if not check then return false end
     local ok, r = pcall(check)
@@ -1595,8 +1595,8 @@ local function lockTexts(who, text, sub)
     local d = who and K.LOCK_WHO[who]
     return text or (d and L[d[1]]) or L["Guild leadership and officers only"], sub or (d and d[2] and L[d[2]]) or nil
 end
--- K.Lock(frame, { check = fn -> darf?, who = "raidlead"|"officer"|"lead"|..., text = , sub = , compact = true,
---                 top = px (Sperre erst ab hier, Kopf/Reiter darueber bleiben scharf), keep = { frames, die sichtbar bleiben } })
+-- K.Lock(frame, { check = fn -> allowed?, who = "raidlead"|"officer"|"lead"|..., text = , sub = , compact = true,
+--                 top = px (lock starts here, header/tabs above stay sharp), keep = { frames that stay visible } })
 function K.Lock(frame, opts)
     opts = opts or {}
     local o = CreateFrame("Frame", nil, frame)
@@ -1613,14 +1613,14 @@ function K.Lock(frame, opts)
     if o.EnableMouseWheel then o:EnableMouseWheel(true) end
     o:SetScript("OnMouseWheel", function() end)
     o:SetScript("OnMouseDown", function() end)
-    -- "Unscharf": WoW kann nicht weichzeichnen -> der echte Inhalt wird ausgeblendet (SetLocked, Alpha 0)
-    -- und stattdessen eine vorgerenderte, stark weichgezeichnete Seiten-Attrappe gezeigt (Media\\blurpage*.tga),
-    -- Seitenverhaeltnis per TexCoord-Ausschnitt, leicht akzentgetoent, Vignette an den Raendern
+    -- "Blurred": WoW can't blur -> the real content is hidden (SetLocked, alpha 0)
+    -- and instead a pre-rendered, heavily blurred page mock-up is shown (Media\\blurpage*.tga),
+    -- aspect ratio via TexCoord crop, slightly accent-tinted, vignette at the edges
     local bc = C.bg or { 0.07, 0.07, 0.08 }
     o.bg = o:CreateTexture(nil, "BACKGROUND")
     o.bg:SetAllPoints()
     o.bg:SetColorTexture(bc[1], bc[2], bc[3], 1)
-    -- Variante je Seite deterministisch (Name/Rechte-Schluessel/Text)
+    -- variant per page deterministic (name/rights key/text)
     local key = (frame.GetName and frame:GetName()) or opts.variant or ((opts.who or "") .. (opts.text or ""))
     local hsum = 0
     for i = 1, #key do hsum = hsum + key:byte(i) * i end
@@ -1641,7 +1641,7 @@ function K.Lock(frame, opts)
     nz:SetAlpha(0.03)
     nz.off = 0.37
     o.veils[1] = nz
-    -- Vignette: vier weiche Randverlaeufe nach dunkel
+    -- vignette: four soft edge gradients to dark
     o.vig = {}
     local va = opts.compact and 0.45 or 0.6
     local dk = { bc[1] * 0.5, bc[2] * 0.5, bc[3] * 0.5 }
@@ -1651,15 +1651,15 @@ function K.Lock(frame, opts)
         t:SetPoint(s[1]) t:SetPoint(s[2])
         t.horiz = s[3] == "HORIZONTAL"
         t:SetColorTexture(1, 1, 1, 1)
-        -- Gradient: min = links/unten, max = rechts/oben
+        -- gradient: min = left/bottom, max = right/top
         local edgeMin = s[4]
         local c0 = { dk[1], dk[2], dk[3], edgeMin and va or 0 }
         local c1 = { dk[1], dk[2], dk[3], edgeMin and 0 or va }
         if not K.Gradient(t, s[3], c0, c1) then t:SetColorTexture(dk[1], dk[2], dk[3], va * 0.3) end
         o.vig[i] = t
     end
-    -- Karte (nur grosse Sperren): Schatten, Akzent-Oberkante, Schloss in Akzentfarbe mit weichem Glow.
-    -- WICHTIG: Schloss/Texte haengen an der Karte (eigener Frame liegt sonst UEBER den Regionen von o und dimmt sie)
+    -- card (large locks only): shadow, accent top edge, lock in accent color with soft glow.
+    -- IMPORTANT: lock/texts are attached to the card (an own frame would otherwise lie ABOVE o's regions and dim them)
     local ac2 = C.accent or { 1, 0.07, 0 }
     local holder = o
     if not opts.compact then
@@ -1685,14 +1685,14 @@ function K.Lock(frame, opts)
         o.card.edge:SetPoint("TOPLEFT", 3, 0) o.card.edge:SetPoint("TOPRIGHT", -3, 0)
         o.card.edge:SetHeight(2)
         o.card.edge:SetColorTexture(ac2[1], ac2[2], ac2[3], 1)
-        -- "abgerundet": Ecken-Pixel zuruecknehmen
+        -- "rounded": pull back corner pixels
         for _, p in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
             local t = o.card:CreateTexture(nil, "OVERLAY", nil, 7)
             t:SetSize(2, 2) t:SetPoint(p)
             t:SetColorTexture(bc[1], bc[2], bc[3], 0.85)
         end
         holder = o.card
-        -- Glow hinter dem Schloss (sanfter Puls, aus bei noAnim)
+        -- glow behind the lock (gentle pulse, off with noAnim)
         o.glowTex = o.card:CreateTexture(nil, "ARTWORK", nil, 0)
         o.glowTex:SetSize(78, 78)
         o.glowTex:SetTexture("Interface\\AddOns\\Oasis\\Media\\shine")
@@ -1706,7 +1706,7 @@ function K.Lock(frame, opts)
     o.ic:SetDesaturated(true)
     if opts.compact then o.ic:SetVertexColor(1, 1, 1)
     else o.ic:SetVertexColor(math.min(1, ac2[1] + 0.15), math.min(1, ac2[2] + 0.25), math.min(1, ac2[3] + 0.2)) end
-    -- Kontrast: Titel weiss gross, Unterzeile hell
+    -- contrast: title white and large, subline bright
     o.t = K.Text(holder, opts.compact and 11 or 17, { 1, 1, 1, 1 }, "CENTER")
     o.s = K.Text(holder, opts.compact and 9 or 12, { 0.80, 0.82, 0.86, 1 }, "CENTER")
     for _, fs in ipairs({ o.t, o.s }) do
@@ -1725,7 +1725,7 @@ function K.Lock(frame, opts)
     o.t:SetWidth(opts.compact and 60 or 360)
     o.s:SetPoint("TOP", o.t, "BOTTOM", 0, -6)
     o.s:SetWidth(opts.compact and 60 or 360)
-    -- Puls: Glow atmet langsam
+    -- pulse: glow breathes slowly
     if o.glowTex and o.glowTex.CreateAnimationGroup then
         pcall(function()
             local ag = o.glowTex:CreateAnimationGroup()
@@ -1746,12 +1746,12 @@ function K.Lock(frame, opts)
         self.t:SetWidth(tw) self.s:SetWidth(tw)
         if self.card then self.card:SetWidth(math.min(400, math.max(160, (w or 400) - 24))) self:FitCard() end
         w, h = math.max(1, w or 1), math.max(1, h or 1)
-        -- Rauschen kacheln statt strecken (128px-Kachel)
+        -- tile noise instead of stretching (128px tile)
         for _, t in ipairs(self.veils) do
             t:SetTexCoord(t.off, t.off + w / 128, t.off * 0.6, t.off * 0.6 + h / 128)
         end
-        -- Blur-Attrappe: Ausschnitt mit passendem Seitenverhaeltnis (nicht verzerren);
-        -- kleine Bereiche zeigen einen Ausschnitt aus der Mitte/Tabelle, grosse die ganze Seite
+        -- blur mock-up: crop with matching aspect ratio (don't distort);
+        -- small areas show a crop from the middle/table, large ones the whole page
         local cw, ch = 1, 1
         if w >= h then ch = h / w else cw = w / h end
         local sc = (opts.compact or math.max(w, h) < 256) and math.max(0.35, math.max(w, h) / 512) or 1
@@ -1771,7 +1771,7 @@ function K.Lock(frame, opts)
         self:FitCard()
     end
     o:SetTexts(opts.text, opts.sub)
-    -- kompakt: Unterzeile als Tooltip
+    -- compact: subline as tooltip
     o:SetScript("OnEnter", function(self)
         local t, s = lockTexts(self.opts.who, self.opts.text, self.opts.sub)
         K.ShowTip(self, s and { t, s } or t)
@@ -1781,8 +1781,8 @@ function K.Lock(frame, opts)
         on = on and true or false
         if self.locked == on and not instant then return end
         self.locked = on
-        -- echten Inhalt darunter ausblenden (nur Geschwister im selben Rahmen, nicht Sperren selbst);
-        -- die Blur-Attrappe ersetzt ihn, beim Entsperren kommt die alte Alpha zurueck
+        -- hide real content below (only siblings in the same frame, not locks themselves);
+        -- the blur mock-up replaces it, on unlock the old alpha comes back
         local host = self:GetParent()
         if host and host.GetChildren then
             for _, c in ipairs({ host:GetChildren() }) do
@@ -1798,7 +1798,7 @@ function K.Lock(frame, opts)
         end
         if on then
             self:Show()
-            -- laufende Tweens (z.B. halbe Ausblendung) immer ueberschreiben, sonst bleibt Alpha haengen
+            -- always override running tweens (e.g. half fade-out), otherwise alpha gets stuck
             if instant or still then self:SetAlpha(1) K.Tween(self, 0.01, function() self:SetAlpha(1) end)
             else self:SetAlpha(0) K.Tween(self, 0.2, function(p) self:SetAlpha(p) end, function() self:SetAlpha(1) end) end
         elseif instant or still or not self:IsShown() then
@@ -1816,7 +1816,7 @@ function K.Lock(frame, opts)
     o:Update(true)
     return o
 end
--- Knopf sperren: grau, ohne Wirkung, Tooltip mit Grund. reason = Text oder Schluessel aus K.LOCK_WHO
+-- lock button: gray, without effect, tooltip with reason. reason = text or key from K.LOCK_WHO
 function K.LockButton(btn, checkFn, reason)
     if not btn then return end
     btn.lockCheck, btn.lockReason = checkFn, reason
@@ -1857,7 +1857,7 @@ function K.UpdateLockButton(btn)
     btn.lockIc:SetShown(locked)
     for _, r in ipairs({ btn.ic, btn.icon, btn.glyph }) do if r and r.SetDesaturated then r:SetDesaturated(locked) end end
 end
--- alle Sperren neu pruefen (Rechte haben sich geaendert)
+-- recheck all locks (rights have changed)
 function K.RefreshLocks()
     for o in pairs(locks) do if o:GetParent() and o:GetParent():IsShown() then o:Update() end end
     for b in pairs(lockBtns) do K.UpdateLockButton(b) end
@@ -1883,10 +1883,10 @@ end
 function K.ToHex(c) return ("%02x%02x%02x"):format(c[1] * 255 + 0.5, c[2] * 255 + 0.5, c[3] * 255 + 0.5) end
 
 ------------------------------------------------------------------------
--- Virtuelle Liste mit schmalem Scrollbalken
+-- virtual list with thin scrollbar
 -- createRow(list, i) -> row ; updateRow(row, item, index)
 ------------------------------------------------------------------------
--- 0.5.625: wird gerade eine Liste gescrollt? (teure Deko-Animationen pausieren solange)
+-- 0.5.625: is a list currently being scrolled? (expensive decorative animations pause meanwhile)
 local listBusyAt = 0
 function ns.ListBusy() return GetTime() - listBusyAt < 0.25 end
 function K.List(parent, rowH, createRow, updateRow)
@@ -1908,8 +1908,8 @@ function K.List(parent, rowH, createRow, updateRow)
     f.empty:SetWordWrap(true)
 
     function f:Visible() return math.max(1, math.floor(self:GetHeight() / self.rowH)) end
-    -- 0.5.618: weiches Scrollen - pos = Position in Zeilen (mit Nachkommastellen), Zeilen werden um den Rest
-    -- pixelgenau verschoben; offset (ganze Zeilen) bleibt fuer Aufrufer erhalten, die ihn direkt setzen
+    -- 0.5.618: smooth scrolling - pos = position in rows (with fractions), rows are shifted pixel-exactly
+    -- by the remainder; offset (whole rows) is kept for callers that set it directly
     f.pos, f.target = 0, 0
     local function maxPos(self)
         local h = self:GetHeight() or 0
@@ -1937,7 +1937,7 @@ function K.List(parent, rowH, createRow, updateRow)
         end
     end
     function f:Refresh(scrollOnly)
-        -- offset von aussen gesetzt (z.B. zuruecksetzen auf 0): Position uebernehmen
+        -- offset set from outside (e.g. reset to 0): take over the position
         if self.offset ~= math.floor(self.pos) then self.pos, self.target = self.offset, self.offset end
         local mp = maxPos(self)
         if self.pos > mp then self.pos = mp end
@@ -1946,7 +1946,7 @@ function K.List(parent, rowH, createRow, updateRow)
         if self.target < 0 then self.target = 0 end
         self.offset = math.floor(self.pos)
         local vis = self:Visible()
-        -- 0.5.620 nur beim Scrollen: Zeilen weiterreichen statt alle neu zu zeichnen (nur neu sichtbare werden befuellt)
+        -- 0.5.620 only while scrolling: pass rows along instead of redrawing all (only newly visible ones are filled)
         if scrollOnly and #self.rows >= vis + 2 then
             local byIdx, free, order = {}, {}, {}
             for i = 1, vis + 2 do
@@ -2046,17 +2046,17 @@ function K.List(parent, rowH, createRow, updateRow)
     return f
 end
 
--- Standardzeile
+-- default row
 function K.Row(list)
     local r = CreateFrame("Button", nil, list)
     r.stripe = r:CreateTexture(nil, "BACKGROUND")
     r.stripe:SetAllPoints()
     r.stripe:SetColorTexture(1, 1, 1, 0.022)
-    -- Hover: Zeile deutlich aufhellen + Akzentbalken links, damit man Zeile fuer Zeile lesen kann
+    -- hover: brighten row clearly + accent bar on the left, so you can read row by row
     r.hl = r:CreateTexture(nil, "HIGHLIGHT")
     r.hl:SetAllPoints()
     r.hl:SetColorTexture(1, 1, 1, 0.08)
-    -- kein farbiger Balken links beim Ueberfahren (nur aufhellen)
+    -- no colored bar on the left on hover (brighten only)
     r.sel = r:CreateTexture(nil, "ARTWORK")
     col(r.sel, C.accent)
     r.sel:SetPoint("TOPLEFT")
@@ -2075,7 +2075,7 @@ function K.Row(list)
 end
 
 ------------------------------------------------------------------------
--- Kennzahl
+-- key figure
 ------------------------------------------------------------------------
 function K.StatCard(parent, label)
     local f = K.Panel(parent, C.panel)
@@ -2089,7 +2089,7 @@ function K.StatCard(parent, label)
     return f
 end
 
--- Abzeichen
+-- badge
 function K.Badge(parent, size)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(60, size or 17)
@@ -2105,7 +2105,7 @@ function K.Badge(parent, size)
     return f
 end
 
--- Fortschrittsbalken
+-- progress bar
 function K.Bar(parent, w, h)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(w or 100, h or 4)
@@ -2114,7 +2114,7 @@ function K.Bar(parent, w, h)
     col(f.fill, C.accent2)
     f.fill:SetPoint("TOPLEFT")
     f.fill:SetPoint("BOTTOMLEFT")
-    -- 0.6.274: Design mit eigenem Balken (Skin "bar" = { track, fill }): Spur und Fuellung als Grafik
+    -- 0.6.274: design with its own bar (skin "bar" = { track, fill }): track and fill as graphics
     local sb = K.Skin and K.Skin("bar")
     if sb and sb.track and sb.fill then
         for _, r in ipairs({ f:GetRegions() }) do if r ~= f.fill and r.SetColorTexture and r:GetDrawLayer() == "BACKGROUND" then r:Hide() end end
@@ -2155,10 +2155,10 @@ function K.ItemTip(owner, link)
 end
 
 ------------------------------------------------------------------------
--- Hinweise (oben mittig, stapeln sich)
+-- notices (top center, stacking)
 ------------------------------------------------------------------------
 local toastPool, toastActive = {}, {}
--- Anker der Hinweise: Standard oben mittig; eigene Position = Mitte des ersten Hinweises (settings.toastPos)
+-- anchor of the notices: default top center; custom position = center of the first notice (settings.toastPos)
 local toastAnchor
 local function anchorFrame()
     if not toastAnchor then
@@ -2172,12 +2172,12 @@ local function anchorFrame()
     else
         toastAnchor:SetPoint("TOP", UIParent, "TOP", 0, -120)
     end
-    return toastAnchor, pos and pos.y and pos.y < 0   -- untere Haelfte: nach oben stapeln
+    return toastAnchor, pos and pos.y and pos.y < 0   -- lower half: stack upwards
 end
 local function layoutToasts()
     local a, up = anchorFrame()
     local s = (ns.db and ns.db.settings.toastScale) or 1
-    -- weitere Fenster im Stapel (z.B. Online-Popup) belegen die ersten Plaetze
+    -- other frames in the stack (e.g. online popup) take the first slots
     local slot = 0
     for _, x in ipairs(K.toastExtra or {}) do
         if x:IsShown() then
@@ -2187,21 +2187,21 @@ local function layoutToasts()
             slot = slot + 1
         end
     end
-    -- Abstand nach tatsaechlicher Hoehe (lange Hinweise sind hoeher)
+    -- spacing by actual height (long notices are taller)
     local off, prevH = slot * 68, nil
     for i, t in ipairs(toastActive) do
         t:SetScale(s)
         t:ClearAllPoints()
         local h = t:GetHeight() or 56
         if prevH then off = off + prevH / 2 + h / 2 + 6 end
-        -- der erste Hinweis sitzt genau dort, wo der Beispiel-Hinweis abgelegt wurde
+        -- the first notice sits exactly where the sample notice was dropped
         t:SetPoint("CENTER", a, "CENTER", 0, (up and 1 or -1) * off)
         prevH = h
     end
 end
 K.LayoutToasts = layoutToasts
 
--- Position der Hinweise mit der Maus festlegen: Beispiel-Hinweis ziehen
+-- set notice position with the mouse: drag the sample notice
 local mover
 function K.ToastMover(onDone)
     if not mover then
@@ -2235,14 +2235,14 @@ function K.ToastMover(onDone)
             layoutToasts()
             if mover.onDone then mover.onDone() end
         end
-        -- Uebernehmen / Abbrechen direkt unter dem Beispiel-Hinweis (wandern beim Ziehen mit)
+        -- Apply / Cancel directly below the sample notice (move along when dragging)
         mover.ok = K.Button(mover, L["Apply"], 120, 24, "primary", function() close(true) end)
         mover.ok:SetPoint("TOPRIGHT", mover, "BOTTOMRIGHT", 0, -6)
         mover.cancel = K.Button(mover, L["Cancel"], 100, 24, "ghost", function() close(false) end)
         mover.cancel:SetPoint("RIGHT", mover.ok, "LEFT", -6, 0)
-        -- Esc = Abbrechen
+        -- Esc = Cancel
         ns.EscClose("OasisToastMover")
-        mover:HookScript("OnHide", function(self)   -- Hook: SetScript wuerde den Esc-Haken loeschen
+        mover:HookScript("OnHide", function(self)   -- hook: SetScript would remove the Esc hook
             if not self.closing then ns.db.settings.toastPos = self.prevPos layoutToasts() if self.onDone then self.onDone() end end
         end)
     end
@@ -2260,14 +2260,14 @@ function K.ToastMover(onDone)
     mover:Show()
 end
 function K.Toast(title, text, color, onClick, sound, validUntil)
-    -- Hinweise zeigen oft fremde Texte (Namen, Titel, Notizen): zentral entschaerfen und kuerzen
+    -- notices often show foreign texts (names, titles, notes): sanitize and truncate centrally
     if ns.CleanText then
         if type(title) == "string" then title = ns.CleanText(title, 300) end
         if type(text) == "string" then text = ns.CleanText(text, 800) end
     end
     local event = sound or (ns.Sound and ns.Sound.TakeNext()) or "toast"
     if validUntil and ns.now() > validUntil then return end
-    -- 0.6.405: derselbe Hinweis (Titel + Text) hoechstens einmal pro Minute - kein Zuspammen
+    -- 0.6.405: the same notice (title + text) at most once per minute - no spamming
     K.toastSeen = K.toastSeen or {}
     local sig = tostring(title) .. "|" .. tostring(text)
     local nowT = (GetTime and GetTime()) or (ns.now and ns.now()) or 0
@@ -2275,13 +2275,13 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
     K.toastSeen[sig] = nowT
     if ns.db and not ns.db.settings.toasts then return end
     if ns.demoLoading then return end
-    -- einzelne Hinweis-Arten abgeschaltet (Einstellungen > Hinweise)
+    -- individual notice kinds turned off (Settings > Notices)
     local off = ns.db and ns.db.settings.toastOff
     if off and off[event] then return end
-    -- 0.5.952: Hinweise ohne eigene Art (z.B. "Lagerfeuer gemeldet") einzeln ausgeblendet - gemerkt wird der Titel
+    -- 0.5.952: notices without their own kind (e.g. "Campfire reported") hidden individually - the title is remembered
     local mutedTitles = ns.db and ns.db.settings.toastMuted
     if mutedTitles and type(title) == "string" and mutedTitles[title] then return end
-    -- im Kampf zurueckhalten und danach zeigen
+    -- hold back in combat and show afterwards
     if ns.db and ns.db.settings.toastHoldCombat and ns.inCombat() then
         validUntil = math.min(validUntil or math.huge, ns.now() + 15)
         K._held = K._held or {}
@@ -2296,8 +2296,8 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         t:SetFrameStrata("DIALOG")
         t.fillTex = K.Fill(t, { 0.04, 0.04, 0.05, 0.96 })
         K.Border(t, C.line)
-        -- 0.6.133: Bild-Box und Bild-Logo (Gildenmodul). Je zwei Ebenen: neutrale Grundebene + Farbebene, die in der
-        -- Hinweis- bzw. Akzentfarbe eingefaerbt wird - so passen sie zu jeder Farbwahl.
+        -- 0.6.133: image box and image logo (guild module). Two layers each: neutral base layer + color layer tinted in the
+        -- notice or accent color - so they match any color choice.
         if ns.GuildPack then
             local GP = "Interface\\AddOns\\Oasis_Guild\\Media\\"
             t.boxBase = t:CreateTexture(nil, "BACKGROUND", nil, 3)
@@ -2308,14 +2308,14 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
             t.boxTint:SetTexture(GP .. "toast_box_tint")
             t.imgBox = true
         end
-        -- Farbverlauf in der Hinweisfarbe von links
+        -- gradient in the notice color from the left
         t.glow = t:CreateTexture(nil, "BORDER")
         t.glow:SetAllPoints()
-        -- Zeitbalken unten (bis der Hinweis verschwindet)
+        -- time bar at the bottom (until the notice disappears)
         t.time = t:CreateTexture(nil, "OVERLAY")
         t.time:SetPoint("BOTTOMLEFT", 1, 1)
         t.time:SetHeight(2)
-        -- Lautsprecher, wenn ein Sound dazu spielt
+        -- speaker if a sound plays with it
         t.snd = t:CreateTexture(nil, "OVERLAY")
         t.snd:SetTexture(ns.MEDIA .. "icons\\speaker")
         t.snd:SetSize(12, 12)
@@ -2324,7 +2324,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         t.close = K.CloseButton(t, function() t.expire = 0 end)
         t.close:SetSize(14, 14)
         t.close:SetPoint("TOPRIGHT", -6, -6)
-        -- 0.5.619: diese Hinweis-Art direkt hier ausschalten (gleiche Einstellung wie Einstellungen > Hinweise & Klang)
+        -- 0.5.619: turn off this notice kind right here (same setting as Settings > Notices & Sound)
         t.mute = CreateFrame("Button", nil, t)
         t.mute:SetSize(16, 16)
         t.mute:SetPoint("BOTTOMRIGHT", -6, 6)
@@ -2371,14 +2371,14 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         t.logo:SetSize(32, 32)
         t.logo:SetPoint("LEFT", 12, 0)
         if t.imgBox then
-            -- 0.6.475: neues OASIS-Logo (Palme im Ring) auch in den Hinweisen mit Gildenmodul
+            -- 0.6.475: new OASIS logo (palm in ring) also in the notices with the guild module
             t.logo:SetTexture(ns.MEDIA .. "logo256")
             t.logo:SetSize(38, 38)
         end
         t.title = K.Title(t, 13, C.text)
         t.title:SetPoint("TOPLEFT", t.logo, "TOPRIGHT", 12, 2)
         t.title:SetWidth(262)
-        t.title:SetWordWrap(true)      -- nichts abschneiden: lange Titel umbrechen
+        t.title:SetWordWrap(true)      -- don't cut anything: wrap long titles
         t.title:SetJustifyV("TOP")
         t.text = K.Text(t, 12, C.muted)
         t.text:SetPoint("TOPLEFT", t.title, "BOTTOMLEFT", 0, -5)
@@ -2390,7 +2390,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
             self.expire = 0
         end)
         t:SetScript("OnUpdate", function(self, el)
-            -- Maus drauf: Zeit anhalten (Hinweis bleibt stehen, bis die Maus weg ist)
+            -- mouse over: pause time (notice stays until the mouse leaves)
             if self.age >= 0.2 and self:IsMouseOver() then self:SetAlpha(1) return end
             self.age = self.age + el
             if self.age < 0.2 then
@@ -2407,7 +2407,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
                 self:SetAlpha(1)
             end
             if self.expire > 0 then self.time:SetWidth(math.max(1, (self:GetWidth() - (self.timePad or 2)) * math.max(0, 1 - self.age / self.expire))) end
-            -- Lichtpunkt laeuft alle 1,6 s ueber den Balken (nur so weit, wie der Balken noch reicht)
+            -- light dot runs across the bar every 1.6 s (only as far as the bar still reaches)
             if self.timeShine and self.timeShine:IsShown() then
                 local w = self.time:GetWidth() or 0
                 local x = ((self.age % 1.6) / 1.6) * (w + 22) - 22
@@ -2423,15 +2423,15 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
     K.SetBorderColor(t, { color[1] * 0.6, color[2] * 0.6, color[3] * 0.6, 1 })
     if not K.Gradient(t.glow, "HORIZONTAL", { color[1], color[2], color[3], 0.2 }, { color[1], color[2], color[3], 0 }) then t.glow:SetColorTexture(color[1], color[2], color[3], 0.06) end
     if t.imgBox then
-        -- Bild-Box: eigener Rahmen und Flaeche statt Oasis-Rand, Linie in der Hinweisfarbe, Logo in der Akzentfarbe
+        -- image box: own frame and surface instead of Oasis border, line in the notice color, logo in the accent color
         if t.fillTex then t.fillTex:SetAlpha(0) end
         K.SetBorderColor(t, { 0, 0, 0, 0 })
         t.bar:Hide()
         t.glow:SetAlpha(0.5)
         t.boxTint:SetVertexColor(color[1], color[2], color[3], 1)
-        t.boxTint:Hide()   -- 0.6.137: Rahmenlinie aus dem Bild ausgeblendet (wirkte wie ein zusaetzlicher Rahmen)
-        -- 0.6.135: Zeitbalken in der Box rechts neben dem Logo bis vor das Auge, mit Verlauf, dezentem Schein und
-        -- einem Lichtpunkt, der ueber den Balken laeuft
+        t.boxTint:Hide()   -- 0.6.137: border line hidden from the image (looked like an extra frame)
+        -- 0.6.135: time bar in the box to the right of the logo up to the eye, with gradient, subtle glow and
+        -- a light dot running across the bar
         t.time:ClearAllPoints()
         t.time:SetPoint("BOTTOMLEFT", 60, 9)
         t.timePad = 60 + 34
@@ -2450,17 +2450,17 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
         end
         if not K.Gradient(t.timeGlow, "HORIZONTAL", { color[1], color[2], color[3], 0.05 }, { color[1], color[2], color[3], 0.22 }) then t.timeGlow:SetVertexColor(color[1], color[2], color[3], 0.15) end
         if not K.Gradient(t.timeShine, "HORIZONTAL", { 1, 1, 1, 0 }, { 1, 1, 1, 0.55 }) then t.timeShine:SetVertexColor(1, 1, 1, 0.4) end
-        t.timeGlow:Show() t.timeShine:Hide()   -- 0.6.137: laufender Lichtpunkt aus (wirkte unruhig)
+        t.timeGlow:Show() t.timeShine:Hide()   -- 0.6.137: running light dot off (looked restless)
         local ac = C.accent
         if t.logoTint then t.logoTint:SetVertexColor(ac[1], ac[2], ac[3], 1) end
     end
     do
         local ch = ns.Sound and ns.Sound.ChoiceFor and ns.Sound.ChoiceFor(event)
-        t.snd:Hide()   -- 0.5.685: Lautsprecher-Anzeige entfernt
+        t.snd:Hide()   -- 0.5.685: speaker display removed
     end
     t.title:SetText(title or "")
     t.text:SetText(text or "")
-    -- 0.6.404: Aktions-Hinweis ("Klick: senden") unten rechts statt im Text (lag sonst auf der Zeitleiste)
+    -- 0.6.404: action hint ("Click: send") at the bottom right instead of in the text (otherwise lay on the timeline)
     if not t.action then
         t.action = K.Text(t, 10, C.muted, "RIGHT")
         t.action:SetPoint("BOTTOMRIGHT", t, "BOTTOMRIGHT", -28, 8)
@@ -2469,10 +2469,10 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
     K.toastHint = nil
     t.event = event
     local typed = event ~= "toast" and ns.Sound and ns.Sound.eventByKey and ns.Sound.eventByKey[event] and true or false
-    -- ohne eigene Art: Auge blendet genau diesen Hinweis (Titel) aus - nur bei festen Titeln sinnvoll, darum nur mit Text
+    -- without own kind: eye hides exactly this notice (title) - only sensible with fixed titles, so only with text
     t.byTitle = (not typed and type(title) == "string" and title ~= "") and title or nil
     t.mute:SetShown(typed or t.byTitle ~= nil)
-    -- Hoehe an den Inhalt anpassen (mind. wie bisher)
+    -- adjust height to the content (at least as before)
     do
         local th = (title and title ~= "") and (t.title:GetStringHeight() or 14) or 0
         local hasAct = (t.action:GetText() or "") ~= ""
@@ -2482,7 +2482,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
             t:SetHeight(math.max(56, th2 + xh2 + (hasAct and 38 or 26)))
         end
         fit()
-        ns.After(0, fit)   -- 0.6.404: nach dem Umbrechen nochmal messen (sonst zu niedrig)
+        ns.After(0, fit)   -- 0.6.404: measure again after wrapping (otherwise too low)
     end
     t.cb = onClick
     t.age, t.expire = 0, (ns.db and ns.db.settings.toastDur) or 7
@@ -2498,7 +2498,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
     layoutToasts()
     if ns.Sound then ns.Sound.Play(event) end
 end
--- zurueckgehaltene Hinweise nach dem Kampf zeigen
+-- show held-back notices after combat
 function K.FlushHeldToasts()
     local held = K._held
     K._held = nil
@@ -2513,7 +2513,7 @@ end
 ------------------------------------------------------------------------
 -- Gaming-Bausteine + Animationen (Uebersicht u.a.)
 ------------------------------------------------------------------------
--- einfache Tweens: K.Tween(obj, Dauer, fn(p 0..1, weich auslaufend), fertig)
+-- simple tweens: K.Tween(obj, duration, fn(p 0..1, eased out), done)
 local tweens = {}
 local driver = CreateFrame("Frame", nil, UIParent)
 driver:SetScript("OnUpdate", function(_, el)
@@ -2532,8 +2532,8 @@ end)
 function K.Tween(obj, dur, fn, done, delay)
     tweens[obj] = { e = -(delay or 0), d = math.max(0.01, dur), fn = fn, done = done }
 end
--- Frame weich einblenden und leicht von unten hereingleiten lassen
--- Reiterwechsel animieren: Unterstrich waechst aus der Mitte, Inhalt daneben blendet weich ein
+-- fade a frame in softly and let it slide in slightly from below
+-- animate tab switch: underline grows from the center, content next to it fades in softly
 function K.TabAnim(seg, key)
     if not seg or (ns.db and ns.db.settings.noAnim) then return end
     for _, b in ipairs(seg.buttons or {}) do
@@ -2547,41 +2547,41 @@ function K.TabAnim(seg, key)
             end)
         end
     end
-    -- frueher wurden hier alle Geschwister kurz ausgeblendet -> ganze Seite "zuckte" bei jedem Reiterwechsel
+    -- previously all siblings were briefly hidden here -> the whole page "twitched" on every tab switch
 end
 function K.FadeIn(f, delay, dist)
     if not f then return end
-    if ns.db and ns.db.settings.noAnim then f:SetAlpha(1) return end   -- Animationen reduziert
-    -- schon sichtbar und kuerzlich eingeblendet (z.B. Liste wird nach Daten-Abgleich neu gefuellt):
-    -- nicht erneut von 0 einblenden, sonst flackert das Fenster bei jedem Nachladen
+    if ns.db and ns.db.settings.noAnim then f:SetAlpha(1) return end   -- animations reduced
+    -- already visible and recently faded in (e.g. list refilled after data sync):
+    -- don't fade in from 0 again, otherwise the window flickers on every reload of data
     local now = GetTime and GetTime() or 0
     if f.oasisFadedAt and now - f.oasisFadedAt < 20 and f:IsVisible() then f:SetAlpha(1) return end
     f.oasisFadedAt = now
     f:SetAlpha(0)
     K.Tween(f, 0.35, function(p) f:SetAlpha(p) end, function() f:SetAlpha(1) end, delay)
-    -- Sicherheitsnetz: nie unsichtbar haengen bleiben
+    -- safety net: never stay stuck invisible
     ns.After((delay or 0) + 1, function() if (f:GetAlpha() or 1) < 1 then f:SetAlpha(1) end end)
 end
--- Zahl hochzaehlen: fs:SetText(fmt(Wert))
+-- count a number up: fs:SetText(fmt(value))
 function K.CountUp(fs, to, dur, fmt, delay)
     to = tonumber(to) or 0
     fmt = fmt or function(v) return tostring(math.floor(v + 0.5)) end
-    -- Endwert sofort setzen (falls die Animation nicht laeuft), dann von 0 hochzaehlen
+    -- set the final value immediately (in case the animation doesn't run), then count up from 0
     fs:SetText(fmt(to))
     if to == 0 then return end
     K.Tween(fs, dur or 0.8, function(p) fs:SetText(fmt(to * p)) end, function() fs:SetText(fmt(to)) end, delay)
 end
--- Verlauf auf einer Textur (Farbe a -> b), ohne Fehler auf Clients ohne SetGradient
+-- gradient on a texture (color a -> b), without errors on clients without SetGradient
 function K.Gradient(tex, dir, a, b)
     if not (CreateColor and tex.SetGradient) then return false end
-    tex.oasisGrad = true   -- 0.6.377: Verlauf - darf beim Ecken-Zuschnitt nie geteilt werden (laesst sich nicht kopieren)
+    tex.oasisGrad = true   -- 0.6.377: gradient - must never be shared when cropping corners (can't be copied)
     return pcall(function()
         tex:SetColorTexture(1, 1, 1, 1)
         tex:SetGradient(dir or "HORIZONTAL", CreateColor(a[1], a[2], a[3], a[4] or 1), CreateColor(b[1], b[2], b[3], b[4] or 1))
     end)
 end
 
--- Abschnittskopf im Spiel-Stil: Farbmarke + GROSSBUCHSTABEN + optionaler Zaehler rechts
+-- section header in game style: color mark + UPPERCASE + optional counter on the right
 function K.GameHead(parent, text, color)
     local f = CreateFrame("Frame", nil, parent)
     f:SetHeight(18)
@@ -2596,7 +2596,7 @@ function K.GameHead(parent, text, color)
     f.count = K.Text(f, 11, color)
     f.count:SetPoint("LEFT", f.text, "RIGHT", 8, 0)
     function f:SetCount(v) self.count:SetText(v and tostring(v) or "") end
-    -- pulsierender Punkt ("live")
+    -- pulsing dot ("live")
     function f:Live(on)
         if not self.dot then
             self.dot = self:CreateTexture(nil, "OVERLAY")
@@ -2614,7 +2614,7 @@ function K.GameHead(parent, text, color)
     return f
 end
 
--- HUD-Kachel: grosses Symbol, Leuchtkante, Wert (zaehlt hoch), Beschriftung, kleiner Fortschrittsbalken
+-- HUD tile: large icon, glowing edge, value (counts up), label, small progress bar
 function K.HudTile(parent, icon, label, color, onClick)
     local f = CreateFrame("Button", nil, parent)
     f:SetHeight(66)
@@ -2629,7 +2629,7 @@ function K.HudTile(parent, icon, label, color, onClick)
     f.hl = f:CreateTexture(nil, "HIGHLIGHT")
     f.hl:SetAllPoints()
     f.hl:SetColorTexture(1, 1, 1, 0.02)
-    -- Glas 2026: ruhige Flaeche, Farbe nur in Zahl und Symbol
+    -- Glas 2026: calm surface, color only in number and icon
     local IG = ns.Insta
     f.glassy = IG and IG.Glass and IG.Glass(f, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.10 }, 12) and true or false
     f.icon = K.Glyph(f, 22, icon, color)
@@ -2660,7 +2660,7 @@ function K.HudTile(parent, icon, label, color, onClick)
         s.icon:SetAlpha(0.8)
         GameTooltip:Hide()
     end)
-    -- Wert setzen; animate = hochzaehlen; progress 0..1 = Balken unten
+    -- set value; animate = count up; progress 0..1 = bar at the bottom
     function f:Set(value, sub, progress, animate)
         self.sub:SetText(sub or "")
         local n = tonumber(value)
@@ -2682,8 +2682,8 @@ function K.HudTile(parent, icon, label, color, onClick)
 end
 
 ------------------------------------------------------------------------
--- Rang-Rahmen (Oasis-Rang): rund (Portraet) oder eckig (Profilkarte)
--- Stil: { color, width, glow, double, gems, sparks, cycle }
+-- rank frame (Oasis rank): round (portrait) or square (profile card)
+-- Style: { color, width, glow, double, gems, sparks, cycle }
 ------------------------------------------------------------------------
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local function hsv(h)
@@ -2696,15 +2696,15 @@ local function hsv(h)
     return r * 0.6 + 0.4, g * 0.6 + 0.4, b * 0.6 + 0.4
 end
 
--- rund: Groesse = Durchmesser des Inhalts; Inhalt (z.B. Portraet) als rf:CreateTexture(nil, "OVERLAY") anlegen
--- Rang-Wappen: Media\ranks\tier1..11 (Holz, Bronze, Silber, Gold, Smaragd, Saphir, Amethyst, Rubin, Diamant,
--- Legende, Herz der Oasis) mit der Rangzahl im Innenfeld; Stufen mit Schein pulsieren leicht
--- sichtbare Breite je Ziffer im Verhaeltnis zur Hoehe (aus den Grafiken Media\\digits gemessen)
+-- round: size = diameter of the content; create content (e.g. portrait) as rf:CreateTexture(nil, "OVERLAY")
+-- Rank crests: Media\ranks\tier1..11 (wood, bronze, silver, gold, emerald, sapphire, amethyst, ruby, diamond,
+-- Legend, Heart of the Oasis) with the rank number in the inner field; tiers with glow pulse slightly
+-- visible width per digit relative to height (measured from the graphics Media\\digits)
 local DIGIT_W = { ["0"] = 0.59, ["1"] = 0.31, ["2"] = 0.60, ["3"] = 0.60, ["4"] = 0.67, ["5"] = 0.59, ["6"] = 0.59, ["7"] = 0.57, ["8"] = 0.63, ["9"] = 0.59 }
--- Zahl aus Ziffern-Grafiken, exakt mittig auf dem Eltern-Rahmen (Ersatz fuer FontString bei Plaketten).
--- Gleiche Schnittstelle wie ein FontString: :SetText(zahl), :SetTextColor(r, g, b, a), :SetShown/Show/Hide
--- 0.5.703: Ziffern-Kachel auf ganze Pixel mit gleicher Paritaet wie das Feld (ref). Sonst (z. B. 8,96 -> 9 px auf einem
--- 20-px-Wappen) sitzt sie ein halbes Pixel neben der Mitte. Bei Gleichstand gewinnt die kleinere Kachel.
+-- number from digit graphics, exactly centered on the parent frame (replacement for FontString on plaques).
+-- same interface as a FontString: :SetText(number), :SetTextColor(r, g, b, a), :SetShown/Show/Hide
+-- 0.5.703: digit tile on whole pixels with the same parity as the field (ref). Otherwise (e.g. 8.96 -> 9 px on a
+-- 20 px crest) it sits half a pixel off center. On a tie the smaller tile wins.
 local function pxLike(v, ref)
     ref = math.floor((ref or 0) + 0.5)
     local n = math.floor(v + 0.5)
@@ -2750,7 +2750,7 @@ function K.DigitText(parent, h, dx, dy)
     function o:Hide() self:SetShown(false) end
     return o
 end
--- Innenfeld-Mitte je Wappen (Anteil der Bildhoehe unter der Mitte), gemessen aus Media\\rank\\frameNN
+-- inner field center per crest (fraction of image height below center), measured from Media\\rank\\frameNN
 local FRAME_DY = { [5] = 0.041, [10] = 0.042, [15] = 0.036, [20] = 0.033, [25] = 0.032, [30] = 0.021, [35] = 0.022, [40] = 0.041,
     [45] = 0.035, [50] = 0.041, [55] = 0.030, [60] = 0.044, [65] = 0.032, [70] = 0.043, [75] = 0.027, [80] = 0.026, [85] = 0.025,
     [90] = 0.034, [95] = 0.029, [100] = 0.043 }
@@ -2770,7 +2770,7 @@ function K.RankEmblem(parent, size)
     f.num:SetJustifyH("CENTER")
     f.num:SetJustifyV("MIDDLE")
     f.num:SetWidth(size)
-    -- Tooltip: was das Wappen bedeutet; Klick geht an die Zeile darunter weiter
+    -- tooltip: what the crest means; click is passed on to the row below
     f:EnableMouse(true)
     f:SetScript("OnEnter", function(self)
         if not self.level or not ns.Rank then return end
@@ -2790,7 +2790,7 @@ function K.RankEmblem(parent, size)
         if not level or not ns.Rank then self:Hide() return end
         local idx = ns.Rank.FrameIndex(level)
         local st = ns.Rank.FRAMES[idx]
-        -- 0.5.578: Wappen alle 5 Raenge (Media\\rank\\frameNN, leeres Innenfeld), die genaue Rangzahl kommt darauf
+        -- 0.5.578: crest every 5 ranks (Media\\rank\\frameNN, empty inner field), the exact rank number goes on top
         local tier = math.min(100, math.max(5, math.floor(level / 5) * 5))
         local TS = pxLike(size * 1.18, size)
         self.tex:ClearAllPoints()
@@ -2810,13 +2810,13 @@ function K.RankEmblem(parent, size)
             local h = math.floor(size * (#s >= 3 and 0.27 or (#s == 2 and 0.33 or 0.37)) + 0.5)
             local T = pxLike(h * 128 / 100, size)
             local gap = math.max(1, math.floor(h * 0.06 + 0.5))
-            -- Sichtbare Breite und Mittelpunkt der 128px-Ziffern (ohne transparenten Rand).
+            -- visible width and center of the 128px digits (without transparent margin).
             local bounds = { ["0"] = {30, 97}, ["1"] = {44, 83}, ["2"] = {30, 98}, ["3"] = {30, 98},
                 ["4"] = {26, 101}, ["5"] = {30, 97}, ["6"] = {30, 97}, ["7"] = {31, 96}, ["8"] = {28, 99}, ["9"] = {30, 97} }
             local function digitWidth(ch) local bb = bounds[ch] return (bb[2] - bb[1]) * T / 128 end
             local total = 0
             for i = 1, #s do total = total + digitWidth(s:sub(i, i)) + (i > 1 and gap or 0) end
-            -- Innenfeld liegt je Wappen etwas unter der Bildmitte (aus den Grafiken gemessen)
+            -- the inner field sits slightly below the image center per crest (measured from the graphics)
             local py = size <= 40 and 0 or -math.floor((FRAME_DY[tier] or 0.035) * TS + 0.5)
             local x = -total / 2
             self.digs = self.digs or {}
@@ -2842,23 +2842,23 @@ function K.RankEmblem(parent, size)
         do return end
         self.tex:ClearAllPoints()
         self.tex:SetAllPoints()
-        -- Bild + Ebene jedes Mal neu setzen (wiederverwendete Listenzeilen)
+        -- set image + layer anew every time (reused list rows)
         self.tex:SetTexture(ns.MEDIA .. "emblems\\tier" .. idx)
         self.tex:SetDrawLayer("ARTWORK", 1)
         self.tex:SetVertexColor(1, 1, 1, 1)
         self.tex:SetAlpha(1)
         self.tex:Show()
         if self:GetParent() then self:SetFrameLevel(self:GetParent():GetFrameLevel() + 3) end
-        -- Zahl als Ziffern-GRAFIKEN (Media\\digits\\d0..d9, Glyph exakt mittig in der Kachel): Schrift-Metriken
-        -- verschieben Ziffern je Schrift/Groesse - Grafiken sitzen immer genau in der Mitte des Wappens.
+        -- number as digit GRAPHICS (Media\\digits\\d0..d9, glyph exactly centered in the tile): font metrics
+        -- shift digits per font/size - graphics always sit exactly in the center of the crest.
         self.num:SetText("")
         local s = tostring(level)
-        local h = math.floor(size * (#s >= 2 and 0.30 or 0.34) + 0.5)   -- sichtbare Ziffernhoehe (kleiner)
-        local T = h * 128 / 100                            -- Kachelgroesse (Glyph = 100/128 der Kachel)
+        local h = math.floor(size * (#s >= 2 and 0.30 or 0.34) + 0.5)   -- visible digit height (smaller)
+        local T = h * 128 / 100                            -- tile size (glyph = 100/128 of the tile)
         local gap = math.max(1, math.floor(h * 0.08 + 0.5))
         local total = 0
         for i = 1, #s do total = total + (DIGIT_W[s:sub(i, i)] or 0.6) * h + (i > 1 and gap or 0) end
-        -- Innenfeld des Wappens liegt minimal unter der Mitte (aus den Grafiken gemessen)
+        -- the crest's inner field sits minimally below center (measured from the graphics)
         local dy = idx == 1 and -0.017 or (idx == #ns.Rank.FRAMES and -0.026 or -0.008)
         local py = math.floor(dy * size + 0.5)
         local x = -total / 2
@@ -2895,9 +2895,9 @@ function K.RankEmblem(parent, size)
     return f
 end
 
--- gemalte Profilrahmen: 20 Stufen (je 5 Raenge), Bild 256 px, Loch = 1/K.RING_RATIO der Bildbreite
+-- painted profile frames: 20 tiers (5 ranks each), image 256 px, hole = 1/K.RING_RATIO of image width
 K.RING_RATIO = 2.0037
--- Mitte des Sechsecks unten je Rahmen (Anteil der Bildbreite, aus den Grafiken gemessen: scratchpad hexcenter.py)
+-- center of the hexagon at the bottom per frame (fraction of image width, measured from the graphics: scratchpad hexcenter.py)
 K.RING_HEX = { { 0.0043, 0.2918 }, { 0.0076, 0.3009 }, { 0.0058, 0.2958 }, { 0.0061, 0.3033 }, { 0, 0.2972 }, { 0.0038, 0.2988 },
     { 0.0032, 0.3013 }, { 0.0082, 0.3037 }, { 0.0028, 0.292 }, { 0.002, 0.3038 }, { 0.0032, 0.2981 }, { 0.0061, 0.3061 },
     { -0.0018, 0.3053 }, { 0.0028, 0.3072 }, { 0.0087, 0.3079 }, { 0.009, 0.3066 }, { 0.0044, 0.3084 }, { 0.0101, 0.312 },
@@ -2934,14 +2934,14 @@ function K.RankFrame(parent, size, shape)
         f.inner:SetSize(size, size)
         f.inner:SetPoint("CENTER")
         f.inner:SetVertexColor(C.bg[1], C.bg[2], C.bg[3])
-        -- 0.5.586: gemalte Profilrahmen (Media/avatar/ringNN, je 5 Oasis-Raenge einer) - ueber dem Portraet,
-        -- unter Rangzahlen (OVERLAY 5). Lochdurchmesser = size, Bild ist K.RING_RATIO mal so gross.
+        -- 0.5.586: painted profile frames (Media/avatar/ringNN, one per 5 Oasis ranks) - above the portrait,
+        -- below rank numbers (OVERLAY 5). Hole diameter = size, image is K.RING_RATIO times as large.
         f.art = f:CreateTexture(nil, "OVERLAY", nil, 4)
         f.art:SetPoint("CENTER")
         f.art:SetSize(size * K.RING_RATIO, size * K.RING_RATIO)
         f.art:Hide()
     else
-        -- eckig: nur Kanten ausserhalb des Inhalts (Inhalt bleibt frei sichtbar)
+        -- square: only edges outside the content (content stays freely visible)
         f.edges, f.edges2, f.glowE = {}, {}, {}
         local function edges(list, layer, sub)
             for i = 1, 4 do
@@ -2961,7 +2961,7 @@ function K.RankFrame(parent, size, shape)
             f.gemsT[i] = g
         end
     end
-    -- Rahmen um ein Rechteck der Groesse size legen: Abstand d, Dicke w
+    -- place a frame around a rectangle of size size: distance d, thickness w
     local function frameEdges(list, d, w)
         local half = size / 2 + d
         local t, b, l, r = list[1], list[2], list[3], list[4]
@@ -2974,12 +2974,12 @@ function K.RankFrame(parent, size, shape)
 
     function f:SetStyle(st, level)
         self.style = st
-        -- Rang bekannt -> gemalter Rahmen statt gezeichneter Ringe
+        -- rank known -> painted frame instead of drawn rings
         local tier = (self.art and level and K.RingTier) and K.RingTier(level) or nil
         if self.art then
             self.art:SetShown(tier ~= nil)
             if tier then self.art:SetTexture(K.RingPath(tier)) end
-            -- Rangzahl im Sechseck unten am Rahmen (aus den Grafiken gemessen: Mitte 32 % bzw. 39,5 % unter dem Loch)
+            -- rank number in the hexagon at the bottom of the frame (measured from the graphics: center 32 % or 39.5 % below the hole)
             if not self.lvl then
                 self.lvl = self:CreateFontString(nil, "OVERLAY", nil, 7)
                 self.lvl:SetJustifyH("CENTER")
@@ -3032,7 +3032,7 @@ function K.RankFrame(parent, size, shape)
             end
             self.half = size / 2 + 2 + w / 2
         end
-        -- Funken
+        -- sparks
         local n = st.sparks or 0
         for i = 1, math.max(n, #self.sparks) do
             local s = self.sparks[i]
@@ -3071,7 +3071,7 @@ function K.RankFrame(parent, size, shape)
                     sp:ClearAllPoints()
                     sp:SetPoint("CENTER", s, "CENTER", math.cos(a) * s.orbit, math.sin(a) * s.orbit)
                 else
-                    -- entlang der Kante laufen
+                    -- run along the edge
                     local h = s.half
                     local per = (a / (math.pi * 2)) % 1 * 4
                     local x, y
@@ -3090,8 +3090,8 @@ function K.RankFrame(parent, size, shape)
 end
 
 
--- Seiten-Kacheln (wie Mitglieder): defs = { { icon, label, color, onClick }, ... }
--- schiebt alle bisher oben an der Seite verankerten Elemente um shift nach unten
+-- page tiles (like members): defs = { { icon, label, color, onClick }, ... }
+-- shifts all elements previously anchored at the top of the page down by shift
 function K.PageTiles(p, defs, shift)
     shift = shift or 76
     local function move(o)
@@ -3128,7 +3128,7 @@ function K.PageTiles(p, defs, shift)
     layout(p:GetWidth())
     p:HookScript("OnShow", function(self) self.tilesFresh = true end)
     p.tilesFresh = true
-    -- Werte setzen: vals = { {wert, zusatz, anteil}, ... }; beim ersten Mal nach dem Oeffnen animiert
+    -- set values: vals = { {value, extra, share}, ... }; animated the first time after opening
     function tiles.Fill(vals)
         local fresh = p.tilesFresh
         for i, t in ipairs(tiles) do
@@ -3142,7 +3142,7 @@ function K.PageTiles(p, defs, shift)
 end
 
 
--- Namensvorschlaege aus der Gildenliste unter einem Eingabefeld (online zuerst); Klick/Tab uebernimmt
+-- name suggestions from the guild list below an edit box (online first); click/Tab accepts
 function K.AttachNameSuggest(eb)
     local box = CreateFrame("Frame", nil, eb)
     box:SetFrameStrata("DIALOG")
@@ -3202,12 +3202,12 @@ function K.AttachNameSuggest(eb)
 end
 
 ------------------------------------------------------------------------
--- Designs (Einstellungen > Aussehen): komplette Farbwelt + Verlauf + passende Schrift/Akzent
--- Farben werden IN PLACE in K.C getauscht -> danach ns.RebuildMain()
+-- Designs (Settings > Appearance): complete color scheme + gradient + matching font/accent
+-- colors are swapped IN PLACE in K.C -> then ns.RebuildMain()
 ------------------------------------------------------------------------
 local PAL_KEYS = { "bg", "side", "panel", "raised", "field", "line", "text", "muted", "dim", "hover" }
 K.THEMES = {
-    -- Glas 2026: halbtransparente, leicht blaeuliche Flaechen, weiche Lichtkugeln im Hintergrund, runde Ecken, Inter
+    -- Glas 2026: semi-transparent, slightly bluish surfaces, soft light orbs in the background, round corners, Inter
     { key = "glass", sideGlow = 0.06, orbs = true, particles = true, name = "Default", desc = "Glasflaechen, ruhiges Licht, runde Ecken - das Oasis-Design", accent = "", font = "inter",
       bg = { 0.045, 0.050, 0.072, 0.93 }, side = { 0.030, 0.034, 0.050, 0.95 }, panel = { 0.115, 0.125, 0.170, 0.62 }, raised = { 0.150, 0.162, 0.215, 0.72 },
       field = { 0.025, 0.028, 0.045, 0.80 }, line = { 0.300, 0.320, 0.420, 0.45 }, text = { 0.960, 0.965, 0.990, 1 }, muted = { 0.660, 0.690, 0.780, 1 },
@@ -3228,7 +3228,7 @@ K.THEMES = {
       field = { 0.140, 0.050, 0.100, 1 }, line = { 0.750, 0.420, 0.580, 1 }, text = { 1.000, 0.950, 0.980, 1 }, muted = { 0.950, 0.750, 0.860, 1 },
       dim = { 0.720, 0.500, 0.620, 1 }, hover = { 0.400, 0.170, 0.290, 1 },
       grad = { top = { 0.320, 0.130, 0.230 }, bottom = { 0.130, 0.045, 0.110 } }, gradDef = 1 },
-    -- Discord: flaches Grau in drei Stufen (Leiste dunkel, Mitte heller), Blurple als Akzent, keine Grafik
+    -- Discord: flat gray in three steps (bar dark, middle lighter), Blurple as accent, no graphics
     { key = "discord", sideGlow = 0, name = "Discord", desc = "Flat grey like Discord, blurple accent", accent = "5865f2", font = "ptsans",
       bg = { 0.192, 0.200, 0.220, 0.98 }, side = { 0.118, 0.122, 0.133, 1 }, panel = { 0.169, 0.176, 0.192, 1 }, raised = { 0.220, 0.227, 0.251, 1 },
       field = { 0.118, 0.122, 0.133, 1 }, line = { 0.247, 0.255, 0.278, 1 }, text = { 0.859, 0.871, 0.882, 1 }, muted = { 0.710, 0.729, 0.757, 1 },
@@ -3237,30 +3237,30 @@ K.THEMES = {
 }
 K.themeByKey = {}
 for _, t in ipairs(K.THEMES) do K.themeByKey[t.key] = t end
--- weitere Designs aus Zusatzmodulen (Gildenmodul): Design + optionaler Skin; erscheint hinten in der Design-Auswahl
+-- more designs from add-on modules (guild module): design + optional skin; appears at the end of the design selection
 function K.AddTheme(theme, skin)
     if not theme or K.themeByKey[theme.key] then return end
     K.THEMES[#K.THEMES + 1] = theme
     K.themeByKey[theme.key] = theme
     if skin then K.SKINS[theme.key] = skin end
 end
--- Standard = die Werte, mit denen das Kit startet
+-- default = the values the kit starts with
 local STD = {}
 for _, k in ipairs(PAL_KEYS) do local c = K.C[k] STD[k] = { c[1], c[2], c[3], c[4] } end
 local function mix(a, b, t) return { a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t, a[4] or 1 } end
 
--- Zwei-Farben-Design: eine dunkle Grundfarbe + eine Akzentfarbe, alles andere wird daraus abgeleitet
+-- two-color design: one dark base color + one accent color, everything else is derived from them
 K.DUO_PRESETS = {
     { name = "Night red", base = "15171d", acc = "ff4d6d" }, { name = "Ocean", base = "0b1622", acc = "1fb6ff" },
     { name = "Forest", base = "0f1712", acc = "52c47e" }, { name = "Lavender", base = "16121f", acc = "b38bff" },
     { name = "Sunset", base = "1b1210", acc = "ff8a3d" }, { name = "Glacier", base = "12181e", acc = "9fd8ff" },
     { name = "Gold", base = "15130d", acc = "e8b44a" }, { name = "Cherry blossom", base = "1b1218", acc = "ff7eb6" },
     { name = "Toxic", base = "101410", acc = "a8ff3c" }, { name = "Midnight", base = "0c0d14", acc = "6f7dff" },
-    -- verrueckte Kombis: kraeftige, farbige Grundtoene
+    -- crazy combos: strong, colorful base tones
     { name = "Galaxy", base = "2a0f3d", acc = "39ff88" }, { name = "Retro", base = "0f1f4d", acc = "ff8c1a" },
     { name = "Burgundy", base = "3a0d1f", acc = "ffcc33" }, { name = "Lagoon", base = "0b3838", acc = "ff6f61" },
     { name = "Synthwave", base = "3d0d33", acc = "22e5ff" }, { name = "Jungle", base = "123320", acc = "ff3d9a" },
-    -- weitere Kombis
+    -- more combos
     { name = "Horde", base = "1a0c0a", acc = "ff1200" }, { name = "Alliance", base = "0a1124", acc = "3d7bff" },
     { name = "Fires", base = "1c0e08", acc = "ffb000" }, { name = "Eis", base = "0d1a24", acc = "6fe7ff" },
     { name = "Gift", base = "141a0c", acc = "c6ff00" }, { name = "Shadow", base = "121014", acc = "9a7dff" },
@@ -3272,7 +3272,7 @@ K.DUO_PRESETS = {
     { name = "Blutmond", base = "1a0610", acc = "ff3355" },
 }
 local duoCache
--- sideHex (optional): eigene Farbe fuer die linke Leiste; leer = aus der Grundfarbe abgeleitet
+-- sideHex (optional): own color for the left bar; empty = derived from the base color
 function K.DuoTheme(baseHex, accHex, sideHex)
     local key = (baseHex or "") .. ":" .. (accHex or "") .. ":" .. (sideHex or "")
     if duoCache and duoCache.ck == key then return duoCache end
@@ -3292,12 +3292,12 @@ function K.DuoTheme(baseHex, accHex, sideHex)
     duoCache = th
     return th
 end
--- 0.5.786: "Eigene Farben" sind kein eigenes Design mehr, sondern faerben das gewaehlte Design um (s.colorOn). Stil, Rahmen, Schrift,
--- Hintergrundgrafik und Klick-Toene bleiben vom Design; nur die Palette (Flaechen, Linien, Texte, Verlauf, Akzent) kommt aus den zwei Farben.
+-- 0.5.786: "Custom colors" are no longer a separate design but recolor the chosen design (s.colorOn). Style, border, font,
+-- background graphic and click sounds stay from the design; only the palette (surfaces, lines, texts, gradient, accent) comes from the two colors.
 local mergedCache
 function K.CurrentTheme()
     local s = ns.db and ns.db.settings
-    -- Altbestand: frueher war "duo" ein eigenes Design -> auf Standard-Design mit eigenen Farben umstellen
+    -- legacy: "duo" used to be its own design -> switch to the default design with custom colors
     if s and s.theme == "duo" then s.theme, s.colorOn = "glass", true end
     local base = K.themeByKey[s and s.theme or "glass"] or K.THEMES[1]
     if not (s and s.colorOn) then return base end
@@ -3313,26 +3313,26 @@ function K.CurrentTheme()
     mergedCache = t
     return t
 end
--- Hintergrund-Deckkraft 0.1..1 (Einstellungen > Aussehen / Allgemein)
+-- background opacity 0.1..1 (Settings > Appearance / General)
 function K.WindowAlpha()
     local s = ns.db and ns.db.settings
     local wa = tonumber(s and s.windowAlpha) or 1
     return math.max(0.1, math.min(1, wa))
 end
---[[ AUSSEHEN - Reihenfolge (spaetere Stufe gewinnt), alles aus ns.db.settings, daher nach /reload identisch:
-  1. Design (s.theme)             -> Grundpalette K.C (bg/side/panel/... ), Verlauf, Grafik, Skin
-     "duo" = Zwei Farben: Palette aus s.duoBase + s.duoAccent (+ s.duoSide = Leiste links)
-  2. Einzel-Overrides             -> s.themeGrad (Verlauf), s.accent (eigene Akzentfarbe, Admin.EffectiveAccent)
-     Ein Klick auf eine Design-Kachel setzt diese Overrides auf die Werte des Designs zurueck.
-  3. s.highContrast               -> Texte/Linien heller, Flaechen abgesetzt (auf der fertigen Palette)
-  4. s.windowAlpha                -> Deckkraft: Fenster, Seitenleiste UND Flaechen (panel/raised/field/hover)
-                                     gleichmaessig; Texte und Akzent bleiben voll deckend
+--[[ APPEARANCE - order (later stage wins), everything from ns.db.settings, hence identical after /reload:
+  1. Design (s.theme)             -> base palette K.C (bg/side/panel/... ), gradient, graphic, skin
+     "duo" = two colors: palette from s.duoBase + s.duoAccent (+ s.duoSide = left bar)
+  2. Single overrides             -> s.themeGrad (gradient), s.accent (own accent color, Admin.EffectiveAccent)
+     A click on a design tile resets these overrides to the design's values.
+  3. s.highContrast               -> texts/lines brighter, surfaces set off (on the finished palette)
+  4. s.windowAlpha                -> opacity: window, sidebar AND surfaces (panel/raised/field/hover)
+                                     evenly; texts and accent stay fully opaque
   5. s.frameAccent                -> Fensterrahmen in Akzentfarbe (K.StyleWindow)
-  6. s.themeTexture               -> Hintergrundgrafik ueber dem Verlauf, mit Deckkraft multipliziert
-  Anwenden: K.ApplyTheme() (Palette) -> Admin.ApplyBrand(true) (Akzent + Logos + Neuaufbau) ]]
--- Palette in K.C tauschen (+ hoher Kontrast + Deckkraft der Flaechen)
+  6. s.themeTexture               -> background graphic over the gradient, multiplied by opacity
+  Apply: K.ApplyTheme() (palette) -> Admin.ApplyBrand(true) (accent + logos + rebuild) ]]
+-- swap palette in K.C (+ high contrast + surface opacity)
 function K.ApplyTheme()
-    if K.ExtraThemeApply then K.ExtraThemeApply() end   -- Farben eines Zusatz-Designs (Zusatzmodul), sonst nichts
+    if K.ExtraThemeApply then K.ExtraThemeApply() end   -- colors of an add-on design (add-on module), otherwise nothing
     local th = K.CurrentTheme()
     local s = ns.db and ns.db.settings or {}
     for _, k in ipairs(PAL_KEYS) do
@@ -3341,7 +3341,7 @@ function K.ApplyTheme()
         c[1], c[2], c[3], c[4] = src[1], src[2], src[3], src[4] or 1
     end
     if s.highContrast then
-        -- deutlich: Grautexte fast weiss, Gedimmtes klar lesbar, Linien/Raender sichtbar, Flaechen etwas abgesetzt
+        -- strong: gray texts almost white, dimmed text clearly readable, lines/borders visible, surfaces slightly set off
         local white = { 1, 1, 1, 1 }
         local t = mix(K.C.text, white, 0.8)
         local m = mix(K.C.muted, white, 0.7)
@@ -3355,8 +3355,8 @@ function K.ApplyTheme()
             K.C.panel[i], K.C.raised[i], K.C.field[i] = pa[i], ra[i], fi[i]
         end
     end
-    -- Stufe 4: Deckkraft auf die Flaechen im Fenster - derselbe Faktor wie Fenster/Seitenleiste
-    -- (bg/side selbst bekommen ihn per Texture:SetAlpha in ns.ApplyWindowAlpha, sonst doppelt)
+    -- stage 4: opacity on the surfaces in the window - the same factor as window/sidebar
+    -- (bg/side themselves get it via Texture:SetAlpha in ns.ApplyWindowAlpha, otherwise doubled)
     local wa = K.WindowAlpha()
     if wa < 1 then
         for _, k in ipairs({ "panel", "raised", "field", "hover" }) do
@@ -3365,7 +3365,7 @@ function K.ApplyTheme()
         end
     end
 end
--- Verlaufsstaerke 0..1 (eigene Einstellung oder Standard des Designs)
+-- gradient strength 0..1 (own setting or the design's default)
 function K.GradStrength()
     local s = ns.db and ns.db.settings
     local v = s and s.themeGrad
@@ -3373,7 +3373,7 @@ function K.GradStrength()
     return v
 end
 
--- Seitenleiste: eigene Textur des Designs (z.B. Standard: kuehles Graphit mit Verlauf + Koernung)
+-- sidebar: the design's own texture (e.g. default: cool graphite with gradient + grain)
 function K.StyleSide(main)
     local th, s = K.CurrentTheme(), ns.db and ns.db.settings or {}
     if not (main and main.sideTex) then return false end
@@ -3385,10 +3385,10 @@ function K.StyleSide(main)
     return false
 end
 
--- Glut als Hintergrund fuer beliebige Flaechen (0.5.509): Funken steigen langsam auf und verglimmen.
+-- embers as background for any surface (0.5.509): sparks rise slowly and fade out.
 -- K.Embers(parent, { n = 24, col = {r,g,b}, level = 1 }) -> Frame; :SetColor(r, g, b)
--- Konfetti-Stoss (0.5.597): kleine Plaettchen fliegen von 'anchor' aus hoch und fallen (Ziel erreicht, Abstimmung).
--- Ein Rahmen je Eltern-Frame wird wiederverwendet; bei "Animationen reduzieren" passiert nichts.
+-- confetti burst (0.5.597): small flakes fly up from 'anchor' and fall (goal reached, vote).
+-- one frame per parent frame is reused; with "Reduce animations" nothing happens.
 function K.Burst(parent, anchor, n, cols)
     if (ns.db and ns.db.settings.noAnim) or not (parent and anchor) then return end
     local pl, pb = parent:GetLeft(), parent:GetBottom()
@@ -3443,7 +3443,7 @@ function K.Burst(parent, anchor, n, cols)
         if not alive then self:SetScript("OnUpdate", nil) self:Hide() end
     end)
 end
--- aufsteigender Text ("+5") ueber einem Element, blendet nach ~0,9 s aus
+-- rising text ("+5") above an element, fades out after ~0.9 s
 function K.FloatText(anchor, text, color)
     if not anchor or (ns.db and ns.db.settings.noAnim) then return end
     local p = anchor:GetParent() or anchor
@@ -3482,11 +3482,11 @@ function K.Embers(parent, o)
         t:SetTexture("Interface\\AddOns\\" .. ADDON .. "\\Media\\ember")
         t:SetBlendMode("ADD")
         t:Hide()
-        em.p[i] = { t = t, life = math.random() * 4 }   -- versetzter Start
+        em.p[i] = { t = t, life = math.random() * 4 }   -- staggered start
     end
     em:SetScript("OnUpdate", function(self, el)
         if ns.db and ns.db.settings.noAnim then for _, q in ipairs(self.p) do q.t:Hide() end return end
-        -- 0.5.722: auf ca. 30 Hz drosseln (vorher jeder Frame)
+        -- 0.5.722: throttle to about 30 Hz (previously every frame)
         self.acc = (self.acc or 0) + el
         if self.acc < 0.033 then return end
         el, self.acc = self.acc, 0
@@ -3526,8 +3526,8 @@ function K.Embers(parent, o)
     return em
 end
 
--- Glut in der Seitenleiste: Funken in der Akzentfarbe mit warmem Kern steigen von unten auf,
--- flackern, wirbeln leicht und verglühen nach oben
+-- embers in the sidebar: sparks in the accent color with a warm core rise from below,
+-- flicker, swirl slightly and burn out towards the top
 local EMBER = "Interface\\AddOns\\" .. ADDON .. "\\Media\\ember"
 function K.SideParticles(main)
     local th, s = K.CurrentTheme(), ns.db and ns.db.settings or {}
@@ -3541,12 +3541,12 @@ function K.SideParticles(main)
     if main.particles then main.particles:Show() return end
     local pf = CreateFrame("Frame", nil, side)
     pf:SetAllPoints(side)
-    -- ueber der Navigation (die Zeilen haben eigene Flaechen), faengt keine Klicks ab
+    -- above the navigation (the rows have their own surfaces), doesn't catch clicks
     pf:SetFrameLevel(side:GetFrameLevel() + 30)
     pf:EnableMouse(false)
     main.particles = pf
     local dots = {}
-    -- Farbe: Akzent, Richtung Gelb/Orange aufgewaermt (wie Glut)
+    -- color: accent, warmed towards yellow/orange (like embers)
     local function emberColor()
         local c = K.C.accent
         local warm = math.random() * 0.45
@@ -3556,10 +3556,10 @@ function K.SideParticles(main)
         local w, h = side:GetWidth() or 200, side:GetHeight() or 600
         p.x = 6 + math.random() * (w - 12)
         p.y = anywhere and math.random() * h * 0.7 or (-4 - math.random() * 20)
-        p.vy = 14 + math.random() * 26                -- aufsteigend
+        p.vy = 14 + math.random() * 26                -- rising
         p.vx = (math.random() - 0.5) * 6
         p.sway, p.phase, p.freq = 2 + math.random() * 7, math.random() * 6.28, 0.8 + math.random() * 1.6
-        p.life = 0.55 + math.random() * 0.45           -- Anteil der Hoehe, bis er verglueht
+        p.life = 0.55 + math.random() * 0.45           -- fraction of the height until it burns out
         p.a = 0.45 + math.random() * 0.45
         p.flick = math.random() * 6.28
         local sz = 4 + math.random() * 7
@@ -3586,7 +3586,7 @@ function K.SideParticles(main)
             p.x = p.x + p.vx * dt
             p.phase = p.phase + dt * p.freq
             p.flick = p.flick + dt * (7 + math.random() * 6)
-            local rise = p.y / (h * p.life)               -- 0 unten .. 1 verglueht
+            local rise = p.y / (h * p.life)               -- 0 bottom .. 1 burnt out
             if rise >= 1 then reset(p) rise = 0 end
             local fadeIn = math.min(1, (p.y + 20) / 50)
             local glow = (1 - rise) ^ 1.4 * fadeIn * (0.75 + 0.25 * math.sin(p.flick))
@@ -3597,9 +3597,9 @@ function K.SideParticles(main)
     end)
 end
 
--- 0.6.165: Zierrahmen fuer Fenster (Hauptfenster, Startfenster): 1 px ringsum in der Akzentfarbe, oben mit hellem
--- Kern, dazu von Zeit zu Zeit ein kurzer Schimmer einmal um den Rahmen. Liegt ueber dem Inhalt (sonst verdeckt).
--- R = Eckenradius (die Linien enden vor den runden Ecken)
+-- 0.6.165: decorative border for windows (main window, start window): 1 px all around in the accent color, with a bright
+-- core at the top, plus every now and then a short shimmer once around the border. Lies above the content (otherwise covered).
+-- R = corner radius (the lines end before the round corners)
 function K.FrameLines(host, R)
     R = R or 12
     local fr = CreateFrame("Frame", nil, host)
@@ -3609,26 +3609,26 @@ function K.FrameLines(host, R)
     host:HookScript("OnShow", function() fr:SetFrameStrata(host:GetFrameStrata()) fr:SetFrameLevel(math.min(9000, host:GetFrameLevel() + 199)) end)
 
         local function tx(layer) local t = fr:CreateTexture(nil, layer or "OVERLAY") return t end
-        -- 0.6.163: duenner und ruhiger - alles 1 px; oben Akzent, der zur Mitte hin am staerksten ist und zu beiden
-        -- Seiten auslaeuft, direkt darunter eine helle Haarlinie (feine Kante), Seiten gleich stark und nach unten weg
+        -- 0.6.163: thinner and calmer - everything 1 px; accent on top, strongest towards the center and fading out to both
+        -- sides, directly below a bright hairline (fine edge), sides equally strong and fading downward
         local top = tx() top:SetHeight(1) top:SetPoint("TOPLEFT", R, 0) top:SetPoint("TOP", 0, 0)
         local top2 = tx() top2:SetHeight(1) top2:SetPoint("TOPLEFT", top, "TOPRIGHT") top2:SetPoint("TOPRIGHT", -R, 0)
         local inner = tx() inner:SetHeight(1) inner:SetPoint("TOPLEFT", R, -1) inner:SetPoint("TOPRIGHT", -R, -1)
-        -- 0.6.164: Seiten ueber die ganze Hoehe, unten eine Akzentlinie, die zur Mitte hin aufleuchtet
+        -- 0.6.164: sides over the full height, at the bottom an accent line that lights up towards the center
         local eL = tx() eL:SetWidth(1) eL:SetPoint("TOPLEFT", 0, -R) eL:SetPoint("BOTTOMLEFT", 0, R)
         local eR = tx() eR:SetWidth(1) eR:SetPoint("TOPRIGHT", 0, -R) eR:SetPoint("BOTTOMRIGHT", 0, R)
         local bot = tx() bot:SetHeight(1) bot:SetPoint("BOTTOMLEFT", R, 0) bot:SetPoint("BOTTOM", 0, 0)
         local bot2 = tx() bot2:SetHeight(1) bot2:SetPoint("BOTTOMLEFT", bot, "BOTTOMRIGHT") bot2:SetPoint("BOTTOMRIGHT", -R, 0)
-        -- heller Kern mitten auf der oberen Linie (wie ein Lichtpunkt auf einer Metallkante)
+        -- bright core in the middle of the top line (like a light spot on a metal edge)
         local core = tx() core:SetHeight(1) core:SetWidth(160) core:SetBlendMode("ADD")
         local core2 = tx() core2:SetHeight(1) core2:SetWidth(140) core2:SetPoint("TOPLEFT", core, "TOPRIGHT") core2:SetBlendMode("ADD")
-        core:SetPoint("TOPLEFT", fr, "TOPLEFT", R, 0) core:SetWidth(60)   -- 0.6.167: Kern oben links
-        -- 0.6.166: Dicke in ECHTEN Bildschirmpixeln - bei UI-Skala < 1 war "1" weniger als ein Pixel und WoW hat die
-        -- Linien auf dem Pixelraster weggerundet (Rahmen und Schimmer waren deshalb unsichtbar)
+        core:SetPoint("TOPLEFT", fr, "TOPLEFT", R, 0) core:SetWidth(60)   -- 0.6.167: core at the top left
+        -- 0.6.166: thickness in REAL screen pixels - with UI scale < 1, "1" was less than a pixel and WoW rounded the
+        -- lines away on the pixel grid (border and shimmer were therefore invisible)
         top:ClearAllPoints() top:SetPoint("TOPLEFT", R, 0) top:SetPoint("TOPRIGHT", fr, "TOP", 0, 0)
         fr.lines = { top, top2, eL, eR, bot, bot2, inner }
-        -- 0.6.166: runde Ecken - Viertelbogen (Media/corner_arc, Tools/make_corner_arc.py) verbinden die Linien,
-        -- vorher endeten sie vor der Rundung und dort blieb die graue Fensterkante stehen
+        -- 0.6.166: round corners - quarter arcs (Media/corner_arc, Tools/make_corner_arc.py) connect the lines,
+        -- previously they ended before the curve and the gray window edge remained there
         fr.corners = {}
         for _, c in ipairs({ { "TOPLEFT", 0, 1, 0, 1, true }, { "TOPRIGHT", 1, 0, 0, 1, true },
             { "BOTTOMLEFT", 0, 1, 1, 0, false }, { "BOTTOMRIGHT", 1, 0, 1, 0, false } }) do
@@ -3668,8 +3668,8 @@ function K.FrameLines(host, R)
             local key = ac[1] .. ":" .. ac[2] .. ":" .. ac[3]
             if key == last then return end
             last = key
-            -- 0.6.167: dezent, wie Licht von oben links - dort am staerksten, laeuft oben nach rechts und links nach
-            -- unten aus; rechte Seite und unten nur ein Hauch
+            -- 0.6.167: subtle, like light from the top left - strongest there, fades out to the right along the top and downward
+            -- along the left; right side and bottom only a hint
             local function A(x) return { ac[1], ac[2], ac[3], x } end
             K.Gradient(top, "HORIZONTAL", A(0.70), A(0.22))
             K.Gradient(top2, "HORIZONTAL", A(0.22), A(0.04))
@@ -3678,15 +3678,15 @@ function K.FrameLines(host, R)
             K.Gradient(eR, "VERTICAL", A(0), A(0.08))
             K.Gradient(bot, "HORIZONTAL", { 1, 1, 1, 0.01 }, { 1, 1, 1, 0.05 })
             K.Gradient(bot2, "HORIZONTAL", { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.01 })
-            -- heller Kern sitzt jetzt oben links (wo das Licht herkommt)
+            -- bright core now sits at the top left (where the light comes from)
             K.Gradient(core, "HORIZONTAL", { 1, 1, 1, 0 }, { 1, 1, 1, 0.30 })
             K.Gradient(core2, "HORIZONTAL", { 1, 1, 1, 0.30 }, { 1, 1, 1, 0 })
-            local ca = { 0.70, 0.04, 0.02, 0.01 }   -- oben links, oben rechts, unten links, unten rechts
+            local ca = { 0.70, 0.04, 0.02, 0.01 }   -- top left, top right, bottom left, bottom right
             for i, t in ipairs(fr.corners) do t:SetVertexColor(ac[1], ac[2], ac[3], ca[i]) end
         end
         paint()
-        -- 0.6.163: von Zeit zu Zeit laeuft ein kurzer, heller Schimmer einmal um den Rahmen (im Uhrzeigersinn,
-        -- 1,6 s, alle 14 s). Zwei Haelften je Richtung, die zur Mitte hell werden; aus bei "Animationen aus" (noAnim)
+        -- 0.6.163: every now and then a short bright shimmer runs once around the border (clockwise,
+        -- 1.6 s, every 14 s). Two halves per direction that get brighter towards the center; off with "Animations off" (noAnim)
         local function streak(horiz)
             local a, b = tx(), tx()
             a:SetBlendMode("ADD") b:SetBlendMode("ADD")
@@ -3705,7 +3705,7 @@ function K.FrameLines(host, R)
             local ac = K.C.accent or { 1, 0.2, 0.2 }
             local r, g, bl = 0.55 + ac[1] * 0.45, 0.55 + ac[2] * 0.45, 0.55 + ac[3] * 0.45
             local dir = s.horiz and "HORIZONTAL" or "VERTICAL"
-            -- VERTICAL laeuft von unten nach oben: obere Haelfte unten hell, untere oben hell
+            -- VERTICAL runs from bottom to top: upper half bright at the bottom, lower half bright at the top
             if s.horiz then
                 K.Gradient(s.a, dir, { r, g, bl, 0 }, { r, g, bl, alpha })
                 K.Gradient(s.b, dir, { r, g, bl, alpha }, { r, g, bl, 0 })
@@ -3716,14 +3716,14 @@ function K.FrameLines(host, R)
         end
         local function place(s, x, y)
             s.a:ClearAllPoints()
-            local th = 1 * (fr.px or 1)   -- 0.6.167: 1 echter Pixel (0.6.166: 2) (sonst bei UI-Skala < 1 weggerundet)
+            local th = 1 * (fr.px or 1)   -- 0.6.167: 1 real pixel (0.6.166: 2) (otherwise rounded away with UI scale < 1)
             if s.horiz then s.a:SetHeight(th) s.b:SetHeight(th) else s.a:SetWidth(th) s.b:SetWidth(th) end
             if s.horiz then s.a:SetPoint("RIGHT", fr, "TOPLEFT", x, y) else s.a:SetPoint("BOTTOM", fr, "TOPLEFT", x, y) end
             s.a:Show() s.b:Show()
         end
         local function hide(s) s.a:Hide() s.b:Hide() end
         local SH_EVERY, SH_RUN = 14, 1.6
-        local shT = SH_EVERY - 3   -- erster Schimmer kurz nach dem Oeffnen
+        local shT = SH_EVERY - 3   -- first shimmer shortly after opening
         fr.shimmer = { h = sh, v = sv }
         local acc = 0
         fr:SetScript("OnUpdate", function(_, el)
@@ -3738,36 +3738,36 @@ function K.FrameLines(host, R)
             if p >= 1 then shT = 0 hide(sh) hide(sv) return end
             local w, h = fr:GetWidth() or 0, fr:GetHeight() or 0
             if w <= 0 or h <= 0 then return end
-            -- sanft rein und raus, in der Mitte am hellsten
+            -- gently in and out, brightest in the middle
             local alpha = 0.45 * math.sin(p * math.pi)
             local d = p * (2 * w + 2 * h)
-            if d < w then                       -- oben, nach rechts
+            if d < w then                       -- top, to the right
                 hide(sv) tintStreak(sh, alpha) place(sh, d, -0.5)
-            elseif d < w + h then               -- rechts, nach unten
+            elseif d < w + h then               -- right, downward
                 hide(sh) tintStreak(sv, alpha) place(sv, w - 0.5, -(d - w))
-            elseif d < 2 * w + h then           -- unten, nach links
+            elseif d < 2 * w + h then           -- bottom, to the left
                 hide(sv) tintStreak(sh, alpha) place(sh, w - (d - w - h), -h + 0.5)
-            else                                -- links, nach oben
+            else                                -- left, upward
                 hide(sh) tintStreak(sv, alpha) place(sv, 0.5, -h + (d - 2 * w - h))
             end
         end)
     return fr
 end
 
--- 0.6.186: Bild-Rahmen aussen ums Fenster (Gildenmodul, Media/window_frame aus Tools/make_window_frame.py).
--- 12 Teile: Ecken und Mittelverzierung oben/unten behalten ihre Form, die Kanten dazwischen werden gestreckt.
--- Masse in Quellpixeln (Bild 1509x1012 nach dem Zuschnitt); k = UI-Einheiten je Quellpixel.
+-- 0.6.186: image border outside around the window (guild module, Media/window_frame from Tools/make_window_frame.py).
+-- 12 parts: corners and middle ornament top/bottom keep their shape, the edges between are stretched.
+-- measurements in source pixels (image 1509x1012 after cropping); k = UI units per source pixel.
 function K.ImageFrame(host, k)
     k = k or 0.3
-    -- 0.6.279: "Minimalist roter Sci-Fi-HUD-Rahmen" (Vorlage auf Schwarz, make_window_frame.py --black): graue Kante,
-    -- rote Linie, Lichtpunkte oben/unten in der Mitte (vorher 0.6.188 Lavaglut-Fantasierahmen 1504x991)
-    -- 0.6.280: graues Aussenband entfernt (nur rote Linie + Glut) -> Zuschnitt kleiner, schmalere Baender
+    -- 0.6.279: "Minimalist red sci-fi HUD frame" (template on black, make_window_frame.py --black): gray edge,
+    -- red line, light dots top/bottom in the middle (previously 0.6.188 lava ember fantasy frame 1504x991)
+    -- 0.6.280: gray outer band removed (only red line + ember) -> smaller crop, narrower bands
     local SW, SH = 1398, 1028
-    local BT, BB, BL, BR = 20, 20, 14, 13        -- Baender (bis zur Innenkante)
-    local CW, CHT, CHB = 60, 60, 60              -- Ecken (Abschraegung)
-    local M1, M2 = 599, 799                      -- Lichtpunkt oben/unten bleibt ungestreckt
+    local BT, BB, BL, BR = 20, 20, 14, 13        -- bands (up to the inner edge)
+    local CW, CHT, CHB = 60, 60, 60              -- corners (bevel)
+    local M1, M2 = 599, 799                      -- light dot top/bottom stays unstretched
     local TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\window_frame"
-    local OV = 2                                 -- so weit ueberlappt die Innenkante das Fenster
+    local OV = 2                                 -- how far the inner edge overlaps the window
     local fr = CreateFrame("Frame", nil, host)
     fr:EnableMouse(false)
     fr:SetPoint("TOPLEFT", host, "TOPLEFT", -(BL * k) + OV, BT * k - OV)
@@ -3775,8 +3775,8 @@ function K.ImageFrame(host, k)
     fr:SetFrameStrata(host:GetFrameStrata())
     fr:SetFrameLevel(math.min(9000, host:GetFrameLevel() + 198))
     host:HookScript("OnShow", function() fr:SetFrameStrata(host:GetFrameStrata()) fr:SetFrameLevel(math.min(9000, host:GetFrameLevel() + 198)) end)
-    -- 0.6.191: jedes Teil doppelt - Grundbild (Bronze) und darueber die Glut (window_frame_glow, weiss) in der
-    -- Rahmenfarbe (Einstellung frameColor, ohne Wahl Akzentfarbe), additiv
+    -- 0.6.191: each part twice - base image (bronze) and on top the ember (window_frame_glow, white) in the
+    -- frame color (setting frameColor, accent color if none chosen), additive
     fr.glows = {}
     local function piece(x1, y1, x2, y2)
         local t = fr:CreateTexture(nil, "OVERLAY", nil, 1)
@@ -3791,20 +3791,20 @@ function K.ImageFrame(host, k)
         return t
     end
     local P = {}
-    -- Ecken
+    -- corners
     P.tl = piece(0, 0, CW, CHT)             P.tl:SetSize(CW * k, CHT * k) P.tl:SetPoint("TOPLEFT")
     P.tr = piece(SW - CW, 0, SW, CHT)       P.tr:SetSize(CW * k, CHT * k) P.tr:SetPoint("TOPRIGHT")
     P.bl = piece(0, SH - CHB, CW, SH)       P.bl:SetSize(CW * k, CHB * k) P.bl:SetPoint("BOTTOMLEFT")
     P.br = piece(SW - CW, SH - CHB, SW, SH) P.br:SetSize(CW * k, CHB * k) P.br:SetPoint("BOTTOMRIGHT")
-    -- Mittelstuecke
+    -- middle pieces
     P.tm = piece(M1, 0, M2, BT)             P.tm:SetSize((M2 - M1) * k, BT * k) P.tm:SetPoint("TOP")
     P.bm = piece(M1, SH - BB, M2, SH)       P.bm:SetSize((M2 - M1) * k, BB * k) P.bm:SetPoint("BOTTOM")
-    -- Kanten oben/unten links und rechts der Mitte (gestreckt)
+    -- edges top/bottom left and right of the middle (stretched)
     P.t1 = piece(CW, 0, M1, BT)             P.t1:SetHeight(BT * k) P.t1:SetPoint("TOPLEFT", P.tl, "TOPRIGHT") P.t1:SetPoint("TOPRIGHT", P.tm, "TOPLEFT")
     P.t2 = piece(M2, 0, SW - CW, BT)        P.t2:SetHeight(BT * k) P.t2:SetPoint("TOPLEFT", P.tm, "TOPRIGHT") P.t2:SetPoint("TOPRIGHT", P.tr, "TOPLEFT")
     P.b1 = piece(CW, SH - BB, M1, SH)       P.b1:SetHeight(BB * k) P.b1:SetPoint("BOTTOMLEFT", P.bl, "BOTTOMRIGHT") P.b1:SetPoint("BOTTOMRIGHT", P.bm, "BOTTOMLEFT")
     P.b2 = piece(M2, SH - BB, SW - CW, SH)  P.b2:SetHeight(BB * k) P.b2:SetPoint("BOTTOMLEFT", P.bm, "BOTTOMRIGHT") P.b2:SetPoint("BOTTOMRIGHT", P.br, "BOTTOMLEFT")
-    -- Seiten (gestreckt)
+    -- sides (stretched)
     P.l = piece(0, CHT, BL, SH - CHB)       P.l:SetWidth(BL * k) P.l:SetPoint("TOPLEFT", P.tl, "BOTTOMLEFT") P.l:SetPoint("BOTTOMLEFT", P.bl, "TOPLEFT")
     P.r = piece(SW - BR, CHT, SW, SH - CHB) P.r:SetWidth(BR * k) P.r:SetPoint("TOPRIGHT", P.tr, "BOTTOMRIGHT") P.r:SetPoint("BOTTOMRIGHT", P.br, "TOPRIGHT")
     fr.pieces = P
@@ -3816,26 +3816,26 @@ function K.ImageFrame(host, k)
         local key = c[1] .. ":" .. c[2] .. ":" .. c[3]
         if key == lastKey then return end
         lastKey = key
-        -- etwas aufhellen, damit die Glut auch bei dunklen Farben leuchtet
+        -- brighten a bit so the ember glows even with dark colors
         local r, g, b = math.min(1, c[1] * 1.15 + 0.08), math.min(1, c[2] * 1.15 + 0.08), math.min(1, c[3] * 1.15 + 0.08)
         for _, t in ipairs(fr.glows) do t:SetVertexColor(r, g, b, 1) end
     end
     fr.Tint()
-    -- 0.6.338: Schimmer sehr dezent - alle 8-12 s blendet an einer zufaelligen Stelle ein kleiner Lichtpunkt auf,
-    -- gleitet ein kurzes Stueck auf der Linie und blendet wieder aus; aus mit "Animationen aus"
-    local TRAIL = 20   -- 0.6.436: langer, weich auslaufender Schweif
+    -- 0.6.338: very subtle shimmer - every 8-12 s a small light dot fades in at a random spot,
+    -- glides a short distance along the line and fades out again; off with "Animations off"
+    local TRAIL = 20   -- 0.6.436: long, softly fading tail
     fr.spark = {}
     for i = 1, TRAIL do
         local t = fr:CreateTexture(nil, "OVERLAY", nil, 3)
         t:SetTexture(ns.MEDIA .. "ember")
         t:SetBlendMode("ADD")
-        local sz = (i == 1) and 12 or math.max(4, 10 - i * 0.3)   -- 0.6.436: kleiner, dezenter
+        local sz = (i == 1) and 12 or math.max(4, 10 - i * 0.3)   -- 0.6.436: smaller, more subtle
         t:SetSize(sz, sz)
         t:SetVertexColor(1, 0.82, 0.62)
         t:Hide()
         fr.spark[i] = t
     end
-    -- Weg auf der Linie: Eckpunkte im Uhrzeigersinn (y nach unten), Laenge wird je Groesse neu berechnet
+    -- path on the line: corner points clockwise (y downward), length is recalculated per size
     local function path(W, H)
         local ix, iy, c = BL * k * 0.55, BT * k * 0.55, CW * k * 0.62
         local P = { { c, iy }, { W - c, iy }, { W - ix, c }, { W - ix, H - c }, { W - c, H - iy }, { c, H - iy }, { ix, H - c }, { ix, c } }
@@ -3859,10 +3859,10 @@ function K.ImageFrame(host, k)
         return seg[1].a[1], seg[1].a[2]
     end
     local acc, lastW, lastH, segs, total = 0, 0, 0, nil, 0
-    local wait, run, d0, len, dir = 3, nil, 0, 110, 1   -- Pause bis zum naechsten Aufleuchten / laufendes Aufleuchten (0..1)
+    local wait, run, d0, len, dir = 3, nil, 0, 110, 1   -- pause until the next flash / running flash (0..1)
     local fAcc = 0
     fr:SetScript("OnUpdate", function(_, el)
-        -- Leistung (0.6.479): hoechstens 30x pro Sekunde (vorher jedes Bild, 20 Schweif-Punkte)
+        -- performance (0.6.479): at most 30x per second (previously every frame, 20 tail points)
         fAcc = fAcc + (el or 0)
         if fAcc < 0.033 then return end
         el, fAcc = fAcc, 0
@@ -3880,27 +3880,27 @@ function K.ImageFrame(host, k)
             wait = wait - (el or 0)
             for _, t in ipairs(fr.spark) do t:Hide() end
             if wait > 0 then return end
-            -- 0.6.432: wie die Topbar - langes Stueck in zufaelliger Richtung
+            -- 0.6.432: like the top bar - long stretch in a random direction
             run, d0 = 0, math.random() * total
             len, dir = total * (0.25 + math.random() * 0.25), (math.random() < 0.5) and 1 or -1
         end
-        run = run + (el or 0) / 5            -- 0.6.432: 5 s je Lauf
+        run = run + (el or 0) / 5            -- 0.6.432: 5 s per run
         if run >= 1 then run, wait = nil, 3 + math.random() * 5 return end
-        local fade = math.sin(run * math.pi) ^ 0.8   -- weich ein- und ausblenden
+        local fade = math.sin(run * math.pi) ^ 0.8   -- fade in and out softly
         local d = d0 + dir * run * len
         for i, t in ipairs(fr.spark) do
             local x, y = pointAt(segs, total, d - dir * (i - 1) * 4)
             t:ClearAllPoints()
             t:SetPoint("CENTER", fr, "TOPLEFT", x, -y)
-            -- 0.6.375: bei ADD wirkt SetAlpha nicht zuverlaessig -> Helligkeit in die Farbe (weiches Ein-/Ausblenden)
-            local kk = fade * ((i == 1) and 0.42 or (0.3 * (1 - (i - 1) / TRAIL) ^ 2))   -- 0.6.436: dezenter, Verlauf
+            -- 0.6.375: with ADD SetAlpha doesn't work reliably -> brightness into the color (soft fade in/out)
+            local kk = fade * ((i == 1) and 0.42 or (0.3 * (1 - (i - 1) / TRAIL) ^ 2))   -- 0.6.436: more subtle, gradient
             t:SetAlpha(1)
             t:SetVertexColor(1 * kk, 0.82 * kk, 0.62 * kk, 1)
             t:Show()
         end
     end)
-    -- 0.6.190: Rahmen zum Verschieben anfassbar - vier schmale Griffleisten auf den Baendern (Innenbereich bleibt
-    -- frei), sie reichen das Ziehen an das Fenster weiter (dessen eigene Drag-Skripte -> Position wird gespeichert)
+    -- 0.6.190: border can be grabbed to move - four thin grip strips on the bands (inner area stays
+    -- free), they pass dragging on to the window (its own drag scripts -> position is saved)
     local function grip(p1, p2, w, h)
         local g = CreateFrame("Frame", nil, fr)
         g:SetPoint(p1) g:SetPoint(p2)
@@ -3929,7 +3929,7 @@ function K.ImageFrame(host, k)
     return fr
 end
 
--- 0.6.192: Bild-Rahmen an/aus (Einstellung imageFrame, Standard an). Aus = schlanker Rahmen mit Schimmer (frameLines)
+-- 0.6.192: image border on/off (setting imageFrame, default on). Off = slim border with shimmer (frameLines)
 function K.ApplyFrameStyle(host)
     if not host then return end
     local st = ns.db and ns.db.settings
@@ -3939,12 +3939,12 @@ function K.ApplyFrameStyle(host)
     if host.lineFrame then host.lineFrame:SetAlpha(on and 0 or 0.35) end
 end
 
--- 0.6.281: derselbe Bild-Rahmen (rote Linie + Glut) schmal um jede Box im Addon (K.ApplySkin "panel").
--- Nur mit Gildenmodul; folgt "Verzierter Fensterrahmen" (imageFrame) und "Rahmen auch um Boxen" (boxFrame).
--- Masse wie K.ImageFrame (Quellpixel nach dem Zuschnitt), ohne Mittelstueck: Kanten aus dem Stueck neben der Ecke.
+-- 0.6.281: the same image border (red line + ember) narrow around every box in the addon (K.ApplySkin "panel").
+-- Guild module only; follows "Decorated window frame" (imageFrame) and "Frame around boxes too" (boxFrame).
+-- measurements like K.ImageFrame (source pixels after cropping), without middle piece: edges from the piece next to the corner.
 K.boxFrames = setmetatable({}, { __mode = "k" })
 local BOX = { SW = 1398, SH = 1028, BT = 20, BB = 20, BL = 14, BR = 13, C = 60, k = 0.16, alpha = 0.5 }
-local BOX_BEVEL = BOX.C * BOX.k   -- Kantenlaenge der Abschraegung (K.RoundMask schneidet Boxen mit Rahmen genauso)
+local BOX_BEVEL = BOX.C * BOX.k   -- edge length of the bevel (K.RoundMask cuts boxes with border the same way)
 local function boxOn()
     local st = ns.db and ns.db.settings
     return ns.GuildPack ~= nil and not (st and (st.imageFrame == false or st.boxFrame == false))
@@ -3955,7 +3955,7 @@ local function frameGlowColor()
     local c = (hex and hex ~= "" and K.FromHex and K.FromHex(hex)) or K.C.accent or { 1, 0.4, 0.15 }
     return math.min(1, c[1] * 1.15 + 0.08), math.min(1, c[2] * 1.15 + 0.08), math.min(1, c[3] * 1.15 + 0.08)
 end
--- minH: kleinste Hoehe fuer einen Rahmen (Glas-Boxen: 40, damit Zeilen und Knoepfe frei bleiben)
+-- minH: smallest height for a border (glass boxes: 40, so rows and buttons stay free)
 function K.BoxFrame(box, minH)
     if not box or box.boxFrame or box.noBoxFrame or not ns.GuildPack then return end
     local B, k = BOX, BOX.k
@@ -3963,10 +3963,10 @@ function K.BoxFrame(box, minH)
     local fr = CreateFrame("Frame", nil, box)
     fr:SetAllPoints()
     fr:EnableMouse(false)
-    fr:SetAlpha(BOX.alpha)   -- 0.6.284: schwaecher als der Fensterrahmen
+    fr:SetAlpha(BOX.alpha)   -- 0.6.284: weaker than the window frame
     fr:SetFrameLevel(math.min(9000, box:GetFrameLevel() + 3))
     fr.glows = {}
-    fr.pieces = {}   -- 0.6.364: Linienteile, damit Seiten den Rahmen umfaerben koennen (z. B. Profil schwarz)
+    fr.pieces = {}   -- 0.6.364: line parts, so pages can recolor the border (e.g. profile black)
     local function piece(x1, y1, x2, y2)
         local t = fr:CreateTexture(nil, "OVERLAY", nil, 1)
         t:SetTexture(TEX)
@@ -3980,7 +3980,7 @@ function K.BoxFrame(box, minH)
         fr.pieces[#fr.pieces + 1] = t
         return t
     end
-    local SW, SH, C2, E = B.SW, B.SH, B.C, B.C + 120   -- E: Ende des Kantenstuecks neben der Ecke
+    local SW, SH, C2, E = B.SW, B.SH, B.C, B.C + 120   -- E: end of the edge piece next to the corner
     local cs = B.C * k
     local tl = piece(0, 0, C2, C2)             tl:SetSize(cs, cs) tl:SetPoint("TOPLEFT")
     local tr = piece(SW - C2, 0, SW, C2)       tr:SetSize(cs, cs) tr:SetPoint("TOPRIGHT")
@@ -3990,15 +3990,15 @@ function K.BoxFrame(box, minH)
     local b = piece(C2, SH - B.BB, E, SH)      b:SetHeight(B.BB * k) b:SetPoint("BOTTOMLEFT", bl, "BOTTOMRIGHT") b:SetPoint("BOTTOMRIGHT", br, "BOTTOMLEFT")
     local l = piece(0, C2, B.BL, C2 + 120)     l:SetWidth(B.BL * k) l:SetPoint("TOPLEFT", tl, "BOTTOMLEFT") l:SetPoint("BOTTOMLEFT", bl, "TOPLEFT")
     local r = piece(SW - B.BR, C2, SW, C2 + 120) r:SetWidth(B.BR * k) r:SetPoint("TOPRIGHT", tr, "BOTTOMRIGHT") r:SetPoint("BOTTOMRIGHT", br, "TOPRIGHT")
-    -- zu kleine Boxen (Ecken wuerden sich ueberlappen) bekommen keinen Rahmen
+    -- boxes that are too small (corners would overlap) get no border
     local function fit()
         local w, h = box:GetWidth() or 0, box:GetHeight() or 0
-        -- Hauptfenster hat seinen eigenen grossen Rahmen
+        -- the main window has its own large frame
         fr:SetShown(boxOn() and not box.imageFrame and not box.noBoxFrame and w >= cs * 2 + 4 and h >= math.max(cs * 2 + 4, minH or 0))
     end
     box:HookScript("OnSizeChanged", fit)
-    -- 0.6.315: alles, was die ganze Box bedeckt (Bilder, Flaechen - auch in direkten Unterframes), in die
-    -- abgeschraegten Ecken schneiden. Laeuft nach Groessenwechsel/Anzeigen, damit spaeter angelegte Bilder dabei sind.
+    -- 0.6.315: cut everything covering the whole box (images, surfaces - also in direct child frames) into the
+    -- beveled corners. Runs after resize/show so images created later are included.
     local pend
     local function clip()
         pend = nil
@@ -4016,10 +4016,10 @@ function K.BoxFrame(box, minH)
     fit()
     return fr
 end
--- Einstellung oder Rahmenfarbe geaendert: alle Box-Rahmen nachziehen (zwei Mal je Sekunde, nur bei Aenderung)
--- 0.6.283: Knoepfe als Bild (Gildenmodul, Tools/make_buttons.py): normal / hover (hellere Linie) / active (rot gefuellt,
--- beim Druecken und dauerhaft fuer Hauptknoepfe). Folgt denselben Schaltern wie der Box-Rahmen (imageFrame, boxFrame).
--- Bilder 512x128, Ecke 24 px (Abschraegung) -> 9-Slice ueber K.NineSlice, Glut nicht nachgefaerbt (Bild ist rot).
+-- setting or border color changed: update all box borders (twice per second, only on change)
+-- 0.6.283: buttons as images (guild module, Tools/make_buttons.py): normal / hover (brighter line) / active (filled red,
+-- on press and permanently for main buttons). Follows the same switches as the box border (imageFrame, boxFrame).
+-- images 512x128, corner 24 px (bevel) -> 9-slice via K.NineSlice, ember not recolored (image is red).
 local BTN_TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\btn_"
 local BTN_N = { w = 1, h = 1, cx = 24 / 512, cy = 24 / 128, center = true }
 K.imageButtons = setmetatable({}, { __mode = "k" })
@@ -4033,10 +4033,10 @@ function K.ImageButton(b)
         n.file = BTN_TEX .. st
         sets[st] = K.NineSlice(b, n, r, "BACKGROUND", 3, true)
     end
-    -- 0.6.419: Leuchten beim Drueberfahren - additive Kopie des Bildes blendet weich ein
+    -- 0.6.419: glow on hover - additive copy of the image fades in softly
     local glow = K.NineSlice(b, (function() local n = {} for k2, v in pairs(BTN_N) do n[k2] = v end n.file = BTN_TEX .. "active" return n end)(), r, "BACKGROUND", 4, true)
     for _, t in ipairs(glow or {}) do t:SetBlendMode("ADD") t:SetAlpha(0) end
-    -- weicher Schein um den Knopf (0.6.424)
+    -- soft glow around the button (0.6.424)
     local halo = b:CreateTexture(nil, "BACKGROUND", nil, -8)
     halo:SetTexture(ns.MEDIA .. "softglow")
     halo:SetBlendMode("ADD")
@@ -4078,7 +4078,7 @@ function K.ImageButton(b)
     K.imageButtons[b] = true
     return true
 end
--- Flaechen einer Box mit Rahmen, die die ganze Box bedecken, schraeg beschneiden (K.RoundMask teilt sie bei Bedarf)
+-- cut surfaces of a bordered box that cover the whole box at an angle (K.RoundMask splits them if needed)
 local CLIP_LAYERS = { BACKGROUND = true, BORDER = true, ARTWORK = true }
 function K.ClipBox(box)
     if not (box and box.boxFrame and K.RoundMask) then return end
@@ -4099,8 +4099,8 @@ function K.ClipBox(box)
         if ch ~= box.boxFrame and (ch:GetWidth() or 0) >= bw - 3 and (ch:GetHeight() or 0) >= bh - 3 then scan(ch) end
     end
 end
--- 0.6.370: Box-Rahmen dunkel einfaerben (Profil/Tagebuch): Linie entsaettigt und dunkel, kein rotes Leuchten.
--- off = true blendet den Rahmen ganz aus (z. B. kleine Knoepfe)
+-- 0.6.370: tint box border dark (profile/diary): line desaturated and dark, no red glow.
+-- off = true hides the border completely (e.g. small buttons)
 function K.DarkBoxFrame(x, off)
     if not x then return end
     if off then
@@ -4114,7 +4114,7 @@ function K.DarkBoxFrame(x, off)
     for _, g in ipairs(fr.glows or {}) do g:SetVertexColor(0.05, 0.05, 0.06, 1) end
     for _, pc in ipairs(fr.pieces or {}) do pc:SetDesaturated(true) pc:SetVertexColor(0.22, 0.22, 0.24, 1) end
 end
--- 0.6.447: alle Box-Rahmen unterhalb eines Fensters/einer Seite schwarz faerben (Chronik ...)
+-- 0.6.447: color all box borders below a window/page black (chronicle ...)
 local darkDone = setmetatable({}, { __mode = "k" })
 function K.DarkFramesIn(root, depth)
     depth = depth or 0
@@ -4131,7 +4131,7 @@ function K.RefreshBoxFrames()
     local cr, cg, cb = frameGlowColor()
     for fr in pairs(K.boxFrames) do
         fr.fit()
-        local t = fr.tint   -- eigene Farbe der Box (z. B. Dungeon-Karte nach Schwierigkeit)
+        local t = fr.tint   -- the box's own color (e.g. dungeon map by difficulty)
         for _, g in ipairs(fr.glows) do
             if t then g:SetVertexColor(t[1], t[2], t[3], 1) else g:SetVertexColor(cr, cg, cb, 1) end
         end
@@ -4151,15 +4151,15 @@ do
     end)
 end
 
--- 0.6.230: Hintergrundbilder je Seite einstellbar - links (Navigation) / rechts (Inhalt):
---   Deckkraft  bgBrightL / bgBright   0..1  (Alpha des Bildes; Name der Einstellung bleibt aus 0.6.227)
---   Helligkeit bgLightL  / bgLight    0..2  (unter 1: abdunkelnde MOD-Ebene, ueber 1: additive Kopie = kraeftiger)
+-- 0.6.230: background images adjustable per side - left (navigation) / right (content):
+--   opacity     bgBrightL / bgBright   0..1  (alpha of the image; setting name kept from 0.6.227)
+--   brightness  bgLightL  / bgLight    0..2  (below 1: darkening MOD layer, above 1: additive copy = stronger)
 K.bgImgs = setmetatable({}, { __mode = "k" })
 local function clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
-function K.BgBright(side)   -- Deckkraft - 0.6.232: kein Regler mehr, immer voll
+function K.BgBright(side)   -- opacity - 0.6.232: no slider anymore, always full
     return 1
 end
-function K.BgLight(side)    -- Helligkeit
+function K.BgLight(side)    -- brightness
     local st = ns.db and ns.db.settings
     return clamp(tonumber(st and (side == "L" and st.bgLightL or st.bgLight)) or 1, 0, 2)
 end
@@ -4183,7 +4183,7 @@ function K.BgImg(tex, side)
     d:SetBlendMode("ADD")
     d:SetAlpha(0)
     tex.oasisBgDup = d
-    -- abdunkeln: einfarbige Flaeche im Modus MOD (multipliziert mit dem Bild darunter)
+    -- darken: solid surface in MOD mode (multiplied with the image below)
     local m = parent:CreateTexture(nil, layer, nil, math.min(7, (sub or 0) + 1))
     m:SetAllPoints(tex)
     m:SetColorTexture(1, 1, 1, 1)
@@ -4211,9 +4211,9 @@ function K.ApplyBgBright()
     for tex, side in pairs(K.bgImgs) do applyBg(tex, side) end
 end
 
--- Akzentrahmen ueber allem im Fenster halten (gleiche Ebene wie das Fenster, hoechste Stufe)
+-- keep the accent border above everything in the window (same level as the window, highest strata)
 function K.FixEdge(main)
-    -- 0.6.164: die Zierlinien (frameLines, mit Schimmer) ebenso ganz nach oben - sie lagen unter dem Inhalt und waren unsichtbar
+    -- 0.6.164: the decorative lines (frameLines, with shimmer) likewise all the way up - they lay below the content and were invisible
     local fl = main and main.frameLines
     if fl then
         fl:SetFrameStrata(main:GetFrameStrata())
@@ -4224,21 +4224,21 @@ function K.FixEdge(main)
     e:SetFrameStrata(main:GetFrameStrata())
     e:SetFrameLevel(math.min(9000, main:GetFrameLevel() + 200))
 end
--- Hauptfenster faerben: Verlauf auf Hintergrund + Seitenleiste, Rahmenfarbe
--- Fenster-/Leistenflaeche faerben MIT eingerechneter Deckkraft (Verlauf + Region:SetAlpha greift im Client
--- nicht zuverlaessig -> bei "Zwei Farben" blieb das Fenster deckend). paint merkt sich die Farben, repaint
--- rechnet sie mit der aktuellen Deckkraft neu (Regler live).
+-- color the main window: gradient on background + sidebar, border color
+-- color window/bar surface WITH opacity included (gradient + Region:SetAlpha doesn't work reliably in the client
+-- -> with "Two colors" the window stayed opaque). paint remembers the colors, repaint
+-- recalculates them with the current opacity (slider live).
 local function cp(c) return { c[1], c[2], c[3], c[4] or 1 } end
 function K.RepaintWindowTex(tex)
     local p = tex and tex.oasisPaint
     if not p then return false end
     local wa = K.WindowAlpha()
     tex:SetAlpha(1)
-    -- 0.5.558: Regler auf 100 % = ganz deckend (nicht Design-Alpha x 1); darunter linear bis zur Design-Deckkraft
+    -- 0.5.558: slider at 100 % = fully opaque (not design alpha x 1); below that linear down to the design opacity
     local function al(base)
         base = base or 1
-        -- 0.5.791: stufenlos bis ganz deckend. Vorher sprang 99 % -> 100 % von (Design-Deckkraft x 0,99) auf 1,0 - bei Designs
-        -- mit durchscheinendem Hintergrund ein grosser Satz. Jetzt naehert sich die Deckkraft zwischen 80 % und 100 % weich der 1,0.
+        -- 0.5.791: continuous up to fully opaque. Previously 99 % -> 100 % jumped from (design opacity x 0.99) to 1.0 - for designs
+        -- with a translucent background a big leap. Now the opacity approaches 1.0 smoothly between 80 % and 100 %.
         local t = math.max(0, math.min(1, (wa - 0.8) / 0.2))
         return math.min(1, wa * (base + (1 - base) * t))
     end
@@ -4255,7 +4255,7 @@ function K.RepaintWindowTex(tex)
 end
 local function paintWin(tex, c1, c2)
     tex.oasisPaint = c2 and { "grad", cp(c1), cp(c2) } or { "flat", cp(c1) }
-    liveTex[tex] = nil   -- nicht von der Live-Vorschau flach ueberfaerben
+    liveTex[tex] = nil   -- don't get flat-recolored by the live preview
     K.RepaintWindowTex(tex)
 end
 function K.StyleWindow(main)
@@ -4268,13 +4268,13 @@ function K.StyleWindow(main)
         e:EnableMouse(false)
         K.Border(e, K.C.accent, 1)
         main.accentEdge = e
-        -- Raise()/Strata-Wechsel heben das Fenster an -> Rahmen danach wieder ganz nach oben
+        -- Raise()/strata change lifts the window -> move the border back to the very top afterwards
         main:HookScript("OnShow", function() K.FixEdge(main) end)
     end
     K.SetBorderColor(main.accentEdge, K.C.accent)
     main.accentEdge:SetShown(s.frameAccent and true or false)
     K.FixEdge(main)
-    -- Rahmen in Akzentfarbe: wirkt auf jede Rahmenart (eigene Linien, Design-Rahmen, Blizzard-Rahmen)
+    -- border in accent color: works for every border type (own lines, design border, Blizzard border)
     if main.skinBlizz and main.SetBackdropBorderColor then
         local c = s.frameAccent and K.C.accent or { 1, 1, 1, 1 }
         main:SetBackdropBorderColor(c[1], c[2], c[3], 1)
@@ -4294,10 +4294,10 @@ function K.StyleWindow(main)
             paintWin(main.bgTex, K.C.bg)
         end
     end
-    if main.sideTex then main.sideTex.oasisPaint = nil end   -- Design-Textur in der Leiste: nicht ueberfaerben
+    if main.sideTex then main.sideTex.oasisPaint = nil end   -- design texture in the bar: don't recolor
     if main.sideTex and not K.StyleSide(main) then
         if th.duoColors then
-            -- Zwei-Farben-Design: Leiste links in ihrer eigenen Farbe (leichter Verlauf), nicht von der Grundfarbe ueberdeckt
+            -- two-color design: left bar in its own color (light gradient), not covered by the base color
             local sc = K.C.side
             paintWin(main.sideTex, { sc[1] * 0.75, sc[2] * 0.75, sc[3] * 0.75, 1 }, { math.min(1, sc[1] * 1.15 + 0.01), math.min(1, sc[2] * 1.15 + 0.01), math.min(1, sc[3] * 1.15 + 0.01), 1 })
         elseif g > 0 and th.grad then
@@ -4309,9 +4309,9 @@ function K.StyleWindow(main)
         end
     end
     if K.SideParticles then pcall(K.SideParticles, main) end
-    -- Hintergrund-Transparenz nach jedem Neufaerben wieder anwenden (Verlauf setzt die Flaeche neu)
+    -- reapply background transparency after every recolor (gradient resets the surface)
     if ns.ApplyWindowAlpha then C_Timer.After(0, function() pcall(ns.ApplyWindowAlpha, main) end) end
-    -- Seitenleiste: Schimmer in der Akzentfarbe, unten farbig -> oben ausgeblendet
+    -- sidebar: shimmer in the accent color, colored at the bottom -> faded out at the top
     local side = main.sideTex and main.sideTex:GetParent()
     if side then
         if not main.sideGlow then
@@ -4329,10 +4329,10 @@ function K.StyleWindow(main)
             main.sideGlow:Hide()
         end
     end
-    -- Glas: weiche Lichtkugeln hinter dem Inhalt (Akzent oben links, kuehles Blau unten rechts)
+    -- glass: soft light orbs behind the content (accent top left, cool blue bottom right)
     if main.bgTex then
         if th.orbs and not main.orbs then
-            -- weicher Lichtverlauf (Media\softglow.tga), immer ganz innerhalb des Fensters
+            -- soft light gradient (Media\softglow.tga), always fully inside the window
             local function orb(w, h, point, x, y)
                 local o = main:CreateTexture(nil, "BACKGROUND", nil, 3)
                 o:SetTexture(ns.MEDIA .. "softglow")
@@ -4342,7 +4342,7 @@ function K.StyleWindow(main)
                 return o
             end
             main.orbs = { orb(640, 520, "TOPLEFT", 0, 0), orb(560, 460, "BOTTOMRIGHT", 0, 0), orb(420, 300, "TOP", 120, 0) }
-            -- Helligkeit steckt in der Farbe (bei ADD wirkt Alpha nicht zuverlaessig), Pulsieren skaliert sie
+            -- brightness is in the color (with ADD alpha doesn't work reliably), pulsing scales it
             local function paint(p1, p2)
                 for i, o in ipairs(main.orbs) do
                     local c = o.oc
@@ -4372,7 +4372,7 @@ function K.StyleWindow(main)
             for _, o in ipairs(main.orbs) do o:SetShown(th.orbs and true or false) end
         end
     end
-    -- Hintergrundgrafik des Designs (Media\themes\<name>.tga, selbst erzeugt)
+    -- the design's background graphic (Media\themes\<name>.tga, self-made)
     if main.bgTex then
         if not main.themeTex then
             main.themeTex = main:CreateTexture(nil, "BACKGROUND", nil, 2)
@@ -4380,7 +4380,7 @@ function K.StyleWindow(main)
         end
         if th.tex and s.themeTexture ~= false then
             main.themeTex:SetTexture(ns.MEDIA .. "themes\\" .. th.tex)
-            main.themeTex:SetAlpha((th.texAlpha or 1) * K.WindowAlpha() * 0.55)   -- 0.6.485: Hintergrundgrafik dezenter
+            main.themeTex:SetAlpha((th.texAlpha or 1) * K.WindowAlpha() * 0.55)   -- 0.6.485: background graphic more subtle
             main.themeTex:Show()
         else
             main.themeTex:Hide()
@@ -4390,11 +4390,11 @@ function K.StyleWindow(main)
         local sz = th.frameSize
         for i, t in ipairs(main.borders) do if i <= 2 then t:SetHeight(sz) else t:SetWidth(sz) end end
     end
-    -- runder Fensterrahmen: Flaechen darunter an den Ecken mitrunden (sonst ragen eckige Ecken heraus)
+    -- round window border: round the surfaces below at the corners too (otherwise square corners stick out)
     local wsk = K.Skin("window")
     if wsk and wsk.fill == "round_fill" then
         local r = wsk.r or 12
-        -- Flaeche rechts der Seitenleiste: rechte Ecken; Seitenleiste: linke Ecken; Leuchtflecken: nur ihre Ecke
+        -- surface right of the sidebar: right corners; sidebar: left corners; light spots: only their corner
         for _, t in ipairs({ main.bgTex, main.themeTex }) do K.RoundMask(t, main, r, { "tr", "br" }) end
         for _, t in ipairs({ main.sideTex, main.sideGlow }) do K.RoundMask(t, main, r, { "tl", "bl" }) end
         if main.orbs then
@@ -4402,14 +4402,14 @@ function K.StyleWindow(main)
             for i, o in ipairs(main.orbs) do if OC[i] and #OC[i] > 0 then K.RoundMask(o, main, r, OC[i]) end end
         end
     end
-    -- Deckkraft sofort (nicht erst im naechsten Bild): Fenster, Leiste, Schimmer, Grafik
+    -- opacity immediately (not only in the next frame): window, bar, shimmer, graphic
     if ns.ApplyWindowAlpha then pcall(ns.ApplyWindowAlpha, main) end
 end
 
 ------------------------------------------------------------------------
--- Skins: echte Rahmen je Design (Fenster, Karten, Knoepfe, Schalter)
--- eigene 9-Slice-Grafiken in Media\skins\ (Ecke oben links + Kante oben, Aussenseite oben),
--- WoW Classic nutzt Blizzards eigene Rahmen aus dem Spiel (nichts mitgeliefert)
+-- skins: real borders per design (window, cards, buttons, switches)
+-- own 9-slice graphics in Media\skins\ (top-left corner + top edge, outside at the top),
+-- WoW Classic uses Blizzard's own borders from the game (nothing bundled)
 ------------------------------------------------------------------------
 local SKD = "Interface\\AddOns\\" .. ADDON .. "\\Media\\skins\\"
 local BLIZZ_GOLD = { 1, 0.82, 0, 1 }
@@ -4455,10 +4455,10 @@ K.SKINS.glass = {
     toggle = { fill = "round_fill", line = "round_line", edge = "round_edge", r = 10 },
     field  = { fill = "round_fill", line = "round_line", edge = "round_edge", r = 9 },
 }
--- Textur an den vier Ecken von 'box' rund abschneiden: je Ecke eine Maske (Viertelkreis), ausserhalb
--- der Maske CLAMPTOWHITE = sichtbar. Masken werden je Besitzer-Frame einmal angelegt und geteilt.
--- Textur nach Maske gegen SetTexCoord-Fehler absichern (Ausschnitt entfaellt dann still)
--- 0.6.127: feines Punktraster als Overlay (Media/dotgrid, 16 px Raster), passt sich der Groesse an
+-- round off a texture at the four corners of 'box': one mask per corner (quarter circle), outside
+-- the mask CLAMPTOWHITE = visible. Masks are created once per owner frame and shared.
+-- guard texture after masking against SetTexCoord errors (the crop is then silently skipped)
+-- 0.6.127: fine dot grid as overlay (Media/dotgrid, 16 px grid), adapts to the size
 function K.DotGrid(parent, alpha, inset)
     local t = parent:CreateTexture(nil, "ARTWORK", nil, -6)
     inset = inset or 0
@@ -4468,7 +4468,7 @@ function K.DotGrid(parent, alpha, inset)
     t:SetVertexColor(1, 1, 1, alpha or 0.05)
     local function fit()
         local w, h = t:GetWidth() or 0, t:GetHeight() or 0
-        if w > 0 and h > 0 then t:SetTexCoord(0, w / 8, 0, h / 8) end   -- 0.6.141: alle 8 Einheiten ein Punkt (feiner)
+        if w > 0 and h > 0 then t:SetTexCoord(0, w / 8, 0, h / 8) end   -- 0.6.141: one dot every 8 units (finer)
     end
     parent:HookScript("OnSizeChanged", fit)
     fit()
@@ -4482,15 +4482,15 @@ function K.MaskSafe(tex)
     tex.oasisSafeTC = true
     return tex
 end
--- corners (optional): nur diese Ecken maskieren, z. B. { "tr", "br" }. 0.5.600: WoW nimmt hoechstens 3 Masken je Textur -
--- die 4. (unten rechts) fiel still weg -> eckige Kante unten rechts am Fenster. Darum nur Ecken, die die Flaeche erreicht.
+-- corners (optional): mask only these corners, e.g. { "tr", "br" }. 0.5.600: WoW takes at most 3 masks per texture -
+-- the 4th (bottom right) was silently dropped -> square edge at the bottom right of the window. So only corners the surface reaches.
 function K.RoundMask(tex, box, r, corners)
     if not (tex and tex.AddMaskTexture and box) then return end
     local owner = tex:GetParent()
     if not (owner and owner.CreateMaskTexture) then return end
     owner.roundMasks = owner.roundMasks or {}
-    -- 0.6.314: Box mit Bild-Rahmen (abgeschraegte Ecken) -> schraeg statt rund schneiden, sonst ragt die Rundung
-    -- ueber die Schraege des Rahmens hinaus. Groesse = Abschraegung des Box-Rahmens (+1 Sicherheit)
+    -- 0.6.314: box with image border (beveled corners) -> cut at an angle instead of round, otherwise the rounding sticks out
+    -- beyond the bevel of the border. Size = bevel of the box border (+1 safety)
     local shape = "mask_"
     if box.boxFrame then shape, r = "mask_bevel_", BOX_BEVEL + 1 end
     local key = tostring(box) .. ":" .. shape .. r
@@ -4509,16 +4509,16 @@ function K.RoundMask(tex, box, r, corners)
         if not ok then return end
         owner.roundMasks[key] = set
     end
-    K.MaskSafe(tex)   -- maskierte Texturen werfen bei SetTexCoord einen Fehler
+    K.MaskSafe(tex)   -- masked textures throw an error on SetTexCoord
     tex.roundMasked = tex.roundMasked or {}
-    -- 0.6.315: Box mit Rahmen und alle vier Ecken: mehr als 3 Masken gehen nicht. Darum zeigt das Bild nur die linke
-    -- Haelfte (tl, bl + Maske "rechts weg"), ein Zwilling darueber nur die rechte (tr, br + "links weg").
+    -- 0.6.315: box with border and all four corners: more than 3 masks don't work. So the image shows only the left
+    -- half (tl, bl + mask "right away"), a twin on top only the right (tr, br + "left away").
     if box.boxFrame and not corners then
         if tex.boxSplit then return end
         tex.boxSplit = true
-        -- 0.6.316: Farb-/Verlaufsflaechen nicht teilen - ein Verlauf laesst sich nicht auslesen, der Zwilling wurde weiss.
-        -- Sie bekommen nur drei Ecken (tl, tr, bl); geteilt werden nur Bilder (Datei oder K.BgImg)
-        -- nur echte Bilder teilen (Bildpfad oder Datei-ID); Farbflaechen und Verlaeufe melden hier teils auch eine "Datei"
+        -- 0.6.316: don't split color/gradient surfaces - a gradient can't be read out, the twin turned white.
+        -- They get only three corners (tl, tr, bl); only images are split (file or K.BgImg)
+        -- split only real images (image path or file ID); color surfaces and gradients sometimes report a "file" here too
         local file = tex:GetTexture()
         local isImg = K.bgImgs[tex] or (type(file) == "string" and file:find("[\\/]")) or (type(file) == "number" and file > 0)
         if tex.oasisGrad or not isImg then
@@ -4554,7 +4554,7 @@ function K.RoundMask(tex, box, r, corners)
             tw:SetShown(tex:IsShown())
         end
         sync()
-        -- Farbflaechen (z. B. Abdunkeln von K.BgImg): Farbe direkt weiterreichen, lesen laesst sie sich nicht
+        -- color surfaces (e.g. darkening of K.BgImg): pass the color on directly, it can't be read
         hooksecurefunc(tex, "SetColorTexture", function(_, ...) tw.colored = true pcall(tw.SetColorTexture, tw, ...) end)
         for _, fn in ipairs({ "SetTexture", "SetTexCoord", "SetAlpha", "SetVertexColor", "SetBlendMode",
                               "SetDesaturated", "Show", "Hide", "SetShown" }) do
@@ -4564,7 +4564,7 @@ function K.RoundMask(tex, box, r, corners)
         for _, m in ipairs({ set[2], set[4], set.halves[2] }) do pcall(tw.AddMaskTexture, tw, m) end
         tex.boxTwin = tw
         tw.boxTwinOf = tex
-        -- Helligkeits-Ebenen von K.BgImg liegen genauso ueber der ganzen Flaeche
+        -- brightness layers of K.BgImg lie over the whole surface the same way
         if tex.oasisBgDup then K.RoundMask(tex.oasisBgDup, box, r) end
         if tex.oasisBgDark then K.RoundMask(tex.oasisBgDark, box, r) end
         return
@@ -4586,7 +4586,7 @@ function K.Skin(role)
     if role then return s[role] end
     return s
 end
--- 9-Slice aus Ecke + Kante; corner/edge nil = volle Farbe
+-- 9-slice from corner + edge; corner/edge nil = solid color
 local function slice(f, corner, edge, r, layer, sub, c, center)
     local list = {}
     local function tex()
@@ -4621,8 +4621,8 @@ local function slice(f, corner, edge, r, layer, sub, c, center)
     for _, x in ipairs(list) do x:SetVertexColor(c[1], c[2], c[3], c[4] or 1) end
     return list
 end
--- 9-Slice aus einer Grafik: n = { file, w, h (Anteil der Leinwand), cx, cy (Ecke als Anteil), ex (optional: nur diesen
--- Anteil ab der Ecke fuer die waagrechten Kanten nehmen, z. B. wenn oben in der Mitte eine Zierkerbe sitzt) }
+-- 9-slice from one graphic: n = { file, w, h (fraction of the canvas), cx, cy (corner as fraction), ex (optional: take only this
+-- fraction from the corner for the horizontal edges, e.g. when an ornamental notch sits at the top center) }
 function K.NineSlice(f, n, r, layer, sub, center)
     local list = {}
     local w, h, cx, cy = n.w or 1, n.h or 1, n.cx, n.cy
@@ -4639,12 +4639,12 @@ function K.NineSlice(f, n, r, layer, sub, center)
         if sh then x:SetHeight(sh) end
         list[#list + 1] = x
     end
-    -- Ecken
+    -- corners
     piece(u[1], u[2], v[1], v[2], "TOPLEFT", 0, 0, nil, 0, 0, r, r)
     piece(u[3], u[4], v[1], v[2], "TOPRIGHT", 0, 0, nil, 0, 0, r, r)
     piece(u[1], u[2], v[3], v[4], "BOTTOMLEFT", 0, 0, nil, 0, 0, r, r)
     piece(u[3], u[4], v[3], v[4], "BOTTOMRIGHT", 0, 0, nil, 0, 0, r, r)
-    -- Kanten
+    -- edges
     piece(hu[1], hu[2], v[1], v[2], "TOPLEFT", r, 0, "TOPRIGHT", -r, 0, nil, r)
     piece(hu[1], hu[2], v[3], v[4], "BOTTOMLEFT", r, 0, "BOTTOMRIGHT", -r, 0, nil, r)
     piece(u[1], u[2], v[2], v[3], "TOPLEFT", 0, -r, "BOTTOMLEFT", 0, r, r, nil)
@@ -4656,7 +4656,7 @@ local function tintList(list, c, a)
     if not list then return end
     for _, x in ipairs(list) do x:SetVertexColor(c[1], c[2], c[3], a or c[4] or 1) end
 end
--- Flaeche/Rand eines geskinnten Frames umfaerben (wird von col/SetBorderColor umgeleitet)
+-- recolor surface/border of a skinned frame (redirected from col/SetBorderColor)
 function K.SkinFill(f, c, a)
     if f.skinFill then tintList(f.skinFill, c, a) end
     if f.SetBackdropColor and f.skinBlizz then f:SetBackdropColor(c[1], c[2], c[3], a or c[4] or 1) end
@@ -4665,12 +4665,12 @@ function K.SkinLine(f, c, a)
     if f.skinColored then return end
     if f.skinLine then tintList(f.skinLine, c, a) end
 end
--- Frame mit dem Rahmen des aktuellen Designs versehen. role: window/panel/button/toggle/field
+-- give a frame the border of the current design. role: window/panel/button/toggle/field
 function K.ApplySkin(f, role, fillColor, lineColor)
-    if role == "panel" and K.BoxFrame then pcall(K.BoxFrame, f) end   -- 0.6.281: Bild-Rahmen um jede Box
+    if role == "panel" and K.BoxFrame then pcall(K.BoxFrame, f) end   -- 0.6.281: image border around every box
     local sk = K.Skin(role)
     if not sk or f.skinned then return false end
-    -- kleine Frames: Ecken duerfen hoechstens die halbe Hoehe/Breite haben
+    -- small frames: corners may be at most half the height/width
     local r = sk.r or 8
     local w, h = f:GetWidth() or 0, f:GetHeight() or 0
     if h > 0 then r = math.min(r, math.floor(h / 2)) end
@@ -4689,7 +4689,7 @@ function K.ApplySkin(f, role, fillColor, lineColor)
         f.skinBlizz = true
         if sk.blizz.bgFile then
             local bc = sk.bgColor or fillColor or C.panel
-            -- feste Design-Flaechenfarbe (Classic) folgt trotzdem der Deckkraft-Einstellung
+            -- fixed design surface color (Classic) still follows the opacity setting
             local ba = (bc[4] or 1) * (sk.bgColor and K.WindowAlpha() or 1)
             f:SetBackdropColor(bc[1], bc[2], bc[3], ba)
             if f.bg and not sk.keepBg then f.bg:Hide() end
@@ -4698,7 +4698,7 @@ function K.ApplySkin(f, role, fillColor, lineColor)
         f:SetBackdropBorderColor(ec[1], ec[2], ec[3], ec[4] or 1)
         return true
     end
-    -- 0.6.271: Rahmen aus EINER Grafik (Ecken fest, Kanten gestreckt, Mitte optional) - fuer Designs aus Asset-Paketen
+    -- 0.6.271: border from ONE graphic (corners fixed, edges stretched, middle optional) - for designs from asset packs
     if sk.nine then
         if f.bg and sk.nine.center and not sk.keepBg then
             f.bg:Hide()
@@ -4722,18 +4722,18 @@ function K.ApplySkin(f, role, fillColor, lineColor)
     end
     return true
 end
--- Ueberschriftenfarbe des Designs (Classic: Blizzard-Gold)
+-- the design's heading color (Classic: Blizzard gold)
 function K.HeadColor()
     local s = K.Skin()
     return s and s.headColor
 end
--- Hauptfenster: Rahmen, Seitenleiste, Banner (Classic)
+-- main window: border, sidebar, banner (Classic)
 function K.SkinWindow(main)
     local s = K.Skin()
     if not s or not main or main.skinWindowDone then return end
     main.skinWindowDone = true
     K.ApplySkin(main, "window")
-    -- Randlinie auf eine eigene Ebene ueber allen Kindern (Seitenleiste/Inhalt verdeckten sie in den Ecken)
+    -- border line on its own layer above all children (sidebar/content covered it in the corners)
     if main.skinLine and not main.lineFrame then
         local lf = CreateFrame("Frame", nil, main)
         lf:SetAllPoints()
@@ -4776,9 +4776,9 @@ K.SKINS.kawaii = {
     field  = { fill = "round_fill", line = "round_line", edge = "round_edge", r = 8 },
     headColor = { 1, 0.62, 0.82, 1 },
 }
--- Knoepfe: Design-Rahmen bzw. Blizzards rote Panel-Knoepfe (Classic)
+-- buttons: design border or Blizzard's red panel buttons (Classic)
 function K.SkinButton(b, base)
-    if K.ImageButton and K.ImageButton(b) then return end   -- 0.6.283: Bild-Knoepfe (Gildenmodul)
+    if K.ImageButton and K.ImageButton(b) then return end   -- 0.6.283: image buttons (guild module)
     local sk = K.Skin("button")
     if not sk then return end
     if sk.pill and K.PillButton then return K.PillButton(b) end
@@ -4804,14 +4804,14 @@ function K.SkinButton(b, base)
         b.skinBlizz = true
         return
     end
-    -- 0.6.274: Designs koennen fuer Hauptknoepfe (style "primary") einen eigenen Rahmen mitbringen
+    -- 0.6.274: designs can bring their own border for main buttons (style "primary")
     if b.style == "primary" and K.Skin("primary") then return K.ApplySkin(b, "primary", base) end
     K.ApplySkin(b, "button", base)
 end
 
 ------------------------------------------------------------------------
--- Kachel-Auswahl mit Bildern (z.B. Wuerfel-Designs, Farben, Fanfaren)
--- items: { key, text, icon = Pfad | nil, color = {r,g,b} | nil, round = true (Farbkreis), locked = "Rang 12" | nil,
+-- tile selection with images (e.g. dice designs, colors, fanfares)
+-- items: { key, text, icon = path | nil, color = {r,g,b} | nil, round = true (color circle), locked = "Rank 12" | nil,
 --          checked = bool, onEnter = fn | nil }
 ------------------------------------------------------------------------
 local tilePop
@@ -4904,15 +4904,15 @@ function K.TilePicker(anchor, title, items, onPick)
     return f
 end
 
--- Fremde Schriftzeichen: die normalen Schriften zeigen bei Koreanisch/Chinesisch nur Kaestchen.
--- Liefert die passende Schrift (oder nil, wenn keine noetig ist). Bevorzugt die vollstaendigen
--- Schriften des Spiel-Clients (alle Zeichen), sonst die mitgelieferten Noto-Teilschriften.
+-- foreign scripts: the normal fonts only show boxes for Korean/Chinese.
+-- Returns the matching font (or nil if none is needed). Prefers the complete
+-- fonts of the game client (all characters), otherwise the bundled Noto subset fonts.
 local fontOk = {}
 local probe
 local function firstFont(list)
     for _, path in ipairs(list) do
         if fontOk[path] == nil then
-            -- jedes Mal ein frischer FontString: ein alter behaelt sonst seine vorige Schrift
+            -- a fresh FontString every time: an old one otherwise keeps its previous font
             probe = UIParent:CreateFontString(nil, "BACKGROUND")
             local ok, res = pcall(probe.SetFont, probe, path, 12, "")
             fontOk[path] = (ok and res ~= false and probe:GetFont() ~= nil) and true or false
@@ -4924,28 +4924,28 @@ local KR_FONTS = { "Fonts\\2002.TTF", "Fonts\\2002B.TTF" }
 local ZH_FONTS = { "Fonts\\ARKai_T.ttf", "Fonts\\ARHei.ttf", "Fonts\\bLEI00D.ttf", "Fonts\\blei00d.TTF" }
 function K.CJKFont(text)
     if type(text) ~= "string" then return nil end
-    -- Hangul (U+AC00-D7A3): EA..ED; Hangul-Kompatibilitaets-Jamo: E3 84..86
+    -- Hangul (U+AC00-D7A3): EA..ED; Hangul compatibility jamo: E3 84..86
     if text:find("[\234-\237][\128-\191][\128-\191]") or text:find("\227[\132-\134][\128-\191]") then
         local t = {}
         for _, p in ipairs(KR_FONTS) do t[#t + 1] = p end
         t[#t + 1] = K.fontByKey.notokr and K.fontByKey.notokr.path
         return firstFont(t)
     end
-    -- CJK-Schriftzeichen (U+4E00-9FFF): E4..E9; Kana (U+3040-30FF): E3 81..83
+    -- CJK characters (U+4E00-9FFF): E4..E9; Kana (U+3040-30FF): E3 81..83
     if text:find("[\228-\233][\128-\191][\128-\191]") or text:find("\227[\129-\131][\128-\191]") then
         local t = {}
         for _, p in ipairs(ZH_FONTS) do t[#t + 1] = p end
         t[#t + 1] = K.fontByKey.notosc and K.fontByKey.notosc.path
         return firstFont(t)
     end
-    -- Kyrillisch (D0..D3): nur wenn die gewaehlte Schrift keine kyrillischen Zeichen hat
+    -- Cyrillic (D0..D3): only if the chosen font has no Cyrillic characters
     if text:find("[\208-\211][\128-\191]") then
         local key = ns.db and ns.db.settings.uiFont or "inter"
         local cur = K.fontByKey[key]
         if key ~= "arialn" and cur and not cur.cyr then return K.fontByKey.ptsans and K.fontByKey.ptsans.path end
     end
 end
--- Schrift eines FontStrings passend zum Text setzen (Sonderschrift oder zurueck zur normalen)
+-- set a FontString's font to match the text (special font or back to the normal one)
 function K.SetNameFont(fs, text, size)
     local cjk = K.CJKFont(text)
     local _, cur, flags = fs:GetFont()

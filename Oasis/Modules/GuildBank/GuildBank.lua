@@ -1,8 +1,8 @@
--- Oasis: Gildenbank (Inhalt, Gold, Protokoll)
--- WoW gibt die Bank nur heraus, solange jemand am Gildentresor steht. Oasis liest dann alle
--- Faecher + Protokoll aus und teilt den Stand mit der Gilde.
+-- Oasis: guild bank (contents, gold, log)
+-- WoW only hands out the bank while someone stands at the guild vault. Oasis then reads all
+-- tabs + log and shares the state with the guild.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_GuildBank", function()   -- Modul Gildenbank (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_GuildBank", function()   -- Guild bank module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -13,7 +13,7 @@ local SLOTS = 98
 local function maxTabs() return MAX_GUILDBANK_TABS or 8 end
 
 ------------------------------------------------------------------------
--- Auslesen
+-- Reading
 ------------------------------------------------------------------------
 Bank.open = false
 
@@ -55,7 +55,7 @@ local function scanLog(tab)
             if typ then entries[#entries + 1] = table.concat({ typ, name or "?", ns.itemID(link) or 0, count or 1, math.floor(logTs(y, m, d, h) / 3600) * 3600, tab1 or 0, tab2 or 0 }, "/") end
         end
     end
-    -- neueste zuerst, maximal 30
+    -- newest first, at most 30
     local list = {}
     for i = #entries, math.max(1, #entries - 29), -1 do list[#list + 1] = entries[i] end
     local s = table.concat(list, "#")
@@ -96,10 +96,10 @@ local function soon(which)
 end
 
 local function onOpen()
-    -- Einstellung "Gildenbank fuer die Gilde einlesen" aus: nichts lesen, nichts teilen
+    -- setting "Read guild bank for the guild" off: read nothing, share nothing
     if ns.db.settings.bankShareScan == false then Bank.open = false return end
     Bank.open = true
-    -- alle Faecher und Protokolle nacheinander anfordern (Server drosselt)
+    -- request all tabs and logs one after another (server throttles)
     local tabs = GetNumGuildBankTabs() or 0
     for tab = 1, tabs do
         ns.After(tab * 0.4, function()
@@ -126,7 +126,7 @@ ns.On("GUILDBANK_UPDATE_MONEY", function() soon("items") end)
 ns.On("GUILDBANKLOG_UPDATE", function() soon("log") end)
 
 ------------------------------------------------------------------------
--- Abfragen fuer andere Module
+-- Queries for other modules
 ------------------------------------------------------------------------
 function Bank.Tabs()
     local out = Store.List("bank", function(r) return r.n end)
@@ -140,8 +140,8 @@ function Bank.Items(tab)
     end
     return out
 end
--- Anzahl eines Items in der ganzen Bank - ueber einen Index (itemID -> Anzahl), neu nur wenn sich die Bank aendert
--- (Performance 0.5.482: vorher pro Tooltip-Aufbau alle Faecher zerlegt, ~600 Tabellen je Aufruf)
+-- count of an item in the whole bank - via an index (itemID -> count), rebuilt only when the bank changes
+-- (performance 0.5.482: before, every tooltip build split up all tabs, ~600 tables per call)
 local countIdx
 ns.Listen("STORE", function(coll) if coll == "bank" then countIdx = nil end end)
 function Bank.Count(itemID)
@@ -158,7 +158,7 @@ function Bank.Count(itemID)
     return countIdx[itemID] or 0
 end
 function Bank.CountReset() countIdx = nil end
--- Fach nach Nummer (echte Daten "tab-N", Demo "demo-tab-N")
+-- tab by number (real data "tab-N", demo "demo-tab-N")
 function Bank.Tab(n)
     for _, t in ipairs(Bank.Tabs()) do if t.n == n then return t end end
 end
@@ -197,7 +197,7 @@ end
 Bank.MoneyText = money
 
 ------------------------------------------------------------------------
--- Auswertungen fuer die Seite
+-- Evaluations for the page
 ------------------------------------------------------------------------
 local function itemName(id)
     local n = C_Item.GetItemNameByID and ns.safe(C_Item.GetItemNameByID(id))
@@ -223,7 +223,7 @@ function Bank.TabStats(tab)
     end
     return used, worth, priced, items
 end
--- Items ueber alle Faecher zusammengefasst
+-- items summed over all tabs
 function Bank.AllItems()
     local by, list = {}, {}
     for _, tab in ipairs(Bank.Tabs()) do
@@ -249,7 +249,7 @@ function Bank.Search(q)
     table.sort(out, function(a, b) return itemName(a.id) < itemName(b.id) end)
     return out
 end
--- von Mitgliedern gesuchte Items
+-- items wanted by members
 local function wantedSet()
     local set = {}
     if not ns.Wants then return set end
@@ -261,7 +261,7 @@ local function wantedSet()
     end
     return set
 end
--- wer hat in den letzten Tagen am meisten eingezahlt
+-- who deposited the most in the last days
 ns.GuildOption({ page = "bank", key = "gbTopDay", default = 7, min = 1, max = 30, step = 1, label = "Top donors period",
     desc = "How many days the top donors on the bank home page cover",
     fmt = function(v) return v .. " Tg" end })
@@ -283,7 +283,7 @@ function Bank.Contributors(days)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local ACTIONS = {
     deposit = { "eingezahlt", C.mint }, withdraw = { "entnommen", C.amber }, move = { "verschoben", C.blue },
@@ -323,7 +323,7 @@ local function glass(f, r, a, line)
     if IG and IG.Glass then IG.Glass(f, { 1, 1, 1, a or 0.03 }, line or { 1, 1, 1, 0.10 }, r or 12) end
 end
 local function animOn() return not (ns.db and ns.db.settings.noAnim) end
--- Glasflaeche mit ruhigem Titel (+ optionalem Zaehler rechts)
+-- glass surface with a calm title (+ optional counter on the right)
 local function panel(parent, title)
     local f = CreateFrame("Frame", nil, parent)
     glass(f, 14, 0.025)
@@ -334,9 +334,9 @@ local function panel(parent, title)
     f.count:SetPoint("TOPRIGHT", -16, -16)
     return f
 end
--- Platz 1-3 in Gold/Silber/Bronze
+-- places 1-3 in gold/silver/bronze
 local MEDAL = { { 1, 0.82, 0.3 }, { 0.78, 0.8, 0.86 }, { 0.84, 0.55, 0.32 } }
--- Zeile mit Hover-Glas
+-- row with hover glass
 local function hoverRow(r)
     r.card = CreateFrame("Frame", nil, r)
     r.card:SetAllPoints()
@@ -345,7 +345,7 @@ local function hoverRow(r)
     r:HookScript("OnEnter", function(self) glass(self.card, 8, 0.05, { 1, 1, 1, 0.08 }) end)
     r:HookScript("OnLeave", function(self) glass(self.card, 8, 0, { 1, 1, 1, 0 }) end)
 end
-local valMode = "value"   -- Uebersicht rechts oben: "value" (wertvoll) | "wanted" (von der Gilde gesucht)
+local valMode = "value"   -- overview top right: "value" (valuable) | "wanted" (wanted by the guild)
 
 ns.RegisterPage({
     key = "bank", title = "Guild bank", order = 2.2,
@@ -371,7 +371,7 @@ ns.RegisterPage({
         p.segHolder:SetSize(540, 24)
 
         ----------------------------------------------------------------
-        -- Uebersicht
+        -- Overview
         ----------------------------------------------------------------
         p.home = CreateFrame("Frame", nil, p)
         p.home:SetPoint("TOPLEFT", 0, -40)
@@ -388,7 +388,7 @@ ns.RegisterPage({
             c.col = CARDCOL[i]
             p.cards[i] = c
         end
-        -- Karten teilen sich die Breite
+        -- cards share the width
         p.home:SetScript("OnSizeChanged", function(self, w)
             local cw = math.floor(((w or 760) - 30) / 4)
             for i, c in ipairs(p.cards) do c:ClearAllPoints() c:SetPoint("TOPLEFT", (i - 1) * (cw + 10), 0) c:SetSize(cw, 58) end
@@ -398,12 +398,12 @@ ns.RegisterPage({
                 if p.contribPanel then p.contribPanel:SetWidth(half) end
             end
         end)
-        -- Verlauf der letzten 30 Tage in der Marktwert-Kachel
+        -- history of the last 30 days in the market value tile
         if ns.Trade then
             p.worthSpark = ns.Trade.Sparkline(p.cards[4], 60, 22, 30)
             p.worthSpark:SetPoint("TOPRIGHT", -10, -12)
         end
-        -- Faecher mit Fuellstand
+        -- tabs with fill level
         local tp = panel(p.home, L["Tabs"])
         p.homePanels = { tp }
         tp:SetPoint("TOPLEFT", 0, -68)
@@ -435,7 +435,7 @@ ns.RegisterPage({
             r:SetScript("OnClick", function(self) if self.n then view = self.n p.seg:Select(view) p.fresh = true ns.RefreshPage("bank") end end)
             p.tabRows[i] = r
         end
-        -- wertvollste Items
+        -- most valuable items
         local vp = panel(p.home, L["Most valuable items"])
         table.insert(p.homePanels, vp)
         vp:SetPoint("TOPLEFT", tp, "TOPRIGHT", 10, 0)
@@ -524,7 +524,7 @@ ns.RegisterPage({
         p.contrib:SetPoint("TOPLEFT", 6, -38)
         p.contrib:SetPoint("BOTTOMRIGHT", -6, 8)
         p.contrib.empty:SetText(L["Nobody has deposited anything this week."])
-        -- letzte Bewegungen
+        -- latest transactions
         local lp = panel(p.home, L["Recent activity"])
         table.insert(p.homePanels, lp)
         lp:SetPoint("TOPLEFT", cp, "TOPRIGHT", 10, 0)
@@ -537,7 +537,7 @@ ns.RegisterPage({
             if r.stripe then r.stripe:Hide() r.stripe = nil end
             r.icon = K.Icon(r, 18, nil)
             r.icon:SetPoint("LEFT", 8, 0)
-            -- Richtung: + rein / - raus
+            -- direction: + in / - out
             r.dir = K.Title(r, 12, C.mint, "CENTER")
             r.dir:SetPoint("LEFT", 30, 0)
             r.dir:SetWidth(12)
@@ -598,7 +598,7 @@ ns.RegisterPage({
         end
 
         ----------------------------------------------------------------
-        -- Fach-Ansicht
+        -- Tab view
         ----------------------------------------------------------------
         p.grid = CreateFrame("Frame", nil, p)
         p.grid:SetPoint("TOPLEFT", 0, -40)
@@ -635,7 +635,7 @@ ns.RegisterPage({
         p.legend:SetPoint("TOPLEFT", p.grid, "BOTTOMLEFT", 0, -6)
         p.legend:SetText("|cffe8b44a●|r " .. L["wanted by the guild"] .. "     " .. L["Border color = quality"] .. "     " .. L["Shift-click: link  ·  Right-click: menu"])
 
-        -- Seitenleiste rechts (Fach-Infos oder Suchtreffer)
+        -- sidebar on the right (tab info or search hits)
         local side = CreateFrame("Frame", nil, p)
         glass(side, 14, 0.025)
         side:SetPoint("TOPLEFT", COLS * CELL + 14, -40)
@@ -684,7 +684,7 @@ ns.RegisterPage({
         p.sStand:SetWordWrap(true)
 
         ----------------------------------------------------------------
-        -- Protokoll
+        -- Log
         ----------------------------------------------------------------
         p.logSeg = K.Segments(p, { { key = "all", text = L["All"] }, { key = "items", text = L["Items"] },
             { key = "gold", text = L["Gold"] }, { key = "mine", text = L["Mine"] } }, function(k)
@@ -692,7 +692,7 @@ ns.RegisterPage({
             ns.RefreshPage("bank")
         end, 70)
         p.logSeg:SetPoint("TOPLEFT", 0, -40)
-        -- Start-Filter aus den Bereichs-Einstellungen (Standard: Alles)
+        -- start filter from the section settings (default: all)
         local lf = ns.db.settings.bankLogFilter
         if lf == "items" or lf == "gold" or lf == "mine" then logFilter = lf end
         p.logSeg:Select(logFilter)
@@ -740,13 +740,13 @@ ns.RegisterPage({
 
     refresh = function(p)
         local tabs = Bank.Tabs()
-        -- Reiter: Uebersicht, Faecher (mit Symbol), Protokoll
+        -- tabs: overview, bank tabs (with icon), log
         local key = ""
         for _, t in ipairs(tabs) do key = key .. t.n .. (t.name or "") end
         if key ~= p.segKey then
             p.segKey = key
             if view ~= "log" and view ~= "home" and not Bank.Tab(view) then view = "home" end
-            -- erst mit Namen versuchen; passt es nicht neben das Suchfeld, nur Symbole (Name als Tooltip)
+            -- try with names first; if it doesn't fit next to the search field, icons only (name as tooltip)
             local room = (p:GetWidth() or 0) > 0 and (p:GetWidth() - (p.search:GetWidth() or 200) - 16) or 530
             for _, iconsOnly in ipairs({ false, true }) do
                 if p.seg then p.seg:Hide() end
@@ -786,7 +786,7 @@ ns.RegisterPage({
         local amount = Bank.Money()
         local wanted = wantedSet()
 
-        -- Uebersicht
+        -- Overview
         if isHome and search == "" then
             local allItems = Bank.AllItems()
             local used, slots, worth = 0, 0, 0
@@ -833,7 +833,7 @@ ns.RegisterPage({
                     r:Hide()
                 end
             end
-            -- wertvollste bzw. von der Gilde gesuchte Items
+            -- most valuable or guild-wanted items
             local val = {}
             local nWanted = 0
             for _, e in ipairs(allItems) do
@@ -909,7 +909,7 @@ ns.RegisterPage({
             return
         end
 
-        -- Fach-Ansicht oder Suche ueber alle Faecher
+        -- tab view or search across all tabs
         local tab = isTab and Bank.Tab(view) or nil
         local items = tab and Bank.Items(tab) or {}
         local results = search ~= "" and Bank.Search(search) or nil

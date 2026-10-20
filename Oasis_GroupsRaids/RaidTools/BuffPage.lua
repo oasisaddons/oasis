@@ -1,8 +1,8 @@
--- Oasis - Buff-Monitor als eigener Reiter: wer hat welche Buffs, was fehlt, wer kann es geben
--- Glas 2026: vorhandene Buffs als Symbol, fehlende als ruhige leere Felder; Rot nur, wo es zaehlt
--- (fehlt allen bzw. du kannst es selbst beheben). Klick auf ein fehlendes Feld fragt den Verteiler.
+-- Oasis - Buff monitor as its own tab: who has which buffs, what's missing, who can give it
+-- Glass 2026: present buffs as icons, missing ones as calm empty slots; red only where it matters
+-- (missing for everyone or you can fix it yourself). Clicking a missing field asks the dispatcher.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
@@ -14,7 +14,7 @@ local CIRCLES = "Interface\\TargetingFrame\\UI-Classes-Circles"
 local SOON = 120
 local GLINE = { 1, 1, 1, 0.10 }
 local view = "all"       -- "all" | "missing" | "mine"
-local off = 0            -- Scroll-Versatz der Zeilen
+local off = 0            -- Scroll offset of the rows
 
 local function glass(f, r, a, line)
     local IG = ns.Insta
@@ -33,7 +33,7 @@ end
 local function myClass() local _, c = UnitClass("player") return c end
 local function isMine(b, info) return (info.mine and info.mine[b.key]) or (b.cls and b.cls == myClass()) end
 
--- Kennzahl als Glaskarte
+-- Stat as glass card
 local function tile(parent, label, col)
     local t = CreateFrame("Frame", nil, parent)
     t:SetHeight(62)
@@ -102,7 +102,7 @@ ns.RegisterPage({
             if self.built then ns.RefreshPage("buffs") end
         end)
 
-        -- Filter links, Aktionen rechts
+        -- Filters left, actions right
         p.seg = K.Segments(p, { { key = "all", text = L["All"] }, { key = "missing", text = L["Missing only"] }, { key = "mine", text = L["My buffs"] } },
             function(k) view = k off = 0 p.fresh = true ns.RefreshPage("buffs") end, nil, { size = 12, pad = 16 })
         p.seg:SetPoint("TOPLEFT", 0, -74)
@@ -136,7 +136,7 @@ ns.RegisterPage({
         tab.note:SetWordWrap(true)
         tab.more = K.Text(tab, 10, C.dim, "CENTER")
 
-        -- unten: was du tun kannst
+        -- bottom: what you can do
         p.todo = CreateFrame("Frame", nil, p)
         p.todo:SetPoint("BOTTOMLEFT", 0, 0)
         p.todo:SetPoint("BOTTOMRIGHT", -330, 0)
@@ -169,7 +169,7 @@ ns.RegisterPage({
         p.tiles[2]:Set(inGroup and nMiss or "–", inGroup and ((L["at %d players"]):format(math.max(0, (info.players or 0) - (info.complete or 0)))) or nil, nil,
             (inGroup and nMiss > 0) and C.amber or C.dim)
         p.tiles[3]:Set(inGroup and (info.soon or 0) or "–", inGroup and L["under 2 min"] or nil, nil, (inGroup and (info.soon or 0) > 0) and C.blue or C.dim)
-        -- ohne Gruppe standen dort drei Striche: Kacheln nur zeigen, wenn es Werte gibt
+        -- without a group there were three dashes: only show tiles when there are values
         for _, t in ipairs(p.tiles) do t:SetShown(inGroup) end
         p.seg:Select(view)
         p.postBtn:SetEnabled(inGroup and nMiss > 0)
@@ -185,7 +185,7 @@ ns.RegisterPage({
         tab.sum:SetText(inGroup and #cols > 0 and ((L["%d players"]):format(#list)) or "")
         tab.legend:SetShown(inGroup and #cols > 0)
 
-        -- ohne Gruppe: welche Klasse verteilt welchen Buff
+        -- without group: which class gives which buff
         if not inGroup or #cols == 0 then
             p.todo.t:SetText("")
             p.todo.tip = nil
@@ -237,14 +237,14 @@ ns.RegisterPage({
         end
         tab.note:Hide()
 
-        -- Spalten nach Filter
+        -- Columns by filter
         local my = {}
         for _, b in ipairs(cols) do if isMine(b, info) then my[b.key] = true end end
         local vcols = {}
         for _, b in ipairs(cols) do if view ~= "mine" or my[b.key] then vcols[#vcols + 1] = b end end
         local active = 0
         for _, r in ipairs(list) do if not r.away and not r.dead then active = active + 1 end end
-        -- Zeilen nach Filter
+        -- Rows by filter
         local vrows = {}
         for _, r in ipairs(list) do
             local miss = 0
@@ -260,7 +260,7 @@ ns.RegisterPage({
         local x0 = 16 + NAMEW
         local now = GetTime and GetTime() or 0
 
-        -- Spaltenkoepfe: Symbol, Name, "fehlt N", wer es geben kann
+        -- Column headers: icon, name, "missing N", who can give it
         for j, b in ipairs(vcols) do
             local h = tab.heads[j]
             if not h then
@@ -298,7 +298,7 @@ ns.RegisterPage({
             if b.soft then h.n:SetText("|cff777777" .. L["Note"] .. "|r")
             elseif m == 0 then h.n:SetText("|cff66db9e" .. L["ok"] .. "|r")
             else h.n:SetText((all and "|cffff5a4a" or "|cffe8b44a") .. (L["missing %d"]):format(m) .. "|r") end
-            -- Verteiler (Klasse) unter dem Kopf; Verbrauchsgut ohne
+            -- Distributor (class) below the header; consumable without
             local provs = info.providers and info.providers[b.key] or {}
             for k, t in ipairs(h.prov) do
                 if not b.cons and provs[k] then
@@ -322,7 +322,7 @@ ns.RegisterPage({
             h:Show()
         end
 
-        -- Zeilen
+        -- Rows
         local top = -112
         local avail = (tab:GetHeight() or 400) + top - 12
         local maxRows = math.max(3, math.floor(avail / RH))
@@ -398,7 +398,7 @@ ns.RegisterPage({
                     glass(c, 5, 0.04)
                     c.tip = { b.label or b.short, left and left > 0 and ((L["%d min left"]):format(math.ceil(left / 60))) or L["active"] }
                 else
-                    -- fehlt: leeres Feld; deins = Bernstein-Rand, fehlt allen = roter Rand
+                    -- missing: empty slot; yours = amber border, missing for all = red border
                     c.icon:Hide()
                     local all = active > 0 and (missing[b.key] or 0) >= active
                     local line = (m.away or m.dead or b.soft) and GLINE or (my[b.key] and { C.amber[1], C.amber[2], C.amber[3], 0.8 })
@@ -446,7 +446,7 @@ ns.RegisterPage({
             tab.note:SetPoint("TOP", 0, -48)
         end
 
-        -- unten: was du tun kannst
+        -- bottom: what you can do
         local todo, tip = {}, { L["What you can do"] }
         local provides = false
         for _, b in ipairs(cols) do
@@ -474,7 +474,7 @@ ns.RegisterPage({
     end,
 })
 
--- aktuell halten, solange der Reiter offen ist (gedrosselt)
+-- keep current while the tab is open (throttled)
 local pending
 local function soon()
     if pending then return end

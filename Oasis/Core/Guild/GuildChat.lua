@@ -1,19 +1,19 @@
--- Oasis: Gildenchat als eigene Seite
--- Verlauf mit Emojis, Item-Links, Uhrzeit und Tagestrennern; Filter (Erwaehnungen, Links, Offiziere) + Suche;
--- direkt schreiben (mit Emoji-Auswahl); verpasste Nachrichten holt Oasis beim Einloggen von einem anderen
--- Oasis-Nutzer, der online war. Gespeichert wird nur bei dir (30 Tage, hoechstens 3000 Nachrichten).
+-- Oasis: guild chat as its own page
+-- History with emojis, item links, timestamps and day separators; filters (mentions, links, officers) + search;
+-- write directly (with emoji picker); Oasis fetches missed messages on login from another
+-- Oasis user who was online. Stored only on your side (30 days, at most 3000 messages).
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be manipulated):
+-- Sanitize texts, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- neutralize escape sequences (|c |r |n |H |T |K |A ...) and control characters; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -71,7 +71,7 @@ local function log()
 end
 
 ------------------------------------------------------------------------
--- Aufzeichnen
+-- Record
 ------------------------------------------------------------------------
 local unread, mentioned = 0, false
 local function myFirst() return ns.displayName(ns.me()) end
@@ -79,8 +79,8 @@ local function mentionsMe(text)
     local n = myFirst()
     return n and #n >= 3 and text:lower():find(n:lower(), 1, true) ~= nil
 end
--- Text saeubern: unsichtbare Zeichen (Null-Breite, BOM, Steuerzeichen) raus, geschuetztes Leerzeichen -> normal.
--- Der Community-Verlauf liefert solche Zeichen mit; sie verhindern Emoji-Erkennung und Doppelt-Pruefung.
+-- Clean text: strip invisible characters (zero-width, BOM, control chars), non-breaking space -> normal.
+-- The community history includes such characters; they break emoji detection and duplicate checks.
 local function clean(m)
     if type(m) ~= "string" then return m end
     m = m:gsub("\226\128[\139-\143]", ""):gsub("\226\129\160", ""):gsub("\239\187\191", "")
@@ -88,22 +88,22 @@ local function clean(m)
     return (m:gsub("^%s+", ""):gsub("%s+$", ""))
 end
 GC.Clean = clean
--- Platzhalter, die WoW fuer noch nicht geladene Nachrichten liefert ("Unbekannt"/"Unknown")
+-- Placeholders WoW returns for messages not loaded yet ("Unbekannt"/"Unknown")
 local function placeholder(m)
     m = (m or ""):lower()
     return m == "" or m == "unbekannt" or m == "unknown" or (UNKNOWN and m == UNKNOWN:lower())
         or (UNKNOWNOBJECT and m == UNKNOWNOBJECT:lower())
 end
--- Vergleichsform: nur Buchstaben/Ziffern, klein, Emoji-Bilder zurueck in Codes
+-- Comparison form: letters/digits only, lowercase, emoji images back to codes
 local function norm(m)
     m = clean(m or "")
     if ns.Emoji and ns.Emoji.Unrender then m = ns.Emoji.Unrender(m) end
-    -- Farben: klassisch |cffRRGGBB und neu |cnIQ3: (Item-Qualitaet)
+    -- Colors: classic |cffRRGGBB and new |cnIQ3: (item quality)
     m = m:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cn[^:]*:", ""):gsub("|r", ""):gsub("|H.-|h(.-)|h", "%1")
     return (m:lower():gsub("[%s%p]", ""))
 end
--- Absender vergleichen ueber den Vornamen: der Community-Verlauf liefert "Jonas", die Gildenliste
--- (WoW Forever) "Jonas Wald" - beides dieselbe Person
+-- Compare senders by first name: the community history returns "Jonas", the guild roster
+-- (WoW Forever) "Jonas Wald" - both the same person
 local function who(n) return ns.NameKey(n) end
 local function same(x, e)
     if who(x.s) ~= who(e.s) then return false end
@@ -113,28 +113,28 @@ end
 
 local function isK(m) return type(m) == "string" and m:find("|K", 1, true) ~= nil end
 GC.IsProtected = isK
--- Sitzungskennung: geschuetzte Texte (|K) loest WoW nur in der Sitzung auf, in der sie live ankamen
+-- Session ID: WoW only resolves protected texts (|K) in the session in which they arrived live
 GC.sess = tostring(time and time() or 0) .. "-" .. tostring(math.random(100000))
 local function isDup(e)
     local l = log()
-    -- Eintraege aus dem Community-Verlauf: ueber die Server-ID, und nicht, wenn es die Nachricht schon live gibt
+    -- Entries from the community history: via the server ID, and not if the message already exists live
     if e.cid or isK(e.m) then
         local w = ns.NameKey(e.s)
         for i = #l, 1, -1 do
             local x = l[i]
             if e.cid and x.cid == e.cid then GC.dupWhy = { "cid", x } return true end
-            -- gleicher Absender + gleicher Text innerhalb 5 min: Server- und eigene Uhr weichen oft ab
+            -- same sender + same text within 5 min: server and own clock often differ
             if not isK(e.m) and not isK(x.m) and math.abs((x.ts or 0) - (e.ts or 0)) < 300 and same(x, e) then GC.dupWhy = { "text", x } return true end
-            -- geschuetzte Kopie: Text nicht vergleichbar -> gleicher Absender, Server-Zeit weicht bis ~1 min ab.
-            -- 0.6.293: nur wenn einer der Texte geschuetzt ist - vorher galt jede Nachricht desselben Absenders
-            -- innerhalb von 3 s als doppelt, auch mit anderem Text (schnelle Folgezeilen, oft aus Discord, fehlten)
+            -- protected copy: text not comparable -> same sender, server time differs by up to ~1 min.
+            -- 0.6.293: only if one of the texts is protected - before, any message from the same sender
+            -- within 3 s counted as duplicate, even with different text (fast follow-up lines, often from Discord, went missing)
             if (isK(e.m) or isK(x.m)) and math.abs((x.ts or 0) - (e.ts or 0)) <= (isK(e.m) and not isK(x.m) and 60 or 3) and ns.NameKey(x.s) == w then GC.dupWhy = { "geschuetzt", x } return true end
             if (x.ts or 0) < (e.ts or 0) - 86400 then break end
         end
         return false
     end
-    -- live empfangen (0.5.512): nur dasselbe Ereignis zweimal ist doppelt (< 2 s) - wer zweimal dasselbe
-    -- schreibt (z.B. ein Emoji), soll es auch zweimal sehen (vorher 5 Min lang verschluckt)
+    -- received live (0.5.512): only the same event twice is a duplicate (< 2 s) - whoever writes the same thing twice
+    -- (e.g. an emoji) should also see it twice (previously swallowed for 5 min)
     if e.src == "live" then
         local l2 = log()
         for i = #l2, math.max(1, #l2 - 60), -1 do
@@ -143,7 +143,7 @@ local function isDup(e)
         end
         return false
     end
-    -- gleiche Nachricht vom selben Absender innerhalb von 5 Minuten = doppelt (z.B. aus dem Nachladen)
+    -- same message from the same sender within 5 minutes = duplicate (e.g. from reloading)
     local l = log()
     for i = #l, math.max(1, #l - 200), -1 do
         local x = l[i]
@@ -170,8 +170,8 @@ local function rememberLinks(e)
         if id then
             for i = #h, 1, -1 do if h[i].id == id then table.remove(h, i) end end
             table.insert(h, 1, { id = id, raw = raw, who = e.s, ts = e.ts or ns.now() })
-            -- mit der Gilde teilen: wer offline war, bekommt die Links beim naechsten Abgleich.
-            -- Nur live gesehene, kurz zufaellig warten und nur senden, wenn es noch keiner getan hat
+            -- share with the guild: whoever was offline gets the links on the next sync.
+            -- Only ones seen live, wait a short random time and only send if nobody has done it yet
             if not GC.bulk and (ns.now() - (e.ts or 0)) < 120 and ns.Store then
                 local sid = "l" .. id
                 ns.After(math.random() * 6, function()
@@ -185,10 +185,10 @@ local function rememberLinks(e)
     while #h > 30 do table.remove(h) end
 end
 GC.RememberLinks = rememberLinks
--- Eigene Nachricht? (0.5.969) Der Name allein reicht nicht immer: WoW Forever liefert den Absender im Gildenchat teils nur
--- mit Vornamen ("Tomas-Realm"), waehrend der eigene Name als "Tomas Berg-Realm" bekannt ist - dann zaehlte die eigene
--- Nachricht als ungelesen. Sicher ist die GUID (e.me, vom Chat-Ereignis); sonst Vorname + Realm, wenn der Vorname
--- in der Gilde nur einmal vorkommt.
+-- Own message? (0.5.969) The name alone is not always enough: WoW Forever sometimes gives the sender in guild chat only
+-- with first name ("Tomas-Realm"), while the own name is known as "Tomas Berg-Realm" - then the own
+-- message counted as unread. The GUID is reliable (e.me, from the chat event); otherwise first name + realm, if the first name
+-- occurs only once in the guild.
 local function firstAndRealm(n)
     n = type(n) == "string" and n or ""
     local base, realm = n:match("^(.*)%-([^%-]+)$")
@@ -211,12 +211,12 @@ end
 GC.IsMine = isMine
 function GC.Add(e, silent)
     local mine = isMine(e)
-    e.me = nil   -- nur fuer diese Pruefung: nicht speichern, nicht an andere weitergeben
+    e.me = nil   -- only for this check: do not store, do not pass on to others
     e.m = clean(e.m)
-    -- geschuetzte Texte nur aus dem Community-Verlauf (mit ID) - nie von anderen Oasis-Nutzern
+    -- protected texts only from the community history (with ID) - never from other Oasis users
     if isK(e.m) and not e.cid then return false end
     if not e.m or placeholder(e.m) or isDup(e) then return false end
-    -- kommt die Nachricht live, eine schon vorhandene geschuetzte Kopie (gleicher Absender, +-3 s) ersetzen
+    -- if the message arrives live, replace an existing protected copy (same sender, +-3 s)
     if not isK(e.m) then
         local l, w = log(), ns.NameKey(e.s)
         for i = #l, math.max(1, #l - 60), -1 do
@@ -229,7 +229,7 @@ function GC.Add(e, silent)
     end
     pcall(rememberLinks, e)
     local l = log()
-    -- nach Zeit einsortieren (nachgeladene Nachrichten koennen aelter sein)
+    -- sort by time (reloaded messages may be older)
     local pos = #l + 1
     while pos > 1 and (l[pos - 1].ts or 0) > e.ts do pos = pos - 1 end
     table.insert(l, pos, e)
@@ -255,7 +255,7 @@ end
 local function classOf(sender)
     return ns.Radar and ns.Radar.ClassOf(sender) or nil
 end
--- 12. Wert des Chat-Ereignisses = GUID des Absenders: daran erkennt man die eigene Nachricht sicher
+-- 12th value of the chat event = sender GUID: reliably identifies the own message
 local function ownGuid(...)
     local guid = ns.safe((select(10, ...)))
     local mine = UnitGUID and ns.safe(UnitGUID("player"))
@@ -278,13 +278,13 @@ ns.On("CHAT_MSG_GUILD_ACHIEVEMENT", function(msg, sender)
 end)
 
 ------------------------------------------------------------------------
--- Verlauf aus den WoW-Chatfenstern uebernehmen: was dort schon steht (vor dem Einloggen von Oasis,
--- nach /reload wiederhergestellt ...), kommt einmalig mit in den Oasis-Verlauf.
+-- Take over history from the WoW chat windows: whatever is already there (before Oasis logged in,
+-- restored after /reload ...) is added once to the Oasis history.
 ------------------------------------------------------------------------
 local KIND_OF = { CHAT_MSG_GUILD = "", CHAT_MSG_OFFICER = "off", CHAT_MSG_GUILD_ACHIEVEMENT = "ach" }
 local TYPE_OF = { GUILD = "", OFFICER = "off", GUILD_ACHIEVEMENT = "ach" }
 
--- Chat-Art einer Zeile: Event-Name > Chat-Typ-ID > Farbe
+-- Chat type of a line: event name > chat type ID > color
 local function kindOf(entry)
     local x = entry.extraData
     if type(x) == "table" then
@@ -310,7 +310,7 @@ local function kindOf(entry)
     end
 end
 
--- Absender + Text: aus den Original-Event-Daten, sonst aus der fertigen Chatzeile
+-- Sender + text: from the original event data, otherwise from the finished chat line
 local function parseLine(entry, extra)
     if type(extra) == "table" then
         for i = 1, (extra.n or #extra) do
@@ -327,7 +327,7 @@ local function parseLine(entry, extra)
     return s, m
 end
 
--- sichtbarer Zeitstempel der Chatzeile ("[21:14]" o.ae.) -> Serverzeit heute/gestern
+-- visible timestamp of the chat line ("[21:14]" or similar) -> server time today/yesterday
 local function visibleTs(text)
     local h, mi = (text or ""):match("^[^%d]-(%d%d?):(%d%d)")
     h, mi = tonumber(h), tonumber(mi)
@@ -340,7 +340,7 @@ local function visibleTs(text)
     return ts
 end
 
--- schon im Verlauf? (sicher: gleiche Zeit; unsicher: gleicher Text in den letzten 24 Std)
+-- already in the history? (certain: same time; uncertain: same text in the last 24 h)
 local function known(s, m, ts, loose)
     local l, short = log(), ns.short(s)
     for i = #l, 1, -1 do
@@ -358,7 +358,7 @@ function GC.ImportChatFrames()
     for f = 1, (NUM_CHAT_WINDOWS or 10) do
         local hb = _G["ChatFrame" .. f] and _G["ChatFrame" .. f].historyBuffer
         if hb and hb.GetNumElements and hb.GetEntryAtIndex then
-            -- Index 1 = neueste Zeile; von alt nach neu durchgehen
+            -- Index 1 = newest line; iterate from old to new
             local stamps, first = {}, #found + 1
             for i = hb:GetNumElements(), 1, -1 do
                 local entry = hb:GetEntryAtIndex(i)
@@ -375,7 +375,7 @@ function GC.ImportChatFrames()
                     end
                 end
             end
-            -- nach /reload wiederhergestellte Zeilen tragen alle denselben Zeitpunkt -> Zeit unsicher
+            -- lines restored after /reload all carry the same time -> time uncertain
             for i = first, #found do
                 local e = found[i]
                 if e.gt and (stamps[e.gt] or 0) > 3 then e.gt = nil end
@@ -388,7 +388,7 @@ function GC.ImportChatFrames()
         if e.f ~= prevF then prevTs, prevF = 0, e.f end
         local loose = e.gt == nil
         local ts = e.gt and math.floor(now - (nowGT - e.gt)) or e.vis or now
-        if ts < prevTs then ts = prevTs end    -- Reihenfolge der Chatzeilen beibehalten
+        if ts < prevTs then ts = prevTs end    -- keep the order of the chat lines
         prevTs = ts
         if ns.Emoji and ns.Emoji.Unrender then e.m = ns.Emoji.Unrender(e.m) end
         if not known(e.s, e.m, ts, loose) then
@@ -401,8 +401,8 @@ function GC.ImportChatFrames()
     return n
 end
 ------------------------------------------------------------------------
--- Gildenverlauf aus WoWs Community-Schnittstelle (C_Club) holen: das ist der Verlauf, den das
--- Fenster "Gilde & Communitys" zeigt - serverseitig gespeichert, mit echter Uhrzeit.
+-- Fetch guild history from WoW's community API (C_Club): this is the history that the
+-- "Guild & Communities" window shows - stored server-side, with real timestamps.
 ------------------------------------------------------------------------
 local function classFileOf(classID)
     if classID and C_CreatureInfo and C_CreatureInfo.GetClassInfo then
@@ -423,13 +423,13 @@ local function guildStreams()
         local t = st.streamType
         if t == T.Guild then out[#out + 1] = { id = st.streamId, kind = nil }
         elseif t == T.Officer then out[#out + 1] = { id = st.streamId, kind = "off" }
-        -- 0.6.292: Discord-Nachrichten liegen in einem eigenen Kanal der Gilden-Gemeinschaft (wie Blizzards
-        -- CommunitiesChatFrame: Enum.ClubStreamType.Discord) - frueher nie gelesen, darum nie markiert
+        -- 0.6.292: Discord messages live in a separate channel of the guild community (like Blizzard's
+        -- CommunitiesChatFrame: Enum.ClubStreamType.Discord) - never read before, so never marked
         elseif T.Discord and t == T.Discord then out[#out + 1] = { id = st.streamId, kind = nil, discord = true } end
     end
     return clubId, out
 end
--- Discord-Kennzeichen suchen: Felder der Nachricht / des Autors, die "discord" o.ae. enthalten
+-- Look for the Discord marker: fields of the message / author containing "discord" or similar
 local function flat(t, out, prefix, depth)
     out = out or {}
     if depth and depth > 2 then return out end
@@ -445,23 +445,23 @@ local function flat(t, out, prefix, depth)
     return out
 end
 local function fromDiscord(m)
-    -- WoW liefert ein eindeutiges Feld: author.discordInfo.fromDiscord (bzw. isRemoteChat)
+    -- WoW provides a unique field: author.discordInfo.fromDiscord (or isRemoteChat)
     local a = m.author or {}
     local d = a.discordInfo
     if type(d) == "table" and ns.safe(d.fromDiscord) == true then return true end
     if ns.safe(a.isRemoteChat) == true then return true end
-    -- 0.6.289: Forever-Client benennt das Feld evtl. anders - jedes Feld mit "discord"/"remote" im Namen und Wert true
+    -- 0.6.289: the Forever client may name the field differently - any field with "discord"/"remote" in the name and value true
     for k, v in pairs(flat(m)) do
         local lk = k:lower()
         if (lk:find("discord", 1, true) or lk:find("remote", 1, true)) and (v == "true" or v == "1") then return true end
     end
     return false
 end
--- /oa discordcheck: Felder der letzten Gildennachrichten aus der Gemeinschaft zum Kopieren (Fehlersuche Kennzeichen)
+-- /oa discordcheck: fields of the latest guild messages from the community for copying (debugging the marker)
 ns.slash.discordcheck = function()
     local clubId, streams = guildStreams()
     if not clubId then ns.print(L["No guild community found."]) return end
-    -- 0.6.291: alle Bereiche lesen (der neueste war oft leer) und immer sagen, was gefunden wurde
+    -- 0.6.291: read all ranges (the newest was often empty) and always say what was found
     local out = { "Gemeinschaft " .. tostring(clubId) .. ", Kanaele " .. #streams }
     for _, st in ipairs(streams) do
         local ok, ranges = pcall(C_Club.GetMessageRanges, clubId, st.id)
@@ -489,7 +489,7 @@ ns.slash.discordcheck = function()
         end
     end
     if #out <= #streams + 1 then
-        -- nichts im Speicher: Verlauf beim Server anfragen, dann nochmal pruefen
+        -- nothing in memory: request history from the server, then check again
         GC.RequestClubHistory()
         out[#out + 1] = ""
         out[#out + 1] = "Keine Nachrichten geladen - Verlauf angefragt. In 5 Sekunden nochmal /oa discordcheck."
@@ -497,15 +497,15 @@ ns.slash.discordcheck = function()
     if ns.WhisperLog and ns.WhisperLog.Copy then ns.WhisperLog.Copy("Discord-Check", table.concat(out, "\n"))
     else for _, l in ipairs(out) do print(l) end end
 end
--- einige Nachrichten roh speichern, damit wir das Kennzeichen genau bestimmen koennen (nur die ersten 12)
--- (Mitschnitt zur Fehlersuche abgeschaltet 0.5.482 - Kennzeichen ist bestimmt; alte Daten weg)
+-- store some messages raw so we can determine the marker exactly (only the first 12)
+-- (debug recording disabled 0.5.482 - marker is determined; old data removed)
 local function sample(m)
     if ns.db.clubSample then ns.db.clubSample = nil end
 end
 
--- 0.6.293: Nachrichten eines Kanals so lesen wie Blizzards Gemeinschaftsfenster (CommunitiesChatFrame): je Bereich
--- C_Club.GetMessagesBefore ab der neuesten Nachricht; GetMessagesInRange lieferte im Forever-Client nichts.
--- Ueberlappende Bereiche: doppelte Nachrichten (gleiche Kennung) nur einmal.
+-- 0.6.293: read a channel's messages like Blizzard's community window (CommunitiesChatFrame): per range
+-- C_Club.GetMessagesBefore from the newest message; GetMessagesInRange returned nothing in the Forever client.
+-- Overlapping ranges: duplicate messages (same ID) only once.
 local function readStream(clubId, sid)
     local out, seen = {}, {}
     local ok, ranges = pcall(C_Club.GetMessageRanges, clubId, sid)
@@ -534,10 +534,10 @@ function GC.ImportClub()
     local clubId, streams = guildStreams()
     if not clubId then GC.lastImport = { noClub = true } return 0 end
     local n = 0
-    -- Zaehler fuer /oa chatimport: was gelesen wurde und warum etwas nicht uebernommen wurde
+    -- Counters for /oa chatimport: what was read and why something was not taken over
     local stat = { read = 0, added = 0, known = 0, noName = 0, noText = 0, destroyed = 0, rejected = 0, repaired = 0, streams = #streams, why = {} }
-    -- 0.6.294: gespeicherte Nachrichten nach Server-Kennung (cid) - liegt eine mit unlesbarem Text vor (geschuetzt |K aus
-    -- frueherer Sitzung oder "Unbekannt"), wird sie mit dem lesbaren Text aus dem Verlauf repariert
+    -- 0.6.294: stored messages by server ID (cid) - if one has unreadable text (protected |K from
+    -- an earlier session or "Unbekannt"), it is repaired with the readable text from the history
     local byCid = {}
     for _, x in ipairs(log()) do if x.cid then byCid[x.cid] = x end end
     GC.bulk = true
@@ -548,8 +548,8 @@ function GC.ImportClub()
             local text = ns.safe(m.content)
             local a = m.author or {}
             local who = ns.safe(a.name)
-            -- 0.6.292: Discord-Autor ohne Charakternamen: wie Blizzard (ChatFrameUtil.GetNameForDiscordMessage)
-            -- zuerst den zuletzt online gesehenen Charakter, sonst den Discord-Namen
+            -- 0.6.292: Discord author without character name: like Blizzard (ChatFrameUtil.GetNameForDiscordMessage)
+            -- first the character last seen online, otherwise the Discord name
             local di = type(a.discordInfo) == "table" and a.discordInfo or nil
             if (not who or who == "") and di then who = ns.safe(di.lastOnlineName) or ns.safe(di.globalName) end
             local epoch = m.messageId and tonumber(ns.safe(m.messageId.epoch))
@@ -572,15 +572,15 @@ function GC.ImportClub()
                     if dc then stored.dc = true end
                     stat.repaired = stat.repaired + 1 n = n + 1 GC.dcMarked = true
                 elseif stored and isK(text) and stored.sess ~= GC.sess then
-                    -- 0.6.297: wie Blizzards Gemeinschaftsfenster - geschuetzte Texte sind nur in der Sitzung lesbar, in
-                    -- der sie abgeholt wurden. Gespeicherten Eintrag mit dem gueltigen Text dieser Sitzung auffrischen.
+                    -- 0.6.297: like Blizzard's community window - protected texts are only readable in the session in
+                    -- which they were fetched. Refresh the stored entry with this session's valid text.
                     stored.m, stored.sess = text, GC.sess
                     if dc then stored.dc = true end
                     stat.repaired = stat.repaired + 1 n = n + 1 GC.dcMarked = true
                 end
                 local have = (not isK(text)) and known(full, text, ts, false)
-                -- 0.5.970: kam die Nachricht schon live an, wusste Oasis nicht, dass sie aus Discord stammt -
-                -- das Kennzeichen steht nur im Community-Verlauf, darum hier nachtragen
+                -- 0.5.970: if the message already arrived live, Oasis did not know it came from Discord -
+                -- the marker is only in the community history, so add it here
                 if type(have) == "table" and dc and not have.dc then have.dc = true n = n + 1 GC.dcMarked = true end
                 if isK(text) or not have then
                     if GC.Add({ ts = ts, s = full, m = text, c = classFileOf(a.classID) or classOf(full), k = st.kind, src = "club", cid = cid, dc = dc or nil,
@@ -588,12 +588,12 @@ function GC.ImportClub()
                         n = n + 1 stat.added = stat.added + 1
                     else
                         stat.rejected = stat.rejected + 1
-                        -- 0.6.295: genauer Grund - Platzhalter, Dubletten-Regel (cid/text/geschuetzt) samt Gegenstueck
+                        -- 0.6.295: exact reason - placeholder, duplicate rule (cid/text/protected) including counterpart
                         local dw = GC.dupWhy
                         GC.dupWhy = nil
-                        -- 0.6.296: der Forever-Client liefert Gildennachrichten live als geschuetzten Text (|K), den WoW nur
-                        -- in der Sitzung aufloest - ab der naechsten Sitzung blieben sie ausgeblendet. Der Verlauf hat den
-                        -- lesbaren Text: gespeicherte geschuetzte Kopie (gleicher Absender, gleiche Zeit) damit ersetzen.
+                        -- 0.6.296: the Forever client delivers guild messages live as protected text (|K), which WoW only
+                        -- resolves within the session - from the next session on they stayed hidden. The history has the
+                        -- readable text: replace the stored protected copy (same sender, same time) with it.
                         local x = dw and dw[1] == "geschuetzt" and dw[2]
                         if x and isK(x.m) and not isK(text) and not placeholder(clean(text)) then
                             x.m, x.sess, x.cid = clean(text), nil, x.cid or cid
@@ -601,7 +601,7 @@ function GC.ImportClub()
                             stat.repaired = stat.repaired + 1 n = n + 1 GC.dcMarked = true
                             dw = { "repariert", x }
                         elseif x and isK(text) and (isK(x.m) or x.sess ~= GC.sess) then
-                            -- 0.6.297: Verlauf liefert ebenfalls geschuetzt -> Text dieser Sitzung uebernehmen (anzeigbar)
+                            -- 0.6.297: history also delivers protected text -> take this session's text (displayable)
                             if isK(x.m) then x.m = text end
                             x.sess, x.cid = GC.sess, x.cid or cid
                             if dc then x.dc = true end
@@ -625,13 +625,13 @@ function GC.ImportClub()
     end
     GC.lastImport = stat
     GC.bulk = nil
-    -- nachgetragene Discord-Kennzeichen: schon gezeichnete Zeilen neu aufbauen
+    -- added Discord markers: rebuild already drawn lines
     if GC.dcMarked then GC.dcMarked = nil if GC.ClearRenderCache then pcall(GC.ClearRenderCache) end end
     if n > 0 then ns.RefreshPage("chat") end
     ns.debug("Gildenverlauf (Community) uebernommen:", n)
     return n
 end
--- aeltere Nachrichten beim Server anfragen; sie kommen per CLUB_MESSAGE_HISTORY_RECEIVED
+-- request older messages from the server; they arrive via CLUB_MESSAGE_HISTORY_RECEIVED
 function GC.RequestClubHistory()
     local clubId, streams = guildStreams()
     if not clubId then return end
@@ -639,7 +639,7 @@ function GC.RequestClubHistory()
         if C_Club.RequestMoreMessagesBefore then pcall(C_Club.RequestMoreMessagesBefore, clubId, st.id, nil, 100) end
     end
 end
--- geschuetzte Platzhalter nie speichern (nach /reload waeren sie "Unbekannt")
+-- never store protected placeholders (after /reload they would be "Unbekannt")
 ns.On("PLAYER_LOGOUT", function()
     local l = ns.db and ns.db.gchat
     if not l then return end
@@ -656,17 +656,17 @@ ns.On("CLUB_MESSAGE_HISTORY_RECEIVED", function()
     ns.After(0.5, GC.ImportClub)
     ns.After(1.5, redraw)
 end)
--- auch beim Oeffnen der Seite und kurz danach neu zeichnen (Texte, die inzwischen aufgeloest sind)
+-- also redraw when opening the page and shortly after (texts that have been resolved meanwhile)
 ns.Listen("LOGIN", function()
     ns.After(15, redraw)
     ns.After(40, redraw)
 end)
--- neue Community-Nachricht (z.B. aus Discord ueber die Gilden-Verknuepfung - die kommt nicht als Gildenchat-Ereignis)
+-- new community message (e.g. from Discord via the guild link - it does not arrive as a guild chat event)
 local clubPending
 ns.On("CLUB_MESSAGE_ADDED", function(clubId)
     if clubPending then return end
     clubPending = true
-    -- kurz warten: normale Gildenchat-Nachrichten kommen zusaetzlich live und sollen Vorrang haben
+    -- wait briefly: normal guild chat messages also arrive live and should take precedence
     ns.After(1.5, function() clubPending = nil GC.ImportClub() end)
 end)
 ns.Listen("LOGIN", function()
@@ -680,7 +680,7 @@ ns.slash.chatimport = function()
     GC.RequestClubHistory()
     local n = GC.ImportClub()
     ns.print((L["Imported from WoW chat: %d messages"]):format(n))
-    -- 0.6.293: Aufschluesselung, damit man sieht, warum etwas fehlt
+    -- 0.6.293: breakdown so you can see why something is missing
     local st = GC.lastImport
     if st and st.noClub then ns.print(L["No guild community found."])
     elseif st then
@@ -691,15 +691,15 @@ ns.slash.chatimport = function()
         for k, v in pairs(st.why or {}) do t[#t + 1] = k .. " " .. v end
         if #t > 0 then table.sort(t) ns.print(L["Rejected because: "] .. table.concat(t, ", ")) end
         for _, ex in ipairs(st.ex or {}) do ns.print("|cff888888" .. ex .. "|r") end
-        -- Verlauf wird beim Server angefragt; was dann kommt, uebernimmt Oasis von selbst
+        -- History is requested from the server; whatever arrives is taken over by Oasis automatically
         if st.read == 0 then ns.print(L["Nothing loaded yet – history requested, run /oa chatimport again in a moment."]) end
     end
 end
 
 ------------------------------------------------------------------------
--- Verpasste Nachrichten von anderen Oasis-Nutzern nachladen
--- Ich frage mit meinem letzten Zeitstempel; einer mit neueren Nachrichten meldet sich ("habe ich")
--- und schickt bis zu 80 Nachrichten per Fluestern. Offiziers-Chat wird nie geteilt.
+-- Reload missed messages from other Oasis users
+-- I ask with my last timestamp; someone with newer messages responds ("I have")
+-- and sends up to 80 messages via whisper. Officer chat is never shared.
 ------------------------------------------------------------------------
 local answered = {}
 local function lastPublicTs()
@@ -715,18 +715,18 @@ ns.GuildOption({ page = "chat", key = "chPin", default = "note", lead = true, la
 ns.GuildOption({ page = "chat", key = "chPinD", default = 14, min = 1, max = 60, step = 1, label = "Pin stays for",
     desc = "How long a pinned message is shown at the top of guild chat",
     fmt = function(v) return (ns.L["%d d"]):format(v) end })
--- wann war ich zuletzt online (jede Minute gemerkt): Nachladen ab dort, nicht ab der neuesten Nachricht -
--- die WoW-Chathistorie beim Einloggen liefert oft nur die letzten Zeilen, dazwischen bliebe sonst eine Luecke
+-- when was I last online (remembered every minute): reload from there, not from the newest message -
+-- the WoW chat history on login often only returns the last lines, otherwise a gap would remain in between
 C_Timer.NewTicker(60, function() if ns.db then ns.db.chatOnlineAt = ns.now() end end)
 function GC.RequestMissed(hours)
     if not IsInGuild() or ns.GuildOpt("chSync") == false then return end
     local since = lastPublicTs()
-    -- immer mindestens die letzten 24 Std anfragen (doppelte Nachrichten werden verworfen): eigene neue Zeilen,
-    -- Sounds oder ein anderer PC liessen sonst Luecken entstehen
+    -- always request at least the last 24 h (duplicate messages are discarded): own new lines,
+    -- sounds or another PC would otherwise leave gaps
     since = math.min(since, ns.now() - (tonumber(hours) or 24) * 3600)
     local seen = ns.db.chatSeenBefore
     if seen and seen > 0 and seen < since then since = seen - 120 end
-    -- noch kein Online-Zeitpunkt bekannt (erster Start nach dem Update): mindestens 12 Std zurueck fragen
+    -- no online time known yet (first start after the update): ask at least 12 h back
     if not seen then since = math.min(since, ns.now() - 12 * 3600) end
     if since == 0 then since = ns.now() - 2 * 86400 end
     GC.reqAt, GC.reqSince, GC.reqGot = GetTime(), since, {}
@@ -735,25 +735,25 @@ end
 Comm.On("GCREQ", function(sender, _, since)
     since = tonumber(since)
     if not since or ns.isMe(sender) or ns.GuildOpt("chSync") == false then return end
-    -- je Anfragendem hoechstens alle 2 Minuten (sonst laesst sich eine Fluester-Flut ausloesen)
+    -- at most every 2 minutes per requester (otherwise a whisper flood could be triggered)
     if not SEC.Rate("gcreq:" .. sender, 120) then return end
-    -- nur Gildenmitgliedern den Verlauf schicken
+    -- only send the history to guild members
     if ns.Admin and ns.Admin.InGuildList and ns.Admin.InGuildList(sender) == false then return end
     local key = ns.short(sender) .. since
     local l, out = log(), {}
     for i = #l, 1, -1 do
         local e = l[i]
         if (e.ts or 0) <= since + 1 then break end
-        -- Discord-Nachrichten aus OasisSync (DiscordBridge.lua) nur anzeigen, nie weiterverteilen
+        -- Discord messages from OasisSync (DiscordBridge.lua) only display, never redistribute
         if e.k ~= "off" and e.k ~= "sys" and not isK(e.m) and e.src ~= "discord" then table.insert(out, 1, e) end
     end
     if #out == 0 then return end
-    -- wer mehr hat, meldet sich schneller
-    ns.After(math.max(0.1, 0.5 + math.random() * 2.5 - math.min(#out, 50) / 50), function()   -- 0.5.660: nie negativ
+    -- whoever has more responds faster
+    ns.After(math.max(0.1, 0.5 + math.random() * 2.5 - math.min(#out, 50) / 50), function()   -- 0.5.660: never negative
         if answered[key] then return end
         answered[key] = true
         Comm.Guild("GCCLAIM", key)
-        -- bis zu 300 Nachrichten (vorher 80: bei viel Betrieb fehlte dann der Vormittag/Mittag)
+        -- up to 300 messages (previously 80: with lots of traffic the morning/noon was missing)
         for i = math.max(1, #out - 299), #out do
             local e = out[i]
             Comm.Whisper(sender, "GCMSG", tostring(e.ts), e.s, e.m, e.k or "")
@@ -761,13 +761,13 @@ Comm.On("GCREQ", function(sender, _, since)
     end)
 end)
 Comm.On("GCCLAIM", function(_, _, key) if key then answered[key] = true end end)
--- nachgereichte Nachrichten: nur kurz nach der eigenen Anfrage, je Absender begrenzt, nur Gildenmitglieder
--- als Verfasser, Zeit im angefragten Fenster, Text ohne Escape-Sequenzen (nur Item-/Zauber-/Erfolgs-Links)
+-- delivered messages: only shortly after the own request, limited per sender, only guild members
+-- as author, time within the requested window, text without escape sequences (only item/spell/achievement links)
 local SYNC_LINKS = { item = true, spell = true, enchant = true, quest = true, achievement = true }
 Comm.On("GCMSG", function(sender, _, ts, who, msg, kind)
     ts = tonumber(ts)
     if not ts or not who or not msg or kind == "off" then return end
-    if not GC.reqAt or GetTime() - GC.reqAt > 400 then return end   -- 300 Nachrichten brauchen gedrosselt ein paar Minuten
+    if not GC.reqAt or GetTime() - GC.reqAt > 400 then return end   -- 300 messages take a few minutes when throttled
     if kind ~= "" and kind ~= "ach" then return end
     if ts ~= ts or ts <= (GC.reqSince or 0) or ts > ns.now() + 120 then return end
     who = SEC.Name(who)
@@ -792,14 +792,14 @@ local function cleanLog()
             local x = out[i]
             local bothLive = x.src == "live" and e.src == "live" and math.abs((x.ts or 0) - (e.ts or 0)) >= 2
             if not bothLive and math.abs((x.ts or 0) - (e.ts or 0)) < 300 and same(x, e) then
-                -- die Oasis-eigene Zeile behalten (hat Klassenfarbe/Art), sonst die erste
+                -- keep the Oasis line (has class color/type), otherwise the first
                 dup = true
                 break
             end
         end
         if isK(e.m) then
-            -- geschuetzte Platzhalter gelten nur fuer eine Sitzung (danach "Unbekannt") -> beim Einloggen
-            -- immer verwerfen; der Community-Verlauf wird kurz danach frisch geholt
+            -- protected placeholders only apply to one session (afterwards "Unbekannt") -> on login
+            -- always discard; the community history is fetched fresh shortly after
             dup = true
             for i = #out, math.max(1, #out - 60), -1 do
                 local x = out[i]
@@ -823,16 +823,16 @@ GC.CleanLog = cleanLog
 ns.Listen("LOGIN", function()
     prune()
     pcall(cleanLog)
-    ns.db.chatSeenBefore = ns.db.chatOnlineAt   -- Zeitpunkt vor diesem Login
+    ns.db.chatSeenBefore = ns.db.chatOnlineAt   -- Time before this login
     ns.db.chatOnlineAt = ns.now()
     ns.After(25, GC.RequestMissed)
 end)
 
 ------------------------------------------------------------------------
--- Anzeige
+-- Display
 ------------------------------------------------------------------------
 local filter, search = "all", ""
-local dayFilter   -- "JJJJMMTT" = nur dieser Tag
+local dayFilter   -- "YYYYMMDD" = only this day
 local DAYNAME
 local function dayLabel(ts)
     local d = date("%Y%m%d", ts)
@@ -841,9 +841,9 @@ local function dayLabel(ts)
     return date(L["%m/%d"], ts)
 end
 ------------------------------------------------------------------------
--- Extras: Reaktionen, Antworten/Zitieren, Pin, Stummschalten, Helfer-Knopf
+-- Extras: reactions, replies/quoting, pin, mute, helper button
 ------------------------------------------------------------------------
--- Schluessel einer Nachricht (bei allen Oasis-Nutzern gleich): Vorname + Tag + Text-Hash
+-- Key of a message (same for all Oasis users): first name + day + text hash
 local mkCache = setmetatable({}, { __mode = "k" })
 local function msgKey(e)
     local k = mkCache[e]
@@ -853,7 +853,7 @@ local function msgKey(e)
     end
     return k
 end
--- Zeilen-Links: Nummer -> Eintrag (nur im Speicher)
+-- Row links: number -> entry (in memory only)
 local byLid, lidOf, lidN = {}, setmetatable({}, { __mode = "k" }), 0
 local function lid(e)
     local n = lidOf[e]
@@ -873,7 +873,7 @@ local function reactIndex()
     local okEm = {}
     for _, x in ipairs(GC.REACTS) do okEm[x] = true end
     for _, r in pairs(ns.Store.coll("reacts")) do
-        -- nur bekannte Reaktionen, und nur die eigene (id = Nachricht#Absender) - niemand reagiert im Namen anderer
+        -- only known reactions, and only one's own (id = message#sender) - nobody reacts on behalf of others
         if not r.del and r.mk and r.em and okEm[r.em] and r.by and r.id == tostring(r.mk) .. "#" .. r.by then
             local t = reactIdx[r.mk] or { order = {}, n = {}, who = {} }
             reactIdx[r.mk] = t
@@ -911,7 +911,7 @@ local function muted(name)
     local m = S().chatMuted
     return m and m[who(name)]
 end
--- Fragen erkennen ("haben wir nen ingi?", "suche Gruppe ...")
+-- Detect questions ("haben wir nen ingi?", "suche Gruppe ...")
 local PROFKEY = { { "ingi", "ingen" }, { "ingenieur", "ingen" }, { "schmied", "schmied" }, { "alchi", "alchi" },
     { "verzauber", "verzaub" }, { "vz", "verzaub" }, { "enchant", "verzaub" }, { "schneider", "schneid" }, { "lederer", "leder" },
     { "kürschner", "kürsch" }, { "koch", "koch" }, { "bergbau", "bergbau" }, { "kräuter", "kräuter" }, { "angler", "angel" } }
@@ -952,13 +952,13 @@ GC.Plain = plain
 local function nameLink(e)
     local short = ns.short(e.s)
     local col = ns.Radar and ns.Radar.Colored(e.s) or short
-    -- Belohnung Oasis-Rang: Juwel ab 30, schimmernder Name ab 70
+    -- Oasis rank reward: jewel from 30, shimmering name from 70
     local fancy = ns.Rewards and ns.Rewards.ChatName(e.s, col)
     if fancy then
         local gem, name = fancy:match("^(|T.-|t )(.*)$")
         return (gem or "") .. ("|Hplayer:%s|h%s|h"):format(ns.ChatName(e.s), name or col)
     end
-    -- Farbe ausserhalb des Links + geschuetztes Leerzeichen: sonst ist bei "Vorname Nachname" nur das erste Wort klickbar
+    -- Color outside the link + non-breaking space: otherwise only the first word of "Firstname Lastname" is clickable
     local hex = ns.classHex and ns.classHex(ns.Radar and ns.Radar.ClassOf(e.s)) or "ffffffff"
     local disp = (short:gsub(" ", "\194\160"))
     return ("|c%s|Hplayer:%s|h%s|h|r"):format(hex, ns.ChatName(e.s), disp) 
@@ -966,20 +966,20 @@ end
 local function highlight(text)
     local n = myFirst()
     if not n or #n < 3 then return text end
-    -- eigenen Namen gelb markieren (nicht innerhalb von Links)
+    -- highlight own name in yellow (not inside links)
     if text:find("|H", 1, true) then return text end
     return (text:gsub("(" .. n:gsub("%p", "%%%0") .. ")", "|cffffd24a%1|r"))
 end
 local BADGE_ICON = ns.MEDIA .. "icons\\badges"
--- fertige Zeilen merken (nur im Speicher, nicht in der Datei) -> Neuaufbau bei 3000 Nachrichten
--- muss nicht jedes Mal alle Emojis/Links neu umwandeln. Leeren, wenn sich Anzeige-Einstellungen aendern.
+-- cache finished lines (in memory only, not in the file) -> rebuilding with 3000 messages
+-- does not have to convert all emojis/links every time. Clear when display settings change.
 local renderCache = setmetatable({}, { __mode = "k" })
 local renderKey
 function GC.ClearRenderCache() renderCache = setmetatable({}, { __mode = "k" }) end
 local renderRaw
 ------------------------------------------------------------------------
--- Darstellung (persoenlich, ns.db.settings). Standardwerte = ruhiges, gut lesbares Design.
--- chatFont "" = Oasis-Schrift, chatBubbleMine "" = gedaempfte Akzentfarbe
+-- Appearance (personal, ns.db.settings). Defaults = calm, easily readable design.
+-- chatFont "" = Oasis font, chatBubbleMine "" = muted accent color
 ------------------------------------------------------------------------
 GC.LOOK_DEF = {
     chatFont = "", chatFontSize = 13, chatSpacing = 5,
@@ -1014,16 +1014,16 @@ local function render(e)
     renderCache[e] = c
     return c
 end
--- liefert { head = Namenszeile, body = Nachrichtenzeile }; ach = Erfolg (eine Zeile, kein Kopf)
+-- returns { head = name line, body = message line }; ach = achievement (one line, no header)
 renderRaw = function(e)
     local text = e.m
-    -- 0.6.299: Discord-Nachrichten ohne Rang-Sperre (dort wurde ein Discord-Emoji benutzt, nichts in Oasis freigeschaltet)
+    -- 0.6.299: Discord messages without rank lock (a Discord emoji was used there, nothing unlocked in Oasis)
     if S().chatEmoji ~= false and ns.Emoji then text = ns.Emoji.Render(text, (not e.dc) and e.s or nil) end
     if ns.Sound and ns.Sound.RenderCodes then text = ns.Sound.RenderCodes(text) end
-    -- Zeit dezent vorne; ist sie aus, bleibt ein kleiner Punkt als Klickziel fuer das Nachrichtenmenue
-    local time = ""   -- Zeit steht in der Liste neben dem Namen (bei Folgebeitraegen beim Ueberfahren)
+    -- Time subtly in front; if disabled, a small dot remains as click target for the message menu
+    local time = ""   -- Time is shown next to the name in the list (for follow-up posts on hover)
     if e.k == "ach" then
-        -- Erfolg: goldener Pokal vorne
+        -- Achievement: golden trophy in front
         return { ach = true, body = time .. "|T" .. BADGE_ICON .. ":14:14:0:0:64:64:0:64:0:64:255:210:74|t |cffffd24a" .. text .. "|r" }
     end
     local tag = e.k == "off" and ("|cff66db9e" .. L["Officers"] .. "|r  ") or ""
@@ -1039,9 +1039,9 @@ renderRaw = function(e)
     }
 end
 local function matches(e)
-    -- nie "Unbekannt"-Platzhalter anzeigen (geschuetzte Texte schon - die loest WoW beim Zeichnen auf)
+    -- never show "Unbekannt" placeholders (protected texts yes - WoW resolves them when drawing)
     if placeholder(e.m) then return false end
-    -- geschuetzte Texte aus dem Community-Verlauf/frueheren Sitzungen erscheinen sonst als "Unbekannt"
+    -- protected texts from the community history/earlier sessions would otherwise appear as "Unbekannt"
     if isK(e.m) and e.sess ~= GC.sess then return false end
     if muted(e.s) and not ns.isMe(e.s) then return false end
     if filter == "mention" and not (mentionsMe(e.m) and not ns.isMe(e.s)) then return false end
@@ -1055,7 +1055,7 @@ local function matches(e)
     end
     return true
 end
--- 0.6.294: warum eine gespeicherte Nachricht nicht angezeigt wird (nil = sichtbar) - fuer /oa chatimport
+-- 0.6.294: why a stored message is not shown (nil = visible) - for /oa chatimport
 function GC.HiddenReason(e)
     if placeholder(e.m) then return "Platzhalter" end
     if isK(e.m) and e.sess ~= GC.sess then return "geschuetzt" end
@@ -1070,7 +1070,7 @@ function GC.HasOfficer()
 end
 
 local function tc() return GC.LookColor("chatTextColor") end
--- Glasflaeche (runde, halbtransparente Flaeche wie Profil/Sammlungen); ohne Insta: schlichte Flaeche
+-- Glass surface (round, semi-transparent surface like profile/collections); without Insta: plain surface
 local function glass(f, fill, line, r)
     if ns.Insta and ns.Insta.Glass then return ns.Insta.Glass(f, fill, line, r) end
     local c = fill or { 1, 1, 1, 0.04 }
@@ -1080,7 +1080,7 @@ local function glass(f, fill, line, r)
 end
 GC.Glass = glass
 local GLASS_NONE = { 0, 0, 0, 0 }
--- gehoert e zur Gruppe der vorigen Nachricht? (gleicher Absender, gleicher Kanal, hoechstens 5 Minuten)
+-- does e belong to the group of the previous message? (same sender, same channel, at most 5 minutes)
 local function sameGroup(prev, e)
     if not prev or GC.Look("chatGroup") == false then return false end
     if e.k == "ach" or prev.k == "ach" then return false end
@@ -1097,8 +1097,8 @@ local function dayText(ts)
 end
 
 ------------------------------------------------------------------------
--- Verlauf: eigene virtuelle Liste. Es werden nur die sichtbaren Zeilen gebaut (Pool),
--- Hoehen werden einmal gemessen und je Nachricht gemerkt (bis Breite/Schrift sich aendern).
+-- History: own virtual list. Only the visible rows are built (pool),
+-- heights are measured once and cached per message (until width/font change).
 ------------------------------------------------------------------------
 local AVATAR, CONTENT_X, RIGHT_PAD = 32, 58, 16
 local heightCache = setmetatable({}, { __mode = "k" })
@@ -1139,7 +1139,7 @@ local function itemHeight(list, it)
     end
     local sp = tonumber(GC.Look("chatSpacing")) or 5
     if it.first then
-        -- Kopf (Name + Zeit) ueber dem Text, oben etwas Luft zum vorigen Absender
+        -- Header (name + time) above the text, a little space to the previous sender on top
         return math.max(AVATAR + 4, 8 + 18 + bh + 4) + sp
     end
     return bh + 4 + math.floor(sp / 2)
@@ -1149,13 +1149,13 @@ local function newRow(list)
     local row = CreateFrame("Button", nil, list)
     row:RegisterForClicks("RightButtonUp")
     if row.SetHyperlinksEnabled then pcall(row.SetHyperlinksEnabled, row, true) end
-    -- 0.6.117: mit gedrueckter Maus ziehen = Text markieren (wie in Blizzards Chat), Strg+C kopiert
+    -- 0.6.117: drag with mouse held = select text (like Blizzard's chat), Ctrl+C copies
     row:HookScript("OnMouseDown", function(_, btn)
         if btn == "LeftButton" and not IsModifierKeyDown() and ns.GameChat and ns.GameChat.LiveStart then
             pcall(ns.GameChat.LiveStart, list)
         end
     end)
-    -- Flaeche fuer eigene Nachrichten / Erwaehnungen (sonst unsichtbar)
+    -- Surface for own messages / mentions (invisible otherwise)
     row.tint = CreateFrame("Frame", nil, row)
     row.tint:SetPoint("TOPLEFT", 6, -2)
     row.tint:SetPoint("BOTTOMRIGHT", -6, 1)
@@ -1165,7 +1165,7 @@ local function newRow(list)
     row.hl:SetPoint("TOPLEFT", 6, -1) row.hl:SetPoint("BOTTOMRIGHT", -6, 1)
     row.hl:SetColorTexture(1, 1, 1, 0.025)
     row.hl:Hide()
-    -- Avatar: Kreis mit Klassensymbol, sonst Anfangsbuchstabe
+    -- Avatar: circle with class icon, otherwise initial letter
     local av = CreateFrame("Frame", nil, row)
     av:SetSize(AVATAR, AVATAR)
     av:SetPoint("TOPLEFT", 14, -8)
@@ -1195,11 +1195,11 @@ local function newRow(list)
     row.body:SetJustifyH("LEFT")
     row.body:SetJustifyV("TOP")
     row.body:SetWordWrap(true)
-    -- Zeit links neben Folgebeitraegen, nur beim Ueberfahren
+    -- Time to the left of follow-up posts, only on hover
     row.gut = K.Text(row, 9, C.dim, "RIGHT")
     row.gut:SetPoint("TOPRIGHT", row, "TOPLEFT", CONTENT_X - 8, -3)
     row.gut:Hide()
-    -- Trenner: zentrierte Pille mit feinen Linien links/rechts
+    -- Separator: centered pill with thin lines left/right
     row.pill = CreateFrame("Frame", nil, row)
     row.pill:SetHeight(22)
     row.pill:SetPoint("CENTER", 0, 0)
@@ -1282,7 +1282,7 @@ local function paintRow(list, row, it)
     row.body:SetPoint("TOPLEFT", CONTENT_X, it.first and -28 or -2)
     row.body:SetWidth(list.cw)
     row.body:SetText(r.body)
-    if ns.Emoji and ns.Emoji.Track then ns.Emoji.Track(row.body) end   -- 0.6.289: animierte Emojis auch hier
+    if ns.Emoji and ns.Emoji.Track then ns.Emoji.Track(row.body) end   -- 0.6.289: animated emojis here too
     local stamp = date("%H:%M", e.ts or 0)
     row.gut:SetText(stamp)
     if it.first then
@@ -1290,7 +1290,7 @@ local function paintRow(list, row, it)
         row.name:SetText(r.head or "")
         row.time:SetText(GC.Look("chatShowTime") ~= false and stamp or "")
     end
-    -- eigene Nachrichten leicht getoent, Erwaehnungen dezent bernsteinfarben
+    -- own messages slightly tinted, mentions subtly amber
     if ns.isMe(e.s) then
         local mr, mg, mb = GC.MineBubbleColor()
         glass(row.tint, { mr, mg, mb, 0.16 }, GLASS_NONE, 10)
@@ -1301,7 +1301,7 @@ local function paintRow(list, row, it)
     end
 end
 
--- Liste anlegen; handlers: onLinkClick, onLinkEnter, onRowEnter, onScroll
+-- Create list; handlers: onLinkClick, onLinkEnter, onRowEnter, onScroll
 function GC.NewList(parent, page, handlers)
     local list = CreateFrame("Frame", nil, parent)
     list.page = page
@@ -1327,13 +1327,13 @@ function GC.NewList(parent, page, handlers)
     end
     function list:MaxOffset() return math.max(0, self.total - (self:GetHeight() or 0)) end
     function list:AtBottom() return self.offset >= self:MaxOffset() - 2 end
-    -- Positionen neu berechnen (nach Aenderung von Inhalt, Breite oder Schrift)
+    -- Recalculate positions (after content, width or font change)
     function list:Measure(from)
         self.cw = self:Width() - CONTENT_X - RIGHT_PAD
         local y = 0
         from = from or 1
         if from > 1 and self.tops[from - 1] then y = self.tops[from - 1] + self.items[from - 1].h else from = 1 end
-        -- 0.6.117: Nachrichten durchzaehlen - fuer Markieren mit der Maus (Spielchat-Modul, GameChat.lua)
+        -- 0.6.117: count messages - for mouse selection (game chat module, GameChat.lua)
         local mi = (from > 1 and self.items[from - 1].miUpTo) or 0
         self.byMi = self.byMi or {}
         for i = from, #self.items do
@@ -1356,7 +1356,7 @@ function GC.NewList(parent, page, handlers)
         self.stick = true
         self:Draw()
     end
-    -- neue Eintraege unten anhaengen (nur diese messen)
+    -- append new entries at the bottom (measure only these)
     function list:Append(newItems)
         local was = self:AtBottom()
         local from = #self.items + 1
@@ -1372,9 +1372,9 @@ function GC.NewList(parent, page, handlers)
     end
     function list:ScrollToBottom() self:ScrollTo(self:MaxOffset()) end
     function list:ScrollToTop() self:ScrollTo(0) end
-    -- Kompatibilitaet zu alten Aufrufen (ScrollingMessageFrame)
+    -- Compatibility with old calls (ScrollingMessageFrame)
     function list:GetScrollOffset() return math.max(0, self:MaxOffset() - self.offset) end
-    -- fuer das Markieren: Anzahl, Text je Nachricht, Nachricht je sichtbarer Zeile
+    -- for selection: count, text per message, message per visible row
     function list:GetNumMessages() return self.numMsg or 0 end
     function list:GetMessageInfo(m)
         local it = self.byMi and self.byMi[m]
@@ -1387,7 +1387,7 @@ function GC.NewList(parent, page, handlers)
         local top, h = self.offset, self:GetHeight() or 0
         if h < 10 then h = 400 end
         wipe(self.visibleLines)
-        -- erste sichtbare Zeile per Binaersuche
+        -- first visible row via binary search
         local lo, hi = 1, #self.items
         while lo < hi do
             local mid = math.floor((lo + hi) / 2)
@@ -1434,7 +1434,7 @@ function GC.NewList(parent, page, handlers)
     return list
 end
 
--- Eintraege (Trenner + Nachrichten) aus dem Log bauen
+-- Build entries (separators + messages) from the log
 local function buildItems()
     local items, n, prev, lastDay = {}, 0, nil, nil
     local seen, marked = S().chatSeen, false
@@ -1474,11 +1474,11 @@ local function fill(p)
     if p.dayDrop then p.dayDrop:Update() end
 end
 
--- neue Nachricht, waehrend die Seite offen ist: unten anhaengen statt alles neu aufzubauen
--- Oasis-Sound im Gildenchat als eigene Zeile
+-- new message while the page is open: append at the bottom instead of rebuilding everything
+-- Oasis sound in guild chat as its own line
 function GC.AddSound(sender, key)
     local e = { s = ns.fullName(sender), m = "{s:" .. key .. "}", ts = ns.now(), src = "snd" }
-    GC.Add(e, true)   -- 0.5.656: GC.Add haengt schon live an (vorher zusaetzlich GC.Live -> Zeile doppelt)
+    GC.Add(e, true)   -- 0.5.656: GC.Add already appends live (previously also GC.Live -> line duplicated)
 end
 function GC.Live(e)
     local p = GC.page
@@ -1497,7 +1497,7 @@ function GC.Live(e)
     local wasBottom = p.list:Append(add)
     if p.UpdateScrollbar then p.UpdateScrollbar() end
     if not wasBottom and not ns.isMe(e.s) then
-        -- man liest gerade weiter oben: nicht springen, sondern Hinweis zeigen
+        -- user is reading further up: do not jump, show a notice instead
         p.newCount = (p.newCount or 0) + 1
         p.jump.text:SetText((L["%d new messages"]):format(p.newCount))
         if not p.jump:IsShown() then p.jump:Show() K.FadeIn(p.jump, 0) end
@@ -1507,12 +1507,12 @@ function GC.Live(e)
     return true
 end
 
--- Seitenleiste: Glaskarten "Heute im Chat", "Vielschreiber", "Zuletzt verlinkt"
+-- Sidebar: glass cards "Heute im Chat", "Vielschreiber", "Zuletzt verlinkt"
 local function sideStats(p, animate)
     local today = date("%Y%m%d")
     local count, by, links, writers, linkCount = 0, {}, {}, 0, 0
     local seenToday = {}
-    -- 0.6.298: Vielschreiber ueber die letzten 7 Tage (nur "heute" war morgens immer leer); "Heute im Chat" bleibt heute
+    -- 0.6.298: top posters over the last 7 days (only "today" was always empty in the morning); "Today in chat" stays today
     local weekFrom = ns.now() - 7 * 86400
     local l = log()
     for i = #l, 1, -1 do
@@ -1528,7 +1528,7 @@ local function sideStats(p, animate)
             end
         end
         if #links < 10 and e.k ~= "off" then
-            -- Farbe egal ob |cffRRGGBB oder neu |cnIQ3: -> nur den Link selbst nehmen, Farbe nach Qualitaet
+            -- Color whether |cffRRGGBB or new |cnIQ3: -> take only the link itself, color by quality
             for raw in e.m:gmatch("|Hitem:[^|]+|h%[[^%]]+%]|h") do
                 local id = ns.itemID(raw) or 0
                 if #links < 10 and not links["i" .. id] then
@@ -1541,12 +1541,12 @@ local function sideStats(p, animate)
             end
         end
     end
-    -- aeltere Links: eigenes Gedaechtnis + von der Gilde geteilte, neueste zuerst
+    -- older links: own memory + shared by the guild, newest first
     local pool = {}
     for _, h in ipairs(ns.db.linkHist or {}) do pool[#pool + 1] = h end
     if ns.Store then
         for _, r in ipairs(ns.Store.List("links")) do
-            -- geteilte Links: nur reine Item-Links ohne weitere Escape-Sequenzen
+            -- shared links: only plain item links without further escape sequences
             if type(r.raw) == "string" and #r.raw < 300 and r.raw:match("^|Hitem:[%d:%-]+|h%[[^|%]]*%]|h$") then
                 pool[#pool + 1] = { id = ns.itemID(r.raw), raw = r.raw, who = r.who, ts = r.ts or r.u or 0 }
             end
@@ -1593,7 +1593,7 @@ local function sideStats(p, animate)
         end
     end
     p.topEmpty:SetShown(#top == 0)
-    -- so viele Links, wie in die Karte passen (die Karte fuellt den Rest der Spalte)
+    -- as many links as fit in the card (the card fills the rest of the column)
     local room = (p.linkCard and p.linkCard:GetHeight() or 0) - 44
     local fit = room > 30 and math.floor(room / 30) or #p.linkRows
     for i, r in ipairs(p.linkRows) do
@@ -1616,7 +1616,7 @@ local function send(p, text)
     local t = (text or p.input:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
     if t == "" then return end
     ns.SendChat(t:sub(1, 255), filter == "off" and "OFFICER" or "GUILD")
-    -- fuer Pfeil hoch: zuletzt Gesendetes (neueste zuerst)
+    -- for arrow up: last sent (newest first)
     if not text then
         GC.sent = GC.sent or {}
         table.insert(GC.sent, 1, t)
@@ -1630,7 +1630,7 @@ local function send(p, text)
     end
 end
 
-local QUICK = {}   -- Kurzantworten entfernt
+local QUICK = {}   -- Quick replies removed
 
 ns.RegisterPage({
     key = "chat", title = "Chat", order = 0.7,
@@ -1639,7 +1639,7 @@ ns.RegisterPage({
         GC.page = p
         p:SetScript("OnShow", function(self)
             self.fresh = true
-            -- Verlauf frisch anfordern und kurz danach neu zeichnen, damit geschuetzte Texte aufgeloest sind
+            -- request fresh history and redraw shortly after so protected texts are resolved
             if GC.RequestClubHistory then pcall(GC.RequestClubHistory) end
             if self.loader then self.loader:Show() end
             ns.After(1.2, function() if self:IsVisible() then ns.RefreshPage("chat") end end)
@@ -1648,7 +1648,7 @@ ns.RegisterPage({
         p.fresh = true
         local SIDE, TOP = 214, 46
         p.SIDE, p.TOP = SIDE, TOP
-        -- Reiterleiste oben: Gildenchat / Privat (gleitende Akzent-Pille wie im Profil)
+        -- Tab bar at the top: guild chat / private (sliding accent pill like in the profile)
         local TABS = { { key = "guild", text = L["Guild chat"], icon = "social" }, { key = "priv", text = L["Private"], icon = "profile" } }
         local function onMode(k) GC.mode = k ns.RefreshPage("chat") end
         if ns.Insta and ns.Insta.ProfileTabs then
@@ -1659,13 +1659,13 @@ ns.RegisterPage({
         p.mode:SetPoint("TOPLEFT", 0, 0)
         p.mode:SetWidth(300)
 
-        -- Verlauf als Glaskarte
+        -- History as glass card
         local box = CreateFrame("Frame", nil, p)
         box:SetPoint("TOPLEFT", 0, -TOP)
         box:SetPoint("BOTTOMRIGHT", -(SIDE + 12), 58)
         p.chatBox = box
         glass(box, nil, nil, 12)
-        -- Kopf der Karte: Filter als Glas-Pillen links, Kalender + Suche rechts
+        -- Card header: filters as glass pills on the left, calendar + search on the right
         p.seg = CreateFrame("Frame", nil, box)
         p.seg:SetPoint("TOPLEFT", 12, -10)
         p.seg:SetSize(400, 26)
@@ -1696,7 +1696,7 @@ ns.RegisterPage({
                 end
             end
             self.used = x
-            -- kein Ueberlappen mit Kalender/Suche: zu schmal -> Kalender nur als Symbol, Suche schmaler
+            -- no overlap with calendar/search: too narrow -> calendar only as icon, search narrower
             local dd, sr = p.dayDrop, p.search
             local bw = box:GetWidth() or 0
             if dd and sr and bw > 100 then
@@ -1719,7 +1719,7 @@ ns.RegisterPage({
             end
             self:Layout()
         end
-        -- Suche erst kurz nach dem Tippen ausfuehren (nicht bei jedem Buchstaben alles neu aufbauen)
+        -- run the search only shortly after typing (do not rebuild everything on every letter)
         local searchGen = 0
         p.search = K.Input(box, 170, L["Search history ..."], function(t)
             searchGen = searchGen + 1
@@ -1736,7 +1736,7 @@ ns.RegisterPage({
         if p.search.bg then p.search.bg:SetColorTexture(0, 0, 0, 0) end
         K.SetBorderColor(p.search, { 0, 0, 0, 0 })
         glass(p.search, { 1, 1, 1, 0.04 }, { 1, 1, 1, 0.08 }, 12)
-        -- Trennlinie unter dem Kopf, rechts davon die Nachrichtenzahl
+        -- Divider below the header, message count to its right
         box.barLine = box:CreateTexture(nil, "ARTWORK")
         box.barLine:SetPoint("TOPLEFT", 12, -45)
         box.barLine:SetPoint("TOPRIGHT", -12, -45)
@@ -1747,12 +1747,12 @@ ns.RegisterPage({
         box.barTitle:Hide()
         p.barTitle = box.barTitle
 
-        -- Hyperlinks im Verlauf (Namen, Items, Hilfe-Knopf, Emojis/Sounds)
+        -- Hyperlinks in the history (names, items, help button, emojis/sounds)
         local function onLinkClick(self, link, text, button)
             if ns.Sound and ns.Sound.OnLink and ns.Sound.OnLink(link) then return end
             local hl = link:match("^oasishelp:(%d+)")
             if hl then if byLid[tonumber(hl)] then GC.HelpMenu(p, byLid[tonumber(hl)]) end return end
-            -- Name anklicken: anfluestern (Shift/Rechtsklick wie gewohnt)
+            -- Click a name: whisper (shift/right-click as usual)
             local whoName = link:match("^player:([^:]+)")
             if whoName and button == "LeftButton" and not IsModifiedClick() then
                 ns.Whisper(whoName)
@@ -1790,7 +1790,7 @@ ns.RegisterPage({
                 GameTooltip:Show()
             end
         end
-        -- Zeile ueberfahren: Datum, Reaktionen, Hinweis auf das Menue
+        -- Hover a row: date, reactions, hint about the menu
         local function onRowEnter(row, e)
             local lines = { date("%d.%m.%Y  %H:%M", e.ts or 0), "|cff888888" .. L["Right-click: react, reply, quote, pin ..."] .. "|r" }
             local t = reactIndex()[msgKey(e)]
@@ -1806,7 +1806,7 @@ ns.RegisterPage({
                 if p.UpdateScrollbar then p.UpdateScrollbar() end
                 if self:AtBottom() and p.jump then p.newCount = 0 p.jump:Hide() end
             end })
-        p.list, p.smf = list, list   -- p.smf: Anker fuer Menues (frueher ScrollingMessageFrame)
+        p.list, p.smf = list, list   -- p.smf: anchor for menus (formerly ScrollingMessageFrame)
         function p.LayoutList(pinShown)
             list:ClearAllPoints()
             list:SetPoint("TOPLEFT", box, "TOPLEFT", 2, pinShown and -(48 + math.ceil(p.pin:GetHeight() or 28) + 4) or -48)
@@ -1814,7 +1814,7 @@ ns.RegisterPage({
         end
         if ns.Emoji and ns.Emoji.frames then table.insert(ns.Emoji.frames, list) end
 
-        -- schmale Scrollleiste rechts (ziehbar, Klick in die Spur springt dorthin)
+        -- narrow scrollbar on the right (draggable, clicking the track jumps there)
         local track = CreateFrame("Button", nil, box)
         track:SetPoint("TOPRIGHT", -6, -52)
         track:SetPoint("BOTTOMRIGHT", -6, 10)
@@ -1860,7 +1860,7 @@ ns.RegisterPage({
             end
         end)
 
-        -- Kalender: Glas-Knopf, Klick oeffnet die Monatsansicht (Tage mit Nachrichten markiert)
+        -- Calendar: glass button, click opens the month view (days with messages marked)
         local calBtn = CreateFrame("Button", nil, box)
         calBtn:SetSize(112, 24)
         calBtn:SetPoint("RIGHT", p.search, "LEFT", -8, 0)
@@ -1898,7 +1898,7 @@ ns.RegisterPage({
             local y, m = cal.y, cal.m
             cal.title:SetText(L[MONTHS[m]] .. " " .. y)
             local first = time({ year = y, month = m, day = 1, hour = 12 })
-            local wd = (tonumber(date("%w", first)) + 6) % 7    -- 0 = Montag
+            local wd = (tonumber(date("%w", first)) + 6) % 7    -- 0 = Monday
             local days = tonumber(date("%d", time({ year = y, month = m + 1, day = 0, hour = 12 })))
             local cnt = counts()
             local maxC = 1
@@ -2000,11 +2000,11 @@ ns.RegisterPage({
             self.t = (self.t or 0) + el
             local dots = string.rep(".", math.floor(self.t * 2) % 4)
             self.text:SetText(L["Loading messages"] .. dots)
-            if self.t > 6 then self:Hide() end   -- spaetestens nach 6 s ausblenden
+            if self.t > 6 then self:Hide() end   -- hide after 6 s at the latest
         end)
         p.loader:SetScript("OnShow", function(self) self.t = 0 end)
         p.loader:Hide()
-        -- angepinnte Nachricht: schmale Glaszeile unter dem Kopf
+        -- pinned message: narrow glass row below the header
         p.pin = CreateFrame("Button", nil, box)
         p.pin:SetPoint("TOPLEFT", 12, -52)
         p.pin:SetPoint("TOPRIGHT", -16, -52)
@@ -2036,7 +2036,7 @@ ns.RegisterPage({
         p.LayoutList(false)
         p:HookScript("OnHide", function() S().chatSeen = ns.now() end)
 
-        -- "neue Nachrichten"-Knopf, wenn man weiter oben liest
+        -- "new messages" button when reading further up
         p.jump = CreateFrame("Button", nil, box)
         p.jump:SetSize(170, 26)
         p.jump:SetPoint("BOTTOM", 0, 12)
@@ -2052,8 +2052,8 @@ ns.RegisterPage({
         p.jump:Hide()
         p.quick = {}
 
-        -- Eingabeleiste: Emoji-Knopf | Textfeld | Zeichen | Senden
-        -- runde Glasleiste
+        -- Input bar: emoji button | text field | characters | send
+        -- round glass bar
         local bar = CreateFrame("Frame", nil, p)
         bar:SetPoint("BOTTOMLEFT", 0, 4)
         bar:SetPoint("RIGHT", box, "RIGHT", 0, 0)
@@ -2075,7 +2075,7 @@ ns.RegisterPage({
                 ns.Emoji.TogglePicker(self)
             end
         end)
-        -- Sound schicken (mit Abklingzeit)
+        -- Send sound (with cooldown)
         p.sndBtn = CreateFrame("Button", nil, bar)
         p.sndBtn:SetSize(22, 22)
         p.sndBtn:SetPoint("LEFT", p.emoji, "RIGHT", 6, 0)
@@ -2092,11 +2092,11 @@ ns.RegisterPage({
         p.sndBtn:SetScript("OnClick", function(self)
             if ns.Sound and ns.Sound.OpenPicker then ns.Sound.OpenPicker(self, nil, function(k)
                 ns.Sound.SendInChat(k)
-                -- angefangenen Text behalten und weiterschreiben koennen
+                -- keep started text and be able to continue writing
                 if (p.input:GetText() or "") ~= "" then p.input:SetFocus() end
             end, "send") end
         end)
-        -- Fluester-Verlauf (verpasste Nachrichten)
+        -- Whisper history (missed messages)
         p.wlBtn = CreateFrame("Button", nil, bar)
         p.wlBtn:SetSize(22, 22)
         p.wlBtn:SetPoint("LEFT", p.sndBtn, "RIGHT", 6, 0)
@@ -2120,7 +2120,7 @@ ns.RegisterPage({
             local n = ns.WhisperLog and ns.WhisperLog.Unread() or 0
             self.n:SetText(n > 0 and ("|cffff5a4a" .. n .. "|r") or "")
         end)
-        -- ruhiger, runder Senden-Knopf: gedaempfte Akzentfarbe, nur mit Text aktiv
+        -- calm, round send button: muted accent color, only active with text
         p.sendBtn = CreateFrame("Button", nil, bar)
         p.sendBtn:SetSize(32, 32)
         p.sendBtn:SetPoint("RIGHT", -6, 0)
@@ -2149,7 +2149,7 @@ ns.RegisterPage({
         p.counter = K.Text(bar, 10, C.dim, "RIGHT")
         p.counter:SetPoint("RIGHT", p.sendBtn, "LEFT", -8, 0)
         p.input = K.Input(bar, 300, L["Say something to the guild ... (Enter sends)"])
-        if ns.EmojiComplete then ns.EmojiComplete.Attach(p.input) end   -- :xx -> Emoji-Vorschlaege
+        if ns.EmojiComplete then ns.EmojiComplete.Attach(p.input) end   -- :xx -> emoji suggestions
         p.input:SetPoint("LEFT", p.sndBtn, "RIGHT", 6, 0)
         p.input:SetPoint("RIGHT", p.counter, "LEFT", -8, 0)
         p.input.bg:SetColorTexture(0, 0, 0, 0)
@@ -2195,7 +2195,7 @@ ns.RegisterPage({
             if link and p.input:HasFocus() then p.input:Insert(link) end
         end)
 
-        -- @Name: Vorschlaege aus der Gildenliste (Online zuerst), Tab/Klick vervollstaendigt
+        -- @Name: suggestions from the guild roster (online first), Tab/click completes
         local ac = CreateFrame("Frame", nil, bar, "BackdropTemplate")
         ac:SetFrameStrata("DIALOG")
         ac:SetPoint("BOTTOMLEFT", p.input, "TOPLEFT", 0, 6)
@@ -2263,7 +2263,7 @@ ns.RegisterPage({
         p.input:HookScript("OnEditFocusLost", function() C_Timer.After(0.2, function() ac:Hide() end) end)
         p.input:HookScript("OnEscapePressed", function() ac:Hide() end)
 
-        -- rechte Spalte: drei Glaskarten
+        -- right column: three glass cards
         local side = CreateFrame("Frame", nil, p)
         side:SetPoint("TOPRIGHT", 0, -TOP)
         side:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -2275,7 +2275,7 @@ ns.RegisterPage({
             h:SetText(text)
             return h
         end
-        -- Karte 1: Heute im Chat (Zahl gross, zwei kleine Kennzahlen)
+        -- Card 1: today in chat (large number, two small key figures)
         local c1 = CreateFrame("Frame", nil, side)
         c1:SetPoint("TOPLEFT") c1:SetPoint("TOPRIGHT")
         c1:SetHeight(104)
@@ -2296,7 +2296,7 @@ ns.RegisterPage({
         end
         p.stWriters = mini(14, L["writing"])
         p.stLinks = mini(110, L["Links"])
-        -- Karte 2: Vielschreiber (Klassensymbol, Name, runde Balken)
+        -- Card 2: top posters (class icon, name, round bars)
         local c2 = CreateFrame("Frame", nil, side)
         c2:SetPoint("TOPLEFT", c1, "BOTTOMLEFT", 0, -10)
         c2:SetPoint("TOPRIGHT", c1, "BOTTOMRIGHT", 0, -10)
@@ -2348,7 +2348,7 @@ ns.RegisterPage({
         p.topEmpty = K.Text(c2, 11, C.dim)
         p.topEmpty:SetPoint("TOPLEFT", 14, -40)
         p.topEmpty:SetText(L["Quiet this week."])
-        -- Karte 3: Zuletzt verlinkt (fuellt den Rest der Spalte)
+        -- Card 3: recently linked (fills the rest of the column)
         local c3 = CreateFrame("Frame", nil, side)
         c3:SetPoint("TOPLEFT", c2, "BOTTOMLEFT", 0, -10)
         c3:SetPoint("BOTTOMRIGHT", side, "BOTTOMRIGHT", 0, 0)
@@ -2393,7 +2393,7 @@ ns.RegisterPage({
             p.priv:SetPoint("TOPLEFT", 0, -TOP)
             p.priv:SetPoint("BOTTOMRIGHT", 0, 0)
         end
-        -- Zahnrad oben rechts: Darstellung des Chats (Schrift, Farben, Abstaende)
+        -- Gear at top right: chat appearance (font, colors, spacing)
         local gear = CreateFrame("Button", nil, p)
         gear:SetSize(30, 30)
         gear:SetPoint("TOPRIGHT", p, "TOPRIGHT", 0, -2)
@@ -2417,7 +2417,7 @@ ns.RegisterPage({
         GC.ApplyLook(true)
     end,
     refresh = function(p)
-        -- Reiter Gilde / Privat
+        -- Tabs guild / private
         local isPriv = GC.mode == "priv" and p.priv ~= nil
         if p.mode then
             p.mode:Select(isPriv and "priv" or "guild")
@@ -2427,7 +2427,7 @@ ns.RegisterPage({
                 if p.mode.Layout then pcall(p.mode.Layout, p.mode) end
             end
         end
-        -- Gildenchat in der Privat-Ansicht wirklich ausblenden (schien sonst durch die Gespraechsliste)
+        -- really hide guild chat in the private view (otherwise it showed through the conversation list)
         if p.chatBox then p.chatBox:SetShown(not isPriv) end
         if p.inputBar then p.inputBar:SetShown(not isPriv) end
         if p.typing then p.typing:SetShown(not isPriv) end
@@ -2452,13 +2452,13 @@ ns.RegisterPage({
 })
 
 ------------------------------------------------------------------------
--- Darstellung anwenden + Einstellungs-Bausteine (Einstellungen > Bereiche > Chat und Zahnrad-Fenster)
+-- Apply appearance + settings building blocks (Settings > Sections > Chat and gear window)
 ------------------------------------------------------------------------
 function GC.ApplyLook(noRefresh)
     GC.ClearRenderCache()
     local p = GC.page
     if p and p.chatBox then
-        -- Kartenflaeche des Verlaufs: Farbe + Deckkraft aus der Darstellung
+        -- Card surface of the history: color + opacity from the appearance
         local r, g, b = GC.LookColor("chatBgColor")
         glass(p.chatBox, { r, g, b, (tonumber(GC.Look("chatBgAlpha")) or 90) / 100 }, nil, 12)
     end
@@ -2466,7 +2466,7 @@ function GC.ApplyLook(noRefresh)
     if WL and WL.ApplyLook then pcall(WL.ApplyLook) end
     if not noRefresh and p and p:IsVisible() then ns.RefreshPage("chat") end
 end
--- beim Ziehen eines Reglers nicht bei jedem Pixel alles neu aufbauen
+-- do not rebuild everything on every pixel while dragging a slider
 local lookGen = 0
 local function applySoon()
     lookGen = lookGen + 1
@@ -2474,17 +2474,17 @@ local function applySoon()
     ns.After(0.15, function() if g == lookGen then GC.ApplyLook() end end)
 end
 local function setLook(k, v) S()[k] = v applySoon() end
--- eigene Blasenfarbe: leer = gedaempfte Akzentfarbe (wie bisher)
+-- own bubble color: empty = muted accent color (as before)
 function GC.MineBubbleColor()
     local c = K.FromHex(GC.Look("chatBubbleMine"))
     if c then return c[1], c[2], c[3] end
-    -- Akzent stark entsaettigt und abgedunkelt: ruhiges Grau mit leichtem Farbstich
+    -- Accent strongly desaturated and darkened: calm grey with a slight tint
     local g, t = 0.17, 0.2
     return g + (C.accent[1] - g) * t, g + (C.accent[2] - g) * t, g + 0.01 + (C.accent[3] - g) * t
 end
 
--- baut die Darstellungs-Regler in parent ab Hoehe y; liefert das neue y
--- opts.emoji = Emoji-Groesse mit anbieten (in den Einstellungen gibt es den Regler schon), opts.x = linker Rand
+-- builds the appearance sliders in parent from height y; returns the new y
+-- opts.emoji = also offer emoji size (the settings already have the slider), opts.x = left margin
 function GC.BuildLook(parent, y, opts)
     opts = opts or {}
     local X, CX = opts.x or 14, (opts.x or 14) + 170
@@ -2500,7 +2500,7 @@ function GC.BuildLook(parent, y, opts)
     h:SetPoint("TOPLEFT", X, y)
     h:SetText(L["Appearance"])
     y = y - 26
-    -- Schriftart
+    -- Font
     label(L["Font"], y)
     local fb = K.Button(parent, "", 180, 24, "ghost")
     fb.isDropdown = true
@@ -2578,7 +2578,7 @@ function GC.BuildLook(parent, y, opts)
     return y - 36
 end
 
--- kleines Fenster am Zahnrad
+-- small window at the gear
 local lookPop
 function GC.ToggleLookPopup(owner)
     if lookPop and lookPop:IsShown() then lookPop:Hide() return end
@@ -2608,7 +2608,7 @@ end
 
 ns.slash.chat = function() ns.ShowPage("chat") end
 
--- Diagnose: /oa chatdebug - letzte Eintraege mit Quelle (live / club = Community-Verlauf / sync:Name = von anderem Oasis)
+-- Diagnostics: /oa chatdebug - last entries with source (live / club = community history / sync:Name = from another Oasis)
 ns.slash.chatdebug = function()
     local l = log()
     ns.print(("Gildenchat: %d Eintraege"):format(#l))
@@ -2621,7 +2621,7 @@ end
 
 
 ------------------------------------------------------------------------
--- Extras: Menues, Pin, Tipp-Anzeige, Namens-Karte
+-- Extras: menus, pin, typing indicator, name card
 ------------------------------------------------------------------------
 GC.typers = {}
 if Comm and Comm.On then
@@ -2632,7 +2632,7 @@ if Comm and Comm.On then
         GC.typers[sender] = GetTime()
     end)
 end
--- neue Nachricht von jemandem -> "schreibt" sofort weg
+-- new message from someone -> "typing" removed immediately
 local baseAdd = GC.Add
 GC.Add = function(e, silent)
     if e and e.s then
@@ -2656,7 +2656,7 @@ function GC.CanPin()
     return false
 end
 
--- Pin nur zeigen, wenn ihn jemand mit Rechten gesetzt hat (Pruefung beim Empfaenger, nicht nur im Menue)
+-- only show the pin if someone with permissions set it (checked by the recipient, not only in the menu)
 function GC.PinOk(r)
     if not r or r.del or type(r.m) ~= "string" then return false end
     local by = r.mb or r.by
@@ -2704,7 +2704,7 @@ function GC.MsgMenu(p, e)
         p.input:SetFocus()
         p.input:SetCursorPosition(#p.input:GetText())
     end }
-    -- Kopieren (Kopierfenster, Text markiert) und Merken (Merkliste im Reiter Privat > Gemerkt)
+    -- Copy (copy window, text selected) and bookmark (bookmark list in the Private > Saved tab)
     local WLx = ns.WhisperLog
     if WLx and WLx.Copy then
         items[#items + 1] = { text = L["Copy"], fn = function() WLx.Copy(L["Copy message"], plain(e.m)) end }
@@ -2763,7 +2763,7 @@ function GC.HelpMenu(p, e)
     K.ShowMenu(p.smf, items, L["Offer help"], 200)
 end
 
--- Namens-Karte beim Hovern
+-- Name card on hover
 function GC.NameTip(owner, name)
     local R = ns.Radar
     local m = R and R.byName and R.byName[name]
@@ -2776,7 +2776,7 @@ function GC.NameTip(owner, name)
     local cr, cg, cb = cc and cc.r or 1, cc and cc.g or 1, cc and cc.b or 1
     local d = ns.Card and ns.Card.Of(full) or {}
     GameTooltip:SetOwner(owner, "ANCHOR_CURSOR")
-    -- Kopf: Name in Klassenfarbe + Vitrine, darunter Titel
+    -- Header: name in class color + showcase, title below
     local badges = ns.Card and ns.Card.NameBadges(full, 14) or ""
     GameTooltip:SetText(ns.displayName(full) .. badges, cr, cg, cb)
     if d.t and d.t ~= "" then GameTooltip:AddLine(d.t, 0.91, 0.71, 0.29) end
@@ -2794,7 +2794,7 @@ function GC.NameTip(owner, name)
             local ri = ns.Profile.RoleIcons(full, 14)
             if ri ~= "" then GameTooltip:AddDoubleLine(L["Roles"], ri, 0.55, 0.55, 0.6) end
         end
-        -- Berufe: je Zeile Name + Stufe (farbig nach Fortschritt)
+        -- Professions: name + level per row (colored by progress)
         local pr = ns.db.members[m.name]
         local raw = pr and pr.profs or (ns.db.guildProfs and ns.db.guildProfs[m.name])
         local list = {}
@@ -2833,8 +2833,8 @@ end)
 ns.Listen("SYNCED", function() reactIdx = nil reactVer = reactVer + 1 end)
 
 ------------------------------------------------------------------------
--- @Name-Vorschlaege auch im normalen Blizzard-Chat (Gildenmitglieder, online zuerst)
--- nur HookScript + SetText auf dem Eingabefeld, keine Attribute -> kein Taint
+-- @Name suggestions also in the normal Blizzard chat (guild members, online first)
+-- only HookScript + SetText on the edit box, no attributes -> no taint
 ------------------------------------------------------------------------
 do
     local ac

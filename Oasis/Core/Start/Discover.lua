@@ -1,8 +1,8 @@
--- Oasis: aufgeraeumter Einstieg
---  * beim ersten Start (nach dem Rundgang): "Was interessiert dich?" - nur passende Bereiche bleiben in der Navigation
---  * Seite "Entdecken": alle Bereiche als Karten mit einem Satz Erklaerung und An/Aus
---  * nach und nach: alle paar Tage ein Hinweis auf einen ausgeblendeten Bereich (Klick = einschalten)
--- Nutzt settings.hiddenPages; was hier ausgeblendet wurde, merkt settings.focusHidden (eigene Entscheidungen bleiben).
+-- Oasis: tidy onboarding
+--  * on first start (after the tour): "What are you interested in?" - only matching sections stay in the navigation
+--  * Page "Entdecken": all sections as cards with a one-sentence explanation and on/off
+--  * gradually: every few days a hint about a hidden section (click = turn on)
+-- Uses settings.hiddenPages; what was hidden here is remembered in settings.focusHidden (own decisions stay).
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -10,11 +10,11 @@ local K, C = ns.K, ns.K.C
 local D = {}
 ns.Discover = D
 
--- immer sichtbar
+-- always visible
 D.CORE = { home = true, chat = true, radar = true, settings = true, discover = true, admin = true }
--- nie ausblendbar (kein Auge); Chat und Mitglieder darf man selbst ausblenden
-D.LOCKED = { settings = true, admin = true, home = true }   -- 0.6.468: Dashboard wieder fest (ausgeblendet liess es sich nicht zurueckholen)   -- 0.5.550: Dashboard und Entdecken lassen sich auch ausblenden
--- Interessen -> Bereiche
+-- never hideable (no eye); chat and members can be hidden by the user
+D.LOCKED = { settings = true, admin = true, home = true }   -- 0.6.468: dashboard fixed again (once hidden it could not be brought back)   -- 0.5.550: dashboard and Discover can also be hidden
+-- Interests -> sections
 -- 0.6.573: the tiles are the sidebar groups - Oasis itself (Me, Play together, Fun) and the add-ons
 -- (Groups & Raids, Trade, Convenience). Guild pages are always on. Keys stay (saved choices, tile art).
 D.INTERESTS = {
@@ -47,7 +47,7 @@ local function relayout()
     if ns.UpdateMiniBar then pcall(ns.UpdateMiniBar) end
     ns.RefreshPage("discover")
 end
--- alle Bereiche, die man ein-/ausschalten kann
+-- all sections that can be toggled
 function D.Pages()
     local out = {}
     for _, d in ipairs(ns.Pages()) do
@@ -69,7 +69,7 @@ function D.Set(key, on)
     end
     relayout()
 end
--- nur die gewaehlten Interessen zeigen
+-- show only the chosen interests
 function D.ApplyInterests(sel)
     local s = S()
     s.interests = sel
@@ -88,11 +88,11 @@ function D.ApplyInterests(sel)
         end
     end
     s.interestsDone = ns.now()
-    s.hintLast = ns.now()   -- erster Hinweis erst in ein paar Tagen
+    s.hintLast = ns.now()   -- first hint only in a few days
     D.Calm(true)
     relayout()
 end
--- Ruhiger Start: schlichte Startseite, ruhiges Banner, weniger Bewegung (alles unter Einstellungen > Dashboard umschaltbar)
+-- Calm start: plain start page, calm banner, less motion (all switchable under Settings > Dashboard)
 function D.Calm(on)
     local s = S()
     if on then
@@ -111,20 +111,20 @@ function D.ShowAll()
     local s = S()
     for k in pairs(s.focusHidden or {}) do if s.hiddenPages then s.hiddenPages[k] = nil end end
     s.focusHidden = nil
-    if s.calmStart then D.Calm(false) end   -- wer alles will, bekommt auch die volle Startseite
+    if s.calmStart then D.Calm(false) end   -- whoever wants everything also gets the full start page
     relayout()
 end
 
 ------------------------------------------------------------------------
--- "Was interessiert dich?" (kleines Fenster)
+-- "What are you interested in?" (small window)
 ------------------------------------------------------------------------
 local pick
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local function grad(tex, dir, a, b)
     if not K.Gradient(tex, dir, a, b) then tex:SetColorTexture(b[1], b[2], b[3], (b[4] or 1) * 0.6) end
 end
--- schlichter Text-Knopf (Fusszeile): leise, hell beim Drueberfahren
--- 0.6.123: kleine, dezente Glas-Knoepfe (halbtransparent, runde Ecken) statt nackter Schrift
+-- plain text button (footer): quiet, bright on hover
+-- 0.6.123: small, subtle glass buttons (semi-transparent, rounded corners) instead of bare text
 local function textBtn(parent, label, w, fn)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(w, 24)
@@ -151,7 +151,7 @@ end
 function D.ShowPicker(mode)
     if not pick then
         local W, COLS, TW, TH, GAP = 660, 3, 196, 128, 12
-        -- 0.6.124: mit Bild-Kacheln breiter - Kachel 228 x 56 = genau das Bildformat 4:1 (vorher rechts abgeschnitten)
+        -- 0.6.124: wider with image tiles - tile 228 x 56 = exactly the 4:1 image format (previously clipped on the right)
         if ns.GuildPack then W, TW = 760, 228 end
         local f = CreateFrame("Frame", "OasisInterests", UIParent)
         f:SetSize(W, 500)
@@ -163,8 +163,8 @@ function D.ShowPicker(mode)
         f:RegisterForDrag("LeftButton")
         f:SetScript("OnDragStart", f.StartMoving)
         f:SetScript("OnDragStop", f.StopMovingOrSizing)
-        -- 0.5.564: solange noch nichts gewaehlt ist, liegt ein dunkler Schleier ueber allem anderen
-        -- (Oasis-Fenster, Topbar, Spiel) - Klicks daneben gehen ins Leere, das Fenster wackelt kurz
+        -- 0.5.564: while nothing is chosen yet, a dark veil lies over everything else
+        -- (Oasis window, topbar, game) - clicks beside it go nowhere, the window shakes briefly
         local veil = CreateFrame("Button", nil, UIParent)
         veil:SetAllPoints(UIParent)
         veil:SetFrameStrata("FULLSCREEN_DIALOG")
@@ -177,7 +177,7 @@ function D.ShowPicker(mode)
         veil.bg:SetColorTexture(0, 0, 0, 0.62)
         veil:Hide()
         veil:SetScript("OnClick", function()
-            -- 0.6.156: kurzer Ablehnungs-Ton zum Wackeln (auch ohne Animation)
+            -- 0.6.156: short rejection sound with the shake (also without animation)
             if PlaySound and SOUNDKIT then
                 local id = SOUNDKIT.IG_PLAYER_INVITE_DECLINE or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF
                 if id then pcall(PlaySound, id) end
@@ -198,10 +198,10 @@ function D.ShowPicker(mode)
             if K.Tween and not (ns.db and ns.db.settings.noAnim) then K.Tween(veil, 0.25, function(q) veil:SetAlpha(q) end) else veil:SetAlpha(1) end
         end)
         f:HookScript("OnHide", function() veil:Hide() end)
-        -- im Kampf nie das Spiel blockieren
+        -- never block the game in combat
         ns.On("PLAYER_REGEN_DISABLED", function() veil:Hide() end)
-        -- Hintergrund: tiefes Dunkel mit weichem Akzent-Schein oben links
-        -- 0.6.122: runde Ecken (Glas-Flaeche wie die Karten); Bilder bis an den Rand werden an den Ecken maskiert
+        -- Background: deep dark with a soft accent glow at the top left
+        -- 0.6.122: rounded corners (glass surface like the cards); images reaching the edge are masked at the corners
         local RAD = 16
         local G = ns.Insta and ns.Insta.Glass
         if not (G and pcall(G, f, { 0.035, 0.035, 0.045, 0.97 }, { 1, 1, 1, 0.08 }, RAD)) then
@@ -211,17 +211,17 @@ function D.ShowPicker(mode)
         f.box = f.box or CreateFrame("Frame", nil, f)
         f.box:SetAllPoints(f)
         local function round(tex, corners) if K.RoundMask then pcall(K.RoundMask, tex, f.box, RAD, corners) end end
-        -- 0.6.118: Hintergrundbild schwach (nur mit Gildenmodul - Herkunft des Bildes nicht frei geklaert)
-        f.artTop = f:CreateTexture(nil, "ARTWORK", nil, -8)   -- 0.6.124: ueber der Glas-Fuellung (lag darunter)
+        -- 0.6.118: background image faint (only with guild module - image origin not clearly licensed)
+        f.artTop = f:CreateTexture(nil, "ARTWORK", nil, -8)   -- 0.6.124: above the glass fill (was below it)
         f.artTop:SetPoint("TOPLEFT", 1, -1) f.artTop:SetPoint("RIGHT", -1, 0) f.artTop:SetPoint("BOTTOM", f, "CENTER")
         f.artBot = f:CreateTexture(nil, "ARTWORK", nil, -8)
         f.artBot:SetPoint("BOTTOMLEFT", 1, 1) f.artBot:SetPoint("RIGHT", -1, 0) f.artBot:SetPoint("TOP", f, "CENTER")
-        for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.11) t:Hide() end   -- 0.6.140: 11 % (20 % war zu unruhig hinter den Kacheln)
-        -- 0.6.130: als Funktion - wird bei jedem Oeffnen direkt aufgerufen (neue Fenster sind schon "sichtbar",
-        -- beim ersten Aufruf kam deshalb kein OnShow und das Bild fehlte bis zum zweiten Oeffnen)
+        for _, t in ipairs({ f.artTop, f.artBot }) do t:SetAlpha(0.11) t:Hide() end   -- 0.6.140: 11 % (20 % was too busy behind the tiles)
+        -- 0.6.130: as a function - called directly on every open (new windows are already "visible",
+        -- so the first call got no OnShow and the image was missing until the second open)
         function f:ApplyArt()
             if not ns.GuildPack then return end
-            local r = (f:GetWidth() or 660) / math.max(1, f:GetHeight() or 350) / 2   -- Bild ist 2:1
+            local r = (f:GetWidth() or 660) / math.max(1, f:GetHeight() or 350) / 2   -- Image is 2:1
             local l, rr = 0, 1
             if r < 1 then l, rr = (1 - r) / 2, 1 - (1 - r) / 2 end
             f.artTop:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\updatebg")
@@ -235,7 +235,7 @@ function D.ShowPicker(mode)
             end
             f.artTop:Show() f.artBot:Show()
             if not f.dots and K.DotGrid then f.dots = K.DotGrid(f, 0.04, 10) end
-            -- 0.6.142: Vignette - Bild zu den Raendern hin abdunkeln (zwei Haelften wegen hoechstens 3 Masken)
+            -- 0.6.142: vignette - darken the image towards the edges (two halves because of at most 3 masks)
             if not f.vigTop then
                 f.vigTop = f:CreateTexture(nil, "ARTWORK", nil, -7)
                 f.vigTop:SetPoint("TOPLEFT", 1, -1) f.vigTop:SetPoint("RIGHT", -1, 0) f.vigTop:SetPoint("BOTTOM", f, "CENTER")
@@ -268,8 +268,8 @@ function D.ShowPicker(mode)
         grad(top, "HORIZONTAL", { C.accent[1], C.accent[2], C.accent[3], 1 }, { C.accent[1], C.accent[2], C.accent[3], 0 })
         round(top, { "tl", "tr" })
         f.topTex = top
-        -- 0.6.140: Rahmen - feine Haarlinie, oben in der Akzentfarbe, an den Seiten nach unten auslaufend,
-        -- dazu eine zweite helle Linie 1 px innen (wirkt wie geschliffenes Glas)
+        -- 0.6.140: border - fine hairline, accent color at the top, fading out down the sides,
+        -- plus a second light line 1 px inside (looks like cut glass)
         f.edges = {}
         local function edge(side)
             local t = f:CreateTexture(nil, "OVERLAY")
@@ -291,21 +291,21 @@ function D.ShowPicker(mode)
             grad(self.bottomLine, "HORIZONTAL", { 1, 1, 1, 0.02 }, { 1, 1, 1, 0.07 })
         end
         f:PaintEdges(C.accent)
-        -- 0.6.165: neuer Zierrahmen mit Schimmer wie im Hauptfenster - alte Linien bleiben angelegt, aber aus
+        -- 0.6.165: new decorative frame with shimmer like the main window - old lines stay created but off
         if K.FrameLines then
             f.frameLines = K.FrameLines(f, RAD)
             for _, t in ipairs({ f.topTex, f.edgeL, f.edgeR, f.inner, f.bottomLine }) do t:SetAlpha(0) end
         end
-        -- 0.6.189: mit Gildenmodul derselbe Bild-Rahmen wie das Hauptfenster (Zierlinien dann aus)
+        -- 0.6.189: with guild module the same image frame as the main window (decorative lines then off)
         if ns.GuildPack and K.ImageFrame then
             local ok, fr = pcall(K.ImageFrame, f, 0.3)
             if ok and fr then
                 f.imageFrame = fr
-                if K.ApplyFrameStyle then K.ApplyFrameStyle(f) end   -- 0.6.192: abschaltbar
+                if K.ApplyFrameStyle then K.ApplyFrameStyle(f) end   -- 0.6.192: can be turned off
             end
         end
 
-        -- 0.6.142: Kopf mittig - Ueberzeile zwischen zwei auslaufenden Linien (wie der Trenner unten)
+        -- 0.6.142: header centered - overline between two fading lines (like the separator below)
         f.eyebrow = K.Text(f, 10, C.accent)
         f.eyebrow:SetPoint("TOP", 0, -24)
         if f.eyebrow.SetSpacing then pcall(f.eyebrow.SetSpacing, f.eyebrow, 0) end
@@ -327,7 +327,7 @@ function D.ShowPicker(mode)
         f.close:SetPoint("TOPRIGHT", -12, -12)
 
         --------------------------------------------------------------------
-        -- Neue Version: grosse Karte "Wie bisher weitermachen" ganz oben
+        -- New version: large card "Wie bisher weitermachen" at the very top
         --------------------------------------------------------------------
         local a, b = C.accent, C.amber
         local hero = CreateFrame("Button", nil, f)
@@ -340,7 +340,7 @@ function D.ShowPicker(mode)
         hero.tint = hero:CreateTexture(nil, "BORDER")
         hero.tint:SetAllPoints()
         grad(hero.tint, "HORIZONTAL", { a[1], a[2], a[3], 0.34 }, { b[1], b[2], b[3], 0.08 })
-        -- Lichtstreif, der ab und zu ueber die Karte zieht
+        -- Light streak that moves across the card now and then
         hero.halo = hero:CreateTexture(nil, "ARTWORK", nil, 2)
         hero.halo:SetTexture(CIRCLE)
         hero.halo:SetSize(42, 42)
@@ -368,11 +368,11 @@ function D.ShowPicker(mode)
         end)
         hero:SetScript("OnEnter", function(self) self.hover = true end)
         hero:SetScript("OnLeave", function(self) self.hover = nil end)
-        -- 0.6.123: Bild-Knopf (Text, Symbol und Rahmen im Bild) - nur mit Gildenmodul und deutscher Sprache,
-        -- weil der Text im Bild deutsch ist. Bild 7:1, der Knopf wird dafuer hoeher.
+        -- 0.6.123: image button (text, icon and frame in the image) - only with guild module and German language,
+        -- because the text in the image is German. Image 7:1, the button gets taller for it.
         hero.extra = 0
-        -- 0.6.215: alle Sprachen - Deutsch mit dem Text im Bild, sonst textfreie Fassung (Tools/make_start_keep_blank.py)
-        -- und der uebersetzte Text liegt darueber
+        -- 0.6.215: all languages - German with the text in the image, otherwise text-free version (Tools/make_start_keep_blank.py)
+        -- and the translated text lies on top
         local de = ns.lang == "de" or (not ns.lang and GetLocale and GetLocale() == "deDE")
         hero.artFile = de and "start_keep" or "start_keep_blank"
         if ns.GuildPack then
@@ -383,7 +383,7 @@ function D.ShowPicker(mode)
             for _, x in ipairs({ hero.bg, hero.tint, hero.halo, hero.icon, hero.arrow }) do x:Hide() end
             if de then hero.t:Hide() hero.s:Hide()
             else
-                -- Text an die Stelle, wo er im deutschen Bild steht (ab ~19 % der Breite), mit Schatten
+                -- Text where it is in the German image (from ~19 % of the width), with shadow
                 for _, fs in ipairs({ hero.t, hero.s }) do
                     if fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 1) fs:SetShadowOffset(1, -1) end
                     fs:SetDrawLayer("OVERLAY", 7)
@@ -402,8 +402,8 @@ function D.ShowPicker(mode)
             hero:SetHeight(H)
         end
         f.hero, f.keep = hero, hero
-        -- 0.6.143: statt Leuchten aussen pulsiert die Karte selbst (Bild noch einmal additiv darueber),
-        -- dazu laeuft ab und zu ein Schimmer ueber den oberen und unteren Rand
+        -- 0.6.143: instead of an outer glow the card itself pulses (image added once more on top),
+        -- plus now and then a shimmer runs along the top and bottom edge
         if hero.art then
             hero.pulse = hero:CreateTexture(nil, "ARTWORK", nil, 5)
             hero.pulse:SetAllPoints(hero.art)
@@ -424,7 +424,7 @@ function D.ShowPicker(mode)
                 hero.edge[#hero.edge + 1] = t
             end
         end
-        -- Trenner "oder neu zusammenstellen"
+        -- Separator "oder neu zusammenstellen"
         f.orLbl = K.Text(f, 10, C.dim)
         f.orLbl:SetPoint("TOP", hero, "BOTTOM", 0, -14)
         f.orLbl:SetText(K.Upper(L["or put together anew"]))
@@ -442,7 +442,7 @@ function D.ShowPicker(mode)
         grad(f.orR, "HORIZONTAL", { 1, 1, 1, 0.12 }, { 1, 1, 1, 0 })
 
         --------------------------------------------------------------------
-        -- Schwerpunkt-Karten
+        -- Focus cards
         --------------------------------------------------------------------
         f.sel = {}
         f.tiles = {}
@@ -455,24 +455,24 @@ function D.ShowPicker(mode)
             t.col, t.row = (i - 1) % COLS, math.floor((i - 1) / COLS)
             t.bg = K.Fill(t, { 1, 1, 1, 0.035 })
             K.Border(t, { 1, 1, 1, 0.07 })
-            -- Farbschein von unten (bei Auswahl kraeftig)
+            -- Color glow from below (strong when selected)
             t.tint = t:CreateTexture(nil, "BORDER")
             t.tint:SetAllPoints()
             t.bar = t:CreateTexture(nil, "ARTWORK")
             t.bar:SetPoint("TOPLEFT", 1, -1) t.bar:SetPoint("TOPRIGHT", -1, -1) t.bar:SetHeight(2)
             t.bar:SetColorTexture(c[1], c[2], c[3], 1)
-            -- Symbol im Farbkreis (waechst beim Drueberfahren)
-            -- 0.6.119: Bild-Kachel (Rahmen, Symbol und Szene im Bild) - nur mit Gildenmodul
+            -- Icon in the color circle (grows on hover)
+            -- 0.6.119: image tile (frame, icon and scene in the image) - only with guild module
             if ns.GuildPack then
                 t.art = t:CreateTexture(nil, "BORDER", nil, -1)
                 t.art:SetAllPoints()
-                t.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key .. "_clean")   -- 0.6.150: Bild ohne alten Kreis
-                -- 0.6.142: Kreis-Abzeichen als eigene runde Grafik darueber (Tools/make_interest_badges.py) -
-                -- in den Bildern sind die Kreise verschieden gross und oval; so sind alle gleich rund und gross
+                t.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key .. "_clean")   -- 0.6.150: image without the old circle
+                -- 0.6.142: circle badge as its own round graphic on top (Tools/make_interest_badges.py) -
+                -- in the images the circles differ in size and are oval; this way all are equally round and large
                 t.badge = t:CreateTexture(nil, "BORDER", nil, 0)
                 t.badge:SetPoint("CENTER", t, "LEFT", 34, 0)
                 t.badge:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\interest_" .. it.key .. "_badge")
-                -- dunkler Verlauf hinter dem Namen (rechts neben dem Symbol), damit die Schrift lesbar bleibt
+                -- dark gradient behind the name (right of the icon) so the text stays readable
                 t.shade = t:CreateTexture(nil, "BORDER", nil, 1)
                 t.shade:SetPoint("TOPLEFT", t, "TOPLEFT", 4, -4)
                 t.shade:SetPoint("BOTTOMRIGHT", t, "BOTTOMRIGHT", -4, 4)
@@ -499,7 +499,7 @@ function D.ShowPicker(mode)
             t.s:SetWordWrap(true)
             t.s:SetHeight(28)
             t.s:SetText(L[it.sub])
-            -- Haken-Kreis oben rechts
+            -- Check circle at the top right
             t.ring = t:CreateTexture(nil, "OVERLAY")
             t.ring:SetTexture(CIRCLE)
             t.ring:SetSize(20, 20)
@@ -525,9 +525,9 @@ function D.ShowPicker(mode)
             t:SetScript("OnLeave", function(self) self.hover = nil f:Mark() end)
             f.tiles[i] = t
         end
-        -- compact (neue Version): flache, ruhige Zeilen-Karten - "Wie bisher" oben bleibt der Blickfang
+        -- compact (new version): flat, calm row cards - "Wie bisher" at the top stays the eye-catcher
         function f:Place(y0, compact)
-            -- 0.6.123: mit Bild-Kacheln etwas hoeher, damit der Name zweizeilig neben das Abzeichen passt
+            -- 0.6.123: a bit taller with image tiles so the name fits on two lines next to the badge
             local th = compact and (self.tiles[1] and self.tiles[1].art and 56 or 46) or TH
             local gap = compact and 8 or GAP
             self.compact = compact
@@ -542,14 +542,14 @@ function D.ShowPicker(mode)
                 t.n:ClearAllPoints()
                 t.ring:ClearAllPoints()
                 if t.art then
-                    -- Abzeichen immer quadratisch (Kachelhoehe), das Bild darunter fuellt die Kachel
+                    -- Badge always square (tile height), the image below fills the tile
                     t.badge:SetSize(th, th)
                     t.art:SetTexCoord(0, 1, 0, 1)
                     t.halo:Hide() t.icon:Hide()
                 end
                 if compact then
                     t.halo:SetPoint("CENTER", t, "LEFT", 24, 0)
-                    -- Name rechts neben dem Abzeichen im Bild (Kreis endet bei gut 27 % der Bildbreite)
+                    -- Name to the right of the badge in the image (circle ends at a good 27 % of the image width)
                     t.n:SetPoint("LEFT", t, "LEFT", t.art and 66 or 46, 0)
                     t.n:SetPoint("RIGHT", -34, 0)
                     t.ring:SetPoint("CENTER", t, "RIGHT", -18, 0)
@@ -579,7 +579,7 @@ function D.ShowPicker(mode)
                 local tintA = self.compact and (on and 0.14 or (t.hover and 0.07 or 0)) or (on and 0.26 or (t.hover and 0.1 or 0))
                 grad(t.tint, self.compact and "HORIZONTAL" or "VERTICAL", { c[1], c[2], c[3], tintA }, { c[1], c[2], c[3], 0 })
                 if self.compact then K.SetBorderColor(t, on and { c[1], c[2], c[3], 0.55 } or (t.hover and { c[1], c[2], c[3], 0.3 } or { 1, 1, 1, 0.05 })) end
-                -- 0.6.121: Bild-Kacheln haben ihren eigenen Rahmen - Oasis-Rahmen unsichtbar
+                -- 0.6.121: image tiles have their own frame - Oasis frame invisible
                 if t.art then K.SetBorderColor(t, { 0, 0, 0, 0 }) end
                 t.bar:SetShown(on and not t.art and true or false)
                 if t.art then
@@ -605,7 +605,7 @@ function D.ShowPicker(mode)
         end
 
         --------------------------------------------------------------------
-        -- Fusszeile
+        -- Footer
         --------------------------------------------------------------------
         local line = f:CreateTexture(nil, "ARTWORK")
         line:SetColorTexture(1, 1, 1, 0.06)
@@ -620,8 +620,8 @@ function D.ShowPicker(mode)
             K.Toast(L["All set"], L["You can find more areas anytime under 'Discover'."], C.mint, function() ns.ShowPage("discover") end)
         end)
         f.ok:SetPoint("BOTTOMRIGHT", -24, 22)
-        -- 0.6.125: Bild-Knopf unten in der Mitte (Gildenmodul) - eigener schlichter Knopf nur aus dem Bild, der
-        -- Standard-Knopf zeichnete Flaeche und Rahmen um die halbtransparenten Kanten
+        -- 0.6.125: image button at the bottom center (guild module) - own plain button made only of the image, the
+        -- default button drew a surface and border around the semi-transparent edges
         if ns.GuildPack then
             f.ok:Hide()
             f.ok.Show = function() end
@@ -652,7 +652,7 @@ function D.ShowPicker(mode)
         end)
         f.all = textBtn(f, L["Turn all on"], 110, function()
             S().interestsDone = ns.now()
-            -- wirklich alles: auch was "Nur das Noetigste" ausgeblendet hat
+            -- really everything: including what "Nur das Noetigste" hid
             if ns.UpdateStart and ns.UpdateStart.AllOn then ns.UpdateStart.AllOn() else D.ShowAll() end
             f:Hide()
         end)
@@ -665,14 +665,14 @@ function D.ShowPicker(mode)
         end)
         f.min:SetPoint("RIGHT", f.all, "LEFT", -8, 0)
         f.never = K.Toggle(f, L["Don't ask again"], function() return S().updateAsk == false end,
-            function(v) if v then S().updateAsk = false else S().updateAsk = nil end end)   -- 0.6.125: liess sich nicht ausschalten
+            function(v) if v then S().updateAsk = false else S().updateAsk = nil end end)   -- 0.6.125: could not be turned off
         f.never:SetPoint("BOTTOMLEFT", 20, 28)
         f.never:SetWidth(150)
         f.never:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Don't ask again"], L["New versions will then simply start as before."] }) end)
         f.never:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
         --------------------------------------------------------------------
-        -- Bewegung: Karten wachsen beim Drueberfahren, Haken springt, Lichtstreif ueber "Wie bisher"
+        -- Motion: cards grow on hover, check mark pops, light streak over "Wie bisher"
         --------------------------------------------------------------------
         f.shT = 0
         f:SetScript("OnUpdate", function(self, el)
@@ -707,8 +707,8 @@ function D.ShowPicker(mode)
                 h.halo:SetSize(42 + 6 * h.hv, 42 + 6 * h.hv)
                 h.arrow:SetVertexColor(1, 1, 1, 0.6 + 0.4 * h.hv)
                 if h.art then h.art:SetAlpha(0.85 + 0.15 * h.hv) end
-                -- wie die Karten darunter: grau, sobald etwas anderes im Blick ist (Karte gewaehlt oder unter der Maus),
-                -- farbig, wenn die Maus auf "Wie bisher" steht oder noch nichts gewaehlt ist
+                -- like the cards below: grey as soon as something else is in focus (card selected or under the mouse),
+                -- colored when the mouse is on "Wie bisher" or nothing is chosen yet
                 local other = next(self.sel or {}) ~= nil
                 for _, t in ipairs(self.tiles) do if t.hover then other = true break end end
                 local wantDim = (other and not h.hover) and 1 or 0
@@ -718,10 +718,10 @@ function D.ShowPicker(mode)
                 local grey = h.dim > 0.5
                 if h.art then h.art:SetDesaturated(grey or self.heroRed == false) end
                 if h.pulse then h.pulse:SetDesaturated(grey or self.heroRed == false) end
-                -- Pulsieren: 3 s ein und aus, beim Drueberfahren kraeftiger
+                -- Pulsing: 3 s in and out, stronger on hover
                 h.gT = ((h.gT or 0) + el) % 3
                 if h.pulse then h.pulse:SetAlpha((0.5 - 0.5 * math.cos(h.gT / 3 * math.pi * 2)) * 0.22 + 0.10 * h.hv) end
-                -- Schimmer ueber den Rand: alle 6 s, oben nach rechts, unten nach links (1,2 s)
+                -- Shimmer along the edge: every 6 s, top to the right, bottom to the left (1.2 s)
                 self.shT = (self.shT + el) % 6
                 local p = self.shT / 1.2
                 local wd = (h:GetWidth() or 600) - 40
@@ -739,7 +739,7 @@ function D.ShowPicker(mode)
                 end
             end
         end)
-        -- 0.6.126: Farben bei jedem Oeffnen an die gewaehlte Akzentfarbe anpassen (Fenster wird nur einmal gebaut)
+        -- 0.6.126: adapt colors to the chosen accent color on every open (the window is built only once)
         function f:Retint()
             local ac = C.accent
             grad(self.glowTex, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.16 })
@@ -747,7 +747,7 @@ function D.ShowPicker(mode)
             self:PaintEdges(ac)
             grad(self.ebL, "HORIZONTAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.6 })
             grad(self.ebR, "HORIZONTAL", { ac[1], ac[2], ac[3], 0.6 }, { ac[1], ac[2], ac[3], 0 })
-            -- die Bilder sind rot gemalt: bei roter Akzentfarbe Original, sonst entsaettigt in der Akzentfarbe
+            -- the images are painted red: original with a red accent color, otherwise desaturated in the accent color
             local red = ac[1] > 0.55 and ac[2] < 0.45 and ac[3] < 0.45
             self.heroRed = red
             local function paint(tex, boost)
@@ -766,7 +766,7 @@ function D.ShowPicker(mode)
         ns.EscClose("OasisInterests")
         pick = f
     end
-    -- Anzeige je nach Anlass: erste Einrichtung oder neue Version
+    -- Display depending on occasion: first setup or new version
     local upd = mode == "update"
     pick.mode = mode
     pick.eyebrow:SetText(K.Upper(upd and ((L["Oasis %s is here"]):format(ns.version) .. ((ns.versionDate and ns.versionDate ~= "") and ("  ·  " .. ns.versionDate) or "")) or L["Welcome to Oasis"]))
@@ -775,12 +775,12 @@ function D.ShowPicker(mode)
         or L["Oasis can do a lot. Pick what you want to use - the rest stays off for now and can be turned on anytime under 'Discover'."])
     for _, w in ipairs({ pick.hero, pick.orLbl, pick.orL, pick.orR, pick.min, pick.never }) do w:SetShown(upd) end
     pick.count:SetShown(not upd)
-    -- Karten unter "Wie bisher" bzw. direkt unter den Text; Hoehe passend
+    -- Cards below "Wie bisher" or directly below the text; height to match
     local y0 = upd and (-222 - (pick.hero.extra or 0)) or -122
     local th, gap = pick:Place(y0, upd)
     pick:SetHeight(-y0 + 2 * th + gap + 88)
     if upd and pick.never.Refresh then pick.never:Refresh() end
-    -- Vorauswahl: bisherige Wahl oder "Zusammen spielen" + "Leveln & Questen"
+    -- Preselection: previous choice or "Zusammen spielen" + "Leveln & Questen"
     pick.sel = {}
     local prev = S().interests
     if type(prev) == "table" and next(prev) then for k, v in pairs(prev) do pick.sel[k] = v end else pick.sel.group = true pick.sel.level = true end
@@ -800,9 +800,9 @@ function D.ShowPicker(mode)
 end
 ns.slash.interessen = function() D.ShowPicker() end
 
--- erstes Fenster nach Installation bzw. Update: Interessen waehlen (einmalig, bis eine Wahl getroffen wurde)
+-- first window after install or update: choose interests (once, until a choice is made)
 ns.Listen("LOGIN", function()
-    S().dashSimple = nil   -- immer die volle Startseite
+    S().dashSimple = nil   -- always the full start page
     if S().interestsDone then return end
     ns.After(6, function()
         if S().interestsDone or ns.inCombat() then return end
@@ -811,7 +811,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Nach und nach: alle 3 Tage ein ausgeblendeter Bereich als Tipp
+-- Gradually: every 3 days a hidden section as a tip
 ------------------------------------------------------------------------
 local HINT_EVERY = 3 * 86400
 local function hint()
@@ -838,13 +838,13 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Seite "Entdecken"
+-- Page "Entdecken"
 ------------------------------------------------------------------------
 local filter = "all"
 if ns.ICONS and not ns.ICONS.discover then ns.ICONS.discover = ns.ICONS.map end
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 
--- kleiner Schalter (Pille + Knopf): an = Interessenfarbe, aus = grau
+-- small toggle (pill + knob): on = interest color, off = grey
 local function switch(parent, onClick)
     local s = CreateFrame("Button", nil, parent)
     s:SetSize(30, 16)
@@ -886,7 +886,7 @@ ns.RegisterPage({
         p.info:SetPoint("TOPLEFT", 0, -36)
         p.info:SetPoint("RIGHT", p, "RIGHT", 0, 0)
 
-        -- Karte: Symbol | Titel + Schalter | Beschreibung (2 Zeilen, volle Breite)
+        -- Card: icon | title + toggle | description (2 lines, full width)
         local function card(row)
             local c = CreateFrame("Button", nil, row)
             c:SetSize(220, 70)
@@ -919,7 +919,7 @@ ns.RegisterPage({
             c.sw:SetScript("OnLeave", function() GameTooltip:Hide() end)
             c:SetScript("OnClick", function(self)
                 if not self.d then return end
-                -- ausgeschalteter Bereich: Klick schaltet ein, eingeschalteter: oeffnen
+                -- disabled section: click turns it on, enabled: open it
                 if D.IsOn(self.d.key) then ns.ShowPage(self.d.key) else D.Set(self.d.key, true) end
             end)
             return c
@@ -940,7 +940,7 @@ ns.RegisterPage({
             c.s:SetAlpha(on and 1 or 0.7)
             c.sw:Set(on, col)
         end
-        -- Bildlaufflaeche mit freier Hoehe: Gruppen-Kopf (28) + Kartenreihen (80)
+        -- Scroll area with free height: group header (28) + card rows (80)
         local sf = CreateFrame("ScrollFrame", nil, p)
         sf:SetPoint("TOPLEFT", 0, -58)
         sf:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -1000,7 +1000,7 @@ ns.RegisterPage({
                 table.insert(groups[k].list, d)
             end
         end
-        -- Reihenfolge wie im Interessen-Fenster, "Weitere" zuletzt
+        -- Order as in the interests window, "Weitere" last
         local idx = {}
         for i, it in ipairs(D.INTERESTS) do idx[it.key] = i end
         table.sort(gOrder, function(a, b) return (idx[a] or 99) < (idx[b] or 99) end)
@@ -1042,11 +1042,11 @@ ns.RegisterPage({
         p.info:SetText((L["%d of %d areas turned on. Click a card to open it."]):format(on, #all))
     end,
 })
--- in die Navigation: gleich unter dem Dashboard
+-- into the navigation: right below the dashboard
 if ns.NAV_GROUPS and ns.NAV_GROUPS[1] then table.insert(ns.NAV_GROUPS[1].pages, "discover") end
 
--- Ersten Start nachspielen (zum Testen): Einstieg zuruecksetzen, Rundgang + Interessen-Auswahl wie bei Neuen.
--- Daten bleiben erhalten; danach mit "Alles einschalten" (Entdecken) wieder alles zeigen.
+-- Replay the first start (for testing): reset onboarding, tour + interest picker as for new users.
+-- Data is kept; afterwards show everything again with "Alles einschalten" (Discover).
 ns.slash.erststart = function()
     local s = S()
     D.ShowAll()
@@ -1055,7 +1055,7 @@ ns.slash.erststart = function()
     D.ShowPicker()
 end
 
--- Abgleich pruefen: was wurde verworfen, laeuft noch etwas, Komplett-Abgleich anstossen
+-- Check sync: what was discarded, is anything still running, trigger a full sync
 ns.slash.abgleich = function(arg)
     local St, Co = ns.Store, ns.Comm
     ns.print("|cffe8b44a" .. L["Sync"] .. "|r  " .. (L["last: %s"]):format(ns.db.meta.lastSync and ns.fmtDate(ns.db.meta.lastSync) or "-")

@@ -1,14 +1,14 @@
--- Oasis - Waffenlehrer: in welcher Hauptstadt lernt man welche Waffe? Passend zu Fraktion (Volk) und Klasse,
--- mit dem, was du schon kannst. Stand: Classic (WoW Forever kann abweichen).
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_WeaponTrainers", function()   -- Modul Waffenlehrer (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis - Weapon trainers: in which capital do you learn which weapon? Matching faction (race) and class,
+-- with what you can already do. State: Classic (WoW Forever may differ).
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_WeaponTrainers", function()   -- module weapon trainers (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
 local W = {}
 ns.Weapons = W
 
--- Waffen: Schluessel, deutscher Name (Fertigkeit im deDE-Client), englischer Name
+-- weapons: key, German name (skill in the deDE client), English name
 local WEAPONS = {
     { "axe1", "One-Handed Axes", "One-Handed Axes" }, { "axe2", "Two-Handed Axes", "Two-Handed Axes" },
     { "mace1", "One-Handed Maces", "One-Handed Maces" }, { "mace2", "Two-Handed Maces", "Two-Handed Maces" },
@@ -17,7 +17,7 @@ local WEAPONS = {
     { "staff", "Staves", "Staves" }, { "bow", "Bows", "Bows" }, { "xbow", "Crossbows", "Crossbows" },
     { "gun", "Guns", "Guns" }, { "thrown", "Thrown", "Thrown" },
 }
--- was die Klasse lernen darf (Classic; WoW Forever: Schurken auch Einhandaexte - laut Gilde 07.10.)
+-- what the class may learn (Classic; WoW Forever: rogues also one-handed axes - per guild 07.10.)
 local CLASS = {
     WARRIOR = { axe1 = 1, axe2 = 1, mace1 = 1, mace2 = 1, sword1 = 1, sword2 = 1, dagger = 1, fist = 1, polearm = 1, staff = 1, bow = 1, xbow = 1, gun = 1, thrown = 1 },
     PALADIN = { axe1 = 1, axe2 = 1, mace1 = 1, mace2 = 1, sword1 = 1, sword2 = 1, polearm = 1 },
@@ -29,7 +29,7 @@ local CLASS = {
     WARLOCK = { sword1 = 1, dagger = 1, staff = 1 },
     DRUID = { mace1 = 1, mace2 = 1, dagger = 1, fist = 1, staff = 1 },
 }
--- Waffenmeister der Hauptstaedte (Classic)
+-- weapon masters of the capitals (Classic)
 local TRAINERS = {
     Horde = {
         { city = "Orgrimmar", npc = "Sayoc", where = "Tal der Ehre", x = 81.6, y = 19.4, w = { "axe1", "axe2", "bow", "dagger", "fist", "thrown" } },
@@ -45,7 +45,7 @@ local TRAINERS = {
     },
 }
 
--- Karten der Hauptstaedte: Classic-ID zuerst, dann Retail-ID (Forever nutzt den Retail-Client)
+-- capital maps: Classic ID first, then Retail ID (Forever uses the Retail client)
 local CITY_MAPS = {
     Orgrimmar = { 1454, 85 }, Donnerfels = { 1456, 88 }, Unterstadt = { 1458, 90 },
     Sturmwind = { 1453, 84 }, Eisenschmiede = { 1455, 87 }, Darnassus = { 1457, 89 },
@@ -60,7 +60,7 @@ local function cityMap(city)
     mapCache[city] = false
     return nil
 end
--- Waffenmeister auf der Weltkarte zeigen (Oasis-Ziel: Pfeil auf Karte + Minimap)
+-- show weapon master on the world map (Oasis target: arrow on map + minimap)
 function W.ShowTrainer(t)
     if not t then return end
     local id = t.mapID or cityMap(t.city)
@@ -73,10 +73,10 @@ function W.ShowTrainer(t)
     end
 end
 
--- WoW Forever nennt die Einhand-Fertigkeiten kurz ("Äxte", "Streitkolben", "Schwerter")
+-- WoW Forever names the one-hand skills short ("Äxte", "Streitkolben", "Schwerter")
 local ALIAS = { ["Äxte"] = "axe1", ["Axes"] = "axe1", ["Streitkolben"] = "mace1", ["Maces"] = "mace1",
     ["Schwerter"] = "sword1", ["Swords"] = "sword1", ["Staves"] = "staff", ["Staves"] = "staff" }
--- schon gelernte Waffen (Fertigkeiten-Liste des Clients)
+-- already learned weapons (client skill list)
 local function known()
     local out = {}
     local n = GetNumSkillLines and GetNumSkillLines() or 0
@@ -89,7 +89,7 @@ local function known()
             end
         end
     end
-    -- Forever-Client liefert die alte Fertigkeitenliste oft nicht: Waffen-Fertigkeiten sind auch Zauber
+    -- the Forever client often does not deliver the old skill list: weapon skills are spells too
     local SPELL = { axe1 = 196, axe2 = 197, mace1 = 198, mace2 = 199, polearm = 200, sword1 = 201, sword2 = 202,
         staff = 227, bow = 264, gun = 266, dagger = 1180, thrown = 2567, xbow = 5011, fist = 15590 }
     for k, id in pairs(SPELL) do
@@ -98,7 +98,7 @@ local function known()
             if ok and ns.safe(has) then out[k] = { rank = 0, max = 0 } end
         end
     end
-    -- angelegte Waffen koennen nur gelernt sein (Waffen-Unterklasse -> Schluessel)
+    -- equipped weapons must be learned (weapon subclass -> key)
     local SUB = { [0] = "axe1", [1] = "axe2", [2] = "bow", [3] = "gun", [4] = "mace1", [5] = "mace2", [6] = "polearm",
         [7] = "sword1", [8] = "sword2", [10] = "staff", [13] = "fist", [15] = "dagger", [16] = "thrown", [18] = "xbow" }
     for _, slot in ipairs({ 16, 17, 18 }) do
@@ -113,16 +113,16 @@ local function known()
 end
 
 ------------------------------------------------------------------------
--- WoW Forever statt Classic: was Waffenmeister WIRKLICH lehren, liest Oasis beim Besuch mit
--- (Trainerfenster) und teilt es mit der Gilde (Sammlung "wtrain"). Die Classic-Tabellen oben
--- gelten nur noch, solange niemand aus der Gilde den Lehrer besucht hat.
---   wt:<Lehrer>  = { npc, city, mapID, x, y, fac, w = "axe1,sword1,..." }   (was er lehrt, alle Klassen gesammelt)
---   wc:<KLASSE>  = { cls, w = "..." }                                      (was diese Klasse lernen kann)
+-- WoW Forever instead of Classic: what weapon masters REALLY teach, Oasis reads on a visit
+-- (trainer window) and shares it with the guild (collection "wtrain"). The Classic tables above
+-- only apply as long as nobody from the guild has visited the trainer.
+--   wt:<trainer>  = { npc, city, mapID, x, y, fac, w = "axe1,sword1,..." }   (what he teaches, all classes combined)
+--   wc:<CLASS>  = { cls, w = "..." }                                      (what this class can learn)
 ------------------------------------------------------------------------
 local Store = ns.Store
 local KEYSET = {}
 for _, wp in ipairs(WEAPONS) do KEYSET[wp[1]] = true end
--- Fertigkeitsname (Trainer, Fertigkeitenliste) -> Schluessel
+-- skill name (trainer, skill list) -> key
 local function keyOfName(name)
     if type(name) ~= "string" then return nil end
     for _, wp in ipairs(WEAPONS) do
@@ -144,7 +144,7 @@ local function clean(s, max)
     s = tostring(s or ""):gsub("[|%c]", "")
     return s:sub(1, max or 40)
 end
--- Trainerfenster lesen
+-- read trainer window
 function W.ScanTrainer()
     if not (GetNumTrainerServices and GetTrainerServiceInfo and Store) then return end
     local n = ns.safe(GetNumTrainerServices()) or 0
@@ -154,7 +154,7 @@ function W.ScanTrainer()
         local k = ok and keyOfName(ns.safe(name))
         if k then found[k] = true end
     end
-    if not next(found) then return end   -- kein Waffenmeister
+    if not next(found) then return end   -- no weapon master
     local npc = clean(ns.safe(ns.UnitName("npc")), 40)
     if npc == "" then return end
     local _, cls = UnitClass("player")
@@ -165,7 +165,7 @@ function W.ScanTrainer()
         local okp, pos = pcall(C_Map.GetPlayerMapPosition, mapID, "player")
         if okp and pos then x, y = pos.x, pos.y end
     end
-    -- Lehrer: was er lehrt (alle Klassen zusammen)
+    -- trainer: what he teaches (all classes together)
     local id = "wt:" .. npc
     local old = Store.Get("wtrain", id)
     local w = splitKeys(old and old.w)
@@ -175,7 +175,7 @@ function W.ScanTrainer()
         Store.Put("wtrain", { id = id, npc = npc, city = clean(ns.safe(GetRealZoneText()) or "", 40), fac = fac, mapID = mapID,
             x = x and math.floor(x * 1000) / 10 or nil, y = y and math.floor(y * 1000) / 10 or nil, w = joinKeys(w) })
     end
-    -- Klasse: was sie lernen kann
+    -- class: what it can learn
     if cls then
         local cid = "wc:" .. cls
         local oc = Store.Get("wtrain", cid)
@@ -189,7 +189,7 @@ end
 ns.On("TRAINER_SHOW", function() ns.After(0.3, function() pcall(W.ScanTrainer) end) end)
 ns.On("TRAINER_UPDATE", function() pcall(W.ScanTrainer) end)
 
--- Lehrer einer Fraktion: gelesene (Forever) zuerst, Classic-Liste nur fuer noch unbesuchte
+-- trainers of a faction: read ones (Forever) first, Classic list only for not yet visited
 function W.Trainers(faction)
     local out, seen = {}, {}
     if Store then
@@ -204,10 +204,10 @@ function W.Trainers(faction)
     for _, t in ipairs(TRAINERS[faction] or {}) do if not seen[t.npc] then out[#out + 1] = t end end
     return out
 end
--- was meine Klasse lernen kann: gelesen (Forever) falls vorhanden, sonst Classic
+-- what my class can learn: read (Forever) if available, otherwise Classic
 function W.ClassCan(cls)
-    -- Classic-Liste PLUS was ein Forever-Waffenmeister dieser Klasse angeboten hat
-    -- (ein einzelner Lehrer zeigt nur seine Waffen -> ergaenzen, nicht ersetzen)
+    -- Classic list PLUS what a Forever weapon master offered this class
+    -- (a single trainer shows only his weapons -> add, do not replace)
     local t = {}
     for k in pairs(CLASS[cls or ""] or {}) do t[k] = true end
     local r = Store and Store.Get("wtrain", "wc:" .. tostring(cls))
@@ -250,7 +250,7 @@ function W.Build(h)
         r:SetScript("OnClick", function(self) if self.trainer then W.ShowTrainer(self.trainer) end end)
         h.rows[i] = r
     end
-    -- was die Klasse nicht kann: eine Zeile statt vieler grauer
+    -- what the class cannot do: one line instead of many grey ones
     h.notMine = K.Text(left, 11, C.dim)
     h.notMine:SetPoint("RIGHT", -18, 0)
     h.notMine:SetJustifyH("LEFT")
@@ -284,7 +284,7 @@ function W.Build(h)
         c.city = K.Title(c, 14, C.text)
         c.city:SetPoint("TOPLEFT", 12, -8)
         c.npc = K.Text(c, 11, C.muted)
-        c.npc:SetPoint("LEFT", c.city, "RIGHT", 8, -1)   -- Lehrer neben der Stadt (spart eine Zeile)
+        c.npc:SetPoint("LEFT", c.city, "RIGHT", 8, -1)   -- trainer next to the city (saves a line)
         c.w = K.Text(c, 12, C.text)
         c.w:SetPoint("TOPLEFT", c.city, "BOTTOMLEFT", 0, -5)
         c.w:SetPoint("RIGHT", -28, 0)
@@ -306,11 +306,11 @@ function W.Show(h)
     local can, fromGame = W.ClassCan(cls)
     local have = known()
     local trainers = W.Trainers(faction)
-    -- was der Client schon als Fertigkeit kennt, darf die Klasse auf jeden Fall (WoW Forever weicht von Classic ab)
+    -- what the client already knows as a skill, the class may do in any case (WoW Forever differs from Classic)
     for k in pairs(have) do can[k] = 1 end
     local byKey = {}
     for _, wp in ipairs(WEAPONS) do byKey[wp[1]] = wp end
-    -- wo lerne ich was?
+    -- where do I learn what?
     local where = {}
     local firstT = {}
     for _, t in ipairs(trainers) do
@@ -322,7 +322,7 @@ function W.Show(h)
             firstT[k] = firstT[k] or t
         end
     end
-    -- zuerst, was die Klasse kann (gelernt + offen); der Rest kommt gesammelt in eine Zeile darunter
+    -- first what the class can do (learned + open); the rest goes collected into one line below
     local order, rest = {}, {}
     for _, wp in ipairs(WEAPONS) do
         if have[wp[1]] or can[wp[1]] then order[#order + 1] = wp else rest[#rest + 1] = L[wp[2]] end
@@ -337,12 +337,12 @@ function W.Show(h)
         r.trainer = firstT[k]
         r.pin:SetShown(r.trainer ~= nil)
         if h2 then
-            -- gelernt = gruen
+            -- learned = green
             r.dot:SetColorTexture(0.40, 0.86, 0.62, 1)
             r.n:SetText("|cff66db9e" .. L[wp[2]] .. "|r")
             r.v:SetText((h2.max or 0) > 0 and ("|cff9a9aa2" .. (h2.rank or 0) .. " / " .. h2.max .. "|r") or ("|cff66db9e" .. L["learned"] .. "|r"))
         elseif can[k] then
-            -- noch nicht gelernt = rot
+            -- not learned yet = red
             r.dot:SetColorTexture(0.95, 0.30, 0.30, 1)
             r.n:SetText("|cfff04d4d" .. L[wp[2]] .. "|r")
             local w = where[k]
@@ -379,9 +379,9 @@ function W.Show(h)
 end
 
 ------------------------------------------------------------------------
--- Fertigkeiten (Koennen > Fertigkeiten): Waffen-, Verteidigungs- und Ruestungsfertigkeiten mit Stufe.
--- Quelle: Fertigkeitenliste des Clients (GetSkillLineInfo, mit Kategorien); liefert der Client nichts,
--- zeigt die Seite wenigstens die gelernten Waffen (ohne Stufe).
+-- Skills (Abilities > Skills): weapon, defense and armor skills with level.
+-- Source: client skill list (GetSkillLineInfo, with categories); if the client returns nothing,
+-- the page at least shows the learned weapons (without level).
 ------------------------------------------------------------------------
 function W.Skills()
     local groups, cur = {}, nil
@@ -398,7 +398,7 @@ function W.Skills()
             end
         end
     end
-    -- Berufe stehen schon unter "Berufe & Ruf"; Sprachen interessieren hier nicht
+    -- professions are already under "Professions & Reputation"; languages do not matter here
     local out = {}
     for _, g in ipairs(groups) do
         local h = g.head:lower()
@@ -434,7 +434,7 @@ function W.ShowSkills(h)
     local W2 = (h:GetWidth() or 700)
     if W2 < 200 then W2 = 700 end
     local colW = math.floor((W2 - 28 - 20) / 2)
-    -- zwei Spalten: Gruppen abwechselnd links/rechts auffuellen (kuerzere Spalte zuerst)
+    -- two columns: fill groups alternating left/right (shorter column first)
     local colY = { -44, -44 }
     local ri, hi = 0, 0
     local noRank = false

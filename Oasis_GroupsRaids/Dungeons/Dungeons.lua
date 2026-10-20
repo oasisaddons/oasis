@@ -1,10 +1,10 @@
 -- Oasis: Dungeons
--- Hauptquelle sind Blizzards eigene Client-Daten: Dungeonkompass (Dungeons, Bosse, Beute),
--- Dungeonfinder (Stufenbereiche) und die Questlogs der Gilde (Dungeon-Quests).
--- Ist "Forever Dungeon Journal" (Exehn) installiert, nutzt Oasis zusaetzlich dessen
--- gepflegte Quest- und Beutedaten (nur gelesen, nichts davon ist in Oasis enthalten).
+-- Main source is Blizzard's own client data: Dungeon Journal (dungeons, bosses, loot),
+-- Dungeon Finder (level ranges) and the guild's quest logs (dungeon quests).
+-- If "Forever Dungeon Journal" (Exehn) is installed, Oasis additionally uses its
+-- curated quest and loot data (read only, none of it is included in Oasis).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Dungeons", function()   -- Module Dungeons (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -22,7 +22,7 @@ local function norm(s)
 end
 
 ------------------------------------------------------------------------
--- Blizzard: Stufenbereiche aus dem Dungeonfinder
+-- Blizzard: level ranges from the Dungeon Finder
 ------------------------------------------------------------------------
 local lfgLevels
 local function lfgLevelsByName()
@@ -45,11 +45,11 @@ local function lfgLevelsByName()
 end
 
 ------------------------------------------------------------------------
--- Blizzard: Dungeons und Bosse aus dem Dungeonkompass
+-- Blizzard: dungeons and bosses from the Dungeon Journal
 ------------------------------------------------------------------------
 local ejList, ejTried = nil, 0
 local function scanEJ()
-    -- leeres Ergebnis nicht fuer immer merken: Daten kommen im Client teils spaeter
+    -- don't remember an empty result forever: data sometimes arrives later in the client
     if ejList and (#ejList > 0 or GetTime() - ejTried < 60) then return ejList end
     ejTried = GetTime()
     lfgLevels = nil
@@ -68,7 +68,7 @@ local function scanEJ()
                 local ok, id, name = pcall(EJ_GetInstanceByIndex, i, isRaid)
                 if not ok or not id then break end
                 local lv = levels[norm(name)]
-                -- Nur Classic-/Forever-Inhalte: ueber den Dungeonfinder, sonst ueber den Tier-Namen
+                -- Only Classic/Forever content: via the Dungeon Finder, else via the tier name
                 local classicTier = tier == 1 or tostring(tierName):find("Forever") or tostring(tierName):find("Classic")
                 local keep = lv ~= nil or classicTier or (not haveLFG and numTiers <= 2)
                 if keep and not seen[id] then
@@ -122,11 +122,11 @@ function Dungeons.Bosses(d)
     return d.bosses
 end
 
--- Beute eines Blizzard-Dungeons einlesen (Item-Daten kommen teils verzoegert)
+-- Load loot of a Blizzard dungeon (item data sometimes arrives delayed)
 local lootIndex = {}
 local function loadLoot(d)
     if d.source ~= "blizzard" or d.lootDone or not (EJ_SelectEncounter and EJ_GetNumLoot) then return end
-    if EncounterJournal and EncounterJournal:IsShown() then return end   -- Blizzards Fenster nicht stoeren
+    if EncounterJournal and EncounterJournal:IsShown() then return end   -- Don't disturb Blizzard's windows
     local getLoot = C_EncounterJournal and C_EncounterJournal.GetLootInfoByIndex
     if not getLoot then return end
     local missing = 0
@@ -165,7 +165,7 @@ local function journalList()
             local lo, hi = tostring(d.level or ""):match("(%d+)%-?(%d*)")
             local okN, name = pcall(f.LocalizeDungeonName or function(x) return x end, key)
             local okL, locText = pcall(f.LocalizeDungeonField or function(_, _, x) return x end, key, "location", d.location or "")
-            -- Journal-Schluessel mit Oasis-Karten und den deutschen/englischen Gebietsnamen verbinden.
+            -- Link journal keys with Oasis maps and the German/English zone names.
             local own
             for _, e in ipairs(ns.DungeonData or {}) do
                 if norm(key) == norm(e.name) or norm(key) == norm(e.key)
@@ -185,7 +185,7 @@ local function journalList()
 end
 
 ------------------------------------------------------------------------
--- Oasis-eigene Dungeon-Datenbank (Modules\Dungeons\DungeonData.lua, aus oeffentlichen Quellen)
+-- Oasis' own dungeon database (Modules\Dungeons\DungeonData.lua, from public sources)
 ------------------------------------------------------------------------
 local oasisList
 local function dataList()
@@ -205,11 +205,11 @@ local function dataList()
 end
 
 ------------------------------------------------------------------------
--- Gemeinsame Abfragen
+-- Shared queries
 ------------------------------------------------------------------------
 function Dungeons.Available() return #Dungeons.List() > 0 end
 
--- Reihenfolge: Exehns Journal (falls da) > Oasis-Datenbank > uebrige Blizzard-Eintraege
+-- Order: Exehn's journal (if present) > Oasis database > remaining Blizzard entries
 function Dungeons.List()
     local out, have = {}, {}
     local function add(d, ...)
@@ -238,7 +238,7 @@ local SHORT = {
 local ALIAS = { dm = "deadmines", vc = "deadmines", wc = "wailing", sfk = "shadowfang", bfd = "blackfathom", rfc = "ragefire",
     hot = "thanes", rol = "lordaeron", stocks = "stockade", sm = "scarlet", rfk = "razorfen", gnomer = "gnomeregan" }
 
--- Dungeon aus freiem Text erkennen (Termin-Titel, Gruppensuche), deutsch oder englisch
+-- Recognize dungeon from free text (event title, group finder), German or English
 function Dungeons.Match(text)
     if not text or text == "" then return nil end
     local t = norm(text)
@@ -276,18 +276,18 @@ function Dungeons.CanOpenJournal(d)
 end
 
 ------------------------------------------------------------------------
--- Dungeon-Quests
--- Journal/Oasis-Datenbank: feste Liste. Zusaetzlich Quests, die im Questlog unter dem Dungeon-Namen
--- stehen, von allen Gildenmitgliedern mit Oasis gesammelt (Profilfeld dq = "schluessel:qid,qid;...").
+-- Dungeon quests
+-- Journal/Oasis database: fixed list. Additionally quests that in the quest log under the dungeon name
+-- collected by all guild members with Oasis (profile field dq = "key:qid,qid;...").
 ------------------------------------------------------------------------
--- Dungeon-Schluessel zu einer Questlog-Ueberschrift (Gebiet), sonst nil
+-- Dungeon key for a quest log header (zone), else nil
 local zoneKeys
 function Dungeons.KeyByZone(zone)
     if not zone or zone == "" then return nil end
     if not zoneKeys then
         zoneKeys = {}
         for _, d in ipairs(Dungeons.List()) do
-            -- Forever nutzt abweichende deutsche Gebietsnamen.
+            -- Forever uses different German zone names.
             if (d.dbKey or d.key) == "blackfathomdeeps" then
                 zoneKeys[norm("Blackfathom-Tiefe")] = d.key
                 zoneKeys[norm("Blackfathom-Tiefen")] = d.key
@@ -295,7 +295,7 @@ function Dungeons.KeyByZone(zone)
             for _, n in ipairs({ d.name, d.nameEN, d.nameDE }) do
                 if n then
                     zoneKeys[norm(n)] = d.key
-                    -- auch ohne Artikel ("Die Hoehlen des Wehklagens" = Unterzone "Hoehlen des Wehklagens")
+                    -- also without article ("Die Hoehlen des Wehklagens" = subzone "Hoehlen des Wehklagens")
                     local bare = n:gsub("^[Dd]ie ", ""):gsub("^[Dd]er ", ""):gsub("^[Dd]as ", ""):gsub("^[Tt]he ", "")
                     zoneKeys[norm(bare)] = zoneKeys[norm(bare)] or d.key
                 end
@@ -355,7 +355,7 @@ function Dungeons.Quests(d)
             end
         end
     end
-    -- aus den Questlogs der Gilde
+    -- from the guild's quest logs
     local function add(s)
         for key, list in (s or ""):gmatch("([^;:]+):([%d,]+)") do
             local match = key == d.key or (d.ejID and tonumber(key) == d.ejID)
@@ -380,9 +380,9 @@ function Dungeons.Quests(d)
 end
 
 ------------------------------------------------------------------------
--- Quest-Status und Questgeber-Orte
+-- Quest status and quest giver locations
 ------------------------------------------------------------------------
--- Classic-Gebiete (englischer Name -> UiMapID); der angezeigte Name kommt lokalisiert aus dem Client
+-- Classic zones (English name -> UiMapID); the displayed name comes localized from the client
 local ZONES = {
     ["Elwynn Forest"] = 1429, ["Westfall"] = 1436, ["Silverpine Forest"] = 1421, ["Undercity"] = 1458,
     ["Orgrimmar"] = 1454, ["Stormwind City"] = 1453, ["Stormwind"] = 1453, ["Ironforge"] = 1455, ["Darnassus"] = 1457,
@@ -407,7 +407,7 @@ local function zoneLabel(mapID, fallback)
     return fallback or ""
 end
 
--- "done" (erledigt) | "log" (im Questlog) | "open"
+-- "done" (completed) | "log" (in quest log) | "open"
 function Dungeons.QuestState(id, holders)
     local Q = C_QuestLog
     if Q and Q.IsQuestFlaggedCompleted then
@@ -422,7 +422,7 @@ function Dungeons.QuestState(id, holders)
     return "open"
 end
 
--- Punkt (Questgeber/Abgabe) aufbereiten: kurzer Text, langer Text, Kartenziel
+-- Prepare point (quest giver/turn-in): short text, long text, map target
 local function point(p, fallbackText)
     if not p then return nil end
     local out = {}
@@ -441,7 +441,7 @@ local function point(p, fallbackText)
     if p.inside then
         out.text = npc .. "  ·  " .. L["inside the dungeon"]
         out.long = npc .. "\n|cffa8a8a8" .. L["is inside the dungeon itself"] .. "|r"
-        -- Kartenziel: der Dungeon-Eingang
+        -- Map target: the dungeon entrance
         local e = p.entrance
         if e and e.x and e.y then
             local emap = e.map or ZONES[e.zone or ""]
@@ -466,7 +466,7 @@ local function point(p, fallbackText)
     return out
 end
 
--- Ort einer Quest: Oasis-Ortsdaten (Koordinaten) oder Questgeber-Text aus der Dungeon-Datenbank
+-- Quest location: Oasis location data (coordinates) or quest giver text from the dungeon database
 function Dungeons.QuestLocation(q)
     local data = ns.QuestLocations and ns.QuestLocations[q.id]
     local loc = {}
@@ -492,7 +492,7 @@ function Dungeons.QuestLocation(q)
     return loc
 end
 
--- Wer (Gilde, mit Oasis) hat welche Quest? -> { [questID] = { Namen } }
+-- Who (guild, with Oasis) has which quest? -> { [questID] = { names } }
 function Dungeons.QuestHolders(questIDs)
     local want = {}
     for _, id in ipairs(questIDs) do want[id] = {} end
@@ -510,7 +510,7 @@ function Dungeons.QuestHolders(questIDs)
 end
 
 ------------------------------------------------------------------------
--- Beute-Herkunft (Tooltip) und gesuchte Beute
+-- Loot source (tooltip) and wanted loot
 ------------------------------------------------------------------------
 local journalIndex
 local function buildJournalIndex()
@@ -566,7 +566,7 @@ function Dungeons.InRange(d)
     end
     return out
 end
--- Wie viele Quests fuer diesen Dungeon hast du im Log? (Anzahl im Log, Anzahl bekannt)
+-- How many quests for this dungeon do you have in the log? (count in log, count known)
 function Dungeons.MyQuestCount(d)
     local ok, qs = pcall(Dungeons.Quests, d)
     if not ok or type(qs) ~= "table" then return 0, 0 end
@@ -585,7 +585,7 @@ function Dungeons.WantedLoot(d)
     end
     return out
 end
--- Was die Gilde hier schon erbeutet hat (Beute-Log, ueber die Karten-ID des Dungeons)
+-- What the guild has already looted here (loot log, via the dungeon's map ID)
 function Dungeons.GuildLoot(d)
     local out = {}
     for _, x in ipairs(Store.List("loot")) do
@@ -595,10 +595,10 @@ function Dungeons.GuildLoot(d)
     return out
 end
 
--- Die Seite (Karten, Boss-/Beute-/Quest-Ansicht) steht in DungeonUI.lua
+-- The page (cards, boss/loot/quest view) lives in DungeonUI.lua
 Dungeons.LoadLoot = loadLoot
 
--- Beute aller Dungeons nach und nach im Hintergrund einlesen (fuer den Tooltip)
+-- Load loot of all dungeons gradually in the background (for the tooltip)
 ns.Listen("LOGIN", function()
     if ns.db and ns.db.settings.dgPreload == false then return end
     ns.After(25, function()
@@ -615,7 +615,7 @@ ns.Listen("LOGIN", function()
 end)
 
 if _G.OasisAPI then
-    -- Welche Gildenmitglieder (mit Oasis) haben diese Quest? -> { Namen }
+    -- Which guild members (with Oasis) have this quest? -> { names }
     function _G.OasisAPI.GetQuestHolders(questID)
         local h = Dungeons.QuestHolders({ tonumber(questID) })
         return h[tonumber(questID)] or {}

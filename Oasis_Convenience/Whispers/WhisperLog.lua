@@ -1,10 +1,10 @@
--- Oasis - Fluester-Verlauf: alle Fluesternachrichten (rein + raus) werden gemerkt.
--- Was ankam, waehrend du AFK/beschaeftigt warst, zeigt Oasis dir beim Zurueckkommen.
--- Reiter "Privat" auf der Chat-Seite: Gespraeche anheften/stummschalten, Suche, Filter, Merkliste,
--- Reaktionen, Zitieren, Entwuerfe je Gespraech. Alles bleibt lokal (ns.char) - nur eine Reaktion
--- geht auf Wunsch per Addon-Nachricht an den Gespraechspartner (wenn er Oasis hat).
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Whispers", function()   -- Modul Fluestern (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis - Whisper history: all whispers (in + out) are remembered.
+-- What arrived while you were AFK/busy, Oasis shows you when you come back.
+-- Tab "Private" on the chat page: pin/mute conversations, search, filter, bookmarks,
+-- reactions, quoting, drafts per conversation. Everything stays local (ns.char) - only a reaction
+-- is sent on request via addon message to the conversation partner (if they have Oasis).
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Whispers", function()   -- module whispers (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
@@ -14,8 +14,8 @@ local MAX = 150
 local function S() return (ns.db and ns.db.settings) or {} end
 local function maxKeep() return math.max(MAX, tonumber(S().wlKeep) or 300) end
 
--- Fluesterverlauf gilt fuer den ganzen Account (alle Charaktere), nicht je Charakter:
--- beim ersten Start werden die bisherigen Verlaeufe aller Charaktere zusammengefuehrt (e.char = wer es war)
+-- Whisper history applies to the whole account (all characters), not per character:
+-- on first start the previous histories of all characters are merged (e.char = who it was)
 local function migrate()
     local all, metas = {}, {}
     for cname, c in pairs(ns.db.chars or {}) do
@@ -32,7 +32,7 @@ local function log()
     if not ns.db.whispersAll then migrate() end
     return ns.db.whispersAll
 end
--- Angaben je Gespraech: pin, mute, unread (von Hand), draft, note, created
+-- data per conversation: pin, mute, unread (manual), draft, note, created
 local function metaAll()
     if not ns.db.whispersAll then migrate() end
     ns.db.wlMetaAll = ns.db.wlMetaAll or {}
@@ -56,7 +56,7 @@ function WL.Unread()
             if not isMuted(p) then n = n + 1 seen[p or ""] = true end
         end
     end
-    -- von Hand "als ungelesen" markierte Gespraeche zaehlen je 1
+    -- conversations manually marked "unread" count as 1 each
     for name, m in pairs(metaAll()) do if m.unread and not seen[name] and not m.mute then n = n + 1 end end
     return n
 end
@@ -70,7 +70,7 @@ local function add(e)
     e.char = e.char or ns.me()
     l[#l + 1] = e
     local keep = maxKeep()
-    -- zu viele: aelteste ungemerkte zuerst raus (gemerkte bleiben)
+    -- too many: oldest unbookmarked out first (bookmarked ones stay)
     while #l > keep do
         local drop = 1
         for i = 1, #l - 1 do if not l[i].star then drop = i break end end
@@ -80,13 +80,13 @@ local function add(e)
     if WL.frame and WL.frame:IsShown() then WL.Refresh() end
     if WL.priv and WL.priv:IsShown() then WL.RefreshPrivate() end
 end
--- Oasis-Sound im Privatchat als eigene Zeile ({s:key} wird als Lautsprecher-Link gezeigt)
+-- Oasis sound in private chat as its own line ({s:key} is shown as a speaker link)
 function WL.AddSound(name, key, outgoing)
     if not (ns.char and name and key) then return end
     if outgoing then add({ t = ns.now(), to = name, msg = "{s:" .. key .. "}" })
     else add({ t = ns.now(), from = name, msg = "{s:" .. key .. "}" }) end
 end
--- gerade sichtbar geoeffnetes Gespraech (dann ist eine neue Nachricht sofort gelesen)
+-- currently visibly opened conversation (then a new message is read immediately)
 local function viewing(name)
     return WL.priv and WL.priv:IsVisible() and WL.privSel == name
 end
@@ -102,14 +102,14 @@ end)
 ns.On("CHAT_MSG_WHISPER_INFORM", function(msg, target)
     msg, target = ns.safe(msg), ns.safe(target)
     if not msg or not target or not ns.char then return end
-    -- wer antwortet, hat die Nachrichten dieser Person gelesen
+    -- whoever replies has read this person's messages
     for _, e in ipairs(log()) do if e.new and e.from == target then e.new = nil end end
     local m = meta(target)
     if m then m.unread = nil m.created = nil end
     add({ t = ns.now(), to = target, msg = msg })
 end)
--- Battle.net-Fluestern: Absender ist der Account-Name (z.B. "PewPew"), nicht der Charakter.
--- Den gerade gespielten Charakter holen wir ueber die Battle.net-ID und merken ihn je Account.
+-- Battle.net whisper: sender is the account name (e.g. "PewPew"), not the character.
+-- We fetch the currently played character via the Battle.net ID and remember it per account.
 local function bnCharOf(bnID)
     bnID = ns.safe(bnID)
     if not (bnID and C_BattleNet and C_BattleNet.GetAccountInfoByID) then return nil end
@@ -122,9 +122,9 @@ local function bnCharOf(bnID)
         zone = ns.safe(g.areaName), online = ns.safe(g.isOnline) and true or nil, t = ns.now(),
         tag = ns.safe(info.battleTag), acc = ns.safe(info.accountName) }
 end
--- WICHTIG: der Absender eines Battle.net-Fluesterns ist ein Platzhalter (|Kq..|k), dessen Nummer nur
--- fuer DIESE Sitzung gilt - spaeter zeigt dieselbe Nummer evtl. einen ANDEREN Freund an. Darum speichern
--- wir einen festen Schluessel: den BattleTag-Namen (z.B. "Tomas"), sonst "Battle.net".
+-- IMPORTANT: the sender of a Battle.net whisper is a placeholder (|Kq..|k) whose number is only valid
+-- for THIS session - later the same number may show a DIFFERENT friend. So we store
+-- a fixed key: the BattleTag name (e.g. "Tomas"), otherwise "Battle.net".
 local function bnKey(sender, bnID)
     local info = bnCharOf(bnID)
     local tag = info and info.tag
@@ -138,7 +138,7 @@ local function bnKey(sender, bnID)
     end
     return key
 end
--- Anzeige: "Tomas (Charaktername)" fuer Battle.net-Gespraeche, sonst der normale Name
+-- display: "Tomas (character name)" for Battle.net conversations, otherwise the normal name
 function WL.Label(name)
     local b = ns.char and ns.char.bnChars and name and ns.char.bnChars[name]
     if b and b.tag and b.char and b.char ~= name then return name .. " |cff888888(" .. b.char .. ")|r" end
@@ -148,14 +148,14 @@ function WL.BnInfo(name) return ns.char and ns.char.bnChars and name and ns.char
 ns.On("CHAT_MSG_BN_WHISPER", function(msg, sender, ...)
     msg, sender = ns.safe(msg), ns.safe(sender)
     if not msg or not ns.char then return end
-    local ok, key = pcall(bnKey, sender, select(11, ...))   -- 13. Argument = bnSenderID
+    local ok, key = pcall(bnKey, sender, select(11, ...))   -- 13th argument = bnSenderID
     sender = ok and key or L["Battle.net"]
     local alias = ns.char.bnAlias and ns.char.bnAlias[sender]
     if alias then sender = alias end
     local mu = isMuted(sender)
     add({ t = ns.now(), from = sender, msg = msg, bn = (not alias) or nil, viaBN = alias and true or nil, new = (not mu and not viewing(sender)) or nil, afk = (not mu and away()) and true or nil })
 end)
--- eigene Battle.net-Antworten (fehlten bisher im Verlauf)
+-- own Battle.net replies (were missing from the history so far)
 ns.On("CHAT_MSG_BN_WHISPER_INFORM", function(msg, target, ...)
     msg, target = ns.safe(msg), ns.safe(target)
     if not msg or not ns.char then return end
@@ -168,7 +168,7 @@ ns.On("CHAT_MSG_BN_WHISPER_INFORM", function(msg, target, ...)
     if m then m.unread = nil m.created = nil end
     add({ t = ns.now(), to = target, msg = msg, bn = (not alias) or nil, viaBN = alias and true or nil })
 end)
--- alte Eintraege mit Sitzungs-Platzhalter: Absender laesst sich nicht mehr sicher bestimmen
+-- old entries with session placeholder: the sender can no longer be determined reliably
 ns.Listen("LOGIN", function()
     if not ns.char then return end
     local fixed = false
@@ -182,7 +182,7 @@ ns.Listen("LOGIN", function()
     end
 end)
 
--- zurueck vom AFK: Hinweis, wenn etwas verpasst wurde
+-- back from AFK: notice if something was missed
 local function missed()
     local n = 0
     for _, e in ipairs(log()) do if e.new and e.afk then n = n + 1 end end
@@ -205,7 +205,7 @@ end)
 ns.Listen("LOGIN", function() wasAway = away() and true or false end)
 
 ------------------------------------------------------------------------
--- Fenster
+-- window
 ------------------------------------------------------------------------
 local ROW_H = 40
 local function build()
@@ -316,21 +316,21 @@ ns.slash.whispers = function() WL.Toggle() end
 ns.slash.fl = ns.slash.whispers
 
 ------------------------------------------------------------------------
--- Reiter "Privat" im Chat: Unterhaltungen links, Verlauf rechts, Antworten unten
+-- tab "Private" in chat: conversations left, history right, replies at the bottom
 ------------------------------------------------------------------------
 local function partnerOf(e) return e.from or e.to end
 local function sameName(a, b)
     if not a or not b then return false end
     return ns.SameName(a, b)
 end
--- Mitglied der Gilde (Radar) zu einem Fluesternamen
+-- guild member (radar) for a whisper name
 local function member(name)
     local R = ns.Radar
     if not name or not R or not R.byName then return nil end
     local full = ns.fullName(name)
     return (full and rawget(R.byName, full)) or rawget(R.byName, name)
 end
--- Freundesliste (C_FriendList, falls vorhanden)
+-- friend list (C_FriendList, if present)
 local function friendInfo(name)
     if not name or not C_FriendList or not C_FriendList.GetFriendInfo then return nil end
     local ok, info = pcall(C_FriendList.GetFriendInfo, ns.ChatName(name))
@@ -348,7 +348,7 @@ function WL.Threads()
             if e.new then t.unread = t.unread + 1 end
         end
     end
-    -- neu angelegte Gespraeche ohne Nachricht
+    -- newly created conversations without a message
     for name, m in pairs(metaAll()) do
         if m.created and not by[name] then
             local t = { name = name, msgs = {}, unread = 0, last = { t = m.created, msg = "" }, fresh = true }
@@ -367,7 +367,7 @@ function WL.Threads()
     end)
     return order
 end
--- Farbe je Name (fuer den Avatar-Kreis): gleiche Person = gleiche Farbe
+-- color per name (for the avatar circle): same person = same color
 local AV = { { 0.95, 0.45, 0.55 }, { 0.40, 0.75, 1.00 }, { 0.45, 0.85, 0.55 }, { 1.00, 0.70, 0.30 }, { 0.70, 0.55, 1.00 }, { 0.30, 0.85, 0.85 }, { 1.00, 0.55, 0.85 } }
 local function avColor(name)
     local h = 0
@@ -391,19 +391,19 @@ local function render(msg)
         if ok and type(r) == "string" then msg = r end
     end
     if ns.Emoji and ns.Emoji.Render then
-        ns.Emoji.sizeOverride = 16   -- passend zur Blasen-Schrift (vorher Groesse des WoW-Chats -> zu gross)
+        ns.Emoji.sizeOverride = 16   -- matching the bubble font (previously WoW chat size -> too big)
         local ok, r = pcall(ns.Emoji.Render, msg)
         ns.Emoji.sizeOverride = nil
         if ok and r then return r end
     end
     return msg
 end
--- Text ohne Farb-/Link-/Bildcodes (Kopieren, Suche, Zitat)
+-- text without color/link/image codes (copy, search, quote)
 local function plain(text)
     return ((text or ""):gsub("|H.-|h(.-)|h", "%1"):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|T.-|t", ""))
 end
 WL.Plain = plain
--- Zitat am Nachrichtenanfang: "»Name: Text« Antwort"
+-- quote at the start of a message: "»Name: Text« reply"
 local QOPEN, QCLOSE = "\194\187", "\194\171"
 local function splitQuote(msg)
     if type(msg) ~= "string" or msg:sub(1, 2) ~= QOPEN then return nil, msg end
@@ -428,12 +428,12 @@ local function emo(code)
 end
 local REACTS = { ":+1:", ":lol:", "<3", ":fire:", ":tada:", ":eyes:" }
 
--- Messenger-Farben (dunkles Chat-App-Schema): eigene Blasen gruen-tuerkis, fremde schiefergrau
+-- messenger colors (dark chat app scheme): own bubbles green-turquoise, others slate grey
 local WA = { bg = { 0.043, 0.071, 0.094 }, head = { 0.090, 0.118, 0.141 }, mine = { 0.000, 0.361, 0.294 }, other = { 0.145, 0.184, 0.220 },
     time = { 0.60, 0.68, 0.70 }, tick = { 0.33, 0.73, 0.95 } }
 
 ------------------------------------------------------------------------
--- kleine Fenster: Kopieren, Eingabe (Notiz / neues Gespraech), Rueckfrage
+-- small windows: copy, input (note / new conversation), confirmation
 ------------------------------------------------------------------------
 local pop
 local function popup()
@@ -459,14 +459,14 @@ local function popup()
     f.text:SetPoint("TOPLEFT", 14, -38)
     f.text:SetPoint("RIGHT", f, "RIGHT", -14, 0)
     f.text:SetWordWrap(true)
-    -- einzeilige Eingabe
+    -- single-line input
     f.input = K.Input(f, 412, "")
     f.input:SetPoint("TOPLEFT", 14, -62)
     f.input:SetPoint("RIGHT", f, "RIGHT", -14, 0)
     f.input:SetHeight(26)
     f.input:SetScript("OnEnterPressed", function() if f.ok:IsShown() then f.ok:Click() end end)
     if K.AttachNameSuggest then pcall(function() f.suggest = K.AttachNameSuggest(f.input) end) end
-    -- mehrzeiliges Kopierfeld
+    -- multi-line copy box
     local sf = CreateFrame("ScrollFrame", nil, f)
     sf:SetPoint("TOPLEFT", 14, -58)
     sf:SetPoint("BOTTOMRIGHT", -14, 46)
@@ -480,7 +480,7 @@ local function popup()
     eb:SetTextInsets(6, 6, 6, 6)
     eb:SetWidth(400)
     eb:SetScript("OnEscapePressed", function() f:Hide() end)
-    -- nur kopieren, nicht veraendern
+    -- only copy, do not change
     eb:SetScript("OnTextChanged", function(self, user) if user and f.copyText then self:SetText(f.copyText) self:HighlightText() end end)
     sf:SetScrollChild(eb)
     sf:EnableMouseWheel(true)
@@ -570,7 +570,7 @@ function WL.Confirm(title, text, onOk, okLabel)
 end
 
 ------------------------------------------------------------------------
--- Aktionen
+-- actions
 ------------------------------------------------------------------------
 local function refreshAll()
     WL.ver = (WL.ver or 0) + 1
@@ -627,7 +627,7 @@ function WL.NewChat()
         if not v or v == "" then return end
         local m = member(v)
         local name = (m and m.name) or v
-        -- schon vorhandenes Gespraech (gleicher vollstaendiger Name) weiterverwenden
+        -- reuse an existing conversation (same full name)
         for _, th in ipairs(WL.Threads()) do if sameName(th.name, name) then name = th.name end end
         local hasMsgs = false
         for _, e in ipairs(log()) do if partnerOf(e) == name then hasMsgs = true break end end
@@ -645,7 +645,7 @@ function WL.SetSelected(name)
     refreshAll()
 end
 
--- Reaktion: lokal + optional als Addon-Nachricht an den Partner (nur wenn er Oasis hat)
+-- reaction: local + optionally as addon message to the partner (only if they have Oasis)
 local Comm = ns.Comm
 local function partnerHasOasis(name)
     local R = ns.Radar
@@ -659,8 +659,8 @@ function WL.React(e, em)
     e.rMe = em
     local p = partnerOf(e)
     if S().wlReactSend ~= false and Comm and Comm.SendEx and p and not e.bn and partnerHasOasis(p) then
-        -- nur an Online-Partner; Forever stellt Addon-Fluestern an den Vornamen nicht zu ("kein Spieler namens ...")
-        -- -> Comm.Whisper nimmt fuer Gildenmitglieder den Gildenkanal mit Empfaenger
+        -- only to online partners; Forever does not deliver addon whispers to the first name ("no player named ...")
+        -- --> Comm.Whisper uses the guild channel with recipient for guild members
         local m = ns.Radar and ns.Radar.byName and ns.Radar.byName[ns.fullName(p)]
         local online = m and m.online
         if online and Comm.Whisper and IsInGuild() then
@@ -703,7 +703,7 @@ function WL.Quote(e)
     if f.input:IsShown() then f.input:SetFocus() end
 end
 
--- Kontextmenue: Gespraech
+-- context menu: conversation
 function WL.ThreadMenu(owner, name)
     if not name then return end
     local m = meta(name) or {}
@@ -737,8 +737,8 @@ function WL.ThreadMenu(owner, name)
     items[#items + 1] = { text = "|cffff5a4a" .. L["Delete conversation"] .. "|r", fn = function() WL.DeleteThread(name) end }
     K.ShowMenu(owner, items, ns.displayName(name), 200)
 end
--- Gespraech einer Person zuordnen (z.B. "Battle.net (alt)" -> "Anna Berg"): alle Nachrichten wandern hinueber.
--- Bei Battle.net-Gespraechen merkt sich Oasis die Zuordnung, kuenftige Nachrichten dieses BattleTags landen gleich dort.
+-- assign a conversation to a person (e.g. "Battle.net (old)" -> "Anna Berg"): all messages move over.
+-- For Battle.net conversations Oasis remembers the mapping, future messages of this BattleTag land there directly.
 function WL.Assign(from, to)
     if not (from and to) or from == to then return end
     for _, e in ipairs(log()) do
@@ -772,7 +772,7 @@ function WL.AssignMenu(owner, name, bn)
     end }
     K.ShowMenu(owner, items, L["Assign to ..."], 200)
 end
--- Kontextmenue: Nachricht
+-- context menu: message
 function WL.MsgMenu(owner, e)
     if not e then return end
     local items = {}
@@ -789,7 +789,7 @@ function WL.MsgMenu(owner, e)
     K.ShowMenu(owner, items, (e.from and ns.displayName(e.from) or L["You"]) .. "  |cff777777" .. date("%d.%m. %H:%M", e.t or 0) .. "|r", 190)
 end
 
--- Gildenchat: gemerkte Nachrichten (aus GuildChat.MsgMenu)
+-- guild chat: bookmarked messages (from GuildChat.MsgMenu)
 local function gcStars()
     ns.char.gcStars = ns.char.gcStars or {}
     return ns.char.gcStars
@@ -810,14 +810,14 @@ function WL.ToggleGuildStar(key, sender, msg, ts)
 end
 
 ------------------------------------------------------------------------
--- Ansicht
+-- view
 ------------------------------------------------------------------------
 local FILTERS = { { key = "all", text = "All" }, { key = "unread", text = "Unread" }, { key = "pin", text = "Pinned" }, { key = "star", text = "Saved" } }
 ns.Relabel(function()
     FILTERS[1].text, FILTERS[2].text, FILTERS[3].text, FILTERS[4].text = L["All"], L["Unread"], L["Pinned"], L["Saved"]
 end)
 local function lowerFind(hay, q) return q and q ~= "" and plain(hay or ""):lower():find(q, 1, true) end
--- Treffer hervorheben (nur in reinem Text ohne Codes, sonst unveraendert)
+-- highlight hits (only in plain text without codes, otherwise unchanged)
 local function mark(text, q)
     if not q or q == "" or (text or ""):find("|", 1, true) then return text end
     local low = text:lower()
@@ -871,11 +871,11 @@ local function isOnline(name)
 end
 
 ------------------------------------------------------------------------
--- Design-Bausteine der Privat-Ansicht (runde Flaechen, Klassenkreise)
+-- design building blocks of the private view (rounded areas, class circles)
 ------------------------------------------------------------------------
 local DOT = ns.MEDIA .. "dot"
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
--- abgerundetes Rechteck als 9-Slice: Ecken aus Media\skins\round_fill (wie ns.Insta.Glass), Kanten + Mitte einfarbig
+-- rounded rectangle as 9-slice: corners from Media\skins\round_fill (like ns.Insta.Glass), edges + center solid
 local ROUND_FILL = ns.MEDIA .. "skins\\round_fill"
 local function roundBox(owner, layer, r, sub)
     local o = { t = {} }
@@ -903,7 +903,7 @@ local function roundBox(owner, layer, r, sub)
     function o:SetShown(v) for _, t in ipairs(self.t) do t:SetShown(v) end end
     return o
 end
--- ruhiger Glasknopf (primaer = dezent getoent)
+-- calm glass button (primary = subtly tinted)
 local function glassBtn(parent, text, w, h, primary, onClick)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(w, h)
@@ -923,7 +923,7 @@ local function glassBtn(parent, text, w, h, primary, onClick)
     return b
 end
 local function mix(a, b, t) return a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t end
--- Klasse zu einem Gespraechspartner (Gilde, sonst Freundesliste ueber den Klassennamen)
+-- class of a conversation partner (guild, otherwise friend list via class name)
 local function classOf(name, bn)
     if not name or bn then return nil end
     local m = member(name)
@@ -933,7 +933,7 @@ local function classOf(name, bn)
         for k, v in pairs(LOCALIZED_CLASS_NAMES_MALE) do if v == fi.className then return k end end
     end
 end
--- runder Avatar: Klassensymbol (wie GuildInfo) oder Anfangsbuchstabe, Ring, Online-Punkt
+-- round avatar: class icon (like GuildInfo) or initial, ring, online dot
 local function makeAvatar(parent, size, dot)
     local a = CreateFrame("Frame", nil, parent)
     a:SetSize(size, size)
@@ -974,7 +974,7 @@ local function makeAvatar(parent, size, dot)
     end
     return a
 end
--- online: true/false = Punkt gruen/grau, nil = kein Punkt
+-- online: true/false = dot green/grey, nil = no dot
 local function setAvatar(a, name, bn, online)
     local cls = classOf(name, bn)
     local GI = ns.GuildInfo
@@ -1030,7 +1030,7 @@ local function headStatus(name, bn)
     if not m and not fi then parts[#parts + 1] = "|cff777777" .. L["not in the guild"] .. "|r" end
     return afk and "afk" or (online and "on" or "off"), table.concat(parts, "  |cff555555·|r  ")
 end
--- runder Symbol-Knopf (Kopf): Kreis, Symbol oder Zeichen, Tooltip
+-- round icon button (header): circle, icon or glyph, tooltip
 local function roundBtn(parent, size, icon, glyph, tip, onClick)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(size, size)
@@ -1073,12 +1073,12 @@ function WL.BuildPrivate(parent)
     f.bg = K.Fill(f, C.bg)
     WL.filter = WL.filter or "all"
     local LEFT = 278
-    -- Unterhaltungen (wie eine Chat-App: Avatar, Name, letzte Nachricht, Zeit, Ungelesen-Zahl)
+    -- conversations (like a chat app: avatar, name, last message, time, unread count)
     local lp = K.Panel(f, C.panel)
     lp:SetPoint("TOPLEFT") lp:SetPoint("BOTTOMLEFT")
     lp:SetWidth(LEFT)
-    if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(lp, nil, nil, 12) end   -- Glaskarte wie im Gildenchat
-    -- 0.6.285: ruhiger Kopf - Suche, daneben zwei kleine Knoepfe (+ neues Gespraech, ... mehr); darunter Text-Reiter
+    if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(lp, nil, nil, 12) end   -- glass card like in guild chat
+    -- 0.6.285: calm header - search, next to it two small buttons (+ new conversation, ... more); below text tabs
     f.newBtn = roundBtn(lp, 26, nil, "+", { L["New chat"] }, function() WL.NewChat() end)
     f.moreList = roundBtn(lp, 26, nil, "...", { L["More"] }, function(self)
         K.ShowMenu(self, {
@@ -1106,13 +1106,13 @@ function WL.BuildPrivate(parent)
     f.search:SetPoint("TOPLEFT", 10, -10)
     f.search:SetPoint("RIGHT", f.newBtn, "LEFT", -8, 0)
     f.search:SetHeight(26)
-    -- Suchfeld als Glasfeld (eigene Flaeche/Rahmen des Feldes ausblenden)
+    -- search box as glass field (hide the box's own background/border)
     if f.search.bg then f.search.bg:SetColorTexture(0, 0, 0, 0) end
     K.SetBorderColor(f.search, { 0, 0, 0, 0 })
     f.search.glass = roundBox(f.search, "BACKGROUND", 13, -1)
     f.search.glass:SetColor(1, 1, 1, 0.05)
     f.search:SetScript("OnEscapePressed", function(self) self:SetText("") self:ClearFocus() WL.query = nil WL.RefreshPrivate() end)
-    -- Reiter als schlichter Text mit Strich unter dem gewaehlten (keine Kaesten)
+    -- tabs as plain text with a line under the selected one (no boxes)
     f.filter = CreateFrame("Frame", nil, lp)
     f.filter:SetPoint("TOPLEFT", 10, -44)
     f.filter:SetSize(LEFT - 20, 22)
@@ -1149,7 +1149,7 @@ function WL.BuildPrivate(parent)
     f.filterLine:SetPoint("RIGHT", -10, 0)
     f.filterLine:SetHeight(1)
     f.filterLine:SetColorTexture(1, 1, 1, 0.06)
-    -- Liste: eine Zeile je Person (Main + Twinks), bzw. Treffer bei Suche/Gemerkt
+    -- list: one line per person (main + alts), or hits for search/bookmarks
     f.threads = K.List(lp, 56, function(l)
         local r = K.Row(l)
         r:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -1195,7 +1195,7 @@ function WL.BuildPrivate(parent)
                 WL.SetSelected(it.name)
                 return
             end
-            -- Person: an den passenden Charakter schreiben (online zuerst); Rechtsklick wie bisher je Charakter
+            -- person: write to the matching character (online first); right-click per character as before
             local target = WL.PersonOf({ it }, WL.privSel) and WL.privSel or WL.BestChar(it, isOnline)
             if btn == "RightButton" then WL.ThreadMenu(self, target) return end
             WL.SetSelected(target)
@@ -1241,7 +1241,7 @@ function WL.BuildPrivate(parent)
         setAvatar(r.av, name, it.bn, onl)
         r.name:SetTextColor(C.text[1], C.text[2], C.text[3])
         if it.hit then
-            -- Treffer / gemerkte Nachricht
+            -- hit / bookmarked message
             local e = it.hit
             r.name:SetText(WL.Label(it.name or "?") .. (it.guild and ("  |cff888888" .. L["Guild chat"] .. "|r") or ""))
             local txt = plain(e.msg or e.m)
@@ -1253,7 +1253,7 @@ function WL.BuildPrivate(parent)
             r.selBox:SetShown(false)
             return
         end
-        -- Name der Person (Main); mehrere Charaktere: dezente Zahl dahinter
+        -- name of the person (main); multiple characters: subtle number after it
         local many = it.chars and #it.chars > 1
         r.name:SetText(WL.Label(it.main or name) .. (many and ("  |cff666666" .. #it.chars .. " " .. L["chars"] .. "|r") or ""))
         local last = it.last or {}
@@ -1262,7 +1262,7 @@ function WL.BuildPrivate(parent)
         else
             local m = meta(it.name)
             local draft = m and m.draft and m.draft ~= "" and S().wlDrafts ~= false and WL.privSel ~= it.name
-            -- kam die letzte Nachricht von einem Twink, steht sein Name davor
+            -- if the last message came from an alt, its name is in front
             local who = (last.to and (L["You"] .. ": ")) or ((many and it.name ~= it.main) and (WL.Label(it.name) .. ": ")) or ""
             r.prev:SetText(draft and ("|cffff7a7a" .. L["Draft"] .. ":|r " .. m.draft) or ((who ~= "" and ("|cff888888" .. who .. "|r") or "") .. render(last.msg or "")))
         end
@@ -1285,7 +1285,7 @@ function WL.BuildPrivate(parent)
     f.threads:SetPoint("TOPLEFT", 6, -74)
     f.threads:SetPoint("BOTTOMRIGHT", -6, 8)
     f.threads.empty:SetText("")
-    -- Leerzustand links (keine Gespraeche / keine Treffer)
+    -- empty state left (no conversations / no hits)
     local le = CreateFrame("Frame", nil, lp)
     le:SetPoint("TOPLEFT", 8, -96)
     le:SetPoint("RIGHT", -8, 0)
@@ -1302,18 +1302,18 @@ function WL.BuildPrivate(parent)
     le:Hide()
     f.lempty = le
 
-    -- Verlauf rechts
+    -- history right
     local rp = K.Panel(f, C.panel)
     rp:SetPoint("TOPLEFT", LEFT + 12, 0)
     rp:SetPoint("BOTTOMRIGHT")
     f.rp = rp
     if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(rp, nil, nil, 12) end
-    -- Kopf: Avatar + Name + Status + Knoepfe
+    -- header: avatar + name + status + buttons
     local hd = CreateFrame("Frame", nil, rp)
     hd:SetPoint("TOPLEFT", 1, -1) hd:SetPoint("TOPRIGHT", -1, -1)
     hd:SetHeight(56)
     hd:EnableMouse(true)
-    -- Kopf ohne eigene eckige Flaeche (die Glaskarte ist der Hintergrund), nur feine Linie
+    -- header without its own square area (the glass card is the background), only a fine line
     hd.line = hd:CreateTexture(nil, "BORDER")
     hd.line:SetPoint("BOTTOMLEFT", 12, 0) hd.line:SetPoint("BOTTOMRIGHT", -12, 0)
     hd.line:SetHeight(1)
@@ -1331,14 +1331,14 @@ function WL.BuildPrivate(parent)
     f.hname:SetPoint("TOPLEFT", 62, -10)
     f.hname:SetPoint("RIGHT", f.invite, "LEFT", -10, 0)
     f.hname:SetWordWrap(false)
-    -- Status-Pille (online / offline / AFK / Battle.net)
+    -- status pill (online / offline / AFK / Battle.net)
     f.hpill = CreateFrame("Frame", nil, hd)
     f.hpill:SetSize(50, 15)
     f.hpill:SetPoint("TOPLEFT", f.hname, "BOTTOMLEFT", 0, -4)
     f.hpill.box = roundBox(f.hpill, "BACKGROUND", 7)
     f.hpill.t = K.Text(f.hpill, 9, C.text, "CENTER")
     f.hpill.t:SetPoint("CENTER", 0, 0)
-    -- 0.6.285: an welchen Charakter geschrieben wird (nur bei mehreren Charakteren der Person)
+    -- 0.6.285: which character is written to (only when the person has multiple characters)
     f.hto = CreateFrame("Button", nil, hd)
     f.hto:SetHeight(16)
     f.hto:SetPoint("LEFT", f.hpill, "RIGHT", 8, 0)
@@ -1373,7 +1373,7 @@ function WL.BuildPrivate(parent)
     end)
     hd:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    -- Nachrichten: eigene Scrollflaeche mit Sprechblasen variabler Hoehe
+    -- messages: own scroll area with speech bubbles of variable height
     local sf = CreateFrame("ScrollFrame", nil, rp)
     sf:SetPoint("TOPLEFT", 1, -57)
     sf:SetPoint("BOTTOMRIGHT", -1, 52)
@@ -1384,7 +1384,7 @@ function WL.BuildPrivate(parent)
     cbg:SetColorTexture(WA.bg[1], WA.bg[2], WA.bg[3], 1)
     K.Gradient(cbg, "VERTICAL", { WA.bg[1] * 0.8, WA.bg[2] * 0.8, WA.bg[3] * 0.8, 1 }, { WA.bg[1] * 1.45, WA.bg[2] * 1.35, WA.bg[3] * 1.3, 1 })
     f.cbg = cbg
-    -- Farbe/Deckkraft aus der Chat-Darstellung (Einstellungen > Bereiche > Chat)
+    -- color/opacity from the chat appearance (Settings > Areas > Chat)
     f.lookBg = sf:CreateTexture(nil, "BACKGROUND", nil, -1)
     f.lookBg:SetAllPoints()
     f.lookBg:SetColorTexture(0, 0, 0, 0)
@@ -1397,7 +1397,7 @@ function WL.BuildPrivate(parent)
         self:SetVerticalScroll(math.max(0, math.min(max, self:GetVerticalScroll() - d * 50)))
     end)
     f.sf, f.content = sf, content
-    -- schmale Scrollleiste rechts (ziehbar)
+    -- slim scrollbar on the right (draggable)
     local track = CreateFrame("Frame", nil, rp)
     track:SetPoint("TOPRIGHT", sf, "TOPRIGHT", -3, -4)
     track:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT", -3, 4)
@@ -1444,7 +1444,7 @@ function WL.BuildPrivate(parent)
         self:SetScript("OnUpdate", nil)
         self.t:SetColorTexture(1, 1, 1, 0.28)
     end)
-    -- Leerzustand rechts: Symbol + Aktion
+    -- empty state right: icon + action
     local re = CreateFrame("Frame", nil, sf)
     re:SetSize(300, 140)
     re:SetPoint("CENTER")
@@ -1472,7 +1472,7 @@ function WL.BuildPrivate(parent)
         if b then return b end
         b = CreateFrame("Button", nil, content)
         b:RegisterForClicks("RightButtonUp")
-        -- abgerundete Blase (Flaeche, Hover-Schimmer, Sprung-Aufblitzen)
+        -- rounded bubble (fill, hover shimmer, jump flash)
         b.box = roundBox(b, "BACKGROUND", 12)
         function b:SetBoxColor(r, g, bb, a) self.box:SetColor(r, g, bb, a or 1) end
         b.hl = roundBox(b, "HIGHLIGHT", 12)
@@ -1480,7 +1480,7 @@ function WL.BuildPrivate(parent)
         b.flash = roundBox(b, "ARTWORK", 12)
         b.flash:SetColor(1, 0.82, 0.29, 0.35)
         b.flash:SetAlpha(0)
-        -- Zitat in der Blase: dunklere Karte mit Farbbalken
+        -- quote in the bubble: darker card with color bar
         b.qf = CreateFrame("Frame", nil, b)
         b.qf:SetHeight(20)
         b.qf.box = roundBox(b.qf, "BACKGROUND", 5)
@@ -1496,11 +1496,11 @@ function WL.BuildPrivate(parent)
         b.txt:SetWordWrap(true)
         b.txt:SetJustifyV("TOP")
         b.time = K.Text(b, 9, C.dim, "RIGHT")
-        -- kleiner Avatar links neben der ersten Blase einer Gruppe (nur fremde)
+        -- small avatar left of the first bubble of a group (others only)
         b.av = makeAvatar(content, 24)
         b.av:SetPoint("TOPRIGHT", b, "TOPLEFT", -7, 0)
         b.av:Hide()
-        -- Reaktionen als Chip unter der Blase
+        -- reactions as chips below the bubble
         b.rc = CreateFrame("Frame", nil, content)
         b.rc:SetSize(30, 18)
         b.rc:SetFrameLevel(b:GetFrameLevel() + 2)
@@ -1509,7 +1509,7 @@ function WL.BuildPrivate(parent)
         b.react = K.Text(b.rc, 12, C.text, "CENTER")
         b.react:SetPoint("CENTER", 0, 0)
         b.rc:Hide()
-        -- Item- und andere Links in der Blase anklickbar
+        -- item and other links in the bubble clickable
         if b.SetHyperlinksEnabled then pcall(b.SetHyperlinksEnabled, b, true) end
         b:SetScript("OnHyperlinkClick", onLink)
         b:SetScript("OnHyperlinkEnter", function(self, link)
@@ -1538,7 +1538,7 @@ function WL.BuildPrivate(parent)
         local s = f.seps[i]
         if s then return s end
         s = CreateFrame("Frame", nil, content)
-        -- Trenner: durchgehende Linie, in der Mitte eine Pille mit Text
+        -- divider: continuous line, a pill with text in the middle
         s:SetSize(90, 20)
         s.line = s:CreateTexture(nil, "BACKGROUND")
         s.line:SetHeight(1)
@@ -1552,7 +1552,7 @@ function WL.BuildPrivate(parent)
         f.seps[i] = s
         return s
     end
-    -- msgs: Liste, opts.newFrom = Index der ersten ungelesenen, opts.jump = Nachricht, opts.keep = Scrollstand halten
+    -- msgs: list, opts.newFrom = index of the first unread, opts.jump = message, opts.keep = keep scroll position
     function f:SetMessages(msgs, opts)
         opts = opts or {}
         for _, b in ipairs(self.bubbles) do b:Hide() b.rc:Hide() b.av:Hide() b.e = nil end
@@ -1564,7 +1564,7 @@ function WL.BuildPrivate(parent)
         local q = WL.query
         local y, lastDay, nsep, lastWho = -10, nil, 0, nil
         local jumpY
-        -- eigene Blasen: Akzentfarbe gedaempft (folgt dem Farbschema), fremde schiefergrau-blau
+        -- own bubbles: accent color muted (follows the color scheme), others slate grey-blue
         local GCx = ns.GuildChat
         local mr, mg, mb = mix(WA.bg, C.accent, 0.42)
         local orr, og, ob = WA.other[1], WA.other[2], WA.other[3]
@@ -1579,13 +1579,13 @@ function WL.BuildPrivate(parent)
             font, fsize = GCx.LookFont(), (tonumber(GCx.Look("chatFontSize")) or 13) - 1
             showT = GCx.Look("chatShowTime") ~= false
         end
-        -- Gruppen: gleiche Seite, gleicher Tag, hoechstens 3 Minuten Abstand, nicht ueber die Neu-Linie
+        -- groups: same side, same day, at most 3 minutes apart, not across the new line
         local gStart, gEnd = {}, {}
         for i, e in ipairs(msgs) do
             local p = msgs[i - 1]
             local cont = p and ((p.to ~= nil) == (e.to ~= nil)) and date("%Y%m%d", p.t or 0) == date("%Y%m%d", e.t or 0)
                 and math.abs((e.t or 0) - (p.t or 0)) <= 180 and opts.newFrom ~= i and not (p.rMe or p.rThem)
-                and (not opts.multi or partnerOf(p) == partnerOf(e))   -- 0.6.285: Charakterwechsel beendet die Gruppe
+                and (not opts.multi or partnerOf(p) == partnerOf(e))   -- 0.6.285: character change ends the group
             gStart[i] = not cont
             if i > 1 then gEnd[i - 1] = not cont end
         end
@@ -1611,7 +1611,7 @@ function WL.BuildPrivate(parent)
                 y = y - 32
                 lastDay = day
             end
-            -- 0.6.285: gemeinsamer Verlauf mehrerer Charaktere - beim Wechsel eine leise Zeile "ueber <Charakter>"
+            -- 0.6.285: shared history of multiple characters - on change a quiet line "via <character>"
             local who = partnerOf(e)
             if opts.multi and who ~= lastWho then
                 nsep = nsep + 1
@@ -1622,7 +1622,7 @@ function WL.BuildPrivate(parent)
             end
             lastWho = who
             if opts.newFrom == i then
-                -- Trennlinie "Neue Nachrichten"
+                -- divider "New messages"
                 nsep = nsep + 1
                 local s = sep(nsep)
                 s.p.box:SetColor(1, 0.62, 0.55, 0.08)
@@ -1684,7 +1684,7 @@ function WL.BuildPrivate(parent)
             b:Show()
             if opts.jump == e then jumpY = -y - 40 b.doFlash = true else b.doFlash = nil end
             y = y - math.max(20, bh)
-            -- Reaktionen als Chip unter der Blase
+            -- reactions as chips below the bubble
             if e.rMe or e.rThem then
                 local parts = {}
                 if e.rThem then parts[#parts + 1] = emo(e.rThem) end
@@ -1697,7 +1697,7 @@ function WL.BuildPrivate(parent)
                 b.rc:Show()
                 y = y - 14
             end
-            -- weiche Einblendung nur fuer neu hinzugekommene Nachrichten im offenen Gespraech
+            -- soft fade-in only for newly added messages in the open conversation
             if animFrom and i >= animFrom then
                 b:SetAlpha(0) b.rc:SetAlpha(0) b.av:SetAlpha(0)
                 b.tw = true
@@ -1709,7 +1709,7 @@ function WL.BuildPrivate(parent)
                     b:SetAlpha(1) b.rc:SetAlpha(1) b.av:SetAlpha(1)
                     b:SetPoint(b.anc, content, "TOPLEFT", b.ax, b.ay)
                 end)
-                -- Sicherheitsnetz: nie unsichtbar haengen bleiben
+                -- safety net: never stay stuck invisible
                 local ay = b.ay
                 ns.After(1, function()
                     if b.tw and b.ay == ay then
@@ -1745,7 +1745,7 @@ function WL.BuildPrivate(parent)
         end)
     end
 
-    -- Zitat-Vorschau ueber der Eingabe
+    -- quote preview above the input
     local qb = CreateFrame("Frame", nil, rp)
     qb:SetPoint("BOTTOMLEFT", 10, 54) qb:SetPoint("BOTTOMRIGHT", -10, 54)
     qb:SetHeight(28)
@@ -1772,7 +1772,7 @@ function WL.BuildPrivate(parent)
     end
     f.quoteText = quoteText
 
-    -- Eingabe: Emoji | Sound | Feld | Zaehler | Senden
+    -- input: emoji | sound | field | counter | send
     local bar = CreateFrame("Frame", nil, rp)
     bar:SetPoint("BOTTOMLEFT", 1, 1) bar:SetPoint("BOTTOMRIGHT", -1, 1)
     bar:SetHeight(50)
@@ -1780,7 +1780,7 @@ function WL.BuildPrivate(parent)
     bar.line:SetPoint("TOPLEFT", 12, 0) bar.line:SetPoint("TOPRIGHT", -12, 0)
     bar.line:SetHeight(1)
     bar.line:SetColorTexture(1, 1, 1, 0.06)
-    -- durchgehende abgerundete Leiste (Rand + Flaeche), Senden-Knopf rechts daneben
+    -- continuous rounded bar (border + fill), send button to the right of it
     local pill = CreateFrame("Frame", nil, bar)
     pill:SetPoint("TOPLEFT", 10, -8)
     pill:SetPoint("BOTTOMRIGHT", -52, 8)
@@ -1804,7 +1804,7 @@ function WL.BuildPrivate(parent)
     f.emo:SetScript("OnClick", function(self)
         if ns.Emoji then ns.Emoji.target = f.input ns.Emoji.TogglePicker(self) end
     end)
-    -- Sound nur an diese Person (wie der Knopf am WoW-Chat beim Fluestern)
+    -- sound only to this person (like the button on the WoW chat when whispering)
     f.snd = CreateFrame("Button", nil, pill)
     f.snd:SetFrameLevel(pill.inner:GetFrameLevel() + 2)
     f.snd:SetSize(18, 18)
@@ -1823,7 +1823,7 @@ function WL.BuildPrivate(parent)
         local who = WL.privSel
         if not who or not ns.Sound or not ns.Sound.OpenPicker then return end
         if ns.Sound.SetSendTarget then ns.Sound.SetSendTarget("WHISPER", who) end
-        ns.Sound.restoreChat = nil   -- hier gibt es keine WoW-Eingabe wiederherzustellen
+        ns.Sound.restoreChat = nil   -- there is no WoW input to restore here
         ns.Sound.OpenPicker(self, nil, function(k)
             ns.Sound.SendInChat(k, "WHISPER", ns.ChatName(who))
             if f.input:IsShown() then f.input:SetFocus() end
@@ -1832,7 +1832,7 @@ function WL.BuildPrivate(parent)
     f.input = K.Input(pill, 300, L["Type a message ..."], nil)
     f.input:SetFrameLevel(pill.inner:GetFrameLevel() + 2)
     if ns.EmojiComplete and ns.EmojiComplete.Attach then pcall(ns.EmojiComplete.Attach, f.input) end
-    -- Feld ohne eigenen Kasten (die Leiste ist der Kasten)
+    -- field without its own box (the bar is the box)
     if f.input.GetRegions then
         for _, rg in ipairs({ f.input:GetRegions() }) do
             if rg.GetObjectType and rg:GetObjectType() == "Texture" then rg:SetAlpha(0) end
@@ -1841,7 +1841,7 @@ function WL.BuildPrivate(parent)
     f.input:HookScript("OnEditFocusGained", function() pill.edge:SetColor(C.accent[1], C.accent[2], C.accent[3], 0.55) end)
     f.input:HookScript("OnEditFocusLost", function() pill.edge:SetColor(1, 1, 1, 0.10) end)
     f.counter = K.Text(pill, 9, C.dim, "RIGHT")
-    -- runder Senden-Knopf mit Pfeil (aktiv nur mit Text, Schein beim Ueberfahren)
+    -- round send button with arrow (active only with text, glow on mouseover)
     local sb = CreateFrame("Button", nil, bar)
     sb:SetSize(34, 34)
     sb:SetPoint("RIGHT", -10, 0)
@@ -1869,7 +1869,7 @@ function WL.BuildPrivate(parent)
         if on then self.bg:SetVertexColor(ac[1] * 0.8, ac[2] * 0.8, ac[3] * 0.8, self.hover and 0.95 or 0.75) else self.bg:SetVertexColor(1, 1, 1, 0.07) end
         for _, t in ipairs(self.arrow) do t:SetAlpha(on and 1 or 0.35) end
         self.glow:SetVertexColor(C.accent[1], C.accent[2], C.accent[3], 0.35)
-        self.glow:SetShown(false)   -- kein Schein (ruhiges Design)
+        self.glow:SetShown(false)   -- no glow (calm design)
     end
     function sb:SetActive(on) self.active = on and true or false self:Paint() end
     sb:SetScript("OnEnter", function(self) self.hover = true self:Paint() K.ShowTip(self, { L["Send"], "|cff888888" .. L["Enter"] .. "|r" }) end)
@@ -1890,7 +1890,7 @@ function WL.BuildPrivate(parent)
     function f:UpdateCounter()
         local n = #(self.input:GetText() or "") + #prefix()
         local c = n > 255 and C.red or (n > 220 and C.amber or C.dim)
-        -- dezent: Zaehler erst ab 150 Zeichen
+        -- subtle: counter only from 150 chars
         self.counter:SetText(n >= 150 and (n .. "/255") or "")
         self.counter:SetTextColor(c[1], c[2], c[3])
         local has = (self.input:GetText() or ""):find("%S") ~= nil
@@ -1910,7 +1910,7 @@ function WL.BuildPrivate(parent)
         if #msg > 255 then msg = msg:sub(1, 255) end
         local ok = pcall(SendChatMessage, msg, "WHISPER", nil, ns.ChatName(WL.privSel))
         if not ok then ns.print(L["Sending failed."]) return end
-        -- fuer Pfeil hoch: zuletzt Gesendetes
+        -- for arrow up: last sent
         WL.sent = WL.sent or {}
         table.insert(WL.sent, 1, t)
         while #WL.sent > 20 do table.remove(WL.sent) end
@@ -1930,11 +1930,11 @@ function WL.BuildPrivate(parent)
             if m then m.draft = t ~= "" and t or nil end
         end
     end)
-    -- Pfeil hoch/runter: zuletzt gesendete Nachrichten zurueckholen (zum Wiederholen/Bearbeiten)
+    -- arrow up/down: recall recently sent messages (to repeat/edit)
     K.InputHistory(f.input, function()
         local list = {}
         for i, s in ipairs(WL.sent or {}) do list[i] = s end
-        -- noch nichts gesendet in dieser Sitzung: eigene Nachrichten aus dem Verlauf
+        -- nothing sent yet this session: own messages from the history
         if #list == 0 and WL.privSel then
             for i = #log(), 1, -1 do
                 local e = log()[i]
@@ -1944,14 +1944,14 @@ function WL.BuildPrivate(parent)
         return list
     end)
     f:HookScript("OnSizeChanged", function() if f.lastMsgs then f.sig = nil WL.RefreshPrivate() end end)
-    -- Gildenchat-Verlauf darf nie durchscheinen: Flaechen deckend
+    -- guild chat history must never shine through: opaque areas
     if f.bg and f.bg.SetColorTexture then f.bg:SetColorTexture(C.bg[1], C.bg[2], C.bg[3], 1) end
     f:Hide()
     WL.priv = f
     return f
 end
 
--- Chat-Darstellung geaendert: Hintergrund umfaerben, Blasen beim naechsten Zeichnen neu aufbauen
+-- chat appearance changed: recolor background, rebuild bubbles on next draw
 function WL.ApplyLook()
     local f = WL.priv
     if not f then return end
@@ -1960,7 +1960,7 @@ function WL.ApplyLook()
         local r, g, b = GCx.LookColor("chatBgColor")
         local a = (tonumber(GCx.Look("chatBgAlpha")) or 90) / 100
         if ns.Insta and ns.Insta.Glass and f.rp then
-            -- Farbe auf die runde Karte legen, eckige Flaechen im Verlauf durchsichtig
+            -- put color on the round card, square areas in the history transparent
             ns.Insta.Glass(f.rp, { r, g, b, a }, nil, 12)
             f.lookBg:SetColorTexture(0, 0, 0, 0)
             if f.cbg then f.cbg:Hide() end
@@ -1972,12 +1972,12 @@ function WL.ApplyLook()
     if f:IsShown() then WL.RefreshPrivate() end
 end
 
--- Kopf (Status live) ohne den Verlauf neu aufzubauen
+-- header (live status) without rebuilding the history
 function WL.UpdateHead()
     local f = WL.priv
     if not f or not f:IsShown() then return end
     local name = WL.privSel
-    -- 0.6.285: Kopf zeigt die Person (Main), der Ziel-Charakter steht im Knopf "an <Charakter>"
+    -- 0.6.285: header shows the person (main), the target character is in the button "to <character>"
     local p = name and WL.PersonOf(WL.People(WL.Threads()), name)
     f.person = p
     f.hname:SetText(name and WL.Label((p and p.main) or name) or L["Private"])
@@ -1991,7 +1991,7 @@ function WL.UpdateHead()
         if key == "off" then f.hav.on:Show() f.hav.rim:Show() f.hav.on:SetVertexColor(0.45, 0.47, 0.50) end
         if key == "afk" then f.hav.on:SetVertexColor(C.amber[1], C.amber[2], C.amber[3]) end
     end
-    -- Status-Pille
+    -- status pill
     local PC = { on = { C.mint, L["online"] }, afk = { C.amber, L["AFK"] }, off = { { 0.55, 0.57, 0.60 }, L["offline"] }, bn = { C.blue, L["Battle.net"] } }
     local pc = PC[key] or PC.off
     f.hpill:SetShown(name ~= nil)
@@ -2019,11 +2019,11 @@ function WL.UpdateHead()
     f.more:SetShown(name ~= nil)
 end
 
--- 0.6.285: Personen statt Twink-Baum. Alle Gespraeche mit den Charakteren eines Spielers (Main + Twinks, ns.Alts)
--- bilden EINE Zeile und EINEN gemeinsamen Verlauf. Geschrieben wird an WL.privSel (ein echter Charakter) -
--- standardmaessig an den, der gerade online ist bzw. zuletzt geschrieben hat; im Kopf umstellbar.
--- Battle.net-Kontakte bleiben eigene Personen (auch bei gleichem Namen). Einstellung wlGroupAlts = false: jeder
--- Charakter ist eine eigene Person.
+-- 0.6.285: persons instead of alt tree. All conversations with a player's characters (main + alts, ns.Alts)
+-- form ONE line and ONE shared history. Messages go to WL.privSel (a real character) -
+-- by default the one currently online or who wrote last; switchable in the header.
+-- Battle.net contacts stay separate persons (even with the same name). Setting wlGroupAlts = false: every
+-- character is its own person.
 local function personKey(th)
     local function key(n) return (ns.NameKey and ns.NameKey(n)) or tostring(n):lower() end
     local grp = ns.Alts and ns.Alts.Main and not (ns.db and ns.db.settings and ns.db.settings.wlGroupAlts == false)
@@ -2046,7 +2046,7 @@ function WL.People(threads)
         if th.pin then p.pin = true end
         if th.mute then p.mute = true end
         if not th.fresh then p.fresh = nil end
-        -- Zeile zeigt die neueste Nachricht der Person; name = Charakter dieser Nachricht
+        -- line shows the person's newest message; name = character of that message
         if ((th.last and th.last.t) or 0) > ((p.last and p.last.t) or 0) then p.last, p.name = th.last, th.name end
     end
     table.sort(out, function(a, b)
@@ -2055,14 +2055,14 @@ function WL.People(threads)
     end)
     return out
 end
--- Person, zu der ein Charakter gehoert
+-- person a character belongs to
 function WL.PersonOf(people, name)
     if not name then return nil end
     for _, p in ipairs(people) do
         for _, th in ipairs(p.chars) do if th.name == name then return p end end
     end
 end
--- gemeinsamer Verlauf aller Charaktere, zeitlich (bei gleicher Sekunde nach Eingang)
+-- shared history of all characters, chronological (same second by arrival)
 function WL.PersonMsgs(p)
     if not p then return {} end
     if #p.chars == 1 then return p.chars[1].msgs end
@@ -2074,7 +2074,7 @@ function WL.PersonMsgs(p)
     end)
     return all
 end
--- an wen schreiben: online zuerst, sonst der Charakter mit der neuesten Nachricht
+-- whom to write to: online first, otherwise the character with the newest message
 function WL.BestChar(p, online)
     if not p then return nil end
     local best, bestOn
@@ -2090,7 +2090,7 @@ local function buildList(threads)
     local q, filt = WL.query, WL.filter or "all"
     local out = {}
     if filt == "star" or q then
-        -- Nachrichten-Treffer (Suche) bzw. Merkliste, neueste zuerst
+        -- message hits (search) or bookmarks, newest first
         local l = log()
         for i = #l, 1, -1 do
             local e = l[i]
@@ -2124,12 +2124,12 @@ function WL.RefreshPrivate()
         for _, th in ipairs(threads) do if th.name == WL.privSel then found = true end end
         if not found then WL.privSel = nil end
     end
-    -- 0.6.285: geoeffnet ist eine Person (alle Charaktere eines Spielers), geschrieben wird an WL.privSel
+    -- 0.6.285: a person is opened (all characters of a player), messages go to WL.privSel
     local people = WL.People(threads)
     if not WL.privSel and not WL.noAuto and people[1] then WL.privSel = WL.BestChar(people[1], isOnline) end
     local cur = WL.PersonOf(people, WL.privSel)
     local msgs = WL.PersonMsgs(cur)
-    -- geoeffnete Unterhaltung gilt als gelesen (alle Charaktere); erste ungelesene merken (Trennlinie)
+    -- opened conversation counts as read (all characters); remember first unread (divider)
     local newFrom
     if cur then
         for i, e in ipairs(msgs) do
@@ -2146,7 +2146,7 @@ function WL.RefreshPrivate()
     f.filter:Select(WL.filter or "all")
     local list = buildList(threads)
     f.threads:SetData(list)
-    -- Leerzustand links
+    -- empty state left
     local empty = #list == 0
     f.lempty:SetShown(empty)
     if empty then
@@ -2165,7 +2165,7 @@ function WL.RefreshPrivate()
     f.snd:SetShown(can)
     f.counter:SetShown(can)
     f.pill:SetShown(can)
-    -- Entwurf des Gespraechs zurueckholen (beim Wechsel)
+    -- restore the conversation's draft (on switch)
     if f.inputFor ~= WL.privSel then
         f.inputFor = WL.privSel
         f.quote = nil
@@ -2175,13 +2175,13 @@ function WL.RefreshPrivate()
         f.input.ph:SetShown((f.input:GetText() or "") == "")
     end
     f:UpdateQuote()
-    -- rechter Leerzustand
+    -- right empty state
     f.rempty:SetShown(cur == nil)
     if cur == nil then
         f.rempty.text:SetText(#threads == 0 and L["No whispers yet. Write to someone from the guild!"] or L["Pick a conversation on the left."])
     end
     f.lastMsgs = msgs
-    -- Verlauf nur neu aufbauen, wenn sich etwas geaendert hat (kein Zucken)
+    -- only rebuild the history if something changed (no twitching)
     local jump = WL.jump
     WL.jump = nil
     local sig = tostring(cur and cur.key) .. "|" .. tostring(WL.privSel) .. "|" .. #msgs .. "|" .. tostring(msgs[#msgs] and msgs[#msgs].id) .. "|" .. tostring(WL.ver) .. "|" .. tostring(WL.query)
@@ -2197,7 +2197,7 @@ function WL.RefreshPrivate()
             end
         end
         local sameThread = f.sigSel == (cur and cur.key) and f.sigN == #msgs
-        -- im offenen Gespraech dazugekommen: nur diese weich einblenden
+        -- added in the open conversation: fade in only these softly
         local animFrom = (f.sigSel == (cur and cur.key) and f.sigN and #msgs > f.sigN and #msgs - f.sigN <= 5) and (f.sigN + 1) or nil
         f.sig, f.sigSel, f.sigN = sig, cur and cur.key, #msgs
         f:SetMessages(msgs, { newFrom = newFrom, jump = jump, keep = sameThread and not jump and not newFrom, animFrom = animFrom,
@@ -2205,7 +2205,7 @@ function WL.RefreshPrivate()
     end
 end
 
--- Online-Status live nachziehen (nur der Kopf und die Punkte, kein Neuaufbau des Verlaufs)
+-- update online status live (only the header and dots, no history rebuild)
 local function liveStatus()
     if WL.priv and WL.priv:IsShown() then
         WL.UpdateHead()
@@ -2216,9 +2216,9 @@ ns.On("FRIENDLIST_UPDATE", liveStatus)
 ns.On("GUILD_ROSTER_UPDATE", function() if ns.After then ns.After(0.5, liveStatus) else liveStatus() end end)
 
 ------------------------------------------------------------------------
--- Einstellungen (Bereich "Chat"): an den vorhandenen Block anhaengen, nichts ersetzen.
--- Settings.lua legt "chat" an, DiscordBridge haengt seine Schalter ueber DB.BuildSettings an ->
--- wir haengen uns hinter DB.BuildSettings (wird bei jedem Aufbau frisch nachgeschlagen).
+-- Settings (area "Chat"): append to the existing block, replace nothing.
+-- Settings.lua creates "chat", DiscordBridge appends its toggles via DB.BuildSettings ->
+-- we hook in after DB.BuildSettings (looked up fresh on every build).
 ------------------------------------------------------------------------
 function WL.BuildSettings(det, y)
     if not K or not K.Toggle then return y end

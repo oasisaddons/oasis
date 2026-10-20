@@ -1,13 +1,13 @@
--- Oasis: Raid-Check - alles vor dem Pull auf einen Blick
---  * Bereitschaftscheck (Blizzard /readycheck) mit Ergebnis je Spieler (Ring "18/20 bereit", Ampeln je Kriterium)
---  * Kacheln: Bereit, Verzauberungen, Buffs, Abwesend/AFK, Haltbarkeit (Klick = Liste filtern)
---  * "Fehlende ansagen" schreibt eine kurze Liste in den Raidchat
---  * Boss-Taktiken (Store "tactics"): Leitung schreibt sie, alle sehen sie als Karte mit Rollen-Abschnitten
---    (Zeilen "Tank:", "Heiler:", "DD:" beginnen einen Abschnitt); beim Anvisieren des Bosses kommt ein Hinweis
---  * Gemeinsame Bausteine fuer Raid-Check, Pluender-Regeln und Raid-Vorbereitung: ns.RCUI
+-- Oasis: raid check - everything before the pull at a glance
+--  * Ready check (Blizzard /readycheck) with result per player (ring "18/20 ready", traffic lights per criterion)
+--  * Tiles: ready, enchants, buffs, absent/AFK, durability (click = filter list)
+--  * "Announce missing" writes a short list into raid chat
+--  * Boss tactics (store "tactics"): leadership writes them, everyone sees them as a card with role sections
+--    (lines "Tank:", "Heiler:", "DD:" start a section); targeting the boss shows a hint
+--  * Shared building blocks for raid check, loot rules and raid prep: ns.RCUI
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
--- ns.Group kommt aus Core\Diagnostics\RaidSim.lua; fehlt die Datei, gelten die echten Blizzard-Abfragen
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
+-- ns.Group comes from Core\Diagnostics\RaidSim.lua; if the file is missing, the real Blizzard queries apply
 if not ns.Group then ns.Group = { IsSim = function() return false end, IsInGroup = function() return (IsInGroup and IsInGroup()) and true or false end, IsInRaid = function() return (IsInRaid and IsInRaid()) and true or false end, Num = function() return (GetNumGroupMembers and GetNumGroupMembers()) or 0 end, InInstance = function() if IsInInstance then return IsInInstance() end return false, "none" end, Instance = function() return nil end, Members = function() return {} end, Member = function() return nil end, IsLeader = function() return (UnitIsGroupLeader and UnitIsGroupLeader("player")) and true or false end, IsAssist = function() return false end } end
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
@@ -29,12 +29,12 @@ local function glyph(name) return ns.MEDIA .. "icons\\" .. name end
 local function trim(s) return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", "")) end
 
 ------------------------------------------------------------------------
--- Gemeinsame Bausteine (auch fuer LootRules.lua und RaidPrep.lua)
+-- Shared building blocks (also for LootRules.lua and RaidPrep.lua)
 ------------------------------------------------------------------------
 local U = {}
 ns.RCUI = U
 if ns.ICONS then ns.ICONS.tactics = ns.MEDIA .. "icons\\raid" ns.ICONS.lootrules = ns.MEDIA .. "icons\\wants" end
--- Raid-Check, Boss-Taktiken und Pluender-Regeln teilen Daten: alle drei auffrischen
+-- Raid check, boss tactics and loot rules share data: refresh all three
 function ns.RCRefresh()
     ns.RefreshPage("raidcheck")
     ns.RefreshPage("tactics")
@@ -44,7 +44,7 @@ U.CIRCLE, U.EMBER = CIRCLE, EMBER
 U.animOn, U.demoOn = animOn, demoOn
 U.SEV = { ok = C.mint, warn = C.amber, bad = C.red, wait = C.blue, none = C.dim }
 
--- Glas 2026: ruhige Flaeche + feine Kante (Kante optional farbig)
+-- Glass 2026: calm surface + thin edge (edge optionally colored)
 local GLINE = { 1, 1, 1, 0.10 }
 function U.Glass(f, r, a, line)
     local IG = ns.Insta
@@ -58,7 +58,7 @@ function U.gradient(tex, dir, c, a1, a2, fallbackA)
     end
 end
 
--- Klassensymbol (Blizzard-Bogen), sonst Kreis in Klassenfarbe
+-- Class icon (Blizzard sheet), else circle in class color
 function U.ClassIcon(tex, class)
     local tc = type(class) == "string" and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[class]
     if tc then
@@ -75,7 +75,7 @@ function U.ClassIcon(tex, class)
     end
 end
 
--- weich einblenden (ohne Flackern: laeuft nur beim Wechsel, nicht bei jedem Auffrischen)
+-- fade in softly (no flicker: runs only on switch, not on every refresh)
 function U.Reveal(f, dist)
     if not f then return end
     if not animOn() then f:SetAlpha(1) return end
@@ -84,7 +84,7 @@ function U.Reveal(f, dist)
     ns.After(0.8, function() if (f:GetAlpha() or 1) < 1 then f:SetAlpha(1) end end)
 end
 
--- Reiterleiste: Symbol + Text, gleitender Balken in der Farbe des Reiters
+-- Tab bar: icon + text, sliding bar in the tab's color
 function U.Tabs(parent, items, onPick)
     local f = CreateFrame("Frame", nil, parent)
     f:SetHeight(32)
@@ -174,7 +174,7 @@ function U.Tabs(parent, items, onPick)
     return f
 end
 
--- Kachel mit Verlauf, Glow und Hover-Lift; Klick optional (z.B. Filter)
+-- Tile with gradient, glow and hover lift; click optional (e.g. filter)
 function U.Tile(parent, icon, label, color, onClick)
     local c = color or C.accent
     local t = CreateFrame("Button", nil, parent)
@@ -231,7 +231,7 @@ function U.Tile(parent, icon, label, color, onClick)
         self.sel = on and true or false
         glass(self, 12, on and 0.06 or 0.03, on and gl(c, 0.55) or GLINE)
     end
-    -- Wert setzen; zaehlt nur hoch, wenn er sich geaendert hat (kein Flackern beim Auffrischen)
+    -- Set value; counts up only if it changed (no flicker on refresh)
     function t:Set(value, sub, progress, vcolor)
         self.sub:SetText(sub or "")
         local key = tostring(value)
@@ -251,7 +251,7 @@ function U.Tile(parent, icon, label, color, onClick)
     end
     return t
 end
--- Kacheln gleichmaessig in einer Reihe verteilen
+-- Spread tiles evenly in one row
 function U.LayoutTiles(tiles, x0, y, w, gap)
     gap = gap or 8
     local n = #tiles
@@ -259,7 +259,7 @@ function U.LayoutTiles(tiles, x0, y, w, gap)
     for i, t in ipairs(tiles) do t:SetPos(x0 + (i - 1) * (tw + gap), y, tw) end
 end
 
--- Leerzustand: Symbol mit Halo, Text, bis zu zwei Knoepfe
+-- Empty state: icon with halo, text, up to two buttons
 function U.Empty(parent, icon, color)
     color = color or C.accent
     local f = CreateFrame("Frame", nil, parent)
@@ -310,7 +310,7 @@ function U.Empty(parent, icon, color)
     return f
 end
 
--- Ampel: farbiger Punkt mit Schein; Ueberfahren/Klick = Details
+-- Traffic light: colored dot with glow; hover/click = details
 function U.Light(parent, size)
     size = size or 12
     local b = CreateFrame("Button", nil, parent)
@@ -365,7 +365,7 @@ function U.Light(parent, size)
     return b
 end
 
--- Fortschrittsring aus Punkten (zaehlt animiert hoch)
+-- Progress ring of dots (counts up animated)
 function U.Ring(parent, size, n)
     n = n or 40
     local f = CreateFrame("Frame", nil, parent)
@@ -423,7 +423,7 @@ function U.Ring(parent, size, n)
     return f
 end
 
--- Karte (Flaeche mit Rahmen und farbiger Kante links)
+-- Card (surface with border and colored left edge)
 function U.Card(parent, color)
     local f = CreateFrame("Frame", nil, parent)
     f.grad = f:CreateTexture(nil, "BORDER", nil, 1)
@@ -431,14 +431,14 @@ function U.Card(parent, color)
     f.edge = f:CreateTexture(nil, "ARTWORK")
     f.edge:Hide()
     glass(f, 14, 0.03)
-    -- Farbe nur als feine Kante (z.B. alle bereit = gruen)
+    -- Color only as a thin edge (e.g. all ready = green)
     function f:SetColor(nc)
         glass(self, 14, 0.03, (nc and nc ~= C.accent) and gl(nc, 0.35) or GLINE)
     end
     return f
 end
 
--- Bereich mit eigenem Inhalt, Mausrad scrollt (fuer Karten mit variabler Hoehe)
+-- Area with its own content, mouse wheel scrolls (for cards with variable height)
 function U.Scroll(parent)
     local f = CreateFrame("Frame", nil, parent)
     f:SetClipsChildren(true)
@@ -476,11 +476,11 @@ function U.Scroll(parent)
 end
 
 ------------------------------------------------------------------------
--- Bereitschaftscheck
+-- Ready check
 ------------------------------------------------------------------------
 RC.ready = {}      -- Name -> true/false/"wait"/"afk"
 RC.readyAt = nil
-RC.flash = {}      -- Name -> GetTime() der letzten Antwort (Ampel pulsiert)
+RC.flash = {}      -- Name -> GetTime() of the last reply (traffic light pulses)
 local function units()
     local out = {}
     if ns.Group.IsInRaid() then for i = 1, 40 do out[#out + 1] = "raid" .. i end
@@ -512,9 +512,9 @@ ns.On("READY_CHECK_FINISHED", function()
 end)
 
 ------------------------------------------------------------------------
--- Daten je Spieler
+-- Data per player
 ------------------------------------------------------------------------
--- eigene Haltbarkeit (niedrigstes Teil in %)
+-- own durability (lowest item in %)
 local function myDurability()
     if not GetInventoryItemDurability then return nil end
     local low
@@ -530,7 +530,7 @@ local function myDurability()
     end
     return low and math.floor(low * 100 + 0.5) or nil
 end
--- Haltbarkeit anderer aus dem geteilten Stand der Raid-Vorbereitung (hoechstens 2 Tage alt)
+-- Others' durability from the shared raid prep state (at most 2 days old)
 local function sharedDurability(n)
     if not (Store and Store.Get) then return nil end
     local ok, r = pcall(Store.Get, "raidprep", "rp@" .. n)
@@ -540,7 +540,7 @@ local function sharedDurability(n)
     return d and d >= 0 and d or nil
 end
 
--- Beispielgruppe (Demo): Name, Klasse, Rolle, bereit, fehlende Verzauberungen, fehlende Buffs, Haltbarkeit, Zustand
+-- Sample group (demo): name, class, role, ready, missing enchants, missing buffs, durability, state
 local DEMO = {
     { "Grukthar", "WARRIOR", "TANK", true, {}, {}, 94 },
     { "Drogbar", "WARRIOR", "TANK", true, { "Cloak" }, {}, 61 },
@@ -563,7 +563,7 @@ local DEMO = {
     { "Ugruk", "WARRIOR", "DAMAGER", true, {}, {}, 68 },
     { "Tikka", "PRIEST", "DAMAGER", true, {}, {}, 85, "dead" },
 }
-RC.demoReady = nil   -- simulierter Ready-Check in der Demo
+RC.demoReady = nil   -- simulated ready check in the demo
 local function demoRows()
     local rows = {}
     for i, d in ipairs(DEMO) do
@@ -577,7 +577,7 @@ local function demoRows()
     end
     return rows
 end
--- Raid-Simulator: Zeilen aus ns.Group, Ready-Check mit nach und nach eintreffenden Antworten
+-- Raid simulator: rows from ns.Group, ready check with replies arriving gradually
 local function simRows()
     local buffMiss = {}
     if ns.BuffMonitor and ns.BuffMonitor.Scan then
@@ -725,14 +725,14 @@ function RC.Report()
         if #p > 0 then lines[#lines + 1] = ns.short(r.name) .. ": " .. table.concat(p, ", ") end
     end
     if not ch then
-        -- allein/Demo: nur lokal zeigen, nichts senden
+        -- solo/demo: show locally only, send nothing
         ns.print(#lines == 0 and L["[Oasis] Raid check: all ready!"] or L["[Oasis] Raid check - open:"])
         for i, l in ipairs(lines) do if i <= 8 then ns.print("  " .. l) end end
         if not demoOn() then ns.print(L["You are not in a group."]) end
         return
     end
     if #lines == 0 then ns.SendChat(L["[Oasis] Raid check: all ready!"], ch) return end
-    -- 0.5.617: ohne Namen (niemand wird oeffentlich vorgefuehrt) - Namen nur mit Einstellung rcChatNames
+    -- 0.5.617: without names (nobody gets publicly shamed) - names only with setting rcChatNames
     if not ns.db.settings.rcChatNames then
         ns.SendChat((L["[Oasis] Raid check: %d players still have something open - please check (buffs, ready, durability)."]):format(#lines), ch)
         return
@@ -744,7 +744,7 @@ function RC.Report()
     end
 end
 
--- Kriterien je Spieler -> Ampel ("ok"/"warn"/"bad"/"wait"/"none") + Tooltip-Zeilen
+-- Criteria per player -> traffic light ("ok"/"warn"/"bad"/"wait"/"none") + tooltip lines
 local CRIT = {
     { key = "ready", label = "Ready", icon = "checklist" },
     { key = "ench", label = "Enchants", icon = "crafting" },
@@ -804,17 +804,17 @@ local FILTER = {
 }
 
 ------------------------------------------------------------------------
--- Boss-Taktiken
+-- Boss tactics
 ------------------------------------------------------------------------
 local function tkey(boss) return "tac-" .. (boss or ""):lower():gsub("[^%w]", "") end
--- Beispiel-Taktiken (Demo, nur Anzeige - Speichern legt eine echte an)
+-- Sample tactics (demo, display only - saving creates a real one)
 local DEMO_TAC = {
     { boss = "Onyxia", inst = "Onyxias Hort", text = "All: Never stand in front of or behind Onyxia (breath/tail).\nPhase 2 from 65%: dodge fireballs, kill whelps at once.\nPhase 3 from 40%: fear - grounding totem and fear ward ready.\nTank: Onyxia with her back to the wall, head away from the raid.\nTank: phase 3 take aggro back at once.\nHealer: tank first, spread out in phase 2.\nDPS: go full only after 3 sunders from the tank.\nDPS: phase 2: whelps before Onyxia." },
     { boss = "Rage Winterchill", inst = "Hyjal", text = "All: leave Death and Decay at once.\nTank: hold the middle, don't move during frost nova.\nHealer: heal the ice block target fast.\nDPS: ranged spread wide (icebolt chain)." },
     { boss = "Anetheron", inst = "Hyjal", text = "All: swarm target: run out.\nTank: infernal tank off to the side.\nHealer: remove sleep where possible.\nDPS: ignore infernals, everything on the boss." },
 }
--- Taktik-Bibliothek: fertige Kurz-Taktiken der Classic-Raids. Jeder sieht sie (nur lesen),
--- die Raidleitung uebernimmt sie mit einem Klick als Gilden-Taktik und passt sie an.
+-- Tactics library: ready-made short tactics for the Classic raids. Everyone sees them (read only),
+-- raid leadership adopts them with one click as guild tactic and adjusts them.
 local LIB = {
     { inst = "Onyxias Hort", boss = "Onyxia", text = "All: Never stand in front of or behind Onyxia (breath and tail sweep).\nAll: Phase 2 (65%): dodge fireballs, stay out of the cave entrances.\nAll: Phase 3 (40%): fear - Fear Ward/Tremor Totem ready, avoid the lava cracks.\nTank: Onyxia sideways at the wall, head away from the raid.\nTank: Phase 2: pick up the whelps. Phase 3: get aggro back at once.\nHealer: Tank has priority, spread out in phase 2.\nDD: Wait for 3 attacks of the tank. Phase 2: whelps first." },
     { inst = "Geschmolzener Kern", boss = "Lucifron", text = "All: Remove Lucifron's Curse and Impending Doom at once (mages/druids, priests/paladins).\nTank: Tank the two guards apart - mind control!\nHealer: Spread out, dispel mind-controlled players.\nDD: Guards first, then Lucifron." },
@@ -844,7 +844,7 @@ local function libTactics()
     return out
 end
 RC.LIB = LIB
--- eigene Rolle fuer die Rollen-Ansicht: tank / heal / dd
+-- own role for the role view: tank / heal / dd
 local function myRoleKey()
     local r = ns.RaidPrep and ns.RaidPrep.MyRole and select(2, pcall(ns.RaidPrep.MyRole)) or nil
     r = type(r) == "string" and r or ""
@@ -862,7 +862,7 @@ function RC.Tactics()
     local real = {}
     for _, r in ipairs(l) do if not r.del then real[#real + 1] = r end end
     if #real == 0 and demoOn() then real = demoTactics() end
-    -- Bibliothek: nur Bosse, fuer die die Gilde noch keine eigene Taktik hat
+    -- Library: only bosses for which the guild has no own tactic yet
     local have = {}
     for _, r in ipairs(real) do have[tkey(r.boss)] = true end
     for _, t in ipairs(libTactics()) do if not have[tkey(t.boss)] then real[#real + 1] = t end end
@@ -885,7 +885,7 @@ local function tacticById(id)
         for _, d in ipairs(libTactics()) do if d.id == id then return d end end
     end
 end
--- Taktiken dauerhaft bearbeiten: ab Schlachtzugsleiter (Admin.Can); in einer normalen Gruppe der Gruppenleiter
+-- Edit tactics permanently: raid leader and above (Admin.Can); in a normal group the group leader
 function RC.CanEdit()
     if ns.Admin and ns.Admin.Can and ns.Admin.Can("raid.tactics.edit") then return true end
     return (not simOn() and ns.Group.IsInGroup() and not ns.Group.IsInRaid() and ns.isGroupLead()) and true or false
@@ -895,7 +895,7 @@ function RC.SaveTactic(boss, inst, text)
     if boss == "" then return end
     Store.Put("tactics", { id = tkey(boss), boss = boss, inst = inst or "", text = text or "", ts = ns.now() })
 end
--- Abschnitte: "Tank:", "Heiler:", "DD:", "Alle:" beginnen einen Abschnitt (auch "[Tank]")
+-- Sections: "Tank:", "Heiler:", "DD:", "Alle:" start a section (also "[Tank]")
 local SECT = {
     { key = "all", text = "For everyone", color = C.violet, icon = "raid" },
     { key = "tank", text = "Tanks", color = C.blue, icon = "role_tank" },
@@ -924,12 +924,12 @@ function RC.ParseTactic(text)
     for _, s in ipairs(SECT) do if by[s.key] then out[#out + 1] = { key = s.key, def = s, lines = by[s.key] } end end
     return out
 end
--- in den Chat: je Abschnitt eine Zeile (gekuerzt), hoechstens 6 Nachrichten
+-- to chat: one line per section (shortened), at most 6 messages
 function RC.PostTactic(r)
     local ch = ns.groupChannel()
     if not ch or not r then return end
-    -- Taktiken schreiben auch andere: ohne Escape-Sequenzen/Steuerzeichen in den Chat (ein "|" laesst
-    -- den Server die Nachricht ablehnen und waere sonst ein Weg fuer fremde Sequenzen)
+    -- Others write tactics too: no escape sequences/control chars into chat (a "|" makes
+    -- the server rejects the message, and it would otherwise be a path for foreign sequences)
     local function plainChat(s) return (tostring(s or ""):gsub("[%c|]", " ")) end
     ns.SendChat("[Oasis] " .. plainChat(r.boss):sub(1, 80) .. ":", ch)
     local n = 0
@@ -943,7 +943,7 @@ function RC.PostTactic(r)
         ns.SendChat(msg, ch)
     end
 end
--- Hinweis beim Anvisieren eines Bosses mit Taktik
+-- Hint when targeting a boss with a tactic
 local shown = {}
 ns.On("PLAYER_TARGET_CHANGED", function()
     if ns.GuildOpt("rcTactTip") == false or ns.inCombat() then return end
@@ -961,7 +961,7 @@ ns.On("PLAYER_TARGET_CHANGED", function()
 end)
 
 ------------------------------------------------------------------------
--- Seite: Teil "Raid-Check"
+-- Page: part "Raid check"
 ------------------------------------------------------------------------
 local ROLE_ICON = { TANK = "role_tank", HEALER = "role_heal", DAMAGER = "role_dps" }
 local ROLE_COL = { TANK = C.blue, HEALER = C.mint, DAMAGER = C.red }
@@ -976,7 +976,7 @@ local TILE_SUB = { ench = "fehlt", buffs = "fehlen", away = "weg", dura = "niedr
 local LIGHT_W = 58
 
 local function buildCheck(p, ck)
-    -- Bereitschafts-Ring
+    -- Readiness ring
     ck.ringCard = U.Card(ck, C.mint)
     ck.ringCard:SetPoint("TOPLEFT", 0, 0)
     ck.ringCard:SetSize(250, 100)
@@ -1000,7 +1000,7 @@ local function buildCheck(p, ck)
     ck.timer.fill:SetPoint("TOPLEFT") ck.timer.fill:SetPoint("BOTTOMLEFT")
     ck.timer.fill:SetColorTexture(C.blue[1], C.blue[2], C.blue[3], 1)
     ck.timer:Hide()
-    -- Kacheln (Klick = Liste filtern)
+    -- Tiles (click = filter list)
     ck.tiles = {}
     for i, d in ipairs(TILE_DEF) do
         local t = U.Tile(ck, d[2], L[d[6]], d[4], function()
@@ -1011,7 +1011,7 @@ local function buildCheck(p, ck)
         t.tip = { L[d[3]], L[d[5]], "|cff888888" .. L["Click: show only these / clear filter"] .. "|r" }
         ck.tiles[i] = t
     end
-    -- Knoepfe
+    -- Buttons
     ck.rcBtn = K.Button(ck, L["Start ready check"], 160, 26, "primary", function()
         if simOn() then
             RC.DemoReadyCheck()
@@ -1032,7 +1032,7 @@ local function buildCheck(p, ck)
     ck.filterTxt = K.Text(ck, 11, C.muted)
     ck.filterTxt:SetPoint("LEFT", ck.report, "RIGHT", 12, 0)
     ck.filterTxt:SetPoint("RIGHT", ck, "RIGHT", -4, 0)
-    -- Kopf der Teilnehmerliste
+    -- Participant list header
     ck.head = CreateFrame("Frame", nil, ck)
     ck.head:SetPoint("TOPLEFT", 0, -110)
     ck.head:SetPoint("RIGHT", ck, "RIGHT", -8, 0)
@@ -1052,7 +1052,7 @@ local function buildCheck(p, ck)
     hl:SetPoint("BOTTOMLEFT") hl:SetPoint("BOTTOMRIGHT")
     hl:SetHeight(1)
     hl:SetColorTexture(C.line[1], C.line[2], C.line[3], 1)
-    -- Teilnehmer als Zeilen mit Ampeln
+    -- Participants as rows with traffic lights
     ck.list = K.List(ck, 32, function(l)
         local r = K.Row(l)
         r.roleBar = r:CreateTexture(nil, "ARTWORK")
@@ -1093,7 +1093,7 @@ local function buildCheck(p, ck)
             local lt = r.lights[i]
             lt:SetState(sev, tip)
         end
-        -- frische Antwort auf den Ready-Check: Ampel pulsiert einmal
+        -- fresh reply to the ready check: traffic light pulses once
         local fl = RC.flash[e.name]
         if fl and fl ~= r.lights[1].seenFlash and GetTime() - fl < 1.5 then
             r.lights[1].seenFlash = fl
@@ -1105,7 +1105,7 @@ local function buildCheck(p, ck)
     ck.list.empty:SetText("")
     ck.empty = U.Empty(ck, "groups", C.mint)
     ck.empty:SetPoint("TOP", ck.list, "TOP", 0, -30)
-    -- Breite verteilen (Kacheln neben dem Ring)
+    -- Distribute width (tiles next to the ring)
     local function layout()
         local w = ck:GetWidth() or 770
         U.LayoutTiles(ck.tiles, 260, 0, w - 260, 8)
@@ -1175,7 +1175,7 @@ local function refreshCheck(p)
         t:SetSel(p.filter == k)
         t:SetShown(n > 0)
     end
-    -- Knoepfe
+    -- Buttons
     local lead = ns.Group.IsInGroup() and ns.isGroupLead()
     ck.rcBtn:SetShown(ns.Group.IsInGroup() or n > 0)
     K.LockButton(ck.rcBtn, function() return not ns.Group.IsInGroup() or ns.isGroupLead() end, ns.Group.IsInRaid() and "raidassist" or "grouplead")
@@ -1216,10 +1216,10 @@ local function refreshCheck(p)
 end
 
 ------------------------------------------------------------------------
--- Seite: Teil "Boss-Taktiken"
+-- Page: part "Boss tactics"
 ------------------------------------------------------------------------
 local tacSearch, tacRole = "", "all"
--- einen Abschnitt in den Gruppen-/Raidchat
+-- a section into party/raid chat
 local function postSection(r, s)
     local ch = ns.groupChannel()
     if not ch or not r or not s then return end
@@ -1286,7 +1286,7 @@ local function buildTactics(p, tc)
         r:EnableMouse(not isH)
         if isH then
             r.hdr:SetText(e.hdr .. "  |cff666666" .. e.n .. "|r")
-            r.selBg:Hide() r.sel:Hide() r.tgt:Hide()   -- 0.6.466: Ziel-Punkt stand auf den Kapitel-Zeilen
+            r.selBg:Hide() r.sel:Hide() r.tgt:Hide()   -- 0.6.466: target dot sat on the chapter rows
             for _, d in ipairs(r.secs) do d:Hide() end
             return
         end
@@ -1319,7 +1319,7 @@ local function buildTactics(p, tc)
         U.Reveal(tc.card)
     end)
     tc.new:SetPoint("BOTTOMLEFT", 0, 2)
-    -- Karte rechts
+    -- Map on the right
     tc.card = U.Card(tc, C.accent)
     tc.card:SetPoint("TOPLEFT", 244, 0)
     tc.card:SetPoint("BOTTOMRIGHT")
@@ -1335,7 +1335,7 @@ local function buildTactics(p, tc)
         if r and ns.Group.IsInGroup() then RC.PostTactic(r) K.Toast(L["Tactic posted"], r.boss, C.mint) end
     end)
     cd.post:SetPoint("TOPRIGHT", -14, -14)
-    -- Vorlage aus der Bibliothek als Gilden-Taktik uebernehmen
+    -- Adopt template from the library as guild tactic
     cd.take = K.Button(cd, L["Apply"], 110, 24, "ghost", function()
         local r = tacticById(RC.sel)
         if not (r and r.tpl and RC.CanEdit()) then return end
@@ -1347,7 +1347,7 @@ local function buildTactics(p, tc)
     cd.take:SetPoint("RIGHT", cd.post, "LEFT", -6, 0)
     cd.take:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Apply"], L["Save as guild tactic - editable afterwards and visible to all."] }) end)
     cd.take:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    -- Ansicht: alles oder nur, was meine Rolle angeht
+    -- View: everything or only what concerns my role
     cd.role = K.Segments(cd, { { key = "all", text = L["All"] }, { key = "mine", text = L["My role"] } },
         function(k) tacRole = k ns.RefreshPage("tactics") end, nil, { size = 11, pad = 14 })
     cd.role:SetPoint("TOPRIGHT", -14, -44)
@@ -1361,7 +1361,7 @@ local function buildTactics(p, tc)
         if r and not r.demo then Store.Delete("tactics", r.id) RC.sel = nil ns.RCRefresh() end
     end)
     cd.del:SetPoint("RIGHT", cd.edit, "LEFT", -6, 0)
-    -- Ansicht: Abschnitte als farbige Bloecke
+    -- View: sections as colored blocks
     cd.view = U.Scroll(cd)
     cd.view:SetPoint("TOPLEFT", 14, -74)
     cd.view:SetPoint("BOTTOMRIGHT", -10, 10)
@@ -1382,7 +1382,7 @@ local function buildTactics(p, tc)
         b.ico:SetPoint("TOPLEFT", 12, -9)
         b.head = K.Title(b, 12, C.text)
         b.head:SetPoint("LEFT", b.ico, "RIGHT", 7, 0)
-        -- nur diesen Abschnitt posten (z.B. nur fuer die Heiler)
+        -- post only this section (e.g. only for healers)
         b.post = CreateFrame("Button", nil, b)
         b.post:SetSize(70, 18)
         b.post:SetPoint("TOPRIGHT", -8, -6)
@@ -1455,7 +1455,7 @@ local function buildTactics(p, tc)
     cd.noText = K.Text(cd, 12, C.dim, "CENTER")
     cd.noText:SetPoint("CENTER", cd.view, "CENTER", 0, 0)
     cd.noText:SetText(L["This tactic is still empty."])
-    -- Bearbeiten
+    -- Edit
     local ed = CreateFrame("Frame", nil, cd)
     ed:SetPoint("TOPLEFT", 14, -12)
     ed:SetPoint("BOTTOMRIGHT", -14, 10)
@@ -1530,7 +1530,7 @@ end
 local function refreshTactics(p)
     local tc = p.tc
     local all = RC.Tactics()
-    -- nach Instanz gruppiert
+    -- grouped by instance
     local data, last, hdr = {}, nil, nil
     for _, r in ipairs(all) do
         local hit = tacSearch == "" or tostring(r.boss or ""):lower():find(tacSearch, 1, true) or tostring(r.inst or ""):lower():find(tacSearch, 1, true)
@@ -1621,7 +1621,7 @@ local function refreshTactics(p)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local function area(p)
     local f = CreateFrame("Frame", nil, p)

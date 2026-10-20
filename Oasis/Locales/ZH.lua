@@ -1,6 +1,6 @@
--- Oasis - Texte Chinesisch (vereinfacht) (maschinell uebersetzt, fehlende Texte fallen auf Englisch zurueck)
+-- Oasis - Simplified Chinese texts (machine translated, missing texts fall back to English)
 local ADDON, ns = ...
-ns.LangFile("zh", function()   -- wird nur ausgefuehrt, wenn diese Sprache gewaehlt ist
+ns.LangFile("zh", function()   -- only runs when this language is selected
 local T = ns.LOCALES.zh
 T["  ·  Click to whisper"] = "  ·  点击私聊"
 T["  ·  Click to let them know"] = "  ·  点击：告知"
@@ -2233,7 +2233,7 @@ T["Oasis logo (wordmark)"] = "Oasis 标志"
 T["Logo font for the guild"] = "公会标志字体"
 T["Logo font just for you"] = "仅你的标志字体"
 T["Adjusts automatically: name and subtitle are always as wide as the line."] = "自动适配：名称和副标题始终与横线同宽。"
--- 0.5.684: Nachtrag (alle bis dahin fehlenden Texte)
+-- 0.5.684: addendum (all texts missing until then)
 T[" (%d items missing)"] = " （缺少%d件）"
 T[" withdraws"] = " 撤回"
 T["%.1f %% of %d %%"] = "%.1f %% / %d %%"
@@ -7302,7 +7302,7 @@ T["Scan done: %d checks, %d errors. Now /reload to save the results."] = "扫描
 T["This is what Oasis looks like with a guild: sample data on your PC only, nothing is sent. Remove it with /oa demo off."] = "这就是有公会时的 Oasis：示例数据只在你的电脑上，不会发送任何内容。用 /oa demo off 移除。"
 T["While they are on, the window shows 'Demo on' at the top. One click there or here removes everything again."] = "示例数据开启时，窗口顶部会显示“演示开启”。点击那里或这里即可全部移除。"
 T["Meeting point, caution or note: pick a kind, then click the map"] = "集合点、危险或备注：先选择类型，再点击地图"
--- 0.6.472: ergaenzt (fehlende Texte nachgetragen)
+-- 0.6.472: missing texts added
 T["Invited %d signed-up players."] = "已邀请 %d 名报名玩家。"
 T["%d years"] = "%d 年"
 T["%d players searching from other guilds"] = "%d 名其他公会的玩家在寻找"
@@ -7759,7 +7759,7 @@ T["from the guild"] = "来自公会"
 T["e.g. group for Monastery"] = "例如：修道院队伍"
 T["e.g. help in Monastery"] = "例如：修道院求助"
 T["e.g. evenings from 7 pm"] = "例如：晚上 7 点起"
--- 0.6.476: Komfort, Sammelkarte, Kader-Check
+-- 0.6.476: comfort, gathering map, roster check
 T["Current"] = "当前"
 T["Hidden bars appear as soon as the mouse is over them."] = "隐藏的动作条在鼠标移上去时显示。"
 T["Show on mouseover"] = "鼠标悬停时显示"

@@ -1,6 +1,6 @@
--- Oasis - Startbildschirm ohne Gilde (2026, Glas)
--- Wer in keiner Gilde ist, sieht statt des Dashboards diese Seite: was Oasis trotzdem kann + neutral "Gilde finden".
--- Oeffnet jemand eine Gildenseite (Favorit, Link, Slash), zeigt dieselbe Seite einen Hinweis darueber.
+-- Oasis - start screen without a guild (2026, glass)
+-- Anyone not in a guild sees this page instead of the dashboard: what Oasis can still do + neutral "Find a guild".
+-- If someone opens a guild page (favorite, link, slash), the same page shows a notice above it.
 local ADDON, ns = ...
 local K, C, L = ns.K, ns.K.C, ns.L
 
@@ -11,7 +11,7 @@ local function hasGlass() return ns.Insta and ns.Insta.Glass and true or false e
 local function glass(f, fill, line, r) if hasGlass() then ns.Insta.Glass(f, fill, line, r) end end
 local function round(t, box, r) if K.RoundMask and t then K.RoundMask(t, box or t, r) end end
 
--- Blizzards Gildensuche oeffnen: der Reihe nach, was dieser Client hat (alles geschuetzt)
+-- Open Blizzard's guild finder: in order, whatever this client has (all protected)
 function NoGuild.OpenFinder()
     local tries = {
         function() if ToggleGuildFinder then ToggleGuildFinder() return true end end,
@@ -40,7 +40,7 @@ local function calmBtn(b, primary)
     return b
 end
 
--- Glaskarte: Symbol, Titel, kurzer Text, Knopf
+-- Glass card: icon, title, short text, button
 local function card(parent, icon, color, title, text, btnText, onClick)
     local c = CreateFrame("Frame", nil, parent)
     c:SetHeight(150)
@@ -52,7 +52,7 @@ local function card(parent, icon, color, title, text, btnText, onClick)
     c.disc:SetPoint("TOPLEFT", 16, -16)
     c.disc:SetVertexColor(color[1] * 0.22, color[2] * 0.22, color[3] * 0.22, 1)
     c.icon = K.Glyph(c, 18, ns.MEDIA .. "icons\\" .. icon, color)
-    c.icon:SetDrawLayer("ARTWORK", 3)   -- ueber der Scheibe (gleiche Ebene: Reihenfolge zufaellig, Symbol war unsichtbar)
+    c.icon:SetDrawLayer("ARTWORK", 3)   -- above the pane (same layer: order random, icon was invisible)
     c.icon:SetPoint("CENTER", c.disc, "CENTER", 0, 0)
     c.title = K.Title(c, 15, C.text)
     c.title:SetPoint("LEFT", c.disc, "RIGHT", 12, 0)
@@ -69,7 +69,7 @@ local function card(parent, icon, color, title, text, btnText, onClick)
     return c
 end
 
--- Inhalte (Hero, Karten, Gilde finden, Oasis-Kontakte) in einen Host bauen: Seite "noguild" und Dashboard ohne Gilde
+-- Build content (hero, cards, find guild, Oasis contacts) into a host: page "noguild" and dashboard without guild
 function NoGuild.Fill(p)
         -- Hero
         p.hero = CreateFrame("Frame", nil, p)
@@ -101,7 +101,7 @@ function NoGuild.Fill(p)
             L["With a guild you also get the member list, chronicle, raids, crafting and more. WoW's guild finder helps - or ask in trade chat."],
             L["Open guild finder"], function() NoGuild.OpenFinder() end)
         p.find:SetHeight(96)
-        -- 0.6.527: bei einer Gilde mit Oasis direkt bewerben (Rekrutierungs-Mappe)
+        -- 0.6.527: apply directly to a guild using Oasis (recruitment folder)
         p.find.apply = calmBtn(K.Button(p.find, L["Write application"], 150, 22, "ghost", function() if ns.Apply then ns.Apply.ShowForm() else ns.print(L["Applying needs the Guild care module."]) end end))
         p.find.apply:SetPoint("RIGHT", p.find.btn, "LEFT", -8, 0)
         p.find.text:ClearAllPoints()
@@ -110,7 +110,7 @@ function NoGuild.Fill(p)
         p.find.btn:ClearAllPoints()
         p.find.btn:SetPoint("RIGHT", -16, 0)
         p.find.btn:SetWidth(150)
-        -- Beispieldaten: so sieht Oasis mit Gilde aus. Startet nur per Klick und bleibt auf diesem PC.
+        -- Sample data: this is what Oasis looks like with a guild. Starts only on click and stays on this PC.
         if ns.Demo and ns.Demo.Load then
             p.find.btn:SetPoint("RIGHT", -16, 17)
             p.find.demo = calmBtn(K.Button(p.find, L["Show example"], 150, 26, "ghost", function()
@@ -124,7 +124,7 @@ function NoGuild.Fill(p)
             p.find.demo:HookScript("OnLeave", function() GameTooltip:Hide() end)
         end
 
-        -- Deine Oasis-Kontakte (Oasis-Nutzer aus Gruppen, auch ausserhalb einer Gilde)
+        -- Your Oasis contacts (Oasis users from groups, also outside a guild)
         local MAXR = 5
         p.ct = CreateFrame("Frame", nil, p)
         glass(p.ct, nil, nil, 12)
@@ -234,9 +234,9 @@ function NoGuild.Fill(p)
 end
 
 ------------------------------------------------------------------------
--- "Zurueck in deine Gilde?": Twink ohne Gilde, andere Charaktere des Accounts sind in einer Gilde
+-- "Back to your guild?": alt without a guild, other characters of the account are in a guild
 ------------------------------------------------------------------------
--- je Charakter Gildenname mitschreiben (Account-weit), damit Twinks ohne Gilde wissen, wo der Main ist
+-- record guild name per character (account-wide) so alts without a guild know where the main is
 local function noteMyGuild()
     if not ns.db then return end
     ns.db.charGuild = ns.db.charGuild or {}
@@ -258,7 +258,7 @@ local function sameRealm(a, b)
     return ra == nil or rb == nil or ra == rb
 end
 
--- liefert { main, guild, officers = { { name, rank, cls, seen, online } } } oder nil
+-- returns { main, guild, officers = { { name, rank, cls, seen, online } } } or nil
 function NoGuild.ReturnInfo()
     if not ns.db or (IsInGuild and IsInGuild()) then return nil end
     local me = ns.me()
@@ -284,7 +284,7 @@ function NoGuild.ReturnInfo()
     end
     local guild = guildOf(pick)
     local info = { main = pick, guild = guild, officers = {} }
-    -- wer einladen darf: Gildenmeister + Offiziere (Rang-Index 0/1) aus der letzten Gildenliste
+    -- who may invite: guild master + officers (rank index 0/1) from the last guild roster
     if snap.__guild == guild then
         for name, v in pairs(inSnap) do
             local isMine = ns.db.chars and ns.db.chars[name]
@@ -303,7 +303,7 @@ function NoGuild.ReturnInfo()
     return info
 end
 
--- Glaskarte im Dashboard
+-- Glass card in the dashboard
 function NoGuild.BuildBack(parent)
     local f = CreateFrame("Frame", nil, parent)
     local ac = C.accent
@@ -321,7 +321,7 @@ function NoGuild.BuildBack(parent)
     f.none:SetPoint("RIGHT", f, "RIGHT", -16, 0)
     f.none:SetWordWrap(true)
     f.none:SetText(L["Who can invite is not known yet - log in once with your main and Oasis will remember the guild leadership."])
-    -- Kopierfeld (nur wenn das Chatfenster nicht vorbereitet werden kann)
+    -- Copy field (only if the chat window cannot be prepared)
     f.copy = CreateFrame("EditBox", nil, f)
     f.copy:SetAutoFocus(false)
     f.copy:SetHeight(22)
@@ -331,7 +331,7 @@ function NoGuild.BuildBack(parent)
     glass(f.copy, { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.12 }, 6)
     f.copy:SetTextInsets(8, 8, 0, 0)
     f.copy:SetScript("OnEscapePressed", function(self) self:ClearFocus() self:Hide() end)
-    f.copy:Hide()    -- "Wer ist online?": /who nach der Gilde (nur per Klick erlaubt - Blizzard verlangt einen Tastendruck/Klick).    -- Ergebnis markiert Offiziere als online und nennt, wie viele aus der Gilde gerade da sind.    -- /who nach der Gilde; minGap = Mindestabstand in Sekunden    function NoGuild.SendWho(minGap)        local info = f.info or NoGuild.ReturnInfo()        local W = C_FriendList        if not (info and info.guild and W and W.SendWho) then return end        if GetTime() - (NoGuild.whoT or 0) < (minGap or 6) then return end        NoGuild.whoT = GetTime()        NoGuild.whoPending = info.guild        if W.SetWhoToUi then pcall(W.SetWhoToUi, true) end        pcall(W.SendWho, 'g-"' .. info.guild .. '"')        if f.check then f.check:SetLabel(L["Searching ..."]) end    end    f.check = K.Button(f, L["Who is online?"], 130, 22, "ghost", function() NoGuild.SendWho(6) end)    f.check:SetPoint("TOPRIGHT", -14, -12)    f.sub:SetPoint("RIGHT", f.check, "LEFT", -10, 0)    if not (C_FriendList and C_FriendList.SendWho) then f.check:Hide() end    NoGuild.EnsureWhoEv()    NoGuild.backCard = f
+    f.copy:Hide()    -- "Who is online?": /who for the guild (only allowed on click - Blizzard requires a keypress/click).    -- Result marks officers as online and says how many from the guild are currently on.    -- /who for the guild; minGap = minimum interval in seconds    function NoGuild.SendWho(minGap)        local info = f.info or NoGuild.ReturnInfo()        local W = C_FriendList        if not (info and info.guild and W and W.SendWho) then return end        if GetTime() - (NoGuild.whoT or 0) < (minGap or 6) then return end        NoGuild.whoT = GetTime()        NoGuild.whoPending = info.guild        if W.SetWhoToUi then pcall(W.SetWhoToUi, true) end        pcall(W.SendWho, 'g-"' .. info.guild .. '"')        if f.check then f.check:SetLabel(L["Searching ..."]) end    end    f.check = K.Button(f, L["Who is online?"], 130, 22, "ghost", function() NoGuild.SendWho(6) end)    f.check:SetPoint("TOPRIGHT", -14, -12)    f.sub:SetPoint("RIGHT", f.check, "LEFT", -10, 0)    if not (C_FriendList and C_FriendList.SendWho) then f.check:Hide() end    NoGuild.EnsureWhoEv()    NoGuild.backCard = f
     f.rows = {}
     for i = 1, 4 do
         local r = CreateFrame("Frame", nil, f)
@@ -376,7 +376,7 @@ function NoGuild.BuildBack(parent)
         self:Show()
         self.sub:SetText((L["Your main %s is in <%s>."]):format(ns.colorName(info.main, (ns.db.chars[info.main] or {}).class), info.guild or "?"))        local wo = NoGuild.whoOnline        if wo then            for _, o in ipairs(info.officers) do                local key = ns.NameKey(o.name)                if wo[key] then o.online = true o.whoOn = true end            end            table.sort(info.officers, function(a2, b2)                if (a2.online and true or false) ~= (b2.online and true or false) then return a2.online and true or false end                return (a2.seen or 0) > (b2.seen or 0)            end)            local wc = NoGuild.whoCount or 0            self.sub:SetText(self.sub:GetText() .. "  " .. (wc > 0 and ("|cff66db9e" .. (L["%d from the guild online"]):format(wc) .. "|r") or ("|cff888888" .. L["nobody from the guild online right now"] .. "|r"))                .. "  |cff666666" .. (L["As of %s"]):format(ns.ago and ns.ago(NoGuild.whoAt or time()) or "") .. "|r")        end        if self.check then self.check:SetLabel(L["Who is online?"]) end
         local twink = ns.ChatName and ns.ChatName(ns.me()) or ns.short(ns.me())
-        -- wer laut /who gerade online ist, steht oben (mit Namen); danach die Offiziere        local people, seenP = {}, {}        for _, w in ipairs(NoGuild.whoList or {}) do            local key = ns.NameKey(w.name)            local off            for _, o in ipairs(info.officers) do if ns.NameKey(o.name) == key then off = o end end            people[#people + 1] = off or { name = w.name, cls = w.cls, rank = (L["Level %s"]):format(w.lvl or "?") .. ((w.zone and w.zone ~= "") and ("  ·  " .. w.zone) or ""), online = true, whoOn = true }            seenP[key] = true        end        for _, o in ipairs(info.officers) do            local key = ns.NameKey(o.name)            if not seenP[key] then people[#people + 1] = o end        end        local n = math.min(#people, self.maxRows or #self.rows)
+        -- whoever is online per /who is listed first (with names); then the officers        local people, seenP = {}, {}        for _, w in ipairs(NoGuild.whoList or {}) do            local key = ns.NameKey(w.name)            local off            for _, o in ipairs(info.officers) do if ns.NameKey(o.name) == key then off = o end end            people[#people + 1] = off or { name = w.name, cls = w.cls, rank = (L["Level %s"]):format(w.lvl or "?") .. ((w.zone and w.zone ~= "") and ("  ·  " .. w.zone) or ""), online = true, whoOn = true }            seenP[key] = true        end        for _, o in ipairs(info.officers) do            local key = ns.NameKey(o.name)            if not seenP[key] then people[#people + 1] = o end        end        local n = math.min(#people, self.maxRows or #self.rows)
         for i, r in ipairs(self.rows) do
             local o = i <= n and people[i]
             if o then
@@ -394,11 +394,11 @@ function NoGuild.BuildBack(parent)
                 local text = (L["Hi! Could you invite my alt %s to the guild? Thanks!"]):format(twink)
                 if ChatFrame_SendTell or ChatFrame_OpenChat then
                     r.btn:SetLabel(L["Whisper"])
-                    -- ns.Whisper setzt den kompletten Namen als Ziel: "/w Lena Berg Hallo!" las WoW als
-                    -- Ziel "Lena Hallo!" (Forever-Doppelnamen); der Text wird danach eingefuegt
+                    -- ns.Whisper sets the full name as target: "/w Lena Berg Hallo!" was read by WoW as
+                    -- target "Lena Hallo!" (Forever double names); the text is inserted afterwards
                     r.btn:SetScript("OnClick", function() ns.Whisper(o.name, text) end)
                 else
-                    -- kein vorbereitetes Chatfenster: Text zum Kopieren anbieten (nichts wird automatisch gesendet)
+                    -- no prepared chat window: offer the text for copying (nothing is sent automatically)
                     r.btn:SetLabel(L["Copy text"])
                     r.btn:SetScript("OnClick", function()
                         self.copy:SetText("/w " .. target .. " " .. text)
@@ -420,23 +420,23 @@ function NoGuild.BuildBack(parent)
     return f
 end
 
--- Dashboard ohne Gilde: Karten in einer Reihe, darunter die Kontakte (die Midas-Karte setzt das Dashboard daneben)
+-- Dashboard without guild: cards in a row, contacts below (the dashboard places the Midas card next to it)
 function NoGuild.BuildArea(parent)
     local a = CreateFrame("Frame", nil, parent)
     NoGuild.Fill(a)
     a.hero:Hide()
     a.cards[#a.cards + 1] = a.find
-    -- im Raster: "Gilde finden" als normale Karte mit kurzem Text
+    -- in the grid: "Find a guild" as a normal card with short text
     a.find.text:SetText(L["WoW's guild finder helps - neutral, no ads."])
     a.back = NoGuild.BuildBack(a)
     function a:LayoutDash(W, sideW, avail)
         local gap = 10
-        -- ganz oben: "Zurueck in deine Gilde?" (nur fuer Twinks, deren Main in einer Gilde ist)
+        -- at the very top: "Back to your guild?" (only for alts whose main is in a guild)
         avail = avail or 9999
         local CT = 96
         local info = NoGuild.ReturnInfo()
-        -- Platz sparen in dieser Reihenfolge: erst nur 2 Offiziere (Online-Offiziere stehen oben), dann kompakte Karten,
-        -- dann Kontakte weglassen - die Midas-Karte bleibt
+        -- Save space in this order: first only 2 officers (online officers are on top), then compact cards,
+        -- then drop contacts - the Midas card stays
         self.back.maxRows = nil
         local off = self.back:Fill(info)
         if off > 0 and off + gap + 150 + gap + CT > avail then
@@ -449,7 +449,7 @@ function NoGuild.BuildArea(parent)
             self.back:SetWidth(W)
             off = off + gap
         end
-        -- in die verfuegbare Hoehe einpassen: erst kompakte Karten (ohne Beschreibung), dann Kontakte/Midas-Zeile weglassen
+        -- fit into the available height: first compact cards (no description), then drop contacts/Midas row
         self.cardH = 150
         if off + 150 + gap + CT > avail then self.cardH = 96 end
         self.showBottom = off + self.cardH + gap + CT <= avail
@@ -482,7 +482,7 @@ ns.RegisterPage({
     sub = "Oasis without a guild",
     visible = function() return not ns.InGuild() end,
     build = function(p)
-        -- Hinweis, wenn eine Gildenseite geoeffnet wurde
+        -- Notice when a guild page was opened
         p.note = CreateFrame("Frame", nil, p)
         p.note:SetPoint("TOPLEFT", 0, 0)
         p.note:SetPoint("TOPRIGHT", 0, 0)
@@ -534,4 +534,4 @@ ns.RegisterPage({
         p:FillContacts()
         p:Layout()
     end,
-})-- automatisch nachsehen, wer online ist: nur aus einem Klick/Tastendruck heraus (Blizzard-Regel fuer /who)-- -> beim Oeffnen von Oasis und bei jedem Navigations-Klick, hoechstens jede Minutefunction NoGuild.AutoWho()    if IsInGuild() then return end    NoGuild.EnsureWhoEv()    if NoGuild.SendWho then NoGuild.SendWho(60) return end    -- Karte noch nicht gebaut (erstes Oeffnen): direkt fragen    local info = NoGuild.ReturnInfo()    local W = C_FriendList    if not (info and info.guild and W and W.SendWho) then return end    if GetTime() - (NoGuild.whoT or 0) < 60 then return end    NoGuild.whoT = GetTime()    NoGuild.whoPending = info.guild    if W.SetWhoToUi then pcall(W.SetWhoToUi, true) end    pcall(W.SendWho, 'g-"' .. info.guild .. '"')endfunction NoGuild.EnsureWhoEv()if not NoGuild.whoEv then    local ev = CreateFrame("Frame")    ev:RegisterEvent("WHO_LIST_UPDATE")    ev:SetScript("OnEvent", function()        local g = NoGuild.whoPending        if not g then return end        NoGuild.whoPending = nil        local W = C_FriendList        local on, n, list = {}, 0, {}        local num = W and W.GetNumWhoResults and select(1, W.GetNumWhoResults()) or 0        for k = 1, num do            local ok, wi = pcall(W.GetWhoInfo, k)            if ok and type(wi) == "table" then                local nm = ns.safe(wi.fullName)                local gn = ns.safe(wi.fullGuildName)                -- nur wer wirklich in DIESER Gilde ist (ohne Gildennamen = andere Treffer, nicht zaehlen)                if nm and gn and gn ~= "" and gn:lower() == g:lower() then                    on[ns.NameKey(nm)] = true                    n = n + 1                    list[#list + 1] = { name = nm, cls = ns.safe(wi.filename), lvl = ns.safe(wi.level), zone = ns.safe(wi.area) }                end            end        end        NoGuild.whoOnline, NoGuild.whoCount, NoGuild.whoAt, NoGuild.whoList = on, n, time(), list        -- die Blizzard-Wer-Liste nicht offen stehen lassen        if FriendsFrame and FriendsFrame:IsShown() and WhoFrame and WhoFrame:IsShown() then pcall(HideUIPanel, FriendsFrame) end        if NoGuild.backCard and NoGuild.backCard.info then NoGuild.backCard:Fill(NoGuild.backCard.info) end    end)    NoGuild.whoEv = evendend
+})-- automatically check who is online: only from a click/keypress (Blizzard rule for /who)-- -> when opening Oasis and on every navigation click, at most once per minutefunction NoGuild.AutoWho()    if IsInGuild() then return end    NoGuild.EnsureWhoEv()    if NoGuild.SendWho then NoGuild.SendWho(60) return end    -- Card not built yet (first open): ask directly    local info = NoGuild.ReturnInfo()    local W = C_FriendList    if not (info and info.guild and W and W.SendWho) then return end    if GetTime() - (NoGuild.whoT or 0) < 60 then return end    NoGuild.whoT = GetTime()    NoGuild.whoPending = info.guild    if W.SetWhoToUi then pcall(W.SetWhoToUi, true) end    pcall(W.SendWho, 'g-"' .. info.guild .. '"')endfunction NoGuild.EnsureWhoEv()if not NoGuild.whoEv then    local ev = CreateFrame("Frame")    ev:RegisterEvent("WHO_LIST_UPDATE")    ev:SetScript("OnEvent", function()        local g = NoGuild.whoPending        if not g then return end        NoGuild.whoPending = nil        local W = C_FriendList        local on, n, list = {}, 0, {}        local num = W and W.GetNumWhoResults and select(1, W.GetNumWhoResults()) or 0        for k = 1, num do            local ok, wi = pcall(W.GetWhoInfo, k)            if ok and type(wi) == "table" then                local nm = ns.safe(wi.fullName)                local gn = ns.safe(wi.fullGuildName)                -- only those really in THIS guild (no guild name = other hits, do not count)                if nm and gn and gn ~= "" and gn:lower() == g:lower() then                    on[ns.NameKey(nm)] = true                    n = n + 1                    list[#list + 1] = { name = nm, cls = ns.safe(wi.filename), lvl = ns.safe(wi.level), zone = ns.safe(wi.area) }                end            end        end        NoGuild.whoOnline, NoGuild.whoCount, NoGuild.whoAt, NoGuild.whoList = on, n, time(), list        -- do not leave Blizzard's Who list open        if FriendsFrame and FriendsFrame:IsShown() and WhoFrame and WhoFrame:IsShown() then pcall(HideUIPanel, FriendsFrame) end        if NoGuild.backCard and NoGuild.backCard.info then NoGuild.backCard:Fill(NoGuild.backCard.info) end    end)    NoGuild.whoEv = evendend

@@ -1,6 +1,6 @@
--- Oasis: Belohnungen fuer den Oasis-Rang, Wochenaufgaben, XP-Wochenende, XP-Leiste am Fenster
--- Belohnungen: Designs (Akzentfarben), Rang-Fanfaren, Deathroll-Wuerfel, Rang-Juwel + Schimmer im Gildenchat,
--- besondere (animierte) Gilden-Emojis.
+-- Oasis: rewards for the Oasis rank, weekly tasks, XP weekend, XP bar on the window
+-- Rewards: designs (accent colors), rank fanfares, deathroll dice, rank jewel + shimmer in guild chat,
+-- special (animated) guild emojis.
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
@@ -11,9 +11,9 @@ local function S() return ns.db.settings end
 local function myLevel() return ns.Rank and ns.Rank.Mine().level or 1 end
 
 ------------------------------------------------------------------------
--- Belohnungsleiste
+-- Reward bar
 ------------------------------------------------------------------------
--- alle 2 Raenge eine Belohnung (50 Stueck)
+-- one reward every 2 ranks (50 in total)
 local function E(n) return "Besondere Emojis " .. n end
 RW.LIST = {
     { lvl = 2, kind = "bg", key = "abend", name = "Background: Sunset", desc = "New background for your Oasigram posts" },
@@ -75,12 +75,12 @@ end
 local KIND_ICON = { brachland = "chat", emoji = "chat", dice = "deathroll", sound = "settings", theme = "home", chat = "chat", bg = "insta" }
 local KIND_NAME = { brachland = "Fun", emoji = "Emojis", dice = "Dice", sound = "Fanfare", theme = "Theme", chat = "Guild chat", bg = "Oasigram" }
 
--- Ausruesten (nur freigeschaltet)
+-- Equip (unlocked only)
 function RW.Equip(r)
     if not r or myLevel() < r.lvl then return end
     local s = S()
     if r.kind == "theme" then
-        s.accent = r.hex      -- nur die Farbe; das Design (settings.theme) bleibt
+        s.accent = r.hex      -- only the color; the design (settings.theme) stays
         if ns.Admin and ns.Admin.ApplyAccent then ns.Admin.ApplyAccent(r.hex) end
     elseif r.kind == "sound" then
         s.rankSound = r.key
@@ -104,7 +104,7 @@ function RW.Unequip(kind)
     elseif kind == "dice" then s.diceDesign = nil end
     ns.RefreshPage("rank")
 end
--- Farbe der eigenen Deathroll-Wuerfel (nil = normal)
+-- Color of own deathroll dice (nil = normal)
 function RW.DiceColor()
     local k = ns.db and S().diceDesign
     local r = k and RW.byKey["dice:" .. k]
@@ -116,7 +116,7 @@ function RW.RankSound()
 end
 
 ------------------------------------------------------------------------
--- Gildenchat: Rang-Juwel ab 30, schimmernder Name ab 70 (fuer alle mit Rang, auch andere)
+-- Guild chat: rank jewel from 30, shimmering name from 70 (for everyone with a rank, others too)
 ------------------------------------------------------------------------
 local MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 ns.GuildOption({ page = "insta", key = "rwGem", default = true, label = "Rank gem in guild chat",
@@ -128,7 +128,7 @@ function RW.ChatName(name, plain)
     local c = ns.Rank.Frame(lvl).color
     local gem = ("|T%s:10:10:0:0:64:64:0:64:0:64:%d:%d:%d|t "):format(MASK, c[1] * 255, c[2] * 255, c[3] * 255)
     if lvl < 70 then return gem .. plain end
-    -- Schimmer: Buchstaben laufen von der Rahmenfarbe zu Weiss und zurueck
+    -- Shimmer: letters cycle from the frame color to white and back
     local chars = {}
     for ch in ns.short(name):gmatch("[%z\1-\127\194-\244][\128-\191]*") do chars[#chars + 1] = ch end
     local out = {}
@@ -140,23 +140,23 @@ function RW.ChatName(name, plain)
 end
 
 ------------------------------------------------------------------------
--- Besondere Emojis: animierte Gilden-Emojis werden nach Rang freigeschaltet
+-- Special emojis: animated guild emojis are unlocked by rank
 ------------------------------------------------------------------------
 local EMOJI_STEPS = { 10, 18, 26, 34, 44, 56, 70, 85 }   -- 0.6.439
-local STATIC_STEPS = { 2, 4, 7, 10, 14 }   -- 0.6.439: ab Rang 2   -- 0.6.417: auch normale Gilden-Emojis erst ab Rang (ohne Rang gesperrt)
+local STATIC_STEPS = { 2, 4, 7, 10, 14 }   -- 0.6.439: from rank 2   -- 0.6.417: normal guild emojis also only from a rank (locked without rank)
 local emojiLock
 function RW.EmojiLevel(e)
-    -- 0.6.532: eigenes Gilden-Emoji -> Stufe aus der Freigabe der Gildenleitung (nicht aus den Dateien)
+    -- 0.6.532: own guild emoji -> level from the guild leadership's approval (not from the files)
     local own = type(e) == "table" and type(e[1]) == "string" and e[1]:match("^x\\(.+)$")
     if own and ns.MediaPack and not ns.MediaPack.publishing then
         local lk = ns.MediaPack.EmojiLock(own)
         if lk then return lk end
     end
-    -- eigenes Emoji einer Gilde mit festem Rang ("@20" im Dateinamen, Oasis_Emojis)
+    -- own emoji of a guild with fixed rank ("@20" in the file name, Oasis_Emojis)
     if type(e) == "table" and e.lvl then return e.lvl end
     if not emojiLock then
         emojiLock = {}
-        -- 0.6.442: alle Gilden-Emojis gleichmaessig auf Rang 2 bis 100 (normale zuerst, animierte danach)
+        -- 0.6.442: all guild emojis spread evenly over ranks 2 to 100 (normal first, animated after)
         local stat, anim = {}, {}
         for _, cat in ipairs(ns.Emoji and ns.Emoji.CATS or {}) do
             if cat.custom then for _, x in ipairs(cat.items or {}) do
@@ -175,7 +175,7 @@ function RW.EmojiLevel(e)
 end
 
 ------------------------------------------------------------------------
--- XP-Bonus (Wochenaufgaben) und XP-Wochenende
+-- XP bonus (weekly tasks) and XP weekend
 ------------------------------------------------------------------------
 function RW.GiveXP(n, reason)
     ns.db.rankBonus = (ns.db.rankBonus or 0) + n
@@ -184,14 +184,14 @@ function RW.GiveXP(n, reason)
         ns.After(0.5, function() ns.Rank.Update(false, true) end)
     end
 end
--- Doppel-XP: von der Gildenleitung gesetzt (Zeitpunkt, bis wann)
+-- Double XP: set by the guild leadership (time, until when)
 function RW.DoubleUntil()
     local cfg = ns.Admin and ns.Admin.Cfg()
     local t = cfg and tonumber(cfg.xp2) or 0
     local s = cfg and tonumber(cfg.xp2s) or 0
     return (t > ns.now() and s <= ns.now()) and t or nil
 end
--- geplantes Double XP (Start in der Zukunft): Start, Ende
+-- scheduled Double XP (start in the future): start, end
 function RW.DoublePlanned()
     local cfg = ns.Admin and ns.Admin.Cfg()
     local s = cfg and tonumber(cfg.xp2s) or 0
@@ -200,7 +200,7 @@ function RW.DoublePlanned()
 end
 
 ------------------------------------------------------------------------
--- Wochenaufgaben: 3 pro Woche, fuer die ganze Gilde gleich
+-- Weekly tasks: 3 per week, the same for the whole guild
 ------------------------------------------------------------------------
 RW.POOL = {
     { stat = "groupMin", need = 60, text = "60 minutes in a group with guild members" },
@@ -230,7 +230,7 @@ function RW.Week()
     local W = ns.db.weekly
     local key = weekKey()
     if not W or W.week ~= key then
-        -- gleiche Aufgaben fuer alle: Auswahl aus der Kalenderwoche
+        -- same tasks for everyone: selection from the calendar week
         local seed = tonumber(ns.hash(key), 16) or 1
         local picks, used = {}, {}
         local i = 0
@@ -247,7 +247,7 @@ function RW.Week()
     end
     return W
 end
--- Gegen Ausnutzen: diese Aufgaben zaehlen nur ueber RW.Credit (strenge Regeln, jede Person nur einmal pro Woche)
+-- Against exploits: these tasks only count via RW.Credit (strict rules, each person only once per week)
 RW.STRICT = {
     dungeonRuns = true, gz = true, rez = true, trades = true, hugs = true, chat = true, drPlays = true,
     joined = true, lfgStarted = true, groupMin = true, questsGroup = true, signups = true, crafted = true,
@@ -307,19 +307,19 @@ function RW.WeekSummary()
     return W.week .. ":" .. n
 end
 function RW.WeekLeft()
-    -- bis Montag 0 Uhr
+    -- until Monday 0:00
     local t = date("*t", ns.now())
-    local wd = (t.wday + 5) % 7   -- 0 = Montag
+    local wd = (t.wday + 5) % 7   -- 0 = Monday
     local secs = (7 - wd) * 86400 - (t.hour * 3600 + t.min * 60 + t.sec)
     return math.max(0, secs)
 end
 
 ------------------------------------------------------------------------
--- XP-Leiste unten am Hauptfenster (immer sichtbar)
+-- XP bar at the bottom of the main window (always visible)
 ------------------------------------------------------------------------
 function RW.AttachBar(main, sidebar)
-    -- 0.6.187: Ornament-Stil in einer Zeile - goldene Raute als Emblem, "Rang N" + Titel, Balken mit Goldkante,
-    -- Rauten an den Enden und am aktuellen Stand, rechts die XP
+    -- 0.6.187: ornament style in one row - gold diamond as emblem, "Rank N" + title, bar with gold edge,
+    -- diamonds at the ends and at the current state, XP on the right
     local b = CreateFrame("Button", nil, main)
     b:SetPoint("BOTTOMLEFT", (sidebar or 200) + 16, 6)
     b:SetPoint("BOTTOMRIGHT", -16, 6)
@@ -334,7 +334,7 @@ function RW.AttachBar(main, sidebar)
         if d.SetRotation then pcall(d.SetRotation, d, math.pi / 4) end
         return d
     end
-    -- Emblem links: Raute mit dunklem Kern und weichem Schein
+    -- Emblem left: diamond with dark core and soft glow
     b.emGlow = b:CreateTexture(nil, "BACKGROUND")
     b.emGlow:SetTexture(ns.MEDIA .. "softglow") b.emGlow:SetBlendMode("ADD")
     b.emGlow:SetVertexColor(1, 0.7, 0.3) b.emGlow:SetSize(40, 30) b.emGlow:SetAlpha(0.5)
@@ -345,7 +345,7 @@ function RW.AttachBar(main, sidebar)
     b.emDot = diamond(b, 3, { 1, 0.95, 0.75 }, "ARTWORK", 3)
     b.emDot:SetPoint("CENTER", b.em)
     b.emGlow:SetPoint("CENTER", b.em)
-    -- 0.6.421: Rang-Abzeichen mit Zahl statt der Raute
+    -- 0.6.421: rank badge with number instead of the diamond
     if K.RankEmblem then
         b.badge = K.RankEmblem(b, 26)
         b.badge:SetPoint("CENTER", b.em)
@@ -359,7 +359,7 @@ function RW.AttachBar(main, sidebar)
     b.text:SetPoint("RIGHT", -6, 0)
     b.x2 = K.Text(b, 10, C.amber, "RIGHT")
     b.x2:SetPoint("RIGHT", b.text, "LEFT", -14, 0)
-    -- Balkenbereich zwischen Titel und XP
+    -- Bar area between title and XP
     local area = CreateFrame("Frame", nil, b)
     area:SetHeight(H + 4)
     area:SetPoint("LEFT", b.title, "RIGHT", 22, 0)
@@ -378,7 +378,7 @@ function RW.AttachBar(main, sidebar)
     end
     b.fill:SetWidth(1)
     b.track = area.bg
-    -- Glanz innerhalb der Fuellung
+    -- Gloss inside the fill
     b.clip = CreateFrame("Frame", nil, area)
     b.clip:SetClipsChildren(true)
     b.clip:SetPoint("TOPLEFT", 2, -2) b.clip:SetPoint("BOTTOMLEFT", 2, 2)
@@ -386,7 +386,7 @@ function RW.AttachBar(main, sidebar)
     b.shine = b.clip:CreateTexture(nil, "OVERLAY")
     b.shine:SetTexture(ns.MEDIA .. "shine") b.shine:SetBlendMode("ADD")
     b.shine:SetSize(70, H) b.shine:SetVertexColor(1, 0.95, 0.75) b.shine:SetAlpha(0.25)
-    -- Raute am aktuellen Stand
+    -- Diamond at the current state
     b.glow = area:CreateTexture(nil, "OVERLAY")
     b.glow:SetTexture(ns.MEDIA .. "softglow") b.glow:SetBlendMode("ADD")
     b.glow:SetSize(30, 22) b.glow:SetVertexColor(1, 0.8, 0.35)
@@ -420,7 +420,7 @@ function RW.AttachBar(main, sidebar)
         self.lbl:SetText((L["Rank %d"]):format(r.level))
         if self.badge then self.badge:SetRank(r.level) self.badge:Show() end
         self.title:SetText(r.title or "")
-        self.text:SetText(r.need and ((r.into or 0) .. " / " .. r.need .. " XP") or ((r.xp or r.into or 0) .. " XP"))   -- 0.6.563: hoechster Rang hat kein "need"
+        self.text:SetText(r.need and ((r.into or 0) .. " / " .. r.need .. " XP") or ((r.xp or r.into or 0) .. " XP"))   -- 0.6.563: highest rank has no "need"
         local until2 = RW.DoubleUntil()
         self.x2:SetText(until2 and ("2x XP  ·  " .. L["XP weekend"]) or "")
         local w = innerW()
@@ -452,8 +452,8 @@ end
 ns.Listen("RANK", function() if RW.bar then RW.bar:Update(true) end end)
 
 ------------------------------------------------------------------------
--- Spielerkarte unten am Oasis-Fenster: Portraet im Rang-Rahmen, Stufe, Name + Klasse,
--- Level-Balken (Spiel-XP) und Oasis-Rang-Balken - ersetzt die duenne XP-Leiste
+-- Player card at the bottom of the Oasis window: portrait in rank frame, level, name + class,
+-- level bar (game XP) and Oasis rank bar - replaces the thin XP bar
 ------------------------------------------------------------------------
 local function bar(parent, colorA, colorB)
     local b = CreateFrame("Frame", nil, parent)
@@ -462,13 +462,13 @@ local function bar(parent, colorA, colorB)
     b.track:SetAllPoints()
     b.track:SetColorTexture(0, 0, 0, 0.55)
     K.Border(b, { 0.22, 0.22, 0.24, 1 })
-    -- Glanz auf der oberen Haelfte
+    -- Gloss on the upper half
     b.shine = b:CreateTexture(nil, "OVERLAY", nil, 1)
     b.shine:SetPoint("TOPLEFT")
     b.shine:SetPoint("TOPRIGHT")
     b.shine:SetHeight(3)
     b.shine:SetColorTexture(1, 1, 1, 0.08)
-    -- Zehntel-Striche
+    -- Tenth marks
     b.ticks = {}
     for i = 1, 9 do
         local t = b:CreateTexture(nil, "OVERLAY", nil, 2)
@@ -516,7 +516,7 @@ function RW.AttachCard(main)
     local c = CreateFrame("Button", nil, main)
     c:SetPoint("TOPLEFT", main, "BOTTOMLEFT", 0, -4)
     c:SetPoint("TOPRIGHT", main, "BOTTOMRIGHT", 0, -4)
-    c:SetHeight(88)   -- unten etwas Luft unter dem Rang-Balken
+    c:SetHeight(88)   -- a little space below the rank bar
     c.bg = K.Fill(c, C.bg)
     K.Border(c, C.line)
     c.glow = c:CreateTexture(nil, "BORDER")
@@ -526,7 +526,7 @@ function RW.AttachCard(main)
     c.hl:SetAllPoints()
     c.hl:SetColorTexture(1, 1, 1, 0.03)
 
-    -- Portraet im Rang-Rahmen + Stufe
+    -- Portrait in rank frame + level
     c.rf = K.RankFrame(c, 50, "circle")
     c.rf:SetPoint("CENTER", c, "LEFT", 44, 0)
     c.face = c.rf:CreateTexture(nil, "ARTWORK", nil, 3)
@@ -542,7 +542,7 @@ function RW.AttachCard(main)
     K.SetFontSafe(c.lvl, K.FONT_HEAD, 9, "OUTLINE", K.FONT)
     K.CenterNum(c.lvl, c.lvlBg, "CENTER", 0, 0)
 
-    -- Spalte 1: Name, Klasse, Level-Balken
+    -- Column 1: name, class, level bar
     c.name = K.Title(c, 15, C.text)
     c.name:SetPoint("TOPLEFT", 92, -8)
     c.class = K.Text(c, 12, C.muted)
@@ -550,14 +550,14 @@ function RW.AttachCard(main)
     c.lvlLabel = K.Text(c, 10, C.red)
     c.lvlPct = K.Text(c, 10, C.muted, "RIGHT")
     c.lvlBar = bar(c, { 0.55, 0.08, 0.06, 1 }, { 0.95, 0.18, 0.12, 1 })
-    -- Spalte 2: Oasis-Rang + Balken
+    -- Column 2: Oasis rank + bar
     c.rankLabel = K.Text(c, 10, C.amber)
     c.rankXP = K.Text(c, 10, C.muted, "RIGHT")
     c.rankBar = bar(c, { 0.85, 0.5, 0.12, 1 }, { 1, 0.82, 0.29, 1 })
-    -- rechts: Double XP
+    -- right: Double XP
     c.x2 = K.Text(c, 11, C.amber, "RIGHT")
     c.x2:SetPoint("TOPRIGHT", -16, -9)
-    -- Gildenwappen (von der Gildenleitung gewaehlt), dezent rechts
+    -- Guild crest (chosen by the guild leadership), subtly on the right
     c.crest = c:CreateTexture(nil, "ARTWORK")
     c.crest:SetSize(30, 30)
     c.crest:SetPoint("RIGHT", c, "TOPRIGHT", -16, -22)
@@ -565,7 +565,7 @@ function RW.AttachCard(main)
     c.crest:Hide()
     RW.card = c
 
-    -- beide Balken untereinander ueber die ganze Breite: Level (Spiel-XP) oben, Oasis-Rang darunter
+    -- both bars stacked across the full width: level (game XP) on top, Oasis rank below
     local function layout()
         local w = c:GetWidth() or 1000
         if w < 100 then w = 1000 end
@@ -622,7 +622,7 @@ function RW.AttachCard(main)
     end)
     c:SetScript("OnLeave", function() GameTooltip:Hide() end)
     c:SetScript("OnClick", function() ns.ShowPage("rank") end)
-    -- ein-/ausklappen: Lasche rechts oben; zugeklappt bleibt nur die Lasche unter dem Fenster
+    -- expand/collapse: tab at top right; when collapsed only the tab below the window remains
     local tab = CreateFrame("Button", nil, main)
     tab:SetSize(150, 22)
     tab:SetFrameLevel(c:GetFrameLevel() + 10)
@@ -674,9 +674,9 @@ ns.On("PLAYER_LEVEL_UP", function() ns.After(0.5, function() if RW.card then RW.
 
 
 ------------------------------------------------------------------------
--- XP-Wochenende (Gildenleitung)
+-- XP weekend (guild leadership)
 ------------------------------------------------------------------------
--- startAt = Zeitpunkt in der Zukunft (geplant) oder nil (sofort)
+-- startAt = time in the future (scheduled) or nil (immediately)
 function RW.StartDouble(hours, startAt)
     if not (ns.Admin and ns.Admin.CanManage()) then return end
     local cfg = {}
@@ -703,7 +703,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Seite "Oasis-Rang": Rangkarte, Wochenaufgaben, Belohnungen
+-- Page "Oasis rank": rank card, weekly tasks, rewards
 ------------------------------------------------------------------------
 local function panel(parent, title, color)
     local f = K.Panel(parent, C.panel)
@@ -715,12 +715,12 @@ end
 
 ns.RegisterPage({
     key = "rank", title = "Oasis rank", order = 7.85,
-    visible = function() return false end,   -- steckt jetzt als Reiter im Profil
+    visible = function() return false end,   -- now lives as a tab in the profile
     sub = "Your rank in the guild - rewards, frames and weekly tasks",
     build = function(p)
         p:SetScript("OnShow", function(self) self.fresh = true end)
         p.fresh = true
-        -- Rangkarte
+        -- Rank card
         local card = panel(p, L["Your rank"], C.amber)
         card:SetPoint("TOPLEFT", 0, 0)
         card:SetSize(370, 200)
@@ -732,7 +732,7 @@ ns.RegisterPage({
         card.num = card.frame:CreateFontString(nil, "OVERLAY", nil, 5)
         K.SetFontSafe(card.num, K.FONT_HEAD, 16, "OUTLINE", K.FONT)
         card.num:SetPoint("CENTER", card.frame, "CENTER", 0, -44)
-        card.num:Hide()   -- 0.5.588: Rangzahl steht im Sechseck des gemalten Rahmens
+        card.num:Hide()   -- 0.5.588: rank number sits in the hexagon of the painted frame
         card.num.Show = function() end
         card.title = K.Title(card, 17, C.text)
         card.title:SetPoint("TOPLEFT", 124, -54)
@@ -758,7 +758,7 @@ ns.RegisterPage({
         card.next:SetWordWrap(true)
         p.card = card
 
-        -- Wochenaufgaben
+        -- Weekly tasks
         local week = panel(p, L["Weekly tasks"], C.mint)
         week:SetPoint("TOPLEFT", 0, -210)
         week:SetPoint("BOTTOMLEFT")
@@ -802,7 +802,7 @@ ns.RegisterPage({
         week.x2:SetPoint("RIGHT", -12, 0)
         p.week = week
 
-        -- Belohnungen
+        -- Rewards
         local rw = panel(p, L["Rewards"], C.accent)
         rw:SetPoint("TOPLEFT", 381, 0)
         rw:SetPoint("BOTTOMRIGHT")
@@ -896,7 +896,7 @@ ns.RegisterPage({
         end
         c.xp:SetText((L["%d / %d XP to the next rank"]):format(r.into, r.need))
         c.total:SetText((L["%d XP total"]):format(r.xp))
-        -- naechste Belohnung + naechster Rahmen
+        -- next reward + next frame
         local nextR
         for _, x in ipairs(RW.LIST) do if x.lvl > r.level then nextR = x break end end
         local nextF = r.level < 100 and ns.Rank.Frame(math.min(100, (math.floor(r.level / 10) + 1) * 10)) or nil
@@ -904,7 +904,7 @@ ns.RegisterPage({
         if nextR then lines[#lines + 1] = (L["Next reward: %s (rank %d)"]):format(L[nextR.name], nextR.lvl) end
         if nextF and nextF ~= st then lines[#lines + 1] = (L["Next frame: %s (rank %d)"]):format(K.hex(nextF.color) .. L[nextF.name] .. "|r", math.min(100, (math.floor(r.level / 10) + 1) * 10)) end
         c.next:SetText(table.concat(lines, "\n"))
-        -- Wochenaufgaben
+        -- Weekly tasks
         local tasks = RW.Tasks()
         local left = RW.WeekLeft()
         p.week.left:SetText((L["%d d %d h left"]):format(math.floor(left / 86400), math.floor(left % 86400 / 3600)))
@@ -944,7 +944,7 @@ ns.RegisterPage({
 ns.slash.belohnungen = function() ns.ShowPage("rank") end
 
 
--- Gildenwappen auf der Profilleiste
+-- Guild crest on the profile bar
 function RW.UpdateCrest()
     local c = RW.card
     if not c or not c.crest then return end

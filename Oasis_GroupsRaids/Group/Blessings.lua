@@ -1,7 +1,7 @@
--- Oasis: Segen-Plan (0.6.521) - welcher Paladin segnet welche Klasse mit welchem Segen
---  * Reiter "Segen" auf der Seite Meine Gruppe: Zeile je Paladin, Spalte je Klasse in der Gruppe, Klick wechselt den Segen
---  * "Vorschlag" verteilt automatisch (Koenige > Macht/Weisheit > Rettung > Licht > Refugium)
---  * Plan wird im Gruppenkanal geteilt ("GPB"); aendern duerfen Gruppenleitung und die Paladine selbst
+-- Oasis: blessing plan (0.6.521) - which paladin blesses which class with which blessing
+--  * Tab "Blessings" on the My Group page: row per paladin, column per class in the group, click switches the blessing
+--  * "Suggestion" assigns automatically (Kings > Might/Wisdom > Salvation > Light > Sanctuary)
+--  * Plan is shared in the group channel ("GPB"); group leadership and the paladins themselves may change it
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Group", function()
 local L = ns.L
@@ -10,7 +10,7 @@ local P = ns.Party
 local B = {}
 ns.Blessings = B
 
--- Segen (Classic-Zauber-IDs Rang 1; Name und Symbol kommen vom Spiel)
+-- Blessings (Classic spell IDs rank 1; name and icon come from the game)
 B.LIST = {
     { key = "k", spell = 20217, short = "Kings" },
     { key = "m", spell = 19740, short = "Might" },
@@ -22,13 +22,13 @@ B.LIST = {
 local BY = {}
 for _, b in ipairs(B.LIST) do BY[b.key] = b end
 local CLASSES = { "WARRIOR", "ROGUE", "HUNTER", "MAGE", "WARLOCK", "PRIEST", "DRUID", "SHAMAN", "PALADIN" }
--- was jede Klasse am liebsten bekommt (Reihenfolge)
+-- what each class prefers to receive (order)
 local WANT = {
     WARRIOR = { "k", "m", "l", "r" }, ROGUE = { "k", "m", "s", "l" }, HUNTER = { "k", "m", "s", "w" },
     MAGE = { "k", "w", "s", "l" }, WARLOCK = { "k", "w", "s", "l" }, PRIEST = { "k", "w", "s", "l" },
     DRUID = { "k", "w", "s", "m" }, SHAMAN = { "k", "w", "s", "m" }, PALADIN = { "k", "w", "s", "m" },
 }
-B.plan = {}     -- [Paladin] = { [Klasse] = Schluessel }
+B.plan = {}     -- [Paladin] = { [class] = key }
 
 local function spellName(id)
     local n = C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(id)
@@ -58,7 +58,7 @@ local function canEdit()
 end
 B.CanEdit = canEdit
 
--- Vorschlag: jeder Paladin uebernimmt einen Segen fuer alle Klassen, in der Reihenfolge der Wuensche
+-- Suggestion: each paladin takes one blessing for all classes, in order of preferences
 function B.Suggest()
     local pals = B.Paladins()
     B.plan = {}
@@ -105,7 +105,7 @@ local function announceMine()
 end
 Comm.On("GPB", function(sender, _, s)
     if type(s) ~= "string" or #s > 1500 or not P.InMyGroup(sender) then return end
-    -- nur Gruppenleitung oder Paladine duerfen den Plan setzen
+    -- only group leadership or paladins may set the plan
     local ok = false
     for _, m in ipairs(P.Members()) do
         if ns.SameName(m.name, sender) and (m.class == "PALADIN" or (m.unit and UnitIsGroupLeader(m.unit)) or (m.unit and UnitIsGroupAssistant and UnitIsGroupAssistant(m.unit))) then ok = true end
@@ -130,7 +130,7 @@ ns.On("GROUP_ROSTER_UPDATE", function()
 end)
 
 ------------------------------------------------------------------------
--- Reiter "Segen"
+-- Tab "Blessings"
 ------------------------------------------------------------------------
 local cells = {}
 P.AddTab({
@@ -187,7 +187,7 @@ P.AddTab({
             c:Show()
             return c
         end
-        -- Kopf: Klassen
+        -- Header: classes
         for j, cls in ipairs(classes) do
             local c = cell()
             c:SetSize(CW, 24)

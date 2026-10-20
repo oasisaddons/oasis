@@ -1,4 +1,4 @@
--- Oasis: Twink-Verknuepfung (Main + Twinks = ein Spieler)
+-- Oasis: alt linking (main + alts = one player)
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -7,8 +7,8 @@ local Alts = {}
 ns.Alts = Alts
 
 ------------------------------------------------------------------------
--- Eigene Charaktere: OasisDB ist account-weit, also kennen wir alle,
--- die schon einmal mit Oasis eingeloggt waren
+-- Own characters: OasisDB is account-wide, so we know all
+-- that have ever logged in with Oasis
 ------------------------------------------------------------------------
 function Alts.MyChars()
     local out = {}
@@ -20,7 +20,7 @@ end
 function Alts.MyMain()
     local m = ns.db.settings.main
     if m and ns.db.chars[m] then return m end
-    -- Standard: hoechster Charakter
+    -- Default: highest character
     local best, bestLvl = ns.me(), -1
     for name, c in pairs(ns.db.chars) do
         if (c.level or 0) > bestLvl then best, bestLvl = name, c.level or 0 end
@@ -34,16 +34,16 @@ function Alts.SetMain(name)
     ns.Fire("ALTS")
 end
 
--- Main eines beliebigen Charakters
--- WoW Forever: derselbe Charakter heisst "Vorname Nachname-Realm" (Gildenliste) und "Vorname-Realm" (Addons)
--- -> beide Formen sind EIN Charakter, kein Main/Twink-Paar
+-- Main of any character
+-- WoW Forever: the same character is called "Firstname Lastname-Realm" (guild roster) and "Firstname-Realm" (addons)
+-- -> both forms are ONE character, not a main/alt pair
 function Alts.SameChar(a, b) return ns.SameName(a, b) end
--- einheitliche Form: immer der Name aus der Gildenliste ("Vorname Nachname-Realm"),
--- damit Listen, die nach Main zusammenfassen, niemanden doppelt fuehren
+-- uniform form: always the name from the guild roster ("Firstname Lastname-Realm"),
+-- so lists that group by main do not list anyone twice
 function Alts.Canon(n) return ns.ResolveName(n) end
 local canon = Alts.Canon
--- Twink-Eintraege stehen unter der Kurzform aus Addon-Nachrichten ("Tomas-Realm"),
--- die Gildenliste fuehrt "Tomas Berg-Realm" -> unter allen Formen nachsehen
+-- Alt entries are stored under the short form from addon messages ("Tomas-Realm"),
+-- the guild roster has "Tomas Berg-Realm" -> look up all forms
 local function lookup(t, name, c)
     if t[name] then return t[name] end
     if t[c] then return t[c] end
@@ -60,11 +60,11 @@ function Alts.Main(name)
     else main = lookup(ns.db.alts, name, c) or lookup(ns.db.altNotes, name, c) or c end
     main = canon(main)
     if Alts.SameChar(main, c) then return c end
-    -- Main, den es in der Gilde nicht (mehr) gibt (umbenannt/geloescht/andere Gilde): ignorieren
+    -- Main that does not exist (anymore) in the guild (renamed/deleted/other guild): ignore
     local by = ns.Radar and ns.Radar.byName
     if by and ns.Radar.roster and #ns.Radar.roster > 0 and not by[main] then
         if by[c] then return c end
-        -- Name selbst nicht in der Gilde (z.B. alter Main): ein Gildenmitglied nehmen, das ihn als Main hat
+        -- Name itself not in the guild (e.g. old main): take a guild member who has it as main
         for alt, m in pairs(ns.db.alts) do if canon(m) == main and by[alt] then return canon(alt) end end
         for alt, m in pairs(ns.db.altNotes) do if canon(m) == main and by[alt] then return canon(alt) end end
     end
@@ -72,9 +72,9 @@ function Alts.Main(name)
 end
 function Alts.IsAlt(name) return not Alts.SameChar(Alts.Main(name), canon(name)) end
 
--- alle bekannten Charaktere eines Spielers
+-- all known characters of a player
 function Alts.CharsOf(main)
-    -- alle Namensformen auf die Gildenlisten-Form bringen und doppelte weglassen
+    -- convert all name forms to the guild roster form and drop duplicates
     local c = Alts.Canon
     main = c(main)
     local out, seen = {}, {}
@@ -83,8 +83,8 @@ function Alts.CharsOf(main)
         if n and not seen[n] then seen[n] = true out[#out + 1] = n end
     end
     add(main)
-    -- 0.5.617: fremde Twinks ausserhalb der Gilde nie zeigen (auch wenn eine alte Version sie noch mitschickt),
-    -- ausser der Spieler hat sie selbst freigegeben (Profilfeld ao)
+    -- 0.5.617: never show foreign alts outside the guild (even if an old version still sends them),
+    -- unless the player has shared them themselves (profile field ao)
     local open = ns.db.altsOpen and ns.db.altsOpen[main]
     local function visible(alt)
         if open or (ns.db.chars and ns.db.chars[alt]) then return true end
@@ -97,11 +97,11 @@ function Alts.CharsOf(main)
     return out
 end
 
--- 0.5.610: nur Charaktere teilen, die in der Gilde sind - Bank-/Chill-Twinks ausserhalb der Gilde bleiben privat.
--- Ergebnis je Charakter merken (inGuild), damit es auch gilt, solange die Gildenliste noch nicht geladen ist.
+-- 0.5.610: only share characters that are in the guild - bank/chill alts outside the guild stay private.
+-- Remember the result per character (inGuild) so it also applies while the guild roster is not loaded yet.
 function Alts.Shareable(name)
     if ns.isMe(name) then return IsInGuild() and true or false end
-    -- 0.5.614: Einstellung "Twinks ausserhalb der Gilde zeigen" (Standard aus)
+    -- 0.5.614: setting "Show alts outside the guild" (off by default)
     if ns.db.settings.shareAltsOutside and ns.db.chars[name] then return true end
     local c = ns.db.chars[name]
     local g = ns.Admin and ns.Admin.InGuildList and ns.Admin.InGuildList(name)
@@ -111,13 +111,13 @@ function Alts.Shareable(name)
 end
 
 ------------------------------------------------------------------------
--- Twink auf einem ANDEREN WoW-Account (0.5.811)
--- Die Account-Datei kennt nur die eigenen Charaktere. Liegt der Main auf einem anderen Account, traegt man ihn
--- hier von Hand ein (ns.char.mainOther). Damit sich niemand einfach als Twink eines anderen ausgeben kann,
--- gilt die Verknuepfung erst, wenn der MAIN sie bestaetigt hat:
---   Twink schickt im Profil xm = "<gewuenschter Main>"  (Anfrage, aendert noch nichts)
---   Main bekommt eine Rueckfrage; bei Ja kommt der Twink in settings.extraAlts und damit in die eigene Twink-Liste
---   Erst wenn das Profil des Mains den Twink auffuehrt, meldet sich der Twink selbst als dessen Twink.
+-- Alt on a DIFFERENT WoW account (0.5.811)
+-- The account file only knows its own characters. If the main is on another account, it is entered
+-- here by hand (ns.char.mainOther). So nobody can simply pose as someone else's alt,
+-- the link only applies once the MAIN has confirmed it:
+--   Alt sends xm = "<desired main>" in its profile  (request, changes nothing yet)
+--   Main gets a confirmation prompt; on Yes the alt goes into settings.extraAlts and thus into the own alt list
+--   Only once the main's profile lists the alt does the alt report itself as its alt.
 ------------------------------------------------------------------------
 local function inGuild(name)
     local A = ns.Admin
@@ -133,7 +133,7 @@ local function profileOf(name)
     return ns.db.members[res] or ns.db.members[name], res
 end
 function Alts.OtherMain() return ns.char and ns.char.mainOther or nil end
--- hat der Main mich bestaetigt? -> sein Main-Name, sonst nil
+-- has the main confirmed me? -> its main name, otherwise nil
 function Alts.OtherConfirmed()
     local o = Alts.OtherMain()
     if not o then return nil end
@@ -147,7 +147,7 @@ function Alts.SetOtherMain(name)
     if ns.Radar and ns.Radar.SendHello then ns.Radar.SendHello() end
     ns.Fire("ALTS")
 end
--- vom Main bestaetigte Twinks anderer Accounts
+-- alts of other accounts confirmed by the main
 function Alts.ExtraAlts()
     local out = {}
     for name in pairs((ns.db and ns.db.settings.extraAlts) or {}) do out[#out + 1] = name end
@@ -162,8 +162,8 @@ function Alts.RemoveExtra(name)
 end
 
 function Alts.ProfileFields()
-    -- Twink eines anderen Accounts: bestaetigt -> Main und Twink-Liste des Mains uebernehmen (damit auch aeltere
-    -- Oasis-Versionen ein stimmiges Bild bekommen); unbestaetigt -> normale Angaben + Anfrage (xm)
+    -- Alt of another account: confirmed -> take over main and the main's alt list (so older
+    -- Oasis versions get a consistent picture); unconfirmed -> normal data + request (xm)
     local o = Alts.OtherMain()
     if o and inGuild(o) == false then o = nil end
     if o then
@@ -171,19 +171,19 @@ function Alts.ProfileFields()
         if cm then return cm, pr.alts, o end
     end
     local main = Alts.MyMain()
-    -- Main ausserhalb der Gilde wird nicht verraten: dann gilt der eingeloggte Charakter als Main
+    -- A main outside the guild is not revealed: then the logged-in character counts as main
     if not Alts.Shareable(main) then main = ns.me() end
     local alts = {}
     for _, c in ipairs(Alts.MyChars()) do if c ~= main and Alts.Shareable(c) then alts[#alts + 1] = c end end
-    -- bestaetigte Twinks anderer Accounts (nur solange sie in der Gilde sind)
+    -- confirmed alts of other accounts (only while they are in the guild)
     for _, x in ipairs(Alts.ExtraAlts()) do if inGuild(x) ~= false then alts[#alts + 1] = x end end
     return main, table.concat(alts, "+"), o
 end
 
 ------------------------------------------------------------------------
--- Daten anderer Spieler (per HELLO) und Gildennotizen als Fallback
+-- Data of other players (via HELLO) and guild notes as fallback
 ------------------------------------------------------------------------
--- Anfrage "ich bin Twink von <xm>" von einem anderen Account: betrifft sie einen MEINER Charaktere, nachfragen
+-- Request "I am an alt of <xm>" from another account: if it concerns one of MY characters, ask
 ns.Listen("PROFILE", function(name, p)
     if ns.isMe(name) or type(p.xm) ~= "string" or p.xm == "" or #p.xm > 120 then return end
     local s = ns.db.settings
@@ -198,7 +198,7 @@ end)
 ns.Listen("PROFILE", function(name, p)
     if ns.isMe(name) or not p.main or p.main == "" then return end
     local main = p.main
-    -- alte Zuordnungen dieses Spielers entfernen (auch unter einem frueheren Main), dann neu setzen
+    -- remove old assignments of this player (also under a previous main), then set anew
     local old = ns.db.alts[name]
     for alt, m in pairs(ns.db.alts) do if m == main or (old and m == old) then ns.db.alts[alt] = nil end end
     if name ~= main then ns.db.alts[name] = main end
@@ -244,7 +244,7 @@ ns.Listen("ROSTER", function()
 end)
 
 ------------------------------------------------------------------------
--- Anzeige-Hilfe: "Mira (Anna)"
+-- Display helper: "Mira (Anna)"
 ------------------------------------------------------------------------
 function ns.Radar.Label(name)
     local main = Alts.Main(name)
@@ -269,8 +269,8 @@ end)
 ns.Listen("LEVEL_UP", function(level) ns.char.level = level end)
 
 ------------------------------------------------------------------------
--- Charakter-Infos fuer Baum/Listen: Klasse, Stufe, online, Berufe (Rohtext)
--- Quellen: Gildenliste, geteiltes Profil, eigene Charaktere (account-weit gemerkt)
+-- Character info for tree/lists: class, level, online, professions (raw text)
+-- Sources: guild roster, shared profile, own characters (remembered account-wide)
 ------------------------------------------------------------------------
 function Alts.CharInfo(name)
     local R = ns.Radar
@@ -286,7 +286,7 @@ function Alts.CharInfo(name)
         profs = raw,
     }
 end
--- Main zuerst, dann Twinks (online zuerst, dann hoechste Stufe)
+-- Main first, then alts (online first, then highest level)
 function Alts.Tree(name)
     local main = Alts.Main(name)
     local chars = Alts.CharsOf(main)
@@ -303,7 +303,7 @@ function Alts.Tree(name)
     return main, alts, info
 end
 
--- eigene Klasse + Berufe merken, damit Baum/Abfrage auch ausgeloggte eigene Charaktere zeigen
+-- remember own class + professions so tree/prompt also show logged-out own characters
 local function rememberMe()
     if not ns.char then return end
     local _, cls = UnitClass("player")
@@ -317,9 +317,9 @@ local function rememberMe()
 end
 
 ------------------------------------------------------------------------
--- Abfrage beim ersten Einloggen: "Ist <Name> dein Main oder ein Twink?"
--- Nur wenn mindestens 2 eigene Charaktere bekannt sind (bei einem ist er automatisch Main),
--- nicht im Kampf, ~8 s nach dem Login, einmal je Charakter ("Spaeter" fragt hoechstens noch einmal)
+-- Prompt on first login: "Is <Name> your main or an alt?"
+-- Only if at least 2 own characters are known (with one it is automatically main),
+-- not in combat, ~8 s after login, once per character ("Later" asks at most once more)
 ------------------------------------------------------------------------
 local ask
 local function others()
@@ -365,7 +365,7 @@ local function buildAsk()
     f.sub:SetJustifyH("LEFT")
     f.sub:SetText(L["Oasis groups your characters in the guild into one player. You can change this later under Settings > Profile & Backup."])
 
-    -- Auswahl "Twink von ..." (nur sichtbar nach Klick auf Twink, wenn es mehrere andere gibt)
+    -- Selection "Alt of ..." (only visible after clicking Alt, if there are several others)
     f.ofLabel = K.Text(f, 11, C.muted)
     f.ofLabel:SetPoint("TOPLEFT", 18, -104)
     f.ofLabel:SetText(L["Alt of"])
@@ -383,7 +383,7 @@ local function buildAsk()
         if f.mode == "other" then
             local txt = (f.otherIn:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
             if txt == "" then
-                -- leer = Verknuepfung zum anderen Account wieder loesen
+                -- empty = remove the link to the other account again
                 Alts.SetOtherMain(nil)
                 f:Hide()
                 return
@@ -391,7 +391,7 @@ local function buildAsk()
             local res = ns.ResolveName(txt)
             local m = res and ns.Radar.byName and ns.Radar.byName[res]
             if not m then
-                -- nur mit Vornamen eingegeben: eindeutig in der Gildenliste?
+                -- entered with first name only: unique in the guild roster?
                 local hit, n = nil, 0
                 for _, x in ipairs(ns.Radar.roster or {}) do
                     if ns.short(x.name):lower():find(txt:lower(), 1, true) == 1 then hit, n = x, n + 1 end
@@ -440,7 +440,7 @@ local function buildAsk()
     f.twink:SetPoint("LEFT", f.main, "RIGHT", 8, 0)
     f.laterBtn = K.Button(f, L["Later"], 80, 22, "ghost", function() f.later() end)
     f.laterBtn:SetPoint("BOTTOMRIGHT", -18, 18)
-    -- Main liegt auf einem anderen WoW-Account: Namen eintragen, der Main bestaetigt
+    -- Main is on another WoW account: enter name, the main confirms
     f.otherBtn = K.Button(f, L["My main is on a different account"], 290, 22, "ghost", function() f:SetMode("other") end)
     f.otherBtn:SetPoint("TOPLEFT", 18, -108)
     f.otherIn = K.Input(f, 240, L["Name of the main (guild member)"])
@@ -469,7 +469,7 @@ local function buildAsk()
         self.ok:SetShown(pick or other)
         self.back:SetShown(pick or other)
         if pick then
-            -- vorbelegt: bisheriger Main (sonst der hoechste andere Charakter)
+            -- prefilled: previous main (otherwise the highest other character)
             local cur = Alts.MyMain()
             if cur == ns.me() or not ns.db.chars[cur] then
                 local best, bl = nil, -1
@@ -480,13 +480,13 @@ local function buildAsk()
                 cur = best
             end
             self.pick = cur
-            self.of:SetLabel(cur and ns.displayName(cur) or "")   -- 0.6.249: SetLabel (SetText traf WoWs unsichtbaren Knopftext)
+            self.of:SetLabel(cur and ns.displayName(cur) or "")   -- 0.6.249: SetLabel (SetText hit WoW's invisible button text)
         end
     end
     f:Hide()
     return f
 end
--- Rueckfrage beim Main: "<Name> sagt, er ist dein Twink (anderer Account)" - eine nach der anderen, nie im Kampf
+-- Prompt to the main: "<Name> says they are your alt (other account)" - one after another, never in combat
 local confirmQueue, confirmWin = {}, nil
 local function nextConfirm()
     if confirmWin and confirmWin:IsShown() then return end
@@ -561,7 +561,7 @@ function Alts.ShowAsk()
     ask:Show()
     ask:Raise()
 end
--- true, wenn gefragt werden soll; bei nur einem Charakter still als Main werten
+-- true if the prompt should be shown; with only one character silently treat as main
 function Alts.NeedsAsk()
     local c = ns.char
     if not c or c.altRoleAsked then return false end
@@ -584,16 +584,16 @@ ns.Listen("LOGIN", function()
 end)
 ns.slash.twink = function() Alts.ShowAsk() end
 
--- Einmalig (0.5.495): Eintraege von Twinks OHNE Gilde, die ueber die gemeinsame Account-Datei in die Gilde
--- gerutscht sind (z. B. Lagerfeuer/Abzeichen eines gildenlosen Twinks), wieder entfernen. Erkennung:
--- Urheber ist als Twink bekannt, steht nicht in der Gildenliste und der Eintrag ist hoechstens 7 Tage alt.
+-- One-time (0.5.495): entries from alts WITHOUT a guild that slipped into the guild via the shared account
+-- file (e.g. campfire/badges of a guildless alt) are removed again. Detection:
+-- author is known as an alt, is not in the guild roster and the entry is at most 7 days old.
 ns.Listen("ROSTER", function()
     if ns.db.leakClean495 or not (ns.Admin and ns.Admin.InGuildList) then return end
     if not (ns.Radar and ns.Radar.roster and #ns.Radar.roster > 0) then return end
     ns.db.leakClean495 = true
     local alts, cut, n = ns.db.alts or {}, ns.now() - 7 * 86400, 0
-    -- Vornamen aller Gildenmitglieder: Absender kommen in Forever nur als "Vorname-Realm" an ->
-    -- nur loeschen, wenn KEIN Mitglied diesen Vornamen traegt (sonst koennte es ein echtes Mitglied sein)
+    -- First names of all guild members: senders arrive in Forever only as "Firstname-Realm" ->
+    -- only delete if NO member has this first name (otherwise it could be a real member)
     local firsts = {}
     for _, m in ipairs(ns.Radar.roster) do
         local f = ns.NameKey(m.name)

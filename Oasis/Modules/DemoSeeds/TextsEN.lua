@@ -1,22 +1,22 @@
--- Oasis: englische Fassung der Beispieltexte (nur /oa demo).
--- Die Beispieldaten stehen auf Deutsch im Code. In jeder anderen Sprache ersetzt Demo.Localize die Texte durch
--- diese Fassung. Schluessel = deutscher Text genau wie im Code. Vorlagen der Chronik (Feld tk) stehen hier
--- bewusst nicht: die uebersetzt die Anzeige selbst.
+-- Oasis: English version of the sample texts (only /oa demo).
+-- The sample data is in German in the code. In any other language Demo.Localize replaces the texts with
+-- this version. Key = German text exactly as in the code. Chronicle templates (field tk) are deliberately
+-- not here: the display translates those itself.
 local ADDON, ns = ...
 
 ns.DemoEN = {
-    -- Raenge, Notizen, Bankfaecher
+    -- Ranks, notes, bank tabs
     ["Offizier"] = "Officer", ["Mitglied"] = "Member", ["Anwaerter"] = "Trial", ["Probezeit"] = "Trial period",
     ["Twink: Morgra"] = "Alt: Morgra", ["Raidlead Mi/Fr"] = "Raid lead Wed/Fri", ["Probezeit bis 10.10."] = "Trial until Oct 10",
     ["Bankverwaltung"] = "Bank manager",
     ["Allgemein"] = "General", ["Stoffe & Leder"] = "Cloth & Leather", ["Kräuter & Tränke"] = "Herbs & Potions",
     ["Erze & Steine"] = "Ores & Stones", ["Offiziere"] = "Officers", ["Demo Gilde"] = "Demo Guild",
 
-    -- Berufe
+    -- Professions
     ["Schneiderei"] = "Tailoring", ["Erste Hilfe"] = "First Aid", ["Schmiedekunst"] = "Blacksmithing", ["Alchemie"] = "Alchemy",
     ["Lederverarbeitung"] = "Leatherworking", ["Ingenieurskunst"] = "Engineering", ["Kochkunst"] = "Cooking",
 
-    -- Gegenstaende
+    -- Items
     ["Rauer Wetzstein"] = "Rough Sharpening Stone", ["Grober Wetzstein"] = "Coarse Sharpening Stone",
     ["Schwerer Wetzstein"] = "Heavy Sharpening Stone", ["Fester Wetzstein"] = "Solid Sharpening Stone",
     ["Grober Gewichtsstein"] = "Coarse Weightstone", ["Grosses Bronzemesser"] = "Big Bronze Knife",
@@ -45,14 +45,14 @@ ns.DemoEN = {
     ["Die vergessenen Teiche"] = "The Forgotten Pools", ["Rache an meinem Dorf"] = "Avenge My Village",
     ["Hamuuls Befehl"] = "Hamuul's Order", ["Suedmeerfreibeuter"] = "Southsea Freebooters",
 
-    -- Gebiete und Orte
+    -- Zones and places
     ["Brachland"] = "The Barrens", ["Steinkrallengebirge"] = "Stonetalon Mountains", ["Eschental"] = "Ashenvale",
     ["Arathihochland"] = "Arathi Highlands", ["Silberwald"] = "Silverpine Forest", ["Tirisfal"] = "Tirisfal Glades",
     ["Sümpfe des Elends"] = "Swamp of Sorrows", ["Düstermarschen"] = "Dustwallow Marsh", ["Tausend Nadeln"] = "Thousand Needles",
     ["Kreuzungen"] = "The Crossroads", ["Vorgebirge des Huegellands"] = "Hillsbrad Foothills",
     ["Rasiermaehne"] = "Razormane", ["Brennende Klinge"] = "Burning Blade", ["Treffpunkt Gadgetzan"] = "Meeting point Gadgetzan",
 
-    -- Dungeons und Raids
+    -- Dungeons and raids
     ["Burg Schattenfang"] = "Shadowfang Keep", ["Tiefschwarze Grotte"] = "Blackfathom Deeps",
     ["Scharlachrotes Kloster"] = "Scarlet Monastery", ["Scharlachrotes Kloster Bibliothek"] = "Scarlet Monastery Library",
     ["Scharlachrotes Kloster: Friedhof + Bibliothek"] = "Scarlet Monastery: Graveyard + Library",
@@ -66,7 +66,7 @@ ns.DemoEN = {
     ["Die Höhlen des Wehklagens - Bestzeit"] = "Wailing Caverns - best time",
     ["Der Flammenschlund - Bestzeit"] = "Ragefire Chasm - best time",
 
-    -- Bosse und Gegner
+    -- Bosses and enemies
     ["Hochinquisitor Weisstraene"] = "High Inquisitor Whitemane", ["Amnennar der Kaeltebringer"] = "Amnennar the Coldbringer",
     ["Haeuptling Ukorz Sandskalp"] = "Chief Ukorz Sandscalp", ["Baron Silberlein"] = "Baron Silverlaine",
     ["Mutanus der Verschlinger"] = "Mutanus the Devourer", ["Hauptmann Grünhaut"] = "Captain Greenskin",
@@ -76,7 +76,7 @@ ns.DemoEN = {
     ["Allianz-Spieler"] = "Alliance player", ["Wildtatzenjaeger"] = "Wildpaw Hunter", ["Oger-Zauberer"] = "Ogre Mage",
     ["Harpyien-Windhexe"] = "Harpy Windwitch", ["Skorpid-Schrecken"] = "Scorpid Terror",
 
-    -- Termine und Auftraege
+    -- Events and orders
     ["Gildenabend: Todeswuerfeln in Orgrimmar"] = "Guild night: Deathroll in Orgrimmar",
     ["Barrow Deeps - Wochenraid"] = "Barrow Deeps - weekly raid",
     ["Onyxias Hort - Gildenraid"] = "Onyxia's Lair - guild raid",
@@ -92,7 +92,7 @@ ns.DemoEN = {
     ["Arugal + alle Quests"] = "Arugal + all quests", ["Ganze Instanz, Archaedas am Ende"] = "Full run, Archaedas at the end",
     ["Charlga + Quest fuer Willix"] = "Charlga + the Willix quest",
 
-    -- Notizen zu Mitspielern
+    -- Notes on companions
     ["super Tank, sehr ruhig"] = "great tank, very calm", ["Heilerin, will evtl. in eine Gilde"] = "Healer, might want to join a guild",
     ["hat uns im Kloster gerettet"] = "saved us in the Monastery",
     ["Heilt sauber, kennt jede Abkuerzung in der Grotte"] = "Clean healing, knows every shortcut in the Deeps",
@@ -110,7 +110,7 @@ ns.DemoEN = {
     ["Blutige Klingen"] = "Bloody Blades", ["Die Schattenrufer"] = "The Shadowcallers", ["Donnerhuf"] = "Thunderhoof",
     ["Erben der Horde"] = "Heirs of the Horde", ["Kor'kron Wacht"] = "Kor'kron Watch", ["Sturmwut"] = "Stormrage",
 
-    -- Gildenleitung
+    -- Guild leadership
     ["Heilerin, Twink von Sarnok"] = "Healer, Sarnok's alt", ["seit Wochen offline"] = "offline for weeks",
     ["Schamane 24, sucht ruhige Gilde zum Leveln"] = "Shaman 24, looking for a relaxed levelling guild",
     ["Magierin 31, kennt Drogbar aus dem Dungeon"] = "Mage 31, knows Drogbar from a dungeon",
@@ -126,7 +126,7 @@ ns.DemoEN = {
     ["Hier steht der Haendler mit den Rezepten"] = "The vendor with the recipes is here",
     ["Guter Platz zum Kraeutersammeln"] = "Good spot for herbs",
 
-    -- Gildenziele und Durchsagen
+    -- Guild goals and announcements
     ["Vorrat fuer den Geschmolzenen Kern"] = "Supplies for Molten Core",
     ["Feuerschutz und Traenke fuer unseren ersten MC-Abend. Alles in die Gildenbank (Yenzi)."] = "Fire protection and potions for our first MC night. Everything goes into the guild bank (Yenzi).",
     ["Alchemist mit Rezept fuer Feuerschutz finden"] = "Find an alchemist with the fire protection recipe",
@@ -150,7 +150,7 @@ ns.DemoEN = {
     ["Willkommen, neue Mitglieder"] = "Welcome, new members",
     ["Schoen, dass ihr da seid. Fragen gerne in den Gildenchat - wir helfen."] = "Great to have you here. Ask anything in guild chat - we are happy to help.",
 
-    -- Gildenchat
+    -- Guild chat
     ["Abend zusammen :wave:"] = "Evening all :wave:", ["n'Abend Drogbar o/"] = "Evening Drogbar o/",
     ["Wer hat Lust auf Tiefschwarze Grotte? Brauchen noch Heiler + 1 DD"] = "Anyone up for Blackfathom Deeps? Need a healer + 1 DPS",
     ["ich komm mit, kann heilen"] = "I'm in, I can heal",
@@ -195,7 +195,7 @@ ns.DemoEN = {
     ["Pre-Raid-Check in 30 min, bitte Flaschen und Buffs mitbringen :swords:"] = "Pre-raid check in 30 min, please bring flasks and buffs :swords:",
     ["alles klar Chef :salute:"] = "got it, boss :salute:",
 
-    -- Mein Weg
+    -- My Journey
     ["Stufe 10 erreicht"] = "Reached level 10", ["Stufe 15 erreicht"] = "Reached level 15", ["Stufe 18 erreicht"] = "Reached level 18",
     ["Stufe 20 erreicht"] = "Reached level 20", ["Stufe 21 erreicht"] = "Reached level 21", ["Stufe 22 erreicht"] = "Reached level 22",
     ["Aku'mai in der Tiefschwarzen Grotte besiegt"] = "Defeated Aku'mai in Blackfathom Deeps",
@@ -224,7 +224,7 @@ ns.DemoEN = {
     ["Erste Gruppe für die Höhlen des Wehklagens finden"] = "Find a first group for Wailing Caverns",
     ["Ersten Boss in einem Dungeon besiegen"] = "Defeat a first dungeon boss",
 
-    -- Boss-Taktiken (die Woerter vor dem Doppelpunkt wertet der Raid-Check aus)
+    -- Boss tactics (the words before the colon are evaluated by the raid check)
     ["Alle: Fluch des Lucifron sofort entfernen - Magier und Druiden sind eingeteilt.\nAlle: Drohende Verdammnis bannen, Priester links, Schamanen rechts.\nTank: Grukthar nimmt Lucifron, Drogbar und Ragna je eine Wache - Abstand halten (Gedankenkontrolle).\nHeiler: Gedankenkontrollierte Spieler sofort bannen, nicht wegheilen.\nDD: Erst Wache links, dann Wache rechts, zuletzt Lucifron."] = "All: Remove Lucifron's Curse at once - mages and druids are assigned.\nAll: Dispel Impending Doom, priests left, shamans right.\nTank: Grukthar takes Lucifron, Drogbar and Ragna one guard each - keep them apart (mind control).\nHealer: Dispel mind-controlled players at once, do not heal them up.\nDD: Left guard first, then the right guard, Lucifron last.",
     ["Alle: Panik alle 30 Sek - Furchtschutz auf die Tanks, Erdungs- und Tremortotem in jeder Nahkampfgruppe.\nAlle: Lavabombe am Boden: sofort raus.\nTank: Magmadar mit dem Ruecken zum Raid, Kopf zur Wand.\nHeiler: In der Panikphase Tank vorheilen.\nDD: Jaeger: Einlullender Schuss im Wechsel (Vol'tar, Thrallia, Mokrash)."] = "All: Panic every 30 sec - Fear Ward on the tanks, Grounding and Tremor Totem in every melee group.\nAll: Lava Bomb on the ground: move out at once.\nTank: Magmadar with his back to the raid, head to the wall.\nHealer: Top the tank up before each Panic.\nDD: Hunters: Tranquilizing Shot in rotation (Vol'tar, Thrallia, Mokrash).",
     ["Alle: Lebende Bombe = SOFORT nach hinten links laufen, Ansage im Sprachchat.\nAlle: Inferno: Nahkampf raus, Mana-Ausloeschung sofort bannen.\nTank: Geddon in der Mitte halten, bei Inferno kurz zuruecktreten.\nHeiler: Bombe-Ziel vor der Explosion volltoppen.\nDD: Fernkampf im Halbkreis, mindestens 25 Meter Abstand."] = "All: Living Bomb = run to the back left AT ONCE, call it out in voice chat.\nAll: Inferno: melee out, dispel Ignite Mana at once.\nTank: Keep Geddon in the middle, step back briefly during Inferno.\nHealer: Top up the bomb target before the explosion.\nDD: Ranged in a half circle, at least 25 yards away.",

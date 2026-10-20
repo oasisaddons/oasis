@@ -1,17 +1,17 @@
--- Oasis: Friedhof (Tode der Gilde, Rangliste, Sterbeorte auf der Karte)
+-- Oasis: Graveyard (guild deaths, ranking, death locations on the map)
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Deaths", function()   -- Modul Tode (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Deaths", function()   -- Deaths module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be tampered with):
+-- sanitize texts, cap numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- escape sequences (|c |r |n |H |T |K |A ...) and control characters neutralized; links: valid item/spell links are kept
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -61,7 +61,7 @@ local Deaths = {}
 ns.Deaths = Deaths
 local SKULL = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull"
 
--- Gilden-Optionen (Gildenleitung): welche Tode zaehlen, wie lange Sterbeorte auf der Karte bleiben
+-- Guild options (guild leadership): which deaths count, how long death locations stay on the map
 ns.GuildOption({ page = "deaths", key = "deInst", default = true,
     label = "Count deaths in dungeons and raids", desc = "Deaths in instances are recorded and count in the ranking. Off: open-world deaths only." })
 ns.GuildOption({ page = "deaths", key = "deDays", default = 14, min = 1, max = 60, step = 1,
@@ -69,10 +69,10 @@ ns.GuildOption({ page = "deaths", key = "deDays", default = 14, min = 1, max = 6
     fmt = function(v) return v .. " Tg" end })
 
 ------------------------------------------------------------------------
--- Eigenen Tod erfassen
+-- record own death
 ------------------------------------------------------------------------
 local lastHostile
--- zuletzt angegriffener/angreifender Gegner als "vermutlicher Toeter"
+-- last attacked/attacking enemy as "probable killer"
 local function rememberTarget()
     if UnitExists("target") and UnitCanAttack("player", "target") then
         local n = ns.safe(ns.UnitName("target"))
@@ -83,7 +83,7 @@ ns.On("PLAYER_TARGET_CHANGED", rememberTarget)
 ns.On("PLAYER_REGEN_DISABLED", rememberTarget)
 
 ns.On("PLAYER_DEAD", function()
-    -- Entwickler: eigenen Todes-Sound auch selbst hoeren (die anderen hoeren ihn am Tod-Hinweis)
+    -- Developer: hear your own death sound yourself (others hear it on the death notice)
     if ns.IsDev() and ns.Sound and ns.Sound.eventByKey.mydeath and ns.db.settings.sound then
         pcall(ns.Sound.PlayChoice, ns.Sound.ChoiceFor("mydeath"), ns.db.settings.soundVol)
     end
@@ -95,7 +95,7 @@ ns.On("PLAYER_DEAD", function()
     if lastHostile and lastHostile.player and (GetTime() - lastHostile.t) < 30 then return end
     local instName = inInst and ns.safe((GetInstanceInfo())) or nil
     local killer = lastHostile and (GetTime() - lastHostile.t) < 30 and lastHostile.name or nil
-    -- 0.5.617 Datenschutz: Sterbeort teilen abschaltbar (Einstellungen > Daten & Analyse)
+    -- 0.5.617 privacy: sharing death location can be turned off (Settings > Data & Analytics)
     if ns.db.settings.shareDeaths == false then if ns.Badges then ns.Badges.Add("deaths", 1) end return end
     Store.Put("deaths", {
         id = ns.newId("death"), who = ns.me(),
@@ -108,17 +108,17 @@ ns.On("PLAYER_DEAD", function()
 end)
 
 ------------------------------------------------------------------------
--- Auswertung
+-- Evaluation
 ------------------------------------------------------------------------
--- 0.5.796: nur Tode, die zu DIESER Gilde gehoeren. Charaktere von einem anderen Realm, die nicht in der Gildenliste stehen
--- (z.B. ein Twink in einer anderen Gilde/Fraktion, dessen Tode in derselben Account-Datei liegen), zaehlen hier nicht mit.
+-- 0.5.796: only deaths that belong to THIS guild. Characters from another realm that aren't on the guild roster
+-- (e.g. an alt in another guild/faction whose deaths are in the same account file) don't count here.
 local function belongs(d)
     local who = d and d.who
     if type(who) ~= "string" then return false end
     local R = ns.Radar
     if R and R.byName and rawget(R.byName, ns.ResolveName(who) or who) then return true end
-    if not (R and R.roster and #R.roster > 0) then return true end   -- Gildenliste noch nicht da: nichts ausblenden
-    -- 0.5.797: eigener Charakter dieses Accounts, der nicht in der Gilde ist (z.B. Allianz-Twink auf demselben Realm): gehoert nicht hierher
+    if not (R and R.roster and #R.roster > 0) then return true end   -- guild roster not there yet: hide nothing
+    -- 0.5.797: own character of this account that isn't in the guild (e.g. Alliance alt on the same realm): doesn't belong here
     if ns.db and ns.db.chars and ns.db.chars[who] and not ns.isMe(who) then return false end
     local realm = who:match("%-(.+)$")
     local me = ns.me()
@@ -131,9 +131,9 @@ local function deathList()
     return out
 end
 Deaths.List = deathList
--- 0.5.798: Tode, die nicht zu dieser Gilde gehoeren (fremder Realm / eigener Charakter ausserhalb der Gilde), aus dem lokalen
--- Speicher nehmen - einmal je Sitzung, sobald die Gildenliste da ist. Nur lokal (kein Loesch-Befehl an die Gilde): so werden sie
--- beim Abgleich auch nicht mehr weiterverteilt. Betrifft nur Eintraege ohne Gildenkennzeichen oder mit dem Namen dieser Gilde.
+-- 0.5.798: remove deaths that don't belong to this guild (foreign realm / own character outside the guild) from local
+-- storage - once per session, as soon as the guild roster is there. Local only (no delete command to the guild): this way they
+-- are no longer redistributed during sync either. Only affects entries without guild tag or with this guild's name.
 local cleaned = false
 ns.Listen("ROSTER", function()
     if cleaned or not IsInGuild() then return end
@@ -160,7 +160,7 @@ function Deaths.All()
     return out
 end
 
--- Rangliste pro Spieler (Main), dazu Lieblingsgegner und toedlichstes Gebiet
+-- ranking per player (main), plus favorite enemy and deadliest zone
 function Deaths.Ranking()
     local by = {}
     for _, d in ipairs(deathList()) do
@@ -199,32 +199,32 @@ function Deaths.Zones()
     return out
 end
 
--- Hinweis, wenn ein Gildenmitglied stirbt
+-- notice when a guild member dies
 ns.Listen("STORE", function(coll, rec, old)
     if coll ~= "deaths" then return end
     local age = ns.now() - (tonumber(rec.ts) or 0)
-    -- Abgleich liefert auch historische Tode: nur frische Ereignisse als Live-Hinweis zeigen.
+    -- sync also delivers historical deaths: only show fresh events as a live notice.
     if not old and not rec.del and not ns.isMe(rec.who) and age >= -5 and age <= 30 and ns.db.settings.deathToasts ~= false
-        and SEC.Name(rec.who) and SEC.Rate("deathtoast:" .. rec.who, 20) then   -- je Person gedrosselt (Toast-/Ton-Flut)
+        and SEC.Name(rec.who) and SEC.Rate("deathtoast:" .. rec.who, 20) then   -- throttled per person (toast/sound flood)
         local where = SEC.Text(ns.zoneName(rec.mapID, rec.zone), 60)
-        -- hat die Person einen eigenen Todes-Sound, spielt der statt des gewaehlten Tod-Sounds
+        -- if the person has their own death sound, it plays instead of the chosen death sound
         local pr = ns.db.members and ns.db.members[rec.who]
         if ns.Sound and ns.Sound.Force then ns.Sound.Force("death", type(pr) == "table" and pr.ds or nil, "death") end
         K.Toast((L["%s died"]):format(ns.displayName(rec.who)),
             where .. ((rec.killer or "") ~= "" and ns.db.settings.deathKiller ~= false and ("  ·  " .. SEC.Text(rec.killer, 60)) or ""), C.red, function() ns.ShowPage("deaths") end, "death", (tonumber(rec.ts) or 0) + 30)
-        if ns.Sound then ns.Sound.forced = nil end   -- nicht gespielt (Hinweis aus/zurueckgehalten): nicht fuer den naechsten Tod aufheben
+        if ns.Sound then ns.Sound.forced = nil end   -- not played (notice off/held back): don't keep it for the next death
     end
     if ns.Map then ns.Map.dirty = true end
     ns.RefreshPage("deaths")
 end)
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local view = "rank"      -- "rank" | "recent" | "map"
-local span = "all"       -- Zeitraum: "7" | "30" | "all"
-local focus              -- nur Tode dieser Person (Main) zeigen
-local flash              -- diese Tod-ID auf der Karte hervorheben
+local span = "all"       -- period: "7" | "30" | "all"
+local focus              -- show only this person's (main's) deaths
+local flash              -- highlight this death ID on the map
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 
 local function inSpan(d)
@@ -232,8 +232,8 @@ local function inSpan(d)
     return ns.now() - (d.ts or 0) < tonumber(span) * 86400
 end
 local function mainOf(n) return ns.Alts and ns.Alts.Main(n) or n end
--- 0.5.795: wem gehoert der Tote? Twinks zeigen ihren Main, Charaktere ausserhalb der aktuellen Gildenliste ihren Realm.
--- Anlass: ein Charakter heisst wirklich "Du" - in der Liste las sich das wie "du selbst".
+-- 0.5.795: whose death is it? Alts show their main, characters outside the current guild roster their realm.
+-- Reason: a character really is called "Du" - in the list it read like "yourself".
 local function ownerHint(name)
     local main = mainOf(name)
     if main and main ~= name and not ns.SameName(main, name) then
@@ -258,7 +258,7 @@ local function deathLine(d)
     return ns.displayName(d.who) .. " |cff888888" .. (d.lvl or "?") .. "|r  ·  " .. SEC.Text(ns.zoneName(d.mapID, d.zone), 60) .. k .. "  |cff666666" .. ns.ago(d.ts) .. "|r"
 end
 
--- Karte: zwei Kontinente nebeneinander, Totenkoepfe (nahe Tode zusammengefasst)
+-- Map: two continents side by side, skulls (nearby deaths merged)
 local function buildMap(p)
     local m = CreateFrame("Frame", nil, p)
     m.panels = {}
@@ -281,7 +281,7 @@ local function buildMap(p)
             for i, tex in ipairs(texs) do
                 local t = pn.art:CreateTexture(nil, "BORDER")
                 t:SetTexture(tex)
-                t:SetVertexColor(0.55, 0.55, 0.6)   -- gedimmt, damit die Totenkoepfe tragen
+                t:SetVertexColor(0.55, 0.55, 0.6)   -- dimmed so the skulls stand out
                 pn.tiles[i] = t
             end
         end
@@ -337,7 +337,7 @@ local function buildMap(p)
         K.SetFontSafe(b.n, K.FONT_HEAD or K.FONT, 9, "OUTLINE", K.FONT)
         b.n:SetPoint("BOTTOMRIGHT", 4, -3)
         b:SetScript("OnEnter", function(self)
-            -- nur das Bild vergroessern, nicht den Knopf (sonst Enter/Leave-Schleife = Zucken)
+            -- only enlarge the image, not the button (otherwise Enter/Leave loop = twitching)
             self.skull:SetSize(self.s + 4, self.s + 4)
             self.back:SetSize(self.s + 8, self.s + 8)
             local t = { (#self.list == 1 and L["1 death here"] or (L["%d deaths here"]):format(#self.list)) }
@@ -359,7 +359,7 @@ local function buildMap(p)
         local hidden = 0
         for _, pn in ipairs(self.panels) do
             for _, b in ipairs(pn.pins) do b:Hide() end
-            -- nahe Tode in Rasterzellen zusammenfassen
+            -- merge nearby deaths into grid cells
             local CELL = 16
             local cells, order = {}, {}
             for _, d in ipairs(list) do
@@ -422,9 +422,9 @@ ns.RegisterPage({
         p.cKiller.value:SetPoint("RIGHT", -12, 0)
         p.cKiller.value:SetWordWrap(false)
         p.cKiller.value:SetFont(K.FONT_HEAD, 14, "")
-        -- 0.5.853: die vier Karten entfallen, ihre Werte stehen in einer Zeile unter den Reitern
+        -- 0.5.853: the four cards are dropped, their values are in one line below the tabs
         for _, c in ipairs({ p.cTotal, p.cWeek, p.cZone, p.cKiller }) do c:Hide() end
-        -- 0.6.288: Kennzahlen als ruhige Karte mit vier Spalten (Beschriftung klein, Wert gross) statt einer engen Zeile
+        -- 0.6.288: stats as a calm card with four columns (small label, big value) instead of a cramped line
         p.kpi = CreateFrame("Frame", nil, p)
         p.kpi:SetPoint("TOPLEFT", 0, -36)
         p.kpi:SetPoint("RIGHT", p, "RIGHT", 0, 0)
@@ -432,7 +432,7 @@ ns.RegisterPage({
         if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(p.kpi, nil, nil, 12) end
         p.kpi.cols = {}
         local KL = { L["Total deaths"], L["This week"], L["Deadliest zone"], L["Deadliest enemy"] }
-        local KX = { 0, 0.16, 0.32, 0.66 }   -- Anteile der Breite (Gebiet/Gegner brauchen mehr Platz)
+        local KX = { 0, 0.16, 0.32, 0.66 }   -- fractions of the width (zone/enemy need more room)
         for i = 1, 4 do
             local c = {}
             c.l = K.Text(p.kpi, 10, C.dim)
@@ -454,7 +454,7 @@ ns.RegisterPage({
         end
         p.kpi:SetScript("OnSizeChanged", placeKpi)
         placeKpi()
-        p.sum = K.Text(p, 11, C.muted)   -- bleibt fuer Altbestand, wird nicht mehr gezeigt
+        p.sum = K.Text(p, 11, C.muted)   -- kept for legacy data, no longer shown
         p.sum:Hide()
 
         p.seg = K.Segments(p, { { key = "rank", text = L["Ranking"] }, { key = "recent", text = L["Recent deaths"] }, { key = "map", text = L["Death map"] } }, function(k)
@@ -469,7 +469,7 @@ ns.RegisterPage({
             ns.RefreshPage("deaths")
         end, nil, { size = 11, pad = 14 })
         p.span:SetPoint("TOPRIGHT", 0, 0)
-        -- aktiver Personen-Filter: Name + x zum Aufheben
+        -- active person filter: name + x to clear
         p.focus = CreateFrame("Button", nil, p)
         p.focus:SetHeight(22)
         p.focus:SetPoint("RIGHT", p.span, "LEFT", -14, 0)
@@ -487,7 +487,7 @@ ns.RegisterPage({
         p.rank = K.List(p, 52, function(l)
             local r = K.Row(l)
             if r.stripe then r.stripe:SetAlpha(0) end
-            -- 0.6.288: duenner Anteil-Balken unter dem Text (vorher Klassenfarben-Verlauf ueber die ganze Zeile)
+            -- 0.6.288: thin share bar below the text (before: class color gradient across the whole row)
             r.track = r:CreateTexture(nil, "BACKGROUND", nil, 1)
             r.track:SetPoint("BOTTOMLEFT", 88, 6)
             r.track:SetPoint("BOTTOMRIGHT", -90, 6)
@@ -497,7 +497,7 @@ ns.RegisterPage({
             r.bar:SetPoint("BOTTOMLEFT", 88, 6)
             r.bar:SetHeight(2)
             r.bar:SetWidth(1)
-            -- 0.6.299: Plaetze 1-3 hervorgehoben - weicher Schein in Medaillenfarbe von links, Medaillenring um den Kreis
+            -- 0.6.299: places 1-3 highlighted - soft glow in medal color from the left, medal ring around the circle
             r.medal = r:CreateTexture(nil, "BACKGROUND", nil, 0)
             r.medal:SetPoint("TOPLEFT", 0, -1) r.medal:SetPoint("BOTTOMLEFT", 0, 1)
             r.medal:SetWidth(320)
@@ -566,8 +566,8 @@ ns.RegisterPage({
             if tc then r.av:SetTexCoord(tc[1], tc[2], tc[3], tc[4]) r.av:SetAlpha(1) else r.av:SetAlpha(0) end
             local cr, cg, cb = ns.classColor(cls)
             cr, cg, cb = cr or 0.6, cg or 0.6, cb or 0.6
-            r.ring:SetVertexColor(cr, cg, cb, 0.35)   -- 0.6.288: Klassenkreis dezenter
-            -- Plaetze 1-3: Medaillenfarbe fuer Schein, Kante, Ring, Platz- und Todeszahl
+            r.ring:SetVertexColor(cr, cg, cb, 0.35)   -- 0.6.288: class circle more subtle
+            -- places 1-3: medal color for glow, edge, ring, place and death count
             local top = md ~= nil
             r.medal:SetShown(top) r.medalLine:SetShown(top) r.mring:SetShown(top)
             if top then
@@ -697,7 +697,7 @@ ns.RegisterPage({
         p.recent:SetShown(view == "recent")
         p.map:SetShown(view == "map")
         if view == "rank" then
-            -- Rangliste aus dem gefilterten Zeitraum
+            -- ranking from the filtered period
             local by, out = {}, {}
             for _, d in ipairs(list) do
                 local mn = mainOf(d.who)
@@ -731,7 +731,7 @@ ns.RegisterPage({
     end,
 })
 
--- Weltkarte: Totenkoepfe der letzten 14 Tage (vom Karten-Modul gezeichnet)
+-- World map: skulls of the last 14 days (drawn by the map module)
 function Deaths.MapPins()
     if ns.db.settings.deathPins == false then return {} end
     local out = {}

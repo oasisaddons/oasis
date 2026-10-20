@@ -1,24 +1,24 @@
--- Oasis: Raid-Zeit - bester Raid-Termin automatisch
---  * eigener Mitschnitt aus der Gildenliste: wer ist an welchem Wochentag zu welcher Stunde online (je Main, Twinks zaehlen zum Main)
---  * kompakte Wochen-Profile (168 Bits = 42 Hex-Zeichen je Main) werden gildenweit geteilt -> alle sehen dieselbe Heatmap
---    Wer einen Main am laengsten beobachtet hat ("Abdeckung"), dessen Profil gilt.
---  * Heatmap Wochentag x Stunde + Top-3-Zeitfenster je Raidgroesse (10/20/40) mit erwarteter Besetzung inkl. Tanks/Heiler
---  * "Als Termin anlegen" ueber Raid.CreateEvent (oeffentliche Funktion aus Raid.lua)
--- Teilen: eigene Nachrichten (RPLU/RPLQ/RPLA/RPLB), weil Comm.lua nur bekannte Sammlungen annimmt.
--- Die kleine Sync-Hilfe ns.PlannerSync nutzt auch RepPlanner.lua.
+-- Oasis: raid time - best raid slot automatically
+--  * own recording from the guild roster: who is online on which weekday at which hour (per main, alts count to the main)
+--  * compact weekly profiles (168 bits = 42 hex chars per main) are shared guild-wide -> everyone sees the same heatmap
+--    Whoever observed a main the longest ("coverage") - that profile wins.
+--  * Heatmap weekday x hour + top 3 time slots per raid size (10/20/40) with expected turnout incl. tanks/healers
+--  * "Create as event" via Raid.CreateEvent (public function from Raid.lua)
+-- Sharing: own messages (RPLU/RPLQ/RPLA/RPLB), because Comm.lua only accepts known collections.
+-- The small sync helper ns.PlannerSync is also used by RepPlanner.lua.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Security on receipt (others' addon messages may be manipulated):
+-- Sanitize texts, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- Neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -78,7 +78,7 @@ local SIZES = {
 local DAYS = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" }
 
 if ns.ICONS then ns.ICONS.raidtime = ns.MEDIA .. "icons\\stats" end
--- eigener Navigationspunkt in der Gruppe "Raid" (direkt hinter "raid")
+-- own navigation entry in the "Raid" group (right after "raid")
 do
     for _, g in ipairs(ns.NAV_GROUPS or {}) do
         if g.key == "raid" then
@@ -97,7 +97,7 @@ local function S() return ns.db.settings end
 local function demoOn() return ns.Demo and ns.Demo.IsActive and ns.Demo.IsActive() end
 
 ------------------------------------------------------------------------
--- Kleine Sync-Hilfe fuer eigene Sammlungen (auch fuer RepPlanner.lua)
+-- Small sync helper for own collections (also for RepPlanner.lua)
 -- Sync.Register(coll, keep, onChange) ; Sync.Put(coll, rec) ; Sync.Request(coll)
 ------------------------------------------------------------------------
 local Sync = ns.PlannerSync or {}
@@ -124,13 +124,13 @@ function Sync.Request(coll)
     for _, r in pairs(Store.coll(coll)) do if not r.demo and (r.u or 0) > newest then newest = r.u end end
     Comm.Guild("RPLQ", coll, math.max(0, newest - 3600))
 end
--- Empfang pruefen: direkt (RPLU) nur eigene Datensaetze des Absenders (by = Absender), weitergereicht (RPLB)
--- nie einen Datensatz einem anderen Ersteller zuschlagen; Zeitstempel nicht in der Zukunft; Texte
--- entschaerfen; Sammlung begrenzt
+-- Check receipt: direct (RPLU) only the sender's own records (by = sender), relayed (RPLB)
+-- never assign a record to another creator; timestamps not in the future; texts
+-- sanitize; collection limited
 local function sameWho(a, b) return a and b and Comm.whoKey(a) == Comm.whoKey(b) end
 local function netOk(coll, rec, sender, relay)
     if type(rec) ~= "table" or type(rec.id) ~= "string" or #rec.id > 80 then return false end
-    if Comm.FromGuild and not Comm.FromGuild(sender) then return false end   -- nur Gildenmitglieder
+    if Comm.FromGuild and not Comm.FromGuild(sender) then return false end   -- guild members only
     if rec.demo or rec.id:find("demo-", 1, true) or not rec.by or ns.isMe(rec.by) then return false end
     if not relay and not sameWho(rec.by, sender) then return false end
     rec.u = math.min(tonumber(rec.u) or 0, ns.now() + 300)
@@ -165,7 +165,7 @@ Comm.On("RPLB", function(sender, _, coll, ...)
     end
     if any then changed(coll) end
 end)
--- jemand anders antwortet schon
+-- someone else is already replying
 Comm.On("RPLA", function(_, _, target, coll)
     local k = tostring(target) .. "#" .. tostring(coll)
     if pendingAns[k] then pendingAns[k] = "cancel" end
@@ -175,7 +175,7 @@ Comm.On("RPLQ", function(sender, channel, coll, since)
     since = tonumber(since) or 0
     local k = sender .. "#" .. coll
     if pendingAns[k] then return end
-    if not SEC.Rate("rplq:" .. k, 60) then return end   -- keine Fluester-Flut auf Zuruf
+    if not SEC.Rate("rplq:" .. k, 60) then return end   -- no whisper flood on request
     pendingAns[k] = true
     ns.After(math.random(15, 70) / 10, function()
         if pendingAns[k] ~= true then pendingAns[k] = nil return end
@@ -208,7 +208,7 @@ function Sync.Prune(coll)
 end
 
 ------------------------------------------------------------------------
--- Bitmaske 168 Stunden <-> 42 Hex-Zeichen (Slot = Wochentag(Mo=0) * 24 + Stunde)
+-- Bitmask 168 hours <-> 42 hex chars (slot = weekday(Mon=0) * 24 + hour)
 ------------------------------------------------------------------------
 local HEX = "0123456789abcdef"
 function RT.Encode(bits)
@@ -239,8 +239,8 @@ end
 RT.SlotOf = slotOf
 
 ------------------------------------------------------------------------
--- Eigener Mitschnitt (lokal): je Slot, in wie vielen Wochen ich da war (cov)
--- und je Main, in wie vielen davon er online war (on)
+-- Own recording (local): per slot, in how many weeks I was there (cov)
+-- and per main, in how many of them they were online (on)
 ------------------------------------------------------------------------
 local function obs()
     local o = ns.db.rtObs
@@ -265,14 +265,14 @@ local function sample()
     if not o.seen[slot] then
         o.seen[slot] = true
         o.cov[slot] = (o.cov[slot] or 0) + 1
-        -- alte Wochen verblassen lassen (Spielzeiten aendern sich)
+        -- let old weeks fade (play times change)
         if o.cov[slot] > 8 then
             o.cov[slot] = o.cov[slot] * 0.75
             for _, t in pairs(o.on) do if t[slot] then t[slot] = t[slot] * 0.75 end end
         end
     end
     for _, m in ipairs(ns.Radar.roster) do
-        -- 0.5.617 Datenschutz: nur Oasis-Nutzer (wer kein Oasis hat, wird nicht profiliert)
+        -- 0.5.617 privacy: Oasis users only (anyone without Oasis is not profiled)
         if m.online and not m.demo and ns.Radar.UsesOasis and ns.Radar.UsesOasis(m.name) then
             local main = mainOf(m.name)
             local k = main .. "#" .. slot
@@ -288,7 +288,7 @@ local function sample()
 end
 ns.Listen("ROSTER", function() pcall(sample) end)
 
--- eigene Beobachtung eines Mains -> Bits + Abdeckung
+-- own observation of a main -> bits + coverage
 local function ownMask(main)
     local o = obs()
     local t = o.on[main]
@@ -303,7 +303,7 @@ local function ownMask(main)
     end
     return bits, math.floor(cov)
 end
--- Notbehelf aus dem Spielzeit-Mitschnitt (Members.lua: Tage + Stunden getrennt) -> grobe Maske, Abdeckung 1
+-- Fallback from the playtime recording (Members.lua: days + hours separate) -> rough mask, coverage 1
 local function playMask(main)
     local e = ns.db.play and ns.db.play[main]
     if not e or not e.h or not e.d then return nil end
@@ -331,7 +331,7 @@ local function playMask(main)
 end
 
 ------------------------------------------------------------------------
--- Teilen: je Main ein Datensatz { id = "rt-<main>", m, b (42 Hex), cov, cls }
+-- Sharing: one record per main { id = "rt-<main>", m, b (42 hex), cov, cls }
 ------------------------------------------------------------------------
 local function recId(main) return "rt-" .. main end
 local function publish()
@@ -340,7 +340,7 @@ local function publish()
     local o = obs()
     local sent = 0
     local mains = {}
-    -- 0.5.617: jeder teilt nur noch seine EIGENEN Zeiten (vorher die aller beobachteten Mitglieder)
+    -- 0.5.617: everyone now shares only their OWN times (previously those of all observed members)
     local myMain = mainOf(ns.me())
     if o.on[myMain] then mains[1] = myMain end
     for _, main in ipairs(mains) do
@@ -363,9 +363,9 @@ end
 RT.Publish = publish
 
 ------------------------------------------------------------------------
--- Auswertung
+-- Evaluation
 ------------------------------------------------------------------------
--- Profile aller Mains: geteilte Datensaetze, sonst eigene Beobachtung, sonst Spielzeit-Notbehelf
+-- Profiles of all mains: shared records, else own observation, else playtime fallback
 function RT.Profiles()
     local out, seen = {}, {}
     local by = ns.Radar and ns.Radar.byName or {}
@@ -383,10 +383,10 @@ function RT.Profiles()
         out[#out + 1] = { name = main, bits = bits, src = src, class = (m and m.class) or cls, roles = roles, known = known }
     end
     for _, r in ipairs(Store.List(COLL)) do
-        -- nur selbst geteilte Zeiten (aeltere Versionen haben auch die anderer verteilt)
+        -- only self-shared times (older versions also distributed others')
         if r.demo or (r.by and mainOf(r.by) == r.m) then add(r.m, RT.Decode(r.b), r.demo and "demo" or "shared", r.cls) end
     end
-    -- frueher beobachtete Nicht-Nutzer wegwerfen
+    -- discard previously observed non-users
     if ns.Radar and ns.Radar.roster and #ns.Radar.roster > 0 and ns.Radar.UsesOasis then
         for main in pairs(obs().on) do if not ns.Radar.UsesOasis(main) then obs().on[main] = nil end end
     end
@@ -403,7 +403,7 @@ function RT.Profiles()
     return out
 end
 
--- Heatmap: je Slot Anzahl Mains + Tanks + Heiler
+-- Heatmap: per slot count of mains + tanks + healers
 function RT.Heat(profiles)
     local heat = {}
     for s = 0, SLOTS - 1 do heat[s] = { n = 0, t = 0, h = 0, who = {} } end
@@ -421,7 +421,7 @@ function RT.Heat(profiles)
     return heat
 end
 
--- Zeitfenster bewerten: Wahrscheinlichkeit je Main = Anteil der Fensterstunden mit Bit
+-- Rate time slots: probability per main = share of slot hours with bit set
 function RT.Suggest(profiles, size, len)
     local need = SIZES[size] or SIZES[10]
     len = len or tonumber(S().rtLen) or 3
@@ -461,7 +461,7 @@ function RT.Suggest(profiles, size, len)
     return out
 end
 
--- naechster Termin fuer Wochentag/Stunde (fruehestens zum Raidstart 09.12.2026)
+-- next date for weekday/hour (at the earliest at raid launch 09.12.2026)
 function RT.NextTs(wd, h)
     local base = math.max(ns.now() + 3600, RAID_START)
     local t = date("*t", base)
@@ -477,7 +477,7 @@ end
 
 function RT.CanCreate()
     if not (ns.Raid and ns.Raid.CreateEvent) then return false, L["Raid module missing"] end
-    -- Rechte-Modell: Termine anlegen = Schlachtzugsleiter und hoeher (Admin.Can("raid.events"))
+    -- Permission model: create events = raid leader and above (Admin.Can("raid.events"))
     if ns.Admin and ns.Admin.Can and not ns.Admin.Can("raid.events") then return false, L["Only raid leaders and above may create events."] end
     return true
 end
@@ -499,10 +499,10 @@ function RT.CreateFrom(c, size)
 end
 
 ------------------------------------------------------------------------
--- Demo-Daten (nur lokal)
+-- Demo data (local only)
 ------------------------------------------------------------------------
 local DEMO = {
-    -- Name, Abende (Mo..So als 1/0), von, bis
+    -- Name, evenings (Mon..Sun as 1/0), from, to
     { "Grukthar", "1011101", 19, 23 }, { "Zul'mira", "1110110", 18, 22 }, { "Mokrash", "0101011", 20, 24 },
     { "Tavira", "1111100", 19, 22 }, { "Hoknar", "0011111", 17, 21 }, { "Vex'ra", "1010101", 20, 24 },
     { "Bramok", "0111010", 19, 23 }, { "Drogbar", "1011011", 19, 23 }, { "Ka'lesh", "1111000", 18, 22 },
@@ -527,8 +527,8 @@ function RT.RemoveDemo()
 end
 
 ------------------------------------------------------------------------
--- Seite (Neugestaltung): Kopf-Kacheln, Heatmap-Karte, drei Vorschlags-Karten - alles in einer Scrollflaeche,
--- Anordnung haengt von der Breite ab (schmal: untereinander, nichts ueberlappt)
+-- Page (redesign): header tiles, heatmap card, three suggestion cards - all in one scroll area,
+-- Arrangement depends on width (narrow: stacked, nothing overlaps)
 ------------------------------------------------------------------------
 local ROLE_TEX = { tank = "role_tank", heal = "role_heal", dps = "role_dps" }
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
@@ -540,7 +540,7 @@ end
 local function glyph(n) return ns.MEDIA .. "icons\\" .. n end
 local function animOn() return not (ns.db and ns.db.settings and ns.db.settings.noAnim) end
 local function dayShort(wd)
-    -- erste 2 Zeichen UTF-8-sicher
+    -- first 2 chars UTF-8 safe
     local chars = {}
     for ch in (L[DAYS[wd + 1]]):gmatch("[%z\1-\127\194-\244][\128-\191]*") do
         chars[#chars + 1] = ch
@@ -551,7 +551,7 @@ end
 local function fmtWindow(c)
     return (L["%s, %d-%d h"]):format(L[DAYS[c.wd + 1]], c.h, (c.h + c.len) % 24)
 end
--- Rahmen auf feste Position setzen und merken (Layout-Pruefung im Test liest body.rects)
+-- Set frame to fixed position and remember (layout check in test reads body.rects)
 local function place(body, key, f, x, y, w, h)
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", body, "TOPLEFT", x, y)
@@ -559,7 +559,7 @@ local function place(body, key, f, x, y, w, h)
     body.rects[key] = { x = x, y = y, w = w, h = h }
 end
 
--- Messbalken: Symbol + Beschriftung | Balken | Wert
+-- Meter bar: icon + label | bar | value
 local function newMeter(parent, icon, label, color)
     local m = CreateFrame("Frame", nil, parent)
     m:SetHeight(16)
@@ -607,7 +607,7 @@ local function newMeter(parent, icon, label, color)
     return m
 end
 
--- Vorschlags-Karte: Rang-Plakette (Ziffern-Grafik mittig), Zeitfenster, drei Balken, Klassen-Symbole, Knopf
+-- Suggestion card: rank badge (digit graphic centered), time slot, three bars, class icons, button
 local function newSugCard(p, body, i)
     local U = ns.RCUI
     local rc = RANK_COL[i] or C.accent
@@ -665,7 +665,7 @@ local function newSugCard(p, body, i)
     end)
     c.btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     K.LockButton(c.btn, function() return (RT.CanCreate()) end, ns.Admin and ns.Admin.Need and ns.Admin.Need("raid.events") or "raidlead")
-    -- ganze Karte: wer kommt wahrscheinlich (Rolle, Klassenfarbe, Anteil)
+    -- whole card: who is likely coming (role, class color, share)
     c:SetScript("OnEnter", function(self)
         local cand = self.cand
         if not cand then return end
@@ -777,7 +777,7 @@ local function buildHeat(p, body)
             hm.cells[s] = b
         end
     end
-    -- Legende: Farbskala, Markierung, Quellen
+    -- Legend: color scale, marker, sources
     hm.lowT = K.Text(hm, 10, C.dim)
     hm.lowT:SetText(L["few"])
     hm.scale = {}
@@ -799,7 +799,7 @@ local function buildHeat(p, body)
     hm.src = K.Text(hm, 10, C.dim)
     hm.src:SetWordWrap(true)
     hm.src:SetJustifyV("TOP")
-    -- Aufbau-Animation: Spalte fuer Spalte einblenden
+    -- Build animation: fade in column by column
     function hm:Sweep()
         if not animOn() then for _, b in pairs(self.cells) do b:SetAlpha(1) end return end
         for _, b in pairs(self.cells) do b:SetAlpha(0) end
@@ -811,7 +811,7 @@ local function buildHeat(p, body)
         end, function() for _, b in pairs(self.cells) do b:SetAlpha(1) end end)
         ns.After(1.5, function() for _, b in pairs(self.cells) do b:SetAlpha(1) end end)
     end
-    -- Raster in Breite w anordnen; liefert die Kartenhoehe
+    -- Arrange grid at width w; returns the card height
     function hm:Layout(w)
         local x0 = 46
         local cw = math.max(6, math.floor((w - x0 - 12) / 24))
@@ -884,7 +884,7 @@ ns.RegisterPage({
             { "role_tank", "Tanks", C.blue }, { "role_heal", "Healer", C.mint } }) do
             p.tiles[i] = K.HudTile(body, glyph(d[1]), L[d[2]], d[3])
         end
-        -- 2) Steuerleiste: Raidgroesse + Ziel
+        -- 2) Control bar: raid size + target
         local ctrl = CreateFrame("Frame", nil, body)
         p.ctrl = ctrl
         ctrl.lab = K.Text(ctrl, 10, C.dim)
@@ -901,14 +901,14 @@ ns.RegisterPage({
         p.info:SetWordWrap(false)
         -- 3) Heatmap
         buildHeat(p, body)
-        -- 4) Vorschlaege
+        -- 4) Suggestions
         p.sHead = K.GameHead(body, L["Best time slots"], C.amber)
         p.sHead.text:SetText(L["Best time slots"])
         if p.sHead.mark then p.sHead.mark:Hide() end
         p.cards = {}
         for i = 1, 3 do p.cards[i] = newSugCard(p, body, i) end
         p.empty = U.Empty(body, "stats", C.amber)
-        -- Breite wechselt (Fenster ziehen) -> neu anordnen
+        -- Width changes (window dragged) -> rearrange
         sc:HookScript("OnSizeChanged", function() if p.Layout then p:Layout() end end)
         function p:Layout()
             local W = math.floor((self.sc:GetWidth() or 0) - 8)
@@ -921,9 +921,9 @@ ns.RegisterPage({
             for i, t in ipairs(self.tiles) do
                 local ci, rr = (i - 1) % tc, math.floor((i - 1) / tc)
                 place(b, "tile" .. i, t, ci * (tw + 8), y - rr * 74, tw, 66)
-                t:Hide()   -- 0.5.854: Kacheln entfallen
+                t:Hide()   -- 0.5.854: tiles removed
             end
-            -- Steuerleiste: breit = eine Zeile, schmal = Ziel darunter
+            -- Control bar: wide = one row, narrow = target below
             local wide = W >= 600
             place(b, "ctrl", self.ctrl, 0, y, W, wide and 26 or 46)
             self.info:ClearAllPoints()
@@ -1018,7 +1018,7 @@ ns.RegisterPage({
                 if anim then K.FadeIn(c, (i - 1) * 0.08) end
             end
         end
-        -- freundlicher Leerzustand mit passendem Ausweg
+        -- friendly empty state with a fitting way out
         if #sugg == 0 then
             if #profiles == 0 then
                 if S().rtTrack == false then
@@ -1057,9 +1057,9 @@ ns.RegisterPage({
 })
 
 ------------------------------------------------------------------------
--- Einstellungen (Zahnrad der Seite)
+-- Settings (page gear)
 ------------------------------------------------------------------------
--- Settings.lua laedt erst nach diesem Modul -> Anmeldung nachholen, sobald alles geladen ist
+-- Settings.lua loads only after this module -> catch up registration once everything is loaded
 local function addSettings(build)
     if ns.AddPageSettings then ns.AddPageSettings("raidtime", build)
     else ns.Listen("DB_READY", function() if ns.AddPageSettings then ns.AddPageSettings("raidtime", build) end end) end

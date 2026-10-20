@@ -1,8 +1,8 @@
--- Oasis - Discord Voice (WoW Forever): nur lesend. Zeigt, ob die Gilde mit einem Discord-Server verknuepft ist, wie Server und Kanal
--- heissen und wer gerade im Sprachkanal ist. Nichts wird verknuepft oder geaendert. Alles pcall-gesichert: fehlt eine Funktion, bleibt es leer.
--- /oa discord gibt den Rohzustand im Chat aus (zum Pruefen, was der Client liefert).
+-- Oasis - Discord Voice (WoW Forever): read-only. Shows whether the guild is linked to a Discord server, what server and channel
+-- are called and who is currently in the voice channel. Nothing is linked or changed. Everything pcall-protected: if a function is missing, it stays empty.
+-- /oa discord prints the raw state in chat (to check what the client delivers).
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Discord", function()   -- Modul Discord (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Discord", function()   -- Discord module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 
 local D = {}
@@ -12,7 +12,7 @@ local issecret = issecretvalue or function() return false end
 local function call(tbl, fn, ...)
     local f = tbl and tbl[fn]
     if type(f) ~= "function" then return nil end
-    -- in die Spur: wird eine C_Discord-Funktion als geschuetzt geblockt, steht ihr Name im Blockiert-Bericht
+    -- into the trace: if a C_Discord function gets blocked as protected, its name shows up in the blocked report
     if ns.Trace then ns.Trace("Discord: " .. fn) end
     local ok, a, b = pcall(f, ...)
     if ok and not issecret(a) then return a, b end
@@ -20,10 +20,10 @@ local function call(tbl, fn, ...)
 end
 local function txt(v) v = ns.safe(v) return type(v) == "string" and v ~= "" and v or nil end
 
--- Zustand der Discord-Anbindung. 0.5.775: im Alltag (Dashboard) NUR IsVoiceEnabled - die uebrigen C_Discord-Funktionen sind teils geschuetzt
--- und loesten "Oasis wurde geblockt ... UNKNOWN()" aus. Alles andere nur mit full = true (/oa discord), dort jeweils in der Spur.
--- 0.5.799: im Kampf gar keine Abfrage - dort blockt der Client auch die sonst erlaubten Funktionen ("UNKNOWN()" auf der Startseite
--- im Kampf). Solange gilt der letzte Stand von ausserhalb des Kampfes; nach dem Kampf wird neu gelesen (siehe unten).
+-- State of the Discord connection. 0.5.775: in everyday use (dashboard) ONLY IsVoiceEnabled - the other C_Discord functions are partly protected
+-- and triggered "Oasis has been blocked ... UNKNOWN()". Everything else only with full = true (/oa discord), each in the trace there.
+-- 0.5.799: no query at all in combat - there the client also blocks the otherwise allowed functions ("UNKNOWN()" on the start page
+-- in combat). Meanwhile the last state from outside combat applies; after combat it is read again (see below).
 local lastState, lastMembers, lastChName, lastChId
 function D.State(full)
     local C = C_Discord
@@ -33,13 +33,13 @@ function D.State(full)
     lastState = s
     s.voice = call(C, "IsVoiceEnabled")
     s.enabled = call(C, "IsEnabled")
-    -- Ergebnis von /oa discord test (10.10.2026, Build 70291): NUR IsEnabled und IsVoiceEnabled sind erlaubt. Gesperrt sind IsUserOAuthed,
+    -- Result of /oa discord test (10.10.2026, build 70291): ONLY IsEnabled and IsVoiceEnabled are allowed. Blocked are IsUserOAuthed,
     -- IsGuildChannelLinked, GetGuildLinkStatus, GetNumDiscordServers, GetNumDiscordChannels, GetDisplayNameType, GetDiscordUserName,
-    -- GetDiscordUserID -> nie automatisch aufrufen (loest 'Oasis wurde geblockt' aus).
+    -- GetDiscordUserID -> never call automatically (triggers 'Oasis has been blocked').
     return s
 end
 
--- Wer ist gerade im aktiven Sprachkanal: { { name, speaking } }, Kanalname, Kanal-ID
+-- Who is currently in the active voice channel: { { name, speaking } }, channel name, channel ID
 function D.Members()
     local V = C_VoiceChat
     local out = {}
@@ -60,7 +60,7 @@ function D.Members()
     return out, lastChName, id
 end
 
--- laeuft ein Sprachkanal (fuer die Vorbelegung "Sprachchat" in der Gruppensuche)
+-- is a voice channel running (for the "Voice chat" preset in the group finder)
 function D.VoiceActive()
     local V = C_VoiceChat
     if not V then return false end
@@ -68,7 +68,7 @@ function D.VoiceActive()
     return call(V, "GetActiveChannelID") ~= nil
 end
 
--- eine Zeile fuers Dashboard; leer, wenn nichts verknuepft/aktiv ist
+-- one line for the dashboard; empty if nothing is linked/active
 function D.Line()
     local s = D.State()
     local members, chName = D.Members()
@@ -95,20 +95,20 @@ function D.Tip()
     return lines
 end
 
--- bei Aenderungen im Sprachkanal: Dashboard u.a. benachrichtigen (gebuendelt)
+-- on changes in the voice channel: notify dashboard etc. (batched)
 local EVENTS = { "VOICE_CHAT_CHANNEL_JOINED", "VOICE_CHAT_CHANNEL_REMOVED", "VOICE_CHAT_CHANNEL_ACTIVATED", "VOICE_CHAT_CHANNEL_DEACTIVATED",
     "VOICE_CHAT_CHANNEL_MEMBER_ADDED", "VOICE_CHAT_CHANNEL_MEMBER_REMOVED", "VOICE_CHAT_CHANNEL_MEMBER_SPEAKING_STATE_CHANGED",
     "VOICE_CHAT_LOGIN", "VOICE_CHAT_LOGOUT" }
 local ev = CreateFrame("Frame")
 for _, e in ipairs(EVENTS) do pcall(ev.RegisterEvent, ev, e) end
--- nach dem Kampf den im Kampf eingefrorenen Stand nachziehen
+-- after combat catch up on the state frozen during combat
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")
 ev:SetScript("OnEvent", function()
     ns.Debounce("discordvoice", 0.8, function() ns.Fire("DISCORD_VOICE") end)
 end)
 
--- 0.5.776: /oa discord ist jetzt ungefaehrlich (nur die erlaubten Abfragen). "/oa discord test" prueft die uebrigen Lese-Funktionen
--- einzeln im Abstand von 0,5 s und meldet, welche der Client blockiert (loest dabei absichtlich die Blizzard-Meldung aus).
+-- 0.5.776: /oa discord is now harmless (only the allowed queries). "/oa discord test" checks the remaining read functions
+-- one by one at 0.5 s intervals and reports which ones the client blocks (deliberately triggers the Blizzard message while doing so).
 local blockCount = 0
 local blockEv = CreateFrame("Frame")
 pcall(blockEv.RegisterEvent, blockEv, "ADDON_ACTION_BLOCKED")

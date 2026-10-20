@@ -1,9 +1,9 @@
--- Oasis: Leistung bei allen Mitgliedern aufzeichnen + Entwickler-Reiter (0.5.562)
---  * jeder Client misst still: Oasis-Rechenzeit je Bild (Blizzards AddOn-Profiler), Spitze, Bildrate, Speicher
---  * alle 15 Min (und auf Anfrage des Entwicklers) eine Zusammenfassung in den geteilten Store "perf"
---  * Seite Entwickler in der Seitenleiste (nur im Entwicklermodus): Freischaltungen, Werkzeuge, Leistungs-Tabelle
+-- Oasis: record performance for all members + developer tab (0.5.562)
+--  * every client measures silently: Oasis CPU time per frame (Blizzard's AddOn profiler), peak, frame rate, memory
+--  * every 15 min (and on developer request) a summary into the shared store "perf"
+--  * Developer page in the sidebar (only in developer mode): unlocks, tools, performance table
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Performance", function()   -- Modul Leistungsmessung (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Performance", function()   -- Performance measurement module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -12,10 +12,10 @@ ns.PerfShare = P
 local COLL = "perf"
 
 ------------------------------------------------------------------------
--- Messen
+-- Measure
 ------------------------------------------------------------------------
 local acc = { n = 0, sum = 0, peak = 0, fps = 0, cn = 0, csum = 0, start = 0 }
--- 0.5.568: Kern + geladene Module (Zusatz-Addons) zusammen
+-- 0.5.568: core + loaded modules (extra addons) together
 local function parts() return ns.ModuleLoader and ns.ModuleLoader.Addons() or { ADDON } end
 local function metric(k)
     if not (C_AddOnProfiler and C_AddOnProfiler.GetAddOnMetric and Enum and Enum.AddOnProfilerMetric and Enum.AddOnProfilerMetric[k]) then return nil end
@@ -61,14 +61,14 @@ function P.Share(force)
     if (acc.fn or 0) == 0 then sample() end
     local rec = {
         id = "perf-" .. ns.me(), who = ns.me(), v = ns.version, t = ns.now(),
-        avg = acc.n > 0 and math.floor(acc.sum / acc.n * 1000 + 0.5) / 1000 or nil,       -- ms je Bild (Durchschnitt)
-        cav = acc.cn > 0 and math.floor(acc.csum / acc.cn * 1000 + 0.5) / 1000 or nil,    -- ms je Bild im Kampf
-        peak = math.floor((acc.peak or 0) * 10 + 0.5) / 10,                              -- ms Spitze
+        avg = acc.n > 0 and math.floor(acc.sum / acc.n * 1000 + 0.5) / 1000 or nil,       -- ms per frame (average)
+        cav = acc.cn > 0 and math.floor(acc.csum / acc.cn * 1000 + 0.5) / 1000 or nil,    -- ms per frame in combat
+        peak = math.floor((acc.peak or 0) * 10 + 0.5) / 10,                              -- ms peak
         fps = math.floor(acc.fps / math.max(1, acc.fn or 1) + 0.5),
         mem = memKB(), n = acc.n, sess = math.floor((ns.now() - (acc.start or ns.now())) / 60),
         ses = metric("SessionAverageTime"),
         addons = P.AddonCount and P.AddonCount() or nil,
-        mods = #parts() - 1,   -- geladene Oasis-Module
+        mods = #parts() - 1,   -- loaded Oasis modules
     }
     if rec.ses then rec.ses = math.floor(rec.ses * 1000 + 0.5) / 1000 end
     Store.Put(COLL, rec)
@@ -88,11 +88,11 @@ ns.Listen("LOGIN", function()
     ns.Every(900, function() if not ns.inCombat() then pcall(P.Share) end end)
     ns.After(300, function() if not ns.inCombat() then pcall(P.Share) end end)
 end)
--- Entwickler fragt alle: 60 s messen, dann senden
+-- developer asks everyone: measure 60 s, then send
 if ns.Comm then
     ns.Comm.On("PERFREQ", function(sender)
         if ns.Comm.FromGuild and not ns.Comm.FromGuild(sender) then return end
-        -- 0.5.617: Messung nur auf Anfrage von Offizieren/Gildenleitung
+        -- 0.5.617: measurement only on request of officers/guild leadership
         local role = ns.Admin and ns.Admin.RoleOf and ns.Admin.RoleOf(sender)
         if role ~= "officer" and role ~= "lead" then return end
         if P.reqAt and GetTime() - P.reqAt < 120 then return end
@@ -107,7 +107,7 @@ function P.RequestAll()
     ns.After(60, function() pcall(P.Share) end)
     K.Toast(L["Performance"], L["All Oasis users now measure for 60 seconds and send the result."], C.accent)
 end
--- Rechte: nur der eigene Datensatz
+-- permissions: only your own record
 local function installAuth()
     local A = ns.Admin
     if not (A and A.AUTH) then return end
@@ -117,7 +117,7 @@ installAuth()
 ns.Listen("LOGIN", installAuth)
 ns.Listen("STORE", function(coll) if coll == COLL then ns.Debounce("perfTab", 1, function() ns.RefreshPage("dev") end) end end)
 
--- 0.5.568: Diagnose-Daten (nur fuer den Entwickler gedacht) bei allen anderen nicht im Speicher halten
+-- 0.5.568: don't keep diagnostic data (meant only for the developer) in memory for everyone else
 ns.Listen("LOGIN", function()
     if ns.IsDev and ns.IsDev() then return end
     ns.db.blizzProbe, ns.db.talentProbe = nil, nil
@@ -126,11 +126,11 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Emojis und Sounds fuer alle frei (Rang-Sperre aus): beim Entwickler einmalig in der Gilden-Einstellung
+-- emojis and sounds free for all (rank lock off): once in the guild setting by the developer
 ------------------------------------------------------------------------
 ns.Listen("LOGIN", function()
     ns.After(20, function()
-        -- 0.6.417: umgekehrt - einmalig die Rang-Sperre fuer die Gilde einschalten
+        -- 0.6.417: the other way round - turn on the rank lock for the guild once
         if not (ns.IsDev and ns.IsDev()) or ns.db.emLockOn then return end
         local A = ns.Admin
         if not (A and A.Cfg and A.Save and A.CanManage and A.CanManage()) then return end
@@ -148,7 +148,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Seite "Entwickler" (Seitenleiste, nur im Entwicklermodus) - 0.5.570
+-- "Developer" page (sidebar, only in developer mode) - 0.5.570
 ------------------------------------------------------------------------
 local function devCard(p, icon, title, sub)
     local c = CreateFrame("Frame", nil, p)
@@ -176,7 +176,7 @@ local function guildCfg()
     local ok, cfg = pcall(ns.Admin.Cfg)
     return ok and type(cfg) == "table" and cfg or nil
 end
--- Spalten der Leistungstabelle: Schluessel, Ueberschrift, x, Breite, rechtsbuendig
+-- performance table columns: key, header, x, width, right-aligned
 local COLS = {
     { k = "name", t = "Name", x = 14, w = 170 },
     { k = "avg", t = "ms/frame", x = 190, w = 62, r = true },
@@ -184,7 +184,7 @@ local COLS = {
     { k = "peak", t = "Peak", x = 326, w = 58, r = true },
     { k = "fps", t = "FPS", x = 388, w = 44, r = true },
     { k = "mem", t = "Memory", x = 436, w = 70, r = true },
-    -- 0.5.671: Spalte "Module" weg (seit 0.5.580 ein einziger Ordner, immer 0)
+    -- 0.5.671: column "Modules" removed (since 0.5.580 a single folder, always 0)
     { k = "v", t = "Version", x = 524, w = 70 },
     { k = "t", t = "gemessen", x = 608, w = 90 },
 }
@@ -195,7 +195,7 @@ ns.RegisterPage({
     visible = function() return ns.IsDev and ns.IsDev() or false end,
     build = function(p)
         p.sortKey, p.sortDesc = "avg", true
-        -- Freischaltungen (links oben)
+        -- Unlocks (top left)
         local a = devCard(p, "star_on", L["Unlocks"], L["Emojis and sounds for the guild or just for you"])
         a:SetPoint("TOPLEFT", 0, 0)
         a:SetPoint("RIGHT", p, "CENTER", -7, 0)
@@ -213,13 +213,13 @@ ns.RegisterPage({
         p.mine = K.Toggle(a, L["Unlock everything for me"], function() return ns.db.settings.unlockAll == true end, function(v) ns.db.settings.unlockAll = v and true or nil end)
         p.mine:SetPoint("TOPLEFT", 14, -88)
         p.mine:SetWidth(320)
-        -- Werkzeuge (rechts oben)
+        -- Tools (top right)
         local w = devCard(p, "settings", L["Tools"], L["Diagnostics and sync"])
         w:SetPoint("TOPRIGHT", 0, 0)
         w:SetPoint("LEFT", p, "CENTER", 7, 0)
         w:SetHeight(160)
         local tools = {
-            -- 0.6.534: Fehlerberichte direkt erreichbar (vorher nur Rechtsklick auf das Kaefer-Symbol bzw. Reiter)
+            -- 0.6.534: error reports directly reachable (before only by right-clicking the bug icon or tab)
             { L["Bug reports"], function() ns.ShowPage("bugs") end, true },
             { L["Report a bug"], function() if ns.slash.bug then ns.slash.bug() end end },
             { L["Blocked log"], function() if ns.slash.fehler then ns.slash.fehler() end end },
@@ -245,7 +245,7 @@ ns.RegisterPage({
         end
         w:SetScript("OnSizeChanged", layoutTools)
         layoutTools()
-        -- Leistung der Mitglieder (volle Breite)
+        -- members' performance (full width)
         local t = devCard(p, "stats", L["Member performance"], L["Oasis CPU time per frame for each member - green good, yellow medium, red high"])
         t:SetPoint("TOPLEFT", 0, -174)
         t:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -281,7 +281,7 @@ ns.RegisterPage({
             r.bg = r:CreateTexture(nil, "BACKGROUND")
             r.bg:SetPoint("TOPLEFT", 8, 0) r.bg:SetPoint("BOTTOMRIGHT", -8, 0)
             r.bg:SetColorTexture(1, 1, 1, (i % 2 == 0) and 0.025 or 0)
-            -- kleiner Balken unter ms/Bild: wie schwer Oasis bei diesem Mitglied ist
+            -- small bar below ms/frame: how heavy Oasis is for this member
             r.bar = r:CreateTexture(nil, "BORDER")
             r.bar:SetHeight(14)
             r.bar:SetPoint("RIGHT", r, "LEFT", COLS[2].x + COLS[2].w, 0)
@@ -302,20 +302,20 @@ ns.RegisterPage({
         p.more:SetPoint("BOTTOMLEFT", 14, 10)
     end,
     refresh = function(p)
-        -- 0.6.534: Zahl der neuen Fehlerberichte am Knopf
+        -- 0.6.534: number of new error reports on the button
         if p.bugsBtn then
             local n = ns.Bugs and ns.Bugs.NewCount and ns.Bugs.NewCount() or 0
             p.bugsBtn:SetLabel(L["Bug reports"] .. (n > 0 and ("  (" .. n .. ")") or ""))
         end
         if p.lock then p.lock:Refresh() p.mine:Refresh() end
         local list = Store.List(COLL)
-        -- 0.5.663: ein Eintrag je Spieler (Twinks zusammen, z. B. Anna + Tomas) - die neueste Messung zaehlt
+        -- 0.5.663: one entry per player (alts merged, e.g. Anna + Tomas) - the newest measurement counts
         local A, best = ns.Alts, {}
-        -- 0.5.671: nur Messungen der letzten 3 Stunden (alte Twink-/Altversionen-Zeilen fallen weg)
+        -- 0.5.671: only measurements of the last 3 hours (old alt/old version rows drop out)
         local cutoff = ns.now() - 3 * 3600
         for _, r in ipairs(list) do
             if (r.t or 0) >= cutoff then
-                local who = tostring(r.by or r.who or "")   -- voller Name (mit Realm) fuer die Twink-Zuordnung
+                local who = tostring(r.by or r.who or "")   -- full name (with realm) for the alt mapping
                 local key = who:lower()
                 if A and A.Main then
                     local ok, m = pcall(A.Main, who)

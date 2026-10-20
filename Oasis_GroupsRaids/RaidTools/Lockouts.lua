@@ -1,24 +1,24 @@
--- Oasis: Raid-IDs & Freischaltungen der ganzen Gilde
---  * jeder Charakter liest beim Login / UPDATE_INSTANCE_INFO seine Raid-IDs (gebunden, Boss-Fortschritt, Reset)
---    und Freischaltungen/Schluessel (Quests + Gegenstaende) - nur ausserhalb des Kampfes
---  * Daten je Charakter (auch Twinks: jeder Login merkt sich den Stand in OasisDB.chars) gehen an die Gilde
---    -> Store-Sammlung "lockouts", Datensatz-ID "lk-<Charakter>", ueber eigene Nachrichten LKU/LKREQ/LKB/LKACK
---    (die Sammlung steht nicht in Comms RETENTION-Liste, deshalb eigener Versand + eigenes Aufraeumen)
---  * Seite (Gruppe Raid): Raster Mitglieder x Raids, Filter, "Freie Gruppe vorschlagen", Reset-Countdown
---  * Oeffentlich: Lockouts.StateOf(name, raidKey), Lockouts.RaidFor(text), Lockouts.BoundHint(ev) (fuer Raid.lua)
+-- Oasis: raid IDs & attunements of the whole guild
+--  * every character reads its raid IDs on login / UPDATE_INSTANCE_INFO (bound, boss progress, reset)
+--    and attunements/keys (quests + items) - only out of combat
+--  * Data per character (alts too: every login stores its state in OasisDB.chars) goes to the guild
+--    -> store collection "lockouts", record ID "lk-<character>", via own messages LKU/LKREQ/LKB/LKACK
+--    (the collection is not in Comm's RETENTION list, hence its own sending + its own cleanup)
+--  * Page (group Raid): grid members x raids, filters, "Suggest free group", reset countdown
+--  * Public: Lockouts.StateOf(name, raidKey), Lockouts.RaidFor(text), Lockouts.BoundHint(ev) (for Raid.lua)
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raidwerkzeuge (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Security on receipt (others' addon messages may be manipulated):
+-- Sanitize texts, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- Neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -70,7 +70,7 @@ ns.Lockouts = LK
 local COLL = "lockouts"
 LK.COLL = COLL
 if ns.ICONS then ns.ICONS.lockouts = ns.MEDIA .. "icons\\raid" end
--- in die Navigationsgruppe "Raid" einhaengen (nach dem Raid-Check)
+-- hook into the "Raid" navigation group (after raid check)
 if ns.NAV_GROUPS then
     for _, g in ipairs(ns.NAV_GROUPS) do
         if g.key == "raid" then
@@ -84,26 +84,26 @@ if ns.NAV_GROUPS then
 end
 
 ------------------------------------------------------------------------
--- Raids und Freischaltungen (oben gesammelt, leicht zu pflegen)
+-- Raids and attunements (collected at the top, easy to maintain)
 ------------------------------------------------------------------------
--- ids = Instanz-IDs (14. Rueckgabewert von GetSavedInstanceInfo), match = Teile des Namens (klein, de/en)
--- unlock = Schluessel aus UNLOCKS, ohne = keine Freischaltung noetig
--- Stufe: Gilden-Option "lkLvl_<key>" (Standard minLevel)
+-- ids = instance IDs (14th return value of GetSavedInstanceInfo), match = name parts (lowercase, de/en)
+-- unlock = key from UNLOCKS, without = no attunement needed
+-- Level: guild option "lkLvl_<key>" (default minLevel)
 LK.RAIDS = {
-    -- TODO Barrow Deeps (WoW Forever / Classic+): Instanz-ID, deutscher Name, Mindeststufe, Freischaltung unbekannt
+    -- TODO Barrow Deeps (WoW Forever / Classic+): instance ID, German name, min level, attunement unknown
     { key = "barrow", name = "Barrow Deeps", size = 10, minLevel = 60, ids = {}, match = { "barrow", "huegelgrab", "hügelgrab" } },
-    -- TODO Hyjal (Classic+): Instanz-ID (TBC-Hyjal war 534), Mindeststufe, Freischaltung unbekannt
+    -- TODO Hyjal (Classic+): instance ID (TBC Hyjal was 534), min level, attunement unknown
     { key = "hyjal", name = "Hyjal", size = 20, minLevel = 60, ids = { 534 }, match = { "hyjal" } },
     { key = "ony", name = "Onyxia's Lair", size = 40, minLevel = 60, ids = { 249 }, match = { "onyx" }, unlock = "ony" },
 }
 LK.RAID_BY = {}
 for _, r in ipairs(LK.RAIDS) do LK.RAID_BY[r.key] = r end
 
--- quests = C_QuestLog.IsQuestFlaggedCompleted, items = Gegenstand im Besitz (Taschen/Bank/Schluesselbund)
--- Ein Treffer genuegt; einmal erkannt bleibt es gemerkt (Schluessel koennen auf der Bank liegen).
+-- quests = C_QuestLog.IsQuestFlaggedCompleted, items = item owned (bags/bank/keyring)
+-- One hit is enough; once detected it stays remembered (keys may be in the bank).
 LK.UNLOCKS = {
-    -- Horde: "Blood of the Black Dragon Champion" (6602) -> Drachenfeueramulett (16309)
-    -- (Allianz waere 6502 "Drakefire Amulet" - Gilde ist Horde, trotzdem mitpruefen schadet nicht)
+    -- Horde: "Blood of the Black Dragon Champion" (6602) -> Drakefire Amulet (16309)
+    -- (Alliance would be 6502 "Drakefire Amulet" - guild is Horde, checking it anyway doesn't hurt)
     { key = "ony", text = "Onyxia: Drakefire Amulet", quests = { 6602, 6502 }, items = { 16309 } },
     -- "Attunement to the Core" (7848)
     { key = "mc", text = "Molten Core: Attunement", quests = { 7848 } },
@@ -113,12 +113,12 @@ LK.UNLOCKS = {
     { key = "strat", text = "Key to the City (Stratholme)", items = { 12382 } },
     { key = "dm", text = "Crescent Key (Dire Maul)", items = { 18249 } },
     { key = "zf", text = "Mallet of Zul'Farrak", items = { 9240 } },
-    -- TODO Hyjal / Barrow Deeps: Freischaltungs-Quests von WoW Forever eintragen, sobald bekannt
+    -- TODO Hyjal / Barrow Deeps: add WoW Forever attunement quests once known
 }
 LK.UNLOCK_BY = {}
 for _, u in ipairs(LK.UNLOCKS) do LK.UNLOCK_BY[u.key] = u end
 
--- Rollenbedarf je Raidgroesse (Tanks, Heiler; Rest Schaden)
+-- Role demand per raid size (tanks, healers; rest damage)
 local NEED = { [10] = { 2, 3 }, [20] = { 3, 5 }, [25] = { 3, 6 }, [40] = { 5, 10 } }
 
 for _, r in ipairs(LK.RAIDS) do
@@ -127,14 +127,14 @@ for _, r in ipairs(LK.RAIDS) do
 end
 
 ------------------------------------------------------------------------
--- Zustand (vor den Funktionen deklariert)
+-- State (declared before the functions)
 ------------------------------------------------------------------------
-local lastSent = nil        -- Hash des zuletzt gesendeten eigenen Datensatzes
-local pendingFull = {}      -- Absender -> true / "cancel" (Voll-Antwort auf LKREQ)
+local lastSent = nil        -- Hash of the last sent own record
+local pendingFull = {}      -- sender -> true / "cancel" (full reply to LKREQ)
 local pendingOwn = {}
 local scanQueued = false
 local filter = { online = false, twinks = true }
-local sugRaid = nil         -- gerade gezeigter Vorschlag (Raid-Schluessel)
+local sugRaid = nil         -- currently shown suggestion (raid key)
 local quietStore = false
 
 local function S() return ns.db.settings end
@@ -161,7 +161,7 @@ local function raidOfSaved(name, instId)
 end
 
 ------------------------------------------------------------------------
--- Eigene Daten lesen (alles per pcall; im Kampf geheim -> spaeter)
+-- Read own data (all via pcall; secret in combat -> later)
 ------------------------------------------------------------------------
 local function call(fn, ...)
     if type(fn) ~= "function" then return false end
@@ -221,7 +221,7 @@ local function readUnlocks(old)
 end
 
 ------------------------------------------------------------------------
--- Datensaetze
+-- Records
 ------------------------------------------------------------------------
 local function recordOf(char, snap)
     local rec = { id = "lk-" .. char, char = char, main = ns.Alts and ns.Alts.MyMain() or char, lvl = snap.lvl or 0,
@@ -281,7 +281,7 @@ local function request()
     if call(RequestRaidInfo) then LK.QueueScan(3) else LK.QueueScan(1) end
 end
 
--- Twinks: Stand vom letzten Login jedes eigenen Charakters ebenfalls teilen
+-- Alts: also share the state from the last login of each own character
 local function shareMyChars()
     for name, c in pairs(ns.db.chars or {}) do
         if c.lk and not ns.isMe(name) and not (ns.Alts and ns.Alts.Shareable and not ns.Alts.Shareable(name)) then
@@ -294,9 +294,9 @@ local function shareMyChars()
 end
 
 ------------------------------------------------------------------------
--- Lesen (alle Charaktere)
+-- Read (all characters)
 ------------------------------------------------------------------------
--- gespeicherte IDs eines Datensatzes; abgelaufene (Reset vorbei) fallen weg
+-- stored IDs of a record; expired ones (reset passed) are dropped
 function LK.Saved(rec)
     local out, now = {}, ns.now()
     if not rec then return out end
@@ -333,7 +333,7 @@ local function findRec(name)
 end
 LK.Find = findRec
 
--- "bound" (dazu Fortschritt), "free", "locked" (nicht freigeschaltet), "low" (Stufe zu niedrig), "nodata"
+-- "bound" (plus progress), "free", "locked" (not attuned), "low" (level too low), "nodata"
 function LK.StateOf(name, raidKey, level)
     local r = LK.RAID_BY[raidKey]
     if not r then return "nodata" end
@@ -364,12 +364,12 @@ function LK.RaidFor(text)
     return nil
 end
 
--- fuer die Raid-Terminansicht: "x Angemeldete sind schon gebunden" (nil = nichts zu sagen)
+-- for the raid event view: "x signups are already bound" (nil = nothing to say)
 function LK.BoundHint(ev)
     if not ev then return nil end
     local r = LK.RaidFor(ev.inst) or LK.RaidFor(ev.title)
     if not r or not (ns.Raid and ns.Raid.Signups) then return nil end
-    -- nur relevant, wenn der Termin vor dem Reset liegt
+    -- only relevant if the event is before the reset
     local n, names = 0, {}
     for _, s in ipairs(ns.Raid.Signups(ev.id)) do
         if s.status == "yes" or s.status == "maybe" then
@@ -385,7 +385,7 @@ function LK.BoundHint(ev)
     return "|cffe8b44a" .. (L["%d signed-up players are already saved"]):format(n) .. ":|r |cff888888" .. list .. "|r"
 end
 
--- naechster Reset je Raid (aus allen bekannten IDs)
+-- next reset per raid (from all known IDs)
 function LK.NextReset(raidKey)
     local best
     for _, rec in ipairs(Store.List(COLL)) do
@@ -397,7 +397,7 @@ function LK.NextReset(raidKey)
 end
 
 ------------------------------------------------------------------------
--- Zeilen fuer das Raster: Datensaetze + Gildenliste, je Charakter eine Zeile
+-- Rows for the grid: records + guild roster, one row per character
 ------------------------------------------------------------------------
 local function online(name)
     if ns.isMe(name) then return true end
@@ -436,7 +436,7 @@ function LK.Rows()
 end
 
 ------------------------------------------------------------------------
--- Freie Gruppe vorschlagen: je Spieler (Main + Twinks) ein freier, freigeschalteter Charakter passender Stufe
+-- Suggest free group: per player (main + alts) one free, attuned character of matching level
 ------------------------------------------------------------------------
 local function rolesOf(row)
     local rl = row.rec and row.rec.rl or ""
@@ -453,7 +453,7 @@ function LK.Suggest(raidKey)
     filter.online, filter.twinks = false, true
     local all = LK.Rows()
     filter.online, filter.twinks = saveF.online, saveF.twinks
-    -- beste Wahl je Spieler: online vor offline, Main vor Twink, hoehere Stufe
+    -- best pick per player: online before offline, main before alt, higher level
     local byPlayer = {}
     for _, row in ipairs(all) do
         if row.rec and LK.StateOf(row.name, raidKey, row.lvl) == "free" then
@@ -468,7 +468,7 @@ function LK.Suggest(raidKey)
     for _, row in pairs(byPlayer) do row.rl = rolesOf(row) cand[#cand + 1] = row end
     table.sort(cand, function(a, b)
         if a.online ~= b.online then return a.online end
-        if #a.rl ~= #b.rl then return #a.rl < #b.rl end   -- Spezialisten zuerst verteilen
+        if #a.rl ~= #b.rl then return #a.rl < #b.rl end   -- Assign specialists first
         return a.lvl > b.lvl
     end)
     local need = NEED[r.size] or { math.max(1, math.floor(r.size / 8)), math.max(1, math.floor(r.size / 4)) }
@@ -487,7 +487,7 @@ function LK.Suggest(raidKey)
     take("t", "TANK", need[1])
     take("h", "HEALER", need[2])
     take("d", "DAMAGER", r.size)
-    -- ohne Rollenangabe zuletzt als Schaden auffuellen
+    -- without role info fill up as damage last
     for _, row in ipairs(cand) do
         if #out >= r.size then break end
         if not used[row] then used[row] = true out[#out + 1] = { row = row, role = "DAMAGER", guess = true } end
@@ -509,16 +509,16 @@ function LK.InviteOnline(list)
 end
 
 ------------------------------------------------------------------------
--- Gilden-Abgleich (eigene Nachrichten, damit nichts an Comm.lua haengt)
+-- Guild sync (own messages so nothing depends on Comm.lua)
 ------------------------------------------------------------------------
--- Empfang: direkt (LKU) nur Datensaetze, die der Absender selbst erstellt hat; weitergereicht (LKB) nie
--- einem anderen Ersteller zuschlagen; Zeitstempel nicht in der Zukunft; Texte entschaerfen; Sammlung begrenzt
+-- Receipt: direct (LKU) only records the sender created; relayed (LKB) never
+-- assign to another creator; timestamps not in the future; sanitize texts; collection limited
 local function sameWho(a, b) return a and b and ns.Comm.whoKey(a) == ns.Comm.whoKey(b) end
 local function acceptNet(rec, sender, relay)
     if type(rec) ~= "table" or type(rec.id) ~= "string" or #rec.id > 100 or not rec.id:find("^lk%-") or not rec.char then return end
     if rec.demo or rec.id:find("demo-", 1, true) then return end
     if ns.isMe(rec.char) then return end
-    if sender and ns.Comm.FromGuild and not ns.Comm.FromGuild(sender) then return end   -- nur Gildenmitglieder
+    if sender and ns.Comm.FromGuild and not ns.Comm.FromGuild(sender) then return end   -- guild members only
     if sender and not relay and rec.by and not sameWho(rec.by, sender) then return end
     rec.u = math.min(tonumber(rec.u) or 0, ns.now() + 300)
     for k, v in pairs(rec) do
@@ -570,9 +570,9 @@ if Comm then
         end
         ns.RefreshPage("lockouts")
     end)
-    -- Neuankoemmling fragt: jeder schickt seine eigenen Charaktere, EINER (zufaellig) zusaetzlich alles
+    -- Newcomer asks: everyone sends their own characters, ONE (random) additionally everything
     Comm.On("LKREQ", function(sender)
-        -- je Anfragendem hoechstens jede Minute (sonst laesst sich eine Fluester-Flut ausloesen)
+        -- per requester at most once a minute (else a whisper flood could be triggered)
         if not SEC.Rate("lkreq:" .. tostring(sender), 60) then return end
         if S().lkShare ~= false and not pendingOwn[sender] then
             pendingOwn[sender] = true
@@ -596,7 +596,7 @@ if Comm then
     end)
 end
 
--- abgelaufene/alte Datensaetze verwerfen (Comm.prune kennt die Sammlung nicht)
+-- discard expired/old records (Comm.prune doesn't know the collection)
 function LK.Prune()
     local now = ns.now()
     local c = Store.coll(COLL)
@@ -608,7 +608,7 @@ function LK.Prune()
 end
 
 ------------------------------------------------------------------------
--- Demo (/oa demo): Demo-Mitglieder bekommen Raid-IDs, bleibt lokal
+-- Demo (/oa demo): demo members get raid IDs, stays local
 ------------------------------------------------------------------------
 function LK.SeedDemo()
     if not showDemo() or not ns.Radar then return end
@@ -664,7 +664,7 @@ ns.Listen("LOGIN", function()
     end)
     ns.Every(60, function() ns.RefreshPage("lockouts") end)
     ns.Every(1800, request)
-    -- Demo: Daten mitladen/-entfernen (Muster wie Camp.lua)
+    -- Demo: load/remove data along (pattern like Camp.lua)
     local D = ns.Demo
     if D and not D.lkHooked then
         D.lkHooked = true
@@ -676,7 +676,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Einstellungen (Zahnrad des Bereichs)
+-- Settings (section gear)
 ------------------------------------------------------------------------
 if ns.AddPageSettings then
     ns.AddPageSettings("lockouts", function(det, y)
@@ -697,8 +697,8 @@ if ns.AddPageSettings then
 end
 
 ------------------------------------------------------------------------
--- Seite (Neugestaltung): Kopf-Kacheln, je Raid eine Karte (Verteilung + Reset), Mitglieder-Liste
--- mit Status-Plaketten; Spalten passen sich der Breite an (schmal: Kurztexte, kein Einladen-Knopf)
+-- Page (redesign): header tiles, one card per raid (distribution + reset), member list
+-- with status badges; columns adapt to width (narrow: short texts, no invite button)
 ------------------------------------------------------------------------
 local ROLE_ICON = { TANK = "role_tank", HEALER = "role_heal", DAMAGER = "role_dps" }
 local ROLE_COL = { TANK = C.blue, HEALER = C.mint, DAMAGER = C.red }
@@ -724,12 +724,12 @@ local function stateText(st, sv, rd, short)
         return L["saved"] .. (prog and (" " .. prog) or "")
     elseif st == "free" then return L["open"]
     elseif st == "locked" then return short and L["locked"] or L["not attuned"]
-    elseif st == "low" then return short and ("< " .. minLevel(rd)) or "-"   -- "Stufe zu niedrig" in jeder Zelle war eine Textwand
+    elseif st == "low" then return short and ("< " .. minLevel(rd)) or "-"   -- "Level too low" in every cell was a wall of text
     end
     return "?"
 end
 
--- Status-Plakette (farbige Flaeche mit Kante links)
+-- Status badge (colored surface with left edge)
 local function newPill(parent)
     local f = CreateFrame("Frame", nil, parent)
     f:SetHeight(18)
@@ -752,7 +752,7 @@ local function newPill(parent)
     return f
 end
 
--- Spalten der Mitglieder-Liste fuer Breite w (Zeilen und Kopf nutzen dieselbe Tabelle)
+-- Member list columns for width w (rows and header use the same table)
 local function columns(w)
     local n = #LK.RAIDS
     local x0, lvlW, gap = 30, 30, 6
@@ -811,7 +811,7 @@ local function showSuggest(p, key)
     if ns.RCUI and p.sug then ns.RCUI.Reveal(p.sug) end
 end
 
--- Karte je Raid: Name, Groesse + Reset, Verteilungsbalken, Zaehler, "Freie Gruppe"
+-- Card per raid: name, size + reset, distribution bar, counter, "Free group"
 local function newRaidCard(p, rd, idx)
     local U = ns.RCUI
     local col = RAID_COL[rd.key] or C.accent
@@ -913,7 +913,7 @@ local function newRaidCard(p, rd, idx)
     return c
 end
 
--- Zeile der Mitglieder-Liste: Klassensymbol, Name, Stufe, je Raid eine Plakette, Einladen
+-- Member list row: class icon, name, level, one badge per raid, invite
 local function applyRowCols(p, r)
     local cols = p.cols
     if r.ck == cols.key then return end
@@ -951,7 +951,7 @@ ns.RegisterPage({
             { "legacy", "Not attuned", C.amber }, { "chronicle", "Next reset", C.blue } }) do
             p.tiles[i] = K.HudTile(p, glyph(d[1]), L[d[2]], d[3])
         end
-        -- 2) Raid-Karten
+        -- 2) Raid cards
         p.cards = {}
         for i, rd in ipairs(LK.RAIDS) do p.cards[i] = newRaidCard(p, rd, i) end
         -- 3) Werkzeugleiste
@@ -978,7 +978,7 @@ ns.RegisterPage({
         p.cnt = K.Text(bar, 10, C.dim, "RIGHT")
         p.cnt:SetPoint("RIGHT", p.scan, "LEFT", -10, 0)
         p.cnt:SetWordWrap(false)
-        -- 4) Spaltenkopf + Liste
+        -- 4) column header + list
         local hdr = CreateFrame("Frame", nil, p)
         p.hdr = hdr
         hdr.line = hdr:CreateTexture(nil, "ARTWORK")
@@ -1034,7 +1034,7 @@ ns.RegisterPage({
         end)
         p.list.empty:SetText(L["No data yet. As soon as guild members log in with Oasis, their lockouts appear here."])
 
-        -- 5) Vorschlag (ersetzt Karten + Liste)
+        -- 5) suggestion (replaces cards + list)
         local sug = U.Card(p, C.mint)
         sug:Hide()
         p.sug = sug
@@ -1117,7 +1117,7 @@ ns.RegisterPage({
             for i, t in ipairs(self.tiles) do
                 local ci, rr = (i - 1) % tc, math.floor((i - 1) / tc)
                 place(self, "tile" .. i, t, ci * (tw + 8), y - rr * 72, tw, 64)
-                t:Hide()   -- 0.5.847: Zahlen-Kacheln entfallen, die Karten je Raid darunter zeigen dasselbe
+                t:Hide()   -- 0.5.847: number tiles removed, the per-raid cards below show the same
             end
             if sugRaid then
                 for _, c in ipairs(self.cards) do c:Hide() end
@@ -1143,12 +1143,12 @@ ns.RegisterPage({
                 s.list:SetPoint("TOPLEFT", s, "TOPLEFT", 6, iy - 34)
                 s.list:SetPoint("BOTTOMRIGHT", s, "BOTTOMRIGHT", -4, 4)
                 self.sugW = W - 10
-                -- schmal: Sammel-Einladen ueber dem Kopf ausblenden, damit der Titel Platz hat
+                -- narrow: hide bulk invite above the header so the title has room
                 s.invAllRoom = W >= 460
                 return
             end
             self.sug:Hide()
-            -- Raid-Karten: breit nebeneinander, schmal als Streifen untereinander
+            -- Raid cards: wide side by side, narrow as stacked strips
             local n = #self.cards
             local wide = W >= 600
             if wide then
@@ -1172,7 +1172,7 @@ ns.RegisterPage({
             place(self, "bar", self.bar, 0, y, W, 24)
             self.cnt:SetShown(W >= 520)
             y = y - 30
-            -- Spalten
+            -- Columns
             self.cols = columns(W - 8)
             local cols = self.cols
             self.hdr:Show()
@@ -1198,7 +1198,7 @@ ns.RegisterPage({
         p.twk:SetLabel(filter.twinks and L["Alts: on"] or L["Alts: off"])
         local rows = LK.Rows()
         local fresh = p.fresh and animOn()
-        -- Zaehlen: je Charakter (Kacheln) und je Raid (Karten)
+        -- Count: per character (tiles) and per raid (cards)
         local bound, free, locked = 0, 0, 0
         local per = {}
         for _, rd in ipairs(LK.RAIDS) do per[rd.key] = { bound = 0, free = 0, locked = 0, low = 0 } end

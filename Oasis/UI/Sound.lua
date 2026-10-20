@@ -1,18 +1,18 @@
--- Oasis - Sounds und Musik
--- Eigene Sounds (Media\sounds\<name>\<1-10>.ogg) liegen in 10 Lautstaerkestufen vor, weil WoW
--- Addon-Sounds nicht leiser abspielen kann -> der Oasis-Regler ist unabhaengig vom Spiel.
--- WoW-Sounds (SOUNDKIT) folgen dagegen der Spiel-Lautstaerke.
+-- Oasis - sounds and music
+-- own sounds (Media\sounds\<name>\<1-10>.ogg) exist in 10 volume levels because WoW
+-- can't play addon sounds quieter -> the Oasis slider is independent of the game.
+-- WoW sounds (SOUNDKIT) on the other hand follow the game volume.
 local ADDON, ns = ...
 local L = ns.L
 
 local Sound = {}
 ns.Sound = Sound
 
--- Auswahl: key, Anzeigename, eigene Datei (own) oder WoW-Soundkit (kit + Ersatz-ID)
+-- selection: key, display name, own file (own) or WoW soundkit (kit + fallback ID)
 Sound.CHOICES = {
     { key = "none", text = "No sound" },
-    -- neu (06.10.): ohne Rang-Sperre, im Fenster blau als NEU markiert
-    -- Oberflaeche: spielt den Ton aus dem gewaehlten UI-Soundpaket (Sound.UI_PACKS)
+    -- new (06.10.): without rank lock, marked blue as NEW in the window
+    -- UI: plays the sound from the chosen UI sound pack (Sound.UI_PACKS)
     { key = "ui_open", text = "Oasis: Window open", own = true, ui = "open", dur = 0.3 },
     { key = "ui_close", text = "Oasis: Window close", own = true, ui = "close", dur = 0.3 },
     { key = "ui_click", text = "Oasis: Click", own = true, ui = "click", dur = 0.1 },
@@ -20,7 +20,7 @@ Sound.CHOICES = {
     { key = "ui_toggle", text = "Oasis: Switch", own = true, ui = "toggle", dur = 0.2 },
     { key = "ui_confirm", text = "Oasis: Confirm", own = true, ui = "confirm", dur = 0.3 },
     { key = "ui_notify", text = "Oasis: Notice (sound pack)", own = true, ui = "notify", dur = 1.5 },
-    -- Clear UI (Ni Sound): Hinweistoene
+    -- Clear UI (Ni Sound): notice tones
     { key = "wow_raidwarn", text = "WoW: Raid warning", kit = "RAID_WARNING", id = 8959 },
     { key = "wow_ready", text = "WoW: Ready check", kit = "READY_CHECK", id = 8960 },
     { key = "wow_levelup", text = "WoW: Level up", kit = "LEVELUP", id = 888 },
@@ -34,15 +34,15 @@ Sound.CHOICES = {
     { key = "wow_close", text = "WoW: Window close", kit = "IG_CHARACTER_INFO_CLOSE", id = 840 },
     { key = "wow_click", text = "WoW: Click", kit = "IG_MAINMENU_OPTION_CHECKBOX_ON", id = 856 },
 }
--- 0.5.716: Toene der UI-Soundpakete einzeln waehlbar (Reiter "Soundpaket"): key = Ordner <kuerzel>_<rolle>
+-- 0.5.716: sounds of the UI sound packs individually selectable (tab "Sound pack"): key = folder <short>_<role>
 do
-    local PK = { { "ke", "Kenney" } }   -- Artlist-Pakete (Klar, Smartphone, Casual, Building, Slick) liegen im Gildenmodul
+    local PK = { { "ke", "Kenney" } }   -- Artlist packs (Klar, Smartphone, Casual, Building, Slick) are in the guild module
     local RL = { { "click", "Click", 0.1 }, { "select", "Select", 0.1 }, { "toggle", "Switch", 0.2 },
         { "confirm", "Confirm", 0.3 }, { "open", "Window open", 0.3 }, { "close", "Window close", 0.3 }, { "notify", "Note", 1.5 } }
     for _, p in ipairs(PK) do
         do
             for _, r in ipairs(RL) do
-                if not (p[1] == "ke" and r[1] == "notify") then   -- Kenney hat keinen eigenen Hinweis-Ton
+                if not (p[1] == "ke" and r[1] == "notify") then   -- Kenney has no notice tone of its own
                     Sound.CHOICES[#Sound.CHOICES + 1] = { key = p[1] .. "_" .. r[1], text = p[2] .. ": " .. r[2], own = true,
                         dur = r[3], free = true, pack = true }
                 end
@@ -53,7 +53,7 @@ end
 Sound.byKey = {}
 for _, c in ipairs(Sound.CHOICES) do Sound.byKey[c.key] = c end
 
--- Ereignisse mit Standard-Sound, in der Reihenfolge der Einstellungen
+-- events with default sound, in the order of the settings
 Sound.EVENTS = {
     { key = "entrance", text = "Your online sound (everyone with Oasis hears it)", def = "none" },
     { key = "toast", text = "General notifications", def = "ui_notify" },
@@ -84,7 +84,7 @@ Sound.EVENTS = {
 Sound.eventByKey = {}
 for _, e in ipairs(Sound.EVENTS) do Sound.eventByKey[e.key] = e end
 
--- Musik (WoW-Datei-IDs aus dem Spielclient), laeuft solange das Oasis-Fenster offen ist
+-- music (WoW file IDs from the game client), plays while the Oasis window is open
 Sound.MUSIC = {
     { key = "orc", text = "Orc rest area", id = 53756 },
     { key = "tauren", text = "Tauren rest area", id = 53768 },
@@ -105,14 +105,14 @@ local function S() return ns.db and ns.db.settings end
 function Sound.ChoiceFor(event)
     local s = S()
     local c = s and s.soundEvents and s.soundEvents[event]
-    -- Entwickler-Sounds (dev) zaehlen nur beim Entwickler als Wahl
+    -- developer sounds (dev) only count as a choice for the developer
     if c and Sound.byKey[c] and (not Sound.byKey[c].dev or ns.IsDev()) then return c end
     local e = Sound.eventByKey[event]
     local d = e and e.def
-    if d and not Sound.byKey[d] then d = "ui_notify" end   -- Standard-Sound nur im Gildenmodul -> Soundpaket-Ton
+    if d and not Sound.byKey[d] then d = "ui_notify" end   -- default sound only in the guild module -> sound pack tone
     return d or "glocke"
 end
--- weitere Sounds je Ereignis (es wird zufaellig einer gespielt); 0.5.646: keine langen Standard-Extras mehr
+-- more sounds per event (one is played at random); 0.5.646: no long default extras anymore
 local DEFAULT_EXTRA = {}
 function Sound.ExtrasFor(event)
     local s = S()
@@ -141,8 +141,8 @@ function Sound.PickFor(event)
     for _, k in ipairs(Sound.ExtrasFor(event)) do pool[#pool + 1] = k end
     return pool[math.random(#pool)]
 end
--- Vorlagen fuer "Sounds fuer Hinweise": setzt alle Ereignisse auf einmal (map: Ereignis -> Sound, fehlt = Standard)
--- "paket" nutzt die ui_*-Toene und klingt daher immer nach dem gewaehlten Soundpaket
+-- presets for "Sounds for notices": sets all events at once (map: event -> sound, missing = default)
+-- "paket" uses the ui_* tones and therefore always sounds like the chosen sound pack
 local PAKET = { toast = "ui_notify", announce = "ui_notify", alert = "ui_notify", request = "ui_select", group = "ui_notify",
     order = "ui_confirm", wants = "ui_confirm", event = "ui_notify", loot = "ui_notify", poll = "ui_notify",
     rankup = "ui_confirm", levelup = "ui_confirm", badge = "ui_confirm", welcome = "ui_confirm", birthday = "ui_confirm",
@@ -174,8 +174,8 @@ function Sound.SetChoice(event, key)
     s.soundEvents[event] = (e and e.def == key) and nil or key
 end
 
--- UI-Soundpakete: Klick, Auswahl, Schalter, Bestaetigen, Fenster auf/zu
--- Dateien: Media\sounds\<prefix><rolle>\<1-10>.ogg; WoW-Paket nutzt Soundkits
+-- UI sound packs: click, selection, switch, confirm, window open/close
+-- files: Media\sounds\<prefix><role>\<1-10>.ogg; WoW pack uses soundkits
 Sound.UI_PACKS = {
     { key = "kenney", text = "Kenney", prefix = "ke_", alias = { notify = "confirm" } },
     { key = "wow", text = "WoW", map = { click = "wow_click", select = "wow_click", toggle = "wow_click",
@@ -196,11 +196,11 @@ function Sound.SetUiPack(k)
     s.uiSounds = k ~= "none"
     if k ~= "none" then s.uiPack = k end
 end
--- liefert Datei-Ordner (eigener Sound) bzw. WoW-Choice-Key fuer eine Rolle, nil = Paket aus
--- Rollen der Klick-Toene (Reihenfolge fuer das Zuweisen-Fenster)
+-- returns file folder (own sound) or WoW choice key for a role, nil = pack off
+-- click sound roles (order for the assign window)
 Sound.UI_ROLES = { { "click", "Click" }, { "select", "Select" }, { "toggle", "Switch" },
     { "confirm", "Confirm" }, { "open", "Window open" }, { "close", "Window close" }, { "notify", "Note" } }
--- eigene Zuweisung je Rolle: settings.uiRole[rolle] = Paket-Key oder "none" (stumm); nil = wie das Paket
+-- own assignment per role: settings.uiRole[role] = pack key or "none" (mute); nil = like the pack
 function Sound.UiRoleChoice(role)
     local s = S()
     local o = s and s.uiRole and s.uiRole[role]
@@ -220,7 +220,7 @@ function Sound.UiKey(role, pack)
         if o then p = Sound.uiPackByKey[o] end
     end
     if not p or p.key == "none" then
-        -- Fenster auf/zu als Ereignis-Sound bleibt hoerbar, auch wenn Klicks aus sind
+        -- window open/close as event sound stays audible even if clicks are off
         if role == "open" or role == "close" or role == "notify" then p = Sound.uiPackByKey[(S() and S().uiPack) or "clear"] or Sound.uiPackByKey.clear or Sound.uiPackByKey.kenney end
         if not p or p.key == "none" then return nil end
     end
@@ -228,13 +228,13 @@ function Sound.UiKey(role, pack)
     return p.prefix .. ((p.alias and p.alias[role]) or role)
 end
 
--- Lautstaerke-Skala (0.5.799): gespeichert wird in Stufen zu 5 %, 20 = 100 % (das waren vorher "200 %"), 40 = 200 %.
--- Gespeicherte Werte bleiben gueltig und klingen wie bisher - nur die Anzeige und der Hoechstwert haben sich geaendert.
+-- volume scale (0.5.799): stored in steps of 5 %, 20 = 100 % (that was "200 %" before), 40 = 200 %.
+-- stored values stay valid and sound as before - only the display and the maximum have changed.
 Sound.VOL_MAX = 40
 function Sound.VolText(v)
     return (L["%d%%"]):format((tonumber(v) or 0) * 5)
 end
--- Sound direkt abspielen (Vorhoeren): ignoriert Stummschaltungen. Liefert die Handles aller Kopien.
+-- play sound directly (preview): ignores mutes. Returns the handles of all copies.
 function Sound.PlayChoice(key, vol)
     local c = Sound.byKey[key]
     if not c or key == "none" then return end
@@ -247,12 +247,12 @@ function Sound.PlayChoice(key, vol)
         vol = math.floor(tonumber(vol or (S() and S().soundVol) or 14) or 14)
         if vol <= 0 then return end
         if vol > Sound.VOL_MAX then vol = Sound.VOL_MAX end
-        -- Oasis_Sounds ohne ffmpeg eingelesen: nur die Originaldatei, keine Lautstaerkestufen
+        -- Oasis_Sounds imported without ffmpeg: only the original file, no volume levels
         if c.file then
             local ok, willPlay, handle = pcall(PlaySoundFile, c.file, "Master")
             return (ok and willPlay) and (handle or true) or nil
         end
-        -- 0.5.799: je 10 Stufen eine Kopie gleichzeitig (Dateien gibt es nur bis Stufe 10) -> bis zu vier Kopien bei 200 %
+        -- 0.5.799: one copy at a time per 10 levels (files exist only up to level 10) -> up to four copies at 200 %
         local path = (c.base or ns.MEDIA) .. "sounds\\" .. key .. "\\"
         local hs = {}
         while vol > 0 do
@@ -270,7 +270,7 @@ function Sound.PlayChoice(key, vol)
     end
 end
 
--- Online-Sound: gleiche Skala wie alle Oasis-Sounds (PlayChoice spielt die Kopien selbst)
+-- online sound: same scale as all Oasis sounds (PlayChoice plays the copies itself)
 function Sound.PlayLoud(key, vol)
     return Sound.PlayChoice(key, math.floor(tonumber(vol) or 10))
 end
@@ -280,37 +280,37 @@ function Sound.PreviewLoud(key, vol)
 end
 local lastPlay = {}
 local nextEvent
--- Ereignis-Sound mit allen Regeln (aus, Kampf, Drossel)
+-- event sound with all rules (off, combat, throttle)
 function Sound.Play(event)
     local s = S()
     if event == "none" or not s or not s.sound then return end
     if s.soundQuietCombat and ns.inCombat() then return end
     local now = GetTime()
-    -- 0.6.405: derselbe Ereignis-Sound hoechstens alle 8 s (Klick-Ereignisse wie Fenster/Deathroll weiter sofort)
+    -- 0.6.405: the same event sound at most every 8 s (click events like window/Deathroll still immediately)
     local gap = (event == "open" or event == "close" or event == "death" or tostring(event):find("^dr_")) and 1.2 or 8
     if lastPlay[event] and now - lastPlay[event] < gap then return end
     lastPlay[event] = now
     local key = Sound.PickFor(event)
-    -- einmaliger Ersatz-Sound fuer genau dieses Ereignis (eigener Todes-Sound eines Mitglieds)
+    -- one-time replacement sound for exactly this event (a member's own death sound)
     local fo = Sound.forced
     if fo and fo.event == event then
         Sound.forced = nil
         if key ~= "none" and Sound.byKey[fo.key] then key = fo.key end
     end
     local h = Sound.PlayChoice(key, s.soundVol)
-    -- eigener Sound kam nicht durch (Datei erst nach WoW-Neustart bekannt, zu viele Sounds gleichzeitig ...):
-    -- wenigstens den Blizzard-Hinweiston spielen, damit die Benachrichtigung nie stumm bleibt
+    -- own sound didn't come through (file only known after WoW restart, too many sounds at once ...):
+    -- at least play the Blizzard notice sound so the notification is never silent
     if not h and key ~= "none" then
         pcall(PlaySound, (SOUNDKIT and SOUNDKIT.TELL_MESSAGE) or 3081, "Master")
     end
 end
 
--- Der naechste K.Toast spielt diesen Ereignis-Sound statt des allgemeinen
--- gilt nur fuer einen Hinweis in den naechsten 2 Sekunden (sonst bliebe z.B. ein "none" haengen
--- und der naechste, voellig andere Hinweis waere stumm)
+-- the next K.Toast plays this event sound instead of the general one
+-- applies only to a notice within the next 2 seconds (otherwise e.g. a "none" would stick
+-- and the next, completely different notice would be silent)
 local nextAt = 0
 function Sound.Next(event) nextEvent, nextAt = event, GetTime() end
--- Der naechste Sound des Ereignisses spielt key (nur Sounds, die fuer diesen Zweck gedacht sind: dev = purpose)
+-- the event's next sound plays key (only sounds meant for this purpose: dev = purpose)
 function Sound.Force(event, key, purpose)
     local c = key and Sound.byKey[key]
     Sound.forced = (c and c.dev == purpose) and { event = event, key = key } or nil
@@ -323,7 +323,7 @@ function Sound.TakeNext()
 end
 
 ------------------------------------------------------------------------
--- Musik
+-- Music
 ------------------------------------------------------------------------
 local musicOn = false
 function Sound.MusicEnabledInGame()
@@ -332,7 +332,7 @@ function Sound.MusicEnabledInGame()
 end
 function Sound.StartMusic(key, force)
     local s = S()
-    do return end   -- Fenster-Musik abgeschaltet
+    do return end   -- window music turned off
     if not force and (not s or s.music ~= "window") then return end
     local m = Sound.musicByKey[key or (s and s.musicTrack) or "orc"] or Sound.MUSIC[1]
     if PlayMusic then
@@ -350,20 +350,20 @@ ns.On("PLAYER_REGEN_ENABLED", function() ns.After(1, ns.K.FlushHeldToasts) end)
 ns.Listen("MAIN_SHOWN", function() Sound.StartMusic() end)
 ns.Listen("MAIN_HIDDEN", function() Sound.StopMusic() end)
 
--- Charakter-Stufenaufstieg (Blizzards eigener Klang laeuft zusaetzlich)
--- erst ab Stufe 10 (davor geht es zu schnell)
+-- character level-up (Blizzard's own sound plays additionally)
+-- only from level 10 (before that it goes too fast)
 ns.On("PLAYER_LEVEL_UP", function(level)
     if (tonumber(level) or 0) >= 10 then ns.After(0.3, function() Sound.Play("levelup") end) end
 end)
 
 ------------------------------------------------------------------------
--- Online-Sound: jeder waehlt seinen, die anderen hoeren ihn, wenn er online kommt
+-- online sound: everyone picks their own, the others hear it when they come online
 ------------------------------------------------------------------------
-local pop   -- Online-Fenster (weiter unten gebaut)
+local pop   -- online window (built further below)
 local onlinePat
 local function onlineName(msg)
     if not onlinePat and ERR_FRIEND_ONLINE_SS then
-        -- "|Hplayer:%s|h[%s]|h ist jetzt online." -> Muster mit Fang fuer den Namen
+        -- "|Hplayer:%s|h[%s]|h ist jetzt online." -> pattern with capture for the name
         onlinePat = ns.GlobalPattern(ERR_FRIEND_ONLINE_SS) or false
     end
     if not onlinePat then return nil end
@@ -372,14 +372,14 @@ local function onlineName(msg)
 end
 local lastEntrance = 0
 ns.Listen("LOGIN", function() ns.loginAt = ns.loginAt or GetTime() end)
--- 0.5.651: Protokoll fuer "jemand kam online, aber nichts passierte" (/oa onlinelog)
+-- 0.5.651: log for "someone came online but nothing happened" (/oa onlinelog)
 Sound.entranceLog = {}
 local function elog(name, what)
     local t = Sound.entranceLog
     t[#t + 1] = date("%H:%M:%S") .. "  " .. tostring(name) .. "  " .. what
     if #t > 30 then table.remove(t, 1) end
 end
--- 0.5.678: beim Entwickler "Sounds aus dem Chat" einmalig wieder an (war versehentlich aus)
+-- 0.5.678: for the developer turn "Sounds from chat" back on once (was off by mistake)
 ns.Listen("LOGIN", function()
     local st = S()
     if st and not st.chs678 and ns.IsDev and ns.IsDev() then st.chs678 = true st.chatSounds = nil end
@@ -395,39 +395,39 @@ function Sound.PlayEntrance(name, src)
     if not s.sound then elog(name, "aus: Sounds abspielen ist aus") return end
     if s.soundEntrance == false and s.entrancePopup == false then elog(name, "aus: Online-Sounds und Anzeige sind aus") return end
     if s.soundQuietCombat and ns.inCombat() then elog(name, "aus: im Kampf stumm") return end
-    -- Systemmeldung nennt in Forever teils nur den Vornamen oder einen anderen Realm-Anhang: dem Gildenmitglied zuordnen
+    -- in Forever the system message sometimes names only the first name or a different realm suffix: map to the guild member
     local full = (ns.ResolveName and ns.ResolveName(name, true)) or ns.fullName(name)
-    -- Profil auch bei Namen mit Akzenten/Realm finden
+    -- find the profile even for names with accents/realm
     local alias = ns.Radar and ns.Radar.AliasOf and ns.Radar.AliasOf(full)
     local p = ns.db.members[full] or (alias and ns.db.members[alias])
     if not p then
         local short = ns.short(full):lower()
         for n, pr in pairs(ns.db.members) do if type(pr) == "table" and ns.short(n):lower() == short then p, full = pr, n break end end
     end
-    -- nur Gildenmitglieder (Freunde ausserhalb der Gilde nicht)
+    -- guild members only (not friends outside the guild)
     local inGuild = ns.Radar and ns.Radar.byName and rawget(ns.Radar.byName, full)
     if not (p or inGuild) and ns.Radar and ns.Radar.roster then
-        -- Namen mit Leerzeichen/Realm (WoW Forever): ueber den Kurznamen in der Gildenliste suchen
+        -- names with spaces/realm (WoW Forever): search via the short name in the guild list
         local sh = ns.short(full):lower()
         for _, m in ipairs(ns.Radar.roster) do
             if m.name and ns.short(m.name):lower() == sh then inGuild, full = true, m.name break end
         end
     end
     if not (p or inGuild) then elog(name, "nicht in der Gildenliste (" .. tostring(src) .. ")") return end
-    -- doppelt (Systemmeldung UND Gildenliste melden dasselbe Einloggen): einmal je 2 Minuten
+    -- duplicate (system message AND guild list report the same login): once per 2 minutes
     Sound.entranceSeen = Sound.entranceSeen or {}
     local seenKey = ns.short(full):lower()
-    if Sound.entranceSeen[seenKey] and GetTime() - Sound.entranceSeen[seenKey] < 120 then return end   -- schon gemeldet
+    if Sound.entranceSeen[seenKey] and GetTime() - Sound.entranceSeen[seenKey] < 120 then return end   -- already reported
     local key = p and p.es
     if key == "none" or (key and not Sound.byKey[key]) then key = nil end
     if key and Sound.byKey[key].dev and Sound.byKey[key].dev ~= "entrance" then key = nil end
-    -- 0.6.532: Rangsperre beim EMPFAENGER pruefen - der Sound eines anderen spielt nur, wenn sein verifizierter
-    -- Oasis-Rang reicht (eigene Gilden-Sounds: Stufe aus der Freigabe der Leitung). Sonst der Standardton.
+    -- 0.6.532: check rank lock at the RECEIVER - someone else's sound only plays if their verified
+    -- Oasis rank is enough (own guild sounds: level from the leadership's release). Otherwise the default tone.
     if key and key ~= "none" then
         local c = Sound.byKey[key]
         local need = (c.own and ns.MediaPack and ns.MediaPack.SoundLock(key)) or c.lvl or 1
         local lvl = ns.Rank and ns.Rank.Of and ns.Rank.Of(full)
-        local may = c.own and ns.MediaPack and ns.MediaPack.MayUse("sound", key, full)   -- 0.6.534: aus / nur Leitung / Rang
+        local may = c.own and ns.MediaPack and ns.MediaPack.MayUse("sound", key, full)   -- 0.6.534: off / leadership only / rank
         if may == nil then may = not (need > 1 and (lvl or 1) < need) end
         if not may then
             elog(name, ("Sound %s gesperrt (Rang %s, braucht %d)"):format(key, tostring(lvl or "?"), need))
@@ -437,10 +437,10 @@ function Sound.PlayEntrance(name, src)
     s.muteEntrance = s.muteEntrance or {}
     local who = ns.short(full)
     local muted = s.muteEntrance[who]
-    -- nicht mehrere gleichzeitig: statt zu verwerfen der Reihe nach zeigen (max. 6 warten; nach eigenem Login
-    -- kommen alle auf einmal -> die ersten 20 s nach dem Login gar nicht)
+    -- not several at once: show one after another instead of discarding (max. 6 waiting; after own login
+    -- all come at once -> not at all in the first 20 s after login)
     local now = GetTime()
-    if ns.loginAt and now - ns.loginAt < 5 then elog(name, "uebersprungen: eigener Login") return end   -- nur der Schwall direkt beim eigenen Login
+    if ns.loginAt and now - ns.loginAt < 5 then elog(name, "uebersprungen: eigener Login") return end   -- only the burst right at the own login
     if now - lastEntrance < 8 then
         Sound.entranceQueue = Sound.entranceQueue or {}
         local q = Sound.entranceQueue
@@ -464,8 +464,8 @@ function Sound.PlayEntrance(name, src)
     end
     lastEntrance = now
     Sound.entranceSeen[seenKey] = now
-    -- Anzeige immer (abschaltbar), Sound nur mit gewaehltem Sound und nicht stumm; eigene Lautstaerke
-    -- 0.5.651: hat die Person keinen eigenen Online-Sound, spielt ein kurzer Standard-Ton (vorher: stumm)
+    -- display always (can be turned off), sound only with a chosen sound and not muted; own volume
+    -- 0.5.651: if the person has no own online sound, a short default tone plays (before: silent)
     if not key and not muted and s.soundEntrance ~= false then key = s.entranceDefault or (s.entranceLoud ~= false and Sound.byKey["ni_zweiklang"] and "ni_zweiklang") or "ni_ton" end
     if s.soundEntrance == false then key = nil end
     elog(name, "gemeldet (" .. tostring(src) .. ")" .. (key and (", Sound " .. key) or ", ohne Sound") .. (s.entrancePopup ~= false and ", Anzeige" or ""))
@@ -473,20 +473,20 @@ function Sound.PlayEntrance(name, src)
     local hs = {}
     if key and not muted then hs = { Sound.PlayLoud(key, s.soundEntranceVol or 10) } end
     if s.entrancePopup ~= false then
-        -- Fehler in der Anzeige nicht verschlucken: ins Protokoll (/oa onlinelog)
+        -- don't swallow errors in the display: into the log (/oa onlinelog)
         local okP, errP = pcall(Sound.EntrancePopup, full, key or "none", hs[1])
         if not okP then elog(name, "FEHLER Anzeige: " .. tostring(errP)) end
         if pop then pop.handle2 = hs end
     end
 end
 
--- kleines Fenster: "X ist online" + Sound-Name; Lautsprecher = stoppen und diese Person stummschalten
+-- small window: "X is online" + sound name; speaker = stop and mute this person
 function Sound.EntrancePopup(name, key, handle, isTest)
     local K, C = ns.K, ns.K.C
     if not pop then
         pop = CreateFrame("Frame", "OasisEntrancePopup", UIParent)
         pop:SetSize(340, 62)
-        -- sitzt im Hinweis-Stapel (oberster Platz), damit nichts ueberlappt
+        -- sits in the notice stack (top slot) so nothing overlaps
         K.toastExtra = K.toastExtra or {}
         table.insert(K.toastExtra, pop)
         pop:SetScript("OnShow", function() K.LayoutToasts() end)
@@ -494,7 +494,7 @@ function Sound.EntrancePopup(name, key, handle, isTest)
         pop:SetFrameStrata("DIALOG")
         pop.fillTex = K.Fill(pop, { 0.04, 0.04, 0.05, 0.96 })
         K.Border(pop, { C.accent[1] * 0.7, C.accent[2] * 0.7, C.accent[3] * 0.7, 1 })
-        -- 0.6.151: gleiche Bild-Box wie die uebrigen Hinweise (K.Toast, Gildenmodul) statt Flaeche und Oasis-Rand
+        -- 0.6.151: same image box as the other notices (K.Toast, guild module) instead of surface and Oasis border
         if ns.GuildPack then
             pop.boxBase = pop:CreateTexture(nil, "BACKGROUND", nil, 3)
             pop.boxBase:SetAllPoints()
@@ -505,14 +505,14 @@ function Sound.EntrancePopup(name, key, handle, isTest)
         pop.glow = pop:CreateTexture(nil, "BORDER")
         pop.glow:SetAllPoints()
         if not K.Gradient(pop.glow, "HORIZONTAL", { C.accent[1], C.accent[2], C.accent[3], 0.22 }, { C.accent[1], C.accent[2], C.accent[3], 0 }) then pop.glow:Hide() end
-        -- Klassensymbol rund mit Ring
+        -- class icon round with ring
         pop.ring = pop:CreateTexture(nil, "ARTWORK")
         pop.ring:SetTexture(ns.MEDIA .. "ring")
         pop.ring:SetSize(44, 44)
         pop.ring:SetPoint("LEFT", 10, 1)
         pop.cls = pop:CreateTexture(nil, "ARTWORK", nil, -1)
         pop.cls:SetSize(40, 40)
-        pop.ring:SetAlpha(0)   -- Ring ueber dem Klassensymbol weg
+        pop.ring:SetAlpha(0)   -- ring over the class icon removed
         pop.cls:SetPoint("CENTER", pop.ring, "CENTER")
         pop.cls:SetTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
         pop.name = K.Title(pop, 15, C.text)
@@ -523,13 +523,13 @@ function Sound.EntrancePopup(name, key, handle, isTest)
         pop.sub:SetPoint("TOPLEFT", pop.name, "BOTTOMLEFT", 0, -5)
         pop.sub:SetPoint("RIGHT", pop, "RIGHT", -70, 0)
         pop.sub:SetWordWrap(false)
-        -- Zeitbalken unten (bis das Fenster verschwindet)
+        -- time bar at the bottom (until the window disappears)
         pop.time = pop:CreateTexture(nil, "OVERLAY")
         pop.time:SetPoint("BOTTOMLEFT", 1, 1)
         pop.time:SetHeight(2)
         pop.timePad = 2
         if pop.imgBox then
-            -- wie bei den Hinweisen: Balken in der Box rechts neben dem Symbol, mit Verlauf und dezentem Schein
+            -- like the notices: bar in the box to the right of the icon, with gradient and subtle glow
             pop.time:ClearAllPoints()
             pop.time:SetPoint("BOTTOMLEFT", 60, 9)
             pop.time:SetTexture("Interface\\Buttons\\WHITE8X8")
@@ -541,7 +541,7 @@ function Sound.EntrancePopup(name, key, handle, isTest)
             pop.timeGlow:SetBlendMode("ADD")
         end
         pop.time:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.9)
-        -- Lautsprecher: Klick stoppt den Sound und schaltet diese Person stumm (nochmal: wieder an)
+        -- speaker: click stops the sound and mutes this person (again: back on)
         pop.mute = CreateFrame("Button", nil, pop)
         pop.mute:SetSize(26, 26)
         pop.mute:SetPoint("RIGHT", -36, 0)
@@ -559,7 +559,7 @@ function Sound.EntrancePopup(name, key, handle, isTest)
             local st = S()
             st.muteEntrance = st.muteEntrance or {}
             if pop.handle and StopSound then pcall(StopSound, pop.handle, 300) end
-            -- handle2: alle Kopien des Sounds (bei hoher Lautstaerke laufen mehrere gleichzeitig)
+            -- handle2: all copies of the sound (at high volume several run at once)
             if pop.handle2 and StopSound then for _, h in ipairs(pop.handle2) do pcall(StopSound, h, 300) end end
             pop.muted = not pop.muted
             if not pop.isTest then st.muteEntrance[pop.who] = pop.muted or nil end
@@ -582,7 +582,7 @@ function Sound.EntrancePopup(name, key, handle, isTest)
             if self.t > 12 and not self:IsMouseOver() then self:Hide() end
         end)
     end
-    -- Klassensymbol + Ringfarbe
+    -- class icon + ring color
     local cf = ns.Radar and ns.Radar.ClassOf(name)
     if not cf and ns.isMe(name) then cf = select(2, UnitClass("player")) end
     local tc = cf and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[cf]
@@ -590,7 +590,7 @@ function Sound.EntrancePopup(name, key, handle, isTest)
     local cr, cg, cb = ns.classColor(cf)
     cr, cg, cb = cr or 0.6, cg or 0.6, cb or 0.6
     pop.ring:SetVertexColor(cr, cg, cb)
-    -- Rahmen, Verlauf und Zeitbalken in Klassenfarbe
+    -- border, gradient and time bar in class color
     K.SetBorderColor(pop, { cr * 0.75, cg * 0.75, cb * 0.75, 1 })
     if not K.Gradient(pop.glow, "HORIZONTAL", { cr, cg, cb, 0.24 }, { cr, cg, cb, 0 }) then pop.glow:SetColorTexture(cr, cg, cb, 0.08) end
     pop.time:SetColorTexture(cr, cg, cb, 0.95)
@@ -611,12 +611,12 @@ function Sound.EntrancePopup(name, key, handle, isTest)
     end
     pop:Paint()
     pop:Show()
-    -- neu gebaute Fenster sind schon "sichtbar": OnShow feuert dann nicht und das Fenster hatte beim ersten Mal keinen Platz
+    -- newly built frames are already "visible": OnShow doesn't fire then and the window had no slot the first time
     K.LayoutToasts()
     pop:SetAlpha(1)
 end
 
--- Test: so klingt/aussieht es, wenn jemand online kommt (eigener gewaehlter Sound, sonst ein Beispiel)
+-- test: this is how it sounds/looks when someone comes online (own chosen sound, otherwise an example)
 function Sound.TestEntrance()
     local key = Sound.ChoiceFor("entrance")
     if not key or key == "none" then key = "hallo" end
@@ -631,8 +631,8 @@ ns.On("CHAT_MSG_SYSTEM", function(msg)
     local n = onlineName(msg)
     if n then ns.After(0.5, function() pcall(Sound.PlayEntrance, n, "Systemmeldung") end) end
 end)
--- Zweiter Weg: Gildenliste. Die Systemmeldung "ist jetzt online" kommt nur, wenn in den WoW-Optionen
--- "Gildenmitglieder-Hinweis" an ist (und fehlt manchmal ganz) -> neu online gegangene aus der Liste erkennen.
+-- second way: guild list. The system message "is now online" only comes if in the WoW options
+-- "Guild member alert" is on (and sometimes it's missing entirely) -> detect newly online members from the list.
 local wasOnline
 ns.Listen("ROSTER", function()
     local R = ns.Radar
@@ -649,7 +649,7 @@ end)
 
 
 ------------------------------------------------------------------------
--- Kategorien, Laenge und Freischaltung (Oasis-Rang): kurze Sounds frueh, lange Sounds und Musik spaeter
+-- categories, length and unlock (Oasis rank): short sounds early, long sounds and music later
 ------------------------------------------------------------------------
 local DUR = { glocke = 1, ping = 0.5, blubb = 0.6, zweiton = 0.8, nein = 0.8, alarm = 1.5, erfolg = 1.5, fanfare = 2.5,
     horn = 3, trommel = 2.5, muenze = 1, wuerfel = 2, arbeitszeit = 10.5, dexter = 10.7, run = 8.3, rizz = 1.9, lostconn = 2.7,
@@ -659,9 +659,9 @@ local MUSIC = { french = true, chinarap = true }
 Sound.TABS = {
     { key = "all", text = "All" }, { key = "oasis", text = "Oasis" }, { key = "german", text = "German" }, { key = "meme", text = "Memes" },
     { key = "music", text = "Music" }, { key = "wow", text = "WoW" }, { key = "pack", text = "Sound pack" },
-    { key = "guild", text = "Discord" },   -- 0.5.802: Sounds aus dem Gilden-Discord (im Chat-Auswahlfenster der Reiter "OASIS")
+    { key = "guild", text = "Discord" },   -- 0.5.802: sounds from the guild Discord (in the chat picker the tab "OASIS")
 }
--- 0.5.682: deutschsprachige Sounds im eigenen Reiter "German"
+-- 0.5.682: German-language sounds in their own tab "German"
 local GERMAN = { arbeitszeit = true, haltstop = true, hallo = true, ritter = true, bahn = true, wasistdennhierlo = true,
     auchdasistprivat = true, nichtdenfalschen = true, wasgehtaaaaaaaab = true, heutistwiederfre = true, ichmussraus = true,
     gutenmorgensport = true, neindochohh = true, franzosengrrrrfe = true, dasgibtneanzeige = true, kannesseindasdud = true,
@@ -675,27 +675,27 @@ local function finish(c)
     elseif c.guild then c.cat = "guild"
     elseif c.kit then c.cat = "wow"
     elseif GERMAN[c.key] then c.cat = "german"
-    elseif MUSIC[c.key] or c.music or c.text:find("^Musik") then c.cat = "music"   -- "Musik: ..." gehoert immer zur Musik (sonst fehlte es beim Verschicken)
+    elseif MUSIC[c.key] or c.music or c.text:find("^Musik") then c.cat = "music"   -- "Musik: ..." always belongs to music (otherwise it was missing when sending)
     elseif c.text:find("^Meme") or (DUR[c.key] or c.dur or 0) > 6 then c.cat = "meme"
     else c.cat = "oasis" end
     c.dur = DUR[c.key] or c.dur
-    -- Rang nach Laenge: bis 1,5 s ab Rang 3, bis 3 s ab 6, bis 5 s ab 10, bis 9 s ab 16, laenger/Musik ab 22
+    -- rank by length: up to 1.5 s from rank 3, up to 3 s from 6, up to 5 s from 10, up to 9 s from 16, longer/music from 22
     local d = c.dur or 0
-    if c.ownLvl then c.lvl = c.ownLvl   -- eigener Sound einer Gilde mit festem Rang ("@20" im Dateinamen)
+    if c.ownLvl then c.lvl = c.ownLvl   -- a guild's own sound with fixed rank ("@20" in the file name)
     elseif c.key == "none" then c.lvl = 1
-    elseif c.kit then c.lvl = 2   -- 0.6.434: auch WoW-Klaenge und Oasis-Toene nicht mehr ab Rang 1
+    elseif c.kit then c.lvl = 2   -- 0.6.434: WoW sounds and Oasis tones no longer from rank 1 either
     elseif c.cat == "oasis" then c.lvl = 2
-    -- 0.6.430: deutlich strenger - kurze ab 10, neue Gilden-Sounds ab 18, lange/Musik erst spaet
-    -- 0.6.437: "free"/"neu" machen nicht mehr frei (galt fuer viele Gilden-Sounds) - es zaehlt die Laenge
+    -- 0.6.430: much stricter - short ones from 10, new guild sounds from 18, long/music only late
+    -- 0.6.437: "free"/"neu" no longer unlock (applied to many guild sounds) - length is what counts
     elseif MUSIC[c.key] or c.music then c.lvl = 45
     elseif d <= 1.5 then c.lvl = 2
     elseif d <= 3 then c.lvl = 6
     elseif d <= 5 then c.lvl = 12
     elseif d <= 9 then c.lvl = 20
-    else c.lvl = 30 end   -- 0.6.439: Start ab Rang 2, dann 6/12/20/30, Musik 45
+    else c.lvl = 30 end   -- 0.6.439: start from rank 2, then 6/12/20/30, music 45
 end
 for _, c in ipairs(Sound.CHOICES) do finish(c) end
--- 0.6.442: Freischaltungen gleichmaessig von Rang 2 bis 100 verteilen (kurze/Oasis-Toene zuerst, Musik zuletzt)
+-- 0.6.442: spread unlocks evenly from rank 2 to 100 (short/Oasis tones first, music last)
 function Sound.Spread()
     local l = {}
     for _, c in ipairs(Sound.CHOICES) do
@@ -710,7 +710,7 @@ function Sound.Spread()
     for i, c in ipairs(l) do c.lvl = (n > 1) and (2 + math.floor((i - 1) * 98 / (n - 1) + 0.5)) or 2 end
 end
 Sound.Spread()
--- 0.5.728: Erweiterung durch das Gildenmodul (Oasis_Guild): zusaetzliche Sounds (eigene Dateien unter base) und UI-Soundpakete
+-- 0.5.728: extension via the guild module (Oasis_Guild): additional sounds (own files under base) and UI sound packs
 function Sound.AddChoices(list, base)
     for _, c in ipairs(list) do
         if not Sound.byKey[c.key] then
@@ -735,16 +735,16 @@ function Sound.MyRank()
 end
 function Sound.Unlocked(key)
     local c = Sound.byKey[key]
-    if c and c.own and ns.MediaPack then   -- 0.6.534: Vorgabe der Leitung fuer eigene Gilden-Sounds
+    if c and c.own and ns.MediaPack then   -- 0.6.534: leadership default for own guild sounds
         local may = ns.MediaPack.MayUse("sound", key, nil)
         if may ~= nil then return may end
     end
     return c and Sound.MyRank() >= (c.lvl or 1)
 end
 
--- Auswahlfenster: Reiter, Liste mit Symbol, Laenge, Schloss, Vorhoeren
+-- picker window: tabs, list with icon, length, lock, preview
 local picker
--- zuletzt benutzt + Favoriten (pro Charakter-Account)
+-- recently used + favorites (per character account)
 function Sound.Remember(key)
     local s = S()
     if not s or not key or key == "none" then return end
@@ -752,12 +752,12 @@ function Sound.Remember(key)
     for i = #s.soundRecent, 1, -1 do if s.soundRecent[i] == key then table.remove(s.soundRecent, i) end end
     table.insert(s.soundRecent, 1, key)
     while #s.soundRecent > 12 do table.remove(s.soundRecent) end
-    -- "Haeufig": wie oft selbst benutzt (0.5.592)
+    -- "Frequent": how often used oneself (0.5.592)
     s.soundCount = s.soundCount or {}
     s.soundCount[key] = (s.soundCount[key] or 0) + 1
 end
 local function isFav(key) local s = S() return s and s.soundFav and s.soundFav[key] end
--- Favoriten-Reihenfolge (zum Umsortieren per Ziehen); alte Favoriten ohne Platz werden hinten angehaengt
+-- favorites order (for reordering by dragging); old favorites without a slot are appended at the end
 function Sound.FavOrder()
     local s = S()
     if not s then return {} end
@@ -771,9 +771,9 @@ function Sound.FavOrder()
 end
 
 ------------------------------------------------------------------------
--- "Beliebt in der Gilde" (0.5.592): was im Gildenchat benutzt wird - Sounds (SND) und Emojis (Codes im Text).
--- Jeder zaehlt selbst mit, was er sieht (alle sehen denselben Gildenchat, nichts muss geteilt werden).
--- Halbwertszeit 7 Tage; je Absender und Eintrag hoechstens einmal pro Minute (gegen Spam-Verzerrung).
+-- "Popular in the guild" (0.5.592): what is used in guild chat - sounds (SND) and emojis (codes in the text).
+-- everyone counts what they see themselves (everyone sees the same guild chat, nothing needs to be shared).
+-- half-life 7 days; per sender and entry at most once per minute (against spam distortion).
 ------------------------------------------------------------------------
 local Pop = {}
 ns.Popular = Pop
@@ -797,7 +797,7 @@ function Pop.Add(kind, key, who)
     e.s, e.t = decayed(e, now) + 1, now
     st[key] = e
 end
--- beliebteste Eintraege: { {key, score}, ... } absteigend; sehr alte/kleine Eintraege werden aufgeraeumt
+-- most popular entries: { {key, score}, ... } descending; very old/small entries are cleaned up
 function Pop.Top(kind, n)
     local st = popStore(kind)
     if not st then return {} end
@@ -812,7 +812,7 @@ function Pop.Top(kind, n)
 end
 
 ------------------------------------------------------------------------
--- Abklingzeit sichtbar machen (0.5.592): Knoepfe, die Sounds verschicken, zeigen die Wartezeit
+-- make cooldown visible (0.5.592): buttons that send sounds show the waiting time
 ------------------------------------------------------------------------
 Sound.cdButtons = setmetatable({}, { __mode = "k" })
 function Sound.CooldownLeft() return math.max(0, (Sound.SEND_CD or 30) - (GetTime() - (Sound.lastSend or -999))) end
@@ -853,7 +853,7 @@ local CATCOL = { oasis = { 0.38, 0.6, 1 }, meme = { 0.95, 0.72, 0.25 }, music = 
 local CATSHORT = { oasis = "OASIS", meme = "MEME", music = "MUSIK", wow = "WOW" }
 local function cleanName(c) return (L[c.text]:gsub("^Oasis: ", ""):gsub("^Meme: ", ""):gsub("^Musik: ", ""):gsub("^WoW: ", "")) end
 
--- Titel des Auswahlfensters passend zum Ziel ("Sound an Mira schicken" ...)
+-- picker window title matching the target ("Send sound to Mira" ...)
 function Sound.SetSendTarget(channel, target)
     local lbl = {
         GUILD = L["Send a sound to guild chat"], OFFICER = L["Send sound to officers"],
@@ -864,9 +864,9 @@ function Sound.SetSendTarget(channel, target)
     else
         Sound.sendLabel = lbl[channel or "GUILD"] or lbl.GUILD
     end
-    -- 0.5.882: nach dem Schicken oeffnet sich KEINE Chat-Eingabe mehr von selbst (vorher bei Gruppe/Fluestern: es ging "Sagen" auf).
-    -- Nur der Lautsprecher an der Chat-Eingabe setzt restoreChat, und nur wenn dort gerade Text stand.
-    -- Vorauswahl im Fenster (oben umschaltbar)
+    -- 0.5.882: after sending, NO chat input opens by itself anymore (previously for group/whisper: "Say" opened).
+    -- only the speaker at the chat input sets restoreChat, and only if there was text there.
+    -- preselection in the window (switchable at the top)
     Sound.chOverride = { ch = channel or "GUILD", tgt = target }
     Sound.chPending = true
 end
@@ -875,7 +875,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
     if not picker then
         local f = CreateFrame("Frame", "OasisSoundPicker", UIParent)
         picker = f
-        f:SetSize(680, 520)   -- 0.6.411: Soundboard groesser
+        f:SetSize(680, 520)   -- 0.6.411: soundboard larger
         f:SetFrameStrata("FULLSCREEN_DIALOG")
         f:SetClampedToScreen(true)
         f:EnableMouse(true)
@@ -883,7 +883,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         f:RegisterForDrag("LeftButton")
         f:SetScript("OnDragStart", f.StartMoving)
         f:SetScript("OnDragStop", f.StopMovingOrSizing)
-        -- 0.5.590: Glas-Karte (runde Ecken) + leichter Akzent-Verlauf im Kopf
+        -- 0.5.590: glass card (round corners) + light accent gradient in the header
         local G = ns.Insta and ns.Insta.Glass
         if not (G and pcall(G, f, { 0.035, 0.035, 0.045, 0.96 }, { 1, 1, 1, 0.1 }, 14)) then
             K.Fill(f, { 0.04, 0.04, 0.05, 0.97 })
@@ -896,7 +896,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         f.head = K.GameHead(f, L["Sounds"], C.accent)
         f.head:SetPoint("TOPLEFT", 12, -10)
         f.head:SetWidth(230)
-        -- 0.6.411: Kopf "OASIS SOUNDBOARD" mit Lautsprecher (Ziel steht in den Kanal-Knoepfen)
+        -- 0.6.411: header "OASIS SOUNDBOARD" with speaker (target is in the channel buttons)
         f.head:Hide()
         f.logo = K.Glyph(f, 22, ns.MEDIA .. "icons\\speaker", C.accent)
         f.logo:SetPoint("TOPLEFT", 16, -14)
@@ -905,7 +905,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         f.title:SetText("OASIS  |cffb8b8bc" .. K.Upper(L["Soundboard"]) .. "|r")
         local x = K.CloseButton(f, function() f:Hide() end)
         x:SetPoint("TOPRIGHT", -6, -6)
-        -- Zahnrad: Einstellungen des Fensters
+        -- gear: window settings
         local gear = CreateFrame("Button", nil, f)
         gear:SetSize(20, 20)
         gear.icon = K.Glyph(gear, 14, ns.MEDIA .. "icons\\settings", C.muted)
@@ -914,14 +914,14 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         gear:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
         gear:SetScript("OnClick", function() Sound.ShowPickerOptions() end)
         f.gear = gear
-        -- Suche (Enter = ersten Treffer nehmen)
+        -- search (Enter = take the first match)
         f.search = K.Input(f, 548, L["Search sounds ..."], function(t) f.q = (t or ""):lower() f.sel = nil f:Fill() end)
         f.search:SetScript("OnEnterPressed", function(self)
             local pick = f:SelItem() or f.firstHit
             self:ClearFocus()
             if pick then f:PickItem(pick) end
         end)
-        -- Pfeiltasten im Suchfeld: Auswahl wandert durch die Liste (links/rechts = Spalte, hoch/runter = Zeile)
+        -- arrow keys in the search field: selection moves through the list (left/right = column, up/down = row)
         if f.search.SetAltArrowKeyMode then pcall(f.search.SetAltArrowKeyMode, f.search, false) end
         f.search:SetScript("OnArrowPressed", function(_, key)
             local n = #(f.shown or {})
@@ -931,21 +931,21 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             elseif key == "UP" then i = i - 2 elseif key == "DOWN" then i = i + 2 end
             if i < 1 then i = 1 elseif i > n then i = n end
             f.sel = i
-            -- in den sichtbaren Bereich scrollen
+            -- scroll into the visible area
             local l = f.list
             local row, vis = (f.rowOf and f.rowOf[i]) or math.ceil(i / 2), l:Visible()
             if row <= l.offset then l.offset = row - 1 elseif row > l.offset + vis then l.offset = row - vis end
             l:Refresh()
         end)
         f.search:HookScript("OnTabPressed", function()
-            -- Tab: naechster Reiter
+            -- Tab: next tab
             local order = f.noNone and { "fav", "recent", "often", "popular", "guild", "music" } or { "fav", "recent", "often", "popular", "guild", "music", "pack" }
             for i, k in ipairs(order) do if k == f.tab then f.tab = order[i % #order + 1] break end end
             f.sel = nil
             f:Fill()
         end)
         function f:SelItem() return self.sel and self.shown and self.shown[self.sel] or nil end
-        -- Zufall: ein freigeschalteter Sound aus dem aktuellen Reiter
+        -- random: an unlocked sound from the current tab
         f.rand = K.Button(f, L["Random"], 96, 24, "ghost", function()
             local pool = {}
             for _, it in ipairs(f.shown or {}) do if it.key ~= "none" and Sound.Unlocked(it.key) then pool[#pool + 1] = it end end
@@ -955,9 +955,9 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         f.rand:SetPoint("LEFT", f.search, "RIGHT", 10, 0)
         f.rand:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Random"], L["Sends a random sound from this tab"] }) end)
         f.rand:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        -- Ziel waehlen (nur beim Verschicken): Gilde / Gruppe / Raid / letzter Fluesterpartner
+        -- choose target (only when sending): guild / group / raid / last whisper partner
         f.chans = {}
-        -- Farben wie im Spiel: Gilde gruen, Gruppe blau, Raid orange, Fluestern rosa
+        -- colors like in the game: guild green, group blue, raid orange, whisper pink
         local CHCOL = { GUILD = { 0.25, 1, 0.25 }, PARTY = { 0.67, 0.67, 1 }, RAID = { 1, 0.5, 0 }, WHISPER = { 1, 0.5, 1 } }
         local CH = { { "GUILD", "Guild" }, { "PARTY", "Group" }, { "RAID", "Raid" }, { "WHISPER", "Whisper" } }
         for i, d in ipairs(CH) do
@@ -1002,10 +1002,10 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         end
         f.gear:SetPoint("RIGHT", x, "LEFT", -6, 0)
         f.search:SetPoint("TOPLEFT", 14, -52)
-        -- Reiter: Favoriten, Zuletzt, Memes, Musik (0.5.590)
+        -- tabs: favorites, recent, memes, music (0.5.590)
         local items = { { key = "fav", text = L["Favourites"] }, { key = "recent", text = L["Last seen"] },
             { key = "often", text = L["Frequent"] }, { key = "popular", text = L["Popular"] },
-            -- ein einziger Reiter OASIS fuer alle eigenen Sounds (Gilde, German, Memes, Musik zusammengelegt)
+            -- a single tab OASIS for all own sounds (guild, German, memes, music merged)
             { key = "guild", text = "OASIS" }, { key = "music", text = L["OASIS music"] }, { key = "pack", text = L["Sound pack"] } }
         f.tabs = K.Segments(f, items, function(k)
             f.tab = k
@@ -1014,7 +1014,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             f:Fill()
         end)
         f.tabs:SetPoint("TOPLEFT", 10, -88)
-        -- zwei Spalten: jede Listenzeile traegt zwei Kacheln (Sound links / rechts)
+        -- two columns: each list row carries two tiles (sound left / right)
         local function cell(r)
             local c = CreateFrame("Button", nil, r)
             c.bg = c:CreateTexture(nil, "BACKGROUND")
@@ -1024,14 +1024,14 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             c.hl = c:CreateTexture(nil, "HIGHLIGHT")
             c.hl:SetAllPoints()
             c.hl:SetColorTexture(1, 1, 1, 0.06)
-            -- gewaehlter Sound: Akzentbalken links + leichte Flaeche
+            -- selected sound: accent bar on the left + light surface
             c.pickBg = c:CreateTexture(nil, "BACKGROUND", nil, 1)
             c.pickBg:SetAllPoints()
             c.pickBg:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.12)
             c.pickBar = c:CreateTexture(nil, "ARTWORK")
             c.pickBar:SetPoint("TOPLEFT") c.pickBar:SetPoint("BOTTOMLEFT") c.pickBar:SetWidth(2)
             c.pickBar:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
-            -- Abspielen
+            -- playback
             c.play = CreateFrame("Button", nil, c)
             c.play:SetSize(28, 28)
             c.play:SetPoint("LEFT", 6, 0)
@@ -1045,7 +1045,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             if ns.K.NoUiSound then ns.K.NoUiSound(c.play) end
             c.play:SetScript("OnEnter", function(self) self.bg:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.25) K.ShowTip(self, L["Lists"]) end)
             c.play:SetScript("OnLeave", function(self) self.bg:SetColorTexture(1, 1, 1, 0.05) GameTooltip:Hide() end)
-            -- Equalizer (laeuft gerade)
+            -- equalizer (currently playing)
             c.eq = {}
             for i = 1, 3 do
                 local b = c:CreateTexture(nil, "OVERLAY")
@@ -1057,7 +1057,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             end
             c.name = K.Text(c, 13, C.text)
             c.name:SetPoint("LEFT", 50, 0)
-            -- 0.6.411: "NEU" als kleines Abzeichen hinter dem Namen
+            -- 0.6.411: "NEW" as a small badge after the name
             c.newTag = CreateFrame("Frame", nil, c)
             c.newTag:SetSize(30, 15)
             c.newTag.bg = c.newTag:CreateTexture(nil, "BACKGROUND")
@@ -1071,7 +1071,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             c.name:SetWordWrap(false)
             c.meta = K.Text(c, 10, C.dim, "RIGHT")
             c.meta:SetPoint("RIGHT", -30, 0)
-            -- Favorit: Stern rechts (gesetzt = Akzent, sonst nur beim Ueberfahren sichtbar)
+            -- favorite: star on the right (set = accent, otherwise only visible on hover)
             c.star = CreateFrame("Button", nil, c)
             c.star:SetSize(18, 18)
             c.star:SetPoint("RIGHT", -10, 0)
@@ -1087,23 +1087,23 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 local fav = self.item and isFav(self.item.key)
                 self.star.icon:SetTexture(ns.MEDIA .. "icons\\" .. (fav and "star_on" or "star_off"))
                 if fav then self.star.icon:SetVertexColor(1, 0.82, 0.3, 1)
-                else self.star.icon:SetVertexColor(1, 1, 1, hover and 0.7 or 0.3) end   -- 0.6.411: Umriss immer zu sehen
+                else self.star.icon:SetVertexColor(1, 1, 1, hover and 0.7 or 0.3) end   -- 0.6.411: outline always visible
                 self.star:SetShown(self.item ~= nil and self.item.key ~= "none")
             end
-            -- Fortschritt beim Abspielen
+            -- progress while playing
             c.prog = c:CreateTexture(nil, "OVERLAY")
             c.prog:SetPoint("BOTTOMLEFT", 0, 0)
             c.prog:SetHeight(2)
             c.prog:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.9)
             c.prog:Hide()
-            -- Tastatur-Auswahl (Pfeiltasten im Suchfeld): Akzentflaeche + Linie unten
+            -- keyboard selection (arrow keys in the search field): accent surface + line at the bottom
             c.kb = c:CreateTexture(nil, "BACKGROUND", nil, 2)
             c.kb:SetAllPoints()
             c.kb:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.16)
             c.kbLine = c:CreateTexture(nil, "ARTWORK", nil, 1)
             c.kbLine:SetPoint("BOTTOMLEFT") c.kbLine:SetPoint("BOTTOMRIGHT") c.kbLine:SetHeight(1)
             c.kbLine:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.9)
-            -- Favoriten umsortieren: im Reiter Favoriten ziehen und auf einem anderen Sound loslassen
+            -- reorder favorites: in the Favorites tab drag and release on another sound
             c:RegisterForDrag("LeftButton")
             c:SetScript("OnDragStart", function(self) f:StartDrag(self) end)
             c:SetScript("OnDragStop", function() f:EndDrag() end)
@@ -1123,7 +1123,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                     K.ShowTip(self, { cleanName(it), (L["From Oasis rank %d"]):format(it.lvl or 1) })
                 elseif it.key ~= "none" then
                     K.ShowTip(self, { cleanName(it), "|cff888888" .. (it.dur and (("%.1f s"):format(it.dur) .. "  ·  ") or "") .. L["Click: select  ·  Right-click: favourite"] .. "|r" })
-                    -- auf Wunsch beim Ueberfahren kurz vorhoeren (mit Verzoegerung, sonst plaerrt es beim Durchfahren)
+                    -- optionally preview briefly on hover (with delay, otherwise it blares while moving across)
                     local s = S()
                     if s and s.soundHoverPreview then
                         self.hoverAt = GetTime()
@@ -1161,7 +1161,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 self.newTag:SetShown(it.new and true or false)
                 if it.new then
                     self.newTag:ClearAllPoints()
-                    self.newTag:SetPoint("RIGHT", self, "RIGHT", -64, 0)   -- 0.6.416: rechtsbuendig vor der Dauer
+                    self.newTag:SetPoint("RIGHT", self, "RIGHT", -64, 0)   -- 0.6.416: right-aligned before the duration
                 end
                 self.pickBar:SetShown(sel)
                 self.pickBg:SetShown(sel)
@@ -1178,7 +1178,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             end
             return c
         end
-        -- Ziehen im Favoriten-Reiter: Geisterkarte folgt der Maus, Loslassen auf einem Sound = dorthin verschieben
+        -- dragging in the Favorites tab: ghost card follows the mouse, releasing on a sound = move there
         f.ghost = CreateFrame("Frame", nil, UIParent)
         f.ghost:SetSize(180, 26)
         f.ghost:SetFrameStrata("TOOLTIP")
@@ -1221,7 +1221,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             end
             self:Fill()
         end
-        -- Favorit umschalten (mit kleinem Aufploppen des Sterns)
+        -- toggle favorite (with a small pop of the star)
         function f:ToggleFav(key, cell)
             local s = S()
             if not s or key == "none" then return end
@@ -1229,7 +1229,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             s.soundFav[key] = (not s.soundFav[key]) and true or nil
             local o = Sound.FavOrder()
             if s.soundFav[key] then
-                -- neu gemerkt: vorne einreihen
+                -- newly favorited: insert at the front
                 for i = #o, 1, -1 do if o[i] == key then table.remove(o, i) end end
                 table.insert(o, 1, key)
             end
@@ -1241,7 +1241,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             end
             if self.tab == "fav" then self:Fill() else for _, r in ipairs(self.list.rows or {}) do if r.left then r.left:PaintStar(false) r.right:PaintStar(false) end end end
         end
-        -- Sound nehmen: merken, Fenster je nach Einstellung schliessen, an den Aufrufer geben
+        -- take sound: remember, close window depending on setting, pass to the caller
         function f:PickItem(it, cell)
             if not it then return end
             if not Sound.Unlocked(it.key) then
@@ -1251,11 +1251,11 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             Sound.Remember(it.key)
             local s = S()
             local keep = s and s.soundKeepOpen and self.noNone
-            -- mitgeschickte Emojis: nach dem Sound in die Chat-Eingabe (abschicken muss man selbst - Forever
-            -- sperrt automatisches Senden); nur wenn der Sound wirklich rausging (keine Abklingzeit)
+            -- attached emojis: after the sound into the chat input (you have to send it yourself - Forever
+            -- blocks automatic sending); only if the sound really went out (no cooldown)
             local att = self.noNone and Sound.attach and #Sound.attach > 0 and Sound.CooldownLeft() <= 0 and Sound.attach or nil
             if keep then
-                -- offen lassen: kurzes Aufleuchten als Rueckmeldung
+                -- keep open: short flash as feedback
                 if cell and cell.pickBg and not ns.db.settings.noAnim then
                     cell.pickBg:Show()
                     K.Tween(cell.pickBg, 0.6, function(p) cell.pickBg:SetAlpha(1 - p) end, function() cell.pickBg:SetAlpha(1) cell:Set(cell.item) end)
@@ -1274,8 +1274,8 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         f.list = K.List(f, 40, function(l)
             local r = K.Row(l)
             if r.hl then r.hl:SetAlpha(0) end
-            if r.sel then r.sel:SetAlpha(0) end   -- Auswahl zeigt die Kachel selbst
-            -- 0.6.411: Zwischenueberschrift (Gruppe + Anzahl) ueber die ganze Breite
+            if r.sel then r.sel:SetAlpha(0) end   -- the tile itself shows the selection
+            -- 0.6.411: subheading (group + count) across the full width
             r.hd = K.Text(r, 11, C.muted)
             r.hd:SetPoint("BOTTOMLEFT", 6, 6)
             r.hdLine = r:CreateTexture(nil, "ARTWORK")
@@ -1312,7 +1312,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         f.foot = K.Text(f, 10, C.dim)
         f.foot:SetPoint("BOTTOMLEFT", 12, 9)
         f.foot:SetPoint("RIGHT", f, "RIGHT", -12, 0)
-        -- Wartezeit bis zum naechsten Sound: duenner Balken unter den Reitern + Text in der Fusszeile
+        -- wait until the next sound: thin bar below the tabs + text in the footer
         f.cdBar = f:CreateTexture(nil, "ARTWORK")
         f.cdBar:SetPoint("TOPLEFT", 8, -118)
         f.cdBar:SetHeight(2)
@@ -1335,7 +1335,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 self.foot:SetText(self.footText or "")
             end
         end)
-        -- "Emoji dazu" (nur beim Verschicken): ausgewaehlte Emojis landen nach dem Sound in der Chat-Eingabe
+        -- "Add emoji" (only when sending): selected emojis land in the chat input after the sound
         f.att = CreateFrame("Frame", nil, f)
         f.att:SetPoint("BOTTOMLEFT", 10, 30)
         f.att:SetPoint("BOTTOMRIGHT", -10, 30)
@@ -1415,18 +1415,18 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 end
                 local ok
                 local pickable = c.cat == "meme" or c.cat == "music" or c.cat == "german" or c.cat == "pack" or c.cat == "guild"
-                if q ~= "" then ok = pickable   -- Suche ueber alles Waehlbare
+                if q ~= "" then ok = pickable   -- search across everything selectable
                 elseif self.tab == "fav" then ok = pickable and isFav(c.key) and true or false
                 elseif self.tab == "recent" then ok = pickable and recentPos[c.key] ~= nil
                 elseif self.tab == "often" then ok = pickable and (count[c.key] or 0) > 0
                 elseif self.tab == "popular" then ok = pickable and popScore[c.key] ~= nil
-                -- 0.5.873: Musik hat einen eigenen Reiter "OASIS Musik" (faellt unten in den allgemeinen Zweig c.cat == self.tab)
+                -- 0.5.873: music has its own tab "OASIS Musik" (falls below into the general branch c.cat == self.tab)
                 elseif self.tab == "guild" then ok = c.cat == "guild" or c.cat == "german" or c.cat == "meme" or c.key == "none"
                 else ok = c.cat == self.tab or c.key == "none" end
                 if ok and self.noNone and c.key == "none" then ok = false end
-                -- Entwickler-Sounds: nur beim Entwickler und nie beim Verschicken
+                -- developer sounds: only for the developer and never when sending
                 if ok and c.dev and (self.noNone or not dev) then ok = false end
-                -- beim Verschicken keine Oberflaechen-Toene (Soundpaket): die schickt man nicht in den Chat
+                -- no UI tones (sound pack) when sending: you don't send those into the chat
                 if ok and self.noNone and c.cat == "pack" then ok = false end
                 if ok and q ~= "" then ok = c.key ~= "none" and (cleanName(c):lower():find(q, 1, true) ~= nil) end
                 if ok then out[#out + 1] = c end
@@ -1442,13 +1442,13 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                     local fa, fb = isFav(a.key) and 1 or 0, isFav(b.key) and 1 or 0
                     if fa ~= fb then return fa > fb end
                 end
-                if (a.new and 1 or 0) ~= (b.new and 1 or 0) then return a.new and true or false end   -- neue zuerst
+                if (a.new and 1 or 0) ~= (b.new and 1 or 0) then return a.new and true or false end   -- new ones first
                 local ua, ub = Sound.Unlocked(a.key), Sound.Unlocked(b.key)
                 if ua ~= ub then return ua end
                 if (a.lvl or 1) ~= (b.lvl or 1) then return (a.lvl or 1) < (b.lvl or 1) end
                 return cleanName(a) < cleanName(b)
             end)
-            -- paarweise fuer zwei Spalten; 0.6.411: im Reiter OASIS nach Gruppen (Gilde, Deutsch, Memes) mit Ueberschrift
+            -- in pairs for two columns; 0.6.411: in the OASIS tab by groups (guild, German, memes) with heading
             local pairs2 = {}
             self.rowOf = {}
             if self.tab == "guild" and q == "" then
@@ -1481,7 +1481,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             self.list.empty:SetText(q ~= "" and L["Nothing found."] or EMPTY[self.tab] or (self.tab == "recent" and L["Nothing used yet."]
                 or (self.tab == "fav" and L["No favourites yet - click the star or right-click a sound."] or L["Nothing found."])))
             self.tabs:Select(self.tab)
-            -- Reiterwechsel: Liste weich einblenden und leicht von unten hereinschieben
+            -- tab switch: fade the list in softly and slide it in slightly from below
             if self.lastTab ~= self.tab and not (ns.db and ns.db.settings.noAnim) then
                 local l = self.list
                 l:SetAlpha(0)
@@ -1494,18 +1494,18 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 end)
             end
             self.lastTab = self.tab
-            self.footText = ""   -- 0.5.664: Fusszeile (freigeschaltet / Tastenhinweis) weg - nur noch Abklingzeit-Hinweise
+            self.footText = ""   -- 0.5.664: footer (unlocked / key hint) removed - only cooldown hints now
             if not self.cdShown then self.foot:SetText(self.footText) end
         end
     end
-    -- ohne vorheriges SetSendTarget (z.B. Oasis-Gildenchat): keine alte Auswahl uebernehmen
+    -- without a previous SetSendTarget (e.g. Oasis guild chat): don't take over an old selection
     if not Sound.chPending then Sound.chOverride = nil end
     Sound.chPending = nil
     picker.current, picker.onPick = current, onPick
     picker.noNone = title == "send"
-    -- Emoji-Leiste nur beim Verschicken; Liste macht ihr Platz
+    -- emoji bar only when sending; the list makes room for it
     Sound.attach = nil
-    picker.att:SetShown(false)   -- 0.5.669: Leiste "Emoji dazu" entfernt
+    picker.att:SetShown(false)   -- 0.5.669: bar "Add emoji" removed
     picker.listBottom = picker.att:IsShown() and 62 or 28
     picker:PlaceList()
     if picker.att:IsShown() then picker:PaintAttach() end
@@ -1513,7 +1513,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
     picker.head.text:SetText(ns.K.Upper(title == "send" and (Sound.sendLabel or L["Send a sound to guild chat"]) or (title or L["Sounds"])))
     Sound.sendLabel = nil
     picker:MarkChan()
-    -- beim Schliessen die Chat-Eingabe (z.B. Fluestern) wieder oeffnen - die Suche hatte ihr den Fokus genommen
+    -- on close reopen the chat input (e.g. whisper) - the search had taken its focus
     if not picker.restoreHooked then
         picker.restoreHooked = true
         picker:HookScript("OnHide", function()
@@ -1524,13 +1524,13 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         end)
     end
     local s = S()
-    -- zuletzt gewaehlter Reiter; leere Favoriten/Zuletzt -> Memes
+    -- last chosen tab; empty favorites/recent -> memes
     local want = picker.tab or (s and s.soundTab) or "guild"
-    if want == "german" or want == "meme" then want = "guild" end   -- alte Reiter -> OASIS
+    if want == "german" or want == "meme" then want = "guild" end   -- old tabs -> OASIS
     if want == "fav" and not (s and s.soundFav and next(s.soundFav)) then want = "guild" end
     if want == "recent" and not (s and s.soundRecent and #s.soundRecent > 0) then want = "guild" end
     if want ~= "fav" and want ~= "recent" and want ~= "often" and want ~= "popular" and want ~= "pack" and want ~= "guild" and want ~= "music" then want = "guild" end
-    -- Reiter "Soundpaket" nur beim Aussuchen eines Tons, nicht beim Verschicken
+    -- tab "Sound pack" only when choosing a tone, not when sending
     if picker.noNone and want == "pack" then want = "guild" end
     for _, b in ipairs(picker.tabs.buttons or {}) do if b.key == "pack" then b:SetShown(not picker.noNone) end end
     picker.tab = want
@@ -1543,7 +1543,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
     picker:Show()
 end
 
--- Einstellungen des Sound-Fensters (Zahnrad): klappt rechts an der Glaskarte auf
+-- sound window settings (gear): expands to the right of the glass card
 function Sound.ShowPickerOptions()
     if not picker then return end
     local K, C = ns.K, ns.K.C
@@ -1601,10 +1601,10 @@ function Sound.ShowPickerOptions()
 end
 
 ------------------------------------------------------------------------
--- Sounds im Gildenchat verschicken: Code {s:key}; mit Abklingzeit gegen Spam
+-- send sounds in guild chat: code {s:key}; with cooldown against spam
 ------------------------------------------------------------------------
--- Sound dort zeigen, wo er hingeschickt wurde: Gilde / Fluestern / Gruppe / Schlachtzug
--- (im WoW-Chat in der Farbe dieses Chats, dazu im Oasis-Gildenchat bzw. Privatchat)
+-- show the sound where it was sent: guild / whisper / group / raid
+-- (in WoW chat in that chat's color, plus in the Oasis guild chat or private chat)
 local CH_TYPE = { GUILD = "GUILD", OFFICER = "OFFICER", PARTY = "PARTY", RAID = "RAID", INSTANCE_CHAT = "INSTANCE_CHAT",
     WHISPER = "WHISPER", BN_WHISPER = "WHISPER" }
 local function playerLink(name)
@@ -1627,18 +1627,18 @@ function Sound.ShowInChat(channel, who, key, outgoing)
         if has then pcall(cf.AddMessage, cf, line, info.r, info.g, info.b) shown = true end
     end
     if not shown and DEFAULT_CHAT_FRAME then pcall(DEFAULT_CHAT_FRAME.AddMessage, DEFAULT_CHAT_FRAME, line, info.r, info.g, info.b) end
-    -- Oasis-eigene Chats
+    -- Oasis's own chats
     if ct == "GUILD" and ns.GuildChat and ns.GuildChat.AddSound then pcall(ns.GuildChat.AddSound, outgoing and ns.me() or who, key) end
     if ct == "WHISPER" and ns.WhisperLog and ns.WhisperLog.AddSound then pcall(ns.WhisperLog.AddSound, who, key, outgoing) end
 end
 ------------------------------------------------------------------------
-Sound.SEND_CD = 30          -- Sekunden zwischen zwei eigenen Sounds
-Sound.RECV_CD = 20          -- je Absender hoechstens alle 20 s abspielen
--- channel/target: wohin (Gilde = Standard; Fluestern, Gruppe, Schlachtzug ... = nur dort zu hoeren)
+Sound.SEND_CD = 30          -- seconds between two own sounds
+Sound.RECV_CD = 20          -- per sender play at most every 20 s
+-- channel/target: where to (guild = default; whisper, group, raid ... = only audible there)
 function Sound.SendInChat(key, channel, target)
     local s = S()
     if not Sound.Unlocked(key) or Sound.byKey[key].dev then return end
-    -- von der Gildenleitung fuer Soundeffekte gesperrt
+    -- locked for sound effects by the guild leadership
     if ns.SoundMuted and ns.SoundMuted(ns.me()) then
         ns.K.Toast(L["Sound effects muted"], L["Guild leadership has muted sound effects for you."], ns.K.C.dim)
         return
@@ -1651,10 +1651,10 @@ function Sound.SendInChat(key, channel, target)
     Sound.lastSend = GetTime()
     Sound.Remember(key)
     pcall(Sound.UpdateCooldowns)
-    -- Ueber Addon-Nachrichten statt Chat-Text: Chat senden ist im Beta-Client fuer Addons gesperrt
-    -- ("Interface-Aktion fehlgeschlagen"). Nur Oasis-Nutzer hoeren den Sound ohnehin.
+    -- via addon messages instead of chat text: sending chat is blocked for addons in the beta client
+    -- ("Interface action failed"). Only Oasis users hear the sound anyway.
     channel = channel or "GUILD"
-    -- oben im Fenster umgestellt?
+    -- switched at the top of the window?
     if Sound.chOverride and Sound.chOverride.ch then channel, target = Sound.chOverride.ch, Sound.chOverride.tgt end
     if (channel == "PARTY" and not IsInGroup()) or (channel == "RAID" and not IsInRaid()) then
         ns.print(channel == "RAID" and L["You are not in a raid."] or L["You are not in a group."])
@@ -1663,7 +1663,7 @@ function Sound.SendInChat(key, channel, target)
     local Comm = ns.Comm
     if not Comm then return end
     if channel == "BN_WHISPER" and target then
-        -- Battle.net-Freund: direkt an sein WoW-Spielkonto (BNSendGameData), nur wenn er gerade WoW spielt
+        -- Battle.net friend: directly to their WoW game account (BNSendGameData), only if they're playing WoW right now
         local gid
         local bid = BNet_GetBNetIDAccount and ns.safe(BNet_GetBNetIDAccount(target))
         local acc = bid and C_BattleNet and C_BattleNet.GetAccountInfoByID and C_BattleNet.GetAccountInfoByID(bid)
@@ -1684,21 +1684,21 @@ function Sound.SendInChat(key, channel, target)
         Comm.Guild("SND", key)
         Pop.Add("sound", key, ns.me())
     end
-    -- selbst auch hoeren
-    -- 0.5.678: eigene Sounds immer hoeren - "Sounds aus dem Chat" gilt nur fuer Sounds anderer
+    -- hear it yourself too
+    -- 0.5.678: always hear own sounds - "Sounds from chat" only applies to others' sounds
     if s and s.sound then
         local ok, h = pcall(Sound.PlayChoice, key, s.soundVol)
-        -- 0.5.670: WoW spielt die Datei nicht (neu dazugekommen -> erst nach WoW-Neustart bekannt)
+        -- 0.5.670: WoW doesn't play the file (newly added -> only known after WoW restart)
         if not (ok and h) and (tonumber(s.soundVol) or 14) > 0 then ns.print(L["Sound could not be played - WoW only knows new sound files after a full restart."]) end
     elseif s and s.sound == false then
         ns.print(L["You don't hear the sound yourself: sounds are turned off (Settings > Sound & notices > Sound)."])
     end
-    -- bei mir selbst als Zeile im Chat zeigen (klickbar zum Anhoeren)
-    -- bei mir im passenden Chat zeigen (klickbar zum Anhoeren)
+    -- show as a line in chat for myself (clickable to listen)
+    -- show for me in the matching chat (clickable to listen)
     local whisperTo = (channel == "WHISPER" or channel == "BN_WHISPER") and target
     pcall(Sound.ShowInChat, channel, whisperTo or ns.me(), key, true)
 end
--- Battle.net-Sounds empfangen
+-- receive Battle.net sounds
 if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then pcall(C_ChatInfo.RegisterAddonMessagePrefix, "OASISND") end
 ns.On("BN_CHAT_MSG_ADDON", function(prefix, text, _, gid)
     if ns.safe(prefix) ~= "OASISND" then return end
@@ -1715,12 +1715,12 @@ local sndPrintAt, sndPrintAny = {}, 0
 if ns.Comm then
     ns.Comm.On("SND", function(sender, channel, key)
         if type(key) ~= "string" or ns.isMe(sender) then return end
-        if ns.SoundMuted and ns.SoundMuted(sender) then return end   -- Sound-Sperre der Gildenleitung
-        -- nur bekannte Sounds, und gebremst: sonst kann ein manipulierter Client den Chat mit Zeilen fluten
+        if ns.SoundMuted and ns.SoundMuted(sender) then return end   -- guild leadership sound lock
+        -- only known sounds, and throttled: otherwise a manipulated client could flood the chat with lines
         if not Sound.byKey[key] or Sound.byKey[key].dev then return end
         local now = GetTime()
         if now - (sndPrintAt[sender] or -999) < 3 or now - sndPrintAny < 1 then return end
-        -- Derselbe Sound desselben Charakters nur einmal; gleiche Vornamen bleiben getrennt.
+        -- the same sound from the same character only once; identical first names stay separate.
         local dk = ns.NameKey(sender) .. "|" .. key
         if now - (sndPrintAt[dk] or -999) < 8 then return end
         sndPrintAt[dk] = now
@@ -1730,7 +1730,7 @@ if ns.Comm then
         pcall(Sound.ShowInChat, channel or "GUILD", sender, key, false)
     end)
 end
--- Sounds auch aus Fluestern, Gruppe und Schlachtzug abspielen (nur wer dort mitliest, hoert sie)
+-- play sounds from whisper, group and raid too (only those reading there hear them)
 for _, ev in ipairs({ "CHAT_MSG_WHISPER", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER", "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER",
     "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER" }) do
     ns.On(ev, function(msg, sender)
@@ -1754,7 +1754,7 @@ function Sound.OnChatSound(sender, text)
     recvAt[who], recvAny = now, now
     Sound.PlayChoice(key, s.soundVol)
 end
--- Anzeige im Chat: {s:key} -> Lautsprecher + Name
+-- display in chat: {s:key} -> speaker + name
 function Sound.RenderCodes(text)
     if type(text) ~= "string" or not text:find("{s:", 1, true) then return text end
     return (text:gsub("{s:([%w_]+)}", function(k)
@@ -1764,7 +1764,7 @@ function Sound.RenderCodes(text)
         return "|cffe8b44a|Haddon:Oasis:snd:" .. k .. "|h|T" .. ns.MEDIA .. "icons\\speaker:14:14|t " .. name .. "|h|r"
     end))
 end
--- Sound-Link angeklickt (Oasis-Chat und Blizzard-Chat): nochmal abspielen
+-- sound link clicked (Oasis chat and Blizzard chat): play again
 function Sound.OnLink(link)
     local k = type(link) == "string" and link:match("^addon:Oasis:snd:([%w_]+)")
     if not k then return false end
@@ -1774,7 +1774,7 @@ end
 if hooksecurefunc and SetItemRef then
     hooksecurefunc("SetItemRef", function(link) pcall(Sound.OnLink, link) end)
 end
--- Blizzard-Chat: {s:...} als klickbaren Sound-Link zeigen
+-- Blizzard chat: show {s:...} as a clickable sound link
 do
     local function filter(_, _, msg, ...)
         msg = ns.safe(msg)
@@ -1791,7 +1791,7 @@ do
     end
 end
 
--- Vorhoeren: der vorherige Probe-Sound stoppt, wenn man den naechsten anklickt
+-- preview: the previous test sound stops when you click the next one
 local previewHandle
 function Sound.Preview(key, vol)
     if previewHandle and StopSound then for _, h in ipairs(previewHandle) do pcall(StopSound, h, 150) end end

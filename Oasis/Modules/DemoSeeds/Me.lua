@@ -1,7 +1,7 @@
--- Oasis: Demo-Daten fuer den Bereich "Ich" (nur /oa demo, Entwicklerversion)
--- Reiner Anzeige-Stand: Abzeichen-Zaehler (Badges.Mine(true)) und ein Beispiel-Lebenslauf fuer "Mein Weg" (Life.DB).
--- Nichts davon wird gespeichert oder an die Gilde gesendet; die echten Daten bleiben unberuehrt.
--- Legacy hat seinen eigenen Demo-Stand (Legacy.demoMine), Oasis-Rang und Profil lesen die echten Werte.
+-- Oasis: demo data for the "Me" area (only /oa demo, developer version)
+-- Display state only: badge counters (Badges.Mine(true)) and a sample life story for "My Journey" (Life.DB).
+-- None of it is saved or sent to the guild; the real data stays untouched.
+-- Legacy has its own demo state (Legacy.demoMine), Oasis rank and profile read the real values.
 local ADDON, ns = ...
 local Demo = ns.Demo
 if not Demo then return end
@@ -9,7 +9,7 @@ if not Demo then return end
 local DAY = 86400
 local HOUR = 3600
 
--- gleichmaessige "Zufallszahlen": immer dieselben Werte (Screenshots sehen nach jedem /reload gleich aus)
+-- even "random numbers": always the same values (screenshots look the same after every /reload)
 local function rng(seed)
     local s = seed
     return function(lo, hi)
@@ -19,7 +19,7 @@ local function rng(seed)
 end
 
 ------------------------------------------------------------------------
--- Abzeichen: je Zaehler ein Beispielwert, damit alle Stufen vorkommen (gesperrt, Bronze, Silber, Gold)
+-- Badges: one sample value per counter so that all tiers appear (locked, bronze, silver, gold)
 ------------------------------------------------------------------------
 function Demo.MineBadgeStats(real)
     local out = {}
@@ -29,19 +29,19 @@ function Demo.MineBadgeStats(real)
         local sum = 0
         for i = 1, #b.id do sum = sum + b.id:byte(i) end
         local t = b.tiers
-        local k = sum % 6      -- 0 = noch gesperrt (mit Fortschritt), 1-2 Bronze, 3-4 Silber, 5 Gold
+        local k = sum % 6      -- 0 = still locked (with progress), 1-2 bronze, 3-4 silver, 5 gold
         local v
         if k == 0 then v = math.floor(t[1] * (0.35 + (sum % 4) * 0.12))
         elseif k <= 2 then v = math.floor(t[1] * (1.1 + (sum % 7) / 10))
         elseif k <= 4 then v = math.floor(t[2] * (1.05 + (sum % 5) / 20))
         else v = math.floor(t[3] * 1.15) end
-        if v > (out[b.stat] or 0) then out[b.stat] = v end   -- teilen sich Abzeichen einen Zaehler, gewinnt der hoechste
+        if v > (out[b.stat] or 0) then out[b.stat] = v end   -- if badges share a counter, the highest wins
     end
     return out
 end
 
 ------------------------------------------------------------------------
--- Mein Weg: Beispiel-Lebenslauf (Reise, Rekorde, Dungeons, Mitspieler, Tode, Gold, Ziele)
+-- My Journey: sample life story (journey, records, dungeons, companions, deaths, gold, goals)
 ------------------------------------------------------------------------
 local life
 local ICON = "Interface\\Icons\\"
@@ -58,7 +58,7 @@ local function buildLife()
         gold = { days = {}, hist = {}, big = {} },
     }
 
-    -- Reise: { Stunden her, Art, Text, Symbol }  (neueste zuerst)
+    -- journey: { hours ago, type, text, icon }  (newest first)
     local E = {
         { 2, "level", "Stufe 22 erreicht", ICON .. "Spell_Holy_SurgeOfLight" },
         { 3, "boss", "Aku'mai in der Tiefschwarzen Grotte besiegt", ICON .. "Achievement_Boss_Ragnaros" },
@@ -92,7 +92,7 @@ local function buildLife()
         l.events[#l.events + 1] = { t = now - math.floor(e[1] * HOUR), k = e[2], x = e[3], i = e[4] }
     end
 
-    -- Rekorde (Schluessel wie in Life.REC); prev = vorheriger Wert
+    -- records (keys as in Life.REC); prev = previous value
     local function rec(key, v, hoursAgo, prev, x) l.rec[key] = { v = v, t = now - hoursAgo * HOUR, prev = prev, x = x } end
     rec("killsHour", 84, 14, 61)
     rec("killsSession", 412, 52, 360)
@@ -109,7 +109,7 @@ local function buildLife()
     l.rec["run:wailingcaverns"] = { v = 2285, t = now - 200 * HOUR, prev = 2610, x = { name = "Die Höhlen des Wehklagens", label = "Die Höhlen des Wehklagens - Bestzeit" } }
     l.rec["run:ragefire"] = { v = 1188, t = now - 500 * HOUR, x = { name = "Der Flammenschlund", label = "Der Flammenschlund - Bestzeit" } }
 
-    -- Dungeon-Laeufe
+    -- Dungeon runs
     local D = {
         { "ragefire", "Der Flammenschlund", 500, 1188, 3, 1 },
         { "ragefire", "Der Flammenschlund", 650, 1320, 3, 0 },
@@ -136,7 +136,7 @@ local function buildLife()
             bosses = d[5], deaths = d[6], loot = loot, party = party }
     end
 
-    -- Mitspieler (Gruppen-Gedaechtnis)
+    -- Companions (group memory)
     local classes = { "WARRIOR", "PRIEST", "MAGE", "HUNTER", "SHAMAN", "ROGUE", "DRUID", "WARLOCK" }
     for i = 1, 14 do
         local nm = who(i + 1)
@@ -145,7 +145,7 @@ local function buildLife()
             note = (i == 2 and "Immer pünktlich, heilt super") or (i == 5 and "Schlüsselmeister") or (i == 9 and "Bringt Kekse mit") or nil }
     end
 
-    -- Tode
+    -- Deaths
     local DT = {
         { 50, "Kolkar-Pirscher", 19, false, nil, "Brachland", 28, 1 },
         { 160, "Wildtatzenjäger", 21, false, nil, "Steinkrallengebirge", 34, 1 },
@@ -162,7 +162,7 @@ local function buildLife()
             dur = d[7], group = d[8], pot = (d[1] % 3 == 0) or nil, tips = {} }
     end
 
-    -- Gold-Tagebuch: 30 Tage, Einnahmen/Ausgaben nach Kategorie, Besitz-Verlauf
+    -- Gold diary: 30 days, income/expenses by category, wealth history
     local balance, goldIn, goldOut = 40000, 0, 0
     for i = 29, 0, -1 do
         local t = now - i * DAY
@@ -185,7 +185,7 @@ local function buildLife()
         { "vendor", "Kreuzungen", 42000, 5 }, { "taxi", "Orgrimmar", 18400, 8 }, { "repair", "Burg Schattenfang", 12700, 3 } }
     for _, b in ipairs(BIG) do l.gold.big[#l.gold.big + 1] = { c = b[1], z = b[2], v = b[3], t = now - b[4] * DAY } end
 
-    -- Ziele
+    -- Goals
     local function goal(g) g.id = "demo-g" .. (#l.goals + 1) l.goals[#l.goals + 1] = g end
     goal({ kind = "level", arg = 25, text = "Stufe 25 erreichen", t = now - 20 * DAY })
     goal({ kind = "gold", arg = 100, text = "100 Gold für das erste Reittier sparen", t = now - 30 * DAY })
@@ -195,7 +195,7 @@ local function buildLife()
     goal({ kind = "free", done = true, doneT = now - 5 * DAY, text = "Erste Gruppe für die Höhlen des Wehklagens finden", t = now - 26 * DAY })
     goal({ kind = "free", done = true, doneT = now - 12 * DAY, text = "Ersten Boss in einem Dungeon besiegen", t = now - 40 * DAY })
 
-    -- Zaehler, besuchte Gebiete, "Erste Male", Meilensteine
+    -- counters, visited zones, "firsts", milestones
     l.stats = { kills = 2840, deaths = #l.deaths, quests = 186, bosses = 23, goldIn = goldIn, goldOut = goldOut, noDeathAcc = 270000, online = l.played }
     for i, z in ipairs({ "Durotar", "Brachland", "Steinkrallengebirge", "Eschental", "Orgrimmar", "Mulgore", "Silberwald", "Tirisfal", "Sümpfe des Elends", "Kreuzungen", "Splittertal", "Düstermarschen", "Tausend Nadeln", "Desolace" }) do
         l.zones[z] = now - (i * 60) * HOUR
@@ -207,7 +207,7 @@ local function buildLife()
     return l
 end
 
--- Aufruf aus Life.DB() im Demo-Modus
+-- called from Life.DB() in demo mode
 function Demo.MineLife()
     if not life then
         local ok, res = pcall(buildLife)
@@ -216,5 +216,5 @@ function Demo.MineLife()
     return life
 end
 
--- Demo aus (/oa demo aus): Stand verwerfen, beim naechsten Start wird neu aufgebaut
+-- demo off (/oa demo aus): discard state, rebuilt on next start
 Demo.AddSeed("Ich", function() life = nil end, function() life = nil end)

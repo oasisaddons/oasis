@@ -1,16 +1,16 @@
--- Oasis: Zusammenspiel mit verbreiteten Addons (0.6.525)
--- Leitlinie: Oasis ist das Gilden-/Gruppen-Addon und ergaenzt die grossen Addons, statt mit ihnen zu konkurrieren
--- (wie bei FojjiCore). Ist ein Addon geladen, das etwas schon gut kann, nimmt sich Oasis dort zurueck
--- (nur der STANDARD - wer selbst umschaltet, behaelt seine Wahl) und reicht Daten weiter, wo es passt.
---  * Naowh Forever: Gruppen-XP, Bedrohung, Glimmer aus; BiS-Liste -> Gilden-Gesucht; Journal/Gruppen-Betrachten oeffnen
---  * RareScanner: eigene Rare-Warnung aus (Meldung an die Gilde bleibt)
---  * Baganator/Syndicator/Bagnon/Altoholic: Twink-Zeile im Tooltip aus (Taschen-Seite und "Gilde braucht" bleiben)
---  * Pawn: Verbesserungs-Pfeile aus (Upgrade-Boerse der Gilde bleibt)
---  * ThreatClassic2: Oasis-Bedrohungsleiste aus
---  * TomTom: Oasis-Ziele zusaetzlich als TomTom-Wegpunkt
---  * Auctionator: Marktpreise, wenn Midas fehlt
---  * Chattynator/Prat: wie EllesmereUI-Chat - Oasis greift nicht in Blizzards Chatfenster ein (ns.ForeignChat)
--- Es werden nur oeffentliche Funktionen/Tabellen der anderen Addons AUFGERUFEN, nichts daraus kopiert.
+-- Oasis: interplay with common addons (0.6.525)
+-- Guideline: Oasis is the guild/group addon and complements the big addons instead of competing with them
+-- (as with FojjiCore). If an addon is loaded that already does something well, Oasis steps back there
+-- (only the DEFAULT - whoever switches manually keeps their choice) and passes data on where it fits.
+--  * Naowh Forever: group XP, threat, glimmer off; BiS list -> guild wanted list; open journal/group inspect
+--  * RareScanner: own rare alert off (report to the guild stays)
+--  * Baganator/Syndicator/Bagnon/Altoholic: alt line in the tooltip off (bags page and "Gilde braucht" stay)
+--  * Pawn: upgrade arrows off (guild upgrade exchange stays)
+--  * ThreatClassic2: Oasis threat bar off
+--  * TomTom: Oasis targets additionally as TomTom waypoint
+--  * Auctionator: market prices if Midas is missing
+--  * Chattynator/Prat: like EllesmereUI chat - Oasis does not touch Blizzard's chat window (ns.ForeignChat)
+-- Only public functions/tables of the other addons are CALLED, nothing is copied from them.
 local ADDON, ns = ...
 local L = ns.L
 local CP = {}
@@ -26,8 +26,8 @@ local function any(list) for _, n in ipairs(list) do if CP.Has(n) then return n 
 CP.BAGS = { "Baganator", "Syndicator", "Bagnon", "BagBrother", "Altoholic", "AdiBags", "BetterBags", "ArkInventory" }
 CP.CHAT = { "Chattynator", "Prat-3.0" }
 
--- Standardwerte, nur wenn der Spieler die Einstellung nie selbst gesetzt hat (nil). Merker compatSet, damit
--- Oasis seine eigene Vorgabe zuruecknimmt, wenn das andere Addon spaeter wieder fehlt.
+-- Defaults, only if the player never set the option themselves (nil). Marker compatSet so
+-- Oasis withdraws its own default if the other addon is missing again later.
 local RULES = {
     { key = "partyXP", value = false, when = function() return CP.Has("NaowhForever_QoL") end },
     { key = "threatBar", value = false, when = function() return CP.Has("NaowhForever_Combat") or CP.Has("ThreatClassic2") end },
@@ -47,18 +47,18 @@ function CP.Apply()
             s[r.key] = r.value
             s.compatSet[r.key] = r.value
         elseif not on and s.compatSet[r.key] ~= nil and s[r.key] == s.compatSet[r.key] then
-            -- das andere Addon ist weg und der Wert stammt von uns -> wieder Oasis-Standard
+            -- the other addon is gone and the value came from us -> back to the Oasis default
             s[r.key] = nil
             s.compatSet[r.key] = nil
         end
     end
 end
--- vor den LOGIN-Haken der Module (die setzen sonst ihre eigenen Standardwerte)
+-- before the modules' LOGIN hooks (they would otherwise set their own defaults)
 ns.Listen("DB_READY", function() pcall(CP.Apply) end)
--- Wenn der Spieler selbst schaltet, ist es seine Wahl (Merker loeschen)
+-- If the player switches it themselves, it is their choice (clear the marker)
 function CP.UserSet(key) local s = ns.db and ns.db.settings if s and s.compatSet then s.compatSet[key] = nil end end
 
--- Liste fuer Einstellungen > Status: welche Addons erkannt wurden und was Oasis deshalb tut
+-- List for Settings > Status: which addons were detected and what Oasis does because of it
 CP.KNOWN = {
     { "NaowhForever", "Naowh Forever", "BiS list into the guild wishlist, opens journal and group inspect; Oasis XP bar, threat and glimmer off" },
     { "RareScanner", "RareScanner", "Rare alerts come from RareScanner; Oasis keeps sharing sightings with the guild" },
@@ -97,7 +97,7 @@ ns.slash.addons = function()
 end
 
 ------------------------------------------------------------------------
--- TomTom: Oasis-Ziel zusaetzlich als Wegpunkt
+-- TomTom: Oasis target additionally as waypoint
 ------------------------------------------------------------------------
 local tomUid
 function CP.TomTomTarget(t)
@@ -115,7 +115,7 @@ function CP.TomTomClear()
 end
 
 ------------------------------------------------------------------------
--- Auctionator: Preis, wenn Midas fehlt
+-- Auctionator: price if Midas is missing
 ------------------------------------------------------------------------
 function CP.AuctionatorPrice(itemID)
     local A = rawget(_G, "Auctionator")
@@ -126,13 +126,13 @@ function CP.AuctionatorPrice(itemID)
 end
 
 ------------------------------------------------------------------------
--- Naowh Forever: BiS-Liste -> Gilden-Wunschliste, Fenster oeffnen
+-- Naowh Forever: BiS list -> guild wish list, open window
 ------------------------------------------------------------------------
 local N = {}
 CP.Naowh = N
 local function NS() local n = rawget(_G, "NaowhForever") return type(n) == "table" and n or nil end
 function N.Has() return NS() ~= nil end
--- Spitzenwahl je Platz aus Naowhs BiS-Listen (Liste der aktuellen Spezialisierung, sonst alle)
+-- Top pick per slot from Naowh's BiS lists (list of the current specialization, otherwise all)
 function N.BisItems()
     local n = NS()
     local B = n and n.BiS
@@ -154,7 +154,7 @@ function N.BisItems()
     table.sort(out)
     return out
 end
--- noch nicht im Besitz und noch nicht auf meiner Oasis-Wunschliste
+-- not owned yet and not yet on my Oasis wish list
 function N.NewWishes()
     local mine = {}
     for _, w in ipairs(ns.Wants and ns.Wants.All and ns.Wants.All() or {}) do

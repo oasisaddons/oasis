@@ -1,12 +1,12 @@
--- Oasis - Credits: Lizenz und Herkunft der fremden Bestandteile. Steht seit 0.5.928 unten im Reiter
--- Einstellungen > Profil & Daten > Status (vorher eigener Reiter - die Reiterzeile wurde zu voll).
--- Kurzfassung von CREDITS.txt (dort und in LICENSE / LICENSE-MIT.txt stehen die vollen Texte). Bei neuen fremden
--- Inhalten BEIDE Stellen pflegen.
+-- Oasis - Credits: license and origin of third-party components. Since 0.5.928 at the bottom of the tab
+-- Settings > Profile & Data > Status (previously its own tab - the tab row got too full).
+-- Short version of CREDITS.txt (the full texts are there and in LICENSE / LICENSE-MIT.txt). For new third-party
+-- content, maintain BOTH places.
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
--- { head = Ueberschrift } oder { Name, Beschreibung }; Eigennamen bleiben unuebersetzt
+-- { head = heading } or { name, description }; proper names stay untranslated
 local ROWS = {
     { head = "Oasis" },
     { "License", "GNU General Public License version 2 (GPL-2.0). Oasis may be shared and modified as long as this license is kept." },
@@ -35,8 +35,8 @@ ns.CreditRows = ROWS
 
 local NAME_W = 230
 
--- f = Reiter-Flaeche, x0/y0 = linke obere Ecke des Blocks, width = Breite. Die Ueberschrift bekommt wie alle
--- Abschnitte der Einstellungen automatisch eine Karte um sich und ihren Inhalt (Settings.lua autoCards).
+-- f = tab area, x0/y0 = top left corner of the block, width = width. Like all settings sections, the heading
+-- automatically gets a card around itself and its content (Settings.lua autoCards).
 local Credits = {}
 ns.Credits = Credits
 function Credits.Build(f, x0, y0, width)
@@ -44,7 +44,7 @@ function Credits.Build(f, x0, y0, width)
     local W = math.max(300, (width or (f:GetWidth() or 740)) - 28)
     local X = (x0 or 0) + 14
     if H and H.section then H.section(f, L["Credits"], X, (y0 or 0) - 12, W) end
-    local prev, indent   -- indent: prev ist eine Beschreibung (steht um NAME_W eingerueckt)
+    local prev, indent   -- indent: prev is a description (indented by NAME_W)
     local function below(o, gap)
         if prev then
             o:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", indent and -NAME_W or 0, -gap)

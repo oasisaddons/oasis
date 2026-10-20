@@ -1,13 +1,13 @@
--- Oasis: Kampf-Rangliste der Gilde (0.5.577, neu 0.5.582)
--- Summen: Blizzards eingebaute Schadensanzeige (C_DamageMeter) NACH jedem Kampf.
--- Crits: bestaetigte Einzeltreffer aus lesbarem Kampflog oder Logdatei-Import (CombatCrit.lua).
--- Jeder merkt sich seine Bestwerte und teilt sie (Store "combat", ein Datensatz je Spieler).
--- 0.5.582: In Instanzen sind die Werte nach dem Kampf noch eine Weile gesperrt (Addon-Sperre "Combat"/"ChallengeMode",
--- Werte kommen als secret). Jeder Kampf wird deshalb mit seiner Sitzungs-ID vorgemerkt und ausgewertet, sobald
--- Blizzard die Werte freigibt (ADDON_RESTRICTION_STATE_CHANGED, Bossende, Verlassen der Instanz, sonst alle 20 s).
--- Geheime Werte werden nie verglichen oder geraten.
+-- Oasis: guild combat leaderboard (0.5.577, new 0.5.582)
+-- Totals: Blizzard's built-in damage meter (C_DamageMeter) AFTER every fight.
+-- Crits: confirmed single hits from readable combat log or log file import (CombatCrit.lua).
+-- Everyone remembers their best values and shares them (store "combat", one record per player).
+-- 0.5.582: In instances the values stay locked for a while after combat (addon restriction "Combat"/"ChallengeMode",
+-- values come as secret). Each fight is therefore queued with its session ID and evaluated as soon as
+-- Blizzard releases the values (ADDON_RESTRICTION_STATE_CHANGED, boss end, leaving the instance, else every 20 s).
+-- Secret values are never compared or guessed.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Combat", function()   -- Modul Kampf-Rangliste (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Combat", function()   -- Module Combat leaderboard (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -20,14 +20,14 @@ local function week() return date("%Y-%W") end
 local function animOn() return not (ns.db and ns.db.settings and ns.db.settings.noAnim) end
 
 ------------------------------------------------------------------------
--- Auslesen
+-- Read out
 ------------------------------------------------------------------------
 local function DMT(k) return Enum and Enum.DamageMeterType and Enum.DamageMeterType[k] end
 local function currentType()
     local ST = Enum and Enum.DamageMeterSessionType
     return ST and (ST.Current or ST.LastFight or ST.Overall) or 1
 end
--- Sitzung je Art: ueber die gemerkte ID, sonst "aktuelle" Sitzung (aeltere Clients)
+-- Session per type: via the remembered ID, else "current" session (older clients)
 local function session(entry, typ)
     local DM = C_DamageMeter
     if not DM or typ == nil then return nil end
@@ -36,9 +36,9 @@ local function session(entry, typ)
     elseif DM.GetCombatSessionFromType then ok, s = pcall(DM.GetCombatSessionFromType, currentType(), typ) end
     return ok and type(s) == "table" and s or nil
 end
--- eigene Zeile: isLocalPlayer ist laut Blizzard nie geheim; Name/GUID nur, wenn lesbar
+-- own row: isLocalPlayer is never secret per Blizzard; name/GUID only if readable
 local function mySource(s)
-    -- manche Clients liefern die Quellen-Liste direkt (wie nesUI liest)
+    -- some clients deliver the source list directly (as nesUI reads it)
     local list = s and (s.combatSources or s.sources or (type(s[1]) == "table" and s))
     if type(list) ~= "table" then return nil end
     local guid = UnitGUID and UnitGUID("player")
@@ -49,18 +49,18 @@ local function mySource(s)
             if own ~= nil and not issecret(own) and own == true then return src end
             local g, n = src.sourceGUID, src.name
             if (g and not issecret(g) and g == guid) or (n and not issecret(n) and n == me) then return src end
-            -- 0.5.621: Name mit Realm ("Mira-Realm") oder "Vorname Nachname"
+            -- 0.5.621: name with realm ("Mira-Realm") or "First Last"
             if n and not issecret(n) and type(n) == "string" and me and ns.SameName(n, me) then return src end
         end
     end
-    -- allein unterwegs: genau eine Quelle = ich
+    -- solo: exactly one source = me
     if not (IsInGroup and IsInGroup()) and #list == 1 and type(list[1]) == "table" then return list[1] end
 end
--- Ergebnis je Art: Zahl, false = gesperrt (geheim), nil = kein Wert
+-- Result per type: number, false = locked (secret), nil = no value
 local function amount(entry, typ)
     local s = session(entry, typ)
     local src = s and mySource(s)
-    -- 0.5.621: ueber die Sitzungs-ID nichts gefunden -> wie nesUI ueber "aktueller Kampf" (nur der juengste Kampf)
+    -- 0.5.621: nothing found via the session ID -> like nesUI via "current fight" (only the most recent fight)
     if not src and entry.newest and C_DamageMeter and C_DamageMeter.GetCombatSessionFromType and typ ~= nil then
         local ok, s2 = pcall(C_DamageMeter.GetCombatSessionFromType, currentType(), typ)
         if ok and type(s2) == "table" then
@@ -70,7 +70,7 @@ local function amount(entry, typ)
     end
     if not s then return nil end
     if not src then
-        -- Liste selbst gesperrt? (Eintraege da, aber nichts lesbar)
+        -- List itself locked? (entries present, but nothing readable)
         local list = s.combatSources or s.sources or (type(s[1]) == "table" and s)
         if type(list) == "table" and #list > 0 and type(list[1]) == "table" and issecret(list[1].totalAmount) then return false end
         return nil
@@ -101,7 +101,7 @@ local function duration(entry, s)
     end
     return s and num(s.durationSeconds or s.duration)
 end
--- Feldnamen einer Tabelle (fuer die Diagnose), Werte nur als Typ
+-- Field names of a table (for diagnostics), values only as type
 function CB.KeysOf(t)
     if type(t) ~= "table" then return tostring(t) end
     local out = {}
@@ -113,7 +113,7 @@ function CB.KeysOf(t)
     return table.concat(out, ", ")
 end
 
--- vorgemerkte Kaempfe (ueberleben /reload, beim echten Einloggen verworfen - Sitzungs-IDs beginnen dann neu)
+-- queued fights (survive /reload, discarded on real login - session IDs restart then)
 local function pend() ns.db.cbPending = ns.db.cbPending or {} return ns.db.cbPending end
 local function done() ns.db.cbDone = ns.db.cbDone or {} return ns.db.cbDone end
 CB.lost = 0
@@ -148,7 +148,7 @@ CB.fmt = fmt
 local pendingShare = false
 local function queueShare(c)
     CB.pending = c
-    -- teilen gebuendelt (nach vielen kleinen Kaempfen nicht dauernd senden)
+    -- share batched (don't send constantly after many small fights)
     if not pendingShare then
         pendingShare = true
         ns.After(90, function()
@@ -161,8 +161,8 @@ local function queueShare(c)
     end
 end
 
--- Einzelrekorde kommen aus den Charakterstatistiken, nicht aus Zauber-Summen.
--- Diese Quelle unterscheidet kritische und normale Treffer NICHT.
+-- Single records come from the character statistics, not from spell totals.
+-- This source does NOT distinguish critical and normal hits.
 local statIDs = {}
 local function statKind(name)
     if type(name) ~= "string" or issecret(name) then return end
@@ -179,7 +179,7 @@ local function discoverStats()
         local kind = ok and statKind(name)
         if kind and num(aid) then statIDs[kind] = aid end
     end
-    -- Alte IDs nur verwenden, wenn der Client den passenden Titel bestaetigt.
+    -- Use old IDs only if the client confirms the matching title.
     inspect(193); inspect(189)
     if statIDs.mh and statIDs.mhh then return end
     if not (GetStatisticsCategoryList and GetCategoryNumAchievements) then return end
@@ -197,7 +197,7 @@ local function statNumber(value)
     if issecret(value) then return end
     if type(value) == "number" then return num(value) end
     if type(value) ~= "string" then return end
-    -- GetStatistic liefert lokalisierte Ganzzahlen, etwa 1.234 / 1,234 / 1 234.
+    -- GetStatistic returns localized integers, e.g. 1.234 / 1,234 / 1 234.
     value = value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
     value = value:gsub("[.,%s]", ""):gsub("\194\160", ""):gsub("\226\128\175", "")
     if value:match("^%d+$") then return num(tonumber(value)) end
@@ -223,7 +223,7 @@ function CB.ReadStatistics()
             diag[key .. "State"] = not ok and "error" or value == nil and "unreadable" or value <= 0 and "empty" or "ok"
             if c[key .. "crit"] ~= true and value and value > 0 and value > (c[key] or 0) then
                 c[key] = value
-                -- Historischer Charakterrekord: keinen aktuellen Ort oder Zauber erfinden.
+                -- Historic character record: don't invent a current location or spell.
                 c[key .. "z"], c[key .. "s"], c[key .. "t"] = nil, nil, ns.now()
                 c[key .. "src"] = "statistic"
                 changed = true
@@ -240,14 +240,14 @@ function CB.ReadStatistics()
     end
 end
 
--- Nur bestaetigte kritische Einzeltreffer aufnehmen, keine Zauber-/Sitzungssummen.
+-- Only record confirmed critical single hits, no spell/session totals.
 function CB.RecordCrit(key, value, spellID, source)
     value = num(value)
     if (key ~= "mh" and key ~= "mhh") or not value or value <= 0 then return false end
     local c = myRec()
     if not c then return false end
     if c[key .. "crit"] == true and value <= (num(c[key]) or 0) then return false end
-    -- geschaetzter Gruppen-Crit ueberschreibt einen sicher erkannten: den sicheren Wert daneben aufheben (key .. "c")
+    -- estimated group crit overwrites a reliably detected one: keep the reliable value alongside (key .. "c")
     if source == "group" and c[key .. "crit"] == true and c[key .. "src"] ~= "group" then c[key .. "c"] = num(c[key]) end
     c[key], c[key .. "crit"], c[key .. "src"] = value, true, source
     c[key .. "t"], c[key .. "z"], c[key .. "s"] = ns.now(), nil, nil
@@ -266,34 +266,34 @@ function CB.RecordCrit(key, value, spellID, source)
     return true
 end
 
--- einen vorgemerkten Kampf versuchen: "ok" | "wait" (gesperrt) | "lost" (Sitzung weg)
+-- try a queued fight: "ok" | "wait" (locked) | "lost" (session gone)
 local function tryEntry(entry)
     if entry.id and not listEntry(entry.id) then return "lost" end
     local dmg, dps0 = amount(entry, DMT("DamageDone"))
     local heal = amount(entry, DMT("HealingDone"))
     local taken = amount(entry, DMT("DamageTaken"))
     if dmg == false or heal == false or taken == false then return "wait" end
-    -- Diagnose fuer die Speicherdatei (was beim Auslesen ankam)
+    -- Diagnostics for the saved-variables file (what arrived when reading)
     ns.db.cbDiag = { t = ns.now(), id = entry.id, newest = entry.newest, d = dmg, h = heal, tk = taken,
         types = DMT("DamageDone") ~= nil, sess = #(sessionList() or {}), v = ns.version }
     if not (dmg or heal or taken) then ns.db.cbDiag.res = "empty" return "empty" end
-    -- 0.5.621: Fahrzeug-Kaempfe zaehlen nicht (Kanonen, Belagerungsgeraete, Quest-Fahrzeuge)
+    -- 0.5.621: vehicle fights don't count (cannons, siege engines, quest vehicles)
     if entry.veh then ns.db.cbDiag.res = "vehicle" CB.skipped = (CB.skipped or 0) + 1 return "ok" end
     local c = myRec()
     if not c then return "wait" end
     local key = entry.id and tostring(entry.id) or "cur"
     local prev = done()[key] or {}
     local dur = duration(entry, session(entry, DMT("DamageDone")))
-    -- dieselbe Sitzung nicht doppelt zaehlen (eine Sitzung kann ueber mehrere Kaempfe wachsen)
+    -- don't count the same session twice (a session can grow over several fights)
     local dd, dh, dt = (dmg or 0) - (prev.d or 0), (heal or 0) - (prev.h or 0), (taken or 0) - (prev.t or 0)
     if dd <= 0 and dh <= 0 and dt <= 0 and prev.d then return "ok" end
     done()[key] = { d = dmg or 0, h = heal or 0, t = taken or 0, at = ns.now() }
     local now = ns.now()
     local recs = {}
-    -- 0.5.621: unrealistische Werte (Quest-Buffs, Fahrzeuge, Testwerte) nicht als Rekord - Grenzen nach Stufe
+    -- 0.5.621: unrealistic values (quest buffs, vehicles, test values) not as a record - limits by level
     local lvl = math.max(1, tonumber(ns.safe(UnitLevel("player"))) or 1)
     local CAP = {
-        mh = 40 * lvl + 3 * lvl * lvl,          -- Stufe 60: 13.200 hoechster Treffer
+        mh = 40 * lvl + 3 * lvl * lvl,          -- Level 60: 13,200 highest hit
         mhh = 40 * lvl + 3 * lvl * lvl,
         dps = 15 * lvl + 0.5 * lvl * lvl,       -- Stufe 60: 2.700 DPS
     }
@@ -329,7 +329,7 @@ local function tryEntry(entry)
     ns.db.cbLast = { d = dmg, h = heal, tk = taken, dur = dur, dps = dps, z = entry.z, t = entry.t or now, inst = entry.inst, late = (now - (entry.t or now)) > 5 }
     Store.coll(COLL)[c.id] = c   -- lokal sofort sichtbar
     queueShare(c)
-    -- neuer persoenlicher Rekord (nicht beim allerersten Wert): ein Hinweis je Kampf
+    -- new personal record (not on the very first value): one notice per fight
     if #recs > 0 then
         local r = recs[1]
         local more = #recs > 1 and ("  |cff888888+" .. (#recs - 1) .. "|r") or ""
@@ -359,7 +359,7 @@ function CB.Pump()
     end
     ns.db.cbPending = keep
     ns.Debounce("combatBoard", 0.5, function() ns.RefreshPage("fight") end)
-    -- solange etwas wartet: alle 20 s erneut (ein Zeitgeber)
+    -- while something is pending: retry every 20 s (one timer)
     if #keep > 0 and not pumpTimer then
         pumpTimer = true
         ns.After(20, function() pumpTimer = false CB.Pump() end)
@@ -367,7 +367,7 @@ function CB.Pump()
 end
 CB.Waiting = function() return ns.db and ns.db.cbPending and #ns.db.cbPending or 0 end
 
--- Kampfende: juengste Sitzung vormerken
+-- Combat end: queue the most recent session
 local function noteFight()
     if not C_DamageMeter or not ns.db then return end
     local id
@@ -385,7 +385,7 @@ local function noteFight()
     P[#P + 1] = { id = id, z = GetRealZoneText and ns.safe(GetRealZoneText()) or "", t = ns.now(), inst = inst, newest = true, veh = veh }
     while #P > 40 do table.remove(P, 1) end
 end
--- 0.5.621: im Fahrzeug gekaempft? (dann zaehlt der Kampf nicht fuer Rekorde)
+-- 0.5.621: fought in a vehicle? (then the fight doesn't count for records)
 local function vehCheck()
     local v = (UnitInVehicle and ns.safe(UnitInVehicle("player"))) or (UnitHasVehicleUI and ns.safe(UnitHasVehicleUI("player")))
         or (UnitControllingVehicle and ns.safe(UnitControllingVehicle("player")))
@@ -398,13 +398,13 @@ ns.On("PLAYER_REGEN_ENABLED", function()
     pcall(noteFight)
     ns.After(1.5, function() CB.Pump(); CB.ReadStatistics() end)
 end)
--- Blizzard hebt eine Addon-Sperre auf (genau dann sind die Werte wieder lesbar)
+-- Blizzard lifts an addon restriction (exactly then the values are readable again)
 ns.On("ADDON_RESTRICTION_STATE_CHANGED", function() if CB.Waiting() > 0 then ns.After(0.3, CB.Pump) end end)
 ns.On("ENCOUNTER_END", function() if CB.Waiting() > 0 then ns.After(2, CB.Pump) end end)
 ns.On("DAMAGE_METER_COMBAT_SESSION_UPDATED", function()
     if CB.Waiting() > 0 and not ns.inCombat() then ns.Debounce("cbPump", 2, CB.Pump) end
 end)
--- Sitzungen geloescht (Zuruecksetzen) -> Wartendes ist verloren
+-- Sessions deleted (reset) -> pending data is lost
 ns.On("DAMAGE_METER_RESET", function()
     if not ns.db then return end
     local n = CB.Waiting()
@@ -421,13 +421,13 @@ end)
 ns.On("PLAYER_LOGOUT", function() if CB.pending then pcall(Store.Put, COLL, CB.pending) end end)
 ns.On("PLAYER_REGEN_ENABLED", function() if CB.pending then queueShare(CB.pending) end end)
 
--- Statistiken funktionieren auch ohne verfuegbare Schadensmesser-Sitzung.
+-- Statistics also work without an available damage meter session.
 ns.On("PLAYER_ENTERING_WORLD", function() ns.After(3, CB.ReadStatistics) end)
 ns.On("CRITERIA_UPDATE", function()
     if ns.db and not ns.inCombat() then ns.Debounce("cbStatistics", 5, CB.ReadStatistics) end
 end)
 
--- Rechte: nur der eigene Datensatz
+-- Permissions: only own record
 local function installAuth()
     local A = ns.Admin
     if A and A.AUTH then A.AUTH[COLL] = function(rec, actor) return rec.who ~= nil and A.SameName(rec.who, actor) end end
@@ -437,7 +437,7 @@ ns.Listen("LOGIN", installAuth)
 ns.Listen("STORE", function(coll) if coll == COLL then ns.Debounce("combatBoard", 1, function() ns.RefreshPage("fight") end) end end)
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local CATS = {
     { key = "bd", text = "Damage", sub = "Most damage in one fight", icon = "raid" },
@@ -454,13 +454,13 @@ local function valueOf(r, cat, wk)
     if cat.spell and r[cat.key .. "crit"] ~= true then return nil end
     return r[cat.key]
 end
--- sortierte Liste je Kategorie
+-- sorted list per category
 local function ranking(cat)
     local wk = week()
     local list, byName = {}, {}
     for _, r in ipairs(Store.List(COLL)) do
         local v = valueOf(r, cat, wk)
-        -- derselbe Charakter kommt teils doppelt an (anderer Realm-Anhang, nur Vorname): als einen zaehlen
+        -- the same character sometimes arrives twice (different realm suffix, first name only): count as one
         local key = (ns.ResolveName and ns.ResolveName(r.who, true) or tostring(r.who)):lower()
         if RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() then key = key:match("^(.*)%-[^%-]+$") or key end
         if v and v > 0 and (not byName[key] or v > byName[key].v) then byName[key] = { r = r, v = v } end
@@ -508,8 +508,8 @@ local function card(p, icon, title, sub)
     return c
 end
 local MEDAL = { { 1, 0.80, 0.32 }, { 0.80, 0.84, 0.92 }, { 0.86, 0.56, 0.32 } }
-local POD_H = { 62, 44, 30 }       -- Sockelhoehe Platz 1/2/3
-local POD_IC = { 46, 38, 38 }      -- Symbolgroesse
+local POD_H = { 62, 44, 30 }       -- Pedestal height place 1/2/3
+local POD_IC = { 46, 38, 38 }      -- Icon size
 local ROWS = 9
 
 -- Podest-Platz (1-3)
@@ -552,7 +552,7 @@ local function podSlot(p, parent, i)
     s.hl:SetColorTexture(1, 1, 1, 0.035)
     if K.RoundMask then K.RoundMask(s.hl, s.hl, 10) end
     s.hl:Hide()
-    -- 0.6.445: mit Gildenmodul dieselben Bildkarten wie die Todeswuerfel-Rangliste (Gold/Silber/Bronze + Krone)
+    -- 0.6.445: with the guild module the same image cards as the deathroll leaderboard (gold/silver/bronze + crown)
     if ns.GuildPack then
         local MED = { "gold", "silver", "bronze" }
         s.card = s:CreateTexture(nil, "BACKGROUND", nil, -2)
@@ -612,7 +612,7 @@ local function listRow(p, parent, i)
     return r
 end
 
--- Tooltip: alle Rekorde einer Person mit Platz
+-- Tooltip: all records of a person with place
 function CB.ShowTip(owner, rec)
     local lines = { colored(rec.who) }
     local wk = week()
@@ -649,7 +649,7 @@ ns.RegisterPage({
         p.seg:SetPoint("TOPLEFT", 0, 0)
         p:HookScript("OnShow", function() p.animNext = true end)
 
-        -- Rangliste (links): Podest + Liste
+        -- Leaderboard (left): podium + list
         local list = card(p, "raid", L["Ranking"], "")
         list:SetPoint("TOPLEFT", 0, -40)
         list:SetPoint("BOTTOMRIGHT", p, "BOTTOMRIGHT", -282, 0)
@@ -679,7 +679,7 @@ ns.RegisterPage({
         end
         p.more = K.Text(list, 10, C.dim)
         p.more:SetPoint("BOTTOMLEFT", 16, 44)
-        -- wenige Eintraege: statt leerer Flaeche kurz erklaeren, wie Werte hierher kommen
+        -- few entries: instead of an empty area briefly explain how values get here
         p.hintT = K.Text(list, 12, C.muted)
         p.hintT:SetPoint("TOPLEFT", p.pod, "BOTTOMLEFT", 6, -26)
         p.hint = K.Text(list, 12, C.dim)
@@ -688,7 +688,7 @@ ns.RegisterPage({
         p.hint:SetWordWrap(true)
         p.hint:SetJustifyV("TOP")
         if p.hint.SetSpacing then p.hint:SetSpacing(4) end
-        -- eigener Platz, unten angeheftet
+        -- own place, pinned at the bottom
         p.meBar = CreateFrame("Button", nil, list)
         p.meBar:SetHeight(30)
         p.meBar:SetPoint("BOTTOMLEFT", 10, 10)
@@ -712,7 +712,7 @@ ns.RegisterPage({
         end)
         p.retryStats:SetPoint("TOP", p.empty, "BOTTOM", 0, -16)
 
-        -- Spieler-Karte (rechts oben)
+        -- Player card (top right)
         local pc = card(p, "profile", L["Player"], "")
         pc:SetPoint("TOPRIGHT", 0, -40)
         pc:SetSize(270, 262)
@@ -762,7 +762,7 @@ ns.RegisterPage({
             pc.rows[i] = r
         end
 
-        -- Letzter Kampf (rechts unten)
+        -- Last fight (bottom right)
         local lf = card(p, "stats", L["Last fight"], "")
         lf:SetPoint("TOPRIGHT", pc, "BOTTOMRIGHT", 0, -12)
         lf:SetPoint("BOTTOMLEFT", p, "BOTTOMRIGHT", -270, 0)
@@ -795,7 +795,7 @@ ns.RegisterPage({
         local diag = ns.db.cbStatDiag
         local checked = cat.spell and ns.db.cbCritDiag and ns.db.cbCritDiag.t or diag and diag.t
         local source = cat.spell and L["Source: your own crits. Reliable when solo; estimated in groups and dungeons (hit right after your own attack)."] or L["Source: Blizzard damage meter."]
-        -- klarstellen, was gezaehlt wird: der beste EINZELNE Kampf, egal wo - Ort und Zeit gehoeren zu diesem Kampf
+        -- clarify what is counted: the best SINGLE fight, wherever - location and time belong to that fight
         if not cat.spell and not cat.week then source = L["Counts each player's best single fight - dungeon or open world."] .. "\n" .. source end
         p.listCard.s:SetText(source .. (cat.spell and checked and ("\n" .. (L["Last check: %s"]):format(ns.ago(checked))) or ""))
         local anim = p.animNext and animOn()
@@ -856,7 +856,7 @@ ns.RegisterPage({
                 s.val:SetText("")
                 s.rank:SetText(i)
             end
-            -- freier Platz: kein farbiger Kreis, nur ein blasser Sockel
+            -- free slot: no colored circle, only a faded base
             local ra, ia, ba = e and 0.9 or 0, e and 1 or 0, e and 1 or 0.45
             s.base:SetAlpha(ba)
             local h = POD_H[i]
@@ -875,7 +875,7 @@ ns.RegisterPage({
                 if e then s.val:SetText(fmt(e.v)) end
             end
         end
-        -- Liste ab Platz 4
+        -- List from place 4
         local listW = math.max(100, (p.listCard:GetWidth() or 400) - 24)
         for i, row in ipairs(p.rows) do
             local e = list[i + 3]
@@ -907,7 +907,7 @@ ns.RegisterPage({
                 end
             end
         end
-        -- bis drei Eintraege bleibt die Liste leer: dort steht, wie man in die Rangliste kommt
+        -- up to three entries the list stays empty: it says how to get onto the leaderboard
         local few = any and #list <= 3 and not cat.spell
         p.hintT:SetShown(few)
         p.hint:SetShown(few)
@@ -918,7 +918,7 @@ ns.RegisterPage({
         end
         local shown = math.min(#list, ROWS + 3)
         p.more:SetText(#list > shown and (L["+ %d more"]):format(#list - shown) or "")
-        -- eigener Platz
+        -- own place
         local me = ns.me()
         local myPos, myVal
         for i, e in ipairs(list) do if ns.isMe(e.r.who) then myPos, myVal = i, e.v break end end
@@ -931,7 +931,7 @@ ns.RegisterPage({
         end
         p.meBar:SetShown(any or CB.Waiting() > 0)
 
-        -- Spieler-Karte
+        -- Player card
         local selWho = p.sel or me
         local rec
         for _, r in ipairs(Store.List(COLL)) do if r.who == selWho then rec = r break end end
@@ -968,7 +968,7 @@ ns.RegisterPage({
             else
                 r.fill:SetWidth(w)
             end
-            -- frischer Rekord: Zeile kurz hervorheben
+            -- fresh record: briefly highlight the row
             if CB.flash == c.key and ns.isMe(selWho) then
                 CB.flash = nil
                 r.hl:Show()

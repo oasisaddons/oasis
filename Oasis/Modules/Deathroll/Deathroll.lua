@@ -1,19 +1,19 @@
--- Oasis: Todeswuerfeln (Deathroll)
--- Abwechselnd /roll 1-N, das Ergebnis ist das neue N. Wer die 1 wuerfelt, verliert.
--- Gezaehlt werden die echten Wuerfe aus dem Systemchat (vom Server gewuerfelt).
+-- Oasis: Deathroll
+-- Take turns /roll 1-N, the result is the new N. Whoever rolls the 1 loses.
+-- Counted are the real rolls from the system chat (rolled by the server).
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Deathroll", function()   -- Modul Deathroll (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Deathroll", function()   -- Deathroll module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be tampered with):
+-- sanitize texts, cap numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- escape sequences (|c |r |n |H |T |K |A ...) and control characters neutralized; links: valid item/spell links are kept
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -63,8 +63,8 @@ local DR = {}
 ns.Deathroll = DR
 DR.game = nil
 
--- Gilden-Optionen (Gildenleitung): Einsaetze, offene Einladungen an die Gilde, Chronik
--- 0.5.912: Standard AUS (Spiele um Gold koennen gegen Blizzard-/Realm-Regeln verstossen) - die Gildenleitung schaltet es bewusst ein
+-- Guild options (guild leadership): stakes, open invites to the guild, chronicle
+-- 0.5.912: default OFF (games for gold may violate Blizzard/realm rules) - guild leadership turns it on deliberately
 ns.GuildOption({ page = "deathroll", key = "drStake", default = false,
     label = "Allow stakes", desc = "Players may state a stake (e.g. gold). Off: all games run without a stake. Please observe your realm's rules on gambling." })
 ns.GuildOption({ page = "deathroll", key = "drLobby", default = true,
@@ -77,7 +77,7 @@ local function stakeOK(stake)
 end
 
 ------------------------------------------------------------------------
--- Wurf-Erkennung aus "Mira wuerfelt. Ergebnis: 57 (1-100)"
+-- roll detection from "Mira wuerfelt. Ergebnis: 57 (1-100)"
 ------------------------------------------------------------------------
 local rollPats
 local function toPat(fmt)
@@ -97,18 +97,18 @@ local function buildPattern()
 end
 
 ------------------------------------------------------------------------
--- Spielablauf
+-- Game flow
 ------------------------------------------------------------------------
 local function other(g, name) return name == g.a and g.b or g.a end
--- Ablauf je Spiel (g.state): invite_out/invite_in -> live -> done
---   Nebenwege: invite_out -> noanswer (keine Antwort), live/invite_* -> aborted (Gegner weg, ohne Wertung)
--- Jede Herausforderung hat eine eigene Spiel-ID (g.id); auch Revanche = neue Herausforderung mit neuer ID.
-local INVITE_TTL = 60      -- so lange wartet eine Einladung auf Antwort
-local TURN_TTL = 90        -- so lange darf der Gegner fuer einen Wurf brauchen, dann Abbruch ohne Wertung
-local invPop               -- das eine Einladungs-Fenster (wird wiederverwendet)
-DR.seenInv = {}            -- [Spiel-ID] = Zeit: doppelt zugestellte Einladungen verwerfen
-DR.scored = {}             -- [Spiel-ID] = true: Wertung (Abzeichen/Chronik/Rangliste) nur einmal
--- angelegte Ausruestung (Item-IDs) fuer das Modell beim Gegner
+-- flow per game (g.state): invite_out/invite_in -> live -> done
+--   side paths: invite_out -> noanswer (no answer), live/invite_* -> aborted (opponent gone, unrated)
+-- Every challenge has its own game ID (g.id); a rematch too = new challenge with a new ID.
+local INVITE_TTL = 60      -- how long an invite waits for an answer
+local TURN_TTL = 90        -- how long the opponent may take for a roll, then abort without rating
+local invPop               -- the one invite window (reused)
+DR.seenInv = {}            -- [game ID] = time: discard invites delivered twice
+DR.scored = {}             -- [game ID] = true: rating (badges/chronicle/ranking) only once
+-- equipped gear (item IDs) for the model on the opponent's side
 local GEAR = { 1, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 19 }
 local function myGear()
     local t = {}
@@ -122,11 +122,11 @@ local function sendLook(g, to)
     local raceID, sex = DR.myLook()
     Comm.Whisper(to, "DRLOOK", g.id, raceID, sex, myGear())
 end
--- gleicher Spieler? WoW Forever: Systemchat/Gildenliste kennen "Vorname Nachname", Oasis oft nur "Vorname"
+-- same player? WoW Forever: system chat/guild roster know "First Last", Oasis often only "First"
 local function sameName(a, b) return ns.SameName(a, b) end
 DR.SameName = sameName
 
--- Spiel ohne Wertung beenden (Gegner offline/weg, keine Wuerfe mehr); tell = Gegner Bescheid geben
+-- end game unrated (opponent offline/gone, no more rolls); tell = notify the opponent
 local function abort(g, why, tell)
     if not g or g.state == "done" or g.state == "aborted" then return end
     local was = g.state
@@ -141,7 +141,7 @@ local function abort(g, why, tell)
     ns.RefreshPage("deathroll")
 end
 DR.Abort = abort
--- Wache fuer laufende Spiele: kommt vom Gegner zu lange nichts, Spiel ohne Wertung beenden
+-- Watchdog for running games: if nothing comes from the opponent for too long, end the game unrated
 local function watch(g)
     if g.bot or g.manual or g.watch then return end
     g.lastMove = GetTime()
@@ -161,7 +161,7 @@ local function finish(g)
     if g.state == "done" or g.state == "aborted" then return end
     g.state = "done" C_Timer.After(0, DR.MusicUpdate)
     if g.watch then g.watch:Cancel() g.watch = nil end
-    -- Seite sofort aktualisieren (sonst steht dort weiter "Zurueck in den Kampf")
+    -- refresh page immediately (otherwise it still shows "Back into the fight")
     C_Timer.After(0.1, function() ns.RefreshPage("deathroll") end)
     g.winner = other(g, g.loser)
     local iWon = ns.isMe(g.winner)
@@ -170,12 +170,12 @@ local function finish(g)
         DR.Update()
         return
     end
-    -- Wuerfe des Gegners kamen nur per Addon-Nachricht (nicht im Systemchat, nicht gegengeprueft):
-    -- Ergebnis zaehlt nicht fuer Abzeichen, Chronik und Rangliste.
-    -- Leises Wuerfeln: zaehlt nur mit starker Zusage auf beiden Seiten (alte Clients -> ungewertet),
-    -- leise Spiele zaehlen, wenn beide Seiten die starke Zusage benutzt haben (sonst ungewertet)
+    -- the opponent's rolls only came via addon message (not in system chat, not cross-checked):
+    -- result doesn't count for badges, chronicle and ranking.
+    -- Silent rolling: only counts with a strong commitment on both sides (old clients -> unrated),
+    -- silent games count if both sides used the strong commitment (otherwise unrated)
     if g.silent and g.seedsReady and g.weakSeeds then g.unverified = true end
-    -- jede Spiel-ID nur einmal werten (Saison/Elo/Abzeichen)
+    -- rate each game ID only once (season/Elo/badges)
     if DR.scored[g.id] then g.unverified = g.unverified or "twice" end
     DR.scored[g.id] = true
     if g.unverified == true then
@@ -236,7 +236,7 @@ ns.On("CHAT_MSG_SYSTEM", function(text)
     if not g then return end
     text = ns.safe(text)
     if not text then return end
-    -- Gegner geht offline -> laufendes Spiel/offene Anfrage ohne Wertung beenden
+    -- opponent goes offline -> end running game/open request unrated
     if not g.bot and (g.state == "live" or g.state == "invite_out" or g.state == "invite_in") then
         offPat = offPat or toPat(ERR_FRIEND_OFFLINE_S or "%s has gone offline.")
         local who = text:match(offPat)
@@ -257,12 +257,12 @@ ns.On("CHAT_MSG_SYSTEM", function(text)
     end
     roll, lo, hi = tonumber(roll), tonumber(lo), tonumber(hi)
     if not who then
-        -- sieht nach einem Wurf aus, passt aber zu keinem Muster -> fuer die Fehlersuche merken
+        -- looks like a roll but matches no pattern -> remember for debugging
         if text:find("%(1%-%d+%)") then DR.lastUnmatched = text end
         return
     end
     if not roll or lo ~= 1 then return end
-    -- merken; wird der Wurf niemandem zugeordnet, zeigt die Sicherung in DR.Roll den Text an
+    -- remember; if the roll isn't assigned to anyone, the fallback in DR.Roll shows the text
     DR.lastUnmatched = text
     apply(who, roll, hi, false)
 end)
@@ -271,23 +271,23 @@ function DR.Challenge(target, start, stake, manual, look)
     if DR.game and (DR.game.state == "live" or DR.game.state == "invite_in") then
         ns.print(L["A game is already running."]) DR.Show() return
     end
-    target = ((target or ""):gsub("^%s+", ""):gsub("%s+$", ""))   -- WoW Forever: Leerzeichen im Namen behalten ("Anna Berg")
+    target = ((target or ""):gsub("^%s+", ""):gsub("%s+$", ""))   -- WoW Forever: keep spaces in the name ("Anna Berg")
     if target == "" then target = ns.safe(ns.UnitName("target")) or "" end
     if target == "" then ns.print(L["Enter or target an opponent."]) return end
     target = ns.fullName(target)
-    -- Addon-Nachrichten kommen unter "Vorname-Realm" an -> Gegner unter dieser Form fuehren, sonst passt der Zug nicht
+    -- addon messages arrive under "First-Realm" -> track the opponent under this form, otherwise the move doesn't match
     do
         local m = ns.Radar and ns.Radar.byName and ns.Radar.byName[target]
         if m then target = m.name end
     end
     if ns.isMe(target) then ns.print(L["Against yourself? Brave, but no."]) return end
-    -- nur eine Anfrage gleichzeitig: offene eigene Anfrage an jemand anderen sperrt
+    -- only one request at a time: an open own request to someone else blocks
     if DR.game and DR.game.state == "invite_out" and not sameName(DR.game.b, target) then
         ns.print((L["Waiting for %s - click %s to withdraw"]):format(ns.displayName(DR.game.b), ns.displayName(DR.game.b)))
         return
     end
-    if DR.game and DR.game.state == "invite_out" then return end   -- an denselben schon unterwegs
-    -- alte, noch offene eigene Anfrage sauber zuruecknehmen (sonst nimmt der andere ein totes Spiel an)
+    if DR.game and DR.game.state == "invite_out" then return end   -- already on its way to the same person
+    -- cleanly withdraw an old, still open own request (otherwise the other accepts a dead game)
     do
         local old = DR.game
         if old and not old.manual and not old.bot and (old.state == "invite_out" or old.state == "noanswer") then
@@ -320,13 +320,13 @@ end
 
 function DR.Accept()
     local g = DR.game
-    -- nur einmal (Doppelklick, Popup- und Arena-Knopf): danach ist der Zustand "live"
+    -- only once (double click, popup and arena button): afterwards the state is "live"
     if not g or g.state ~= "invite_in" then return end
     g.state = "live" C_Timer.After(0, DR.MusicUpdate)
     local race, sex = DR.myLook()
     Comm.Whisper(g.a, "DRACC", g.id, race, sex)
     sendLook(g, g.a)
-    -- eigene, geparkte Anfrage an jemand anderen zurueckziehen (nur ein Spiel gleichzeitig)
+    -- withdraw own parked request to someone else (only one game at a time)
     local og = DR.outgoing
     if og then
         DR.outgoing = nil
@@ -341,7 +341,7 @@ function DR.Decline()
     local g = DR.game
     if not g then return end
     if g.state == "invite_in" then Comm.Whisper(g.a, "DRNO", g.id) end
-    -- eigene Anfrage zurueckziehen: der andere soll sein Einladungsfenster schliessen
+    -- withdraw own request: the other should close their invite window
     if (g.state == "invite_out" or g.state == "noanswer") and not g.manual and not g.bot then Comm.Whisper(g.b, "DRNO", g.id) end
     if g.watch then g.watch:Cancel() g.watch = nil end
     DR.game = nil
@@ -349,14 +349,14 @@ function DR.Decline()
     if DR.frame and DR.frame:IsShown() then DR.frame.allowHide = true DR.frame:Hide() end
     if g.state == "invite_in" then DR.RestoreOutgoing() end
 end
--- eingehende Einladung erledigt (abgelehnt/zurueckgezogen): eigene geparkte Anfrage wieder aufnehmen
+-- incoming invite done (declined/withdrawn): resume own parked request
 function DR.RestoreOutgoing()
     local og = DR.outgoing
     DR.outgoing = nil
     if og and not DR.game and (og.state == "invite_out" or og.state == "noanswer") then DR.game = og end
 end
--- Revanche = neue, normale Herausforderung an denselben Gegner (neue Spiel-ID). Haengt nicht davon ab,
--- ob beim Gegner das Kampffenster noch offen ist: dort erscheint ganz normal das Einladungsfenster.
+-- Rematch = new, normal challenge to the same opponent (new game ID). Does not depend on
+-- whether the opponent's fight window is still open: the invite window appears there as usual.
 function DR.Rematch(g)
     g = g or DR.game
     if not g then return end
@@ -372,8 +372,8 @@ function DR.Rematch(g)
         ns.print((L["%s is offline - no rematch possible."]):format(ns.displayName(opp)))
         return
     end
-    if g.state == "invite_out" then return end   -- laeuft schon
-    -- DR.game bleibt bis hier stehen: Challenge zieht eine noch offene alte Anfrage (noanswer) sauber zurueck
+    if g.state == "invite_out" then return end   -- already running
+    -- DR.game stays until here: Challenge cleanly withdraws a still open old request (noanswer)
     DR.Challenge(opp, g.start, g.stake, g.manual, look and { race = look.race, sex = look.sex })
     if DR.game and DR.game ~= g then DR.game.rematch = true DR.Update() end
 end
@@ -384,18 +384,18 @@ function DR.GoManual()
     DR.Update()
 end
 ------------------------------------------------------------------------
--- Leises Wuerfeln (beide mit Oasis): faire Zufallszahlen ganz ohne /roll im Chat.
--- Jeder waehlt zu Beginn geheim eine Zahl, schickt erst nur ihren Fingerabdruck (Hash), dann die Zahl.
--- Alle Wuerfe = Hash(ZahlA:ZahlB:Wurfnummer) -> keiner kann etwas steuern, jeder Wurf wird gegengeprueft.
+-- Silent rolling (both with Oasis): fair random numbers without any /roll in chat.
+-- At the start each picks a secret number, first sends only its fingerprint (hash), then the number.
+-- All rolls = Hash(NumA:NumB:rollNo) -> nobody can steer anything, every roll is cross-checked.
 ------------------------------------------------------------------------
 local function newSeed()
     local a = tostring(GetTime()) .. ":" .. tostring(math.random(1, 2147483646)) .. ":" .. tostring(time and time() or 0)
     local b = tostring(debugprofilestop and debugprofilestop() or 0) .. ":" .. tostring(math.random()) .. ":" .. tostring(ns.me())
     return ns.hash(a) .. ns.hash(b)
 end
--- Zusage-Pruefsumme fuer leises Wuerfeln: 96 Bit, nichtlinear gemischt (bit.bxor), viele Runden.
--- ns.hash (31 Bit, linear) liess sich faelschen: zwei Seeds mit gleicher Zusage -> nach dem Aufdecken
--- des Gegners den guenstigeren waehlen. Mit dieser Summe ist das praktisch ausgeschlossen.
+-- Commitment checksum for silent rolling: 96 bit, nonlinearly mixed (bit.bxor), many rounds.
+-- ns.hash (31 bit, linear) could be forged: two seeds with the same commitment -> after the reveal
+-- pick the more favorable one against the opponent. With this sum that is practically impossible.
 local bxor = bit and bit.bxor
 local function strongHash(str)
     if not bxor then return nil end
@@ -424,7 +424,7 @@ function DR.StartSeeds(g)
     if not g.silent or g.mySeed then return end
     g.mySeed = newSeed()
     Comm.Whisper(other(g, ns.me()), "DRCOMMIT", g.id, commitOf(g.mySeed))
-    -- Gegenseite antwortet nicht (aeltere Oasis-Version) -> ganz normal mit /roll weiter
+    -- other side doesn't answer (older Oasis version) -> continue normally with /roll
     ns.After(8, function()
         if DR.game == g and g.state == "live" and not g.seedsReady then g.silent = false DR.Update() end
     end)
@@ -435,7 +435,7 @@ local function tryReveal(g)
         Comm.Whisper(other(g, ns.me()), "DRSEED", g.id, g.mySeed)
     end
 end
--- Nachricht zu einem Spiel nur vom Gegner selbst (die Spiel-ID laeuft ueber den Gildenkanal und ist nicht geheim)
+-- message about a game only from the opponent themselves (the game ID travels over the guild channel and isn't secret)
 local function fromOpp(g, sender)
     return g and sender and not g.bot and sameName(sender, other(g, ns.me())) or false
 end
@@ -452,7 +452,7 @@ Comm.On("DRSEED", function(sender, _, id, seed)
     local g = DR.game
     if not g or g.id ~= id or not g.silent or not g.theirCommit or not fromOpp(g, sender) or g.seedsReady then return end
     if type(seed) ~= "string" or #seed > 128 then return end
-    -- alte Gegenseite (kurze, schwache Zusage): Spiel laeuft, zaehlt aber nicht fuer die Rangliste
+    -- old other side (short, weak commitment): game runs but doesn't count for the ranking
     local weak = #g.theirCommit <= 8
     local expect = weak and ns.hash("c:" .. (seed or "")) or strongHash("c2:" .. (seed or ""))
     if expect ~= g.theirCommit then
@@ -475,13 +475,13 @@ function DR.Roll()
     local g = DR.game
     if DR.anim and GetTime() - (DR.anim.start or 0) > 1.6 then DR.anim = nil end
     if not g or g.state ~= "live" or not ns.isMe(g.turn) or DR.anim then return end
-    -- leise: Wurf aus den abgestimmten Zahlen, nichts im Chat
+    -- silent: roll from the agreed numbers, nothing in chat
     if g.silent then
         if not g.seedsReady then ns.print(L["Dice are still being synced - try again in a moment."]) return end
         apply(g.turn, silentRoll(g, g.n + 1), g.max, false)
         return
     end
-    -- Uebungsspiel leise: einfach selbst wuerfeln (niemand sonst beteiligt)
+    -- silent practice game: just roll yourself (nobody else involved)
     if g.bot and DR.SilentWanted() then
         apply(g.turn, DR.BotRandom(g.max), g.max, false)
         return
@@ -493,7 +493,7 @@ function DR.Roll()
     ns.Trace("RandomRoll 1-" .. max)
     local ok, e = pcall(roll, 1, max)
     if not ok then ns.err("Deathroll", e) return end
-    -- Sicherung: kam kein erkannter Wurf an, Grund im Chat zeigen (hilft bei neuen Sprachen/Namensformen)
+    -- Fallback: if no recognized roll arrived, show the reason in chat (helps with new languages/name forms)
     ns.After(3, function()
         if DR.game == g and g.state == "live" and g.n == n and ns.isMe(g.turn) then
             if DR.lastUnmatched then
@@ -514,38 +514,38 @@ end
 
 Comm.On("DRINV", function(sender, _, id, start, stake, race, sex, silent)
     if type(id) ~= "string" or id == "" or #id > 40 then return end
-    -- 0.6.468: Herausforderungen aus der Gilde, von Freunden und aus der eigenen Gruppe (annehmen muss man immer selbst)
+    -- 0.6.468: challenges from the guild, from friends and from your own group (you always have to accept yourself)
     if Comm.FromGuild and not Comm.FromGuild(sender) then
         local s = Comm.WhisperName and Comm.WhisperName(sender) or sender
         local friend = C_FriendList and C_FriendList.IsFriend and pcall(C_FriendList.IsFriend, ns.short(sender)) and C_FriendList.IsFriend(ns.short(sender))
         local grouped = (UnitInParty and UnitInParty(s)) or (UnitInRaid and UnitInRaid(s))
-        -- 0.6.512: auch wer in der Lobby sucht (oder ich selbst suche) darf herausfordern - annehmen muss man trotzdem selbst
+        -- 0.6.512: whoever is searching in the lobby (or when I'm searching) may challenge too - you still have to accept yourself
         local lobby = DR.inQueue or (DR.queue and (DR.queue[sender] or DR.queue[s]))
         if not (friend or grouped or lobby) then return end
     end
     local g = DR.game
-    -- dieselbe Einladung doppelt zugestellt (z. B. Gilden- und Gruppenkanal, erneut gesendet): nur einmal auswerten
+    -- same invite delivered twice (e.g. guild and group channel, resent): evaluate only once
     if DR.seenInv[id] or (g and g.id == id) then return end
-    -- Einladungs-Flut: je Absender hoechstens 1 pro Sekunde (Revanche direkt nach einem kurzen Spiel muss durchgehen;
-    -- frueher 15 s -> eine schnelle Revanche wurde still verworfen)
+    -- Invite flood: per sender at most 1 per second (a rematch right after a short game must go through;
+    -- formerly 15 s -> a quick rematch was silently dropped)
     if not SEC.Rate("drinv:" .. sender, 1) then return end
     DR.seenInv[id] = GetTime()
-    -- 0.5.688: Revanche vom letzten Gegner, waehrend das Ergebnis-Fenster offen ist -> direkt dort anzeigen (kein Extra-Fenster)
+    -- 0.5.688: rematch from the last opponent while the result window is open -> show it right there (no extra window)
     local inFrame = g and (g.state == "done" or g.state == "aborted") and sameName(other(g, ns.me()), sender)
         and DR.frame and DR.frame:IsShown() and true or false
     local autoAccept
-    -- Kreuzung: beide fordern sich gleichzeitig (z. B. beide klicken Revanche) -> die kleinere Spiel-ID gilt
+    -- Crossing: both challenge each other at once (e.g. both click rematch) -> the smaller game ID wins
     if g and (g.state == "invite_out" or g.state == "noanswer") and not g.manual and sameName(g.b, sender) then
-        if g.id < id then return end          -- meine Anfrage gilt, der Gegner nimmt sie gleich an
+        if g.id < id then return end          -- my request wins, the opponent accepts it right away
         if g.watch then g.watch:Cancel() g.watch = nil end
-        DR.game, g, autoAccept = nil, nil, true   -- seine gilt: meine fallen lassen und seine annehmen
+        DR.game, g, autoAccept = nil, nil, true   -- theirs wins: drop mine and accept theirs
     end
-    -- eigene offene Anfrage an jemand anderen: Einladung trotzdem zeigen; wer annimmt, zieht die eigene zurueck
+    -- own open request to someone else: still show the invite; accepting withdraws the own one
     if g and g.state == "invite_out" and not g.manual and not DR.outgoing then
         DR.outgoing = g
         DR.game, g = nil, nil
     end
-    -- laufendes Spiel/schon eine Einladung offen: automatisch ablehnen ("ist gerade in einem Spiel")
+    -- game running/an invite already open: decline automatically ("is currently in a game")
     if g and (g.state == "live" or g.state == "invite_in" or g.state == "invite_out") then
         if SEC.Rate("drbusy:" .. sender, 15) then Comm.Whisper(sender, "DRBUSY", id) end
         return
@@ -567,16 +567,16 @@ Comm.On("DRINV", function(sender, _, id, start, stake, race, sex, silent)
         DR.Update()
         return
     end
-    -- selbst ueber die Lobby beigetreten: sofort los
+    -- joined via the lobby myself: start immediately
     if DR.pendingJoin and ns.fullName(DR.pendingJoin) == ns.fullName(sender) then
         DR.pendingJoin = nil
         DR.Accept()
         DR.Show()
         return
     end
-    -- kleines Fenster: erst annehmen oder ablehnen (das Kampffenster oeffnet sich erst danach)
+    -- small window: accept or decline first (the fight window only opens afterwards)
     ns.Sound.Play("dr_invite")
-    -- genau EIN Fenster: ein offenes Kampffenster (z. B. altes Ergebnis) weicht der Einladung
+    -- exactly ONE window: an open fight window (e.g. old result) gives way to the invite
     if DR.frame and DR.frame:IsShown() then DR.frame.allowHide = true DR.frame:Hide() end
     DR.InvitePopup(sender, start, stake)
 end)
@@ -614,7 +614,7 @@ function DR.InvitePopup(sender, start, stake)
         f.timer = K.Bar(f, 312, 2)
         f.timer:SetPoint("BOTTOM", 0, 50)
         f.yes = K.Button(f, L["Accept"], 150, 28, "primary", function()
-            -- Doppelklick: nur der erste zaehlt
+            -- double click: only the first counts
             if f.clicked then return end
             f.clicked = true
             if f.yes.SetEnabledState then f.yes:SetEnabledState(false) end
@@ -632,13 +632,13 @@ function DR.InvitePopup(sender, start, stake)
         f.no:SetPoint("BOTTOMRIGHT", -14, 12)
         f:SetScript("OnUpdate", function(self, el)
             local g = DR.game
-            -- Restzeit an der Einladung selbst (nicht am Fenster) -> Wiederverwenden setzt nichts falsch
+            -- remaining time on the invite itself (not on the window) -> reuse sets nothing wrong
             self.left = g and g.id == self.gameId and (INVITE_TTL - (GetTime() - (g.t or GetTime()))) or 0
             self.timer:Set(math.max(0, self.left / INVITE_TTL))
-            -- Herausforderung zurueckgezogen/abgelaufen/andere Einladung
+            -- challenge withdrawn/expired/other invite
             if self.left <= 0 or not g or g.id ~= self.gameId or g.state ~= "invite_in" then self:Hide() end
         end)
-        -- Schliessen (ESC, Zeit abgelaufen) = ablehnen - aber nur genau diese Einladung
+        -- Close (ESC, time expired) = decline - but only exactly this invite
         f:SetScript("OnHide", function(self)
             local g = DR.game
             if g and g.id == self.gameId and g.state == "invite_in" then DR.Decline() end
@@ -659,8 +659,8 @@ function DR.InvitePopup(sender, start, stake)
     if K.FadeIn then K.FadeIn(f, 0) end
 end
 Comm.On("DRACC", function(sender, _, id, race, sex)
-    -- meine geparkte Anfrage wird angenommen, waehrend eine fremde Einladung offen ist:
-    -- die fremde ablehnen, meine Anfrage gilt (nur ein Spiel gleichzeitig)
+    -- my parked request gets accepted while a foreign invite is open:
+    -- decline the foreign one, my request wins (only one game at a time)
     local og = DR.outgoing
     if og and og.id == id and fromOpp(og, sender) and (og.state == "invite_out" or og.state == "noanswer") then
         local cur = DR.game
@@ -684,7 +684,7 @@ Comm.On("DRACC", function(sender, _, id, race, sex)
     K.Toast(ns.displayName(sender) .. L[" accepts!"], L["You start: roll 1-"] .. g.max, C.mint)
     DR.StartSeeds(g)
     watch(g)
-    -- eigenes Kampffenster inzwischen geschlossen (z. B. bei Revanche)? -> wieder oeffnen
+    -- own fight window closed meanwhile (e.g. on rematch)? -> reopen
     DR.Show()
 end)
 Comm.On("DRNO", function(sender, _, id)
@@ -721,13 +721,13 @@ Comm.On("DRBUSY", function(sender, _, id)
         if DR.frame and DR.frame:IsShown() then DR.frame.allowHide = true DR.frame:Hide() end
     end
 end)
--- Gegner bricht ab (seine Wache: von mir kam zu lange nichts) -> hier ebenfalls ohne Wertung beenden
+-- opponent aborts (their watchdog: nothing came from me for too long) -> end here unrated as well
 Comm.On("DRABORT", function(sender, _, id)
     local g = DR.game
     if not g or g.id ~= id or not fromOpp(g, sender) then return end
     abort(g, (L["%s cancelled the game - no rating."]):format(ns.displayName(sender)), false)
 end)
--- Gegner verlaesst die Gruppe (Spiel lief ueber den Gruppenkanal) -> Abbruch ohne Wertung
+-- opponent leaves the group (game ran over the group channel) -> abort unrated
 ns.On("GROUP_ROSTER_UPDATE", function()
     local g = DR.game
     if not g or not g.viaGroup or g.bot or g.manual then return end
@@ -740,7 +740,7 @@ ns.On("GROUP_ROSTER_UPDATE", function()
         abort(g, (L["%s left the group - game ended without rating."]):format(ns.displayName(opp)), false)
     end
 end)
--- Sicherung, falls der Systemchat den Wurf nicht zeigt (zu weit weg)
+-- fallback in case the system chat doesn't show the roll (too far away)
 Comm.On("DRROLL", function(sender, _, id, n, roll, max)
     local g = DR.game
     if not g or g.id ~= id or g.state ~= "live" or not fromOpp(g, sender) then return end
@@ -748,7 +748,7 @@ Comm.On("DRROLL", function(sender, _, id, n, roll, max)
     n, roll, max = SEC.Num(n, 1, 100000, true), SEC.Num(roll, 1, 1000000, true), SEC.Num(max, 1, 1000000, true)
     if not n or not roll or not max or n ~= g.n + 1 or max ~= g.max or roll > max then return end
     if g.silent then
-        -- leises Spiel: nur Wuerfe, die zu den abgestimmten Zahlen passen
+        -- silent game: only rolls that match the agreed numbers
         if not g.seedsReady then return end
         if roll ~= DR.SilentRoll(g, g.n + 1) then
             ns.print(L["Deathroll: the opponent's roll doesn't check out - ignored."])
@@ -757,8 +757,8 @@ Comm.On("DRROLL", function(sender, _, id, n, roll, max)
         apply(sender, roll, max, true)
         return
     end
-    -- normales Spiel: der echte Wurf kommt im Systemchat (vom Server). Nur wenn er dort nicht ankommt
-    -- (zu weit weg), die Meldung des Gegners nehmen - dann zaehlt das Spiel nicht fuer Chronik/Rangliste
+    -- normal game: the real roll comes in system chat (from the server). Only if it doesn't arrive there
+    -- (too far away), take the opponent's message - then the game doesn't count for chronicle/ranking
     local turnN = g.n
     ns.After(3, function()
         if DR.game ~= g or g.state ~= "live" or g.n ~= turnN or not sameName(sender, g.turn) then return end
@@ -774,11 +774,11 @@ Comm.On("DRGIVEUP", function(sender, _, id)
 end)
 
 ------------------------------------------------------------------------
--- Lobby: "Ich will spielen" - wer mag, klickt "Mitspielen" (immer 1 gegen 1)
+-- Lobby: "I want to play" - whoever wants clicks "Join" (always 1 vs 1)
 ------------------------------------------------------------------------
 DR.queue = {}      -- [name] = { name, start, stake, t, race, sex, demo }
-DR.inQueue = nil   -- eigener Eintrag { start, stake, t }
-local QUEUE_TTL = 120   -- 0.6.213: 2 Min ohne Lebenszeichen -> raus (Lebenszeichen alle 60 s)
+DR.inQueue = nil   -- own entry { start, stake, t }
+local QUEUE_TTL = 120   -- 0.6.213: 2 min without heartbeat -> out (heartbeat every 60 s)
 
 local function myLook()
     local raceID, sex
@@ -804,7 +804,7 @@ function DR.JoinQueue(start, stake)
     if busy() then ns.print(L["A game is already running."]) return end
     if ns.GuildOpt("drLobby") == false then ns.print(L["The guild leadership has disabled open invites - challenge someone directly."]) return end
     DR.inQueue = { start = math.max(2, math.min(1000000, tonumber(start) or 100)), stake = stakeOK(stake), t = ns.now() }
-    if DR.NetJoin then DR.NetJoin(DR.inQueue.start) end   -- 0.6.213: Stufen-Kanal passend zum Startwert (aus dem Klick)
+    if DR.NetJoin then DR.NetJoin(DR.inQueue.start) end   -- 0.6.213: tier channel matching the start value (from the click)
     sendQueue()
     K.Toast(L["Waiting for an opponent"], L["The guild sees your invite. As soon as someone joins, the game starts."], C.accent)
     ns.RefreshPage("deathroll")
@@ -828,16 +828,16 @@ local function onQueue(sender, start, stake, race, sex, viaNet)
     if ns.GuildOpt("drLobby") == false then return end
     stake = stakeOK(stake)
     start = SEC.Num(start, 2, 1000000, true) or 100
-    -- Warteschlange begrenzen (verwaiste Eintraege raus, hoechstens 40 Wartende)
+    -- cap the queue (orphaned entries out, at most 40 waiting)
     if not DR.queue[sender] then
         local n = #DR.Waiting()
         if n >= 40 then return end
     end
-    -- Hinweis/Ton je Absender hoechstens alle 2 Minuten (DRQX + DRQ im Wechsel waere sonst eine Toast-Flut)
+    -- notice/sound per sender at most every 2 minutes (DRQX + DRQ alternating would otherwise be a toast flood)
     local isNew = not DR.queue[sender] and SEC.Rate("drq:" .. sender, 120)
     local inGuild = not viaNet or (Comm.FromGuild and Comm.FromGuild(sender))
     DR.queue[sender] = { name = sender, start = tonumber(start) or 100, stake = stake or "", t = ns.now(), race = SEC.Num(race, 0, 200, true), sex = SEC.Num(sex, 0, 3, true), net = (viaNet and not inGuild) or nil }
-    -- Hinweis/Ton nur fuer Gildenmitglieder - Fremde aus dem Netz stehen still in der Liste (keine Toast-Flut)
+    -- notice/sound only for guild members - strangers from the network sit silently in the list (no toast flood)
     if isNew and inGuild and not busy() and not DR.inQueue and ns.db.settings.drOpenInvites ~= false then
         ns.Sound.Next("dr_invite")
         K.Toast(ns.displayName(sender) .. L[" wants to play Deathroll"], (L["from %s – click to join"]):format(start or "100"), C.accent,
@@ -852,15 +852,15 @@ Comm.On("DRQX", function(sender)
 end)
 
 ------------------------------------------------------------------------
--- 0.6.213: Todeswuerfel-Netz - gildenuebergreifende Lobby ueber einen versteckten Kanal je Einsatzstufe.
--- Sparsam fuer viele Spieler: gesendet wird nur bei Aenderung (suche / fertig) plus ein Lebenszeichen alle 60 s;
--- jeder fuehrt die Liste selbst (2 Min ohne Lebenszeichen -> raus). Wer neu im Kanal ist, fragt EINMAL "wer sucht?",
--- antworten tun nur die Suchenden selbst, per Fluestern. Man ist immer nur in EINEM Stufen-Kanal (Kanal-Grenze 10).
--- Die Gilden-Lobby (DRQ ueber den Gildenkanal) laeuft zusaetzlich weiter. Abschaltbar: Einstellung drNet.
+-- 0.6.213: Deathroll network - cross-guild lobby via a hidden channel per stake tier.
+-- Frugal for many players: sends only on change (searching / done) plus a heartbeat every 60 s;
+-- everyone keeps the list themselves (2 min without heartbeat -> out). Whoever is new in the channel asks ONCE "who's searching?",
+-- only the searchers themselves answer, via whisper. You are only ever in ONE tier channel (channel limit 10).
+-- The guild lobby (DRQ over the guild channel) keeps running as well. Can be switched off: setting drNet.
 ------------------------------------------------------------------------
 local NET_PREFIX, NET_PASS = "OASDR1", "oasisdr"
--- 0.6.518: nur noch EIN gemeinsamer Kanal - alle mit Oasis finden sich (Einladungen kamen bei verschiedenen Stufen nicht an);
--- die Lobby zeigt den Startwert ohnehin selbst. Alte Stufen-Kanaele werden beim Beitritt verlassen.
+-- 0.6.518: only ONE shared channel now - everyone with Oasis finds each other (invites didn't arrive across different tiers);
+-- the lobby shows the start value itself anyway. Old tier channels are left on join.
 local NET_TIERS = { { max = math.huge, ch = "OasisDR" } }
 local NET_OLD = { "OasisDRklein", "OasisDRmittel", "OasisDRhoch" }
 DR.net = { chan = nil, sent = 0, recv = 0, kinds = {} }
@@ -875,7 +875,7 @@ local function chanIdOf(name)
     local id = GetChannelName and ns.safe((GetChannelName(name)))
     return (type(id) == "number" and id > 0) and id or nil
 end
--- eigene Drossel: hoechstens 1 Nachricht je 1,2 s, Schlange max. 20; im Kampf nichts senden
+-- own throttle: at most 1 message per 1.2 s, queue max 20; send nothing in combat
 local netQ = {}
 local function netPack(kind, ...)
     local t = { kind }
@@ -899,12 +899,12 @@ end)
 local function netBroadcast(kind, ...) if DR.net.chan and netOn() then netPush({ msg = netPack(kind, ...) }) end end
 local function netWhisper(to, kind, ...) if netOn() then netPush({ msg = netPack(kind, ...), to = (Comm.WhisperName and Comm.WhisperName(to)) or to }) end end
 DR.NetBroadcast = netBroadcast
--- in den passenden Stufen-Kanal (alten verlassen); nach dem Beitritt einmal "wer sucht?"
+-- into the matching tier channel (leave the old one); after joining ask "who's searching?" once
 function DR.NetJoin(start)
     if not netOn() or not JoinTemporaryChannel or (IsLoggedIn and not IsLoggedIn()) then return end
     local want = tierChan(start)
     if DR.net.chan == want and chanIdOf(want) then return true end
-    -- 0.6.216: Kanal besteht schon (bleibt ueber /reload erhalten) -> sofort uebernehmen statt neu beitreten
+    -- 0.6.216: channel already exists (survives /reload) -> take it over immediately instead of rejoining
     if chanIdOf(want) and DR.net.chan ~= want then
         for n, q in pairs(DR.queue) do if q.net then DR.queue[n] = nil end end
         DR.net.chan = want
@@ -927,7 +927,7 @@ function DR.NetJoin(start)
         if chanIdOf(want) then
             local fresh = DR.net.chan ~= want
             DR.net.chan = want
-            -- neue Stufe: Netz-Eintrage der alten Stufe weg
+            -- new tier: drop network entries of the old tier
             if fresh then for n, q in pairs(DR.queue) do if q.net then DR.queue[n] = nil end end end
             netBroadcast("W")
             if DR.inQueue then
@@ -938,7 +938,7 @@ function DR.NetJoin(start)
     end)
 end
 DR.NetQueueLen = function() return #netQ end
--- 0.6.512: Todeswuerfel-Nachrichten an Spieler ausserhalb der Gilde laufen ueber den Netz-Kanal (Addon-Fluestern kommt nicht an)
+-- 0.6.512: Deathroll messages to players outside the guild go over the network channel (addon whisper doesn't arrive)
 Comm.DirectChannel = function(msgType)
     if type(msgType) ~= "string" or msgType:sub(1, 2) ~= "DR" or not netOn() or not DR.net.chan then return nil end
     return chanIdOf(DR.net.chan)
@@ -952,12 +952,12 @@ function DR.NetLeave()
     for n, q in pairs(DR.queue) do if q.net then DR.queue[n] = nil end end
 end
 pcall(C_ChatInfo.RegisterAddonMessagePrefix, NET_PREFIX)
--- Empfang (ausgelagert, damit er sich testen laesst)
+-- Receive (separated so it can be tested)
 function DR.NetReceive(text, sender)
     if not netOn() then return end
     sender, text = ns.safe(sender), ns.safe(text)
     if type(sender) ~= "string" or type(text) ~= "string" or ns.isMe(sender) then return end
-    if not SEC.Rate("drnet:" .. sender, 1) then return end   -- hoechstens 1 Nachricht je Sekunde je Absender
+    if not SEC.Rate("drnet:" .. sender, 1) then return end   -- at most 1 message per second per sender
     local kind, a, b, c, d = strsplit("\t", text)
     DR.net.recv = DR.net.recv + 1
     DR.net.lastRecv, DR.net.lastFrom = GetTime(), sender
@@ -967,7 +967,7 @@ function DR.NetReceive(text, sender)
     elseif kind == "X" then
         if DR.queue[sender] then DR.queue[sender] = nil ns.RefreshPage("deathroll") end
     elseif kind == "W" then
-        -- nur Suchende antworten, per Fluestern an den Fragenden (keine Flut im Kanal)
+        -- only searchers answer, by whisper to the asker (no flood in the channel)
         if DR.inQueue and SEC.Rate("drnetw:" .. sender, 30) then
             local race, sex = myLook()
             netWhisper(sender, "Q", DR.inQueue.start, DR.inQueue.stake or "", race, sex)
@@ -977,7 +977,7 @@ end
 ns.On("CHAT_MSG_ADDON", function(prefix, text, channel, sender)
     if ns.safe(prefix) == NET_PREFIX then DR.NetReceive(text, sender) end
 end)
--- Kanal-Meldungen ("Kanal betreten" ...) nicht im Chat zeigen
+-- don't show channel notices ("Joined channel" ...) in chat
 do
     local function ours(...)
         for i = 1, select("#", ...) do
@@ -994,11 +994,11 @@ do
     end
 end
 ns.On("PLAYER_ENTERING_WORLD", function() C_Timer.After(10, function() DR.NetJoin(DR.inQueue and DR.inQueue.start or 100) end) end)
--- 0.6.216: das Modul wird oft erst NACH dem Einloggen geladen (PLAYER_ENTERING_WORLD schon vorbei) -> selbst anstossen
+-- 0.6.216: the module often only loads AFTER login (PLAYER_ENTERING_WORLD already passed) -> kick it off ourselves
 C_Timer.After(8, function() DR.NetJoin(DR.inQueue and DR.inQueue.start or 100) end)
 
--- 0.6.214: /oa drnetz - zeigt, ob der Kanal verbunden ist und wer drin sucht.
--- /oa drnetz join = jetzt beitreten (Tastatur-Eingabe zaehlt als Klick), /oa drnetz frag = "wer sucht?" senden
+-- 0.6.214: /oa drnetz - shows whether the channel is connected and who is searching in it.
+-- /oa drnetz join = join now (keyboard input counts as a click), /oa drnetz frag = send "who's searching?"
 ns.slash.drnetz = function(rest)
     rest = tostring(rest or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
     local function out(t) ns.print("|cffe8b44a[DR-Netz]|r " .. t) end
@@ -1042,7 +1042,7 @@ ns.slash.drnetz = function(rest)
 end
 ns.slash.drnet = ns.slash.drnetz
 
--- einem Wartenden beitreten
+-- join a waiting player
 function DR.JoinGame(host)
     local q = DR.queue[host]
     if not q then ns.print(L["That invite is gone."]) return end
@@ -1074,7 +1074,7 @@ Comm.On("DRFULL", function(sender)
     end
 end)
 
--- Uebungsspiel gegen einen Demo-Gegner (wuerfelt selbst, nichts wird gespeichert oder gesendet)
+-- Practice game against a demo opponent (rolls by itself, nothing is saved or sent)
 function DR.StartBot(name, start, stake, race, sex)
     if busy() then return end
     local opp = ns.fullName(L[name or "Training Dummy"])
@@ -1104,9 +1104,9 @@ function DR.BotMove()
 end
 
 ------------------------------------------------------------------------
--- Kaempferauswahl (wie bei Tekken): jeder waehlt eine Figur, der Gegner sieht genau dieses Modell.
--- "me" = der eigene Charakter. Sonst bekannte Figuren aus Classic (Kreatur-IDs, im Spiel vorhanden).
--- zoom/dist/y: Kamera je Figur (grosse Modelle weiter weg).
+-- Fighter select (like Tekken): everyone picks a figure, the opponent sees exactly this model.
+-- "me" = your own character. Otherwise known figures from Classic (creature IDs present in the game).
+-- zoom/dist/y: camera per figure (big models further away).
 ------------------------------------------------------------------------
 DR.FIGHTERS = {
     { key = "me", name = "Your character", sub = "Just the way you look right now" },
@@ -1120,13 +1120,13 @@ DR.FIGHTERS = {
     { key = "vancleef", npc = 639, disp = 2029, name = "Edwin VanCleef", sub = "Boss of the Defias" },
     { key = "murloc", npc = 285, disp = 617, name = "Murloc", sub = "Mrrglglglgl!" },
     { key = "kobold", npc = 6, disp = 10913, name = "Kobold", sub = "You no take candle!" },
-    -- (Gnoll sah aus wie Hogger -> ersetzt)
+    -- (Gnoll looked like Hogger -> replaced)
     { key = "theradras", npc = 12201, name = "Princess Theradras", sub = "Maraudon", zoom = 0, dist = 1.1, y = 0, fdist = 1.9 },
     { key = "ogre", npc = 2562, disp = 1052, name = "Ogre", sub = "Stonefist ogre", dist = 1.3 },
     { key = "rattlegore", npc = 11622, disp = 12073, name = "Bloodrib", sub = "Scholomance", dist = 1.4, fdist = 1.6 },
     { key = "onyxia", npc = 10184, disp = 8570, name = "Onyxia", sub = "Broodmother of the black dragons", zoom = 0, dist = 1, y = 0, fdist = 1.8 },
     { key = "ragnaros", npc = 11502, disp = 11121, name = "Ragnaros", sub = "The Firelord", zoom = 0, dist = 1, y = 0, fdist = 1.8 },
-    -- ab hier: per Gildenrang (Oasis-Rang 1-100) freigeschaltet - je hoeher, desto absurder
+    -- from here: unlocked by guild rank (Oasis rank 1-100) - the higher, the more absurd
     { key = "chicken", npc = 620, name = "Chicken", sub = "Cluck. Cluck cluck.", rank = 3, zoom = 0, dist = 1, y = 0 },
     { key = "sheep", npc = 1933, name = "Sheep", sub = "Has met a mage before", rank = 6, zoom = 0, dist = 1, y = 0 },
     { key = "rabbit", npc = 721, name = "Rabbit", sub = "Deadlier than it looks", rank = 9, zoom = 0, dist = 1, y = 0 },
@@ -1143,12 +1143,12 @@ DR.FIGHTERS = {
     { key = "nefarian", npc = 11583, name = "Nefarian", sub = "Lord of Blackwing Lair", rank = 70, zoom = 0, dist = 1, y = 0, fdist = 1.8 },
     { key = "cthun", npc = 15727, name = "C'Thun", sub = "You will die.", rank = 80, zoom = 0, dist = 1, y = 0, fdist = 1.8 },
     { key = "kelthuzad", npc = 15990, name = "Kel'Thuzad", sub = "Archlich of Naxxramas", rank = 90, zoom = 0, dist = 1, y = 0, fdist = 1.5 },
-    -- Hoechster Rang: ein Stuhl. Wer alles erreicht hat, muss niemandem mehr etwas beweisen.
+    -- Highest rank: a chair. Whoever has achieved everything no longer has to prove anything to anyone.
     { key = "chair", name = "A chair", sub = "Highest rank. You have earned it: sit down.", rank = 100, zoom = 0, dist = 1, y = 0, fdist = 1.2,
-      -- Datei-IDs (wago.tools): Gasthaus-Stuhl, einfacher Stuhl, Zwergenstuhl, Tauren-Holzstuhl
+      -- file IDs (wago.tools): inn chair, simple chair, dwarven chair, tauren wooden chair
       model = { 198114, 198116, 198115, 197300, 200393 } },
 }
--- Figur freigeschaltet? (rank = noetiger Oasis-Rang)
+-- figure unlocked? (rank = required Oasis rank)
 function DR.Unlocked(fi)
     if not fi or not fi.rank then return true end
     local ok, me = pcall(function() return ns.Rank and ns.Rank.Mine() end)
@@ -1186,7 +1186,7 @@ Comm.On("DRFIGHT", function(sender, _, id, key)
     g.look[opp].f = key
     if DR.frame and DR.frame:IsShown() then DR.frame.gameId = nil DR.Show() end
 end)
--- Figur in ein Modell laden: erst ueber die Display-ID (geht immer), sonst ueber die Kreatur
+-- Load a figure into a model: first via the display ID (always works), otherwise via the creature
 function DR.LoadFighter(m, fi)
     pcall(m.ClearModel, m)
     if fi.key == "me" then pcall(m.SetUnit, m, "player") return end
@@ -1197,27 +1197,27 @@ function DR.LoadFighter(m, fi)
                 if okm and id and id ~= 0 then return end
             end
         end
-        -- kein Stuhl gefunden: ein sitzender Zwerg tut es auch
+        -- no chair found: a sitting dwarf will do
         pcall(m.SetCreature, m, 1872)
         return
     end
     local ok = fi.disp and m.SetDisplayInfo and pcall(m.SetDisplayInfo, m, fi.disp)
     if not ok and fi.npc then pcall(m.SetCreature, m, fi.npc) end
-    -- nichts geladen? Kreatur nachschieben (aeltere Clients ohne SetDisplayInfo)
+    -- nothing loaded? add the creature (older clients without SetDisplayInfo)
     C_Timer.After(0.3, function()
         local okm, id = pcall(m.GetModelFileID, m)
         if (not okm or not id or id == 0) and fi.npc then pcall(m.SetCreature, m, fi.npc) end
     end)
 end
--- Kamera fuer eine Figur einstellen
--- 0.6.241: Kaempfer-Auswahl: Figur fuellt ihren Rahmen (Fuesse unten auf dem Kreis); kleiner wird sie ueber einen
--- kuerzeren Rahmen, nicht ueber mehr Kameraabstand (sonst schrumpft sie zur Mitte und schwebt)
+-- Set up the camera for a figure
+-- 0.6.241: fighter select: figure fills its frame (feet at the bottom on the circle); it gets smaller via a
+-- shorter frame, not via more camera distance (otherwise it shrinks toward the center and floats)
 local PICK_DIST = "pick"
 function DR.ApplyCam(m, fi, facing, full)
-    -- full = ganze Figur (Kampffenster), sonst Portrait-Ausschnitt; zoom = 0 bei der Figur: immer ganz
+    -- full = whole figure (fight window), otherwise portrait crop; zoom = 0 on the figure: always whole
     if full then
         pcall(m.SetPortraitZoom, m, 0)
-        -- 0.6.240: full darf eine Zahl sein = eigener Abstand (Kaempfer-Auswahl), sonst wie bisher 1,1
+        -- 0.6.240: full may be a number = own distance (fighter select), otherwise 1.1 as before
         if full == "pick" then
             pcall(m.SetCamDistanceScale, m, (fi and (fi.pdist or fi.dist) or 1) * 1.1)
         else
@@ -1234,21 +1234,21 @@ function DR.ApplyCam(m, fi, facing, full)
 end
 
 ------------------------------------------------------------------------
--- Auswahl-Fenster: links grosse Vorschau, rechts Raster mit allen Kaempfern
+-- Picker window: big preview on the left, grid with all fighters on the right
 ------------------------------------------------------------------------
 local picker
--- Musik: im Menue leise Hintergrundmusik, im Kampf eine von vier Kampfmusiken (Schleife)
--- Kampfmusik liegt nur lokal in Media\music (nicht im Paket) - fehlt sie, bleibt es still
-local GM = "Interface\\AddOns\\Oasis_Guild\\Media\\"   -- 0.5.728: Kampfmusik liegt im Gildenmodul (Oasis_Guild); fehlt es, bleibt es still
+-- Music: quiet background music in the menu, in combat one of four battle tracks (loop)
+-- battle music is only local in Media\music (not in the package) - if missing, it stays silent
+local GM = "Interface\\AddOns\\Oasis_Guild\\Media\\"   -- 0.5.728: battle music lives in the guild module (Oasis_Guild); if missing, it stays silent
 local MUSIC_BG = { file = GM .. "sounds\\drmusic.ogg", len = 105 }
 local FIGHT = {
     { file = GM .. "music\\fight1.ogg", len = 233 }, { file = GM .. "music\\fight2.ogg", len = 179 },
     { file = GM .. "music\\fight3.ogg", len = 214 }, { file = GM .. "music\\fight4.ogg", len = 97 },
-    { file = GM .. "sounds\\amoktime.ogg", len = 9.03 },   -- Kampfmusik aus dem Gildenmodul (laeuft in Schleife)
+    { file = GM .. "sounds\\amoktime.ogg", len = 9.03 },   -- battle music from the guild module (loops)
 }
 local AMOK = FIGHT[#FIGHT]
 local musicHandle, musicTimer, musicPage, musicMode, fightTrack
-local musicHandle2   -- zweite Kopie der Kaempferwahl-Musik (lauter)
+local musicHandle2   -- second copy of the fighter select music (louder)
 local function stopMusic(fade)
     if type(musicHandle) == "number" and StopSound then StopSound(musicHandle, fade or 800) end
     if type(musicHandle2) == "number" and StopSound then StopSound(musicHandle2, fade or 800) end
@@ -1257,13 +1257,13 @@ local function stopMusic(fade)
 end
 function DR.MusicUpdate()
     local s = ns.db and ns.db.settings
-    -- Musik-Lautstaerke 0-5: 0 aus, 1-3 leisere Dateien (_1.._3), 4 normal, 5 normal doppelt (Standard)
+    -- music volume 0-5: 0 off, 1-3 quieter files (_1.._3), 4 normal, 5 normal doubled (default)
     local mv = tonumber(s and s.drMusicVol) or 5
     local on = s and s.sound ~= false and s.drMusic ~= false and mv > 0
     local g = DR.game
     local mode
     if on and DR.frame and DR.frame:IsShown() and g and g.state == "live" then mode = "fight"
-    -- Hintergrundmusik nur noch in der Kaempferwahl, Fenster zu = aus
+    -- background music only in fighter select now, window closed = off
     elseif on and picker and picker:IsShown() then mode = "bg" end
     if mode ~= musicMode then stopMusic(mode and 400 or 800) musicMode = mode end
     if mode and not musicHandle then
@@ -1274,7 +1274,7 @@ function DR.MusicUpdate()
         end
         local file = mv >= 4 and tr.file or tr.file:gsub("%.ogg$", "_" .. mv .. ".ogg")
         local ok, willPlay, h = pcall(PlaySoundFile, file, "Master")
-        -- lokale Kampfmusik fehlt (nicht im Paket): statt Stille "Amok Time" nehmen
+        -- local battle music missing (not in the package): use "Amok Time" instead of silence
         if mode == "fight" and tr ~= AMOK and not (ok and willPlay) then
             fightTrack, tr = AMOK, AMOK
             file = mv >= 4 and tr.file or tr.file:gsub("%.ogg$", "_" .. mv .. ".ogg")
@@ -1282,12 +1282,12 @@ function DR.MusicUpdate()
         end
         if ok and willPlay then
             musicHandle = h or true
-            -- Stufe 5: zweite Kopie gleichzeitig = deutlich lauter
+            -- level 5: second copy at the same time = clearly louder
             if mv >= 5 then
                 local ok2, w2, h2 = pcall(PlaySoundFile, file, "Master")
                 if ok2 and w2 then musicHandle2 = h2 end
             end
-            -- Fenster verlassen (Alt-Tab) stoppt bei manchen Einstellungen alle Toene: dann neu starten
+            -- leaving the window (Alt-Tab) stops all sounds with some settings: then restart
             if not DR.musicWatch and C_Sound and C_Sound.IsPlaying then
                 DR.musicWatch = C_Timer.NewTicker(2, function()
                     if musicMode and type(musicHandle) == "number" then
@@ -1298,7 +1298,7 @@ function DR.MusicUpdate()
             end
             musicTimer = C_Timer.NewTimer(tr.len, function() musicHandle = nil DR.MusicUpdate() end)
         else
-            -- Datei fehlt (z.B. noch kein Neustart nach dem Update): in 30 s nochmal versuchen
+            -- file missing (e.g. no restart yet after the update): try again in 30 s
             musicHandle = true
             musicTimer = C_Timer.NewTimer(30, function() musicHandle = nil DR.MusicUpdate() end)
         end
@@ -1325,7 +1325,7 @@ local function buildPicker()
     f.title:SetText(K.Upper(L["Choose your fighter"]))
     local close = K.CloseButton(f, function() f:Hide() end)
     close:SetPoint("TOPRIGHT", -8, -8)
-    -- Vorschau links (Buehne mit Lichtkegel)
+    -- Preview on the left (stage with spotlight)
     local stage = CreateFrame("Frame", nil, f)
     stage:SetPoint("TOPLEFT", 16, -50)
     stage:SetSize(270, 510)
@@ -1337,21 +1337,21 @@ local function buildPicker()
     light:SetAlpha(0.35)
     f.big = CreateFrame("PlayerModel", nil, stage)
     f.big:SetPoint("TOPLEFT", 0, -10) f.big:SetPoint("BOTTOMRIGHT", 0, 76)
-    -- leuchtende Plattform unter der Figur
+    -- glowing platform under the figure
     local plat = stage:CreateTexture(nil, "BACKGROUND", nil, 3)
     plat:SetTexture(ns.MEDIA .. "dr\\platform")
     plat:SetSize(280, 110)
     plat:SetPoint("BOTTOM", 0, 52)
     plat:SetBlendMode("ADD")
     plat:SetVertexColor(1, 0.35, 0.25, 0.8)
-    -- 0.6.209: Gildenmodul: Ritualkreis im Thronsaal als Buehne, Figur steht auf dem Kreis; Lichtkegel/Plattform aus
+    -- 0.6.209: guild module: ritual circle in the throne room as stage, figure stands on the circle; spotlight/platform off
     if ns.GuildPack then
         stage.art = stage:CreateTexture(nil, "BACKGROUND", nil, 1)
-        if K.BgImg then K.BgImg(stage.art) end   -- 0.6.227: Helligkeit einstellbar
+        if K.BgImg then K.BgImg(stage.art) end   -- 0.6.227: brightness adjustable
         stage.art:SetAllPoints()
         stage.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_pick_bg")
-        -- 0.6.239: Fackel-/Glutlicht flackert sanft und unregelmaessig - additive Kopie des Bildes, deren Helligkeit
-        -- weich zufaelligen Zielwerten folgt (neues Ziel alle 0,15-0,6 s, kein Springen)
+        -- 0.6.239: torch/ember light flickers softly and irregularly - additive copy of the image whose brightness
+        -- smoothly follows random target values (new target every 0.15-0.6 s, no jumping)
         stage.flick = stage:CreateTexture(nil, "BACKGROUND", nil, 2)
         stage.flick:SetAllPoints(stage.art)
         stage.flick:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_pick_bg")
@@ -1370,8 +1370,8 @@ local function buildPicker()
         end)
         light:Hide() plat:Hide()
         f.big:ClearAllPoints()
-        -- 0.6.238: Figur 70 tiefer, damit sie auf dem Ritualkreis steht (schwebte darueber)
-        f.big:SetPoint("TOPLEFT", 0, -160) f.big:SetPoint("BOTTOMRIGHT", 0, 26)   -- 0.6.241: kuerzer = Figur kleiner
+        -- 0.6.238: figure 70 lower so it stands on the ritual circle (floated above it)
+        f.big:SetPoint("TOPLEFT", 0, -160) f.big:SetPoint("BOTTOMRIGHT", 0, 26)   -- 0.6.241: shorter = figure smaller
     end
     f.bigName = K.Title(stage, 20, C.text, "CENTER")
     f.bigName:SetPoint("BOTTOM", 0, 40)
@@ -1381,7 +1381,7 @@ local function buildPicker()
     f.bigSub:SetWidth(260)
     for _, fs in ipairs({ f.bigName, f.bigSub }) do if fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 1) fs:SetShadowOffset(1, -1) end end
     f.big:SetScript("OnUpdate", function(self, el) self.r = ((self.r or 0) + el * 0.6) % (math.pi * 2) pcall(self.SetFacing, self, self.r) end)
-    -- Raster rechts: 6 Spalten, freigeschaltete Figuren zuerst sortiert wie in DR.FIGHTERS
+    -- Grid on the right: 6 columns, unlocked figures first, sorted as in DR.FIGHTERS
     f.tiles = {}
     local TW, TH, GAP = 72, 70, 6
     for i, fi in ipairs(DR.FIGHTERS) do
@@ -1408,7 +1408,7 @@ local function buildPicker()
         t.n:SetWidth(TW - 6)
         t.n:SetText(L[fi.name])
         t.fi = fi
-        -- gesperrt: abgedunkelt, Schloss + noetiger Rang
+        -- locked: darkened, lock + required rank
         if fi.rank then
             t.lock = CreateFrame("Frame", nil, t)
             t.lock:SetAllPoints()
@@ -1434,12 +1434,12 @@ local function buildPicker()
             DR.SetMyFighter(self.fi.key)
             f:Mark()
             pcall(PlaySound, (SOUNDKIT and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON) or 856, "SFX")
-            f:Hide()   -- ein Klick = gewaehlt
+            f:Hide()   -- one click = selected
         end)
         f.tiles[i] = t
     end
     f.ok = K.Button(f, L["Ready!"], 200, 34, "primary", function() f:Hide() end)
-    f.ok:Hide()   -- Auswahl per Klick auf eine Figur
+    f.ok:Hide()   -- select by clicking a figure
     f.ok:SetPoint("BOTTOMRIGHT", -16, 16)
     f.hint = K.Text(f, 10, C.dim)
     f.hint:SetPoint("BOTTOMLEFT", 302, 26)
@@ -1456,8 +1456,8 @@ local function buildPicker()
         end
     end
     function f:Preview(fi)
-        -- grosse Vorschau: immer die ganze Figur (Kopf bis Fuss), grosse Kreaturen weiter weg
-        -- 0.6.240: weiter weg als im Kampffenster - normal grosse Figuren (Mankrik ...) sprengten sonst den Rahmen
+        -- big preview: always the whole figure (head to toe), big creatures further away
+        -- 0.6.240: further away than in the fight window - normal-sized figures (Mankrik ...) burst the frame otherwise
         self:Load(self.big, fi, nil, PICK_DIST)
         C_Timer.After(0.35, function() if self.big.fi == fi then DR.ApplyCam(self.big, fi, nil, PICK_DIST) end end)
         self.bigName:SetText(K.Upper(L[fi.name]))
@@ -1476,13 +1476,13 @@ local function buildPicker()
     f:HookScript("OnShow", function(self) self:Mark() end)
     ns.EscClose("OasisFighterSelect")
     picker = f
-    -- 0.6.210: derselbe Bild-Rahmen wie Hauptfenster und /oa start (abschaltbar ueber "Verzierter Fensterrahmen")
+    -- 0.6.210: the same image frame as the main window and /oa start (can be turned off via "Decorated window frame")
     if ns.GuildPack and K.ImageFrame then
         local ok, fr = pcall(K.ImageFrame, f, 0.3)
         if ok and fr then f.imageFrame = fr if K.ApplyFrameStyle then K.ApplyFrameStyle(f) end end
     end
-    -- 0.6.208: 3D-Modelle verschiedener Fenster stoeren sich, wenn sie uebereinander liegen (das obere wirkt
-    -- loechrig/durchsichtig, besonders beim Verschieben). Solange die Auswahl offen ist, Modelle im Hauptfenster aus.
+    -- 0.6.208: 3D models of different windows interfere when stacked (the upper one looks
+    -- holey/transparent, especially while dragging). While the picker is open, models in the main window are off.
     local hidden = {}
     local function walk(fr, depth)
         if not fr or depth > 14 or not fr.GetChildren then return end
@@ -1496,10 +1496,10 @@ local function buildPicker()
             end
         end
     end
-    -- 0.6.211: auch direkt aus DR.ShowPicker (ein neu erzeugter Frame ist schon "sichtbar" -> erstes OnShow fehlt)
+    -- 0.6.211: also directly from DR.ShowPicker (a newly created frame is already "visible" -> first OnShow is missing)
     function f.HideBehind()
         if #hidden > 0 then return end
-        -- bekannte Figur der Todeswuerfel-Seite immer, dazu alle weiteren Modelle im Hauptfenster
+        -- known figure of the Deathroll page always, plus all other models in the main window
         local pg = ns.PageDef and ns.PageDef("deathroll")
         local fm = pg and pg.frame and pg.frame.fcard and pg.frame.fcard.m
         if fm and fm:IsShown() then fm:Hide() hidden[#hidden + 1] = fm end
@@ -1516,16 +1516,16 @@ local function buildPicker()
     return f
 end
 function DR.ShowPicker()
-    -- vor dem Bauen pruefen: ein neu erzeugter Frame ist sofort "sichtbar" -> sonst nie Sound beim ersten Oeffnen
+    -- check before building: a newly created frame is "visible" immediately -> otherwise never a sound on first open
     local was = picker ~= nil and picker:IsShown()
     local f = picker or buildPicker()
     f:Show()
     if f.HideBehind then f.HideBehind() end
-    -- wie bei Smash Bros: "Choose your character!" beim Oeffnen der Kaempferwahl
+    -- like Smash Bros: "Choose your character!" when opening fighter select
     if not was and ns.Sound and ns.Sound.PlayChoice then
         local s = ns.db and ns.db.settings
         if s and s.sound ~= false then
-            -- immer laut: volle Lautstaerke plus zweite Kopie gleichzeitig (Stufe 20 = doppelt)
+            -- always loud: full volume plus a second copy at the same time (level 20 = double)
             local ok, h = pcall(ns.Sound.PlayLoud or ns.Sound.PlayChoice, "smash", 20)
             if not (ok and h) then
                 pcall(PlaySound, (SOUNDKIT and SOUNDKIT.PVP_THROUGH_QUEUE) or 8459, "Master")
@@ -1537,7 +1537,7 @@ function DR.ShowPicker()
         end
     end
     f:Raise()
-    -- ein neu gebauter Frame ist schon "sichtbar" -> OnShow kommt beim ersten Oeffnen nicht: Musik direkt starten
+    -- a newly built frame is already "visible" -> OnShow doesn't fire on first open: start music directly
     C_Timer.After(0, DR.MusicUpdate)
     for _, t in ipairs(f.tiles) do f:Load(t.m, t.fi, 0.4) end
     f:Preview(DR.Fighter(DR.MyFighter()))
@@ -1546,12 +1546,12 @@ end
 ns.slash.kaempfer = function() DR.ShowPicker() end
 
 ------------------------------------------------------------------------
--- Arena: das Spielfenster (Modelle links/rechts, HP-Balken, fallende Wuerfel)
+-- Arena: the game window (models left/right, HP bars, falling dice)
 ------------------------------------------------------------------------
 local W, H = 780, 460
 local ANIM = { roll = 2, win = 64, lose = 1, stand = 0, ready = 26 }
 
--- Einheit fuer einen Namen suchen (Ziel, Gruppe, Maus) - dann zeigt das Modell die echte Ausruestung
+-- find a unit for a name (target, group, mouseover) - then the model shows the real gear
 local function unitFor(name)
     if ns.isMe(name) then return "player" end
     local toks = { "target", "focus", "mouseover" }
@@ -1560,21 +1560,21 @@ local function unitFor(name)
     for _, t in ipairs(toks) do
         if UnitExists(t) and UnitIsPlayer(t) then
             local n = ns.safe(GetUnitName(t, true))
-            if n and (ns.fullName(n) == ns.fullName(name) or Comm.whoKey(n) == Comm.whoKey(name)) then return t end   -- Vorname reicht (Doppelnamen)
+            if n and (ns.fullName(n) == ns.fullName(name) or Comm.whoKey(n) == Comm.whoKey(name)) then return t end   -- first name is enough (double names)
         end
     end
 end
 
--- Ersatzfigur je Volk (Stadtwachen aus Classic), wenn der Gegner nicht als Einheit greifbar ist
+-- substitute figure per race (city guards from Classic) when the opponent isn't available as a unit
 local RACE_NPC = { [1] = 68, [2] = 3296, [3] = 5595, [4] = 4262, [5] = 5624, [6] = 3084, [7] = 5595, [8] = 3296 }
-local DUMMY_NPC = 3296   -- Grunzer von Orgrimmar
+local DUMMY_NPC = 3296   -- Orgrimmar Grunt
 
 local function hasModel(m)
     local ok, id = pcall(m.GetModelFileID, m)
     return ok and id and id ~= 0
 end
 
--- Klassensymbol statt Modell (wenn WoW kein Modell liefert)
+-- class icon instead of a model (if WoW provides no model)
 local function showClassIcon(side, name)
     side.model:Hide()
     side.noModel:Show()
@@ -1593,7 +1593,7 @@ local function setModel(side, name, look, bot)
     m:Show()
     side.noModel:Hide()
     pcall(m.ClearModel, m)
-    -- gewaehlte Figur (Kaempferauswahl) hat Vorrang
+    -- chosen figure (fighter select) takes precedence
     local fi = look and look.f and look.f ~= "me" and DR.Fighter(look.f)
     if fi and fi.npc then
         DR.LoadFighter(m, fi)
@@ -1620,13 +1620,13 @@ local function setModel(side, name, look, bot)
         pcall(m.SetCreature, m, npc)
     elseif look and look.race and look.race > 0 then
         if m.SetCustomRace then pcall(m.SetCustomRace, m, look.race, look.sex or 0) end
-        -- KEINE Ausruestung anziehen: laedt WoW statt des Charakters ein anderes Modell, stuerzt das Spiel ab
+        -- DON'T put on gear: if WoW loads a different model instead of the character, the game crashes
         -- (ASSERT "armor2 on non-armor2 model", 30.09.)
-        -- klappt das Volksmodell nicht, Ersatzfigur nehmen
+        -- if the race model doesn't work, use the substitute figure
         ns.After(0.2, function()
             if side.name ~= name or hasModel(m) then return end
             pcall(m.SetCreature, m, npc)
-            -- auch die Ersatzfigur fehlt (z.B. Forever-Client): Klassensymbol zeigen
+            -- substitute figure missing too (e.g. Forever client): show class icon
             ns.After(0.4, function() if side.name == name and not hasModel(m) then showClassIcon(side, name) end end)
         end)
     elseif m.SetCreature then
@@ -1644,7 +1644,7 @@ local function setModel(side, name, look, bot)
             side.noModel:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         end
     end
-    -- Oberkoerper: leicht herangezoomt, Kamera etwas tiefer
+    -- upper body: slightly zoomed in, camera a bit lower
     pcall(m.SetPortraitZoom, m, 0.55)
     pcall(m.SetCamDistanceScale, m, 1)
     pcall(m.SetPosition, m, 0, 0, -0.08)
@@ -1665,9 +1665,9 @@ local function anim(side, id)
     if side.model:IsShown() then pcall(side.model.SetAnimation, side.model, id) end
 end
 
--- 0.5.698: Spannung / Farben fuer den Kampfbildschirm
+-- 0.5.698: tension / colors for the fight screen
 -- TENSION-BEGIN
--- Spannung 0..1 aus dem verbleibenden Wurfbereich: ab 30 % der Startzahl steigend, unter 10 sehr hoch
+-- tension 0..1 from the remaining roll range: rising from 30 % of the start number, very high below 10
 local function tension(max, start)
     max, start = tonumber(max) or 100, math.max(1, tonumber(start) or 100)
     local t = math.max(0, math.min(1, (0.30 - max / start) / 0.27))
@@ -1675,7 +1675,7 @@ local function tension(max, start)
     return math.min(1, t)
 end
 local function lerpc(a, b, k) return a + (b - a) * k end
--- Zahlenfarbe: weiss -> bernstein -> rot mit der Spannung
+-- number color: white -> amber -> red with tension
 local function numColor(max, start)
     if (tonumber(max) or 100) <= 1 then return 1, 0.25, 0.25 end
     local t = tension(max, start)
@@ -1683,7 +1683,7 @@ local function numColor(max, start)
     local k = (t - 0.5) / 0.5
     return 1, lerpc(0.78, 0.28, k), lerpc(0.35, 0.22, k)
 end
--- Balkenfarbe: Klassenfarbe, bei wenig Leben (unter 45 %) Richtung Rot, unter 25 % pulsierend
+-- bar color: class color, toward red at low health (below 45 %), pulsing below 25 %
 local function hpColor(base, ratio, t)
     local d = math.max(0, math.min(1, (0.45 - ratio) / 0.30))
     if d <= 0 then return base[1], base[2], base[3] end
@@ -1692,7 +1692,7 @@ local function hpColor(base, ratio, t)
 end
 -- TENSION-END
 DR.Tension, DR.NumColor, DR.HpColor = tension, numColor, hpColor
--- Sprueche der Uebungspuppe, wenn sie eine Revanche will (je nachdem, wer gewonnen hat)
+-- the practice dummy's lines when it wants a rematch (depending on who won)
 local BOT_TAUNT_WIN = { "That was just luck! Again!", "One more round - I want my honour back!",
     "Rematch! This time I win.", "Next roll you're done for!" }
 local BOT_TAUNT_LOSS = { "Too easy. Dare to go again?", "Hehe - another round?",
@@ -1700,7 +1700,7 @@ local BOT_TAUNT_LOSS = { "Too easy. Dare to go again?", "Hehe - another round?",
 DR.BOT_TAUNTS = { win = BOT_TAUNT_WIN, loss = BOT_TAUNT_LOSS }
 
 local function sideFrame(f, left)
-    -- Modell als Hintergrund: gross, Oberkoerper, links schaut nach rechts, rechts nach links
+    -- model as background: big, upper body, left looks right, right looks left
     local s = CreateFrame("Frame", nil, f)
     s:SetFrameLevel(f:GetFrameLevel() + 1)
     s:SetPoint("TOP", f, "TOP", 0, -30)
@@ -1713,7 +1713,7 @@ local function sideFrame(f, left)
     s.glow:SetSize(420, 420)
     s.glow:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
     s.glow:SetAlpha(0)
-    -- leuchtende Plattform unter dem Kaempfer (Farbe je Seite)
+    -- glowing platform under the fighter (color per side)
     s.plat = s:CreateTexture(nil, "BACKGROUND", nil, 3)
     s.plat:SetTexture(ns.MEDIA .. "dr\\platform")
     s.plat:SetSize(250, 110)
@@ -1728,12 +1728,12 @@ local function sideFrame(f, left)
     end)
     s.model = CreateFrame("PlayerModel", nil, s)
     s.model:SetAllPoints()
-    -- Treffer-Blitz: rote Flaeche ueber der Seite, blendet in 0,4 s aus
+    -- hit flash: red area over the side, fades out in 0.4 s
     s.hit = s:CreateTexture(nil, "OVERLAY", nil, 1)
     s.hit:SetAllPoints()
     s.hit:SetColorTexture(1, 0.15, 0.1, 1)
     s.hit:SetAlpha(0)
-    -- zur Mitte hin ausblenden, damit Wuerfel und Zahl frei stehen
+    -- fade out toward the center so dice and number stand free
     s.fade = s:CreateTexture(nil, "OVERLAY")
     s.fade:SetColorTexture(1, 1, 1, 1)
     s.fade:SetPoint("TOP")
@@ -1749,7 +1749,7 @@ local function sideFrame(f, left)
         s.plat:Hide() s.plat.SetAlpha = function() end
         s.fade:Hide()
         s.model:ClearAllPoints()
-        s.model:SetPoint("TOPLEFT", 0, 0) s.model:SetPoint("BOTTOMRIGHT", 0, 112)   -- Fuesse auf dem Leuchtkreis
+        s.model:SetPoint("TOPLEFT", 0, 0) s.model:SetPoint("BOTTOMRIGHT", 0, 112)   -- feet on the glow circle
     end
     s.noModel = s:CreateTexture(nil, "ARTWORK")
     s.noModel:SetSize(110, 110)
@@ -1757,7 +1757,7 @@ local function sideFrame(f, left)
     s.noModel:SetAlpha(0.5)
     s.noModel:Hide()
     s.facing = left and 0.7 or -0.7
-    -- Namensschild + HP-Balken oben
+    -- name tag + HP bar on top
     local top = CreateFrame("Frame", nil, f)
     top:SetFrameLevel(f:GetFrameLevel() + 10)
     top:SetSize(290, 50)
@@ -1786,7 +1786,7 @@ local function sideFrame(f, left)
     s.hpText:SetDrawLayer("OVERLAY", 7)
     s.left = left
     s.hp, s.shown, s.lagV = 1, 1, 1
-    -- schwebende Schadenszahl
+    -- floating damage number
     s.dmg = K.Title(top, 22, C.red, "CENTER")
     s.dmg:SetPoint("TOP", top, "BOTTOM", left and -40 or 40, -6)
     s.dmg:SetAlpha(0)
@@ -1799,16 +1799,16 @@ local function setBar(s, v, instant)
 end
 
 
--- 0.6.224: Seite im Ornament-Stil: kein "Am Zug"-Text - stattdessen leuchtet die Namensplatte des Spielers am Zug;
--- HP-Balken mit Leistentextur (Farbe per Vertexfarbe), wanderndem Glanz und leichtem Schimmer an der Kante
+-- 0.6.224: page in ornament style: no "Your turn" text - instead the name plate of the player whose turn it is glows;
+-- HP bar with bar texture (color via vertex color), wandering sheen and a slight shimmer at the edge
 function DR.ArtSide(f, sd)
     if not (f and f.artMode and sd and sd.top) then return end
     local top = sd.top
-    -- "Am Zug" + Pille weg
+    -- "Your turn" + pill gone
     sd.turn:SetAlpha(0) sd.turn.SetAlpha = function() end
     sd.turn:SetText("") sd.turn.SetText = function() end
     if sd.turnPill then sd.turnPill:Hide() sd.turnPill.Show = function() end end
-    -- leuchtende Platte (dieselbe Platte additiv darueber), pulsiert sanft, solange diese Seite am Zug ist
+    -- glowing plate (same plate additively on top), pulses softly while it's this side's turn
     if not top.glowBg and top.bg then
         top.glowBg = top:CreateTexture(nil, "BACKGROUND", nil, -1)
         top.glowBg:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. "dr_plate")
@@ -1831,7 +1831,7 @@ function DR.ArtSide(f, sd)
             self.halo:SetAlpha(0.5 * cur * pulse)
         end)
     end
-    -- HP-Balken: Textur statt Flaeche; Farbe kommt weiter aus der Spiel-Logik (SetColorTexture -> Vertexfarbe)
+    -- HP bar: texture instead of a flat area; color still comes from the game logic (SetColorTexture -> vertex color)
     if not sd.bar.artDone then
         sd.bar.artDone = true
         for _, t in ipairs({ sd.fill, sd.lag }) do
@@ -1840,7 +1840,7 @@ function DR.ArtSide(f, sd)
         end
         sd.fill:SetVertexColor(0.9, 0.3, 0.35, 1)
         sd.lag:SetVertexColor(1, 0.85, 0.4, 0.9)
-        -- Glanz, der durch die Fuellung wandert
+        -- sheen wandering through the fill
         local clip = CreateFrame("Frame", nil, sd.bar)
         clip:SetPoint("TOPLEFT", sd.fill, "TOPLEFT") clip:SetPoint("BOTTOMRIGHT", sd.fill, "BOTTOMRIGHT")
         if clip.SetClipsChildren then clip:SetClipsChildren(true) end
@@ -1848,7 +1848,7 @@ function DR.ArtSide(f, sd)
         local sh = clip:CreateTexture(nil, "OVERLAY")
         sh:SetTexture(ns.MEDIA .. "shine") sh:SetBlendMode("ADD")
         sh:SetSize(60, 30) sh:SetVertexColor(1, 0.95, 0.85) sh:SetAlpha(0.35)
-        -- heller Saum an der Kante der Fuellung
+        -- bright seam at the edge of the fill
         local edge = sd.bar:CreateTexture(nil, "OVERLAY", nil, 6)
         edge:SetTexture(ns.MEDIA .. "softglow") edge:SetBlendMode("ADD")
         edge:SetSize(18, 26) edge:SetVertexColor(1, 0.8, 0.6)
@@ -1881,14 +1881,14 @@ local function build()
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
     K.Fill(f, { 0.025, 0.025, 0.028, 0.98 })
     K.Border(f, C.line)
-    -- Arena: Steinwand mit Fackeln, Bodenplatten, Lichtkegel (eigene Grafik)
+    -- Arena: stone wall with torches, floor tiles, spotlight (own graphic)
     f.arena = f:CreateTexture(nil, "BACKGROUND", nil, 1)
-    if K.BgImg then K.BgImg(f.arena) end   -- 0.6.227: Helligkeit einstellbar
+    if K.BgImg then K.BgImg(f.arena) end   -- 0.6.227: brightness adjustable
     f.arena:SetPoint("TOPLEFT", 1, -1)
     f.arena:SetPoint("BOTTOMRIGHT", -1, 1)
     f.arena:SetTexture(ns.MEDIA .. "dr\\arena")
     f.arena:SetAlpha(0.95)
-    -- 0.6.219: Gildenmodul: Thronsaal-Arena mit eigenem Rahmen (aussen transparent), zwei Leuchtkreise fuer die Kaempfer
+    -- 0.6.219: guild module: throne room arena with own frame (transparent outside), two glow circles for the fighters
     if ns.GuildPack then
         f.arena:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_game_bg")
         f.arena:ClearAllPoints() f.arena:SetAllPoints()
@@ -1899,21 +1899,21 @@ local function build()
         end
         if f.borders then for _, b in ipairs(f.borders) do b:SetAlpha(0) end end
     end
-    -- Fackeln flackern leicht (Helligkeit der Arena schwankt)
+    -- torches flicker slightly (arena brightness fluctuates)
     f.flick = CreateFrame("Frame", nil, f)
     f.flick:SetScript("OnUpdate", function()
         local t = GetTime()
         local v = 0.88 + 0.07 * math.sin(t * 7.3) + 0.04 * math.sin(t * 13.1)
         f.arena:SetVertexColor(v, v * 0.97, v * 0.95)
     end)
-    -- Buehne: dunkler Verlauf + Lichtkegel in der Mitte
+    -- stage: dark gradient + spotlight in the middle
     f.stageLight = f:CreateTexture(nil, "BACKGROUND", nil, 2)
     f.stageLight:SetTexture(ns.MEDIA .. "shine")
     f.stageLight:SetPoint("CENTER", 0, -30)
     f.stageLight:SetSize(520, 420)
     f.stageLight:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
     f.stageLight:SetAlpha(0.10)
-    -- Spannungs-Rand: rote Raender, werden mit sinkendem Wurfbereich staerker und schlagen im Herzschlag
+    -- tension border: red edges, grow stronger as the roll range shrinks and beat like a heartbeat
     f.vigF = CreateFrame("Frame", nil, f)
     f.vigF:SetAllPoints()
     f.vigF:SetFrameLevel(f:GetFrameLevel() + 22)
@@ -1937,7 +1937,7 @@ local function build()
     f.titleFS = title
     f.stake = K.Text(f, 11, C.amber, "CENTER")
     f.stake:SetPoint("TOP", title, "BOTTOM", 0, -3)
-    -- Schliessen waehrend eines laufenden Spiels = aufgeben (mit Rueckfrage)
+    -- closing during a running game = forfeit (with confirmation)
     local close = K.CloseButton(f, function()
         local g = DR.game
         if g and g.state == "live" then DR.AskGiveUp() return end
@@ -1953,7 +1953,7 @@ local function build()
     f.A = sideFrame(f, true)
     f.B = sideFrame(f, false)
 
-    -- Groesse aendern: Griff unten rechts ziehen (skaliert das ganze Fenster, Anordnung bleibt)
+    -- Resize: drag the grip at the bottom right (scales the whole window, layout stays)
     local S = ns.db.settings
     f:SetScale(math.max(0.6, math.min(1.8, S.drScale or 1)))
     if S.drPos and S.drPos[1] then
@@ -1978,12 +1978,12 @@ local function build()
         self:SetScript("OnUpdate", function(s)
             local cx = GetCursorPosition()
             local ui = UIParent:GetEffectiveScale()
-            -- Breitenaenderung in Fenster-Einheiten -> neue Skalierung
+            -- width change in window units -> new scale
             local dw = (cx - s.drag.x) / ui
             local sc = math.max(0.6, math.min(1.8, s.drag.scale * (1 + dw / (W * s.drag.scale))))
             local l, t = s.drag.left * s.drag.scale, s.drag.top * s.drag.scale
             f:SetScale(sc)
-            -- obere linke Ecke bleibt stehen
+            -- top left corner stays put
             f:ClearAllPoints()
             f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", l / sc, t / sc)
         end)
@@ -2000,7 +2000,7 @@ local function build()
         f:SetPoint("CENTER", 0, 40)
     end)
 
-    -- Mitte: Wuerfel + Zahl
+    -- middle: dice + number
     f.center = CreateFrame("Frame", nil, f)
     f.center:SetFrameLevel(f:GetFrameLevel() + 10)
     f.center:SetSize(220, 220)
@@ -2030,7 +2030,7 @@ local function build()
     f.status:SetPoint("TOP", f.center, "BOTTOM", 0, 6)
     f.status:SetWidth(300)
 
-    -- unten: Knoepfe + Verlauf
+    -- bottom: buttons + history
     f.b1 = K.Button(f.front, "", 240, 40, "primary")
     f.b1:SetPoint("BOTTOM", 0, 58)
     f.b1.label:SetFont(K.FONT_HEAD, 15, "")
@@ -2043,10 +2043,10 @@ local function build()
     f.hist:SetPoint("BOTTOM", 0, 8)
     f.hist:SetWidth(W - 40)
 
-    -- Kaempfer waehlen (vor dem ersten Wurf)
+    -- choose fighter (before the first roll)
     f.pick = K.Button(f.front, L["Choose fighter"], 140, 22, "ghost", function() DR.ShowPicker() end)
     f.pick:SetPoint("TOPLEFT", 12, -12)
-    -- Lautstaerke: Musik (0-5) und Sound (0-10, gilt fuer alle Oasis-Toene)
+    -- Volume: music (0-5) and sound (0-10, applies to all Oasis sounds)
     if K.Slider then
         local function S2() return ns.db.settings end
         f.mLbl = K.Text(f.front, 9, C.dim)
@@ -2062,14 +2062,14 @@ local function build()
             function(v) S2().soundVol = v end, function(v) return v == 0 and L["off"] or (ns.Sound and ns.Sound.VolText and ns.Sound.VolText(v) or tostring(v)) end)
         f.sVol:SetPoint("LEFT", f.mLbl, "RIGHT", 8, -22)
     end
-    -- VS-Einblendung zu Beginn (wie bei Tekken)
+    -- VS intro at the start (like Tekken)
     f.vs = CreateFrame("Frame", nil, f)
     f.vs:SetAllPoints()
     f.vs:SetFrameLevel(f:GetFrameLevel() + 30)
     f.vs.bg = f.vs:CreateTexture(nil, "BACKGROUND")
     f.vs.bg:SetPoint("LEFT") f.vs.bg:SetPoint("RIGHT") f.vs.bg:SetHeight(120)
     f.vs.bg:SetColorTexture(0, 0, 0, 0.75)
-    -- Blitz-Emblem hinter dem VS (pulsiert)
+    -- lightning emblem behind the VS (pulses)
     f.vs.burst = f.vs:CreateTexture(nil, "ARTWORK")
     f.vs.burst:SetTexture(ns.MEDIA .. "dr\\burst")
     f.vs.burst:SetSize(200, 200)
@@ -2094,7 +2094,7 @@ local function build()
     f.vs.fb = K.Text(f.vs, 12, C.muted, "LEFT")
     f.vs:Hide()
 
-    -- Ergebnis-Schriftzug
+    -- result lettering
     f.result = f.front:CreateFontString(nil, "OVERLAY")
     f.result:SetFont(K.FONT_HEAD, 46, "OUTLINE")
     f.result:SetPoint("CENTER", 0, 70)
@@ -2103,7 +2103,7 @@ local function build()
     f.t = 0
     f:SetScript("OnUpdate", function(self, el)
         self.t = self.t + el
-        -- HP-Balken gleiten, gelber "Schaden" zieht langsam nach
+        -- HP bars glide, yellow "damage" trails slowly
         for _, s in ipairs({ self.A, self.B }) do
             s.shown = s.shown + (s.hp - s.shown) * math.min(1, el * 10)
             if s.lagV > s.shown then s.lagV = math.max(s.shown, s.lagV - el * 0.5) else s.lagV = s.shown end
@@ -2112,7 +2112,7 @@ local function build()
             s.lag:SetWidth(math.max(0.01, bw * s.lagV))
             s.fill:SetShown(s.shown > 0.002)
             if s.base then s.fill:SetColorTexture(hpColor(s.base, s.shown, self.t)) end
-            -- Rampenlicht: wer nicht dran ist, wird leicht abgedunkelt
+            -- Spotlight: whoever isn't up is slightly dimmed
             local want = (self.liveGame and not s.active) and 0.72 or 1
             s.ma = (s.ma or 1) + (want - (s.ma or 1)) * math.min(1, el * 5)
             s.model:SetAlpha(s.ma)
@@ -2128,23 +2128,23 @@ local function build()
                 s.dmg:SetPoint("TOP", s.top, "BOTTOM", s.left and -40 or 40, -6 + s.dmgT * 30)
                 if s.dmgT > 1.4 then s.dmgT = nil end
             end
-            -- wer dran ist, leuchtet
+            -- whoever is up glows
             local on = s.active and (0.25 + 0.15 * math.sin(self.t * 4)) or 0
             s.glowA = (s.glowA or 0) + (on - (s.glowA or 0)) * math.min(1, el * 6)
             s.glow:SetAlpha(s.glowA)
         end
-        -- Wuerfel fallen
+        -- dice fall
         local a = DR.anim
         if a then
             a.t = a.t + el
             local T = 0.85
             local k = math.min(1, a.t / T)
-            -- Wuerfel-Design (Belohnung Oasis-Rang)
+            -- dice design (Oasis rank reward)
             local dc = ns.Rewards and ns.Rewards.DiceColor()
             for i, d in ipairs(self.dice) do
                 if dc then d:SetVertexColor(dc[1], dc[2], dc[3]) else d:SetVertexColor(1, 1, 1) end
                 local off = (i == 1) and -34 or 34
-                -- Fall mit Aufprall (einfacher Bounce)
+                -- fall with impact (simple bounce)
                 local y
                 if k < 0.6 then y = 150 * (1 - (k / 0.6) ^ 2)
                 else local b = (k - 0.6) / 0.4 y = 26 * math.sin(b * math.pi) * (1 - b) end
@@ -2184,7 +2184,7 @@ local function build()
                 end
             end
         end
-        -- Spannung: roter Rand + Herzschlag der Zahl (nur im laufenden Spiel, ohne "Animationen reduzieren")
+        -- Tension: red border + heartbeat of the number (only in a running game, without "Reduce animations")
         do
             local g = DR.game
             local noA = ns.db and ns.db.settings and ns.db.settings.noAnim
@@ -2196,7 +2196,7 @@ local function build()
                 self.numF:SetScale(1 + ((self.tenS > 0.6) and (0.05 * beat * (self.tenS - 0.6) / 0.4) or 0))
             end
         end
-        -- VS-Einblendung: Namen fliegen herein, VS knallt, dann ausblenden
+        -- VS intro: names fly in, VS bangs, then fade out
         if self.vsT then
             self.vsT = self.vsT + el
             local t = self.vsT
@@ -2213,7 +2213,7 @@ local function build()
             self.vs:SetAlpha(fade)
             if t > 2.1 then self.vsT = nil self.vs:Hide() end
         end
-        -- Ergebnis einblenden
+        -- fade in result
         if self.resultT then
             self.resultT = self.resultT + el
             local p = math.min(1, self.resultT / 0.4)
@@ -2222,7 +2222,7 @@ local function build()
         end
     end)
     ns.EscClose("OasisDeathrollFrame")
-    -- auch Esc: im laufenden Spiel erst fragen, Fenster bleibt offen
+    -- Esc too: in a running game ask first, window stays open
     f:HookScript("OnHide", function(self)
         if self.allowHide then self.allowHide = nil return end
         local g = DR.game
@@ -2230,23 +2230,23 @@ local function build()
             ns.After(0, function() if DR.game == g and g.state == "live" then self:Show() DR.AskGiveUp() end end)
         end
     end)
-    -- 0.6.220: Spielfenster im Ornament-Stil (nur mit Thronsaal-Bild): goldener Titel, Zahl mit Ornament-Ring,
-    -- "Du bist dran" auf einer Bronze-Platte, Knoepfe als Bild-Platten, Namensplatten mit Medaillon, Figuren ganz
+    -- 0.6.220: game window in ornament style (only with the throne room image): golden title, number with ornament ring,
+    -- "Your turn" on a bronze plate, buttons as image plates, name plates with medallion, figures whole
     if f.artMode then
         local MED = "Interface\\AddOns\\Oasis_Guild\\Media\\"
         local GOLD = { 1, 0.82, 0.45 }
         local function shadow(fs) if fs and fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 1) fs:SetShadowOffset(1, -1) end end
-        -- Titel
+        -- Title
         f.titleFS:SetText(L["Deathroll"])
         K.SetFontSafe(f.titleFS, K.FONT_HEAD or K.FONT, 26, "", K.FONT)
         f.titleFS:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
         f.titleFS:ClearAllPoints() f.titleFS:SetPoint("TOP", 0, -16)
         shadow(f.titleFS)
         f.stake:SetTextColor(0.8, 0.76, 0.72) shadow(f.stake)
-        -- Zahl mit Ornament-Ring
+        -- number with ornament ring
         f.numRing = f.center:CreateTexture(nil, "BACKGROUND")
         f.numRing:SetTexture(MED .. "badge_ring")
-        -- 0.6.221: Mitte neu: Ring kleiner und hoeher, Unterschrift darunter, Platte und Knoepfe mit Abstand
+        -- 0.6.221: new center: ring smaller and higher, caption below, plate and buttons spaced
         f.center:ClearAllPoints() f.center:SetPoint("CENTER", f, "CENTER", 0, 34)
         f.numRing:SetSize(150, 150)
         f.numRing:SetPoint("CENTER", f.numF, "CENTER", 0, 2)
@@ -2260,19 +2260,19 @@ local function build()
         f.numLbl:SetTextColor(0.85, 0.8, 0.75) shadow(f.numLbl)
         f.numLbl:ClearAllPoints() f.numLbl:SetPoint("TOP", f.numRing, "BOTTOM", 0, -2)
         f.num:SetFont(K.FONT_HEAD, 52, "OUTLINE")
-        -- 0.6.514: Ziffern sitzen in der Schrift etwas hoch - optisch in die Ringmitte schieben
+        -- 0.6.514: digits sit a bit high in the font - shift them optically to the ring center
         f.num:ClearAllPoints() f.num:SetPoint("CENTER", f.numRing, "CENTER", -1, -1)
-        -- "Du bist dran" auf Bronze-Platte
+        -- "Your turn" on a bronze plate
         f.statusBg = f.front:CreateTexture(nil, "BACKGROUND")
         f.statusBg:SetTexture(MED .. "dr_plate")
         f.status:ClearAllPoints() f.status:SetPoint("TOP", f.numLbl, "BOTTOM", 0, -14)
         f.statusBg:SetSize(220, 38)
         f.statusBg:SetPoint("CENTER", f.status, "CENTER", 0, 0)
         f.status:SetTextColor(GOLD[1], GOLD[2], GOLD[3]) shadow(f.status)
-        -- Knoepfe als Bild-Platten (eigene Flaechen unsichtbar, Hover leuchtet)
-        -- 0.6.226: Bild-Knopf als eigener, schlanker Knopf UEBER dem Original. Das Original wird ganz unsichtbar
-        -- und klickfest (seine Design-Flaechen schienen sonst immer wieder durch); Text, Klick, Sichtbarkeit und
-        -- Aktiv-Zustand werden vom Original uebernommen - die Spiel-Logik bleibt unveraendert.
+        -- buttons as image plates (own surfaces invisible, hover glows)
+        -- 0.6.226: image button as its own slim button ON TOP of the original. The original becomes fully invisible
+        -- and click-proof (its design surfaces kept showing through otherwise); text, click, visibility and
+        -- enabled state are taken from the original - the game logic stays unchanged.
         local function imgBtn(orig, file, w, h, fontSize)
             if not orig then return end
             orig.imgSkin = true
@@ -2325,13 +2325,13 @@ local function build()
         end
         f.b1:SetSize(230, 44)
         f.b1:ClearAllPoints() f.b1:SetPoint("BOTTOM", 0, 56)
-        imgBtn(f.b1, "dr_roll_btn", 250, 70, 18)   -- 0.6.221: eigene Wuerfeln-Plakette
+        imgBtn(f.b1, "dr_roll_btn", 250, 70, 18)   -- 0.6.221: own roll plaque
         f.b2:SetSize(150, 28)
         f.b2:ClearAllPoints() f.b2:SetPoint("BOTTOM", 0, 16)
-        imgBtn(f.b2, "dr_giveup_btn", 180, 46, 11)   -- 0.6.222: eigene Platte fuer Aufgeben
+        imgBtn(f.b2, "dr_giveup_btn", 180, 46, 11)   -- 0.6.222: own plate for forfeit
         f.pick:SetSize(140, 24)
         imgBtn(f.pick, "dr_plate", 160, 32, 10)
-        -- Namensplatten mit Medaillon aussen, HP-Balken darin
+        -- name plates with medallion outside, HP bar inside
         for _, sd in ipairs({ f.A, f.B }) do
             local top, left = sd.top, sd.left
             top:ClearAllPoints()
@@ -2348,7 +2348,7 @@ local function build()
             shadow(sd.turn)
             sd.bar:ClearAllPoints()
             sd.bar:SetPoint("TOPLEFT", 6, -26) sd.bar:SetPoint("TOPRIGHT", -6, -26)
-            -- Medaillon: Ornament-Ring in der Seitenfarbe, Wuerfel-Symbol darin
+            -- medallion: ornament ring in the side color, dice icon inside
             local medal = CreateFrame("Frame", nil, top)
             medal:SetSize(62, 62)
             medal:SetPoint("CENTER", top, left and "LEFT" or "RIGHT", left and -30 or 30, -4)
@@ -2365,7 +2365,7 @@ local function build()
             medal.ico:SetVertexColor(mc[1], mc[2], mc[3])
             sd.medal = medal
             DR.ArtSide(f, sd)
-            -- Figur ganz zeigen (weiter weg), nach jedem Laden neu
+            -- show figure whole (further away), anew after every load
             local function zoomOut(m)
                 if m.SetPortraitZoom then pcall(m.SetPortraitZoom, m, 0) end
                 if m.SetCamDistanceScale then pcall(m.SetCamDistanceScale, m, 1.6) end
@@ -2382,7 +2382,7 @@ local function build()
     f:HookScript("OnHide", function() C_Timer.After(0, DR.MusicUpdate) end)
     return f
 end
--- Rueckfrage: wirklich aufgeben?
+-- confirmation: really forfeit?
 function DR.AskGiveUp()
     if not StaticPopupDialogs then DR.GiveUp() return end
     StaticPopupDialogs.OASIS_DR_GIVEUP = StaticPopupDialogs.OASIS_DR_GIVEUP or {
@@ -2398,7 +2398,7 @@ function DR.AskGiveUp()
     StaticPopup_Show("OASIS_DR_GIVEUP")
 end
 
--- Stand je Seite: letzter eigener Wurf = "Lebenspunkte"
+-- state per side: your last roll = "hit points"
 local function hpOf(g, name)
     for _, h in ipairs(g.hist) do if sameName(h.who, name) then return h.roll end end
     return g.start
@@ -2422,7 +2422,7 @@ function DR.Show()
             g.fightSent = true
             Comm.Whisper(opp, "DRFIGHT", g.id, DR.MyFighter())
         end
-        -- VS-Einblendung
+        -- VS intro
         if not g.vsShown and g.state ~= "done" then
             g.vsShown = true
             local fa, fb = DR.Fighter(g.look[g.a] and g.look[g.a].f), DR.Fighter(g.look[g.b] and g.look[g.b].f)
@@ -2438,7 +2438,7 @@ function DR.Show()
             f.vsT = 0
             pcall(PlaySound, (SOUNDKIT and SOUNDKIT.PVP_THROUGH_QUEUE) or 8459, "SFX")
         end
-        -- Fenster springt auf (leicht vergroessert -> normal, weich eingeblendet) und Countdown 3-2-1-FIGHT
+        -- window pops open (slightly enlarged -> normal, softly faded in) and countdown 3-2-1-FIGHT
         if g.state ~= "done" and not (ns.db and ns.db.settings.noAnim) then
             f.baseScale = f.baseScale or f:GetScale()
             local bs = f.baseScale
@@ -2462,7 +2462,7 @@ function DR.Show()
                     local c = (i == #steps) and C.accent or C.text
                     f.cd.t:SetTextColor(c[1], c[2], c[3])
                     if i == #steps then
-                        -- Kampfbeginn: "Fighting!" (Oasis-Sound, Lautstaerke wie eingestellt); sonst Blizzard-Signal
+                        -- fight start: "Fighting!" (Oasis sound, volume as set); otherwise Blizzard signal
                         local sv = tonumber(ns.db.settings.soundVol) or 7
                         local okF, hF = false, nil
                         if ns.db.settings.sound ~= false and sv > 0 and ns.Sound and ns.Sound.PlayChoice then okF, hF = pcall(ns.Sound.PlayChoice, "fighting", sv) end
@@ -2485,14 +2485,14 @@ function DR.Show()
     DR.Update()
 end
 
--- Wurf-Animation starten (aus apply)
+-- start roll animation (from apply)
 function DR.AnimRoll(g, who, from, to)
     local f = DR.frame
     if not f or not f:IsShown() then return end
     local s = sameName(who, g.a) and f.A or f.B
     DR.anim = { from = from, to = to, t = 0, start = GetTime(), side = s, hp = to <= 1 and 0 or to / g.start }
     anim(s, ANIM.roll)
-    -- Treffer-Effekt: kurzes Wackeln + fliegende Zahl ueber dem Wuerfelnden (das neue Maximum)
+    -- hit effect: short shake + flying number above the roller (the new maximum)
     if not (ns.db and ns.db.settings.noAnim) then
         local p1, rel, p2, x0, y0 = f:GetPoint(1)
         if p1 then
@@ -2521,7 +2521,7 @@ function DR.AnimRoll(g, who, from, to)
             fl:SetAlpha(1 - q * q)
         end, function() fl:Hide() table.insert(f.dmg, fl) end)
     end
-    -- Wuerfel-Geraeusch bei jedem Wurf
+    -- dice sound on every roll
     local st = ns.db and ns.db.settings
     if st and st.sound ~= false and ns.Sound and ns.Sound.PlayChoice then pcall(ns.Sound.PlayChoice, "wuerfel", st.soundVol) end
 end
@@ -2572,7 +2572,7 @@ function DR.Update()
     elseif g.state == "done" then
         local won = ns.isMe(g.winner)
         st, c = won and L["Won!"] or (ns.displayName(g.winner) .. L[" wins"]), won and C.mint or C.red
-        -- Uebungspuppe: meldet sich nach dem Ergebnis mit einem Spruch und will Revanche
+        -- practice dummy: speaks up after the result with a line and wants a rematch
         if g.bot and not g.botSched then
             g.botSched = true
             ns.After(2.6, function()
@@ -2620,7 +2620,7 @@ function DR.Update()
         set(f.b1, g.rematch and L["Rematch sent ..."] or L["Roll"], DR.Roll, false)
         set(f.b2, L["Cancel"], DR.Decline)
     elseif live then
-        -- 0.6.220: im Ornament-Stil nur "Wuerfeln" (Bereich steht unter der Zahl)
+        -- 0.6.220: in ornament style only "Roll" (range is shown below the number)
         set(f.b1, myTurn and (f.artMode and L["Roll"] or (L["Roll  1-%d"]):format(g.max)) or L["Opponent's turn ..."], DR.Roll, myTurn)
         set(f.b2, L["Give up"], DR.GiveUp)
     else
@@ -2634,7 +2634,7 @@ function DR.Update()
     f.pick:SetShown(g.state ~= "done" and g.state ~= "aborted" and g.n == 0)
     f.hint:SetText((g.manual and live and not g.bot) and (L["Without addon: "] .. ns.displayName(other(g, ns.me())) .. L[" has to type /roll "] .. g.max .. L["."]) or "")
 
-    -- Verlauf als Kette: 100 > 57 > 12 ...
+    -- history as a chain: 100 > 57 > 12 ...
     local chain = { "|cff666666" .. g.start .. "|r" }
     for i = #g.hist, 1, -1 do
         local h = g.hist[i]
@@ -2645,13 +2645,13 @@ function DR.Update()
 end
 
 ------------------------------------------------------------------------
--- Rangliste, Serien, Bilanz gegeneinander
+-- ranking, streaks, head-to-head record
 ------------------------------------------------------------------------
--- Main eines Charakters (Twinks zusammenfassen). Duelle speichern oft die Addon-Form "Vorname-Realm",
--- die Twink-Zuordnung kennt aber die Gildenlisten-Form -> bei keinem Treffer ueber SameChar nachschlagen.
+-- main of a character (merge alts). Duels often store the addon form "First-Realm",
+-- but the alt mapping knows the guild roster form -> if there's no hit, look up via SameChar.
 local mainMemo, mainMemoT = {}, 0
--- 0.5.692: eine Schreibweise je Spieler - Forever speichert mal "Mira-Realm", mal "Mira Stern-Realm"
--- (Charakter- vs. Gildenlisten-Name). Schluessel = Vorname + Realm, angezeigt wird die volle Form.
+-- 0.5.692: one spelling per player - Forever sometimes stores "Mira-Realm", sometimes "Mira Stern-Realm"
+-- (character vs. guild roster name). Key = first name + realm, the full form is displayed.
 local fullForm, fullFormT = {}, -999
 local function nameKey(n) return ns.NameKey(n) end
 local function fullOf(n)
@@ -2661,7 +2661,7 @@ local function fullOf(n)
         local function note(x)
             if type(x) ~= "string" or x == "" then return end
             local k, cur = nameKey(x), fullForm[nameKey(x)]
-            -- volle Form (mit Nachname) gewinnt, sonst die laengere
+            -- full form (with last name) wins, otherwise the longer one
             if not cur or (#ns.short(x) > #ns.short(cur)) then fullForm[k] = x end
         end
         for _, m in ipairs((ns.Radar and ns.Radar.roster) or {}) do note(m.name) end
@@ -2693,7 +2693,7 @@ local function mainOf(name)
     return m
 end
 DR.MainOf = mainOf
--- Anteil eines Charakters an einem Ranglisten-Eintrag merken (Tooltip: welche Charaktere zaehlen mit)
+-- remember a character's share of a ranking entry (tooltip: which characters count)
 local function addChar(s, name, won)
     s.chars = s.chars or {}
     local c = (ns.Alts and ns.Alts.Canon and ns.Alts.Canon(name)) or name
@@ -2706,8 +2706,8 @@ local function addChar(s, name, won)
     s.chars[#s.chars + 1] = { name = c, w = won and 1 or 0, l = won and 0 or 1 }
 end
 
--- Ranglisten-Reset der Gildenleitung (Gildeneinstellung drReset = Zeitpunkt): aeltere Spiele zaehlen nicht mehr
--- (Admin.lua laedt erst nach diesem Modul -> als Gildenoption anmelden, Seite "_intern" = ohne Bedienelement)
+-- Ranking reset by guild leadership (guild setting drReset = timestamp): older games no longer count
+-- (Admin.lua loads only after this module -> register as guild option, page "_intern" = no control)
 ns.GuildOption({ page = "_intern", key = "drReset", default = 0, kind = "num" })
 function DR.Duels()
     local since = tonumber(ns.GuildOpt and ns.GuildOpt("drReset")) or 0
@@ -2734,7 +2734,7 @@ local function sortedDuels()
     return d
 end
 
--- Saison = Kalendermonat. offset 0 = dieser Monat, -1 = Vormonat -> von, bis (Unix-Zeit)
+-- Season = calendar month. offset 0 = this month, -1 = previous month -> from, to (Unix time)
 function DR.MonthRange(offset)
     local t = date("*t", ns.now())
     t.day, t.hour, t.min, t.sec = 1, 0, 0, 0
@@ -2743,20 +2743,20 @@ function DR.MonthRange(offset)
     t.month = t.month + 1
     return from, time(t)
 end
--- Monatsname in der Oasis-Sprache
+-- month name in the Oasis language
 local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" }
 function DR.MonthName(offset)
     local from = DR.MonthRange(offset)
     return L[MONTHS[tonumber(date("%m", from))]]
 end
--- Sieger einer Saison (mind. 3 Siege), fuer den Titel "Wuerfelkoenig des Monats"
+-- winner of a season (at least 3 wins), for the title "Dice king of the month"
 function DR.MonthChampion(offset)
     local top = DR.Ranking(DR.MonthRange(offset or -1))[1]
     if top and top.w >= 3 then return top.name, top.w end
 end
 
--- je Spieler: Siege, Niederlagen, aktuelle Serie (+ Siege / - Niederlagen), beste Siegesserie
--- optional nur Spiele im Zeitraum [from, to) (Saison)
+-- per player: wins, losses, current streak (+ wins / - losses), best win streak
+-- optionally only games in the period [from, to) (season)
 function DR.Ranking(from, to)
     local stats = {}
     local function s(name)
@@ -2786,9 +2786,9 @@ function DR.Ranking(from, to)
     return out
 end
 
--- Elo-Rangliste: alle bisherigen Spiele in zeitlicher Reihenfolge, jeder startet mit 1000.
--- Erwartung E = 1 / (1 + 10^((Gegner - ich) / 400)), Aenderung = K * (Ergebnis - E), K = 32
--- (Sieg gegen Staerkere bringt mehr, Niederlage gegen Schwaechere kostet mehr)
+-- Elo ranking: all past games in chronological order, everyone starts at 1000.
+-- expectation E = 1 / (1 + 10^((opponent - me) / 400)), change = K * (result - E), K = 32
+-- (a win against stronger players gives more, a loss against weaker ones costs more)
 DR.ELO_START, DR.ELO_K = 1000, 32
 function DR.Elo()
     local st = {}
@@ -2819,7 +2819,7 @@ function DR.Elo()
     return out
 end
 
--- eigene Bilanz gegen jeden Gegner
+-- own record against each opponent
 function DR.Rivals()
     local me = mainOf(ns.me())
     local by = {}
@@ -2841,10 +2841,10 @@ function DR.Rivals()
 end
 
 ------------------------------------------------------------------------
--- Demo (nur lokal)
+-- Demo (local only)
 ------------------------------------------------------------------------
 local DEMO = {
-    -- Sieger, Verlierer, Start, Einsatz, Wuerfe, vor Stunden
+    -- winner, loser, start, stake, rolls, hours ago
     { "Zul'mira", "Grukthar", 100, "10g", 7, 5 }, { "Zul'mira", "Mokrash", 100, "", 5, 8 }, { "Tavira", "Zul'mira", 1000, "1g", 9, 12 },
     { "Grukthar", "Hoknar", 100, "", 6, 20 }, { "Vex'ra", "Tavira", 10000, "50g", 13, 26 }, { "Vex'ra", "Grukthar", 1000, "", 8, 30 },
     { "Hoknar", "Nakira", 100, "Bier", 4, 33 }, { "Vex'ra", "Drogbar", 100, "", 6, 40 }, { "Nakira", "Mokrash", 1000, "", 10, 47 },
@@ -2865,14 +2865,14 @@ function DR.SeedDemo()
 end
 
 ------------------------------------------------------------------------
--- Seite (Neuaufbau 05.10.): ein Spiel im Spiel
---  oben   Arena-Banner: deine Werte + grosser Knopf (Spielen / Suche laeuft / Zurueck ins Spiel)
---  Leiste Startwert + Einsatz - gilt fuer alles (Spielen, Fordern, Ueben)
---  links  "Will spielen" (Warteliste) und "Online - jetzt fordern" (Gilde, ein Klick)
---  rechts Rangliste / Deine Gegner / Verlauf
+-- Page (rebuilt 05.10.): a game within the game
+--  top    arena banner: your stats + big button (Play / Searching / Back to game)
+--  bar    start value + stake - applies to everything (play, challenge, practice)
+--  left   "Wants to play" (waiting list) and "Online - challenge now" (guild, one click)
+--  right: ranking / your opponents / history
 ------------------------------------------------------------------------
 local startVal, rightView, lastFilter = 100, "rank", "all"
-local seasonView = "month"   -- Rangliste: "month" (Saison) oder "all" (gesamt)
+local seasonView = "month"   -- ranking: "month" (season) or "all" (total)
 
 local function panel(parent, title, color)
     local f = K.Panel(parent, C.panel)
@@ -2894,7 +2894,7 @@ local function streakText(n)
     return ""
 end
 
--- gewaehlter Kaempfer eines anderen (aus seinem Oasis-Profil), nil = unbekannt
+-- another player's chosen fighter (from their Oasis profile), nil = unknown
 function DR.FighterOf(name)
     if not name then return nil end
     if ns.isMe(name) then return DR.MyFighter() end
@@ -2911,12 +2911,12 @@ local function challenge(p, who)
     if who == "" then ns.print(L["Who do you want to challenge? Enter a name or target someone."]) return end
     local full = ns.fullName(who)
     local has = ns.Radar and ns.Radar.HasAddon and (ns.Radar.HasAddon(full) or ns.Radar.HasAddon(who))
-    -- Oasis-Kontakt in meiner Gruppe: Spiel ueber den Gruppenkanal moeglich (sonst normales /roll-Duell)
+    -- Oasis contact in my group: game possible over the group channel (otherwise a normal /roll duel)
     if not has and ns.Contacts and ns.Contacts.Get(full) and ns.Comm.ViaGroup and ns.Comm.ViaGroup(full) then has = true end
     DR.Challenge(who, curStart(p), curStake(p), not has)
 end
--- Zustand einer Gegnerkarte: "pending" (meine offene Anfrage an ihn), "playing" (Spiel gegen ihn),
--- "locked" (ich spiele/frage gerade jemand anderen an), nil = frei. 2. Rueckgabe: aktueller Gegner
+-- state of an opponent card: "pending" (my open request to them), "playing" (game against them),
+-- "locked" (I'm playing/asking someone else right now), nil = free. 2nd return value: current opponent
 function DR.CardMode(name)
     local g = DR.game
     if not g or g.bot and g.state ~= "live" then return nil end
@@ -2926,17 +2926,17 @@ function DR.CardMode(name)
     if g.state == "live" or g.state == "invite_in" then return mine and "playing" or "locked", opp end
     return nil, opp
 end
--- Klick auf eine Gegnerkarte: fordern / beitreten; waehrend eigener Anfrage an ihn = zurueckziehen
+-- click on an opponent card: challenge / join; while my own request to them is pending = withdraw
 function DR.CardClick(it, p)
     local mode = DR.CardMode(it.name)
     if mode == "pending" then DR.Decline() ns.RefreshPage("deathroll") return end
     if mode == "playing" then DR.Show() return end
-    if mode == "locked" then return end   -- nur ein Spiel/eine Anfrage gleichzeitig
-    if DR.game then DR.Decline() end      -- beendetes Spiel aufraeumen
+    if mode == "locked" then return end   -- only one game/request at a time
+    if DR.game then DR.Decline() end      -- clean up finished game
     if it.q then DR.JoinGame(it.q.name) else challenge(p, ns.short(it.name)) end
 end
 
--- kleine Kennzahl im Banner
+-- small stat in the banner
 local function stat(parent, label)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(84, 54)
@@ -2945,11 +2945,11 @@ local function stat(parent, label)
     f.l:SetText(K.Upper(label))
     return f
 end
--- Kennzahl-Pillen + Startwert/Einsatz an die Breite anpassen: Zahl oben, Beschriftung darunter,
--- Reihe endet mit >= 16 px Abstand vor der rechten Spalte (Kampf!/Ueben/Hinweis). Wenig Platz:
--- kleinere Schrift, sehr wenig Platz: nur 3 Pillen (Platz entfaellt).
-local STAT_L, STAT_R = 232, 216 + 16   -- links Kaempfer-Karte, rechts Aktionsspalte (200 + 16 Rand) + Abstand
--- Anzahl, Breite, Abstand, Schriftgroesse der Pillen fuer eine Bannerbreite W
+-- fit stat pills + start value/stake to the width: number on top, label below,
+-- row ends with >= 16 px gap before the right column (Fight!/Practice/notice). Little room:
+-- smaller font, very little room: only 3 pills (rank is dropped).
+local STAT_L, STAT_R = 232, 216 + 16   -- fighter card on the left, action column on the right (200 + 16 margin) + gap
+-- count, width, gap, font size of the pills for a banner width W
 function DR.StatGeometry(W)
     local avail = W - STAT_L - STAT_R
     local gap = 8
@@ -2981,7 +2981,7 @@ function DR.LayoutStats(p)
             prev = st
         end
     end
-    -- Startwert/Einsatz: Einsatzfeld nimmt den Rest, nichts ragt in die rechte Spalte
+    -- start value/stake: stake field takes the rest, nothing sticks into the right column
     if p.stake and p.start and p.stakeLbl and p.startLbl then
         local bw = W - 224 - 230
         local used = 8 + (p.startLbl:GetStringWidth() or 60) + 12 + 64 + 16 + (p.stakeLbl:GetStringWidth() or 50) + 12
@@ -2998,7 +2998,7 @@ ns.RegisterPage({
         musicPage = p
         p.fresh = true
         ----------------------------------------------------------------
-        -- ARENA-LOBBY: links grosser Kaempfer auf Plattform, Mitte Titel/Werte, rechts KAMPF!-Knopf
+        -- ARENA LOBBY: big fighter on a platform on the left, title/stats in the middle, FIGHT! button on the right
         ----------------------------------------------------------------
         local hero = K.Panel(p, { 0.05, 0.025, 0.025, 1 })
         hero:SetPoint("TOPLEFT", 0, 0)
@@ -3007,7 +3007,7 @@ ns.RegisterPage({
         hero:SetClipsChildren(true)
         p.hero = hero
         hero.arena = hero:CreateTexture(nil, "BACKGROUND", nil, 1)
-        if K.BgImg then K.BgImg(hero.arena) end   -- 0.6.227: Helligkeit einstellbar
+        if K.BgImg then K.BgImg(hero.arena) end   -- 0.6.227: brightness adjustable
         hero.arena:SetPoint("TOPLEFT", 1, -1) hero.arena:SetPoint("BOTTOMRIGHT", -1, 1)
         hero.arena:SetTexture(ns.MEDIA .. "dr\\arena")
         hero.arena:SetTexCoord(0, 1, 0.18, 0.72)
@@ -3018,11 +3018,11 @@ ns.RegisterPage({
         hero.top = hero:CreateTexture(nil, "ARTWORK")
         hero.top:SetPoint("TOPLEFT", 1, -1) hero.top:SetPoint("TOPRIGHT", -1, -1) hero.top:SetHeight(2)
         hero.top:SetColorTexture(C.red[1], C.red[2], C.red[3], 0.9)
-        -- 0.6.194: mit Gildenmodul Hintergrund "Gothische Festung ueber Lavakluft" mit eigenem Rahmen - Arena-Bild,
-        -- rote Oberkante und Panel-Kante dann aus; rechts leicht abgedunkelt fuer die Knoepfe
+        -- 0.6.194: with guild module background "Gothic fortress above lava chasm" with own frame - arena image,
+        -- red top edge and panel edge then off; right side slightly darkened for the buttons
         if ns.GuildPack then
             hero.arena:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\deathroll_bg")
-            hero.arena:SetTexCoord(0, 1, 0, 1)   -- 0.6.196: Bildrahmen bleibt sichtbar (0.6.195 hatte ihn abgeschnitten)
+            hero.arena:SetTexCoord(0, 1, 0, 1)   -- 0.6.196: image frame stays visible (0.6.195 had cut it off)
             hero.arena:ClearAllPoints() hero.arena:SetAllPoints()
             hero.arena:SetAlpha(1)
             if not K.Gradient(hero.glow, "HORIZONTAL", { 0, 0, 0, 0 }, { 0, 0, 0, 0.35 }) then hero.glow:SetColorTexture(0, 0, 0, 0.2) end
@@ -3030,7 +3030,7 @@ ns.RegisterPage({
             if hero.bg then hero.bg:SetAlpha(0) end
             if hero.borders then for _, b in ipairs(hero.borders) do b:SetAlpha(0) end end
             if hero.skinLine then for _, b in ipairs(hero.skinLine) do b:SetAlpha(0) end end
-            -- 0.6.428: Bild dezenter - dunkler Schleier, Verlauf (Mitte/unten dunkler) und feines Punktmuster
+            -- 0.6.428: image more subtle - dark veil, gradient (darker middle/bottom) and fine dot pattern
             local function lay(sub) local t = hero:CreateTexture(nil, "BACKGROUND", nil, sub) t:SetPoint("TOPLEFT", 3, -3) t:SetPoint("BOTTOMRIGHT", -3, 3) return t end
             hero.dim = lay(3)
             hero.dim:SetColorTexture(0.02, 0.02, 0.03, 0.45)
@@ -3042,7 +3042,7 @@ ns.RegisterPage({
             hero.dots:SetAlpha(0.08)
             if K.RoundMask then for _, t in ipairs({ hero.dim, hero.vgrad, hero.dots }) do pcall(K.RoundMask, t, hero, 10) end end
         end
-        -- Kaempfer auf leuchtender Plattform (Klick: Auswahl)
+        -- fighter on a glowing platform (click: picker)
         local fc = CreateFrame("Button", nil, hero)
         fc:SetSize(210, 206)
         fc:SetPoint("BOTTOMLEFT", 6, 2)
@@ -3063,20 +3063,20 @@ ns.RegisterPage({
         fc.n = K.Title(fc, 13, C.text, "CENTER")
         fc.n:SetPoint("BOTTOM", 0, 6)
         fc.n:SetWidth(200)
-        if ns.GuildPack then   -- 0.6.198: Namensschild schwebt ueber dem Kopf (sanftes Auf und Ab)
+        if ns.GuildPack then   -- 0.6.198: name tag floats above the head (gentle up and down)
             fc.tag = CreateFrame("Frame", nil, fc)
             fc.tag:SetAllPoints()
-            fc.tag:SetFrameLevel(fc.m:GetFrameLevel() + 3)   -- ueber dem 3D-Modell
+            fc.tag:SetFrameLevel(fc.m:GetFrameLevel() + 3)   -- above the 3D model
             fc.n:SetParent(fc.tag)
-            fc.m:ClearAllPoints()   -- Modell etwas tiefer: Platz fuer das Schild ueber dem Kopf
+            fc.m:ClearAllPoints()   -- model a bit lower: room for the tag above the head
             fc.m:SetPoint("TOPLEFT", 10, -46) fc.m:SetPoint("BOTTOMRIGHT", -10, 0)
-            -- 0.6.206: Kamera etwas weiter weg, damit die ganze Figur hineinpasst (Schulter/Beine wurden abgeschnitten)
+            -- 0.6.206: camera a bit further away so the whole figure fits (shoulder/legs were cut off)
             local function zoomOut(m)
                 if m.SetPortraitZoom then pcall(m.SetPortraitZoom, m, 0) end
                 if m.SetCamDistanceScale then pcall(m.SetCamDistanceScale, m, 1.45) end
             end
             zoomOut(fc.m)
-            -- 0.6.207: leuchtende Plattform-Ellipse unter der Figur aus (passt nicht aufs Lava-Bild)
+            -- 0.6.207: glowing platform ellipse under the figure off (doesn't fit the lava image)
             fc.plat:SetAlpha(0) fc.plat.SetAlpha = function() end fc.plat:Hide() fc.plat.Show = function() end
             fc.m:HookScript("OnModelLoaded", function(self) zoomOut(self) end)
             fc.m:HookScript("OnShow", function(self) zoomOut(self) end)
@@ -3089,7 +3089,7 @@ ns.RegisterPage({
                 self.n:SetPoint("TOP", self, "TOP", 0, -26 + 3 * math.sin(self.bob / 3 * math.pi * 2))
             end)
         end
-        if ns.GuildPack then   -- 0.6.197: dunkle Platte hinter dem Namen
+        if ns.GuildPack then   -- 0.6.197: dark plate behind the name
             fc.nBg = (fc.tag or fc):CreateTexture(nil, "OVERLAY", nil, -1)
             fc.nBg:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. "dr_plate")
             fc.nBg:SetSize(176, 32)
@@ -3105,13 +3105,13 @@ ns.RegisterPage({
         fc:SetScript("OnUpdate", function(self, el)
             self.t = (self.t or 0) + el
             self.plat:SetAlpha(0.65 + 0.25 * math.sin(self.t * 2.2))
-            -- Figur dreht sich langsam hin und her
+            -- figure slowly turns back and forth
             if self.m.fi then pcall(self.m.SetFacing, self.m, 0.35 + 0.35 * math.sin(self.t * 0.6)) end
         end)
         p.fcard = fc
-        -- Mitte: Name, Titel, Serie, Werte
-        -- Klassenbadge vor dem Namen
-        -- 0.6.199: groesser, mit Ornament-Ring in Klassenfarbe (Gildenmodul); eigener Rueckfall, falls der Helfer fehlt
+        -- middle: name, title, streak, stats
+        -- class badge before the name
+        -- 0.6.199: bigger, with ornament ring in class color (guild module); own fallback if the helper is missing
         hero.cls = hero:CreateTexture(nil, "OVERLAY", nil, 1)
         hero.cls:SetSize(26, 26)
         hero.cls:SetPoint("TOPLEFT", 236, -18)
@@ -3147,8 +3147,8 @@ ns.RegisterPage({
         end
         hero.title:SetText(K.Upper(ns.short(ns.me())))
         hero.rankT = K.Title(hero, 13, C.amber)
-        hero.rankT:SetPoint("TOPLEFT", hero.title, "BOTTOMLEFT", 0, -4)   -- 0.6.199: unter dem Namen (nicht unter der Badge)
-        -- Flammen bei Siegesserie
+        hero.rankT:SetPoint("TOPLEFT", hero.title, "BOTTOMLEFT", 0, -4)   -- 0.6.199: below the name (not below the badge)
+        -- flames on a win streak
         hero.flames = {}
         for i = 1, 3 do
             local f = hero:CreateTexture(nil, "ARTWORK")
@@ -3164,7 +3164,7 @@ ns.RegisterPage({
         p.stStreak = stat(hero, L["Streak"])
         p.stRank = stat(hero, L["Rank"])
         hero:HookScript("OnSizeChanged", function() DR.LayoutStats(p) end)
-        -- Startwert + Einsatz (unten in der Mitte)
+        -- start value + stake (bottom center)
         local bar = CreateFrame("Frame", nil, hero)
         bar:SetPoint("BOTTOMLEFT", 224, 10)
         bar:SetPoint("BOTTOMRIGHT", hero, "BOTTOMRIGHT", -230, 10)
@@ -3181,18 +3181,18 @@ ns.RegisterPage({
         p.start:SetText(startVal)
         local c2 = K.Text(bar, 10, C.dim)
         c2:SetPoint("LEFT", p.start, "RIGHT", 16, 0)
-        c2:SetText(K.Upper(L["Note"]))   -- 0.6.517: freie Notiz (Gold wird nicht verwaltet)
+        c2:SetText(K.Upper(L["Note"]))   -- 0.6.517: free note (gold is not managed)
         p.stake = K.Input(bar, 96, L["e.g. 10g"])
         p.stake:SetPoint("LEFT", c2, "RIGHT", 12, 0)
         p.startLbl, p.stakeLbl = c1, c2
-        if ns.GuildPack then   -- 0.6.200: auf dem Lava-Bild heller + Schatten
+        if ns.GuildPack then   -- 0.6.200: brighter + shadow on the lava image
             for _, fs in ipairs({ c1, c2 }) do
                 fs:SetTextColor(0.8, 0.76, 0.72)
                 if fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 1) fs:SetShadowOffset(1, -1) end
             end
         end
         DR.LayoutStats(p)
-        -- rechts: KAMPF! (pulsiert), Radar beim Suchen, Ueben
+        -- right: FIGHT! (pulses), radar while searching, practice
         local right = CreateFrame("Frame", nil, hero)
         right:SetPoint("TOPRIGHT", -16, -16)
         right:SetPoint("BOTTOMRIGHT", -16, 12)
@@ -3212,12 +3212,12 @@ ns.RegisterPage({
         right.ring:Hide()
         p.play = K.Button(right, "", 200, 58, "primary", function()
             if DR.Running() then DR.Show() return end
-            if DR.game then DR.Decline() end   -- beendetes Spiel/offene Anfrage sauber aufraeumen
+            if DR.game then DR.Decline() end   -- cleanly clean up finished game/open request
             if DR.inQueue then DR.LeaveQueue() else DR.JoinQueue(curStart(p), curStake(p)) end
             pcall(PlaySound, (SOUNDKIT and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON) or 856, "SFX")
             ns.RefreshPage("deathroll")
         end)
-        -- 0.6.513: Knoepfe unten an den vier Kaesten ausgerichtet (siehe unten)
+        -- 0.6.513: buttons aligned to the bottom of the four boxes (see below)
         p.play.label:SetFont(K.FONT_HEAD or K.FONT, 22, "")
         p.play.halo = p.play:CreateTexture(nil, "BACKGROUND")
         p.play.halo:SetTexture(ns.MEDIA .. "shine")
@@ -3229,10 +3229,10 @@ ns.RegisterPage({
             if DR.game then DR.Decline() end
             DR.StartBot("Training Dummy", curStart(p), "", 2, 0)
         end)
-        p.practice:SetPoint("BOTTOM", right, "BOTTOM", 0, 2)   -- 0.6.515: Ueben auf Hoehe von Startwert/Einsatz, Kampf auf Hoehe der Kaesten
+        p.practice:SetPoint("BOTTOM", right, "BOTTOM", 0, 2)   -- 0.6.515: practice level with start value/stake, fight level with the boxes
         p.play:SetPoint("BOTTOM", p.practice, "TOP", 0, 16)
-        -- 0.6.197: Bild-Knoepfe (Gildenmodul): Kampf = rote Lavaplatte, Ueben = dunkle Platte. Eigene Flaechen/Kanten des
-        -- Knopfs unsichtbar, Hover hellt das Bild auf; calm()/Glas laesst sie in Ruhe (imgSkin)
+        -- 0.6.197: image buttons (guild module): fight = red lava plate, practice = dark plate. The button's own surfaces/edges
+        -- invisible, hover brightens the image; calm()/glass leaves them alone (imgSkin)
         local function imgBtn(b, file, w, h)
             if not (ns.GuildPack and b) then return end
             b.imgSkin = true
@@ -3241,14 +3241,14 @@ ns.RegisterPage({
             b.img:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. file)
             b.img:SetSize(w, h)
             b.img:SetPoint("CENTER")
-            -- 0.6.198: Leuchten beim Hovern = dasselbe Bild additiv darueber (statt Umfaerben der Knopfflaeche)
+            -- 0.6.198: glow on hover = the same image additively on top (instead of recoloring the button surface)
             b.imgGlow = b:CreateTexture(nil, "BACKGROUND", nil, -7)
             b.imgGlow:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. file)
             b.imgGlow:SetAllPoints(b.img)
             b.imgGlow:SetBlendMode("ADD")
             b.imgGlow:SetAlpha(0)
             local keep = { [b.img] = true, [b.imgGlow] = true }
-            -- eigene Flaechen/Kanten des Knopfs dauerhaft unsichtbar (auch spaeter angelegte, z. B. vom Design)
+            -- the button's own surfaces/edges permanently invisible (also ones created later, e.g. by the design)
             local function hideOwn()
                 for _, r in ipairs({ b:GetRegions() }) do
                     if not keep[r] and r ~= b.label and r.GetObjectType and r:GetObjectType() == "Texture" and not r.oasisLocked then
@@ -3285,7 +3285,7 @@ ns.RegisterPage({
             local searching = DR.inQueue ~= nil
             p.play.halo:SetAlpha((searching and 0.55 or 0.3) + 0.2 * math.sin(self.t * (searching and 6 or 2.5)))
             if searching then pcall(self.radar.SetRotation, self.radar, -self.t * 2.4) end
-            -- Flammen tanzen
+            -- flames dance
             for i, f in ipairs(hero.flames) do
                 if f:IsShown() then
                     local k = 1 + 0.18 * math.sin(self.t * (7 + i) + i)
@@ -3295,7 +3295,7 @@ ns.RegisterPage({
             end
         end)
         p.right = right
-        -- Konfetti (Aufstieg in der Rangliste)
+        -- confetti (climbing the ranking)
         function p:Confetti()
             if ns.db and ns.db.settings.noAnim then return end
             self.conf = self.conf or {}
@@ -3320,10 +3320,10 @@ ns.RegisterPage({
             end
         end
 
-        local LW = 290   -- 0.5.611: Gegner schmal + untereinander, Rangliste rechts breiter
+        local LW = 290   -- 0.5.611: opponents narrow + stacked, ranking on the right wider
         local TOP = -220
         ----------------------------------------------------------------
-        -- links: GEGNER als Kaempferkarten (wer wartet, steht oben und leuchtet)
+        -- left: OPPONENTS as fighter cards (whoever is waiting is on top and glows)
         ----------------------------------------------------------------
         local ch = panel(p, L["Opponents"], C.red)
         ch:SetPoint("TOPLEFT", 0, TOP)
@@ -3331,7 +3331,7 @@ ns.RegisterPage({
         ch:SetWidth(LW)
         p.lobCount = K.Text(ch, 11, C.dim, "RIGHT")
         p.lobCount:SetPoint("TOPRIGHT", -12, -16)
-        -- 0.6.218: Status des Todeswuerfel-Netzes neben der Online-Zahl; nicht verbunden -> Klick verbindet
+        -- 0.6.218: Deathroll network status next to the online count; not connected -> click connects
         local nb = CreateFrame("Button", nil, ch)
         nb:SetSize(110, 16)
         nb:SetPoint("RIGHT", p.lobCount, "LEFT", -22, 0)
@@ -3385,7 +3385,7 @@ ns.RegisterPage({
         p.go = K.Button(ch, L["Challenge"], 70, 24, "primary", function() challenge(p, p.name:GetText()) end)
         p.go:SetPoint("LEFT", p.name, "RIGHT", 8, 0)
         imgBtn(p.go, "dr_fight_btn", 80, 30)   -- 0.6.201
-        -- 0.6.212: Bild ragt seitlich ueber den Knopf -> Eingabefeld etwas schmaler, damit nichts rechts ueberlaeuft
+        -- 0.6.212: image sticks out sideways over the button -> input field a bit narrower so nothing overflows on the right
         if p.go.img then p.name:SetWidth(math.max(60, (p.name:GetWidth() or (LW - 102)) - 14)) end
         local CW = LW - 16
         local function oppCard(row)
@@ -3403,10 +3403,10 @@ ns.RegisterPage({
             c.shine:SetPoint("CENTER", c, "LEFT", 40, 0) c.shine:SetSize(140, 140)
             c.shine:SetBlendMode("ADD")
             c.shine:SetAlpha(0.25)
-            -- Avatar: Klassenring (Klassenfarbe) + Klassensymbol bzw. gewaehlter Kaempfer
+            -- avatar: class ring (class color) + class icon or chosen fighter
             c.ring = c:CreateTexture(nil, "ARTWORK", nil, 1)
-            -- Raster in EINER Zeile, alles vertikal zentriert:
-            -- [12 | Avatar 40 | 10 | Name / Info-Zeile | 10 | Fordern 84x24 | 10]
+            -- grid in ONE row, everything vertically centered:
+            -- [12 | avatar 40 | 10 | name / info line | 10 | challenge 84x24 | 10]
             c.ring:SetSize(32, 32)
             c.ring:SetPoint("LEFT", 10, 0)
             c.ring:SetColorTexture(1, 1, 1, 1)
@@ -3417,13 +3417,13 @@ ns.RegisterPage({
             c.cls:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
             c.cls:SetSize(27, 27)
             c.cls:SetPoint("CENTER", c.ring, "CENTER")
-            -- Status-Punkt am Avatar (hat Oasis / nur /roll / wartet), Erklaerung im Tooltip
+            -- status dot on the avatar (has Oasis / only /roll / waiting), explanation in the tooltip
             c.dot = c:CreateTexture(nil, "OVERLAY", nil, 3)
             c.dot:SetSize(10, 10)
             c.dot:SetPoint("BOTTOMRIGHT", c.ring, "BOTTOMRIGHT", 1, -1)
             c.dot:SetColorTexture(1, 1, 1, 1)
             if K.RoundMask then K.RoundMask(c.dot, c.dot, 5) end
-            -- kein Knopf: Klick auf die Karte fordert heraus. Rechts: Lade-Zustand waehrend der eigenen Anfrage
+            -- no button: clicking the card challenges. Right: loading state during your own request
             c.side = CreateFrame("Frame", nil, c)
             c.side:SetSize(18, 18)
             c.side:SetPoint("RIGHT", -12, 0)
@@ -3485,7 +3485,7 @@ ns.RegisterPage({
                 if not it then return end
                 self.t = (self.t or 0) + el
                 if it.q then self.wait:SetColorTexture(C.amber[1], C.amber[2], C.amber[3], 0.06 + 0.05 * math.sin(self.t * 4)) end
-                -- Sperre/Lade-Zustand laufend nachfuehren (ohne Seiten-Neuaufbau)
+                -- keep lock/loading state updated continuously (without rebuilding the page)
                 local mode = DR.CardMode(it.name)
                 self:SetAlpha(mode == "locked" and 0.4 or 1)
                 local pend = mode == "pending"
@@ -3527,7 +3527,7 @@ ns.RegisterPage({
                 if tc then c.cls:SetTexCoord(tc[1], tc[2], tc[3], tc[4]) c.cls:Show() else c.cls:Hide() end
             end
             c.ring:SetVertexColor(cr or 0.5, cg or 0.5, cb or 0.5, c.m:IsShown() and 0.35 or 0.9)
-            -- Info-Zeile: "Lvl 30 · Krieger · Bilanz 4:6" bzw. "... · neu" (wartend: "ab 100")
+            -- info line: "Lvl 30 · Warrior · Record 4:6" or "... · new" (waiting: "from 100")
             local m = ns.Radar.byName and ns.Radar.byName[it.name]
             local sub = {}
             local lvl = m and tonumber(m.level)
@@ -3538,7 +3538,7 @@ ns.RegisterPage({
             sub[#sub + 1] = it.rec ~= "" and it.rec or L["new"]
             c.f:SetText(table.concat(sub, " · "))
             c.n:SetText(ns.Radar.Colored(it.name))
-            -- Status-Punkt am Avatar
+            -- status dot on the avatar
             local pc = it.q and C.amber or (it.oasis and C.mint or C.dim)
             c.dot:SetVertexColor(pc[1], pc[2], pc[3], 1)
             if it.q then
@@ -3563,7 +3563,7 @@ ns.RegisterPage({
         p.onList.empty:SetText(L["Nobody else is online right now."])
 
         ----------------------------------------------------------------
-        -- rechts: Rangliste (Podest) / Deine Gegner / Verlauf (Kampf-Feed)
+        -- right: ranking (podium) / your opponents / history (fight feed)
         ----------------------------------------------------------------
         local rp = K.Panel(p, C.panel)
         rp:SetPoint("TOPLEFT", LW + 10, TOP)
@@ -3579,13 +3579,13 @@ ns.RegisterPage({
             ns.RefreshPage("deathroll")
         end)
         p.lastSeg:SetPoint("TOPRIGHT", -6, -6)
-        -- 0.5.622: Elo steht als Spalte, eigener Reiter entfaellt
+        -- 0.5.622: Elo is a column, its own tab is dropped
         p.seasonSeg = K.Segments(rp, { { key = "month", text = L["Month"] }, { key = "all", text = L["Total"] } }, function(k)
             seasonView = k
             ns.RefreshPage("deathroll")
         end)
-        p.seasonSeg:SetPoint("TOPRIGHT", -6, -6)   -- 0.5.799: neben den Reitern statt in eigener Zeile (mehr Platz fuer die Liste)
-        -- Reiter immer ueber Podest/Modellen
+        p.seasonSeg:SetPoint("TOPRIGHT", -6, -6)   -- 0.5.799: next to the tabs instead of its own row (more room for the list)
+        -- tabs always above podium/models
         for _, sg in ipairs({ p.rightSeg, p.lastSeg, p.seasonSeg }) do if sg.SetFrameLevel then sg:SetFrameLevel(rp:GetFrameLevel() + 30) end end
         p.resetBtn = K.Button(rp, L["Reset"], 96, 20, "ghost", function(self)
             if not self.armed then
@@ -3603,10 +3603,10 @@ ns.RegisterPage({
         p.seasonInfo:SetPoint("BOTTOMLEFT", 10, 9)
         p.seasonInfo:SetPoint("RIGHT", -112, 0)
         p.seasonInfo:SetWordWrap(false)
-        -- Podest: Plaetze 1-3 mit Kaempfer, Krone auf Platz 1
+        -- Podium: places 1-3 with fighter, crown on place 1
         local pod = CreateFrame("Frame", nil, rp)
-        -- Podest beginnt direkt unter den Reitern; Modelle bleiben im (beschnittenen) Rahmen
-        -- 0.5.799: flacher (128 statt 168), damit darunter deutlich mehr Plaetze sichtbar sind
+        -- podium starts directly below the tabs; models stay inside the (clipped) frame
+        -- 0.5.799: flatter (128 instead of 168) so clearly more places are visible below
         pod:SetPoint("TOPLEFT", 8, -38)
         pod:SetPoint("TOPRIGHT", -8, -38)
         pod:SetHeight(128)
@@ -3648,7 +3648,7 @@ ns.RegisterPage({
                 col.crown = col:CreateTexture(nil, "OVERLAY")
                 col.crown:SetTexture("Interface\\GroupFrame\\UI-Group-LeaderIcon")
                 col.crown:SetSize(18, 18)
-                col.crown:SetPoint("BOTTOM", col.m, "TOP", 0, 0)   -- passt noch in die Saeule (48 + 14 + 46 + 18 < 128)
+                col.crown:SetPoint("BOTTOM", col.m, "TOP", 0, 0)   -- still fits in the column (48 + 14 + 46 + 18 < 128)
                 col.crown:SetVertexColor(1, 0.8, 0.25)
             end
             col:SetScript("OnClick", function(self) if self.who and not ns.isMe(self.who) then p.name:SetText(ns.displayName(self.who)) end end)
@@ -3659,7 +3659,7 @@ ns.RegisterPage({
             local W = self:GetWidth() or 400
             local cw = math.floor((W - 16) / 3)
             if self.cardStyle then
-                -- 0.6.242: Gold etwas groesser - breiter und hoeher, Silber/Bronze schmaler und niedriger
+                -- 0.6.242: gold a bit bigger - wider and taller, silver/bronze narrower and lower
                 local big, small = cw + 16, cw - 8
                 local x = 0
                 for slot = 1, 3 do
@@ -3682,7 +3682,7 @@ ns.RegisterPage({
             end
         end
         pod:SetScript("OnSizeChanged", function(self) self:Layout() end)
-        -- kompakt: eine Zeile je Spieler (Platz | Klassensymbol | Name | Bilanz | Quote), Zusaetze im Tooltip
+        -- compact: one row per player (place | class icon | name | record | rate), extras in the tooltip
         p.rank = K.List(rp, 30, function(l)
             local r = K.Row(l)
             r:Col("pos", 6, 26, 16, C.accent)
@@ -3705,7 +3705,7 @@ ns.RegisterPage({
             r.cols.sub:SetWordWrap(false)
             r.cols.wl = K.Text(r, 12, C.text, "RIGHT")
             r.cols.wl:SetPoint("RIGHT", -10, 0)
-            -- 0.5.611: Elo als eigene Spalte (in jeder Rangliste)
+            -- 0.5.611: Elo as its own column (in every ranking)
             r.cols.elo = K.Text(r, 13, { 0.91, 0.71, 0.29 }, "RIGHT")
             r.cols.elo:SetPoint("RIGHT", -120, 0)
             r.cols.elo:SetWidth(54)
@@ -3743,7 +3743,7 @@ ns.RegisterPage({
                 r.dice:Show()
                 local c = ns.isMe(d.winner) and C.mint or (ns.isMe(d.loser) and C.red or C.dim)
                 r.dice:SetVertexColor(c[1], c[2], c[3])
-                -- Kampf-Feed: "X besiegt Y in 7 Wuerfen"
+                -- fight feed: "X defeats Y in 7 rolls"
                 local big = (d.start or 0) >= 1000 and ("  |cffe8b44a" .. L["High stakes!"] .. "|r") or ""
                 r.cols.name:SetText(ns.Radar.Colored(d.winner) .. " |cff888888" .. L["defeats"] .. "|r " .. ns.Radar.Colored(d.loser)
                     .. " |cff888888" .. (L["in %d rolls"]):format(d.rolls or 0) .. "|r" .. big)
@@ -3765,7 +3765,7 @@ ns.RegisterPage({
                 local pos = s.pos or i
                 r.cols.pos:SetText(pos)
                 r.cols.pos:SetTextColor(unpack(C.dim))
-                -- eine Zeile: Platz | Klassensymbol | Name (Main) | Bilanz + Quote; Serie/Elo-Details/Twinks im Tooltip
+                -- one row: place | class icon | name (main) | record + rate; streak/Elo details/alts in the tooltip
                 local m = ns.Radar.byName and ns.Radar.byName[s.name]
                 local tc = m and m.class and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[m.class]
                 if tc then r.cls:SetTexCoord(tc[1], tc[2], tc[3], tc[4]) r.cls:Show() else r.cls:Hide() end
@@ -3779,7 +3779,7 @@ ns.RegisterPage({
                 r.cols.sub:SetText("")
                 r.cols.sub:Hide()
                 r.bar:Hide()
-                -- Elo immer zeigen (auch in Monat/Gesamt), Trend zum Bestwert klein daneben
+                -- always show Elo (also in month/total), trend to the best value small next to it
                 local e = s.elo and s or (p.eloMap and p.eloMap[s.name])
                 r.cols.elo:Show() r.cols.eloD:Show()
                 if e and e.elo then
@@ -3800,8 +3800,8 @@ ns.RegisterPage({
                 local lead = s.w > s.l and ("|cff66db9e" .. L["you lead"] .. "|r") or (s.w < s.l and ("|cffe06060" .. L["you trail"] .. "|r") or L["even"])
                 r.cols.sub:SetText(lead .. "  ·  " .. L["last "] .. ns.ago(s.last))
             end
-            -- 0.6.288: Bilanz in festen Spalten (Siege rechtsbuendig | Doppelpunkt | Niederlagen linksbuendig | Quote
-            -- rechtsbuendig) - vorher ein Text, der je nach Ziffernbreite hin und her sprang
+            -- 0.6.288: record in fixed columns (wins right-aligned | colon | losses left-aligned | rate
+            -- right-aligned) - before, one text that jumped back and forth depending on digit width
             if not r.wlW then
                 local function col(w, j, c) local t = K.Text(r, 12, c, j) t:SetWidth(w) t:SetWordWrap(false) return t end
                 r.wlP = col(40, "RIGHT", C.muted)
@@ -3824,7 +3824,7 @@ ns.RegisterPage({
             r.sel:SetShown(rightView == "rank" and ns.isMe(s.name))
         end)
         p.rank:SetPoint("BOTTOMRIGHT", -4, 26)
-        -- Spaltenkoepfe der Rangliste
+        -- ranking column headers
         p.rankHead = CreateFrame("Frame", nil, rp)
         p.rankHead:SetHeight(14)
         p.rankHead:SetPoint("BOTTOMLEFT", p.rank, "TOPLEFT", 0, 2)
@@ -3841,7 +3841,7 @@ ns.RegisterPage({
     end,
 
     refresh = function(p)
-        -- Musik auch beim ersten Oeffnen (der OnShow-Haken wird erst beim Aufbau gesetzt)
+        -- music on first open too (the OnShow hook is only set during build)
         C_Timer.After(0, DR.MusicUpdate)
         p.rightSeg:Select(rightView)
         p.lastSeg:Select(lastFilter)
@@ -3853,7 +3853,7 @@ ns.RegisterPage({
         local champ, cw = DR.MonthChampion(-1)
         p.seasonInfo:SetText(champ and ((L["Dice King of %s: %s (%d wins)"]):format(DR.MonthName(-1), ns.Radar.Colored(champ), cw))
             or ((L["Season %s - whoever leads at the end of the month becomes Dice King of the Month."]):format(DR.MonthName(0))))
-        -- Banner-Werte
+        -- banner stats
         local ranking = DR.Ranking()
         local me = mainOf(ns.me())
         local mine
@@ -3873,7 +3873,7 @@ ns.RegisterPage({
         local rc = p.rankMedal or C.text
         p.stRank.v:SetTextColor(rc[1], rc[2], rc[3])
         DR.LayoutStats(p)
-        -- Titel nach Serie/Platz
+        -- title by streak/place
         local title
         if pos == 1 and #month > 1 then title = L["Dice King"] .. " · " .. DR.MonthName(0)
         elseif st >= 5 then title = L["Unbeatable"]
@@ -3882,21 +3882,21 @@ ns.RegisterPage({
         elseif w + l == 0 then title = L["New to the arena"]
         else title = (L["#%d in %s"]):format(pos or (#month + 1), DR.MonthName(0)) end
         p.hero.rankT:SetText(title)
-        -- Flammen ab 3 Siegen in Folge
+        -- flames from 3 wins in a row
         local nFl = st >= 7 and 3 or (st >= 5 and 2 or (st >= 3 and 1 or 0))
         for i, f in ipairs(p.hero.flames) do
             f:ClearAllPoints()
             f:SetPoint("LEFT", p.hero.title, "RIGHT", 6 + (i - 1) * 20, 2)
             f:SetShown(i <= nFl)
         end
-        -- Konfetti, wenn ich in der Monatsrangliste aufgestiegen bin
+        -- confetti when I climbed in the monthly ranking
         ns.db.drLastPos = ns.db.drLastPos or {}
         local key = DR.MonthName(0)
         local before = ns.db.drLastPos[key]
         if pos and before and pos < before then p:Confetti() pcall(PlaySound, (SOUNDKIT and SOUNDKIT.UI_EPICLOOT_TOAST) or 31578, "SFX") end
         if pos then ns.db.drLastPos[key] = pos end
         if p.fresh then K.FadeIn(p.hero, 0) p.fresh = false end
-        -- Kaempfer
+        -- Fighter
         local fi = DR.Fighter(DR.MyFighter())
         p.fcard.n:SetText(L[fi.name])
         if p.fcard.key ~= fi.key then
@@ -3909,7 +3909,7 @@ ns.RegisterPage({
                 p.fcard.m:SetScript("OnModelLoaded", function(self) DR.ApplyCam(self, self.fi, self.facing) end)
             end
         end
-        -- KAMPF!-Knopf
+        -- FIGHT! button
         local searching = DR.inQueue ~= nil
         p.right.radar:SetShown(searching)
         p.right.ring:SetShown(searching)
@@ -3921,10 +3921,10 @@ ns.RegisterPage({
             p.playHint:SetText("|cffff7838" .. (L["Searching for opponent from %s ... (click: cancel)"]):format(fmtNum(DR.inQueue.start)) .. "|r")
         else
             p.play:SetLabel(L["Fight!"])
-            p.playHint:SetText("")   -- 0.6.205: Ruhetext "Die Gilde bekommt Bescheid" entfernt
+            p.playHint:SetText("")   -- 0.6.205: idle text "The guild will be notified" removed
         end
         p.practice:SetShown(not DR.Running())
-        -- Gegner: Wartende zuerst, dann Online (mit Oasis vor ohne)
+        -- opponents: waiting ones first, then online (with Oasis before without)
         local rivals = {}
         for _, r in ipairs(DR.Rivals()) do rivals[r.name] = r end
         local items, seen = {}, {}
@@ -3966,13 +3966,13 @@ ns.RegisterPage({
         for _, x in ipairs(on) do items[#items + 1] = x end
         p.onList:SetData(items)
         p.lobCount:SetText(waiting > 0 and ("|cffe8b44a" .. (L["%d waiting"]):format(waiting) .. "|r") or ("|cff888888" .. (L["%d online"]):format(#items) .. "|r"))
-        -- rechts
+        -- right
         local all = DR.Duels()
         local showPod = rightView == "rank"
         p.podium:SetShown(showPod)
         p.rank:ClearAllPoints()
         p.rank:SetPoint("TOPLEFT", 4, showPod and -188 or -38)
-        -- Rangliste einzeilig -> niedrigere Zeilen; Verlauf/Gegner brauchen zwei Zeilen Text
+        -- ranking single-line -> lower rows; history/opponents need two lines of text
         local rh = showPod and 24 or 30
         if p.rank.rowH ~= rh then
             p.rank.rowH = rh
@@ -3999,7 +3999,7 @@ ns.RegisterPage({
                 if s then
                     col.n:SetText(ns.Radar.Colored(s.name))
                     local pe = s.elo or (p.eloMap[s.name] and p.eloMap[s.name].elo)
-                    -- 0.6.440: "1050 Elo  ·  7 : 3" - mit Bezeichnung und Luft
+                    -- 0.6.440: "1050 Elo  ·  7 : 3" - with label and spacing
                     col.wl:SetText(pe and ("|cffe8b44a" .. pe .. "|r |cff888888Elo|r   |cff555555·|r   |cff66db9e" .. s.w .. "|r |cff666666:|r |cffe06060" .. s.l .. "|r")
                         or ("|cff66db9e" .. s.w .. "|r|cff666666:|r|cffe06060" .. s.l .. "|r"))
                     local m = ns.Radar.byName and ns.Radar.byName[s.name]
@@ -4088,14 +4088,14 @@ Comm.On("DRLOOK", function(sender, _, id, race, sex, gear)
     end
     g.look = g.look or {}
     g.look[opp] = { race = SEC.Num(race, 0, 200, true), sex = SEC.Num(sex, 0, 3, true), gear = items }
-    -- nur ein OFFENES Kampffenster auffrischen; bei einer Einladung (Popup offen) kein zweites Fenster aufmachen
+    -- only refresh an OPEN fight window; on an invite (popup open) don't open a second window
     if DR.frame and DR.frame:IsShown() then DR.frame.gameId = nil DR.Show() end
 end)
 
 ------------------------------------------------------------------------
--- 2026: Glas-Design fuer Deathroll (Seite, Arena, Kaempferwahl, Einladung)
--- Wird ueber die fertigen Frames gelegt; Spiel-Logik (Commit-Reveal, /roll, Einsatz, Elo, Gruppenkanal) bleibt unberuehrt.
--- Bewegung: Nebel (Media\fx\mist256) + aufsteigende Lichtteilchen (spark32), ADD gedaempft, ~30 fps, nur sichtbar, noAnim = still.
+-- 2026: glass design for Deathroll (page, arena, fighter select, invite)
+-- Laid over the finished frames; game logic (commit-reveal, /roll, stake, Elo, group channel) stays untouched.
+-- Motion: mist (Media\fx\mist256) + rising light particles (spark32), ADD dimmed, ~30 fps, only when visible, noAnim = still.
 ------------------------------------------------------------------------
 do
     local FX = ns.MEDIA .. "fx\\"
@@ -4104,7 +4104,7 @@ do
     local function round(t, box, r) if K.RoundMask and t then K.RoundMask(t, box or t, r) end end
     local function animOK() return not (ns.db and ns.db.settings and ns.db.settings.noAnim) end
     local function calm(b, primary, r)
-        if not (b and hasGlass()) or b.imgSkin then return b end   -- 0.6.197: Bild-Knoepfe nicht ueberglasen
+        if not (b and hasGlass()) or b.imgSkin then return b end   -- 0.6.197: don't glass over image buttons
         local ac = C.accent
         local fill = primary and { ac[1], ac[2], ac[3], 0.20 } or { 1, 1, 1, 0.05 }
         local line = primary and { ac[1], ac[2], ac[3], 0.60 } or { 1, 1, 1, 0.10 }
@@ -4133,8 +4133,8 @@ do
                 if b.under then b.under:Hide() end
                 local on = b.key == key
                 if ns.GuildPack then
-                    -- 0.6.203: statt Bild-Platten (passten klein nicht) ruhige Flaechen: aktiv dunkelrot mit Akzentkante,
-                    -- sonst fast schwarz mit feiner Bronzekante
+                    -- 0.6.203: instead of image plates (didn't fit when small) calm surfaces: active dark red with accent edge,
+                    -- otherwise almost black with a fine bronze edge
                     if on then glass(b, { ac[1] * 0.45, ac[2] * 0.45, ac[3] * 0.45, 0.85 }, { ac[1], ac[2], ac[3], 0.75 }, 6)
                     else glass(b, { 0.03, 0.025, 0.025, 0.85 }, { 0.85, 0.55, 0.25, 0.28 }, 6) end
                     if b.label then b.label:SetTextColor(on and 1 or 0.72, on and 0.94 or 0.68, on and 0.9 or 0.64) end
@@ -4145,7 +4145,7 @@ do
         end
         seg:Select(seg.value)
     end
-    -- Gross-Schrift-Beschriftungen in normale Schreibweise zurueckholen
+    -- bring all-caps labels back to normal case
     local UPPER = { "Start value", "Effort", "Click: choose fighter", "Music", "Sound", "Challenge", "Choose your fighter", "Record", "Rate", "Streak", "Rank" }
     local function deupper(frame)
         if not frame then return end
@@ -4163,7 +4163,7 @@ do
         walk(frame)
     end
 
-    -- lebendiger Hintergrund: Nebel driftet, Lichtteilchen steigen auf (gedaempft, nur sichtbar)
+    -- living background: mist drifts, light particles rise (dimmed, only when visible)
     local function addFx(host, col, motes, level)
         local fx = CreateFrame("Frame", nil, host)
         fx:SetAllPoints(host)
@@ -4236,7 +4236,7 @@ do
     DR.AddFx = addFx
 
     ----------------------------------------------------------------
-    -- Seite
+    -- Page
     ----------------------------------------------------------------
     local def = ns.PageDef and ns.PageDef("deathroll")
     if def then
@@ -4246,8 +4246,8 @@ do
             if not hasGlass() then return end
             local ac = C.accent
             local hero = p.hero
-            -- Buehne: dunkles Glas, Arena nur noch als Ahnung, Nebel + Teilchen
-            -- 0.6.195: mit Gildenmodul-Bild kein Glas darueber (machte das Bild fast unsichtbar und zog eine Kante)
+            -- stage: dark glass, arena only a hint, mist + particles
+            -- 0.6.195: with the guild module image no glass on top (made the image almost invisible and drew an edge)
             if not ns.GuildPack then glass(hero, { 0.03, 0.03, 0.04, 0.92 }, { 1, 1, 1, 0.10 }, 14) end
             if hero.arena then hero.arena:SetAlpha(ns.GuildPack and 1 or 0.22) round(hero.arena, hero, 14) end
             if hero.glow then round(hero.glow, hero, 14) end
@@ -4259,9 +4259,9 @@ do
             fc.light:SetVertexColor(ac[1] * 0.5, ac[2] * 0.5, ac[3] * 0.5)
             fc.cap:SetTextColor(C.text[1], C.text[2], C.text[3])
             hero.title:SetText(ns.short(ns.me()))
-            -- Kennzahlen als Glas-Pillen
+            -- stats as glass pills
             local stats = { { p.stBal, "Record" }, { p.stQuote, "Rate" }, { p.stStreak, "Streak" }, { p.stRank, "Rank" } }
-            -- 0.6.200: auf dem Lava-Bild dunkle, fast deckende Kacheln mit Bronzekante (Glas war kaum lesbar)
+            -- 0.6.200: on the lava image dark, almost opaque tiles with bronze edge (glass was barely readable)
             local onArt = ns.GuildPack and true or false
             local BRONZE = { 0.85, 0.55, 0.25, 0.6 }
             for i, s in ipairs(stats) do
@@ -4276,7 +4276,7 @@ do
                 end
             end
             if onArt then
-                -- weiche dunkle Flaeche hinter Name und Werten, laeuft zu den Seiten aus
+                -- soft dark area behind name and stats, fading out to the sides
                 local function shade(a1, a2)
                     local t = hero:CreateTexture(nil, "BACKGROUND", nil, 3)
                     if not K.Gradient(t, "HORIZONTAL", { 0, 0, 0, a1 }, { 0, 0, 0, a2 }) then t:SetColorTexture(0, 0, 0, (a1 + a2) / 2) end
@@ -4292,9 +4292,9 @@ do
                 hero.midR:SetPoint("TOPLEFT", hero.midC, "TOPRIGHT") hero.midR:SetPoint("BOTTOMLEFT", hero.midC, "BOTTOMRIGHT") hero.midR:SetWidth(60)
                 for _, fs in ipairs({ hero.title, hero.rankT }) do if fs and fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 1) fs:SetShadowOffset(1, -1) end end
             end
-            -- Groesse/Lage aus der verfuegbaren Breite (Zahl oben, Beschriftung darunter, Abstand zur rechten Spalte)
+            -- size/position from the available width (number on top, label below, gap to the right column)
             DR.LayoutStats(p)
-            -- Kampf! als edler Akzent-Knopf mit sanftem Puls
+            -- Fight! as an elegant accent button with a gentle pulse
             calm(p.play, true, 14)
             p.play.halo:SetTexture(FX .. "glow128")
             p.play.halo:SetVertexColor(ac[1] * 0.45, ac[2] * 0.45, ac[3] * 0.45)
@@ -4307,26 +4307,26 @@ do
                 if ns.GuildPack then glass(e, { 0.035, 0.02, 0.02, 0.86 }, { 0.85, 0.55, 0.25, 0.45 }, 8)   -- 0.6.200
                 else glass(e, { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.12 }, 8) end
             end
-            -- Gegner + Rangliste als Glasflaechen, Koepfe normal geschrieben
+            -- opponents + ranking as glass surfaces, headers written normally
             local ch = p.onList:GetParent()
             glass(ch, nil, nil, 12)
             if ch.head then ch.head.text:SetText(L["Opponents"]) end
-            -- 0.6.201: Gegner-Box mit Tavernen-Bild (eigener Rahmen), Kopf in Gold, Online-Zahl mit gruenem Punkt,
-            -- leer: DEATHROLL-Emblem ueber dem Hinweis
+            -- 0.6.201: opponent box with tavern image (own frame), header in gold, online count with green dot,
+            -- empty: DEATHROLL emblem above the notice
             if ns.GuildPack and not ch.art then
                 glass(ch, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, 12)
                 ch.art = ch:CreateTexture(nil, "BACKGROUND", nil, 4)
-                if K.BgImg then K.BgImg(ch.art) end   -- 0.6.227: Helligkeit einstellbar
+                if K.BgImg then K.BgImg(ch.art) end   -- 0.6.227: brightness adjustable
                 ch.art:SetAllPoints()
                 ch.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. "dr_opp_bg")
-                -- 0.6.203: ganz zeigen (Bildrahmen nicht abschneiden), stark abgedunkelt = dezent
+                -- 0.6.203: show whole (don't cut the image frame), heavily darkened = subtle
                 ch.art:SetTexCoord(0, 1, 0, 1)
-                ch.art:SetVertexColor(0.22, 0.21, 0.20)   -- 0.6.285: noch dezenter (vorher 0.38)
-                -- 0.6.204: Innenabstand zum Bildrahmen
+                ch.art:SetVertexColor(0.22, 0.21, 0.20)   -- 0.6.285: even more subtle (before 0.38)
+                -- 0.6.204: inner padding to the image frame
                 local PAD = 16
                 if ch.head then ch.head:ClearAllPoints() ch.head:SetPoint("TOPLEFT", PAD + 4, -PAD) end
                 p.lobCount:ClearAllPoints() p.lobCount:SetPoint("TOPRIGHT", -PAD - 4, -PAD - 4)
-                -- 0.6.216: erst den Knopf loesen (hing am Suchfeld), sonst Anker-Kreis -> Fehler beim Aufbau
+                -- 0.6.216: first detach the button (was anchored to the search field), otherwise anchor loop -> error on build
                 p.go:ClearAllPoints() p.go:SetPoint("TOPRIGHT", ch, "TOPRIGHT", -PAD - 4, -PAD - 32)
                 p.name:ClearAllPoints() p.name:SetPoint("TOPLEFT", PAD, -PAD - 32)
                 p.name:SetPoint("RIGHT", p.go, "LEFT", -8, 0)
@@ -4362,26 +4362,26 @@ do
                 local e = p.onList.empty
                 if e.SetShadowColor then e:SetShadowColor(0, 0, 0, 1) e:SetShadowOffset(1, -1) end
                 e:SetTextColor(0.9, 0.86, 0.8)
-                -- 0.6.217: Emblem aus (lag hinter dem Suchfeld)
+                -- 0.6.217: emblem off (was behind the search field)
             end
             local rp = p.rank:GetParent()
             glass(rp, nil, nil, 12)
             pills(p.rightSeg) pills(p.lastSeg) pills(p.seasonSeg)
-            -- Podest: ruhige Glas-Bloecke in Medaillenfarbe
+            -- podium: calm glass blocks in medal color
             local PCOL = { { 1, 0.80, 0.25 }, { 0.80, 0.83, 0.90 }, { 0.85, 0.55, 0.32 } }
             p.podium.cardStyle = ns.GuildPack and true or false
             p.podium:Layout()
             for place, col in pairs(p.podium.cols) do
                 local pc = PCOL[place]
                 col.block:SetColorTexture(pc[1] * 0.35, pc[2] * 0.35, pc[3] * 0.35, 0.55)
-                if not p.podium.cardStyle then round(col.block, col.block, 8) end   -- 0.6.242: Bildkarte hat eigene Ecken
+                if not p.podium.cardStyle then round(col.block, col.block, 8) end   -- 0.6.242: picture card has its own corners
                 col.edge:SetAlpha(0)
                 col.cls:SetDrawLayer("ARTWORK", 2)
                 if p.podium.cardStyle then
-                    -- 0.6.201: jede Stufe als Karte in Medaillenfarbe (Verlauf, Rahmen, Lichtkante oben),
-                    -- Klassensymbol + Krone oben, Name, grosse Platzzahl, Elo/Bilanz unten; kein 3D-Modell
+                    -- 0.6.201: each tier as a card in medal color (gradient, frame, light edge on top),
+                    -- class icon + crown on top, name, big place number, Elo/record at the bottom; no 3D model
                     col.block:ClearAllPoints() col.block:SetAllPoints(col)
-                    -- 0.6.242: Karte als Bild mit eigenem Rahmen in Gold/Silber/Bronze (Tools/make_podium_cards.py)
+                    -- 0.6.242: card as an image with its own frame in gold/silver/bronze (Tools/make_podium_cards.py)
                     local MED = { "gold", "silver", "bronze" }
                     col.block:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_podium_" .. MED[place])
                     col.block:SetVertexColor(1, 1, 1, 1)
@@ -4390,7 +4390,7 @@ do
                     col.m:Hide() col.m.Show = function() end
                     col.cls:ClearAllPoints() col.cls:SetPoint("TOP", 0, -24) col.cls:SetSize(30, 30)
                     if col.crown then
-                        -- 0.6.243: gemalte Krone (Tools/make_crown.py) oben in der Gold-Karte, Klassensymbol rueckt darunter
+                        -- 0.6.243: painted crown (Tools/make_crown.py) at the top of the gold card, class icon moves below it
                         col.crown:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_crown")
                         col.crown:SetTexCoord(0, 1, 0, 1)
                         col.crown:SetVertexColor(1, 1, 1, 1)
@@ -4401,10 +4401,10 @@ do
                     col.num:ClearAllPoints() col.num:SetPoint("TOP", col.n, "BOTTOM", 0, -2)
                     K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 24, "", K.FONT)
                     col.wl:ClearAllPoints() col.wl:SetPoint("BOTTOM", 0, 8)
-                    -- 0.6.440: schoener - grosse Platzzahl in Medaillenfarbe mit weichem Schein, Name groesser,
-                    -- unten dunkler Verlauf hinter Elo/Bilanz
+                    -- 0.6.440: nicer - big place number in medal color with soft glow, bigger name,
+                    -- dark gradient at the bottom behind Elo/record
                     local mc = PCOL[place]
-                    K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 20, "", K.FONT)   -- 0.6.444: Platzzahl oben links in der Ecke
+                    K.SetFontSafe(col.num, K.FONT_HEAD or K.FONT, 20, "", K.FONT)   -- 0.6.444: place number in the top left corner
                     col.num:SetTextColor(math.min(1, mc[1] * 1.1 + 0.1), math.min(1, mc[2] * 1.1 + 0.1), math.min(1, mc[3] * 1.1 + 0.1))
                     col.num:ClearAllPoints() col.num:SetPoint("TOPLEFT", col, "TOPLEFT", 12, -9)
                     K.SetFontSafe(col.n, K.FONT, 12, "", K.FONT)
@@ -4429,9 +4429,9 @@ do
         def.refresh = function(p)
             refresh0(p)
             if not hasGlass() then return end
-            -- Platz-Pille: Gold/Silber/Bronze dezent getoent, ab Platz 4 neutral
+            -- place pill: gold/silver/bronze subtly tinted, neutral from place 4
             local mc = p.rankMedal
-            -- 0.6.299: Platz 1-3 mit der Bildkarte der Rangliste (Gold/Silber/Bronze), auf Platz 1 die Krone darueber
+            -- 0.6.299: places 1-3 with the ranking's picture card (gold/silver/bronze), crown above place 1
             local st = p.stRank
             local MED = { "gold", "silver", "bronze" }
             local card = ns.GuildPack and p.rankPos and MED[p.rankPos]
@@ -4447,14 +4447,14 @@ do
                 st.card:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\dr_podium_" .. card)
                 st.card:Show()
                 st.crown:SetShown(p.rankPos == 1)
-                glass(st, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, 10)   -- Glas weg, die Karte hat ihren eigenen Rahmen
+                glass(st, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, 10)   -- glass off, the card has its own frame
                 if st.v.SetShadowColor then st.v:SetShadowColor(0, 0, 0, 1) st.v:SetShadowOffset(1, -1) end
             else
                 if st.card then st.card:Hide() st.crown:Hide() end
                 if mc then glass(st, { mc[1], mc[2], mc[3], 0.10 }, { mc[1], mc[2], mc[3], 0.45 }, 10)
                 else glass(st, { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.12 }, 10) end
             end
-            -- Gegnerkarten (entstehen in der Liste): Glas, Klassenring, ruhiger Fordern-Text, Wartende in Bernstein
+            -- opponent cards (created in the list): glass, class ring, calm challenge text, waiting ones in amber
             for _, r in pairs(p.onList.rows or {}) do
                 for _, c in ipairs({ r.a, r.b }) do
                     if c and not c.glassDone then
@@ -4504,7 +4504,7 @@ do
             if r.GetText and r:GetText() == L["Deathroll"] then r:SetText(L["Deathroll"]) end
         end
         for _, s in ipairs({ f.A, f.B }) do
-            -- HP-Leiste rund (Glas), Fuellungen gerundet
+            -- HP bar round (glass), fills rounded
             for _, r in ipairs({ s.bar:GetRegions() }) do
                 if r ~= s.lag and r ~= s.fill and r.GetObjectType and r:GetObjectType() == "Texture" then r:Hide() end
             end
@@ -4512,7 +4512,7 @@ do
             round(s.fill, s.bar, 9)
             round(s.lag, s.bar, 9)
             s.glow:SetTexture(FX .. "glow128")
-            -- "Am Zug" als kleine Akzent-Pille
+            -- "Your turn" as a small accent pill
             s.turnPill = CreateFrame("Frame", nil, s.top)
             s.turnPill:SetHeight(18)
             s.turnPill:SetPoint("CENTER", s.turn, "CENTER", 0, 0)
@@ -4527,13 +4527,13 @@ do
         if f.mLbl then f.mLbl:SetText(L["Music"]) f.sLbl:SetText(L["Sound"]) end
         f.vs.bg:SetColorTexture(0, 0, 0, 0.6)
         f.vs.word:SetTextColor(ac[1], ac[2], ac[3])
-        -- Ergebnis-Rueckblick: Glasflaeche hinter dem Wurfverlauf
+        -- result review: glass surface behind the roll history
         f.histBg = CreateFrame("Frame", nil, f.front)
         f.histBg:SetPoint("BOTTOMLEFT", f.hist, "BOTTOMLEFT", -10, -4)
         f.histBg:SetPoint("TOPRIGHT", f.hist, "TOPRIGHT", 10, 4)
         f.histBg:SetFrameLevel(f.front:GetFrameLevel() - 1)
         glass(f.histBg, { 1, 1, 1, 0.04 }, { 1, 1, 1, 0.08 }, 8)
-        -- Zahl beim Landen: kurzer weicher Schein (gedaempft)
+        -- number on landing: short soft glow (dimmed)
         f.numGlow = f.center:CreateTexture(nil, "ARTWORK")
         f.numGlow:SetTexture(FX .. "glow128")
         f.numGlow:SetBlendMode("ADD")
@@ -4578,7 +4578,7 @@ do
     end
 
     ----------------------------------------------------------------
-    -- Kaempferwahl
+    -- Fighter select
     ----------------------------------------------------------------
     local pick0 = DR.ShowPicker
     function DR.ShowPicker(...)
@@ -4623,7 +4623,7 @@ do
     end
 
     ----------------------------------------------------------------
-    -- Einladung: Glas-Popup mit Countdown-Ring um das Wuerfel-Symbol
+    -- invite: glass popup with countdown ring around the dice icon
     ----------------------------------------------------------------
     local inv0 = DR.InvitePopup
     function DR.InvitePopup(...)
@@ -4657,7 +4657,7 @@ do
     end
 end
 
--- Modell im Kaempfer-Vorschaufenster ausprobieren: /oa drmodel 620 | /oa drmodel d4527 | /oa drmodel World\\...\\x.m2
+-- try a model in the fighter preview window: /oa drmodel 620 | /oa drmodel d4527 | /oa drmodel World\\...\\x.m2
 ns.slash.drmodel = function(a)
     a = (a or ""):gsub("^%s+", ""):gsub("%s+$", "")
     if a == "" then ns.print("/oa drmodel <NPC-ID> | d<Display-ID> | <Modellpfad>") return end

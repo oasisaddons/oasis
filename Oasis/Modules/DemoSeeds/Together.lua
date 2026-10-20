@@ -1,9 +1,9 @@
--- Oasis: Demo-Daten fuer den Bereich "Zusammen spielen" (nur /oa demo)
--- Gruppensuche, Gemeinsam questen, Questitems, Spielerbuch, Anwerben & Realm, Dungeons.
--- Alles bleibt lokal: Store-Saetze ueber ctx.put (demo=true, "demo-"-ID), sonstige Tabellen mit demo=true.
+-- Oasis: demo data for the "Play together" area (only /oa demo)
+-- Group finder, quest together, quest items, player book, recruiting & realm, dungeons.
+-- Everything stays local: store records via ctx.put (demo=true, "demo-" ID), other tables with demo=true.
 local ADDON, ns = ...
 
--- Mitspieler ausserhalb der Gilde (Spielerbuch + Anwerben): Name, Klasse, Level, Anzahl, Notiz, Flags, Gilde, Gebiet, Rolle, Tage her
+-- Players outside the guild (player book + recruiting): name, class, level, count, note, flags, guild, zone, role, days ago
 local ALLIES = {
     { "Ashkara-Venoxis", "SHAMAN", 30, 4, "Heilt sauber, kennt jede Abkuerzung in der Grotte", "fav", "", "Eschental", "h", 0.2 },
     { "Brummvak-Everlook", "WARRIOR", 36, 2, "", nil, "", "Tausend Nadeln", "t", 1.5 },
@@ -15,7 +15,7 @@ local ALLIES = {
     { "Ruuzh-Venoxis", "WARLOCK", 26, 1, "", nil, "Die Schattenrufer", "Brachland", "d", 7 },
     { "Thalzun-Everlook", "PALADIN", 22, 2, "Ruhig, puenktlich, gute Laune", nil, "", "Silberwald", "h", 1 },
 }
--- Begegnungen fuer die Realm-Statistik
+-- Encounters for the realm statistics
 local SEEN_GUILDS = { "Die Schattenrufer", "Blutige Klingen", "Donnerhuf", "Erben der Horde", "Kor'kron Wacht", "Sturmwut" }
 local SEEN_ZONES = { "Brachland", "Orgrimmar", "Steinkrallengebirge", "Eschental", "Tausend Nadeln", "Silberwald", "Desolace", "Arathihochland" }
 local SEEN_CLASSES = { "WARRIOR", "WARRIOR", "ROGUE", "HUNTER", "HUNTER", "MAGE", "MAGE", "PRIEST", "WARLOCK", "SHAMAN", "DRUID", "PALADIN" }
@@ -23,14 +23,14 @@ local SEEN_SYL = { "Gar", "Zul", "Mok", "Ra", "Thra", "Ka", "Vor", "Nek", "Ur", 
 local SEEN_END = { "ash", "gor", "ka", "rim", "zul", "ja", "nok", "thar", "ra", "esh", "ug", "is" }
 local SEEN_REALMS = { "Everlook", "Venoxis", "Lakeshire" }
 
--- Dungeon-Quests in den Questlogs der Demo-Leute (Profilfeld dq: "schluessel:ids;...")
+-- Dungeon quests in the quest logs of the demo people (profile field dq: "key:ids;...")
 local DQ = {
     [3] = "wailingcaverns:1486,962", [5] = "ragefire:5728,5761", [7] = "wailingcaverns:1486,1491",
     [13] = "wailingcaverns:914,1487", [15] = "ragefire:5728", [21] = "shadowfangkeep:92401;wailingcaverns:914",
     [19] = "ragefire:5761,5725", [2] = "shadowfangkeep:92421,92422", [12] = "shadowfangkeep:92401",
 }
 
--- Questitems: weitere Mitspieler (gleiches Format wie QI.SeedDemo)
+-- Quest items: more players (same format as QI.SeedDemo)
 local QI = {
     { 13, "0{Kolkar-Halsband{887{3{10", "5086{Zhevrahufe{3{881{d}0{Raptorkopf{2{870{o", "887", "887{Suedmeerfreibeuter}881{Echeyakee" },
     { 19, "0{Ziegenfell{1062{2{6", "", "1062", "1062{Ziegenwaerter" },
@@ -49,7 +49,7 @@ end
 local function seed(ctx)
     local put, nm, now = ctx.put, ctx.nm, ctx.now
 
-    -- Gruppensuche: weitere offene Gruppen (Leute aus der Demo-Gilde)
+    -- Group finder: more open groups (people from the demo guild)
     local LFG = {
         { 3, "Tiefschwarze Grotte", "Treffpunkt Zoram'gar, bringt Wasser mit", { { 3, "d" }, { 1, "t" } }, 27 },
         { 21, "Burg Schattenfang", "Arugal + alle Quests", { { 21, "t" }, { 23, "h" }, { 15, "d" }, { 8, "d" } }, 24 },
@@ -64,13 +64,13 @@ local function seed(ctx)
             lvl = g[5], class = ctx.people[g[1]][2], exp = now + (60 + k * 25) * 60 })
     end
 
-    -- Questitems: mehr Mitspieler mit Beduerfnissen / Uebrigem
+    -- Quest items: more players with needs / leftovers
     for k, d in ipairs(QI) do
         local who = nm(d[1])
         put("qitems", { id = "demo-zs-qi" .. k, who = who, by = who, n = d[2], s = d[3], p = d[4], t = d[5] })
     end
 
-    -- Spielerbuch: weitere Mitspieler (nur, wenn noch nicht vorhanden)
+    -- Player book: more players (only if not present yet)
     ns.db.allies = ns.db.allies or {}
     for k, a in ipairs(ALLIES) do
         local full = ns.fullName(a[1])
@@ -80,7 +80,7 @@ local function seed(ctx)
                 last = now - math.floor(a[10] * 86400), demo = true, demoOnline = (k == 1 or k == 3) or nil }
         end
     end
-    -- Erfahrungen der Gilde (Store "rep"): Gilde bewertet Mitspieler
+    -- Guild experiences (store "rep"): guild rates players
     local REP = {
         { 2, "Ashkara-Venoxis", "up", "Tolle Heilerin" }, { 10, "Ashkara-Venoxis", "up", "" },
         { 9, "Narjaka-Everlook", "up", "Hat uns in Uldaman getankt" }, { 6, "Gorrash-Everlook", "down", "Ninja", 1 },
@@ -95,7 +95,7 @@ local function seed(ctx)
             class = a and a.class or "SHAMAN", lvl = a and a.lvl or 34 })
     end
 
-    -- Anwerben: Vorschlaege der Gilde (Store "scout")
+    -- Recruiting: the guild's suggestions (store "scout")
     local SC = {
         { 14, "Ilyanna-Venoxis", "Sucht eine Gilde, sehr freundlich" },
         { 9, "Narjaka-Everlook", "Flexibel als Tank/Heiler, aktiv abends" },
@@ -108,7 +108,7 @@ local function seed(ctx)
             note = s[3] ~= "" and s[3] or nil, t = now - k * 30000 })
     end
 
-    -- Realm-Statistik: Begegnungen (ns.db.seen)
+    -- Realm statistics: encounters (ns.db.seen)
     ns.db.seen = ns.db.seen or {}
     local seen = ns.db.seen
     for _, a in ipairs(ALLIES) do
@@ -130,7 +130,7 @@ local function seed(ctx)
         end
     end
 
-    -- Ausruestung betrachtet (ns.db.gear) fuer zwei Mitspieler
+    -- inspected gear (ns.db.gear) for two players
     ns.db.gear = ns.db.gear or {}
     local function link(id, q) return "|c" .. q .. "|Hitem:" .. id .. "::::::::|h[" .. id .. "]|h|r" end
     local GEAR = {
@@ -145,7 +145,7 @@ local function seed(ctx)
         end
     end
 
-    -- Dungeons: Beute der Gilde + gesuchte Beute aus Dungeons
+    -- Dungeons: guild loot + wanted loot from dungeons
     local LOOT = {
         { 3, 6905, "Reef Axe", "Tiefschwarze Grotte", 1.2 }, { 13, 6340, "Fenrus' Hide", "Burg Schattenfang", 2.5 },
         { 9, 9379, "Sang'thraze the Deflector", "Uldaman", 3 }, { 18, 10775, "Carapace of Tuten'kash", "Huegel der Klingenhauer", 4 },
@@ -160,7 +160,7 @@ local function seed(ctx)
         put("wants", { id = "demo-zs-want" .. k, itemID = w[2], name = w[3], qty = 1, note = w[4], who = nm(w[1]), created = now - k * 4000 })
     end
 
-    -- Dungeon-Quests der Gilde (Profilfelder)
+    -- the guild's dungeon quests (profile fields)
     applyMembers(ctx)
 end
 
@@ -169,12 +169,12 @@ local function clean()
         local t = ns.db and ns.db[key]
         if t then for k, v in pairs(t) do if type(v) == "table" and v.demo then t[k] = nil end end end
     end
-    -- Profilfeld dq haengt an Demo-Profilen, die Demo.Remove ohnehin loescht
+    -- profile field dq is attached to demo profiles, which Demo.Remove deletes anyway
 end
 
 if ns.Demo and ns.Demo.AddSeed then
     ns.Demo.AddSeed("Zusammen", seed, clean)
-    -- nach /reload baut Demo.lua die Demo-Profile neu auf: Dungeon-Quests danach wieder eintragen
+    -- after /reload Demo.lua rebuilds the demo profiles: add the dungeon quests again afterwards
     ns.Listen("LOGIN", function()
         if not (ns.Demo.IsActive and ns.Demo.IsActive()) then return end
         ns.After(3, function()

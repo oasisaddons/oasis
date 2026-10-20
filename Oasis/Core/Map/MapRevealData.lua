@@ -1,5 +1,5 @@
--- Oasis: Daten fuer "Weltkarte aufdecken" (Overlay-Kacheln je UiMapID, aus den Spieldaten WoW Forever 1.60.1.70450, wago.tools)
--- Format: "Breite:Hoehe:X:Y:Datei-IDs (zeilenweise)"
+-- Oasis: data for "reveal world map" (overlay tiles per UiMapID, from the game data WoW Forever 1.60.1.70450, wago.tools)
+-- Format: "Width:Height:X:Y:file IDs (line by line)"
 local ADDON, ns = ...
 ns.MapRevealData = {
     [1411] = { "256:256:427:78:8073637", "256:241:549:427:8074089", "256:128:413:476:8074090", "512:256:244:0:8074091,8074092", "256:256:432:170:8074093", "256:256:301:189:8074094", "256:256:474:384:8074095", "128:128:464:33:8074096", "256:256:327:60:8074097", "256:256:462:286:8074098", "256:256:355:320:8074099" },

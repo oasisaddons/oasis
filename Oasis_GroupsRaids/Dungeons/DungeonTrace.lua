@@ -1,16 +1,16 @@
--- Oasis - selbst erkundete Dungeon-Karten: Fuer Dungeons ohne Karte im Client (neue Forever-Dungeons)
--- merkt sich Oasis die Laufwege der Oasis-Spieler (grobes Raster) und wo Bosse gelegt wurden.
--- Daraus entsteht in der Dungeon-Ansicht eine Umriss-Karte. Geteilt wird ueber die normale Synchronisation.
+-- Oasis - self-explored dungeon maps: for dungeons without a map in the client (new Forever dungeons)
+-- Oasis remembers the paths of Oasis players (coarse grid) and where bosses were killed.
+-- From this the dungeon view builds an outline map. Shared via normal sync.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Dungeons", function()   -- Module Dungeons (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 local Store = ns.Store
 
 local DT = {}
 ns.DungeonTrace = DT
-local CELL = 4          -- Rastergroesse in Metern (Weltkoordinaten)
-local MAX_CELLS = 900   -- pro Spieler und Dungeon
+local CELL = 4          -- Grid size in meters (world coordinates)
+local MAX_CELLS = 900   -- per player and dungeon
 
 local function key(name) return (tostring(name or "?"):lower():gsub("[^%w]", "")) end
 local function mine(inst)
@@ -20,7 +20,7 @@ local function mine(inst)
     return t
 end
 
--- Position im Dungeon: Weltkoordinaten (funktioniert auch ohne Karte im Client)
+-- Position in dungeon: world coordinates (works even without a map in the client)
 local function worldPos()
     if not UnitPosition then return nil end
     local ok, y, x = pcall(UnitPosition, "player")
@@ -51,7 +51,7 @@ ns.On("ENCOUNTER_END", function(_, encName, _, _, success)
     dirty = true
 end)
 
--- teilen: ein Datensatz je Spieler und Dungeon (Zellen als Text)
+-- share: one record per player and dungeon (cells as text)
 local function share()
     if not dirty or not ns.db.trace or ns.db.settings.shareTrace == false then return end
     dirty = false
@@ -69,7 +69,7 @@ ns.Listen("LOGIN", function()
 end)
 ns.On("PLAYER_ENTERING_WORLD", function() ns.After(5, function() pcall(share) end) end)
 
--- alle Daten zu einem Dungeon (eigene + geteilte): Zellen-Menge, Bosse, Grenzen
+-- all data for a dungeon (own + shared): cell set, bosses, bounds
 function DT.Get(dungeonName, altName)
     local keys = { [key(dungeonName)] = true }
     if altName then keys[key(altName)] = true end
@@ -109,7 +109,7 @@ function DT.Get(dungeonName, altName)
     return { cells = list, n = n, bosses = bosses, minX = minX, maxX = maxX, minY = minY, maxY = maxY, players = np }
 end
 
--- Umriss zeichnen: Norden oben (Welt-X nach oben, Welt-Y nach links)
+-- Draw outline: north up (world X upward, world Y to the left)
 function DT.Draw(host, data)
     host.traceTex = host.traceTex or {}
     host.tracePins = host.tracePins or {}
@@ -118,8 +118,8 @@ function DT.Draw(host, data)
     if not data or data.n < 10 then return false end
     local W, H = host:GetWidth(), host:GetHeight()
     if W < 50 then W, H = 600, 400 end
-    local spanX = (data.maxY - data.minY + 1)   -- Bildschirm-Breite = Welt-Y
-    local spanY = (data.maxX - data.minX + 1)   -- Bildschirm-Hoehe = Welt-X
+    local spanX = (data.maxY - data.minY + 1)   -- Screen width = world Y
+    local spanY = (data.maxX - data.minX + 1)   -- Screen height = world X
     local s = math.min((W - 40) / spanX, (H - 40) / spanY)
     local ox = (W - spanX * s) / 2
     local oy = (H - spanY * s) / 2

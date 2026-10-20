@@ -1,17 +1,17 @@
--- Oasis: Mein Weg - "dieses Addon erinnert sich an dein ganzes Leben in Azeroth"
---  Reise      Zeitleiste der wichtigsten Momente (Level, erste Bosse, neue Gebiete, besondere Beute, Meilensteine)
---  Rekorde    persoenliche Bestleistungen mit "NEUER REKORD!"-Hinweis
---  Dungeons   Dungeon-Laufbahn: Laeufe, Bestzeit, Schnitt, Tode, Bosse, Beute, Mitspieler
---  Mitspieler Gruppen-Gedaechtnis: mit wem du unterwegs warst (+ private Notiz)
---  Tode       Tod-Analyse: vermutlicher Toeter, Kampfdauer, Stufenunterschied, ungenutzter Trank/Gesundheitsstein
---  Gold       Gold-Tagebuch: Einnahmen/Ausgaben nach Kategorie, Verlauf, groesste Ausgaben
---  Ziele      eigene Ziele (Level, Gold, Beruf, Item, Dungeon, frei) mit automatischem Abhaken
---  Was tun?   Vorschlaege nach Level, Questlog, Berufen, Zeitbudget
---  Jahrbuch   Zusammenfassung des Charakters, teilbar im Gildenchat
--- Alles nur fuer den eigenen Charakter (ns.char.life), nichts wird gesendet.
--- Kampfwerte (Crits, Schaden, Leben) sind in Forever im Kampf gesperrt -> keine Crit-Rekorde, Analyse ohne Schadenszahlen.
+-- Oasis: My Journey - "this addon remembers your whole life in Azeroth"
+--  Journey    timeline of the most important moments (level, first bosses, new zones, special loot, milestones)
+--  Records    personal bests with "NEW RECORD!" notice
+--  Dungeons   dungeon career: runs, best time, average, deaths, bosses, loot, companions
+--  Companions group memory: who you went out with (+ private note)
+--  Deaths     death analysis: probable killer, fight duration, level difference, unused potion/healthstone
+--  Gold       gold diary: income/expenses by category, history, biggest expenses
+--  Goals      own goals (level, gold, profession, item, dungeon, free) with automatic ticking
+--  What now?  suggestions by level, quest log, professions, time budget
+--  Yearbook   summary of the character, shareable in guild chat
+-- Everything only for your own character (ns.char.life), nothing is sent.
+-- Combat values (crits, damage, health) are locked in combat in Forever -> no crit records, analysis without damage numbers.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_MyJourney", function()   -- Modul Mein Weg (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_MyJourney", function()   -- My Journey module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
@@ -50,10 +50,10 @@ end
 local function S() return ns.db and ns.db.settings or {} end
 
 ------------------------------------------------------------------------
--- Daten
+-- Data
 ------------------------------------------------------------------------
 local function db()
-    -- 0.5.704: Demo-Modus - Beispiel-Lebenslauf (nur im Speicher, nie gespeichert oder gesendet)
+    -- 0.5.704: demo mode - sample life story (in memory only, never saved or sent)
     if ns.Demo and ns.Demo.IsActive and ns.Demo.IsActive() and ns.Demo.MineLife then
         local d = ns.Demo.MineLife()
         if d then return d end
@@ -77,7 +77,7 @@ local function stat(k, n)
     l.stats[k] = (l.stats[k] or 0) + (n or 1)
     return l.stats[k]
 end
--- "Mein Weg" lebt jetzt im Profil (Life.host): dort mit auffrischen
+-- "My Journey" now lives in the profile (Life.host): refresh it there too
 local function refresh()
     ns.RefreshPage("life")
     if Life.host and Life.host:IsVisible() then
@@ -85,7 +85,7 @@ local function refresh()
         if d and d.refresh then pcall(d.refresh, Life.host) end
     end
 end
--- Ansicht im Profil oeffnen
+-- open the view in the profile
 function Life.Open(view)
     Life.view = view or Life.view or "journey"
     ns.profileTab = Life.view
@@ -93,7 +93,7 @@ function Life.Open(view)
     ns.RefreshPage("insta")
 end
 
--- Reise: Eintrag in die Zeitleiste
+-- Journey: entry in the timeline
 local KIND_COL = { level = "accent", boss = "red", dungeon = "amber", zone = "blue", loot = "amber", record = "mint",
     death = "muted", gold = "amber", prof = "mint", goal = "mint", start = "text" }
 function Life.Event(kind, text, icon, link)
@@ -105,7 +105,7 @@ function Life.Event(kind, text, icon, link)
 end
 
 ------------------------------------------------------------------------
--- Rekorde
+-- Records
 ------------------------------------------------------------------------
 -- key -> { label, better = "high"|"low", fmt, icon }
 local REC = {
@@ -124,8 +124,8 @@ local REC = {
 Life.REC = REC
 local REC_ORDER = { "killsHour", "killsSession", "questsDay", "bossesDay", "goldDay", "bigLoot", "fastLevel", "session", "noDeath", "zonesDay", "quickDeath" }
 
--- Wert melden; gibt true zurueck, wenn neuer Rekord
--- quiet = nur speichern (z.B. laufende Zaehler, Hinweis kommt spaeter einmal)
+-- report a value; returns true if it's a new record
+-- quiet = only save (e.g. running counters, the notice comes once later)
 function Life.Record(key, value, extra, quiet)
     local l = db()
     local def = REC[key] or (key:match("^run:") and { "", "low" })
@@ -146,7 +146,7 @@ function Life.Record(key, value, extra, quiet)
     refresh()
     return true
 end
--- Tageszaehler (Rekord "an einem Tag")
+-- daily counters (record "in one day")
 local function dayCount(key, recKey, n)
     local l = db()
     if not l then return end
@@ -158,7 +158,7 @@ local function dayCount(key, recKey, n)
     if recKey then Life.Record(recKey, d[key], nil, true) end
     return d[key]
 end
--- "an einem Tag"-Rekorde melden wir erst beim Tageswechsel/Logout bzw. einmal, sobald der alte Wert ueberboten ist
+-- "in one day" records are only reported at day change/logout, or once as soon as the old value is beaten
 local announced = {}
 local function dayAnnounce(recKey)
     local l = db()
@@ -181,7 +181,7 @@ local function dayRecord(key, recKey, n)
 end
 
 ------------------------------------------------------------------------
--- Sitzung, Spielzeit, Level-Tempo (Online-Minuten, nur solange Oasis laeuft)
+-- session, playtime, leveling pace (online minutes, only while Oasis is running)
 ------------------------------------------------------------------------
 local session = { start = nil, kills = 0, killTimes = {} }
 local noDeathSince
@@ -195,7 +195,7 @@ local function tick()
 end
 
 ------------------------------------------------------------------------
--- Meilensteine
+-- Milestones
 ------------------------------------------------------------------------
 local function milestone(key, steps, value, text, icon, kind)
     local l = db()
@@ -210,7 +210,7 @@ local function milestone(key, steps, value, text, icon, kind)
 end
 
 ------------------------------------------------------------------------
--- Gold-Tagebuch
+-- Gold diary
 ------------------------------------------------------------------------
 local CATS = {
     { key = "quest", text = "Quests", icon = "Interface\\Icons\\INV_Misc_Note_01" },
@@ -229,7 +229,7 @@ local CAT = {}
 for _, c in ipairs(CATS) do CAT[c.key] = c end
 Life.GOLD_CATS = CATS
 
-local ctx = {}          -- offene Fenster: merchant, train, taxi, ah, mail, trade, gbank
+local ctx = {}          -- open windows: merchant, train, taxi, ah, mail, trade, gbank
 local lastQuest, lastLoot, repairPending = 0, 0, nil
 local lastMoney
 local function moneyCategory(delta)
@@ -286,7 +286,7 @@ local function onMoney()
         end
     end
     g.hist[dk] = m
-    -- Besitz-Meilensteine (1g, 10g, 100g, 1000g)
+    -- wealth milestones (1g, 10g, 100g, 1000g)
     for _, s in ipairs({ 10000, 100000, 1000000, 10000000 }) do
         local id = "own:" .. s
         if m >= s and not l.ms[id] then
@@ -299,7 +299,7 @@ local function onMoney()
 end
 
 ------------------------------------------------------------------------
--- Dungeon-Laufbahn
+-- Dungeon career
 ------------------------------------------------------------------------
 local function dungeonInfo()
     local inInst, typ = IsInInstance()
@@ -342,18 +342,18 @@ local function scanParty(run)
     local raid = IsInRaid and IsInRaid()
     for i = 1, raid and n or 4 do addMate(raid and ("raid" .. i) or ("party" .. i), run) end
 end
--- Lauf abschliessen und Statistiken bilden
+-- finish run and compute statistics
 local function finishRun(l)
     local r = l.cur
     if not r then return end
     l.cur = nil
-    if (r.bosses or 0) == 0 and (now() - r.start) < 120 then return end   -- nur kurz reingeschaut
+    if (r.bosses or 0) == 0 and (now() - r.start) < 120 then return end   -- only peeked in briefly
     r.done = r.bossTotal and r.bosses >= r.bossTotal or nil
     r.dur = r.lastBoss and (r.lastBoss - r.start) or nil
     table.insert(l.runs, 1, r)
     while #l.runs > 600 do table.remove(l.runs) end
     stat("runs", 1)
-    -- Erster Abschluss / Bestzeit nur fuer vollstaendige Laeufe
+    -- first clear / best time only for complete runs
     if r.done and r.dur then
         local first = not l.firsts["clear:" .. r.key]
         if first then
@@ -372,7 +372,7 @@ local function checkInstance()
     local info = dungeonInfo()
     local r = l.cur
     if r and info and r.key == info.key and r.leftAt and now() - r.leftAt < 900 then
-        r.leftAt = nil  -- zurueck (Geist, Nachschub)
+        r.leftAt = nil  -- back (ghost, restock)
         return
     end
     if r and (not info or r.key ~= info.key) then
@@ -388,7 +388,7 @@ local function checkInstance()
 end
 
 ------------------------------------------------------------------------
--- Tod-Analyse
+-- Death analysis
 ------------------------------------------------------------------------
 local fight = { start = nil }
 local lastFoe
@@ -425,7 +425,7 @@ local function onDeath()
         falling = (IsFalling and IsFalling()) or nil,
         swim = (IsSwimming and IsSwimming()) or nil,
     }
-    -- Erklaerungen
+    -- Explanations
     local tips = {}
     if e.pot then tips[#tips + 1] = "pot" end
     if e.hs then tips[#tips + 1] = "hs" end
@@ -464,9 +464,9 @@ local TIPS = {
 function Life.TipText(k) return k and TIPS[k] and L[TIPS[k]] or nil end
 
 ------------------------------------------------------------------------
--- Ziele
+-- Goals
 ------------------------------------------------------------------------
--- kind: level (arg Stufe), gold (arg Gold), prof (arg Stufe, prof = Name), item (arg Anzahl, item = ID), run (arg Anzahl, dkey), free
+-- kind: level (arg level), gold (arg gold), prof (arg level, prof = name), item (arg count, item = ID), run (arg count, dkey), free
 local function profRank(name)
     if not (ns.Radar and ns.Radar.myProfessions) then return 0 end
     for _, p in ipairs(ns.Radar.myProfessions()) do if p.name == name then return p.rank or 0 end end
@@ -518,13 +518,13 @@ function Life.AddGoal(g)
 end
 
 ------------------------------------------------------------------------
--- Was tun? (Vorschlaege)
+-- What now? (suggestions)
 ------------------------------------------------------------------------
--- Rueckgabe: Liste { icon, title, sub, min = Minuten, score, page = Oasis-Seite }
+-- returns: list { icon, title, sub, min = minutes, score, page = Oasis page }
 function Life.Suggestions(budget)
     local out = {}
     local lvl = UnitLevel("player") or 1
-    -- Questlog nach Gebiet
+    -- quest log by zone
     local zones, ready = {}, 0
     local okN, n = pcall(C_QuestLog.GetNumQuestLogEntries)
     local zone
@@ -556,7 +556,7 @@ function Life.Suggestions(budget)
                 sub = (L["%d fitting quests in your log"]):format(info.n), min = 15 + info.n * 8, score = 30 + info.n * 6 }
         end
     end
-    -- Dungeons im Stufenbereich
+    -- dungeons in level range
     if ns.Dungeons and ns.Dungeons.List then
         local ok, list = pcall(ns.Dungeons.List)
         for _, d in ipairs(ok and list or {}) do
@@ -577,7 +577,7 @@ function Life.Suggestions(budget)
             end
         end
     end
-    -- Berufe kurz vor der Grenze
+    -- professions just below the cap
     if ns.Radar and ns.Radar.myProfessions then
         for _, p in ipairs(ns.Radar.myProfessions()) do
             if p.max and p.max > 0 and p.max < 300 and p.rank >= p.max - 10 then
@@ -589,13 +589,13 @@ function Life.Suggestions(budget)
             end
         end
     end
-    -- Klassenlehrer (neue Raenge auf geraden Stufen)
+    -- class trainer (new ranks on even levels)
     local l = db()
     if l and lvl % 2 == 0 and (l.trainedAt or 0) < lvl and lvl >= 4 then
         out[#out + 1] = { icon = "Interface\\Icons\\INV_Misc_Book_11", title = L["Class trainer"],
             sub = (L["New spells/abilities at level %d"]):format(lvl), min = 10, score = 55 }
     end
-    -- Reparatur
+    -- Repair
     local worst = 1
     for slot = 1, 18 do
         local cur, max = GetInventoryItemDurability(slot)
@@ -606,14 +606,14 @@ function Life.Suggestions(budget)
         out[#out + 1] = { icon = "Interface\\Icons\\Trade_BlackSmithing", title = L["Repair"],
             sub = (L["Gear at %d%%"]):format(worst * 100), min = 5, score = 70 }
     end
-    -- Erholt-Bonus
+    -- Rested bonus
     local rest = GetXPExhaustion and ns.safe(GetXPExhaustion())
     local maxXP = ns.safe(UnitXPMax("player")) or 0
     if rest and maxXP > 0 and rest > maxXP * 0.5 then
         out[#out + 1] = { icon = "Interface\\Icons\\Spell_Nature_Sleep", title = L["Use rested bonus"],
             sub = (L["%d%% of a level double experience"]):format(math.min(150, math.floor(rest / maxXP * 100))), min = 30, score = 35 }
     end
-    -- offene Ziele
+    -- open goals
     for _, g in ipairs(l and l.goals or {}) do
         if not g.done then
             local cur, max = Life.GoalProgress(g)
@@ -621,7 +621,7 @@ function Life.Suggestions(budget)
                 sub = (g.kind ~= "free" and (cur .. " / " .. max) or L["custom goal"]), min = 45, score = 20, page = nil, goal = true }
         end
     end
-    -- Zeitbudget
+    -- Time budget
     local limit = budget == "30" and 35 or (budget == "60" and 70 or 9999)
     local res = {}
     for _, s in ipairs(out) do
@@ -633,7 +633,7 @@ function Life.Suggestions(budget)
     table.sort(res, function(a, b) return a.score > b.score end)
     return res
 end
--- Wie viele Beutestuecke eines Dungeons waeren fuer dich ein Upgrade? (nur bereits geladene Items)
+-- How many loot items of a dungeon would be an upgrade for you? (only already loaded items)
 local upCache, upAt = {}, 0
 function Life.DungeonUpgrades(d)
     if not (ns.Upgrade and ns.Upgrade.Compare and d.bosses) then return 0 end
@@ -657,7 +657,7 @@ function Life.DungeonUpgrades(d)
 end
 
 ------------------------------------------------------------------------
--- Jahrbuch
+-- Yearbook
 ------------------------------------------------------------------------
 function Life.Yearbook()
     local l = db()
@@ -677,18 +677,18 @@ function Life.Yearbook()
     y.bosses = l.stats.bosses or 0
     y.zones = 0
     for _ in pairs(l.zones) do y.zones = y.zones + 1 end
-    -- Lieblingsdungeon
+    -- Favorite dungeon
     local cnt = {}
     for _, r in ipairs(l.runs) do cnt[r.name] = (cnt[r.name] or 0) + 1 end
     for n, c in pairs(cnt) do if not y.favN or c > y.favN then y.fav, y.favN = n, c end end
-    -- Erzfeind
+    -- Nemesis
     local k = {}
     for _, d in ipairs(l.deaths) do
         local who = d.killer or (d.tips and (d.tips[#d.tips] == "fall" and L["Falling damage"] or nil))
         if who then k[who] = (k[who] or 0) + 1 end
     end
     for n, c in pairs(k) do if not y.nemN or c > y.nemN then y.nem, y.nemN = n, c end end
-    -- liebster Mitspieler
+    -- favorite companion
     for n, m in pairs(l.mates) do if not y.buddyN or (m.runs or 0) > y.buddyN then y.buddy, y.buddyN = n, m.runs or 0 end end
     y.recs = 0
     for _ in pairs(l.rec) do y.recs = y.recs + 1 end
@@ -709,7 +709,7 @@ function Life.YearbookText()
 end
 
 ------------------------------------------------------------------------
--- Ereignisse
+-- Events
 ------------------------------------------------------------------------
 local function pat(g)
     local s = _G[g]
@@ -751,8 +751,8 @@ ns.On("PLAYER_LEVEL_UP", function(level)
 end)
 ns.Listen("LOGIN", function() local l = db() if l and not l.lvlFrom then l.lvlFrom = UnitLevel("player") l.lvlSecs = 0 end end)
 
--- 0.5.613: Kill = XP-Meldung mit "stirbt/dies". Im Kampf ist der Text in Forever geheim (vorher fiel dadurch
--- fast jeder Kill durch) -> dann zaehlt die Meldung selbst, ausser direkt nach einer Questabgabe/Entdeckung.
+-- 0.5.613: kill = XP message with "stirbt/dies". In combat the text is secret in Forever (before, almost every
+-- kill fell through because of that) -> then the message itself counts, except right after a quest turn-in/discovery.
 local noKillUntil = 0
 ns.On("QUEST_TURNED_IN", function() noKillUntil = GetTime() + 2 end)
 ns.On("UI_INFO_MESSAGE", function() noKillUntil = math.max(noKillUntil, GetTime() + 0.5) end)
@@ -761,9 +761,9 @@ function Life.IsKillXP(raw)
     if msg then return (msg:find("stirbt") or msg:lower():find("dies")) and true or false end
     return raw ~= nil and GetTime() > noKillUntil
 end
--- 0.5.616: Die XP-Chatmeldung kommt in Forever nicht zuverlaessig (Zaehler blieb bei 0). Kill jetzt ueber zwei
--- Wege, je Toetung nur einmal gezaehlt: (a) Erfahrung gestiegen ohne Questabgabe, (b) das eigene Ziel stirbt
--- (feindlich, kein Spieler, nicht von anderen markiert) - (b) zaehlt auch auf Stufe 60.
+-- 0.5.616: the XP chat message doesn't arrive reliably in Forever (counter stayed at 0). Kill now via two
+-- ways, counted only once per kill: (a) experience rose without a quest turn-in, (b) your own target dies
+-- (hostile, not a player, not tapped by others) - (b) also counts at level 60.
 local lastKill = 0
 local function kill()
     local t = GetTime()
@@ -780,7 +780,7 @@ do
         local gained = xpX and xpL == l and x > xpX
         xpL, xpX = l, x
         if gained then
-            -- Questabgabe kommt manchmal erst nach dem XP-Ereignis -> kurz warten
+            -- quest turn-in sometimes comes only after the XP event -> wait briefly
             C_Timer.After(0.4, function() if GetTime() > noKillUntil then kill() end end)
         end
     end)
@@ -835,7 +835,7 @@ for ev, k in pairs({ MERCHANT_CLOSED = "merchant", TRAINER_CLOSED = "train", TAX
     MAIL_CLOSED = "mail", TRADE_CLOSED = "trade", GUILDBANKFRAME_CLOSED = "gbank" }) do
     ns.On(ev, function() ns.After(1, function() ctx[k] = nil end) end)
 end
--- Flug: Geld wird abgezogen, waehrend das Fenster schliesst
+-- flight: money is deducted while the window closes
 if hooksecurefunc then
     if RepairAllItems then hooksecurefunc("RepairAllItems", function(gb) if not gb then repairPending = GetTime() end end) end
     if TakeTaxiNode then hooksecurefunc("TakeTaxiNode", function() ctx.taxi = true ns.After(2, function() ctx.taxi = nil end) end) end
@@ -921,7 +921,7 @@ ns.On("TIME_PLAYED_MSG", function(total)
     if l and total then l.played = total end
 end)
 
--- Berufs-Meilensteine
+-- Profession milestones
 function Life.CheckProfs()
     local l = db()
     if not (l and ns.Radar and ns.Radar.myProfessions) then return end
@@ -940,13 +940,13 @@ end
 ns.On("SKILL_LINES_CHANGED", function() ns.After(1, Life.CheckProfs) end)
 ns.On("BAG_UPDATE_DELAYED", function() if db() then Life.CheckGoals() end end)
 
--- Abmelden: offenen Lauf nicht verlieren (wird beim naechsten Login fortgesetzt oder abgeschlossen)
+-- logout: don't lose the open run (continued or finished on next login)
 ns.On("PLAYER_LOGOUT", function()
     local l = db()
     if l and session.start then Life.Record("session", now() - session.start, nil, true) end
 end)
 
--- eigener Sound-Typ fuer Rekorde (Einstellungen > Sound/Hinweise)
+-- own sound type for records (Settings > Sound/Notices)
 if ns.Sound and ns.Sound.EVENTS and not ns.Sound.eventByKey.record then
     local e = { key = "record", text = "Personal record / goal reached", def = "arbeitszeit" }
     table.insert(ns.Sound.EVENTS, e)
@@ -954,7 +954,7 @@ if ns.Sound and ns.Sound.EVENTS and not ns.Sound.eventByKey.record then
 end
 
 ------------------------------------------------------------------------
--- Oberflaeche
+-- UI
 ------------------------------------------------------------------------
 Life.view = "journey"
 local VIEWS = {
@@ -963,7 +963,7 @@ local VIEWS = {
     { key = "goals", text = "Goals" }, { key = "todo", text = "What to do?" }, { key = "year", text = "Yearbook" },
 }
 
--- NIE "StaticPopupDialogs = ..." zuweisen (verseucht Blizzards Dialogliste -> Esc/Ausloggen blockiert)
+-- NEVER assign "StaticPopupDialogs = ..." (taints Blizzard's dialog list -> Esc/logout blocked)
 StaticPopupDialogs["OASIS_LIFE_TEXT"] = {
     text = "%s", button1 = OKAY or "OK", button2 = CANCEL, hasEditBox = true, editBoxWidth = 320,
     timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
@@ -981,7 +981,7 @@ StaticPopupDialogs["OASIS_LIFE_TEXT"] = {
 }
 local function ask(text, cur, fn) StaticPopup_Show("OASIS_LIFE_TEXT", text, nil, { text = cur, fn = fn }) end
 
--- einfache Zeilenliste mit Symbol, Titel, Untertitel, Wert rechts
+-- simple row list with icon, title, subtitle, value on the right
 local function iconList(parent, rowH)
     return K.List(parent, rowH or 40, function(list)
         local r = K.Row(list)
@@ -1023,8 +1023,8 @@ local function iconList(parent, rowH)
     end)
 end
 
--- 0.6.397: Rekorde im Stil der Werte-Seite - Zeile mit Symbol im Kaestchen, Titel/Datum, Wert gross in Gold,
--- Verbesserung zum vorherigen Rekord gruen davor
+-- 0.6.397: records in the style of the stats page - row with icon in a box, title/date, value big in gold,
+-- improvement over the previous record in green before it
 local function recList(parent)
     return K.List(parent, 46, function(list)
         local r = K.Row(list)
@@ -1070,8 +1070,8 @@ local function recList(parent)
     end)
 end
 
--- 0.6.398: Kacheln im Stil der Werte-Seite (Glas, schwarzer Rahmen, Symbol im Farbkreis, grosser Wert);
--- t:Set(wert, zusatz) wie bisher bei K.HudTile
+-- 0.6.398: tiles in the style of the stats page (glass, black border, icon in color circle, big value);
+-- t:Set(value, extra) as before with K.HudTile
 local function tiles(p, defs)
     p.tiles = {}
     local G = ns.Insta and ns.Insta.Glass
@@ -1128,9 +1128,9 @@ local function relDay(t)
     return fmtDate(t)
 end
 
--- Seite
+-- Page
 ns.RegisterPage({
-    key = "life", title = "My Journey", order = 1.15, topbar = true,   -- im Profil eingebettet (Insta.lua)
+    key = "life", title = "My Journey", order = 1.15, topbar = true,   -- embedded in the profile (Insta.lua)
     sub = "Your life in Azeroth: journey, records, dungeons, goals and yearbook",
     build = function(p)
         p.views = {}
@@ -1141,7 +1141,7 @@ ns.RegisterPage({
         end)(), function(k) Life.view = k refresh() end, nil, { size = 12, pad = 16 })
         p.seg:SetPoint("TOPLEFT", 0, 0)
 
-        -------------------------------------------------- Reise
+        -------------------------------------------------- Journey
         local j = sub(p, "journey")
         tiles(j, { { ns.ICONS.chronicle, "Moments", C.accent }, { ns.ICONS.map, "Zones discovered", C.blue },
             { ns.ICONS.dungeons, "First boss kills", C.red }, { ns.ICONS.badges, "With Oasis since", C.mint } })
@@ -1150,7 +1150,7 @@ ns.RegisterPage({
             { key = "loot", text = L["Loot"] }, { key = "zone", text = L["Zones"] }, { key = "record", text = L["Records"] } },
             function(k) j.filter = k refresh() end, nil, { size = 11, pad = 14 })
         j.fseg:SetPoint("TOPLEFT", 0, -76)
-        -- 0.6.398: Momente in einer Box wie auf der Werte-Seite
+        -- 0.6.398: moments in a box like on the stats page
         j.box = CreateFrame("Frame", nil, j)
         j.box:SetPoint("TOPLEFT", 0, -106)
         j.box:SetPoint("BOTTOMRIGHT")
@@ -1161,9 +1161,9 @@ ns.RegisterPage({
         j.list:SetPoint("BOTTOMRIGHT", -10, 10)
         j.list.empty:SetText(L["No moments yet - just play, Oasis keeps the record."])
 
-        -------------------------------------------------- Rekorde
+        -------------------------------------------------- Records
         local r = sub(p, "records")
-        -- 0.6.397: Kacheln oben (wie die Werte-Kacheln), darunter die Rekorde in einer Box
+        -- 0.6.397: tiles on top (like the stat tiles), below them the records in a box
         local G = ns.Insta and ns.Insta.Glass
         local BOXF, BOXL = { 0.055, 0.055, 0.065, 0.85 }, { 1, 1, 1, 0.08 }
         local RT = { { "badges", "Records", { 0.95, 0.72, 0.38 } }, { "star_on", "Latest record", { 0.62, 0.48, 0.95 } }, { "chronicle", "In the last 7 days", { 0.35, 0.85, 0.55 } } }
@@ -1226,7 +1226,7 @@ ns.RegisterPage({
         d.list:SetPoint("BOTTOMRIGHT")
         d.list.empty:SetText(L["No dungeon runs recorded yet."])
 
-        -------------------------------------------------- Mitspieler
+        -------------------------------------------------- Companions
         local m = sub(p, "mates")
         m.head = K.GameHead(m, L["Who you've adventured with"], C.blue)
         m.head:SetPoint("TOPLEFT", 0, -2)
@@ -1238,7 +1238,7 @@ ns.RegisterPage({
         m.list:SetPoint("BOTTOMRIGHT")
         m.list.empty:SetText(L["As soon as you enter a dungeon in a group, Oasis remembers your companions."])
 
-        -------------------------------------------------- Tode
+        -------------------------------------------------- Deaths
         local t = sub(p, "deaths")
         tiles(t, { { ns.ICONS.deaths, "Deaths", C.red }, { ns.ICONS.radar, "Nemesis", C.amber },
             { ns.ICONS.wants, "With a potion in the bag", C.blue }, { ns.ICONS.badges, "Without dying for", C.mint } })
@@ -1259,10 +1259,10 @@ ns.RegisterPage({
         g.spark:SetPoint("TOPRIGHT", 0, -72)
         g.spark:SetSize(300, 28)
         g.spark.bars = {}
-        g.inc = iconList(g, 40)   -- 0.6.461: mehr Luft zwischen Name und Prozent
+        g.inc = iconList(g, 40)   -- 0.6.461: more space between name and percent
         g.inc:SetPoint("TOPLEFT", 0, -130)
         g.inc:SetPoint("BOTTOMRIGHT", g, "BOTTOM", -6, 0)
-        g.out = iconList(g, 40)   -- 0.6.461: mehr Luft zwischen Name und Prozent
+        g.out = iconList(g, 40)   -- 0.6.461: more space between name and percent
         g.out:SetPoint("TOPLEFT", g, "TOP", 6, -130)
         g.out:SetPoint("BOTTOMRIGHT")
         g.h1 = K.GameHead(g, L["income"], C.mint)
@@ -1272,7 +1272,7 @@ ns.RegisterPage({
         g.h2:SetPoint("TOPLEFT", g, "TOP", 6, -106)
         g.h2:SetWidth(300)
 
-        -------------------------------------------------- Ziele
+        -------------------------------------------------- Goals
         local z = sub(p, "goals")
         z.kind = "level"
         z.kseg = K.Segments(z, { { key = "level", text = L["Item level"] }, { key = "gold", text = L["Gold"] }, { key = "prof", text = L["Profession"] },
@@ -1289,7 +1289,7 @@ ns.RegisterPage({
         z.add = K.Button(z, L["Add goal"], 110, 24, "primary", function() Life.AddFromInput(z.kind, z.input:GetText()) z.input:SetText("") z.input:ClearFocus() end)
         z.add:SetPoint("LEFT", z.input, "RIGHT", 6, 0)
         z.input:SetScript("OnEnterPressed", function() z.add:Click() end)
-        -- Item-Link per Shift-Klick einfuegen
+        -- insert item link via shift-click
         if hooksecurefunc and ChatEdit_InsertLink then
             hooksecurefunc("ChatEdit_InsertLink", function(link)
                 if z:IsVisible() and z.input:HasFocus() and link then z.input:Insert(link) end
@@ -1300,7 +1300,7 @@ ns.RegisterPage({
         z.list:SetPoint("BOTTOMRIGHT")
         z.list.empty:SetText(L["No goals yet. Add one above - Oasis ticks it off automatically."])
 
-        -------------------------------------------------- Was tun?
+        -------------------------------------------------- What now?
         local w = sub(p, "todo")
         w.budget = "60"
         w.bseg = K.Segments(w, { { key = "30", text = L["30 minutes"] }, { key = "60", text = L["1 hour"] }, { key = "120", text = L["2+ hours"] } },
@@ -1313,14 +1313,14 @@ ns.RegisterPage({
         w.list:SetPoint("BOTTOMRIGHT")
         w.list.empty:SetText(L["Nothing special right now - just head out!"])
 
-        -------------------------------------------------- Jahrbuch (2026: Glas-Hero + gruppierte Kacheln + Highlights)
+        -------------------------------------------------- Yearbook (2026: glass hero + grouped tiles + highlights)
         local y = sub(p, "year")
         local function glass(f, fill, line, r)
             local G = ns.Insta and ns.Insta.Glass
             if G then G(f, fill, line, r) elseif not f.bg then f.bg = K.Fill(f, C.panel) end
         end
         local ICO = ns.MEDIA .. "icons\\"
-        -- Inhalt in einem Ausschnitt; reicht die Hoehe nicht, mit dem Mausrad schieben
+        -- content in a scroll area; if the height isn't enough, scroll with the mouse wheel
         y.clip = CreateFrame("Frame", nil, y)
         y.clip:SetPoint("TOPLEFT", 0, 0)
         y.clip:SetPoint("BOTTOMRIGHT", 0, 38)
@@ -1353,7 +1353,7 @@ ns.RegisterPage({
         y.clip:SetScript("OnSizeChanged", function() scrollTo(y.off) end)
         y.ScrollTo = scrollTo
 
-        -- Kopf: Portraet, Name, Klasse in Klassenfarbe, Zeitraum; rechts die Spielzeit gross
+        -- header: portrait, name, class in class color, period; playtime big on the right
         y.hero = CreateFrame("Frame", nil, y.body)
         y.hero:SetPoint("TOPLEFT", 0, 0)
         y.hero:SetPoint("TOPRIGHT", 0, 0)
@@ -1381,7 +1381,7 @@ ns.RegisterPage({
         y.timeL = K.Text(y.hero, 11, C.muted, "RIGHT")
         y.timeL:SetPoint("TOPRIGHT", y.timeV, "BOTTOMRIGHT", 0, -4)
         for _, fs in ipairs({ y.kicker, y.name, y.cls, y.since }) do fs:SetPoint("RIGHT", y.hero, "RIGHT", -190, 0) end
-        -- 0.6.395: Portraet, Name und Klasse stehen schon im Profil-Kopf - hier nur Jahr, "seit" und die Spielzeit
+        -- 0.6.395: portrait, name and class are already in the profile header - here only year, "since" and playtime
         y.portrait:Hide() y.ring:Hide() y.name:Hide() y.cls:Hide()
         y.hero:SetHeight(62)
         y.kicker:ClearAllPoints()
@@ -1393,8 +1393,8 @@ ns.RegisterPage({
         y.timeV:ClearAllPoints()
         y.timeV:SetPoint("TOPRIGHT", y.hero, "TOPRIGHT", -18, -12)
 
-        -- Kennzahlen: vier Gruppen nebeneinander, je eine Spalte Glas-Kacheln mit Symbol
-        -- 0.6.370: Farbe je Gruppe (Symbol im Farbkreis wie die Werte-Kacheln im Profil)
+        -- stats: four groups side by side, one column of glass tiles with icon each
+        -- 0.6.370: color per group (icon in color circle like the stat tiles in the profile)
         local GCOL = { { 0.93, 0.32, 0.34 }, { 0.95, 0.72, 0.38 }, { 0.95, 0.82, 0.35 }, { 0.62, 0.48, 0.95 } }
         local GROUPS = {
             { "Fight", { { "kills", "raid", "Enemies killed" }, { "bosses", "dungeons", "Bosses defeated" }, { "deaths", "deaths", "Deaths" } } },
@@ -1438,7 +1438,7 @@ ns.RegisterPage({
             y.groups[gi] = col
         end
 
-        -- Highlights: drei breitere Karten mit Text statt Zahl
+        -- Highlights: three wider cards with text instead of a number
         local HL = { { "fav", "dungeons", "Favourite dungeon" }, { "nem", "deaths", "Nemesis" }, { "buddy", "groups", "Best companion" } }
         y.hl = {}
         for i, d in ipairs(HL) do
@@ -1485,13 +1485,13 @@ ns.RegisterPage({
         y.Layout = layoutYear
         layoutYear()
 
-        -- Knoepfe unten als ruhige Glas-Knoepfe
+        -- buttons at the bottom as calm glass buttons
         local function glassBtn(b, primary)
             local ac = C.accent
             local fill = primary and { ac[1], ac[2], ac[3], 0.16 } or nil
             local line = primary and { ac[1], ac[2], ac[3], 0.45 } or nil
             glass(b, fill, line, 9)
-            if K.DarkBoxFrame then K.DarkBoxFrame(b, true) end   -- 0.6.370: Knoepfe ohne Bildrahmen
+            if K.DarkBoxFrame then K.DarkBoxFrame(b, true) end   -- 0.6.370: buttons without image frame
             if b.sheen then b.sheen:Hide() end
             b.hl = b:CreateTexture(nil, "HIGHLIGHT")
             b.hl:SetAllPoints()
@@ -1748,7 +1748,7 @@ function Life.RefreshGold(g, l)
     g.out:SetData(outRows)
     g.h1:SetCount(plain(inc))
     g.h2:SetCount(plain(out))
-    -- Goldverlauf (Besitz) der letzten 30 Tage als kleine Balken
+    -- gold history (wealth) of the last 30 days as small bars
     local vals, max = {}, 1
     local last
     for i = 29, 0, -1 do
@@ -1769,7 +1769,7 @@ function Life.RefreshGold(g, l)
     end
 end
 
--- Ziel aus Eingabe
+-- goal from input
 function Life.AddFromInput(kind, text)
     text = (text or ""):gsub("^%s+", ""):gsub("%s+$", "")
     if text == "" then return end
@@ -1856,7 +1856,7 @@ function Life.RefreshYear(y, l)
     if SetPortraitTexture then pcall(SetPortraitTexture, y.portrait, "player") end
     y.timeV:SetText((b.played or 0) > 0 and fmtLong(b.played) or "–")
     y.timeL:SetText(l.played and L["/played total"] or L["Playtime with Oasis"])
-    -- Zahlen: 0 leise in grau, Gold mit Muenzsymbolen (0 Gold = "–")
+    -- numbers: 0 quietly in gray, gold with coin icons (0 gold = "–")
     local function n(v)
         v = tonumber(v) or 0
         if v <= 0 then return "|cff6b6b70" .. "0" .. "|r" end
@@ -1870,7 +1870,7 @@ function Life.RefreshYear(y, l)
     local V = { kills = n(b.kills), bosses = n(b.bosses), deaths = n(b.deaths), runs = n(b.runs), quests = n(b.quests),
         zones = n(b.zones), goldIn = gold(b.goldIn), goldOut = gold(b.goldOut), recs = n(b.recs), goals = n(b.goals) }
     for k, t in pairs(y.tiles) do t.v:SetText(V[k] or "") end
-    -- Highlights: Text statt Zahl, leer = freundlich in grau
+    -- Highlights: text instead of number, empty = friendly in gray
     local none = "|cff6b6b70" .. L["none yet"] .. "|r"
     local HLV = {
         fav = { b.fav, b.favN and (L["%d runs"]):format(b.favN) },
@@ -1886,7 +1886,7 @@ function Life.RefreshYear(y, l)
     if y.Layout then y.Layout() end
 end
 
--- Bereichs-Einstellungen
+-- Section settings
 if ns.AddPageSettings then
     ns.AddPageSettings("life", function(det, y)
         local t1 = K.Toggle(det, L["Notify on new personal record"], function() return S().lifeRecToast ~= false end, function(v) S().lifeRecToast = v end)

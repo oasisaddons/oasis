@@ -1,10 +1,10 @@
--- Oasis - Kommunikation zwischen den Addons (Gilde / Gruppe / Fluestern)
--- plus replizierte Sammlungen ("Store") mit Sync fuer spaeter eingeloggte Mitglieder
+-- Oasis - communication between the addons (guild / group / whisper)
+-- plus replicated collections ("Store") with sync for members who log in later
 local ADDON, ns = ...
 local L = ns.L
 
 local PREFIX = "OASIS1"
--- mehrere Kuerzel: WoW drosselt je Kuerzel (~1 Nachricht/s) -> 3 Kuerzel = etwa dreifacher Durchsatz
+-- several prefixes: WoW throttles per prefix (~1 message/s) -> 3 prefixes = about triple throughput
 local PREFIXES = { "OASIS1", "OASIS2", "OASIS3" }
 local IS_PREFIX = {}
 for _, p in ipairs(PREFIXES) do IS_PREFIX[p] = true end
@@ -12,8 +12,8 @@ local Comm = {}
 ns.Comm = Comm
 
 ------------------------------------------------------------------------
--- Komprimierung mit WoWs eingebautem Packer (C_EncodingUtil), falls der Client ihn hat:
--- "~" + Base64(Deflate(payload)). Lohnt erst ab ~120 Zeichen; ist das Ergebnis nicht kuerzer, bleibt Klartext.
+-- Compression with WoW's built-in packer (C_EncodingUtil), if the client has it:
+-- "~" + Base64(Deflate(payload)). Only worth it from ~120 characters; if the result isn't shorter, plain text stays.
 ------------------------------------------------------------------------
 local EU = C_EncodingUtil
 local DEFLATE = Enum and Enum.CompressionMethod and Enum.CompressionMethod.Deflate
@@ -29,9 +29,9 @@ local function zip(payload)
     Comm.zipSaved = Comm.zipSaved + (#payload - #b - 1)
     return "~" .. b
 end
--- Obergrenze fuer entpackte Nachrichten (Schutz vor "Zip-Bomben" aus manipulierten Clients)
+-- Upper limit for unpacked messages (protection against "zip bombs" from manipulated clients)
 local UNZIP_MAX = 262144
-local ZIP_IN_MAX = 24000   -- gepackte Nachricht schon vor dem Entpacken begrenzen (Zip-Bombe)
+local ZIP_IN_MAX = 24000   -- limit packed messages before unpacking (zip bomb)
 local function unzip(payload)
     if #payload > ns.SyncRules.Limits.message then return nil end
     if payload:sub(1, 1) ~= "~" then return payload end
@@ -45,7 +45,7 @@ local function unzip(payload)
 end
 
 ------------------------------------------------------------------------
--- Kodierung: Felder mit ^ getrennt, Sonderzeichen als %XX
+-- Encoding: fields separated by ^, special characters as %XX
 ------------------------------------------------------------------------
 local function esc(s)
     s = tostring(s == nil and "" or s)
@@ -56,7 +56,7 @@ local function unesc(s)
 end
 Comm.esc, Comm.unesc = esc, unesc
 
--- Einheitliche Grenzen und atomare Datensaetze (keine still abgeschnittenen Felder).
+-- Uniform limits and atomic records (no silently truncated fields).
 local RULES, LIMITS = ns.SyncRules, ns.SyncRules.Limits
 local REC_MAX_FIELDS, REC_MAX_KEY, REC_MAX_VAL = LIMITS.fields, LIMITS.key, LIMITS.value
 Comm.REC_MAX_VAL = REC_MAX_VAL
@@ -70,24 +70,24 @@ function Comm.decodeRecord(s)
 end
 
 ------------------------------------------------------------------------
--- Sende-Warteschlange mit Drossel (Blizzard erlaubt ca. 10 Nachrichten
--- am Stueck, danach ~1 pro Sekunde je Prefix)
+-- Send queue with throttle (Blizzard allows about 10 messages
+-- in a row, then ~1 per second per prefix)
 ------------------------------------------------------------------------
 local queue = {}
 local MAXTOK, REGEN = 8, 1.05
 local tokens = {}
 for _, p in ipairs(PREFIXES) do tokens[p] = MAXTOK end
 local lastRegen = GetTime()
--- gemeinsame Bremse fuer alle Kuerzel: der Server begrenzt pro Spieler insgesamt
--- ("The number of messages ... is limited") - kurz bis 10 am Stueck, danach ca. 1,5 pro Sekunde
+-- shared brake for all prefixes: the server limits per player overall
+-- ("The number of messages ... is limited") - briefly up to 10 in a row, then about 1.5 per second
 local G_MAX, G_REGEN = 10, 0.65
 local gTok = G_MAX
 local pausedUntil = 0
 local msgCounter = 0
 Comm.sent, Comm.received = 0, 0
 
--- Beide Sperr-Abfragen roh (fuer die Diagnose). Der Beta-Client meldet hier dauerhaft "gesperrt",
--- obwohl Senden klappt -> NICHT mehr davon abhaengig machen, sondern senden und den Rueckgabewert pruefen.
+-- Both lock queries raw (for diagnosis). The beta client permanently reports "locked" here,
+-- although sending works -> NO longer depend on it, but send and check the return value.
 local function lockState()
     local a, b
     if C_ChatInfo.InChatMessagingLockdown then
@@ -113,14 +113,14 @@ local function channelOk(ch)
 end
 
 local function pump()
-    if #queue == 0 then return end   -- 0.5.722: nichts zu senden -> keine Marken-Rechnung (die naechste holt den Rest nach, gedeckelt)
+    if #queue == 0 then return end   -- 0.5.722: nothing to send -> no token accounting (the next one catches up, capped)
     local now = GetTime()
     for p, t in pairs(tokens) do tokens[p] = math.min(MAXTOK, t + (now - lastRegen) / REGEN) end
     gTok = math.min(G_MAX, gTok + (now - lastRegen) / G_REGEN)
     lastRegen = now
     if now < pausedUntil or #queue == 0 then return end
     while #queue > 0 do
-        -- Kuerzel mit den meisten freien Marken nehmen
+        -- take the prefix with the most free tokens
         local pfx, best = nil, 0
         for _, p in ipairs(PREFIXES) do if tokens[p] > best then pfx, best = p, tokens[p] end end
         if not pfx or best < 1 or gTok < 1 then return end
@@ -129,7 +129,7 @@ local function pump()
             local ok, r = pcall(C_ChatInfo.SendAddonMessage, pfx, m.text, m.ch, m.target)
             Comm.lastResult = ok and tostring(r) or ("Fehler: " .. tostring(r))
             if not ok or (type(r) == "number" and r ~= 0) or r == false then
-                -- gedrosselt oder abgelehnt: zurueck an den Anfang, kurz warten
+                -- throttled or rejected: back to the front, wait briefly
                 m.tries = (m.tries or 0) + 1
                 if m.tries < 5 then table.insert(queue, 1, m) end
                 tokens[pfx] = 0
@@ -149,8 +149,8 @@ C_Timer.NewTicker(0.25, function()
     if not ok then ns.err("Comm", e) end
 end)
 
--- Obergrenze: beantworten viele gleichzeitig Abgleich-Anfragen, waechst die Schlange sonst auf Tausende.
--- Dann fallen die aeltesten Sync-Pakete (UB) weg - der Empfaenger holt sie beim naechsten Abgleich nach.
+-- Upper limit: if many answer sync requests at once, the queue would otherwise grow to thousands.
+-- Then the oldest sync packets (UB) are dropped - the receiver fetches them at the next sync.
 local QUEUE_MAX = 1200
 local function dropAt(i)
     local group = queue[i] and queue[i].group
@@ -174,17 +174,17 @@ local function enqueue(ch, target, text, prio, key, bulk, group)
     end
     local m = { ch = ch, target = target, text = text, key = key, bulk = bulk, prio = prio, group = group }
     if prio then
-        -- hinter die schon wartenden Prio-Nachrichten (Teile bleiben in Reihenfolge)
+        -- behind the already waiting priority messages (parts stay in order)
         local pos = 1
         while queue[pos] and queue[pos].prio do pos = pos + 1 end
         table.insert(queue, pos, m)
-        -- eilige Nachricht: sofort senden statt auf den naechsten Takt (0,25 s) zu warten
+        -- urgent message: send immediately instead of waiting for the next tick (0.25 s)
         if not group then C_Timer.After(0, function() pcall(pump) end) end
     elseif bulk then
         queue[#queue + 1] = m
     else
-        -- 0.5.788: normale (Live-)Nachrichten VOR die Abgleich-Pakete (bulk) - sonst warteten z.B. Online-/Aufstiegs-/Beute-Meldungen
-        -- hinter bis zu 400 Sync-Paketen und kamen minutenlang verspaetet an. Reihenfolge: eilig > normal > Abgleich.
+        -- 0.5.788: normal (live) messages BEFORE the sync packets (bulk) - otherwise e.g. online/level-up/loot messages waited
+        -- behind up to 400 sync packets and arrived minutes late. Order: urgent > normal > sync.
         local pos = #queue + 1
         for i = 1, #queue do
             if queue[i].bulk and not queue[i].prio then pos = i break end
@@ -194,7 +194,7 @@ local function enqueue(ch, target, text, prio, key, bulk, group)
     if not group then trimQueue() end
 end
 
--- Comm.Send("GUILD", nil, "TYP", feld1, feld2, ...) ; opts: Comm.SendEx
+-- Comm.Send("GUILD", nil, "TYPE", field1, field2, ...) ; opts: Comm.SendEx
 function Comm.SendEx(opts, msgType, ...)
     local ch, target = opts.ch, opts.target
     if not ch then return end
@@ -230,8 +230,8 @@ end
 function Comm.Guild(msgType, ...)
     if IsInGuild() then Comm.SendEx({ ch = "GUILD", prio = Comm.URGENT and Comm.URGENT[msgType] }, msgType, ...) end
 end
--- Fluester-Ziel: WoW Forever liefert Absender als "Vorname Nachname-Realm", fluestern geht aber
--- an den vollstaendigen Charakter, eigener Realm kann entfallen
+-- Whisper target: WoW Forever delivers senders as "First Last-Realm", but whispering goes
+-- to the full character, own realm can be omitted
 function Comm.WhisperName(name)
     local full = ns.ResolveName(name)
     if not full then return name end
@@ -240,12 +240,12 @@ function Comm.WhisperName(name)
     if realm and realm ~= ownRealm then return full end
     return base or full
 end
--- WoW Forever stellt Addon-Fluestern nicht zu ("kein Spieler namens ..."), Gilden-Nachrichten aber schon.
--- Deshalb geht "Fluestern" ueber den Gildenkanal mit Empfaenger (vollstaendiger Name): W^empfaenger^typ^felder...
--- Nur der Empfaenger wertet aus; fuer die Handler sieht es aus wie eine normale Fluester-Nachricht.
+-- WoW Forever does not deliver addon whispers ("no player named ..."), but guild messages it does.
+-- That's why "whisper" goes over the guild channel with a recipient (full name): W^recipient^type^fields...
+-- Only the recipient evaluates it; to the handlers it looks like a normal whisper message.
 local function whoKey(name) return ns.NameKey(name) end
 Comm.whoKey = whoKey
--- wie Whisper, aber als verzichtbares Sync-Paket markiert (darf bei voller Schlange wegfallen)
+-- like Whisper, but marked as a droppable sync packet (may be dropped when the queue is full)
 function Comm.WhisperBulk(target, msgType, ...)
     if IsInGuild() then
         Comm.SendEx({ ch = "GUILD", bulk = true }, "W", whoKey(target), msgType, ...)
@@ -253,12 +253,12 @@ function Comm.WhisperBulk(target, msgType, ...)
         Comm.SendEx({ ch = "WHISPER", target = Comm.WhisperName(target), bulk = true }, msgType, ...)
     end
 end
--- zeitkritische Nachrichten (Gruppen) vor alles andere in die Schlange
+-- time-critical messages (groups) ahead of everything else in the queue
 local URGENT = { JOIN = true, JOINNO = true, MERGE = true, MERGEOK = true, TYP = true, JOINCANCEL = true, GROLE = true,
     DRINV = true, DRACC = true, DRNO = true, DRBUSY = true, DRROLL = true, DRGIVEUP = true, DRCOMMIT = true, DRSEED = true,
     DRJOIN = true, DRFULL = true, DRQ = true, DRQX = true, DRLOOK = true }
 Comm.URGENT = URGENT
--- Ziel in meiner Gruppe, aber nicht ueber die Gilde erreichbar? -> Gruppenkanal (Forever stellt Addon-Fluestern nicht zu)
+-- Target in my group, but not reachable via the guild? -> group channel (Forever doesn't deliver addon whispers)
 local function viaGroup(target)
     local ch = ns.groupChannel and ns.groupChannel()
     if not ch or not target then return nil end
@@ -276,15 +276,15 @@ function Comm.Whisper(target, msgType, ...)
         Comm.SendEx({ ch = gch, prio = URGENT[msgType] }, "W", whoKey(target), msgType, ...)
         return
     end
-    -- 0.6.468: Ziel sicher nicht in der eigenen Gilde (z. B. Freund aus einer anderen Gilde) -> echtes Fluestern,
-    -- ueber den Gildenkanal kaeme es nie an
+    -- 0.6.468: target definitely not in the own guild (e.g. friend from another guild) -> real whisper,
+    -- via the guild channel it would never arrive
     local A = ns.Admin
     local outside = A and A.InGuildList and A.InGuildList(target) == false
     if IsInGuild() and not outside then
         Comm.SendEx({ ch = "GUILD", prio = URGENT[msgType] }, "W", whoKey(target), msgType, ...)
     else
-        -- 0.6.512: Forever stellt Addon-Fluestern nicht zu - gibt es einen gemeinsamen Kanal (Todeswuerfel-Netz),
-        -- dort mit Empfaenger senden; nur der Empfaenger wertet aus
+        -- 0.6.512: Forever doesn't deliver addon whispers - if there is a shared channel (death roll network),
+        -- send there with a recipient; only the recipient evaluates it
         local cid = Comm.DirectChannel and Comm.DirectChannel(msgType)
         if cid then
             Comm.SendEx({ ch = "CHANNEL", target = cid, prio = URGENT[msgType] }, "W", whoKey(target), msgType, ...)
@@ -301,7 +301,7 @@ end
 function Comm.QueueSize() return #queue end
 
 ------------------------------------------------------------------------
--- Empfang
+-- Receiving
 ------------------------------------------------------------------------
 local handlers = {}
 function Comm.On(msgType, fn)
@@ -310,11 +310,11 @@ function Comm.On(msgType, fn)
 end
 
 local partial = {}
--- Grenzen fuer fremde Nachrichten
+-- Limits for foreign messages
 local MAX_FIELDS, MAX_FIELD_LEN = 600, LIMITS.wireField
 Comm.badMsg, Comm.flood = 0, 0
--- Comm.rawChannel: echter WoW-Kanal der gerade ausgewerteten Nachricht (vor der "W"-Umdeutung auf WHISPER).
--- Handler koennen so pruefen, ob etwas wirklich ueber den Gildenkanal kam.
+-- Comm.rawChannel: real WoW channel of the message currently being evaluated (before the "W" remapping to WHISPER).
+-- Handlers can thus check whether something really came via the guild channel.
 Comm.rawChannel = nil
 local function dispatch(sender, channel, payload)
     payload = unzip(payload)
@@ -322,7 +322,7 @@ local function dispatch(sender, channel, payload)
     local fields = {}
     for f in (payload .. "^"):gmatch("([^%^]*)%^") do
         if #fields >= MAX_FIELDS then Comm.badMsg = Comm.badMsg + 1 return end
-        -- fremde Texte entschaerfen (Itemlinks/Farben bleiben, |K/|A/Riesen-Texturen nicht)
+        -- sanitize foreign texts (item links/colors stay, |K/|A/huge textures don't)
         local value = unesc(f)
         if #value > MAX_FIELD_LEN then Comm.badMsg = Comm.badMsg + 1 return end
         fields[#fields + 1] = ns.CleanText(value)
@@ -347,7 +347,7 @@ local function dispatch(sender, channel, payload)
         if not ok then ns.err(L["Comm "] .. tostring(msgType), e) end
     end
 end
--- kam die gerade ausgewertete Nachricht von einem Gildenmitglied? (Gildenkanal = vom Server bestaetigt)
+-- did the message currently being evaluated come from a guild member? (guild channel = confirmed by the server)
 function Comm.FromGuild(sender)
     local raw = Comm.rawChannel
     if raw == "GUILD" or raw == "OFFICER" then return true end
@@ -356,9 +356,9 @@ function Comm.FromGuild(sender)
     return false
 end
 
--- Drossel je Absender: manipulierte Clients koennen sonst mit Nachrichten fluten
--- (der Server bremst zwar auch, aber nicht ueber alle Kanaele/Kuerzel zusammen)
-local RL_MAX, RL_REGEN = 120, 8   -- 120 am Stueck, danach 8 pro Sekunde
+-- Throttle per sender: otherwise manipulated clients could flood with messages
+-- (the server throttles too, but not across all channels/prefixes combined)
+local RL_MAX, RL_REGEN = 120, 8   -- 120 in a row, then 8 per second
 local rate = {}
 local function allowFrom(sender)
     local now = GetTime()
@@ -372,7 +372,7 @@ local function allowFrom(sender)
 end
 local PART_MAX_TOTAL, PART_MAX_PER_SENDER = math.ceil(LIMITS.message / LIMITS.chunk), 4
 
--- Eingangs-Zaehler (Diagnose): wo gehen Nachrichten verloren?
+-- Incoming counters (diagnosis): where do messages get lost?
 Comm.inRaw, Comm.inOasis, Comm.inSecret, Comm.inSelf, Comm.lastFrom = 0, 0, 0, 0, nil
 local rawFrame = CreateFrame("Frame")
 rawFrame:RegisterEvent("CHAT_MSG_ADDON")
@@ -381,7 +381,7 @@ rawFrame:SetScript("OnEvent", function(_, _, prefix, _, _, sender)
     if IS_PREFIX[ns.safe(prefix) or ""] then
         Comm.inOasis = Comm.inOasis + 1
         Comm.lastFrom = tostring(ns.safe(sender) or "(geheim)")
-        -- rohe Absendernamen merken (nur Sitzung): /oa probe wer <Name> zeigt, ob und unter welchem Namen jemand ankommt
+        -- remember raw sender names (session only): /oa probe wer <Name> shows whether and under which name someone arrives
         local rs = ns.safe(sender)
         if type(rs) == "string" and #rs <= 80 then
             Comm.rawSeen = Comm.rawSeen or {}
@@ -401,8 +401,8 @@ ns.On("CHAT_MSG_ADDON", function(prefix, text, channel, sender)
     text, channel, sender = ns.safe(text), ns.safe(channel), ns.safe(sender)
     if not text or not sender then Comm.inSecret = Comm.inSecret + 1 return end
     if type(text) ~= "string" or type(sender) ~= "string" or #sender > 80 then return end
-    -- Absender auf den Namen aus der Gildenliste bringen (Forever: der Realm-Anhang weicht je nach Client ab,
-    -- sonst liegt das Profil unter "...-ClassicBetaPvE2", die Liste sucht aber "...-ClassicBetaPvE")
+    -- map the sender to the name from the guild list (Forever: the realm suffix differs per client,
+    -- otherwise the profile ends up under "...-ClassicBetaPvE2", but the list looks for "...-ClassicBetaPvE")
     sender = (ns.ResolveName and ns.ResolveName(sender, channel == "GUILD" or channel == "OFFICER")) or ns.fullName(sender)
     if not sender or ns.isMe(sender) then Comm.inSelf = Comm.inSelf + 1 return end
     if not allowFrom(sender) then return end
@@ -420,7 +420,7 @@ ns.On("CHAT_MSG_ADDON", function(prefix, text, channel, sender)
         local p = partial[key]
         if p and (p.total ~= total or p.channel ~= channel) then partial[key] = nil Comm.badMsg = Comm.badMsg + 1 return end
         if not p then
-            -- je Absender nur wenige offene Teilnachrichten gleichzeitig (Speicher)
+            -- only a few open partial messages per sender at a time (memory)
             if not p then
                 local open = 0
                 for _, q in pairs(partial) do if q.sender == sender then open = open + 1 end end
@@ -443,13 +443,13 @@ ns.On("CHAT_MSG_ADDON", function(prefix, text, channel, sender)
         end
     end
 end)
--- verwaiste Teilnachrichten aufraeumen
+-- clean up orphaned partial messages
 C_Timer.NewTicker(60, function()
     local now = GetTime()
     for k, p in pairs(partial) do
         if now - p.t > 120 or now - p.start > 1800 then partial[k] = nil end
     end
-    -- volle Drossel-Eimer brauchen keinen Eintrag mehr
+    -- full throttle buckets no longer need an entry
     for k, b in pairs(rate) do
         if now - b.t > 60 then rate[k] = nil end
     end
@@ -464,12 +464,12 @@ local function registerPrefix()
     end
     Comm.prefixOk = C_ChatInfo.IsAddonMessagePrefixRegistered and C_ChatInfo.IsAddonMessagePrefixRegistered(PREFIX)
 end
--- schon beim Laden anmelden (nicht erst beim Login), damit keine fruehen Nachrichten verloren gehen
+-- register already while loading (not only at login) so no early messages are lost
 registerPrefix()
 ns.On("PLAYER_LOGIN", registerPrefix)
 
--- /oa ping: alle mit Oasis antworten per Fluestern -> zeigt, ob Nachrichten hin und zurueck kommen
--- PING/PONG gebremst: sonst kann ein manipulierter Client per Dauer-PING Chat-Zeilen und Antworten erzwingen
+-- /oa ping: everyone with Oasis answers via whisper -> shows whether messages go back and forth
+-- PING/PONG throttled: otherwise a manipulated client could force chat lines and replies with continuous PINGs
 local pingAt, pingAny, pongAny = {}, 0, 0
 Comm.On("PING", function(sender, channel, t)
     local now = GetTime()
@@ -513,14 +513,14 @@ ns.slash.ping = function(target)
 end
 
 ------------------------------------------------------------------------
--- Store: replizierte Sammlungen
+-- Store: replicated collections
 -- Jeder Datensatz: id, u (geaendert), by (Autor), del (geloescht)
 ------------------------------------------------------------------------
 local Store = {}
 ns.Store = Store
 local RETENTION = {
     orders = 21 * 86400,
-    events = 3 * 86400,     -- ab Terminende
+    events = 3 * 86400,     -- from event end
     signups = 30 * 86400,
     chronicle = 45 * 86400,
     loot = 45 * 86400,
@@ -529,75 +529,75 @@ local RETENTION = {
     wants = 60 * 86400,
     rep = 365 * 86400,
     flights = 365 * 86400,
-    mapcal = 365 * 86400,   -- Abgleich Dungeonkarte <-> Spielposition (von Spielern gesetzt, fuer alle)  -- gelernte Flugzeiten (Strecke -> Sekunden), mit der Gilde geteilt      -- Erfahrungen mit Mitspielern (gut/schlecht + Notiz), mit der Gilde geteilt
+    mapcal = 365 * 86400,   -- Dungeon map <-> game position calibration (set by players, for everyone)  -- learned flight times (route -> seconds), shared with the guild      -- experiences with other players (good/bad + note), shared with the guild
     lfg = 3 * 3600,
-    dgjoin = 4 * 3600,   -- 0.6.304: Mitkommen-Liste je Dungeon (Dungeons > Gilde & Gruppe)
-    duels = 400 * 86400,   -- Deathroll: Saisons brauchen den Vormonat komplett
+    dgjoin = 4 * 3600,   -- 0.6.304: join list per dungeon (Dungeons > Guild & Group)
+    duels = 400 * 86400,   -- Deathroll: seasons need the full previous month
     polls = 30 * 86400,
     votes = 30 * 86400,
-    avotes = 30 * 86400,       -- 0.5.617: geheime Umfragen - Stimmen ohne Namen (nur zufaelliges Kennzeichen)
-    deaths = 90 * 86400,       -- 0.5.617: Sterbeorte 90 Tage statt 1 Jahr
+    avotes = 30 * 86400,       -- 0.5.617: secret polls - votes without names (only a random tag)
+    deaths = 90 * 86400,       -- 0.5.617: death locations 90 days instead of 1 year
     wtrain = 3650 * 86400,
-    rpreq = 3650 * 86400,      -- Raid-Vorbereitung: Anforderungen je Raid (von der Raidleitung festgelegt)     -- Waffenmeister: was sie in WoW Forever wirklich lehren (beim Besuch gelesen)
+    rpreq = 3650 * 86400,      -- Raid preparation: requirements per raid (set by the raid leadership)     -- Weapon masters: what they really teach in WoW Forever (read on visit)
     bank = 60 * 86400,
     banklog = 60 * 86400,
     prices = 30 * 86400,
-    bankworth = 120 * 86400,   -- Wert der Gildenbank je Tag
+    bankworth = 120 * 86400,   -- Guild bank value per day
     posts = 120 * 86400,       -- Oasigram
     likes = 120 * 86400,
     comments = 120 * 86400,
     follows = 3650 * 86400,
     points = 365 * 86400,
     raidplan = 14 * 86400,
-    guildcfg = 3650 * 86400,   -- Einstellungen der Gildenleitung
-    notices = 14 * 86400,      -- Durchsagen
-    invites = 3650 * 86400,    -- wer schon einen Oasis-Hinweis per Fluestern bekommen hat
-    reacts = 14 * 86400,       -- Gildenchat: Reaktionen
-    links = 30 * 86400,        -- Gildenchat: zuletzt verlinkte Items (geteilt)
-    lfgreq = 3600,             -- Gruppen: Anfragen (Sicherung zum Fluestern)
-    chatpin = 30 * 86400,      -- Gildenchat: angepinnte Nachricht
-    attend = 120 * 86400,      -- Raid-Anwesenheit (je Raidtag und Instanz)
-    formers = 365 * 86400,     -- 0.5.617: Ehemalige 1 Jahr statt 10
-    lvotes = 90 * 86400,       -- 0.6.526: Abstimmungen der Leitung (nur Offizierskanal)
-    gpack = 3650 * 86400,      -- 0.6.532: offizielles Gildenpaket (Version, Fingerabdruck, Rangsperren)
+    guildcfg = 3650 * 86400,   -- Guild leadership settings
+    notices = 14 * 86400,      -- Announcements
+    invites = 3650 * 86400,    -- who has already received an Oasis notice via whisper
+    reacts = 14 * 86400,       -- Guild chat: reactions
+    links = 30 * 86400,        -- Guild chat: recently linked items (shared)
+    lfgreq = 3600,             -- Groups: requests (backup for whispering)
+    chatpin = 30 * 86400,      -- Guild chat: pinned message
+    attend = 120 * 86400,      -- Raid attendance (per raid day and instance)
+    formers = 365 * 86400,     -- 0.5.617: former members 1 year instead of 10
+    lvotes = 90 * 86400,       -- 0.6.526: leadership votes (officer channel only)
+    gpack = 3650 * 86400,      -- 0.6.532: official guild package (version, fingerprint, rank locks)
     lballots = 90 * 86400,
-    gpackhave = 60 * 86400,    -- 0.6.533: welches Gildenpaket jemand installiert hat (jeder meldet nur sich)
-    sheep = 60 * 86400,        -- 0.6.539: Schafweide - gewaehlter Schaf-Skin (jeder meldet nur sich)
-    gfeed = 3 * 86400,         -- 0.6.548: Guildotchi - fremdes Tier gefuettert (jeder meldet nur sich, 1x am Tag je Tier)
-    rrating = 180 * 86400,     -- 0.6.527: Bewertungen der Bewerber (nur Offiziere)
-    kader = 3650 * 86400,      -- Raid-Kader (Stamm/Ersatz)
-    absent = 30 * 86400,       -- Abmeldungen vom Raid
-    wchal = 60 * 86400,        -- Wochenaufgabe der Gilde
+    gpackhave = 60 * 86400,    -- 0.6.533: which guild package someone has installed (everyone reports only themselves)
+    sheep = 60 * 86400,        -- 0.6.539: sheep pasture - chosen sheep skin (everyone reports only themselves)
+    gfeed = 3 * 86400,         -- 0.6.548: Guildotchi - fed someone else's pet (everyone reports only themselves, once a day per pet)
+    rrating = 180 * 86400,     -- 0.6.527: applicant ratings (officers only)
+    kader = 3650 * 86400,      -- Raid roster (core/backup)
+    absent = 30 * 86400,       -- Raid sign-offs
+    wchal = 60 * 86400,        -- Guild weekly task
     wccontrib = 60 * 86400,
-    meets = 60 * 86400,        -- Gildentreffen (Jahrbuch braucht den Vormonat)
+    meets = 60 * 86400,        -- Guild meetups (yearbook needs the previous month)
     meetatt = 60 * 86400,
     tactics = 3650 * 86400,
-    markers = 8 * 86400,       -- Kartenmarker der Gilde (MapExtras; laufen selbst frueher ab)
-    nodes = 365 * 86400,      -- Gilden-Sammelkarte (GatherMap)    -- Boss-Taktiken (RaidCheck)    -- Ehemalige (GuildHistory)
-    audit = 180 * 86400,       -- Gildenprotokoll: Befoerdern, Degradieren, Kicks, Beitritte
-    bans = 3650 * 86400,       -- Bannliste der Gildenleitung
-    sndmute = 3650 * 86400,    -- Sound-Sperren der Gildenleitung (gehen an alle: jeder Client blendet Sounds der Gesperrten aus)
-    recruits = 365 * 86400,    -- Bewerber und Probezeit
-    sres = 30 * 86400,         -- Soft-Reserve je Raidtermin
+    markers = 8 * 86400,       -- Guild map markers (MapExtras; expire earlier on their own)
+    nodes = 365 * 86400,      -- Guild gathering map (GatherMap)    -- Boss tactics (RaidCheck)    -- Former members (GuildHistory)
+    audit = 180 * 86400,       -- Guild log: promotions, demotions, kicks, joins
+    bans = 3650 * 86400,       -- Guild leadership ban list
+    sndmute = 3650 * 86400,    -- Guild leadership sound locks (go to everyone: each client hides sounds of the locked players)
+    recruits = 365 * 86400,    -- Applicants and trial period
+    sres = 30 * 86400,         -- Soft reserve per raid event
     trace = 365 * 86400,
-    raidint = 21 * 86400,      -- Raid-Interesse (Rollen + Tage)
-    bugs = 90 * 86400,         -- Fehlerberichte + Bug-Meldungen (nur der Entwickler sieht sie)
-    ggoals = 3650 * 86400,     -- Gildenziele (GuildGoals.lua)
-    ggcontrib = 3650 * 86400,  -- Beitraege zu Gildenzielen
-    board = 60 * 86400,        -- Schwarzes Brett (GuildGoals.lua, 0.6.450)
-    gcard = 3650 * 86400,      -- Steckbriefe (Community.lua, 0.6.469)
-    mentor = 365 * 86400,      -- Paten fuer Neulinge
-    thanks = 60 * 86400,       -- Danke
-    talents = 120 * 86400,     -- Talent-Export je Charakter (Talents.lua)
-    scout = 120 * 86400,       -- Anwerbe-Vorschlaege (Scout.lua)
-    perf = 30 * 86400,         -- Leistungs-Messung je Mitglied (PerfShare.lua)
-    combat = 365 * 86400,      -- Kampf-Rekorde je Spieler (CombatBoard.lua)
-    profcd = 14 * 86400,       -- Berufs-Abklingzeiten (Transmutation, Mondstoff ...)       -- selbst erkundete Dungeon-Karten (Laufwege + Bosse)
+    raidint = 21 * 86400,      -- Raid interest (roles + days)
+    bugs = 90 * 86400,         -- Error reports + bug reports (only the developer sees them)
+    ggoals = 3650 * 86400,     -- Guild goals (GuildGoals.lua)
+    ggcontrib = 3650 * 86400,  -- Contributions to guild goals
+    board = 60 * 86400,        -- Bulletin board (GuildGoals.lua, 0.6.450)
+    gcard = 3650 * 86400,      -- Profiles (Community.lua, 0.6.469)
+    mentor = 365 * 86400,      -- Mentors for newcomers
+    thanks = 60 * 86400,       -- Thanks
+    talents = 120 * 86400,     -- Talent export per character (Talents.lua)
+    scout = 120 * 86400,       -- Recruiting suggestions (Scout.lua)
+    perf = 30 * 86400,         -- Performance measurement per member (PerfShare.lua)
+    combat = 365 * 86400,      -- Combat records per player (CombatBoard.lua)
+    profcd = 14 * 86400,       -- Profession cooldowns (transmutation, mooncloth ...)       -- self-explored dungeon maps (routes + bosses)
 }
 
--- 0.5.617 Datenschutz: Leitungs-Sammlungen (Protokoll, Ehemalige, Bannliste, Bewerber, Bank-Protokoll) gehen nur
--- ueber den Offizierskanal, werden nur von Offizieren angenommen und bei allen anderen geloescht
-local OFFICER_ONLY = { audit = true, formers = true, bans = true, recruits = true, banklog = true, lvotes = true, lballots = true, rrating = true }   -- 0.6.526: Abstimmungen der Leitung
+-- 0.5.617 privacy: leadership collections (log, former members, ban list, applicants, bank log) go only
+-- via the officer channel, are accepted only by officers and deleted for everyone else
+local OFFICER_ONLY = { audit = true, formers = true, bans = true, recruits = true, banklog = true, lvotes = true, lballots = true, rrating = true }   -- 0.6.526: leadership votes
 Store.OFFICER_ONLY = OFFICER_ONLY
 local function amOfficer() return ns.isOfficer() and true or false end
 local function isOfficerName(name)
@@ -613,18 +613,18 @@ Store.coll = coll
 
 function Store.Get(name, id) return coll(name)[id] end
 
--- alle nicht geloeschten Datensaetze, optional gefiltert
--- Gildenname des aktuellen Charakters: Oasis speichert pro ACCOUNT - Twinks ohne/mit anderer Gilde teilen
--- dieselbe Datei. Datensaetze tragen daher den Gildennamen (gn); fremde werden weder gezeigt noch verteilt (08.10.).
+-- all non-deleted records, optionally filtered
+-- Guild name of the current character: Oasis stores per ACCOUNT - alts without/with another guild share
+-- the same file. Records therefore carry the guild name (gn); foreign ones are neither shown nor distributed (08.10.).
 local function myGuild()
     local g = IsInGuild() and ns.safe((GetGuildInfo("player"))) or nil
     return g
 end
 Store.MyGuild = myGuild
 local function ownGuild(r)
-    if not r.gn then return true end      -- alte Datensaetze ohne Kennzeichen: wie bisher
+    if not r.gn then return true end      -- old records without tag: as before
     local g = myGuild()
-    return RULES.CanReadGuild(r, g)      -- unbekannte Gilde: markierte fremde Daten nicht anzeigen
+    return RULES.CanReadGuild(r, g)      -- unknown guild: don't show tagged foreign data
 end
 Store.OwnGuild = ownGuild
 function Store.List(name, filter)
@@ -636,10 +636,10 @@ function Store.List(name, filter)
 end
 
 ------------------------------------------------------------------------
--- Urheber-Pruefung beim Empfang (Regeln je Sammlung: ns.Admin.AUTH, Rechte: ns.Admin.MayAuthor)
--- actor = wer die Aenderung gemacht hat: bei "U" der Absender selbst, beim Abgleich ("UB",
--- weitergereicht) das Feld mb (zuletzt geaendert von) bzw. by (Ersteller).
--- Unbekannt (Gildenliste noch nicht geladen) -> zurueckstellen und bei ROSTER erneut pruefen.
+-- Author check on receive (rules per collection: ns.Admin.AUTH, rights: ns.Admin.MayAuthor)
+-- actor = who made the change: for "U" the sender itself, for sync ("UB",
+-- relayed) the field mb (last modified by) or by (creator).
+-- Unknown (guild list not loaded yet) -> defer and check again on ROSTER.
 ------------------------------------------------------------------------
 local held, heldN = {}, 0
 Store.rejected = 0
@@ -648,12 +648,12 @@ local function sameName(a, b)
     return a == b
 end
 local function isDemoRec(rec) return rec.demo or tostring(rec.id or ""):find("demo-", 1, true) ~= nil end
--- true | false | nil (zurueckstellen)
+-- true | false | nil (defer)
 local function authorize(name, rec, actor)
     local A = ns.Admin
     local g = A and A.AUTH and A.AUTH[name]
     if not g then return true end
-    if isDemoRec(rec) or rec.sim then return false end   -- Demo-/Sim-Daten werden nie verschickt
+    if isDemoRec(rec) or rec.sim then return false end   -- Demo/sim data is never sent
     if not actor or actor == "" then return false end
     local ok, r = pcall(g, rec, actor, coll(name)[rec.id])
     if not ok then ns.debug("Urheber-Pruefung", name, r) return false end
@@ -663,24 +663,24 @@ Store.Authorize = authorize
 function Store.HeldCount() return heldN end
 
 ------------------------------------------------------------------------
--- Haertung beim Empfang (Bedrohung: manipulierte Clients in Gilde/Gruppe/Fluestern)
---  * Zeitstempel u hoechstens FUTURE_SLACK in der Zukunft (sonst "ewiger Sieg" ueber jede spaetere Aenderung)
---  * Weitergereichte Datensaetze (UB) tragen ein unpruefbares mb/by. Fuer Leitungsdaten (STRICT_RELAY)
---    muss deshalb auch der WEITERREICHENDE mindestens Offizier sein - sonst koennte jedes Mitglied
---    Gildeneinstellungen/Ernennungen/Durchsagen "im Namen des Gildenmeisters" einschleusen.
---  * OWNED: persoenliche Sammlungen - fremde Datensaetze aendern/loeschen nur der Autor (oder Offiziere),
---    der Autor (by) eines vorhandenen Datensatzes ist unveraenderlich.
---  * Mengen: hoechstens COLL_MAX Datensaetze je Sammlung und AUTHOR_MAX je Autor (Speicher/SavedVariables).
+-- Hardening on receive (threat: manipulated clients in guild/group/whisper)
+--  * timestamp u at most FUTURE_SLACK in the future (otherwise "eternal win" over every later change)
+--  * Relayed records (UB) carry an unverifiable mb/by. For leadership data (STRICT_RELAY)
+--    the RELAYER must therefore be at least an officer too - otherwise any member could
+--    inject guild settings/appointments/announcements "in the name of the guild master".
+--  * OWNED: personal collections - only the author (or officers) may change/delete others' records,
+--    the author (by) of an existing record is immutable.
+--  * Amounts: at most COLL_MAX records per collection and AUTHOR_MAX per author (memory/SavedVariables).
 ------------------------------------------------------------------------
 local FUTURE_SLACK = 900
 local MAX_ID = 160
 local COLL_MAX, AUTHOR_MAX = 8000, 800
-local DAY_NEW, newToday = 300, {}   -- Flut-Bremse fuer die Speicherdatei
+local DAY_NEW, newToday = 300, {}   -- Flood brake for the save file
 Store.FUTURE_SLACK = FUTURE_SLACK
--- Sammlung -> Recht, das der WEITERREICHENDE selbst haben muss (Raidleiter-Daten: ab Schlachtzugs-Assistenz).
--- Damit beim Abgleich die Berechtigten zuerst antworten, warten Mitglieder ohne Rechte laenger (SYNCREQ).
--- 0.5.643: Umfragen nicht mehr - sonst kam eine Umfrage nie an, wenn der Ersteller offline war und nur Mitglieder
--- sie hatten. Der Ersteller wird weiter geprueft (AUTH polls), Aendern/Loeschen fremder Saetze bleibt Offizieren vorbehalten.
+-- Collection -> right the RELAYER must have itself (raid leader data: raid assistant and up).
+-- So that authorized members answer first during sync, members without rights wait longer (SYNCREQ).
+-- 0.5.643: polls no longer - otherwise a poll never arrived if the creator was offline and only members
+-- had it. The creator is still checked (AUTH polls), changing/deleting others' records stays reserved to officers.
 local STRICT_RELAY = { gpack = "officer", wchal = "officer", kader = "raid.plan.sort", guildcfg = "officer", notices = "officer", bans = "officer", points = "officer", sndmute = "officer",
     recruits = "officer", events = "raid.plan.sort", raidplan = "raid.plan.sort", tactics = "raid.plan.sort" }
 local function mayRelay(name, feature)
@@ -693,20 +693,20 @@ end
 local OWNED = { posts = true, comments = true, likes = true, follows = true, rep = true, deaths = true,
     profcd = true, trace = true, lfgreq = true, orders = true, dgjoin = true, lvotes = true, lballots = true,
     rrating = true, wccontrib = true, meets = true, meetatt = true, absent = true, gpackhave = true, sheep = true, gfeed = true }   -- 0.6.527
--- Weitergereichte Datensaetze (Abgleich): wer nicht selbst Autor ist, darf nur NEUE, unkritische Saetze
--- weitergeben. Aendern/Loeschen fremder Saetze und alles hier drin nur durch Offiziere (oder den Autor selbst).
--- (nur Bank/Raenge: alles andere MUSS weitergereicht werden duerfen, sonst bekommen Offline-Mitglieder
---  Deathroll-Ergebnisse, Anmeldungen, Stimmen, Beute usw. nie - die Urheber-Pruefung (AUTH) laeuft trotzdem)
+-- Relayed records (sync): whoever is not the author may only pass on NEW, non-critical records.
+-- Changing/deleting others' records and everything in here only by officers (or the author).
+-- (bank/ranks only: everything else MUST be relayable, otherwise offline members never get
+--  Deathroll results, sign-ups, votes, loot etc. - the author check (AUTH) still runs)
 local RELAY_SENSITIVE = { bank = true, banklog = true, bankworth = true, rank = true }
 Store.STRICT_RELAY, Store.OWNED = STRICT_RELAY, OWNED
 Store.future, Store.capped = 0, 0
-local curNet, curRelay = false, false   -- Kontext des gerade geprueften Datensatzes (fuer den Verdachts-Monitor)
-Store.rejectWhy = {}   -- Sammlung + Grund -> Anzahl (fuer /oa abgleich)
+local curNet, curRelay = false, false   -- Context of the record currently being checked (for the suspicion monitor)
+Store.rejectWhy = {}   -- collection + reason -> count (for /oa abgleich)
 local function reject(why, name, rec, actor)
     Store.rejected = Store.rejected + 1
     local wk = tostring(name) .. ": " .. tostring(why)
     Store.rejectWhy[wk] = (Store.rejectWhy[wk] or 0) + 1
-    -- nur direkt gesendete Datensaetze zaehlen: Weitergereichtes (Abgleich) stammt nicht vom Absender selbst
+    -- only count directly sent records: relayed ones (sync) don't come from the sender itself
     if curNet and not curRelay and actor and ns.Suspect and ns.Suspect.Note then
         pcall(ns.Suspect.Note, actor, why, name)
     end
@@ -720,7 +720,7 @@ local function isOfficer(name)
     if not ok then return false end
     return r
 end
--- Zaehler je Sammlung (Gesamt + je Autor), bei Bedarf aufgebaut, bei prune verworfen
+-- counters per collection (total + per author), built on demand, discarded on prune
 local counts = {}
 local function countsOf(name)
     local c = counts[name]
@@ -734,7 +734,7 @@ local function countsOf(name)
     counts[name] = c
     return c
 end
--- zurueckgestellte Datensaetze je Sammlung (fuer /oa abgleich)
+-- deferred records per collection (for /oa abgleich)
 function Store.HeldByColl()
     local out = {}
     for _, h in pairs(held) do out[h.name] = (out[h.name] or 0) + 1 end
@@ -751,17 +751,17 @@ local function holdRec(name, rec, sender, relay)
     return false
 end
 
--- lokal uebernehmen, wenn neuer
+-- apply locally if newer
 local function merge(name, rec, fromNet, actor, relay)
     if type(rec) ~= "table" then return false end
     if fromNet and rec.gn and myGuild and myGuild() and rec.gn ~= myGuild() then return false end
     local id = rec.id
     if (type(id) ~= "string" and type(id) ~= "number") or id == "" then return false end
     curNet, curRelay = fromNet and true or false, relay and true or false
-    -- Absender, die gerade massenhaft gefaelschte Daten schicken, eine Weile ganz ignorieren
+    -- ignore senders sending masses of forged data for a while
     if fromNet and actor and ns.Suspect and ns.Suspect.Ignored and ns.Suspect.Ignored(actor) then return false end
     if fromNet then
-        -- Grundpruefung fremder Daten: Typen, Laengen, Zeitstempel
+        -- Basic check of foreign data: types, lengths, timestamps
         if #tostring(id) > MAX_ID then return reject("id zu lang", name, rec, actor) end
         if rec.u ~= nil and not finite(rec.u) then return reject("u kein Zahlwert", name, rec, actor) end
         if (rec.u or 0) > ns.now() + FUTURE_SLACK then
@@ -781,10 +781,10 @@ local function merge(name, rec, fromNet, actor, relay)
     if fromNet and actor ~= nil then
         local sender = actor
         if not relay then
-            -- Faelschung: "zuletzt geaendert von" passt nicht zum Absender
+            -- forgery: "last modified by" doesn't match the sender
             if rec.mb and rec.mb ~= "" and not sameName(rec.mb, actor) then return reject("mb~=Absender", name, rec, actor) end
-            -- fehlendes mb (aeltere Clients) mit dem echten Absender fuellen - sonst koennte ein spaeteres
-            -- Weiterreichen den Ersteller (by) als Urheber ausgeben
+            -- fill missing mb (older clients) with the real sender - otherwise a later
+            -- relay could present the creator (by) as the author
             if not rec.mb or rec.mb == "" then rec.mb = actor end
         else
             actor = (rec.mb ~= nil and rec.mb ~= "") and rec.mb or rec.by
@@ -792,13 +792,13 @@ local function merge(name, rec, fromNet, actor, relay)
         end
         local cur = coll(name)[id]
         if relay then
-            -- Gildeneinstellungen gibt nur ihr Besitzer selbst weiter (sonst koennten Offiziere die Gildenleitung faelschen)
+            -- guild settings are only passed on by their owner (otherwise officers could forge the guild leadership)
             if name == "guildcfg" and not (rec.by and sameName(rec.by, sender)) then
                 return reject("guildcfg nur vom Besitzer", name, rec, sender)
             end
-            -- angeblicher Autor ist nicht der Weiterreichende: nur Offiziere duerfen fremde Saetze aendern,
-            -- loeschen oder kritische Sammlungen weitergeben
-            -- vorhandener Satz: Weiterreichen einer neueren Fassung ok, solange der Ersteller (by) gleich bleibt
+            -- claimed author is not the relayer: only officers may change others' records,
+            -- delete them or pass on critical collections
+            -- existing record: relaying a newer version is ok as long as the creator (by) stays the same
             local authorSwap = cur and cur.by and rec.by and not sameName(cur.by, rec.by)
             if actor and actor ~= "" and not sameName(actor, sender) and (authorSwap or rec.del or RELAY_SENSITIVE[name]) then
                 local off = isOfficer(sender)
@@ -807,13 +807,13 @@ local function merge(name, rec, fromNet, actor, relay)
             end
         end
         if cur and (cur.u or 0) > (rec.u or 0) then return false end
-        -- Leitungsdaten nur von Offizieren weiterreichen lassen
+        -- let only officers relay leadership data
         if relay and STRICT_RELAY[name] then
             local okR = mayRelay(sender, STRICT_RELAY[name])
             if okR == nil then return holdRec(name, rec, sender, relay) end
             if not okR then return reject("Weiterreichen von Leitungsdaten ohne Rechte", name, rec, sender) end
         end
-        -- persoenliche Datensaetze: nur der Autor (oder Offiziere)
+        -- personal records: only the author (or officers)
         if OWNED[name] then
             local owner = (cur and cur.by) or rec.by
             local mine = actor and actor ~= "" and owner and owner ~= "" and sameName(owner, actor)
@@ -827,11 +827,11 @@ local function merge(name, rec, fromNet, actor, relay)
         local ok = authorize(name, rec, actor)
         if ok == nil then return holdRec(name, rec, sender, relay)
         elseif not ok then return reject("keine Rechte", name, rec, actor) end
-        -- Mengen-Grenzen nur fuer NEUE Datensaetze
+        -- amount limits only for NEW records
         if not cur then
             local cnt = countsOf(name)
-            -- zusaetzlich: je Autor und Sammlung hoechstens DAY_NEW frisch erstellte Datensaetze (letzte 24 h)
-            -- (aeltere Saetze aus dem Abgleich zaehlen nicht, sonst bremst der erste Login-Abgleich)
+            -- additionally: per author and collection at most DAY_NEW freshly created records (last 24 h)
+            -- (older records from sync don't count, otherwise the first login sync gets throttled)
             local fresh = (tonumber(rec.u) or 0) > ns.now() - 86400
             local dk = name .. "|" .. whoKey(rec.by or actor or "")
             if fresh then newToday[dk] = (newToday[dk] or 0) + 1 end
@@ -848,10 +848,10 @@ local function merge(name, rec, fromNet, actor, relay)
     end
     local c = coll(name)
     local old = c[id]
-    -- Fuer den Vergleich denselben anonymisierten Inhalt verwenden wie im Speicher.
+    -- For comparison use the same anonymized content as in storage.
     if name == "avotes" then rec.by, rec.mb = nil, nil end
     if old and old ~= rec and RULES.Compare(rec, old) <= 0 then return false end
-    -- geheime Stimmen: nie einen Namen mitspeichern
+    -- secret votes: never store a name
     if name == "avotes" then rec.by, rec.mb = nil, nil end
     c[id] = rec
     if not old and counts[name] then
@@ -865,19 +865,19 @@ local function merge(name, rec, fromNet, actor, relay)
 end
 Store.merge = merge
 
--- zurueckgestellte Datensaetze erneut pruefen (Gildenliste/Leitungs-Einstellungen geladen)
+-- recheck deferred records (guild list/leadership settings loaded)
 local recheckDue = false
 function Store.Recheck()
     recheckDue = false
     local now = GetTime()
-    -- erst einsammeln, dann pruefen (merge darf dabei wieder zurueckstellen)
+    -- collect first, then check (merge may defer again)
     local list = {}
     for key, h in pairs(held) do list[#list + 1] = h held[key] = nil end
     heldN = 0
     for _, h in ipairs(list) do
         if now - h.t <= 1800 then
             merge(h.name, h.rec, true, h.sender, h.relay)
-            -- weiterhin unbekannt -> urspruengliche Wartezeit behalten
+            -- still unknown -> keep the original waiting time
             local k = h.name .. "|" .. tostring(h.rec.id)
             if held[k] then held[k].t = h.t end
         end
@@ -891,25 +891,25 @@ end
 ns.Listen("ROSTER", recheckSoon)
 ns.Listen("STORE", function(name) if name == "guildcfg" then recheckSoon() end end)
 
--- anlegen/aendern und an die Gilde senden
+-- create/change and send to the guild
 function Store.Put(name, rec)
-    -- ohne Gilde keine Gilden-Daten (sonst verteilt sie spaeter ein Twink derselben Account-Datei an seine Gilde)
+    -- no guild data without a guild (otherwise an alt using the same account file would later distribute it to its guild)
     if not IsInGuild() then return rec end
     if OFFICER_ONLY[name] and not amOfficer() then return rec end
     rec.gn = rec.gn or myGuild()
     local previous = coll(name)[rec.id]
     rec.u = math.max(ns.now(), (rec.u or 0) + 1, ((previous and previous.u) or 0) + 1)
     ns.db.meta.revSeq = (ns.db.meta.revSeq or 0) + 1
-    -- Auch anonyme Stimmen erhalten eine Revision ohne Charaktername.
+    -- Anonymous votes also get a revision without character name.
     rec.rv = ("%08x%08x:%d"):format(math.random(0, 2147483646), math.random(0, 2147483646), ns.db.meta.revSeq)
     rec.by = rec.by or ns.me()
-    rec.mb = ns.me()   -- zuletzt geaendert von (Urheber-Pruefung beim Empfang)
+    rec.mb = ns.me()   -- last modified by (author check on receive)
     if name == "avotes" then rec.by, rec.mb = nil, nil end
     merge(name, rec)
-    -- Demo-Daten (/oa demo) bleiben lokal
+    -- demo data (/oa demo) stays local
     if rec.demo or tostring(rec.id):find("demo-", 1, true) then return rec end
-    -- Gruppen/Anfragen/Pins sofort senden, nicht hinter Sync-Paketen warten
-    -- 0.5.708: auch Tode - sonst warteten sie hinter Sync-Paketen (bis zu Minuten) und der Hinweis kam viel zu spaet
+    -- send groups/requests/pins immediately, don't wait behind sync packets
+    -- 0.5.708: deaths too - otherwise they waited behind sync packets (up to minutes) and the notice came far too late
     local fast = name == "lfg" or name == "dgjoin" or name == "lfgreq" or name == "chatpin" or name == "reacts" or name == "deaths" or name == "chronicle"
     if IsInGuild() then Comm.SendEx({ ch = OFFICER_ONLY[name] and "OFFICER" or "GUILD", prio = fast }, "U", name, Comm.encodeRecord(rec)) end
     return rec
@@ -923,15 +923,15 @@ function Store.Delete(name, id)
     Store.Put(name, copy)
 end
 
--- Gilden-Sammlungen nur von Gildenmitgliedern (Gildenkanal oder Absender in der Gildenliste),
--- nie von Fremden per echtem Fluestern/Gruppe/Schlachtzug
+-- guild collections only from guild members (guild channel or sender in the guild list),
+-- never from strangers via real whisper/group/raid
 Comm.On("U", function(sender, channel, name, recStr)
     if type(name) ~= "string" or not RETENTION[name] or type(recStr) ~= "string" then return end
     if OFFICER_ONLY[name] and not amOfficer() then return end
     if not Comm.FromGuild(sender) then Store.rejected = Store.rejected + 1 return end
     merge(name, Comm.decodeRecord(recStr), true, sender)
 end)
--- Sammel-Nachricht beim Sync: UB^coll^rec^rec^...
+-- bulk message on sync: UB^coll^rec^rec^...
 Comm.On("UB", function(sender, channel, name, ...)
     if type(name) ~= "string" or not RETENTION[name] then return end
     if not Comm.FromGuild(sender) then Store.rejected = Store.rejected + 1 return end
@@ -940,7 +940,7 @@ Comm.On("UB", function(sender, channel, name, ...)
         local s = select(i, ...)
         if type(s) == "string" and s ~= "" then merge(name, Comm.decodeRecord(s), true, sender, true) end
     end
-    -- nur ein an MICH gerichteter Abgleich zaehlt als "abgeglichen" (Rundsendungen eines Neuankommenden nicht)
+    -- only a sync addressed to ME counts as "synced" (broadcasts of a newcomer don't)
     if channel == "WHISPER" then
         if Comm.BusyPeer then Comm.BusyPeer(sender) end
         if Comm.MarkPeer then Comm.MarkPeer(sender, "i") end
@@ -951,7 +951,7 @@ Comm.On("UB", function(sender, channel, name, ...)
     ns.Fire("SYNCED")
 end)
 
--- 0.5.617: Nicht-Offiziere loeschen frueher empfangene Leitungsdaten (einmal je Sitzung, wenn die Gildenliste da ist)
+-- 0.5.617: non-officers delete previously received leadership data (once per session, when the guild list is there)
 local officerPurged = false
 ns.Listen("ROSTER", function()
     if officerPurged or not IsInGuild() then return end
@@ -973,11 +973,11 @@ local function prune()
         for id, r in pairs(c) do
             if type(r) ~= "table" then c[id] = nil
             else
-                -- Altlasten: Zeitstempel weit in der Zukunft (vor der Haertung angenommen) auf jetzt setzen
+                -- legacy: set timestamps far in the future (accepted before hardening) to now
                 if type(r.u) ~= "number" or not finite(r.u) then r.u = 0 end
                 if r.u > now + FUTURE_SLACK then r.u = now end
                 local ref = r.u
-                -- Terminzeit/Ablauf nur in vernuenftigen Grenzen (sonst lebt ein Datensatz ewig)
+                -- event time/expiry only within reasonable limits (otherwise a record lives forever)
                 if name == "events" and type(r.ts) == "number" and r.ts < now + 400 * 86400 then ref = math.max(ref, r.ts) end
                 if (name == "campfires" or name == "lfg") and type(r.exp) == "number" then ref = math.min(r.exp, r.u + 7 * 86400) end
                 if now - ref > keep then c[id] = nil end
@@ -986,7 +986,7 @@ local function prune()
     end
 end
 
--- einmalig: vorhandene Texte im Speicher entschaerfen (vor der Haertung empfangene Daten)
+-- once: sanitize existing texts in storage (data received before hardening)
 local SEC_CLEAN = 1
 local function cleanStored()
     if ns.db.meta.secClean == SEC_CLEAN then return end
@@ -1003,14 +1003,14 @@ local function cleanStored()
 end
 
 ------------------------------------------------------------------------
--- Sync: Neu eingeloggte fragen, ein zufaellig gewaehltes Mitglied antwortet
+-- Sync: newly logged-in members ask, a randomly chosen member answers
 ------------------------------------------------------------------------
 local pendingReply = {}
 
--- broadcast = an ALLE Online-Mitglieder (Gildenkanal) statt nur an den Fragenden:
--- so bekommen auch die, die schon online waren, die Daten eines Neuankommenden
--- kleine, wichtige Sammlungen immer komplett schicken (nicht nur "seit letztem Abgleich"):
--- ein Datensatz, der einmal verpasst wurde, kaeme sonst nie mehr an
+-- broadcast = to ALL online members (guild channel) instead of only the asker:
+-- so those already online also get a newcomer's data
+-- always send small, important collections completely (not just "since last sync"):
+-- a record that was missed once would otherwise never arrive
 local ALWAYS_FULL = { polls = true, votes = true, events = true, signups = true, notices = true, guildcfg = true,
     raidplan = true, chatpin = true, softres = true, sres = true }
 local function sendAllTo(target, since, broadcast)
@@ -1026,7 +1026,7 @@ local function sendAllTo(target, since, broadcast)
                 batch, size = {}, 0
             end
         end
-        -- Leitungsdaten nur von Offizieren an Offiziere
+        -- leadership data only from officers to officers
         if off and not (amOfficer() and (broadcast or isOfficerName(target))) then flush = function() batch, size = {}, 0 end end
         for _, r in pairs(coll(name)) do
             if (r.u or 0) > since and not r.demo and not tostring(r.id):find("demo-", 1, true) and ownGuild(r) then
@@ -1040,29 +1040,29 @@ local function sendAllTo(target, since, broadcast)
     end
 end
 
--- Wer eine Login-Anfrage beantwortet, fragt den Neuankommenden im Gegenzug nach dem,
--- was er selbst verpasst hat (z.B. weil beim eigenen Login niemand online war).
--- "back" = Rueckfrage, darauf wird nicht erneut zurueckgefragt.
+-- Whoever answers a login request asks the newcomer in return for what
+-- they missed themselves (e.g. because nobody was online at their own login).
+-- "back" = counter-request, it doesn't get counter-requested again.
 local askedBack = {}
--- Gildendaten nur an Gildenmitglieder; je Absender hoechstens alle 2 Minuten ein Komplettabgleich
--- (sonst kann ein manipulierter Client per Dauer-SYNCREQ die Sende-Schlange aller fluten)
+-- guild data only to guild members; per sender at most one full sync every 2 minutes
+-- (otherwise a manipulated client could flood everyone's send queue with continuous SYNCREQs)
 local syncServed = {}
 local syncWin, syncWinN = 0, 0
 Comm.On("SYNCREQ", function(sender, channel, since, back, retry)
     if not Comm.FromGuild(sender) then return end
-    -- Wiederholung (erste Anfrage blieb unbeantwortet): nur Berechtigte antworten, Abbruch-Meldungen zaehlen nicht
+    -- retry (first request went unanswered): only authorized members answer, abort messages don't count
     retry = retry == "1"
     if retry and not (ns.isOfficer() or (ns.Admin and ns.Admin.Can and ns.Admin.Can("raid.plan.sort"))) then return end
     since = tonumber(since) or 0
     if not finite(since) or since < 0 then since = 0 end
     if pendingReply[sender] then return end
     if syncServed[sender] and GetTime() - syncServed[sender] < 120 then return end
-    -- insgesamt hoechstens 6 Komplettabgleiche pro Minute bedienen (viele Absender gleichzeitig = Flut)
+    -- serve at most 6 full syncs per minute in total (many senders at once = flood)
     if GetTime() - syncWin > 60 then syncWin, syncWinN = GetTime(), 0 end
     if syncWinN >= 6 then return end
     syncWinN = syncWinN + 1
     local direct = channel == "WHISPER"
-    -- Berechtigte (Raid-Assistenz aufwaerts) antworten zuerst: nur deren Weitergabe von Leitungs-/Raiddaten zaehlt
+    -- authorized members (raid assistant and up) answer first: only their relaying of leadership/raid data counts
     local priv = ns.isOfficer() or (ns.Admin and ns.Admin.Can and ns.Admin.Can("raid.plan.sort"))
     local delay = direct and 0.3 or (math.random(3, 20) / 10 + (priv and 0 or 2.5))
     pendingReply[sender] = true
@@ -1071,11 +1071,11 @@ Comm.On("SYNCREQ", function(sender, channel, since, back, retry)
         pendingReply[sender] = nil
         if not direct then Comm.Guild("SYNCACK", sender) end
         syncServed[sender] = GetTime()
-        -- Rueckfrage ("back"): ich bin der Neuankommende und habe evtl. Daten, die ALLE Anwesenden
-        -- noch nicht kennen (z.B. offline geaendert) -> an die ganze Gilde, nicht nur an den Fragenden
+        -- counter-request ("back"): I'm the newcomer and may have data that ALL present members
+        -- don't know yet (e.g. changed offline) -> to the whole guild, not only to the asker
         Comm.BusyPeer(sender)
         sendAllTo(sender, since, back == "1")
-        -- Abschluss immer senden, auch wenn nichts Neues dabei war ("aktuell")
+        -- always send completion, even if nothing new was included ("up to date")
         Comm.Whisper(sender, "SYNCDONE")
         Comm.MarkPeer(sender, "o")
         if back ~= "1" and not askedBack[sender] then
@@ -1085,8 +1085,8 @@ Comm.On("SYNCREQ", function(sender, channel, since, back, retry)
         end
     end)
 end)
--- Abgleich je Mitglied merken (0.5.515): i = Daten von ihm bekommen, o = ihm Daten geschickt
--- Schluessel = Vorname (Forever: Absender "Vorname-Realm", Gildenliste "Vorname Nachname-Realm")
+-- remember sync per member (0.5.515): i = got data from them, o = sent data to them
+-- key = first name (Forever: sender "First-Realm", guild list "First Last-Realm")
 local function peerKey(name) return ns.NameKey(name) end
 function Comm.MarkPeer(sender, dir)
     if not sender or not ns.db then return end
@@ -1100,7 +1100,7 @@ function Comm.MarkPeer(sender, dir)
     Comm.peerFresh[k] = GetTime()
     ns.Debounce("peerRefresh", 0.5, function() if ns.Radar and ns.Radar.RefreshRows then ns.Radar.RefreshRows() else ns.RefreshPage("radar") end end)
 end
--- laeuft gerade ein Abgleich mit ihm? (Daten kommen/gehen, bis 3 s nach dem letzten Paket)
+-- is a sync with them running right now? (data coming/going, until 3 s after the last packet)
 Comm.peerBusy = {}
 function Comm.BusyPeer(sender)
     local k = peerKey(sender)
@@ -1111,7 +1111,7 @@ function Comm.PeerBusy(name)
     local t = Comm.peerBusy[peerKey(name)]
     return t ~= nil and GetTime() - t < 3
 end
--- letzter Abgleich mit einem Mitglied: zeit (max), bekommen, geschickt, gerade eben (Animation)
+-- last sync with a member: time (max), received, sent, just now (animation)
 function Comm.PeerSync(name)
     local e = ns.db and ns.db.meta.peers and ns.db.meta.peers[peerKey(name)]
     if not e then return nil end
@@ -1128,7 +1128,7 @@ local function synced(sender)
 end
 Comm.On("SYNCDONE", function(sender) if Comm.FromGuild(sender) then synced(sender) end end)
 Comm.On("SYNCACK", function(sender, channel, target)
-    -- jemand anders antwortet schon (nur ueber den Gildenkanal glaubwuerdig)
+    -- someone else is already answering (only credible via the guild channel)
     if Comm.rawChannel ~= "GUILD" then return end
     if not Comm.FromGuild(sender) or (target and sameName(sender, target)) then return end
     if target and pendingReply[target] then pendingReply[target] = "cancel" end
@@ -1141,8 +1141,8 @@ function Comm.RequestSync(full)
     local started = GetTime()
     Comm.syncing, Comm.noAnswer = started, nil
     ns.Fire("SYNCED")
-    -- keiner antwortet (niemand mit Oasis online): nicht ewig "gleicht ab" zeigen
-    -- gefaelschte SYNCACKs koennen Antworten unterdruecken: nach 8 s ohne Abschluss einmal nachfragen
+    -- nobody answers (nobody with Oasis online): don't show "syncing" forever
+    -- forged SYNCACKs can suppress answers: after 8 s without completion ask once more
     ns.After(8, function()
         if Comm.syncing == started then Comm.Guild("SYNCREQ", since, nil, "1") end
     end)
@@ -1157,23 +1157,23 @@ end
 
 ------------------------------------------------------------------------
 
--- Abgleich-Takt (Sicherheitsnetz): alle ~10 Minuten schickt jeder eine winzige Zusammenfassung
+-- Sync tick (safety net): every ~10 minutes everyone sends a tiny summary
 
--- je Sammlung ("Anzahl:neuester Zeitpunkt"). Wer sieht, dass ein anderer bei einer Sammlung weiter ist,
+-- per collection ("count:latest time"). Whoever sees that someone else is ahead in a collection
 
--- holt sich gezielt nur diese Sammlung nach. So kommt alles an, was unterwegs verloren ging
+-- fetches only that collection. This way everything lost on the way arrives
 
--- (Ladebildschirm, Verbindung weg, volle Sende-Schlange, unvollstaendiger Login-Abgleich).
+-- (loading screen, connection lost, full send queue, incomplete login sync).
 
--- Bremsen: nicht im Kampf/in Instanzen, je Sammlung hoechstens alle 5 Min eine Nachfrage,
+-- Brakes: not in combat/instances, per collection at most one request every 5 min,
 
--- je Fragendem und Sammlung hoechstens alle 2 Min eine Antwort.
+-- per asker and collection at most one answer every 2 min.
 
 ------------------------------------------------------------------------
 
 local DIG_EVERY = 600
--- Nach dem Login: wichtige kleine Sammlungen einzeln und KOMPLETT (since 0) anfragen - "DIGREQ" verstehen auch
--- aeltere Oasis-Versionen. So kommt z.B. eine Umfrage an, die auf einem anderen PC entstanden ist.
+-- After login: request important small collections individually and COMPLETELY (since 0) - "DIGREQ" is understood by
+-- older Oasis versions too. This way e.g. a poll created on another PC arrives.
 function Comm.PullImportant(target)
     if not IsInGuild() then return end
     target = target or (ns.db.meta and ns.db.meta.lastSyncFrom)
@@ -1242,9 +1242,9 @@ local function quietNow()
 
 end
 
-local digAsked = {}     -- Sammlung -> GetTime() der letzten eigenen Nachfrage
+local digAsked = {}     -- collection -> GetTime() of the last own request
 
-local digServed = {}    -- "Name|Sammlung" -> GetTime() der letzten Antwort
+local digServed = {}    -- "Name|Collection" -> GetTime() of the last answer
 
 Comm.digStats = { sent = 0, asked = 0, served = 0 }
 
@@ -1277,7 +1277,7 @@ Comm.On("DIG", function(sender, channel, d)
 
             local myN, myTop, myFingerprint = digestOf(name)
 
-            -- er ist weiter: neuere Aenderungen, oder gleich neu aber mehr Eintraege (mir fehlen aeltere)
+            -- they're ahead: newer changes, or equally new but more entries (I'm missing older ones)
 
             local newer = top > myTop + 2
 
@@ -1290,7 +1290,7 @@ Comm.On("DIG", function(sender, channel, d)
 
                 local since = newer and math.max(0, myTop - 3600) or 0
 
-                -- kurz zufaellig warten: sieht mehr als einer dieselbe Luecke, fragt nicht jeder gleichzeitig
+                -- wait briefly at random: if more than one sees the same gap, not everyone asks at once
 
                 ns.After(math.random(2, 12), function()
 
@@ -1354,7 +1354,7 @@ end)
 
 ns.Listen("LOGIN", function()
 
-    -- erster Takt nach dem Login-Abgleich, dann alle ~10 Min (mit Zufall, damit nicht alle gleichzeitig senden)
+    -- first tick after the login sync, then every ~10 min (randomized so not everyone sends at once)
 
     local function loop()
 
@@ -1385,7 +1385,7 @@ ns.slash.sync = function()
     ns.print(L["Full sync requested."])
 end
 
--- "schon gesehen"-Listen aufraeumen: Eintraege, deren Datensatz es nicht mehr gibt, oder die sehr alt sind
+-- clean up "already seen" lists: entries whose record no longer exists, or that are very old
 local function exists(id, ...)
     for i = 1, select("#", ...) do
         local c = ns.db.store[select(i, ...)]
@@ -1407,11 +1407,11 @@ function Comm.PruneSeen()
     for id in pairs(db.helpedSeen or {}) do
         if not exists(id, "wants") then db.helpedSeen[id] = nil end
     end
-    -- Rang-Schutz: Stand von Leuten, die ein Jahr nicht mehr aufgetaucht sind
+    -- rank protection: state of people who haven't shown up for a year
     for key, r in pairs(db.rankSeen or {}) do
         if type(r) == "table" and (r.ts or 0) < now - 365 * 86400 then db.rankSeen[key] = nil end
     end
-    -- Mitspieler von ausserhalb: nach 90 Tagen vergessen (ausser Favorit oder mit Notiz)
+    -- outside players: forget after 90 days (unless favorite or with a note)
     for name, a in pairs(db.allies or {}) do
         if type(a) == "table" and not a.fav and (a.note or "") == "" and not a.demo and (a.last or 0) < now - 90 * 86400 then
             db.allies[name] = nil
@@ -1419,7 +1419,7 @@ function Comm.PruneSeen()
     end
 end
 
--- Hilfsfelder ("_src", "_makers" ...), die Seiten zur Anzeige an Datensaetze haengen, nicht mitspeichern
+-- don't store helper fields ("_src", "_makers" ...) that pages attach to records for display
 ns.On("PLAYER_LOGOUT", function()
     for _, c in pairs(ns.db.store or {}) do
         for _, r in pairs(c) do
@@ -1436,7 +1436,7 @@ ns.Listen("LOGIN", function()
     prune()
     pcall(cleanStored)
     ns.After(120, function() pcall(Comm.PruneSeen) end)
-    -- wann war ich zuletzt online? (fuer die Rueckfrage an andere)
+    -- when was I last online? (for the counter-request to others)
     Comm.prevAlive = ns.db.meta.lastAlive or ns.db.meta.lastSync or 0
     ns.db.meta.lastAlive = ns.now()
     ns.Every(60, function() ns.db.meta.lastAlive = ns.now() end)

@@ -1,6 +1,6 @@
--- Oasis - Texte Japanisch (maschinell uebersetzt, fehlende Texte fallen auf Englisch zurueck)
+-- Oasis - Japanese texts (machine translated, missing texts fall back to English)
 local ADDON, ns = ...
-ns.LangFile("ja", function()   -- wird nur ausgefuehrt, wenn diese Sprache gewaehlt ist
+ns.LangFile("ja", function()   -- only runs when this language is selected
 local T = ns.LOCALES.ja
 T["  ·  Click to whisper"] = "  ·  クリックでささやく"
 T["  ·  Click to let them know"] = "  ·  クリックで知らせる"
@@ -7285,7 +7285,7 @@ T["Scan done: %d checks, %d errors. Now /reload to save the results."] = "スキ
 T["This is what Oasis looks like with a guild: sample data on your PC only, nothing is sent. Remove it with /oa demo off."] = "ギルドがある場合のOasisの見た目です: サンプルデータはこのPCにのみ保存され、何も送信されません。/oa demo off で削除できます。"
 T["While they are on, the window shows 'Demo on' at the top. One click there or here removes everything again."] = "有効な間はウィンドウ上部に「デモ オン」と表示されます。そこか、ここをクリックするとすべて削除されます。"
 T["Meeting point, caution or note: pick a kind, then click the map"] = "集合場所・注意・メモ: 種類を選んでからマップをクリック"
--- 0.6.472: ergaenzt (fehlende Texte nachgetragen)
+-- 0.6.472: missing texts added
 T["Invited %d signed-up players."] = "登録者%d人を招待しました。"
 T["%d years"] = "%d年"
 T["%d players searching from other guilds"] = "他ギルドの募集中プレイヤー%d人"
@@ -7743,7 +7743,7 @@ T["from the guild"] = "ギルドから"
 T["e.g. group for Monastery"] = "例: Monasteryのグループ"
 T["e.g. help in Monastery"] = "例: Monasteryで手伝い"
 T["e.g. evenings from 7 pm"] = "例: 夜19時から"
--- 0.6.476: Komfort, Sammelkarte, Kader-Check
+-- 0.6.476: comfort, gathering map, roster check
 T["Current"] = "現在"
 T["Hidden bars appear as soon as the mouse is over them."] = "隠したバーはマウスを乗せると表示されます。"
 T["Show on mouseover"] = "マウスオーバーで表示"

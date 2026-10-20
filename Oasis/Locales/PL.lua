@@ -1,6 +1,6 @@
--- Oasis - Texte Polnisch (maschinell uebersetzt, fehlende Texte fallen auf Englisch zurueck)
+-- Oasis - Polish texts (machine translated, missing texts fall back to English)
 local ADDON, ns = ...
-ns.LangFile("pl", function()   -- wird nur ausgefuehrt, wenn diese Sprache gewaehlt ist
+ns.LangFile("pl", function()   -- only runs when this language is selected
 local T = ns.LOCALES.pl
 T["  ·  Click to whisper"] = "  ·  Kliknij, aby szepnąć"
 T["  ·  Click to let them know"] = "  ·  Kliknij, aby dać znać"
@@ -7285,7 +7285,7 @@ T["Scan done: %d checks, %d errors. Now /reload to save the results."] = "Skanow
 T["This is what Oasis looks like with a guild: sample data on your PC only, nothing is sent. Remove it with /oa demo off."] = "Tak wygląda Oasis z gildią: dane przykładowe tylko na twoim komputerze, nic nie jest wysyłane. Usuń je poleceniem /oa demo off."
 T["While they are on, the window shows 'Demo on' at the top. One click there or here removes everything again."] = "Dopóki są włączone, u góry okna widnieje 'Demo wł.'. Kliknięcie tam lub tutaj usuwa wszystko."
 T["Meeting point, caution or note: pick a kind, then click the map"] = "Miejsce spotkania, uwaga lub notatka: wybierz rodzaj, a potem kliknij mapę"
--- 0.6.472: ergaenzt (fehlende Texte nachgetragen)
+-- 0.6.472: missing texts added
 T["Invited %d signed-up players."] = "Zaproszono %d zapisanych graczy."
 T["%d years"] = "%d lat"
 T["%d players searching from other guilds"] = "%d graczy z innych gildii szuka"
@@ -7743,7 +7743,7 @@ T["from the guild"] = "z gildii"
 T["e.g. group for Monastery"] = "np. grupa na Monastery"
 T["e.g. help in Monastery"] = "np. pomoc w Monastery"
 T["e.g. evenings from 7 pm"] = "np. wieczorami od 19:00"
--- 0.6.476: Komfort, Sammelkarte, Kader-Check
+-- 0.6.476: comfort, gathering map, roster check
 T["Current"] = "Aktualne"
 T["Hidden bars appear as soon as the mouse is over them."] = "Ukryte paski pojawiają się po najechaniu myszą."
 T["Show on mouseover"] = "Pokaż po najechaniu"

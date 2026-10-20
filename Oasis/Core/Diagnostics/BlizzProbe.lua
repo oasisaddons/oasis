@@ -1,7 +1,7 @@
--- Oasis: Was kann der Forever-Client schon selbst? (0.5.521)
--- Liest einmal je Oasis-Version still alle Konsolen-Einstellungen (CVars) mit Hilfetext und prueft einige
--- Blizzard-Fenster. Ergebnis in OasisDB.blizzProbe (nach /reload lesbar) - Grundlage, um doppelte
--- Oasis-Komfortfunktionen zu finden. Nur lesend. Manuell: /oa probe blizz
+-- Oasis: what can the Forever client already do by itself? (0.5.521)
+-- Once per Oasis version, silently reads all console settings (CVars) with help text and checks some
+-- Blizzard windows. Result in OasisDB.blizzProbe (readable after /reload) - basis for finding duplicate
+-- Oasis convenience features. Read only. Manually: /oa probe blizz
 local ADDON, ns = ...
 
 local KEYWORDS = { "coord", "loot", "duel", "camera", "zoom", "chat", "timestamp", "junk", "repair", "range", "tooltip",
@@ -45,7 +45,7 @@ local function probe(manual)
         local f = _G[n]
         out.frames[#out.frames + 1] = n .. " = " .. (type(f) == "table" and ("da" .. ((f.IsShown and f:IsShown()) and " (sichtbar)" or "")) or "fehlt")
     end
-    -- Blizzard-Addons, die der Client mitbringt
+    -- Blizzard addons shipped with the client
     local GetNum = (C_AddOns and C_AddOns.GetNumAddOns) or GetNumAddOns
     local GetInfo = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
     out.addons = {}
@@ -67,12 +67,12 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- 0.5.697: Bestandsaufnahme der Blizzard-Schnittstelle (nur Entwickler)
--- Je Client-Build einmal alle C_*-Bereiche (Funktionsnamen), alle von Blizzard in C geschriebenen globalen
--- Funktionen (tostring = "builtin") und die Enum-Namen merken (OasisDB.apiSnap). Aendert sich der Build, wird mit
--- dem vorigen Stand verglichen: OasisDB.apiDiff = { from, to, added = {...}, removed = {...} }.
--- OasisDB.apiHits = Namen, die zu Funktionen passen, die Oasis nutzen koennte (Legacy, Cooldown Manager, Inspect ...).
--- Manuell: /oa probe api   (nach /reload in der Oasis-Datei auswertbar). Nur lesend.
+-- 0.5.697: inventory of the Blizzard API (developers only)
+-- Once per client build, remember all C_* namespaces (function names), all global functions written by Blizzard in C
+-- (tostring = "builtin") and the enum names (OasisDB.apiSnap). If the build changes, it is compared with
+-- the previous state: OasisDB.apiDiff = { from, to, added = {...}, removed = {...} }.
+-- OasisDB.apiHits = names matching functions Oasis could use (Legacy, Cooldown Manager, Inspect ...).
+-- Manually: /oa probe api   (evaluable in the Oasis file after /reload). Read only.
 ------------------------------------------------------------------------
 local HITS = { "legacy", "cooldownviewer", "cooldown", "inspect", "voice", "questtype", "lfglist", "trait", "talent",
     "damagemeter", "gamepad", "challenge", "tooltipinfo", "spellbook", "barber" }

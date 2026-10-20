@@ -1,18 +1,18 @@
--- Oasis - Login-Begruessung: zufaelliger, selbst geschriebener Gruss im Gildenchat, wenn jemand online kommt.
--- Abgestimmt: wer zuerst gruesst, sagt es den anderen Oasis-Nutzern - so gruesst nie die halbe Gilde gleichzeitig.
+-- Oasis - login greeting: random, self-written greeting in guild chat when someone comes online.
+-- Coordinated: whoever greets first tells the other Oasis users - so never half the guild greets at once.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Greeting", function()   -- Modul Begruessung (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Greeting", function()   -- Greeting module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be tampered with):
+-- sanitize texts, cap numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- escape sequences (|c |r |n |H |T |K |A ...) and control characters neutralized; links: valid item/spell links are kept
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -79,7 +79,7 @@ function G.Pick(name)
     return (ls[math.random(#ls)]:gsub("{name}", first))
 end
 
--- Online-Meldung im Systemchat erkennen
+-- detect online notice in system chat
 local pat
 local function onlineName(msg)
     if not pat and ERR_FRIEND_ONLINE_SS then
@@ -99,23 +99,23 @@ end
 local function schedule(full)
     local s = S()
     if not s.greetOn or not IsInGuild() or ns.isMe(full) then return end
-    if GetTime() - loginAt < 90 then return end                       -- nicht alle begruessen, die beim eigenen Login schon da sind
+    if GetTime() - loginAt < 90 then return end                       -- don't greet everyone who is already there at your own login
     local cd = (tonumber(s.greetCooldown) or 60) * 60
     if greeted[full] and ns.now() - greeted[full] < cd then return end
     if pending[full] then return end
-    -- zufaellige Verzoegerung: wer zuerst dran ist, gruesst; die anderen brechen ab
+    -- random delay: whoever is first greets; the others cancel
     local token = {}
     pending[full] = token
     ns.After(4 + math.random() * 8, function()
         if pending[full] ~= token then return end
         pending[full] = nil
-        if GetTime() - lastSent < 45 then return end                   -- hoechstens alle 45 s ein Gruss von dir
+        if GetTime() - lastSent < 45 then return end                   -- at most one greeting from you every 45 s
         if UnitIsAFK and ns.safe(UnitIsAFK("player")) then return end
         local msg = G.Pick(full)
         if not msg then return end
         lastSent = GetTime()
         greeted[full] = ns.now()
-        -- ohne Klick darf Oasis nicht in den Chat schreiben: Gruss als Hinweis anbieten
+        -- without a click Oasis may not write to chat: offer the greeting as a notice
         ns.OfferChat((L["%s is online"]):format(ns.displayName(full)), msg, "GUILD", nil, ns.K.C.mint)
         Comm.Guild("GRT", full)
     end)
@@ -129,22 +129,22 @@ ns.On("CHAT_MSG_SYSTEM", function(msg)
     local full = ns.fullName(n)
     if isGuildie(full) then schedule(full) end
 end)
--- jemand anderes hat schon gegruesst -> eigenen Gruss abbrechen
+-- someone else already greeted -> cancel own greeting
 Comm.On("GRT", function(sender, _, who)
     who = SEC.Name(who)
     if not who or ns.isMe(sender) then return end
-    -- nur fuer Namen, die hier wirklich anstehen oder neu sind (Tabelle waechst nicht durch Muell)
+    -- only for names that are really pending here or new (table doesn't grow from junk)
     if not pending[who] and not greeted[who] and not (ns.Radar and ns.Radar.byName and rawget(ns.Radar.byName, who)) then return end
     pending[who] = nil
     greeted[who] = ns.now()
 end)
 
 ------------------------------------------------------------------------
--- Einstellungen: eigener Reiter "Begruessung"
+-- Settings: own tab "Greeting"
 ------------------------------------------------------------------------
 local function build(f)
     local H = ns.SettingsHelpers
-    -- 0.5.712: zwei Glas-Karten nebeneinander (links Einstellung + Schutz, rechts die Gruesse)
+    -- 0.5.712: two glass cards side by side (left setting + protection, right the greetings)
     local W, HH = 362, 236
     f.noCompact = true
     local left = H.cardH(f, 0, 0, W, HH, "social", L["Login greeting"], L["Random greeting when someone comes online"])

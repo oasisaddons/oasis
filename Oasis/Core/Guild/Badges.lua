@@ -1,5 +1,5 @@
--- Oasis: Abzeichen (Badges)
--- Stufen-Abzeichen (Bronze/Silber/Gold) aus eigenen Zaehlern, einmalige Gilden-Titel aus geteilten Daten.
+-- Oasis: badges
+-- Tiered badges (bronze/silver/gold) from own counters, unique guild titles from shared data.
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
@@ -7,7 +7,7 @@ local K, C, Store = ns.K, ns.K.C, ns.Store
 local Badges = {}
 ns.Badges = Badges
 
--- eigene Symbole (game-icons.net, CC BY 3.0 - Media\\icons\\CREDITS.txt), in Stufenfarbe eingefaerbt
+-- own icons (game-icons.net, CC BY 3.0 - Media\\icons\\CREDITS.txt), tinted in tier color
 local I = ns.MEDIA .. "icons\\badges\\"
 
 Badges.TIERS = {
@@ -17,7 +17,7 @@ Badges.TIERS = {
 }
 Badges.UNIQUE_COLOR = C.accent
 
--- Kategorien (Reihenfolge der Seite)
+-- Categories (page order)
 Badges.CATS = {
     { key = "zusammen", name = "Together" },
     { key = "helfen", name = "Looking Out for Each Other" },
@@ -32,9 +32,9 @@ Badges.CATS = {
     { key = "titel", name = "Guild Titles" },
 }
 
--- Stufen-Abzeichen: Zaehler + Schwellen (Bronze/Silber/Gold)
+-- Tiered badges: counters + thresholds (bronze/silver/gold)
 Badges.LIST = {
-    -- Zusammen unterwegs
+    -- Out together
     { cat = "zusammen", id = "pack", name = "Pack Animal", desc = "Minutes grouped with guildmates", stat = "groupMin", tiers = { 60, 600, 3000 } },
     { cat = "zusammen", id = "bosscrew", name = "Boss Crew", desc = "Bosses killed with at least two guildmates", stat = "bossCrew", tiers = { 5, 25, 100 } },
     { cat = "zusammen", id = "carry", name = "Babysitter", desc = "Minutes played with guildmates 8+ levels below you", stat = "carryMin", tiers = { 30, 300, 1500 } },
@@ -47,7 +47,7 @@ Badges.LIST = {
     { cat = "zusammen", id = "organizer", name = "Organizer", desc = "Events created for the guild", stat = "eventsCreated", tiers = { 1, 5, 20 } },
     { cat = "zusammen", id = "duelist", name = "Duelist", desc = "Duels against guildmates", stat = "duels", tiers = { 5, 25, 100 } },
     { cat = "zusammen", id = "duelwinner", name = "Duel Master", desc = "Duels won against guildmates", stat = "duelWins", tiers = { 3, 15, 50 } },
-    -- Fuereinander da
+    -- There for each other
     { cat = "helfen", id = "angel", name = "Guardian Angel", desc = "Guildmates resurrected", stat = "rez", tiers = { 3, 20, 100 } },
     { cat = "helfen", id = "medic", name = "Medic", desc = "Bandaged guildmates", stat = "bandageGuild", tiers = { 5, 25, 100 } },
     { cat = "helfen", id = "buffer", name = "Buff Buddy", desc = "Spells cast on guildmates", stat = "castsOnGuild", tiers = { 20, 200, 1000 } },
@@ -59,7 +59,7 @@ Badges.LIST = {
     { cat = "helfen", id = "generous", name = "Generous", desc = "Orders placed with a tip", stat = "tips", tiers = { 1, 10, 30 } },
     { cat = "helfen", id = "patron", name = "Patron", desc = "Gold deposited into the guild bank", stat = "bankGold", tiers = { 1, 10, 100 } },
     { cat = "helfen", id = "fire", name = "Scout", desc = "Campfires lit for the guild", stat = "campfires", tiers = { 3, 15, 50 } },
-    -- Gute Stimmung
+    -- Good vibes
     { cat = "stimmung", id = "welcome", name = "Welcome Committee", desc = "Welcomed new members in guild chat", stat = "welcomed", tiers = { 3, 15, 50 } },
     { cat = "stimmung", id = "cheer", name = "GZ Machine", desc = "GZ! GZ! GZ! – congratulated others", stat = "gz", tiers = { 5, 25, 100 } },
     { cat = "stimmung", id = "moin", name = "Morning Master", desc = "Greeted the guild (hi, hello, morning ...)", stat = "greetings", tiers = { 10, 50, 250 } },
@@ -71,7 +71,7 @@ Badges.LIST = {
     { cat = "stimmung", id = "whisper", name = "Whisper Network", desc = "Whispered guildmates", stat = "whispers", tiers = { 20, 200, 1000 } },
     { cat = "stimmung", id = "voter", name = "Democrat", desc = "Voted in guild polls", stat = "votes", tiers = { 3, 15, 50 } },
     { cat = "stimmung", id = "asker", name = "Pollster", desc = "Polls created for the guild", stat = "pollsCreated", tiers = { 1, 5, 20 } },
-    -- Emotes & Unfug
+    -- Emotes & mischief
     { cat = "unfug", id = "hugs", name = "Cuddle Bear", desc = "Hugged, cheered or thanked guildmates (/hug, /cheer, /thank ...)", stat = "hugs", tiers = { 10, 50, 250 } },
     { cat = "unfug", id = "cuddly", name = "Teddy Bear", desc = "Hugged, cheered or poked by guildmates", stat = "emotesReceived", tiers = { 10, 50, 250 } },
     { cat = "unfug", id = "party", name = "Party Animal", desc = "/dance with guildmates in your group", stat = "dances", tiers = { 5, 25, 100 } },
@@ -82,7 +82,7 @@ Badges.LIST = {
     { cat = "unfug", id = "chicken", name = "Scaredy Cat", desc = "/chicken – bawk bawk!", stat = "chickens", tiers = { 10, 50, 200 } },
     { cat = "unfug", id = "roller", name = "Dice Finger", desc = "Used /roll", stat = "rolls", tiers = { 20, 100, 500 } },
     { cat = "unfug", id = "sleepy", name = "Sleepyhead", desc = "Minutes AFK", stat = "afkMin", tiers = { 60, 600, 3000 } },
-    -- Abenteuer & Welt
+    -- Adventure & world
     { cat = "welt", id = "veteran", name = "Experienced", desc = "Highest character level", stat = "level", tiers = { 20, 40, 60 } },
     { cat = "welt", id = "quester", name = "Quest Machine", desc = "Quests turned in", stat = "quests", tiers = { 50, 250, 1000 } },
     { cat = "welt", id = "explorer", name = "Explorer", desc = "Different zones visited", stat = "zones", tiers = { 10, 25, 45 } },
@@ -102,7 +102,7 @@ Badges.LIST = {
     { cat = "welt", id = "glutton", name = "Glutton", desc = "Eaten", stat = "eats", tiers = { 50, 500, 2000 } },
     { cat = "welt", id = "thirsty", name = "Thirsty", desc = "Drunk", stat = "drinks", tiers = { 50, 500, 2000 } },
     { cat = "welt", id = "legacy", name = "Legacy", desc = "Legacy challenges completed", stat = "legacy", tiers = { 5, 20, 50 } },
-    -- Handwerk & Handel
+    -- Crafting & trade
     { cat = "handel", id = "master", name = "Master", desc = "Highest profession skill", stat = "profMax", tiers = { 150, 225, 300 } },
     { cat = "handel", id = "crafty", name = "Busy Hands", desc = "Items crafted", stat = "crafts", tiers = { 50, 500, 2500 } },
     { cat = "handel", id = "customer", name = "Customer", desc = "Crafting orders placed", stat = "ordersPlaced", tiers = { 3, 15, 50 } },
@@ -111,7 +111,7 @@ Badges.LIST = {
     { cat = "handel", id = "merchant", name = "Businessman", desc = "Auctions sold", stat = "auctionsSold", tiers = { 10, 100, 500 } },
     { cat = "handel", id = "golddigger", name = "Gold Digger", desc = "Gold from loot (in gold)", stat = "goldLooted", tiers = { 10, 100, 1000 } },
     { cat = "handel", id = "repair", name = "Always Repairing", desc = "Gold spent on repairs", stat = "repairGold", tiers = { 1, 10, 50 } },
-    -- Zeit & Treue
+    -- Time & loyalty
     { cat = "zeit", id = "loyal", name = "Loyal Soul", desc = "Days online in Oasis", stat = "daysOnline", tiers = { 7, 30, 100 } },
     { cat = "zeit", id = "streak", name = "Tireless", desc = "Days online in a row (best streak)", stat = "bestStreak", tiers = { 3, 7, 30 } },
     { cat = "zeit", id = "marathon", name = "Marathon Gamer", desc = "Minutes online", stat = "playMin", tiers = { 600, 6000, 30000 } },
@@ -119,7 +119,7 @@ Badges.LIST = {
     { cat = "zeit", id = "owl", name = "Night Owl", desc = "Days online between 1 and 5 am – go to sleep!", stat = "nightDays", tiers = { 3, 15, 50 } },
     { cat = "zeit", id = "rooster", name = "Early Bird", desc = "Days online between 5 and 8 am", stat = "earlyDays", tiers = { 3, 15, 50 } },
     { cat = "zeit", id = "family", name = "Big Family", desc = "Characters with Oasis", stat = "chars", tiers = { 2, 4, 8 } },
-    -- Glueck, Pech & Wuerfel
+    -- Luck, bad luck & dice
     { cat = "glueck", id = "lucky", name = "Lucky Duck", desc = "Epic items looted", stat = "epics", tiers = { 1, 5, 20 } },
     { cat = "glueck", id = "dice", name = "Dice Shark", desc = "Deathrolls won", stat = "drWins", tiers = { 1, 10, 50 } },
     { cat = "glueck", id = "unlucky", name = "Unlucky", desc = "Deathrolls lost – someone has to", stat = "drLosses", tiers = { 5, 25, 100 } },
@@ -129,8 +129,8 @@ Badges.LIST = {
     { cat = "glueck", id = "fodder", name = "Cannon Fodder", desc = "Died while grouped with guildmates", stat = "groupDeaths", tiers = { 5, 25, 100 } },
     { cat = "glueck", id = "graveyard", name = "Graveyard Regular", desc = "Died. The spirit healer knows you by name.", stat = "deaths", tiers = { 5, 25, 100 } },
 }
--- Einmalige Gilden-Titel: gehoeren genau einem Spieler
--- Raid-Momente (Symbole werden von vorhandenen geliehen: ico)
+-- Unique guild titles: belong to exactly one player
+-- Raid moments (icons borrowed from existing ones: ico)
 for _, b in ipairs({
     { cat = "raid", id = "firstdown", ico = "fodder", name = "First on the floor", desc = "Died first in the group during a boss fight. Someone has to test the floor.", stat = "firstDown", tiers = { 1, 5, 20 } },
     { cat = "raid", id = "wipecause", ico = "drama", name = "Wipe starter", desc = "Fell first - and then the whole fight went wrong. Coincidence? Surely.", stat = "wipeCause", tiers = { 1, 5, 15 } },
@@ -168,11 +168,11 @@ Badges.UNIQUE = {
     { id = "lootgoblin", ico = "looter", name = "Loot goblin", desc = "The most loot in the guild in the last 30 days. Shiny? Mine!" },
     { id = "dicemonth", ico = "roller", name = "Dice King of the Month", desc = "Most Deathroll wins last month (season)" },
 }
--- 0.5.607: viel mehr Abzeichen (witzig, kurios, legendaer) + deutlich hoehere Schwellen fuer reine Zaehler
+-- 0.5.607: many more badges (funny, curious, legendary) + much higher thresholds for plain counters
 table.insert(Badges.CATS, #Badges.CATS, { key = "kurios", name = "Oddities & mishaps" })
 table.insert(Badges.CATS, #Badges.CATS, { key = "legende", name = "For legends" })
 for _, b in ipairs({
-    -- Kurioses & Missgeschicke
+    -- Curiosities & mishaps
     { cat = "kurios", id = "ghostrun", ico = "graveyard", name = "Ghost runner", desc = "Ran back to your own corpse as a ghost. It's about the journey.", stat = "ghostRuns", tiers = { 15, 75, 300 } },
     { cat = "kurios", id = "drowned", ico = "swimmer", name = "Davy Jones", desc = "Died in the water. Air is overrated.", stat = "drowned", tiers = { 1, 5, 25 } },
     { cat = "kurios", id = "messie", ico = "looter", name = "Hoarder", desc = "Bags full - again. Throwing stuff away is not an option.", stat = "bagsFull", tiers = { 25, 150, 600 } },
@@ -186,13 +186,13 @@ for _, b in ipairs({
     { cat = "kurios", id = "closecall", ico = "survivor", name = "Close call", desc = "Survived a fight with less than 10 % health. Phew.", stat = "closeCalls", tiers = { 5, 50, 250 } },
     { cat = "kurios", id = "lostagain", ico = "explorer", name = "Lost again", desc = "Opened the world map. Where was north again?", stat = "mapOpens", tiers = { 150, 1500, 7500 } },
     { cat = "kurios", id = "paparazzi", ico = "influencer", name = "Paparazzi", desc = "Took screenshots. Say cheese!", stat = "screenshots", tiers = { 15, 150, 1000 } },
-    -- Alltag in der Welt
+    -- Everyday life in the world
     { cat = "welt", id = "banker", ico = "patron", name = "Banker", desc = "Visited the bank. Just counting real quick.", stat = "bankVisits", tiers = { 30, 250, 1200 } },
     { cat = "welt", id = "regular", ico = "merchant", name = "Regular", desc = "Visited merchants. They know you by now.", stat = "merchantVisits", tiers = { 60, 500, 2500 } },
     { cat = "welt", id = "innsleep", ico = "innkeeper", name = "Inn sleeper", desc = "Logged out in an inn - rested is half levelled", stat = "innLogouts", tiers = { 15, 100, 400 } },
     { cat = "welt", id = "lounge", ico = "flyer", name = "Flight lounge", desc = "Minutes spent on flight paths. Snacks not included.", stat = "taxiMin", tiers = { 90, 900, 4500 } },
     { cat = "handel", id = "dagobert", ico = "golddigger", name = "Scrooge", desc = "Highest gold per character, added up (in gold). Swimming in the money bin.", stat = "goldMax", tiers = { 250, 2500, 15000 } },
-    -- Fuer Legenden: lange Wege, echte Arbeit
+    -- For legends: long journeys, real work
     { cat = "legende", id = "turbo", ico = "streak", name = "Turbo leveler", desc = "Gained a level in under 30 minutes of playtime", stat = "fastLevels", tiers = { 3, 12, 30 } },
     { cat = "legende", id = "dungeonding", ico = "dungeonfan", name = "Dungeon ding", desc = "Levelled up in the middle of a dungeon", stat = "instanceDings", tiers = { 2, 8, 20 } },
     { cat = "legende", id = "immortal", ico = "angel", name = "Immortal", desc = "Minutes played in a row without a single death (best streak)", stat = "bestAlive", tiers = { 900, 4500, 18000 } },
@@ -205,7 +205,7 @@ for _, b in ipairs({
     { id = "courtphoto", ico = "influencer", name = "Court photographer", desc = "Most screenshots in the guild", shared = "screenshots", min = 50 },
     { id = "messieking", ico = "looter", name = "Hoarder king", desc = "Most full bags in the guild", shared = "bagsFull", min = 50 },
 }) do Badges.UNIQUE[#Badges.UNIQUE + 1] = b end
--- reine Zaehler deutlich schwerer: Bronze x2, Silber x3, Gold x4 (auf runde Werte). Begrenzte Werte bleiben.
+-- plain counters much harder: bronze x2, silver x3, gold x4 (rounded). Capped values stay.
 do
     local KEEP = { veteran = true, master = true, explorer = true, dungeonseen = true, family = true, legacy = true }
     local function nice(n)
@@ -222,7 +222,7 @@ end
 for _, b in ipairs(Badges.UNIQUE) do b.cat = "titel" end
 for _, b in ipairs(Badges.LIST) do b.icon = I .. (b.ico or b.id) end
 for _, b in ipairs(Badges.UNIQUE) do b.icon = I .. (b.ico or b.id) end
--- WoW-Symbole je Abzeichen (rund maskiert, Stufe = Rahmenfarbe); fehlt eins, bleibt das eigene Symbol
+-- WoW icons per badge (round mask, tier = frame color); if one is missing, the own icon stays
 local WOW_ICON = {
     pack = "Interface\\Icons\\Ability_Hunter_Pet_Wolf",
     bosscrew = "Interface\\Icons\\Achievement_Boss_EdwinVancleef",
@@ -337,7 +337,7 @@ local WOW_ICON = {
     lootgoblin = "Interface\\Icons\\INV_Misc_Bag_11",
     dicemonth = "Interface\\Icons\\INV_Misc_Dice_02",
 }
--- abgeschaltet: fehlende Bilddateien bringen diesen Client zum Absturz (ASSERT fileDataID, 04.10.)
+-- disabled: missing image files crash this client (ASSERT fileDataID, 04.10.)
 for _, b in ipairs(Badges.LIST) do b.wow = nil end
 for _, b in ipairs(Badges.UNIQUE) do b.wow = nil end
 Badges.byId = {}
@@ -345,7 +345,7 @@ for _, b in ipairs(Badges.LIST) do Badges.byId[b.id] = b end
 for _, b in ipairs(Badges.UNIQUE) do b.unique = true Badges.byId[b.id] = b end
 
 ------------------------------------------------------------------------
--- Zaehler (pro Charakter, Abzeichen zaehlen account-weit)
+-- Counters (per character, badges count account-wide)
 ------------------------------------------------------------------------
 function Badges.Add(stat, n)
     if not ns.char then return end
@@ -371,7 +371,7 @@ local function accountStats(view)
         for _ in pairs(days[key] or {}) do n = n + 1 end
         s[stat] = n
     end
-    -- laengste Serie aufeinanderfolgender Online-Tage
+    -- longest streak of consecutive online days
     local list = {}
     for d in pairs(days.online or {}) do list[#list + 1] = d end
     table.sort(list)
@@ -399,8 +399,8 @@ local function accountStats(view)
     s.goldLooted = math.floor((s.goldCopper or 0) / 10000)
     s.repairGold = math.floor((s.repairCopper or 0) / 10000)
     s.bankGold = math.floor((s.bankCopper or 0) / 10000)
-    -- 0.5.704: Demo-Modus - Beispielwerte NUR zur Anzeige (view = true). Rang-XP, Teilen und Abzeichen-Pruefung
-    -- rufen ohne view auf und sehen weiterhin nur die echten Zaehler.
+    -- 0.5.704: demo mode - sample values ONLY for display (view = true). Rank XP, sharing and badge checks
+    -- call without view and still see only the real counters.
     if view and ns.Demo and ns.Demo.IsActive and ns.Demo.IsActive() and ns.Demo.MineBadgeStats then
         for k, v in pairs(ns.Demo.MineBadgeStats(s)) do if (s[k] or 0) < v then s[k] = v end end
     end
@@ -414,7 +414,7 @@ local function tierFor(b, v)
     return t
 end
 
--- eigene Stufen-Abzeichen: { [id] = tier }
+-- own tiered badges: { [id] = tier }
 function Badges.Mine(view)
     local s = accountStats(view)
     local out = {}
@@ -439,17 +439,17 @@ function Badges.Decode(s)
 end
 
 ------------------------------------------------------------------------
--- Einmalige Titel aus den geteilten Daten der Gilde
+-- Unique titles from the guild's shared data
 ------------------------------------------------------------------------
 local holdersCache, holdersAt
 function Badges.UniqueHolders()
-    -- 0.5.572: je Listenzeile aufgerufen -> 3 s merken
+    -- 0.5.572: called per list row -> cache for 3 s
     if holdersCache and GetTime() - holdersAt < 3 then return holdersCache end
     local h = {}
     holdersCache, holdersAt = h, GetTime()
     if ns.Radar and ns.Radar.Race then
         for _, r in ipairs(ns.Radar.Race()) do
-            -- nur vergeben, wenn bekannt ist, wer zuerst da war (nicht bei "vor Oasis" erreichten Stufen)
+            -- only award if it is known who was first (not for levels reached "before Oasis")
             local e = r.list[1]
             if e and (e.ts or 0) > 0 then h["first" .. r.lvl] = e.name end
         end
@@ -466,7 +466,7 @@ function Badges.UniqueHolders()
     local best, bestN = nil, 4
     for m, n in pairs(done) do if n > bestN then best, bestN = m, n end end
     h.topcrafter = best
-    -- Kueken: juengster Beitritt der letzten 30 Tage
+    -- Chick: newest join in the last 30 days
     local newest, newestT = nil, ns.now() - 30 * 86400
     for _, e in ipairs(Store.List("chronicle", function(e) return e.kind == "guild" and ns.IsJoinTk(e.tk) end)) do
         if (e.ts or 0) > newestT then newest, newestT = e.who, e.ts end
@@ -481,7 +481,7 @@ function Badges.UniqueHolders()
     local rb, rn = nil, 2
     for m, n in pairs(deaths) do if n > rn then rb, rn = m, n end end
     h.reaper = rb
-    -- Glueckskind: meiste epische Beute (mind. 2)
+    -- Lucky child: most epic loot (at least 2)
     local epics = {}
     for _, x in ipairs(Store.List("loot", function(x) return (x.quality or 0) >= 4 end)) do
         local m = ns.Alts and ns.Alts.Main(x.who) or x.who
@@ -490,7 +490,7 @@ function Badges.UniqueHolders()
     local lb, ln = nil, 1
     for m, n in pairs(epics) do if n > ln then lb, ln = m, n end end
     h.luckychild = lb
-    -- Platzhirsch: hoechstes Level, nur wenn allein an der Spitze
+    -- Top dog: highest level, only if alone at the top
     local top, topLvl, tie = nil, 19, false
     for _, m in ipairs(ns.Radar and ns.Radar.roster or {}) do
         local lv = m.level or 0
@@ -498,7 +498,7 @@ function Badges.UniqueHolders()
     end
     h.platzhirsch = (top and not tie) and (ns.Alts and ns.Alts.Main(top) or top) or nil
     h.goldweek = ns.Trade and ns.Trade.GoldmakerOfWeek() or nil
-    -- Lootgoblin: meiste Beute (ab gruen) in 30 Tagen, mind. 5 Teile
+    -- Loot goblin: most loot (green and up) in 30 days, at least 5 items
     local cut30, loots = ns.now() - 30 * 86400, {}
     for _, x in ipairs(Store.List("loot", function(x) return (x.ts or x.u or 0) > cut30 and (x.quality or 2) >= 2 end)) do
         if x.who then
@@ -509,9 +509,9 @@ function Badges.UniqueHolders()
     local gb, gn = nil, 4
     for m, n in pairs(loots) do if n > gn then gb, gn = m, n end end
     h.lootgoblin = gb
-    -- Deathroll-Saison: Sieger des Vormonats
+    -- Deathroll season: winner of the previous month
     h.dicemonth = ns.Deathroll and ns.Deathroll.MonthChampion and ns.Deathroll.MonthChampion(-1) or nil
-    -- Titel aus geteilten Zaehlern (Profilfeld "st")
+    -- Titles from shared counters (profile field "st")
     local mineS = accountStats()
     for _, b in ipairs(Badges.UNIQUE) do
         if b.shared then
@@ -530,7 +530,7 @@ function Badges.UniqueHolders()
     return h
 end
 
--- Abzeichen eines beliebigen Mitglieds: { [id] = tier } (einmalige mit tier = 4)
+-- Badges of any member: { [id] = tier } (unique ones with tier = 4)
 function Badges.Of(name)
     local out
     if ns.isMe(name) or (ns.db.chars and ns.db.chars[name]) then
@@ -557,7 +557,7 @@ function Badges.Label(id, tier)
     return L[b.name] .. " (" .. L[Badges.TIERS[tonumber(tier) or 1].name] .. ")"
 end
 
--- Inline-Icons fuer Tooltips/Listen: hoechste zuerst
+-- Inline icons for tooltips/lists: highest first
 function Badges.Inline(name, max, size)
     local list = {}
     for id, tier in pairs(Badges.Of(name)) do
@@ -575,7 +575,7 @@ function Badges.Inline(name, max, size)
     return table.concat(t, " "), #list
 end
 
--- kompakt fuer Listen: Medaille in der Farbe des besten Abzeichens + Anzahl
+-- compact for lists: medal in the color of the best badge + count
 function Badges.CountText(name, size)
     local n, best = 0, 0
     for id, tier in pairs(Badges.Of(name)) do
@@ -591,12 +591,12 @@ function Badges.CountText(name, size)
 end
 
 ------------------------------------------------------------------------
--- Neue Stufe erkannt -> Hinweis, Chronik, Profil aktualisieren
+-- New tier detected -> notice, chronicle, update profile
 ------------------------------------------------------------------------
 local checking
--- auf Wunsch: Gold-Abzeichen und Gilden-Titel im Gildenchat feiern (hoechstens alle 2 Minuten)
+-- on request: celebrate gold badges and guild titles in guild chat (at most every 2 minutes)
 local lastAnnounce = 0
--- Gilden-Optionen (Gildenleitung): Standard = bisheriges Verhalten
+-- Guild options (guild leadership): default = previous behavior
 ns.GuildOption({ page = "badges", key = "bdAnnc", default = true, label = "Allow badge shout-outs in guild chat",
     desc = "Off: nobody posts a line in guild chat for gold badges and guild titles, even if enabled personally" })
 ns.GuildOption({ page = "badges", key = "bdGap", default = 2, min = 1, max = 30, step = 1, label = "Gap between badge lines",
@@ -661,7 +661,7 @@ function Badges.Check()
 end
 
 ------------------------------------------------------------------------
--- Darstellung: rundes Icon mit Ring in Stufenfarbe
+-- Display: round icon with ring in tier color
 ------------------------------------------------------------------------
 function Badges.Emblem(parent, size)
     local f = CreateFrame("Frame", nil, parent)
@@ -678,10 +678,10 @@ function Badges.Emblem(parent, size)
     function f:Set(b, tier)
         local on = tier and tier > 0
         local c = on and Badges.Color(tier) or C.dim
-        -- WoW-Symbol nur, wenn der Client die Datei hat (SetTexture liefert sonst false)
+        -- WoW icon only if the client has the file (SetTexture returns false otherwise)
         local useWow = b.wow and self.icon:SetTexture(b.wow) ~= false
         if useWow then
-            -- WoW-Symbol, rund, farbig wenn erreicht (sonst grau)
+            -- WoW icon, round, colored if earned (grey otherwise)
             if self.icon.SetMask and not self.masked then
                 pcall(self.icon.SetMask, self.icon, "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
                 self.masked = true
@@ -706,10 +706,10 @@ function Badges.Emblem(parent, size)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local view, showFilter = "mine", "all"
-local COLS, TW, TH = 3, 220, 58   -- 0.5.608: waagerechte Kacheln (Abzeichen links, Text rechts)
+local COLS, TW, TH = 3, 220, 58   -- 0.5.608: horizontal tiles (badge left, text right)
 
 local function holdersOf(id)
     local out = {}
@@ -759,16 +759,16 @@ local function tileTip(tile)
     K.ShowTip(tile, lines)
 end
 
--- 2026: Glas-Optik wie Profil/Sammlungen (Helfer aus ns.Insta, Fallback: alte Flaechen bleiben)
+-- 2026: glass look like profile/collections (helpers from ns.Insta, fallback: old surfaces stay)
 local function glass(f, fill, line, r)
     local IGL = ns.Insta
     if IGL and IGL.Glass then IGL.Glass(f, fill, line, r) end
 end
 local function round(t, box, r) if K.RoundMask and t then K.RoundMask(t, box or t, r) end end
-local NEAR = 0.6   -- ab hier gilt ein Abzeichen als "fast geschafft"
+local NEAR = 0.6   -- from here a badge counts as "almost done"
 local HERO_Y, HERO_H = -46, 122
 
--- kleine Glas-Pille als Filterknopf
+-- small glass pill as filter button
 local function filterPills(parent, items, onChange)
     local f = CreateFrame("Frame", nil, parent)
     f:SetHeight(28)
@@ -833,18 +833,18 @@ ns.RegisterPage({
         p.show:SetPoint("LEFT", p.seg, "RIGHT", 16, 0)
         p.summary = K.Text(p, 12, C.muted, "RIGHT")
         p.summary:SetPoint("RIGHT", p, "TOPRIGHT", -4, -17)
-        p.summary:Hide()   -- 0.6.287: Zahl steht gross in der Kopfkarte
+        p.summary:Hide()   -- 0.6.287: number shown large in the header card
 
         ----------------------------------------------------------------
-        -- 0.6.287: Kopfkarte ruhiger - links Zahl, breiter Balken, Stufen als Textzeile (keine Kaesten);
-        -- rechts "Als naechstes" mit vollen Namen, Wert und Balken (keine eigenen Glaskarten)
+        -- 0.6.287: calmer header card - number left, wide bar, tiers as a text row (no boxes);
+        -- right "Up next" with full names, value and bar (no separate glass cards)
         ----------------------------------------------------------------
         local hero = CreateFrame("Frame", nil, p)
         hero:SetPoint("TOPLEFT", 0, HERO_Y)
         hero:SetPoint("TOPRIGHT", 0, HERO_Y)
         hero:SetHeight(HERO_H)
         glass(hero, nil, nil, 14)
-        local LW = 330   -- Breite der linken Haelfte
+        local LW = 330   -- Width of the left half
         hero.lbl = K.Text(hero, 12, C.muted)
         hero.lbl:SetPoint("TOPLEFT", 20, -16)
         hero.lbl:SetText(L["Your badges"])
@@ -859,7 +859,7 @@ ns.RegisterPage({
         hero.pct:SetPoint("BOTTOMRIGHT", hero.bar, "TOPRIGHT", 0, 6)
         round(hero.bar.fill, hero.bar, 3)
         if hero.bar.bg then round(hero.bar.bg, hero.bar, 3) end
-        -- Stufen als eine Zeile: Punkt in Stufenfarbe, Zahl, Name
+        -- Tiers as one row: dot in tier color, number, name
         hero.tiers = {}
         local x = 0
         for i = 1, 4 do
@@ -874,13 +874,13 @@ ns.RegisterPage({
             hero.tiers[i] = { t = t, name = i == 4 and L["Guild Titles"] or L[Badges.TIERS[i].name] }
             x = x + (i == 4 and 0 or 74)
         end
-        -- Trennlinie zwischen links und rechts
+        -- Divider between left and right
         hero.split = hero:CreateTexture(nil, "ARTWORK")
         hero.split:SetColorTexture(1, 1, 1, 0.06)
         hero.split:SetWidth(1)
         hero.split:SetPoint("TOPLEFT", 20 + LW, -16)
         hero.split:SetPoint("BOTTOMLEFT", 20 + LW, 16)
-        -- "Als naechstes": drei Zeilen (Name + Stufe links, Wert rechts, Balken darunter)
+        -- "Up next": three rows (name + tier left, value right, bar below)
         local NX = 20 + LW + 20
         hero.nextHead = K.Text(hero, 12, C.muted)
         hero.nextHead:SetPoint("TOPLEFT", NX, -16)
@@ -913,7 +913,7 @@ ns.RegisterPage({
         hero.none:SetText(L["Make some progress and your next badges will show up here."])
         p.hero = hero
 
-        -- scrollbares Raster
+        -- scrollable grid
         p.scroll = CreateFrame("ScrollFrame", nil, p)
         p.scroll:SetPoint("TOPLEFT", 0, HERO_Y - HERO_H - 14)
         p.scroll:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -926,7 +926,7 @@ ns.RegisterPage({
             self:SetVerticalScroll(math.min(max, math.max(0, (self:GetVerticalScroll() or 0) - d * TH * 2)))
             if p.UpdateBar then p.UpdateBar() end
         end)
-        -- Scrollleiste rechts: Spur + Griff (ziehen oder auf die Spur klicken)
+        -- Scrollbar on the right: track + thumb (drag or click the track)
         p.sTrack = CreateFrame("Frame", nil, p)
         p.sTrack:SetWidth(6)
         p.sTrack:SetPoint("TOPRIGHT", p.scroll, "TOPRIGHT", 0, 0)
@@ -968,7 +968,7 @@ ns.RegisterPage({
             p.sThumb:SetHeight(th)
         end
 
-        -- Kategorie-Koepfe: Name, "1 von 12", kurze runde Leiste, feine Linie
+        -- Category headers: name, "1 of 12", short round bar, thin line
         p.heads, p.tiles = {}, {}
         for _, cat in ipairs(Badges.CATS) do
             local h = CreateFrame("Frame", nil, p.grid)
@@ -991,7 +991,7 @@ ns.RegisterPage({
         for i, b in ipairs(all) do
             local t = CreateFrame("Frame", nil, p.grid)
             t:SetSize(TW - 8, TH - 8)
-            t.noBoxFrame = true   -- 0.6.287: Kacheln ohne Rahmen, nur erreichte bekommen eine leichte Flaeche
+            t.noBoxFrame = true   -- 0.6.287: tiles without border, only earned ones get a light surface
             glass(t, nil, nil, 12)
             t.hov = t:CreateTexture(nil, "BORDER", nil, 3)
             t.hov:SetAllPoints()
@@ -1019,9 +1019,9 @@ ns.RegisterPage({
             p.tiles[i] = t
         end
 
-        -- Gildenansicht
-        -- 0.5.608: Gilde-Ansicht als Verbreitung - Balken = Anteil der Spieler (Mains mit Oasis), geteilt nach
-        -- Gold/Silber/Bronze, rechts "x von y", sortiert nach Verbreitung; Namen im Tooltip
+        -- Guild view
+        -- 0.5.608: guild view as spread - bar = share of players (mains with Oasis), split by
+        -- gold/silver/bronze, "x of y" on the right, sorted by spread; names in the tooltip
         p.list = K.List(p, 40, function(l)
             local r = K.Row(l)
             r.emblem = Badges.Emblem(r, 30)
@@ -1035,7 +1035,7 @@ ns.RegisterPage({
             r.track:SetPoint("RIGHT", r, "RIGHT", -128, 0)
             r.track:SetHeight(8)
             r.track:SetColorTexture(1, 1, 1, 0.06)
-            -- 0.5.609: ein neutraler, leuchtender blauer Balken (keine Stufen-Unterscheidung)
+            -- 0.5.609: one neutral, glowing blue bar (no tier distinction)
             r.fill = r:CreateTexture(nil, "ARTWORK", nil, 1)
             r.fill:SetHeight(8)
             r.fill:SetPoint("LEFT", r.track, "LEFT", 0, 0)
@@ -1058,7 +1058,7 @@ ns.RegisterPage({
                 local it = self.item
                 if not it then return end
                 local lines = { L[it.b.name], "|cff888888" .. L[it.b.desc or ""] .. "|r" }
-                -- neutral: nur Namen, alphabetisch, ohne Stufe/Klassenfarbe
+                -- neutral: names only, alphabetical, without tier/class color
                 local names = {}
                 for _, h in ipairs(it.hold) do names[#names + 1] = Ambiguate and Ambiguate(h.name, "short") or h.name end
                 table.sort(names)
@@ -1113,24 +1113,24 @@ ns.RegisterPage({
                 progress = nextNeed and ((v - prev) / (nextNeed - prev)) or 1
                 near = nextNeed ~= nil and progress >= NEAR
                 t.bar:Set(progress)
-                t.bar:SetShown(nextNeed ~= nil and progress > 0)   -- 0.6.287: kein leerer Balken
+                t.bar:SetShown(nextNeed ~= nil and progress > 0)   -- 0.6.287: no empty bar
             end
             if tier > 0 then have = have + 1 end
             local tc = tier > 0 and Badges.Color(tier) or nil
-            -- Glaskarte: erreicht = Stufenfarbe, fast geschafft = Farbe der naechsten Stufe dezent, offen = neutral
+            -- Glass card: earned = tier color, almost done = subtle color of the next tier, open = neutral
             local nc = (Badges.TIERS[math.min(3, tier + 1)] or Badges.TIERS[3]).color
             if tc then
                 glass(t, { tc[1], tc[2], tc[3], 0.07 }, { tc[1], tc[2], tc[3], 0.32 })
             elseif near then
                 glass(t, { 1, 1, 1, 0.035 }, { nc[1], nc[2], nc[3], 0.20 })
             else
-                glass(t, { 1, 1, 1, 0.02 }, { 1, 1, 1, 0 })   -- offen: flach, ohne Kante
+                glass(t, { 1, 1, 1, 0.02 }, { 1, 1, 1, 0 })   -- open: flat, no edge
             end
-            -- Balken in der Farbe der NAECHSTEN Stufe; offen und weit weg = gedaempft
+            -- Bar in the color of the NEXT tier; open and far away = muted
             if not b.unique then
                 t.bar.fill:SetColorTexture(nc[1], nc[2], nc[3], (tier > 0 or near) and 0.9 or 0.5)
             end
-            -- Stufentext: erreicht in Stufenfarbe, fast geschafft in Farbe der naechsten Stufe
+            -- Tier text: earned in tier color, almost done in color of the next tier
             local txc = tc or (near and nc) or C.dim
             t.tierTxt:SetTextColor(txc[1], txc[2], txc[3])
             t:SetAlpha((tier > 0 or near) and 1 or 0.82)
@@ -1148,7 +1148,7 @@ ns.RegisterPage({
             catHave[b.cat][2] = catHave[b.cat][2] + 1
             if tier > 0 then catHave[b.cat][1] = catHave[b.cat][1] + 1 end
         end
-        -- Ueberblick
+        -- Overview
         p.hero:SetShown(view == "mine")
         p.scroll:ClearAllPoints()
         p.scroll:SetPoint("TOPLEFT", 0, view == "mine" and (HERO_Y - HERO_H - 14) or -46)
@@ -1187,10 +1187,10 @@ ns.RegisterPage({
             end
             h.none:SetShown(#cand == 0)
         end
-        -- Spalten nach verfuegbarer Breite
+        -- Columns by available width
         local W = p.scroll:GetWidth()
         if not W or W < 200 then W = COLS * 107 end
-        W = W - 10   -- Platz fuer die Scrollleiste
+        W = W - 10   -- Space for the scrollbar
         COLS = math.max(2, math.floor(W / 210))
         TW = math.floor(W / COLS)
         p.grid:SetWidth(COLS * TW)
@@ -1201,7 +1201,7 @@ ns.RegisterPage({
             t.tierTxt:SetWidth(TW - 70)
             t.bar:SetWidth(TW - 74)
         end
-        -- Layout: je Kategorie Ueberschrift + Kacheln
+        -- Layout: per category heading + tiles
         local y = 0
         for _, cat in ipairs(Badges.CATS) do
             local h, list = p.heads[cat.key], byCat[cat.key] or {}
@@ -1229,7 +1229,7 @@ ns.RegisterPage({
         p.summary:SetText((L["%d of %d badges"]):format(have, #p.tiles))
         if view == "guild" then
             local rows = {}
-            -- Grundmenge: Spieler (Mains) mit Oasis - nur sie haben Abzeichen-Daten
+            -- Base set: players (mains) with Oasis - only they have badge data
             local mains = {}
             mains[ns.Alts and ns.Alts.Main(ns.me()) or ns.me()] = true
             for name in pairs(ns.db.members) do mains[ns.Alts and ns.Alts.Main(name) or name] = true end
@@ -1243,7 +1243,7 @@ ns.RegisterPage({
                 local hold = uniq[b.id] and { { name = uniq[b.id], tier = 4 } } or {}
                 rows[#rows + 1] = { b = b, hold = hold, top = #hold > 0 and 4 or 0, total = total }
             end
-            -- am weitesten verbreitet oben, bei Gleichstand hoehere Stufen, dann Name
+            -- most widespread on top, on a tie higher tiers, then name
             table.sort(rows, function(x, y)
                 if #x.hold ~= #y.hold then return #x.hold > #y.hold end
                 return L[x.b.name] < L[y.b.name]
@@ -1253,7 +1253,7 @@ ns.RegisterPage({
     end,
 })
 ------------------------------------------------------------------------
--- Zaehler fuer die Gemeinschafts-Abzeichen
+-- Counters for the community badges
 ------------------------------------------------------------------------
 local function isGuildName(name)
     name = ns.safe(name)
@@ -1270,7 +1270,7 @@ local function isGuildUnit(unit)
     end
     return isGuildName(GetUnitName and GetUnitName(unit, true) or ns.UnitName(unit))
 end
--- Gildenmitglieder in meiner Gruppe (+ das niedrigste Level)
+-- Guild members in my group (+ the lowest level)
 local function guildInGroup()
     local n, lowest = 0, nil
     local count = (GetNumGroupMembers and GetNumGroupMembers()) or 0
@@ -1288,7 +1288,7 @@ local function guildInGroup()
 end
 Badges.GuildInGroup = guildInGroup
 
--- gegen Mehrfachzaehlung (z.B. Emote-Spam): hoechstens alle x Sekunden
+-- against double counting (e.g. emote spam): at most every x seconds
 local lastAdd = {}
 local function addThrottled(stat, sec)
     local t = GetTime()
@@ -1297,13 +1297,13 @@ local function addThrottled(stat, sec)
     Badges.Add(stat, 1)
 end
 
--- jede Minute: Gruppe mit Gilde? Kleinere dabei? Tageszeit?
+-- every minute: group with guild? Lower levels along? Time of day?
 local function minuteTick()
     if not ns.char then return end
     local n, lowest = guildInGroup()
     if n > 0 then
         Badges.Add("groupMin", 1)
-        -- Woche: nur wer wirklich spielt (nicht AFK, in den letzten 5 Min. gekaempft/XP/Quest)
+        -- Weekly: only who really plays (not AFK, fought/XP/quest in the last 5 min.)
         if not ns.safe(UnitIsAFK("player")) and Badges.lastActive and GetTime() - Badges.lastActive < 300 then
             if ns.Rewards and ns.Rewards.Credit then ns.Rewards.Credit("groupMin") end
         end
@@ -1324,11 +1324,11 @@ local function minuteTick()
     end
 end
 
--- Boss mit mind. zwei Gildenmitgliedern
+-- Boss with at least two guild members
 ns.On("ENCOUNTER_END", function(_, _, _, _, success)
     if ns.safe(success) == 1 and guildInGroup() >= 2 then
         Badges.Add("bossCrew", 1)
-        -- Woche: Dungeon-Boss mit mind. 2 weiteren Gildenmitgliedern (einmal je Instanz)
+        -- Weekly: dungeon boss with at least 2 other guild members (once per instance)
         local inInst, kind = IsInInstance()
         if inInst and (kind == "party" or kind == "raid") then
             if ns.Rewards and ns.Rewards.Credit then ns.Rewards.Credit("dungeonRuns", ns.safe(GetInstanceInfo()) or "?") end
@@ -1336,7 +1336,7 @@ ns.On("ENCOUNTER_END", function(_, _, _, _, success)
     end
 end)
 
--- Raid-Momente: wer faellt im Bosskampf zuerst / zuletzt, und ging der Kampf danach schief?
+-- Raid moments: who dies first / last in the boss fight, and did the fight go wrong afterwards?
 local fight
 ns.On("ENCOUNTER_START", function() fight = { t = GetTime() } end)
 local function othersDeadAlive()
@@ -1374,20 +1374,20 @@ ns.On("ENCOUNTER_END", function(_, _, _, _, success)
     end
 end)
 
--- Gildenchat: Plaudern und Begruessen
+-- Guild chat: chatting and greeting
 local greeted = {}
 ns.On("CHAT_MSG_GUILD", function(msg, sender)
     sender, msg = ns.safe(sender), ns.safe(msg)
     if not sender or not msg or not ns.isMe(ns.fullName(sender)) then return end
     addThrottled("chat", 3)
-    -- Woche: hoechstens eine Nachricht pro Minute, mind. 4 Zeichen
+    -- Weekly: at most one message per minute, at least 4 characters
     if #msg >= 4 and (not Badges.lastChatCredit or GetTime() - Badges.lastChatCredit >= 60) then
         Badges.lastChatCredit = GetTime()
         if ns.Rewards and ns.Rewards.Credit then ns.Rewards.Credit("chat") end
     end
     local low = msg:lower()
     if low:find("willkommen") or low:find("welcome") or low:find("^wb") or low:find("%swb") then
-        -- wer ist in den letzten 15 Minuten beigetreten?
+        -- who joined in the last 15 minutes?
         for _, e in ipairs(Store.List("chronicle", function(e)
             return e.kind == "guild" and ns.IsJoinTk(e.tk) and ns.now() - (e.ts or 0) < 900
         end)) do
@@ -1399,7 +1399,7 @@ ns.On("CHAT_MSG_GUILD", function(msg, sender)
     end
 end)
 
--- Wiederbeleben
+-- Resurrect
 local REZ = {
     [2006] = true, [2010] = true, [10880] = true, [10881] = true, [20770] = true,
     [7328] = true, [10322] = true, [10324] = true, [20772] = true, [20773] = true,
@@ -1435,7 +1435,7 @@ ns.On("UNIT_SPELLCAST_SUCCEEDED", function(unit, castGUID)
     end
 end)
 
--- Handel
+-- Trade
 local tradeWith
 ns.On("TRADE_SHOW", function() tradeWith = ns.safe(ns.UnitName("NPC")) end)
 ns.On("UI_INFO_MESSAGE", function(_, msg)
@@ -1445,7 +1445,7 @@ ns.On("UI_INFO_MESSAGE", function(_, msg)
     end
 end)
 
--- Post
+-- Mail
 local mailTo
 if hooksecurefunc and SendMail then
     hooksecurefunc("SendMail", function(recipient) mailTo = recipient end)
@@ -1457,7 +1457,7 @@ ns.On("MAIL_SEND_SUCCESS", function()
     mailTo = nil
 end)
 
--- Emotes: nett zu Gildenmitgliedern, Tanzen mit der Gilde
+-- Emotes: being nice to guild members, dancing with the guild
 local NICE = {
     HUG = true, KISS = true, CHEER = true, THANK = true, WAVE = true, BOW = true, APPLAUD = true, HIGHFIVE = true,
     LOVE = true, PAT = true, CUDDLE = true, GREET = true, HAIL = true, SALUTE = true, WELCOME = true,
@@ -1484,9 +1484,9 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Weitere Zaehler (Welt, Handel, Chat, Emotes, Zeit)
+-- Further counters (world, trade, chat, emotes, time)
 ------------------------------------------------------------------------
--- leise hochzaehlen (haeufige Ereignisse wie Spruenge), geprueft wird im 90-s-Takt
+-- count up silently (frequent events like jumps), checked every 90 s
 local function addQuiet(stat, n)
     if not ns.char then return end
     ns.char.stats = ns.char.stats or {}
@@ -1502,9 +1502,9 @@ end
 -- Blizzard-Textmuster ("%s rolls %d (%d-%d)") in Lua-Suchmuster umwandeln
 local function pattern(fmt)
     if type(fmt) ~= "string" or fmt == "" then return nil end
-    -- 1) Platzhalter (%s, %d, %1$s ...) durch Steuerzeichen ersetzen
+    -- 1) replace placeholders (%s, %d, %1$s ...) with control characters
     local p = fmt:gsub("%%%d%$s", "\1"):gsub("%%%d%$d", "\2"):gsub("%%s", "\1"):gsub("%%d", "\2")
-    -- 2) uebrige Sonderzeichen maskieren, 3) Platzhalter zu Fangmustern
+    -- 2) escape remaining special characters, 3) placeholders to capture patterns
     p = p:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$]", "%%%0")
     p = p:gsub("\1", "(.+)"):gsub("\2", "(%%d+)")
     return "^" .. p .. "$"
@@ -1515,7 +1515,7 @@ ns.On("QUEST_TURNED_IN", function()
     Badges.Add("quests", 1)
     if guildInGroup() > 0 then
         Badges.Add("questsGroup", 1)
-        -- Woche: ein Gildenmitglied muss in der Naehe sein
+        -- Weekly: a guild member must be nearby
         local raid = IsInRaid and IsInRaid()
         for i = 1, (GetNumGroupMembers() or 0) do
             local u = raid and ("raid" .. i) or ("party" .. i)
@@ -1528,7 +1528,7 @@ ns.On("QUEST_TURNED_IN", function()
     Badges.lastActive = GetTime()
 end)
 
--- Gebiete + Dungeons
+-- Zones + dungeons
 local lastRun = {}
 local function zoneCheck()
     local S = sets()
@@ -1549,12 +1549,12 @@ end
 ns.On("ZONE_CHANGED_NEW_AREA", function() ns.After(2, zoneCheck) end)
 ns.On("PLAYER_ENTERING_WORLD", function() ns.After(4, zoneCheck) end)
 
--- Flugrouten
+-- Flight paths
 ns.On("PLAYER_CONTROL_LOST", function()
     ns.After(1.5, function() if UnitOnTaxi and UnitOnTaxi("player") then Badges.Add("taxis", 1) end end)
 end)
 
--- Zauber: Ruhestein, Sammeln, Essen/Trinken
+-- Spells: hearthstone, gathering, eating/drinking
 local HEARTH = { [8690] = true }
 local GATHER = { [2366] = true, [2368] = true, [3570] = true, [11993] = true, [2575] = true, [2576] = true,
     [3564] = true, [10248] = true, [8613] = true, [8617] = true, [8618] = true, [10768] = true }
@@ -1576,7 +1576,7 @@ ns.On("UNIT_SPELLCAST_SUCCEEDED", function(unit, _, spellID)
     elseif name == "erfrischung" or name == "refreshment" then addQuiet("eats", 1) addQuiet("drinks", 1) end
 end)
 
--- Zauber auf Gildenmitglieder: Verbaende und Buffs
+-- Spells on guild members: bandages and buffs
 local BANDAGE = { [746] = true, [1159] = true, [3267] = true, [3268] = true, [7926] = true, [7927] = true,
     [10838] = true, [10839] = true, [18608] = true, [18610] = true }
 local sentTo = {}
@@ -1600,7 +1600,7 @@ ns.On("UNIT_SPELLCAST_SUCCEEDED", function(unit, castGUID)
     end
 end)
 
--- Wiederbelebt worden (von Gildenmitgliedern)
+-- Got resurrected (by guild members)
 local rezzedBy, rezzedAt
 ns.On("RESURRECT_REQUEST", function(inviter)
     inviter = ns.safe(inviter)
@@ -1615,7 +1615,7 @@ ns.On("PLAYER_UNGHOST", function()
     rezzedBy = nil
 end)
 
--- Tod: in der Gruppe mit der Gilde / Level-Ups ohne Tod
+-- Death: in a group with the guild / level-ups without death
 ns.On("PLAYER_DEAD", function()
     if guildInGroup() > 0 then Badges.Add("groupDeaths", 1) end
     if ns.char then ns.char.diedThisLevel = true end
@@ -1626,7 +1626,7 @@ ns.On("PLAYER_LEVEL_UP", function()
     ns.char.diedThisLevel = false
 end)
 
--- Beute, Gold, Angeln, Herstellen
+-- Loot, gold, fishing, crafting
 local moneyAtLoot
 ns.On("LOOT_OPENED", function()
     addQuiet("loots", 1)
@@ -1640,7 +1640,7 @@ ns.On("LOOT_CLOSED", function()
     end
     moneyAtLoot = nil
 end)
--- Muster erst bei Bedarf bauen (Blizzard-Texte sind dann sicher geladen)
+-- build patterns only when needed (Blizzard strings are surely loaded by then)
 local patCache = {}
 local function pat(globalName)
     if patCache[globalName] == nil then patCache[globalName] = pattern(_G[globalName]) or false end
@@ -1652,10 +1652,10 @@ ns.On("CHAT_MSG_LOOT", function(msg)
     local c1, c2 = pat("LOOT_ITEM_CREATED_SELF"), pat("LOOT_ITEM_CREATED_SELF_MULTIPLE")
     if (c1 and msg:find(c1)) or (c2 and msg:find(c2)) then addQuiet("crafts", 1) end
 end)
--- Kills: zentral erkannt in Life.lua (Erfahrung bzw. Tod des eigenen Ziels), 0.5.616
+-- Kills: detected centrally in Life.lua (experience or death of own target), 0.5.616
 ns.Listen("KILL", function() addQuiet("kills", 1) end)
 
--- Reparieren, Gildenbank-Einzahlung
+-- Repairing, guild bank deposit
 if hooksecurefunc then
     if RepairAllItems then
         hooksecurefunc("RepairAllItems", function(guildBank)
@@ -1674,7 +1674,7 @@ if hooksecurefunc then
     end
 end
 
--- Systemmeldungen: Duelle, /wuerfeln, Auktionen
+-- System messages: duels, /roll, auctions
 ns.On("CHAT_MSG_SYSTEM", function(msg)
     msg = ns.safe(msg)
     if not msg then return end
@@ -1703,7 +1703,7 @@ ns.On("CHAT_MSG_WHISPER_INFORM", function(_, target)
     if isGuildName(target) then addThrottled("whispers", 5) end
 end)
 
--- Emotes, die Gildenmitglieder an mich richten
+-- Emotes guild members direct at me
 ns.On("CHAT_MSG_TEXT_EMOTE", function(text, sender)
     text, sender = ns.safe(text), ns.safe(sender)
     if not text or not sender or not isGuildName(sender) then return end
@@ -1711,7 +1711,7 @@ ns.On("CHAT_MSG_TEXT_EMOTE", function(text, sender)
     if low:find(" euch") or low:find(" dich") or low:find(" you") then addThrottled("emotesReceived", 3) end
 end)
 
--- Gildenchat: was ich schreibe
+-- Guild chat: what I write
 local function has(low, list)
     for _, w in ipairs(list) do if low:find(w) then return true end end
     return false
@@ -1727,7 +1727,7 @@ ns.On("CHAT_MSG_GUILD", function(msg, sender)
     if has(low, { "danke", " thx", " ty ", "dankesch", "thank" }) then addThrottled("thanks", 30) end
 end)
 
--- Reittier, Gasthaus
+-- Mount, inn
 ns.On("PLAYER_MOUNT_DISPLAY_CHANGED", function()
     if IsMounted and IsMounted() then addThrottled("mounts", 10) end
 end)
@@ -1735,7 +1735,7 @@ ns.On("PLAYER_UPDATE_RESTING", function()
     if IsResting and IsResting() then addThrottled("inns", 120) end
 end)
 
--- Eigene Oasis-Aktionen: Umfragen, Termine, Gesucht, Auftraege, Trinkgeld, volle Gruppe
+-- Own Oasis actions: polls, events, wanted, orders, tips, full group
 ns.Listen("STORE", function(coll, rec, old)
     if not rec or rec.del or rec.demo or tostring(rec.id):find("demo-", 1, true) then return end
     local mine = ns.isMe(rec.by or rec.who or rec.from or "")
@@ -1753,7 +1753,7 @@ ns.Listen("STORE", function(coll, rec, old)
     end
 end)
 
--- Minuten-Takt ergaenzen: Spielzeit, AFK, Schwimmen, Wochenende
+-- Extend the minute tick: playtime, AFK, swimming, weekend
 local function minuteExtra()
     if not ns.char then return end
     addQuiet("playMin", 1)
@@ -1774,15 +1774,15 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- 0.5.607: Zaehler fuer die neuen Abzeichen (nur eigene Ereignisse, gedrosselt, nichts wird gesendet)
+-- 0.5.607: counters for the new badges (own events only, throttled, nothing is sent)
 ------------------------------------------------------------------------
--- Geisterlauf, ertrunken, Serie ohne Tod
+-- Ghost run, drowned, streak without death
 ns.On("PLAYER_UNGHOST", function() addQuiet("ghostRuns", 1) end)
 ns.On("PLAYER_DEAD", function()
     if IsSwimming and ns.safe(IsSwimming()) then Badges.Add("drowned", 1) end
     if ns.char then ns.char.aliveMin = 0 end
 end)
--- Fehlermeldungen: Taschen voll, ausser Reichweite, falsch herum, keine Ressource
+-- Error messages: bags full, out of range, facing wrong way, no resource
 do
     local MAP
     local function build()
@@ -1802,12 +1802,12 @@ do
         if stat then addThrottled(stat, GAP[stat] or 5) end
     end)
 end
--- sich selbst anfluestern
+-- whisper oneself
 ns.On("CHAT_MSG_WHISPER", function(_, sender)
     sender = ns.safe(sender)
     if sender and ns.isMe(ns.fullName(sender)) then addThrottled("selfWhisper", 10) end
 end)
--- Dauerfeuer: 5 eigene Gildennachrichten in 15 Sekunden
+-- Rapid fire: 5 own guild messages in 15 seconds
 do
     local times = {}
     ns.On("CHAT_MSG_GUILD", function(_, sender)
@@ -1819,7 +1819,7 @@ do
         if #times >= 5 then times = {} Badges.Add("chatBursts", 1) end
     end)
 end
--- Haarscharf: Kampf mit unter 10 % Leben ueberstanden
+-- Close call: survived a fight with under 10 % health
 ns.On("PLAYER_REGEN_ENABLED", function()
     local h, m = UnitHealth and UnitHealth("player"), UnitHealthMax and UnitHealthMax("player")
     if issecretvalue and (issecretvalue(h) or issecretvalue(m)) then return end
@@ -1828,32 +1828,32 @@ ns.On("PLAYER_REGEN_ENABLED", function()
         Badges.Add("closeCalls", 1)
     end
 end)
--- Screenshots, Bank, Haendler
+-- Screenshots, bank, vendors
 ns.On("SCREENSHOT_SUCCEEDED", function() addThrottled("screenshots", 1) end)
 ns.On("BANKFRAME_OPENED", function() addThrottled("bankVisits", 20) end)
 ns.On("MERCHANT_SHOW", function() addThrottled("merchantVisits", 20) end)
--- Weltkarte geoeffnet (nur angehaengt, nichts an Blizzards Karte veraendert)
+-- World map opened (only hooked, nothing changed on Blizzard's map)
 ns.Listen("LOGIN", function()
     if WorldMapFrame and WorldMapFrame.HookScript and not Badges.mapHooked then
         Badges.mapHooked = true
         WorldMapFrame:HookScript("OnShow", function() addThrottled("mapOpens", 3) end)
     end
 end)
--- im Gasthaus ausgeloggt
+-- logged out in an inn
 ns.On("PLAYER_LOGOUT", function()
     if IsResting and ns.safe(IsResting()) and ns.char then
         ns.char.stats = ns.char.stats or {}
         ns.char.stats.innLogouts = (ns.char.stats.innLogouts or 0) + 1
     end
 end)
--- hoechster Goldbestand je Charakter (in Gold)
+-- highest gold amount per character (in gold)
 ns.On("PLAYER_MONEY", function()
     if not (ns.char and GetMoney) then return end
     local g = math.floor((GetMoney() or 0) / 10000)
     ns.char.stats = ns.char.stats or {}
     if g > (ns.char.stats.goldMax or 0) then ns.char.stats.goldMax = g end
 end)
--- Level: schnell (unter 30 Spielminuten) und im Dungeon
+-- Level: fast (under 30 minutes played) and in a dungeon
 ns.On("PLAYER_LEVEL_UP", function()
     if not ns.char then return end
     ns.char.stats = ns.char.stats or {}
@@ -1862,7 +1862,7 @@ ns.On("PLAYER_LEVEL_UP", function()
     ns.char.lvlAtPlay = pm
     if IsInInstance and select(1, IsInInstance()) then Badges.Add("instanceDings", 1) end
 end)
--- Furchtlos: Boss mit Gildenmitgliedern gelegt, ohne im Kampf zu sterben
+-- Fearless: killed a boss with guild members without dying in the fight
 do
     local diedInFight = false
     ns.On("ENCOUNTER_START", function() diedInFight = false end)
@@ -1871,7 +1871,7 @@ do
         if success == 1 and not diedInFight and guildInGroup() >= 1 then Badges.Add("cleanBoss", 1) end
     end)
 end
--- jede Minute: Flugzeit, Serie ohne Tod, Gruppen-Kameraden aus der Gilde
+-- every minute: flight time, streak without death, group mates from the guild
 local function minuteNew()
     if not ns.char then return end
     if UnitOnTaxi and ns.safe(UnitOnTaxi("player")) then addQuiet("taxiMin", 1) end
@@ -1897,7 +1897,7 @@ end
 ns.Listen("LOGIN", function() ns.Every(60, function() pcall(minuteNew) end) end)
 
 ------------------------------------------------------------------------
--- Geteilte Zaehler (fuer die Gilden-Titel "Gildenstimme", "Kaenguru" ...)
+-- Shared counters (for the guild titles "Gildenstimme", "Kaenguru" ...)
 ------------------------------------------------------------------------
 function Badges.SharedStats()
     local s = accountStats()
@@ -1917,7 +1917,7 @@ end
 -- Start
 ------------------------------------------------------------------------
 local function snapshot()
-    -- Level und beste Berufsstufe dieses Charakters merken
+    -- remember level and best profession skill of this character
     ns.char.level = ns.safe(UnitLevel("player")) or ns.char.level
     local best = 0
     if ns.Radar then
@@ -1928,7 +1928,7 @@ end
 ns.Listen("LOGIN", function()
     ns.After(20, function()
         snapshot()
-        -- beim ersten Mal still nachziehen (keine Hinweis-Flut fuer Altes)
+        -- first time: catch up silently (no flood of notices for old stuff)
         Badges.initialized = false
         Badges.Check()
         Badges.initialized = true
@@ -1939,6 +1939,6 @@ ns.Listen("LEVEL_UP", function() snapshot() Badges.Check() end)
 ns.On("SKILL_LINES_CHANGED", function() ns.After(2, function() snapshot() Badges.Check() end) end)
 ns.Listen("PROFILE", function() ns.RefreshPage("badges") end)
 
--- Aktivitaet fuer die Wochenwertung (Gruppen-Minuten)
+-- Activity for the weekly ranking (group minutes)
 ns.On("PLAYER_REGEN_DISABLED", function() Badges.lastActive = GetTime() end)
 ns.On("PLAYER_XP_UPDATE", function() Badges.lastActive = GetTime() end)

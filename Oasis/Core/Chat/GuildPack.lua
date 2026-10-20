@@ -1,15 +1,15 @@
--- Oasis: Gildenpaket (eigene Emojis & Sounds) - 0.6.531/0.6.532
---  * Gebaut wird das Paket auf oasisaddon.com (Studio im Kopf der Seite, im Browser - nichts wird hochgeladen):
---    ZIP mit Oasis_Emojis + Oasis_Sounds; List.lua setzt OasisGuildPack = { guild, v, made, emojis, sounds }.
---  * FAELSCHUNGSSICHER (0.6.532): Rangsperren und Version kommen NICHT aus den Dateien der anderen, sondern aus dem
---    offiziellen Eintrag der Gildenleitung (Store "gpack", nur Offiziere mit Recht guildcfg duerfen ihn schreiben).
---    Darin: Version, Fingerabdruck des Pakets und die Rangstufe jedes eigenen Emojis/Sounds.
---      - Emojis: Rewards.EmojiLevel nimmt die offizielle Stufe; unbekannte eigene Codes gelten als Stufe 100.
---      - Sounds: der Online-Sound eines anderen spielt nur, wenn SEIN verifizierter Oasis-Rang reicht
---        (sonst der Standardton) - egal was in seiner oder meiner Datei steht.
---      - Wer ein Paket mit anderem Fingerabdruck bei gleicher Version hat, bekommt einen Hinweis.
---  * Einstellungen > Aussehen & Bedienung > Emojis & Sounds: Stand, Link zur Bau-Seite, Freigabe (Leitung).
--- Achtung: NICHT ns.GuildPack nennen - das ist das Kennzeichen "Gildenmodul geladen" (Oasis_Guild/Guild.lua).
+-- Oasis: guild pack (own emojis & sounds) - 0.6.531/0.6.532
+--  * The pack is built on oasisaddon.com (studio in the page header, in the browser - nothing is uploaded):
+--    ZIP with Oasis_Emojis + Oasis_Sounds; List.lua sets OasisGuildPack = { guild, v, made, emojis, sounds }.
+--  * TAMPER-PROOF (0.6.532): rank locks and version do NOT come from the other players' files but from the
+--    official entry of the guild leadership (Store "gpack", only officers with permission guildcfg may write it).
+--    It contains: version, fingerprint of the pack and the rank level of each own emoji/sound.
+--      - Emojis: Rewards.EmojiLevel uses the official level; unknown own codes count as level 100.
+--      - Sounds: another player's online sound only plays if THEIR verified Oasis rank is high enough
+--        (otherwise the default sound) - regardless of what is in their file or mine.
+--      - Whoever has a pack with a different fingerprint at the same version gets a notice.
+--  * Settings > Appearance & Controls > Emojis & Sounds: status, link to the build page, approval (leadership).
+-- Caution: do NOT name it ns.GuildPack - that is the marker "guild module loaded" (Oasis_Guild/Guild.lua).
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
@@ -30,7 +30,7 @@ function MP.LegacyInstalled()
     return (loaded("Oasis_Emojis") or loaded("Oasis_Sounds")) and true or false
 end
 
--- Inhalt des installierten Pakets: Codes/Schluessel mit eigener Stufe (aus den Dateien) - nur fuer Fingerabdruck und Freigabe
+-- Contents of the installed pack: codes/keys with their own level (from the files) - only for fingerprint and approval
 local function localItems()
     local em, so = {}, {}
     for _, c in ipairs(type(rawget(_G, "OasisEmojiList")) == "table" and OasisEmojiList or {}) do
@@ -45,7 +45,7 @@ local function localItems()
     table.sort(so, function(a, b) return a[1] < b[1] end)
     return em, so
 end
--- Fingerabdruck: Codes + Stufen + Anzahl Bilder (djb2, 2 Bahnen)
+-- Fingerprint: codes + levels + number of images (djb2, 2 lanes)
 function MP.Fingerprint()
     local em, so = localItems()
     local parts = {}
@@ -62,18 +62,18 @@ function MP.Fingerprint()
 end
 
 ------------------------------------------------------------------------
--- Offizieller Eintrag der Leitung
+-- Official entry of the leadership
 ------------------------------------------------------------------------
 local offEm, offSo, offAt
--- "code:stufe,..." - Stufe 0 = von der Leitung ausgeschaltet
+-- "code:level,..." - level 0 = turned off by the leadership
 local function parseMap(s)
     local t = {}
     for k, v in tostring(s or ""):gmatch("([%w_]+):(%d+)") do v = tonumber(v) t[k] = (v == 0 or v == 200) and v or math.max(1, math.min(100, v)) end
     return t
 end
-MP.OFF = 101   -- ausgeschaltet: Stufe, die niemand erreicht (Oasis-Rang geht bis 100)
-MP.LEAD = 200  -- 0.6.534: nur Gildenleitung (Gildenmeister + Offiziere nach Blizzard-Gildenrang), unabhaengig vom Oasis-Rang
--- gehoert der Spieler zur Leitung? (Gildenrang aus der Gildenliste; ich selbst ueber Admin.Role)
+MP.OFF = 101   -- turned off: a level nobody reaches (Oasis rank goes up to 100)
+MP.LEAD = 200  -- 0.6.534: guild leadership only (guild master + officers by Blizzard guild rank), independent of Oasis rank
+-- is the player part of the leadership? (guild rank from the guild roster; myself via Admin.Role)
 function MP.IsLead(name)
     local A = ns.Admin
     if not A then return false end
@@ -81,8 +81,8 @@ function MP.IsLead(name)
     if not name or ns.isMe(name) then role = A.Role and A.Role() else role = A.RoleOf and A.RoleOf(name) end
     return role == "lead" or role == "officer" or role == "dev"
 end
--- darf "who" einen eigenen Eintrag nutzen? nil = keine Vorgabe der Leitung (dann gelten die normalen Regeln)
--- need = Stufe aus der Freigabe; Oasis-Rang des Absenders/Spielers aus Rank.Of (verifiziert)
+-- may "who" use an own entry? nil = no leadership setting (then the normal rules apply)
+-- need = level from the approval; Oasis rank of the sender/player from Rank.Of (verified)
 function MP.MayUse(kind, key, who)
     local need = (kind == "sound") and MP.SoundLock(key) or MP.EmojiLock(key)
     if not need then return nil end
@@ -101,25 +101,25 @@ function MP.Official()
     if offAt ~= r.u then offAt, offEm, offSo = r.u, parseMap(r.el), parseMap(r.sl) end
     return r
 end
--- offizielle Stufe eines eigenen Emojis (Code ohne Doppelpunkte) / Sounds (Schluessel x_...): nil = keine Vorgabe
+-- official level of an own emoji (code without colons) / sound (key x_...): nil = no setting
 function MP.EmojiLock(code)
     if not MP.Official() or not code then return nil end
     local v = offEm[code]
     if v == 0 then return MP.OFF end
     if v == 200 then return MP.LEAD end
-    return v or 100   -- nicht im offiziellen Paket -> nur fuer die Hoechsten
+    return v or 100   -- not in the official pack -> only for the highest
 end
--- von der Leitung ausgeschaltet?
+-- turned off by the leadership?
 function MP.IsOff(kind, key)
     if not MP.Official() then return false end
     return ((kind == "sound") and offSo or offEm)[key] == 0
 end
--- offizielle Einstellung je Eintrag (fuer den Leitungs-Reiter): Stufe, 0 = aus, nil = nicht freigegeben
+-- official setting per entry (for the leadership tab): level, 0 = off, nil = not approved
 function MP.OfficialLevel(kind, key)
     if not MP.Official() then return nil end
     return ((kind == "sound") and offSo or offEm)[key]
 end
--- Inhalt des installierten Pakets mit eigener Stufe aus den Dateien
+-- Contents of the installed pack with own level from the files
 function MP.Items() local em, so = localItems() return em, so end
 function MP.SoundLock(key)
     if not MP.Official() or not key then return nil end
@@ -131,14 +131,14 @@ end
 function MP.CanPublish()
     return ns.Admin and ns.Admin.MayAuthor and ns.Admin.MayAuthor(ns.me(), "guildcfg") == true
 end
--- Freigeben: Version, Fingerabdruck und die Stufen, die bei MIR gerade gelten (Rewards/Sound rechnen sie aus)
+-- Approve: version, fingerprint and the levels currently in effect for ME (Rewards/Sound compute them)
 function MP.Publish(over)
     over = over or {}
     local m = MP.Mine()
     if not m or not MP.CanPublish() then return false end
     local fp = MP.Fingerprint()
     local em, so = localItems()
-    MP.publishing = true   -- Stufen aus den Dateien/Regeln, nicht aus der alten Freigabe
+    MP.publishing = true   -- Levels from the files/rules, not from the old approval
     local el, sl = {}, {}
     local byCode = ns.Emoji and ns.Emoji.Entry
     for _, e in ipairs(em) do
@@ -156,7 +156,7 @@ function MP.Publish(over)
     return true
 end
 
--- Hinweis an Mitglieder: neuere Version freigegeben oder anderer Inhalt bei gleicher Version
+-- Notice to members: newer version approved or different content at the same version
 local function check()
     local o, m = MP.Official(), MP.Mine()
     if not o or not ns.db then return end
@@ -184,7 +184,7 @@ function MP.ReportMine()
     Store.Put("gpackhave", { id = id, v = m.v, fp = fp, by = ns.me(), ts = ns.now() })
 end
 ns.Listen("LOGIN", function() C_Timer.After(60, function() pcall(MP.ReportMine) end) end)
--- Mitglieder (Mains) und ihr Paketstand: { name, v, ok (= offizielle Version + gleicher Inhalt) }
+-- Members (mains) and their pack state: { name, v, ok (= official version + same content) }
 function MP.Holders()
     local o = MP.Official()
     local have = {}
@@ -202,7 +202,7 @@ function MP.Holders()
 end
 
 ------------------------------------------------------------------------
--- Einstellungs-Reiter
+-- Settings tab
 ------------------------------------------------------------------------
 StaticPopupDialogs["OASIS_PACK_URL"] = {
     text = "%s", button1 = OKAY or "OK", hasEditBox = true, editBoxWidth = 260,

@@ -1,10 +1,10 @@
--- Oasis - Helfer: kleine Dinge, fuer die man sonst eigene Addons installiert
--- (EP pro Stunde, Tooltip-Extras, Post "Alles oeffnen", Reagenzien, Flugzeit, Koordinaten,
---  Chat-Links/Klassenfarben/Zeitstempel, Gegenstandsstufe beim Betrachten, Weltkarte aufdecken)
--- Alles einzeln schaltbar (Einstellungen > Komfort > Helfer, Weltkarte: Bereiche > Karte).
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Comfort", function()   -- Modul Komfort (abschaltbar, siehe ModuleLoader.lua)
-local TIPM = setmetatable({}, { __mode = "k" })   -- Merker je Tooltip (nie Felder auf Blizzard-Frames schreiben)
+-- Oasis - Helpers: small things you would otherwise install separate addons for
+-- (XP per hour, tooltip extras, mail "Open all", reagents, flight time, coordinates,
+--  chat links/class colors/timestamps, item level on inspect, reveal world map)
+-- Everything toggleable separately (Settings > Comfort > Helpers, world map: Areas > Map).
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Comfort", function()   -- module Comfort (can be disabled, see ModuleLoader.lua)
+local TIPM = setmetatable({}, { __mode = "k" })   -- marker per tooltip (never write fields onto Blizzard frames)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
@@ -37,18 +37,18 @@ local function itemLevel(link)
     local _, _, l = itemInfo(link)
     return l
 end
--- neue Helfer standardmaessig an (einmalig), Weltkarte aufdecken bleibt aus
+-- new helpers on by default (once), reveal world map stays off
 ns.Listen("LOGIN", function()
     local s = S()
-    -- 0.6.522: Oasis bleibt bei Gilde und Gruppe - persoenliche Helfer (Entzaubern, Questbelohnung, FojjiCore, XP, Post,
-    -- Reagenzien, Flugzeit, Haendlerpreis) sind fuer neue Spieler aus; wer sie schon an hatte, behaelt sie
+    -- 0.6.522: Oasis sticks to guild and group - personal helpers (disenchant, quest reward, FojjiCore, XP, mail,
+    -- reagents, flight time, vendor price) are off for new players; whoever had them on keeps them
     if not s.cpInit then
         s.cpInit = true
         for _, k in ipairs({ "cpTooltipGuild", "cpChatLinks", "cpInspect" }) do
             if s[k] == nil then s[k] = true end
         end
     end
-    -- 0.5.522: Koordinaten kann WoW Forever selbst -> Oasis-Anzeige einmalig aus, Blizzards Weltkarten-Koordinaten an
+    -- 0.5.522: WoW Forever shows coordinates itself -> Oasis display off once, Blizzard's world map coordinates on
     if not s.cpCoordsNative then
         s.cpCoordsNative = true
         if s.cpCoords then
@@ -63,7 +63,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- 1. Erfahrung pro Stunde, Zeit bis zum Levelaufstieg, Ruhebonus
+-- 1. Experience per hour, time to level up, rest bonus
 ------------------------------------------------------------------------
 local xp = { start = nil, gained = 0, last = nil, shared = {} }
 local function xpBox()
@@ -120,7 +120,7 @@ function CP.UpdateXP()
         parts[#parts + 1] = (L["%s XP/h"]):format(BreakUpLargeNumbers and BreakUpLargeNumbers(math.floor(rate)) or math.floor(rate))
         local eta = (max - cur) / rate * 3600
         parts[#parts + 1] = (L["Level %d in %s"]):format(lvl + 1, fmtTime(eta))
-        -- optional: Meilenstein (10, 20, ...) bald erreicht -> einmal an die Gilde
+        -- optional: milestone (10, 20, ...) about to be reached -> once to the guild
         if on("cpXPShare") and (lvl + 1) % 10 == 0 and eta < 45 * 60 and not xp.shared[lvl + 1] and IsInGuild and IsInGuild() then
             xp.shared[lvl + 1] = true
             ns.OfferChat(L["Show in guild chat?"], (L["[Oasis] ~%d min to level %d!"]):format(math.max(1, math.floor(eta / 60 + 0.5)), lvl + 1), "GUILD")
@@ -143,7 +143,7 @@ ns.On("PLAYER_XP_UPDATE", function()
     pcall(CP.UpdateXP)
 end)
 ns.On("PLAYER_LEVEL_UP", function()
-    -- neues Level: der Rest der alten Stufe zaehlt mit
+    -- new level: the remainder of the old level counts too
     local max = UnitXPMax("player") or 0
     if xp.last then xp.start = xp.start or GetTime() xp.gained = xp.gained + math.max(0, max - xp.last) end
     xp.last = 0
@@ -152,7 +152,7 @@ end)
 ns.On("UPDATE_EXHAUSTION", function() pcall(CP.UpdateXP) end)
 
 ------------------------------------------------------------------------
--- 2. Tooltip-Extras: Haendlerpreis, Gegenstandsstufe, ID; Gildenmitglieder
+-- 2. Tooltip extras: vendor price, item level, ID; guild members
 ------------------------------------------------------------------------
 local function stackOf(tt)
     local owner = tt.GetOwner and tt:GetOwner()
@@ -167,8 +167,8 @@ local function stackOf(tt)
     return 1
 end
 ------------------------------------------------------------------------
--- Entzaubern: was aus einem Teil herauskommen kann (Classic-Tabellen nach Gegenstandsstufe, Seltenheit, Waffe/Ruestung).
--- Namen kommen ueber die Item-ID aus dem Spiel (richtige Sprache); der Text dahinter ist nur der Rueckfall.
+-- Disenchant: what a piece can yield (Classic tables by item level, quality, weapon/armor).
+-- Names come from the game via item ID (correct language); the text after it is only the fallback.
 ------------------------------------------------------------------------
 local DE = {}
 ns.Disenchant = DE
@@ -180,7 +180,7 @@ local SHARD = { { 10978, "Kleiner gleissender Splitter" }, { 11084, "Grosser gle
     { 11139, "Grosser leuchtender Splitter" }, { 11177, "Kleiner strahlender Splitter" }, { 11178, "Grosser strahlender Splitter" },
     { 14343, "Kleiner glaenzender Splitter" }, { 14344, "Grosser glaenzender Splitter" } }
 local NEXUS = { 20725, "Nexuskristall" }
--- Gruen: bis Stufe -> { Staub, Menge, Essenz, Menge, Splitter }
+-- green: up to level -> { dust, amount, essence, amount, shard }
 local GREEN = {
     { 15, DUST[1], "1-2", ESS[1], "1-2", nil },
     { 20, DUST[1], "2-3", ESS[2], "1-2", SHARD[1] },
@@ -197,7 +197,7 @@ local GREEN = {
 local BLUE = { { 25, SHARD[1] }, { 30, SHARD[2] }, { 35, SHARD[3] }, { 40, SHARD[4] }, { 45, SHARD[5] }, { 50, SHARD[6] }, { 55, SHARD[7] }, { 999, SHARD[8] } }
 local PURPLE = { { 45, SHARD[5], "2-4" }, { 50, SHARD[6], "2-4" }, { 55, SHARD[7], "2-4" }, { 60, NEXUS, "1" }, { 999, NEXUS, "1-2" } }
 local function row(t, lvl) for _, r in ipairs(t) do if lvl <= r[1] then return r end end end
--- Ergebnis: Liste { id, name, menge, prozent } oder nil (nicht entzauberbar / unbekannt)
+-- Result: list { id, name, menge, prozent } or nil (not disenchantable / unknown)
 function DE.Results(quality, ilvl, isWeapon)
     quality, ilvl = tonumber(quality), tonumber(ilvl)
     if not quality or not ilvl or ilvl < 5 then return nil end
@@ -229,7 +229,7 @@ local function disenchantLines(tt, link, quality, lvl)
     if not ok or NO_DE[equipLoc or ""] or (classID ~= 2 and classID ~= 4) then return end
     local res = DE.Results(quality, lvl, classID == 2)
     if not res then return end
-    -- Abstand, Ueberschrift, dann je Material: Symbol, Name in Seltenheitsfarbe, Menge grau, Chance rechts
+    -- spacing, header, then per material: icon, name in quality color, amount grey, chance right
     tt:AddLine(" ")
     tt:AddLine(L["Disenchants into"], 0.62, 0.55, 0.95)
     local QC = { [1] = { 1, 1, 1 }, [2] = { 0.12, 1, 0 }, [3] = { 0, 0.55, 1 }, [4] = { 0.78, 0.35, 1 } }
@@ -243,8 +243,8 @@ local function disenchantLines(tt, link, quality, lvl)
     end
 end
 
--- /oa entzaubern: zeigt im Chat, was aus den gerade angelegten Teilen herauskaeme, und oeffnet zur Ansicht den Tooltip
--- des ersten passenden Teils (damit man die Tooltip-Zeilen auch ohne Suchen sieht)
+-- /oa entzaubern: shows in chat what the currently equipped pieces would yield, and opens the tooltip
+-- of the first matching piece for viewing (so you see the tooltip lines without searching)
 ns.slash = ns.slash or {}
 ns.slash.entzaubern = function()
     local get = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
@@ -270,7 +270,7 @@ ns.slash.entzaubern = function()
         end
     end
     if n == 0 then ns.print("  -") return end
-    -- Tooltip des ersten Teils zeigen (laeuft durch denselben Weg wie beim Ueberfahren)
+    -- show tooltip of the first piece (runs through the same path as on mouseover)
     if firstSlot and GameTooltip and not ns.inCombat() then
         GameTooltip:SetOwner(UIParent, "ANCHOR_NONE")
         GameTooltip:ClearAllPoints()
@@ -290,7 +290,7 @@ local function itemLines(tt)
     if not name then return end
     local id = tonumber(link:match("item:(%d+)"))
     local lvl = itemLevel(link) or ilvl
-    -- beim Haendler zeigt WoW den Preis selbst
+    -- at a vendor WoW shows the price itself
     if sell and sell > 0 and not (MerchantFrame and MerchantFrame:IsShown()) then
         local n = stackOf(tt)
         if n and n > 1 then
@@ -371,7 +371,7 @@ if GameTooltip and GameTooltip.HookScript then
 end
 
 ------------------------------------------------------------------------
--- 3. Post: "Alles oeffnen" (Gold + Gegenstaende, keine Nachnahme)
+-- 3. Mail: "Open all" (gold + items, no COD)
 ------------------------------------------------------------------------
 local mailRun
 local function freeSlots()
@@ -431,7 +431,7 @@ local function mailButton()
     CP.mailBtn = b
 end
 ns.On("MAIL_SHOW", function()
-    -- Blizzard hat in diesem Client schon "Alle oeffnen" (OpenAllMail) -> keinen zweiten Knopf
+    -- Blizzard already has "Open all" (OpenAllMail) in this client -> no second button
     local blizz = _G.OpenAllMail ~= nil
     if not on("cpMail") or blizz then if CP.mailBtn then CP.mailBtn:Hide() end return end
     pcall(mailButton)
@@ -440,9 +440,9 @@ end)
 ns.On("MAIL_CLOSED", function() mailRun = nil end)
 
 ------------------------------------------------------------------------
--- 4. Munition, Reagenzien, Seelensplitter
+-- 4. Ammo, reagents, soul shards
 ------------------------------------------------------------------------
--- je Klasse: { Item-ID oder "ammo", Warnschwelle, Name-Schluessel }
+-- per class: { item ID or "ammo", warning threshold, name key }
 local REAG = {
     HUNTER = { { "ammo", 200, "Ammo" } },
     WARLOCK = { { 6265, 3, "Soul Shard" } },
@@ -469,7 +469,7 @@ function CP.Reagents()
     local out = {}
     for _, r in ipairs(REAG[cls] or {}) do
         local n, id = reagCount(r[1])
-        -- nur was man benutzt: einmal gesehen (>0) = beobachten
+        -- only what you use: seen once (>0) = watch
         S().cpReagSeen = S().cpReagSeen or {}
         local key = tostring(r[1])
         if n and n > 0 then S().cpReagSeen[key] = true end
@@ -504,7 +504,7 @@ ns.On("MERCHANT_SHOW", function()
 end)
 
 ------------------------------------------------------------------------
--- 5. Flugzeit (lernt die Strecken selbst)
+-- 5. Flight time (learns the routes itself)
 ------------------------------------------------------------------------
 local flight = {}
 local function nodeName(i) local ok, n = pcall(TaxiNodeName, i) return ok and n or nil end
@@ -517,7 +517,7 @@ function CP.FlightTime(from, to)
     local key = (from or "?") .. ">" .. (to or "?")
     local t = ns.db.flights and ns.db.flights[key]
     if t then return t end
-    -- von der Gilde gelernt
+    -- learned from the guild
     local r = ns.Store and ns.Store.Get("flights", "fl:" .. key)
     return r and not r.del and r.dur or nil
 end
@@ -527,7 +527,7 @@ if TakeTaxiNode then
         flight = { from = currentNode(), to = nodeName(i), armed = GetTime() }
     end)
 end
--- Restzeit auf der Flugkarte im Tooltip der Ziele
+-- remaining time on the flight map in the destination tooltip
 if TaxiNodeOnButtonEnter then
     hooksecurefunc("TaxiNodeOnButtonEnter", function(btn)
         if not on("cpFlight") or not btn or not btn.GetID then return end
@@ -548,7 +548,7 @@ local function flightBar()
     f.text = f:CreateFontString(nil, "OVERLAY")
     if K.SetFontSafe then K.SetFontSafe(f.text, K.FONT, 11, "OUTLINE", K.FONT) else f.text:SetFont(K.FONT, 11, "OUTLINE") end
     f.text:SetPoint("CENTER")
-    -- 0.6.488: Flug unterbrechen - landet am naechsten Flugpunkt (nur wenn das Spiel die Funktion kennt)
+    -- 0.6.488: interrupt flight - lands at the next flight point (only if the game knows the function)
     if TaxiRequestEarlyLanding then
         f.land = K.Button(f, L["Land"], 64, 20, "ghost", function(self)
             local ok = pcall(TaxiRequestEarlyLanding)
@@ -568,7 +568,7 @@ local function flightBar()
         if self.acc < 0.25 then return end
         self.acc = 0
         if not flight.start then self:Hide() return end
-        -- gelandet? (PLAYER_CONTROL_GAINED kommt manchmal, bevor der Flug offiziell vorbei ist)
+        -- landed? (PLAYER_CONTROL_GAINED sometimes fires before the flight is officially over)
         if UnitOnTaxi and not UnitOnTaxi("player") then pcall(CP.TaxiCheck) return end
         local dt = GetTime() - flight.start
         local total = CP.FlightTime(flight.from, flight.to)
@@ -588,7 +588,7 @@ local function taxiCheck()
     local onTaxi = UnitOnTaxi and UnitOnTaxi("player")
     if onTaxi and flight.armed and not flight.start then
         flight.start = GetTime()
-        -- 0.5.731: Flug merken, damit die Anzeige nach /reload weiterlaeuft (Uhrzeit statt GetTime, das nach dem Neuladen neu zaehlt)
+        -- 0.5.731: remember flight so the display continues after /reload (clock time instead of GetTime, which restarts after reload)
         if ns.db then ns.db.flightNow = { from = flight.from, to = flight.to, t = time() } end
         if on("cpFlight") then flightBar():Show() end
     elseif not onTaxi and flight.start then
@@ -597,7 +597,7 @@ local function taxiCheck()
             ns.db.flights = ns.db.flights or {}
             local key = flight.from .. ">" .. flight.to
             ns.db.flights[key] = math.floor(dt)
-            -- mit der Gilde teilen (nur wenn neu oder deutlich anders)
+            -- share with the guild (only if new or clearly different)
             local old = ns.Store and ns.Store.Get("flights", "fl:" .. key)
             if ns.Store and (not old or old.del or math.abs((old.dur or 0) - dt) > 5) then
                 ns.Store.Put("flights", { id = "fl:" .. key, dur = math.floor(dt) })
@@ -609,14 +609,14 @@ local function taxiCheck()
     end
 end
 CP.TaxiCheck = taxiCheck
--- nach /reload mitten im Flug: Restzeit-Anzeige wiederherstellen
+-- after /reload mid-flight: restore remaining-time display
 local function restoreFlight(final)
     local s = ns.db and ns.db.flightNow
     if flight.start or not s then return end
     if UnitOnTaxi and UnitOnTaxi("player") and time() - (s.t or 0) < 3600 then
         flight = { from = s.from, to = s.to, armed = GetTime(), start = GetTime() - (time() - (s.t or time())) }
         if on("cpFlight") then flightBar():Show() end
-    elseif final and not (UnitOnTaxi and UnitOnTaxi("player")) then   -- erst beim zweiten Versuch verwerfen
+    elseif final and not (UnitOnTaxi and UnitOnTaxi("player")) then   -- only discard on the second attempt
         ns.db.flightNow = nil
     end
 end
@@ -625,11 +625,11 @@ ns.On("PLAYER_CONTROL_GAINED", function() pcall(taxiCheck) ns.After(1, function(
 ns.On("PLAYER_ENTERING_WORLD", function()
     pcall(restoreFlight)
     pcall(taxiCheck)
-    ns.After(2, function() pcall(restoreFlight, true) end)   -- UnitOnTaxi kann direkt nach dem Neuladen noch false melden
+    ns.After(2, function() pcall(restoreFlight, true) end)   -- UnitOnTaxi may still report false right after reloading
 end)
 
 ------------------------------------------------------------------------
--- 6. Koordinaten (Weltkarte: Spieler + Mauszeiger, unter der Minimap)
+-- 6. Coordinates (world map: player + cursor, below the minimap)
 ------------------------------------------------------------------------
 local function playerXY()
     local map = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
@@ -644,7 +644,7 @@ local function coordText()
     local x, y = playerXY()
     return x and ("%.1f, %.1f"):format(x, y) or "--"
 end
--- 0.5.531: Koordinaten zeigt WoW Forever selbst - Oasis-Anzeige entfernt (blendet nur alte Reste aus)
+-- 0.5.531: WoW Forever shows coordinates itself - Oasis display removed (only hides old leftovers)
 function CP.ApplyCoords()
     local want = false
     if Minimap and not CP.mmCoords and want then
@@ -663,18 +663,18 @@ function CP.ApplyCoords()
         CP.mmCoords = f
     end
     if CP.mmCoords then CP.mmCoords:SetShown(want) end
-    -- 0.5.522: Weltkarte zeigt Forever selbst (worldMapShowPlayerCoords / worldMapShowCursorCoords)
+    -- 0.5.522: Forever shows the world map itself (worldMapShowPlayerCoords / worldMapShowCursorCoords)
     if CP.wmCoords then CP.wmCoords:Hide() end
 end
 
 ------------------------------------------------------------------------
--- 7. Chat: Links kopieren, Klassenfarben, Zeitstempel
+-- 7. Chat: copy links, class colors, timestamps
 ------------------------------------------------------------------------
 local URL_EVENTS = { "CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_GUILD", "CHAT_MSG_OFFICER", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER",
     "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_WHISPER", "CHAT_MSG_WHISPER_INFORM", "CHAT_MSG_CHANNEL", "CHAT_MSG_BN_WHISPER",
     "CHAT_MSG_BN_WHISPER_INFORM", "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER" }
--- "addon:"-Links: Blizzard leitet sie selbst weiter, Oasis haengt sich nur per hooksecurefunc an
--- (frueher wurde SetItemRef ersetzt -> verseuchte jeden Link-Klick im Chat)
+-- "addon:" links: Blizzard forwards them itself, Oasis only attaches via hooksecurefunc
+-- (SetItemRef used to be replaced -> tainted every link click in chat)
 local function linksOk() return (LinkTypes and LinkTypes.addon ~= nil) or (EventRegistry ~= nil and LinkUtil ~= nil) end
 local function linkify(u)
     if not linksOk() then return "|cff6ab0ff" .. u .. "|r" end
@@ -728,20 +728,20 @@ local CLASS_CHATS = { "SAY", "EMOTE", "YELL", "GUILD", "OFFICER", "PARTY", "PART
 function CP.ApplyChat()
     if ns.inCombat() then return end
     local want = on("cpChatLinks")
-    -- nur einmal umstellen, danach gehoert die Einstellung wieder dem Spieler
+    -- switch only once, afterwards the setting belongs to the player again
     if want and not S().cpChatApplied then
         S().cpChatApplied = true
         if SetChatColorNameByClass then
             for _, t in ipairs(CLASS_CHATS) do pcall(SetChatColorNameByClass, t, true) end
         end
-        -- Zeitstempel: Blizzards eigene Chat-Einstellung (0.5.522: Oasis setzt sie nicht mehr an oder aus)
+        -- timestamps: Blizzard's own chat setting (0.5.522: Oasis no longer turns it on or off)
     elseif not want and S().cpChatApplied then
         S().cpChatApplied = nil
     end
 end
 
 ------------------------------------------------------------------------
--- 8. Gegenstandsstufe beim Betrachten
+-- 8. Item level on inspect
 ------------------------------------------------------------------------
 local ILVL_SLOTS = { 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }
 local function avgLevel(unit)
@@ -760,7 +760,7 @@ local function avgLevel(unit)
         end
     end
     if n == 0 then return nil end
-    -- Zweihaender zaehlt doppelt (wie bei Blizzard)
+    -- two-hander counts double (like Blizzard)
     if twoHand and not GetInventoryItemLink(unit, 17) then sum, n = sum + (sum / n), n + 1 end
     return sum / math.max(n, 16)
 end
@@ -793,9 +793,9 @@ ns.On("INSPECT_READY", function(guid)
 end)
 
 ------------------------------------------------------------------------
--- 9. Weltkarte aufdecken (Standard aus, Einstellung bei der Karte)
+-- 9. Reveal world map (off by default, setting at the map)
 ------------------------------------------------------------------------
--- Daten: ns.MapRevealData[uiMapID] = { "w:h:x:y:tex1,tex2,...", ... } (Core/Map/MapRevealData.lua, Spieldaten WoW Forever)
+-- data: ns.MapRevealData[uiMapID] = { "w:h:x:y:tex1,tex2,...", ... } (Core/Map/MapRevealData.lua, game data WoW Forever)
 local revealPool = {}
 local function revealRefresh()
     for _, t in ipairs(revealPool) do t:Hide() end
@@ -804,10 +804,10 @@ local function revealRefresh()
     local mapID = WorldMapFrame:GetMapID()
     local list = data and mapID and data[mapID]
     if not list then return end
-    -- schon erkundete Flaechen lassen wir Blizzard zeichnen
-    -- 0.6.564: Abgleich mit Toleranz (Forever verschiebt einzelne Flaechen um ein paar Pixel). Frueher reichte EINE
-    -- abweichende Flaeche, damit gar nichts aufgedeckt wurde (Hillsbrad). Jetzt erst aussetzen, wenn die Mehrheit
-    -- der erkundeten Flaechen nicht passt (Karte wirklich neu gezeichnet, z. B. Mulgore).
+    -- already explored areas are drawn by Blizzard
+    -- 0.6.564: matching with tolerance (Forever shifts single areas by a few pixels). Previously ONE
+    -- deviating area was enough to reveal nothing at all (Hillsbrad). Now only skip when the majority
+    -- of explored areas does not match (map really redrawn, e.g. Mulgore).
     local known = {}
     local mine = {}
     for i, entry in ipairs(list) do
@@ -860,13 +860,13 @@ local function revealRefresh()
                         t:ClearAllPoints()
                         t:SetPoint("TOPLEFT", canvas, "TOPLEFT", (ox + 256 * (c - 1)) * sx, -(oy + 256 * (r - 1)) * sy)
                         t:SetSize(tw * sx, th * sy)
-                        -- Dateigroesse = naechste Zweierpotenz (wie bei Blizzard)
+                        -- file size = next power of two (like Blizzard)
                         local fw, fh = 16, 16
                         while fw < tw do fw = fw * 2 end
                         while fh < th do fh = fh * 2 end
                         t:SetTexCoord(0, tw / fw, 0, th / fh)
                         t:SetTexture(id)
-                        -- unerforscht = abgedunkelt
+                        -- unexplored = darkened
                         t:SetVertexColor(0.55, 0.55, 0.6)
                         t:SetAlpha(0.85)
                         t:Show()
@@ -895,15 +895,15 @@ function CP.ApplyAll()
 end
 
 ------------------------------------------------------------------------
--- 10. Suche (Kraeuter/Erz/Schatz/Wildtiere ...) nach dem Tod wieder an
--- Automatisch zaubern darf ein Addon nicht (geschuetzt + GCD) -> ein Knopf erscheint, ein Klick reicht.
+-- 10. Tracking (herbs/ore/treasure/beasts ...) back on after death
+-- An addon may not cast automatically (protected + GCD) -> a button appears, one click is enough.
 ------------------------------------------------------------------------
 local TRACK = { [2383] = true, [2580] = true, [2481] = true, [1494] = true, [19883] = true, [19884] = true, [19885] = true,
     [19880] = true, [19878] = true, [19882] = true, [19879] = true, [5225] = true, [5500] = true, [5502] = true }
 ns.Listen("LOGIN", function()
     if S().cpTrackInit == nil then
         S().cpTrackInit = true
-        -- 0.6.522: persoenlicher Helfer - fuer neue Spieler aus
+        -- 0.6.522: personal helper - off for new players
     end
 end)
 local function trackingActive()
@@ -941,8 +941,8 @@ local function trackButton()
     CP.trackBtn = b
     return b
 end
--- 0.5.661: zuletzt benutzte Suche JE CHARAKTER (vorher accountweit -> Magier ohne Kraeuterkunde bekam den
--- Kraeuter-Knopf eines Twinks) und nur, wenn der Charakter den Zauber auch kennt
+-- 0.5.661: last used tracking PER CHARACTER (previously account-wide -> a mage without herbalism got the
+-- herb button of an alt) and only if the character knows the spell
 local function knows(id)
     if IsPlayerSpell then local ok, r = pcall(IsPlayerSpell, id) if ok then return r and true or false end end
     if IsSpellKnown then local ok, r = pcall(IsSpellKnown, id) if ok then return r and true or false end end
@@ -970,7 +970,7 @@ local function offerTracking()
     b.icon:SetTexture(icon)
     b.text:SetText((L["Click: %s back on"]):format(name))
     b:Show()
-    -- nach einer Minute von selbst weg
+    -- disappears by itself after one minute
     ns.After(60, function() if CP.trackBtn and CP.trackBtn:IsShown() and not InCombatLockdown() then CP.trackBtn:Hide() end end)
 end
 ns.On("UNIT_SPELLCAST_SUCCEEDED", function(unit, _, spellID)
@@ -984,7 +984,7 @@ ns.On("PLAYER_UNGHOST", function() ns.After(1.5, function() pcall(offerTracking)
 ns.On("PLAYER_ALIVE", function() ns.After(1.5, function() pcall(offerTracking) end) end)
 
 ------------------------------------------------------------------------
--- Einstellungen: eigener Reiter "Helfer"
+-- settings: own tab "Helpers"
 ------------------------------------------------------------------------
 local OPTS = {
     { "On the road", {
@@ -1006,7 +1006,7 @@ local OPTS = {
 local function build(f)
     local H = ns.SettingsHelpers
     f.noCompact = true
-    -- scrollbar (viele Helfer): Mausrad + schmale Leiste
+    -- scrollable (many helpers): mouse wheel + slim bar
     local sf = CreateFrame("ScrollFrame", nil, f)
     sf:SetPoint("TOPLEFT", 0, 0)
     sf:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -1034,13 +1034,13 @@ local function build(f)
         updBar()
     end)
     sf:SetScript("OnSizeChanged", function() updBar() end)
-    -- Knopf zur Uebersicht
+    -- button to the overview
     local ovb = K.Button(body, L["Characters & helpers - overview"], 260, 26, "primary", function()
         if ns.Helpers2 then ns.Helpers2.Overview() end
     end)
     ovb:SetPoint("TOPLEFT", 0, 0)
     if H.note then H.note(body, L["Gold, hearthstone, instance IDs, guild cooldowns, sets and fishing stats (/oa chars)"], 272, -6, 480) end
-    -- Gruppen: links und rechts abwechselnd, jede Spalte stapelt fuer sich
+    -- groups: alternating left and right, each column stacks on its own
     local groups = {}
     for _, g in ipairs(OPTS) do groups[#groups + 1] = g end
     for _, g in ipairs(ns.Helpers2 and ns.Helpers2.OPTS or {}) do groups[#groups + 1] = g end
@@ -1048,7 +1048,7 @@ local function build(f)
     for gi, grp in ipairs(groups) do
         local c = (colY[1] >= colY[2]) and 1 or 2
         local x, y = c == 1 and 0 or 376, colY[c]
-        -- 0.5.720: je Gruppe eine Glas-Karte (Titel in der Karte, Schalter darin)
+        -- 0.5.720: one glass card per group (title inside the card, toggles in it)
         local h = 50 + #grp[2] * 28 + 8
         local card = H.cardH(body, x, y, 362, h, "home", L[grp[1]])
         local cy = -48
@@ -1063,5 +1063,5 @@ local function build(f)
     body:SetHeight(-bottom + 40)
     ns.After(0.1, updBar)
 end
-if ns.AddSettingsTab then ns.AddSettingsTab("helpers", "Guild helpers", build) end   -- 0.6.530: steht unter Gilde & Organisation
+if ns.AddSettingsTab then ns.AddSettingsTab("helpers", "Guild helpers", build) end   -- 0.6.530: sits under Guild & Organization
 end)

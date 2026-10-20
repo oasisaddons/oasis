@@ -1,11 +1,11 @@
--- Oasis: Raid-Simulator (nur Entwicklerversion, ns.IsDev())
---  * /oa raidsim [10|20|40] [onyxia|hyjal|barrow]  |  /oa raidsim aus  (auch: kampf, beute, bereit)
---  * Rechtsklick auf den Demo-Schalter oben im Fenster: Simulator-Menue
---  * ns.Group: zentrale Gruppen-Abfragen fuer die Raid-Module. Ohne Simulator kommen die Werte 1:1 aus den
---    Blizzard-APIs, mit Simulator aus einem erfundenen Raid (ich = Raidleiter in Gruppe 1).
---    Es werden KEINE Blizzard-Funktionen ueberschrieben (Taint) - nur Oasis-eigene Funktionen umgeleitet.
---  * Waehrend der Simulation geht nichts an Gilde/Gruppe: Chat- und Addon-Nachrichten der Raid-Module
---    landen nur im eigenen Chatfenster, Datensaetze tragen "demo-sim-"-IDs und verschwinden beim Stopp.
+-- Oasis: raid simulator (developer version only, ns.IsDev())
+--  * /oa raidsim [10|20|40] [onyxia|hyjal|barrow]  |  /oa raidsim aus  (also: kampf, beute, bereit)
+--  * Right-click on the demo toggle at the top of the window: simulator menu
+--  * ns.Group: central group queries for the raid modules. Without the simulator the values come 1:1 from the
+--    Blizzard APIs, with the simulator from a made-up raid (me = raid leader in group 1).
+--    NO Blizzard functions are overwritten (taint) - only Oasis's own functions are redirected.
+--  * During the simulation nothing goes to guild/group: chat and addon messages of the raid modules
+--    only land in your own chat window, records carry "demo-sim-" IDs and disappear on stop.
 local ADDON, ns = ...
 local L = ns.L
 local Store = ns.Store
@@ -39,7 +39,7 @@ local LOOT = {
         "|cff0070dd|Hitem:13955::::::::|h[Stoneform Shoulders]|h|r", "|cffa335ee|Hitem:16800::::::::|h[Arcanist Boots]|h|r",
     },
 }
--- Rollen je Klasse (Reihenfolge = Klassenmischung im Raid)
+-- Roles per class (order = class mix in the raid)
 local TANKS = { "WARRIOR", "WARRIOR", "DRUID", "WARRIOR" }
 local HEALS = { "PRIEST", "SHAMAN", "PRIEST", "DRUID", "SHAMAN", "PRIEST" }
 local DPS = { "ROGUE", "MAGE", "WARLOCK", "HUNTER", "WARRIOR", "MAGE", "ROGUE", "SHAMAN", "HUNTER", "WARLOCK", "PRIEST", "DRUID", "MAGE" }
@@ -49,7 +49,7 @@ local EXTRA = { "Throkk", "Ulgra", "Mazrok", "Kezzik", "Rasha", "Gorvash", "Tazl
     "Torvek", "Ixira", "Gundar", "Muzga", "Rekka", "Thal'zo", "Varga", "Okrim", "Selun", "Durza", "Kragg", "Yazmi", "Bolgar", "Hesha" }
 local SLOTS = { "Cloak", "Chest", "Weapon", "Boots", "Bracers", "Gloves" }
 
-local S = nil          -- laufende Simulation (nur im Speicher)
+local S = nil          -- running simulation (in memory only)
 local fightN = 0
 
 local function rnd(a, b) return math.random(a, b) end
@@ -116,7 +116,7 @@ local function build(size, inst)
     for i = 1, t do need[#need + 1] = { role = "TANK", class = TANKS[(i - 1) % #TANKS + 1] } end
     for i = 1, h do need[#need + 1] = { role = "HEALER", class = HEALS[(i - 1) % #HEALS + 1] } end
     for i = 1, size - t - h do need[#need + 1] = { role = "DAMAGER", class = DPS[(i - 1) % #DPS + 1] } end
-    -- mein Platz ersetzt einen passenden
+    -- my slot replaces a matching one
     for i, n in ipairs(need) do if n.role == myRole then table.remove(need, i) break end end
     local function take(cls)
         for _, p in ipairs(pool) do if p.class == cls and not used[p.name] then used[p.name] = true return p.name end end
@@ -126,7 +126,7 @@ local function build(size, inst)
     end
     local list = { { name = me, class = myCls, role = myRole, isMe = true } }
     for _, n in ipairs(need) do list[#list + 1] = { name = take(n.class), class = n.class, role = n.role } end
-    -- Gruppen: ich in 1, Tanks und Heiler verteilt, Rest auffuellen
+    -- Groups: me in 1, tanks and healers spread out, fill up the rest
     local groups = size / 5
     local free = {}
     for g = 1, groups do free[g] = 5 end
@@ -160,7 +160,7 @@ local function build(size, inst)
         m.dura = rnd(55, 100)
         m.fireRes = inst.key == "onyxia" and (m.role == "TANK" and rnd(90, 190) or rnd(0, 120)) or rnd(0, 40)
     end
-    -- ein paar Ausreisser: niedrige Haltbarkeit, AFK, offline, weit weg
+    -- a few outliers: low durability, AFK, offline, far away
     local others = {}
     for i = 2, #list do others[#others + 1] = list[i] end
     local function pick() return table.remove(others, rnd(1, #others)) end
@@ -182,7 +182,7 @@ local function build(size, inst)
 end
 
 ------------------------------------------------------------------------
--- ns.Group: echte Daten aus den Blizzard-APIs, im Simulator der erfundene Raid
+-- ns.Group: real data from the Blizzard APIs, the made-up raid in the simulator
 ------------------------------------------------------------------------
 local function realInGroup() return (IsInGroup and IsInGroup()) and true or false end
 local function realInRaid() return (IsInRaid and IsInRaid()) and true or false end
@@ -221,7 +221,7 @@ function G.Instance()
     end
     return { name = name, mapID = mid, key = keyOfName(name) }
 end
--- echte Mitgliederliste (ohne Gruppe: leer)
+-- real member list (without a group: empty)
 local function realMembers()
     local out = {}
     if realInRaid() then
@@ -285,7 +285,7 @@ function G.IsSimName(name)
 end
 
 ------------------------------------------------------------------------
--- Nichts nach aussen senden (nur Oasis-eigene Funktionen, keine Blizzard-Globals)
+-- Send nothing outside (only Oasis's own functions, no Blizzard globals)
 ------------------------------------------------------------------------
 local GROUP_CH = { RAID = true, PARTY = true, RAID_WARNING = true, INSTANCE_CHAT = true }
 local SIM_TYPES = { WREP = true, WRME = true, RPREP = true, RPREQ = true, RBSET = true, RBREQ = true, LMSTART = true, LMITEM = true,
@@ -345,7 +345,7 @@ end
 install()
 
 ------------------------------------------------------------------------
--- Ablauf
+-- Flow
 ------------------------------------------------------------------------
 local PAGES = { "raidcheck", "raidprep", "raidboard", "wipes", "raid", "home" }
 local function refresh()
@@ -357,7 +357,7 @@ Sim.Refresh = refresh
 
 local function nextFightIn() return rnd(150, 240) end
 
--- Antwort auf einen Ready-Check: true / false / "afk"
+-- Response to a ready check: true / false / "afk"
 function Sim.ReadyAnswer(m)
     if not m then return "afk" end
     if m.isMe then return true end
@@ -388,7 +388,7 @@ end
 function Sim.Stop(quiet)
     if not S then return end
     local was = S
-    -- laufende Beute-Runde schliessen, solange die Umleitungen noch greifen
+    -- close a running loot round while the redirects still apply
     if ns.LootMaster and ns.LootMaster.session and ns.LootMaster.session.sim and ns.LootMaster.End then pcall(ns.LootMaster.End) end
     if ns.LootMaster and ns.LootMaster.session and ns.LootMaster.session.sim then ns.LootMaster.session = nil end
     if ns.RaidPlanner and ns.RaidPlanner.running and ns.RaidPlanner.running.sim and ns.RaidPlanner.Stop then pcall(ns.RaidPlanner.Stop) end
@@ -401,7 +401,7 @@ function Sim.Stop(quiet)
     if not quiet then ns.print((L["Raid simulator stopped (%d entries removed)."]):format(n)) end
 end
 
--- alle Sim-Datensaetze entfernen (auch Reste nach /reload)
+-- remove all sim records (also leftovers after /reload)
 function Sim.Cleanup()
     local n = 0
     if not (ns.db and ns.db.store) then return 0 end
@@ -415,7 +415,7 @@ function Sim.Cleanup()
     return n
 end
 
--- Gruppe eines Sim-Mitglieds aendern (Raid-Planer sortiert)
+-- Change a sim member's group (raid planner sorts)
 function Sim.SetGroup(name, g)
     local m = S and S.by[name]
     if not m or not g then return false end
@@ -426,7 +426,7 @@ function Sim.SetGroup(name, g)
     return true
 end
 
--- Kampf: Versuch mit Todesreihenfolge -> Kampfberichte; Sieg -> Beute-Runde, naechster Boss
+-- Combat: attempt with death order -> combat reports; victory -> loot round, next boss
 function Sim.Fight(forceOk)
     if not Sim.Active() then return end
     local inst = S.inst
@@ -438,7 +438,7 @@ function Sim.Fight(forceOk)
     local dur = ok and rnd(150, 360) or rnd(60, 300)
     local alive = {}
     for _, m in ipairs(S.list) do if m.online and not m.afk and not m.dead then alive[#alive + 1] = m end end
-    -- Pechvogel: stirbt oft zuerst (Muster in den Kampfberichten)
+    -- Unlucky one: often dies first (pattern in the combat reports)
     if not S.unlucky then
         for _, m in ipairs(alive) do if m.role == "DAMAGER" and not m.isMe then S.unlucky = m.name break end end
     end
@@ -495,7 +495,7 @@ function Sim.ReadyCheck()
     ns.ShowPage("raidcheck")
 end
 
--- Takt: Buffs laufen ab und werden erneuert, Leute gehen AFK/kommen zurueck, Kaempfe
+-- Tick: buffs expire and get renewed, people go AFK/come back, fights
 local function tick()
     if not S then return end
     if not ns.IsDev() then Sim.Stop(true) return end
@@ -519,7 +519,7 @@ end
 ns.Every(2, tick)
 
 ------------------------------------------------------------------------
--- Befehl, Menue am Demo-Schalter, Probe
+-- Command, menu on the demo toggle, probe
 ------------------------------------------------------------------------
 function Sim.Menu(owner)
     local K = ns.K
@@ -576,7 +576,7 @@ local function hookChip()
 end
 Sim.HookChip = hookChip
 ns.Listen("LOGIN", function()
-    -- Reste einer Simulation vor /reload entfernen
+    -- remove leftovers of a simulation from before /reload
     Sim.Cleanup()
     ns.After(2, hookChip)
 end)

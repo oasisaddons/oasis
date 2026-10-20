@@ -1,23 +1,23 @@
--- Oasis: Gilden-Historie (wie Guild Roster Manager)
---  * Abgleich der Gildenliste: Beitritte, Austritte, Rangwechsel und Notiz-Aenderungen werden auch dann
---    erkannt, wenn niemand mit Oasis die Systemmeldung gesehen hat (Vergleich mit dem letzten Stand)
---  * Ehemalige (Store "formers"): wer wann mit welchem Rang/Level ging; Rueckkehrer werden gemeldet
---  * Verlauf je Mitglied: Beitritt, Rangwechsel, Tage im aktuellen Rang, fruehere Mitgliedschaften
---  * Befoerderung faellig: aktive Mitglieder, die lange genug im Rang sind (Gilden-Option)
--- Reiter in der Gildenleitung > Mitglieder: Verlauf, Ehemalige, Befoerderung.
+-- Oasis: guild history (like Guild Roster Manager)
+--  * Roster sync: joins, leaves, rank changes and note changes are detected even
+--    when nobody with Oasis saw the system message (comparison with the last state)
+--  * Former members (store "formers"): who left when with which rank/level; returners are reported
+--  * History per member: join, rank changes, days in current rank, earlier memberships
+--  * Promotion due: active members who have been in their rank long enough (guild option)
+-- Tabs in guild leadership > Members: History, Former, Promotion.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_GuildManagement", function()   -- Modul Gildenpflege (abschaltbar, siehe ModuleLoader.lua); erweitert deren Protokoll (O.AuditText)
+ns.ModuleFile("Oasis_GuildManagement", function()   -- Guild care module (can be disabled, see ModuleLoader.lua); extends its log (O.AuditText)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be tampered with):
+-- sanitize texts, cap numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- escape sequences (|c |r |n |H |T |K |A ...) and control characters neutralized; links: valid item/spell links are kept
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -79,9 +79,9 @@ local function dayStr(t) return date("%Y%m%d", t or ns.now()) end
 local function isLead() return ns.Admin and ns.Admin.CanManage and ns.Admin.CanManage() end
 
 ------------------------------------------------------------------------
--- Protokoll-Eintraege aus dem Abgleich
+-- log entries from the sync
 ------------------------------------------------------------------------
--- gibt es schon einen Eintrag aus der Systemmeldung (oder einem anderen Abgleich) fuer diese Person?
+-- is there already an entry from the system message (or another sync) for this person?
 local function recentAudit(kinds, name, since)
     local k = key(name)
     for _, r in ipairs(Store.List("audit")) do
@@ -98,7 +98,7 @@ local function put(kind, name, extra)
     Store.Put("audit", r)
 end
 
--- Text fuer die neuen Arten (scan-Eintraege) ergaenzen
+-- add text for the new types (scan entries)
 local baseText = O.AuditText
 function O.AuditText(r)
     if r.kind == "rankup" then return (L["%s is now %s (was %s)"]):format(r.a, r.r, r.b)
@@ -115,7 +115,7 @@ if O.KIND_COL then
 end
 
 ------------------------------------------------------------------------
--- Abgleich der Gildenliste
+-- Roster sync
 ------------------------------------------------------------------------
 local function snap()
     ns.db.rsnap = ns.db.rsnap or {}
@@ -133,7 +133,7 @@ local function compare()
     if not IsInGuild() or not ns.Radar then return end
     local roster = ns.Radar.roster or {}
     local total = GetNumGuildMembers and GetNumGuildMembers() or 0
-    -- nur bei vollstaendiger Liste vergleichen (sonst wuerden "fehlende" als Austritte gelten)
+    -- only compare with a complete list (otherwise "missing" ones would count as leaves)
     if #roster == 0 or #roster < total or (ns.Demo and ns.Demo.IsActive and ns.Demo.IsActive()) then return end
     local guild = GetGuildInfo("player")
     local s = snap()
@@ -179,7 +179,7 @@ local function compare()
         end
         s[k].seen = now
     end
-    -- weg: Ehemalige anlegen
+    -- gone: create former member
     for k, o in pairs(s) do
         if k ~= "__guild" and type(o) == "table" and not here[k] then
             local kicked = recentAudit({ kick = true }, o.n, now - 2 * DAY)
@@ -197,9 +197,9 @@ end
 ns.Listen("ROSTER", function() pcall(compare) end)
 
 ------------------------------------------------------------------------
--- Auswertungen
+-- Evaluations
 ------------------------------------------------------------------------
--- Verlauf einer Person (neueste zuerst)
+-- history of a person (newest first)
 function GH.Timeline(name)
     local k = key(name)
     local out = {}
@@ -209,7 +209,7 @@ function GH.Timeline(name)
     table.sort(out, function(a, b) return (a.ts or 0) > (b.ts or 0) end)
     return out
 end
--- seit wann im aktuellen Rang / in der Gilde (nil = unbekannt, vor Oasis)
+-- since when in current rank / in the guild (nil = unknown, before Oasis)
 function GH.RankSince(name)
     local o = snap()[key(name)]
     local best = o and o.since and o.since > 0 and o.since or nil
@@ -236,7 +236,7 @@ function GH.Formers()
     table.sort(list, function(a, b) return (a.left or 0) > (b.left or 0) end)
     return list
 end
--- aktive Mitglieder unterhalb der Leitung, lange genug im Rang
+-- active members below leadership, long enough in rank
 function GH.PromoDue()
     local days = tonumber(ns.GuildOpt("ghPromo")) or 30
     if days <= 0 then return {} end
@@ -255,8 +255,8 @@ function GH.PromoDue()
 end
 
 ------------------------------------------------------------------------
--- Eigene Notizen je Mitglied (wie GRM): laenger als Blizzards Notizfeld, nur fuer Offiziere.
--- Laufen ueber den Offizierskanal (Blizzard stellt ihn nur Offizieren zu), nicht ueber die Gilde.
+-- Own notes per member (like GRM): longer than Blizzard's note field, officers only.
+-- Go over the officer channel (Blizzard only delivers it to officers), not over the guild.
 ------------------------------------------------------------------------
 local Comm = ns.Comm
 local function notes() ns.db.mnotes = ns.db.mnotes or {} return ns.db.mnotes end
@@ -275,8 +275,8 @@ function GH.SetNote(name, text)
 end
 Comm.On("MNOTE", function(sender, channel, k, u, by, text)
     if channel ~= "OFFICER" or not k then return end
-    -- Zeitstempel nicht in der Zukunft (sonst nie mehr aenderbar), Text entschaerft, Menge begrenzt
-    -- (Verfasser bleibt beim Weiterreichen erhalten; der Offizierskanal erreicht nur Offiziere)
+    -- timestamps not in the future (otherwise never changeable again), text sanitized, amount capped
+    -- (author is kept when relaying; the officer channel only reaches officers)
     u = math.min(SEC.Num(u, 0, 4102444800) or 0, ns.now() + 300)
     k = SEC.Text(k, 80)
     local old = notes()[k]
@@ -289,7 +289,7 @@ Comm.On("MNOTE", function(sender, channel, k, u, by, text)
     notes()[k] = { t = SEC.Text(text, 500), by = SEC.Name(by) or sender, u = u }
     ns.RefreshPage("admin")
 end)
--- beim Einloggen: fehlende Notizen bei den anderen Offizieren anfragen
+-- on login: request missing notes from the other officers
 Comm.On("MNREQ", function(sender, channel, since)
     if channel ~= "OFFICER" or not isOfficer() then return end
     if not SEC.Rate("mnreq:" .. tostring(sender), 60) then return end
@@ -312,7 +312,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Reiter in der Gildenleitung
+-- tab in guild leadership
 ------------------------------------------------------------------------
 local function ago(t)
     if not t then return "|cff666666?|r" end
@@ -327,7 +327,7 @@ local function head(f, x, y, text, w, j)
     return t
 end
 
--- Verlauf: links Mitglieder (Rang, im Rang seit, in der Gilde seit), rechts Zeitleiste
+-- History: members on the left (rank, in rank since, in guild since), timeline on the right
 O.BUILD.history = function(f)
     local n = K.Text(f, 10, C.dim)
     n:SetPoint("TOPLEFT", 0, 0)
@@ -355,7 +355,7 @@ O.BUILD.history = function(f)
     f.list:SetPoint("TOPLEFT", 0, -70)
     f.list:SetPoint("BOTTOMLEFT", 0, 0)
     f.list:SetWidth(430)
-    -- rechts
+    -- right
     f.card = K.Panel(f, C.panel)
     f.card:SetPoint("TOPLEFT", 446, -20)
     f.card:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -377,7 +377,7 @@ O.BUILD.history = function(f)
     f.tl:SetPoint("TOPLEFT", 6, -76)
     f.tl:SetPoint("BOTTOMRIGHT", -6, 118)
     f.tl.empty:SetText(L["Nothing recorded yet."])
-    -- eigene Notiz (nur Offiziere)
+    -- own note (officers only)
     f.noteHead = K.Text(f.card, 10, C.dim)
     f.noteHead:SetPoint("BOTTOMLEFT", 14, 96)
     f.noteHead:SetText(K.Upper(L["Guild management note"]))
@@ -446,7 +446,7 @@ O.REFRESH.history = function(f)
     end
 end
 
--- Ehemalige
+-- Former members
 O.BUILD.formers = function(f)
     local n = K.Text(f, 10, C.dim)
     n:SetPoint("TOPLEFT", 0, 0)
@@ -486,7 +486,7 @@ O.BUILD.formers = function(f)
 end
 O.REFRESH.formers = function(f) f.list:SetData(GH.Formers()) end
 
--- Befoerderung faellig
+-- Promotion due
 O.BUILD.promo = function(f)
     f.hint = K.Text(f, 10, C.dim)
     f.hint:SetPoint("TOPLEFT", 0, 0)

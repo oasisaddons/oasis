@@ -1,16 +1,16 @@
--- Oasis: Gruppenfinder der Gilde ("Suche Gruppe: Todesminen, brauche Heiler")
+-- Oasis: guild group finder ("LFG: Deadmines, need healer")
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be manipulated):
+-- Sanitize texts, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- neutralize escape sequences (|c |r |n |H |T |K |A ...) and control characters; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -58,7 +58,7 @@ end
 
 local Groups = {}
 ns.Groups = Groups
-Groups.requests = {}   -- Anfragen an meine Suche: [name] = { role, class, lvl, t, state }
+Groups.requests = {}   -- Requests to my search: [name] = { role, class, lvl, t, state }
 
 local ROLES = {
     tank = { "Tank", { 0.38, 0.62, 1.00 } },
@@ -76,7 +76,7 @@ local CAN = {
 }
 
 ------------------------------------------------------------------------
--- Meine Rollen (pro Charakter, Standard nach Klasse)
+-- My roles (per character, default by class)
 ------------------------------------------------------------------------
 function Groups.MyRoles()
     if not ns.char.roles then
@@ -95,8 +95,8 @@ local function roleText(r)
     return table.concat(t, "  ")
 end
 ------------------------------------------------------------------------
--- Plaetze: feste Aufstellung 1 Tank, 1 Heiler, 3 Schaden
--- Datensatz: layout = "thddd", m = "Name:t,Name:d,..." (wer sitzt auf welchem Platz)
+-- Slots: fixed lineup 1 tank, 1 healer, 3 damage
+-- Record: layout = "thddd", m = "Name:t,Name:d,..." (who sits in which slot)
 ------------------------------------------------------------------------
 local LAYOUT = "thddd"
 local ROLE_OF = { t = "tank", h = "heal", d = "dps" }
@@ -107,7 +107,7 @@ local function members(g)
     for name, r in (g.m or ""):gmatch("([^:,]+):(%a)") do out[#out + 1] = { name = name, role = ROLE_OF[r] or "dps" } end
     return out
 end
--- 5 Plaetze { role, who } in fester Reihenfolge
+-- 5 slots { role, who } in fixed order
 function Groups.Slots(g)
     local slots = {}
     local layout = g.layout or LAYOUT
@@ -117,7 +117,7 @@ function Groups.Slots(g)
             if s.role == mb.role and not s.who then s.who = mb.name break end
         end
     end
-    -- Leute in der Gruppe ohne Oasis-Platz (per Hand eingeladen): freie Schadensplaetze belegen
+    -- People in the group without an Oasis slot (invited by hand): fill free damage slots
     local extra = (g.count or 0) - #members(g)
     for _, s in ipairs(slots) do
         if extra <= 0 then break end
@@ -137,7 +137,7 @@ local function matches(g)
 end
 Groups.Matches = matches
 
--- Datensatz neu schreiben (Belegung, freie Rollen, Zaehler)
+-- Rewrite the record (occupancy, free roles, counters)
 local function rewrite(g, fn)
     local r = {}
     for k, v in pairs(g) do r[k] = v end
@@ -160,9 +160,9 @@ local function assign(g, name, role)
 end
 
 ------------------------------------------------------------------------
--- Suchen verwalten
+-- Manage searches
 ------------------------------------------------------------------------
--- Navigation + Oasis-Leiste: Beitrittsanfragen haben Vorrang vor der Zahl offener Gruppen
+-- Navigation + Oasis bar: join requests take precedence over the number of open groups
 function Groups.UpdateBadge()
     local reqs = 0
     if Groups.Mine() then for _, q in pairs(Groups.requests) do if q.state ~= "invited" then reqs = reqs + 1 end end end
@@ -176,9 +176,9 @@ function Groups.Active()
     table.sort(out, function(a, b) return (a.u or 0) > (b.u or 0) end)
     return out
 end
--- Laufende Gruppen (ohne Suchanzeige): aus den Gruppenmeldungen der Oasis-Mitglieder (Profil: gs, gnames, zone, gl).
--- Zeigt, wer gerade zusammen unterwegs ist und wo - mit dem Leiter zum Anfluestern. Eigene Gruppe und Gruppen,
--- fuer die schon eine Suchanzeige laeuft, bleiben draussen.
+-- Running groups (without a search listing): from the group reports of Oasis members (profile: gs, gnames, zone, gl).
+-- Shows who is currently out together and where - with the leader to whisper. Own group and groups
+-- that already have a search listing are left out.
 function Groups.Live()
     local R = ns.Radar
     if not (R and R.roster and ns.Members) then return {} end
@@ -216,8 +216,8 @@ function Groups.Live()
             end
         end
     end
-    -- dieselbe Gruppe kommt teils doppelt an (ein Mitglied meldet einen Namen mit anderem Realm-Anhang oder die Liste
-    -- ist gerade einen Spieler kuerzer): Meldungen mit mindestens zwei gleichen Namen (ohne Realm) zusammenlegen
+    -- the same group sometimes arrives twice (a member reports a name with a different realm suffix or the list
+    -- is one player shorter at the moment): merge reports with at least two identical names (without realm)
     local function base(k) return k:match("^(.*)%-[^%-]+$") or k end
     local merged = {}
     for _, g in ipairs(order) do
@@ -263,7 +263,7 @@ function Groups.Live()
     end)
     return out
 end
--- neue Gruppenmeldung eines Mitglieds: Gruppen-Seite nachziehen (gebuendelt)
+-- new group report from a member: refresh the groups page (batched)
 ns.Listen("PROFILE", function() if ns.Debounce then ns.Debounce("groupsLive", 2, function() ns.RefreshPage("groups") end) end end)
 function Groups.Mine()
     local g = Store.Get("lfg", "lfg-" .. ns.short(ns.me()))
@@ -275,7 +275,7 @@ local function groupSize()
     return (n and n > 0) and n or 1
 end
 
--- Gilden-Optionen (Gildenleitung): wer darf Suchen starten, wie lange laufen sie
+-- Guild options (guild leadership): who may start searches, how long they run
 ns.GuildOption({ page = "groups", key = "grRank", default = 10, min = 1, max = 10, step = 1,
     label = "Start search from rank", desc = "Only members up to this rank may start a group search (10 = everyone).",
     fmt = function(v) return (L["up to rank %d"]):format(v) end })
@@ -289,7 +289,7 @@ local function rankAllowed(limit)
     return ri == nil or ri < limit
 end
 
--- in einer Gruppe darf nur der Leiter eine Suche starten
+-- in a group only the leader may start a search
 function Groups.CanStart()
     if IsInGroup and IsInGroup() and UnitIsGroupLeader and not UnitIsGroupLeader("player") then return false end
     return true
@@ -299,7 +299,7 @@ function Groups.Start(title, myRole, auto, note, voice)
     if not rankAllowed(tonumber(ns.GuildOpt("grRank"))) then ns.print(L["The guild leadership only allows group searches from a higher rank."]) return end
     if not title or title == "" then ns.print(L["Please enter an activity (e.g. Deadmines)."]) return end
     if ns.Badges then ns.Badges.Add("lfgStarted", 1) end
-    Groups.weekStart = GetTime()   -- Woche zaehlt erst, wenn ein Gildenmitglied wirklich beitritt
+    Groups.weekStart = GetTime()   -- Weekly only counts once a guild member really joins
     local _, classFile = UnitClass("player")
     local rec = {
         id = "lfg-" .. ns.short(ns.me()), who = ns.me(), title = title, note = note or "", started = ns.now(),
@@ -318,7 +318,7 @@ function Groups.Stop()
     rewrite(g, function(r) r.open = false end)
     wipe(Groups.requests)
 end
--- Gruppe aendert sich: Weggegangene frei machen, volle Gruppe beenden
+-- Group changes: free the slots of those who left, end a full group
 local function inMyGroup(name)
     if ns.isMe(name) then return true end
     local short = ns.short(name)
@@ -330,7 +330,7 @@ local function updateCount()
     local n = groupSize()
     local keep, changed = {}, false
     for _, mb in ipairs(members(g)) do
-        -- Eingeladene zaehlen noch 2 Minuten, auch wenn sie noch nicht angenommen haben
+        -- Invitees still count for 2 minutes even if they have not accepted yet
         local q = Groups.requests[mb.name]
         local pending = q and q.state == "invited" and ns.now() - (q.t or 0) < 120
         if inMyGroup(mb.name) or pending then keep[#keep + 1] = mb.name .. ":" .. KEY_OF[mb.role] else changed = true end
@@ -345,7 +345,7 @@ end
 ns.On("GROUP_ROSTER_UPDATE", function() ns.After(1, updateCount) end)
 
 ------------------------------------------------------------------------
--- Platz anklicken: Anfrage an den Suchenden, der laedt (automatisch) ein
+-- Click a slot: request to the searcher, who invites (automatically)
 ------------------------------------------------------------------------
 local function gkey(g) return (g.id or "?") .. "@" .. tostring(g.started or 0) end
 Groups.Key = gkey
@@ -353,13 +353,13 @@ function Groups.Join(g, role)
     if ns.isMe(g.who) then return end
     role = role or "dps"
     if ns.Badges then ns.Badges.Add("joined", 1) end
-    Groups.weekJoin = { who = g.who, t = GetTime() }   -- Woche zaehlt erst, wenn man wirklich in der Gruppe ist
+    Groups.weekJoin = { who = g.who, t = GetTime() }   -- Weekly only counts once you are really in the group
     local _, classFile = UnitClass("player")
     local lvl = ns.safe(UnitLevel("player")) or 0
     local mp = ns.Radar and ns.Radar.myProfile and ns.Radar.myProfile()
     local ilvl = mp and tonumber(mp.ilvl) or 0
     Comm.Whisper(g.who, "JOIN", g.id, role, classFile or "", lvl, ilvl)
-    -- zusaetzlich ueber die Gilden-Ablage: kommt auch an, wenn das Fluestern verloren geht
+    -- additionally via the guild store: arrives even if the whisper gets lost
     if ns.Store then
         ns.Store.Put("lfgreq", { id = g.id .. ":" .. ns.short(ns.me()), gid = g.id, gst = g.started or 0, role = role, class = classFile or "",
             lvl = lvl, ilvl = ilvl, t = ns.now() })
@@ -405,12 +405,12 @@ end
 local function onJoin(sender, id, role, classFile, lvl, ilvl)
     local g = Groups.Mine()
     if not g or g.id ~= id then return end
-    -- Anfrage-Flut je Absender drosseln, Felder begrenzen
+    -- throttle request floods per sender, limit fields
     if not SEC.Rate("join:" .. tostring(sender), 4) then return end
     classFile = tostring(classFile or ""):match("^%u+$") and #classFile <= 16 and classFile or nil
     lvl = SEC.Num(lvl, 0, 200, true) or 0
     ilvl = SEC.Num(ilvl, 0, 2000, true) or 0
-    -- eine Person = ein Eintrag, egal in welcher Namensform sie ankommt ("Anna" / "Anna Berg")
+    -- one person = one entry, no matter in which name form they arrive ("Anna" / "Anna Berg")
     sender = (ns.Alts and ns.Alts.Canon) and ns.Alts.Canon(sender) or sender
     for n in pairs(Groups.requests) do
         if n ~= sender and Comm.whoKey(n) == Comm.whoKey(sender) then
@@ -418,7 +418,7 @@ local function onJoin(sender, id, role, classFile, lvl, ilvl)
             Groups.requests[n] = nil
         end
     end
-    -- schon bekannt (kam doppelt: Fluestern + Ablage)
+    -- already known (arrived twice: whisper + store)
     local old = Groups.requests[sender]
     if old and old.role == role and ns.now() - (old.t or 0) < 120 then return end
     role = ROLES[role] and role or "dps"
@@ -443,7 +443,7 @@ end
 Comm.On("JOIN", function(sender, _, id, role, classFile, lvl, ilvl) onJoin(sender, id, role, classFile, lvl, ilvl) end)
 
 ------------------------------------------------------------------------
--- Zusammenfuehren: zwei Suchen fuer dasselbe Ziel, deren Rollen zusammenpassen
+-- Merge: two searches for the same target whose roles fit together
 ------------------------------------------------------------------------
 local function sameTarget(a, b)
     if not (a and b and a.title and b.title) then return false end
@@ -453,7 +453,7 @@ local function sameTarget(a, b)
     local db = ns.Dungeons and ns.Dungeons.Match(b.title)
     return da and db and da.key == db.key or false
 end
--- passen alle Leute aus "from" in die freien Plaetze von "into"?
+-- do all people from "from" fit into the free slots of "into"?
 function Groups.CanMerge(from, into)
     if not (from and into) or from.id == into.id or not sameTarget(from, into) then return false end
     local need, open = { tank = 0, heal = 0, dps = 0 }, { tank = 0, heal = 0, dps = 0 }
@@ -461,7 +461,7 @@ function Groups.CanMerge(from, into)
     for _, sl in ipairs(Groups.Slots(into)) do if not sl.who then open[sl.role] = open[sl.role] + 1 end end
     for k, n in pairs(need) do
         if n > open[k] then
-            -- ueberzaehlige Schadens-/Rollenplaetze duerfen nicht auf Tank/Heiler ausweichen
+            -- surplus damage/role slots must not fall back to tank/healer
             return false
         end
     end
@@ -479,8 +479,8 @@ function Groups.RequestMerge(into)
     K.Toast(L["Merge requested"], (L["%s gets your request"]):format(ns.displayName(into.who)), C.accent)
     ns.RefreshPage("groups")
 end
--- Zusammenfuehren-Liste pruefen: nur Leute, die wirklich in der (geteilten) Suche des Absenders sitzen,
--- hoechstens 4 - sonst koennte jeder mein Spiel beliebige Spieler einladen lassen
+-- Check the merge list: only people who really sit in the sender's (shared) search,
+-- at most 4 - otherwise anyone could make my game invite arbitrary players
 local function mergeList(sender, m)
     local theirs = Store.Get("lfg", "lfg-" .. ns.short(sender or ""))
     if not theirs or theirs.del or not theirs.open or not theirs.who or Comm.whoKey(theirs.who) ~= Comm.whoKey(sender) then return nil end
@@ -503,8 +503,8 @@ local function doMerge(sender, m)
             g = assign(Groups.Mine() or g, x.name, x.role)
             local n = x.name
             invite(n)
-            -- nur EIN zweiter Versuch, mit Zeit zum Annehmen: nach 30 s, falls noch nicht in der Gruppe
-            -- (z.B. musste er erst seine alte Gruppe verlassen)
+            -- only ONE second attempt, with time to accept: after 30 s, if not yet in the group
+            -- (e.g. they first had to leave their old group)
             ns.After(30, function()
                 local cn = ns.ChatName(n)
                 if not (UnitInParty and (UnitInParty(cn) or UnitInRaid(cn))) then invite(n) end
@@ -533,7 +533,7 @@ local function onMerge(sender, id, m, title)
 end
 Comm.On("MERGE", function(sender, _, id, m, title) onMerge(sender, id, m, title) end)
 Comm.On("MERGEOK", function(sender)
-    -- meine Suche ist in der anderen aufgegangen - nur, wenn ich genau dort angefragt habe
+    -- my search was absorbed into the other one - only if I requested exactly there
     local asked = Groups.mergeAsked and Store.Get("lfg", Groups.mergeAsked)
     if not asked or not asked.who or Comm.whoKey(asked.who) ~= Comm.whoKey(sender) then return end
     if Groups.Mine() then Groups.Stop() end
@@ -543,7 +543,7 @@ end)
 ns.Listen("STORE", function(coll, rec)
     if coll ~= "lfgreq" or not rec or rec.del or not rec.by or ns.isMe(rec.by) then return end
     if ns.now() - (rec.t or 0) > 300 then return end
-    -- Anfrage im Namen eines anderen? (Ersteller muss der letzte Bearbeiter sein)
+    -- Request on behalf of someone else? (creator must be the last editor)
     if not rec.mb or Comm.whoKey(rec.mb) ~= Comm.whoKey(rec.by) then return end
     local g = Groups.Mine()
     if not g or (rec.gst or 0) ~= (g.started or 0) then return end
@@ -551,7 +551,7 @@ ns.Listen("STORE", function(coll, rec)
     onJoin(rec.by, rec.gid, rec.role, rec.class, rec.lvl, rec.ilvl)
 end)
 Comm.On("JOINNO", function(sender)
-    -- nur, wenn ich bei diesem Absender wirklich angefragt habe
+    -- only if I really requested with this sender
     local asked = false
     if Groups.joined then for id in pairs(Groups.joined) do if id:find(ns.short(sender), 1, true) then asked = true end end end
     if not asked or not SEC.Rate("joinno:" .. sender, 10) then return end
@@ -560,7 +560,7 @@ Comm.On("JOINNO", function(sender)
     ns.RefreshPage("groups")
 end)
 
--- neue Suche mit freiem Platz fuer meine Rolle -> Hinweis, Klick = Seite oeffnen
+-- new search with a free slot for my role -> notice, click = open page
 ns.Listen("STORE", function(coll, rec, old)
     if coll ~= "lfg" then return end
     if rec.open and not rec.del and not ns.isMe(rec.who) and (not old or not old.open)
@@ -577,7 +577,7 @@ ns.Listen("STORE", function(coll, rec, old)
 end)
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local myRole
 local autoInvite = true
@@ -591,7 +591,7 @@ local function defaultRole()
     return "dps"
 end
 
--- Platz-Knopf: frei = farbiges Rollensymbol (klickbar), besetzt = grau mit Name im Tooltip
+-- Slot button: free = colored role icon (clickable), taken = grey with name in the tooltip
 local function makeSlots(parent, size, onClick)
     local slots = {}
     for i = 1, 5 do
@@ -651,7 +651,7 @@ local function drawSlots(slots, g, clickable)
     end
 end
 
--- grosser Rollen-Schalter (Symbol + Name)
+-- large role toggle (icon + name)
 local function roleToggle(parent, k, w, h, get, set)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(w, h)
@@ -659,7 +659,7 @@ local function roleToggle(parent, k, w, h, get, set)
     K.Border(b, C.line)
     b.icon = b:CreateTexture(nil, "ARTWORK")
     b.icon:SetTexture(roleTex(k))
-    -- Symbol oben, Beschriftung darunter - ohne Ueberlappung
+    -- Icon on top, label below - without overlap
     local is = math.max(16, h - 26)
     b.icon:SetSize(is, is)
     b.icon:SetPoint("TOP", 0, -6)
@@ -679,15 +679,15 @@ local function roleToggle(parent, k, w, h, get, set)
     return b
 end
 
--- passende Ziele fuer mein Level
--- kleines Bild je Dungeon (Blizzards Gruppensuche-Symbole), sonst Karte; Questen = Buch
+-- suitable targets for my level
+-- small image per dungeon (Blizzard's group finder icons), otherwise map; questing = book
 local DIMG = { { "ragefire", "RagefireChasm" }, { "wailing", "WailingCaverns" }, { "deadmines", "Deadmines" },
     { "shadowfang", "ShadowfangKeep" }, { "blackfathom", "BlackfathomDeeps" }, { "stockade", "StormwindStockades" },
     { "gnomeregan", "Gnomeregan" }, { "kraul", "RazorfenKraul" }, { "downs", "RazorfenDowns" }, { "scarlet", "ScarletMonastery" },
     { "uldaman", "Uldaman" }, { "zul'farrak", "ZulFarak" }, { "zulfarrak", "ZulFarak" }, { "maraudon", "Maraudon" },
     { "sunken", "SunkenTemple" }, { "blackrock depths", "BlackrockDepths" }, { "dire maul", "DireMaul" },
     { "scholomance", "Scholomance" }, { "stratholme", "Stratholme" },
-    -- Forever-Instanzen ohne eigenes Symbol: passendes Bild leihen (Zwergenhallen / zerstoertes Lordaeron)
+    -- Forever instances without their own icon: borrow a suitable image (dwarf halls / ruined Lordaeron)
     { "thanes", "Uldaman" }, { "lordaeron", "Stratholme" } }
 local function dungeonImage(d)
     local n = ((d and (d.nameEN or d.name)) or ""):lower()
@@ -696,8 +696,8 @@ local function dungeonImage(d)
     end
     return "Interface\\Icons\\INV_Misc_Map_01"
 end
--- Ziel-Liste fuer die Karten: "fit" = nur dein Levelbereich, "all" = alle offenen Instanzen; dazu Questen in der Zone
--- fit: good = Level passt, edge = knapp darunter/darueber, off = zu niedrig/hoch
+-- Target list for the cards: "fit" = only your level range, "all" = all open instances; plus quests in the zone
+-- fit: good = level fits, edge = just below/above, off = too low/high
 local function fitOf(d, lvl)
     if not d or not d.lo then return "good" end
     local hi = d.hi or d.lo
@@ -734,7 +734,7 @@ local function targetList(mode)
     return out
 end
 
--- Optik wie Dashboard/Legacy: Verlauf, Glow, gestaffeltes Einblenden
+-- Look like dashboard/legacy: gradient, glow, staggered fade-in
 local EMBER = ns.MEDIA .. "ember"
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local FITC = { good = C.mint, edge = C.amber, off = C.dim }
@@ -751,7 +751,7 @@ local function rise(f, delay)
     K.Tween(f, 0.3, function(q) f:SetAlpha(q) end, function() f:SetAlpha(1) end, delay)
     ns.After((delay or 0) + 1, function() if (f:GetAlpha() or 1) < 1 then f:SetAlpha(1) end end)
 end
--- Hover: Verlauf von unten weich ein-/ausblenden
+-- Hover: softly fade the gradient in/out from below
 local function hoverGlow(f, c)
     f.hov = f:CreateTexture(nil, "BORDER", nil, 3)
     f.hov:SetPoint("TOPLEFT", 1, -1)
@@ -766,7 +766,7 @@ local function hoverGlow(f, c)
     f:HookScript("OnEnter", function() go(true) end)
     f:HookScript("OnLeave", function() go(false) end)
 end
--- Glanz einmal ueber einen Knopf ziehen
+-- Sweep a gloss across a button once
 local function sweep(f, delay)
     if not animOn() or not f.sweep then return end
     local w = f:GetWidth() or 200
@@ -777,7 +777,7 @@ local function sweep(f, delay)
         f.sweep:SetAlpha(0.6 * math.sin(q * math.pi))
     end, function() f.sweep:SetAlpha(0) end, delay)
 end
--- Instanz-Bild: rechts als blasser Ausschnitt, links ins Panel ausgeblendet
+-- Instance image: faint crop on the right, faded into the panel on the left
 local function artStrip(f, w, layerColor)
     f.art = f:CreateTexture(nil, "BORDER", nil, 1)
     f.art:SetPoint("TOPRIGHT", -1, -1)
@@ -791,7 +791,7 @@ local function artStrip(f, w, layerColor)
     if not K.Gradient(f.artFade, "HORIZONTAL", { c[1], c[2], c[3], 1 }, { c[1], c[2], c[3], 0 }) then f.artFade:Hide() end
 end
 
--- Ziel-Karte: Symbol, Name, Stufenband (Farbe nach eigenem Level), Auswahl-Markierung
+-- Target card: icon, name, level band (color by own level), selection marker
 local function makeCard(parent, onPick)
     local b = CreateFrame("Button", nil, parent)
     b:SetHeight(32)
@@ -815,7 +815,7 @@ local function makeCard(parent, onPick)
     b.pill.bg = K.Fill(b.pill, C.field)
     b.pill.bg:Hide()
     if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(b.pill, { 1, 1, 1, 0.04 }, { 1, 1, 1, 0.08 }, 8) end
-    -- "Empfohlen": bester Dungeon fuer dein Level
+    -- "Recommended": best dungeon for your level
     b.rec = K.Text(b, 9, C.amber, "RIGHT")
     b.rec:SetPoint("RIGHT", b.pill, "LEFT", -6, 0)
     b.rec:SetText(L["recommended"])
@@ -913,7 +913,7 @@ local function roleTile(parent, k, onPick)
     return b
 end
 
--- Schritt-Kreis (1 Ziel, 2 Rolle, 3 Los)
+-- Step circle (1 target, 2 role, 3 go)
 local function stepDot(parent, n, label)
     local s = CreateFrame("Frame", nil, parent)
     s:SetSize(22, 22)
@@ -969,7 +969,7 @@ local function stepDot(parent, n, label)
     return s
 end
 
--- Options-Zeile: Schalter ueber die volle Breite, Erklaerung im Tooltip
+-- Option row: toggle across the full width, explanation in the tooltip
 local function optionRow(t, title, desc)
     t:HookScript("OnEnter", function(self) K.ShowTip(self, { title, desc }) end)
     t:HookScript("OnLeave", function() GameTooltip:Hide() end)
@@ -981,7 +981,7 @@ ns.RegisterPage({
     key = "groups", title = "Groups", order = 2.7,
     sub = "Click an open slot and you're in – 1 tank, 1 healer, 3 damage",
     build = function(p)
-        -- oben rechts: welche Rollen spiele ich? (fuer Hinweise)
+        -- top right: which roles do I play? (for notices)
         local mh = K.Text(p, 11, C.muted, "RIGHT")
         mh:SetPoint("TOPRIGHT", -3 * 44 - 8, -12)
         mh:SetText(L["I play:"])
@@ -999,10 +999,10 @@ ns.RegisterPage({
             b:SetScript("OnEnter", function(self) K.ShowTip(self, { ROLES[k][1], L["Click: on/off – matching groups will ping you"] }) end)
             b:SetScript("OnLeave", function() GameTooltip:Hide() end)
             p.myRoles[k] = b
-            b:Hide()   -- Rolle wird im Profil gewaehlt (eine Gruppenrolle)
+            b:Hide()   -- Role is chosen in the profile (one group role)
         end
         mh:Hide()
-        -- Werkzeug-Knoepfe: auffaellig (primary) und genau so breit wie die Spalte "Eigene Gruppe" darunter
+        -- Tool buttons: prominent (primary) and exactly as wide as the "Own group" column below
         p.toolBar = CreateFrame("Frame", nil, p)
         p.toolBar:SetPoint("TOPLEFT", 486, -10)
         p.toolBar:SetPoint("TOPRIGHT", 0, -10)
@@ -1021,12 +1021,12 @@ ns.RegisterPage({
         p.ohInfo = K.Text(p, 11, C.muted)
         p.ohInfo:SetPoint("TOPLEFT", 0, -28)
         p.ohInfo:SetWidth(470)
-        -- Einladungen von Gruppen, bei denen ich angefragt habe, automatisch annehmen
+        -- automatically accept invites from groups I requested to join
         p.autoAccept = K.Toggle(p, L["Auto-accept"], function() return ns.db.settings.lfgAccept ~= false end,
             function(v) ns.db.settings.lfgAccept = v end)
         p.autoAccept:SetPoint("TOPLEFT", 300, -4)
 
-        -- links: offene Gruppen, je Karte 5 Plaetze zum Anklicken
+        -- left: open groups, 5 clickable slots per card
         local list = K.List(p, 84, function(l)
             local r = K.Row(l)
             r.cols.title = K.Title(r, 14, C.text)
@@ -1046,7 +1046,7 @@ ns.RegisterPage({
             r.cnt = K.Title(r, 14, C.muted, "RIGHT")
             r.cnt:SetPoint("TOPRIGHT", -12, -10)
             r.hint = K.Text(r, 10, C.dim, "RIGHT")
-            -- rechts oben unter dem Zaehler (unten ist "Noch offen")
+            -- top right below the counter (bottom is "Still open")
             r.hint:SetPoint("TOPRIGHT", -12, -30)
             r.merge = K.Button(r, L["Merge"], 112, 20, "ghost")
             r.merge:SetPoint("TOPRIGHT", -52, -8)
@@ -1055,13 +1055,13 @@ ns.RegisterPage({
             end)
             r.merge:SetScript("OnLeave", function() GameTooltip:Hide() end)
             r.merge:Hide()
-            -- ganze Zeile anklickbar: mit meiner Rolle anfragen (bzw. in der Gruppe: Rolle wechseln)
+            -- whole row clickable: request with my role (or in the group: switch role)
             r:RegisterForClicks("LeftButtonUp")
             r:SetScript("OnClick", function(self)
                 local g = self.item
                 if not g or ns.isMe(g.who) then return end
                 if g.live then
-                    -- laufende Gruppe: den Leiter (bzw. ein Mitglied mit Oasis) anschreiben - Text steht fertig im Chat, du schickst ab
+                    -- running group: message the leader (or a member with Oasis) - text is prepared in chat, you send it
                     ns.Whisper(g.who, g.inst and (L["Hi! Do you have a free spot in %s, or need a replacement later?"]):format(g.title)
                         or L["Hi! Do you have a free spot in your group?"])
                     return
@@ -1074,7 +1074,7 @@ ns.RegisterPage({
                 if not self.canClick then return end
                 Groups.SlotClick(g, role)
             end)
-            -- Mitglied: Gruppe verlassen
+            -- Member: leave group
             r.leave = CreateFrame("Button", nil, r)
             r.leave:SetSize(92, 20)
             r.leave:SetPoint("TOPRIGHT", -52, -8)
@@ -1093,7 +1093,7 @@ ns.RegisterPage({
             end)
             r.leave:SetScript("OnClick", function() Groups.LeaveGroup() end)
             r.leave:Hide()
-            -- laufende Gruppe: fuenf Plaetze als Klassenkreise (Leiter mit hellem Ring), daneben freie Plaetze und Anfluestern
+            -- running group: five slots as class circles (leader with light ring), free slots and whisper next to it
             r.live = CreateFrame("Frame", nil, r)
             r.live:SetPoint("BOTTOMLEFT", 12, 8)
             r.live:SetPoint("BOTTOMRIGHT", -12, 8)
@@ -1128,7 +1128,7 @@ ns.RegisterPage({
             r.live.free:SetPoint("LEFT", 5 * 36 + 8, 0)
             r.live.ask = K.Button(r.live, L["Whisper"], 104, 24, "primary", function() r:Click() end)
             r.live.ask:SetPoint("RIGHT", 0, 0)
-            -- eigene Anfrage zurueckziehen
+            -- withdraw own request
             r.cancel = K.Button(r, L["Withdraw"], 92, 20, "ghost")
             r.cancel:SetPoint("TOPRIGHT", -52, -8)
             r.cancel:Hide()
@@ -1151,7 +1151,7 @@ ns.RegisterPage({
                 r.noteText = nil
                 r.cnt:SetText(n .. (n <= 5 and "/5" or ""))
                 r.hint:SetText("")
-                -- Plaetze: bekannte Gildenmitglieder mit Klassensymbol, Fremde als "?", frei = leerer Kreis
+                -- Slots: known guild members with class icon, strangers as "?", free = empty circle
                 local lead = ns.NameKey and ns.NameKey(g.who) or tostring(g.who):lower()
                 for i, b in ipairs(r.live.seat) do
                     local key = g.keys[i]
@@ -1201,16 +1201,16 @@ ns.RegisterPage({
             r.noteText = g.note
             if g.voice then r.cols.note:SetText(r.cols.note:GetText() .. "   |cff88bbff" .. L["Voice chat"] .. "|r") end
             local mine = ns.isMe(g.who)
-            -- schon in dieser Gruppe (oder Mitglied einer anderen, nicht Leiter): keine Anfrage moeglich
+            -- already in this group (or member of another, not leader): no request possible
             local inIt = false
             for _, mb in ipairs(members(g)) do if ns.isMe(mb.name) then inIt = true end end
-            -- nur wer wirklich in einer WoW-Gruppe ist, ist "dabei" (Karte kann veraltet sein)
+            -- only those really in a WoW group are "in" (the card may be outdated)
             if not (IsInGroup and IsInGroup()) then inIt = false end
-            -- auch per Hand/Zusammenfuehren in der Gruppe des Leiters
+            -- also in the leader's group by hand/merge
             if not inIt and not mine and IsInGroup and IsInGroup() and Groups.InMyParty and Groups.InMyParty(g.who) then inIt = true end
-            -- bin ich drin, ist meine alte Anfrage erledigt (sonst sperrt "angefragt" die Plaetze)
+            -- if I am in, my old request is done (otherwise "requested" locks the slots)
             if inIt and Groups.joined then Groups.joined[Groups.Key(g)] = nil end
-            -- in der Gruppe: freien Platz anklicken = Rolle wechseln; sonst = anfragen
+            -- in the group: click a free slot = switch role; otherwise = request
             drawSlots(r.slots, g, mine or inIt or Groups.CanStart())
             r.canClick = (inIt or Groups.CanStart()) and not mine
             local taken = 0
@@ -1239,7 +1239,7 @@ ns.RegisterPage({
         list:SetWidth(470)
         list.empty:SetText("")
         p.list = list
-        -- Leere Liste: wer aus der Gilde ist gerade online und passt zu deinem Ziel? (ein Klick fragt an)
+        -- Empty list: who from the guild is online right now and fits your target? (one click sends a request)
         local mt = CreateFrame("Frame", nil, p)
         mt:SetPoint("TOPLEFT", 0, -50)
         mt:SetSize(470, 330)
@@ -1295,15 +1295,15 @@ ns.RegisterPage({
         mt.none:SetWidth(420)
         mt.none:SetWordWrap(true)
         mt:Hide()
-        -- Geplante Dungeons: Termine aus "Raids & Beute" (Karten + Liste kommen aus Raid.lua)
+        -- Planned dungeons: events from "Raids & Loot" (cards + list come from Raid.lua)
         p.planBtn = K.Button(p, L["Scheduled"], 124, 22, "ghost", function()
             ns.db.settings.grpPlanned = not ns.db.settings.grpPlanned
             ns.RefreshPage("groups")
         end)
-        -- rechtsbuendig am Ende der linken Spalte (Liste ist 470 breit), auf Hoehe der Ueberschrift
+        -- right-aligned at the end of the left column (list is 470 wide), level with the heading
         p.planBtn:SetPoint("TOPRIGHT", p, "TOPLEFT", 470, -4)
 
-        -- rechts: eigene Gruppe (Schritte 1 Ziel, 2 Rolle, 3 Los; laufend: Statuskarte)
+        -- right: own group (steps 1 target, 2 role, 3 go; running: status card)
         p:HookScript("OnShow", function(self) self.fresh2 = true end)
         local box = CreateFrame("Frame", nil, p)
         if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(box, { 1, 1, 1, 0.025 }, { 1, 1, 1, 0.10 }, 14) end
@@ -1317,7 +1317,7 @@ ns.RegisterPage({
         bh:SetPoint("RIGHT", box, "RIGHT", -12, 0)
         p.boxHead = bh
 
-        -- "Automatisch annehmen" gilt immer (auch als Mitglied): eine Zeile unten in der Spalte
+        -- "Auto accept" always applies (also as a member): one row at the bottom of the column
         if p.autoAccept then
             optionRow(p.autoAccept, L["Auto-accept"], L["Invites from groups you asked to join are accepted automatically."])
             p.autoAccept:ClearAllPoints()
@@ -1331,11 +1331,11 @@ ns.RegisterPage({
         p.optLine:SetPoint("BOTTOMLEFT", 12, 102)
         p.optLine:SetPoint("BOTTOMRIGHT", -12, 102)
 
-        -- Neue Suche ---------------------------------------------------
+        -- New search ---------------------------------------------------
         p.newView = CreateFrame("Frame", nil, box)
         p.newView:SetAllPoints()
         local nv = p.newView
-        -- Schritt-Kopf
+        -- Step header
         local st = CreateFrame("Frame", nil, nv)
         st:SetPoint("TOPLEFT", 12, -34)
         st:SetPoint("RIGHT", box, "RIGHT", -12, 0)
@@ -1360,7 +1360,7 @@ ns.RegisterPage({
         end)
         for i, s in ipairs(p.steps) do s:SetPoint("LEFT", st, "LEFT", (i - 1) * 110, 0) end
 
-        -- Filter als Segment statt Dropdown
+        -- Filter as segment instead of dropdown
         p.filterSeg = K.Segments(nv, { { key = "fit", text = L["Fits me"] }, { key = "all", text = L["All"] } }, function()
             p.cardOff = 0
             p.DrawCards()
@@ -1369,7 +1369,7 @@ ns.RegisterPage({
         p.pageInfo = K.Text(nv, 10, C.dim, "RIGHT")
         p.pageInfo:SetPoint("TOPRIGHT", box, "TOPRIGHT", -12, -68)
 
-        -- Ziel-Karten (Anzahl passt sich der Hoehe an, Mausrad blaettert)
+        -- Target cards (count adapts to the height, mouse wheel pages)
         p.cardOff = 0
         p.cardsArea = CreateFrame("Frame", nil, nv)
         p.cardsArea:SetPoint("TOPLEFT", 12, -90)
@@ -1417,7 +1417,7 @@ ns.RegisterPage({
         end
         p.cardsArea:SetScript("OnSizeChanged", function() if p.newView:IsShown() then p.DrawCards() end end)
 
-        -- Freitext mit Stift-Symbol
+        -- Free text with pencil icon
         p.title = K.Input(nv, 240, L["... or type your own"], function(t)
             if t ~= "" then pickTitle = nil end
             ns.RefreshPage("groups")
@@ -1438,7 +1438,7 @@ ns.RegisterPage({
         p.title:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Custom target"], L["For example: questing in the Barrens, elite quest, reputation farming ..."] }) end)
         p.title:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
-        -- Rollen-Kacheln
+        -- Role tiles
         local rr = CreateFrame("Frame", nil, nv)
         rr:SetPoint("BOTTOMLEFT", 12, 128)
         rr:SetPoint("RIGHT", box, "RIGHT", -12, 0)
@@ -1468,7 +1468,7 @@ ns.RegisterPage({
             end
         end)
 
-        -- Optionen (Zeilen unten; "Automatisch annehmen" liegt darunter, s.o.)
+        -- Options (rows at the bottom; "Auto accept" is below, see above)
         if ns.db.settings.lfgAuto ~= nil then autoInvite = ns.db.settings.lfgAuto end
         p.auto = K.Toggle(nv, L["Invite automatically"], function() return autoInvite end, function(v) autoInvite = v ns.db.settings.lfgAuto = v end)
         optionRow(p.auto, L["Invite automatically"], L["Anyone who signs up with a fitting role is invited to your group right away."])
@@ -1477,12 +1477,12 @@ ns.RegisterPage({
         p.auto:SetPoint("RIGHT", box, "RIGHT", -12, 0)
         p.auto:SetHeight(20)
 
-        -- Sprachchat: Vorbelegung aus Blizzards Gruppensuche (nur falls dort schon ein Modus steht)
+        -- Voice chat: prefill from Blizzard's group finder (only if a mode is already set there)
         if ns.db.settings.lfgVoice == nil then
             local ok, info = pcall(function() return C_LFGList and C_LFGList.GetActiveEntryInfo and C_LFGList.GetActiveEntryInfo() end)
             local v = ok and type(info) == "table" and info.voiceChat
             if type(v) == "string" and not (issecretvalue and issecretvalue(v)) and v ~= "" then ns.db.settings.lfgVoice = true end
-            -- 0.5.771: laeuft ein Discord-/Sprachkanal, ist Sprachchat wahrscheinlich gewollt
+            -- 0.5.771: if a Discord/voice channel is running, voice chat is probably wanted
             if ns.db.settings.lfgVoice == nil and ns.Discord and ns.Discord.VoiceActive and ns.Discord.VoiceActive() then ns.db.settings.lfgVoice = true end
         end
         p.voice = K.Toggle(nv, L["Voice chat"], function() return ns.db.settings.lfgVoice and true or false end, function(v) ns.db.settings.lfgVoice = v end)
@@ -1492,7 +1492,7 @@ ns.RegisterPage({
         p.voice:SetPoint("RIGHT", box, "RIGHT", -12, 0)
         p.voice:SetHeight(20)
 
-        -- Start-Knopf
+        -- Start button
         p.go = K.Button(nv, L["Find group"], 240, 34, "primary", function()
             local t = pickTitle or p.title:GetText()
             Groups.Start(t, myRole or defaultRole(), autoInvite, nil, ns.db.settings.lfgVoice)
@@ -1512,7 +1512,7 @@ ns.RegisterPage({
         end)
         p.go:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
-        -- Laufende Suche: Statuskarte -------------------------------------
+        -- Running search: status card -------------------------------------
         p.runView = CreateFrame("Frame", nil, box)
         p.runView:SetAllPoints()
         local rv = p.runView
@@ -1539,7 +1539,7 @@ ns.RegisterPage({
         p.runSub:SetPoint("BOTTOMLEFT", p.hero.icon, "BOTTOMRIGHT", 10, 2)
         p.runSub:SetPoint("RIGHT", p.hero, "RIGHT", -8, 0)
 
-        -- Plaetze: 5 Slots gleichmaessig ueber die Breite
+        -- Slots: 5 slots evenly across the width
         local sr = CreateFrame("Frame", nil, rv)
         sr:SetPoint("TOPLEFT", 12, -98)
         sr:SetPoint("RIGHT", box, "RIGHT", -12, 0)
@@ -1556,7 +1556,7 @@ ns.RegisterPage({
         p.runInfo:SetPoint("TOPLEFT", 12, -144)
         p.runInfo:SetPoint("RIGHT", box, "RIGHT", -12, 0)
 
-        -- eigene Rolle auch waehrend der Suche aendern (wechselt den Platz + Blizzard-Rolle)
+        -- change own role also during the search (switches slot + Blizzard role)
         local rl = K.Label(rv, L["Your role"])
         rl:SetPoint("TOPLEFT", 12, -170)
         p.runRoles = {}
@@ -1614,7 +1614,7 @@ ns.RegisterPage({
         p.req:SetPoint("BOTTOMRIGHT", -4, 106)
         p.req.empty:SetText(L["Nobody yet – the guild has been notified."])
         p.req.empty:SetFont(K.FONT, 11, "")
-        -- "Suche laeuft"-Anzeige: Radar mit drehendem Bogen + Pulsringe, solange niemand angefragt hat
+        -- "Searching" display: radar with rotating arc + pulse rings while nobody has requested
         local fx = CreateFrame("Frame", nil, p.req)
         fx:SetSize(90, 90)
         fx:SetPoint("CENTER", p.req, "CENTER", 0, 14)
@@ -1658,7 +1658,7 @@ ns.RegisterPage({
             local g = Groups.Mine()
             if g then rewrite(g, function(r) r.auto = v and true or false end) end
             autoInvite = v
-            -- nachtraeglich eingeschaltet: wer schon angefragt hat, jetzt einladen
+            -- switched on afterwards: invite those who already requested now
             if v then
                 for name, q in pairs(Groups.requests) do
                     if q.state ~= "invited" then Groups.Invite(name) end
@@ -1685,14 +1685,14 @@ ns.RegisterPage({
         local live = Groups.Live()
         for _, g in ipairs(live) do rows[#rows + 1] = g end
         p.list:SetData(rows)
-        -- passende Online-Mitglieder (nur wenn gerade niemand sucht)
+        -- suitable online members (only when nobody is searching right now)
         local mt = p.mates
         if mt then
             local planned = ns.db.settings.grpPlanned and true or false
             local show = #active == 0 and #live == 0 and not planned
             mt:SetShown(show)
             if show then
-                -- Ziel: gewaehlt > getippt > empfohlen fuer mein Level
+                -- Target: chosen > typed > recommended for my level
                 local target = pickTitle or ((p.title and p.title:GetText() ~= "") and p.title:GetText()) or nil
                 if not target then for _, x in ipairs(targetList("fit")) do if x.best then target = x.text end end end
                 local lo, hi
@@ -1773,12 +1773,12 @@ ns.RegisterPage({
         p.ohInfo:SetText(nReq > 0 and ("|cffff1200" .. (L["You requested to join %d groups"]):format(nReq) .. "|r  |cff777777" .. L["– you can request several at once"] .. "|r")
             or ("|cff777777" .. L["Click an open slot (+) – several groups at once is fine."] .. "|r"))
         local mine = Groups.Mine()
-        -- Mitglied einer Gruppe (nicht Leiter, keine eigene Suche): rechte Karte ausblenden
+        -- Member of a group (not leader, no own search): hide the right card
         if p.box then
             local showBox = mine ~= nil or Groups.CanStart()
             p.box:SetShown(showBox)
             p.optLine:SetShown(showBox)
-            -- ohne Karte: Schalter oben an ihren Platz, sonst als Zeile unten in der Spalte
+            -- without card: toggles at the top in its place, otherwise as a row at the bottom of the column
             if p.autoAccept then
                 p.autoAccept:SetFrameLevel(p.box:GetFrameLevel() + 10)
                 if showBox ~= p.acceptInBox then
@@ -1801,7 +1801,7 @@ ns.RegisterPage({
         local view = mine and "run" or "new"
         local switched = p.lastView ~= view
         p.lastView = view
-        -- Trennlinie ueber den Schalterzeilen: die neue Suche hat eine Zeile mehr (Sprachchat)
+        -- Divider above the toggle rows: the new search has one more row (voice chat)
         if p.optLine and p.optLineView ~= view then
             p.optLineView = view
             local y = (view == "new") and 126 or 102
@@ -1831,7 +1831,7 @@ ns.RegisterPage({
             end
             p.runInfo:SetText(K.hex(C.text) .. taken .. "/5|r  " .. (#free > 0 and (L["open: "] .. table.concat(free, " ")) or ("|cff66db9e" .. L["all slots taken"] .. "|r")))
             local reqs = {}
-            -- auch bereits Eingeladene zeigen (bis sie in der Gruppe sind) - sonst wirkt die Liste leer
+            -- also show already invited players (until they are in the group) - otherwise the list looks empty
             for name, q in pairs(Groups.requests) do
                 local cn = ns.ChatName(name)
                 local joined = UnitInParty and (UnitInParty(cn) or UnitInRaid(cn))
@@ -1843,7 +1843,7 @@ ns.RegisterPage({
             end
             table.sort(reqs, function(a, b) return (a.t or 0) < (b.t or 0) end)
             p.req:SetData(reqs)
-            -- Preloader, solange noch niemand angefragt hat und Plaetze frei sind
+            -- Preloader while nobody has requested yet and slots are free
             if p.searchFx then
                 local busy = #reqs == 0 and #free > 0
                 p.searchFx:SetShown(busy)
@@ -1866,7 +1866,7 @@ ns.RegisterPage({
         local hasRole = false
         for _, v in pairs(Groups.MyRoles()) do if v then hasRole = true end end
         local can = Groups.CanStart()
-        -- Schritte: erledigte leuchten, der naechste ist markiert
+        -- Steps: completed ones glow, the next one is marked
         local done = { title ~= "", hasRole, false }
         local cur
         for i = 1, 3 do
@@ -1890,7 +1890,7 @@ ns.RegisterPage({
         p.go:SetLabel(not can and L["Only the group leader can search"]
             or (title == "" and L["Pick a destination first"]) or (not hasRole and L["Pick a role first"])
             or (L["Start group: %s"]):format(title))
-        -- sobald alles gewaehlt ist: Knopf blendet sichtbar auf + Glanz
+        -- as soon as everything is chosen: button visibly fades in + gloss
         if ready and p.goReady == false and animOn() then
             p.go:SetAlpha(0.45)
             K.Tween(p.go, 0.3, function(q) p.go:SetAlpha(0.45 + 0.55 * q) end, function() p.go:SetAlpha(1) end)
@@ -1911,7 +1911,7 @@ ns.Listen("LOGIN", function()
     end)
 end)
 
--- neue/geaenderte Gruppen sofort anzeigen
+-- show new/changed groups immediately
 ns.Listen("STORE", function(coll)
     if coll == "lfg" then ns.Debounce("lfgStore", 0.3, function() ns.RefreshPage("groups") Groups.UpdateBadge() end) end
 end)
@@ -1924,7 +1924,7 @@ end)
 
 ns.On("PARTY_LEADER_CHANGED", function() ns.RefreshPage("groups") end)
 ns.On("GROUP_ROSTER_UPDATE", function()
-    -- in eine fremde Gruppe gekommen (nicht Leiter): eigene Suche beenden
+    -- joined someone else's group (not leader): end own search
     ns.After(0.5, function()
         if Groups.Mine() and not Groups.CanStart() then
             Groups.Stop()
@@ -1934,12 +1934,12 @@ ns.On("GROUP_ROSTER_UPDATE", function()
     end)
 end)
 
--- Gruppenleiter: Rollen aus Blizzards Gruppe (Rechtsklick > Rolle waehlen) auf die Plaetze der Suche uebertragen
+-- Group leader: transfer roles from Blizzard's group (right-click > choose role) to the search slots
 local B2O = { TANK = "tank", HEALER = "heal", DAMAGER = "dps" }
 local function syncPartyRoles()
     local g = Groups.Mine()
     if not g or not UnitGroupRolesAssigned then return end
-    -- Einheit je Mitglied ueber die Gruppe suchen (Vorname vergleichen: "Mira" / "Mira Stern" / "Mira-Realm")
+    -- Find the unit per member via the group (compare first name: "Mira" / "Mira Stern" / "Mira-Realm")
     local function first(n) return ns.NameKey(n) end
     local units = { player = true }
     local byFirst = { [first(ns.UnitName("player"))] = "player" }
@@ -1979,7 +1979,7 @@ ns.On("PLAYER_ROLES_ASSIGNED", function() ns.RoleLog("evt PLAYER_ROLES_ASSIGNED"
 ns.On("ROLE_CHANGED_INFORM", function(changed, from, old, new) ns.RoleLog("evt ROLE_CHANGED_INFORM", changed, old, "->", new) syncSoon() end)
 ns.On("GROUP_ROSTER_UPDATE", function() syncSoon() end)
 
--- Mitglied: eigenen Rollenwechsel direkt an den Leiter der Suche melden (falls dessen WoW das Ereignis nicht liefert)
+-- Member: report own role change directly to the search leader (in case their WoW does not fire the event)
 local function reportMyRole()
     local want = B2O[(UnitGroupRolesAssigned and UnitGroupRolesAssigned("player")) or ""]
     if not want then return end
@@ -2011,7 +2011,7 @@ Comm.On("GROLE", function(sender, _, id, role)
             return
         end
     end
-    -- noch nicht auf der Karte, aber in meiner Gruppe: jetzt eintragen
+    -- not on the card yet, but in my group: add now
     if Groups.FreeRoles(g)[role] and Groups.InMyParty and Groups.InMyParty(sender) then
         assign(g, sender, role)
         ns.RefreshPage("groups")
@@ -2031,14 +2031,14 @@ local function inMyParty(name)
     return false
 end
 Groups.InMyParty = inMyParty
--- Klick auf einen freien Platz: bin ich in dieser Gruppe -> meine Rolle dorthin wechseln (auch bei Blizzard),
--- sonst anfragen
+-- Click on a free slot: am I in this group -> switch my role there (also at Blizzard),
+-- otherwise request
 function Groups.SlotClick(g, role)
     if not g or not ROLES[role] then return end
     ns.RoleLog("SlotClick", g.id, role)
     local inIt = ns.isMe(g.who)
     for _, mb in ipairs(members(g)) do if ns.isMe(mb.name) then inIt = true end end
-    -- auch per Hand eingeladen (steht nicht auf der Karte): ich bin in der WoW-Gruppe des Leiters
+    -- also invited by hand (not on the card): I am in the leader's WoW group
     if not inIt and IsInGroup and IsInGroup() and inMyParty(g.who) then inIt = true end
     if not inIt then Groups.Join(g, role) return end
     if not Groups.FreeRoles(g)[role] then return end
@@ -2048,7 +2048,7 @@ function Groups.SlotClick(g, role)
         assign(g, ns.me(), role)
     else
         Comm.SendEx({ ch = "GUILD", prio = true }, "W", Comm.whoKey(g.who), "GROLE", g.id, role)
-        -- sofort bei mir anzeigen (die Karte des Leiters kommt kurz danach und ueberschreibt das)
+        -- show immediately for me (the leader's card arrives shortly after and overwrites it)
         local rec = ns.Store.Get("lfg", g.id)
         if rec then
             local list, found = {}, false
@@ -2071,7 +2071,7 @@ ns.slash.grp = function()
     for id, j in pairs(Groups.joined or {}) do ns.print("  angefragt bei " .. id .. " vor " .. math.floor(GetTime() - j.t) .. "s") end
 end
 
--- Einladung von einem Leiter, bei dessen Suche ich angefragt (oder zusammengefuehrt) habe -> annehmen
+-- Invite from a leader whose search I requested (or was merged into) -> accept
 ns.On("PARTY_INVITE_REQUEST", function(inviter)
     if ns.db.settings.lfgAccept == false or not inviter then return end
     local key = ns.NameKey(inviter)
@@ -2089,7 +2089,7 @@ ns.On("PARTY_INVITE_REQUEST", function(inviter)
     end)
 end)
 
--- Gruppe verlassen: erst die alten/neuen WoW-Funktionen, sonst "/leave" vorbereiten (Enter druecken)
+-- Leave group: first the old/new WoW functions, otherwise prepare "/leave" (press Enter)
 function Groups.LeaveGroup()
     if LeaveParty then pcall(LeaveParty) end
     if IsInGroup() and C_PartyInfo and C_PartyInfo.LeaveParty then pcall(C_PartyInfo.LeaveParty) end
@@ -2102,7 +2102,7 @@ function Groups.LeaveGroup()
     end)
 end
 
--- Leiter: wer die WoW-Gruppe verlassen hat, verschwindet von der Karte
+-- Leader: whoever left the WoW group disappears from the card
 local function pruneLeft()
     local g = Groups.Mine()
     if not g or not Groups.InMyParty then return end
@@ -2122,7 +2122,7 @@ local function pruneLeft()
 end
 ns.On("GROUP_ROSTER_UPDATE", function() ns.After(0.4, pruneLeft) end)
 
--- Anfrage zurueckziehen
+-- Withdraw request
 function Groups.CancelRequest(g)
     if not g then return end
     if Groups.joined then Groups.joined[Groups.Key(g)] = nil end
@@ -2153,7 +2153,7 @@ ns.Listen("STORE", function(coll, rec)
     end
 end)
 
--- /oa rolelog: die letzten Eintraege im Chat; /oa rolelog clear: leeren
+-- /oa rolelog: the last entries in chat; /oa rolelog clear: clear
 ns.slash.rolelog = function(arg)
     if arg == "clear" then ns.db.roleLog = {} ns.print("Rollen-Log geleert.") return end
     local l = ns.db.roleLog or {}
@@ -2163,30 +2163,30 @@ end
 
 
 ------------------------------------------------------------------------
--- Buff-Monitor: ausgelagert nach Modules\RaidTools\BuffMonitor.lua (ns.BuffMonitor, toc direkt nach Groups.lua)
+-- Buff monitor: moved to Modules\RaidTools\BuffMonitor.lua (ns.BuffMonitor, toc right after Groups.lua)
 ------------------------------------------------------------------------
 
 
 ------------------------------------------------------------------------
--- Auto-Marker: markiert die Gegner (Namensplaketten) klug nach Gruppe und Mob
--- Totenkopf/Kreuz = Kill-Reihenfolge (Caster + Elite zuerst, dann Lebenspunkte),
--- CC-Marken nur, wenn die Klasse in der Gruppe ist (Schaf, Eisfalle, Fesseln, Verbannen, Winterschlaf, Kopfnuss)
+-- Auto marker: smartly marks enemies (nameplates) by group and mob
+-- Skull/cross = kill order (casters + elites first, then health),
+-- CC marks only if the class is in the group (sheep, freezing trap, shackle, banish, hibernate, sap)
 ------------------------------------------------------------------------
 do
     local MK = {}
     ns.Marker = MK
     local STAR, CIRCLE, DIAMOND, TRIANGLE, MOON, SQUARE, CROSS, SKULL = 1, 2, 3, 4, 5, 6, 7, 8
-    -- Kreaturtypen (englisch + deutsch)
+    -- Creature types (English + German)
     local TYPE = {
         Humanoid = "humanoid", Humanoide = "humanoid", Beast = "beast", Wildtier = "beast", Undead = "undead", Untoter = "undead",
         Demon = "demon", ["Dämon"] = "demon", Elemental = "elemental", Elementar = "elemental", Dragonkin = "dragonkin", Drachkin = "dragonkin",
         Critter = "critter", Kleintier = "critter", Giant = "giant", Riese = "giant", Mechanical = "mech", Mechanisch = "mech",
     }
-    -- Mindeststufe je Kontrolle (Schaf 8, Kopfnuss 10, Winterschlaf 18, Falle/Fesseln 20, Verbannen 28)
+    -- Minimum level per control (sheep 8, sap 10, hibernate 18, trap/shackle 20, banish 28)
     local NEED = { MAGE = 8, ROGUE = 10, DRUID = 18, HUNTER = 20, PRIEST = 20, WARLOCK = 28 }
-    local present = {}   -- hoechste Stufe je Klasse in der Gruppe (auch wenn noch zu niedrig)
+    local present = {}   -- highest level per class in the group (even if still too low)
     local function groupClasses()
-        -- Klasse zaehlt nur, wenn jemand die Kontrolle schon gelernt hat (Mindeststufe)
+        -- Class only counts if someone has already learned the control (minimum level)
         local c = {}
         wipe(present)
         local function addUnit(u)
@@ -2210,10 +2210,10 @@ do
         end
         return true
     end
-    -- Gegner aus den Namensplaketten (+ Ziel/Maus)
+    -- Enemies from the nameplates (+ target/mouseover)
     local function mobs()
         local out, seen = {}, {}
-        -- in Instanzen sind GUIDs/Werte teils "geheim" -> alles entschaerfen, doppelte per UnitIsUnit erkennen
+        -- in instances GUIDs/values are partly "secret" -> sanitize everything, detect duplicates via UnitIsUnit
         local sf = ns.safe
         local function add(u)
             if not sf(UnitExists(u)) or sf(UnitIsPlayer(u)) or sf(UnitIsDead(u)) or not sf(UnitCanAttack("player", u)) then return end
@@ -2243,7 +2243,7 @@ do
         add("mouseover")
         return out
     end
-    -- Reihenfolge: dein Ziel zuerst, dann hoehere Stufe (Boss), Caster, Elite, Leben
+    -- Order: your target first, then higher level (boss), caster, elite, health
     local function killScore(m)
         local lvl = m.level or 0
         if lvl < 0 then lvl = 99 end   -- "??" = Boss
@@ -2252,13 +2252,13 @@ do
     end
 
     local ICONNAME = { "Star", "Circle", "Diamond", "Triangle", "Moon", "Square", "Cross", "Skull" }
-    -- SetRaidTarget ist in diesem Client Blizzard vorbehalten (Addon wird sonst geblockt):
-    -- Oasis markiert nicht selbst, sondern zeigt den Vorschlag im Chat (setzen per /tm oder Blizzard-Tasten)
+    -- SetRaidTarget is reserved for Blizzard in this client (the addon gets blocked otherwise):
+    -- Oasis does not mark itself but shows the suggestion in chat (set via /tm or Blizzard keys)
     function MK.Mark(test)
         test = test or true
         if not canMark() then ns.print(L["Marking: in a raid only as leader or assistant."]) return end
         local list = mobs()
-        -- Schnell-Einstellung: nur Gegner, die schon kaempfen (dein Ziel zaehlt immer)
+        -- Quick setting: only enemies already in combat (your target always counts)
         if ns.db.settings.mkFight then
             local keep = {}
             for _, m in ipairs(list) do if m.fighting or m.isTarget then keep[#keep + 1] = m end end
@@ -2266,13 +2266,13 @@ do
         end
         if #list == 0 then ns.print(L["No enemies found - turn on enemy nameplates (V key)."]) return end
         local cls = groupClasses()
-        -- abgeschaltete CC-Marken bzw. CC ganz aus
+        -- disabled CC marks or CC completely off
         local ccOff = ns.db.settings.mkOff or {}
         if ns.db.settings.mkCC == false then cls = {} end
         table.sort(list, function(a, b) return killScore(a) > killScore(b) end)
         local used, plan = {}, {}
         local function give(m, icon) if m and not plan[m.guid] and not used[icon] and not (icon ~= 8 and icon ~= 7 and ccOff[icon]) then plan[m.guid] = icon used[icon] = true m.done = true end end
-        -- zuerst Totenkopf und Kreuz: die beiden Gegner, die nacheinander sterben (CC nur auf den Rest)
+        -- skull and cross first: the two enemies that die one after the other (CC only on the rest)
         do
             local k = 0
             for _, m in ipairs(list) do
@@ -2282,10 +2282,10 @@ do
                 end
             end
         end
-        -- bei 1-2 Gegnern nur Kill-Reihenfolge
+        -- with 1-2 enemies only kill order
         if #list >= 3 then
-            -- CC zuerst auf die, die NICHT zuerst sterben sollen (also von hinten in der Kill-Liste)
-            -- nie CC auf dein Ziel oder den Staerksten (Boss, hoehere Stufe als der Rest)
+            -- CC first on those that should NOT die first (i.e. from the back of the kill list)
+            -- never CC your target or the strongest (boss, higher level than the rest)
             local minL, maxL = 999, -1
             for _, m in ipairs(list) do
                 local l = m.level or 0
@@ -2325,7 +2325,7 @@ do
             return out
         end
         if test then
-            -- Testmodus: nur im Chat zeigen, was markiert wuerde und warum
+            -- Test mode: only show in chat what would be marked and why
             local c = {}
             for k in pairs(cls) do c[#c + 1] = k end
             ns.print((L["Marker suggestion: %d enemies (set: target, /tm 8 = skull, /tm 7 = cross ...)"]):format(#list))
@@ -2342,8 +2342,8 @@ do
         end
         if n > 0 and ns.Sound then ns.Sound.Play("toast") end
     end
-    -- Ansage: welche Marke was bedeutet. Gruppenchat = Sprache des eigenen Clients;
-    -- "nur Oasis" geht per Addon-Nachricht, jeder Empfaenger zeigt sie in seiner Sprache.
+    -- Announcement: which mark means what. Group chat = language of the own client;
+    -- "Oasis only" goes via addon message, each recipient shows it in their language.
     local SHOUT_ORDER = { 8, 7, 5, 6, 4, 3, 2, 1 }
     local SHOUT_TEXT = { [8] = "zuerst", [7] = "kill second", [5] = "Sheep", [6] = "Freezing Trap", [4] = "Sap",
         [3] = "Banish", [2] = "Hibernate", [1] = "Shackle" }
@@ -2361,7 +2361,7 @@ do
         for _, p in ipairs(plan) do icons[p.icon] = true end
         for i in pairs(icons) do keys[#keys + 1] = i end
         if #keys == 0 then return end
-        -- gleiche Ansage nicht alle paar Sekunden wiederholen
+        -- do not repeat the same announcement every few seconds
         table.sort(keys)
         local sig = table.concat(keys, ",")
         if MK.lastShout == sig and GetTime() - (MK.lastShoutT or 0) < 20 then return end
@@ -2376,7 +2376,7 @@ do
     end
     ns.Comm.On("MKCALL", function(sender, _, sig)
         if ns.isMe(sender) or type(sig) ~= "string" then return end
-        if not SEC.Rate("mkcall:" .. sender, 10) then return end   -- keine Chat-Flut
+        if not SEC.Rate("mkcall:" .. sender, 10) then return end   -- no chat flood
         local icons = {}
         for n in sig:sub(1, 40):gmatch("%d+") do
             n = SEC.Num(n, 1, 8, true)
@@ -2388,9 +2388,9 @@ do
         if not canMark() then return end
         ns.print(L["Clear marks: target and /tm 0 - addons may no longer set marks themselves."])
     end
-    -- Automatisch markieren ueber einen sicheren Makro-Knopf (/tm ist erlaubt, SetRaidTarget aus Addons nicht):
-    -- Klick setzt auf die sichtbaren Gegner-Plaketten Totenkopf, Kreuz und die CC-Marken der Gruppe.
-    -- Das Makro wird nur ausserhalb des Kampfes neu geschrieben.
+    -- Mark automatically via a secure macro button (/tm is allowed, SetRaidTarget from addons is not):
+    -- Click sets skull, cross and the group's CC marks on the visible enemy nameplates.
+    -- The macro is only rewritten outside of combat.
     local secure
     local function markIcons()
         local cls = groupClasses()
@@ -2412,18 +2412,18 @@ do
         for i = 8, 1, -1 do bw[#bw + 1] = ("[@nameplate%d,harm,nodead]"):format(i) end
         set[1] = "/tm " .. table.concat(fw) .. " 8"
         set[2] = "/tm " .. table.concat(bw) .. " 7"
-        -- Makros duerfen hoechstens 1023 Zeichen haben (40 Zeilen waren zu lang -> Rechtsklick tat nichts)
+        -- Macros may have at most 1023 characters (40 lines were too long -> right-click did nothing)
         clr[#clr + 1] = "/tm [@target,exists] 0"
         for i = 1, 30 do clr[#clr + 1] = ("/tm [@nameplate%d,exists] 0"):format(i) end
         secure:SetAttribute("type1", "macro")
         secure:SetAttribute("macrotext1", table.concat(set, "\n"))
         secure:SetAttribute("type2", "macro")
         secure:SetAttribute("macrotext2", table.concat(clr, "\n"))
-        -- Shift + Linksklick: Auto-Marker-Fenster auf/zu
+        -- Shift + left-click: toggle the auto marker window
         secure:SetAttribute("shift-type1", "macro")
         secure:SetAttribute("shift-macrotext1", "/oa mark button")
     end
-    -- vor dem Klick (ausserhalb des Kampfes): genauen Plan aus den echten Plaketten ins Makro schreiben
+    -- before the click (out of combat): write the exact plan from the real nameplates into the macro
     function MK.PreClick(self, btn)
         if InCombatLockdown() or btn ~= "LeftButton" or IsShiftKeyDown() then return end
         local ok, plan = pcall(MK.Mark, "plan")
@@ -2444,7 +2444,7 @@ do
         secure = CreateFrame("Button", "OasisMarkSecure", UIParent, "SecureActionButtonTemplate")
         secure:SetSize(22, 22)
         secure:SetFrameStrata("HIGH")
-        -- nur beim Loslassen ausloesen (sonst laeuft das Makro zweimal und /tm schaltet die Marke gleich wieder ab)
+        -- trigger only on release (otherwise the macro runs twice and /tm immediately toggles the mark off again)
         secure:RegisterForClicks("AnyUp")
         secure:SetAttribute("useOnKeyDown", false)
         secure:Hide()
@@ -2470,12 +2470,12 @@ do
         _G.BINDING_NAME_OASIS_CLEARMARK = L["Clear marks"]
     end)
 
-    -- Tastenbelegung (Bindings.xml) ruft diese auf
+    -- Key bindings (Bindings.xml) call these
     _G.OasisAutoMark = function() MK.Mark() end
     _G.OasisClearMarks = function() MK.Clear() end
     _G.BINDING_HEADER_OASIS = "Oasis"
 
-    -- schwebende Box: grosser Marker-Knopf + Schnell-Einstellungen (verschiebbar, nur ausserhalb des Kampfes)
+    -- floating box: large marker button + quick settings (movable, only out of combat)
     local btn, box
     local CC = {
         { icon = 5, cls = "MAGE", text = "Moon = Polymorph (Mage)" },
@@ -2510,7 +2510,7 @@ do
         local K, C = ns.K, ns.K.C
         box = CreateFrame("Frame", "OasisMarkerBox", UIParent)
         box:SetSize(262, 314)
-        -- ueber dem Oasis-Fenster (HIGH), sonst oeffnet es sich unsichtbar dahinter
+        -- above the Oasis window (HIGH), otherwise it opens invisibly behind it
         box:SetFrameStrata("DIALOG")
         box:SetClampedToScreen(true)
         box:SetMovable(true)
@@ -2520,7 +2520,7 @@ do
         K.Fill(box, { 0.04, 0.04, 0.05, 0.94 })
         K.Border(box, C.line)
         if K.ApplySkin then K.ApplySkin(box, "panel", { 0.04, 0.04, 0.05, 0.94 }) end
-        -- Kopf (zum Verschieben)
+        -- Header (for dragging)
         local head = CreateFrame("Frame", nil, box)
         head:SetPoint("TOPLEFT") head:SetPoint("TOPRIGHT") head:SetHeight(26)
         head:EnableMouse(true)
@@ -2541,9 +2541,9 @@ do
             MK.Toggle(false)
         end)
         x:SetPoint("TOPRIGHT", -4, -3)
-        -- ueber dem Zieh-Kopf, sonst schluckt der Kopf den Klick aufs X
+        -- above the drag header, otherwise the header swallows the click on the X
         x:SetFrameLevel(head:GetFrameLevel() + 5)
-        -- grosser sicherer Knopf (gleiches Makro wie die Taste)
+        -- large secure button (same macro as the key)
         btn = CreateFrame("Button", "OasisMarkerButton", box, "SecureActionButtonTemplate")
         btn:SetSize(48, 48)
         btn:SetPoint("TOPLEFT", 14, -38)
@@ -2572,7 +2572,7 @@ do
                 "|cff888888" .. L["Key binding: Options > Keybindings > Oasis"] .. "|r" })
         end)
         btn:SetScript("OnLeave", function(self) K.SetBorderColor(self, C.line) GameTooltip:Hide() end)
-        -- rechts neben dem Knopf: was er tut (Maus-Symbole statt Fliesstext)
+        -- right of the button: what it does (mouse icons instead of prose)
         local function mouseLine(y, atlas, text)
             local ic = box:CreateTexture(nil, "ARTWORK")
             ic:SetSize(14, 14)
@@ -2595,7 +2595,7 @@ do
             ln:SetPoint("RIGHT", box, "RIGHT", -14, 0)
         end
         section(-100, L["Settings"])
-        -- Schnell-Einstellungen
+        -- Quick settings
         local S = ns.db.settings
         box.toggles = {}
         local function tg(y, label, key, def, desc)
@@ -2616,7 +2616,7 @@ do
         tg(-142, "Your target first", "mkTarget", true, "Your current target gets the skull")
         tg(-168, "Only enemies in combat", "mkFight", false, "Enemies not yet in combat stay unmarked")
         tg(-194, "Announce to group", "mkShout", false, "After marking: what each mark means (e.g. Moon = Sheep)")
-        -- wohin die Ansage geht: Gruppenchat (alle, eigene Client-Sprache) oder nur Oasis (jeder in seiner Sprache)
+        -- where the announcement goes: group chat (everyone, own client language) or Oasis only (everyone in their language)
         box.shoutSeg = K.Segments(box, { { key = "chat", text = L["Group chat"] }, { key = "oasis", text = L["Oasis players only"] } }, function(k)
             ns.db.settings.mkShoutOasis = (k == "oasis") or nil
             MK.UpdateBox()
@@ -2625,7 +2625,7 @@ do
         box.shoutSeg:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Announcement"], L["Group chat: everyone sees it, in your language."], L["Oasis players only: everyone sees it in their own language."] }) end)
         box.shoutSeg:HookScript("OnLeave", function() GameTooltip:Hide() end)
         section(-252, L["CC marks (click: on/off)"])
-        -- CC-Marken einzeln an/aus
+        -- CC marks individually on/off
         box.cc = {}
         for i, c in ipairs(CC) do
             local b = CreateFrame("Button", nil, box)
@@ -2651,7 +2651,7 @@ do
                 if off then state = "|cffff5a4a" .. L["turned off"] .. "|r"
                 elseif have then state = "|cff66db9e" .. L["Class in your group"] .. "|r"
                 elseif present[c.cls] then
-                    -- Klasse ist dabei, aber noch zu niedrig fuer die Faehigkeit
+                    -- Class is present but still too low for the ability
                     state = "|cffffc24d" .. (L["Cannot do it yet: level %d, learned at level %d"]):format(present[c.cls], NEED[c.cls] or 1) .. "|r"
                 else state = "|cff888888" .. L["Class not in your group right now"] .. "|r" end
                 K.ShowTip(self, { L[c.text], state,
@@ -2660,7 +2660,7 @@ do
             b:SetScript("OnLeave", function() GameTooltip:Hide() end)
             box.cc[i] = b
         end
-        box:Hide()   -- neu gebaute Frames sind sichtbar: erst beim Toggle zeigen
+        box:Hide()   -- newly built frames are visible: only show on toggle
         MK.UpdateBox()
     end
     function MK.Toggle(force)
@@ -2676,7 +2676,7 @@ do
         if show then
             box:Raise()
             MK.UpdateBox()
-            -- liegt das Fenster ausserhalb des Bildschirms (alte Position), in die Mitte holen
+            -- if the window is off-screen (old position), bring it to the center
             if not box:GetLeft() or box:GetLeft() < 0 or box:GetTop() > UIParent:GetHeight() then
                 box:ClearAllPoints() box:SetPoint("CENTER", 0, 0)
             end
@@ -2688,7 +2688,7 @@ do
         if arg == "debug" then
             local sc = MK.Secure()
             ns.print("Marker: " .. (sc and ((sc:IsShown() and "sichtbar" or "versteckt") .. " @ " .. tostring(sc:GetLeft()) .. "," .. tostring(sc:GetBottom())) or "fehlt"))
-            -- 0.5.742: tostring() ohne Wert (GetAttribute lieferte nichts) war der Fehler; Ebene/Strata dazu, damit man sieht, wer oben liegt
+            -- 0.5.742: tostring() without a value (GetAttribute returned nothing) was the bug; layer/strata added so you can see what is on top
             local mt = sc and sc:GetAttribute("macrotext1")
             ns.print(sc and ((tostring(mt or "(leer)")):gsub("\n", " | ")) or "-")
             if sc then ns.print(("Strata %s, Ebene %s, Groesse %sx%s"):format(tostring(sc:GetFrameStrata()), tostring(sc:GetFrameLevel()), tostring(sc:GetWidth()), tostring(sc:GetHeight()))) end
@@ -2698,7 +2698,7 @@ do
     end
 end
 
--- Wochenaufgaben: erst werten, wenn die Gruppe wirklich zustande kommt
+-- Weekly tasks: only score once the group really comes together
 ns.On("GROUP_ROSTER_UPDATE", function()
     if not (ns.Rewards and ns.Rewards.Credit) then return end
     local j = Groups.weekJoin
@@ -2713,8 +2713,8 @@ ns.On("GROUP_ROSTER_UPDATE", function()
 end)
 
 ------------------------------------------------------------------------
--- Weltkarte (0.5.934): offene Gruppensuchen als Zeichen am Dungeon-Eingang. Klick oeffnet die Gruppensuche.
--- Eingaenge stammen aus den Dungeon-Quests (QuestLocations: "entrance") - Dungeons ohne solchen Eintrag haben kein Zeichen.
+-- World map (0.5.934): open group searches as markers at the dungeon entrance. Click opens the group finder.
+-- Entrances come from the dungeon quests (QuestLocations: "entrance") - dungeons without such an entry have no marker.
 ------------------------------------------------------------------------
 local entrances
 function Groups.Entrances()
@@ -2731,7 +2731,7 @@ function Groups.Entrances()
             end
         end
     end
-    -- Anzeigename aus der Dungeon-Liste (so heisst das Ziel auch in der Gruppensuche)
+    -- Display name from the dungeon list (the target is also called that in the group finder)
     for _, ld in ipairs(ns.Dungeons and ns.Dungeons.List and ns.Dungeons.List() or {}) do
         for _, e in ipairs(entrances) do
             if (ld.key and ld.key == e.d.key) or (ld.nameEN and ld.nameEN == e.d.name) then e.alt = ld.name end
@@ -2739,7 +2739,7 @@ function Groups.Entrances()
     end
     return entrances
 end
--- Suchen je Eingang: der Titel der Suche muss den Dungeon-Namen enthalten (englisch, deutsch oder in der eigenen Sprache)
+-- Searches per entrance: the search title must contain the dungeon name (English, German or in the own language)
 function Groups.AtEntrances()
     local out = {}
     local active = Groups.Active()

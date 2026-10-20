@@ -1,8 +1,8 @@
--- Oasis: "Neue Version - wie moechtest du starten?"
--- Beim ersten Einloggen bzw. /reload nach einem Versionswechsel fragt Oasis einmal:
---   Wie bisher | Alles an | Nur das Noetigste | Schwerpunkt (Leveln, Zusammen spielen, Raiden ...) | eigenes Profil
--- Ganz neue Nutzer bekommen weiter den Rundgang/die Interessen-Auswahl (nicht dieses Fenster).
--- "Nicht mehr fragen": settings.updateAsk = false
+-- Oasis: "New version - how would you like to start?"
+-- On first login or /reload after a version change, Oasis asks once:
+--   As before | All on | Only the essentials | Focus (leveling, playing together, raiding ...) | own profile
+-- Brand-new users still get the tour/interest picker (not this window).
+-- "Don't ask again": settings.updateAsk = false
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -21,7 +21,7 @@ local function relayout()
     if ns.LayoutNav then pcall(ns.LayoutNav) end
     if ns.UpdateMiniBar then pcall(ns.UpdateMiniBar) end
 end
--- alles einschalten: auch die vom "Noetigsten"/Schwerpunkt ausgeblendeten Bereiche
+-- turn everything on: including the sections hidden by "essentials"/focus
 function U.AllOn()
     local s = S()
     s.hiddenPages, s.focusHidden, s.simpleHidden, s.simpleMode = {}, nil, nil, nil
@@ -38,7 +38,7 @@ function U.Focus(key)
     if ns.Discover and ns.Discover.ApplyInterests then pcall(ns.Discover.ApplyInterests, { [key] = true }) end
 end
 
--- style: nil = normal, "primary" = Hauptweg (volle Akzentflaeche), "quiet" = untergeordnet (grau, flach)
+-- style: nil = normal, "primary" = main path (full accent area), "quiet" = secondary (grey, flat)
 local function card(parent, w, h, icon, title, sub, color, onClick, style)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(w, h)
@@ -92,7 +92,7 @@ local function build()
     K.Fill(f, C.bg)
     K.Border(f, C.line)
     if K.ApplySkin then K.ApplySkin(f, "panel", C.bg) end
-    -- Esc / X = wie bisher
+    -- Esc / X = as before
     ns.EscClose("OasisUpdateStart")
     f:HookScript("OnHide", function() if S().startVersion ~= ns.version then S().startVersion = ns.version end end)
     f.logo = f:CreateTexture(nil, "ARTWORK")
@@ -107,7 +107,7 @@ local function build()
     local close = K.CloseButton(f, function() f:Hide() end, L["Keep as is"])
     close:SetPoint("TOPRIGHT", -8, -8)
 
-    -- Hauptweg: Wie bisher (gross, Akzentfarbe) - alles andere klein darunter
+    -- Main path: As before (large, accent color) - everything else small below
     local W3 = (600 - 36 - 16) / 3
     local y = -74
     local c1 = card(f, 564, 84, "checklist", L["Keep as is"],
@@ -143,13 +143,13 @@ local function build()
     local note = K.Text(f, 10, C.dim)
     note:SetPoint("TOPLEFT", 20, y - 208 - 2 * 58 - 2)
     note:SetText(L["Settings and game aids are kept whatever you choose."])
-    -- mehrere Schwerpunkte: das bekannte Interessen-Fenster
+    -- several focuses: the familiar interests window
     f.multi = K.Button(f, L["Choose several focuses ..."], 200, 24, "ghost", function()
         done(nil)
         if ns.Discover and ns.Discover.ShowPicker then ns.Discover.ShowPicker() end
     end)
     f.multi:SetPoint("BOTTOMLEFT", 18, 52)
-    -- eigenes gespeichertes Profil
+    -- own saved profile
     f.preset = K.Button(f, L["Load own profile ..."], 180, 24, "ghost", function(self)
         local items = {}
         for name in pairs(ns.db.presets or {}) do
@@ -164,9 +164,9 @@ local function build()
     end)
     f.preset.isDropdown = true
     f.preset:SetPoint("LEFT", f.multi, "RIGHT", 8, 0)
-    -- nicht mehr fragen
+    -- don't ask again
     f.never = K.Toggle(f, L["Don't ask again on new versions"], function() return S().updateAsk == false end,
-        function(v) if v then S().updateAsk = false else S().updateAsk = nil end end)   -- 0.6.125: liess sich nicht ausschalten
+        function(v) if v then S().updateAsk = false else S().updateAsk = nil end end)   -- 0.6.125: could not be turned off
     f.never:SetPoint("BOTTOMLEFT", 14, 16)
     f.never:SetWidth(320)
     win = f
@@ -174,18 +174,18 @@ local function build()
 end
 
 function U.Show()
-    -- gleiche Oberflaeche wie die Interessen-Auswahl, mit "Wie bisher"/"Nur das Noetigste"
+    -- same UI as the interest picker, with "Wie bisher"/"Nur das Noetigste"
     S().startVersion = ns.version
     if ns.Discover and ns.Discover.ShowPicker then ns.Discover.ShowPicker("update") end
 end
 ns.slash.start = U.Show
 
--- einmal je Version (nach Login/Reload), nicht beim allerersten Start (dafuer gibt es Rundgang + Interessen)
+-- once per version (after login/reload), not on the very first start (tour + interests handle that)
 ns.Listen("LOGIN", function()
     local s = S()
     if s.startVersion == ns.version then return end
     if s.startVersion == nil and not s.onboarded and not s.interestsDone then
-        s.startVersion = ns.version     -- ganz neu: Rundgang/Interessen uebernehmen das
+        s.startVersion = ns.version     -- brand new: tour/interests take care of it
         return
     end
     if s.updateAsk == false then s.startVersion = ns.version return end

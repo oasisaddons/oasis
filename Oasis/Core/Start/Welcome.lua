@@ -1,17 +1,17 @@
--- Oasis: Neulinge begleiten
--- Gilde: Hinweis "Neu in der Gilde - Willkommen sagen". Neuling: Begruessungsfenster mit Ansprechpartnern.
+-- Oasis: accompanying newcomers
+-- Guild: notice "Neu in der Gilde - Willkommen sagen". Newcomer: welcome window with contact persons.
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Security on receive (other players' addon messages may be manipulated):
+-- Sanitize strings, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- Escape sequences (|c |r |n |H |T |K |A ...) and control characters neutralized; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -62,7 +62,7 @@ ns.Welcome = Welcome
 local NEW_DAYS = 14
 
 ------------------------------------------------------------------------
--- Wer ist neu? (Beitritt in der Chronik innerhalb der letzten 14 Tage)
+-- Who is new? (join in the chronicle within the last 14 days)
 ------------------------------------------------------------------------
 function Welcome.JoinedAt(name)
     local best
@@ -72,12 +72,12 @@ function Welcome.JoinedAt(name)
     return best
 end
 function Welcome.IsNew(name)
-    -- nur der Gildenbeitritt zaehlt; Blizzards Neuling-Kennzeichen (p.nc) bleibt wochenlang stehen -> nicht als NEU
+    -- only the guild join counts; Blizzard's newcomer flag (p.nc) stays for weeks -> not as NEW
     local t = Welcome.JoinedAt(name)
     return t and (ns.now() - t) < ((ns.db and ns.db.settings.newDays) or NEW_DAYS) * 86400
 end
 
--- Hinweis an die Gilde, wenn jemand beitritt
+-- Notice to the guild when someone joins
 local greeted = {}
 ns.GuildOption({ page = "radar", key = "wlToast", default = true, label = "Announce new members",
     desc = "Notice with click-to-welcome when someone joins the guild" })
@@ -85,7 +85,7 @@ ns.Listen("STORE", function(coll, rec, old)
     if coll ~= "chronicle" or old or rec.del or rec.kind ~= "guild" then return end
     if not ns.IsJoinTk(rec.tk) or (ns.now() - (rec.ts or 0)) > 600 or ns.isMe(rec.who) then return end
     if greeted[rec.who] or ns.GuildOpt("wlToast") == false then return end
-    -- Chronik-Eintraege kann jedes Mitglied schreiben: nur echte Namen aus der Gildenliste begruessen
+    -- Any member can write chronicle entries: only greet real names from the guild roster
     if not SEC.Name(rec.who) then return end
     if ns.Admin and ns.Admin.InGuildList and ns.Admin.InGuildList(rec.who) ~= true then return end
     greeted[rec.who] = true
@@ -98,15 +98,15 @@ ns.Listen("STORE", function(coll, rec, old)
 end)
 
 ------------------------------------------------------------------------
--- Begruessungsfenster fuer den Neuling
--- Aufbau: Kopf (Logo, Titel) | 3 Zahlen | Ansprechpartner-Karten | Levelbereich | Was laeuft | Erste Schritte
--- Vorschau mit Beispieldaten: /oa willkommen test  (nichts wird gesendet)
+-- Welcome window for the newcomer
+-- Layout: header (logo, title) | 3 numbers | contact cards | level range | what's happening | first steps
+-- Preview with sample data: /oa willkommen test  (nothing is sent)
 ------------------------------------------------------------------------
 local W, H = 560, 610
 local PAD = 20
 local win
 
--- Beispieldaten fuer die Vorschau
+-- Sample data for the preview
 local DUMMY = {
     guild = "Oasis", total = 87, preview = true,
     online = {
@@ -126,7 +126,7 @@ local DUMMY = {
     motd = "Raids Mi + So 20 Uhr. Fragen? Einfach einen Offizier anfluestern!",
 }
 
--- echte Daten aus Gildenliste, Terminen, Gruppen, Umfragen
+-- real data from guild roster, events, groups, polls
 local function collect()
     local R = ns.Radar
     local d = { guild = IsInGuild() and (GetGuildInfo("player")) or "Oasis", online = {}, total = 0, next = {}, events = 0 }
@@ -149,7 +149,7 @@ local function collect()
     return d
 end
 
--- Ansprechpartner (Offiziere, sonst ranghoechste) und Mitspieler im eigenen Levelbereich
+-- Contact persons (officers, otherwise highest rank) and fellow players in your own level range
 local function split(d)
     local online, contacts, peers = {}, {}, {}
     for _, m in ipairs(d.online) do online[#online + 1] = m end
@@ -171,7 +171,7 @@ local function whisper(m)
     ns.Whisper(m.name)
 end
 
--- Zahl-Kachel
+-- Number tile
 local function statTile(parent, color, label)
     local t = K.Panel(parent, C.panel)
     t:SetHeight(58)
@@ -188,7 +188,7 @@ local function statTile(parent, color, label)
     return t
 end
 
--- Karte fuer einen Ansprechpartner: Klassenfarbe links, Name, Rang + Stufe, Klick = anfluestern
+-- Card for a contact person: class color on the left, name, rank + level, click = whisper
 local function contactCard(parent)
     local c = CreateFrame("Button", nil, parent)
     c:SetHeight(60)
@@ -232,7 +232,7 @@ local function contactCard(parent)
     return c
 end
 
--- Schritt-Kachel: Nummer im Kreis, Text, Haken wenn erledigt
+-- Step tile: number in a circle, text, check mark when done
 local STEPS = {
     { key = "hello", text = "Say hello", sub = "Say hi in guild chat" },
     { key = "profile", text = "Create profile", sub = "Class, role, what you're looking for", page = "insta" },
@@ -291,7 +291,7 @@ local function build()
     K.Border(f, C.line)
     ns.EscClose("OasisWelcome")
 
-    -- Kopf: Akzent-Verlauf, Logo, kleine Marke, Titel, Untertitel
+    -- Header: accent gradient, logo, small badge, title, subtitle
     local head = f:CreateTexture(nil, "BORDER")
     head:SetPoint("TOPLEFT", 1, -1)
     head:SetPoint("TOPRIGHT", -1, -1)
@@ -314,7 +314,7 @@ local function build()
     f.subtitle:SetWordWrap(true)
     local close = K.CloseButton(f, function() f:Hide() end)
     close:SetPoint("TOPRIGHT", -8, -8)
-    -- Vorschau-Kennzeichen
+    -- Preview marker
     f.preview = K.Panel(f, { C.amber[1] * 0.22, C.amber[2] * 0.22, C.amber[3] * 0.22, 1 })
     K.SetBorderColor(f.preview, C.amber)
     f.preview:SetSize(76, 18)
@@ -326,7 +326,7 @@ local function build()
     d:SetPoint("TOPLEFT", PAD, -104)
     d:SetPoint("TOPRIGHT", -PAD, -104)
 
-    -- drei Zahlen
+    -- three numbers
     local tw = (W - 2 * PAD - 2 * 10) / 3
     f.stOnline = statTile(f, C.mint, L["online now"])
     f.stTotal = statTile(f, C.accent, L["Members"])
@@ -336,7 +336,7 @@ local function build()
         t:SetPoint("TOPLEFT", PAD + (i - 1) * (tw + 10), -118)
     end
 
-    -- Ansprechpartner
+    -- Contact persons
     local h1 = K.GameHead(f, L["Who to ask"], C.accent)
     h1:SetPoint("TOPLEFT", PAD, -192)
     h1:SetPoint("RIGHT", -PAD, 0)
@@ -352,7 +352,7 @@ local function build()
     f.noContacts:SetPoint("TOPLEFT", PAD + 2, -222)
     f.noContacts:SetText(L["Nobody is online right now - check back later."])
 
-    -- Nachricht der Gilde (MOTD) - fuer Neue meist das Wichtigste (Regeln, Discord, Raidzeiten)
+    -- Guild message (MOTD) - for newcomers usually the most important (rules, Discord, raid times)
     f.hm = K.GameHead(f, L["Guild message"], C.blue)
     f.hm:SetPoint("RIGHT", -PAD, 0)
     f.motd = K.Text(f, 12, C.text)
@@ -361,7 +361,7 @@ local function build()
     f.motd:SetJustifyV("TOP")
     f.motd:SetSpacing(3)
 
-    -- Levelbereich
+    -- Level range
     local h2 = K.GameHead(f, L["Around your level"], C.mint)
     h2:SetPoint("TOPLEFT", PAD, -294)
     h2:SetPoint("RIGHT", -PAD, 0)
@@ -372,7 +372,7 @@ local function build()
     f.peers:SetWordWrap(true)
     f.peers:SetJustifyV("TOP")
 
-    -- Was gerade laeuft
+    -- What's happening right now
     local h3 = K.GameHead(f, L["Going on right now"], C.amber)
     f.h3 = h3
     h3:SetPoint("TOPLEFT", PAD, -356)
@@ -384,7 +384,7 @@ local function build()
     f.next:SetJustifyV("TOP")
     f.next:SetSpacing(4)
 
-    -- Erste Schritte
+    -- First steps
     local h4 = K.GameHead(f, L["First steps"], C.pink)
     h4:SetPoint("TOPLEFT", PAD, -448)
     h4:SetPoint("RIGHT", -PAD, 0)
@@ -397,7 +397,7 @@ local function build()
         f.steps[i] = b
     end
 
-    -- Fuss
+    -- Footer
     local fd = K.Divider(f)
     fd:SetPoint("BOTTOMLEFT", PAD, 58)
     fd:SetPoint("BOTTOMRIGHT", -PAD, 58)
@@ -408,7 +408,7 @@ local function build()
     f.open:SetPoint("BOTTOMLEFT", PAD, 18)
     f.later = K.Button(f, L["Later"], 100, 28, "ghost", function() f:Hide() end)
     f.later:SetPoint("LEFT", f.open, "RIGHT", 8, 0)
-    -- alter Knopf-Name bleibt als Verweis (DoStep/Refresh nutzen ihn)
+    -- old button name stays as reference (DoStep/Refresh use it)
     f.hello = { SetEnabledState = function() end }
     f.hint = K.Text(f, 10, C.dim, "RIGHT")
     f.hint:SetPoint("BOTTOMRIGHT", -PAD, 26)
@@ -449,7 +449,7 @@ function Welcome.Refresh()
     f.preview:SetShown(dd.preview and true or false)
     f.stOnline.value:SetText(#dd.online)
     f.stTotal.value:SetText(dd.total > 0 and dd.total or "-")
-    -- "0 Termine diese Woche" wirkt abschreckend -> dann lieber zeigen, wie viele Oasis nutzen
+    -- "0 events this week" is off-putting -> then rather show how many use Oasis
     if (dd.events or 0) > 0 then
         f.stEvents.value:SetText(dd.events)
         f.stEvents.label:SetText(L["Events this week"])
@@ -469,7 +469,7 @@ function Welcome.Refresh()
     f.next:SetText(table.concat(nx, "\n"))
     local motd = tostring(dd.motd or ""):gsub("^%s+", ""):gsub("%s+$", "")
     f.motd:SetText(motd)
-    -- Abschnitte untereinander; leere ("gerade niemand", "nichts geplant") fallen weg, das Fenster wird kuerzer
+    -- Sections stacked; empty ones ("nobody right now", "nothing planned") are dropped, the window gets shorter
     local y = -294
     local function section(head, body, show, bodyH)
         head:SetShown(show) body:SetShown(show)
@@ -504,7 +504,7 @@ function Welcome.Refresh()
     f.hello:SetEnabledState(not f.done.hello and (dd.preview or IsInGuild()))
 end
 
--- preview = true: Beispieldaten, nichts wird gesendet oder gespeichert
+-- preview = true: sample data, nothing is sent or saved
 function Welcome.Show(preview)
     local f = win or build()
     f.data = preview and DUMMY or collect()
@@ -521,8 +521,8 @@ end
 ns.slash.willkommen = slash
 ns.slash.welcome = slash
 ------------------------------------------------------------------------
--- Wann zeigen: frisch beigetreten (in dieser Sitzung) oder laut Chronik neu,
--- und noch nicht fuer diese Gilde gezeigt
+-- When to show: freshly joined (in this session) or new according to the chronicle,
+-- and not yet shown for this guild
 ------------------------------------------------------------------------
 local wasInGuild
 local function maybeShow(force)
@@ -547,7 +547,7 @@ ns.Listen("LOGIN", function()
     wasInGuild = IsInGuild()
     ns.After(25, function() maybeShow(false) end)
 end)
--- "Hallo sagen" gilt auch als erledigt, wenn man selbst irgendetwas in den Gildenchat schreibt
+-- "Say hello" also counts as done if you write anything in guild chat yourself
 ns.On("CHAT_MSG_GUILD", function(_, sender)
     sender = ns.safe(sender)
     if not sender or not ns.isMe(ns.fullName and ns.fullName(sender) or sender) and ns.short(sender) ~= ns.short(ns.me()) then return end

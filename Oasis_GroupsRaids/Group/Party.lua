@@ -1,7 +1,7 @@
--- Oasis: Meine Gruppe (0.6.521)
---  * Gruppenuebersicht: alle in Gruppe/Raid mit Klasse, Stufe, Erfahrung, Itemlevel, Rolle und ob Oasis laeuft
---  * Quests: wer hat welche Quest - "Bitte teilen" fragt ein Gruppenmitglied mit Oasis, ob es die Quest teilt
---  * Datenaustausch nur im Gruppenkanal (PARTY/RAID), gedrosselt; ohne Oasis sieht man Klasse/Stufe von Blizzard
+-- Oasis: My Group (0.6.521)
+--  * Group overview: everyone in group/raid with class, level, XP, item level, role and whether Oasis is running
+--  * Quests: who has which quest - "Please share" asks a group member with Oasis to share the quest
+--  * Data exchange only in the group channel (PARTY/RAID), throttled; without Oasis you see class/level from Blizzard
 -- Weitere Teile in diesem Ordner: PartyXP.lua (XP-Leiste), Blessings.lua (Segen), Threat.lua, Gamble.lua
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Group", function()
@@ -10,7 +10,7 @@ local K, C, Comm = ns.K, ns.K.C, ns.Comm
 
 local P = {}
 ns.Party = P
-P.info = {}      -- [voller Name] = { lvl, xp, xpMax, ilvl, role, ver, t, quests = { [qid] = { t = Titel, p = teilbar } } }
+P.info = {}      -- [full name] = { lvl, xp, xpMax, ilvl, role, ver, t, quests = { [qid] = { t = title, p = shareable } } }
 
 local function S() return ns.db.settings end
 local function api(t, f) return t and type(t[f]) == "function" end
@@ -60,7 +60,7 @@ function P.Members()
 end
 
 ------------------------------------------------------------------------
--- Eigene Daten
+-- Own data
 ------------------------------------------------------------------------
 local function myQuests()
     local out, Q = {}, C_QuestLog
@@ -88,7 +88,7 @@ function P.MyInfo()
         ver = ns.version, quests = myQuests() }
 end
 
--- senden: "GPI" Stufe, XP, XP max, Itemlevel, Rolle, Version ; "GPQ" Quest-IDs (teilbar mit +)
+-- send: "GPI" level, XP, XP max, item level, role, version ; "GPQ" quest IDs (shareable with +)
 local lastSent, pendingSend = 0, false
 function P.Send(force)
     if not ns.groupChannel() or not ns.loggedIn then return end
@@ -130,7 +130,7 @@ Comm.On("GPI", function(sender, _, lvl, xp, xpMax, ilvl, role, ver)
     r.oasis = true
     changed()
 end)
--- Quest-Titel kommen nicht mit (Platz) - aus dem eigenen Questlog oder per Blizzard-Abfrage
+-- Quest titles aren't sent (space) - from own quest log or via Blizzard query
 local function questTitle(qid)
     local mine = myQuests()[qid]
     if mine then return mine.t end
@@ -154,7 +154,7 @@ Comm.On("GPQ", function(sender, _, list)
     end
     changed()
 end)
--- Teilen-Bitte: an die Gruppe, Empfaenger prueft, ob er gemeint ist (Fluestern geht nur in der Gilde ueber Oasis)
+-- Share request: to the group, receiver checks whether it's meant (whisper only works in the guild via Oasis)
 function P.AskShare(target, qid)
     if not ns.groupChannel() then return end
     Comm.Group("GPQR", target, qid)
@@ -180,7 +180,7 @@ function P.Push(qid)
     if prev then pcall(C_QuestLog.SetSelectedQuest, prev) end
 end
 
--- Ereignisse: bei Gruppenwechsel, Stufe, XP, Ausruestung und Questlog neu senden; Fremde aufraeumen
+-- Events: resend on group change, level, XP, gear and quest log; clean up strangers
 local function prune()
     for n in pairs(P.info) do if not inMyGroup(n) then P.info[n] = nil end end
 end
@@ -192,7 +192,7 @@ ns.On("PLAYER_REGEN_ENABLED", function() if pendingSend then pendingSend = false
 ns.Listen("LOGIN", function() C_Timer.After(5, function() P.Send(true) end) end)
 
 ------------------------------------------------------------------------
--- Seite "Meine Gruppe"
+-- Page "My Group"
 ------------------------------------------------------------------------
 local function glass(f, fill, line, r)
     local G = ns.Insta and ns.Insta.Glass
@@ -203,7 +203,7 @@ end
 P.glass = glass
 local ROLE_TEX = { TANK = "role_tank", HEALER = "role_heal", DAMAGER = "role_dps" }
 local tab = "members"
-P.tabs = {}      -- weitere Reiter aus den anderen Dateien: { key, text, build(p, area), refresh(p, area) }
+P.tabs = {}      -- more tabs from the other files: { key, text, build(p, area), refresh(p, area) }
 function P.AddTab(def) P.tabs[#P.tabs + 1] = def end
 
 local function memberRow(l)
@@ -258,7 +258,7 @@ local function memberUpdate(r, m)
     r.talents:SetShown(ns.Talents ~= nil and not m.me)
 end
 
--- Quests: alle Quests der Gruppe, wer sie hat, wer sie fehlt
+-- Quests: all quests of the group, who has them, who is missing them
 local function questRows()
     local mine = myQuests()
     local all = {}
@@ -278,7 +278,7 @@ local function questRows()
         out[#out + 1] = e
     end
     table.sort(out, function(a, b)
-        if a.mine ~= b.mine then return not a.mine end      -- erst die, die mir fehlen
+        if a.mine ~= b.mine then return not a.mine end      -- first the ones I'm missing
         if #a.have ~= #b.have then return #a.have > #b.have end
         return a.title < b.title
     end)
@@ -338,7 +338,7 @@ ns.RegisterPage({
         glass(p.mlist, { 1, 1, 1, 0.025 }, { 1, 1, 1, 0.07 }, 10)
         p.sum = K.Text(p.members, 11, C.muted)
         p.sum:SetPoint("BOTTOMLEFT", 4, 8)
-        -- 0.6.525: Naowh Forever zeigt Ausruestung/Talente der ganzen Gruppe im Detail - dorthin verweisen statt nachbauen
+        -- 0.6.525: Naowh Forever shows the whole group's gear/talents in detail - point there instead of rebuilding it
         p.naowh = K.Button(p.members, L["Gear in Naowh"], 150, 22, "ghost", function()
             local NW = ns.Compat and ns.Compat.Naowh
             if NW then NW.OpenGroupInspect() end
@@ -395,7 +395,7 @@ ns.RegisterPage({
         end
     end,
 })
--- in die Navigation unter "Zusammen spielen"
+-- into navigation under "Play together"
 for _, g in ipairs(ns.NAV_GROUPS or {}) do
     if g.key == "raid" then
         local has = false
@@ -408,7 +408,7 @@ ns.slash.party = ns.slash.gruppe
 
 end)
 
--- Einstellungen der Seite "Meine Gruppe"
+-- Settings of the "My Group" page
 ns.ModuleFile("Oasis_Group", function()
 local L, K = ns.L, ns.K
 if not ns.AddPageSettings then return end
@@ -417,7 +417,7 @@ ns.AddPageSettings("party", function(det, y)
     local defs = {
         { "Group XP bar", "partyXP", "Small bar with the XP of every group member running Oasis (5-player group)", true, function() if ns.Party.UpdateXP then ns.Party.UpdateXP() end end },
         { "Pull warning", "pullWarn", "Alert when you enter combat before the tank or pull aggro as a non-tank", true },
-        { "Threat bar", "threatBar", "Your threat on the target in percent (only when the game provides it)", false },   -- 0.6.548: standardmaessig aus
+        { "Threat bar", "threatBar", "Your threat on the target in percent (only when the game provides it)", false },   -- 0.6.548: off by default
         { "Zone and level in chat", "chatZones", "Guild, party and raid lines show the speaker's level and zone", false },
     }
     for _, d in ipairs(defs) do

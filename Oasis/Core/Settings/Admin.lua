@@ -1,10 +1,10 @@
--- Oasis - Gildenleitung: Zentrale fuer Gildenmeister und Offiziere (ab einstellbarem Rang)
---  * Module fuer die ganze Gilde an/aus
---  * Rechte: ab welchem Rang man die Zentrale sieht (nur Gildenmeister)
---  * Durchsagen an alle mit Oasis (Hinweis + Sound, auf der Uebersicht angeheftet)
---  * Uebersicht: wer nutzt Oasis, welche Version
--- Jede Leitung schreibt einen eigenen Datensatz "gcfg-<Name>" in die Sammlung "guildcfg";
--- es gilt der neueste Datensatz eines berechtigten Autors (Rang wird aus der Gildenliste geprueft).
+-- Oasis - Guild leadership: hub for guild masters and officers (from a configurable rank)
+--  * Turn modules on/off for the whole guild
+--  * Permissions: from which rank the hub is visible (guild master only)
+--  * Announcements to everyone with Oasis (notice + sound, pinned on the overview)
+--  * Overview: who uses Oasis, which version
+-- Each leader writes their own record "gcfg-<Name>" into the collection "guildcfg";
+-- the newest record of an authorized author wins (rank is checked against the guild roster).
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Store, Comm = ns.K, ns.K.C, ns.Store, ns.Comm
@@ -13,49 +13,49 @@ local Admin = {}
 ns.Admin = Admin
 
 local DEFAULTS = {
-    off = "",          -- abgeschaltete Seiten, mit Komma getrennt
+    off = "",          -- disabled pages, comma-separated
     logo = "auto",     -- auto | oasis | text
-    ltext = "",        -- eigener Schriftzug (leer = Gildenname)
+    ltext = "",        -- custom lettering (empty = guild name)
     lfont = "cinzel",
-    lcol = "",         -- Schriftfarbe hex (leer = Akzentfarbe)
-    lsize = 0,         -- 0 = automatisch einpassen
-    xp2 = 0,           -- XP-Wochenende: doppelte Oasis-XP bis zu diesem Zeitpunkt
-    crest = "",        -- Gildenwappen: Symbol (Name aus Media/icons/badges)
-    crestc = "",       -- Gildenwappen: Farbe hex
-    xp2s = 0,          -- Double XP geplant: Start (0 = sofort)
-    vis = "",          -- Modul erst ab Rang sichtbar: "bank:1,raid:3" (Rang-Index, 0 = Gildenmeister)
-    nob = "",          -- Module ohne Neuigkeiten-Zahl in der Navigation: "chat,insta"
-    lup = false,       -- Grossbuchstaben
-    lsub = "",         -- Untertitel (leer = keiner)
-    acc = "",          -- Akzentfarbe hex (leer = Oasis-Rot)
-    rank = 1,          -- Gildenleitung ab Rang (0 = nur Gildenmeister)
-    inv = false,       -- Mitglieder ohne Oasis einmal anfluestern (Standard: aus)
-    dlink = "",        -- Discord-Link fuer diese Nachricht
-    crown = "all",     -- Krone oben: "all" = alle sehen sie (ohne Rechte grau) | "lead" = nur die Gildenleitung
+    lcol = "",         -- text color hex (empty = accent color)
+    lsize = 0,         -- 0 = fit automatically
+    xp2 = 0,           -- XP weekend: double Oasis XP until this time
+    crest = "",        -- Guild crest: icon (name from Media/icons/badges)
+    crestc = "",       -- Guild crest: color hex
+    xp2s = 0,          -- Double XP scheduled: start (0 = immediately)
+    vis = "",          -- Module visible only from rank: "bank:1,raid:3" (rank index, 0 = guild master)
+    nob = "",          -- Modules without a news count in the navigation: "chat,insta"
+    lup = false,       -- Upper case
+    lsub = "",         -- Subtitle (empty = none)
+    acc = "",          -- Accent color hex (empty = Oasis red)
+    rank = 1,          -- Guild leadership from rank (0 = guild master only)
+    inv = false,       -- Whisper members without Oasis once (default: off)
+    dlink = "",        -- Discord link for this message
+    crown = "all",     -- Crown at the top: "all" = everyone sees it (greyed out without permission) | "lead" = guild leadership only
 }
 Admin.DEFAULTS = DEFAULTS
 function Admin.RegisterOptionDefault(def)
     if def and def.key and DEFAULTS[def.key] == nil then DEFAULTS[def.key] = def.default end
 end
 for _, def in ipairs(ns.GuildOpts or {}) do Admin.RegisterOptionDefault(def) end
--- diese Seiten lassen sich nicht abschalten
+-- these pages cannot be disabled
 Admin.LOCKED = { home = true, settings = true, admin = true }
 
 ------------------------------------------------------------------------
--- Gilde und Raenge
+-- Guild and ranks
 ------------------------------------------------------------------------
 function Admin.GuildName()
     if not IsInGuild() then return nil end
     local g = ns.safe((GetGuildInfo("player")))
     return (g and g ~= "") and g or nil
 end
--- Testmodus (/oa testleitung): nur auf diesem PC wie ein Gildenmeister behandeln.
--- Andere Clients pruefen den echten Rang und ignorieren Aenderungen aus dem Testmodus.
--- 0.5.997: fuer Entwickler Standard an (adminTest == false = bewusst aus)
+-- Test mode (/oa testleitung): treat as guild master on this PC only.
+-- Other clients check the real rank and ignore changes made in test mode.
+-- 0.5.997: on by default for developers (adminTest == false = deliberately off)
 function Admin.TestMode()
     local s = ns.db and ns.db.settings
     if not s then return false end
-    -- 0.5.998: ein altes "aus" (aus der Zeit vor dem Standard an) einmal zuruecksetzen
+    -- 0.5.998: reset an old "off" (from before the default-on era) once
     if not s.adminTestV2 then s.adminTestV2 = true if s.adminTest == false then s.adminTest = nil end end
     return s.adminTest ~= false and ns.IsDev() and true or false
 end
@@ -83,10 +83,10 @@ function Admin.RankNames()
 end
 
 ------------------------------------------------------------------------
--- Einstellungen der Gilde (gilt fuer alle)
+-- Guild settings (apply to everyone)
 ------------------------------------------------------------------------
--- zwischengespeichert, neu nur bei Aenderung der Sammlung (Performance 0.5.482: lief bei jedem Topbar-/
--- Navigations-Update fuer jede Seite einmal: Store.List + Sortieren)
+-- cached, rebuilt only when the collection changes (performance 0.5.482: ran on every topbar/
+-- navigation update once per page: Store.List + sorting)
 local grCache, grGuild
 ns.Listen("STORE", function(coll) if coll == "guildcfg" then grCache = nil end end)
 local function guildRecs()
@@ -99,7 +99,7 @@ local function guildRecs()
     return list
 end
 
--- Rang-Grenze: gilt, was der Gildenmeister zuletzt festgelegt hat
+-- Rank limit: whatever the guild master set last applies
 function Admin.LeaderRank()
     for _, r in ipairs(guildRecs()) do
         if rankOf(r.by) == 0 and tonumber(r.rank) then return tonumber(r.rank) end
@@ -112,7 +112,7 @@ end
 function Admin.Trusted(by)
     if not by then return false end
     local r = rankOf(by)
-    if r == nil then return nil end   -- unbekannt (Gildenliste noch nicht da)
+    if r == nil then return nil end   -- unknown (guild roster not loaded yet)
     return r == 0 or r <= Admin.LeaderRank()
 end
 
@@ -152,7 +152,7 @@ function Admin.Cfg()
         memo, memoKey = cfg, key
         return cfg
     end
-    -- Gildenliste noch nicht geladen: zuletzt geprueften Stand verwenden
+    -- Guild roster not loaded yet: use the last checked state
     return withDefaults(ns.db.gcfgCache[g])
 end
 
@@ -162,12 +162,12 @@ function Admin.CanManage()
     local r = myRankIndex()
     return r ~= nil and r <= Admin.LeaderRank()
 end
--- Krone oben anzeigen? (Gilden-Einstellung "crown"; Leitung sieht sie immer)
+-- Show the crown at the top? (guild setting "crown"; leadership always sees it)
 function Admin.ShowCrown()
-    -- Krone fuer alle sichtbar; ohne Rechte ist die Seite sichtbar gesperrt (abgedunkelt mit Schloss)
+    -- Crown visible to everyone; without permission the page is visibly locked (dimmed with a padlock)
     return true
 end
--- Raid-Rollen (in der Gildenleitung vergeben): "lead" | "assist" | nil
+-- Raid roles (assigned in guild leadership): "lead" | "assist" | nil
 local function inList(str, name)
     if not name then return false end
     for n in tostring(str or ""):gmatch("[^,]+") do
@@ -176,10 +176,10 @@ local function inList(str, name)
     end
     return false
 end
--- Raid-Rollen: "lead" | "assist" | nil
--- a) in der Gildenleitung benannt (Gilden-Optionen rlead/rassi)
--- b) automatisch per Gildenrang (Gilden-Optionen rleadRank/rassiRank: 0 = aus, N = Raenge 1..N)
--- Gilt auch fuer fremde Namen (Absender-Pruefung bei uebertragenen Daten).
+-- Raid roles: "lead" | "assist" | nil
+-- a) named in guild leadership (guild options rlead/rassi)
+-- b) automatically by guild rank (guild options rleadRank/rassiRank: 0 = off, N = ranks 1..N)
+-- Also applies to other names (sender check for transmitted data).
 local function rankWithin(name, opt)
     local v = tonumber(ns.GuildOpt and ns.GuildOpt(opt)) or 0
     if v <= 0 then return false end
@@ -192,8 +192,8 @@ function Admin.RaidRole(name)
     if inList(ns.GuildOpt and ns.GuildOpt("rassi"), name) or rankWithin(name, "rassiRank") then return "assist" end
 end
 ------------------------------------------------------------------------
--- Rechte-Stufen: dev > lead (Gildenleitung) > officer > raidlead > raidassist > member
--- c) im laufenden Schlachtzug: Blizzard-Raidleiter = raidlead, Blizzard-Assistent = raidassist
+-- Permission levels: dev > lead (guild leadership) > officer > raidlead > raidassist > member
+-- c) in an active raid: Blizzard raid leader = raidlead, Blizzard assistant = raidassist
 ------------------------------------------------------------------------
 Admin.LEVEL = { member = 0, raidassist = 1, raidlead = 2, officer = 3, lead = 4, dev = 5 }
 Admin.FEATURES = {
@@ -205,8 +205,8 @@ local function realOfficer()
     return C_GuildInfo and C_GuildInfo.IsGuildOfficer and C_GuildInfo.IsGuildOfficer() and true or false
 end
 function Admin.Role()
-    -- Entwickler-Rechte nur im Testmodus (der Entwickler-Schalter gilt account-weit - auf Twinks ohne Rang
-    -- soll man die echten Sperren sehen, 08.10.)
+    -- Developer rights only in test mode (the developer switch is account-wide - on alts without rank
+    -- you should see the real restrictions, 08.10.)
     if Admin.TestMode() then return "dev" end
     if Admin.CanManage() then return "lead" end
     if realOfficer() or (ns.isOfficer and ns.isOfficer()) then return "officer" end
@@ -216,7 +216,7 @@ function Admin.Role()
     if rr == "assist" or (inRaid and UnitIsGroupAssistant and UnitIsGroupAssistant("player")) then return "raidassist" end
     return "member"
 end
--- benoetigte Stufe eines Features ("officer.xyz" -> officer, "admin.xyz" -> lead)
+-- required level of a feature ("officer.xyz" -> officer, "admin.xyz" -> lead)
 function Admin.Need(feature)
     feature = tostring(feature or "")
     return Admin.FEATURES[feature] or Admin.FEATURES[feature:match("^([^%.]+)%.") or ""] or "lead"
@@ -224,10 +224,10 @@ end
 function Admin.Can(feature)
     return (Admin.LEVEL[Admin.Role()] or 0) >= (Admin.LEVEL[Admin.Need(feature)] or 99)
 end
--- Rueckwaertskompatibel: IsRaidLead = volle Schlachtzugsleiter-Rechte, CanRaidPlan = Raidplaner sortieren (ab Assistenz)
+-- Backward compatible: IsRaidLead = full raid leader rights, CanRaidPlan = sort raid planner (from assistant)
 function Admin.IsRaidLead() return Admin.Can("raid.events") end
 function Admin.CanRaidPlan() return Admin.Can("raid.plan.sort") end
--- Uebersicht fuer die Gildenleitung: wer hat welche Raid-Stufe
+-- Overview for guild leadership: who has which raid level
 function Admin.RaidStaffText()
     local lead, assist = {}, {}
     for _, m in ipairs(ns.Radar and ns.Radar.roster or {}) do
@@ -246,10 +246,10 @@ function Admin.IsGM()
 end
 
 ------------------------------------------------------------------------
--- Rechte ANDERER Personen (Empfaengersicht): darf der Urheber eines empfangenen Datensatzes das?
--- Stufe aus Gildenliste (Rang), Rang-Rechten (Offizierschat), Namenslisten/Rang-Optionen (rlead/rassi)
--- und im laufenden Raid Blizzard-Leiter/Assistent. Entwickler-Rechte gelten NIE fuer andere.
--- Rueckgabe Admin.MayAuthor: true | false | nil (Gildenliste noch nicht geladen -> spaeter erneut pruefen)
+-- Permissions of OTHER people (receiver's view): may the author of a received record do this?
+-- Level from guild roster (rank), rank permissions (officer chat), name lists/rank options (rlead/rassi)
+-- and, in an active raid, Blizzard leader/assistant. Developer rights NEVER apply to others.
+-- Returns Admin.MayAuthor: true | false | nil (guild roster not loaded yet -> check again later)
 ------------------------------------------------------------------------
 for k, v in pairs({ events = "raidlead", raidplan = "raidassist", tactics = "raidlead", polls = "officer", points = "officer",
     notices = "lead", guildcfg = "lead", formers = "officer", audit = "officer", notes = "officer", bans = "officer", sndmute = "officer", recruits = "officer" }) do
@@ -258,10 +258,10 @@ end
 ns.GuildOption({ page = "officer", key = "offRank", default = 2, min = 1, max = 10, step = 1, label = "Officers up to guild rank (fallback)",
     desc = "Only if WoW does not provide the rank permissions: up to which guild rank others count as officers (for checking received data).",
     fmt = function(v) return (ns.L["up to rank %d"]):format(tonumber(v) or 0) end })
--- Namen vergleichen: "Vorname Nachname-Realm" (Gildenliste) == "Vorname-Realm" (Nachrichten)
+-- Compare names: "Firstname Lastname-Realm" (guild roster) == "Firstname-Realm" (messages)
 local function nameKey(n) return n and ns.NameKey(n) end
 function Admin.SameName(a, b) return ns.SameName(a, b) end
--- Rang-Recht "Offizierschat" eines Rangs (Rang-Index 0 = Gildenmeister); nil = nicht lesbar
+-- Rank permission "officer chat" of a rank (rank index 0 = guild master); nil = not readable
 local flagCache, flagAt = {}, 0
 local function rankFlagOfficer(ri)
     if GetTime() - flagAt > 60 then flagCache, flagAt = {}, GetTime() end
@@ -271,7 +271,7 @@ local function rankFlagOfficer(ri)
     if C_GuildInfo and C_GuildInfo.GuildControlGetRankFlags then
         local ok, t = pcall(C_GuildInfo.GuildControlGetRankFlags, ri + 1)
         if ok and type(t) == "table" then
-            local v = t[4]   -- 4 = Offizierschat sprechen (3 = zuhoeren)
+            local v = t[4]   -- 4 = speak in officer chat (3 = listen)
             if v == nil then v = t[3] end
             if v ~= nil then res = ns.safe(v) and true or false end
         end
@@ -287,7 +287,7 @@ local function rankIsOfficer(ri)
     local v = tonumber(ns.GuildOpt and ns.GuildOpt("offRank")) or 2
     return ri + 1 <= v
 end
--- im laufenden Raid: Blizzard-Leiter / -Assistent?
+-- in an active raid: Blizzard leader / assistant?
 local function blizzRaidRole(name)
     if not (IsInRaid and IsInRaid()) then return nil end
     for i = 1, (GetNumGroupMembers and GetNumGroupMembers() or 0) do
@@ -300,7 +300,7 @@ local function blizzRaidRole(name)
         end
     end
 end
--- Gruppenleiter der eigenen (Nicht-Raid-)Gruppe? (Taktiken duerfen dort Gruppenleiter schreiben)
+-- Leader of your own (non-raid) group? (group leaders may write tactics there)
 function Admin.IsMyPartyLeader(name)
     if not (IsInGroup and IsInGroup()) or (IsInRaid and IsInRaid()) then return false end
     for i = 1, 4 do
@@ -312,8 +312,8 @@ function Admin.IsMyPartyLeader(name)
     end
     return false
 end
--- Stufe einer anderen Person: "lead" | "officer" | "raidlead" | "raidassist" | "member" | nil (unbekannt)
--- why: kurze Begruendung (fuer /oa probe rechte)
+-- Level of another person: "lead" | "officer" | "raidlead" | "raidassist" | "member" | nil (unknown)
+-- why: short reason (for /oa probe rechte)
 function Admin.RoleOf(name)
     if not name or name == "" then return "member", "kein Name" end
     if ns.isMe(name) then
@@ -344,7 +344,7 @@ function Admin.MayAuthor(name, feature)
     if role == nil then return nil end
     return (Admin.LEVEL[role] or 0) >= (Admin.LEVEL[Admin.Need(feature)] or 99)
 end
--- in der Gildenliste? true | false | nil (unbekannt)
+-- in the guild roster? true | false | nil (unknown)
 function Admin.InGuildList(name)
     if ns.isMe(name) then return true end
     if not rosterKnown() then return nil end
@@ -353,8 +353,8 @@ function Admin.InGuildList(name)
 end
 
 ------------------------------------------------------------------------
--- Pruefregeln je Sammlung (fuer Store-Empfang in Comm.lua)
--- g(rec, actor, old) -> true | false | nil.  actor = wer die Aenderung geschickt/gemacht hat.
+-- Validation rules per collection (for store receive in Comm.lua)
+-- g(rec, actor, old) -> true | false | nil.  actor = who sent/made the change.
 ------------------------------------------------------------------------
 local function rankWithinLimit(name, limit)
     limit = tonumber(limit) or 10
@@ -390,7 +390,7 @@ local function memberRule(delFeature)
         return Admin.InGuildList(actor)
     end
 end
--- Gildenlisten-Eintrag nach Kurzname (Protokoll speichert Kurznamen)
+-- Guild roster entry by short name (the log stores short names)
 local function rosterEntry(name)
     local full = ns.ResolveName(name)
     return full and ns.Radar and ns.Radar.byName and ns.Radar.byName[full]
@@ -400,7 +400,7 @@ local function officerOk(actor)
     local role = Admin.RoleOf(actor)
     return role == "lead" or role == "officer"
 end
--- passt ein Protokolleintrag zur aktuellen Gildenliste?
+-- does a log entry match the current guild roster?
 local function auditPlausible(rec)
     local k = rec.kind
     if k == "join" or k == "rejoin" then return rosterEntry(rec.a) ~= nil end
@@ -420,8 +420,8 @@ local function auditPlausible(rec)
     end
     return false
 end
--- Wer nur durch einen Blizzard-Raid "Raidleiter" ist, darf keine dauerhaften Gildendaten schreiben
--- (sonst koennte jeder einen Raid bilden und Termine/Taktiken/Plaene der Gilde aendern)
+-- Someone who is "raid leader" only via a Blizzard raid may not write persistent guild data
+-- (otherwise anyone could form a raid and change the guild's events/tactics/plans)
 local function blizzOnly(actor)
     local _, why = Admin.RoleOf(actor)
     return type(why) == "string" and why:find("Blizzard", 1, true) ~= nil
@@ -442,7 +442,7 @@ Admin.AUTH = {
     votes = selfRule("who", nil, true),
     avotes = memberRule(),
     points = function(rec, actor)
-        -- die Punkte-Einstellungen selbst (wer darf Punkte vergeben) nur Offiziere, nicht delegierte Punkte-Verwalter
+        -- the points settings themselves (who may award points) officers only, not delegated points managers
         if rec and rec.id == "points-cfg" then return lasting(level(actor, "points"), actor) end
         return level(actor, "points", function(n)
             local lim = ns.Points and ns.Points.Cfg and tonumber(ns.Points.Cfg().rank)
@@ -452,20 +452,20 @@ Admin.AUTH = {
     end,
     notices = function(rec, actor) return level(actor, "notices") end,
     guildcfg = function(rec, actor)
-        -- jede Leitung schreibt nur ihren eigenen Datensatz gcfg-<Name>
+        -- each leader writes only their own record gcfg-<Name>
         if rec.by and not Admin.SameName(rec.by, actor) then return false end
         if rec.id and rec.by and rec.id ~= "gcfg-" .. rec.by then return false end
         return level(actor, "guildcfg")
     end,
-    -- 0.6.532: offizielles Gildenpaket nur von der Leitung (Recht guildcfg), nur der feste Datensatz
+    -- 0.6.532: official guild pack only from leadership (permission guildcfg), only the fixed record
     gpack = function(rec, actor) if rec.id ~= "gpack-official" then return false end return level(actor, "guildcfg") end,
     bans = function(rec, actor) return level(actor, "bans") end,
     sndmute = function(rec, actor) return level(actor, "sndmute") end,
     recruits = function(rec, actor) return level(actor, "recruits") end,
-    -- Protokoll/Ehemalige/Anwesenheit entstehen automatisch bei jedem Mitglied (Systemmeldungen, Gildenliste):
-    -- anlegen darf jedes Gildenmitglied, loeschen nur Offiziere
-    -- Neue Eintraege von Nicht-Offizieren werden gegen die EIGENE Gildenliste geprueft (Plausibilitaet),
-    -- damit ein manipulierter Client keine ausgedachten Ein-/Austritte, Befoerderungen oder Ehemalige einschleust
+    -- Log/former members/attendance are created automatically by every member (system messages, guild roster):
+    -- any guild member may create, only officers may delete
+    -- New entries from non-officers are checked against your OWN guild roster (plausibility),
+    -- so a manipulated client cannot inject fake joins/leaves, promotions or former members
     formers = function(rec, actor, old)
         local r = memberRule("formers")(rec, actor, old)
         if not r or rec.del then return r end
@@ -482,7 +482,7 @@ Admin.AUTH = {
         if not rosterKnown() then return nil end
         return auditPlausible(rec)
     end,
-    -- Anwesenheit schreibt der Raidleiter: nur Offiziere oder benannte Schlachtzugsleitung/Assistenz (Liste/Rang)
+    -- Attendance is written by the raid leader: only officers or named raid leaders/assistants (list/rank)
     attend = function(rec, actor, old)
         if not Admin.InGuildList(actor) then return false end
         if rec.del then return level(actor, "officer") end
@@ -491,19 +491,19 @@ Admin.AUTH = {
         return rr == "lead" or rr == "assist"
     end,
     sres = selfRule("char", "events"),
-    -- Beute: eigene Beute (who = Absender) darf jeder melden; Vergaben an andere nur Raidleitung
-    -- (Liste/Rang/Blizzard-Raidleiter) bzw. Gruppenleiter der eigenen Gruppe; Loeschen fremder nur Raidleitung
+    -- Loot: anyone may report their own loot (who = sender); awards to others only raid leadership
+    -- (list/rank/Blizzard raid leader) or leader of your own group; deleting others' only raid leadership
     loot = function(rec, actor)
         if rec.who and Admin.SameName(rec.who, actor) and rec.src ~= "Vergabe" then return true end
         return level(actor, "raid.loot", Admin.IsMyPartyLeader)
     end,
-    -- Todeswuerfeln: nur die beiden Beteiligten
+    -- Death roll: only the two participants
     duels = function(rec, actor)
         if rec.winner and Admin.SameName(rec.winner, actor) then return true end
         if rec.loser and Admin.SameName(rec.loser, actor) then return true end
         return false
     end,
-    -- Chronik: eigene Eintraege; Gilden-Ereignisse (Beitritt usw.) darf jedes Mitglied melden
+    -- Chronicle: own entries; any member may report guild events (join etc.)
     chronicle = function(rec, actor)
         if rec.kind == "guild" and not rec.del then return Admin.InGuildList(actor) end
         return selfRule("who", "officer")(rec, actor)
@@ -513,23 +513,23 @@ Admin.AUTH = {
     lfgreq = selfRule("by", "officer"),
     deaths = selfRule("who", "officer"),
     posts = selfRule("by", "officer"),
-    -- angepinnte Gildenchat-Nachricht: ab Offizier (Gilden-Option "lead": nur Gildenleitung)
+    -- pinned guild chat message: officer and up (guild option "lead": guild leadership only)
     chatpin = function(rec, actor)
         return level(actor, (ns.GuildOpt and ns.GuildOpt("chPin") == "lead") and "admin" or "officer")
     end,
-    -- Reaktionen: id = <Nachricht>#<Reagierender>
+    -- Reactions: id = <message>#<reactor>
     reacts = function(rec, actor)
         local who = tostring(rec.id or ""):match("#([^#]+)$")
         return who ~= nil and Admin.SameName(who, actor)
     end,
-    -- zuletzt verlinkte Items: jedes Gildenmitglied, loeschen nur Offiziere
+    -- recently linked items: any guild member, only officers may delete
     links = memberRule("officer"),
     raidint = function(rec, actor)
         local who = tostring(rec.id or ""):match("^ri%-(.+)$")
         return who ~= nil and Admin.SameName(who, actor)
     end,
 }
--- Diagnose: /oa probe rechte <Name>
+-- Diagnostics: /oa probe rechte <Name>
 ns.probes = ns.probes or {}
 ns.probes.rechte = function(rest)
     local name = rest and rest:gsub("^%s+", ""):gsub("%s+$", "") or ""
@@ -575,7 +575,7 @@ function Admin.Save(cfg)
     return true
 end
 
--- Seite fuer die Gilde eingeschaltet?
+-- Page enabled for the guild?
 local function offSet(cfg)
     local t = {}
     for k in tostring(cfg.off or ""):gmatch("[^,]+") do t[k] = true end
@@ -605,7 +605,7 @@ Admin.NoBadge = function(key) return nobSet(Admin.Cfg())[key] and true or false 
 function Admin.PageEnabled(key, cfg)
     if Admin.LOCKED[key] then return true end
     cfg = cfg or Admin.Cfg()
-    -- erst ab einem Gildenrang sichtbar (Leitung sieht immer alles)
+    -- visible only from a certain guild rank (leadership always sees everything)
     local need = visMap(cfg)[key]
     if need and not Admin.CanManage() then
         local mine = myRankIndex()
@@ -615,7 +615,7 @@ function Admin.PageEnabled(key, cfg)
 end
 
 ------------------------------------------------------------------------
--- Logo und Akzentfarbe (waehlt jeder selbst; Gildenfarbe bleibt als Vorgabe)
+-- Logo and accent color (everyone picks their own; guild color stays as the default)
 ------------------------------------------------------------------------
 local ORIG = {
     accent = { unpack(C.accent) }, accent2 = { unpack(C.accent2) }, violet = { unpack(C.violet) },
@@ -633,14 +633,14 @@ function Admin.ApplyAccent(hex)
         C.violet[i] = a[i] or 1
         C.accent2[i] = a2[i] or 1
     end
-    -- bereits gebaute Schalter, Leisten und Symbole behalten ihre Farbe -> Fenster neu aufbauen
-    -- (gebremst: beim Ziehen im Farbrad kommt jede kleine Aenderung einzeln)
+    -- already built toggles, bars and icons keep their color -> rebuild the window
+    -- (throttled: dragging in the color wheel sends every small change separately)
     Admin.ScheduleRebuild()
 end
--- Fenster gebremst neu aufbauen (ein gemeinsamer Zaehler: mehrere Aenderungen kurz hintereinander = ein Neuaufbau)
+-- Rebuild the window throttled (one shared counter: several changes in quick succession = one rebuild)
 function Admin.ScheduleRebuild()
     if not (ns.RebuildMain and ns.loggedIn) then return end
-    -- Farbwaehler offen: sofort live umfaerben, Neuaufbau beim Schliessen nachholen
+    -- Color picker open: recolor live immediately, do the rebuild on close
     if K.pickerOpen then
         if K.LiveRecolor then K.LiveRecolor() end
         Admin.rebuildPending = true
@@ -655,7 +655,7 @@ K.onPickerClosed = function()
     if Admin.rebuildPending then Admin.rebuildPending = nil Admin.ScheduleRebuild() end
 end
 
--- persoenliche Akzentfarbe (Einstellungen > Darstellung) vor der Gildenfarbe
+-- personal accent color (Settings > Appearance) before the guild color
 function Admin.EffectiveAccent(cfg)
     local mine = ns.db and ns.db.settings.accent or ""
     if K.FromHex(mine) then return mine end
@@ -666,8 +666,8 @@ function Admin.GuildAccentColor()
     return K.FromHex(Admin.Cfg().acc) or ORIG.accent
 end
 
--- 0.5.953: Beispieldaten zeigen einen langen Gildennamen im Logo (so sieht man, wie Oasis mit langen Namen umgeht).
--- Nur die ANZEIGE: Admin.GuildName() bleibt der echte Name (daran haengen Abgleich und Rechte).
+-- 0.5.953: sample data shows a long guild name in the logo (to see how Oasis handles long names).
+-- DISPLAY only: Admin.GuildName() stays the real name (sync and permissions depend on it).
 Admin.DEMO_GUILD = "H\195\188ter der Ewigen Flamme"
 function Admin.DemoGuildName()
     if ns.db and ns.db.demo == true then return Admin.DEMO_GUILD end
@@ -676,23 +676,23 @@ end
 function Admin.BrandText(cfg)
     cfg = cfg or Admin.Cfg()
     local t = Admin.DemoGuildName() or ((cfg.ltext or "") ~= "" and cfg.ltext) or Admin.GuildName() or "Oasis"
-    t = K.Upper(t)   -- Gildenname immer in Grossbuchstaben
+    t = K.Upper(t)   -- Guild name always in upper case
     return t
 end
 function Admin.BrandSub(cfg)
     cfg = cfg or Admin.Cfg()
-    -- ohne eigenen Untertitel: keiner (frueher "Gildenzentrale")
+    -- no custom subtitle: none (formerly "Gildenzentrale")
     return cfg.lsub or ""
 end
--- 0.5.681: immer der Gildenname als Schriftzug (Oasis wird veroeffentlicht - keine Oasis-Gilden-Wortmarke mehr);
--- ohne Gilde steht "Oasis" in derselben Schrift
+-- 0.5.681: always the guild name as lettering (Oasis is being published - no more Oasis guild wordmark);
+-- without a guild, "Oasis" is shown in the same font
 function Admin.LogoMode(cfg)
     return "text"
 end
 
--- Logo-Stile (0.5.916): jeder waehlt selbst per Klick aufs Logo (settings.logoStyle, nil = "soft")
---   soft   = Akzentfarbe -> dieselbe Farbe heller        fire  = Akzentfarbe -> warme Nachbarfarbe (Rot -> Gelb)
---   lead   = Anfang in Akzentfarbe, dann Textfarbe       plain = Textfarbe      accent = ganz in Akzentfarbe
+-- Logo styles (0.5.916): everyone picks their own by clicking the logo (settings.logoStyle, nil = "soft")
+--   soft   = accent color -> same color lighter        fire  = accent color -> warm neighboring color (red -> yellow)
+--   lead   = start in accent color, then text color       plain = text color      accent = fully accent color
 Admin.LOGO_STYLES = {
     { key = "soft", text = "Soft gradient" }, { key = "fire", text = "Warm gradient" },
     { key = "lead", text = "Only the start in colour" }, { key = "plain", text = "Light, no colour" },
@@ -703,7 +703,7 @@ function Admin.LogoStyle()
     for _, d in ipairs(Admin.LOGO_STYLES) do if d.key == st then return st end end
     return "soft"
 end
--- Endfarbe des Verlaufs: "fire" dreht den Farbton um ~32 Grad (weniger gesaettigt, hell), sonst dieselbe Farbe heller
+-- End color of the gradient: "fire" shifts the hue by ~32 degrees (less saturated, light), otherwise the same color lighter
 function Admin.LogoGradientEnd(col, style)
     local r, g, b = col[1], col[2], col[3]
     local mx, mn = math.max(r, g, b), math.min(r, g, b)
@@ -724,7 +724,7 @@ function Admin.LogoGradientEnd(col, style)
     elseif i == 3 then return { pp, q, v } elseif i == 4 then return { tt, pp, v } end
     return { v, pp, q }
 end
--- Farbe des Buchstabens an Stelle q (0..1) im Namen
+-- Color of the letter at position q (0..1) in the name
 function Admin.LogoLetterColor(style, col, text, q)
     if style == "plain" then return text end
     if style == "accent" then return col end
@@ -733,7 +733,7 @@ function Admin.LogoLetterColor(style, col, text, q)
     return { col[1] + (to[1] - col[1]) * k, col[2] + (to[2] - col[2]) * k, col[3] + (to[3] - col[3]) * k }
 end
 
--- Logo-Baustein: zeigt die Oasis-Wortmarke oder den Gildennamen als Schriftzug
+-- Logo widget: shows the Oasis wordmark or the guild name as lettering
 local logos = setmetatable({}, { __mode = "k" })
 function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
     local f = CreateFrame("Frame", nil, parent)
@@ -746,10 +746,10 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
     f.text:SetWordWrap(false)
     f.text:SetShadowColor(0, 0, 0, 0.7)
     f.text:SetShadowOffset(1, -1)
-    f.text:Hide()   -- nie sichtbar, haelt nur den Text; angezeigt wird die gesperrte Fassung (f.track)
+    f.text:Hide()   -- never visible, only holds the text; the letter-spaced version is shown (f.track)
     f.track = K.Tracked(f, 20, C.accent)
     f.track:Hide()
-    -- Gildenname (Text-Logo): Monogramm-Kachel mit Anfangsbuchstabe + Name in normaler Schreibweise
+    -- Guild name (text logo): monogram tile with initial + name in normal case
     f.badge = CreateFrame("Frame", nil, f)
     f.badge:SetSize(h - 4, h - 4)
     f.badge:SetPoint("LEFT", 0, 0)
@@ -762,14 +762,14 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
     f.badge.t:SetTextColor(1, 1, 1)
     f.badge:Hide()
     f.name = f:CreateFontString(nil, "OVERLAY")
-    f.name:SetPoint("LEFT", 0, 0)   -- ohne Monogramm-Kachel
+    f.name:SetPoint("LEFT", 0, 0)   -- without monogram tile
     f.name:SetJustifyH("LEFT")
     f.name:SetJustifyV("MIDDLE")
     f.name:SetWordWrap(false)
     f.name:SetShadowColor(0, 0, 0, 0.6)
     f.name:SetShadowOffset(1, -1)
     f.name:Hide()
-    -- 0.5.714: Markenlinie unter dem Namen (nur grosse Logos ohne eigene Linie): kurzer kraeftiger Anfang, dann Verlauf nach rechts
+    -- 0.5.714: brand line under the name (only large logos without their own line): short bold start, then gradient to the right
     if h >= 30 and not withLine then
         f.rule = f:CreateTexture(nil, "ARTWORK")
         f.rule:SetHeight(2)
@@ -780,7 +780,7 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
         f.tick:SetPoint("BOTTOMLEFT", 0, 1)
         f.rule:Hide()
         f.tick:Hide()
-        -- kleine Zeile unter der Linie: wie viele aus der Gilde gerade online sind (alle 30 s aktualisiert)
+        -- small line under the rule: how many guild members are online right now (updated every 30 s)
         f.sub = f:CreateFontString(nil, "OVERLAY")
         K.SetFontSafe(f.sub, K.FONT, 11, "", K.FONT)
         f.sub:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 0, -4)
@@ -792,7 +792,7 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
                 n = n + 1
                 if m.online then on = on + 1 end
             end
-            -- Zahlen in Textfarbe, Worte gedimmt, Mittelpunkt statt Bindestrich (gilt fuer jede Sprache)
+            -- Numbers in text color, words dimmed, middle dot instead of hyphen (applies to every language)
             local s = n > 0 and (L["%d online - %d members"]):format(on, n) or ""
             s = s:gsub(" %- ", "  \194\183  "):gsub("%d+", function(d) return K.hex(C.text) .. d .. "|r" end)
             f.sub:SetText(s)
@@ -834,7 +834,7 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
         self.badge:Hide()
         self.name:SetShown(isText)
         if self.line then self.line:SetShown(isText) self.spark:SetShown(isText) end
-        if self.rule then self.rule:Hide() self.tick:Hide() end   -- 0.5.911: keine Linie mehr unter dem Namen
+        if self.rule then self.rule:Hide() self.tick:Hide() end   -- 0.5.911: no more line under the name
         if not isText then return end
         local accHex = self.fixedCfg and cfg.acc or Admin.EffectiveAccent(cfg)
         local col = K.FromHex(cfg.lcol) or K.FromHex(accHex) or C.accent
@@ -844,15 +844,15 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
             self.line:SetColorTexture(a[1], a[2], a[3], 0.35)
             self.spark:SetVertexColor(a[1], a[2], a[3])
         end
-        -- Schriftzug immer genau so breit wie der Strich darunter
-        -- 0.5.690: ohne eigene Wahl schmal + kraeftig (PT Sans Narrow Bold) - wirkt wie ein Markenschriftzug
+        -- Lettering always exactly as wide as the line below it
+        -- 0.5.690: without a choice, narrow + bold (PT Sans Narrow Bold) - looks like a brand lettering
         local path, text = K.FontPath(cfg.lfont or "ptsansbold", K.FONT_HEAD), Admin.BrandText(cfg)
-        path = K.FontFor(path, text)   -- Gildenname mit Kyrillisch/Koreanisch/Chinesisch: passende Schrift
+        path = K.FontFor(path, text)   -- Guild name with Cyrillic/Korean/Chinese: matching font
         local fs, tr = self.text, self.track
         tr.color = col
-        -- Name in normaler Schreibweise (eigener Logo-Text der Leitung, sonst Gildenname)
+        -- Name in normal case (leadership's own logo text, otherwise guild name)
         local plain = (Admin.DemoGuildName and Admin.DemoGuildName()) or ((cfg.ltext or "") ~= "" and cfg.ltext) or Admin.GuildName() or "Oasis"
-        -- Grossbuchstaben; gesperrt geschriebene Namen ("o a s i s") zusammenziehen
+        -- Upper case; contract letter-spaced names ("o a s i s")
         local parts = {}
         for w in plain:gmatch("%S+") do parts[#parts + 1] = w end
         local single = #parts > 2
@@ -863,15 +863,15 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
         self.badge.t:SetText(K.Upper and K.Upper(initial) or initial:upper())
         K.SkinFill(self.badge, col, 1)
         if not self.badge.skinFill then self.badge.bg:SetColorTexture(col[1], col[2], col[3], 1) end
-        -- dunkle Schrift auf sehr hellen Akzentfarben
+        -- dark text on very light accent colors
         local lum = 0.299 * col[1] + 0.587 * col[2] + 0.114 * col[3]
         if lum > 0.72 then self.badge.t:SetTextColor(0.08, 0.08, 0.1) else self.badge.t:SetTextColor(1, 1, 1) end
         local nm = self.name
         nm:SetTextColor(C.text[1], C.text[2], C.text[3])
-        -- 0.5.911: grosses Logo ohne Linie; der Name laeuft Buchstabe fuer Buchstabe von der
-        -- Akzentfarbe in ihre hellere Nachbarfarbe (Rot -> Orange, Blau -> Violett ...). Kleine Logos bleiben einfarbig.
+        -- 0.5.911: large logo without line; the name runs letter by letter from the
+        -- Accent color into its lighter neighboring color (red -> orange, blue -> violet ...). Small logos stay single-colored.
         local style = Admin.LogoStyle()
-        -- kurze Ein-Wort-Namen gesperrt setzen ("O A S I S"): wirkt wie eine Wortmarke; lange Namen bleiben eng
+        -- set short one-word names letter-spaced ("O A S I S"): looks like a wordmark; long names stay tight
         local shown = self.rule and Admin.LogoSpaced(plain, not (ns.db and ns.db.settings.logoTrack == false)) or plain
         local function tint(t)
             if not self.rule then return t end
@@ -888,12 +888,12 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
                 nm:SetText(t)
                 return tonumber(nm:GetStringWidth()) or 0
             end
-            -- eine Zeile: groesste Schrift, die in die Breite passt
+            -- one line: largest font that fits the width
             nm:SetWordWrap(false)
             if nm.SetMaxLines then nm:SetMaxLines(1) end
             nm:SetWidth(0)
             local one = false
-            -- Groessen nach der Hoehe (Seitenleiste 39 px: 26..18, Topbar 19 px: 12..8)
+            -- Sizes by height (sidebar 39 px: 26..18, topbar 19 px: 12..8)
             local maxS = math.min(26, math.floor(h * 0.68))
             local minS = math.max(8, math.floor(maxS * 0.69))
             for size = maxS, minS, -1 do
@@ -901,9 +901,9 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
                 if widthOf(shown) <= avail then one = true break end
             end
             if one or h < 30 then
-                nm:SetText(tint(shown))   -- (zu niedrig fuer zwei Zeilen: kleinste Groesse, notfalls gekuerzt)
+                nm:SetText(tint(shown))   -- (too low for two lines: smallest size, truncated if needed)
             else
-                -- 0.5.690: zwei ausgewogene Zeilen (Umbruch dort, wo beide Zeilen etwa gleich lang sind)
+                -- 0.5.690: two balanced lines (break where both lines are about equally long)
                 local words = {}
                 for w in plain:gmatch("%S+") do words[#words + 1] = w end
                 local best
@@ -925,15 +925,15 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
             nm:SetWidth(avail)
         end
         fit()
-        -- WoW laedt eine neue Schriftdatei erst beim ersten Gebrauch; die erste Messung stimmt
-        -- dann oft noch nicht -> kurz darauf noch einmal nachmessen
+        -- WoW loads a new font file only on first use; the first measurement is
+        -- often wrong -> measure again shortly after
         self.fitGen = (self.fitGen or 0) + 1
         local gen = self.fitGen
         for _, d in ipairs({ 0.05, 0.3, 1 }) do
             ns.After(d, function() if self.fitGen == gen then fit() end end)
         end
     end
-    -- Klick: Schriftart waehlen (Leitung fuer die Gilde, alle anderen fuer sich)
+    -- Click: choose font (leadership for the guild, everyone else for themselves)
     function f:MakeClickable()
         self:EnableMouse(true)
         self:SetScript("OnMouseUp", function(s) Admin.ShowLogoStudio(s) end)
@@ -948,7 +948,7 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
     return f
 end
 
--- Was dieser Spieler sieht: Gilden-Einstellung, ggf. mit eigener Logo-Schrift
+-- What this player sees: guild setting, possibly with their own logo font
 function Admin.DisplayCfg()
     local cfg = Admin.Cfg()
     local s = ns.db and ns.db.settings or {}
@@ -956,12 +956,12 @@ function Admin.DisplayCfg()
     local c = {}
     for k, v in pairs(cfg) do c[k] = v end
     if mine then c.lfont = mine end
-    -- Logo-Art waehlt jeder selbst (Einstellungen / Klick aufs Logo); ohne Wahl: automatisch
+    -- Everyone picks the logo style themselves (Settings / click the logo); without a choice: automatic
     c.logo = (s.logoMode == "oasis" or s.logoMode == "text") and s.logoMode or nil
     return c
 end
 function Admin.SetLogoMode(mode)
-    ns.db.settings.logoMode = mode   -- nil = automatisch
+    ns.db.settings.logoMode = mode   -- nil = automatic
     Admin.ApplyBrand(true)
     ns.RefreshPage("settings")
 end
@@ -970,7 +970,7 @@ function Admin.ShowLogoFontMenu(owner)
     local s = ns.db.settings
     local cur = s.logoFont
     local items = {}
-    -- Stil des Schriftzugs (nur fuer dich)
+    -- Lettering style (just for you)
     local style = Admin.LogoStyle()
     for _, d in ipairs(Admin.LOGO_STYLES) do
         items[#items + 1] = { text = L[d.text], checked = style == d.key, fn = function()
@@ -993,31 +993,31 @@ function Admin.ShowLogoFontMenu(owner)
             Admin.SetLogoMode(nil)
         end }
     end
-    -- Schriftzug, Untertitel und Farbe stellt die Gildenleitung fuer alle ein
+    -- Lettering, subtitle and color are set by the guild leadership for everyone
     items[#items + 1] = { text = "|cff888888" .. L["Logo settings ..."] .. "|r", fn = function()
         if ns.OpenSettingsTab then ns.OpenSettingsTab("look") end
     end }
     K.ShowMenu(owner, items, L["Logo style - only for you"], 200)
 end
 
--- Aenderungen verteilen: Logos, Navigation, Akzentfarbe
+-- Distribute changes: logos, navigation, accent color
 local lastSig
 function Admin.ApplyBrand(force)
     local cfg = Admin.Cfg()
     local sig = (cfg.u or 0) .. (cfg.by or "") .. tostring(Admin.GuildName()) .. tostring(Admin.DemoGuildName()) .. tostring(Admin.CanManage()) .. tostring(ns.db.settings.accent) .. tostring(ns.db.settings.logoFont) .. tostring(ns.db.settings.logoMode)
     if not force and sig == lastSig then return end
     lastSig = sig
-    if K.ApplyTheme then K.ApplyTheme() end   -- Design-Palette vor der Akzentfarbe
+    if K.ApplyTheme then K.ApplyTheme() end   -- Design palette before the accent color
     Admin.ApplyAccent(Admin.EffectiveAccent(cfg))
-    -- force = Aussehen hat sich geaendert: auch bei gleicher Akzentfarbe neu aufbauen
-    -- (frueher blieb z.B. "Hoher Kontrast" ohne /reload unsichtbar, weil ApplyAccent nichts zu tun hatte)
+    -- force = appearance changed: rebuild even with the same accent color
+    -- (previously e.g. "Hoher Kontrast" stayed invisible without /reload because ApplyAccent had nothing to do)
     if force then Admin.ScheduleRebuild() end
     for lg in pairs(logos) do if not lg.fixedCfg then pcall(lg.Apply, lg) end end
     ns.Fire("BRAND", cfg)
 end
 
 ------------------------------------------------------------------------
--- Durchsagen
+-- Announcements
 ------------------------------------------------------------------------
 function Admin.Notices()
     local g = Admin.GuildName()
@@ -1029,7 +1029,7 @@ function Admin.Notices()
     table.sort(out, function(a, b) return (a.ts or 0) > (b.ts or 0) end)
     return out
 end
--- neueste Durchsage der letzten 3 Tage (fuer die Uebersicht)
+-- newest announcement of the last 3 days (for the overview)
 function Admin.LatestNotice()
     local n = Admin.Notices()[1]
     if n and ns.now() - (n.ts or 0) < 3 * 86400 and Admin.Trusted(n.by) then return n end
@@ -1085,12 +1085,12 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Oasis-Versionen
+-- Oasis versions
 ------------------------------------------------------------------------
 local function verNum(v)
     local a, b, c = tostring(v or ""):match("(%d+)%.?(%d*)%.?(%d*)")
     if not a then return 0 end
-    -- gleiche Rechnung wie Radar.VerNum (0.4.1 > 0.3.347)
+    -- same calculation as Radar.VerNum (0.4.1 > 0.3.347)
     return tonumber(a) * 1000000 + (tonumber(b) or 0) * 1000 + (tonumber(c) or 0)
 end
 Admin.VerNum = verNum
@@ -1119,24 +1119,24 @@ function Admin.Usage()
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local TABS = {
-    -- 0.5.781: neu sortiert und in Klartext - erst der Alltag (Start, Mitglieder, Durchsagen, Termine), dann Raid/Chat, Einrichten zuletzt
+    -- 0.5.781: re-sorted and in plain language - everyday things first (start, members, announcements, events), then raid/chat, setup last
     { key = "start", text = "Start" },
     { key = "overview", text = "Members" },
     { key = "members", text = "Guild care" },
     { key = "notices", text = "Announcements" },
     { key = "events", text = "Events" },
     { key = "raidtools", text = "Raid" },
-    { key = "ochat", text = "Officer chat" },   -- nur sichtbar mit Offizierschat-Recht
+    { key = "ochat", text = "Officer chat" },   -- only visible with officer chat permission
     { key = "modules", text = "Sections" },
     { key = "rights", text = "Permissions" },
     { key = "tools", text = "Log" },
 }
 
--- 0.6.537: Reiter zu 6 Bereichen zusammengefasst (vorher 14 nebeneinander, zu viel fuer Laien und zu breit).
--- Ein Bereich mit mehreren Teilen bekommt darunter eine zweite, kleine Reiterzeile. Unbekannte Reiter (von Modulen) bleiben eigene Bereiche.
+-- 0.6.537: tabs merged into 6 sections (previously 14 side by side, too much for beginners and too wide).
+-- A section with several parts gets a second, small tab row below. Unknown tabs (from modules) stay separate sections.
 local GROUPS = {
     { key = "g_today", text = "Today", kids = { "today", "start" } },
     { key = "g_members", text = "Members", kids = { "overview", "members" }, sub = { overview = "List", members = "Guild care" } },
@@ -1150,11 +1150,11 @@ for _, g in ipairs(GROUPS) do for _, k in ipairs(g.kids) do GROUP_OF[k] = g end 
 
 local page
 local draft
--- 0.6.526: Module koennen Reiter beisteuern (Gildenpflege: "Heute", "Entscheiden"); pos = Stelle in der Reiterleiste
+-- 0.6.526: modules can contribute tabs (guild management: "Heute", "Entscheiden"); pos = position in the tab bar
 local HELP_EXTRA = {}
 function Admin.AddTab(key, text, build, refresh, help, pos)
     for _, t in ipairs(TABS) do if t.key == key then return end end
-    -- "Heute" ersetzt die alte Start-Seite mit den Kacheln (Reiterleiste sonst zu voll)
+    -- "Heute" replaces the old start page with the tiles (tab bar too full otherwise)
     if key == "today" then for i, t in ipairs(TABS) do if t.key == "start" then table.remove(TABS, i) break end end end
     table.insert(TABS, math.max(1, math.min(pos or #TABS + 1, #TABS + 1)), { key = key, text = text })
     Admin.EXTRA_BUILD = Admin.EXTRA_BUILD or {}
@@ -1189,8 +1189,8 @@ local function label(p, text, x, y, w)
     return fs
 end
 
--- gemeinsame Leiste unten: Aenderungen speichern / verwerfen
--- lesbare Namen der Gilden-Einstellungen (fuer "was ist geaendert")
+-- shared bar at the bottom: save / discard changes
+-- readable names of the guild settings (for "what changed")
 local KEYNAMES = { off = "Modules", logo = "Logo", ltext = "Wordmark", lfont = "Logo font", lcol = "Logo colour",
     lsize = "Logo size", xp2 = "XP weekend", crest = "Guild crest", crestc = "Crest colour", xp2s = "XP weekend (start)",
     vis = "Module visibility", nob = "News counters", lup = "Upper case", lsub = "Subtitle",
@@ -1230,7 +1230,7 @@ local function buildSaveBar(p)
     bar.state:SetPoint("LEFT", bar.dot, "RIGHT", 8, 0)
     bar.state:SetPoint("RIGHT", bar, "RIGHT", -320, 0)
     bar.state:SetWordWrap(false)
-    -- Liste der Aenderungen beim Ueberfahren
+    -- List of changes on hover
     bar:EnableMouse(true)
     bar:SetScript("OnEnter", function(self)
         local ch = changedKeys()
@@ -1240,12 +1240,12 @@ local function buildSaveBar(p)
         K.ShowTip(self, lines, "ANCHOR_TOP")
     end)
     bar:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    -- blinkender Punkt, solange etwas ungespeichert ist
+    -- blinking dot while something is unsaved
     bar:SetScript("OnUpdate", function(self)
         if not self.dirtyNow then return end
         self.dot:SetAlpha(0.55 + 0.45 * math.sin(GetTime() * 4))
     end)
-    -- Seite verlassen mit offenen Aenderungen: kurz erinnern
+    -- Leaving the page with unsaved changes: short reminder
     p:HookScript("OnHide", function()
         if dirty() and not ns.rebuilding then
             K.Toast(L["Guild leadership"], L["Unsaved changes - not yet applied for the guild."], C.amber,
@@ -1256,7 +1256,7 @@ local function buildSaveBar(p)
         if Admin.Save(draft) then
             draft = copyCfg(draft)
             if Admin.TestMode() then
-                -- andere pruefen den echten Gildenrang: aus dem Testmodus uebernimmt die Gilde nichts
+                -- others check the real guild rank: the guild takes nothing from test mode
                 K.Toast(L["Saved only for you"], L["Test mode: others only accept changes from real officers / the guild master."], C.amber)
             else
                 K.Toast(L["Saved"], L["Applies to everyone with Oasis right away."], C.mint)
@@ -1300,18 +1300,18 @@ local function buildSaveBar(p)
 end
 
 ------------------------------------------------------------------------
--- Reiter: Uebersicht
+-- Tab: Overview
 ------------------------------------------------------------------------
--- Spalten der Mitgliederliste als Anteil der Breite: passt sich an, zu Langes wird mit "..." gekuerzt
+-- Member list columns as a fraction of the width: adapts, overlong text is truncated with "..."
 local OV_COLS = {
     { key = "rank", text = "Rank", w = 0.13 },
     { key = "name", text = "Name", w = 0.21 },
     { key = "lvl", text = "Lvl", w = 0.05, justify = "CENTER" },
     { key = "note", text = "Note", w = 0.26 },
     { key = "ver", text = "Oasis", w = 0.13 },
-    { key = "seen", text = "Last online", w = 0.19 },   -- Rest der Breite: Karten-Symbol
+    { key = "seen", text = "Last online", w = 0.19 },   -- Rest of the width: map icon
 }
-local OV_X0 = 44   -- Platz fuer Online-Punkt + Oasis-Rang-Emblem
+local OV_X0 = 44   -- Room for online dot + Oasis rank emblem
 local function layoutCols(frame, cols, width)
     local x, avail = OV_X0, math.max(200, (width or 700) - OV_X0 - 8)
     for _, c in ipairs(OV_COLS) do
@@ -1326,7 +1326,7 @@ local function layoutCols(frame, cols, width)
 end
 
 local function buildOverview(f)
-    -- Kacheln wie auf der Uebersicht: Symbol, Zahl (zaehlt hoch), Balken
+    -- Tiles like on the overview: icon, number (counts up), bar
     local TILES = {
         { ns.ICONS.radar, "Members", C.blue },
         { ns.ICONS.home, "With Oasis", C.accent },
@@ -1351,7 +1351,7 @@ local function buildOverview(f)
             t:ClearAllPoints()
             t:SetWidth(tw)
             t:SetPoint("TOPLEFT", (i - 1) * (tw + gap), 0)
-            -- Beschriftung darf die Kachel nicht sprengen
+            -- Label must not overflow the tile
             t.label:SetWidth(math.max(40, tw - 50))
             t.label:SetWordWrap(false)
         end
@@ -1364,10 +1364,10 @@ local function buildOverview(f)
         { key = "old", text = L["Old Oasis"] }, { key = "lead", text = L["Leaders"] },
     }, function(k) f.filter = k ns.RefreshPage("admin") end, nil, { size = 12, pad = 14 })
     f.seg:SetPoint("TOPLEFT", 0, -80)
-    -- Suche ueber Name und Notizen
+    -- Search over name and notes
     f.search = K.Input(f, 150, L["Name or note ..."], function(t) f.q = (t or ""):lower() ns.RefreshPage("admin") end)
     f.search:SetPoint("TOPRIGHT", 0, -78)
-    -- Twinks ausblenden: nur Mains zeigen (gemerkt; Twinks = Charaktere, die einem anderen Main zugeordnet sind)
+    -- Hide alts: show mains only (remembered; alts = characters assigned to another main)
     f.altBtn = K.Button(f, "", 110, 22, "ghost", function()
         local st = ns.db.settings
         st.adminHideAlts = not st.adminHideAlts or nil
@@ -1376,14 +1376,14 @@ local function buildOverview(f)
     f.altBtn:SetPoint("RIGHT", f.search, "LEFT", -8, 0)
     f.altBtn:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Hide alts"], L["Shows mains only. Alts are characters assigned to another main."] }) end)
     f.altBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    -- alle in der aktuellen Ansicht markieren (z.B. alle Inaktiven auf einmal auf einen Rang setzen)
+    -- select all in the current view (e.g. set all inactive members to one rank at once)
     f.selAll = K.Button(f, L["Select all"], 110, 22, "ghost", function()
         for _, it in ipairs(f.lastOut or {}) do if not ns.isMe(it.m.name) then f.selected[it.m.name] = true end end
         ns.RefreshPage("admin")
     end)
     f.selAll:SetPoint("TOPLEFT", 0, -108)
 
-    -- laufendes XP-Wochenende als Hinweis rechts (starten: Reiter Gildenevents)
+    -- running XP weekend as a notice on the right (start it: tab Guild events)
     f.xpTag = K.Text(f, 11, C.amber, "RIGHT")
     f.xpTag:SetPoint("TOPRIGHT", 0, -108)
 
@@ -1392,7 +1392,7 @@ local function buildOverview(f)
     head:SetPoint("TOPRIGHT", 0, -138)
     head:SetHeight(18)
     head.cols = {}
-    -- Spaltenkoepfe anklickbar: sortieren (nochmal klicken = umdrehen)
+    -- Column headers clickable: sort (click again = reverse)
     f.sortKey, f.sortDesc = nil, false
     local function updateHead()
         for _, c in ipairs(OV_COLS) do
@@ -1429,7 +1429,7 @@ local function buildOverview(f)
         r.dot:SetTexture(ns.MEDIA .. "dot")
         r.dot:SetSize(8, 8)
         r.dot:SetPoint("LEFT", 4, 0)
-        -- Oasis-Rang vorne: Rahmen je Rang (wie in der Mitgliederliste) mit Rangzahl
+        -- Oasis rank in front: frame per rank (as in the member list) with rank number
         r.remblem = K.RankEmblem(r, 20)
         r.remblem:SetPoint("CENTER", r, "LEFT", 27, 0)
         r.remblem:SetFrameLevel(r:GetFrameLevel() + 2)
@@ -1437,7 +1437,7 @@ local function buildOverview(f)
         r:Col("name", 0, 100, 12)
         r:Col("lvl", 0, 40, 12, C.muted, "CENTER")
         r:Col("note", 0, 80, 11, C.muted)
-        -- alles zur Person auf einen Blick (Notizen, Main, Beitritt, Tempo)
+        -- everything about the person at a glance (notes, main, join date, pace)
         r:HookScript("OnEnter", function(self)
             local m = self.item and self.item.m
             if not m then return end
@@ -1457,8 +1457,8 @@ local function buildOverview(f)
         r:HookScript("OnLeave", function() GameTooltip:Hide() end)
         r:Col("ver", 0, 90, 12)
         r:Col("seen", 0, 120, 12, C.muted)
-        -- Karten-Symbol rechts (nur online): zeigt das Mitglied auf der Weltkarte
-        -- sichtbarer Aktionsknopf: dasselbe Menue wie der Rechtsklick (Rang aendern, anfluestern ...) - Laien finden den Rechtsklick nicht
+        -- Map icon on the right (online only): shows the member on the world map
+        -- visible action button: same menu as right-click (change rank, whisper ...) - beginners don't find right-click
         r.act = K.Button(r, "...", 26, 18, "ghost", function()
             local m = r.item and r.item.m
             if m and ns.GuildRanks then ns.GuildRanks.MemberMenu(r.act, m) end
@@ -1491,7 +1491,7 @@ local function buildOverview(f)
             if btn == "RightButton" then
                 if ns.GuildRanks then ns.GuildRanks.MemberMenu(self, it.m) end
             elseif IsControlKeyDown() or IsShiftKeyDown() then
-                -- markieren fuer "mehrere auf einen Rang setzen"
+                -- select for "set several to one rank"
                 f.selected[it.m.name] = not f.selected[it.m.name] or nil
                 ns.RefreshPage("admin")
             elseif ns.Profile then
@@ -1504,14 +1504,14 @@ local function buildOverview(f)
         local m = it.m
         local dc = m.online and C.mint or C.dim
         r.dot:SetVertexColor(dc[1], dc[2], dc[3])
-        -- Oasis-Rang (nur wer Oasis hat)
+        -- Oasis rank (only those who have Oasis)
         local orl = it.v and ns.Rank and ns.Rank.Of and (ns.Rank.Of(m.name))
         if orl then r.remblem:SetRank(orl) else r.remblem:Hide() end
-        -- offline: ausgegraut (Name ohne Klassenfarbe, ganze Zeile blasser)
+        -- offline: greyed out (name without class color, whole row paler)
         r.cols.name:SetText(m.online and ns.colorName(m.name, m.class) or ("|cff8a8a8a" .. ns.displayName(m.name) .. "|r"))
         r.cols.rank:SetText(m.rank or "")
         r.cols.lvl:SetText(m.level or "")
-        -- Notiz: Twink-Hinweis, oeffentliche Notiz, Kennzeichen fuer Offiziersnotiz
+        -- Note: alt hint, public note, marker for officer note
         local parts = {}
         local main = ns.Alts and ns.Alts.Main and ns.Alts.Main(m.name)
         if main and main ~= m.name then parts[#parts + 1] = "|cff8fb3ff" .. L["Alt"] .. ":|r " .. ns.displayName(main) end
@@ -1524,10 +1524,10 @@ local function buildOverview(f)
         if it.v then
             r.cols.ver:SetText((it.old and (K.hex(C.amber) .. it.v .. "  " .. L["old"]) or (K.hex(C.mint) .. it.v)) .. "|r")
         else
-            -- kein Oasis: rotes X
+            -- no Oasis: red X
             r.cols.ver:SetText("|TInterface\\RaidFrame\\ReadyCheck-NotReady:14:14|t")
         end
-        -- Zuletzt: online = Gebiet, offline = wann zuletzt da (aus der Gildenliste)
+        -- Last seen: online = zone, offline = when last seen (from the guild roster)
         if ns.isMe(m.name) then
             r.cols.seen:SetText(L["that's you"])
         elseif m.online then
@@ -1538,7 +1538,7 @@ local function buildOverview(f)
             r.cols.seen:SetText(it.seen and ns.ago(it.seen) or "|cff555555-|r")
         end
     end)
-    -- Mehrfachauswahl: Leiste erscheint, sobald jemand markiert ist
+    -- Multi-select: bar appears as soon as someone is selected
     f.selected = {}
     f.bulk = K.Button(f, "", 230, 24, "primary", function(self)
         local GR = ns.GuildRanks
@@ -1596,7 +1596,7 @@ local function refreshOverview(f)
     f.fresh = false
     local share = st.total > 0 and st.oasis / st.total or 0
     f.cards[1]:Set(st.total, (L["%d online"]):format(st.online), nil, anim)
-    -- Mit Oasis: Anzahl gross, daneben Anteil + wie viele davon gerade online; veraltete nur als Hinweis
+    -- With Oasis: count large, next to it share + how many of them are online right now; outdated ones only as a hint
     local sub = math.floor(share * 100 + 0.5) .. " %"
     if st.old > 0 then sub = sub .. "  ·  " .. K.hex(C.amber) .. (L["%d outdated"]):format(st.old) .. "|r" end
     f.cards[2]:Set(st.oasis, sub, share, anim)
@@ -1644,7 +1644,7 @@ local function refreshOverview(f)
     end
     f.lastOut = out
     f.selAll:SetShown(nsel == 0 and f.filter ~= "all" and #out > 0)
-    -- Sortierwert je Spalte (Standard: online zuerst, dann mit Oasis, dann Name)
+    -- Sort value per column (default: online first, then with Oasis, then name)
     local function profCount(m)
         local pr = ns.db.members[m.name]
         local raw = pr and pr.profs or (ns.db.guildProfs and ns.db.guildProfs[m.name])
@@ -1676,11 +1676,11 @@ local function refreshOverview(f)
 end
 
 ------------------------------------------------------------------------
--- Karten-Baustein (wie Uebersicht/Profil): Farbleiste links, leichter Schein, Symbol, Titel
+-- Card widget (like overview/profile): color bar on the left, slight glow, icon, title
 ------------------------------------------------------------------------
 local function card(parent, icon, title, color)
     color = color or C.accent
-    -- 0.5.784: Glas-Karte wie in den Einstellungen (ruhig, runde Ecken) - ohne Farbleiste und Schein, Titel in normaler Schreibweise
+    -- 0.5.784: glass card as in the settings (calm, rounded corners) - without color bar and glow, title in normal case
     local c = CreateFrame("Frame", nil, parent)
     local G = ns.Insta and ns.Insta.Glass
     if not (G and pcall(G, c, { 1, 1, 1, 0.035 }, { 1, 1, 1, 0.10 }, 12)) then
@@ -1695,14 +1695,14 @@ local function card(parent, icon, title, color)
     c.title:SetText(title)
     return c
 end
--- kleine Beschriftung ueber einem Eingabefeld (Laien sehen sofort, was hinein gehoert)
+-- small label above an input field (beginners immediately see what goes in)
 local function fieldLabel(c, text, x, y)
     local t = K.Text(c, 10, C.dim)
     t:SetPoint("TOPLEFT", x, y)
     t:SetText(text)
     return t
 end
--- kleines "?" oben rechts in einer Karte: Erklaerung als Tooltip statt langem Text
+-- small "?" at the top right of a card: explanation as a tooltip instead of long text
 local function helpTip(c, lines)
     local h = CreateFrame("Frame", nil, c)
     h:SetSize(18, 18)
@@ -1715,7 +1715,7 @@ local function helpTip(c, lines)
     h:SetScript("OnLeave", function(self) self.t:SetTextColor(C.dim[1], C.dim[2], C.dim[3]) GameTooltip:Hide() end)
     return h
 end
--- Beschreibung einer Schaltflaeche als Tooltip
+-- Description of a button as a tooltip
 local function hoverTip(frame, lines)
     frame:HookScript("OnEnter", function(self) K.ShowTip(self, lines) end)
     frame:HookScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1724,10 +1724,10 @@ local CHECK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:14:14|t"
 local CROSS = "|TInterface\\RaidFrame\\ReadyCheck-NotReady:14:14|t"
 
 ------------------------------------------------------------------------
--- Reiter: Module
+-- Tab: Modules
 ------------------------------------------------------------------------
 local function buildModules(f)
-    -- kompakt: je Modul eine Zeile (Schalter, Symbol, Name); Beschreibung als Tooltip
+    -- compact: one row per module (toggle, icon, name); description as a tooltip
     local intro = label(f, L["Per-module settings for the whole guild - hiding sections is done by everyone in their own settings."], 0, 0)
     intro:SetPoint("RIGHT", f, "RIGHT", -24, 0)
     intro:SetWordWrap(false)
@@ -1745,8 +1745,8 @@ local function buildModules(f)
     info:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     f.toggles, f.heads = {}, {}
-    -- Module nach den Gruppen der Navigation (wie "Bereiche" in den Einstellungen);
-    -- Seiten, die es nicht eigenstaendig gibt (z.B. Oasis-Rang im Profil), fallen raus
+    -- Modules by navigation groups (like "Bereiche" in the settings);
+    -- pages that don't exist on their own (e.g. Oasis rank in the profile) are left out
     local groups, seen = {}, {}
     local function usable(def)
         return def and not Admin.LOCKED[def.key] and not (def.visible and not def.visible())
@@ -1757,7 +1757,7 @@ local function buildModules(f)
             local def = ns.PageDef(k)
             if usable(def) then items[#items + 1] = def seen[k] = true end
         end
-        -- Unterseiten (Reservierungen bei Raid ...)
+        -- Subpages (reservations under Raid ...)
         for _, def in ipairs(ns.Pages()) do
             if def.parent and not seen[def.key] and usable(def) then
                 for _, it in ipairs(items) do
@@ -1773,7 +1773,7 @@ local function buildModules(f)
     end
     if #rest > 0 then groups[#groups + 1] = { text = "More", items = rest } end
     local ROW = 28
-    -- scrollbarer Bereich: mit vielen Modulen (Raid hat ~13 Unterseiten) lief die Liste sonst aus dem Fenster
+    -- scrollable area: with many modules (Raid has ~13 subpages) the list otherwise ran out of the window
     local sf = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
     sf:SetPoint("TOPLEFT", 0, -24)
     sf:SetPoint("BOTTOMRIGHT", -22, 4)
@@ -1803,7 +1803,7 @@ local function buildModules(f)
             t.def = def
             t:SetScript("OnClick", function() f:OpenModule(def) end)
             function t:Refresh() end
-            -- Zahnrad: Einstellungen dieses Moduls
+            -- Gear: settings of this module
             t.gear = CreateFrame("Button", nil, t)
             t.gear:SetSize(22, 22)
             t.gear:SetPoint("RIGHT", t, "RIGHT", -2, 0)
@@ -1815,10 +1815,10 @@ local function buildModules(f)
             end)
             t.gear:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
             t.gear:SetScript("OnClick", function() f:OpenModule(def) end)
-            -- kleiner Hinweis in der Zeile, wenn eingeschraenkt
+            -- small hint in the row when restricted
             t.tag = K.Text(t, 10, C.amber, "RIGHT")
             t.tag:SetPoint("RIGHT", t.gear, "LEFT", -6, 0)
-            -- Beschreibung beim Ueberfahren
+            -- Description on hover
             t:HookScript("OnEnter", function(self)
                 K.ShowTip(self, { L[def.title], def.sub and L[def.sub] or "" })
             end)
@@ -1828,9 +1828,9 @@ local function buildModules(f)
         end
         f.heads[#f.heads + 1] = { h = h, rows = rows }
     end
-    -- Gruppen-Bloecke auf drei Spalten verteilen (jeweils in die kuerzeste)
+    -- Distribute group blocks over three columns (each into the shortest)
     local function layout()
-        local w = (f:GetWidth() or 750) - 24   -- Platz fuer die Scrollleiste
+        local w = (f:GetWidth() or 750) - 24   -- Room for the scrollbar
         if w < 10 then w = 726 end
         list:SetWidth(w)
         local gap = 18
@@ -1863,7 +1863,7 @@ local function buildModules(f)
     f:SetScript("OnSizeChanged", layout)
     layout()
 
-    -- Einstellungen eines Moduls: Karte ueber der Liste
+    -- Module settings: card above the list
     local mp = card(f, ns.ICONS.settings, "", C.accent)
     mp:SetPoint("TOPLEFT", 0, -24)
     mp:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -1908,7 +1908,7 @@ local function buildModules(f)
     end, L["Shows e.g. new messages or orders as a number next to the name"])
     mp.badge:SetWidth(420)
     mp.badge:SetPoint("TOPLEFT", 14, -176)
-    -- Gilden-Optionen des Moduls (von den Modulen angemeldet): scrollbar unter den Grund-Einstellungen
+    -- Guild options of the module (registered by the modules): scrollable below the basic settings
     mp.optHead = K.Text(mp, 11, C.amber)
     mp.optHead:SetPoint("TOPLEFT", 14, -222)
     mp.optHead:SetText(K.Upper(L["For the whole guild"]))
@@ -1959,7 +1959,7 @@ local function buildModules(f)
                 self.optWidgets[#self.optWidgets + 1] = t
                 y = y - 30
             elseif d.kind == "info" then
-                -- reine Anzeige (z.B. Uebersicht Schlachtzugsleitung)
+                -- display only (e.g. raid leadership overview)
                 local lbl = K.Text(self.ochild, 12, C.text)
                 lbl:SetPoint("TOPLEFT", 0, y - 4)
                 lbl:SetWidth(230)
@@ -2017,7 +2017,7 @@ local function buildModules(f)
                 self.optWidgets[#self.optWidgets + 1] = seg
                 y = y - 34
             elseif d.kind == "names" then
-                -- Namensliste (z.B. Schlachtzugsleiter): Eingabe mit Vorschlaegen + Chips mit x zum Entfernen
+                -- Name list (e.g. raid leaders): input with suggestions + chips with x to remove
                 local lbl = K.Text(self.ochild, 12, C.text)
                 lbl:SetPoint("TOPLEFT", 0, y - 4)
                 lbl:SetWidth(230)
@@ -2049,7 +2049,7 @@ local function buildModules(f)
                 local function add()
                     local q = ((inp:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")):lower()
                     if q == "" then return end
-                    -- Mitglied ueber Anzeige-Namen (Doppelname) oder Vornamen finden; gespeichert wird der Gildenlisten-Name
+                    -- Find member by display name (double name) or first name; the guild roster name is stored
                     local found
                     for _, m in ipairs(ns.Radar and ns.Radar.roster or {}) do
                         local dn = ns.displayName(m.name):lower()
@@ -2116,7 +2116,7 @@ local function buildModules(f)
     mp.more = K.Text(mp, 11, C.dim)
     mp.more:SetPoint("BOTTOMLEFT", 14, 14)
     mp.more:SetText(L["Changes apply to everyone once you save for the guild below."])
-    -- Einstellungs-Karte liegt ueber der (scrollbaren) Liste: Liste solange ausblenden
+    -- Settings card lies above the (scrollable) list: hide the list meanwhile
     mp:HookScript("OnShow", function() if f.modScroll then f.modScroll:Hide() end end)
     mp:HookScript("OnHide", function() if f.modScroll then f.modScroll:Show() end end)
     function f:OpenModule(def)
@@ -2153,7 +2153,7 @@ local function refreshModules(f)
 end
 
 ------------------------------------------------------------------------
--- Reiter: Rechte
+-- Tab: Permissions
 ------------------------------------------------------------------------
 local function rankMenu(owner, current, onPick)
     local names, n = Admin.RankNames()
@@ -2164,7 +2164,7 @@ local function rankMenu(owner, current, onPick)
     K.ShowMenu(owner, items, nil, 240)
 end
 local function buildRights(f)
-    -- Karte 1: wer sieht die Gildenleitung
+    -- Card 1: who sees guild leadership
     f.cA = card(f, ns.ICONS.admin, L["Access to guild leadership"], C.accent)
     helpTip(f.cA, { L["Access to guild leadership"], L["Everyone from the chosen rank up sees this hub and may change modules, announcements and events for the guild."],
         "|cff888888" .. L["Only the guild master sets the limit. Rank 1 = guild master."] .. "|r" })
@@ -2181,7 +2181,7 @@ local function buildRights(f)
     f.cA.count = K.Text(f.cA, 12, C.text)
     f.cA.count:SetPoint("LEFT", f.rank, "RIGHT", 12, 0)
 
-    -- Karte 2: Beute-Punkte
+    -- Card 2: loot points
     f.cB = card(f, ns.ICONS.raid, L["Award loot points"], C.amber)
     helpTip(f.cB, { L["Award loot points"], L["Who may book points (effort/loot) in raid."], "|cff888888" .. L["Saved immediately."] .. "|r" })
     f.cB.desc = K.Text(f.cB, 11, C.muted)
@@ -2197,7 +2197,7 @@ local function buildRights(f)
     f.cB.count = K.Text(f.cB, 12, C.text)
     f.cB.count:SetPoint("LEFT", f.prank, "RIGHT", 12, 0)
 
-    -- Karte 3: Krone & Testmodus (Vorbereitung: spaeter Zugang nur nach Rang)
+    -- Card 3: crown & test mode (preparation: later access by rank only)
     f.cC = card(f, ns.ICONS.admin, L["Crown & test mode"], C.blue)
     helpTip(f.cC, { L["Crown & test mode"], L["Who sees the crown at the top. Without rights it is grey and only opens a preview."],
         "|cff888888" .. L["Takes effect after 'Apply for the guild'."] .. "|r" })
@@ -2209,11 +2209,11 @@ local function buildRights(f)
     f.cC.test:SetPoint("BOTTOMLEFT", 14, 14)
     f.cC.test:SetPoint("RIGHT", f.cC, "RIGHT", -14, 0)
     f.cC.test:SetWordWrap(true)
-    -- Karte entfaellt: Krone-Schalter/Testmodus-Hinweis braucht man nicht mehr
+    -- Card dropped: crown toggle/test mode hint no longer needed
     f.cC:Hide()
     f.cC.Show = function() end
 
-    -- rechts: Rang-Leiter (Klick setzt die Grenze, nur Gildenmeister)
+    -- right: rank ladder (click sets the limit, guild master only)
     f.ladderHead = K.GameHead(f, L["Rank ladder"], C.accent)
     f.ladder = {}
     for i = 1, 10 do
@@ -2236,7 +2236,7 @@ local function buildRights(f)
         r.name:SetPoint("RIGHT", r, "RIGHT", -90, 0)
         r.count = K.Text(r, 11, C.muted, "RIGHT")
         r.count:SetPoint("RIGHT", -34, 0)
-        -- Zahnrad: Rang umbenennen / Rechte / loeschen (nur Gildenmeister, geht direkt an Blizzard)
+        -- Gear: rename rank / permissions / delete (guild master only, goes directly to Blizzard)
         r.gear = CreateFrame("Button", nil, r)
         r.gear:SetSize(22, 22)
         r.gear:SetPoint("RIGHT", -6, 0)
@@ -2417,10 +2417,10 @@ local function refreshRights(f)
 end
 
 ------------------------------------------------------------------------
--- Reiter: Durchsagen
+-- Tab: Announcements
 ------------------------------------------------------------------------
 local function buildNotices(f)
-    -- Karte: neue Durchsage
+    -- Card: new announcement
     local c1 = card(f, ns.MEDIA .. "icons\\announce", L["New announcement"], C.accent)
     helpTip(c1, { L["New announcement"], L["Everyone with Oasis gets a notice with sound."], L["The latest announcement stays on top of the overview for 3 days."] })
     f.c1 = c1
@@ -2471,7 +2471,7 @@ local function buildNotices(f)
     end)
     f.test:SetPoint("LEFT", f.send, "RIGHT", 8, 0)
 
-    -- Karte: Oasis bekannt machen
+    -- Card: promote Oasis
     local c2 = card(f, ns.ICONS.social, L["Spread the word"], C.mint)
     helpTip(c2, { L["Spread the word"], L["Notice in guild chat or a one-time whisper to everyone without Oasis."],
         "|cff888888" .. L["For whispers only one leader sends, each member gets it only once."] .. "|r" })
@@ -2504,7 +2504,7 @@ local function buildNotices(f)
     f.invInfo = K.Text(c2, 11, C.muted)
     f.invInfo:SetPoint("BOTTOMLEFT", 14, 12)
 
-    -- rechts: bisherige Durchsagen
+    -- right: previous announcements
     f.listHead = K.GameHead(f, L["Previous announcements"], C.accent)
     f.list = K.List(f, 50, function(l)
         local r = K.Row(l)
@@ -2571,13 +2571,13 @@ local function refreshNotices(f)
 end
 
 ------------------------------------------------------------------------
--- Reiter: Gildenevents - Events anlegen (auch in den WoW-Kalender), Double XP (sofort oder geplant),
--- kommende Events mit Zusagen
+-- Tab: Guild events - create events (also in the WoW calendar), Double XP (immediate or scheduled),
+-- upcoming events with sign-ups
 ------------------------------------------------------------------------
 local function buildEvents(f)
     local R = ns.Raid
-    if not R then return end   -- 0.6.275: Raid-Modul aus -> keine Event-Karte
-    -- Karte: neues Event
+    if not R then return end   -- 0.6.275: raid module off -> no event card
+    -- Card: new event
     local c1 = card(f, ns.ICONS.raid, L["New event"], C.accent)
     helpTip(c1, { L["New event"], L["Shared with the whole guild - everyone with Oasis can sign up."],
         L["With the calendar switch it also goes into the WoW guild calendar (visible to everyone, even without Oasis)."] })
@@ -2626,7 +2626,7 @@ local function buildEvents(f)
     end)
     f.create:SetPoint("BOTTOMRIGHT", -14, 14)
 
-    -- Karte: Double XP (sofort oder geplant)
+    -- Card: Double XP (immediate or scheduled)
     local c2 = card(f, ns.ICONS.rank, L["XP weekend"], C.amber)
     helpTip(c2, { L["XP weekend"], L["Double Oasis XP for the whole guild - start any time. Everyone with Oasis gets an announcement."],
         L["Without a date it starts right away, with date + time it gets scheduled."] })
@@ -2662,7 +2662,7 @@ local function buildEvents(f)
     end)
     f.x2stop:SetPoint("RIGHT", f.x2go, "LEFT", -8, 0)
 
-    -- kommende Events
+    -- upcoming events
     f.listHead = K.GameHead(f, L["Upcoming events"], C.mint)
     f.list = K.List(f, 44, function(l)
         local r = K.Row(l)
@@ -2749,7 +2749,7 @@ local function refreshEvents(f)
     f.calT:Refresh()
     f.weekT:Refresh()
     f.calT:SetAlpha(R.CanCalendar() and 1 or 0.45)
-    -- Double XP: laeuft / geplant / aus
+    -- Double XP: running / scheduled / off
     local until2 = RW and RW.DoubleUntil()
     local ps, pe = RW and RW.DoublePlanned()
     if until2 then
@@ -2762,7 +2762,7 @@ local function refreshEvents(f)
     f.x2stop:SetShown(until2 ~= nil or ps ~= nil)
     f.x2go:SetLabel(ps and L["Reschedule"] or L["Start"])
     f.x2slider:Refresh()
-    -- Liste: Oasis-Events + reine Kalendertermine
+    -- List: Oasis events + plain calendar entries
     local list = {}
     for _, e in ipairs(R.Events()) do list[#list + 1] = e end
     for _, e in ipairs(R.CalendarOnly()) do list[#list + 1] = e end
@@ -2776,15 +2776,15 @@ local BUILD = { overview = buildOverview, modules = buildModules, rights = build
 local REFRESH = { overview = refreshOverview, modules = refreshModules, rights = refreshRights, notices = refreshNotices, events = refreshEvents }
 local DRAFT_TABS = { modules = true, rights = true }
 
--- Gildenpflege als Gruppen mit Unterreitern (Modules/GuildManagement/Officer.lua)
+-- Guild management as groups with sub-tabs (Modules/GuildManagement/Officer.lua)
 ------------------------------------------------------------------------
--- Reiter: Offizierschat - WoWs Offizierskanal (/o). Blizzard schickt ihn nur an Raenge mit
--- Offizierschat-Recht; Verlauf kommt aus dem Gildenchat-Log (ns.db.gchat, Eintraege k="off").
--- Wird nie exportiert und nie per Oasis weitergereicht.
+-- Tab: Officer chat - WoW's officer channel (/o). Blizzard only sends it to ranks with
+-- officer chat permission; history comes from the guild chat log (ns.db.gchat, entries k="off").
+-- Never exported and never passed on via Oasis.
 ------------------------------------------------------------------------
 local ochatUnread = 0
 local function canOfficerChat()
-    -- echtes Recht, nicht der Testmodus der Gildenleitung
+    -- real permission, not the guild leadership test mode
     if C_GuildInfo and C_GuildInfo.IsGuildOfficer then return C_GuildInfo.IsGuildOfficer() and true or false end
     return false
 end
@@ -2868,7 +2868,7 @@ end
 BUILD.ochat = buildOfficerChat
 REFRESH.ochat = refreshOfficerChat
 
--- neue Nachricht: offen -> anhaengen, sonst Zaehler am Reiter
+-- new message: open -> append, otherwise counter on the tab
 ns.On("CHAT_MSG_OFFICER", function()
     ns.After(0.1, function()
         local fr = page and page.tabs and page.tabs.ochat
@@ -2902,13 +2902,13 @@ end
 local OFFICER_GROUPS = {
     members = { "inactive", "promo", "history", "formers", "recruits", "ads", "bans", "sndmute" },
     raidtools = { "attend", "gear" },
-    tools = { "audit", "suspect", "export" },   -- Wappen-Reiter entfernt
+    tools = { "audit", "suspect", "export" },   -- Crest tab removed
 }
 for g, keys in pairs(OFFICER_GROUPS) do
     BUILD[g] = function(fr) if ns.Officer and ns.Officer.BuildGroup then ns.Officer.BuildGroup(fr, keys) end end
     REFRESH[g] = function(fr) if ns.Officer and ns.Officer.RefreshGroup and fr.seg then ns.Officer.RefreshGroup(fr) end end
 end
--- direkt zu einem Unterreiter springen (z.B. aus einer Erinnerung)
+-- jump directly to a sub-tab (e.g. from a reminder)
 function Admin.OpenOfficer(group, sub)
     if sub then ns.db.settings.officerTab = sub end
     ns.ShowPage("admin")
@@ -2916,8 +2916,8 @@ function Admin.OpenOfficer(group, sub)
     local fr = page and page.tabs and page.tabs[group]
     if fr and sub then fr.cur = sub ns.RefreshPage("admin") end
 end
--- 0.5.781: Startseite der Gildenleitung fuer Einsteiger - "Was moechtest du tun?" mit grossen Aufgaben-Karten (Klick springt in den
--- passenden Reiter). Dazu eine Zeile Klartext unter den Reitern, die erklaert, was man im gewaehlten Reiter tun kann.
+-- 0.5.781: guild leadership start page for beginners - "What would you like to do?" with large task cards (click jumps to the
+-- matching tab). Plus a line of plain text under the tabs explaining what you can do in the selected tab.
 local HELP = {
     start = "Pick below what you want to do - Oasis takes you to the right place.",
     overview = "All members with rank, level and Oasis version. Right-click a row: change rank.",
@@ -3004,7 +3004,7 @@ local function buildStart(f)
         end)
         f.cards[i] = c
     end
-    -- drei Spalten, Breite aus der Seite; Karten erscheinen nacheinander
+    -- three columns, width from the page; cards appear one after another
     function f:Layout()
         local w = self:GetWidth() or 990
         if w < 300 then w = 990 end
@@ -3055,13 +3055,13 @@ function Admin.SetTab(key)
     for k, fr in pairs(page.tabs) do fr:SetShown(k == key) end
     if not page.tabs[key] then
         local fr = CreateFrame("Frame", nil, page)
-        fr:SetPoint("TOPLEFT", 0, -86)   -- Platz fuer Bereich, Unterreiter und Erklaerzeile
+        fr:SetPoint("TOPLEFT", 0, -86)   -- Room for section, sub-tab and explanation line
         fr:SetPoint("BOTTOMRIGHT", 0, DRAFT_TABS[key] and 40 or 0)
         page.tabs[key] = fr
         local ok, e = pcall(BUILD[key], fr)
         if not ok then ns.err(L["Setup"] .. " admin/" .. key, e) end
     end
-    -- Erklaerzeile in Klartext + weiches Einblenden des Reiters
+    -- Explanation line in plain language + soft fade-in of the tab
     if page.help then page.help:SetText(HELP[key] and L[HELP[key]] or "") end
     local shown = page.tabs[key]
     if shown and K.Tween and not (ns.db and ns.db.settings.noAnim) then
@@ -3075,12 +3075,12 @@ end
 ns.RegisterPage({
     key = "admin", title = "Guild leadership", order = 9, topbar = true,
     sub = "Hub for the Guild Master and officers – applies to the whole guild",
-    visible = function() return true end,   -- fuer alle sichtbar, ohne Rechte gesperrt (siehe lockPage)
+    visible = function() return true end,   -- visible to everyone, locked without permission (see lockPage)
     build = function(p)
         page = p
         draft = copyCfg(Admin.Cfg())
         p.tabs = {}
-        -- Bereiche aus den vorhandenen Reitern (Reihenfolge wie GROUPS, uebrige Reiter hinten als eigene Bereiche)
+        -- Sections from the existing tabs (order as GROUPS, remaining tabs at the end as separate sections)
         for k, e in pairs(Admin.EXTRA_BUILD or {}) do BUILD[k], REFRESH[k] = e.build, e.refresh end
         local present, textOf = {}, {}
         for _, t in ipairs(TABS) do present[t.key] = true textOf[t.key] = t.text end
@@ -3135,22 +3135,22 @@ ns.RegisterPage({
         p.saveBar = buildSaveBar(p)
         p.testTag = K.Button(p, "", 200, 22, "ghost", function() ns.slash.testleitung() end)
         p.testTag:SetPoint("TOPRIGHT", 0, 0)
-        p.testTag:Hide()   -- leerer Knopf lag sonst ueber den Reitern (Werkzeuge/Offizierschat)
+        p.testTag:Hide()   -- empty button otherwise lay over the tabs (tools/officer chat)
 
         p.testTag.label:SetTextColor(C.amber[1], C.amber[2], C.amber[3])
         p.rebuildDraftViews = function() end
-        -- 0.6.526: Module (Gildenpflege) melden ihre Reiter erst nach dieser Datei an
+        -- 0.6.526: modules (guild management) register their tabs only after this file
         for k, e in pairs(Admin.EXTRA_BUILD or {}) do BUILD[k], REFRESH[k] = e.build, e.refresh end
         for k, h in pairs(HELP_EXTRA) do HELP[k] = h end
         Admin.SetTab(BUILD.today and "today" or "start")
     end,
     refresh = function(p)
         if not Admin.CanManage() then
-            -- ohne Rechte: Seite bleibt offen, Milchglas-Sperre (lockPage) liegt darueber
+            -- without permission: page stays open, frosted-glass lock (lockPage) lies on top
             if p.rightsLock then p.rightsLock:Update() end
             return
         end
-        -- Entwurf nachziehen, wenn jemand anderes gespeichert hat und hier nichts offen ist
+        -- Refresh the draft when someone else saved and nothing is pending here
         local cur = Admin.Cfg()
         local u = (cur.u or 0) .. (cur.by or "")
         if p.lastU ~= u then
@@ -3164,7 +3164,7 @@ ns.RegisterPage({
         end
         if p.saveBar:IsShown() then p.saveBar:Update() end
         Admin.UpdateOchatTab()
-        p.testTag:SetShown(false)   -- Testmodus steht in Rechte > Krone & Testmodus
+        p.testTag:SetShown(false)   -- Test mode is under Permissions > Crown & test mode
         p.testTag:SetLabel(L["TEST MODE – only you (off)"])
     end,
 })
@@ -3195,9 +3195,9 @@ ns.slash.testleitung = function()
 end
 
 ------------------------------------------------------------------------
--- Mitglieder ohne Oasis einmal anfluestern (Schalter in der Gildenleitung, Standard aus)
--- Nur Leitungen schreiben. Wer schreibt, traegt das Mitglied in "invites" ein (geht an die Gilde),
--- alle anderen Leitungen ueberspringen es dann -> jeder bekommt die Nachricht nur einmal.
+-- Whisper members without Oasis once (toggle in guild leadership, default off)
+-- Only leaders write. Whoever writes adds the member to "invites" (goes to the guild),
+-- all other leaders then skip them -> everyone gets the message only once.
 ------------------------------------------------------------------------
 function Admin.InviteText(forGuild)
     local link = Admin.Cfg().dlink or ""
@@ -3221,37 +3221,37 @@ local function checkInvites()
             seen[m.name] = true
             onlineSince[m.name] = onlineSince[m.name] or now
             local id = "inv-" .. m.name
-            -- 3 Min. online und immer noch kein Oasis-Lebenszeichen -> einmal anschreiben
+            -- 3 min online and still no sign of Oasis -> message once
             if now - onlineSince[m.name] > 180 and not hasOasis(m.name) and not Store.Get("invites", id) then
                 Store.Put("invites", { id = id, who = m.name })
-                -- 0.5.650: nicht mehr automatisch fluestern (war echte Chatnachricht: beendete AFK und lief ins Leere,
-                -- wenn der Spieler inzwischen offline war) -> Hinweis, ein Klick sendet
+                -- 0.5.650: no longer whisper automatically (was a real chat message: ended AFK and went nowhere
+                -- if the player had gone offline in the meantime) -> notice, one click sends
                 if ns.OfferChat then
                     ns.OfferChat((L["Oasis tip for %s"]):format(ns.short(m.name)), Admin.InviteText(false), "WHISPER", Comm.WhisperName(m.name))
                 end
                 ns.debug("Oasis-Hinweis angeboten:", m.name)
-                return   -- hoechstens einer pro Durchlauf
+                return   -- at most one per pass
             end
         end
     end
     for name in pairs(onlineSince) do if not seen[name] then onlineSince[name] = nil end end
 end
--- zufaelliger Takt je Leitung, damit nicht alle gleichzeitig pruefen
+-- random interval per leader so not everyone checks at the same time
 ns.Listen("LOGIN", function()
     ns.After(20 + math.random(0, 20), function() ns.Every(45 + math.random(0, 15), checkInvites) end)
 end)
 
 ------------------------------------------------------------------------
--- Gildenraenge verwalten (spricht direkt mit Blizzard) - frueher GuildRanks.lua
--- Mitglieder befoerdern / zurueckstufen / Rang setzen, Raenge anlegen, umbenennen, loeschen, Rechte setzen.
--- WoW prueft die echten Rechte selbst. Alles nur per Klick (mit Bestaetigung) und nie im Kampf.
+-- Manage guild ranks (talks directly to Blizzard) - formerly GuildRanks.lua
+-- Promote / demote members / set rank, create, rename, delete ranks, set permissions.
+-- WoW checks the real permissions itself. Everything by click only (with confirmation) and never in combat.
 ------------------------------------------------------------------------
 do
 local GR = {}
 ns.GuildRanks = GR
 
 ------------------------------------------------------------------------
--- Rechte (was WoW mir erlaubt - nie aus dem Oasis-Testmodus)
+-- Permissions (what WoW allows me - never from the Oasis test mode)
 ------------------------------------------------------------------------
 function GR.IsLeader() return IsGuildLeader and IsGuildLeader() and true or false end
 function GR.CanEditRanks() return GR.IsLeader() end
@@ -3280,7 +3280,7 @@ local function refresh()
 end
 
 ------------------------------------------------------------------------
--- Bestaetigung
+-- Confirmation
 ------------------------------------------------------------------------
 StaticPopupDialogs.OASIS_CONFIRM = {
     text = "%s", button1 = YES or "Yes", button2 = NO or "No",
@@ -3312,7 +3312,7 @@ function GR.AskName(text, current, fn)
 end
 
 ------------------------------------------------------------------------
--- Mitglieder: Rang setzen (ueber den Index in der Gildenliste - robust bei Namen mit Leerzeichen)
+-- Members: set rank (via the index in the guild roster - robust for names with spaces)
 ------------------------------------------------------------------------
 local function indexOf(name)
     local n = GetNumGuildMembers and GetNumGuildMembers() or 0
@@ -3323,7 +3323,7 @@ local function indexOf(name)
     end
 end
 GR.IndexOf = indexOf
--- rankIndex: 0 = Gildenmeister, 1 = naechster ...
+-- rankIndex: 0 = guild master, 1 = next ...
 function GR.SetRank(name, rankIndex)
     if blocked() then return false end
     local i, cur = indexOf(name)
@@ -3355,7 +3355,7 @@ function GR.Demote(name)
     local _, n = ns.Admin.RankNames()
     if cur and cur < n - 1 then return GR.SetRank(name, cur + 1) end
 end
--- mehrere nacheinander (WoW mag keine Flut)
+-- several one after another (WoW doesn't like floods)
 function GR.SetRankMany(names, rankIndex, done)
     local list = {}
     for _, n in ipairs(names) do list[#list + 1] = n end
@@ -3367,7 +3367,7 @@ function GR.SetRankMany(names, rankIndex, done)
     step(1)
 end
 
--- Rechtsklick-Menue fuer ein Mitglied
+-- Right-click menu for a member
 function GR.MemberMenu(owner, m)
     if not m then return end
     local names, n = ns.Admin.RankNames()
@@ -3396,7 +3396,7 @@ function GR.MemberMenu(owner, m)
 end
 
 ------------------------------------------------------------------------
--- Raenge: anlegen, umbenennen, loeschen, Rechte (nur Gildenmeister)
+-- Ranks: create, rename, delete, permissions (guild master only)
 ------------------------------------------------------------------------
 local function rankCount() return GuildControlGetNumRanks and GuildControlGetNumRanks() or 0 end
 function GR.RankFlags(rankIndex)
@@ -3443,7 +3443,7 @@ function GR.DeleteRank(rankIndex)
     if not ok then ns.err(L["Delete rank"], e) end
     refresh()
 end
--- Mitglieder je Rang (aus der Gildenliste)
+-- Members per rank (from the guild roster)
 function GR.CountIn(rankIndex)
     local n = 0
     for _, m in ipairs(ns.Radar and ns.Radar.roster or {}) do if m.rankIndex == rankIndex then n = n + 1 end end
@@ -3453,7 +3453,7 @@ end
 ns.On("GUILD_RANKS_UPDATE", function() ns.RefreshPage("admin") end)
 end
 
--- Diagnose: /oa wappen - Zustand der Rang-Wappen in der Uebersicht der Gildenleitung
+-- Diagnostics: /oa wappen - state of the rank crests in the guild leadership overview
 ns.slash.wappen = function()
     local f = page and page.tabs and page.tabs.overview
     local list = f and f.list
@@ -3474,7 +3474,7 @@ ns.slash.wappen = function()
     if n == 0 then ns.print("Keine Zeilen gefunden.") end
 end
 
--- Gildenleitung/Gildenpflege: fuer alle sichtbar, ohne Rechte abgedunkelt + Schloss (nichts bedienbar)
+-- Guild leadership/guild management: visible to everyone, dimmed + padlock without permission (nothing usable)
 local function lockPage(key)
     local def = ns.PageDef and ns.PageDef(key)
     if not def or def.oasisLockWrapped then return end
@@ -3483,7 +3483,7 @@ local function lockPage(key)
     def.build = function(p)
         build(p)
         if K.Lock then
-            -- Reiterleiste (p.seg, Linie bei -28) bleibt scharf und sichtbar, gesperrt/verschwommen nur der Inhalt darunter
+            -- Tab bar (p.seg, line at -28) stays sharp and visible, only the content below is locked/blurred
             p.rightsLock = K.Lock(p, { check = function() return Admin.CanManage() end, who = "lead",
                 top = p.seg and 58 or nil, keep = { p.seg, unpack((function() local t = {} for _, s in pairs(p.subs or {}) do t[#t + 1] = s end return t end)()) } })
             p.rightsLock:Update(true)
@@ -3499,12 +3499,12 @@ end
 ns.Listen("LOGIN", function() lockPage("admin") lockPage("officer") end)
 
 ------------------------------------------------------------------------
--- Logo-Studio (0.5.917): Klick aufs Logo oeffnet ein kleines Fenster mit Live-Vorschau statt einer langen Liste.
--- Ueberfahren zeigt Stil/Schrift sofort in der Vorschau, Klick uebernimmt. Alles nur fuer den Nutzer selbst
--- (settings.logoStyle / logoTrack / logoFont). Kein Neuaufbau des Hauptfensters: nur die Logos zeichnen neu.
+-- Logo studio (0.5.917): clicking the logo opens a small window with live preview instead of a long list.
+-- Hovering shows style/font immediately in the preview, click applies. Everything only for the user themselves
+-- (settings.logoStyle / logoTrack / logoFont). No rebuild of the main window: only the logos redraw.
 ------------------------------------------------------------------------
 local CHAR = "[%z\1-\127\194-\244][\128-\191]*"
--- Name Buchstabe fuer Buchstabe einfaerben (Leerzeichen/Umbrueche bleiben ungefaerbt)
+-- Color the name letter by letter (spaces/line breaks stay uncolored)
 function Admin.LogoMarkup(text, style, col, textCol)
     if not text or text == "" then return text end
     local chars, n = {}, 0
@@ -3525,7 +3525,7 @@ function Admin.LogoMarkup(text, style, col, textCol)
     end
     return table.concat(out) .. "|r"
 end
--- kurze Ein-Wort-Namen gesperrt ("O A S I S"), sonst unveraendert
+-- short one-word names letter-spaced ("O A S I S"), otherwise unchanged
 function Admin.LogoSpaced(plain, track)
     if not track or plain:find("%s") then return plain end
     local letters = {}
@@ -3536,7 +3536,7 @@ end
 function Admin.RefreshLogos()
     for lg in pairs(logos) do if not lg.fixedCfg then pcall(lg.Apply, lg) end end
 end
--- Name wie im Logo: eigener Schriftzug der Leitung oder Gildenname, gross, "o a s i s" zusammengezogen
+-- Name as in the logo: leadership's own lettering or guild name, large, "o a s i s" contracted
 local function studioName()
     local cfg = Admin.DisplayCfg()
     local plain = (Admin.DemoGuildName and Admin.DemoGuildName()) or ((cfg.ltext or "") ~= "" and cfg.ltext) or Admin.GuildName() or "Oasis"
@@ -3589,7 +3589,7 @@ function Admin.ShowLogoStudio(owner)
         local close = K.CloseButton(f, function() f:Hide() end)
         close:SetPoint("TOPRIGHT", -8, -8)
 
-        -- Vorschau: gross, zeigt beim Ueberfahren sofort die Auswahl
+        -- Preview: large, shows the selection immediately on hover
         local pv = CreateFrame("Frame", nil, f)
         pv:SetPoint("TOPLEFT", PAD, -62)
         pv:SetPoint("TOPRIGHT", -PAD, -62)
@@ -3605,7 +3605,7 @@ function Admin.ShowLogoStudio(owner)
         pv.cap:SetPoint("BOTTOM", 0, 9)
         f.pv = pv
 
-        -- Stil: fuenf Kacheln, jede zeigt den Namensanfang in ihrem Stil
+        -- Style: five tiles, each shows the start of the name in its style
         local head1 = K.Header(f, L["Style"])
         head1:SetPoint("TOPLEFT", PAD, -180)
         head1:SetWidth(W - PAD * 2)
@@ -3659,7 +3659,7 @@ function Admin.ShowLogoStudio(owner)
         f.track:SetPoint("TOPLEFT", PAD, -278)
         f.track:SetWidth(300)
 
-        -- Schrift: zwei Spalten, jede Zeile zeigt den Namen in ihrer Schrift
+        -- Font: two columns, each row shows the name in its font
         local head2 = K.Header(f, L["Font"])
         head2:SetPoint("TOPLEFT", PAD, -316)
         head2:SetWidth(W - PAD * 2)
@@ -3732,7 +3732,7 @@ function Admin.ShowLogoStudio(owner)
             local guild = Admin.Cfg().lfont or "ptsansbold"
             return K.FontPath((key and key ~= "default") and key or guild, K.FONT_HEAD)
         end
-        -- alles neu zeichnen; anim = Vorschau kurz weich einblenden
+        -- redraw everything; anim = briefly fade in the preview
         function f:Paint(anim)
             local plain, col = studioName()
             local style = self.hoverStyle or Admin.LogoStyle()
@@ -3793,7 +3793,7 @@ function Admin.ShowLogoStudio(owner)
     if studio.track.Refresh then pcall(studio.track.Refresh, studio.track) end
     studio:Paint()
     if K.FadeIn then studio.oasisFadedAt = nil K.FadeIn(studio) end
-    -- Schrift-Dateien laedt WoW erst beim ersten Gebrauch: kurz darauf noch einmal messen und zeichnen
+    -- WoW loads font files only on first use: measure and draw again shortly after
     ns.After(0.3, function() if studio:IsShown() then studio:Paint() end end)
 end
--- Ende Logo-Studio
+-- End of logo studio

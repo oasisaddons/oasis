@@ -1,18 +1,18 @@
--- Oasis: Demo-Daten fuer den Bereich "Gilde" (nur /oa demo)
--- Gildenchat (ns.db.gchat + ns.db.linkHist, lokal), Kampf-Rangliste ("combat"), Gildenziele
--- ("ggoals"/"ggcontrib") und Durchsagen ("notices"). Lagerfeuer fuellt Camp.lua selbst (Camp.SeedDemo).
--- Chatzeilen tragen src="discord" (ohne dc-Kennzeichen): so zeigt GuildChat sie normal an, gibt sie
--- beim Nachladen verpasster Nachrichten (GCREQ) aber nie an andere Oasis-Nutzer weiter.
+-- Oasis: demo data for the "Guild" area (only /oa demo)
+-- guild chat (ns.db.gchat + ns.db.linkHist, local), combat ranking ("combat"), guild goals
+-- ("ggoals"/"ggcontrib") and announcements ("notices"). Camp.lua fills campfires itself (Camp.SeedDemo).
+-- Chat lines carry src="discord" (without dc tag): so GuildChat shows them normally, but
+-- never passes them on to other Oasis users when reloading missed messages (GCREQ).
 local ADDON, ns = ...
 
--- Item-Links wie im echten Chat (Farbe nach Qualitaet)
+-- item links like in the real chat (color by quality)
 local function link(id, name, q)
     local col = ({ [1] = "ffffffff", [2] = "ff1eff00", [3] = "ff0070dd", [4] = "ffa335ee" })[q or 1]
     return "|c" .. col .. "|Hitem:" .. id .. "::::::::|h[" .. name .. "]|h|r", "|Hitem:" .. id .. "::::::::|h[" .. name .. "]|h"
 end
 
--- { Person, Minuten zurueck (heute) bzw. Uhrzeit "HH:MM" (gestern), Text }
--- Platzhalter: {L1}.. = Item-Links aus LINKS
+-- { person, minutes ago (today) or time "HH:MM" (yesterday), text }
+-- placeholders: {L1}.. = item links from LINKS
 local LINKS = {
     { 6505, "Krallen des Kreuzzueglers", 3 }, { 1482, "Schattenzahn", 3 }, { 9379, "Sang'thraze der Ablenker", 3 },
     { 6475, "Muster: Wildleder-Gamaschen", 2 }, { 10019, "Traumgewirkte Handschuhe", 2 }, { 4306, "Seidenstoff", 1 },
@@ -85,7 +85,7 @@ local function fill(text)
         used[#used + 1] = { id = l[1], raw = raw }
         return colored
     end)
-    -- Sounds: im Chat als {s:key} (wird von UI/Sound.lua als Lautsprecher-Zeile gezeigt)
+    -- Sounds: in chat as {s:key} (shown by UI/Sound.lua as a speaker line)
     text = text:gsub("{S:(%w+)}", "{s:%1}")
     return text, used
 end
@@ -101,7 +101,7 @@ local function seedChat(ctx)
         local h, m = y[2]:match("(%d+):(%d+)")
         rows[#rows + 1] = { y[1], midnight - 86400 + tonumber(h) * 3600 + tonumber(m) * 60 + math.random(0, 50), y[3] }
     end
-    -- heute: so weit zurueck wie angegeben, aber nie vor Mitternacht (frueh am Morgen zusammenschieben)
+    -- today: as far back as given, but never before midnight (squeeze together early in the morning)
     local span = math.max(60, now - midnight - 60)
     for _, d in ipairs(TODAY) do
         local back = d[2] * 60
@@ -113,20 +113,20 @@ local function seedChat(ctx)
         local p = ctx.people[r[1]]
         local msg, used = fill(r[3])
         local e = { ts = r[2], s = ctx.nm(r[1]), m = msg, c = p and p[2], src = "discord", demo = true }
-        -- nach Zeit einsortieren
+        -- sort by time
         local pos = #l + 1
         while pos > 1 and (l[pos - 1].ts or 0) > e.ts do pos = pos - 1 end
         table.insert(l, pos, e)
         for _, u in ipairs(used) do hist[#hist + 1] = { id = u.id, raw = u.raw, who = e.s, ts = e.ts, demo = true } end
     end
-    -- Link-Gedaechtnis (Seitenkarte "Zuletzt verlinkt" nimmt auch aeltere Links von hier)
+    -- link memory (side card "Recently linked" also takes older links from here)
     ns.db.linkHist = ns.db.linkHist or {}
     table.sort(hist, function(a, b) return a.ts > b.ts end)
     for i = #hist, 1, -1 do table.insert(ns.db.linkHist, 1, hist[i]) end
     if ns.GuildChat and ns.GuildChat.ClearRenderCache then pcall(ns.GuildChat.ClearRenderCache) end
 end
 
--- Kampf-Rangliste: Werte grob nach Classic-Stufe
+-- Combat ranking: values roughly by Classic tier
 local HIT = { WARRIOR = 11565, MAGE = 8401, HUNTER = 20902, ROGUE = 11293, WARLOCK = 11660, SHAMAN = 15207, DRUID = 9912, PRIEST = 10947, PALADIN = 20271 }
 local HEAL = { PRIEST = 10963, SHAMAN = 10396, DRUID = 9889, PALADIN = 19943 }
 local ZONES = { "Tiefschwarze Grotte", "Scharlachrotes Kloster", "Uldaman", "Zul'Farrak", "Maraudon", "Arathihochland", "Desolace", "Tanaris", "Burg Schattenfang", "Kral der Klingenhauer" }
@@ -135,7 +135,7 @@ local function seedCombat(ctx)
     for i, p in ipairs(ctx.people) do
         local cls, L, roles = p[2], p[3], p[6] or ""
         if L >= 10 then
-            local f = 0.8 + ((i * 37) % 40) / 100           -- feste Streuung je Person
+            local f = 0.8 + ((i * 37) % 40) / 100           -- fixed spread per person
             local dps = (1.5 * L + 0.07 * L * L) * f
             if roles == "h" then dps = dps * 0.45 end
             local dur = 35 + (i * 13) % 60
@@ -161,7 +161,7 @@ local function seedCombat(ctx)
     end
 end
 
--- Gildenziele + Beitraege
+-- Guild goals + contributions
 local function seedGoals(ctx)
     local now, nm = ctx.now, ctx.nm
     ctx.put("ggoals", { id = "demo-gg1", by = nm(9), created = now - 9 * 86400, icon = 13457,
@@ -186,7 +186,7 @@ local function seedGoals(ctx)
         title = "Gildenwappenrock fuer alle",
         desc = "Einheitlicher Auftritt bei Raids und Fotos.",
         s1 = "Wappen im Gildenrat abstimmen", k1 = 1, s2 = "Wappenrock-Gold sammeln", k2 = 1, s3 = "An alle verteilt", k3 = 1 })
-    -- Beitraege: { Ziel, Material-Nr, Person, Menge }
+    -- contributions: { goal, material no., person, quantity }
     local C = {
         { "demo-gg1", 1, 16, 12 }, { "demo-gg1", 1, 17, 9 }, { "demo-gg1", 1, 5, 4 },
         { "demo-gg1", 2, 7, 20 }, { "demo-gg1", 2, 13, 14 }, { "demo-gg1", 2, 17, 10 },
@@ -200,7 +200,7 @@ local function seedGoals(ctx)
     end
 end
 
--- Durchsagen der Gildenleitung (Admin.Notices: g = Gildenname, by muss Leitung sein -> Offiziere der Demo)
+-- announcements by guild leadership (Admin.Notices: g = guild name, by must be leadership -> officers of the demo)
 local function seedNotices(ctx)
     local g = ns.Admin and ns.Admin.GuildName and ns.Admin.GuildName()
     if not g then return end

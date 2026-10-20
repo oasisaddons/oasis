@@ -1,8 +1,8 @@
--- Oasis: Demo-Daten zum Ausprobieren (/oa demo, /oa demo aus)
--- Alles bleibt lokal: nur Store.merge, Datensaetze tragen demo=true und eine "demo-"-ID,
--- Comm schickt sie nie an die Gilde.
--- Live-Simulation: Mitglieder loggen ein/aus, laufen ueber die Karte, leveln, sterben,
--- finden Beute und suchen Gruppen - wie ein normaler Gildenabend.
+-- Oasis: demo data to try things out (/oa demo, /oa demo aus)
+-- Everything stays local: only Store.merge, records carry demo=true and a "demo-" ID,
+-- Comm never sends them to the guild.
+-- Live simulation: members log in/out, walk across the map, level up, die,
+-- find loot and look for groups - like a normal guild evening.
 local ADDON, ns = ...
 local L = ns.L
 local Store = ns.Store
@@ -10,7 +10,7 @@ local Store = ns.Store
 local Demo = {}
 ns.Demo = Demo
 
--- Name, Klasse, Level, Gebiet (UiMapID), online, Rollen, Berufe
+-- Name, class, level, zone (UiMapID), online, roles, professions
 local PEOPLE = {
     { "Grukthar", "WARRIOR", 34, 1413, true, "t", "Schmiedekunst/210/225/164+Bergbau/225/225/186" },
     { "Zul'mira", "PRIEST", 31, 1440, true, "h", "Schneiderei/180/225/197+Verzauberkunst/160/225/333" },
@@ -87,7 +87,7 @@ local function seedRecipes()
     if ns.Crafting then ns.Crafting.dirty = true end
 end
 
--- Quests im (Demo-)Questlog - nur Anzeige, werden nie geteilt
+-- Quests in the (demo) quest log - display only, never shared
 local DEMO_QUESTS = {
     { id = 881, title = "Echeyakee", zone = "Brachland" },
     { id = 870, title = "Die vergessenen Teiche", zone = "Brachland" },
@@ -116,7 +116,7 @@ local ITEMS = {
     smite = "|cff0070dd|Hitem:7230::::::::|h[Smite's Mighty Hammer]|h|r",
     cape = "|cff1eff00|Hitem:6630::::::::|h[Seedcloud Buckler]|h|r",
 }
--- Beute fuer die Live-Simulation (Stufe ab, Link)
+-- Loot for the live simulation (from level, link)
 local LIVE_LOOT = {
     { 18, "|cff0070dd|Hitem:6340::::::::|h[Fenrus' Hide]|h|r", "Burg Schattenfang" },
     { 25, "|cff0070dd|Hitem:6905::::::::|h[Reef Axe]|h|r", "Tiefschwarze Grotte" },
@@ -132,17 +132,17 @@ local LIVE_KILLER = { "Sturz", "Kolkar-Pirscher", "Allianz-Spieler", "Wildtatzen
 local LIVE_LFG = { { 17, "Burg Schattenfang" }, { 22, "Tiefschwarze Grotte" }, { 30, "Kloster Bibliothek" }, { 36, "Kloster Waffenkammer + Kathedrale" }, { 40, "Uldaman" }, { 44, "Zul'Farrak" }, { 48, "Maraudon" } }
 
 local function nm(i) return ns.fullName(PEOPLE[i][1]) end
--- Namen + Klassen der Demo-Gilde (fuer den Raid-Simulator, Core\Diagnostics\RaidSim.lua)
+-- Names + classes of the demo guild (for the raid simulator, Core\Diagnostics\RaidSim.lua)
 function Demo.People()
     local out = {}
     for i, p in ipairs(PEOPLE) do out[i] = { name = nm(i), class = p[2], level = p[3], roles = p[6] } end
     return out
 end
--- Horde-Volk je Klasse (Orc 2, Untoter 5, Tauren 6, Troll 8)
+-- Horde race per class (Orc 2, Undead 5, Tauren 6, Troll 8)
 local DEMO_RACE = { WARRIOR = 2, PRIEST = 5, HUNTER = 6, MAGE = 8, SHAMAN = 6, ROGUE = 5, DRUID = 6, WARLOCK = 2, PALADIN = 2 }
--- Beispieltexte in der Sprache des Nutzers: Deutsch steht im Code, jede andere Sprache nimmt die englische Fassung
--- (Modules/DemoSeeds/TextsEN.lua). Zusammengesetzte Felder ("Name@id", "Beruf/1/2/3+Beruf/..", "0{Item{5{..}")
--- werden abschnittsweise ersetzt. Kennungen und die Vorlagen der Chronik (tk, uebersetzt die Anzeige) bleiben.
+-- Sample texts in the user's language: German is in the code, every other language uses the English version
+-- (Modules/DemoSeeds/TextsEN.lua). Composite fields ("Name@id", "Beruf/1/2/3+Beruf/..", "0{Item{5{..}")
+-- are replaced section by section. IDs and the chronicle templates (tk, translates the display) stay.
 local KEEP = { tk = true, id = true, who = true, by = true, kind = true, hash = true }
 function Demo.Text(s)
     local t = ns.DemoEN
@@ -164,7 +164,7 @@ function Demo.Localize(rec, depth)
             local n = Demo.Text(v)
             if n ~= v then rec[k] = n end
         end
-        -- Berufe stehen als Schluessel (Rezepte je Beruf)
+        -- Professions are keys (recipes per profession)
         if type(k) == "string" and ns.DemoEN[k] and rec[ns.DemoEN[k]] == nil then
             rename = rename or {}
             rename[k] = ns.DemoEN[k]
@@ -175,7 +175,7 @@ function Demo.Localize(rec, depth)
     end
     return rec
 end
--- alles ausserhalb des Stores, was die Demo angelegt hat (Mitglieder, Rezepte, Mitspieler ...): Tabellen mit demo = true
+-- everything outside the store that the demo created (members, recipes, fellow players ...): tables with demo = true
 local function localizeTables(t, depth, seen)
     if type(t) ~= "table" or depth > 4 or seen[t] then return end
     seen[t] = true
@@ -186,7 +186,7 @@ local function localizeTables(t, depth, seen)
 end
 function Demo.LocalizeAll()
     if ns.lang == "de" or not ns.DemoEN then return end
-    local seen = { [ns.db.store or {}] = true }   -- Store-Saetze uebersetzt put() schon
+    local seen = { [ns.db.store or {}] = true }   -- put() already translates store records
     localizeTables(ns.db, 0, seen)
     if ns.char then localizeTables(ns.char, 0, seen) end
 end
@@ -199,9 +199,9 @@ local function put(name, rec)
     Store.merge(name, rec)
 end
 
--- 0.5.692: weitere Demo-Daten aus eigenen Dateien (Modules/DemoSeeds/*.lua) - je Bereich eine Datei.
--- seed(ctx) laeuft beim Laden der Demo, clean() beim Entfernen (nur fuer Daten ausserhalb des Stores noetig;
--- Store-Saetze mit demo=true bzw. "demo-"-ID raeumt Demo.Remove ohnehin weg).
+-- 0.5.692: more demo data from separate files (Modules/DemoSeeds/*.lua) - one file per section.
+-- seed(ctx) runs when the demo loads, clean() on removal (only needed for data outside the store;
+-- Demo.Remove cleans up store records with demo=true or a "demo-" ID anyway).
 Demo.SEEDS = {}
 function Demo.AddSeed(name, seed, clean)
     Demo.SEEDS[#Demo.SEEDS + 1] = { name = name, seed = seed, clean = clean }
@@ -216,7 +216,7 @@ end
 
 function Demo.IsActive() return ns.db and ns.db.demo == true end
 
--- veraenderlicher Zustand je Person (bleibt ueber /reload erhalten)
+-- mutable state per person (survives /reload)
 local function state()
     local s = ns.db.demoPeople
     if type(s) ~= "table" or #s ~= #PEOPLE then
@@ -235,7 +235,7 @@ local function zoneOf(mapID)
     return ns.zoneName and ns.zoneName(mapID, "") or ""
 end
 
--- Gildenliste um Demo-Mitglieder ergaenzen (aus Radar.readRoster aufgerufen)
+-- Add demo members to the guild roster (called from Radar.readRoster)
 function Demo.InjectRoster(list, by)
     if not Demo.IsActive() then return 0, 0 end
     local st = state()
@@ -258,7 +258,7 @@ function Demo.InjectRoster(list, by)
 end
 
 local function msString(lvl, now, i)
-    -- Tempo je Person (Sekunden pro Level, steigt mit dem Level), dazu ein kleiner Versatz
+    -- Pace per person (seconds per level, rises with level), plus a small offset
     local pace = 9000 + ((i or 1) * 2741) % 14000
     local ms = {}
     for l = 10, lvl, 10 do
@@ -281,12 +281,12 @@ local function seedMembers()
             nc = (i == 8 or i == 11) or nil, main = i == 7 and nm(3) or (i == 24 and nm(4) or nil),
             gs = st[i].on and GROUPS[i] or "", qs = DEMO_QS[i],
             gb = BIRTHDAYS[i] == "today" and date("%d.%m", now) or (BIRTHDAYS[i] and BIRTHDAYS[i]:sub(1, 5)) or nil,
-            -- Aussehen + Oasis-Rang fuer Dashboard (Held der Woche, Rekorde)
+            -- Appearance + Oasis rank for the dashboard (hero of the week, records)
             rc = DEMO_RACE[p[2]] or 2, sx = i % 2, orx = 600 + st[i].lvl * 140 + (i * 337) % 900,
         }
     end
     seedRecipes()
-    -- Mitspieler von ausserhalb der Gilde
+    -- Fellow players from outside the guild
     ns.db.allies = ns.db.allies or {}
     for k, a in ipairs(DEMO_ALLIES) do
         local ex = ns.db.allies[a[1]]
@@ -297,7 +297,7 @@ local function seedMembers()
                 demoOnline = (k == 1 or k == 2) or nil }
         end
     end
-    -- Spielzeit + Level-Verlauf der letzten Tage (fuer Tageszeit und Level-Tempo)
+    -- Playtime + level history of the last days (for time of day and leveling pace)
     if ns.Members then
         local play, hist = ns.Members.Store()
         for i, p in ipairs(PEOPLE) do
@@ -337,7 +337,7 @@ end
 
 local function seedStore()
     local now, me = ns.now(), ns.me()
-    -- Chronik
+    -- Chronicle
     local chr = {
         { "level", 2, "hat Level %s erreicht", { 31 }, 900 },
         { "loot", 1, "hat erbeutet:", nil, 2400, { item = ITEMS.smite, zone = "Die Todesminen" } },
@@ -355,11 +355,11 @@ local function seedStore()
         { "boss", 9, "und Gruppe besiegen %s (%s)", { "Gahz'rilla", "4:48" }, 230000 },
         { "level", 20, "hat Level %s erreicht", { 60 }, 300000 },
         { "loot", 20, "hat erbeutet:", nil, 330000, { item = ITEMS.shadowfang, zone = "Burg Schattenfang" } },
-        -- Nakira: aktivste der Woche (Held der Woche im Dashboard)
+        -- Nakira: most active of the week (hero of the week on the dashboard)
         { "boss", 14, "und Gruppe besiegen %s (%s)", { "Archaedas", "6:41" }, 250000 },
         { "badge", 14, "hat ein Abzeichen erhalten:", { "angel", 3 }, 260000 },
         { "level", 14, "hat Level %s erreicht", { 46 }, 400000 },
-        -- Raid-Abende (Barrow Deeps)
+        -- Raid evenings (Barrow Deeps)
         { "boss", 1, "und Gruppe besiegen %s (%s)", { "Grabwächter Moradin", "5:02" }, 6 * 86400 + 3000 },
         { "boss", 1, "und Gruppe besiegen %s (%s)", { "Die Knochenhexe", "6:47" }, 6 * 86400 + 1200 },
         { "boss", 9, "und Gruppe besiegen %s (%s)", { "Varrok der Verschlinger", "8:15" }, 13 * 86400 },
@@ -371,18 +371,18 @@ local function seedStore()
         for k, v in pairs(c[6] or {}) do rec[k] = v end
         put("chronicle", rec)
     end
-    -- neue Mitglieder (Beitritt in den letzten Tagen -> "NEU" in der Liste)
+    -- new members (joined in the last days -> "NEU" in the list)
     for k, j in ipairs({ { 19, 2 }, { 15, 5 }, { 11, 0.3 } }) do
         put("chronicle", { id = "demo-join-" .. k, kind = "guild", who = nm(j[1]), tk = "tritt der Gilde bei - willkommen!", ts = now - j[2] * 86400 })
     end
-    -- Termine + Anmeldungen
+    -- Events + sign-ups
     local ev = {
         { "demo-ev1", "Burg Schattenfang", "Burg Schattenfang", 2 * 3600, 5 },
         { "demo-ev2", "Scharlachrotes Kloster: Friedhof + Bibliothek", "Scharlachrotes Kloster", 26 * 3600, 5 },
         { "demo-ev3", "Gildenabend: Todeswuerfeln in Orgrimmar", "", 3 * 86400, 40 },
     }
     for _, e in ipairs(ev) do put("events", { id = e[1], title = e[2], inst = e[3], ts = now + e[4], max = e[5], who = nm(1) }) end
-    -- Raid-Abende (20er): naechster Freitag fast voll, Folgewoche erst angelaufen
+    -- Raid evenings (20-man): next Friday almost full, the following week just started
     put("events", { id = "demo-raid1", title = "Barrow Deeps - Wochenraid", inst = "Barrow Deeps", ts = now + 2 * 86400 + 5400, max = 20, kind = "raid",
         desc = "Flaschen + Reparatur mitbringen, Invite 19:45", who = nm(6) })
     put("events", { id = "demo-raid2", title = "Barrow Deeps - Wochenraid", inst = "Barrow Deeps", ts = now + 9 * 86400 + 5400, max = 20, kind = "raid",
@@ -405,7 +405,7 @@ local function seedStore()
             put("signups", { id = "demo-raid2@" .. nm(r[1]), ev = "demo-raid2", who = nm(r[1]), role = r[2], status = "yes", class = p[2], lvl = p[3], ilvl = 20 + p[3], u = now - k * 900 })
         end
     end
-    -- Raid-Interesse (Rollen + Wunschtage)
+    -- Raid interest (roles + preferred days)
     for k, r in ipairs({ { 5, "hd", "35" }, { 7, "thd", "157" }, { 8, "d", "5" }, { 15, "t", "356" }, { 19, "h", "35" }, { 24, "d", "57" }, { 11, "td", "6" } }) do
         put("raidint", { id = "ri-" .. nm(r[1]), roles = r[2], days = r[3], by = nm(r[1]), u = now - k * 5400 })
     end
@@ -414,7 +414,7 @@ local function seedStore()
         local p = PEOPLE[s[2]]
         put("signups", { id = s[1] .. "@" .. nm(s[2]), ev = s[1], who = nm(s[2]), role = s[3], status = "yes", class = p[2], lvl = p[3] })
     end
-    -- Handwerk
+    -- Crafting
     put("orders", { id = "demo-ord1", recipe = "Schwerer Wetzstein", prof = "Schmiedekunst", to = nm(1), rid = 2674, item = 2871, qty = 5, note = "fuer den Raid am Freitag", from = me, status = "open", created = now - 3000, mats = true })
     put("orders", { id = "demo-ord2", recipe = "Kleiner Seidenrucksack", prof = "Schneiderei", to = "", rid = 3813, item = 4245, qty = 2, note = "", from = nm(8), status = "open", created = now - 8000, tip = 5 })
     put("orders", { id = "demo-ord3", recipe = "Heiltrank", prof = "Alchemie", to = nm(13), rid = 3447, item = 929, qty = 10, note = "", from = nm(3), status = "accepted", worker = nm(13), created = now - 20000, mats = true })
@@ -422,7 +422,7 @@ local function seedStore()
     put("orders", { id = "demo-ord5", recipe = "Seidenverband", prof = "Erste Hilfe", to = nm(23), rid = 7928, item = 6450, qty = 20, note = "", from = me, status = "accepted", worker = nm(23), created = now - 5000, tip = 2 })
     put("orders", { id = "demo-ord6", recipe = "Grobes Sprengpulver", prof = "Ingenieurskunst", to = nm(6), rid = 3929, item = 4364, qty = 10, note = "", from = nm(12), status = "done", worker = nm(6), created = now - 90000 })
     put("orders", { id = "demo-ord7", recipe = "Seidenstoffballen", prof = "Schneiderei", to = nm(14), rid = 3839, item = 4305, qty = 8, note = "", from = nm(9), status = "done", worker = nm(14), created = now - 150000, tip = 3 })
-    -- Gesucht
+    -- Wanted
     put("wants", { id = "demo-want1", itemID = 4306, name = "Seidenstoff", qty = 40, note = "fuer Taschen", who = nm(2), created = now - 5000 })
     put("wants", { id = "demo-want2", itemID = 2589, name = "Leinenstoff", qty = 20, note = "", who = nm(8), created = now - 9000 })
     put("wants", { id = "demo-want5", itemID = 929, name = "Heiltrank", qty = 10, note = "fuer den Kloster-Run", who = nm(21), created = now - 2500, price = 1 })
@@ -430,12 +430,12 @@ local function seedStore()
     put("wants", { id = "demo-want7", itemID = 3575, name = "Eisenbarren", qty = 12, note = "fuer Schmiedekunst-Skill", who = nm(15), created = now - 12000, price = 2 })
     put("wants", { id = "demo-want4", itemID = 4245, name = "Kleiner Seidenrucksack", qty = 2, note = "Taschenplatz!", who = nm(19), created = now - 4000 })
     put("wants", { id = "demo-want3", itemID = 1482, name = "Shadowfang", qty = 1, note = "", who = nm(4), created = now - 40000 })
-    -- Umfragen
+    -- Polls
     put("polls", { id = "demo-poll1", q = L["Which evening for the next guild run?"], o1 = L["Wednesday"], o2 = L["Friday"], o3 = L["Sunday"], multi = false, exp = now + 2 * 86400, created = now - 3600, who = nm(1) })
     for i, pick in ipairs({ "2", "2", "1", "3", "2" }) do
         put("votes", { id = "demo-poll1@" .. nm(i), poll = "demo-poll1", who = nm(i), pick = pick })
     end
-    -- weitere Umfragen: Mehrfachauswahl (laeuft) + eine beendete mit Ergebnis
+    -- more polls: multiple choice (running) + a finished one with result
     put("polls", { id = "demo-poll2", q = L["What should the guild bank provide for the raid?"], o1 = L["Fire protection potions"], o2 = L["Flasks"],
         o3 = L["Buff food"], o4 = L["Repair money"], multi = true, exp = now + 4 * 86400, created = now - 7200, who = nm(6) })
     for i, pick in ipairs({ "1,2", "1", "1,3", "2,4", "1,4", "3", "1,2,3" }) do
@@ -446,18 +446,18 @@ local function seedStore()
     for i, pick in ipairs({ "1", "1", "2", "1", "1", "2", "1", "1", "2", "1", "1" }) do
         put("votes", { id = "demo-poll3@" .. nm(i), poll = "demo-poll3", who = nm(i), pick = pick })
     end
-    -- Beute
+    -- Loot
     put("loot", { id = "demo-loot1", item = ITEMS.smite, who = nm(1), src = "Die Todesminen", zone = "Die Todesminen", mapID = 0, ts = now - 2400, quality = 3 })
     put("loot", { id = "demo-loot2", item = ITEMS.crescent, who = nm(3), src = "Die Hoehlen des Wehklagens", zone = "Die Hoehlen des Wehklagens", mapID = 0, ts = now - 11000, quality = 3 })
     put("loot", { id = "demo-loot3", item = ITEMS.shadowfang, who = nm(6), src = "Burg Schattenfang", zone = "Burg Schattenfang", mapID = 0, ts = now - 60000, quality = 3 })
-    -- Raid-Vergaben der letzten Abende (Beute-Log / Meine Beute)
+    -- Raid awards of the last evenings (loot log / my loot)
     for k, d in ipairs({ { 16, 7, 13 }, { 4, 4, 13 }, { 12, 5, 6 }, { 14, 2, 6 }, { 9, 1, 6 }, { 10, 3, 20 } }) do
         local it = LIVE_LOOT[d[2]] and LIVE_LOOT[d[2]][2]
         if it then
             put("loot", { id = "demo-raidloot" .. k, item = it, who = nm(d[1]), src = "Vergabe", zone = "Barrow Deeps", mapID = 0, ts = now - d[3] * 86400 + k * 1200, quality = 4 })
         end
     end
-    -- Tode
+    -- Deaths
     local deaths = { { 1, 1413, 0.52, 0.31, "Brachland", "Kolkar-Pirscher", 3600 }, { 3, 1442, 0.47, 0.62, "Steinkrallengebirge", "Sturz", 7000 },
         { 3, 1413, 0.44, 0.58, "Brachland", "Rasiermaehne", 50000 }, { 8, 1411, 0.41, 0.18, "Durotar", "Brennende Klinge", 80000 },
         { 6, 1424, 0.63, 0.22, "Vorgebirge des Huegellands", "Allianz-Spieler", 120000 }, { 3, 1440, 0.26, 0.38, "Eschental", "Wildtatzenjaeger", 150000 } }
@@ -465,7 +465,7 @@ local function seedStore()
         put("deaths", { id = "demo-death" .. i, who = nm(d[1]), mapID = d[2], x = math.floor(d[3] * 10000), y = math.floor(d[4] * 10000), zone = d[5], inst = false, killer = d[6], lvl = PEOPLE[d[1]][3], ts = now - d[7] })
     end
     seedBank(now, me)
-    -- Punkte: drei Raid-Abende (Einsatz), vergebene Beute, woechentlicher Verfall
+    -- Points: three raid evenings (attendance), awarded loot, weekly decay
     local raiders = { 1, 2, 4, 6, 9, 10, 12, 14, 16, 18, 13, 3 }
     local nights = {
         { 20, "Barrow Deeps", { "Grabwächter Moradin", "Die Knochenhexe", "Varrok der Verschlinger" } },
@@ -493,11 +493,11 @@ local function seedStore()
         put("points", { id = "demo-pts-gp-" .. k, kind = "gp", who = nm(d[1]), amount = d[3], item = d[2], choice = d[4], ts = now - d[5] * 86400 + 5000, by = nm(1) })
     end
     put("points", { id = "demo-pts-adj-1", kind = "adj", who = nm(10), ep = 20, gp = 0, reason = L["Prepared flasks and buffs for everyone"], ts = now - 6 * 86400, by = nm(1) })
-    -- Gruppensuche
+    -- Group finder
     put("lfg", { id = "demo-lfg2", who = nm(9), title = "Zul'Farrak", note = "Treffpunkt Gadgetzan", layout = "thddd", m = nm(9) .. ":t," .. nm(12) .. ":d," .. nm(18) .. ":d," .. nm(16) .. ":d", tank = false, heal = true, dps = false, size = 5, count = 4, auto = true, open = true, lvl = 44, class = "WARRIOR", exp = now + 40 * 60 })
     put("lfg", { id = "demo-lfg3", who = nm(19), title = "Questen im Brachland", note = "", layout = "thddd", m = nm(19) .. ":h", tank = true, heal = false, dps = true, size = 5, count = 1, auto = true, open = true, lvl = 12, class = "SHAMAN", exp = now + 25 * 60 })
     put("lfg", { id = "demo-lfg1", who = nm(4), title = "Scharlachrotes Kloster Bibliothek", note = "", layout = "thddd", m = nm(4) .. ":d," .. nm(2) .. ":h," .. nm(13) .. ":d", tank = true, heal = false, dps = true, size = 5, count = 3, auto = false, open = true, lvl = 37, class = "MAGE", exp = now + 30 * 60 })
-    -- Todeswuerfeln
+    -- Death roll
     put("duels", { id = "demo-duel1", winner = nm(2), loser = nm(1), start = 100, stake = "10g", rolls = 7, ts = now - 20000 })
     put("duels", { id = "demo-duel2", winner = nm(2), loser = nm(3), start = 100, stake = "", rolls = 5, ts = now - 30000 })
     put("duels", { id = "demo-duel3", winner = nm(4), loser = nm(2), start = 1000, stake = "1g", rolls = 9, ts = now - 45000 })
@@ -505,7 +505,7 @@ local function seedStore()
 end
 
 ------------------------------------------------------------------------
--- Live-Simulation
+-- Live simulation
 ------------------------------------------------------------------------
 local function refreshAll()
     if ns.Radar and ns.Radar.Reload then pcall(ns.Radar.Reload) end
@@ -514,11 +514,11 @@ local function refreshAll()
     end
     if ns.UpdateMiniBar then ns.UpdateMiniBar() end
     if ns.UpdateDemoSwitch then ns.UpdateDemoSwitch() end
-    -- ohne Gilde haengen die Gildenseiten an den Beispieldaten: Navigation neu aufbauen
+    -- without a guild the guild pages depend on the sample data: rebuild the navigation
     if ns.LayoutNav then pcall(ns.LayoutNav) end
 end
 
--- Position des Spielers (damit ein paar Leute auch auf der Minimap neben dir stehen)
+-- Player position (so a few people also stand next to you on the minimap)
 local function playerPos()
     local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
     if not mapID then return end
@@ -530,7 +530,7 @@ local function playerPos()
 end
 local NEAR = { [5] = { -0.012, 0.008 }, [15] = { 0.010, -0.006 }, [19] = { 0.004, 0.014 } }
 
--- alle 4 s: Leute laufen weiter, Kartenpunkte bleiben frisch
+-- every 4 s: people keep walking, map dots stay fresh
 local function movePeople()
     if not (Demo.IsActive() and ns.Map and ns.Map.pos) then return end
     local st, t, now = state(), GetTime(), ns.now()
@@ -576,9 +576,9 @@ local function chronicle(i, kind, tk, args, extra)
     put("chronicle", rec)
 end
 
--- ein zufaelliges Ereignis wie im echten Spiel
+-- a random event like in the real game
 local EVENTS = {
-    { 30, function() -- Level-Up
+    { 30, function() -- Level up
         local i = pick(function(_, s) return s.on and s.lvl < 60 end)
         if not i then return end
         local s = state()[i]
@@ -587,14 +587,14 @@ local EVENTS = {
         if pr then pr.lvl, pr.ilvl, pr.ms = s.lvl, 20 + s.lvl, msString(s.lvl, ns.now()) end
         chronicle(i, "level", "hat Level %s erreicht", { s.lvl }, { lvl = s.lvl })
     end },
-    { 16, function() -- einloggen
+    { 16, function() -- log in
         local i = pick(function(_, s) return not s.on and s.off < 30 end)
         if not i then return end
         local s = state()[i]
         s.on, s.off = true, 0
         pcall(ns.print, "|cffffff00" .. (L["%s is now online."]):format(ns.displayName(nm(i))) .. "|r")
     end },
-    { 12, function() -- ausloggen (mindestens 10 bleiben da)
+    { 12, function() -- log out (at least 10 stay)
         if countOnline() <= 10 then return end
         local i = pick(function(i, s) return s.on and not NEAR[i] end)
         if not i then return end
@@ -602,7 +602,7 @@ local EVENTS = {
         s.on, s.off = false, 0
         pcall(ns.print, "|cffffff00" .. (L["%s is now offline."]):format(ns.displayName(nm(i))) .. "|r")
     end },
-    { 10, function() -- Gebietswechsel
+    { 10, function() -- Zone change
         local i = pick(function(i, s) return s.on and not NEAR[i] end)
         if not i then return end
         local maps = { 1411, 1413, 1440, 1441, 1442, 1443, 1444, 1445, 1446, 1434, 1437, 1417, 1418, 1424, 1454, 1456 }
@@ -610,7 +610,7 @@ local EVENTS = {
         local pr = ns.db.members[nm(i)]
         if pr then pr.gs = ({ "", "", "g2", "g3" })[math.random(4)] end
     end },
-    { 10, function() -- Beute
+    { 10, function() -- Loot
         local i = pick(function(_, s) return s.on end)
         if not i then return end
         local lvl, it = state()[i].lvl, nil
@@ -629,14 +629,14 @@ local EVENTS = {
         local pr = ns.db.members[nm(i)]
         if pr then pr.gs = "i5" end
     end },
-    { 8, function() -- Tod
+    { 8, function() -- Death
         local i = pick(function(i, s) return s.on and not NEAR[i] end)
         if not i then return end
         local s = state()[i]
         put("deaths", { id = liveId("death"), who = nm(i), mapID = s.map, x = math.floor(s.x * 10000), y = math.floor(s.y * 10000),
             zone = zoneOf(s.map), inst = false, killer = LIVE_KILLER[math.random(#LIVE_KILLER)], lvl = s.lvl, ts = ns.now() })
     end },
-    { 7, function() -- Gruppensuche
+    { 7, function() -- Group finder
         local i = pick(function(_, s) return s.on and s.lvl >= 17 end)
         if not i then return end
         local lvl, g = state()[i].lvl, nil
@@ -671,12 +671,12 @@ local function tick()
     refreshAll()
 end
 
--- bei neuen Demo-Inhalten hochzaehlen: aeltere Demos werden nach /reload ergaenzt
+-- bump on new demo content: older demos get extended after /reload
 local DEMO_VERSION = 14
 
 function Demo.Load()
-    -- 0.5.949: Beispieldaten gibt es wieder fuer alle (zum Ausprobieren und Einrichten). Sie starten nie von selbst,
-    -- nur ueber /oa demo, den Schalter in den Einstellungen oder "Beispiel ansehen" - und bleiben auf diesem PC.
+    -- 0.5.949: sample data is available for everyone again (to try out and set up). It never starts by itself,
+    -- only via /oa demo, the toggle in the settings or "Beispiel ansehen" - and stays on this PC.
     ns.db.demo = true
     ns.db.demoVersion = DEMO_VERSION
     ns.db.demoPeople = nil
@@ -688,7 +688,7 @@ function Demo.Load()
     movePeople()
     nextEvent = GetTime() + 8
     refreshAll()
-    if ns.Admin and ns.Admin.ApplyBrand then pcall(ns.Admin.ApplyBrand, true) end   -- Logo: langer Demo-Gildenname
+    if ns.Admin and ns.Admin.ApplyBrand then pcall(ns.Admin.ApplyBrand, true) end   -- Logo: long demo guild name
     if not Demo.quiet then ns.print(L["Demo data loaded (only on your client, never sent to the guild). Remove: /oa demo off"]) end
 end
 
@@ -714,15 +714,15 @@ function Demo.Remove()
     if ns.Map and ns.Map.pos then for name, p in pairs(ns.Map.pos) do if p.demo then ns.Map.pos[name] = nil end end end
     for _, d in ipairs(Demo.SEEDS) do if d.clean then pcall(d.clean) end end
     refreshAll()
-    -- ohne Gilde: die offene Gildenseite gibt es jetzt nicht mehr
+    -- without a guild: the open guild page no longer exists now
     if ns.MainShown and ns.MainShown() and ns.GuildOnly and ns.CurrentPage and ns.GuildOnly(ns.CurrentPage() or "") then
         pcall(ns.ShowPage, "home")
     end
-    if ns.Admin and ns.Admin.ApplyBrand then pcall(ns.Admin.ApplyBrand, true) end   -- Logo wieder mit dem echten Namen
+    if ns.Admin and ns.Admin.ApplyBrand then pcall(ns.Admin.ApplyBrand, true) end   -- Logo with the real name again
     if not Demo.quiet then ns.print((L["Demo data removed (%d entries)."]):format(n)) end
 end
 
--- Sprache gewechselt, waehrend die Beispieldaten laufen: in der neuen Sprache neu anlegen
+-- Language changed while the sample data is running: recreate in the new language
 function Demo.Relang()
     if not Demo.IsActive() then return end
     Demo.quiet = true
@@ -737,12 +737,12 @@ ns.slash.demo = function(arg)
 end
 
 ns.Every(4, tick)
--- nach /reload: Demo laeuft weiter, Leute stehen gleich wieder auf der Karte
+-- after /reload: demo keeps running, people are right back on the map
 ns.Listen("LOGIN", function()
     if not Demo.IsActive() then return end
     ns.After(2, function()
         pcall(seedMembers)
-        -- Demo aus einer aelteren Oasis-Version: neue Bereiche (Bank, Rezepte ...) nachtragen
+        -- Demo from an older Oasis version: add new sections (bank, recipes ...)
         if (ns.db.demoVersion or 0) < DEMO_VERSION then
             ns.demoLoading = true
             local ok, err = pcall(seedStore)

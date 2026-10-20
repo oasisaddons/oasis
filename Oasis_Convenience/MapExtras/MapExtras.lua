@@ -1,9 +1,9 @@
--- Oasis - Karten-Extras (0.5.936): Marker und Notizen, Laufspuren, Gefahrenzonen, Dungeon-Eingaenge,
--- Questgeber der Dungeon-Quests, Koordinaten und Zielpfeil an der Minimap, besuchte Haendler/Briefkaesten/Flugpunkte.
--- Haengt sich wie GatherMap an Map.UpdateWorldPins; Minimap-Rechnung kommt aus GatherMap (GM.MiniCtx / GM.MiniPlace).
--- Alles einzeln abschaltbar: Einstellungen > Bereiche > Karte.
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_MapExtras", function()   -- Modul Karten-Extras (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis - Map extras (0.5.936): markers and notes, trails, danger zones, dungeon entrances,
+-- quest givers of dungeon quests, coordinates and target arrow on the minimap, visited vendors/mailboxes/flight points.
+-- Hooks onto Map.UpdateWorldPins like GatherMap; minimap math comes from GatherMap (GM.MiniCtx / GM.MiniPlace).
+-- everything can be disabled separately: Settings > Areas > Map.
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_MapExtras", function()   -- module map extras (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -12,7 +12,7 @@ ns.MapExtras = X
 
 local function S() return ns.db.settings end
 local function on(key) return S()[key] ~= false end     -- Standard an
-local function opt(key) return S()[key] == true end     -- Standard aus
+local function opt(key) return S()[key] == true end     -- off by default
 local function clean(s, max)
     s = tostring(s or ""):gsub("[%c|]", " ")
     max = max or 120
@@ -26,7 +26,7 @@ end
 X.clean = clean
 
 ------------------------------------------------------------------------
--- Helfer: Vorrat an Symbolen je Ebene, Weltkarten-Zustand, Umrechnung zwischen Karten
+-- helpers: pool of icons per layer, world map state, conversion between maps
 ------------------------------------------------------------------------
 local pools = {}
 local function hideAll(name)
@@ -60,7 +60,7 @@ local function put(w, p, x, y, level)
     p:SetFrameLevel(w.canvas:GetFrameLevel() + level)
     p:Show()
 end
--- Punkt von Karte src auf Karte dst; nil, wenn er dort nicht liegt
+-- point from map src on map dst; nil if it is not on it
 local function tr(src, x, y, dst)
     if src == dst then return x, y end
     local T = ns.Map and ns.Map.translate
@@ -70,7 +70,7 @@ local function tr(src, x, y, dst)
 end
 X.tr = tr
 
--- rundes Symbol: dunkle Scheibe, Bild, Ring, Beschriftung darunter
+-- round icon: dark disc, image, ring, label below
 local function iconPin(parent)
     local p = CreateFrame("Button", nil, parent)
     p:SetSize(20, 20)
@@ -103,7 +103,7 @@ local function guideTo(map, x, y, label)
 end
 
 ------------------------------------------------------------------------
--- Marker und Notizen. Gilden-Marker liegen in der Sammlung "markers" (laufen ab), eigene Notizen nur lokal.
+-- Markers and notes. Guild markers live in the collection "markers" (they expire), own notes local only.
 ------------------------------------------------------------------------
 X.KINDS = {
     meet = { name = "Meeting point", icon = ns.MEDIA .. "icons\\groups", tint = true, color = { 0.4, 0.86, 0.62 }, ttl = 3600 },
@@ -125,7 +125,7 @@ function X.AddMarker(kind, map, x, y, text, private)
     local k = X.KINDS[kind]
     if not (k and map and x and y) then return nil end
     local now = ns.now()
-    markerSeq = markerSeq + 1   -- zwei Marker in derselben Sekunde duerfen sich nicht ueberschreiben
+    markerSeq = markerSeq + 1   -- two markers in the same second must not overwrite each other
     local rec = { id = "mk-" .. ns.short(ns.me()) .. "-" .. now .. "-" .. markerSeq, kind = kind, text = clean(text), map = map,
         x = math.floor(x * 10000) / 10000, y = math.floor(y * 10000) / 10000, by = ns.me(), ts = now }
     if private then
@@ -172,7 +172,7 @@ local function markerMenu(self)
     K.ShowMenu(self, items, markerLabel(m))
 end
 
--- Setzen: Art waehlen (Leiste unter der Karte), dann auf die Karte klicken
+-- placing: choose kind (bar below the map), then click on the map
 StaticPopupDialogs["OASIS_MAP_NOTE"] = {
     text = "%s", button1 = OKAY or "OK", button2 = CANCEL, hasEditBox = true, editBoxWidth = 320, maxLetters = 100,
     timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
@@ -264,7 +264,7 @@ local function drawMarkers(w)
 end
 
 ------------------------------------------------------------------------
--- Laufspuren: der Weg der letzten 5 Minuten je Mitglied (nur lokal mitgeschrieben, aus den geteilten Positionen)
+-- Trails: the path of the last 5 minutes per member (recorded locally only, from the shared positions)
 ------------------------------------------------------------------------
 local TRAIL_SEC, TRAIL_STEP = 300, 0.002
 local trails = {}
@@ -293,7 +293,7 @@ function X.SampleTrails(now)
         trailAdd("\1me", c.map, c.mx, c.my, class, now)
         -- 0.6.486: eigene Route aufnehmen (gespeichert in ns.db.routes)
         local rec = X.rec
-        if rec and not (UnitOnTaxi and UnitOnTaxi("player")) then   -- 0.6.520: Flugstrecken nicht aufnehmen
+        if rec and not (UnitOnTaxi and UnitOnTaxi("player")) then   -- 0.6.520: do not record flight paths
             local last = rec.pts[#rec.pts]
             if not last or last.map ~= c.map or math.abs(last.x - c.mx) + math.abs(last.y - c.my) > TRAIL_STEP then
                 rec.pts[#rec.pts + 1] = { map = c.map, x = c.mx, y = c.my, t = time() }
@@ -308,7 +308,7 @@ function X.SampleTrails(now)
 end
 function X.Trails() return trails end
 local tFrame, tLines, tUsed = nil, {}, 0
-local gLines, gUsed, endGlow = {}, 0, nil   -- 0.6.498: Leuchten unter den Routen + Schein am aktuellen Ende
+local gLines, gUsed, endGlow = {}, 0, nil   -- 0.6.498: glow under the routes + shine at the current end
 local function drawTrails(w)
     for i = 1, tUsed do tLines[i]:Hide() end
     tUsed = 0
@@ -318,21 +318,21 @@ local function drawTrails(w)
     local routes = {}
     for _, r in ipairs(ns.db and ns.db.routes or {}) do if r.show then routes[#routes + 1] = r end end
     local recOn = X.rec and X.recShow ~= false and not S().routesOff
-    if S().routesOff then for k = #routes, 1, -1 do routes[k] = nil end end   -- 0.6.502: Linien aus
+    if S().routesOff then for k = #routes, 1, -1 do routes[k] = nil end end   -- 0.6.502: lines off
     if not opt("mapTrails") and not opt("mapTrailsGuild") and #routes == 0 and not recOn and not S().routesOff then return end
     if not tFrame then tFrame = CreateFrame("Frame", nil, w.canvas) end
     if tFrame:GetParent() ~= w.canvas then tFrame:SetParent(w.canvas) end
     tFrame:SetAllPoints(w.canvas)
     tFrame:SetFrameStrata(w.canvas:GetFrameStrata())
-    tFrame:SetFrameLevel(math.min(8800, w.canvas:GetFrameLevel() + 2300))   -- 0.6.482: ueber den Kartenschichten (bei +53 verdeckt, Spur wirkte abgebrochen)
-    -- 0.6.470: Spur endet immer an der aktuellen Position (vorher hoerte sie beim letzten Messpunkt auf)
+    tFrame:SetFrameLevel(math.min(8800, w.canvas:GetFrameLevel() + 2300))   -- 0.6.482: above the map layers (covered at +53, trail looked broken)
+    -- 0.6.470: trail always ends at the current position (previously it stopped at the last sample)
     local live = {}
     for name, p in pairs(ns.Map and ns.Map.pos or {}) do if p.mapID and p.x and p.y then live[name] = { map = p.mapID, x = p.x, y = p.y } end end
     local G = ns.Gather
     local c = G and G.MiniCtx and G.MiniCtx()
     if c then live["\1me"] = { map = c.map, x = c.mx, y = c.my } end
-    -- 0.6.486: gespeicherte Routen (gold) und die laufende Aufnahme (rot)
-    -- 0.6.495: Deckkraft laeuft von a0 (Anfang) nach a1 (Ende) - alte Routen schwach, zum aktuellen Ende hin kraeftiger
+    -- 0.6.486: saved routes (gold) and the running recording (red)
+    -- 0.6.495: opacity runs from a0 (start) to a1 (end) - old routes faint, stronger toward the current end
     local function drawPts(pts, cr, cg, cb, a0, a1, glow)
         a1 = a1 or a0
         local px, py
@@ -349,7 +349,7 @@ local function drawTrails(w)
                 l:SetStartPoint("TOPLEFT", tFrame, px * w.cw, -py * w.ch)
                 l:SetEndPoint("TOPLEFT", tFrame, x * w.cw, -y * w.ch)
                 l:Show()
-                -- weiches Leuchten darunter (additiv), zum Ende hin staerker
+                -- soft glow below (additive), stronger toward the end
                 if glow and glow > 0 then
                     gUsed = gUsed + 1
                     local gl = gLines[gUsed]
@@ -365,14 +365,14 @@ local function drawTrails(w)
             end
             px, py = x, y
         end
-        -- Schein am letzten Punkt (aktuelles Ende)
+        -- glow at the last point (current end)
         if glow ~= nil and px then
             if not endGlow then
                 endGlow = tFrame:CreateTexture(nil, "OVERLAY")
                 endGlow:SetTexture(ns.MEDIA .. "softglow")
                 endGlow:SetBlendMode("ADD")
             end
-            local sz = math.max(12, 18 * w.cs)   -- 0.6.499: kleiner, dezenter Punkt
+            local sz = math.max(12, 18 * w.cs)   -- 0.6.499: smaller, subtle dot
             endGlow:SetSize(sz, sz)
             endGlow:ClearAllPoints()
             endGlow:SetPoint("CENTER", tFrame, "TOPLEFT", px * w.cw, -py * w.ch)
@@ -380,18 +380,18 @@ local function drawTrails(w)
             endGlow:Show()
         end
     end
-    -- 0.6.494: Routen und Aufnahme in der eigenen Klassenfarbe (wie die Laufspur)
+    -- 0.6.494: routes and recording in your own class color (like the trail)
     local _, myClass = UnitClass("player")
     local mr, mg, mb = 1, 1, 1
     if myClass and ns.classColor then mr, mg, mb = ns.classColor(myClass) end
     mr, mg, mb = mr or 1, mg or 1, mb or 1
-    -- vergangene Routen schwach (aelteste am schwaechsten), aktuelle Aufnahme kraeftig und zum Ende hin voll
+    -- past routes faint (oldest faintest), current recording strong and full toward the end
     for k, r in ipairs(routes) do
         local fade = math.max(0.35, 1 - (k - 1) * 0.15)
-        drawPts(r.pts or {}, mr, mg, mb, 0.18 * fade, 0.6 * fade)   -- 0.6.497: etwas kraeftiger
+        drawPts(r.pts or {}, mr, mg, mb, 0.18 * fade, 0.6 * fade)   -- 0.6.497: a bit stronger
     end
-    -- 0.6.520: laufende Aufnahme nur so lang wie eingestellt (Standard 10 Min.), aeltere Punkte verschwinden;
-    -- hoechstens 600 Linien (Karte ruckelte mit tausenden Strichen)
+    -- 0.6.520: running recording only as long as configured (default 10 min), older points disappear;
+    -- at most 600 lines (map stuttered with thousands of strokes)
     if recOn then
         local mins = S().trailMinutes or 10
         local all, pts = X.rec.pts, {}
@@ -404,14 +404,14 @@ local function drawTrails(w)
             pts = thin
         end
         drawPts(pts, mr, mg, mb, 0.1, 1)
-    end   -- 0.6.500: ohne Schein am Ende (lag auf dem Spielerpfeil)   -- 0.6.499: kein breites Leuchten mehr (wirkte unruhig)
-    -- 0.6.504: Linien aus = nur noch ein kurzer, verblassender Schweif hinter dir (letzte 60 s)
+    end   -- 0.6.500: no shine at the end (sat on the player arrow)   -- 0.6.499: no wide glow anymore (looked restless)
+    -- 0.6.504: lines off = only a short fading tail behind you (last 60 s)
     local tail = S().routesOff
     if not tail and not opt("mapTrails") and not opt("mapTrailsGuild") then return end
     local nowT = GetTime()
     for name, t in pairs(trails) do
-        -- 0.6.495: Linien anderer Spieler nur mit eigenem Schalter (Standard aus)
-        -- 0.6.523: eigene Spur nur mit "Eigene Laufspur", Gildenmitglieder unabhaengig davon mit eigenem Schalter
+        -- 0.6.495: other players' lines only with their own toggle (off by default)
+        -- 0.6.523: own trail only with "Own trail", guild members independently with their own toggle
         if (name == "\1me" and (tail or opt("mapTrails"))) or (name ~= "\1me" and not tail and opt("mapTrailsGuild")) then
         local r, g, b = 1, 1, 1
         if t.class and ns.classColor then r, g, b = ns.classColor(t.class) end
@@ -421,7 +421,7 @@ local function drawTrails(w)
         local n, px, py = #pts, nil, nil
         for i, pt in ipairs(pts) do
             local x, y = tr(pt.map, pt.x, pt.y, w.map)
-            if x and px and math.abs(x - px) + math.abs(y - py) < 0.35 then   -- Spruenge (Portal, Ruhestein) nicht verbinden
+            if x and px and math.abs(x - px) + math.abs(y - py) < 0.35 then   -- do not connect jumps (portal, hearthstone)
                 tUsed = tUsed + 1
                 local l = tLines[tUsed]
                 if not l then l = tFrame:CreateLine(nil, "ARTWORK") tLines[tUsed] = l end
@@ -438,7 +438,7 @@ local function drawTrails(w)
 end
 
 ------------------------------------------------------------------------
--- Gefahrenzonen: roter Schimmer, wo in den letzten 7 Tagen mindestens drei aus der Gilde gestorben sind
+-- Danger zones: red shimmer where at least three guild members died in the last 7 days
 ------------------------------------------------------------------------
 local DANGER_CELL, DANGER_MIN, DANGER_DAYS = 0.05, 3, 7
 function X.DangerZones(deaths, mapID, now)
@@ -462,11 +462,11 @@ end
 local function drawDanger(w)
     hideAll("dz")
     if not opt("mapDanger") or not (ns.Deaths and ns.Deaths.MapPins) then return end
-    -- 0.5.967: nur auf Gebietskarten. Auf Kontinent- und Weltkarte wurde der Schimmer riesig und faerbte ganze Landstriche rot.
+    -- 0.5.967: zone maps only. On continent and world maps the shimmer got huge and colored whole regions red.
     local info = C_Map and C_Map.GetMapInfo and w.map and C_Map.GetMapInfo(w.map)
     local mt = info and ns.safe(info.mapType)
     if type(mt) == "number" and mt < ((Enum and Enum.UIMapType and Enum.UIMapType.Zone) or 3) then return end
-    for _, z in ipairs(ns.Deaths and X.DangerZones(ns.Deaths.MapPins(), w.map, ns.now()) or {}) do   -- Tode-Modul kann aus sein
+    for _, z in ipairs(ns.Deaths and X.DangerZones(ns.Deaths.MapPins(), w.map, ns.now()) or {}) do   -- deaths module may be off
         local f = take("dz", w.canvas, function(parent)
             local fr = CreateFrame("Frame", nil, parent)
             fr.tex = fr:CreateTexture(nil, "BACKGROUND")
@@ -488,7 +488,7 @@ local function drawDanger(w)
 end
 
 ------------------------------------------------------------------------
--- Dungeon-Eingaenge: Levelspanne und wie viele aus der Gilde im Levelbereich sind (aus der Gildenliste)
+-- Dungeon entrances: level range and how many guild members are in range (from the guild roster)
 ------------------------------------------------------------------------
 local rosterAt, roster = -999, {}
 local function guildLevels()
@@ -530,7 +530,7 @@ local function drawDungeons(w)
 end
 
 ------------------------------------------------------------------------
--- Questgeber der Dungeon-Quests in der offenen Welt (aus QuestLocations; Bosse zeigt schon der Dungeon-Atlas)
+-- quest givers of dungeon quests in the open world (from QuestLocations; bosses are already shown by the dungeon atlas)
 ------------------------------------------------------------------------
 local giverIdx
 function X.QuestGivers(map)
@@ -591,7 +591,7 @@ local function drawGivers(w)
 end
 
 ------------------------------------------------------------------------
--- Weltkarte: alles zeichnen
+-- world map: draw everything
 ------------------------------------------------------------------------
 function X.DrawWorld()
     local w = world()
@@ -609,7 +609,7 @@ function X.DrawWorld()
 end
 
 ------------------------------------------------------------------------
--- Minimap: Marker in der Naehe, Koordinaten, Pfeil mit Entfernung zum Ziel
+-- minimap: nearby markers, coordinates, arrow with distance to the target
 ------------------------------------------------------------------------
 local mkList, mkAt, mkMap = {}, -999, nil
 local coordF, tArrow
@@ -622,7 +622,7 @@ function X.DrawMini()
         if tArrow then tArrow:Hide() end
         return
     end
-    -- Marker (Liste alle 2 s neu, Umrechnung auf die eigene Karte gemerkt)
+    -- markers (list rebuilt every 2 s, conversion to your own map cached)
     if on("mapMarkers") then
         local t = GetTime()
         if t - mkAt > 2 or mkMap ~= c.map then
@@ -647,7 +647,7 @@ function X.DrawMini()
             end
         end
     end
-    -- Ziel: Entfernung und Pfeil am Rand
+    -- target: distance and arrow at the edge
     local tg = ns.Map and ns.Map.FollowTarget and ns.Map.FollowTarget()
     local dist
     if tg and tg.mapID and tg.x and ns.Map.translate then
@@ -691,7 +691,7 @@ function X.DrawMini()
     elseif tArrow then
         tArrow:Hide()
     end
-    -- Koordinaten unter der Minimap
+    -- coordinates below the minimap
     if opt("mmCoords") then
         if not coordF then
             coordF = CreateFrame("Frame", nil, Minimap)
@@ -702,7 +702,7 @@ function X.DrawMini()
             coordF.t:SetShadowOffset(1, -1)
         end
         coordF.t:SetText(("%.1f, %.1f"):format(c.mx * 100, c.my * 100)
-            .. (dist and ("   |cffe8b44a" .. math.floor(dist + 0.5) .. " m|r") or ""))   -- gelb = Entfernung zum Ziel (ohne Wort: "Ziel" heisst in vielen Sprachen auch Angriffsziel)
+            .. (dist and ("   |cffe8b44a" .. math.floor(dist + 0.5) .. " m|r") or ""))   -- yellow = distance to target (no word: "target" also means attack target in many languages)
         coordF:Show()
     elseif coordF then
         coordF:Hide()
@@ -715,8 +715,8 @@ function X.Redraw()
     pcall(X.DrawMini)
 end
 
--- 0.6.379: Schnellschalter an der Weltkarte (oben rechts): Dungeon-Eingaenge ein/aus - derselbe Schalter wie in
--- Einstellungen > Tooltips & Karte > Karte. Eigener Knopf als Kind der Karte, an Blizzards Rahmen wird nichts geschrieben.
+-- 0.6.379: quick toggle on the world map (top right): dungeon entrances on/off - the same toggle as in
+-- Settings > Tooltips & Map > Map. Own button as child of the map, nothing is written on Blizzard's frame.
 local dgBtn
 local function dgBtnPaint()
     if not dgBtn then return end
@@ -750,7 +750,7 @@ end
 ns.Listen("LOGIN", function() pcall(makeDgBtn) end)
 if WorldMapFrame then WorldMapFrame:HookScript("OnShow", function() pcall(makeDgBtn) dgBtnPaint() end) end
 
--- 0.6.486: eigene Routen - Klick: Aufnahme starten/stoppen und speichern, Rechtsklick: gespeicherte zeigen/loeschen
+-- 0.6.486: own routes - click: start/stop recording and save, right-click: show/delete saved ones
 local rtBtn
 local function rtPaint()
     if not rtBtn then return end
@@ -769,7 +769,7 @@ local function rtPaint()
     end
     rtBtn.recDot:SetShown(X.rec ~= nil)
 end
--- 0.6.490: laufende Aufnahme speichern (auto = beim Ausloggen, ohne Hinweis und standardmaessig nicht eingeblendet)
+-- 0.6.490: save running recording (auto = on logout, without notice and hidden by default)
 function X.SaveRecord(auto)
     local rec = X.rec
     X.rec = nil
@@ -786,8 +786,8 @@ end
 function X.ToggleRecord()
     if X.rec then
         X.SaveRecord(false)
-        -- automatische Aufnahme: gleich die naechste Route beginnen
-        X.rec = { pts = {} }   -- 0.6.502: immer gleich weiter aufnehmen
+        -- automatic recording: start the next route right away
+        X.rec = { pts = {} }   -- 0.6.502: always keep recording right away
     else
         X.rec = { pts = {} }
         pcall(X.SampleTrails)
@@ -809,12 +809,12 @@ local function makeRtBtn()
     rtBtn.icon = K.Glyph(rtBtn, 16, ns.MEDIA .. "icons\\map", C.text)
     rtBtn.icon:SetPoint("CENTER")
     rtBtn:SetScript("OnClick", function(self, btn)
-        -- 0.6.493: Linksklick = alle Routen zeigen / alle ausblenden; Aufnahme steht im Rechtsklick-Menue
+        -- 0.6.493: left-click = show all routes / hide all; recording is in the right-click menu
         local list = ns.db.routes or {}
-        -- 0.6.501: Linksklick schaltet Routen komplett aus (ausblenden + Aufnahme beenden, laufende wird gespeichert)
-        -- bzw. wieder an (alle zeigen + Aufnahme starten); Zustand bleibt ueber /reload
+        -- 0.6.501: left-click turns routes off completely (hide + stop recording, the running one gets saved)
+        -- or back on (show all + start recording); state persists across /reload
         if btn ~= "RightButton" then
-            -- 0.6.502: Aufnahme laeuft immer - der Klick blendet nur die Linien ein oder aus
+            -- 0.6.502: recording always runs - the click only shows or hides the lines
             S().routesOff = (not S().routesOff) or nil
             if not S().routesOff then
                 for _, r in ipairs(list) do r.show = true end
@@ -855,8 +855,8 @@ local function makeRtBtn()
 end
 ns.Listen("LOGIN", function()
     ns.After(1, function() pcall(makeRtBtn) end)
-    -- 0.6.490: Routen werden standardmaessig automatisch aufgenommen und beim Ausloggen gespeichert
-    -- 0.6.491: laufende Aufnahme ueberlebt /reload und kurzes Ausloggen (unter 30 Min.) - sonst wird sie als Route abgelegt
+    -- 0.6.490: routes are recorded automatically by default and saved on logout
+    -- 0.6.491: running recording survives /reload and short logouts (under 30 min) - otherwise it is stored as a route
     local cur = ns.db.curRoute
     ns.db.curRoute = nil
     if cur and cur.pts and #cur.pts > 0 then
@@ -867,7 +867,7 @@ ns.Listen("LOGIN", function()
             pcall(X.SaveRecord, true)
         end
     end
-    if not X.rec then X.rec = { pts = {} } end   -- 0.6.502: Aufnahme immer aktiv
+    if not X.rec then X.rec = { pts = {} } end   -- 0.6.502: recording always active
 end)
 ns.On("PLAYER_LOGOUT", function()
     if X.rec and #X.rec.pts > 0 then ns.db.curRoute = { pts = X.rec.pts, t = time() } end
@@ -875,7 +875,7 @@ end)
 if WorldMapFrame then WorldMapFrame:HookScript("OnShow", function() pcall(makeRtBtn) rtPaint() end) end
 
 ------------------------------------------------------------------------
--- Besuchte Haendler, Reparatur, Briefkaesten, Flugpunkte -> Sammelkarte (Arten mit poi = true)
+-- Visited vendors, repair, mailboxes, flight points -> gathering map (kinds with poi = true)
 ------------------------------------------------------------------------
 local function npcName()
     local n = UnitName and UnitName("npc")
@@ -890,10 +890,10 @@ ns.On("MAIL_SHOW", function() visit("mail", "") end)
 ns.On("TAXIMAP_OPENED", function() visit("flight", npcName()) end)
 
 ------------------------------------------------------------------------
--- Anbindung
+-- wiring
 ------------------------------------------------------------------------
 ns.Listen("LOGIN", function()
-    -- 0.5.984: Gefahrenzonen sind standardmaessig aus (einmalig auch fuer alle, die sie schon an hatten)
+    -- 0.5.984: danger zones are off by default (once also for everyone who already had them on)
     if not S().dangerOffV1 then S().dangerOffV1 = true S().mapDanger = false end
     if ns.Map and ns.Map.UpdateWorldPins then hooksecurefunc(ns.Map, "UpdateWorldPins", function() pcall(X.DrawWorld) end) end
     if WorldMapFrame then WorldMapFrame:HookScript("OnHide", function() X.StopPlacing() end) end
@@ -904,13 +904,13 @@ ns.Listen("LOGIN", function()
             acc = 0
             pcall(X.DrawMini)
         end
-        -- 0.6.505: bei offener Weltkarte jede Sekunde messen und zeichnen (Schweif folgt sofort), sonst alle 4 s
+        -- 0.6.505: with the world map open measure and draw every second (tail follows immediately), otherwise every 4 s
         local wm = WorldMapFrame and WorldMapFrame:IsShown()
         if tacc >= (wm and 1 or 4) then
             tacc = 0
             local w = world()
             pcall(X.SampleTrails)
-            if w then pcall(drawTrails, w) end   -- 0.6.490: auch fuer Routen (drawTrails prueft selbst)
+            if w then pcall(drawTrails, w) end   -- 0.6.490: also for routes (drawTrails checks itself)
         end
     end)
 end)
@@ -929,14 +929,14 @@ ns.Listen("STORE", function(coll, rec, old)
 end)
 
 ------------------------------------------------------------------------
--- Layer-Wechsler (0.5.937). Ein Addon kann den Layer nicht selbst wechseln - das geht nur ueber eine Gruppe:
--- wer eingeladen wird, landet auf dem Layer des Einladenden. Oasis zeigt, wer aus der Gilde im selben Gebiet auf
--- einem anderen Layer ist, und bittet per Klick um eine Einladung. Der andere bekommt einen Hinweis und laedt per
--- Klick ein - nie automatisch.
+-- Layer switcher (0.5.937). An addon cannot switch layers itself - that only works via a group:
+-- whoever gets invited lands on the inviter's layer. Oasis shows who from the guild in the same zone is on
+-- another layer, and asks for an invite with one click. The other gets a notice and invites with a
+-- click - never automatically.
 ------------------------------------------------------------------------
 local Comm = ns.Comm
 local askAt, askedBy = {}, {}
--- Mitglieder im eigenen Gebiet mit bekanntem Layer: { name, layer, same }
+-- members in your own zone with known layer: { name, layer, same }
 function X.LayerList()
     local M = ns.Map
     local out = {}
@@ -987,7 +987,7 @@ if Comm and Comm.On then
         if type(sender) ~= "string" or S().layerAsk == false or ns.isMe(sender) then return end
         if Comm.FromGuild and not Comm.FromGuild(sender) then return end
         local now = GetTime()
-        if askedBy[sender] and now - askedBy[sender] < 30 then return end   -- hoechstens ein Hinweis je Absender in 30 s
+        if askedBy[sender] and now - askedBy[sender] < 30 then return end   -- at most one notice per sender in 30 s
         askedBy[sender] = now
         K.Toast(L["Layer switch"], (L["%s wants to join your layer. Click to invite to the group."]):format(ns.displayName(sender)), C.accent, function()
             if C_PartyInfo and C_PartyInfo.InviteUnit then pcall(C_PartyInfo.InviteUnit, ns.ChatName and ns.ChatName(sender) or sender) end

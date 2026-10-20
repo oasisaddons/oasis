@@ -1,5 +1,5 @@
--- Oasis: /oa scan - prueft im laufenden Client, welche Blizzard-Daten wirklich lesbar sind,
--- und speichert das Ergebnis in OasisDB.scan (nach /reload auswertbar)
+-- Oasis: /oa scan - checks in the running client which Blizzard data is really readable,
+-- and stores the result in OasisDB.scan (evaluable after /reload)
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -7,7 +7,7 @@ local K, C = ns.K, ns.K.C
 local Scan = {}
 ns.Scan = Scan
 
--- Wert beschreiben: Typ, geheim?, bei Tabellen die Schluessel
+-- Describe a value: type, secret?, keys for tables
 local function describe(v, depth)
     depth = depth or 0
     if issecretvalue and issecretvalue(v) then return "<secret>" end
@@ -39,7 +39,7 @@ local function try(out, key, fn, ...)
 end
 
 ------------------------------------------------------------------------
--- Kampfdaten aus Blizzards Schadensmesser (nach dem Kampf)
+-- Combat data from Blizzard's damage meter (after combat)
 ------------------------------------------------------------------------
 local function sessionTypes()
     local T = Enum and Enum.DamageMeterSessionType
@@ -80,7 +80,7 @@ function Scan.FightInfo()
 end
 
 ------------------------------------------------------------------------
--- Der Scan
+-- The scan
 ------------------------------------------------------------------------
 function Scan.Run()
     local out = {}
@@ -88,13 +88,13 @@ function Scan.Run()
     out.build = ("%s (%s) interface %s, Sprache %s"):format(tostring(v), tostring(build), tostring(iface), tostring(GetLocale()))
     out.time = date("%Y-%m-%d %H:%M")
 
-    -- Spielregeln
+    -- Game rules
     if C_GameRules then
         try(out, "rules.gameMode", C_GameRules.GetActiveGameMode)
         try(out, "rules.hardcore", C_GameRules.IsHardcoreActive)
         try(out, "rules.selfFound", C_GameRules.IsSelfFoundAllowed)
     end
-    -- Gilde
+    -- Guild
     try(out, "guild.info", GetGuildInfo, "player")
     try(out, "guild.motd", function() return C_GuildInfo.GetMOTD() end)
     try(out, "guild.infoText", function() return (C_GuildInfo.GetInfoText() or ""):sub(1, 60) end)
@@ -107,13 +107,13 @@ function Scan.Run()
     try(out, "guild.tradeskill2", GetGuildTradeSkillInfo, 2)
     try(out, "guild.challenges", GetNumGuildChallenges)
     try(out, "guild.isOfficer", C_GuildInfo.IsGuildOfficer)
-    -- Gildenbank
+    -- Guild bank
     try(out, "bank.enabled", function() return C_GuildBank and C_GuildBank.IsGuildBankEnabled and C_GuildBank.IsGuildBankEnabled() end)
     try(out, "bank.tabs", GetNumGuildBankTabs)
     try(out, "bank.tab1", GetGuildBankTabInfo, 1)
     try(out, "bank.money", GetGuildBankMoney)
     try(out, "bank.interactionType", function() return Enum and Enum.PlayerInteractionType and Enum.PlayerInteractionType.GuildBanker end)
-    -- Kalender
+    -- Calendar
     try(out, "calendar.canEditGuild", CanEditGuildEvent)
     try(out, "calendar.guildEvents", function() return C_Calendar.GetNumGuildEvents() end)
     try(out, "calendar.guildEvent1", function() return C_Calendar.GetGuildEventInfo(1) end)
@@ -122,7 +122,7 @@ function Scan.Run()
         local i = C_PerksActivities.GetPerksActivitiesInfo()
         return i and i.activities and #i.activities, i and i.activities and i.activities[1]
     end)
-    -- Beute-Verlauf, Schadensmesser, Tod
+    -- Loot history, damage meter, death
     try(out, "loot.encounters", function() return C_LootHistory.GetAllEncounterInfos() end)
     try(out, "loot.drops1", function()
         local e = C_LootHistory.GetAllEncounterInfos()
@@ -133,12 +133,12 @@ function Scan.Run()
     try(out, "damage.sessions", function() return C_DamageMeter.GetAvailableCombatSessions() end)
     try(out, "damage.fightInfo", Scan.FightInfo)
     try(out, "death.corpse", function() return C_DeathInfo.GetCorpseMapPosition(C_Map.GetBestMapForUnit("player") or 0) end)
-    -- Welt
+    -- World
     try(out, "world.vignettes", function() local v2 = C_VignetteInfo.GetVignettes() return v2 and #v2, v2 and v2[1] and C_VignetteInfo.GetVignetteInfo(v2[1]) end)
     try(out, "world.weather", function() return C_Weather.GetCurrentWeather() end)
     try(out, "world.newcomer", function() return C_PlayerMentorship.IsActivePlayerConsideredNewcomer() end)
     try(out, "world.recentAllies", function() return C_RecentAllies.IsSystemEnabled() end)
-    -- Oasis-Zustand
+    -- Oasis state
     out["oasis.version"] = ns.version
     out["oasis.members"] = (function() local n = 0 for _ in pairs(ns.db.members) do n = n + 1 end return n end)()
     out["oasis.restricted"] = tostring(ns.Comm.restricted())
@@ -151,4 +151,4 @@ function Scan.Run()
     end
     ns.print((L["Scan done: %d checks, %d errors. Now /reload to save the results."]):format(n, bad))
 end
-ns.slash.scan = function(...) if ns.IsDev and ns.IsDev() then return Scan.Run(...) end end   -- 0.6.524: nur Entwicklermodus
+ns.slash.scan = function(...) if ns.IsDev and ns.IsDev() then return Scan.Run(...) end end   -- 0.6.524: developer mode only

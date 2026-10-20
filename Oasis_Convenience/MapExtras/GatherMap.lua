@@ -1,21 +1,21 @@
--- Oasis: Gilden-Sammelkarte (wie GatherMate, aber mit der Gilde geteilt)
--- Wer Kraeuter pflueckt, Erz abbaut oder eine Truhe oeffnet, traegt den Fundort ein (Store "nodes").
--- Alle mit Oasis sehen die Punkte auf Weltkarte und Minimap. Gleicher Fundort (sehr nah, gleicher Name)
--- = ein Punkt, der mitzaehlt, wie oft er gefunden wurde.
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_MapExtras", function()   -- Modul Karten-Extras (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis: guild gathering map (like GatherMate, but shared with the guild)
+-- Whoever picks herbs, mines ore or opens a chest records the location (store "nodes").
+-- Everyone with Oasis sees the points on world map and minimap. Same location (very close, same name)
+-- = one point that counts how often it was found.
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_MapExtras", function()   -- module map extras (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
 local GM = {}
 ns.Gather = GM
 
--- Sammel-Zauber (alle Raenge) -> Art
+-- gathering spells (all ranks) -> kind
 local SPELLS = {
     [2366] = "herb", [2368] = "herb", [3570] = "herb", [11993] = "herb",
     [2575] = "ore", [2576] = "ore", [3564] = "ore", [10248] = "ore",
     [3365] = "treasure", [6247] = "treasure", [6477] = "treasure", [6478] = "treasure", [22810] = "treasure",
-    -- 0.5.935: Angeln (alle Raenge) und Schloss knacken (verschlossene Kisten)
+    -- 0.5.935: fishing (all ranks) and pick lock (locked boxes)
     [7620] = "fish", [7731] = "fish", [7732] = "fish", [18248] = "fish",
     [1804] = "lock",
 }
@@ -25,19 +25,19 @@ GM.KINDS = {
     treasure = { name = "Treasures", icon = "Interface\\Icons\\INV_Box_01", color = { 0.98, 0.82, 0.3 } },
     fish = { name = "Fishing spots", icon = "Interface\\Icons\\Trade_Fishing", color = { 0.36, 0.68, 0.98 } },
     lock = { name = "Locked chests", icon = "Interface\\Icons\\INV_Misc_Key_03", color = { 0.78, 0.6, 0.95 } },
-    -- 0.5.936: besuchte Orte (MapExtras traegt sie ein). poi = nur Weltkarte, keine Route, kein Verblassen
+    -- 0.5.936: visited places (MapExtras records them). poi = world map only, no route, no fading
     vendor = { name = "Vendors", icon = "Interface\\Icons\\INV_Misc_Bag_10", color = { 0.8, 0.8, 0.82 }, poi = true },
     repair = { name = "Repair", icon = "Interface\\Icons\\Trade_BlackSmithing", color = { 0.8, 0.8, 0.82 }, poi = true },
     mail = { name = "Mailboxes", icon = "Interface\\Icons\\INV_Letter_15", color = { 0.8, 0.8, 0.82 }, poi = true },
     flight = { name = "Flight points", icon = "Interface\\Icons\\Ability_Mount_Wyvern_01", color = { 0.8, 0.8, 0.82 }, poi = true },
 }
-local NEAR = 0.006   -- Kartenanteil: naeher = gleicher Fundort
+local NEAR = 0.006   -- map fraction: closer = same node
 
 local function S() return ns.db.settings end
 local function showKind(k) return not S()["gatherOff_" .. k] end
--- 0.5.935: ein Fundort ist sichtbar, wenn Art, Mindestzahl und der Filter je Sorte (Name) passen
+-- 0.5.935: a node is visible when kind, minimum count and the per-type filter (name) match
 GM.PROF_KINDS = { herb = true, ore = true, fish = true }
--- 0.6.520: Standard nur Fundorte der eigenen Sammelberufe (Kraeuterkunde 182, Bergbau 186, Angeln 356); Schalter zeigt alle
+-- 0.6.520: by default only nodes of your own gathering professions (herbalism 182, mining 186, fishing 356); toggle shows all
 local KIND_SKILL = { herb = 182, ore = 186, fish = 356 }
 local ownKinds, ownAt
 local function ownKind(kind)
@@ -57,7 +57,7 @@ function GM.ResetOwnKinds() ownKinds = nil end
 local function shown(r)
     local k = GM.KINDS[r.kind]
     if not k then return false end
-    -- 0.6.431: nur Berufe (Kraeuter, Erz, Angeln) - keine Haendler, Kisten, Schaetze usw.
+    -- 0.6.431: professions only (herbs, ore, fishing) - no vendors, boxes, treasures etc.
     if not GM.PROF_KINDS[r.kind] then return false end
     if k.poi then return S().mapPoi ~= false end
     if S()["gatherOff_" .. r.kind] or (r.n or 1) < (S().gatherMinCount or 1) then return false end
@@ -66,7 +66,7 @@ local function shown(r)
     if hide and r.name and r.name ~= "" and hide[r.name] then return false end
     return true
 end
--- Frische: 1 = hoechstens einen Tag alt, faellt bis 0.4 nach 30 Tagen (abschaltbar)
+-- freshness: 1 = at most one day old, drops to 0.4 after 30 days (can be turned off)
 local function freshness(r, now)
     if S().gatherFresh == false or (GM.KINDS[r.kind] or {}).poi then return 1 end
     local age = (now - (r.ts or 0)) / 86400
@@ -74,17 +74,17 @@ local function freshness(r, now)
     if age >= 30 then return 0.4 end
     return 1 - 0.6 * (age - 1) / 29
 end
--- gerade abgeerntet: jemand hat dort in den letzten 5 Minuten gesammelt
+-- just harvested: someone gathered there in the last 5 minutes
 local HARVEST, RESEND = 300, 600
 local function harvested(r, now) return S().gatherHarvest ~= false and now - (r.ts or 0) < HARVEST and not (GM.KINDS[r.kind] or {}).poi end
 GM.Shown, GM.Freshness, GM.Harvested = shown, freshness, harvested
 
 ------------------------------------------------------------------------
--- Fundorte merken
+-- remember nodes
 ------------------------------------------------------------------------
 local pending = {}   -- castGUID -> { kind, name }
--- 0.6.251: Sammeln auch am Zaubernamen erkennen - Clients mit anderen Zauber-IDs (z. B. Forever) speicherten sonst
--- nichts mehr. Die Namen kommen aus den bekannten IDs (in der Sprache des Clients).
+-- 0.6.251: also detect gathering by spell name - clients with different spell IDs (e.g. Forever) otherwise saved
+-- nothing anymore. The names come from the known IDs (in the client's language).
 local function spellName(id)
     if C_Spell and C_Spell.GetSpellName then local ok, n = pcall(C_Spell.GetSpellName, id) if ok and n then return n end end
     if GetSpellInfo then local ok, n = pcall(GetSpellInfo, id) if ok and n then return n end end
@@ -101,7 +101,7 @@ local function kindOf(spellID)
     return n and byName[n] or nil
 end
 GM.KindOf = kindOf
--- letzte Zauber fuer /oa sammeltest (nur lokal, hoechstens 8)
+-- last spells for /oa sammeltest (local only, at most 8)
 GM.diag = {}
 local function diag(spellID, kind, note)
     local d = GM.diag
@@ -124,8 +124,8 @@ local function myPos()
     if not x or x == 0 then return nil end
     return map, x, y
 end
--- Index je Karte, neu nur wenn sich die Sammlung aendert (Performance 0.5.482: vorher jede Sekunde ein Scan
--- der ganzen "nodes"-Sammlung fuer die Minimap)
+-- index per map, rebuilt only when the collection changes (performance 0.5.482: previously a scan every second
+-- of the whole "nodes" collection for the minimap)
 local byMap, allNodes
 ns.Listen("STORE", function(coll) if coll == "nodes" then byMap, allNodes = nil, nil end end)
 function GM.Nodes(map)
@@ -146,18 +146,18 @@ function GM.Record(kind, name, px, py)
     if ns.db.settings.shareNodes == false then return "Sammelorte teilen ist aus" end
     local map, x, y = myPos()
     if not map then return "keine Kartenposition" end
-    -- 0.6.487: Fundort von der Minimap (Maus ueber Blizzards gelbem Punkt): Position aus dem Mauszeiger
+    -- 0.6.487: node from the minimap (mouse over Blizzard's yellow dot): position from the cursor
     local hover = px ~= nil
     if hover then x, y = px, py end
-    -- schon bekannt?
+    -- already known?
     for _, r in ipairs(GM.Nodes(map)) do
         if r.kind == kind and (r.name == name or name == "") and math.abs(r.x - x) < NEAR and math.abs(r.y - y) < NEAR then
-            if hover then return "schon bekannt" end   -- nur beim echten Abbau Position mitteln
-            -- hoechstens alle 10 Minuten neu senden (0.5.935: vorher 6 Stunden - fuer "gerade abgeerntet" braucht die Gilde
-            -- den Zeitpunkt); der Zaehler "wie oft gefunden" steigt weiter nur alle 6 Stunden
+            if hover then return "schon bekannt" end   -- only average the position on real gathering
+            -- resend at most every 10 minutes (0.5.935: previously 6 hours - "just harvested" needs the guild to know
+            -- the time); the "times found" counter still only rises every 6 hours
             local age = ns.now() - (r.ts or 0)
-            -- 0.6.384: Position mit jedem Abbau mitteln (man steht mal links, mal rechts vom Erz) -> wandert zur echten
-            -- Mitte, also zum Fundort-Punkt des Spiels; hoechstens 8 Abbauten zaehlen, damit er noch nachruecken kann
+            -- 0.6.384: average the position with each harvest (you stand left, then right of the ore) -> drifts to the real
+            -- center, i.e. the game's node dot; at most 8 harvests count so it can still move
             local m = math.min(8, (r.m or 1))
             local c = {} for k, v in pairs(r) do c[k] = v end
             c.x = math.floor(((r.x * m + x) / (m + 1)) * 10000) / 10000
@@ -168,7 +168,7 @@ function GM.Record(kind, name, px, py)
                 c.ts, c.by = ns.now(), ns.me()
                 Store.Put("nodes", c)
             elseif Store.merge then
-                Store.merge("nodes", c)   -- nur lokal, ohne Senden
+                Store.merge("nodes", c)   -- local only, without sending
             end
             return "schon bekannt"
         end
@@ -192,13 +192,13 @@ ns.On("UNIT_SPELLCAST_SUCCEEDED", function(unit, guid, spellID)
     local ok, res = pcall(GM.Record, p.kind, p.name)
     diag(spellID, p.kind, ok and res or ("Fehler: " .. tostring(res)))
 end)
--- /oa sammeltest: letzte Zauber und was daraus wurde
+-- /oa sammeltest: last spells and what came of them
 ns.slash.sammeltest = function()
     local s = ns.db.settings
     local map, x, y = myPos()
     ns.print(("Sammeltest | Sammelorte teilen=%s | Instanz=%s | Karte=%s (%.3f, %.3f) | Fundorte gesamt=%d"):format(
         tostring(s.shareNodes ~= false), tostring(ns.inInstance()), tostring(map), x or 0, y or 0, #GM.Nodes()))
-    -- 0.6.389: was die Weltkarte zeigt (Karte, sichtbare Fundorte, Schalter)
+    -- 0.6.389: what the world map shows (map, visible nodes, toggles)
     local here, vis = GM.Nodes(map), 0
     for _, r in ipairs(here) do if shown(r) then vis = vis + 1 end end
     local wm = WorldMapFrame and WorldMapFrame:IsShown() and WorldMapFrame:GetMapID()
@@ -227,10 +227,10 @@ end
 ns.slash.gathertest = ns.slash.sammeltest
 
 ------------------------------------------------------------------------
--- Weltkarte (haengt sich an Oasis' Kartenebene) und Minimap
+-- world map (hooks onto Oasis' map layer) and minimap
 ------------------------------------------------------------------------
 local wPool, wUsed = {}, 0
-function GM.WorldCount() return wUsed end   -- 0.6.391: fuer /oa sammeltest
+function GM.WorldCount() return wUsed end   -- 0.6.391: for /oa sammeltest
 function GM.WorldPin(i) return wPool[i] end
 local function wPin(canvas)
     wUsed = wUsed + 1
@@ -238,15 +238,15 @@ local function wPin(canvas)
     if not p then
         p = CreateFrame("Frame", nil, canvas)
         p:SetSize(14, 14)
-        -- 0.5.930: auch auf der Weltkarte rund - dunkle Scheibe dahinter, Symbol kreisfoermig zugeschnitten (vorher lag der
-        -- Ring ueber einem eckigen Symbol, die Ecken standen heraus)
+        -- 0.5.930: round on the world map too - dark disc behind, icon cropped to a circle (previously the
+        -- ring lay over a square icon, the corners stuck out)
         p.bg = p:CreateTexture(nil, "BACKGROUND")
-        p.bg:SetTexture(ns.MEDIA .. "pindisc")   -- 0.5.932: eigene Texturen, die die Flaeche ganz fuellen (dot/ring sind kleiner und hauchduenn)
+        p.bg:SetTexture(ns.MEDIA .. "pindisc")   -- 0.5.932: own textures that fill the area completely (dot/ring are smaller and paper-thin)
         p.bg:SetPoint("TOPLEFT", -3, 3) p.bg:SetPoint("BOTTOMRIGHT", 3, -3)
         p.bg:SetVertexColor(0.04, 0.04, 0.05, 1)
         p.icon = p:CreateTexture(nil, "ARTWORK")
         p.icon:SetAllPoints()
-        p.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)   -- VOR der Maske setzen (SetTexCoord auf maskierter Textur wirft Fehler)
+        p.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)   -- set BEFORE the mask (SetTexCoord on a masked texture throws errors)
         if p.CreateMaskTexture and p.icon.AddMaskTexture then
             pcall(function()
                 local m = p:CreateMaskTexture()
@@ -272,7 +272,7 @@ local function tipOf(r)
         (L["Found %dx"]):format(r.n or 1) .. "  ·  " .. L["last"] .. " " .. ns.ago(r.ts),
         "|cff888888" .. L["added by"] .. " " .. ns.displayName(r.by or "?") .. "|r" }
 end
--- 0.6.431: Kontinent-/Weltkarte - Fundorte der Gebiete darunter umgerechnet (C_Map.GetMapRectOnMap)
+-- 0.6.431: continent/world map - nodes of the zones below converted (C_Map.GetMapRectOnMap)
 function GM.NodesOn(mapID)
     local own = GM.Nodes(mapID)
     if #own > 0 or not (C_Map and C_Map.GetMapRectOnMap) then return own end
@@ -301,13 +301,13 @@ function GM.DrawWorld()
     if not mapID or not canvas then return end
     local cw, ch = canvas:GetWidth(), canvas:GetHeight()
     local cscale = WorldMapFrame.GetCanvasScale and WorldMapFrame:GetCanvasScale() or 1
-    -- 0.5.933: Groesse, Deckkraft, Kreisrahmen und Mindestzahl einstellbar (Einstellungen > Bereiche > Karte)
+    -- 0.5.933: size, opacity, circle border and minimum count adjustable (Settings > Areas > Map)
     local s = (1 / math.max(cscale, 0.01)) * (S().gatherWorldScale or 1)
     if GM.DrawRoute then pcall(GM.DrawRoute, mapID, canvas, cw, ch, 1 / math.max(cscale, 0.01)) end
     local alpha, frame, tnow = S().gatherWorldAlpha or 1, not S().gatherRingOff, ns.now()
-    -- 0.6.406: nahe Fundorte derselben Art zu einem Symbol mit Zahl zusammenfassen (Abstand auf dem Bildschirm, also
-    -- je nach Zoom: hineinzoomen loest die Gruppen wieder auf); Symbole etwas kleiner
-    local GAP = 22 * (S().gatherWorldScale or 1)   -- Bildschirm-Pixel
+    -- 0.6.406: merge nearby nodes of the same kind into one icon with a number (distance on screen, so
+    -- depending on zoom: zooming in splits the groups again); icons a bit smaller
+    local GAP = 22 * (S().gatherWorldScale or 1)   -- screen pixels
     local groups = {}
     for _, r in ipairs(GM.NodesOn(mapID)) do
         local k = GM.KINDS[r.kind]
@@ -353,12 +353,12 @@ function GM.DrawWorld()
         p:ClearAllPoints()
         p:SetPoint("CENTER", canvas, "TOPLEFT", (g.x / g.n * cw) / ps, (-g.y / g.n * ch) / ps)
         p:SetFrameStrata(canvas:GetFrameStrata())
-        p:SetFrameLevel(math.min(8900, canvas:GetFrameLevel() + 2400))   -- 0.6.393: ueber allen Kartenschichten (bei +55 uebermalt)
+        p:SetFrameLevel(math.min(8900, canvas:GetFrameLevel() + 2400))   -- 0.6.393: above all map layers (at +55 painted over)
         p:Show()
     end
 end
 
--- Minimap: gleiche Rechnung wie Oasis' Gildenpunkte (Radius je Zoomstufe)
+-- minimap: same math as Oasis' guild dots (radius per zoom level)
 local MM_SIZE = {
     indoor = { [0] = 300, [1] = 240, [2] = 180, [3] = 120, [4] = 80, [5] = 50 },
     outdoor = { [0] = 466 + 2 / 3, [1] = 400, [2] = 333 + 1 / 3, [3] = 266 + 2 / 6, [4] = 200, [5] = 133 + 1 / 3 },
@@ -371,20 +371,20 @@ local function mPin()
         p = CreateFrame("Frame", nil, Minimap)
         p:SetSize(14, 14)
         if ns.MiniPinLayer then ns.MiniPinLayer(p, 2) end
-        -- 0.6.380: weicher Glanz, wenn der echte Fundort-Punkt im Ring liegt (Helligkeit ueber die Farbe, ADD)
+        -- 0.6.380: soft glow when the real node dot lies in the ring (brightness via color, ADD)
         p.glow = p:CreateTexture(nil, "BACKGROUND", nil, -1)
-        p.glow:SetTexture(ns.MEDIA .. "halo_ring")   -- 0.6.383: weicher Schein um den Ring, Mitte frei
+        p.glow:SetTexture(ns.MEDIA .. "halo_ring")   -- 0.6.383: soft glow around the ring, center clear
         p.glow:SetBlendMode("ADD")
         p.glow:SetPoint("TOPLEFT", -14, 14) p.glow:SetPoint("BOTTOMRIGHT", 14, -14)
         p.glow:Hide()
-        -- 0.5.929: Symbol im Kreis - dunkle Scheibe, rund zugeschnittenes Symbol, Ring in der Farbe der Art
+        -- 0.5.929: icon in a circle - dark disc, round-cropped icon, ring in the color of the kind
         p.bg = p:CreateTexture(nil, "BACKGROUND")
-        p.bg:SetTexture(ns.MEDIA .. "pindisc")   -- 0.5.932: eigene Texturen, die die Flaeche ganz fuellen (dot/ring sind kleiner und hauchduenn)
+        p.bg:SetTexture(ns.MEDIA .. "pindisc")   -- 0.5.932: own textures that fill the area completely (dot/ring are smaller and paper-thin)
         p.bg:SetPoint("TOPLEFT", -3, 3) p.bg:SetPoint("BOTTOMRIGHT", 3, -3)
         p.bg:SetVertexColor(0.04, 0.04, 0.05, 1)
         p.icon = p:CreateTexture(nil, "ARTWORK")
         p.icon:SetAllPoints()
-        p.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)   -- VOR der Maske setzen (SetTexCoord auf maskierter Textur wirft Fehler)
+        p.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)   -- set BEFORE the mask (SetTexCoord on a masked texture throws errors)
         if p.CreateMaskTexture and p.icon.AddMaskTexture then
             pcall(function()
                 local m = p:CreateMaskTexture()
@@ -405,9 +405,9 @@ local function mPin()
 end
 local function cvar(n) return (C_CVar and C_CVar.GetCVar and C_CVar.GetCVar(n)) or (GetCVar and GetCVar(n)) end
 local lastSig
--- 0.5.929: Die Symbole hingen beim Laufen nach (Neuzeichnen nur 1x pro Sekunde). Jetzt zwei Takte:
---   * einmal pro Sekunde: Fundorte in der Naehe heraussuchen (near) und die Spiel-Einstellungen lesen
---   * rund 30x pro Sekunde: nur diese wenigen Punkte neu setzen - und nur, wenn sich Position/Blick/Zoom geaendert hat
+-- 0.5.929: the icons lagged behind while running (redraw only once per second). Now two ticks:
+--   * once per second: pick nearby nodes (near) and read the game settings
+--   * about 30x per second: only reposition these few points - and only if position/facing/zoom changed
 local near, nearAt, nearMap, cvRotate, cvZoom = {}, 0, nil, false, nil
 function GM.DrawMinimap()
     if S().gatherMiniOff or not Minimap or ns.inInstance() then
@@ -424,7 +424,7 @@ function GM.DrawMinimap()
         nearAt, nearMap = now, map
         cvRotate, cvZoom = cvar("rotateMinimap") == "1", tonumber(cvar("minimapZoom"))
         for i = #near, 1, -1 do near[i] = nil end
-        local reach = 360   -- Meter: groesster Minimap-Radius (233) plus Weg, den man in einer Sekunde zuruecklegt
+        local reach = 360   -- meters: largest minimap radius (233) plus the distance travelled in one second
         for _, r in ipairs(GM.Nodes(map)) do
             if shown(r) and not GM.KINDS[r.kind].poi then
                 local dx, dy = (r.x - mx) * w, (r.y - my) * h
@@ -433,7 +433,7 @@ function GM.DrawMinimap()
         end
         lastSig = nil
     end
-    -- nichts bewegt, gedreht, gezoomt und keine neue Liste: nichts tun
+    -- nothing moved, rotated, zoomed and no new list: do nothing
     local sig = map and (map .. ":" .. math.floor((mx or 0) * 200000) .. ":" .. math.floor((my or 0) * 200000) .. ":" .. (Minimap:GetZoom() or 0)
         .. ":" .. math.floor((ns.safe(GetPlayerFacing and GetPlayerFacing()) or 0) * 200) .. ":" .. #near) or "none"
     if sig == lastSig then return end
@@ -455,7 +455,7 @@ function GM.DrawMinimap()
             local dx, dy = (r.x - mx) * w, (r.y - my) * h
             if facing then dx, dy = dx * cosF - dy * sinF, dx * sinF + dy * cosF end
             local nx, ny = dx / radius, dy / radius
-            if nx * nx + ny * ny < 0.81 and (not ns.MiniPinVisible or ns.MiniPinVisible(nx * half, ny * half)) then   -- nur im Kreis, nicht am Rand stapeln; Mitte frei
+            if nx * nx + ny * ny < 0.81 and (not ns.MiniPinVisible or ns.MiniPinVisible(nx * half, ny * half)) then   -- only inside the circle, do not stack at the edge; center clear
                 local p = mPin()
                 local hv = harvested(r, tnow)
                 if p.tex ~= k.icon or p.hv ~= hv then
@@ -467,24 +467,24 @@ function GM.DrawMinimap()
                     end
                 end
                 p.rec = r
-                p:SetScale(sc)   -- Abstaende zaehlen im Massstab des Symbols -> durch sc teilen
-                -- 0.6.405: geteilte Fundorte (von anderen) deutlich durchsichtiger als eigene; nah am Spielerpfeil sanft ausblenden
+                p:SetScale(sc)   -- distances count in icon scale -> divide by sc
+                -- 0.6.405: shared nodes (from others) much more transparent than own; fade softly near the player arrow
                 local own = r.by and ns.isMe(r.by)
                 local cd = math.sqrt((nx * half) ^ 2 + (ny * half) ^ 2)
                 local nearFade = math.max(0, math.min(1, (cd - 20) / 14))
                 p:SetAlpha(alpha * freshness(r, tnow) * (own and 1 or 0.45) * nearFade)
-                -- 0.6.144: durchsichtig - ohne dunkle Scheibe, Bild halb durchsichtig, nur der Ring bleibt kraeftig.
-                -- So sieht man darunter den echten Fundort-Punkt des Spiels (der liegt immer unter Addon-Symbolen).
+                -- 0.6.144: transparent - no dark disc, image half transparent, only the ring stays strong.
+                -- This way you see the game's real node dot below (it always lies under addon icons).
                 if p.bg then p.bg:SetShown(false) p.ring:SetShown(frame) end
-                -- 0.6.378: in der Naehe (bis 80 m) nur ein duenner, halb durchsichtiger Ring - dort zeigt das Spiel den
-                -- echten Fundort-Punkt, der immer unter Addon-Symbolen liegt; weiter weg Symbol + Ring wie bisher
+                -- 0.6.378: nearby (up to 80 m) only a thin, half-transparent ring - there the game shows the
+                -- real node dot, which always lies under addon icons; farther away icon + ring as before
                 local rx, ry = (r.x - mx) * w, (r.y - my) * h
                 local close = rx * rx + ry * ry < 80 * 80
                 p.icon:SetAlpha(close and 0 or 0.45)
-                -- 0.6.386: in der Naehe kein harter Ring (zeigt jeden kleinen Versatz zum echten Punkt), nur weicher Schein
-                if p.ring then p.ring:SetAlpha(close and 0.35 or 1) p.ring:SetShown(frame or close) end   -- 0.6.388: nah: ganz zarter Ring
+                -- 0.6.386: nearby no hard ring (shows every small offset to the real dot), only a soft glow
+                if p.ring then p.ring:SetAlpha(close and 0.35 or 1) p.ring:SetShown(frame or close) end   -- 0.6.388: near: very faint ring
                 p.close, p.kcol = close and not hv, k.color
-                -- 0.6.390: kein Leuchten - Oasis weiss nicht, ob dort gerade wirklich etwas steht (leuchteten auch leere Fundorte)
+                -- 0.6.390: no glow - Oasis does not know whether something is really there right now (empty nodes glowed too)
                 if p.glow then p.glow:Hide() end
                 p.close = nil
                 p:ClearAllPoints()
@@ -495,7 +495,7 @@ function GM.DrawMinimap()
     end
     if GM.RouteArrow then GM.RouteArrow(map, mx, my, w, h, radius, half, facing, sinF, cosF) end
 end
--- nach geaenderten Einstellungen sofort neu zeichnen (sonst erst bei der naechsten Bewegung)
+-- redraw immediately after changed settings (otherwise only on the next movement)
 function GM.Refresh()
     lastSig, nearAt = nil, 0
     if GM.ResetRoutes then GM.ResetRoutes() end
@@ -504,16 +504,16 @@ function GM.Refresh()
 end
 ns.Listen("LOGIN", function()
     if ns.Map and ns.Map.UpdateWorldPins then hooksecurefunc(ns.Map, "UpdateWorldPins", function() pcall(GM.DrawWorld) end) end
-    -- fluessig mitlaufen: eigener Taktgeber (rund 30x pro Sekunde); DrawMinimap arbeitet nur, wenn sich etwas geaendert hat
+    -- follow smoothly: own ticker (about 30x per second); DrawMinimap only works when something changed
     local driver, acc = CreateFrame("Frame"), 0
     driver:SetScript("OnUpdate", function(_, el)
         acc = acc + el
         if acc < 0.033 then return end
         acc = 0
         pcall(GM.DrawMinimap)
-        -- 0.6.380: nahe Fundorte pulsieren (Ring + Glanz), unabhaengig vom Neuzeichnen
+        -- 0.6.380: nearby nodes pulse (ring + glow), independent of redrawing
         local tt = GetTime()
-        local k = 0.85 + 0.35 * math.sin(tt * 4)   -- 0.6.388: deutlich kraeftiger (war auf dunklem Grund kaum zu sehen)
+        local k = 0.85 + 0.35 * math.sin(tt * 4)   -- 0.6.388: much stronger (was barely visible on dark background)
         if ns.db and ns.db.settings.noAnim then k = 1 end
         for i = 1, mUsed do
             local pin = mPool[i]
@@ -526,7 +526,7 @@ ns.Listen("LOGIN", function()
 end)
 ns.Listen("STORE", function(coll) if coll == "nodes" and WorldMapFrame and WorldMapFrame:IsShown() then pcall(GM.DrawWorld) end end)
 ------------------------------------------------------------------------
--- Minimap-Helfer fuer andere Module (Rares, Marker ...): einmal je Takt den Zustand holen, dann Punkte umrechnen
+-- minimap helper for other modules (rares, markers ...): fetch the state once per tick, then convert points
 ------------------------------------------------------------------------
 function GM.MiniCtx()
     if not Minimap or ns.inInstance() then return nil end
@@ -540,7 +540,7 @@ function GM.MiniCtx()
     return { map = map, mx = mx, my = my, w = w, h = h, radius = (MM_SIZE[kind][zoom] or 300) / 2, half = Minimap:GetWidth() / 2,
         sinF = facing and math.sin(facing) or 0, cosF = facing and math.cos(facing) or 1 }
 end
--- liefert: Versatz x, y (Pixel ab Minimap-Mitte), Abstand als Anteil des Radius (>= 0.9 = am Rand), Entfernung in Metern
+-- returns: offset x, y (pixels from minimap center), distance as fraction of the radius (>= 0.9 = at the edge), distance in meters
 function GM.MiniPlace(c, x, y)
     local dx, dy = (x - c.mx) * c.w, (y - c.my) * c.h
     local meters = math.sqrt(dx * dx + dy * dy)
@@ -550,8 +550,8 @@ function GM.MiniPlace(c, x, y)
 end
 
 ------------------------------------------------------------------------
--- 0.6.487: Fundorte von der Minimap uebernehmen - Blizzards gelbe Punkte (Kraeuter-/Erzsuche) kann kein Addon lesen,
--- aber beim Drueberfahren steht ihr Name im Tooltip. Bekannte Kraeuter-/Erznamen + Mausposition -> Gilden-Sammelkarte.
+-- 0.6.487: take nodes from the minimap - no addon can read Blizzard's yellow dots (herb/ore tracking),
+-- but on mouseover their name is in the tooltip. Known herb/ore names + mouse position -> guild gathering map.
 ------------------------------------------------------------------------
 local NODE_NAMES = {
     herb = { "Peacebloom", "Friedensblume", "Silverleaf", "Silberblatt", "Earthroot", "Erdwurzel", "Mageroyal", "Maguskoenigskraut",
@@ -576,7 +576,7 @@ local function kindForName(n)
     end
     local k = nameKind[n:lower()] or nameKind[umlautLess(n):lower()]
     if k then return k end
-    -- von der Gilde schon einmal abgebaut (jede Sprache)
+    -- already harvested by the guild once (any language)
     for _, r in ipairs(GM.Nodes()) do
         if (r.kind == "herb" or r.kind == "ore") and r.name and r.name ~= "" and r.name:lower() == n:lower() then
             nameKind[n:lower()] = r.kind
@@ -586,7 +586,7 @@ local function kindForName(n)
 end
 local hoverSeen = {}
 local function fromMinimapTooltip()
-    -- 0.6.506: Besitzer des Tooltips ist je nach Client die Minimap, ihr Rahmen oder ein Kind - entscheidend ist die Maus ueber der Minimap
+    -- 0.6.506: the tooltip owner is the minimap, its border or a child depending on the client - what matters is the mouse over the minimap
     if not (Minimap and GameTooltip and GameTooltip:IsShown() and Minimap:IsMouseOver()) then return end
     if ns.db.settings.shareNodes == false or ns.db.settings.gatherHoverOff then return end
     local c = GM.MiniCtx()
@@ -596,7 +596,7 @@ local function fromMinimapTooltip()
     local mx0, my0 = Minimap:GetCenter()
     if not (cx and mx0) then return end
     local ox, oy = cx / sc - mx0, cy / sc - my0
-    -- Pixel -> Meter (umgekehrt zu GM.MiniPlace), Drehung der Minimap rueckgaengig
+    -- pixels -> meters (inverse of GM.MiniPlace), undo minimap rotation
     local nx, ny = ox / c.half, -oy / c.half
     if nx * nx + ny * ny > 1.05 then return end
     local rx, ry = nx * c.radius, ny * c.radius
@@ -615,7 +615,7 @@ local function fromMinimapTooltip()
                     if not hoverSeen[key] then
                         hoverSeen[key] = true
                         local ok, res = pcall(GM.Record, kind, n, x, y)
-                        -- 0.6.489: kurze Rueckmeldung, damit man sieht, dass es klappt
+                        -- 0.6.489: short feedback so you see that it works
                         if ok and res == "neu gespeichert" then ns.print((L["Gathering spot added: %s"]):format(n))
                         elseif ok and res == "schon bekannt" then ns.print((L["Node already known: %s"]):format(n)) end
                     end
@@ -636,12 +636,12 @@ CreateFrame("Frame"):SetScript("OnUpdate", function(_, el)
 end)
 
 ------------------------------------------------------------------------
--- Sammelroute (0.5.934): verbindet die sichtbaren Fundorte eines Gebiets zu einer Rundstrecke.
--- Weltkarte: Linie. Minimap: Pfeil zum naechsten Punkt (Linksklick ueberspringt, Rechtsklick geht zurueck).
--- Reihenfolge: naechster Nachbar, danach 2-opt (entwirrt Kreuzungen). Hoechstens 120 Punkte - die meistgefundenen.
+-- Gathering route (0.5.934): connects the visible nodes of a zone into a round trip.
+-- World map: line. Minimap: arrow to the next point (left-click skips, right-click goes back).
+-- Order: nearest neighbor, then 2-opt (untangles crossings). At most 120 points - the most found.
 ------------------------------------------------------------------------
 local ROUTE_MAX, ARRIVE = 120, 12
-local routes = {}   -- je Karte: { sig, list, len, idx } - die Weltkarte zeigt oft ein anderes Gebiet als das eigene
+local routes = {}   -- per map: { sig, list, len, idx } - the world map often shows a different zone than your own
 local function routeNodes(map)
     local out = {}
     for _, r in ipairs(GM.Nodes(map)) do
@@ -701,7 +701,7 @@ function GM.Route(map)
     routes[map] = route
     return route
 end
--- naechster Punkt der Route; rueckt weiter, sobald man dort ist
+-- next point of the route; advances as soon as you are there
 function GM.RouteTarget(map, mx, my, w, h)
     local rt = GM.Route(map)
     if not rt or #rt.list < 2 then return nil end
@@ -747,7 +747,7 @@ function GM.DrawRoute(mapID, canvas, cw, ch, cs)
             l = rFrame:CreateLine(nil, "ARTWORK")
             rLines[i] = l
         end
-        local now = rt.idx and (i == (rt.idx - 2) % n + 1) or false   -- das Stueck zum naechsten Punkt heller
+        local now = rt.idx and (i == (rt.idx - 2) % n + 1) or false   -- the segment to the next point brighter
         l:SetColorTexture(1, 0.84, 0.36, now and 1 or 0.6)
         l:SetThickness(math.max(1, (now and 3 or 2) * cs))
         l:SetStartPoint("TOPLEFT", rFrame, a.x * cw, -a.y * ch)
@@ -791,7 +791,7 @@ function GM.RouteArrow(map, mx, my, w, h, radius, half, facing, sinF, cosF)
     if facing then dx, dy = dx * cosF - dy * sinF, dx * sinF + dy * cosF end
     local len = math.sqrt(dx * dx + dy * dy)
     if len < 0.01 then arrow:Hide() return end
-    -- Pfeil sitzt kurz vor dem Punkt (oder am Rand, wenn der Punkt ausserhalb liegt) und zeigt auf ihn
+    -- arrow sits just before the point (or at the edge if the point is outside) and points at it
     local px = math.max(0, math.min(len / radius, 0.8) * half - 15)
     local ux, uy = dx / len, dy / len
     arrow:ClearAllPoints()
@@ -806,11 +806,11 @@ end
 ns.Listen("STORE", function(coll) if coll == "nodes" then for _, rt in pairs(routes) do rt.sig = nil end end end)
 
 ------------------------------------------------------------------------
--- Beispieldaten (0.5.931): Fundorte rund um den eigenen Standort, damit Minimap und Weltkarte etwas
--- zeigen. /oa demo erneut eingeben setzt sie an den neuen Standort. Nur lokal (Store.merge sendet nichts);
--- Demo.Remove raeumt alle "demo-"-Eintraege wieder weg.
+-- Sample data (0.5.931): nodes around your own location so minimap and world map show
+-- something. Entering /oa demo again moves them to the new location. Local only (Store.merge sends nothing);
+-- Demo.Remove clears all "demo-" entries again.
 ------------------------------------------------------------------------
-local DEMO_NODES = {   -- { Art, Richtung in Grad, Entfernung in Metern, wie oft gefunden }
+local DEMO_NODES = {   -- { kind, direction in degrees, distance in meters, times found }
     { "herb", 20, 35, 4 }, { "herb", 75, 70, 2 }, { "herb", 140, 55, 7 }, { "herb", 200, 110, 1 }, { "herb", 265, 45, 3 },
     { "herb", 320, 150, 5 }, { "herb", 100, 190, 2 }, { "herb", 300, 85, 6 },
     { "ore", 45, 60, 3 }, { "ore", 115, 125, 1 }, { "ore", 170, 30, 8 }, { "ore", 235, 95, 2 }, { "ore", 290, 170, 4 }, { "ore", 350, 65, 2 },
@@ -828,7 +828,7 @@ function GM.SeedDemo()
         if x > 0.01 and x < 0.99 and y > 0.01 and y < 0.99 then
             Store.merge("nodes", { id = "demo-nd-" .. i, demo = true, kind = d[1], name = "", map = map,
                 x = math.floor(x * 10000) / 10000, y = math.floor(y * 10000) / 10000,
-                n = d[4], ts = now - ((i == 3 or i == 11) and 60 or (i - 1) * 130000), u = now, by = ns.me() })   -- zwei "gerade abgeerntet", Rest bis ~25 Tage alt
+                n = d[4], ts = now - ((i == 3 or i == 11) and 60 or (i - 1) * 130000), u = now, by = ns.me() })   -- two "just harvested", rest up to ~25 days old
             n = n + 1
         end
     end
@@ -856,7 +856,7 @@ function GM.Count()
     for _, r in ipairs(GM.Nodes()) do if t[r.kind] then t[r.kind] = t[r.kind] + 1 end end
     return t
 end
--- benannte Sorten (z. B. "Friedensblume", "Kupferader") mit Anzahl der Fundorte - fuer den Filter je Sorte
+-- named types (e.g. "Peacebloom", "Copper Vein") with number of nodes - for the per-type filter
 function GM.Names()
     local seen, out = {}, {}
     for _, r in ipairs(GM.Nodes()) do

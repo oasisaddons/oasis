@@ -1,12 +1,12 @@
--- Oasis: Item-Vergleich als eigenes Fenster neben dem Tooltip (Einstellungen > Helfer, Standard AUS)
---   Band oben:  BESSER +x % / SCHLECHTER / GLEICHWERTIG / NICHT TRAGBAR  + "statt <altes Item> · Wertung <Rolle>"
---   AUSWIRKUNG: was die Werte fuer deine Klasse bedeuten (DPS, Angriffskraft, Leben, Ruestung ...)
---   WERTE:      Tabelle jetzt / neu / +-
--- Blizzards Vergleichsfenster werden nur unsichtbar gemacht, solange dieses Fenster zu sehen ist (Shift = Blizzard).
--- Ist nesUI geladen und dessen Vergleich an, zeigt Oasis nichts (kein doppeltes Fenster).
--- Kein Taint: nur hooksecurefunc / HookScript / TooltipDataProcessor, nichts Geschuetztes wird ersetzt.
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_ItemCompare", function()   -- Modul Item-Vergleich (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis: item comparison as its own window next to the tooltip (Settings > Helpers, default OFF)
+--   Top band:  BETTER +x % / WORSE / EQUAL / NOT WEARABLE  + "instead of <old item> · rating <role>"
+--   IMPACT: what the stats mean for your class (DPS, attack power, health, armor ...)
+--   STATS:      table now / new / +-
+-- Blizzard's comparison tooltips are only made invisible while this window is shown (Shift = Blizzard).
+-- If nesUI is loaded and its comparison is on, Oasis shows nothing (no double window).
+-- No taint: only hooksecurefunc / HookScript / TooltipDataProcessor, nothing protected is replaced.
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_ItemCompare", function()   -- module item comparison (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
@@ -22,7 +22,7 @@ local COL_NOW, COL_NEW, COL_DIFF = -138, -80, -16
 
 local function S() return ns.db and ns.db.settings or {} end
 
--- nesUI zeigt denselben Vergleich -> dann bleibt Oasis still
+-- nesUI shows the same comparison -> then Oasis stays quiet
 function IC.NesUIActive()
     local loaded = false
     if C_AddOns and C_AddOns.IsAddOnLoaded then
@@ -40,7 +40,7 @@ function IC.Enabled()
 end
 
 ------------------------------------------------------------------------
--- Daten
+-- data
 ------------------------------------------------------------------------
 local function fmt(v)
     local r = math.floor(math.abs(v) * 10 + 0.5) / 10
@@ -48,7 +48,7 @@ local function fmt(v)
     return (v > 0 and "+" or v < 0 and "-" or "") .. s
 end
 
--- Blizzard-Schluessel -> Kurzname, Anzeige-Reihenfolge, Anzeigename
+-- Blizzard key -> short name, display order, display name
 local STATS = {
     { "DAMAGE_PER_SECOND", "dps", "Weapon DPS" },
     { "STRENGTH", "str", "Strength" }, { "AGILITY", "agi", "Agility" }, { "STAMINA", "sta", "Stamina" },
@@ -67,7 +67,7 @@ for i, s in ipairs(STATS) do
     if not ORDER[s[2]] then ORDER[s[2]] = i; NAMES[s[2]] = s[3] end
 end
 
--- Wertungen ("_RATING", neuere Clients): Name im Klartext ("Kritischer Trefferwert"), fuer die
+-- ratings ("_RATING", newer clients): name in plain text ("Critical Strike Rating"), for the
 -- Auswirkung in Prozent umgerechnet
 local RATED = {}
 local RATING_NAMES = { crit = "Critical strike rating", hit = "Hit rating", scrit = "Spell crit rating", shit = "Spell hit rating",
@@ -102,7 +102,7 @@ local function instant(link)
     return id, loc, classID, subID
 end
 
--- getragene Teile, die das neue ersetzen wuerde; false = genau dieses Teil wird getragen, nil = kein Platz
+-- equipped pieces the new one would replace; false = exactly this piece is equipped, nil = no slot
 local function replaced(link, loc)
     local UP = ns.Upgrade
     local slots = UP and UP.SLOTS and UP.SLOTS[loc or ""]
@@ -123,7 +123,7 @@ local function replaced(link, loc)
     return { best }
 end
 
--- Was die Werte fuer DEINE Klasse bedeuten (Classic-Faustregeln)
+-- what the stats mean for YOUR class (Classic rules of thumb)
 local STR_AP = { WARRIOR = 2, PALADIN = 2, SHAMAN = 2, DRUID = 2 }
 local AGI_AP = { ROGUE = 1, HUNTER = 1 }
 local function plusMinus(d, nm)
@@ -157,7 +157,7 @@ local function effects(d, role, cls)
     end
     if (d.sta or 0) ~= 0 then e[#e + 1] = { "Health", d.sta * 10, role == "tank" } end
     if (d.int or 0) ~= 0 and cls ~= "WARRIOR" and cls ~= "ROGUE" then e[#e + 1] = { "Mana", d.int * 15 } end
-    -- Krit/Treffer als Prozent (Wertung umgerechnet) - damit sichtbar ist, woher ein "Besser" kommt
+    -- crit/hit as percent (rating converted) - so you can see where a "better" comes from
     local rpp = (ns.Upgrade and ns.Upgrade.RatingPerPct and ns.Upgrade.RatingPerPct()) or 14
     local function pctOf(k) local v = d[k] or 0 if RATED[k] then v = v / rpp end return v end
     local critK, hitK = (role == "caster" or role == "healer") and "scrit" or "crit", (role == "caster") and "shit" or "hit"
@@ -168,14 +168,14 @@ local function effects(d, role, cls)
     return e
 end
 
--- Grund, warum ich es nicht anziehen kann (nil = tragbar)
+-- reason why I cannot equip it (nil = wearable)
 local HEAVY = { SHAMAN = true, HUNTER = true, WARRIOR = true, PALADIN = true }
 function IC.Blocked(link)
     local UP = ns.Upgrade
     local _, cls = UnitClass("player")
     local lvl = ns.safe and ns.safe(UnitLevel("player")) or UnitLevel("player")
     lvl = tonumber(lvl) or 1
-    -- 0.5.942: lernbar, aber noch nicht gelernt (rote Zeile im Tooltip)
+    -- 0.5.942: learnable but not learned yet (red line in tooltip)
     if UP and UP.CanWearFor and UP.CanWearFor(link, cls, lvl) and UP.Unlearned and UP.Unlearned(link) then
         return L["Not learned yet - you cannot equip this weapon or armor type yet"]
     end
@@ -195,7 +195,7 @@ function IC.Blocked(link)
 end
 
 ------------------------------------------------------------------------
--- Fenster
+-- window
 ------------------------------------------------------------------------
 local P = CreateFrame("Frame", "OasisItemCompare", UIParent)
 IC.frame = P
@@ -204,8 +204,8 @@ P:SetFrameLevel(200)
 P:SetClampedToScreen(true)
 P:Hide()
 
--- Ruhige Glaskarte: Urteil und Rollenwertung, ohne farbige Pille oder Leuchteffekte.
--- Vergleichsteil umbricht statt abgeschnitten zu werden, Abschnitte in normaler Schreibweise
+-- calm glass card: verdict and role rating, without colored pill or glow effects.
+-- comparison part wraps instead of being cut off, sections in normal case
 local function tex(layer, sub) local t = P:CreateTexture(nil, layer, nil, sub) t:SetTexture(WHITE) return t end
 local glassDone = false
 local function ensureGlass()
@@ -218,7 +218,7 @@ local function ensureGlass()
         P.bg = tex("BACKGROUND", -8) P.bg:SetAllPoints() P.bg:SetVertexColor(C.bg[1], C.bg[2], C.bg[3], 0.95)
     end
 end
--- Urteil oben links; reine Typografie statt einer zweiten Karte in der Karte.
+-- verdict top left; pure typography instead of a second card inside the card.
 local pill = CreateFrame("Frame", nil, P)
 pill:SetHeight(20)
 pill:SetPoint("TOPLEFT", 12, -12)
@@ -254,14 +254,14 @@ local function divider(y)
     t:SetVertexColor(1, 1, 1, 0.07) t:Show()
 end
 
--- Prozent-Wertungen (Krit, Treffer ...) kommen auf neueren Clients als Wertung ("_RATING") -> Umrechnung
+-- percent ratings (crit, hit ...) come as rating ("_RATING") on newer clients -> conversion
 local PCT_KEYS = { crit = true, hit = true, scrit = true, shit = true, dodge = true, parry = true, block = true }
 local function ratingPerPct()
     local UP = ns.Upgrade
     return (UP and UP.RatingPerPct and UP.RatingPerPct()) or 14
 end
 
--- Standard: nur veraenderte Werte. Alt: auch unveraenderte Werte und Erklaerung.
+-- default: only changed stats. Alt: also unchanged stats and explanation.
 function IC.DetailMode()
     return IsAltKeyDown and IsAltKeyDown() and true or false
 end
@@ -277,7 +277,7 @@ function IC.CompareRows(keys, current, candidate, details)
     return rows
 end
 
--- baut den Inhalt; false = nichts zu vergleichen. Ergebnis zum Testen in IC.last
+-- builds the content; false = nothing to compare. Result for testing in IC.last
 function IC.Build(link)
     for i = 1, #texts do texts[i]:Hide() end
     for i = 1, #stripes do stripes[i]:Hide() end
@@ -287,7 +287,7 @@ function IC.Build(link)
 
     local _, loc = instant(link)
     local UP = ns.Upgrade
-    -- Vergleichsteil aus UP.CompareInfo: Kopf, "statt"-Zeile und Tabelle zeigen dasselbe Teil
+    -- comparison part from UP.CompareInfo: header, "instead of" line and table show the same piece
     local info = UP and UP.CompareInfo and UP.CompareInfo(link)
     local old
     if info then
@@ -315,13 +315,13 @@ function IC.Build(link)
     local _, cls = UnitClass("player")
     local blocked = IC.Blocked(link)
     local useless = (not blocked) and info and info.useless
-    -- 0.5.877: tragbar, bringt der Rolle aber nichts -> das ist "Schlechter", nicht "Unpassend"
+    -- 0.5.877: wearable but useless for the role -> that is "Worse", not "Unsuitable"
     if blocked then pct = nil end
     if useless and (pct == nil or pct >= 0) then pct = nil end
-    -- kleine Unterschiede (unter 3 %) sind "seitwaerts", kein echtes Besser/Schlechter
+    -- small differences (below 3 %) are "sidegrade", not a real better/worse
     local side = pct and math.abs(pct) < 3
     local up = pct and pct > 0 and not side
-    -- Teil ohne Rollenwerte (z.B. reine Ruestung): Urteil aus den rohen Werten - nur Plus = besser, nur Minus = schlechter, gemischt = neutral
+    -- piece without role stats (e.g. plain armor): verdict from raw stats - only plus = better, only minus = worse, mixed = neutral
     local rawDir
     if useless and pct == nil then
         local nPlus, nMinus = 0, 0
@@ -335,8 +335,8 @@ function IC.Build(link)
     local LABEL = { ["CAN'T EQUIP"] = "Can't equip", ["UNPASSEND"] = "Not for you", ["PROS & CONS"] = "Pros and cons",
         ["GLEICHWERTIG"] = "Equal", ["SEITWAERTS"] = "Sidegrade", ["BESSER"] = "Better", ["SCHLECHTER"] = "Worse" }
     local verdictText = L[LABEL[verdict]]
-    -- Kopf (Urteil + Prozent) als eigener, kraeftiger getoenter Bereich mit Trennlinie; darunter laeuft die Farbe weich aus.
-    -- gruen = besser, rot = schlechter, blau = neutral
+    -- header (verdict + percent) as its own, stronger tinted area with divider; below it the color fades out softly.
+    -- green = better, red = worse, blue = neutral
     local HEAD_H = 50
     if not P.head then
         P.head = P:CreateTexture(nil, "BACKGROUND", nil, 4)
@@ -371,14 +371,14 @@ function IC.Build(link)
     end
 
     local details = IC.DetailMode()
-    -- 1) Kopf: klares Urteil, Prozentwert mit eigener Bezeichnung.
+    -- 1) Header: clear verdict, percent value with its own label.
     pill.t:SetFont(K.FONT, 14, "")
     pill.t:SetTextColor(math.min(1, tone[1] + 0.15), math.min(1, tone[2] + 0.15), math.min(1, tone[3] + 0.15))
     pill.t:SetText(verdictText)
     pill:SetWidth(math.max(40, (pill.t:GetStringWidth() or 50) + 22))
     pill:Show()
     local pctText
-    -- Teile ohne Rollenwerte: Prozent aus den rohen Werten (Summe neu gegen Summe jetzt), damit oben immer eine Zahl steht
+    -- pieces without role stats: percent from raw stats (sum new vs sum now), so a number always shows on top
     local showPct, capText = pct, L["Role score"]
     if rawDir == "BESSER" or rawDir == "SCHLECHTER" then
         local sn, sc = 0, 0
@@ -426,7 +426,7 @@ function IC.Build(link)
     P.oldIcon:SetShown(plainOld and oldIcon ~= nil)
     P.oldEdge:SetShown(plainOld and oldIcon ~= nil)
     if plainOld and oldIcon then
-        -- "statt" klein, darunter Symbol + Name in der Farbe der Seltenheit
+        -- "instead of" small, below it icon + name in quality color
         local lab = txt(10, C.dim) lab:SetPoint("TOPLEFT", 14, y) lab:SetText(L["replaces"])
         y = y - 14
         P.oldIcon:ClearAllPoints()
@@ -450,7 +450,7 @@ function IC.Build(link)
     end
     y = y - 8
 
-    -- 2) Auswirkung
+    -- 2) Impact
     local eff = effects(diff, role, cls)
     if #eff > 0 then
         divider(y) y = y - 8
@@ -468,7 +468,7 @@ function IC.Build(link)
         y = y - 6
     end
 
-    -- 3) Werte-Tabelle: Name | jetzt | neu | +-
+    -- 3) Stat table: name | now | new | +-
     local list = IC.CompareRows(keys, cur, new, details)
     if #list > 0 then
         divider(y) y = y - 8
@@ -516,7 +516,7 @@ function IC.Build(link)
 end
 
 ------------------------------------------------------------------------
--- Blizzards Vergleichsfenster: unsichtbar, solange UNSER Fenster da ist (Shift = zeigen)
+-- Blizzard's comparison tooltips: invisible while OUR window is shown (Shift = show)
 ------------------------------------------------------------------------
 local function shiftDown() return IsShiftKeyDown and IsShiftKeyDown() and true or false end
 local function hideShopping()
@@ -524,8 +524,8 @@ local function hideShopping()
     for _, n in ipairs(SHOP) do
         local t = _G[n]
         if t and t.SetAlpha then t:SetAlpha(hide and 0 or 1) end
-        -- 0.5.974: zusaetzlich wirklich ausblenden. Die Deckkraft allein reicht in diesem Client nicht: Blizzards
-        -- Einblend-Animation setzt sie wieder hoch und der Kopf "Ausgeruestet" blieb sichtbar -> es blinkte dahinter.
+        -- 0.5.974: additionally really hide. Opacity alone is not enough in this client: Blizzard's
+        -- fade-in animation raises it again and the "Equipped" header stayed visible -> it flickered behind.
         if hide and t and t.IsShown and t:IsShown() then pcall(t.Hide, t) end
     end
 end
@@ -542,13 +542,13 @@ local function hookShopping()
     for _, n in ipairs(SHOP) do
         local t = _G[n]
         if t then
-            -- Blizzard setzt die Deckkraft selbst zurueck -> nur solange unser Fenster sichtbar ist, wieder auf 0
+            -- Blizzard resets the opacity itself -> back to 0 only while our window is visible
             if hooksecurefunc and t.SetAlpha then
                 hooksecurefunc(t, "SetAlpha", function(self, a)
                     if a and a > 0 and P:IsShown() and not shiftDown() then self:SetAlpha(0) end
                 end)
             end
-            -- sofort (im selben Frame) wieder weg: ein Frame spaeter war es schon einmal gezeichnet -> Blinken
+            -- gone again immediately (same frame): one frame later it had already been drawn once -> flicker
             if t.HookScript then
                 t:HookScript("OnShow", function(self)
                     if P:IsShown() and not shiftDown() then
@@ -561,7 +561,7 @@ local function hookShopping()
     end
 end
 
--- Blizzard-Fenster, das trotzdem sichtbar bleibt: genau darueberlegen
+-- Blizzard tooltip that stays visible anyway: lay exactly over it
 local contentH = 0
 P:HookScript("OnShow", function(self) contentH = self:GetHeight() or 0 end)
 local function coverShopping(self)
@@ -591,8 +591,8 @@ function IC.ShowFor(tt, link)
     local ts, us = tt:GetEffectiveScale() or 1, UIParent:GetEffectiveScale() or 1
     P:SetScale(us > 0 and ts / us or 1)
     P:ClearAllPoints()
-    -- 0.5.978: Platz suchen, der auf den Bildschirm passt UND das Fenster des ueberfahrenen Items nicht verdeckt
-    -- (beim Verkaufen lag das Vergleichsfenster ueber den Taschen). Reihenfolge: rechts, links, darueber, darunter.
+    -- 0.5.978: find a spot that fits on screen AND does not cover the window of the hovered item
+    -- (when selling, the comparison window lay over the bags). Order: right, left, above, below.
     local placed = false
     do
         local tl, tr, tT, tb
@@ -601,7 +601,7 @@ function IC.ShowFor(tt, link)
             tl, tr, tT, tb = tl * ts, tr * ts, tT * ts, tb * ts            -- alles in Bildschirm-Pixeln
             local sw, sh = (UIParent:GetWidth() or 0) * us, (UIParent:GetHeight() or 0) * us
             local pw, ph = W * ts, (P:GetHeight() or contentH or 200) * ts
-            -- Fenster, zu dem das Item gehoert: vom Besitzer des Tooltips hoch bis zum Fenster direkt unter UIParent
+            -- window the item belongs to: from the tooltip owner up to the window directly under UIParent
             local box
             local ok, owner = pcall(function() return tt.GetOwner and tt:GetOwner() end)
             local f, guard = ok and owner or nil, 0
@@ -653,7 +653,7 @@ function IC.ShowFor(tt, link)
     return true
 end
 
--- Einstieg aus dem Tooltip (einen Frame spaeter: andere Addons haengen Zeilen nach)
+-- entry from the tooltip (one frame later: other addons append lines)
 function IC.OnItem(tt)
     if tt ~= GameTooltip and tt ~= ItemRefTooltip then return end
     if not IC.Enabled() then if P:IsShown() then P:Hide() end return end
@@ -681,7 +681,7 @@ if GameTooltip and GameTooltip.HookScript then
     GameTooltip:HookScript("OnHide", function()
         if not P:IsShown() then return end
         P:Hide()
-        -- angeklickter Link noch offen: dessen Vergleich wieder zeigen
+        -- clicked link still open: show its comparison again
         if ItemRefTooltip and ItemRefTooltip:IsShown() and IC.Enabled() then
             local ok, _, l = pcall(ItemRefTooltip.GetItem, ItemRefTooltip)
             if ok and l then pcall(IC.ShowFor, ItemRefTooltip, l) end
@@ -692,7 +692,7 @@ if ItemRefTooltip and ItemRefTooltip.HookScript then
     ItemRefTooltip:HookScript("OnHide", function() if not GameTooltip:IsShown() then P:Hide() end end)
 end
 
--- Shift: Blizzard-Vergleich ein-/ausblenden
+-- Shift: show/hide Blizzard comparison
 local shiftEv = CreateFrame("Frame")
 shiftEv:RegisterEvent("MODIFIER_STATE_CHANGED")
 shiftEv:SetScript("OnEvent", function()
@@ -704,7 +704,7 @@ shiftEv:SetScript("OnEvent", function()
 end)
 
 ------------------------------------------------------------------------
--- Einstellung: Reiter "Helfer" > "Charaktere & Ausruestung" (an ComfortPlus2-Liste anhaengen, nichts ersetzen)
+-- setting: tab "Helpers" > "Characters & gear" (append to ComfortPlus2 list, replace nothing)
 ------------------------------------------------------------------------
 local OPT = { "itemCompare", "Comparison window under item tooltips",
     "Shows better / worse / can't equip with effect (DPS, health, armor) and a stats table. Blizzard's comparison then only appears with Shift. If nesUI with its own comparison is loaded, Oasis shows nothing (otherwise doubled) - turn it off there with /nes vergleich.",
@@ -723,7 +723,7 @@ local function addOption()
 end
 if not addOption() and ns.Listen then ns.Listen("DB_READY", addOption) end
 
--- /oa probe vergleich: was liefern die APIs hier?
+-- /oa probe vergleich: what do the APIs return here?
 ns.probes = ns.probes or {}
 ns.probes.vergleich = function()
     local p = ns.print or print

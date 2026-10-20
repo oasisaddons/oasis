@@ -1,8 +1,8 @@
--- Oasis - neue WoW-Forever-Quests erkennen und im Questlog markieren (bläulicher Verlauf + "Neu"),
--- Gruppenquests hervorheben. Forever-Quests haben eigene, hohe Quest-IDs (Classic geht nur bis ca. 10000).
+-- Oasis - detect new WoW Forever quests and mark them in the quest log (bluish gradient + "New"),
+-- Highlight group quests. Forever quests have their own high quest IDs (Classic only goes up to ~10000).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_QuestTags", function()   -- Modul Quest-Markierungen (abschaltbar, siehe ModuleLoader.lua)
-local DECO = setmetatable({}, { __mode = "k" })   -- eigene Texturen je Questlog-Knopf (keine Felder auf Blizzard-Knoepfen)
+ns.ModuleFile("Oasis_QuestTags", function()   -- Module Quest markers (can be disabled, see ModuleLoader.lua)
+local DECO = setmetatable({}, { __mode = "k" })   -- own textures per quest log button (no fields on Blizzard buttons)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
@@ -13,8 +13,8 @@ end
 
 local function decorate(btn, questID, isGroup)
     if not btn or not questID then return end
-    -- 0.6.524: Fokus auf Gruppenquests - "NEU" fuer Forever-Quests nur noch mit eigenem Schalter (Standard aus)
-    -- 19.10.2026: mit dem Zusatz-Addon "Oasis - Komfort" (Plugins/Oasis_Comfort) immer an
+    -- 0.6.524: focus on group quests - "NEW" for Forever quests only with its own toggle (default off)
+    -- 19.10.2026: always on with the add-on addon "Oasis - Komfort" (Plugins/Oasis_Comfort)
     local new = ns.IsForeverQuest(questID) and ns.db and (ns.db.settings.questTagsNew == true or ns.ComfortPlugin == true)
     local grp = isGroup and not (ns.db and ns.db.settings.questTags == false)
     if not DECO[btn] then
@@ -25,7 +25,7 @@ local function decorate(btn, questID, isGroup)
         DECO[btn] = { g = g }
         local t = btn:CreateFontString(nil, "OVERLAY")
         if K.SetFontSafe then K.SetFontSafe(t, K.FONT, 9, "OUTLINE", K.FONT) else t:SetFont(K.FONT, 9, "OUTLINE") end
-        -- links neben dem Haken/Fortschritt, nicht darueber
+        -- left of the checkmark/progress, not above it
         t:SetPoint("RIGHT", btn, "RIGHT", -30, 0)
         DECO[btn].t = t
     end
@@ -51,19 +51,19 @@ local function groupOf(questID, idx)
     return false
 end
 
--- neues Questlog (Karte & Questlog)
+-- new quest log (map & quest log)
 local function updateMapLog()
     local sf = QuestScrollFrame
     local contents = sf and (sf.Contents or sf.contents)
     if not contents then return end
     for _, child in ipairs({ contents:GetChildren() }) do
         local id = child.questID or (child.info and child.info.questID)
-        -- nur die Titel-Zeilen (Knoepfe), nicht die Ziel-Zeilen darunter
+        -- only the title rows (buttons), not the objective rows below
         local isTitle = child.GetObjectType and child:GetObjectType() == "Button" and child.Text ~= nil
         if id and isTitle then pcall(decorate, child, id, groupOf(id)) elseif DECO[child] then DECO[child].g:Hide() DECO[child].t:Hide() end
     end
 end
--- klassisches Questlog (Liste)
+-- classic quest log (list)
 local function updateClassicLog()
     local n = QUESTS_DISPLAYED or 0
     for i = 1, n do
@@ -85,7 +85,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Questfenster (Annehmen / Abgeben): neue Forever-Quests bekommen unten einen leichten blauen Verlauf nach oben
+-- Quest window (accept / turn in): new Forever quests get a light blue gradient upward at the bottom
 ------------------------------------------------------------------------
 do
     local holder
@@ -119,6 +119,6 @@ do
     ns.On("QUEST_FINISHED", function() if holder then holder:Hide() end end)
 end
 
--- Questbelohnung markieren (beste Wahl / wertvollste) liegt seit 19.10.2026 im Zusatz-Addon
+-- Marking quest rewards (best choice / most valuable) lives in the add-on addon since 19.10.2026
 -- "Oasis - Komfort" (Plugins/Oasis_Comfort/Comfort.lua).
 end)

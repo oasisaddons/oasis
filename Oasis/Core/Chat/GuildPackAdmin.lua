@@ -1,17 +1,17 @@
--- Oasis: Gildenleitung > Emojis & Sounds (0.6.533)
---  * komplette Liste des installierten Gildenpakets: Bild bzw. Abspielen, Code, Rang (ab Oasis-Rang 2-100), An/Aus
---  * "Speichern & freigeben": schreibt die offizielle Freigabe (Store gpack) - Rangsperren und Aus gelten fuer alle,
---    egal was in den Dateien der Mitglieder steht (siehe GuildPack.lua)
---  * Wer hat es?: wie viele aktive Mitglieder das freigegebene Paket installiert haben, wem es fehlt
---  * Ankuendigen (Gildenchat per Klick), Link zur Bau-Seite, alle auf frei / Werte aus den Dateien
--- Bearbeiten nur mit dem Recht fuer Gildeneinstellungen (guildcfg) - alle anderen sehen die Liste nur.
+-- Oasis: Guild leadership > Emojis & Sounds (0.6.533)
+--  * complete list of the installed guild pack: image or play, code, rank (from Oasis rank 2-100), on/off
+--  * "Speichern & freigeben": writes the official approval (Store gpack) - rank locks and off apply to everyone,
+--    regardless of what is in the members' files (see GuildPack.lua)
+--  * Who has it?: how many active members have installed the approved pack, who is missing it
+--  * Announce (guild chat with a click), link to the build page, all to free / values from the files
+-- Editing only with the guild settings permission (guildcfg) - everyone else only sees the list.
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
 local MP = ns.MediaPack
 if not MP then return end
 
-local draft = { em = {}, so = {} }   -- [code] = Stufe (2-100), 0 = aus, nil = Standard aus der Datei
+local draft = { em = {}, so = {} }   -- [code] = level (2-100), 0 = off, nil = default from the file
 local filter = "all"                 -- all | emoji | sound | off
 local function canEdit() return MP.CanPublish() end
 local function rows()
@@ -66,7 +66,7 @@ local function build(f)
     f.ann:SetPoint("TOPRIGHT", f.pub, "BOTTOMRIGHT", 0, -6)
     f.link = K.Button(f, L["Link to the builder"], 150, 24, "ghost", MP.ShowUrl)
     f.link:SetPoint("RIGHT", f.ann, "LEFT", -6, 0)
-    -- Filter + Sammelaktionen
+    -- Filter + bulk actions
     f.seg = K.Segments(f, { { key = "all", text = L["All"] }, { key = "emoji", text = L["Emojis"] }, { key = "sound", text = L["Sounds"] }, { key = "lead", text = L["Leaders only"] }, { key = "off", text = L["Switched off"] } },
         function(k) filter = k ns.RefreshPage("admin") end, nil, { size = 12, pad = 16 })
     f.seg:SetPoint("TOPLEFT", 0, -78)
@@ -76,7 +76,7 @@ local function build(f)
     f.free:SetPoint("TOPRIGHT", 0, -78)
     f.reset = K.Button(f, L["Values from the files"], 160, 22, "ghost", function() draft = { em = {}, so = {} } ns.RefreshPage("admin") end)
     f.reset:SetPoint("RIGHT", f.free, "LEFT", -6, 0)
-    -- Liste
+    -- List
     f.list = K.List(f, 34, function(l)
         local r = K.Row(l)
         r.icon = r:CreateTexture(nil, "ARTWORK") r.icon:SetSize(24, 24) r.icon:SetPoint("LEFT", 10, 0)
@@ -91,7 +91,7 @@ local function build(f)
         r.plus:SetPoint("LEFT", 512, 0)
         r.onoff = K.Button(r, "", 96, 22, "ghost", function() local it = r.item if it and canEdit() then setLvl(it, it.lvl == 0 and (it.file or 2) or 0) end end)
         r.onoff:SetPoint("RIGHT", -10, 0)
-        -- 0.6.534: nur Gildenmeister und Offiziere (Blizzard-Gildenrang)
+        -- 0.6.534: guild master and officers only (Blizzard guild rank)
         r.lead = K.Button(r, "", 110, 22, "ghost", function() local it = r.item if it and canEdit() then setLvl(it, it.lvl == 200 and (it.file or 2) or 200) end end)
         r.lead:SetPoint("RIGHT", r.onoff, "LEFT", -6, 0)
         return r
@@ -117,7 +117,7 @@ local function build(f)
     end)
     f.list:SetPoint("TOPLEFT", 0, -108)
     f.list:SetPoint("BOTTOMRIGHT", -250, 0)
-    -- rechts: wer hat es?
+    -- right: who has it?
     f.who = CreateFrame("Frame", nil, f)
     f.who:SetPoint("TOPLEFT", f.list, "TOPRIGHT", 12, 0) f.who:SetPoint("BOTTOMRIGHT", 0, 0)
     K.Fill(f.who, { 1, 1, 1, 0.03 })
@@ -147,7 +147,7 @@ local function refresh(f)
     local list = m and rows() or {}
     f.list:SetData(list)
     f.list.empty:SetText(m and (#list == 0 and L["Nothing in this selection."] or "") or L["No pack installed yet."])
-    -- wer hat es
+    -- who has it
     local hs, ok, miss = MP.Holders(), 0, {}
     for _, h in ipairs(hs) do if h.ok then ok = ok + 1 else miss[#miss + 1] = ns.short(h.name) .. (h.v and (" |cff666666v" .. h.v .. "|r") or "") end end
     f.whoN:SetText(o and ((L["%d of %d active members have the released pack"]):format(ok, #hs)) or L["Release it first - then you can see here who has it."])

@@ -1,7 +1,7 @@
--- Oasis: Questgeber- und Abgabe-Orte der Dungeon-Quests (nur Fakten: NPC, Gebiet, Koordinaten, Voraussetzungen).
--- Zusammengestellt am 28.09.2026 aus foreverchanges.pro, wowforevertalents.com und wowhead.com/classic.
+-- Oasis: quest giver and turn-in locations of dungeon quests (facts only: NPC, zone, coordinates, prerequisites).
+-- Compiled on 28.09.2026 from foreverchanges.pro, wowforevertalents.com and wowhead.com/classic.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Dungeons", function()   -- Module Dungeons (can be disabled, see ModuleLoader.lua)
 ns.QuestLocations = (function()
 -- WoW Forever: dungeon quest start/finish locations (facts only). Generated 2026-09-28.
 -- Coordinates: zone percent (0-100) on Classic UiMap "map"; start coords from foreverchanges.pro map pins

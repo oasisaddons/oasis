@@ -1,6 +1,6 @@
--- Oasis: Spielchat - Fenster "Chat durchsuchen" / "Alarm-Treffer" und die Einstellungen (Spielhilfen > Spielchat)
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_GameChat", function()   -- Modul Spielchat (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis: Game chat - windows "Search chat" / "Alert hits" and the settings (Game aids > Game chat)
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_GameChat", function()   -- module Game chat (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 local GC = ns.GameChat
@@ -8,7 +8,7 @@ if not GC then return end
 local G = GC.G
 
 ------------------------------------------------------------------------
--- Fenster: Zeilen als markierbarer Text (Strg+C kopiert)
+-- window: lines as selectable text (Ctrl+C copies)
 ------------------------------------------------------------------------
 local SHOW_MAX = 400
 local function buildViewer()
@@ -111,7 +111,7 @@ local function buildViewer()
         self.eb:ClearFocus()
         C_Timer.After(0, function() self.sf:SetVerticalScroll(self.sf:GetVerticalScrollRange() or 0) end)
     end
-    -- neue Zeilen nachtragen, solange niemand gerade markiert
+    -- append new lines as long as nobody is selecting
     f:SetScript("OnUpdate", function(self, el)
         self.acc = (self.acc or 0) + el
         if self.acc < 1 then return end
@@ -130,14 +130,14 @@ function GC.OpenViewer(mode, frame)
     if frame then f.frame = frame end
     f:Show()
     f:Refresh()
-    -- Suchen/Kopieren geht auch ohne Spielchat (liest dann das Chatfenster), nur die Alarme brauchen ihn
+    -- search/copy also works without game chat (then reads the chat frame), only the alerts need it
     if mode == "alerts" and not G().gcOn then ns.print(L["Game chat is switched off - switch it on under Settings > Gameplay helpers > Game chat."]) end
 end
 
 ------------------------------------------------------------------------
--- Einstellungen
+-- settings
 ------------------------------------------------------------------------
--- Eingabefeld + "Hinzufuegen" + Eintraege als Knoepfe (Klick entfernt)
+-- edit box + "Add" + entries as buttons (click removes)
 local editors = {}
 local function editor(card, y, w, key, placeholder, normalize)
     local e = { chips = {} }
@@ -238,12 +238,12 @@ local function build(f)
     local H = ns.SettingsHelpers
     local s = G()
     f.noCompact = true
-    -- 0.6.266: kein eigener Scrollbereich mehr - die Einstellungen scrollen selbst und messen die Seite an ihren
-    -- Inhalten. Der innere Scrollbereich war so gross wie die Seite: man kam nicht bis ganz nach unten.
+    -- 0.6.266: no own scroll area anymore - the settings scroll themselves and measure the page by its
+    -- contents. The inner scroll area was as large as the page: you could not reach the very bottom.
     local body = CreateFrame("Frame", nil, f)
     body:SetPoint("TOPLEFT", 0, 0)
-    -- 0.6.272: mit EllesmereUI-Chat greift Oasis seit 0.6.254 nicht in den Chat ein (ns.ForeignChat) - die Schalter
-    -- hier wirkten dann still nicht. Jetzt steht oben ein Hinweis und die Seite ist ausgegraut.
+    -- 0.6.272: with EllesmereUI chat Oasis has not touched the chat since 0.6.254 (ns.ForeignChat) - the toggles
+    -- here then silently did nothing. Now a notice sits on top and the page is greyed out.
     if ns.ForeignChat and ns.ForeignChat() then
         local warn = H.cardH(f, 0, 0, 738, 74, "eye_off", L["EllesmereUI chat detected"],
             L["EllesmereUI draws the chat. To avoid doing things twice, Oasis stays out of the chat - the switches on this page only work without EllesmereUI chat."])
@@ -262,7 +262,7 @@ local function build(f)
         return y
     end
 
-    -- linke Spalte
+    -- left column
     local y = 0
     local c = H.cardH(body, 0, y, W, 152, "checklist", L["Game chat"])
     H.toggle(c, 14, -48, "Improve Blizzard's chat windows", "gcOn", "Master switch for everything on this page. Applies to new messages; messages protected during combat stay untouched.", apply, IN)
@@ -291,7 +291,7 @@ local function build(f)
     toggles(c, BUTTONS, -48, function() pcall(GC.ApplyButtons) end)
     y = y - h - 12
 
-    -- 0.6.111: Chat-Schalter aus Komfort und Markieren hier gesammelt
+    -- 0.6.111: chat toggles from Comfort and selection gathered here
     local CO = ns.Comfort and ns.Comfort.CHAT_OPTS or {}
     h = 50 + (#CO + 2) * 28 + 8
     c = H.cardH(body, 0, y, W, h, "polls", L["Chat window"])
@@ -307,7 +307,7 @@ local function build(f)
     H.toggle(c, 14, cy, "Alt + click opens the selection box", "gcAltSelect", "The chat as a text box over the window - for selecting across many lines", nil, IN)
     local leftBottom = y - h - 12
 
-    -- rechte Spalte
+    -- right column
     y = 0
     h = 50 + #FILTERS * 28 + 40 + 26 + 88 + 26 + 88 + 8
     c = H.cardH(body, 376, y, W, h, "eye_off", L["Filters and mutes"])

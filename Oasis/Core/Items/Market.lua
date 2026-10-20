@@ -1,8 +1,8 @@
--- Oasis: Marktpreise (ueber Midas, sonst eigene AH-Beobachtung) + OasisAPI fuer andere Addons
+-- Oasis: market prices (via Midas, otherwise own AH observation) + OasisAPI for other addons
 --
--- Midas (Auktionshaus-Addon von Rebo) stellt MidasAPI bereit. Ist es installiert, nimmt Oasis
--- dessen Preise. Ohne Midas merkt sich Oasis die guenstigsten Preise, die man beim Stoebern im
--- Auktionshaus sieht, und teilt die Preise fuer gesuchte Items mit der Gilde.
+-- Midas (auction house addon by Rebo) provides MidasAPI. If it is installed, Oasis uses
+-- its prices. Without Midas, Oasis remembers the cheapest prices seen while browsing the
+-- auction house and shares the prices of wanted items with the guild.
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
@@ -26,7 +26,7 @@ function Market.MidasVersion()
     return ok and v or nil
 end
 
--- Preis in Kupfer + Quelle ("midas" | "oasis")
+-- Price in copper + source ("midas" | "oasis")
 function Market.Price(item)
     if not item or item == 0 then return nil end
     if Market.HasMidas() then
@@ -36,7 +36,7 @@ function Market.Price(item)
         if ok and p then return p, "midas" end
     end
     local id = ns.itemID(item)
-    -- 0.6.525: ohne Midas den Auktionator-Preis nehmen, wenn installiert
+    -- 0.6.525: without Midas use the Auctionator price if installed
     local ap = id and ns.Compat and ns.Compat.AuctionatorPrice and ns.Compat.AuctionatorPrice(id)
     if ap then return ap, "auctionator" end
     local r = id and Store.Get("prices", "p-" .. id)
@@ -57,7 +57,7 @@ function Market.Format(copper)
     if s > 0 then return ("%d|cffc0c0c0s|r %d|cffb87333c|r"):format(s, c) end
     return ("%d|cffb87333c|r"):format(c)
 end
--- "~1g 20s" mit Quelle als Tooltip-Zeile
+-- "~1g 20s" with source as a tooltip line
 function Market.Text(item, qty)
     local p, src = Market.Price(item)
     if not p then return nil end
@@ -65,7 +65,7 @@ function Market.Text(item, qty)
 end
 
 ------------------------------------------------------------------------
--- Eigene Preisbeobachtung im modernen Auktionshaus (nur ohne Midas)
+-- Own price observation in the modern auction house (only without Midas)
 ------------------------------------------------------------------------
 local function wanted(itemID)
     for _, w in ipairs(Store.List("wants")) do if w.itemID == itemID then return true end end
@@ -78,7 +78,7 @@ local function record(itemID, price)
     local fresh = old and (ns.now() - (old.ts or 0)) < 6 * 3600 and math.abs(old.price - price) / old.price < 0.05
     if fresh then return end
     local rec = { id = id, itemID = itemID, price = price, ts = ns.now(), by = ns.me(), u = ns.now() }
-    -- nur Preise gesuchter Items an die Gilde senden, alles andere bleibt lokal
+    -- only send prices of wanted items to the guild, everything else stays local
     if wanted(itemID) then Store.Put("prices", rec) else Store.merge("prices", rec) end
 end
 
@@ -102,7 +102,7 @@ ns.On("ITEM_SEARCH_RESULTS_UPDATED", function(itemKey)
     if ok and type(info) == "table" then record(itemKey.itemID, ns.safe(info.buyoutAmount or info.bidAmount)) end
 end)
 
--- Midas meldet neue Scans -> Oasis-Seiten mit Preisen neu zeichnen
+-- Midas reports new scans -> redraw Oasis pages with prices
 ns.Listen("LOGIN", function()
     ns.After(5, function()
         local api = _G.MidasAPI
@@ -117,8 +117,8 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- OasisAPI: Oasis-Daten fuer andere Addons (z.B. Midas)
--- Alle Getter liefern Kopien; item = ItemID oder Itemlink.
+-- OasisAPI: Oasis data for other addons (e.g. Midas)
+-- All getters return copies; item = ItemID or item link.
 ------------------------------------------------------------------------
 local API = _G.OasisAPI or {}
 _G.OasisAPI = API
@@ -126,18 +126,18 @@ API.API_VERSION = 1
 
 function API.GetVersion() return ns.version, API.API_VERSION end
 function API.IsReady() return ns.db ~= nil and ns.loggedIn == true end
--- Ist der Name ein Gildenmitglied? (mit oder ohne Realm)
+-- Is the name a guild member? (with or without realm)
 function API.IsGuildmate(name)
     if not name or not ns.Radar then return false end
     return ns.Radar.byName[ns.fullName(name)] ~= nil
 end
--- Main-Charakter eines Spielers (Twink-Verknuepfung)
+-- Main character of a player (alt link)
 function API.GetMain(name)
     if not name then return nil end
     local full = ns.fullName(name)
     return ns.Alts and ns.Alts.Main(full) or full
 end
--- Wer in der Gilde sucht dieses Item? -> { {who, qty, note}, ... }
+-- Who in the guild is looking for this item? -> { {who, qty, note}, ... }
 function API.GetWanted(item)
     local id = ns.itemID(item)
     local out = {}
@@ -146,7 +146,7 @@ function API.GetWanted(item)
     end
     return out
 end
--- Wie viele liegen in der Gildenbank? -> count, Zeitpunkt des Stands
+-- How many are in the guild bank? -> count, time of the snapshot
 function API.GetBankCount(item)
     local id = ns.itemID(item)
     if not id or not ns.GuildBank then return 0 end
@@ -154,7 +154,7 @@ function API.GetBankCount(item)
     for _, t in ipairs(ns.GuildBank.Tabs()) do newest = math.max(newest, t.ts or 0) end
     return ns.GuildBank.Count(id), newest > 0 and newest or nil
 end
--- Wer in der Gilde kann es herstellen? -> { Namen }
+-- Who in the guild can craft it? -> { names }
 function API.GetCrafters(item)
     local id = ns.itemID(item)
     if not id or not ns.Crafting then return {} end
@@ -163,7 +163,7 @@ function API.GetCrafters(item)
     if e then for _, n in ipairs(e.crafters) do out[#out + 1] = n end end
     return out
 end
--- Offene Handwerks-Auftraege fuer das Item
+-- Open crafting orders for the item
 function API.GetOpenOrders(item)
     local id = ns.itemID(item)
     local out = {}
@@ -175,7 +175,7 @@ function API.GetOpenOrders(item)
     return out
 end
 
--- Rueckrufe: fn(event, payload)
+-- Callbacks: fn(event, payload)
 local callbacks = {}
 function API.RegisterCallback(event, fn)
     callbacks[event] = callbacks[event] or {}

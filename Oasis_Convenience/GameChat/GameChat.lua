@@ -1,29 +1,29 @@
--- Oasis: Spielchat - Blizzards Chatfenster lesbarer machen
--- Namen kuerzen, Stufe und Klassen-/Volkssymbol vor dem Namen, Symbole an Item- und Zauberlinks, Filter und
--- Stummschaltungen, Suche mit Kopieren, Verlauf ueber Sitzungen und Stichwort-Alarme.
--- Forever ist streng: Blizzards AddMessage wird NIE ersetzt. Oasis schaut per hooksecurefunc nach und aendert oder
--- entfernt die Zeile erst danach ueber die oeffentlichen Methoden des Chatfensters (TransformMessages,
--- RemoveMessagesByPredicate). Geheime Werte (Kampf) werden nie gelesen, verglichen oder veraendert.
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_GameChat", function()   -- Modul Spielchat (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis: Game chat - make Blizzard's chat frames more readable
+-- shorten names, level and class/race icon before the name, icons on item and spell links, filters and
+-- mutes, search with copy, history across sessions and keyword alerts.
+-- Forever is strict: Blizzard's AddMessage is NEVER replaced. Oasis looks via hooksecurefunc and changes or
+-- removes the line only afterwards through the chat frame's public methods (TransformMessages,
+-- RemoveMessagesByPredicate). Secret values (combat) are never read, compared or changed.
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_GameChat", function()   -- module Game chat (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 
 local GC = {}
 ns.GameChat = GC
 
 local DEFAULTS = {
-    gcOn = true,   -- 0.6.4: Standard an (vorher aus)
+    gcOn = true,   -- 0.6.4: on by default (previously off)
     gcShort = false, gcLevel = true, gcClassIcon = false, gcRaceIcon = false,
     gcLinkIcons = true, gcTokens = true, gcChNum = false, gcQuiet = false, gcHover = false,
     gcFilter = false, gcWhole = false, gcCyr = false, gcHan = false, gcRepeat = false, gcRepeatSec = 60,
-    gcHist = false, gcHistLines = 100,   -- 0.6.104: Verlauf nach /reload Standard aus (wirkte grau und doppelt)
+    gcHist = false, gcHistLines = 100,   -- 0.6.104: history after /reload off by default (looked grey and doubled)
     gcAlert = true, gcAlertSound = true,
     gcHideMenu = false, gcHideChannel = false, gcHideSocial = false, gcHideScroll = false,
 }
 local LISTS = { "gcPhrases", "gcMutes", "gcWords" }
 local MAX_LIST, MAX_ENTRY = 50, 100
-local BUF_MAX = 500            -- Zeilen je Chatfenster fuer die Suche (nur diese Sitzung)
-local HIST_AGE = 7 * 86400     -- gespeicherter Verlauf verfaellt nach 7 Tagen
+local BUF_MAX = 500            -- lines per chat frame for search (this session only)
+local HIST_AGE = 7 * 86400     -- saved history expires after 7 days
 local LINE_MAX = 4096
 
 local ready = false
@@ -32,9 +32,9 @@ local function G()
     if not ready then
         ready = true
         for k, v in pairs(DEFAULTS) do if s[k] == nil then s[k] = v end end
-        -- 0.6.4: der alte Standard "aus" stand schon gespeichert -> einmal einschalten; spaeteres Aus bleibt
+        -- 0.6.4: the old default "off" was already saved -> turn on once; a later off stays
         if not s.gcOnV2 then s.gcOnV2 = true s.gcOn = true end
-        -- 0.6.104: Verlauf nach /reload einmal aus (stand bei allen noch auf dem alten Standard an)
+        -- 0.6.104: history after /reload off once (was still on from the old default for everyone)
         if not s.gcHistV2 then s.gcHistV2 = true s.gcHist = false end
         for _, k in ipairs(LISTS) do if type(s[k]) ~= "table" then s[k] = {} end end
     end
@@ -43,7 +43,7 @@ end
 GC.G = G
 
 ------------------------------------------------------------------------
--- Geheime Werte: alles, was nicht lesbar ist, wird zu nil
+-- secret values: anything unreadable becomes nil
 ------------------------------------------------------------------------
 local issecret = issecretvalue or function() return false end
 local function str(v)
@@ -60,9 +60,9 @@ local function tbl(v)
     return v
 end
 
--- Anzeigetext ohne Farben, Links und Symbole (Suche, Verlauf, Alarme)
+-- display text without colors, links and icons (search, history, alerts)
 function GC.Plain(text)
-    -- 0.6.103: Oasis-Emojis werden zu ihrem Kurzcode (sonst fehlten sie im Verlauf nach /reload und beim Kopieren)
+    -- 0.6.103: Oasis emojis become their shortcode (otherwise they were missing in history after /reload and when copying)
     if text:find("oasisemo:", 1, true) and ns.Emoji and ns.Emoji.CodeOf then
         text = text:gsub("|Haddon:oasisemo:([^|]+)|h.-|h", function(k) return ns.Emoji.CodeOf((k:gsub("~", "\\"))) or "" end)
     end
@@ -70,7 +70,7 @@ function GC.Plain(text)
     text = text:gsub("|H.-|h(.-)|h", "%1"):gsub("|T.-|t", ""):gsub("|A.-|a", ""):gsub("|K.-|k", "?")
     return (text:gsub("||", "|"):gsub("  +", " "))
 end
--- fn nur auf die Teile ausserhalb von Links anwenden
+-- apply fn only to the parts outside of links
 local function mapPlain(text, fn)
     local out, pos = {}, 1
     while true do
@@ -88,7 +88,7 @@ end
 GC.MapPlain = mapPlain
 
 ------------------------------------------------------------------------
--- Stufen: was der Client ohnehin zeigt (Ziel, Maus, Gruppe, Gilde, Freunde, /wer) - nur fuer diese Sitzung
+-- levels: what the client shows anyway (target, mouse, group, guild, friends, /who) - this session only
 ------------------------------------------------------------------------
 local levels, levelCount = {}, 0
 local function nameKey(name) return (name:gsub("%-[^%-]*$", "")):lower() end
@@ -152,7 +152,7 @@ local function scanGroup()
 end
 
 ------------------------------------------------------------------------
--- Darstellung
+-- appearance
 ------------------------------------------------------------------------
 local function atlasOk(name)
     if type(name) ~= "string" or not C_Texture or not C_Texture.GetAtlasInfo then return false end
@@ -171,7 +171,7 @@ local function fontHeight(frame)
     end)
     return math.max(8, math.floor(h + 0.5))
 end
--- Volk und Klasse des Absenders (ueber die GUID der Nachricht)
+-- race and class of the sender (via the message GUID)
 local function senderIcons(args, size, s)
     local guid = str(args[12])
     if not guid or not GetPlayerInfoByGUID then return "" end
@@ -198,7 +198,7 @@ local function levelMark(lvl)
     if type(c) == "table" and num(c.r) then r, g, b = c.r, c.g, c.b end
     return hexColor(r, g, b) .. "[" .. math.floor(lvl) .. "]|r "
 end
--- Kuerzel im Text: :mage: :troll: :trollf: -> Symbol (nur lokal, verschickt wird der Text)
+-- shortcodes in text: :mage: :troll: :trollf: -> icon (local only, the text is what gets sent)
 local CLASSES = { warrior = 1, paladin = 1, hunter = 1, rogue = 1, priest = 1, shaman = 1, mage = 1, warlock = 1, druid = 1,
     deathknight = 1, monk = 1, demonhunter = 1, evoker = 1 }
 local RACES = { human = "human", orc = "orc", dwarf = "dwarf", nightelf = "nightelf", undead = "scourge", scourge = "scourge",
@@ -269,13 +269,13 @@ local function linkIcons(text)
     end
     return text
 end
--- nur die Beschriftung des Spielerlinks kuerzen (Vorname); das Fluesterziel im Link bleibt vollstaendig
+-- only shorten the label of the player link (first name); the whisper target in the link stays complete
 local function shortLabel(label)
     return (label:gsub("([^%s%[%]|%-]+)[%s%-][^%]|]+", "%1", 1))
 end
 GC.ShortLabel = shortLabel
 
--- fertige Chatzeile umbauen; liefert die neue Zeile und (fuer "ruhigen Text") das Ende des Kopfes
+-- rebuild finished chat line; returns the new line and (for "calm text") the end of the header
 function GC.Decorate(text, event, args, size, s)
     local out = text
     if s.gcTokens then out = mapPlain(out, function(seg) return tokens(seg, size) end) end
@@ -302,7 +302,7 @@ function GC.Decorate(text, event, args, size, s)
     end
     return out, headEnd
 end
--- "ruhiger Text": Kanal und Name behalten die Kanalfarbe, die Nachricht selbst wird neutral
+-- "calm text": channel and name keep the channel color, the message itself becomes neutral
 local QUIET = { CHAT_MSG_CHANNEL = true, CHAT_MSG_SAY = true, CHAT_MSG_YELL = true }
 GC.COMMUNITY = { CHAT_MSG_GUILD = true, CHAT_MSG_OFFICER = true, CHAT_MSG_PARTY = true, CHAT_MSG_PARTY_LEADER = true,
     CHAT_MSG_RAID = true, CHAT_MSG_RAID_LEADER = true, CHAT_MSG_RAID_WARNING = true, CHAT_MSG_INSTANCE_CHAT = true,
@@ -315,7 +315,7 @@ function GC.Quiet(text, headEnd, r, g, b)
 end
 
 ------------------------------------------------------------------------
--- Filter: gesperrte Woerter, Schriftsysteme, Stummschaltung je Kanal, Wiederholungen
+-- filters: blocked words, scripts, mute per channel, repeats
 ------------------------------------------------------------------------
 local FILTERED = { CHAT_MSG_CHANNEL = true, CHAT_MSG_SAY = true, CHAT_MSG_YELL = true, CHAT_MSG_EMOTE = true, CHAT_MSG_WHISPER = true }
 GC.hidden = 0
@@ -335,16 +335,16 @@ function GC.BlockedText(body, s)
     for _, p in ipairs(s.gcPhrases) do
         if p ~= "" and hasPhrase(low, p, s.gcWhole) then return true end
     end
-    -- Kyrillisch: U+0400-U+052F
+    -- Cyrillic: U+0400-U+052F
     if s.gcCyr and body:find("[\208-\212][\128-\191]") then return true end
-    -- chinesische Schriftzeichen (Han): U+4E00-U+9FFF und die Ergaenzungsebene
+    -- Chinese characters (Han): U+4E00-U+9FFF and the supplementary plane
     if s.gcHan and (body:find("[\228-\233][\128-\191][\128-\191]") or body:find("\240[\160-\174][\128-\191][\128-\191]")) then return true end
     return false
 end
 function GC.MuteKey(channel, name)
     return channel:lower():gsub("^%s+", ""):gsub("%s+$", "") .. ";" .. name:lower():gsub("^%s+", ""):gsub("%s+$", "")
 end
-local recent, recentN = {}, 0          -- [Absender|Kanal|Text] = Zeit der letzten gezeigten Nachricht
+local recent, recentN = {}, 0          -- [sender|channel|text] = time of the last shown message
 local decided, decidedN = {}, 0        -- [Zeilen-ID] = versteckt? (dieselbe Nachricht in mehreren Reitern)
 local function repeated(sender, channel, body, id, s)
     if decided[id] ~= nil then return decided[id] end
@@ -372,7 +372,7 @@ function GC.ShouldHide(event, args, s)
     if event ~= "CHAT_MSG_CHANNEL" then return false end
     local channel = str(args[9])
     if not channel or channel == "" then return false end
-    -- eingebaute Kanaele tragen das Gebiet im Namen ("Handel - Orgrimmar")
+    -- built-in channels carry the zone in the name ("Trade - Orgrimmar")
     local zone = num(args[7])
     if zone and zone > 0 then channel = channel:gsub("%s%-%s.*$", "") end
     if #s.gcMutes > 0 then
@@ -388,9 +388,9 @@ function GC.ShouldHide(event, args, s)
 end
 
 ------------------------------------------------------------------------
--- Zwischenspeicher je Chatfenster (Suche) und Verlauf ueber Sitzungen
+-- buffer per chat frame (search) and history across sessions
 ------------------------------------------------------------------------
-local buffers = setmetatable({}, { __mode = "k" })   -- [Chatfenster] = { Zeilen }
+local buffers = setmetatable({}, { __mode = "k" })   -- [chat frame] = { lines }
 local function push(frame, plain, r, g, b)
     local buf = buffers[frame]
     if not buf then buf = {} buffers[frame] = buf end
@@ -403,7 +403,7 @@ local function push(frame, plain, r, g, b)
     end
 end
 function GC.Buffer(frame) return buffers[frame] or {} end
--- Ohne mitgeschriebenen Puffer (Spielchat aus): Zeilen direkt aus dem Chatfenster lesen, geheime ueberspringen
+-- without a recorded buffer (game chat off): read lines straight from the chat frame, skip secret ones
 local function frameLines(frame)
     local out, n = {}, 0
     pcall(function() n = num(frame:GetNumMessages()) or 0 end)
@@ -464,7 +464,7 @@ local function saveHistory()
     end
     ns.char.gcHist = { ts = time(), f = frames }
 end
-local busy = false   -- eigene Zeilen (Verlauf) nicht wieder einlesen
+local busy = false   -- do not read back own lines (history)
 local function restoreHistory()
     local s = G()
     local h = ns.char and ns.char.gcHist
@@ -475,7 +475,7 @@ local function restoreHistory()
     for _, f in ipairs(chatFrames()) do
         local id = f:GetID()
         local saved = id and h.f[id]
-        -- nach /reload stellt "Chat nach /reload behalten" das Hauptfenster schon selbst wieder her
+        -- after /reload "Keep chat after /reload" already restores the main frame itself
         local skip = f == ChatFrame1 and s.cfChatRestore and age < 600
         if saved and not skip and type(saved.l) == "table" and saved.n == tabName(f) then
             busy = true
@@ -483,7 +483,7 @@ local function restoreHistory()
                 f:AddMessage("|cff666666- - - " .. (L["Chat from %s"]):format(date("%d.%m. %H:%M", h.ts)) .. " - - -|r")
                 for _, l in ipairs(saved.l) do
                     if type(l.t) == "string" then
-                        -- 0.6.103: steht schon eine Uhrzeit vorn (Blizzard-Zeitstempel), keine zweite davor
+                        -- 0.6.103: if a time is already in front (Blizzard timestamp), no second one before it
                         local stamp = (l.ts and not l.t:find("^%[?%d%d?:%d%d")) and date("[%H:%M] ", l.ts) or ""
                         local line = stamp .. l.t:gsub("|", "||")
                         if ns.Emoji and ns.Emoji.Render then
@@ -496,7 +496,7 @@ local function restoreHistory()
                 f:AddMessage("|cff666666- - - - - - - - - - -|r")
             end)
             busy = false
-            -- wieder durchsuchbar machen
+            -- make searchable again
             for _, l in ipairs(saved.l) do
                 if type(l.t) == "string" then push(f, l.t, l.r, l.g, l.b) buffers[f][#buffers[f]].ts = l.ts or time() end
             end
@@ -505,7 +505,7 @@ local function restoreHistory()
 end
 
 ------------------------------------------------------------------------
--- Stichwort-Alarme
+-- keyword alerts
 ------------------------------------------------------------------------
 GC.hits = {}
 local alerted, alertedN = {}, 0
@@ -543,26 +543,26 @@ local function checkAlert(event, args, plain, s)
 end
 
 ------------------------------------------------------------------------
--- Nachsehen, was Blizzard gerade ins Chatfenster geschrieben hat
+-- look at what Blizzard just wrote into the chat frame
 ------------------------------------------------------------------------
 local function post(frame, text, r, g, b, _, _, _, event, args)
     if busy or not ns.db then return end
-    if ns.ForeignChat and ns.ForeignChat() then return end   -- 0.6.254: fremder Chat zeichnet selbst
+    if ns.ForeignChat and ns.ForeignChat() then return end   -- 0.6.254: foreign chat draws itself
     local s = G()
     if not s.gcOn then return end
     text = str(text)
     if not text or text == "" or #text > LINE_MAX then return end
     event, args = str(event), tbl(args)
     local chat = event ~= nil and args ~= nil and event:find("^CHAT_MSG_") ~= nil
-    -- 0.6.522: Oasis bleibt bei Gilde und Gruppe - andere Zeilen (Kanaele, Sagen, Schreien, System) bleiben unveraendert,
-    -- ausser der Schalter "Auch oeffentliche Kanaele" ist an. Suche/Verlauf bekommen die Zeile trotzdem.
+    -- 0.6.522: Oasis sticks to guild and group - other lines (channels, say, yell, system) stay unchanged,
+    -- unless the toggle "Public channels too" is on. Search/history still get the line.
     if not s.gcAllChannels and not (chat and GC.COMMUNITY[event]) then
         push(frame, GC.Plain(text), num(r), num(g), num(b))
         return
     end
-    -- Chatzeilen ueber ihre Ereignisdaten wiederfinden, nicht ueber den Text: ein anderes Addon kann die Zeile
-    -- auf dem Weg ins Fenster schon umgebaut haben (gekuerzte Kanalnamen, gefaerbte Uhrzeit) - dann stimmte der
-    -- Text nie ueberein und der Spielchat aenderte gar nichts.
+    -- find chat lines by their event data, not by text: another addon may have rebuilt the line
+    -- on its way into the frame (shortened channel names, colored time) - then the
+    -- text never matched and game chat changed nothing.
     local function same(message, ...)
         if issecret(message) then return false end
         if chat then
@@ -585,8 +585,8 @@ local function post(frame, text, r, g, b, _, _, _, event, args)
             shown = new
             frame:TransformMessages(same, function(message, mr, mg, mb, ...)
                 local cur, he = new, headEnd
-                -- steht im Fenster ein anderer Text als der uebergebene, dann genau den umbauen (sonst ginge die
-                -- Aenderung des anderen Addons verloren)
+                -- if the frame holds a different text than the one passed, rebuild exactly that (otherwise the
+                -- other addon's change would be lost)
                 if message ~= text then
                     cur, he = GC.Decorate(message, event, chat and args or nil, size, s)
                 end
@@ -623,7 +623,7 @@ local function itemTipHide(self)
     end
 end
 function GC.Attach()
-    if ns.ForeignChat and ns.ForeignChat() then return end   -- fremde Chat-Ereigniskette nicht zusaetzlich einhaengen
+    if ns.ForeignChat and ns.ForeignChat() then return end   -- do not additionally hook into a foreign chat event chain
     for _, f in ipairs(chatFrames()) do
         if not hooked[f] then
             hooked[f] = true
@@ -640,9 +640,9 @@ function GC.Attach()
 end
 
 ------------------------------------------------------------------------
--- Knoepfe am Chatfenster ausblenden (nur ausserhalb des Kampfes)
+-- hide buttons on the chat frame (only out of combat)
 ------------------------------------------------------------------------
-local watched = setmetatable({}, { __mode = "k" })   -- [Knopf] = { key, hid }
+local watched = setmetatable({}, { __mode = "k" })   -- [button] = { key, hid }
 local function hideWanted(key)
     local s = G()
     return s.gcOn and s[key] and true or false
@@ -667,13 +667,13 @@ local function watch(btn, key)
     pcall(applyButton, btn)
 end
 function GC.ApplyButtons()
-    if ns.ForeignChat and ns.ForeignChat() then return end   -- auch Seitenleisten- und Sozialknoepfe gehoeren dem fremden Chat
+    if ns.ForeignChat and ns.ForeignChat() then return end   -- sidebar and social buttons also belong to the foreign chat
     if not ns.db or ns.inCombat() then GC.pending = true return end
     watch(ChatFrameMenuButton, "gcHideMenu")
     watch(ChatFrameChannelButton, "gcHideChannel")
     watch(QuickJoinToastButton, "gcHideSocial")
     watch(FriendsMicroButton, "gcHideSocial")
-    for _, n in ipairs((ns.ForeignChat and ns.ForeignChat()) and {} or CHAT_FRAMES or {}) do   -- 0.6.257: EllesmereUI steuert die Knoepfe selbst
+    for _, n in ipairs((ns.ForeignChat and ns.ForeignChat()) and {} or CHAT_FRAMES or {}) do   -- 0.6.257: EllesmereUI controls the buttons itself
         local f = _G[n]
         if f then
             for _, suffix in ipairs({ "ScrollUpButton", "ScrollDownButton", "BottomButton", "ScrollToBottomButton" }) do
@@ -684,7 +684,7 @@ function GC.ApplyButtons()
 end
 
 ------------------------------------------------------------------------
--- Zeitstempel: Blizzards eigene Einstellung (CVar), Oasis merkt sich den vorherigen Wert
+-- timestamps: Blizzard's own setting (CVar), Oasis remembers the previous value
 ------------------------------------------------------------------------
 GC.STAMPS = {
     { key = "none", text = "Off", fmt = "none" },
@@ -705,7 +705,7 @@ function GC.ApplyStamp()
     local s = G()
     local fmt
     for _, st in ipairs(GC.STAMPS) do if st.key == s.gcStamp then fmt = st.fmt end end
-    if s.gcOn and fmt and not (ns.ForeignChat and ns.ForeignChat()) then   -- 0.6.257: EllesmereUI hat eigene Zeitstempel (sonst doppelt)
+    if s.gcOn and fmt and not (ns.ForeignChat and ns.ForeignChat()) then   -- 0.6.257: EllesmereUI has its own timestamps (otherwise doubled)
         if s.gcStampNative == nil then s.gcStampNative = cvar("showTimestamps") or "none" end
         cvar("showTimestamps", fmt)
     elseif s.gcStampNative ~= nil then
@@ -715,15 +715,15 @@ function GC.ApplyStamp()
 end
 
 ------------------------------------------------------------------------
--- Kopier-Knopf oben rechts im Chatfenster: oeffnet den Chat als markierbaren Text (Strg+C)
--- nesUI hat dafuer einen eigenen Knopf in seiner Chatleiste -> dann keinen zweiten
+-- copy button top right in the chat frame: opens the chat as selectable text (Ctrl+C)
+-- nesUI has its own button for this in its chat bar -> then no second one
 ------------------------------------------------------------------------
 local function nesUIChat() return _G.nesUI ~= nil and not (_G.nesUIDB and _G.nesUIDB.chatOff) end
 
 ------------------------------------------------------------------------
--- 0.6.3: Markieren direkt im Chatfenster. Blizzards Chat kann selbst nichts markieren - Oasis legt ein
--- Eingabefeld mit demselben Text und derselben Schrift genau ueber das Fenster: mit der Maus markieren, Strg+C
--- kopiert, Esc oder Klick daneben schliesst. Das Chatfenster selbst wird nicht veraendert.
+-- 0.6.3: select directly in the chat frame. Blizzard's chat cannot select anything itself - Oasis lays an
+-- edit box with the same text and font exactly over the frame: select with the mouse, Ctrl+C
+-- copies, Esc or clicking outside closes. The chat frame itself is not changed.
 ------------------------------------------------------------------------
 local sel
 local function selLines(frame)
@@ -753,12 +753,12 @@ function GC.SelectInPlace(frame)
         sel.eb:SetAutoFocus(false)
         sel.eb:SetTextInsets(2, 2, 2, 2)
         sel.sc:SetScrollChild(sel.eb)
-        -- nur lesen: Tippen setzt den Text sofort zurueck (Markieren und Strg+C bleiben moeglich)
+        -- read only: typing resets the text immediately (selecting and Ctrl+C stay possible)
         sel.eb:SetScript("OnTextChanged", function(self, user) if user and sel.text then self:SetText(sel.text) end end)
         sel.eb:SetScript("OnEscapePressed", function() sel:Hide() end)
         sel.eb:SetScript("OnEditFocusLost", function() sel:Hide() end)
         sel.eb:SetScript("OnCursorChanged", function(_, _, y, _, h)
-            -- beim Markieren ueber den Rand hinaus mitrollen
+            -- scroll along when selecting past the edge
             local top, view = sel.sc:GetVerticalScroll(), sel.sc:GetHeight()
             if -y < top then sel.sc:SetVerticalScroll(-y)
             elseif -y + h > top + view then sel.sc:SetVerticalScroll(-y + h - view) end
@@ -782,27 +782,27 @@ function GC.SelectInPlace(frame)
     sel.eb:SetText(sel.text)
     sel.eb:SetFocus()
     sel.eb:SetCursorPosition(#sel.text)
-    -- ans Ende rollen, wenn die Hoehe feststeht (wie der Chat: neueste Zeile unten)
+    -- scroll to the end once the height is fixed (like the chat: newest line at the bottom)
     C_Timer.After(0, function()
         if not sel:IsShown() then return end
         sel.sc:SetVerticalScroll(math.max(0, sel.eb:GetHeight() - sel.sc:GetHeight()))
     end)
 end
 ------------------------------------------------------------------------
--- 0.6.4: Live markieren - mit gedrueckter Maus ueber Chatzeilen ziehen markiert sie (farbig hinterlegt), beim
--- Loslassen liegt der Text markiert in einem unsichtbaren Eingabefeld: Strg+C kopiert. Ein Klick ohne Ziehen
--- bleibt ein normaler Klick (Namen, Links). Seit 0.6.101 buchstabengenau, Rechtsklick auf die Markierung = Menue.
--- Alt + Klick oeffnet weiter das Markierfeld.
+-- 0.6.4: live selection - dragging over chat lines with the mouse pressed selects them (highlighted), on
+-- release the text lies selected in an invisible edit box: Ctrl+C copies. A click without dragging
+-- stays a normal click (names, links). Since 0.6.101 per character, right-click on the selection = menu.
+-- Alt + click still opens the selection box.
 ------------------------------------------------------------------------
 local live = { hl = {} }
--- 0.6.101: buchstabengenau - jede Zeile wird mit derselben Schrift Zeichen fuer Zeichen ausgemessen (Chatfenster
--- verraten nicht, welcher Buchstabe unter der Maus liegt). Nachrichten ueber mehrere Bildschirmzeilen bleiben ganz.
+-- 0.6.101: per character - each line is measured char by char with the same font (chat frames
+-- do not reveal which letter is under the mouse). Messages spanning several screen lines stay whole.
 local function cursorXY()
     local x, y = GetCursorPosition()
     local s = UIParent:GetEffectiveScale() or 1
     return x / s, y / s
 end
--- sichtbare, lesbare Zeilen eines Chatfensters, oben zuerst
+-- visible, readable lines of a chat frame, top first
 local function shownLines(cf)
     local out = {}
     for _, fs in ipairs(type(cf.visibleLines) == "table" and cf.visibleLines or {}) do
@@ -823,8 +823,8 @@ local function lineAt(lines, y)
         if y < lines[#lines]:GetBottom() then return #lines end
     end
 end
--- sichtbare Zeichen einer Zeile: { s = erstes Byte, e = letztes Byte }; Farb-, Link- und Endcodes zaehlen nicht mit,
--- Symbole (|T...|t, |A...|a) zaehlen als ein Zeichen
+-- visible chars of a line: { s = first byte, e = last byte }; color, link and end codes do not count,
+-- icons (|T...|t, |A...|a) count as one char
 local function units(raw)
     local out, i, n = {}, 1, #raw
     while i <= n do
@@ -851,8 +851,8 @@ local function units(raw)
     return out
 end
 local meas, wrapM
--- 0.6.102: immer buchstabengenau, auch bei umgebrochenen Nachrichten: je Zeichen Bildzeile (row) und rechte Kante (w)
--- innerhalb seiner Bildzeile; Umbrueche ermittelt ein unsichtbares Textfeld mit gleicher Schrift und Breite
+-- 0.6.102: always per character, even for wrapped messages: per char the visual row (row) and right edge (w)
+-- within its row; wraps are determined by an invisible text field with the same font and width
 local function measureLine(fs, raw)
     live.cache = live.cache or {}
     raw = raw or fs:GetText()
@@ -892,7 +892,7 @@ local function measureLine(fs, raw)
     end
     return c
 end
--- linke Kante von Zeichen k (in seiner Bildzeile)
+-- left edge of char k (in its visual row)
 local function leftOf(c, k)
     if k <= 1 or c.row[k - 1] ~= c.row[k] then return 0 end
     return c.w[k - 1]
@@ -917,19 +917,19 @@ local function boundAt(fs, x, y)
     end
     return last
 end
--- Auswahl geordnet: Zeile a (ab Grenze ba) bis Zeile b (bis Grenze bb)
--- 0.6.109: Auswahl haengt an Nachrichten im Chatverlauf (Nummer + Zeichen), nicht an Bildschirmzeilen. Scrollt man
--- beim Ziehen, bleibt der Anfang an seiner Nachricht und die Auswahl waechst oder schrumpft mit; der Text kommt aus dem
--- Verlauf (GetMessageInfo), auch wenn Teile gerade nicht sichtbar sind.
+-- selection ordered: line a (from boundary ba) to line b (to boundary bb)
+-- 0.6.109: selection is attached to messages in the chat history (number + char), not to screen lines. If you scroll
+-- while dragging, the start stays at its message and the selection grows or shrinks; the text comes from the
+-- history (GetMessageInfo), even if parts are currently not visible.
 local function msgText(cf, m)
     local ok, t = pcall(cf.GetMessageInfo, cf, m)
     if ok and type(t) == "string" and not issecret(t) then return t end
 end
--- sichtbare Zeile -> Nachrichtennummer: unterste sichtbare Zeile = neueste (Anzahl - Scrollversatz), nach oben
--- abzaehlen und am Text bestaetigen; passt der Text nicht, im Umkreis suchen
+-- visible line -> message number: bottom visible line = newest (count - scroll offset), count
+-- upwards and confirm by text; if the text does not match, search nearby
 local function visibleMap(cf, lines)
     local map = {}
-    if cf.LiveIndexOf then   -- eigene Listen (Oasis-Gildenchat) kennen die Nummer selbst
+    if cf.LiveIndexOf then   -- own lists (Oasis guild chat) know the number themselves
         for _, fs in ipairs(lines) do map[fs] = cf:LiveIndexOf(fs) end
         return map
     end
@@ -1033,8 +1033,8 @@ local function liveFinish()
     local text = selectedText()
     if text == "" then liveClear() return end
     if not live.eb then
-        -- unsichtbares Eingabefeld: haelt den markierten Text, damit Strg+C ihn kopiert. Ausserhalb des Bildschirms
-        -- und ohne Markierungsfarbe (SetAlpha(0) allein liess oben links eine graue Flaeche stehen)
+        -- invisible edit box: holds the selected text so Ctrl+C copies it. Off screen
+        -- and without highlight color (SetAlpha(0) alone left a grey area top left)
         local eb = CreateFrame("EditBox", nil, live.layer)
         eb:SetSize(10, 10)
         eb:SetPoint("TOPLEFT", UIParent, "BOTTOMRIGHT", 200, -200)
@@ -1081,7 +1081,7 @@ local function liveStart(cf)
         live.layer:SetFrameStrata("DIALOG")
         live.layer:SetAllPoints(UIParent)
         live.drv = CreateFrame("Frame")
-        -- nach dem Markieren beim Scrollen die Hervorhebung mitfuehren (der Text bleibt derselbe)
+        -- after selecting, carry the highlight along when scrolling (the text stays the same)
         live.follow = CreateFrame("Frame")
         live.follow:SetScript("OnUpdate", function(self, el)
             self.acc = (self.acc or 0) + el
@@ -1095,7 +1095,7 @@ local function liveStart(cf)
         end)
     end
     live.cache = {}
-    -- gleicher Massstab wie das Chatfenster (gemessen wird in dessen Einheiten)
+    -- same scale as the chat frame (measured in its units)
     live.layer:SetScale((cf:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1))
     local map = visibleMap(cf, lines)
     local m = map[lines[i]]
@@ -1107,11 +1107,11 @@ local function liveStart(cf)
         if not live.frame then self:SetScript("OnUpdate", nil) return end
         local x, y = cursorXY()
         if not live.moved and math.abs(y - live.y0) < 6 and math.abs(x - live.x0) < 5 then
-            if not IsMouseButtonDown("LeftButton") then self:SetScript("OnUpdate", nil) liveClear() end   -- nur ein Klick
+            if not IsMouseButtonDown("LeftButton") then self:SetScript("OnUpdate", nil) liveClear() end   -- only a click
             return
         end
         live.moved = true
-        -- jede Runde neu: nach dem Mausrad stehen andere Nachrichten in den Zeilen
+        -- recompute every round: after the mouse wheel other messages are in the lines
         live.lines = shownLines(live.frame)
         live.map = visibleMap(live.frame, live.lines)
         local j = lineAt(live.lines, y)
@@ -1129,8 +1129,8 @@ local function liveStart(cf)
         end
     end)
 end
--- Rechtsklick auf eine Markierung: kleines Menue. Die Zwischenablage selbst ist fuer Addons gesperrt -
--- "Kopieren" legt die Markierung wieder bereit, Strg+C kopiert.
+-- right-click on a selection: small menu. The clipboard itself is locked for addons -
+-- "Copy" re-provides the selection, Ctrl+C copies.
 local function liveMenu()
     if not live.text or not live.lines then return false end
     local text = live.text
@@ -1162,13 +1162,13 @@ local function liveMenu()
     return true
 end
 GC.LiveStart, GC.LiveClear, GC.LiveMenu = liveStart, liveClear, liveMenu
-function GC.LiveText() return live.text end   -- fuer Tests
+function GC.LiveText() return live.text end   -- for tests
 GC._live = live
 
--- Ziehen im Chatfenster = live markieren, Alt + Klick = Markierfeld (einzelne Woerter)
+-- dragging in the chat frame = live select, Alt + click = selection box (single words)
 local selHooked = setmetatable({}, { __mode = "k" })
 function GC.HookSelect()
-    if ns.ForeignChat and ns.ForeignChat() then return end   -- 0.6.254: Markieren nur im Blizzard-Chat
+    if ns.ForeignChat and ns.ForeignChat() then return end   -- 0.6.254: selection only in the Blizzard chat
     local names = ns.Emoji and ns.Emoji.ChatFrameNames and ns.Emoji.ChatFrameNames()
     if not names then names = {} for i = 1, (NUM_CHAT_WINDOWS or 10) do names[i] = "ChatFrame" .. i end end
     for _, n in ipairs(names) do
@@ -1214,7 +1214,7 @@ function GC.ApplyCopyButton()
             end
         end)
         b:SetScript("OnLeave", function(self) self:SetAlpha(0.35) GameTooltip:Hide() end)
-        -- 0.6.3: Linksklick = direkt im Chat markieren, Rechtsklick = Suchfenster (wie bisher)
+        -- 0.6.3: left-click = select directly in chat, right-click = search window (as before)
         b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         b:SetScript("OnClick", function(_, btn)
             if btn == "RightButton" then
@@ -1230,14 +1230,14 @@ function GC.ApplyCopyButton()
     GC.copyBtn:SetShown(want)
 end
 
--- Fremde Chatdarstellung nur auslesen; die Markierung bleibt im separaten Kopierfenster.
+-- only read the foreign chat display; the selection stays in the separate copy window.
 function GC.Copy(frame)
     frame = frame or SELECTED_CHAT_FRAME or ChatFrame1
     if not frame or not (ns.WhisperLog and ns.WhisperLog.Copy) then return end
     local source = ns.Emoji and ns.Emoji.EuiWindow and ns.Emoji.EuiWindow(frame)
     local out = {}
     for _, line in ipairs(frameLines(source or frame)) do out[#out + 1] = line.t end
-    if ns.WhisperLog then ns.WhisperLog.Copy(L["Copy chat"], table.concat(out, "\n")) end   -- Fluestern-Modul kann aus sein
+    if ns.WhisperLog then ns.WhisperLog.Copy(L["Copy chat"], table.concat(out, "\n")) end   -- whisper module may be off
 end
 
 function GC.ApplyAll()
@@ -1250,7 +1250,7 @@ function GC.ApplyAll()
 end
 
 ------------------------------------------------------------------------
--- Listen pflegen (Einstellungen und Befehle)
+-- maintain lists (settings and commands)
 ------------------------------------------------------------------------
 function GC.ListAdd(key, value)
     local list = G()[key]
@@ -1269,7 +1269,7 @@ function GC.ListRemove(key, value)
     end
     return false
 end
--- /oa chatmute Kanal; Name  (nochmal = wieder aufheben)
+-- /oa chatmute channel; name  (again = lift again)
 ns.slash.chatmute = function(rest)
     local channel, name = (rest or ""):match("^%s*(.-)%s*;%s*(.-)%s*$")
     if not channel or channel == "" or name == "" then

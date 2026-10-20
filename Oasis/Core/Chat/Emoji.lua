@@ -1,8 +1,8 @@
--- Oasis - Emojis im Chat
--- WoW kann keine echten Emoji-Zeichen anzeigen und laesst keine Bilder in gesendeten Nachrichten zu.
--- Deshalb: man schreibt Kurzcodes (:lol:, <3, :gg: ...), Oasis ersetzt sie beim Anzeigen durch Bilder
--- (nur wer Oasis hat, sieht das Bild - alle anderen den Code). Raid-Symbole {rt1}..{rt8} sieht jeder.
--- Grafiken: Twemoji (CC-BY 4.0), siehe Media\emoji\CREDITS.txt
+-- Oasis - emojis in chat
+-- WoW cannot display real emoji characters and allows no images in sent messages.
+-- So: you type short codes (:lol:, <3, :gg: ...), Oasis replaces them with images when displaying
+-- (only people with Oasis see the image - everyone else sees the code). Raid icons {rt1}..{rt8} are seen by everyone.
+-- Graphics: Twemoji (CC-BY 4.0), see Media\emoji\CREDITS.txt
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -11,7 +11,7 @@ local Emoji = {}
 ns.Emoji = Emoji
 local PATH = ns.MEDIA .. "emoji\\"
 
--- key = Datei, codes = alles, was dazu wird (erster Code wird beim Einfuegen benutzt)
+-- key = file, codes = everything that becomes it (the first code is used on insert)
 Emoji.LIST = {
     { "smile", ":)", ":-)" }, { "grin", ":D", ":-D", ":happy:" }, { "xd", "xD", "XD" }, { "wink", ";)", ";-)" },
     { "tongue", ":P", ":p", ":-P" }, { "sad", ":(", ":-(" }, { "cry", ":'(" }, { "wow", ":O", ":o", ":pog:", ":poggers:", ":omg:" },
@@ -25,7 +25,7 @@ Emoji.LIST = {
     { "beer", ":beer:" }, { "coffee", ":coffee:" }, { "money", ":money:" }, { "gem", ":gem:" },
     { "swords", ":swords:" }, { "shield", ":shield:" }, { "dice", ":dice:" }, { "rip", ":rip:" },
     { "rocket", ":rocket:" }, { "tada", ":tada:" },
-    -- Spass-Emojis (Discord-/Twitch-Namen zeigen auf passende freie Bilder)
+    -- Fun emojis (Discord/Twitch names point to matching free images)
     { "sob", ":sob:", ":sadge:", ":pepehands:" }, { "smiling_tear", ":copium:", ":tear:" }, { "clown", ":clown:" },
     { "nerd", ":nerd:", ":actually:" }, { "moai", ":moai:" }, { "melt", ":melt:" }, { "salute", ":salute:", ":o7:" },
     { "pleading", ":pleading:", ":please:" }, { "flushed", ":flushed:", ":monkas:" }, { "smirk", ":smirk:", ":based:" },
@@ -41,18 +41,18 @@ Emoji.LIST = {
     { "horse", ":horse:", ":mount:" }, { "bow", ":bow:" }, { "axe", ":axe:" }, { "potion", ":potion:" }, { "mage", ":mage:" },
     { "zombie", ":zombie:" }, { "troll", ":troll:" }, { "pirate", ":pirate:" },
 }
--- Kategorien fuer die Auswahl: Standard, Gilde (eigene, auch animiert), Raid-Symbole
+-- Categories for the picker: standard, guild (own, also animated), raid icons
 Emoji.CATS = { { key = "std", name = "Default", items = Emoji.LIST } }
--- eigene Gilden-Emojis (CustomEmojis + ImportEmojis.bat) liegen im Gildenmodul Oasis_Guild und kommen ueber Emoji.AddCats dazu
+-- own guild emojis (CustomEmojis + ImportEmojis.bat) live in the guild module Oasis_Guild and are added via Emoji.AddCats
 local RAID = {}
 for i = 1, 8 do RAID[i] = { "raid" .. i, "{rt" .. i .. "}", raid = true } end
 Emoji.CATS[#Emoji.CATS + 1] = { key = "raid", name = "Raid", items = RAID, raid = true }
 
--- :name: -> Eintrag ; kurze Smileys (nur als eigenes "Wort") -> Eintrag
--- Animierte Eintraege (aus GIFs): n = Bilder, h = Hoehe des Streifens in Pixel (je Bild 64), d = Sekunden je Bild
+-- :name: -> entry ; short smileys (only as a separate "word") -> entry
+-- Animated entries (from GIFs): n = frames, h = strip height in pixels (64 per frame), d = seconds per frame
 local named, short = {}, {}
-Emoji.anims = {}   -- [Datei] = Eintrag
--- eigene Emojis zuerst: ihre Codes (z.B. :pepehands:) haben Vorrang vor den Ersatz-Aliasen im Standard-Satz
+Emoji.anims = {}   -- [file] = entry
+-- own emojis first: their codes (e.g. :pepehands:) take precedence over the fallback aliases in the default set
 local order = {}
 for _, cat in ipairs(Emoji.CATS) do if cat.custom then order[#order + 1] = cat end end
 for _, cat in ipairs(Emoji.CATS) do if not cat.custom then order[#order + 1] = cat end end
@@ -69,12 +69,12 @@ for _, cat in ipairs(order) do
     end
 end
 
--- Bildausschnitt eines animierten Emojis fuer den aktuellen Zeitpunkt
+-- Image section of an animated emoji for the current time
 local function frameOf(e)
     return math.floor(GetTime() / (e.d or 0.1)) % e.n
 end
 Emoji.FrameOf = frameOf
--- yoff: im Chat etwas tiefer setzen (sonst sitzt das Bild ueber der Textzeile)
+-- yoff: set a bit lower in chat (otherwise the image sits above the text line)
 local function tex(e, size, yoff)
     if type(e) == "string" then e = { e } end
     yoff = yoff or 0
@@ -88,15 +88,15 @@ local function tex(e, size, yoff)
 end
 Emoji.Tex = tex
 
--- Bild zurueck in den Kurzcode (fuer Text, der schon durch den Chat-Filter gelaufen ist)
+-- Image back to the short code (for text that already went through the chat filter)
 local codeOf = {}
-function Emoji.CodeOf(key) return codeOf[key] end   -- 0.6.103: fuer den Chat-Verlauf (Bild -> Kurzcode)
+function Emoji.CodeOf(key) return codeOf[key] end   -- 0.6.103: for the chat history (image -> short code)
 for _, cat in ipairs(Emoji.CATS) do
     for _, e in ipairs(cat.items) do
         if e[2] and not codeOf[e[1]] then codeOf[e[1]] = e[2] end
     end
 end
-local GPATH = "Interface\\AddOns\\Oasis_Guild\\Media\\emoji\\"   -- Texturen der Gilden-Emojis (Gildenmodul)
+local GPATH = "Interface\\AddOns\\Oasis_Guild\\Media\\emoji\\"   -- Textures of the guild emojis (guild module)
 local TEX_PAT = "|T" .. PATH:gsub("%p", "%%%0") .. "([^:|]+)[^|]*|t"
 local TEX_PAT_G = "|T" .. GPATH:gsub("%p", "%%%0") .. "([^:|]+)[^|]*|t"
 function Emoji.Unrender(msg)
@@ -106,12 +106,12 @@ function Emoji.Unrender(msg)
     return (msg:gsub(TEX_PAT_G, function(key) return codeOf[key] end))
 end
 
--- Emoji im Chat als (unsichtbarer) Link: nur so kann WoW beim Ueberfahren einen Tooltip zeigen
+-- Emoji in chat as (invisible) link: only then can WoW show a tooltip on hover
 local entryOf = {}
 for _, cat in ipairs(Emoji.CATS) do
     for _, e in ipairs(cat.items) do if not entryOf[e[1]] then entryOf[e[1]] = e end end
 end
--- 0.5.728: Gilden-Emojis aus dem Gildenmodul: Reiter anhaengen (vor "Raid") und Suchtabellen fuellen
+-- 0.5.728: guild emojis from the guild module: append tab (before "Raid") and fill lookup tables
 function Emoji.AddCats(cats, base)
     for _, c in ipairs(cats or {}) do
         local n = #Emoji.CATS + 1
@@ -132,26 +132,26 @@ function Emoji.AddCats(cats, base)
         end
     end
 end
--- nur, wenn der Client "addon:"-Links kennt (sonst gaebe ein Klick darauf einen Fehler)
+-- only if the client knows "addon:" links (otherwise clicking it would cause an error)
 local function linksOk()
     return (LinkTypes and LinkTypes.addon ~= nil) or (EventRegistry ~= nil and LinkUtil ~= nil and C_AddOns ~= nil)
 end
--- Groesse im Chat: eingestellt oder automatisch so gross wie die Schrift
+-- Size in chat: configured, or automatically as large as the font
 local function chatSize()
-    if Emoji.sizeOverride then return Emoji.sizeOverride end   -- Oasis-Fenster mit kleinerer Schrift (Privatchat ...)
+    if Emoji.sizeOverride then return Emoji.sizeOverride end   -- Oasis window with smaller font (private chat ...)
     local v = ns.db and tonumber(ns.db.settings.emojiChatSize) or 0
     if v > 0 then return v end
     local _, fh = ChatFrame1 and ChatFrame1.GetFont and ChatFrame1:GetFont()
     return math.floor((fh or 14) * 1.0 + 0.5)
 end
--- 0.5.602: nur noch minimal tiefer (vorher 18 %) - in der untersten Chatzeile ragte das Bild sonst unter den
--- Fensterrand und wurde abgeschnitten (Blizzard-Chat wie EllesmereUI)
+-- 0.5.602: only minimally lower now (previously 18 %) - in the bottom chat line the image otherwise stuck out below the
+-- window edge and got clipped (Blizzard chat like EllesmereUI)
 local function yoffFor(sz) return -math.floor((sz or 20) * 0.06 + 0.5) end
 local BLANK = ns.MEDIA .. "blank"
 local function linked(e)
     local sz = chatSize()
     if not linksOk() then return tex(e, sz, yoffFor(sz)) end
-    -- 0.6.102 Modus 4: animierte Emojis im Chat als unsichtbarer Platzhalter, das bewegte Bild legt Oasis darueber
+    -- 0.6.102 mode 4: animated emojis in chat as invisible placeholder, Oasis lays the moving image on top
     if Emoji._inFilter and e.n and e.n > 1 and ns.db and tonumber(ns.db.settings.emojiRedraw) == 4 then
         local yo = yoffFor(sz)
         return "|Haddon:oasisemo:" .. e[1]:gsub("\\", "~") .. "|h|T" .. BLANK .. ":" .. sz .. ":" .. sz .. ":0:" .. yo .. "|t|h"
@@ -167,7 +167,7 @@ function Emoji.ShowLinkTip(owner, link)
     for i = 3, #e do codes[#codes + 1] = e[i] end
     GameTooltip:SetOwner(owner, "ANCHOR_CURSOR")
     GameTooltip:AddLine(tex(e, 64) .. "   |cffffffff" .. (e[2] or "") .. "|r")
-    -- animierte Emojis (GIFs) auch im Tooltip abspielen
+    -- play animated emojis (GIFs) in the tooltip too
     if e.n and e.n > 1 then
         Emoji.tipAnim = Emoji.tipAnim or CreateFrame("Frame")
         Emoji.tipAnim.e = e
@@ -181,9 +181,9 @@ function Emoji.ShowLinkTip(owner, link)
     GameTooltip:Show()
     return true
 end
--- Alle Chatfenster: die festen (1..NUM_CHAT_WINDOWS) und die zeitweiligen (Fluester-Reiter, ab Nummer 11) aus
--- CHAT_FRAMES. Vorher liefen nur die festen mit: im Fluester-Reiter standen animierte Emojis still und die
--- Knoepfe an der Eingabe fehlten.
+-- All chat windows: the fixed ones (1..NUM_CHAT_WINDOWS) and the temporary ones (whisper tabs, from number 11) from
+-- CHAT_FRAMES. Previously only the fixed ones were included: in the whisper tab animated emojis stood still and the
+-- buttons at the input were missing.
 local function chatFrameNames()
     local out, seen = {}, {}
     for i = 1, (NUM_CHAT_WINDOWS or 10) do
@@ -198,10 +198,10 @@ local function chatFrameNames()
     return out
 end
 Emoji.ChatFrameNames = chatFrameNames
--- 0.6.235: EllesmereUI (Chat-Modul) laesst den Blizzard-Chat unsichtbar mitlaufen (Text-Alpha 0) und zeichnet den
--- sichtbaren Text in einem EIGENEN ScrollingMessageFrame auf der Hintergrundflaeche des Fensters. Die Emojis
--- (Modus 4) muessen an DESSEN Zeilen ausgerichtet werden - an den unsichtbaren Blizzard-Zeilen sassen sie verschoben.
--- Zugang ueber die oeffentliche Zuordnung EllesmereUI._chatCFD(cf).bg -> Kind vom Typ ScrollingMessageFrame.
+-- 0.6.235: EllesmereUI (chat module) keeps the Blizzard chat running invisibly (text alpha 0) and draws the
+-- visible text in its OWN ScrollingMessageFrame on the window's background. The emojis
+-- (mode 4) must be aligned to ITS lines - on the invisible Blizzard lines they sat offset.
+-- Access via the public mapping EllesmereUI._chatCFD(cf).bg -> child of type ScrollingMessageFrame.
 local function euiWindow(cf)
     local E = rawget(_G, "EllesmereUI")
     local CFD = type(E) == "table" and E._chatCFD
@@ -209,8 +209,8 @@ local function euiWindow(cf)
     local ok, d = pcall(CFD, cf)
     local bg = ok and type(d) == "table" and d.bg
     if not (bg and bg.GetChildren) then return nil end
-    -- 0.6.236: am Inhalt erkennen statt am Typnamen (das selbstgebaute Fenster meldete sich nicht als
-    -- "ScrollingMessageFrame"): Kind mit Zeilenliste und Nachrichtenzahl; sichtbares bevorzugt
+    -- 0.6.236: detect by content instead of type name (the custom frame didn't report itself as
+    -- "ScrollingMessageFrame"): child with line list and message count; visible one preferred
     local any
     for _, c in ipairs({ bg:GetChildren() }) do
         if type(c.visibleLines) == "table" and c.GetNumMessages then
@@ -220,7 +220,7 @@ local function euiWindow(cf)
     end
     return any
 end
--- Diagnose: was haengt an der EllesmereUI-Flaeche?
+-- Diagnostics: what is attached to the EllesmereUI surface?
 function Emoji.EuiDiag(cf)
     local E = rawget(_G, "EllesmereUI")
     local CFD = type(E) == "table" and E._chatCFD
@@ -236,8 +236,8 @@ function Emoji.EuiDiag(cf)
     return "bg-Kinder: " .. (#parts > 0 and table.concat(parts, " ") or "keine")
 end
 Emoji.EuiWindow = euiWindow
--- Chat-Diagnose: nur lesen, keine Chatzeilen ausgeben oder Scroll-Hooks installieren.
--- Der Bericht enthaelt keine Nachrichten und bleibt lokal; die Kopie oeffnet ausserhalb des Chats.
+-- Chat diagnostics: read only, don't print chat lines or install scroll hooks.
+-- The report contains no messages and stays local; the copy opens outside the chat.
 local chatWatchTimer
 local function watchValue(f, method)
     if not f or type(f[method]) ~= "function" then return "?" end
@@ -313,7 +313,7 @@ ns.slash.chatwatch = function(arg)
         end
     end)
 end
--- Anschluesse je Chatfenster (Tooltip, Eingabe, Knoepfe): laufen beim Login und wieder, wenn WoW einen Reiter oeffnet
+-- Hooks per chat window (tooltip, input, buttons): run at login and again when WoW opens a tab
 local wirers = {}
 function Emoji.WireChatFrames()
     Emoji._stepFrames = nil
@@ -328,7 +328,7 @@ ns.Listen("LOGIN", function()
         hooksecurefunc("FCF_OpenTemporaryWindow", function() C_Timer.After(0, Emoji.WireChatFrames) end)
     end
 end)
--- Chatfenster: Tooltip beim Ueberfahren (nur anhaengen, Blizzards eigene Link-Behandlung bleibt)
+-- Chat window: tooltip on hover (hook only, Blizzard's own link handling stays)
 local tipHooked = setmetatable({}, { __mode = "k" })
 wirers[#wirers + 1] = function()
     for _, n in ipairs(chatFrameNames()) do
@@ -341,11 +341,11 @@ wirers[#wirers + 1] = function()
     end
 end
 
--- Text ausserhalb von Links umwandeln (Item-/Spieler-Links enthalten Doppelpunkte!)
--- gesperrte Emojis (erst ab Oasis-Rang): nur als Bild zeigen, wenn der ABSENDER den Rang hat
+-- Convert text outside links (item/player links contain colons!)
+-- locked emojis (from Oasis rank): only show as image if the SENDER has the rank
 local renderSender
 function Emoji.Allowed(e, who)
-    -- 0.6.534: eigene Gilden-Emojis -> Vorgabe der Leitung (Rang, aus, nur Leitung) zuerst
+    -- 0.6.534: own guild emojis -> leadership's setting (rank, off, leadership only) first
     local own = type(e) == "table" and type(e[1]) == "string" and e[1]:match("^x\\(.+)$")
     if own and ns.MediaPack then
         local ok = ns.MediaPack.MayUse("emoji", own, who)
@@ -358,23 +358,23 @@ function Emoji.Allowed(e, who)
     local lvl = ns.Rank and ns.Rank.Of and ns.Rank.Of(who)
     return (lvl or 0) >= need
 end
--- Muster einmal bauen (vorher je Wort und Nachricht neu zusammengesetzt)
+-- Build the pattern once (previously reassembled per word and message)
 local TAIL_PATS = { "^(%a+)(...)([%.,!%?]*)$", "^(%a+)(..)([%.,!%?]*)$" }
 local function renderPlain(s)
     s = s:gsub(":([%w%+%-_]+):", function(n)
         local e = named[n:lower()]
         if e and Emoji.Allowed(e, renderSender) then return linked(e) end
     end)
-    -- kurze Smileys nur als eigenes Wort (sonst wuerde z.B. "12:30" oder eine URL zerlegt).
-    -- Satzzeichen dahinter bleiben stehen ("xD!" -> Bild + "!"), direkt am Wort haengende Smileys
-    -- werden auch erkannt ("hallo:)" -> "hallo" + Bild), Uhrzeiten/Links nicht.
+    -- short smileys only as a separate word (otherwise e.g. "12:30" or a URL would be broken up).
+    -- trailing punctuation stays ("xD!" -> image + "!"), smileys attached directly to a word
+    -- are also recognized ("hallo:)" -> "hallo" + image), times/links are not.
     s = s:gsub("(%S+)", function(w)
         local e = short[w]
         if e then return linked(e) end
-        -- Satzzeichen hinten abtrennen ("xD!", ":D?!", "<3.")
+        -- split off trailing punctuation ("xD!", ":D?!", "<3.")
         local core, tail = w:match("^(.-)([%.,!%?;]+)$")
         if core and core ~= "" and short[core] then return linked(short[core]) .. tail end
-        -- Smiley direkt am Wortende ("hallo:)", "gg:D!"), nur mit Buchstaben davor
+        -- Smiley directly at the end of a word ("hallo:)", "gg:D!"), only with letters before it
         if not w:find("[:;]") then return nil end
         for _, pat in ipairs(TAIL_PATS) do
             local base, code, rest = w:match(pat)
@@ -388,7 +388,7 @@ end
 function Emoji.Render(msg, sender)
     renderSender = sender
     if type(msg) ~= "string" or msg == "" then return msg end
-    -- Schnellpruefung: alle Kurzcodes enthalten : ; < { oder xD/XD (vorher sprang sie bei jedem "x" an)
+    -- Quick check: all short codes contain : ; < { or xD/XD (previously it triggered on every "x")
     if not (msg:find("[:;<{]") or msg:find("[xX]D")) then return msg end
     local out, pos = {}, 1
     while true do
@@ -400,17 +400,17 @@ function Emoji.Render(msg, sender)
     end
     out[#out + 1] = renderPlain(msg:sub(pos))
     local res = table.concat(out)
-    -- animiertes Emoji dabei? Dann laeuft die Animation (StepChat) die naechsten 15 Min
+    -- animated emoji included? Then the animation (StepChat) runs for the next 15 min
     if res ~= msg and res:find("emoji\\guild\\", 1, true) then Emoji.animShown = GetTime() end
     return res
 end
 
 ------------------------------------------------------------------------
--- Animation im Chat: sichtbare Chatzeilen mit animierten Emojis Bild fuer Bild weiterschalten
--- (so machen es auch Addons wie TwitchEmotes; nur Anzeige, nichts wird gesendet)
+-- Animation in chat: advance visible chat lines with animated emojis frame by frame
+-- (addons like TwitchEmotes do it the same way; display only, nothing is sent)
 ------------------------------------------------------------------------
 local issecret = issecretvalue or function() return false end
--- y-Versatz kann negativ sein (Emoji sitzt auf der Grundlinie) -> mit erfassen, sonst bleibt das Bild stehen
+-- y offset can be negative (emoji sits on the baseline) -> include it, otherwise the image stands still
 local ANIM_PAT = "(emoji\\(guild\\[%w_]+)):(%d+):(%d+):0:(%-?%d+):64:(%d+):0:64:(%d+):(%d+)|t"
 local function animText(t)
     return (t:gsub(ANIM_PAT, function(path, key, sw, sh, yo, h, top, bottom)
@@ -420,9 +420,9 @@ local function animText(t)
         return path .. ":" .. sw .. ":" .. sh .. ":0:" .. yo .. ":64:" .. h .. ":0:64:" .. nt .. ":" .. (nt + 64) .. "|t"
     end))
 end
--- 0.6.1: Neuzeichnen je nach Rechner (/oa emojimodus): 1 = Zeile direkt (Standard), 2 = Zeile erst leeren, dann
--- neu setzen, 3 = ueber den Chatverlauf des Fensters (TransformMessages) - fuer Clients, die eine geaenderte
--- Zeile nicht neu zeichnen (Text war nachweislich weitergeschaltet, Bild stand trotzdem)
+-- 0.6.1: redraw depending on the machine (/oa emojimodus): 1 = line directly (default), 2 = clear the line first, then
+-- set again, 3 = via the window's chat history (TransformMessages) - for clients that don't redraw a changed
+-- line (text was demonstrably advanced, image stood still anyway)
 local function redrawMode() return tonumber(ns.db and ns.db.settings.emojiRedraw) or 1 end
 local function stepLine(fs)
     local t = fs:GetText()
@@ -434,12 +434,12 @@ local function stepLine(fs)
     end
 end
 ------------------------------------------------------------------------
--- Modus 4 (0.6.102): eigene Bilder ueber den Platzhaltern. Manche Clients zeichnen eine geaenderte Chatzeile nicht
--- neu (Text nachweislich weitergeschaltet, Bild stand) - echte Texturen bewegen sich dort trotzdem (wie im
--- Emoji-Fenster). Position: Zeile mit derselben Schrift ausmessen, bei Umbruch die Zeile ueber die Leerzeichen suchen.
+-- Mode 4 (0.6.102): own images over the placeholders. Some clients don't redraw a changed chat line
+-- (text demonstrably advanced, image stood still) - real textures still move there (as in the
+-- emoji window). Position: measure the line with the same font, on wrap find the line via the spaces.
 ------------------------------------------------------------------------
--- Versatz-Faktor fuer Modus 4: eigene Einstellung (/oa emojiversatz), sonst 1.
--- 0.6.234: Mac-Annahme aus 0.6.233 wieder raus - der betroffene Spieler ist nicht am Mac.
+-- Offset factor for mode 4: own setting (/oa emojiversatz), otherwise 1.
+-- 0.6.234: Mac assumption from 0.6.233 removed again - the affected player is not on a Mac.
 function Emoji.XScale()
     return tonumber(ns.db and ns.db.settings.emojiXScale) or 1
 end
@@ -463,10 +463,10 @@ local function measRows(fs, t)
     wrapFS:SetText(t)
     return (wrapFS.GetNumLines and wrapFS:GetNumLines()) or 1
 end
--- Emojis einer Zeile mit Position (x ab links, Bildzeile) - nur neu, wenn sich der Text aendert
+-- Emojis of a line with position (x from the left, image line) - only recomputed when the text changes
 local function lineItems(fs, raw)
-    -- 0.6.162: Schrift gehoert zum Merkschluessel - Chat-Addons (EllesmereUI u. a.) setzen die Schrift oft erst
-    -- nach der ersten Messung, sonst blieb die alte Position haengen und das Emoji sass dauerhaft daneben
+    -- 0.6.162: the font is part of the cache key - chat addons (EllesmereUI etc.) often set the font only
+    -- after the first measurement, otherwise the old position stuck and the emoji sat permanently off
     local f, s, fl = fs:GetFont()
     local ts = fs.GetTextScale and fs:GetTextScale()
     local fkey = tostring(f) .. "|" .. tostring(s) .. "|" .. tostring(fl) .. "|" .. tostring(ts) .. "|" .. tostring(fs.GetWidth and fs:GetWidth())
@@ -474,8 +474,8 @@ local function lineItems(fs, raw)
     if c and c.raw == raw and c.fkey == fkey then return c.items end
     local items = {}
     local multi = fs.GetNumLines and (fs:GetNumLines() or 1) > 1
-    -- 0.6.106: an der echten Zeile abgleichen - meldet die Chatzeile eine andere Gesamtbreite als die eigene Messung
-    -- (andere Schriftdarstellung, Symbole ...), wird x mit demselben Faktor umgerechnet
+    -- 0.6.106: calibrate against the real line - if the chat line reports a different total width than our own measurement
+    -- (different font rendering, icons ...), x is converted with the same factor
     local factor = 1
     local real
     if not multi then
@@ -494,8 +494,8 @@ local function lineItems(fs, raw)
             local prefix = raw:sub(1, a - 1)
             local x, row = nil, 1
             if not multi then
-                -- 0.6.143: von rechts rechnen - die echte Zeilenbreite meldet WoW selbst, gemessen wird nur der Text
-                -- hinter dem Emoji (meist nichts). Von links summierten sich Messfehler (Emoji sass weit rechts daneben).
+                -- 0.6.143: calculate from the right - WoW reports the real line width itself, only the text
+                -- after the emoji is measured (usually nothing). From the left, measurement errors added up (emoji sat far to the right).
                 local sz = tonumber(sw) or 14
                 if real and real > 0 then
                     local suffix = raw:sub(e + 1)
@@ -505,7 +505,7 @@ local function lineItems(fs, raw)
                     x = measWidth(fs, prefix) * factor
                 end
             else
-                -- Bildzeile des Emojis und deren Anfang (nach dem letzten Leerzeichen, das noch davor umbricht)
+                -- Image line of the emoji and its start (after the last space that still wraps before it)
                 row = measRows(fs, raw:sub(1, e))
                 local start = 1
                 if row > 1 then
@@ -531,7 +531,7 @@ local function ovLayer(cf)
         l:SetAllPoints(cf)
         ov.layers[cf] = l
     end
-    -- gleicher Massstab wie das Chatfenster: gemessen wird in dessen Einheiten (0.6.103 - sass sonst zu weit rechts)
+    -- same scale as the chat window: measured in its units (0.6.103 - otherwise sat too far right)
     return l
 end
 local function ovStep(frames)
@@ -548,7 +548,7 @@ local function ovStep(frames)
                     if raw and not issecret(raw) and raw:find("oasisemo:", 1, true) and raw:find("blank:", 1, true) then
                         local rows = math.max(1, (fs.GetNumLines and fs:GetNumLines()) or 1)
                         local lh = (fs:GetHeight() or 14) / rows
-                        -- 0.6.105: nur Bildzeilen innerhalb des Chatfensters (hochgescrollte Zeilen ragen darueber hinaus)
+                        -- 0.6.105: only image lines inside the chat window (scrolled-up lines stick out above it)
                         local ct, cb, ft = cf:GetTop(), cf:GetBottom(), fs:GetTop()
                         for _, it in ipairs(lineItems(fs, raw)) do
                             local rowTop = ft and (ft - (it.row - 1) * lh)
@@ -562,8 +562,8 @@ local function ovStep(frames)
                             t:SetTexture((e.base or PATH) .. e[1])
                             local top = frameOf(e) * 64
                             t:SetTexCoord(0, 1, top / e.h, (top + 64) / e.h)
-                            -- 0.6.108: gemessen wird in Einheiten der Chatzeile, platziert in denen der Bild-Ebene -> umrechnen
-                            -- (bei Chat-Skala 0,64 sass das Bild sonst verschoben); Textausrichtung der Zeile beachten
+                            -- 0.6.108: measured in chat line units, placed in those of the image layer -> convert
+                            -- (at chat scale 0.64 the image otherwise sat offset); respect the line's text alignment
                             local k = (fs:GetEffectiveScale() or 1) / (layer:GetEffectiveScale() or 1)
                             local jx = 0
                             local jh = fs.GetJustifyH and fs:GetJustifyH()
@@ -571,11 +571,11 @@ local function ovStep(frames)
                                 local free = (fs:GetWidth() or 0) - ((fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth() or 0)
                                 if free > 0 then jx = (jh == "RIGHT") and free or free / 2 end
                             end
-                            -- 0.6.147: Text-Skalierung der Zeile (SetTextScale) - WoW meldet Breiten ohne sie, zeichnet aber
-                            -- verkleinert; ohne diesen Faktor sass das Emoji bei manchen Spielern ~14 % zu weit rechts
+                            -- 0.6.147: text scale of the line (SetTextScale) - WoW reports widths without it but draws
+                            -- scaled down; without this factor the emoji sat ~14 % too far right for some players
                             local ts = (fs.GetTextScale and tonumber((fs:GetTextScale()))) or 1
                             if ts <= 0.2 or ts > 5 then ts = 1 end
-                            -- 0.6.152: Korrektur von Hand (/oa emojiversatz), falls ein Client anders zeichnet als er misst
+                            -- 0.6.152: manual correction (/oa emojiversatz) in case a client draws differently than it measures
                             local xs = Emoji.XScale()
                             t:SetSize(it.sz * k * ts, it.sz * k * ts)
                             t:ClearAllPoints()
@@ -609,15 +609,15 @@ local function stepBuffer(cf)
     end)
     return true
 end
--- eigene Oasis-Textfelder (Chatblasen, Vorschau): animierte Emojis dort ebenfalls weiterschalten
+-- own Oasis text fields (chat bubbles, preview): advance animated emojis there as well
 Emoji.tracked = setmetatable({}, { __mode = "k" })
 function Emoji.Track(fs)
     if fs and fs.GetText then Emoji.tracked[fs] = true end
 end
 function Emoji.StepChat()
     if not ns.db or ns.db.settings.chatEmoji == false then return end
-    -- nur, wenn in den letzten 15 Min ein animiertes Emoji angezeigt wurde oder Oasis-Felder welche tragen
-    -- (Performance 0.5.482: vorher liefen 20x pro Sekunde alle sichtbaren Chatzeilen durch)
+    -- only if an animated emoji was shown in the last 15 min or Oasis fields contain some
+    -- (performance 0.5.482: previously all visible chat lines were processed 20x per second)
     if GetTime() - (Emoji.animShown or -1e9) > 900 and not next(Emoji.tracked) then return end
     local frames = Emoji._stepFrames
     if not frames then
@@ -630,16 +630,16 @@ function Emoji.StepChat()
         for _, x in ipairs(frames) do if x == f then have = true break end end
         if not have then frames[#frames + 1] = f end
     end
-    -- Oasis-eigene Felder (Gildenchat-Seite, Fluesterblasen, Umfragen) immer weiterschalten - 0.6.289: die
-    -- EllesmereUI-Sperre aus 0.6.257 galt nur den unsichtbaren Blizzard-Zeilen, hielt aber auch diese an
+    -- Always advance Oasis's own fields (guild chat page, whisper bubbles, polls) - 0.6.289: the
+    -- EllesmereUI block from 0.6.257 was meant only for the invisible Blizzard lines but stopped these too
     for fs in pairs(Emoji.tracked) do
         if fs.IsVisible and fs:IsVisible() then pcall(stepLine, fs) end
     end
-    -- 0.5.565: Chatfenster, ueber dessen Link gerade die Maus steht (Tooltip gehoert ihm), nicht weiterschalten -
-    -- SetText baut die Link-Flaechen neu, WoW meldet "Maus weg" und die Vorschau verschwand sofort
+    -- 0.5.565: don't advance the chat window whose link is under the mouse (the tooltip belongs to it) -
+    -- SetText rebuilds the link areas, WoW reports "mouse left" and the preview vanished immediately
     local tipOwner = GameTooltip and GameTooltip:IsShown() and GameTooltip:GetOwner() or nil
     if redrawMode() == 4 then
-        -- 0.6.235: mit EllesmereUI die sichtbaren Fenster von EllesmereUI vermessen statt der unsichtbaren Blizzard-Zeilen
+        -- 0.6.235: with EllesmereUI measure EllesmereUI's visible frames instead of the invisible Blizzard lines
         local ovFrames = frames
         if rawget(_G, "EllesmereUI") then
             ovFrames = {}
@@ -649,7 +649,7 @@ function Emoji.StepChat()
         if not ok then ns.err("Emoji", e) end
         return
     end
-    if (ns.ForeignChat and ns.ForeignChat()) then return end   -- 0.6.257: Modus 1-3 nur im Blizzard-Chat (Modus 4 laeuft oben)
+    if (ns.ForeignChat and ns.ForeignChat()) then return end   -- 0.6.257: modes 1-3 only in Blizzard chat (mode 4 runs above)
     local viaBuffer = redrawMode() == 3
     for _, cf in ipairs(frames) do
         local lines = cf and cf ~= tipOwner and cf:IsVisible() and cf.visibleLines
@@ -658,19 +658,19 @@ function Emoji.StepChat()
             if not ok then ns.err("Emoji", e) end
         elseif lines then
             for _, fs in ipairs(lines) do
-                -- Zeile unter der Maus nicht weiterschalten: SetText baut die Link-Flaechen neu, ein Klick auf den
-                -- Namen in einer Zeile mit animiertem Emoji ging dadurch verloren (kein Fluestern, kein Menue)
+                -- Don't advance the line under the mouse: SetText rebuilds the link areas, a click on the
+                -- name in a line with an animated emoji got lost because of that (no whisper, no menu)
                 if fs.IsShown and fs:IsShown() and not (fs.IsMouseOver and fs:IsMouseOver()) then pcall(stepLine, fs) end
             end
         end
     end
     if viaBuffer and GetTime() - lastTransform >= 0.08 then lastTransform = GetTime() end
 end
--- 0.5.511: ~30 Bilder/s statt 12,5 (alle 0,08 s) - die GIFs haben 0,02-0,06 s je Bild und ruckelten/liefen
--- scheinbar zu langsam. Laeuft nur, solange animierte Emojis sichtbar sein koennen (StepChat prueft das selbst).
+-- 0.5.511: ~30 frames/s instead of 12.5 (every 0.08 s) - the GIFs have 0.02-0.06 s per frame and stuttered/ran
+-- seemingly too slow. Runs only while animated emojis can be visible (StepChat checks that itself).
 ns.Listen("LOGIN", function()
     if not next(Emoji.anims) or Emoji.stepper then return end
-    -- nach /reload: wiederhergestellter Chatverlauf kann animierte Emojis enthalten -> 15 Min mitlaufen
+    -- after /reload: restored chat history may contain animated emojis -> run for 15 min
     Emoji.animShown = GetTime()
     local st = CreateFrame("Frame")
     Emoji.stepper = st
@@ -685,7 +685,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Chat-Filter: nur Anzeige, gesendet wird weiterhin der Text
+-- Chat filter: display only, the text is still what gets sent
 ------------------------------------------------------------------------
 local EVENTS = { "CHAT_MSG_GUILD", "CHAT_MSG_OFFICER", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER", "CHAT_MSG_RAID",
     "CHAT_MSG_RAID_LEADER", "CHAT_MSG_RAID_WARNING", "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER",
@@ -693,11 +693,11 @@ local EVENTS = { "CHAT_MSG_GUILD", "CHAT_MSG_OFFICER", "CHAT_MSG_PARTY", "CHAT_M
     "CHAT_MSG_BN_WHISPER", "CHAT_MSG_BN_WHISPER_INFORM" }
 local function filter(self, event, msg, ...)
     if not ns.db or ns.db.settings.chatEmoji == false then return false end
-    msg = ns.safe(msg)   -- im Kampf koennen Nachrichten "geheim" sein -> nicht anfassen
+    msg = ns.safe(msg)   -- in combat messages can be "secret" -> don't touch
     if not msg then return false end
     local sender = ns.safe((...))
-    -- eigene gesendete Fluesternachricht: "sender" ist hier der EMPFAENGER -> Absender bin ich
-    -- (sonst wurden gesperrte Emojis nach dessen Rang geprueft und blieben als Code stehen)
+    -- own sent whisper: "sender" here is the RECIPIENT -> I am the sender
+    -- (otherwise locked emojis were checked against their rank and stayed as code)
     if event == "CHAT_MSG_WHISPER_INFORM" or event == "CHAT_MSG_BN_WHISPER_INFORM" then sender = ns.me() end
     Emoji._inFilter = true
     local ok, new = pcall(Emoji.Render, msg, sender and ns.fullName(sender) or nil)
@@ -713,7 +713,7 @@ end
 for _, ev in ipairs(EVENTS) do addFilter(ev) end
 
 ------------------------------------------------------------------------
--- Auswahl-Fenster
+-- Picker window
 ------------------------------------------------------------------------
 local picker
 local function activeEditBox()
@@ -721,17 +721,17 @@ local function activeEditBox()
     if eb then return eb end
     return ChatFrame1EditBox
 end
-Emoji.frames = {}   -- weitere Chatfenster (z.B. Gildenchat-Seite), deren Emojis animiert werden
--- Wohin wurde gerade geschrieben? (Klick auf den Emoji-Knopf schliesst die Eingabe -> danach
--- genau dorthin wieder oeffnen, sonst macht WoW aus einem Fluestern "Sagen")
+Emoji.frames = {}   -- further chat windows (e.g. guild chat page) whose emojis are animated
+-- Where was the user just typing? (clicking the emoji button closes the input -> afterwards
+-- reopen exactly there, otherwise WoW turns a whisper into "Say")
 local PREFIX_OF = { SAY = "/s ", YELL = "/y ", PARTY = "/p ", RAID = "/ra ", GUILD = "/g ", OFFICER = "/o ",
     INSTANCE_CHAT = "/i ", RAID_WARNING = "/rw " }
--- Ziel einer Chat-Eingabe als Slash-Vorsatz ("/w Tomas ", "/p " ...), nil = kein Chat-Eingabefeld
+-- Target of a chat input as slash prefix ("/w Tomas ", "/p " ...), nil = no chat input box
 local function targetOf(eb)
     if not eb or not eb.GetAttribute then return nil end
     local ct = ns.safe(eb:GetAttribute("chatType"))
     if ct == "WHISPER" or ct == "BN_WHISPER" then
-        -- auch Battle.net-Fluestern (Freundesliste: "Tomas erzaehlen")
+        -- also Battle.net whispers (friends list: "Tomas erzaehlen")
         local who = ns.safe(eb:GetAttribute("tellTarget"))
         if who and who ~= "" then return "/w " .. who .. " " end
     elseif ct == "CHANNEL" then
@@ -742,14 +742,14 @@ local function targetOf(eb)
     end
 end
 Emoji.TargetOf = targetOf
--- nur merken, solange wirklich in der Eingabe getippt wird: verliert sie den Fokus (Klick auf den
--- Emoji-Knopf), stellt WoW sie auf "Sagen" zurueck - das darf das gemerkte Ziel nicht ueberschreiben
+-- only remember while actually typing in the input: if it loses focus (click on the
+-- emoji button), WoW resets it to "Say" - that must not overwrite the remembered target
 function Emoji.RememberTarget(eb)
     eb = eb or activeEditBox()
     if not eb or not eb:IsShown() or not (eb.HasFocus and eb:HasFocus()) then return end
     local pre = targetOf(eb)
-    -- WoW stellt beim Wiederoeffnen kurz auf "Sagen" - das darf ein eben gemerktes Ziel (Gilde, Gruppe,
-    -- Fluestern) nicht ueberschreiben
+    -- WoW briefly switches to "Say" when reopening - that must not overwrite a just-remembered target (guild, group,
+    -- whisper)
     local lt = Emoji.lastTarget
     if pre == "/s " and lt and lt.pre ~= "/s " and lt.t and GetTime() - lt.t < 8 then return end
     if pre then
@@ -758,9 +758,9 @@ function Emoji.RememberTarget(eb)
             ct = ns.safe(eb:GetAttribute("chatType")), who = ns.safe(eb:GetAttribute("tellTarget")) }
     end
 end
--- nach dem Klick auf den Emoji-Knopf: WoW hat die Eingabe geschlossen/auf "Sagen" gestellt ->
--- sofort mit dem gemerkten Ziel und dem angefangenen Text wieder oeffnen
--- Chat-Eingabe mit Ziel + Text oeffnen (oder nichts tun, wenn sie schon genau so offen ist)
+-- after clicking the emoji button: WoW closed the input/set it to "Say" ->
+-- reopen immediately with the remembered target and the started text
+-- Open chat input with target + text (or do nothing if it is already open exactly like that)
 local function openWith(pre, text, ct, who0)
     local cur = activeEditBox()
     if cur and cur:IsShown() and cur.HasFocus and cur:HasFocus() and targetOf(cur) == pre
@@ -768,25 +768,25 @@ local function openWith(pre, text, ct, who0)
     if ns.inCombat() then return end
     local who = pre:match("^/w (.-) $")
     if ct == "BN_WHISPER" and (who0 or who) then
-        -- Battle.net-Fluestern: oeffnen und Typ + Ziel direkt setzen (WoWs Funktion klappt hier nicht immer)
+        -- Battle.net whisper: open and set type + target directly (WoW's function doesn't always work here)
         who = who0 or who
         ns.Trace("BN_WHISPER " .. who)
         if ChatFrame_SendBNetTell then pcall(ChatFrame_SendBNetTell, who) end
-        -- KEIN SetAttribute auf Blizzards Chat-Eingabe mehr: das "verseucht" sie (Taint) und WoW
-        -- blockiert danach geschuetzte Funktionen ("Oasis wurde blockiert ... callback()")
+        -- NO SetAttribute on Blizzard's chat input anymore: that "taints" it and WoW
+        -- then blocks protected functions ("Oasis wurde blockiert ... callback()")
         local nb = activeEditBox()
         if nb and nb:IsShown() then nb:SetText(text) nb:SetFocus() end
         return
     end
     local bnID = who and BNet_GetBNetIDAccount and ns.safe(BNet_GetBNetIDAccount(who))
     if who and bnID and ChatFrame_SendBNetTell then
-        -- Battle.net-Freund: ueber WoWs Battle.net-Fluestern oeffnen
+        -- Battle.net friend: open via WoW's Battle.net whisper
         ns.Trace("ChatFrame_SendBNetTell")
         ChatFrame_SendBNetTell(who)
         local nb = activeEditBox()
         if nb then nb:SetText(text) end
     elseif who and ChatFrame_SendTell then
-        -- Fluestern mit WoWs eigener Funktion oeffnen (wie "Antworten"), dann den Text einsetzen
+        -- Open whisper with WoW's own function (like "Reply"), then insert the text
         ns.Trace("ChatFrame_SendTell")
         ChatFrame_SendTell(who)
         local nb = activeEditBox()
@@ -800,11 +800,11 @@ function Emoji.RestoreChat()
     if lt then openWith(lt.pre, lt.text or "", lt.ct, lt.who) end
 end
 ------------------------------------------------------------------------
--- Lautsprecher-Knopf an der Chat-Eingabe: EINE Stelle fuer das Verhalten (Oasis-eigener Knopf und der Knopf von nesUI
--- rufen beide hier hinein). Regel: ein Sound geht einfach raus - vorher und nachher oeffnet sich keine
--- Chat-Eingabe. Nur wenn dort schon Text stand, kommt die Eingabe mit diesem Text zurueck.
+-- Speaker button at the chat input: ONE place for the behavior (Oasis's own button and nesUI's button
+-- both call in here). Rule: a sound just goes out - no chat input opens before or after.
+-- Only if text was already there does the input come back with that text.
 ------------------------------------------------------------------------
--- Maus runter: Ziel und "stand schon Text da?" merken, BEVOR WoW die Eingabe beim Klick schliesst
+-- Mouse down: remember target and "was there text already?" BEFORE WoW closes the input on click
 function Emoji.SoundButtonDown(btn, eb)
     if not btn then return end
     local cur = eb and eb:IsShown() and ns.safe(eb:GetText()) or ""
@@ -814,7 +814,7 @@ end
 function Emoji.SoundButtonClick(btn, eb)
     if not (btn and eb and ns.Sound and ns.Sound.OpenPicker) then return end
     local had = btn.hadText
-    -- dorthin schicken, wo gerade geschrieben wurde (Fluestern -> nur die Person, Gruppe -> nur die Gruppe)
+    -- send to wherever was just being typed (whisper -> only that person, group -> only the group)
     local lt = Emoji.lastTarget
     local fresh = lt and lt.eb == eb and lt.t and GetTime() - lt.t < 5
     local ct = (fresh and lt.ct) or (eb:IsShown() and ns.safe(eb:GetAttribute("chatType"))) or (lt and lt.ct) or "GUILD"
@@ -827,7 +827,7 @@ function Emoji.SoundButtonClick(btn, eb)
         if had then
             C_Timer.After(0.05, function() pcall(Emoji.RestoreChat) end)
         elseif not ns.inCombat() then
-            -- leere Eingabe schliessen, falls sie (noch) offen ist - mit jeder Schliess-Funktion, die dieser Client kennt
+            -- close an empty input if it is (still) open - with every close function this client knows
             local function closeEmpty()
                 if ns.inCombat() or not eb:IsShown() then return end
                 if (ns.safe(eb:GetText()) or ""):gsub("%s", "") ~= "" then return end
@@ -841,16 +841,16 @@ function Emoji.SoundButtonClick(btn, eb)
             for _, d in ipairs({ 0.05, 0.25, 0.6, 1.2 }) do C_Timer.After(d, closeEmpty) end
         end
     end, "send")
-    -- angefangenen Text nicht verlieren: nur dann geht die Eingabe wieder auf
+    -- don't lose started text: only then does the input reopen
     ns.Sound.restoreChat = had and true or nil
     if had then C_Timer.After(0.05, function() pcall(Emoji.RestoreChat) end) end
 end
 
--- jedes Mal mitschreiben, wenn WoW den Chat-Kopf umstellt ("Fluestern an X", "Gruppe" ...)
+-- record every time WoW switches the chat header ("Whisper to X", "Party" ...)
 if hooksecurefunc and ChatEdit_UpdateHeader then
     hooksecurefunc("ChatEdit_UpdateHeader", function(eb) pcall(Emoji.RememberTarget, eb) end)
 end
--- Nur das Ziel (Gruppe, Fluestern, Gilde ...) behalten, nie den Text: nach dem Senden oder Abbrechen vergessen
+-- Keep only the target (group, whisper, guild ...), never the text: forget after sending or cancelling
 local function forgetText() if Emoji.lastTarget then Emoji.lastTarget.text = "" end end
 if hooksecurefunc and ChatEdit_SendText then hooksecurefunc("ChatEdit_SendText", forgetText) end
 local forgetHooked = setmetatable({}, { __mode = "k" })
@@ -864,7 +864,7 @@ wirers[#wirers + 1] = function()
         end
     end
 end
--- zuletzt benutzte Emojis (eigener Reiter ganz vorne)
+-- recently used emojis (own tab at the very front)
 local RECENT_MAX = 28
 local byCode = {}
 for _, cat in ipairs(Emoji.CATS) do
@@ -872,7 +872,7 @@ for _, cat in ipairs(Emoji.CATS) do
         for i = 2, #e do if not byCode[e[i]] then byCode[e[i]] = e end end
     end
 end
--- fuer andere Fenster (Sound-Auswahl "Emoji dazu"): Eintrag zu einem Code, Bild setzen, Schnell-Liste
+-- for other windows (sound picker "Emoji dazu"): entry for a code, set image, quick list
 function Emoji.Entry(code) return byCode[code] end
 function Emoji.SetIcon(texObj, e)
     if not (texObj and e) then return end
@@ -883,7 +883,7 @@ function Emoji.SetIcon(texObj, e)
         if e.n and e.n > 1 then texObj:SetTexCoord(0, 1, 0, 64 / e.h) end
     end
 end
--- Favoriten, dann zuletzt, dann haeufig benutzte (ohne Raid-Symbole, ohne Doppelte)
+-- Favorites, then recent, then frequently used (without raid icons, without duplicates)
 function Emoji.QuickCodes(n)
     local st = ns.db and ns.db.settings or {}
     local out, seen = {}, {}
@@ -911,12 +911,12 @@ local function remember(code)
     table.insert(l, 1, code)
     while #l > RECENT_MAX do table.remove(l) end
     ns.db.settings.emojiRecent = l
-    -- "Haeufig": wie oft selbst benutzt (0.5.592)
+    -- "Haeufig": how often used by yourself (0.5.592)
     local cnt = ns.db.settings.emojiCount or {}
     cnt[code] = (cnt[code] or 0) + 1
     ns.db.settings.emojiCount = cnt
 end
--- "Beliebt in der Gilde": Emoji-Codes in Gildennachrichten mitzaehlen (je Absender + Emoji hoechstens 1x/Minute)
+-- "Beliebt in der Gilde": count emoji codes in guild messages (per sender + emoji at most 1x/minute)
 ns.On("CHAT_MSG_GUILD", function(msg, sender)
     msg = ns.safe(msg)
     if type(msg) ~= "string" or not msg:find("[:<;xX]") or not (ns.Popular and ns.Popular.Add) then return end
@@ -931,7 +931,7 @@ ns.On("CHAT_MSG_GUILD", function(msg, sender)
     end
 end)
 Emoji.Remember = remember
--- Code an der gemerkten Schreibstelle einsetzen (statt immer ans Ende); pos = Zeichen davor
+-- Insert the code at the remembered cursor position (instead of always at the end); pos = characters before it
 local function spliceAt(base, pos, code)
     pos = tonumber(pos)
     if not pos or pos < 0 or pos >= #base then
@@ -946,33 +946,33 @@ function Emoji.Insert(code)
     remember(code)
     if ns.db and ns.db.settings.emojiClose and Emoji.picker then Emoji.picker:Hide() end
     local tgt = Emoji.target
-    -- eigene Eingabefelder (z.B. Gildenchat-Seite): einfach einfuegen
+    -- own input fields (e.g. guild chat page): just insert
     if tgt and tgt:IsVisible() and not targetOf(tgt) then
         local t = tgt:GetText() or ""
         tgt:Insert(((t ~= "" and not t:find("%s$")) and " " or "") .. code .. " ")
         tgt:SetFocus()
         return
     end
-    -- Chat: WoW schliesst/leert die Eingabe beim Klick in die Auswahl (vor allem, wenn sie leer ist).
-    -- Deshalb nicht in die Eingabe tippen, sondern sie mit Ziel + fertigem Text (inkl. Emoji) neu oeffnen,
-    -- und kurz danach nochmal pruefen, falls WoW sie hinterher doch zugemacht hat.
+    -- Chat: WoW closes/clears the input on click into the picker (especially when it is empty).
+    -- So don't type into the input, but reopen it with target + finished text (incl. emoji),
+    -- and check again shortly after in case WoW closed it afterwards anyway.
     local eb = (tgt and targetOf(tgt) and tgt) or activeEditBox()
-    -- Eingabe zu, aber Ziel (Gilde, Gruppe, Fluestern ...) steht noch an ihr: einfach wieder aktivieren
+    -- Input closed, but the target (guild, group, whisper ...) is still set on it: just reactivate it
     local lt0 = Emoji.lastTarget
     if eb and not eb:IsShown() and ChatEdit_ActivateChat and not ns.inCombat() and targetOf(eb)
         and (not lt0 or targetOf(eb) == lt0.pre) then
         pcall(ChatEdit_ActivateChat, eb)
         if lt0 and (lt0.text or "") ~= "" and (ns.safe(eb:GetText()) or "") == "" then eb:SetText(lt0.text) end
     end
-    -- Eingabe ist (wieder) offen: direkt einfuegen, nichts neu oeffnen
+    -- Input is open (again): insert directly, don't reopen anything
     if eb and eb:IsShown() and targetOf(eb) and not ns.inCombat() then
         local cur = ns.safe(eb:GetText()) or ""
         if cur:match("^%s*$") then cur = "" end
-        -- WoW hat die Eingabe auf "Sagen" zurueckgestellt, gemerkt war aber z.B. Gilde/Gruppe/Fluestern:
-        -- Befehl voranstellen, dann geht die Nachricht beim Senden trotzdem dorthin
+        -- WoW reset the input to "Say", but e.g. guild/group/whisper was remembered:
+        -- prepend the command so the message still goes there when sent
         local ltp = Emoji.lastTarget and Emoji.lastTarget.pre
         local lt1 = Emoji.lastTarget
-        -- Schreibstelle merken: nur gueltig, wenn der Text noch genau der gemerkte ist
+        -- Remember the cursor position: only valid while the text is still exactly the remembered one
         local pos = lt1 and lt1.cur and (lt1.text or "") == cur and lt1.cur or nil
         if ltp and targetOf(eb) ~= ltp and not cur:find("^/") then
             cur = ltp .. cur
@@ -991,7 +991,7 @@ function Emoji.Insert(code)
     local base = lt and lt.text or ""
     if eb and eb:IsShown() and targetOf(eb) == pre then base = ns.safe(eb:GetText()) or base end
     local pos0 = lt and lt.cur and (lt.text or "") == base and lt.cur or nil
-    if base:match("^%s*$") then base, pos0 = "", nil end   -- Platzhalter-Leerzeichen vom Emoji-Knopf
+    if base:match("^%s*$") then base, pos0 = "", nil end   -- Placeholder space from the emoji button
     local text = spliceAt(base, pos0, code)
     local ct = lt and lt.pre == pre and lt.ct or (eb and ns.safe(eb:GetAttribute("chatType")))
     local who = lt and lt.pre == pre and lt.who or (eb and ns.safe(eb:GetAttribute("tellTarget")))
@@ -1001,7 +1001,7 @@ function Emoji.Insert(code)
     C_Timer.After(0.3, function() pcall(Emoji.RestoreChat) end)
 end
 
--- Reiter "Oasis": alle Emojis, die man mit dem Oasis-Rang freischaltet, sortiert nach Rang
+-- Tab "Oasis": all emojis unlocked with the Oasis rank, sorted by rank
 Emoji.OASIS = { key = "oasis", name = "Oasis", items = {}, custom = true }
 ns.GuildOption({ page = "chat", key = "emLock", default = true,   -- 0.6.417: Standard an label = "Besondere Emojis erst ab Oasis-Rang",
     desc = "Off: all animated guild emojis can be used by everyone right away" })
@@ -1022,7 +1022,7 @@ local function refreshOasisCat()
     end)
     Emoji.OASIS.items = out
 end
--- Favoriten (0.5.590): Rechtsklick auf ein Emoji; eigener Reiter ganz vorne, Reihenfolge = wann gemerkt
+-- Favorites (0.5.590): right-click an emoji; own tab at the very front, order = when saved
 local FAV_MAX = 60
 Emoji.FAV = { key = "fav", name = "Favourites", items = {} }
 local function favList() if not ns.db then return {} end ns.db.settings.emojiFav = ns.db.settings.emojiFav or {} return ns.db.settings.emojiFav end
@@ -1043,7 +1043,7 @@ function Emoji.RefreshFav()
     for _, code in ipairs(favList()) do if byCode[code] then items[#items + 1] = byCode[code] end end
     Emoji.FAV.items = items
 end
--- Haeufig (eigene Nutzung), Beliebt (Gildenchat), Kombos (mehrere Emojis auf einen Klick) - 0.5.592
+-- Frequent (own use), Popular (guild chat), Combos (several emojis in one click) - 0.5.592
 Emoji.OFTEN = { key = "often", name = "Frequent", items = {} }
 Emoji.POPULAR = { key = "popular", name = "Popular", items = {} }
 Emoji.COMBOS = { key = "combos", name = "Combos", items = {} }
@@ -1076,7 +1076,7 @@ function Emoji.RefreshExtra()
         local codes = {}
         for c in str:gmatch("%S+") do if byCode[c] then codes[#codes + 1] = c end end
         if #codes > 0 then
-            -- Stellvertreter: sieht aus wie das erste Emoji, traegt aber alle Codes
+            -- Stand-in: looks like the first emoji but carries all codes
             combos[#combos + 1] = setmetatable({ combo = codes, comboIdx = i }, { __index = byCode[codes[1]] })
         end
     end
@@ -1087,11 +1087,11 @@ local function pickerCats()
     Emoji.RefreshFav()
     Emoji.RefreshExtra()
     refreshOasisCat()
-    -- 0.5.960: die Gruppe "Meine" (Favoriten, Zuletzt, Haeufig, Beliebt) gibt es in der Auswahl nicht mehr
+    -- 0.5.960: the group "Meine" (favorites, recent, frequent, popular) no longer exists in the picker
     local list = {}
-    -- 0.5.667: Reiter "Standard" und "Kombos" entfernt, Oasis-Emojis stehen bei den Stickern
-    -- 0.5.668: kein eigener Oasis-Reiter mehr - die Rang-Emojis stehen ohnehin in ihren Reitern (Anime, Pepe ...)
-    -- 0.5.956: Standard-Emojis sind wieder dabei (Unterreiter "Standard" bei den Stickern) - ohne Gildenmodul gab es sonst gar keine Auswahl
+    -- 0.5.667: tabs "Standard" and "Kombos" removed, Oasis emojis are with the stickers
+    -- 0.5.668: no separate Oasis tab anymore - the rank emojis are in their tabs anyway (Anime, Pepe ...)
+    -- 0.5.956: standard emojis are back (sub-tab "Standard" under stickers) - without the guild module there was no picker at all
     for _, c in ipairs(Emoji.CATS) do list[#list + 1] = c end
     return list
 end
@@ -1100,7 +1100,7 @@ local function buildPicker()
     Emoji.picker = f
     local COLS = 14
     local S = (ns.db and tonumber(ns.db.settings.emojiPickSize)) or 38
-    pickerCats()   -- Oasis-/Favoriten-Reiter fuellen, bevor die Zellenzahl feststeht
+    pickerCats()   -- Fill Oasis/favorites tabs before the cell count is fixed
     local maxN = math.max(RECENT_MAX, FAV_MAX)
     for _, c in ipairs(Emoji.CATS) do maxN = math.max(maxN, #c.items) end
     if Emoji.OASIS and Emoji.OASIS.items then maxN = math.max(maxN, #Emoji.OASIS.items) end
@@ -1115,11 +1115,11 @@ local function buildPicker()
     f:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         local point, _, _, x, y = self:GetPoint(1)
-        -- auf UIParent umrechnen, damit die Position beim naechsten Oeffnen stimmt
+        -- convert to UIParent so the position is correct on the next open
         local l, t = self:GetLeft(), self:GetTop()
         if l and t and ns.db then ns.db.settings.emojiPos = { "TOPLEFT", l, t } end
     end)
-    -- 0.5.590: Glas-Karte (runde Ecken), Deckkraft aus den Einstellungen; Kopf mit leichtem Akzent-Verlauf
+    -- 0.5.590: glass card (rounded corners), opacity from the settings; header with slight accent gradient
     local GL = ns.Insta and ns.Insta.Glass
     f.glass = GL and pcall(GL, f, { 0.035, 0.035, 0.045, 0.8 }, { 1, 1, 1, 0.1 }, 14) or false
     if not f.glass then
@@ -1136,11 +1136,11 @@ local function buildPicker()
     end
     f:ApplyAlpha()
     ns.EscClose("OasisEmojiPicker")
-    -- Kopf wie auf den Oasis-Seiten: Akzentstreifen + Grossbuchstaben
+    -- Header as on the Oasis pages: accent stripe + upper case
     local title = K.GameHead(f, L["Emojis"], C.accent)
     title:SetPoint("TOPLEFT", 10, -8)
     title:SetWidth(160)
-    -- 0.6.413: Kopf wie beim Soundboard: Symbol + "OASIS EMOJIS"
+    -- 0.6.413: header like the soundboard: icon + "OASIS EMOJIS"
     title:Hide()
     f.logo = K.Glyph(f, 20, ns.MEDIA .. "icons\\smile", C.accent)
     f.logo:SetPoint("TOPLEFT", 16, -15)
@@ -1149,7 +1149,7 @@ local function buildPicker()
     f.title:SetText("OASIS  |cffb8b8bc" .. K.Upper(L["Emojis"]) .. "|r")
     local close = K.CloseButton(f, function() f:Hide() end)
     close:SetPoint("TOPRIGHT", -4, -4)
-    -- Einstellungen der Auswahl (Zahnrad neben dem X)
+    -- Picker settings (gear next to the X)
     local gear = CreateFrame("Button", nil, f)
     gear:SetSize(20, 20)
     gear:SetPoint("RIGHT", close, "LEFT", -6, 0)
@@ -1161,7 +1161,7 @@ local function buildPicker()
     end)
     gear:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
     gear:SetScript("OnClick", function() Emoji.ShowPickerOptions() end)
-    -- Suche ueber alle Reiter (Kurzcode), Enter = erstes Emoji einfuegen
+    -- Search across all tabs (short code), Enter = insert first emoji
     f.search = K.Input(f, 150, L["Search ..."], function(t)
         f.q = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
         f:ShowCat(f.cat or "std", true)
@@ -1175,7 +1175,7 @@ local function buildPicker()
         if sel and sel.has and sel.code then Emoji.Insert(sel.code) return end
         for _, b in ipairs(f.cells) do if b.has and b.code then Emoji.Insert(b.code) break end end
     end)
-    -- Pfeiltasten im Suchfeld: Auswahl wandert durchs Raster, Enter fuegt ein
+    -- Arrow keys in the search field: selection moves through the grid, Enter inserts
     if f.search.SetAltArrowKeyMode then pcall(f.search.SetAltArrowKeyMode, f.search, false) end
     f.search:SetScript("OnArrowPressed", function(_, key)
         local n = 0
@@ -1187,7 +1187,7 @@ local function buildPicker()
         elseif key == "UP" then i = i - cols elseif key == "DOWN" then i = (i == 0) and 1 or (i + cols) end
         if i < 1 then i = 1 elseif i > n then i = n end
         f.kbIdx = i
-        -- in den sichtbaren Bereich scrollen
+        -- scroll into the visible area
         local row = math.floor((i - 1) / cols)
         local vis = f.visRows or 4
         if row < (f.scroll or 0) then f.scroll = row elseif row >= (f.scroll or 0) + vis then f.scroll = row - vis + 1 end
@@ -1196,7 +1196,7 @@ local function buildPicker()
         f:Preview(f.cells[i])
     end)
     f.search:HookScript("OnTabPressed", function()
-        -- Tab: naechster Reiter
+        -- Tab: next tab
         local cats = pickerCats()
         for i, c in ipairs(cats) do
             if c.key == f.cat then f:ShowCat(cats[i % #cats + 1].key) break end
@@ -1204,10 +1204,10 @@ local function buildPicker()
     end)
     f.search:SetScript("OnEscapePressed", function(self) self:SetText("") self:ClearFocus() end)
 
-    -- 0.5.659: Reiter in 4 Gruppen (Meine / Emojis / Sticker / WoW), darunter die Unterreiter der Gruppe
-    -- 0.5.957: Standard-Emojis stehen als erster Unterreiter bei den Stickern (keine eigene Gruppe)
+    -- 0.5.659: tabs in 4 groups (Mine / Emojis / Stickers / WoW), below them the group's sub-tabs
+    -- 0.5.957: standard emojis are the first sub-tab under stickers (no group of their own)
     local GROUP_OF = { fav = "mine", recent = "mine", often = "mine", popular = "mine" }
-    local GROUPS = { { key = "sticker", text = L["Emojis"] } }   -- WoW/Raid stehen bei den Stickern
+    local GROUPS = { { key = "sticker", text = L["Emojis"] } }   -- WoW/Raid are under stickers
     local function groupOf(c)
         if GROUP_OF[c.key] then return GROUP_OF[c.key] end
         return "sticker"
@@ -1238,7 +1238,7 @@ local function buildPicker()
     end
     local line = K.Divider(f)
     f.tabLine = line
-    -- Gruppenreiter oben, Unterreiter (falls die Gruppe mehrere hat) darunter - umbrechen, wenn schmal
+    -- Group tabs at the top, sub-tabs (if the group has several) below - wrap when narrow
     local function wrap(seg, avail, y0)
         local x, row = 0, 0
         for _, b in ipairs(seg.buttons) do
@@ -1255,8 +1255,8 @@ local function buildPicker()
     end
     function f:LayoutTabs(W)
         local avail = math.max(100, W - 16)
-        -- Breite Fenster wie Sounds; schmale Fenster umbrechen die Ziele unter dem Titel.
-        local searchY = -52   -- 0.6.413: mehr Luft unter dem Kopf
+        -- Wide windows like sounds; narrow windows wrap the targets below the title.
+        local searchY = -52   -- 0.6.413: more room below the header
         local cols = math.max(1, math.min(4, math.floor((W - 20) / 78)))
         for i, b in ipairs(self.chans or {}) do
             b:ClearAllPoints()
@@ -1274,7 +1274,7 @@ local function buildPicker()
         self.search:SetPoint("TOPRIGHT", -12, searchY)
         local tabsY = searchY - 34
         local y
-        if #self.tabs.buttons <= 1 then if self.tabs.Hide then self.tabs:Hide() end y = tabsY   -- 0.6.413: nur eine Gruppe -> kein Extra-Reiter
+        if #self.tabs.buttons <= 1 then if self.tabs.Hide then self.tabs:Hide() end y = tabsY   -- 0.6.413: only one group -> no extra tab
         else if self.tabs.Show then self.tabs:Show() end y = tabsY - wrap(self.tabs, avail, tabsY) * 24 - 2 end
         local g = self.groupOf[self.cat or ""]
         for k, sg in pairs(self.subTabs) do sg:SetShown(k == g) end
@@ -1287,11 +1287,11 @@ local function buildPicker()
         GRID_TOP = lineY - 6
     end
 
-    -- Zellen (werden je Kategorie neu belegt)
+    -- Cells (reassigned per category)
     f.cells = {}
     for i = 1, maxN do
         local b = CreateFrame("Button", nil, f)
-        -- Kachel: dezenter Grund, beim Hovern Akzent-Schein
+        -- Tile: subtle background, accent glow on hover
         b.bg = b:CreateTexture(nil, "BACKGROUND")
         b.bg:SetPoint("TOPLEFT", 1, -1)
         b.bg:SetPoint("BOTTOMRIGHT", -1, 1)
@@ -1300,13 +1300,13 @@ local function buildPicker()
         b.hl:SetPoint("TOPLEFT", 1, -1)
         b.hl:SetPoint("BOTTOMRIGHT", -1, 1)
         b.hl:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.22)
-        -- 0.6.413: runde Kacheln wie im Soundboard
+        -- 0.6.413: round tiles like in the soundboard
         if K.RoundMask then pcall(K.RoundMask, b.bg, b, 6) pcall(K.RoundMask, b.hl, b, 6) end
         b.icon = b:CreateTexture(nil, "ARTWORK")
         b.icon:SetPoint("TOPLEFT", 2, -2)
         b.icon:SetPoint("BOTTOMRIGHT", -2, 2)
-        -- gesperrt: kleines Schloss-Schild mit dem noetigen Oasis-Rang
-        -- gesperrt: dunkles Band unten mit Schloss + Rang
+        -- locked: small padlock badge with the required Oasis rank
+        -- locked: dark band at the bottom with padlock + rank
         b.lockBg = b:CreateTexture(nil, "OVERLAY", nil, 1)
         b.lockBg:SetColorTexture(0, 0, 0, 0.78)
         b.lockBg:SetPoint("BOTTOMLEFT", 1, 1)
@@ -1320,38 +1320,38 @@ local function buildPicker()
         K.SetFontSafe(b.lockTxt, K.FONT_HEAD, 9, "OUTLINE", K.FONT)
         b.lockTxt:SetPoint("BOTTOMRIGHT", -3, 2)
         b.lockTxt:SetTextColor(1, 0.82, 0.3)
-        -- Favorit: kleiner goldener Stern oben rechts
+        -- Favorite: small golden star at the top right
         b.star = b:CreateTexture(nil, "OVERLAY", nil, 3)
         b.star:SetTexture(ns.MEDIA .. "icons\\star_on")
         b.star:SetVertexColor(1, 0.82, 0.3)
         b.star:SetSize(10, 10)
         b.star:SetPoint("TOPRIGHT", -1, -1)
         b.star:Hide()
-        -- Kombo: Anzahl unten rechts (x3)
+        -- Combo: count at the bottom right (x3)
         b.comboTxt = b:CreateFontString(nil, "OVERLAY", nil, 4)
         K.SetFontSafe(b.comboTxt, K.FONT_HEAD, 10, "OUTLINE", K.FONT)
         b.comboTxt:SetPoint("BOTTOMRIGHT", -2, 2)
         b.comboTxt:SetTextColor(1, 0.85, 0.45)
-        -- Tastatur-Auswahl (Pfeiltasten im Suchfeld)
+        -- Keyboard selection (arrow keys in the search field)
         b.kb = b:CreateTexture(nil, "BACKGROUND", nil, 2)
         b.kb:SetPoint("TOPLEFT", 1, -1) b.kb:SetPoint("BOTTOMRIGHT", -1, 1)
         b.kb:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.35)
         b.kb:Hide()
-        -- Favoriten umsortieren: im Reiter Favoriten ziehen und auf einem anderen Emoji loslassen
+        -- Reorder favorites: drag in the favorites tab and drop on another emoji
         b:RegisterForDrag("LeftButton")
         b:SetScript("OnDragStart", function(self) f:StartDrag(self) end)
         b:SetScript("OnDragStop", function() f:EndDrag() end)
         b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         b:SetScript("OnClick", function(self, btn)
             local e = self.entry
-            -- Kombo: Rechtsklick loescht sie
+            -- Combo: right-click deletes it
             if btn == "RightButton" and e and e.combo then
                 Emoji.RemoveCombo(e.comboIdx)
                 K.Toast(L["Emojis"], L["Combo deleted."], C.dim)
                 f:ShowCat("combos", true)
                 return
             end
-            -- Shift+Klick: Emoji in den Kombo-Baukasten legen (statt einfuegen)
+            -- Shift+click: put the emoji into the combo builder (instead of inserting)
             if btn ~= "RightButton" and IsShiftKeyDown() and e and not e.combo and not e.raid and self.code then
                 f:ComboAdd(self.code, self)
                 return
@@ -1360,7 +1360,7 @@ local function buildPicker()
                 if not self.favCode then return end
                 local on = Emoji.ToggleFav(self.favCode)
                 self.star:SetShown(on and true or false)
-                -- Stern ploppt auf
+                -- Star pops up
                 if on and not (ns.db and ns.db.settings.noAnim) then
                     local st = self.star
                     K.Tween(st, 0.35, function(p) local k = 1 + 0.8 * math.sin(p * math.pi) st:SetSize(10 * k, 10 * k) end, function() st:SetSize(10, 10) end)
@@ -1369,7 +1369,7 @@ local function buildPicker()
                 return
             end
             if not self.code then return end
-            -- kleiner Druck-Effekt auf dem Bild
+            -- small press effect on the image
             if not (ns.db and ns.db.settings.noAnim) then
                 local ic = self.icon
                 K.Tween(ic, 0.22, function(p)
@@ -1381,7 +1381,7 @@ local function buildPicker()
         end)
         b:SetScript("OnEnter", function(self)
             if self.tip then K.ShowTip(self, self.tip) end
-            -- beim Ueberfahren leicht vergroessern + unten gross in der Vorschau zeigen
+            -- slightly enlarge on hover + show large in the preview at the bottom
             if not (ns.db and ns.db.settings.noAnim) then
                 local ic = self.icon
                 K.Tween(ic, 0.14, function(p)
@@ -1408,7 +1408,7 @@ local function buildPicker()
     f.foot:SetPoint("BOTTOMLEFT", 10, 10)
     f.foot:SetPoint("RIGHT", f, "RIGHT", -20, 0)
     f.foot:SetWordWrap(false)
-    -- Vorschau beim Ueberfahren: Emoji gross unten links + seine Codes in der Fusszeile
+    -- Preview on hover: emoji large at the bottom left + its codes in the footer
     f.prev = f:CreateTexture(nil, "OVERLAY")
     f.prev:SetSize(26, 26)
     f.prev:SetPoint("BOTTOMLEFT", 8, 4)
@@ -1437,7 +1437,7 @@ local function buildPicker()
         self.foot:SetText("|cffffffff" .. table.concat(codes, "   ") .. "|r   |cff666666" .. L["Right-click: favourite  ·  Shift-click: combo"] .. "|r")
     end
 
-    -- Kombo-Baukasten: Shift+Klick sammelt Emojis, dann einfuegen oder als Kombo merken
+    -- Combo builder: Shift+click collects emojis, then insert or save as combo
     f.combo = {}
     f.cb = CreateFrame("Frame", nil, f)
     f.cb:SetPoint("BOTTOMLEFT", 8, 30)
@@ -1496,14 +1496,14 @@ local function buildPicker()
         if #self.combo >= COMBO_LEN then K.Toast(L["Emojis"], (L["At most %d emojis per combo."]):format(COMBO_LEN), C.dim) return end
         self.combo[#self.combo + 1] = code
         self:PaintCombo()
-        -- kleines Hochhuepfen des neuen Bildes in der Leiste
+        -- small hop of the new image in the bar
         local t = self.cb.icons[#self.combo]
         if t and not (ns.db and ns.db.settings.noAnim) then
             K.Tween(t, 0.25, function(p) local k = 1 + 0.4 * math.sin(p * math.pi) t:SetSize(22 * k, 22 * k) end, function() t:SetSize(22, 22) end)
         end
     end
 
-    -- Favoriten ziehen: Bild folgt der Maus, Loslassen auf einem anderen Favoriten = dorthin verschieben
+    -- Drag favorites: image follows the mouse, dropping on another favorite = move there
     f.ghost = CreateFrame("Frame", nil, UIParent)
     f.ghost:SetSize(32, 32)
     f.ghost:SetFrameStrata("TOOLTIP")
@@ -1538,7 +1538,7 @@ local function buildPicker()
         end
         self:ShowCat("fav", true)
     end
-    -- Ziel waehlen wie im Sound-Fenster: Gilde / Gruppe / Raid / letzter Fluesterpartner (in Chatfarben)
+    -- Choose target as in the sound window: guild / group / raid / last whisper partner (in chat colors)
     local CHS = { { "GUILD", "Guild", "/g ", { 0.25, 1, 0.25 } }, { "PARTY", "Group", "/p ", { 0.67, 0.67, 1 } },
         { "RAID", "Raid", "/ra ", { 1, 0.5, 0 } }, { "WHISPER", "Whisper", nil, { 1, 0.5, 1 } } }
     f.chans = {}
@@ -1573,13 +1573,13 @@ local function buildPicker()
         end
     end
     f:HookScript("OnShow", function(self) self:MarkChan() end)
-    -- Zellengroesse anwenden (Einstellung "Groesse in der Auswahl")
-    -- Groesse: Breite/Hoehe aus den Einstellungen (Regler oder Ziehen an der Ecke unten rechts).
-    -- Spaltenzahl ergibt sich aus der Breite, was nicht in die Hoehe passt, scrollt per Mausrad.
+    -- Apply cell size (setting "Groesse in der Auswahl")
+    -- Size: width/height from the settings (slider or dragging the bottom right corner).
+    -- Column count follows from the width; whatever doesn't fit the height scrolls with the mouse wheel.
     function f:Layout()
         local st = ns.db and ns.db.settings or {}
         S = tonumber(st.emojiPickSize) or 38
-        -- Reiter brechen bei Bedarf um -> schmal ziehen geht
+        -- Tabs wrap when needed -> can be made narrow
         local minW = 220
         self.minW = minW
         if self.SetResizeBounds then self:SetResizeBounds(minW, 170, 1200, 900) end
@@ -1591,7 +1591,7 @@ local function buildPicker()
             self:SetSize(W, H)
         end
         self:LayoutTabs(W)
-        -- Mindestens eine Rasterzeile bleibt auch unter umgebrochenen Reitern sichtbar.
+        -- At least one grid row stays visible even below wrapped tabs.
         local minH = math.max(170, -GRID_TOP + S + (self.bottomPad or 30))
         if self.SetResizeBounds then self:SetResizeBounds(minW, minH, 1200, 900) end
         if H < minH then
@@ -1613,7 +1613,7 @@ local function buildPicker()
             b:SetPoint("TOPLEFT", 10 + ((i - 1) % COLS) * S, GRID_TOP - row * S)
             b:SetShown(b.has and row >= 0 and row < visRows or false)
         end
-        -- Scroll-Hinweis rechts
+        -- Scroll hint on the right
         if self.scrollBar then
             self.scrollBar:SetShown(self.maxScroll > 0)
             if self.maxScroll > 0 then
@@ -1633,7 +1633,7 @@ local function buildPicker()
     f.scrollBar = f:CreateTexture(nil, "OVERLAY")
     f.scrollBar:SetWidth(3)
     f.scrollBar:SetColorTexture(1, 1, 1, 0.25)
-    -- Ecke unten rechts: ziehen = Groesse aendern (wird gespeichert)
+    -- Bottom right corner: drag = resize (gets saved)
     f:SetResizable(true)
     if f.SetResizeBounds then f:SetResizeBounds(220, 170, 1200, 900) end
     local grip = CreateFrame("Button", nil, f)
@@ -1683,10 +1683,10 @@ local function buildPicker()
             self.lastOfGroup[g] = cat.key
             self.tabs:Select(g)
             if self.subTabs[g] then self.subTabs[g]:Select(cat.key) end
-            -- Gruppe gewechselt: Unterreiter-Reihe ein-/ausblenden, Raster passt sich an
+            -- Group changed: show/hide the sub-tab row, grid adapts
             if self.shownGroup ~= g then self.shownGroup = g if self.Layout then self:Layout() end end
         end
-        -- Suche: Treffer aus allen Reitern (ohne doppelte)
+        -- Search: matches from all tabs (without duplicates)
         local items = cat.items
         local q = self.q or ""
         if q ~= "" then
@@ -1714,7 +1714,7 @@ local function buildPicker()
             b.favCode = e and not e.raid and e[2] or nil
             b.star:SetShown(e and favSet[e[2]] and true or false)
             if e and animate then
-                -- Reiterwechsel: Kacheln von oben links nach unten rechts nacheinander einblenden
+                -- Tab switch: fade in tiles one after another from top left to bottom right
                 b:SetAlpha(0)
                 local d = math.min(0.3, (i - 1) * 0.006)
                 K.Tween(b, 0.2, function(p) b:SetAlpha(p) end, function() b:SetAlpha(1) end, d)
@@ -1728,7 +1728,7 @@ local function buildPicker()
                     b.icon:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_" .. e[1]:match("%d+"))
                 else
                     b.icon:SetTexture((e.base or PATH) .. e[1])
-                    -- animiert: Streifen mit Einzelbildern, Ausschnitt wird im OnUpdate weitergeschaltet
+                    -- animated: strip with frames, the section is advanced in OnUpdate
                     if e.n and e.n > 1 then
                         b.anim = e
                         b.icon:SetTexCoord(0, 1, 0, 64 / e.h)
@@ -1738,10 +1738,10 @@ local function buildPicker()
                 local codes = {}
                 for j = 2, #e do codes[#codes + 1] = e[j] end
                 b.tip = { e[2], (#codes > 1 and (table.concat(codes, "   ") .. "\n") or "") .. L["Click: insert"] }
-                -- besondere Emojis: erst ab einem Oasis-Rang
+                -- special emojis: only from a certain Oasis rank
                 local need = ns.Rewards and ns.Rewards.EmojiLevel(e)
                 local locked = need and ns.Rank and ns.Rank.Mine().level < need and not (ns.UnlockAll and ns.UnlockAll())
-                -- 0.6.534: Vorgabe der Leitung fuer eigene Gilden-Emojis (aus / nur Leitung / Rang)
+                -- 0.6.534: leadership's setting for own guild emojis (off / leadership only / rank)
                 local ownCode = type(e[1]) == "string" and e[1]:match("^x\\(.+)$")
                 local mayOwn = ownCode and ns.MediaPack and ns.MediaPack.MayUse("emoji", ownCode, nil)
                 if mayOwn ~= nil then
@@ -1758,7 +1758,7 @@ local function buildPicker()
                     b.code = nil
                     b.tip = { e[2], "|cffffd24a" .. (L["From Oasis rank %d"]):format(need) .. "|r" }
                 end
-                -- Kombo: alle Codes auf einen Klick
+                -- Combo: all codes in one click
                 if e.combo then
                     b.code = table.concat(e.combo, " ")
                     b.favCode = nil
@@ -1791,7 +1791,7 @@ local function buildPicker()
             self.footDefault = cat.raid and L["Raid markers – everyone sees them, even without Oasis"] or L["everyone with Oasis sees them – without Oasis the code is shown"]
         end
         self:Preview(nil)
-        -- leere Favoriten: Hinweis mitten im Raster
+        -- empty favorites: hint in the middle of the grid
         if not self.emptyTxt then
             self.emptyTxt = K.Text(self, 12, C.dim, "CENTER")
             self.emptyTxt:SetPoint("CENTER", 0, -10)
@@ -1824,7 +1824,7 @@ local function buildPicker()
     f:Hide()
     return f
 end
--- Einstellungen der Emoji-Auswahl: kleines Fenster rechts an der Auswahl (Schieberegler, Schalter)
+-- Emoji picker settings: small window to the right of the picker (sliders, toggles)
 local function buildOptions(pk)
     local st = ns.db.settings
     local o = CreateFrame("Frame", nil, pk)
@@ -1849,7 +1849,7 @@ local function buildOptions(pk)
         h:SetPoint("RIGHT", o, "RIGHT", -12, 0)
         y = y - 24
     end
-    -- onRelease: erst beim Loslassen anwenden (Groesse der Auswahl: sonst wandert der Regler unter der Maus weg)
+    -- onRelease: only apply on release (picker size: otherwise the slider moves away under the mouse)
     local function slider(minV, maxV, step, key, def, fmt, apply, onRelease)
         local sl = K.Slider(o, 226, minV, maxV, step,
             function() return tonumber(st[key]) or def end,
@@ -1875,7 +1875,7 @@ local function buildOptions(pk)
         function(v) st.emojiClose = v and true or false end)
     o.close:SetWidth(226)
     o.close:SetPoint("TOPLEFT", 12, y - 4)
-    -- Nachricht abgeschickt: Auswahl zu (an) oder offen lassen (aus)
+    -- Message sent: close the picker (on) or keep it open (off)
     o.sendClose = K.Toggle(o, L["Close after sending"], function() return st.emojiCloseOnSend ~= false end,
         function(v) st.emojiCloseOnSend = v and true or false end)
     o.sendClose:SetWidth(226)
@@ -1908,7 +1908,7 @@ function Emoji.ShowPickerOptions()
 end
 
 function Emoji.TogglePicker(anchor)
-    -- "Zuletzt"-Reiter kommt neu dazu -> Reiterleiste neu aufbauen
+    -- "Zuletzt" tab gets added -> rebuild the tab bar
     local function tabSig()
         local sig = ""
         for _, c in ipairs(pickerCats()) do sig = sig .. c.key .. "," end
@@ -1919,7 +1919,7 @@ function Emoji.TogglePicker(anchor)
         picker = nil
     end
     picker = picker or buildPicker()
-    -- 0.6.438: Rahmen wie beim Soundboard (fehlte, wenn das Fenster frueh gebaut wurde)
+    -- 0.6.438: border like the soundboard (was missing when the window was built early)
     if picker and not picker.boxFrame and K.BoxFrame then pcall(K.BoxFrame, picker, 40) end
     if picker and picker.boxFrame then picker.boxFrame:Show() end
     picker.tabSig = sig
@@ -1928,7 +1928,7 @@ function Emoji.TogglePicker(anchor)
     picker:ClearAllPoints()
     local pos = ns.db and ns.db.settings.emojiPos
     if pos then
-        -- selbst verschoben: dort wieder oeffnen
+        -- moved by the user: reopen there
         picker:SetPoint(pos[1], UIParent, "BOTTOMLEFT", pos[2], pos[3])
     elseif anchor then
         picker:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, 6)
@@ -1940,8 +1940,8 @@ end
 ns.slash.emoji = function() Emoji.TogglePicker() end
 ns.slash.emojis = ns.slash.emoji
 
--- Diagnose: /oa emojitest - warum laufen animierte Emojis bei jemandem nicht? Ausgabe im Chat (Screenshot reicht),
--- zusaetzlich in OasisDB.emojiDiag (SavedVariables) gespeichert
+-- Diagnostics: /oa emojitest - why don't animated emojis work for someone? Output in chat (a screenshot is enough),
+-- additionally stored in OasisDB.emojiDiag (SavedVariables)
 local DIAG_ADDONS = { "Prat-3.0", "Chattynator", "ElvUI", "Glass", "Chatter", "WIM", "BasicChatMods", "TwitchEmotes", "TwitchEmotes_Solaris", "ls_Glass", "nesUI", "EllesmereUI", "EllesmereUIChat" }
 ns.slash.emojimodus = function(rest)
     local m = tonumber(tostring(rest or ""):match("%d"))
@@ -1950,12 +1950,12 @@ ns.slash.emojimodus = function(rest)
     ns.print(("Emoji-Modus %d  (1 = normal, 2 = Zeile neu setzen, 3 = ueber den Chatverlauf, 4 = eigene Bilder ueber dem Chat - wirkt ab dem naechsten Emoji). Aendern: /oa emojimodus 1|2|3|4"):format(redrawMode()))
 end
 ns.slash.emojimode = ns.slash.emojimodus
--- 0.6.152: /oa emojiversatz 0.88 - staucht die berechnete Position im Modus 4 (1 = aus). Fuer Clients, bei denen das
--- Emoji trotz richtiger Messwerte rechts neben dem Platzhalter sitzt.
+-- 0.6.152: /oa emojiversatz 0.88 - compresses the computed position in mode 4 (1 = off). For clients where the
+-- emoji sits right of the placeholder despite correct measurements.
 ns.slash.emojiversatz = function(rest)
     local v = tonumber((tostring(rest or ""):gsub(",", ".")))
     if v and v >= 0.5 and v <= 1.5 then
-        ns.db.settings.emojiXScale = v   -- 0.6.233: auch 1 speichern (= bewusst aus), "auto" loescht
+        ns.db.settings.emojiXScale = v   -- 0.6.233: also store 1 (= deliberately off), "auto" deletes
         if ov.info then for k in pairs(ov.info) do ov.info[k] = nil end end
     end
     if tostring(rest or ""):lower():find("auto", 1, true) then
@@ -1985,7 +1985,7 @@ ns.slash.emojitest = function()
         add("EllesmereUI-Chatfenster: " .. (w and ("gefunden - Emojis richten sich danach (Zeilen: " .. tostring(w.visibleLines and #w.visibleLines or "?") .. ")") or "nicht gefunden - Emojis an Blizzard-Zeilen"))
         add("EllesmereUI-Aufbau: " .. Emoji.EuiDiag(ChatFrame1))
     end
-    -- 0.6.153: alles, was die Schriftdarstellung beeinflusst - um den Versatz der bewegten Emojis automatisch zu erkennen
+    -- 0.6.153: everything that affects font rendering - to detect the offset of moving emojis automatically
     do
         local cf = ChatFrame1
         local ff, fsz, ffl = cf and cf.GetFont and cf:GetFont()
@@ -2027,7 +2027,7 @@ ns.slash.emojitest = function()
                 type(lines), type(lines) == "table" and #lines or "-", withEmoji, stepped, secret, sample and ("| " .. sample) or ""))
         end
     end
-    -- nach 1,5 s: haben sich die Emoji-Zeilen wirklich veraendert (= Animation laeuft)?
+    -- after 1.5 s: have the emoji lines really changed (= animation running)?
     C_Timer.After(1.5, function()
         local moved = 0
         for _, w in ipairs(watch) do if w.fs:GetText() ~= w.t then moved = moved + 1 end end
@@ -2051,14 +2051,14 @@ ns.slash.emojitest = function()
                     fs.GetStringWidth and fs:GetStringWidth() or -1, fs.GetEffectiveScale and fs:GetEffectiveScale() or -1,
                     tostring(fs.GetTextScale and fs:GetTextScale() or "-")))
                 if shown == 1 then
-                    -- 0.6.145: Text der Zeile (Steuerzeichen sichtbar) und 15 s lang drei Hilfslinien an der Zeile:
-                    -- gruen = Zeilenanfang laut WoW, rot = hier sollte das Emoji beginnen, blau = Zeilenende laut WoW
+                    -- 0.6.145: text of the line (control characters visible) and for 15 s three guide lines on the line:
+                    -- green = line start according to WoW, red = the emoji should start here, blue = line end according to WoW
                     add("Zeile: " .. tostring(c.raw or ""):gsub("|", "||"):sub(1, 220))
                     ov.marks = ov.marks or {}
                     local real = (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth() or 0
                     local tsc = (fs.GetTextScale and tonumber((fs:GetTextScale()))) or 1
                     for i, d in ipairs({ { 0, 0, 1, 0 }, { c.items[1].x or 0, 1, 0, 0 }, { real, 0.2, 0.5, 1 } }) do
-                        -- 0.6.147: auf eigener Ebene ueber dem Chatfenster (lagen sonst darunter und waren unsichtbar)
+                        -- 0.6.147: on its own layer above the chat window (otherwise lay below it and was invisible)
                         if not ov.markFrame then
                             ov.markFrame = CreateFrame("Frame", nil, UIParent)
                             ov.markFrame:SetFrameStrata("TOOLTIP")
@@ -2081,19 +2081,19 @@ ns.slash.emojitest = function()
     end
     add("Bitte Screenshot davon schicken, waehrend ein animiertes Emoji im Chat steht.")
     if ns.db then ns.db.emojiDiag = { t = time(), lines = out } end
-    -- 0.6.155: ganze Ausgabe (auch die Zeile nach 1,5 s) in einem Textfenster - markiert, Strg+C kopiert
+    -- 0.6.155: whole output (including the line after 1.5 s) in a text window - selected, Ctrl+C copies
     C_Timer.After(1.7, function()
         if ns.WhisperLog and ns.WhisperLog.Copy then pcall(ns.WhisperLog.Copy, "Emojitest", table.concat(out, "\n")) end
     end)
 end
 
 ------------------------------------------------------------------------
--- Knopf im Chat-Eingabefeld
+-- Button in the chat input box
 ------------------------------------------------------------------------
 local buttons = {}
--- Alt+Leertaste in einer Eingabe oeffnet/schliesst die Emoji-Auswahl
--- (nur angehaengt per HookScript - Blizzards Eingabe selbst wird nicht veraendert)
-local hotkeyDone = setmetatable({}, { __mode = "k" })   -- statt Feld an Blizzards Chat-Eingabe
+-- Alt+Space in an input opens/closes the emoji picker
+-- (only hooked via HookScript - Blizzard's input itself is not modified)
+local hotkeyDone = setmetatable({}, { __mode = "k" })   -- instead of field on Blizzard's chat input
 function Emoji.AttachHotkey(eb, anchor)
     if not eb or hotkeyDone[eb] then return end
     hotkeyDone[eb] = true
@@ -2107,7 +2107,7 @@ function Emoji.AttachHotkey(eb, anchor)
 end
 function Emoji.UpdateButtons()
     local on = ns.db and ns.db.settings.emojiButton ~= false
-    -- nesUI hat eigene Sound-/Emoji-Knoepfe in der Chat-Leiste -> hier nicht doppelt zeigen
+    -- nesUI has its own sound/emoji buttons in the chat bar -> don't show them twice here
     if _G.nesUI then on = false end
     for _, b in pairs(buttons) do b:SetShown(on) end
 end
@@ -2117,8 +2117,8 @@ local function attach(eb)
     b:SetSize(16, 16)
     b:SetPoint("RIGHT", eb, "RIGHT", -6, 0)
     b:SetFrameLevel(eb:GetFrameLevel() + 5)
-    b:SetHitRectInsets(-5, -3, -6, -6)   -- groessere Klickflaeche als das 16-px-Symbol (war schwer zu treffen)
-    -- schlichtes, einfarbiges Symbol wie in der Oasis-Seitenleiste (gleich gross wie der Sound-Knopf)
+    b:SetHitRectInsets(-5, -3, -6, -6)   -- larger click area than the 16 px icon (was hard to hit)
+    -- plain monochrome icon as in the Oasis sidebar (same size as the sound button)
     b.icon = b:CreateTexture(nil, "ARTWORK")
     b.icon:SetAllPoints()
     b.icon:SetTexture(ns.MEDIA .. "icons\\smile")
@@ -2132,11 +2132,11 @@ local function attach(eb)
         self.icon:SetVertexColor(0.6, 0.6, 0.62)
         GameTooltip:Hide()
     end)
-    -- wie Alt+Leertaste: Ziel merken (Maus runter = Eingabe hat noch den Fokus) und genau diese Eingabe nehmen
+    -- like Alt+Space: remember the target (mouse down = input still has focus) and use exactly this input
     b:SetScript("OnMouseDown", function()
         Emoji.RememberTarget(eb)
-        -- leere Eingabe macht WoW beim Klick ganz zu (mit Text nicht) -> kurz ein Leerzeichen hineinsetzen,
-        -- das beim Wiederoeffnen wieder verschwindet (gemerkter Text ist leer)
+        -- WoW closes an empty input completely on click (not with text) -> briefly put a space in it,
+        -- which disappears again on reopen (remembered text is empty)
         if eb:IsShown() and eb.HasFocus and eb:HasFocus() and (ns.safe(eb:GetText()) or "") == "" then
             eb:Insert(" ")
         end
@@ -2145,14 +2145,14 @@ local function attach(eb)
         Emoji.RememberTarget(eb)
         Emoji.target = eb
         Emoji.TogglePicker(self)
-        -- einen Moment spaeter (WoW hat die Eingabe dann schon zugemacht) wieder oeffnen
+        -- reopen a moment later (by then WoW has already closed the input)
         C_Timer.After(0.05, function() pcall(Emoji.RestoreChat) end)
-        -- leere Eingabe schliesst WoW manchmal erst etwas spaeter -> zur Sicherheit nochmal pruefen
+        -- WoW sometimes closes an empty input only a bit later -> check again to be safe
         C_Timer.After(0.25, function() pcall(Emoji.RestoreChat) end)
     end)
     buttons[eb] = b
-    -- daneben: Sound schicken
-    local sb = CreateFrame("Button", nil, b)   -- an den Emoji-Knopf gehaengt: mit ihm ein-/ausgeblendet
+    -- next to it: send sound
+    local sb = CreateFrame("Button", nil, b)   -- attached to the emoji button: shown/hidden with it
     sb:SetSize(16, 16)
     sb:SetPoint("RIGHT", b, "LEFT", -6, 0)
     sb:SetFrameLevel(eb:GetFrameLevel() + 5)
@@ -2166,19 +2166,19 @@ local function attach(eb)
         K.ShowTip(self, { L["Send sound"], L["Everyone with Oasis hears it - at most every 30 seconds."] })
     end)
     sb:SetScript("OnLeave", function(self) self.icon:SetVertexColor(0.6, 0.6, 0.62) GameTooltip:Hide() end)
-    -- wie beim Emoji-Knopf: Ziel + angefangenen Text merken, BEVOR WoW die Eingabe beim Klick schliesst
-    -- (vorher wurde erst nach dem Schliessen gelesen -> Fluestern/Gruppe fiel teils auf Gilde zurueck,
-    -- und der Chat blieb fuer Gilde zu, angefangener Text war weg)
+    -- as with the emoji button: remember target + started text BEFORE WoW closes the input on click
+    -- (previously it was read only after closing -> whisper/group sometimes fell back to guild,
+    -- and the chat stayed closed for guild, started text was gone)
     sb:SetScript("OnMouseDown", function(self) Emoji.SoundButtonDown(self, eb) end)
     sb:SetScript("OnClick", function(self) Emoji.SoundButtonClick(self, eb) end)
     b.snd = sb
-    -- Abklingzeit sichtbar (0.5.592)
+    -- Cooldown visible (0.5.592)
     if ns.Sound and ns.Sound.AttachCooldown then pcall(ns.Sound.AttachCooldown, sb) end
 end
--- Vorschau ueber der Chat-Eingabe: WoW kann im Eingabefeld keine Bilder zeigen, Kurzcodes bleiben dort Text.
--- Darum zeigt eine kleine Leiste darueber, wie die Nachricht mit Emojis aussehen wird.
--- 0.5.518: nur kurz, wenn gerade ein Emoji erkannt wurde - und nur die Emojis, nicht die ganze Nachricht.
--- Weitertippen (ohne neues Emoji) blendet sie aus; nach 2,5 s verschwindet sie von selbst.
+-- Preview above the chat input: WoW cannot show images in the input box, short codes stay text there.
+-- So a small bar above it shows how the message will look with emojis.
+-- 0.5.518: only briefly when an emoji was just recognized - and only the emojis, not the whole message.
+-- Typing on (without a new emoji) hides it; it disappears by itself after 2.5 s.
 local previewCount = setmetatable({}, { __mode = "k" })
 function Emoji.Preview(eb)
     if ns.db and ns.db.settings.emojiPreview == false then return end
@@ -2195,7 +2195,7 @@ function Emoji.Preview(eb)
     local before = previewCount[eb] or 0
     previewCount[eb] = #icons
     if #icons <= before then
-        -- kein neues Emoji: weitergeschrieben -> Vorschau weg
+        -- no new emoji: kept typing -> preview gone
         if f then f:Hide() end
         return
     end
@@ -2212,11 +2212,11 @@ function Emoji.Preview(eb)
         Emoji.previewF = f
     end
     f:ClearAllPoints()
-    -- Vorschlagsliste (:th... Tab) liegt an derselben Stelle -> Vorschau dann darueber
+    -- Suggestion list (:th... Tab) sits in the same place -> preview above it then
     local pop = _G.OasisEmojiComplete
     local anchor = (pop and pop:IsShown()) and pop or eb
     f:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, 2)
-    -- nur die Emojis der Nachricht (hoechstens 12), das neueste zuletzt
+    -- only the message's emojis (at most 12), newest last
     local first = math.max(1, #icons - 11)
     local list = {}
     for i = first, #icons do list[#list + 1] = icons[i] end
@@ -2241,9 +2241,9 @@ wirers[#wirers + 1] = function()
         if fresh then editWired[eb] = true end
         attach(eb)
         Emoji.AttachHotkey(eb, function() return buttons[eb] end)
-        -- WoW-Chat: Pfeil hoch/runter holt die letzten Nachrichten auch OHNE Alt zurueck (abschaltbar: settings.chatArrowAlt)
+        -- WoW chat: arrow up/down recalls the last messages even WITHOUT Alt (can be turned off: settings.chatArrowAlt)
         if fresh and eb.SetAltArrowKeyMode and not (ns.db and ns.db.settings.chatArrowAlt) then pcall(eb.SetAltArrowKeyMode, eb, false) end
-        -- Chat-Ziel direkt an der Eingabe mitschreiben (Wechsel per /p, /w, Klick ...), nur solange getippt wird
+        -- Track the chat target directly at the input (switch via /p, /w, click ...), only while typing
         if fresh and eb.HookScript then
             eb:HookScript("OnAttributeChanged", function(self, name)
                 if name == "chattype" or name == "chatType" or name == "telltarget" or name == "tellTarget" or name == "channeltarget" then
@@ -2254,7 +2254,7 @@ wirers[#wirers + 1] = function()
             eb:HookScript("OnEditFocusLost", function() if Emoji.previewF then Emoji.previewF:Hide() end end)
             eb:HookScript("OnHide", function() if Emoji.previewF then Emoji.previewF:Hide() end end)
             eb:HookScript("OnEditFocusGained", function(self) pcall(Emoji.RememberTarget, self) end)
-            -- Enter = Nachricht abgeschickt: Auswahl je nach Einstellung schliessen oder offen lassen
+            -- Enter = message sent: close the picker or keep it open depending on the setting
             eb:HookScript("OnEnterPressed", function()
                 if ns.db and ns.db.settings.emojiCloseOnSend ~= false and picker and picker:IsShown() then picker:Hide() end
             end)
@@ -2264,9 +2264,9 @@ wirers[#wirers + 1] = function()
 end
 
 ------------------------------------------------------------------------
--- Sprechblasen ueber den Koepfen: Kurzcodes auch dort als Emoji zeigen.
--- Blizzard zeichnet die Blasen selbst; ausserhalb von Instanzen duerfen Addons ihren Text aendern
--- (in Instanzen sind die Blasen gesperrt - dort bleibt der Text, wie er ist).
+-- Speech bubbles over heads: show short codes as emojis there too.
+-- Blizzard draws the bubbles itself; outside instances addons may change their text
+-- (in instances the bubbles are locked - the text stays as it is there).
 ------------------------------------------------------------------------
 local function bubbleText(bubble)
     if not bubble or (bubble.IsForbidden and bubble:IsForbidden()) then return nil end
@@ -2277,7 +2277,7 @@ local function bubbleText(bubble)
             end
         end
     end
-    -- neuere Clients: Kind-Frame mit .String
+    -- newer clients: child frame with .String
     for _, c in ipairs({ bubble:GetChildren() }) do
         if c.String and c.String.GetText then return c.String end
     end
@@ -2302,7 +2302,7 @@ Emoji.FixBubbles = fixBubbles
 for _, ev in ipairs({ "CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER", "CHAT_MSG_MONSTER_SAY" }) do
     ns.On(ev, function()
         if ns.db and ns.db.settings.emojiBubbles == false then return end
-        -- die Blase entsteht erst kurz nach dem Ereignis
+        -- the bubble is created only shortly after the event
         ns.After(0.05, fixBubbles)
         ns.After(0.25, fixBubbles)
     end)

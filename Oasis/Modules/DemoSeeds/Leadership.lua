@@ -1,9 +1,9 @@
--- Oasis: Demo-Daten fuer Gildenleitung und Kleinkram, der bisher leer blieb (nur /oa demo)
--- Gildenprotokoll ("audit"), Ehemalige ("formers"), Bewerber ("recruits"), Bannliste ("bans"), Sound-Sperren ("sndmute"),
--- Raid-Anwesenheit ("attend"), Bankwert-Verlauf ("bankworth"), angehefteter Chat ("chatpin"), Karten-Marker ("markers"),
--- Berufs-Abklingzeiten ("profcd").
--- Alles nur ueber ctx.put (Store.merge mit demo=true) - Comm schickt nichts davon an die Gilde. Echte Datensaetze mit
--- derselben ID werden nie ueberschrieben (putNew), sonst waeren sie nach "Demo aus" weg.
+-- Oasis: demo data for guild leadership and small stuff that stayed empty so far (only /oa demo)
+-- guild log ("audit"), former members ("formers"), applicants ("recruits"), ban list ("bans"), sound blocks ("sndmute"),
+-- raid attendance ("attend"), bank value history ("bankworth"), pinned chat ("chatpin"), map markers ("markers"),
+-- profession cooldowns ("profcd").
+-- Everything only via ctx.put (Store.merge with demo=true) - Comm sends none of it to the guild. Real records with
+-- the same ID are never overwritten (putNew), otherwise they'd be gone after "demo off".
 local ADDON, ns = ...
 
 local function seed(ctx)
@@ -16,7 +16,7 @@ local function seed(ctx)
         ctx.put(coll, rec)
     end
 
-    -- Gildenprotokoll: Befoerderungen, Beitritte, Austritte, ein Rauswurf
+    -- Guild log: promotions, joins, leaves, one kick
     local AUD = {
         { "join", 1800, 23 }, { "promote", 5400, 9, 5, "Veteran" }, { "join", 26 * 3600, 19 }, { "promote", 30 * 3600, 14, 16, "Offizier" },
         { "leave", 2 * 86400, nil, nil, nil, "Brakthar" }, { "demote", 3 * 86400, 9, 21, "Mitglied" }, { "join", 4 * 86400, 15 },
@@ -33,7 +33,7 @@ local function seed(ctx)
         ctx.put("audit", rec)
     end
 
-    -- Ehemalige: mit Rang, Stufe, Klasse, Notiz und wie sie gegangen sind
+    -- Former members: with rank, level, class, note and how they left
     local FORM = {
         { "Brakthar", "Mitglied", 27, "WARRIOR", "", 41, 2, "leave" },
         { "Grimmzahn", "Anwaerter", 14, "ROGUE", "Probezeit", 9, 5, "kick", 14 },
@@ -47,7 +47,7 @@ local function seed(ctx)
             main = f[1] == "Melvara" and "Sarnok" or nil })
     end
 
-    -- Bewerber in allen vier Stufen
+    -- applicants in all four stages
     local REC = {
         { "Tharuk", "Schamane 24, sucht ruhige Gilde zum Leveln", "app", nil, 3 * 3600 },
         { "Ysmera", "Magierin 31, kennt Drogbar aus dem Dungeon", "app", nil, 20 * 3600 },
@@ -60,12 +60,12 @@ local function seed(ctx)
         ctx.put("recruits", { id = "demo-rec-" .. i, name = r[1], note = r[2], st = r[3], pate = r[4] and nm(r[4]) or nil, ts = now - r[5] })
     end
 
-    -- Bannliste und Sound-Sperren
+    -- Ban list and sound blocks
     ctx.put("bans", { id = "demo-ban-1", name = "Ninjazul", reason = "Hat in Uldaman die Beute der Gruppe eingesteckt", by = nm(9), ts = now - 6 * 86400 })
     ctx.put("bans", { id = "demo-ban-2", name = "Goldspam", reason = "Goldverkaeufer, fluestert Mitglieder an", by = nm(14), ts = now - 15 * 86400 })
     ctx.put("sndmute", { id = "demo-sm-1", name = short(20), full = nm(20), reason = "Zu viele Sounds im Gildenchat", by = nm(9), ts = now - 2 * 86400 })
 
-    -- Raid-Anwesenheit: vier Abende, nicht immer dieselben Leute
+    -- Raid attendance: four evenings, not always the same people
     local RAIDS = {
         { 2, "Geschmolzener Kern", "Ragnaros", 10, { 1, 2, 3, 4, 5, 6, 7, 9, 10, 12, 13, 14, 16, 18, 19, 21, 22, 23 } },
         { 5, "Onyxias Hort", "Onyxia", 1, { 1, 2, 3, 5, 6, 7, 9, 10, 12, 14, 16, 18, 21, 22 } },
@@ -80,19 +80,19 @@ local function seed(ctx)
         putNew("attend", { id = day .. "@" .. r[2], d = day, inst = r[2], n = table.concat(names, ","), b = r[4], last = r[3], ts = now - r[1] * 86400 })
     end
 
-    -- Bankwert der letzten 30 Tage: waechst langsam, mit einem Einkauf dazwischen
+    -- Bank value of the last 30 days: grows slowly, with a purchase in between
     local worth = 1840000
     for d = 30, 0, -1 do
         worth = worth + 21000 + ((d * 7919) % 17) * 1500
-        if d == 12 then worth = worth - 260000 end   -- Gildenbank hat Rezepte gekauft
+        if d == 12 then worth = worth - 260000 end   -- guild bank bought recipes
         local key = date("%Y%m%d", now - d * 86400)
         putNew("bankworth", { id = "bw-" .. key, day = key, worth = worth, ts = now - d * 86400 })
     end
 
-    -- angeheftete Nachricht im Gildenchat (nur wenn nichts Echtes angeheftet ist)
+    -- pinned message in guild chat (only if nothing real is pinned)
     putNew("chatpin", { id = "pin", s = nm(9), m = "Freitag 20 Uhr Raid - bitte im Kalender anmelden und Feuerschutz mitbringen!", ts = now - 3 * 3600 })
 
-    -- Karten-Marker im eigenen Gebiet: Treffpunkt, Vorsicht, Notiz
+    -- map markers in your own zone: meeting point, caution, note
     local map = C_Map and C_Map.GetBestMapForUnit and ns.safe(C_Map.GetBestMapForUnit("player"))
     if type(map) == "number" then
         local MK = {
@@ -107,7 +107,7 @@ local function seed(ctx)
         end
     end
 
-    -- Berufs-Abklingzeiten: wer kann gerade transmutieren, wer muss warten
+    -- profession cooldowns: who can transmute right now, who has to wait
     ctx.put("profcd", { id = "pcd-" .. nm(2), who = nm(2), cd = "transmute:0,salt:" .. (now + 2 * 86400) })
     ctx.put("profcd", { id = "pcd-" .. nm(16), who = nm(16), cd = "transmute:" .. (now + 19 * 3600) .. ",mooncloth:" .. (now + 3 * 86400) })
     ctx.put("profcd", { id = "pcd-" .. nm(22), who = nm(22), cd = "mooncloth:0" })

@@ -1,9 +1,9 @@
--- Oasis: Fluestern an einen Charakter, der offline ist -> ANGEBOT, die Nachricht an seinen Twink zu schicken, der gerade online ist.
--- 0.5.912: Standard AUS und nie von selbst senden (Blizzard: Chat nur per Klick) - Oasis bietet es per Hinweis an (ns.OfferChat).
--- Grundlage: Twink-Zuordnung aus Oasis (Alts.lua: Profile + Gildennotizen) und die Online-Anzeige der Gildenliste.
--- Ein/Aus: Einstellungen > Bereiche > Chat oder /oa weiterleiten
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Whispers", function()   -- Modul Fluestern (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis: whisper to an offline character -> OFFER to send the message to their alt who is currently online.
+-- 0.5.912: default OFF and never send by itself (Blizzard: chat only on click) - Oasis offers it via notice (ns.OfferChat).
+-- Basis: alt mapping from Oasis (Alts.lua: profiles + guild notes) and the online status of the guild roster.
+-- On/off: Settings > Areas > Chat or /oa weiterleiten
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Whispers", function()   -- module whispers (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 
 local WF = {}
@@ -15,16 +15,16 @@ local function on() return (ns.db and ns.db.settings.whisperForward == true) or 
 local function remember(msg, chatType, _, target)
     if chatType ~= "WHISPER" or type(msg) ~= "string" or type(target) ~= "string" then return end
     if issecret(msg) or issecret(target) then return end
-    if WF.sending then return end   -- eigene Weiterleitung nicht nochmal merken
+    if WF.sending then return end   -- do not remember own forwarding again
     last = { msg = msg, target = target, t = GetTime() }
 end
-WF._remember = remember   -- fuer Tests
+WF._remember = remember   -- for tests
 if hooksecurefunc then
     if SendChatMessage then pcall(hooksecurefunc, "SendChatMessage", remember) end
     if C_ChatInfo and C_ChatInfo.SendChatMessage then pcall(hooksecurefunc, C_ChatInfo, "SendChatMessage", remember) end
 end
 
--- Gildenmitglied zu einem Fluester-Namen ("Vorname", "Vorname-Realm", "Vorname Nachname")
+-- guild member for a whisper name ("Firstname", "Firstname-Realm", "Firstname Lastname")
 local function member(name)
     local R = ns.Radar
     if not (R and R.byName) then return nil end
@@ -34,7 +34,7 @@ local function member(name)
         if m.name and A and A.SameChar(m.name, name) then return m.name end
     end
 end
--- Twink desselben Spielers, der gerade online ist
+-- alt of the same player who is currently online
 function WF.OnlineAlt(name)
     local A, R = ns.Alts, ns.Radar
     if not (A and R) then return nil end

@@ -1,4 +1,4 @@
--- Reine Regeln fuer Kodierung, Revisionen und Gildenabgrenzung; auch ohne WoW testbar.
+-- Pure rules for encoding, revisions and guild separation; testable without WoW.
 local _, ns = ...
 local R = {}
 ns.SyncRules = R
@@ -50,8 +50,8 @@ function R.Decode(s)
     end
     return t
 end
--- Gleiche logische Zeit: eindeutige Revision, danach vollstaendiger Inhalt als Kollisionsschutz.
--- Kein Ankunftszeitpunkt: beide Clients waehlen unabhaengig von der Empfangsreihenfolge dasselbe.
+-- Same logical time: unique revision, then full content as collision guard.
+-- No arrival time: both clients choose the same regardless of receive order.
 function R.Compare(a, b)
     local au, bu = tonumber(a.u) or 0, tonumber(b.u) or 0
     if au ~= bu then return au > bu and 1 or -1 end

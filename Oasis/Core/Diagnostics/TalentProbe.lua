@@ -1,6 +1,6 @@
--- Oasis: Pruefung, wie WoW Forever Talente bereitstellt (Grundlage fuer "Talente anderer ansehen").
--- /oa talentprobe  -> schreibt alles nach OasisDB.talentProbe (nach /reload in der Speicherdatei lesbar)
--- Nur lesende Abfragen, alles in pcall, nicht im Kampf.
+-- Oasis: check how WoW Forever provides talents (basis for "view others' talents").
+-- /oa talentprobe  -> writes everything to OasisDB.talentProbe (readable in the saved variables file after /reload)
+-- Read-only queries only, everything in pcall, not in combat.
 local ADDON, ns = ...
 
 local function probe()
@@ -25,7 +25,7 @@ local function probe()
         put(label, table.concat(parts, " | "))
         return unpack(r)
     end
-    -- welche Talent-Schnittstellen gibt es?
+    -- which talent APIs exist?
     for _, n in ipairs({ "GetNumTalentTabs", "GetTalentTabInfo", "GetTalentInfo", "GetNumTalents", "LearnTalent", "GetActiveTalentGroup",
         "GetUnspentTalentPoints", "GetTalentLink", "NotifyInspect", "GetInspectSpecialization", "GetSpecialization", "UnitClass" }) do
         put("G." .. n, type(_G[n]))
@@ -48,7 +48,7 @@ local function probe()
     for _, a in ipairs({ "Blizzard_PlayerSpells", "Blizzard_ClassTalentUI", "Blizzard_TalentUI", "Blizzard_InspectUI" }) do
         if IsLoaded then put("Loaded." .. a, tostring(IsLoaded(a))) end
     end
-    -- klassisch
+    -- classic
     if GetNumTalentTabs then
         local nt = try("GetNumTalentTabs()", GetNumTalentTabs)
         for tab = 1, math.min(nt or 0, 3) do
@@ -59,7 +59,7 @@ local function probe()
             end
         end
     end
-    -- Retail-System
+    -- retail system
     if C_ClassTalents and C_ClassTalents.GetActiveConfigID then
         local cfg = try("C_ClassTalents.GetActiveConfigID()", C_ClassTalents.GetActiveConfigID)
         if cfg and C_Traits then
@@ -83,7 +83,7 @@ local function probe()
     end
     if C_SpecializationInfo and C_SpecializationInfo.GetSpecialization then try("C_SpecializationInfo.GetSpecialization()", C_SpecializationInfo.GetSpecialization) end
     if GetSpecialization then try("GetSpecialization()", GetSpecialization) end
-    -- Symbole: fuer einige Knoten alle Wege pruefen (sofort und nach dem Nachladen der Zauberdaten)
+    -- Icons: check all ways for some nodes (immediately and after the spell data has loaded)
     local icons = {}
     if C_ClassTalents and C_Traits then
         local cfg = C_ClassTalents.GetActiveConfigID()
@@ -128,7 +128,7 @@ local function probe()
         t("C_Traits.GetDefinitionInfo.overrideIcon", function() local d = C_Traits.GetDefinitionInfo(e.def) return d and d.overrideIcon end)
         return table.concat(parts, "  ")
     end
-    -- klassische Talent-Schnittstelle (Forever-Talentfenster sieht klassisch aus)
+    -- classic talent API (Forever talent window looks classic)
     local S2 = C_SpecializationInfo
     if S2 and S2.GetTalentInfo then
         for _, q in ipairs({ { tier = 1, column = 1 }, { tabIndex = 1, talentIndex = 1 }, { specializationIndex = 1, talentIndex = 1 }, { tier = 1, column = 1, groupIndex = 1 } }) do
@@ -141,7 +141,7 @@ local function probe()
     for _, n in ipairs({ "GetTalentTabInfo", "GetNumTalentTabs" }) do
         if S2 and S2[n] then try("C_SpecializationInfo." .. n .. "(1)", S2[n], 1) end
     end
-    -- klassische Hintergrund-Grafiken vorhanden?
+    -- classic background graphics present?
     local tx = UIParent:CreateTexture()
     for _, path in ipairs({ "Interface\\TalentFrame\\ShamanElementalCombat-TopLeft", "Interface\\TalentFrame\\WarlockCurses-TopLeft", "Interface\\TalentFrame\\PaladinHoly-TopLeft" }) do
         local ok, r = pcall(tx.SetTexture, tx, path)
@@ -159,4 +159,4 @@ local function probe()
         ns.print(("Talent-Pruefung: %d Zeilen gespeichert - jetzt /reload, dann sind sie gespeichert."):format(#out))
     end)
 end
-ns.slash.talentprobe = function(...) if ns.IsDev and ns.IsDev() then return probe(...) end end   -- 0.6.524: nur Entwicklermodus
+ns.slash.talentprobe = function(...) if ns.IsDev and ns.IsDev() then return probe(...) end end   -- 0.6.524: developer mode only

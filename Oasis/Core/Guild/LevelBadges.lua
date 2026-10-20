@@ -1,7 +1,7 @@
--- Oasis: Stufen-Abzeichen 10/20/30/40/50/60 (0.5.571, Bilder vom Gildenleiter: Media\levels\lvlNN.tga, klein lvlNN_s.tga)
---  * eigene Stufe 10/20/.../60 erreicht: grosse Einblendung mit Abzeichen
---  * Chronik/Dashboard: Level-Eintraege auf einer Zehnerstufe zeigen das Abzeichen
---  * Mitgliederliste: zuletzt erreichtes Abzeichen klein vor der Stufe
+-- Oasis: level badges 10/20/30/40/50/60 (0.5.571, images from the guild leader: Media\levels\lvlNN.tga, small lvlNN_s.tga)
+--  * own level 10/20/.../60 reached: large popup with badge
+--  * Chronicle/Dashboard: level entries at a multiple of ten show the badge
+--  * Member list: most recently earned badge shown small before the level
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -9,21 +9,21 @@ local K, C = ns.K, ns.K.C
 local LB = {}
 ns.LevelBadges = LB
 
--- Pfad zum Abzeichen der hoechsten erreichten Zehnerstufe (nil unter 10)
+-- Path to the badge of the highest reached multiple of ten (nil below 10)
 function LB.For(level, small)
     level = tonumber(level)
     if not level or level < 10 then return nil end
     local tier = math.min(60, math.floor(level / 10) * 10)
     return ns.MEDIA .. "levels\\lvl" .. tier .. (small and "_s" or "")
 end
--- nur genau auf einer Zehnerstufe (fuer "hat Level 30 erreicht")
+-- only exactly at a multiple of ten (for "reached level 30")
 function LB.Exact(level, small)
     level = tonumber(level)
     if not level or level < 10 or level > 60 or level % 10 ~= 0 then return nil end
     return LB.For(level, small)
 end
 
--- grosse Einblendung -------------------------------------------------------------------------
+-- large popup -------------------------------------------------------------------------
 local pop
 local function build()
     pop = CreateFrame("Frame", "OasisLevelBadgePop", UIParent)
@@ -55,16 +55,16 @@ function LB.Celebrate(level)
         ns.After(4, function() pop:Hide() end)
         return
     end
-    -- Sicherheit: auch ohne laufende Animation (z.B. Fenster versteckt) wieder verschwinden
+    -- Safety: disappear again even without a running animation (e.g. window hidden)
     pop.use = (pop.use or 0) + 1
     local use = pop.use
     ns.After(4.8, function() if pop.use == use then pop:Hide() end end)
-    -- reinspringen (ueberschwingen), kurz stehen, nach oben ausblenden
+    -- jump in (overshoot), hold briefly, fade out upwards
     K.Tween(pop, 4.2, function(q)
         local s
         if q < 0.12 then
             local t = q / 0.12
-            s = 0.3 + 0.85 * (1 - (1 - t) * (1 - t))   -- bis 1.15
+            s = 0.3 + 0.85 * (1 - (1 - t) * (1 - t))   -- up to 1.15
         elseif q < 0.2 then
             s = 1.15 - 0.15 * ((q - 0.12) / 0.08)
         else

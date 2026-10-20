@@ -1,6 +1,6 @@
--- Oasis - Texte Koreanisch (maschinell uebersetzt, fehlende Texte fallen auf Englisch zurueck)
+-- Oasis - Korean texts (machine translated, missing texts fall back to English)
 local ADDON, ns = ...
-ns.LangFile("ko", function()   -- wird nur ausgefuehrt, wenn diese Sprache gewaehlt ist
+ns.LangFile("ko", function()   -- only runs when this language is selected
 local T = ns.LOCALES.ko
 T["  ·  Click to whisper"] = "  -  클릭하면 귓속말"
 T["  ·  Click to let them know"] = "  -  클릭: 알려주기"
@@ -2232,7 +2232,7 @@ T["Oasis logo (wordmark)"] = "Oasis 로고"
 T["Logo font for the guild"] = "길드 로고 글꼴"
 T["Logo font just for you"] = "나만의 로고 글꼴"
 T["Adjusts automatically: name and subtitle are always as wide as the line."] = "자동 맞춤: 이름과 부제는 항상 선과 같은 너비예요."
--- 0.5.684: Nachtrag (alle bis dahin fehlenden Texte)
+-- 0.5.684: addendum (all texts missing until then)
 T[" (%d items missing)"] = " (%d개 부품 부족)"
 T[" withdraws"] = " 후퇴"
 T["%.1f %% of %d %%"] = "%.1f %% / %d %%"
@@ -7302,7 +7302,7 @@ T["Scan done: %d checks, %d errors. Now /reload to save the results."] = "검사
 T["This is what Oasis looks like with a guild: sample data on your PC only, nothing is sent. Remove it with /oa demo off."] = "길드가 있을 때 Oasis의 모습이에요: 예시 데이터는 내 PC에만 있고 아무것도 전송되지 않아요. /oa demo off 로 제거해요."
 T["While they are on, the window shows 'Demo on' at the top. One click there or here removes everything again."] = "예시 데이터가 켜져 있으면 창 위쪽에 '데모 켜짐'이 표시돼요. 거기나 여기를 클릭하면 모두 제거돼요."
 T["Meeting point, caution or note: pick a kind, then click the map"] = "집결지, 주의 또는 메모: 종류를 고른 뒤 지도를 클릭하세요"
--- 0.6.472: ergaenzt (fehlende Texte nachgetragen)
+-- 0.6.472: missing texts added
 T["Invited %d signed-up players."] = "신청자 %d명을 초대했습니다."
 T["%d years"] = "%d년"
 T["%d players searching from other guilds"] = "다른 길드에서 찾는 플레이어 %d명"
@@ -7759,7 +7759,7 @@ T["from the guild"] = "길드에서"
 T["e.g. group for Monastery"] = "예: 수도원 파티"
 T["e.g. help in Monastery"] = "예: 수도원 도움"
 T["e.g. evenings from 7 pm"] = "예: 저녁 7시부터"
--- 0.6.476: Komfort, Sammelkarte, Kader-Check
+-- 0.6.476: comfort, gathering map, roster check
 T["Current"] = "현재"
 T["Hidden bars appear as soon as the mouse is over them."] = "숨긴 바는 마우스를 올리면 나타납니다."
 T["Show on mouseover"] = "마우스를 올리면 표시"

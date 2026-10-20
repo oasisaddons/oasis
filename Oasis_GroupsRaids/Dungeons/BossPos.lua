@@ -1,7 +1,7 @@
--- Oasis: Boss-Standorte in Dungeon-Karten (x/y 0..1 je Karte = uiMapID).
--- Quelle: JournalEncounter-Daten der WoW-Clients (via wago.tools), NPC-IDs via Questie. Nur Fakten (Zahlen/Namen).
+-- Oasis: boss locations in dungeon maps (x/y 0..1 per map = uiMapID).
+-- Source: JournalEncounter data of the WoW clients (via wago.tools), NPC IDs via Questie. Facts only (numbers/names).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Dungeons", function()   -- Module Dungeons (can be disabled, see ModuleLoader.lua)
 ns.BossPos = {
   wailingcaverns = {
     { boss = "Lord Cobrahn", npc = 3669, x = 0.167, y = 0.568, map = 279 },

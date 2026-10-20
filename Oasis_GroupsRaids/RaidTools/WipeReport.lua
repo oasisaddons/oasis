@@ -1,28 +1,28 @@
--- Oasis: Kampfberichte - Auswertung nach jedem Bosskampf (Sieg oder Wipe)
---  * Beginn: ENCOUNTER_START; Ersatz, falls der Client das nicht meldet: Kampfbeginn in einer Raid-Instanz
---    gegen einen Boss im Ziel (PLAYER_REGEN_DISABLED), Ende dann mit PLAYER_REGEN_ENABLED
---  * Tode in Reihenfolge: eigener Tod (PLAYER_DEAD, exakt), Kampflog UNIT_DIED / UNIT_DIED-Ereignis (falls lesbar),
---    sonst sekuendliche Abfrage UnitIsDeadOrGhost der Gruppe + Abfrage nach dem Kampf
---  * jeder Client meldet "ich starb um t" (WRME); der Anfuehrer (oder ersatzweise ein anderer) teilt den Bericht (WREP)
---  * Kampfdauer, Boss-HP beim Wipe (falls lesbar), C_DamageMeter NACH dem Kampf (per pcall, geheime Werte fallen weg)
---  * Seite "Kampfberichte" (Nav-Gruppe Raid): Bosse -> Versuche -> Zeitstrahl der Tode, erster Tod, wiederkehrende Muster
---  * /oa probe kampf: zeigt, was C_DamageMeter im Spiel liefert
--- Ergaenzt Badges.lua (Raid-Momente) und Chronicle (Bosssiege) - hier geht es um das "Warum" eines Versuchs.
+-- Oasis: combat reports - analysis after every boss fight (kill or wipe)
+--  * Start: ENCOUNTER_START; fallback if the client doesn't report it: combat start in a raid instance
+--    against a boss in target (PLAYER_REGEN_DISABLED), end then with PLAYER_REGEN_ENABLED
+--  * Deaths in order: own death (PLAYER_DEAD, exact), combat log UNIT_DIED / UNIT_DIED event (if readable),
+--    otherwise per-second UnitIsDeadOrGhost polling of the group + check after combat
+--  * every client reports "I died at t" (WRME); the leader (or someone else as fallback) shares the report (WREP)
+--  * Fight duration, boss HP at wipe (if readable), C_DamageMeter AFTER combat (via pcall, secret values dropped)
+--  * Page "Combat reports" (nav group Raid): bosses -> attempts -> death timeline, first death, recurring patterns
+--  * /oa probe kampf: shows what C_DamageMeter delivers in game
+-- Complements Badges.lua (raid moments) and Chronicle (boss kills) - this is about the "why" of an attempt.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raidwerkzeuge (abschaltbar, siehe ModuleLoader.lua)
--- ns.Group kommt aus Core\Diagnostics\RaidSim.lua; fehlt die Datei, gelten die echten Blizzard-Abfragen
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
+-- ns.Group comes from Core\Diagnostics\RaidSim.lua; if the file is missing, the real Blizzard queries apply
 if not ns.Group then ns.Group = { IsSim = function() return false end, IsInGroup = function() return (IsInGroup and IsInGroup()) and true or false end, IsInRaid = function() return (IsInRaid and IsInRaid()) and true or false end, Num = function() return (GetNumGroupMembers and GetNumGroupMembers()) or 0 end, InInstance = function() if IsInInstance then return IsInInstance() end return false, "none" end, Instance = function() return nil end, Members = function() return {} end, Member = function() return nil end, IsLeader = function() return (UnitIsGroupLeader and UnitIsGroupLeader("player")) and true or false end, IsAssist = function() return false end } end
 local L = ns.L
 local K, C, Store, Comm = ns.K, ns.K.C, ns.Store, ns.Comm
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Security on receipt (others' addon messages may be manipulated):
+-- Sanitize texts, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- Neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -80,7 +80,7 @@ for _, g in ipairs(ns.NAV_GROUPS or {}) do
         if not has then g.pages[#g.pages + 1] = "wipes" end
     end
 end
--- /oa probe (gleiches Muster wie RaidPrep.lua; wer zuerst laedt, legt den Verteiler an)
+-- /oa probe (same pattern as RaidPrep.lua; whoever loads first creates the dispatcher)
 ns.Probes = ns.Probes or {}
 if not ns._ProbesHooked then
     ns._ProbesHooked = true
@@ -119,7 +119,7 @@ ns.AddPageSettings("wipes", function(det, y)
 end)
 
 ------------------------------------------------------------------------
--- Hilfen
+-- Helpers
 ------------------------------------------------------------------------
 local issecret = issecretvalue or function() return false end
 local function plain(v)
@@ -204,7 +204,7 @@ local function startFight(boss, eid, viaEnc)
     end)
 end
 
--- Kampfdaten C_DamageMeter: nur NACH dem Kampf, jede Zahl auf "geheim" pruefen
+-- Combat data C_DamageMeter: only AFTER combat, check every number for "secret"
 local DM_TYPES = { { "DamageDone", "dmg" }, { "HealingDone", "heal" } }
 local function dmSources(session)
     if type(session) ~= "table" then return nil end
@@ -255,7 +255,7 @@ local function readMeter()
     return next(res) and res or nil
 end
 
--- Tode kodieren: "Name~t~quelle|..." nach Zeit sortiert (ohne Zeit hinten)
+-- Encode deaths: "Name~t~source|..." sorted by time (without time at the end)
 local function encodeDeaths(deaths)
     local list = {}
     for n, d in pairs(deaths) do list[#list + 1] = { n = n, t = d.t, src = d.src } end
@@ -286,9 +286,9 @@ function WR.DecodeMeter(s)
 end
 
 ------------------------------------------------------------------------
--- Berichte speichern, zusammenfuehren, teilen
+-- Save, merge, share reports
 ------------------------------------------------------------------------
--- derselbe Versuch von verschiedenen Clients: gleicher Boss, Beginn hoechstens 30 s auseinander
+-- same attempt from different clients: same boss, start at most 30 s apart
 function WR.FindSame(boss, ts)
     for _, r in ipairs(Store.List(COLL)) do
         if r.boss == boss and math.abs((r.ts or 0) - (ts or 0)) <= 30 then return r end
@@ -306,7 +306,7 @@ end
 local function storeReport(rec, fromNet, sender)
     local old = WR.FindSame(rec.boss, rec.ts)
     if old and old.id ~= rec.id then
-        -- vorhandenen Versuch ergaenzen (Tode vereinen, fehlende Werte uebernehmen)
+        -- extend existing attempt (merge deaths, take over missing values)
         local m = {}
         for k, v in pairs(old) do m[k] = v end
         m.deaths, m.first = mergeDeaths(old.deaths, rec.deaths)
@@ -319,7 +319,7 @@ local function storeReport(rec, fromNet, sender)
     Store.merge(COLL, rec, fromNet, sender)
     return rec
 end
-local pendingMe = {}   -- Meldungen "ich starb", die vor dem Bericht ankamen
+local pendingMe = {}   -- "I died" reports that arrived before the report
 local function applyMe(sender, boss, ts, t)
     local r = WR.FindSame(boss, ts)
     if not r then
@@ -356,7 +356,7 @@ Comm.On("WREP", function(sender, _, s)
     local rec = Comm.decodeRecord(s)
     if not rec then return end
     if not rec.boss or not rec.ts or type(rec.id) ~= "string" or #rec.id > 80 then return end
-    -- Felder entschaerfen, Zeiten plausibel, fremde Berichte nicht ueberschreiben
+    -- Sanitize fields, plausible times, don't overwrite others' reports
     local n = 0
     for k, v in pairs(rec) do
         n = n + 1
@@ -382,7 +382,7 @@ Comm.On("WRME", function(sender, _, boss, ts, t)
     if not boss or not ts or not t then return end
     boss = SEC.Text(boss, 80)
     if not SEC.Rate("wrme:" .. sender, 2) then return end
-    if #pendingMe >= 60 then table.remove(pendingMe, 1) end   -- Warteliste begrenzen
+    if #pendingMe >= 60 then table.remove(pendingMe, 1) end   -- Limit waiting list
     applyMe(sender, boss, ts, t)
     ns.RefreshPage("wipes")
 end)
@@ -393,8 +393,8 @@ local function finishFight(success)
     cur = nil
     if poll then poll:Cancel() poll = nil end
     local dur = GetTime() - f.start
-    if dur < 8 and not next(f.deaths) then return end   -- Fehlstart / nur kurz angezogen
-    -- nach dem Kampf: wer jetzt tot ist und noch fehlt, kommt ohne Zeit dazu
+    if dur < 8 and not next(f.deaths) then return end   -- False start / only briefly pulled
+    -- after combat: whoever is dead now and still missing gets added without time
     for _, u in ipairs(groupUnits()) do
         local n = unitName(u)
         if n and deadUnit(u) == true and not f.deaths[n] then f.deaths[n] = { src = "after" } end
@@ -402,7 +402,7 @@ local function finishFight(success)
     local hp = bossHP()
     if success == true then hp = 0 elseif hp == nil then hp = f.hp end
     local meter = readMeter()
-    -- 0.5.617: Tode von Fremden (nicht in der Gilde) nicht mit der Gilde teilen
+    -- 0.5.617: don't share deaths of strangers (not in the guild) with the guild
     local gd = {}
     for name, d in pairs(f.deaths or {}) do
         local g = ns.Admin and ns.Admin.InGuildList and ns.Admin.InGuildList(name)
@@ -420,12 +420,12 @@ local function finishFight(success)
         ns.print((L["Fight report %s: %s, %s, first death: %s"]):format(f.boss, success == true and L["Kill"] or success == false and L["Wipe"] or L["End"],
             WR.FmtDur(dur), first and ns.displayName(first) or "-"))
     end
-    -- eigener Tod: kleine Meldung an alle (exakte Zeit fuer die Reihenfolge)
+    -- own death: small message to everyone (exact time for ordering)
     local mine = f.deaths[ns.me() or ""]
     if mine and mine.src == "self" and IsInGuild() and shareOn() then
         ns.After(math.random(5, 30) / 10, function() Comm.SendEx({ ch = "GUILD", bulk = true }, "WRME", f.boss, f.ts, ("%.1f"):format(mine.t)) end)
     end
-    -- ganzer Bericht: Anfuehrer sofort, sonst nur, wenn nach kurzer Zeit noch keiner kam
+    -- full report: leader immediately, else only if none arrived after a short time
     WR.sentFor = { boss = f.boss, ts = f.ts }
     local lead = ns.Group.IsInGroup() and ns.Group.IsLeader()
     local wait = lead and 1 or (8 + math.random(0, 80) / 10)
@@ -448,7 +448,7 @@ ns.On("ENCOUNTER_END", function(_, name, _, _, success)
     if s == 1 or s == true then res = true elseif s == 0 or s == false then res = false end
     finishFight(res)
 end)
--- Ersatz ohne Encounter-Ereignis: Raid-Instanz + Boss im Ziel
+-- Fallback without encounter event: raid instance + boss in target
 ns.On("PLAYER_REGEN_DISABLED", function()
     if cur then return end
     local inInst, kind = IsInInstance()
@@ -459,7 +459,7 @@ ns.On("PLAYER_REGEN_ENABLED", function()
     local f = cur
     if not f then return end
     if f.viaEnc then
-        -- ENCOUNTER_END sollte gleich folgen; kommt es nicht (z.B. Client meldet es nicht), selbst abschliessen
+        -- ENCOUNTER_END should follow right away; if it doesn't (e.g. client doesn't report it), finish ourselves
         ns.After(6, function()
             if cur ~= f then return end
             local alive = false
@@ -483,9 +483,9 @@ end)
 ns.On("PLAYER_DEAD", function()
     if cur then noteDeath(ns.me(), GetTime() - cur.start, "self") end
 end)
--- Kampflog (falls der Client es Addons noch gibt und die Werte lesbar sind)
--- Kampflog NICHT anmelden: COMBAT_LOG_EVENT_UNFILTERED ist in Forever/Midnight fuer Addons verboten
--- (RegisterEvent loest 'Oasis wurde geblockt' aus).
+-- Combat log (if the client still gives it to addons and the values are readable)
+-- Do NOT register combat log: COMBAT_LOG_EVENT_UNFILTERED is forbidden for addons in Forever/Midnight
+-- (RegisterEvent triggers 'Oasis was blocked').
 ns.On("UNIT_DIED", function(a)
     if not cur then return end
     a = plain(a)
@@ -500,19 +500,19 @@ ns.On("UNIT_DIED", function(a)
 end)
 
 ------------------------------------------------------------------------
--- Auswertung
+-- Evaluation
 ------------------------------------------------------------------------
 function WR.FmtDur(s)
     s = math.floor((s or 0) + 0.5)
     return ("%d:%02d"):format(math.floor(s / 60), s % 60)
 end
 local function demoOn() return ns.Demo and ns.Demo.IsActive() end
--- Sim-Versuche (Raid-Simulator, demo-sim-ID) nur waehrend der Simulation
+-- Sim attempts (raid simulator, demo-sim ID) only during the simulation
 local function visible(r)
     if r.sim then return ns.Sim and ns.Sim.Active() or false end
     return not r.demo or demoOn()
 end
--- Bosse mit Versuchen: { boss, inst, n, kills, last, list = {...} }
+-- Bosses with attempts: { boss, inst, n, kills, last, list = {...} }
 function WR.Bosses()
     local by, out = {}, {}
     for _, r in ipairs(Store.List(COLL, visible)) do
@@ -530,7 +530,7 @@ function WR.Bosses()
     table.sort(out, function(a, b) return a.last > b.last end)
     return out
 end
--- wiederkehrende Muster eines Bosses (oder aller): wer stirbt oft zuerst, wer oft ueberhaupt
+-- recurring patterns of a boss (or all): who often dies first, who often at all
 function WR.Patterns(list)
     local firsts, deaths, n = {}, {}, 0
     for _, r in ipairs(list) do
@@ -581,8 +581,8 @@ function WR.RemoveDemo()
 end
 
 ------------------------------------------------------------------------
--- Seite (Neugestaltung): Kopf-Kacheln, Boss-Liste (schmal: Auswahlknopf), rechts eine Scrollflaeche mit
--- Kopf-Karte, Verlauf aller Versuche (Balken), Zeitstrahl der Tode, Schaden/Heilung und Mustern
+-- Page (redesign): header tiles, boss list (narrow: select button), right a scroll area with
+-- Header card, history of all attempts (bars), death timeline, damage/healing and patterns
 ------------------------------------------------------------------------
 local DOT = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local SRC_TEXT = { self = "self-reported", msg = "reported via Oasis", log = "combat log", poll = "observed (approx.)", after = "dead after the fight" }
@@ -595,7 +595,7 @@ local function resultText(r)
     return "|cff9a9aa0" .. L["End"] .. "|r"
 end
 local function resultCol(r) return r.ok == true and C.mint or r.ok == false and C.red or C.dim end
--- Fortschritt eines Versuchs (0..1): Sieg = 1, sonst verlorenes Boss-Leben
+-- Progress of an attempt (0..1): win = 1, else boss health lost
 local function progressOf(r)
     if r.ok == true then return 1 end
     local hp = tonumber(r.hp)
@@ -624,7 +624,7 @@ local function place(body, key, f, x, y, w, h)
     body.rects[key] = { x = x, y = y, w = w, h = h }
 end
 
--- kleine Kennzahl-Box (Kopf-Karte)
+-- small stat box (header card)
 local function newStat(parent, label, color)
     local f = CreateFrame("Frame", nil, parent)
     f.bg = K.Fill(f, C.raised)
@@ -644,7 +644,7 @@ end
 
 local function buildDetail(p, ct)
     local U = ns.RCUI
-    -- a) Kopf-Karte
+    -- a) Header card
     local hd = U.Card(ct, C.red)
     p.hd = hd
     hd.title = K.Title(hd, 16, C.text)
@@ -714,7 +714,7 @@ local function buildDetail(p, ct)
         self.bars[i] = b
         return b
     end
-    -- c) Zeitstrahl der Tode
+    -- c) Death timeline
     local tl = U.Card(ct, C.red)
     p.tl = tl
     tl.head = K.GameHead(tl, L["Death timeline"], C.red)
@@ -774,7 +774,7 @@ local function buildDetail(p, ct)
         self.rows[i] = r
         return r
     end
-    -- d) Schaden / Heilung
+    -- d) Damage / healing
     local mt = U.Card(ct, C.blue)
     p.mt = mt
     mt.head = K.GameHead(mt, L["Damage & healing"], C.blue)
@@ -830,7 +830,7 @@ local function buildDetail(p, ct)
     pt.none:SetText(L["No pattern yet – that needs several attempts."])
 end
 
--- Detail fuellen + anordnen (Breite dw); liefert die Inhaltshoehe
+-- Fill detail + arrange (width dw); returns the content height
 local function fillDetail(p, b, r, dw, anim)
     local ct = p.det.content
     ct.rects = {}
@@ -853,7 +853,7 @@ local function fillDetail(p, b, r, dw, anim)
     local hh = hd:Layout(dw)
     place(ct, "head", hd, 0, y, dw, hh)
     y = y - hh - 10
-    -- b) Verlauf: ein Balken je Versuch (Hoehe = geschafftes Boss-Leben), passt sich der Breite an
+    -- b) History: one bar per attempt (height = boss health removed), adapts to width
     local ch = p.chart
     local list = b.list
     local n = #list
@@ -968,7 +968,7 @@ local function fillDetail(p, b, r, dw, anim)
     local tlH = -ry + math.max(1, #ds) * 22 + 10
     place(ct, "tl", tl, 0, y, dw, tlH)
     y = y - tlH - 10
-    -- d) Schaden / Heilung: Balken in Klassenfarbe (nur wenn lesbar uebertragen)
+    -- d) Damage / healing: bars in class color (only if transmitted readable)
     local mt = p.mt
     local data = { WR.DecodeMeter(r.dmg), WR.DecodeMeter(r.heal) }
     local present = {}
@@ -1025,7 +1025,7 @@ local function fillDetail(p, b, r, dw, anim)
     mt.none:SetShown(not any)
     place(ct, "meter", mt, 0, y, dw, mtH)
     y = y - mtH - 10
-    -- e) Muster ueber alle Versuche dieses Bosses
+    -- e) Patterns across all attempts of this boss
     local pt = p.pt
     local pats = WR.Patterns(b.list)
     local np = math.min(4, #pats)
@@ -1069,7 +1069,7 @@ ns.RegisterPage({
             { "raid", "Best result", C.amber }, { "heart", "Deaths per attempt", C.red } }) do
             p.tiles[i] = K.HudTile(p, glyph(d[1]), L[d[2]], d[3])
         end
-        -- 2) Boss-Liste (breit) bzw. Auswahlknopf (schmal)
+        -- 2) boss list (wide) or select button (narrow)
         p.bossHead = K.GameHead(p, L["Bosses"], C.accent)
         p.bosses = K.List(p, 56, function(l)
             local r = K.Row(l)
@@ -1126,7 +1126,7 @@ ns.RegisterPage({
         p.pick.arrow = K.Text(p.pick, 10, C.dim, "RIGHT")
         p.pick.arrow:SetPoint("RIGHT", -8, 0)
         p.pick.arrow:SetText("v")
-        -- 3) Einzelheiten in einer Scrollflaeche
+        -- 3) Details in a scroll area
         p.det = U.Scroll(p)
         p.det.content.rects = {}
         buildDetail(p, p.det.content)
@@ -1142,7 +1142,7 @@ ns.RegisterPage({
             for i, t in ipairs(self.tiles) do
                 local ci, rr = (i - 1) % tc, math.floor((i - 1) / tc)
                 place(self, "tile" .. i, t, ci * (tw + 8), y - rr * 72, tw, 64)
-                t:Hide()   -- 0.5.855: Kacheln entfallen, die Karte des gewaehlten Versuchs zeigt die Werte
+                t:Hide()   -- 0.5.855: tiles removed, the card of the selected attempt shows the values
             end
             local hasData = b ~= nil
             local wide = W >= 640
@@ -1187,7 +1187,7 @@ ns.RegisterPage({
         local r
         if b then for _, x in ipairs(b.list) do if x.id == WR.selRun then r = x end end end
         if not r and b then r = b.list[#b.list] WR.selRun = r and r.id end
-        -- Kacheln (ueber alle sichtbaren Versuche)
+        -- Tiles (across all visible attempts)
         local nRuns, nKills, nDeaths = 0, 0, 0
         for _, x in ipairs(bosses) do
             nRuns, nKills = nRuns + x.n, nKills + x.kills
@@ -1231,7 +1231,7 @@ ns.RegisterPage({
 })
 
 ------------------------------------------------------------------------
--- /oa probe kampf: was liefert C_DamageMeter (nach dem Kampf aufrufen)
+-- /oa probe kampf: what does C_DamageMeter deliver (call after combat)
 ------------------------------------------------------------------------
 local function dump(v, depth, prefix, out)
     if #out > 60 then return end

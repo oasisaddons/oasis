@@ -1,8 +1,8 @@
--- Oasis - Komfort: kleine Helfer fuer den Alltag (alles einzeln schaltbar, Standard aus).
--- Eigene Umsetzung in Oasis (Ideen wie in Komfort-Addons ueblich).
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Comfort", function()   -- Modul Komfort (abschaltbar, siehe ModuleLoader.lua)
-local EBM = setmetatable({}, { __mode = "k" })    -- Merker je Chat-Eingabe/Leiste (nie Felder auf Blizzard-Frames schreiben)
+-- Oasis - Comfort: small everyday helpers (each toggleable, off by default).
+-- Own implementation in Oasis (ideas as common in comfort addons).
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Comfort", function()   -- module Comfort (can be disabled, see ModuleLoader.lua)
+local EBM = setmetatable({}, { __mode = "k" })    -- Marker per chat input/bar (never write fields onto Blizzard frames)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
@@ -30,7 +30,7 @@ local function isFriendOrGuild(name, guid)
 end
 
 ------------------------------------------------------------------------
--- Haendler: Schrott verkaufen, reparieren (Shift halten = aussetzen)
+-- vendor: sell junk, repair (hold Shift = skip)
 ------------------------------------------------------------------------
 ns.On("MERCHANT_SHOW", function()
     if IsShiftKeyDown() then return end
@@ -42,8 +42,8 @@ ns.On("MERCHANT_SHOW", function()
             ns.print((L["Repaired for %s%s"]):format(money(cost), guild and (" (" .. L["Guild bank"] .. ")") or ""))
         end
     end
-    -- Schrott: nur ueber Blizzards eigenen "Schrott verkaufen" (C_MerchantFrame.SellAllJunkItems).
-    -- UseContainerItem aus Addon-Code sperrt der Client ("Blockiert: UseContainerItem()", 0.5.478).
+    -- Junk: only via Blizzard's own "Sell junk" (C_MerchantFrame.SellAllJunkItems).
+    -- The client blocks UseContainerItem from addon code ("Blocked: UseContainerItem()", 0.5.478).
     if on("cfSellJunk") and C_MerchantFrame and C_MerchantFrame.SellAllJunkItems then
         local total, n = 0, 0
         if C_Container then
@@ -64,11 +64,11 @@ ns.On("MERCHANT_SHOW", function()
 end)
 
 ------------------------------------------------------------------------
--- Quests automatisch (Shift halten = aussetzen); geteilte Quests ablehnen
+-- quests automatically (hold Shift = skip); decline shared quests
 ------------------------------------------------------------------------
 ns.On("QUEST_DETAIL", function()
-    -- von einem Spieler geteilt?
-    -- 0.5.739: Quests aus der eigenen Gruppe/dem Schlachtzug oder der Gilde werden nie abgelehnt, nur die von Fremden
+    -- shared by a player?
+    -- 0.5.739: quests from your own party/raid or guild are never declined, only those from strangers
     local friendly = UnitInParty("npc") or UnitInRaid("npc") or (UnitIsInMyGuild and UnitIsInMyGuild("npc"))
     if on("cfBlockShared") and UnitIsPlayer("npc") and not friendly then
         if DeclineQuest then DeclineQuest() end
@@ -118,7 +118,7 @@ ns.On("QUEST_GREETING", function()
 end)
 
 ------------------------------------------------------------------------
--- Beschwoerung / Wiederbelebung annehmen
+-- accept summon / resurrection
 ------------------------------------------------------------------------
 ns.On("CONFIRM_SUMMON", function()
     if not on("cfSummon") or ns.inCombat() then return end
@@ -160,12 +160,12 @@ ns.On("CHAT_MSG_WHISPER", function(msg, sender)
     msg, sender = ns.safe(msg), ns.safe(sender)
     local kw = (S().cfInvKeyword ~= nil and S().cfInvKeyword ~= "") and S().cfInvKeyword or "inv"
     if not msg or not sender or msg:lower():gsub("%s+", "") ~= kw:lower():gsub("%s+", "") then return end
-    if not isFriendOrGuild(sender) then return end   -- nur Gilde/Freunde
+    if not isFriendOrGuild(sender) then return end   -- guild/friends only
     if C_PartyInfo and C_PartyInfo.InviteUnit then C_PartyInfo.InviteUnit(sender) elseif InviteUnit then InviteUnit(sender) end
 end)
 
 ------------------------------------------------------------------------
--- Chat: Pfeiltasten, kein Ausblenden, Eingabe oben, Verlauf nach Reload
+-- Chat: arrow keys, no fading, input on top, history after reload
 ------------------------------------------------------------------------
 local function chatFrames()
     local out = {}
@@ -175,10 +175,10 @@ local function chatFrames()
     end
     return out
 end
--- zuletzt gesendete Zeilen (fuer den eigenen Verlauf)
+-- recently sent lines (for own history)
 CF.sentHistory = {}
--- 0.5.600: Verlauf ueberlebt /reload und Neustart (account-weit gespeichert); nach dem Laden auch in WoWs eigenen
--- Eingabeverlauf zurueckgeben (nur Chat-Zeilen, keine Befehle wie /tar - die wuerden sonst blockiert)
+-- 0.5.600: history survives /reload and restart (saved account-wide); after loading also hand back to WoW's own
+-- input history (chat lines only, no commands like /tar - those would get blocked otherwise)
 ns.Listen("DB_READY", function()
     ns.db.chatSent = ns.db.chatSent or {}
     local h = ns.db.chatSent
@@ -198,8 +198,8 @@ ns.Listen("LOGIN", function()
         end
     end)
 end)
--- 0.5.575: Text, den Oasis per Pfeil in die Chat-Eingabe setzt, gilt fuer WoW als "von Oasis" - ein /tar, /cast ...
--- daraus wird blockiert ("TargetUnit() blockiert"). Nur Chat-Zeilen und reine Kanal-Befehle in den eigenen Verlauf.
+-- 0.5.575: text Oasis puts into the chat input via arrow counts as "from Oasis" for WoW - a /tar, /cast ...
+-- from it gets blocked ("TargetUnit() blocked"). Only chat lines and plain channel commands go into own history.
 local CHAT_CMD = { g = 1, gu = 1, guild = 1, p = 1, party = 1, w = 1, whisper = 1, t = 1, tell = 1, s = 1, say = 1, y = 1, yell = 1,
     ra = 1, raid = 1, rw = 1, i = 1, instance = 1, bg = 1, o = 1, officer = 1, e = 1, em = 1, me = 1, emote = 1, r = 1, reply = 1 }
 local function historyOk(t)
@@ -218,8 +218,8 @@ local function remember(eb)
     if #h > 40 then table.remove(h, 1) end
 end
 if ChatEdit_SendText then hooksecurefunc("ChatEdit_SendText", function(eb) pcall(remember, eb) end) end
--- 0.5.599: Verlauf zusaetzlich aus den eigenen gesendeten Nachrichten fuellen (Say, Gilde, Gruppe, Raid, Fluestern,
--- Kanaele) - der Hook auf ChatEdit_SendText/Enter kam in Forever nicht zuverlaessig an, Pfeil hoch blieb leer
+-- 0.5.599: also fill history from your own sent messages (say, guild, party, raid, whisper,
+-- channels) - the hook on ChatEdit_SendText/Enter did not fire reliably in Forever, arrow up stayed empty
 local function rememberText(t)
     t = ns.safe(t)
     if type(t) ~= "string" or t:gsub("%s", "") == "" then return end
@@ -240,7 +240,7 @@ if ChatEdit_ActivateChat and not (ns.ForeignChat and ns.ForeignChat()) then
     end)
 end
 function CF.ApplyChat()
-    if ns.ForeignChat and ns.ForeignChat() then return end   -- Eingabe, Pfeiltasten und Mausklicks verwaltet der fremde Chat
+    if ns.ForeignChat and ns.ForeignChat() then return end   -- input, arrow keys and mouse clicks are handled by the foreign chat
     for _, c in ipairs(chatFrames()) do
         local f, eb = c[1], c[2]
         if eb and not EBM[eb] and eb.HookScript then
@@ -248,8 +248,8 @@ function CF.ApplyChat()
             local function fix(self) if on("cfChatArrows") and self.SetAltArrowKeyMode then self:SetAltArrowKeyMode(false) end end
             eb:HookScript("OnShow", fix)
             eb:HookScript("OnEditFocusGained", function(self) fix(self) ns.After(0, function() fix(self) end) end)
-            -- eigener Verlauf als Rueckfall: greift nur, wenn WoW beim Pfeil selbst nichts einsetzt
-            -- OnArrowPressed kommt in Forever nicht in jedem Fall -> zusaetzlich OnKeyDown (doppelt in 50 ms ignoriert)
+            -- own history as fallback: only kicks in when WoW itself inserts nothing on arrow
+            -- OnArrowPressed does not always fire in Forever -> also OnKeyDown (duplicates within 50 ms ignored)
             local function arrow(self, key)
                 if not on("cfChatArrows") or (key ~= "UP" and key ~= "DOWN") then return end
                 local now = GetTime()
@@ -269,7 +269,7 @@ function CF.ApplyChat()
             end
             eb:HookScript("OnArrowPressed", arrow)
             eb:HookScript("OnKeyDown", arrow)
-            -- Verlauf auch fuellen, falls ChatEdit_SendText in diesem Client anders heisst: Text vor dem Senden merken
+            -- also fill history if ChatEdit_SendText is named differently in this client: remember text before sending
             eb:HookScript("OnKeyDown", function(self, key) if key == "ENTER" then pcall(remember, self) end end)
             eb:HookScript("OnEnterPressed", function(self) EBM[self].histIdx = nil end)
             eb:HookScript("OnEscapePressed", function(self) EBM[self].histIdx = nil end)
@@ -277,7 +277,7 @@ function CF.ApplyChat()
         if eb and eb.SetAltArrowKeyMode then eb:SetAltArrowKeyMode(not on("cfChatArrows")) end
         if f.SetFading and not (ns.ForeignChat and ns.ForeignChat()) then f:SetFading(not on("cfChatNoFade")) end   -- 0.6.254
         if (ns.ForeignChat and ns.ForeignChat()) then
-            -- 0.6.257: EllesmereUI setzt die Eingabe selbst (Textbereich haengt davon ab) - nicht verschieben
+            -- 0.6.257: EllesmereUI positions the input itself (text area depends on it) - do not move
         elseif eb and on("cfChatTop") then
             eb:ClearAllPoints()
             eb:SetPoint("BOTTOMLEFT", f, "TOPLEFT", -5, 22)
@@ -292,10 +292,10 @@ function CF.ApplyChat()
         end
     end
 end
--- 0.6.105: nur Zeilen speichern, die nach dem Wiederherstellen dazukamen - sonst trug jeder /reload den alten
--- Block (und Verlaufsbloecke anderer Funktionen) immer weiter
+-- 0.6.105: only save lines added after restoring - otherwise every /reload carried the old
+-- block (and history blocks of other features) along forever
 local restoredUpTo = 0
--- nesUI hat einen eigenen Chat-Verlauf ueber das Neuladen -> Oasis dann nicht zusaetzlich (sonst doppelt)
+-- nesUI has its own chat history across reloads -> then not additionally from Oasis (would be doubled)
 local function nesUIHistory() return _G.nesUI ~= nil and not (_G.nesUIDB and (_G.nesUIDB.chatOff or _G.nesUIDB.chatHistOff)) end
 local function saveChat()
     if nesUIHistory() then return end
@@ -314,15 +314,15 @@ local function restoreChat()
     local cr = ns.db.chatRestore
     if nesUIHistory() then ns.db.chatRestore = nil return end
     if not on("cfChatRestore") or not cr or not cr.lines or time() - (cr.ts or 0) > 600 or not ChatFrame1 then return end
-    if ns.ForeignChat and ns.ForeignChat() then ns.db.chatRestore = nil return end   -- 0.6.254: fremder Chat hat eigenen Verlauf
+    if ns.ForeignChat and ns.ForeignChat() then ns.db.chatRestore = nil return end   -- 0.6.254: foreign chat has its own history
     ns.db.chatRestore = nil
     ChatFrame1:AddMessage("|cff666666- - - " .. L["Chat before reload"] .. " - - -|r")
-    -- alte Verlaufsbloecke (grau, "- - -") aus frueheren Versionen nicht wieder einfuegen
+    -- do not reinsert old history blocks (grey, "- - -") from earlier versions
     local skip = false
     for _, l in ipairs(cr.lines) do
         local t = l.t
         if type(t) == "string" and t:find("^|cff666666%- %- %-") then
-            skip = not t:find("^|cff666666%- %- %- %- %-")   -- Anfangszeile oeffnet, reine Strichzeile schliesst
+            skip = not t:find("^|cff666666%- %- %- %- %-")   -- start line opens, plain dash line closes
         elseif not skip then
             ChatFrame1:AddMessage(t, l.r or 1, l.g or 1, l.b or 1)
         end
@@ -332,7 +332,7 @@ local function restoreChat()
 end
 
 ------------------------------------------------------------------------
--- Schneller pluendern, Fehlermeldungen, Kamera, Haltbarkeit
+-- faster looting, error messages, camera, durability
 ------------------------------------------------------------------------
 local lastLoot = 0
 ns.On("LOOT_READY", function()
@@ -349,7 +349,7 @@ function CF.ApplyErrors()
     if on("cfHideErrors") then UIErrorsFrame:UnregisterEvent("UI_ERROR_MESSAGE")
     else UIErrorsFrame:RegisterEvent("UI_ERROR_MESSAGE") end
 end
--- 0.5.522: Kamera-Abstand regelt WoW Forever selbst (Einstellungen > Kamera: Max. Kameraabstand) - Oasis fasst ihn nicht mehr an
+-- 0.5.522: WoW Forever handles camera distance itself (Settings > Camera: Max camera distance) - Oasis no longer touches it
 function CF.ApplyCamera()
     S().cfMaxZoom, S().cfMaxZoomWas = nil, nil
 end
@@ -386,8 +386,8 @@ end
 ns.On("UPDATE_INVENTORY_DURABILITY", function() pcall(durUpdate) end)
 
 ------------------------------------------------------------------------
--- Blizzard-Leisten: Menueleiste (Charakter, Zauberbuch, ...) und Taschenleiste ausblenden,
--- wahlweise beim Drueberfahren wieder einblenden. Nur Darstellung - die Tasten (C, P, B ...) gehen weiter.
+-- Blizzard bars: hide menu bar (Character, Spellbook, ...) and bag bar,
+-- optionally show again on mouseover. Display only - the keys (C, P, B ...) keep working.
 ------------------------------------------------------------------------
 local function barFrames()
     return {
@@ -397,8 +397,8 @@ local function barFrames()
 end
 local barTick = nil
 local function barWanted(key) return on(key == "micro" and "cfHideMicro" or "cfHideBags") end
--- 0.5.504: nur noch Deckkraft. Hide()/Show() auf Blizzards Layout-Leisten "beruehrte" deren Anordnung
--- (Bearbeitungsmodus/Aktionsleisten) -> im Kampf Blockiert UNKNOWN, Leisten verschwanden.
+-- 0.5.504: opacity only. Hide()/Show() on Blizzard's layout bars "touched" their arrangement
+-- (edit mode/action bars) -> in combat Blocked UNKNOWN, bars vanished.
 local function setBar(fr, key)
     if not fr then return end
     fr:SetAlpha(barWanted(key) and 0 or 1)
@@ -407,12 +407,12 @@ function CF.ApplyBars()
     local f = barFrames()
     setBar(f.micro, "micro")
     setBar(f.bags, "bags")
-    -- Beim Drueberfahren einblenden: alle 0,15 s pruefen, ob die Maus darueber ist
+    -- Show on mouseover: check every 0.15 s whether the mouse is over it
     local hover = on("cfBarsHover") and (on("cfHideMicro") or on("cfHideBags"))
     if hover and not barTick then
         barTick = CreateFrame("Frame")
         barTick.t = 0
-        -- jedes Bild weich ueberblenden (0,18 s rein, 0,35 s raus), kurze Nachlaufzeit gegen Flackern am Rand
+        -- crossfade each frame softly (0.18 s in, 0.35 s out), short trailing time against flicker at the edge
         barTick:SetScript("OnUpdate", function(self, el)
             local fr = barFrames()
             for key, x in pairs(fr) do
@@ -443,7 +443,7 @@ function CF.ApplyAll()
     pcall(CF.ApplyBars)
 end
 ns.Listen("LOGIN", function()
-    -- Pfeiltasten ohne Alt einmalig fuer alle an
+    -- arrow keys without Alt: turn on once for everyone
     local s = ns.db.settings
     if not s.cfChatArrowsInit then
         s.cfChatArrowsInit = true
@@ -454,7 +454,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Einstellungen: Reiter "Komfort"
+-- settings: tab "Comfort"
 ------------------------------------------------------------------------
 local OPTS = {
     { "Vendors", {
@@ -493,18 +493,18 @@ local OPTS = {
         { "invTooltipOff", "No alt inventory in the tooltip", "Otherwise: the item tooltip shows which of your characters has it and how many." },
     } },
 }
-CF.CHAT_OPTS = OPTS[5][2]   -- fuer den Reiter Spielchat
+CF.CHAT_OPTS = OPTS[5][2]   -- for the Game chat tab
 local function build(f)
     local H = ns.SettingsHelpers
     local x, y = 0, 0
-    -- Spalten ausgewogen: links Haendler, Quests, Komfort - rechts Blocker (+ Stichwort), Leisten, Chat
+    -- balanced columns: left vendor, quests, comfort - right blockers (+ keyword), bars, chat
     local byName = {}
     for _, grp in ipairs(OPTS) do byName[grp[1]] = grp end
     local LEFT = { "Vendors", "Quests & accepting", "Comfort" }
     local RIGHT = { "Blockers & groups", "Blizzard bars", "Chat" }
-    -- 0.6.111: Chat-Schalter stehen im Reiter Spielchat - hier nur, wenn das Spielchat-Modul aus ist
+    -- 0.6.111: chat toggles live in the Game chat tab - here only when the game chat module is off
     if ns.GameChat then RIGHT[3] = nil end
-    -- 0.5.720: je Gruppe eine Glas-Karte (Titel in der Karte, Schalter darin) - ohne Abstandsautomatik, sonst ueberlappen die Karten
+    -- 0.5.720: one glass card per group (title inside the card, toggles in it) - no auto spacing, otherwise the cards overlap
     f.noCompact = true
     local ICON = { ["Vendors"] = "bank", ["Quests & accepting"] = "chronicle", ["Comfort"] = "home",
         ["Blockers & groups"] = "groups", ["Blizzard bars"] = "map", ["Chat"] = "polls" }
@@ -522,7 +522,7 @@ local function build(f)
                 cy = cy - ROW
             end
             if nm == "Blockers & groups" then
-                -- Stichwort fuer Einladen per Fluestern direkt unter der Option
+                -- keyword for whisper invites directly below the option
                 H.rowLabel(c, L["Keyword"], 14, cy - 4)
                 f.kw = K.Input(c, 120, "inv", function(t) S().cfInvKeyword = t end)
                 f.kw:SetPoint("TOPLEFT", 114, cy - 2)

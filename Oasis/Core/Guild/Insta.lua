@@ -1,22 +1,22 @@
--- Oasis: Oasigram - Profil mit Posts, Likes, Kommentaren und Followern (nur in der Gilde)
--- Ein "Foto" ist eine Szene aus Daten: dein Charakter mit Ausruestung, Pose, Blickwinkel, Hintergrund,
--- Ort und Bildunterschrift. Bei allen anderen wird daraus live ein 3D-Bild gebaut.
--- (Addons koennen keine Bilddateien laden oder senden - der echte Screenshot bleibt bei dir im Screenshots-Ordner.)
+-- Oasis: Oasigram - profile with posts, likes, comments and followers (guild only)
+-- A "photo" is a scene made of data: your character with gear, pose, camera angle, background,
+-- location and caption. Everyone else gets a live 3D image built from it.
+-- (Addons cannot load or send image files - the real screenshot stays with you in the Screenshots folder.)
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
 local IG = {}
 ns.Insta = IG
--- Oasigram ist vorerst "Kommt bald" (echte Screenshots lassen sich im Addon nicht teilen).
--- Auf false setzen, um alles wieder einzuschalten.
+-- Oasigram is "coming soon" for now (real screenshots cannot be shared in the addon).
+-- Set to false to switch everything back on.
 IG.SOON = true
 local MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local ICON = ns.MEDIA .. "icons\\"
 local function S() return ns.db.settings end
 
 ------------------------------------------------------------------------
--- Posen und Hintergruende
+-- Poses and backgrounds
 ------------------------------------------------------------------------
 IG.POSES = {
     { id = 0, name = "Stand" }, { id = 64, name = "Wave" }, { id = 65, name = "Cheer" }, { id = 66, name = "Dance" },
@@ -24,7 +24,7 @@ IG.POSES = {
     { id = 79, name = "Flex" }, { id = 77, name = "Applaud" }, { id = 81, name = "Point" }, { id = 72, name = "Kneel" },
     { id = 69, name = "Sit" }, { id = 68, name = "Sleep" }, { id = 73, name = "Kiss" }, { id = 75, name = "Chicken" },
 }
--- Hintergruende: oben/unten-Farbe + Lichtschein; "reward" = Belohnung des Oasis-Rangs
+-- Backgrounds: top/bottom color + light glow; "reward" = Oasis rank reward
 IG.BGS = {
     { key = "oase", name = "Oasis", top = { 0.05, 0.28, 0.30 }, bot = { 0.02, 0.08, 0.08 }, glow = { 0.3, 1, 0.8 } },
     { key = "wueste", name = "Desert", top = { 0.55, 0.32, 0.12 }, bot = { 0.15, 0.07, 0.02 }, glow = { 1, 0.75, 0.35 } },
@@ -51,7 +51,7 @@ function IG.BgUnlocked(key)
 end
 
 ------------------------------------------------------------------------
--- Daten
+-- Data
 ------------------------------------------------------------------------
 local function me() return ns.me() end
 local function same(a, b) return ns.SameName(a, b) end
@@ -142,13 +142,13 @@ function IG.Delete(post)
     end
     local before = #IG.PostsBy(me())
     Store.Delete("posts", post.id)
-    -- Sicherheitsnetz: lokal auf jeden Fall als geloescht markieren
+    -- Safety net: mark as deleted locally in any case
     local c = Store.coll("posts")
     if c[post.id] and not c[post.id].del then
         c[post.id].del = true
         c[post.id].u = math.max(ns.now(), (c[post.id].u or 0) + 1)
     end
-    -- alle weiteren Kopien desselben Posts (gleiche Zeit, gleicher Autor) ebenfalls entfernen
+    -- also remove all further copies of the same post (same time, same author)
     for id, r in pairs(c) do
         if id ~= post.id and not r.del and same(r.by, post.by) and r.ts == post.ts then Store.Delete("posts", id) end
     end
@@ -158,7 +158,7 @@ function IG.Delete(post)
     K.Toast(L["Post deleted"], post.cap ~= "" and post.cap or "", C.muted)
     ns.RefreshPage("insta")
 end
--- Loeschen mit kleiner Abfrage: "Post loeschen?" [Loeschen] [Abbrechen]
+-- Delete with a small prompt: "Delete post?" [Delete] [Cancel]
 local confirm
 function IG.ArmDelete(btn, post, after)
     if not post then return end
@@ -198,7 +198,7 @@ function IG.ArmDelete(btn, post, after)
     confirm:Raise()
 end
 
--- eigene Ausruestung als "Slot:ItemID,..."
+-- own gear as "Slot:ItemID,..."
 local SLOTS = { 1, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 19 }
 local function gearString()
     local t = {}
@@ -229,7 +229,7 @@ function IG.Publish(d)
 end
 
 ------------------------------------------------------------------------
--- Szene: Hintergrund + 3D-Modell (fuer Kacheln, Detail und Editor)
+-- Scene: background + 3D model (for tiles, detail and editor)
 ------------------------------------------------------------------------
 function IG.Scene(parent, w, h)
     local f = CreateFrame("Frame", nil, parent)
@@ -270,7 +270,7 @@ function IG.Scene(parent, w, h)
         self.glow:SetVertexColor(b.glow[1], b.glow[2], b.glow[3], 0.22)
         for _, s in ipairs(self.stars) do s:SetShown(b.stars and true or false) end
     end
-    -- lebendige Hintergruende (Gewitter, Polarlicht, Vulkan, Sterne)
+    -- living backgrounds (thunderstorm, aurora, volcano, stars)
     f:SetScript("OnUpdate", function(self, el)
         local b = self.bgDef
         if not b or not self:IsVisible() then return end
@@ -289,7 +289,7 @@ function IG.Scene(parent, w, h)
             for i, s in ipairs(self.stars) do s:SetAlpha(0.35 + 0.65 * (0.5 + 0.5 * math.sin(t * (1 + i * 0.3) + i))) end
         end
     end)
-    -- Szene aus einem Post aufbauen
+    -- Build a scene from a post
     function f:ShowPost(p)
         self.post = p
         self:SetBg(p.bg)
@@ -313,7 +313,7 @@ function IG.Scene(parent, w, h)
         local isUnit = isUnitMe
         local function dress()
             if self.post ~= p then return end
-            -- Ausruestung NUR auf dem echten eigenen Charakter (SetUnit) - auf Ersatzmodellen stuerzt WoW ab
+            -- Gear ONLY on the real own character (SetUnit) - on substitute models WoW crashes
             if isUnit then
                 pcall(m.Undress, m)
                 for slot, id in tostring(p.it or ""):gmatch("(%d+):(%d+)") do pcall(m.TryOn, m, "item:" .. id) end
@@ -325,7 +325,7 @@ function IG.Scene(parent, w, h)
         dress()
         ns.After(0.3, dress)
     end
-    -- Live-Vorschau (Editor): eigener Charakter
+    -- Live preview (editor): own character
     function f:ShowLive(d)
         self.post = nil
         self:SetBg(d.bg)
@@ -342,7 +342,7 @@ function IG.Scene(parent, w, h)
 end
 
 ------------------------------------------------------------------------
--- Kamera: echter Screenshot (fuer dich) + Post-Editor
+-- Camera: real screenshot (for you) + post editor
 ------------------------------------------------------------------------
 local composer
 local function buildComposer()
@@ -370,7 +370,7 @@ local function buildComposer()
     f.scene = IG.Scene(f, 250, 360)
     f.scene:SetPoint("TOPLEFT", 16, -44)
     K.Border(f.scene, C.line)
-    -- Drehen mit der Maus direkt im Bild
+    -- Rotate with the mouse directly in the image
     f.scene:EnableMouse(true)
     f.scene:SetScript("OnMouseDown", function(self) self.dragX = GetCursorPosition() end)
     f.scene:SetScript("OnMouseUp", function(self) self.dragX = nil end)
@@ -490,7 +490,7 @@ function IG.OpenComposer(shotTaken)
     end)
     if not ok then ns.err(L["Snapshot editor"], e) end
 end
--- Kamera: kurz alle Oasis-Fenster ausblenden, echten Screenshot machen, dann den Editor oeffnen
+-- Camera: briefly hide all Oasis windows, take a real screenshot, then open the editor
 function IG.Snap()
     if IG.SOON then
         K.Toast(L["Oasigram"], L["Coming soon - we're working on it!"], C.pink, function() ns.ShowPage("insta") end)
@@ -505,7 +505,7 @@ function IG.Snap()
         ns.After(0.15, function()
             pcall(Screenshot)
             ns.After(0.6, function()
-                -- jeden Schritt einzeln absichern: der Editor soll auf jeden Fall aufgehen
+                -- safeguard each step individually: the editor must open in any case
                 if barShown and bar then pcall(bar.Show, bar) end
                 if main and ns.OpenMain then pcall(ns.OpenMain) end
                 IG.OpenComposer(true)
@@ -519,7 +519,7 @@ ns.slash.foto = IG.Snap
 ns.slash.photo = IG.Snap
 
 ------------------------------------------------------------------------
--- Benachrichtigungen: Likes, Kommentare, Follower
+-- Notifications: likes, comments, followers
 ------------------------------------------------------------------------
 local unread = 0
 ns.Listen("STORE", function(coll, rec)
@@ -555,7 +555,7 @@ function IG.ProfileFields(p)
 end
 
 ------------------------------------------------------------------------
--- Seite "Profil"
+-- Page "Profile"
 ------------------------------------------------------------------------
 local view = { who = nil, tab = "posts", page = 1, detail = nil }
 function IG.ShowProfile(name)
@@ -570,8 +570,8 @@ end
 local PER = 6
 
 local function plain(s) return s end   -- Profil 2026: kleine Beschriftungen in normaler Schreibweise
--- Glasflaeche (Profil 2026): runde, halbtransparente Flaeche + feine Kante, unabhaengig vom gewaehlten Design.
--- Ersetzt Grundfarbe, Rahmen und Design-Skin des Frames; erneuter Aufruf faerbt nur um.
+-- Glass surface (profile 2026): round, semi-transparent surface + thin edge, independent of the chosen design.
+-- Replaces base color, border and design skin of the frame; calling again only recolors.
 local GLASS_DIR = ns.MEDIA .. "skins\\"
 local function glassSlice(f, corner, edge, r, layer, sub, c, center)
     local list = {}
@@ -610,9 +610,9 @@ IG.GLASS_FILL = { 1, 1, 1, 0.04 }
 IG.GLASS_LINE = { 1, 1, 1, 0.085 }
 function IG.Glass(f, fill, line, r)
     if not f then return end
-    if f.imgBtn then return end   -- 0.6.400: Bild-Knoepfe tragen ihr eigenes Bild - keine Glasflaeche dahinter
-    -- 0.6.282: Bild-Rahmen auch um Glas-Boxen (ab 40 hoch, keine Zeilen). 0.6.284: Flaechen, die ohne Randlinie gebaut
-    -- werden (z. B. Chat-Nachrichten, Linie mit Deckkraft 0), bekommen nie einen - auch nicht bei spaeteren Aufrufen
+    if f.imgBtn then return end   -- 0.6.400: image buttons carry their own image - no glass surface behind
+    -- 0.6.282: image frame also around glass boxes (from 40 high, no rows). 0.6.284: surfaces built without
+    -- a border line (e.g. chat messages, line with opacity 0) never get one - not even on later calls
     if line and (line[4] or 1) <= 0 then f.noBoxFrame = true end
     if K.BoxFrame and not f.noBoxFrame then pcall(K.BoxFrame, f, 40) end
     fill, line = fill or IG.GLASS_FILL, line or IG.GLASS_LINE
@@ -632,12 +632,12 @@ function IG.Glass(f, fill, line, r)
     return f
 end
 
--- Profil-Reiter (2026): schlanke Glasleiste, Symbol + Text, aktiver Bereich als ruhige Akzent-Pille,
--- die beim Wechsel zum neuen Reiter gleitet (zeigt, wohin man gesprungen ist)
--- Werte-Tooltip als Tabelle: Kopf "Name | Wert", Abschnitte mit Bezeichnung links / Wert rechts, Fussnote klein
--- Werte-Tooltip (2026): eigene Glaskarte statt Blizzard-Tooltip.
--- Kopf: Name klein, Wert gross, Einordnung als farbige Pille; Vergleichsleiste "du / ueblich";
--- Zusammensetzung als Zeilen (Bezeichnung links, Wert rechts); Fussnote klein. Folgt der Maus des Besitzers.
+-- Profile tabs (2026): slim glass bar, icon + text, active area as a calm accent pill
+-- that glides to the new tab on switching (shows where you jumped)
+-- Value tooltip as table: header "Name | Value", sections with label left / value right, small footnote
+-- Value tooltip (2026): own glass card instead of Blizzard tooltip.
+-- Header: name small, value large, rating as colored pill; comparison bar "you / typical";
+-- composition as rows (label left, value right); small footnote. Follows the owner's mouse.
 local statTip
 local function strip(l) return (l:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
 local function num(v) return tonumber((tostring(v or ""):gsub(",", "."):match("%-?%d+%.?%d*") or "")) end
@@ -657,7 +657,7 @@ function IG.StatTip(owner, lines)
         f.pill:SetPoint("TOPRIGHT", -14, -18)
         f.pill.t = K.Text(f.pill, 11, { 1, 1, 1 }, "CENTER")
         f.pill.t:SetPoint("CENTER", 0, 0)
-        -- Vergleichsleiste
+        -- Comparison bar
         f.cmpL = K.Text(f, 10, C.muted)
         f.cmpR = K.Text(f, 10, C.muted, "RIGHT")
         f.track = f:CreateTexture(nil, "ARTWORK")
@@ -680,7 +680,7 @@ function IG.StatTip(owner, lines)
     end
     local f = statTip
     local W = 270
-    -- Zeilen auswerten
+    -- Evaluate rows
     local title, value, rating, ratingCol, typical, foot
     local parts = {}
     for i, l in ipairs(lines) do
@@ -707,7 +707,7 @@ function IG.StatTip(owner, lines)
     f.owner = owner
     f.name:SetText(title or "")
     f.value:SetText(value or "")
-    -- Einordnungs-Pille in ihrer Farbe
+    -- Rating pill in its color
     if rating then
         local r, g, b = 0.6, 0.6, 0.65
         if ratingCol then r, g, b = tonumber(ratingCol:sub(3, 4), 16) / 255, tonumber(ratingCol:sub(5, 6), 16) / 255, tonumber(ratingCol:sub(7, 8), 16) / 255 end
@@ -720,7 +720,7 @@ function IG.StatTip(owner, lines)
         f.pill:Hide()
     end
     local y = -64
-    -- Vergleich: eigener Wert gegen das Uebliche (Leiste bis 2x ueblich)
+    -- Comparison: own value against the typical one (bar up to 2x typical)
     local mine, usual = num(value), typical and num(typical[2])
     local showCmp = mine and usual and usual > 0
     for _, x in ipairs({ f.cmpL, f.cmpR, f.track, f.fill, f.mark }) do x:SetShown(showCmp and true or false) end
@@ -739,7 +739,7 @@ function IG.StatTip(owner, lines)
         f.mark:ClearAllPoints() f.mark:SetPoint("CENTER", f.track, "LEFT", (W - 32) * 0.5, 0)
         y = y - 18
     end
-    -- Zusammensetzung
+    -- Composition
     f.secT:SetShown(#parts > 0)
     if #parts > 0 then
         f.secT:ClearAllPoints() f.secT:SetPoint("TOPLEFT", 16, y)
@@ -776,12 +776,12 @@ function IG.StatTip(owner, lines)
 end
 function IG.ProfileTabs(parent, items, onChange)
     local f = CreateFrame("Frame", nil, parent)
-    -- 0.6.318: hoehere Leiste, aktiver Reiter mit Akzent-Unterstrich + leichtem Schein statt Pille
-    local TH = 36   -- 0.6.410: schmaler
+    -- 0.6.318: taller bar, active tab with accent underline + light glow instead of pill
+    local TH = 36   -- 0.6.410: narrower
     f:SetHeight(TH)
     f.buttons = {}
     local ac = C.accent
-    -- 0.6.324: keine eigene Box mehr, nur eine feine Linie unten (Entwurf)
+    -- 0.6.324: no own box anymore, only a thin line at the bottom (draft)
     f.base = f:CreateTexture(nil, "BACKGROUND")
     f.base:SetColorTexture(1, 1, 1, 0.08)
     f.base:SetPoint("BOTTOMLEFT") f.base:SetPoint("BOTTOMRIGHT")
@@ -791,7 +791,7 @@ function IG.ProfileTabs(parent, items, onChange)
     f.ind:SetWidth(60)
     f.ind.glow = f.ind:CreateTexture(nil, "BACKGROUND")
     f.ind.glow:SetAllPoints()
-    f.ind.glow:SetAlpha(0)   -- 0.6.390: kein Kasten hinter dem aktiven Reiter, nur Unterstrich + Schein
+    f.ind.glow:SetAlpha(0)   -- 0.6.390: no box behind the active tab, only underline + glow
     if not K.Gradient(f.ind.glow, "VERTICAL", { ac[1], ac[2], ac[3], 0.06 }, { ac[1], ac[2], ac[3], 0 }) then f.ind.glow:SetColorTexture(ac[1], ac[2], ac[3], 0.08) end
     f.ind.line = f.ind:CreateTexture(nil, "ARTWORK")
     f.ind.line:SetColorTexture(ac[1], ac[2], ac[3], 1)
@@ -802,7 +802,7 @@ function IG.ProfileTabs(parent, items, onChange)
     f.ind.shine:SetPoint("BOTTOMRIGHT", f.ind.line, "TOPRIGHT", 6, 0)
     f.ind.shine:SetHeight(10)
     if not K.Gradient(f.ind.shine, "VERTICAL", { ac[1], ac[2], ac[3], 0.35 }, { ac[1], ac[2], ac[3], 0 }) then f.ind.shine:Hide() end
-    -- 0.6.395: Unterstrich und Schein pulsieren sanft (aus mit "Animationen aus")
+    -- 0.6.395: underline and glow pulse gently (off with "Animations off")
     f.ind:SetScript("OnUpdate", function(self)
         if ns.db and ns.db.settings.noAnim then self.shine:SetAlpha(1) return end
         local k = 0.65 + 0.35 * math.sin(GetTime() * 2.4)
@@ -814,12 +814,12 @@ function IG.ProfileTabs(parent, items, onChange)
         b:SetFrameLevel(f.ind:GetFrameLevel() + 2)
         b.key = it.key
         b.ico = K.Glyph(b, 16, ns.MEDIA .. "icons\\" .. (it.icon or "stats"), { 0.6, 0.6, 0.64 })
-        if b.ico.SetDesaturated then b.ico:SetDesaturated(true) end   -- 0.6.390: einfarbig (farbige Grafiken wirkten bunt)
+        if b.ico.SetDesaturated then b.ico:SetDesaturated(true) end   -- 0.6.390: single color (colored graphics looked gaudy)
         b.label = K.Text(b, 13, { 0.6, 0.6, 0.64 }, "LEFT")
         b.label:SetText(it.text)
         b.label:SetWordWrap(false)
         b:SetScript("OnClick", function() f:Select(it.key, true) end)
-        -- 0.6.395: leichter Schein beim Drueberfahren
+        -- 0.6.395: light glow on hover
         b.hov = b:CreateTexture(nil, "BACKGROUND")
         b.hov:SetPoint("BOTTOMLEFT", 8, 0) b.hov:SetPoint("BOTTOMRIGHT", -8, 0)
         b.hov:SetHeight(TH - 12)
@@ -827,7 +827,7 @@ function IG.ProfileTabs(parent, items, onChange)
         b.hov:Hide()
         b:HookScript("OnEnter", function(self) if f.value ~= self.key then self.hov:Show() end end)
         b:HookScript("OnLeave", function(self) self.hov:Hide() end)
-        -- 0.6.410: Symbol waechst beim Drueberfahren, federt beim Klick (aus mit "Animationen aus")
+        -- 0.6.410: icon grows on hover, bounces on click (off with "Animations off")
         local function grow(to, dur)
             if (ns.db and ns.db.settings.noAnim) or not K.Tween then b.ico:SetSize(to, to) return end
             local from = b.ico:GetWidth() or 16
@@ -854,7 +854,7 @@ function IG.ProfileTabs(parent, items, onChange)
             b:ClearAllPoints()
             b:SetPoint("TOPLEFT", pad + (i - 1) * (bw + gap), -4)
             b:SetSize(bw, TH - 8)
-            -- Symbol + Text als Gruppe mittig; passt der Text nicht, wird er gekuerzt (nie ueber das Symbol)
+            -- Icon + text centered as a group; if the text does not fit, it is truncated (never over the icon)
             b.label:SetWidth(0)
             local textW = math.min(b.label:GetStringWidth() or 0, bw - 18 - 8 - 12)
             local x0 = math.max(6, math.floor((bw - (18 + 8 + textW)) / 2))
@@ -908,30 +908,30 @@ ns.RegisterPage({
     build = function(p)
         p:SetScript("OnShow", function(self) self.fresh = true end)
         p.fresh = true
-        -- Meine Stats (solange Oasigram noch nicht fertig ist, zeigt die Seite die eigenen Zahlen)
+        -- My stats (while Oasigram is not finished, the page shows the own numbers)
         local soon = CreateFrame("Frame", nil, p)
         soon:SetAllPoints()
         soon:SetFrameLevel(p:GetFrameLevel() + 50)
         soon:EnableMouse(true)
-        -- deckend: darunter liegt die (noch versteckte) Oasigram-Seite
+        -- opaque: the (still hidden) Oasigram page lies below
         soon.pageBg = K.Fill(soon, { 0.045, 0.045, 0.052, 1 })
-        soon.pageBg:SetAlpha(0)   -- 0.6.368: keine eigene Seitenflaeche - das Fensterbild scheint durch wie auf den anderen Seiten
-        -- Profil 2026: Hoehen der Kopfzeile/Reiter und Beginn der Inhalte (mit/ohne Unterreiter)
-        -- 0.6.318: groesserer Kopf (170) und hoehere Reiterleiste (46) wie im Entwurf
-        soon.HEAD_H, soon.NAV_Y, soon.SUB_Y, soon.TOP, soon.TOP_SUB = 150, -160, -206, -208, -238   -- 0.6.410: Reiter 36 hoch
-        -- Profil + "Mein Weg" zusammengefuehrt (07.10.): sechs Bereiche oben, darunter je Bereich Unterreiter
+        soon.pageBg:SetAlpha(0)   -- 0.6.368: no own page surface - the window image shows through like on the other pages
+        -- Profile 2026: heights of header/tabs and start of content (with/without sub-tabs)
+        -- 0.6.318: larger header (170) and taller tab bar (46) as in the draft
+        soon.HEAD_H, soon.NAV_Y, soon.SUB_Y, soon.TOP, soon.TOP_SUB = 150, -160, -206, -208, -238   -- 0.6.410: tabs 36 high
+        -- Profile + "My path" merged (07.10.): six sections on top, sub-tabs per section below
         local MAIN = {
             { key = "vals", text = L["Stats"], icon = "stats", subs = { "stats" } },
             { key = "over", text = L["Diary"], icon = "chronicle", subs = { "year", "daily" } },
             { key = "success", text = L["Achievements"], icon = "badges", subs = { "records", "rank" } },
-            { key = "adv", text = L["Adventure"], icon = "map", subs = { "journey", "dungeons", "mates", "deaths", "gold", "loot" } },   -- 0.6.460: eigene Beute   -- Reise gehoert jetzt zu Abenteuer
-            { key = "plan", text = L["Tasks"], icon = "checklist", subs = { "weekly", "todo" } },   -- Ziele entfernt
-            { key = "skills", text = L["Skills"], icon = "star_on", subs = ns.Weapons and { "prof", "skills2", "weapons" } or { "prof" } },   -- 0.6.569: Fertigkeiten/Waffen nur mit Waffenlehrer (Oasis Convenience)
+            { key = "adv", text = L["Adventure"], icon = "map", subs = { "journey", "dungeons", "mates", "deaths", "gold", "loot" } },   -- 0.6.460: own loot   -- journey now belongs to adventure
+            { key = "plan", text = L["Tasks"], icon = "checklist", subs = { "weekly", "todo" } },   -- Goals removed
+            { key = "skills", text = L["Skills"], icon = "star_on", subs = ns.Weapons and { "prof", "skills2", "weapons" } or { "prof" } },   -- 0.6.569: skills/weapons only with weapon trainer (Oasis Convenience)
         }
         local SUBTEXT = { year = "Yearbook", daily = "Daily goal", journey = "Journey", records = "Records", stats = "Statistics",
             rank = "Rank & rewards", dungeons = "Dungeons", mates = "Players", deaths = "Deaths", gold = "Gold", loot = "Loot",
             goals = "Goals", todo = "What to do?", prof = "Professions & Rep", weekly = "Weekly tasks", skills2 = "Skills", weapons = "Weapons" }
-        -- Ansichten aus "Mein Weg" (Life.lua) - werden im Profil eingebettet
+        -- Views from "My path" (Life.lua) - embedded in the profile
         local LIFE = { year = true, journey = true, records = true, dungeons = true, mates = true, deaths = true, gold = true, goals = true, todo = true }
         local MAIN_OF, MAIN_BY = {}, {}
         for _, m in ipairs(MAIN) do
@@ -946,7 +946,7 @@ ns.RegisterPage({
         end)
         soon.tabs:SetPoint("TOPLEFT", 0, -202)
         soon.tabs:SetPoint("TOPRIGHT", 0, -202)
-        -- Unterreiter je Bereich (nur wo es mehr als einen gibt)
+        -- Sub-tabs per section (only where there is more than one)
         soon.subSeg = {}
         for _, m in ipairs(MAIN) do
             if #m.subs > 1 then
@@ -974,7 +974,7 @@ ns.RegisterPage({
         soon.dailyHost = host()
         soon.lootHost = host()
 
-        -- Tagesziel (frueher auf dem Dashboard): grosse Ringe + drei Zeilen mit Leiste
+        -- Daily goal (formerly on the dashboard): large rings + three rows with bar
         do
             local d = soon.dailyHost
             local RCOL = { { 1, 0.20, 0.36 }, { 0.62, 1, 0.12 }, { 0.10, 0.85, 1 } }
@@ -1115,10 +1115,10 @@ ns.RegisterPage({
                     self.rankBuilt = true
                     local ok, e = pcall(def.build, self.rankHost)
                     if not ok then ns.err("Profil/Rang", e) end
-                    -- "Dein Rang" steckt jetzt in der Karte oben -> hier ausblenden, Wochenaufgaben hoch
+                    -- "Your rank" now lives in the card on top -> hide here, move weekly tasks up
                     local h = self.rankHost
                     if h.card then h.card:Hide() end
-                    if h.week then h.week:SetParent(self.weeklyHost) h.week:ClearAllPoints() h.week:SetAllPoints(self.weeklyHost) self.weekMoved = true end   -- eigener Reiter Aufgaben > Wochenaufgaben
+                    if h.week then h.week:SetParent(self.weeklyHost) h.week:ClearAllPoints() h.week:SetAllPoints(self.weeklyHost) self.weekMoved = true end   -- own tab Tasks > Weekly tasks
                     if h.week and self.StyleWeek then pcall(self.StyleWeek, self, h.week) end
                     self:PlaceCounters()
                 end
@@ -1135,14 +1135,14 @@ ns.RegisterPage({
         hc:SetHeight(112)
         hc.cardBtn = K.Button(soon, L["Edit business card"], 160, 22, "ghost", function() if ns.Card then ns.Card.Edit() end end)
         hc.cardBtn:SetPoint("TOPRIGHT", soon, "TOPRIGHT", 0, -206)
-        hc.cardBtn:Hide()   -- Visitenkarte jetzt per Klick auf die Charakterkarte (Portrait/Name)
+        hc.cardBtn:Hide()   -- Business card now via click on the character card (portrait/name)
         hc.glow = hc:CreateTexture(nil, "BORDER")
         hc.glow:SetAllPoints()
         hc.edge = hc:CreateTexture(nil, "ARTWORK")
         hc.edge:SetPoint("TOPLEFT") hc.edge:SetPoint("BOTTOMLEFT") hc.edge:SetWidth(3)
         soon.hc = hc
-        soon.av = K.RankFrame(hc, 70, "circle")   -- 0.5.586: gemalter Rahmen ist breiter -> Portraet kleiner
-        -- Klick auf die Charakterkarte (links, Portrait + Name) = Visitenkarte bearbeiten
+        soon.av = K.RankFrame(hc, 70, "circle")   -- 0.5.586: painted frame is wider -> portrait smaller
+        -- Click on the character card (left, portrait + name) = edit business card
         hc.editHit = CreateFrame("Button", nil, hc)
         hc.editHit:SetPoint("TOPLEFT", 0, 0)
         hc.editHit:SetPoint("BOTTOMLEFT", 0, 0)
@@ -1174,7 +1174,7 @@ ns.RegisterPage({
         if not K.Gradient(soon.xpFill, "HORIZONTAL", { 0.85, 0.5, 0.12, 1 }, { 1, 0.82, 0.29, 1 }) then soon.xpFill:SetColorTexture(1, 0.8, 0.3, 1) end
         soon.xpText = K.Text(hc, 10, C.muted)
         soon.xpText:SetPoint("TOPLEFT", soon.xpTrack, "BOTTOMLEFT", 0, -4)
-        -- Kacheln rechts
+        -- Tiles on the right
         soon.tiles = {}
         local TILES = { { ICON .. "badges", "Badge", C.amber }, { ICON .. "badges", "Oasis XP", C.accent }, { ICON .. "badges\\chat", "Guild chat", C.mint } }
         for i, d in ipairs(TILES) do
@@ -1183,7 +1183,7 @@ ns.RegisterPage({
             t:SetPoint("RIGHT", hc, "RIGHT", -12 - (#TILES - i) * 158, 0)
             soon.tiles[i] = t
         end
-        -- Name/Rang/Balken enden vor den Kacheln (sonst laufen sie darunter)
+        -- Name/rank/bar end before the tiles (otherwise they run underneath)
         soon.name:SetPoint("RIGHT", soon.tiles[1], "LEFT", -16, 0)
         soon.name:SetWordWrap(false)
         soon.rank:SetPoint("RIGHT", soon.tiles[1], "LEFT", -16, 0)
@@ -1195,7 +1195,7 @@ ns.RegisterPage({
         end
         hc:SetScript("OnSizeChanged", fitBar)
         soon.FitBar = fitBar
-        -- alle Zaehler, nach Bereich gruppiert
+        -- all counters, grouped by section
         soon.list = K.List(soon, 36, function(l)
             local r = K.Row(l)
             r.head = K.GameHead(r, "", C.accent)
@@ -1250,14 +1250,14 @@ ns.RegisterPage({
         soon.list:SetPoint("TOPLEFT", hc, "BOTTOMLEFT", 0, -10)
         soon.list:SetPoint("BOTTOMRIGHT")
         ------------------------------------------------------------------
-        -- Aufbau wie "Rang & Belohnungen": links Karte + Charakterwerte, rechts Zaehler
+        -- Layout like "Rank & rewards": card + character stats left, counters right
         ------------------------------------------------------------------
         local view = CreateFrame("Frame", nil, soon)
         view:SetPoint("TOPLEFT", 0, -254)
         view:SetPoint("BOTTOMRIGHT")
         soon.view = view
         local LW = 360
-        -- Karte "Charakter": volle Breite oben, bleibt bei beiden Reitern sichtbar
+        -- Card "Character": full width on top, stays visible in both tabs
         hc:SetParent(soon)
         hc:ClearAllPoints()
         hc:SetPoint("TOPLEFT", 0, 0)
@@ -1265,7 +1265,7 @@ ns.RegisterPage({
         hc:SetHeight(198)
         soon.av:ClearAllPoints()
         soon.av:SetPoint("CENTER", hc, "TOPLEFT", 56, -52)
-        -- Kacheln rechts in der Karte
+        -- Tiles on the right in the card
         for i, t in ipairs(soon.tiles) do
             t:SetParent(hc)
             t:ClearAllPoints()
@@ -1273,7 +1273,7 @@ ns.RegisterPage({
             t:SetPoint("TOPRIGHT", hc, "TOPRIGHT", -12, -14)
             t.label:SetWidth(90)
             t.label:SetWordWrap(false)
-            -- nur "Abzeichen" bleibt; Oasis-XP und Gildenchat raus
+            -- only "Badges" stays; Oasis XP and guild chat removed
             if i > 1 then t:Hide() t.Show = function() end end
         end
         soon.name:ClearAllPoints()
@@ -1291,8 +1291,8 @@ ns.RegisterPage({
         soon.xpText:ClearAllPoints()
         soon.xpText:SetPoint("TOPLEFT", soon.xpTrack, "BOTTOMLEFT", 0, -4)
         soon.xpText:SetPoint("RIGHT", soon.tiles[1], "LEFT", -16, 0)
-        -- aus "Dein Rang": XP gesamt, naechste Belohnung, naechster Rahmen
-        -- eine Zeile ueber die ganze Kartenbreite ganz unten
+        -- from "Your rank": total XP, next reward, next frame
+        -- one row across the whole card width at the very bottom
         soon.nextLine = hc:CreateTexture(nil, "ARTWORK")
         soon.nextLine:SetColorTexture(C.line[1], C.line[2], C.line[3], 1)
         soon.nextLine:SetHeight(1)
@@ -1310,13 +1310,13 @@ ns.RegisterPage({
         hc:SetScript("OnSizeChanged", fitBar)
 
         ------------------------------------------------------------------
-        -- Spiel-Stil: Wappen am Portraet, Schildchen, dicker XP-Balken, Belohnungs-Chips
+        -- Game style: crest on the portrait, little plaque, thick XP bar, reward chips
         ------------------------------------------------------------------
         soon.nextLine:Hide()
         soon.next:Hide()
         soon.av:ClearAllPoints()
         soon.av:SetPoint("CENTER", hc, "LEFT", 84, 4)
-        -- Buehne hinter dem Portraet: Aura, drehende Ringe, Strahlen - wird mit dem Rang immer aufwendiger
+        -- Stage behind the portrait: aura, rotating rings, rays - gets more elaborate with rank
         local stage = CreateFrame("Frame", nil, hc)
         stage:SetSize(170, 170)
         stage:SetPoint("CENTER", soon.av, "CENTER")
@@ -1337,7 +1337,7 @@ ns.RegisterPage({
         soon.stage = stage
         soon.spin1 = ns.SpinRing and ns.SpinRing(hc, soon.av, 132, 0.6)
         soon.spin2 = ns.SpinRing and ns.SpinRing(hc, soon.av, 146, -0.35)
-        -- Stufe = Rahmen-Index (1 Holz .. 11 Herz der Oasis)
+        -- Tier = frame index (1 wood .. 11 heart of the oasis)
         function soon:AvatarFx(level)
             local fi = ns.Rank and ns.Rank.FrameIndex and ns.Rank.FrameIndex(level or 1) or 1
             local fr = ns.Rank and ns.Rank.FRAMES and ns.Rank.FRAMES[fi]
@@ -1361,7 +1361,7 @@ ns.RegisterPage({
             st:SetScript("OnUpdate", (not noAnim) and function(s, el)
                 s.t = (s.t or 0) + el
                 local t = s.t
-                -- atmen: ab Silber, schneller und staerker mit dem Rang
+                -- breathing: from silver, faster and stronger with rank
                 local amp = s.fi >= 3 and (0.04 + 0.01 * s.fi) or 0
                 local sc = 1 + amp * math.sin(t * (1.2 + 0.15 * s.fi))
                 s.aura:SetSize(170 * sc, 170 * sc)
@@ -1408,9 +1408,9 @@ ns.RegisterPage({
         soon.lvlPill = pill(hc)
         soon.lvlPill:SetPoint("LEFT", soon.clsPill, "RIGHT", 6, 0)
         soon.cls:Hide()
-        -- Rang-Zeile + dicker XP-Balken
+        -- Rank row + thick XP bar
         soon.rank:ClearAllPoints()
-        -- WoW-Erfahrung: Level -> naechstes, Balken (Ruhebonus hell), rechts XP und Tempo
+        -- WoW experience: level -> next, bar (rested bonus light), XP and pace on the right
         soon.wxp = K.Text(hc, 12, { 0.45, 0.7, 1 })
         soon.wxp:SetPoint("TOPLEFT", soon.clsPill, "BOTTOMLEFT", 0, -10)
         soon.wxpR = K.Text(hc, 11, C.muted, "RIGHT")
@@ -1446,7 +1446,7 @@ ns.RegisterPage({
             self.wFill:SetWidth(math.max(1, w * pct))
             self.wRest:SetWidth(math.max(1, w * math.min(1, (cur + (rest or 0)) / max)))
             local fmtN = function(n) return BreakUpLargeNumbers and BreakUpLargeNumbers(n) or tostring(n) end
-            -- Tempo dieser Sitzung
+            -- Pace of this session
             local sess = ns.Insta.WowXPSession
             local tempo = ""
             if sess and sess.t0 and GetTime() - sess.t0 > 120 and sess.xp > 0 then
@@ -1485,7 +1485,7 @@ ns.RegisterPage({
         end
         soon.xpText:ClearAllPoints()
         soon.xpText:SetPoint("TOPLEFT", soon.xpTrack, "BOTTOMLEFT", 0, -4)
-        -- Belohnungs-Chips unten
+        -- Reward chips at the bottom
         local function chip(parent, label, color)
             local f = CreateFrame("Frame", nil, parent)
             f:SetHeight(30)
@@ -1509,7 +1509,7 @@ ns.RegisterPage({
         soon.chipR = chip(hc, L["Next reward"], C.amber)
         soon.chipR.icon:SetTexture(ns.MEDIA .. "icons\\badges")
         soon.chipR.icon:SetVertexColor(C.amber[1], C.amber[2], C.amber[3])
-        -- Tooltip: was genau die naechste Belohnung ist (bei Emojis: alle Emojis, die frei werden) + die danach
+        -- Tooltip: what exactly the next reward is (for emojis: all emojis that get unlocked) + the one after
         soon.chipR:EnableMouse(true)
         soon.chipR:SetScript("OnEnter", function(self)
             local RW = ns.Rewards
@@ -1560,7 +1560,7 @@ ns.RegisterPage({
         local function layoutGame()
             local W = hc:GetWidth() or 750
             if W < 100 then W = 750 end
-            -- rechts: Vitrine (150) + Trennlinie (12) + Rand (14) + Luft (24)
+            -- right: showcase (150) + divider (12) + margin (14) + room (24)
             soon.xpW = math.max(60, W - 172 - 150 - 12 - 14 - 24)
             soon.xpTrack:SetWidth(soon.xpW)
             if soon.wTrack then
@@ -1581,7 +1581,7 @@ ns.RegisterPage({
         soon.FitBar = layoutGame
         hc:SetScript("OnSizeChanged", layoutGame)
 
-        -- Abzeichen-Vitrine statt Kachel: Zahl, drei Medaillen (Bronze/Silber/Gold), duenner Balken
+        -- Badge showcase instead of tile: number, three medals (bronze/silver/gold), thin bar
         soon.tiles[1]:Hide()
         soon.tiles[1].Show = function() end
         local vit = CreateFrame("Button", nil, hc)
@@ -1604,7 +1604,7 @@ ns.RegisterPage({
         vit.of:SetPoint("BOTTOMLEFT", vit.num, "BOTTOMRIGHT", 4, 2)
         vit.pct = K.Text(vit, 11, C.amber, "RIGHT")
         vit.pct:SetPoint("TOPRIGHT", -4, -2)
-        -- die besten Abzeichen als Symbole
+        -- the best badges as icons
         vit.icons = {}
         for i = 1, 4 do
             local b = CreateFrame("Frame", nil, vit)
@@ -1657,8 +1657,8 @@ ns.RegisterPage({
         soon.vit = vit
         local LW = 300
 
-        -- Charakterwerte (wie im WoW-Charakterfenster)
-        -- Rollen-Auswahl: wird beim ersten Befuellen gebaut (braucht soon:Options, das weiter unten steht)
+        -- Character stats (like in the WoW character window)
+        -- Role selection: built on first fill (needs soon:Options, which is defined further down)
         function soon:EnsureRoleSeg()
             if self.roleSeg then return end
             local bar = CreateFrame("Frame", nil, view)
@@ -1708,7 +1708,7 @@ ns.RegisterPage({
                 end
             end
             self.roleSeg = bar
-            -- Gruppenrollen (Mehrfachauswahl): sieht die Gilde, wird mit der Blizzard-Rollenwahl abgeglichen
+            -- Group roles (multi-select): visible to the guild, synced with Blizzard's role choice
             if ns.Profile and ns.Profile.RoleChips then
                 self.roleChips = ns.Profile.RoleChips(view, 276, function() return ns.me() end)
                 self.roleChips:SetPoint("TOPRIGHT", view, "TOPRIGHT", 0, -1)
@@ -1716,7 +1716,7 @@ ns.RegisterPage({
                 self.roleLbl:SetPoint("RIGHT", self.roleChips, "LEFT", -10, 0)
                 self.roleLbl:SetText(plain(L["Group role"]))
                 self.roleChips.onLock = function(locked)
-                    -- kurz halten, sonst ueberlappt es die Spezialisierung links; Hinweis im Tooltip
+                    -- keep it short, otherwise it overlaps the specialization on the left; hint in the tooltip
                     self.roleLbl:SetText(plain(locked and L["Preferred role"] or L["Group role"]))
                 end
                 self.roleChips:Refresh()
@@ -1744,7 +1744,7 @@ ns.RegisterPage({
             r.v:SetPoint("RIGHT", -8, 0)
             r.q = r:CreateTexture(nil, "BORDER")
             r.q:SetAllPoints()
-            -- Einordnung dezent: kleine runde Markierung links statt Farbflaeche (Profil 2026)
+            -- Subtle rating: small round marker on the left instead of color surface (profile 2026)
             r.qbar = r:CreateTexture(nil, "ARTWORK")
             r.qbar:SetPoint("LEFT", 5, 0) r.qbar:SetSize(3, 12)
             if K.RoundMask then
@@ -1768,7 +1768,7 @@ ns.RegisterPage({
         end
         soon.cs = cs
 
-        -- Stat-Prioritaet: was fuer Klasse + Rolle zuerst erhoeht werden sollte (Classic-Richtwerte)
+        -- Stat priority: what to raise first for class + role (Classic guidelines)
         local pr = K.Panel(view, C.panel)
         pr:SetPoint("TOPLEFT", cs, "TOPRIGHT", 12, 0)
         pr:SetPoint("BOTTOMRIGHT")
@@ -1791,12 +1791,12 @@ ns.RegisterPage({
             r.val:SetPoint("RIGHT", -8, 0)
             pr.rows[i] = r
         end
-        -- Tipp als Hinweis-Kasten: Gluehbirne, Akzentstreifen, Stichpunkte
+        -- Tip as notice box: light bulb, accent stripe, bullet points
         pr.tipBox = CreateFrame("Frame", nil, pr)
         pr.tipBox:SetPoint("BOTTOMLEFT", 12, 12)
         pr.tipBox:SetPoint("RIGHT", pr, "RIGHT", -12, 0)
         pr.tipBox:SetHeight(42)
-        -- Profil 2026: ruhige Glasflaeche mit leichtem Bernstein-Ton statt Farbblock + Streifen
+        -- Profile 2026: calm glass surface with a light amber tone instead of color block + stripe
         IG.Glass(pr.tipBox, { C.amber[1], C.amber[2], C.amber[3], 0.06 }, { C.amber[1], C.amber[2], C.amber[3], 0.22 }, 10)
         pr.tipIcon = pr.tipBox:CreateTexture(nil, "ARTWORK")
         pr.tipIcon:SetTexture("Interface\\Icons\\INV_Misc_Book_09")
@@ -1812,7 +1812,7 @@ ns.RegisterPage({
         pr.tip:SetWordWrap(true)
         pr.tip:SetJustifyH("LEFT")
         pr.tip:SetSpacing(3)
-        -- zugeklappt nur die Kopfzeile; Klick klappt nach oben auf (ueber die Prioritaets-Zeilen)
+        -- collapsed only the header; click expands upwards (over the priority rows)
         pr.tipBox:SetClipsChildren(true)
         pr.tipBox:SetFrameLevel(pr:GetFrameLevel() + 10)
         pr.tipBox:EnableMouse(true)
@@ -1823,7 +1823,7 @@ ns.RegisterPage({
         function pr.tipBox:Animate()
             local goal = self:Target()
             pr.tipArrow:SetText(plain(self.open and L["collapse"] or L["expand"]) .. (self.open and "  |cffe8b44a-|r" or "  |cffe8b44a+|r"))
-            -- zugeklappt: Text ausblenden (keine angeschnittene Zeile), aufgeklappt: einblenden
+            -- collapsed: hide text (no cut-off line), expanded: show
             if self.open then pr.tip:Show() end
             self:SetScript("OnUpdate", function(f, el)
                 local d = goal - f.cur
@@ -1843,12 +1843,12 @@ ns.RegisterPage({
         soon.pr = pr
         pr:SetScript("OnSizeChanged", function() if soon.FillPrio then pcall(soon.FillPrio, soon) end end)
 
-        -- rechts: Zaehler & Abzeichen
+        -- right: counters & badges
         local rp = K.Panel(view, C.panel)
-        -- sitzt im Reiter "Rang & Belohnungen" (rechts unten), wird dort beim ersten Oeffnen eingehaengt
+        -- sits in the "Rank & rewards" tab (bottom right), hooked in there on first open
         rp:SetParent(soon.rankHost)
         rp:ClearAllPoints()
-        rp:SetPoint("TOPLEFT", soon.rankHost, "TOPLEFT", 381, -1)   -- vorlaeufig, richtig gesetzt in placeCounters
+        rp:SetPoint("TOPLEFT", soon.rankHost, "TOPLEFT", 381, -1)   -- provisional, set properly in placeCounters
         rp:SetPoint("BOTTOMRIGHT", soon.rankHost, "BOTTOMRIGHT")
         rp.head = K.GameHead(rp, L["Counters & badges"], C.amber)
         rp.head:SetPoint("TOPLEFT", 12, -12)
@@ -1873,14 +1873,14 @@ ns.RegisterPage({
         soon.list:SetPoint("TOPLEFT", rp, "TOPLEFT", 8, -36)
         soon.list:SetPoint("BOTTOMRIGHT", rp, "BOTTOMRIGHT", -6, 6)
         soon.rp = rp
-        -- Belohnungen oben rechts, Zaehler & Abzeichen unten rechts
+        -- Rewards top right, counters & badges bottom right
         function soon:PlaceCounters()
             local h = self.rankHost
             local H = h:GetHeight() or 480
             if H < 100 then H = 480 end
             local half = math.floor((H - 10) / 2)
             if self.weekMoved then
-                -- Belohnungen links, Zaehler & Abzeichen rechts, beide volle Hoehe
+                -- Rewards left, counters & badges right, both full height
                 local Wd = h:GetWidth() or 700
                 if Wd < 200 then Wd = 700 end
                 local half2 = math.floor((Wd - 10) / 2)
@@ -1907,18 +1907,18 @@ ns.RegisterPage({
         end
         soon.rankHost:SetScript("OnSizeChanged", function() soon:PlaceCounters() end)
 
-        -- Charakterwerte lesen (alles, was der Client hergibt; fehlende Werte fallen weg)
+        -- Read character stats (everything the client provides; missing values are dropped)
         local function num(v) v = ns.safe(v) return tonumber(v) end
         local function fmt(n) return n and (BreakUpLargeNumbers and BreakUpLargeNumbers(math.floor(n + 0.5)) or tostring(math.floor(n + 0.5))) or nil end
-        -- Einordnung (Oasis-Schaetzung): Wert im Verhaeltnis zu dem, was auf diesem Level fuer die Klasse ueblich ist.
-        -- Basis = typische Werte mit Quest-Ausruestung; Faktor -> Qualitaetsfarbe wie bei Gegenstaenden.
-        local MAIN = {   -- wichtige Grundwerte je Klasse (1 Staerke, 2 Beweglichkeit, 3 Ausdauer, 4 Intelligenz, 5 Willenskraft)
+        -- Rating (Oasis estimate): value relative to what is typical for the class at this level.
+        -- Base = typical values with quest gear; factor -> quality color like items.
+        local MAIN = {   -- important base stats per class (1 strength, 2 agility, 3 stamina, 4 intellect, 5 spirit)
             WARRIOR = { [1] = true, [3] = true }, ROGUE = { [2] = true, [3] = true }, HUNTER = { [2] = true, [3] = true },
             MAGE = { [4] = true, [5] = true }, PRIEST = { [4] = true, [5] = true }, WARLOCK = { [4] = true, [3] = true },
             PALADIN = { [1] = true, [4] = true }, SHAMAN = { [1] = true, [4] = true }, DRUID = { [4] = true, [2] = true },
         }
         local ARMOR_K = { MAGE = 12, PRIEST = 12, WARLOCK = 12, ROGUE = 20, DRUID = 20, HUNTER = 30, SHAMAN = 30, WARRIOR = 42, PALADIN = 42 }
-        local QUALITY = {   -- ab Faktor -> Farbe, Name
+        local QUALITY = {   -- from factor -> color, name
             { 2.0, { 1.00, 0.50, 0.00 }, "Legendary" },
             { 1.6, { 0.64, 0.21, 0.93 }, "Epic" },
             { 1.25, { 0.00, 0.44, 0.87 }, "Rare" },
@@ -1930,7 +1930,7 @@ ns.RegisterPage({
             for _, q in ipairs(QUALITY) do if ratio >= q[1] then return q end end
             return QUALITY[#QUALITY]
         end
-        -- welche Werte zaehlen fuer Klasse + Rolle (aus der Gruppensuche: Tank / Heiler / Schaden)
+        -- which stats count for class + role (from the group finder: tank / healer / damage)
         local REL = {
             caster = { hp = 1, power = 1, stat3 = 1, stat4 = 1, stat5 = 1, sp = 1, scrit = 1, mp5 = 1, shit = 1, ilvl = 1 },
             healer = { hp = 1, power = 1, stat3 = 1, stat4 = 1, stat5 = 1, heal = 1, scrit = 1, mp5 = 1, ilvl = 1 },
@@ -1939,7 +1939,7 @@ ns.RegisterPage({
             hunter = { hp = 1, power = 1, stat2 = 1, stat3 = 1, stat4 = 1, ap = 1, crit = 1, hit = 1, ilvl = 1 },
             hybrid = { hp = 1, power = 1, stat1 = 1, stat4 = 1, ap = 1, crit = 1, hit = 1, sp = 1, scrit = 1, mp5 = 1, ilvl = 1 },
         }
-        -- Rollen je Klasse: Auswahl ueber den Charakterwerten (wird gemerkt)
+        -- Roles per class: selection above the character stats (remembered)
         local OPTIONS = {
             SHAMAN = { { "enh", "Enhancement", "melee", "SHAMAN_hybrid", "Interface\\Icons\\Spell_Nature_LightningShield" }, { "ele", "Elemental", "caster", "SHAMAN_caster", "Interface\\Icons\\Spell_Nature_Lightning" }, { "resto", "Healer", "healer", "SHAMAN_healer", "Interface\\Icons\\Spell_Nature_HealingWaveGreater" } },
             PALADIN = { { "ret", "Retribution", "melee", "PALADIN_hybrid", "Interface\\Icons\\Spell_Holy_AuraOfLight" }, { "prot", "Tank", "tank", "PALADIN_tank", "Interface\\Icons\\Spell_Holy_DevotionAura" }, { "holy", "Healer", "healer", "PALADIN_healer", "Interface\\Icons\\Spell_Holy_HolyBolt" } },
@@ -1959,7 +1959,7 @@ ns.RegisterPage({
             local opts = self:Options()
             local want = ns.char and ns.char.statRole
             for _, o in ipairs(opts) do if o[1] == want then return o end end
-            -- Standard aus den Rollen der Gruppensuche
+            -- Default from the group finder roles
             local roles = ns.Groups and ns.Groups.MyRoles and ns.Groups.MyRoles() or {}
             for _, o in ipairs(opts) do
                 if (o[3] == "healer" and roles.heal and not roles.dps) or (o[3] == "tank" and roles.tank and not roles.dps) then return o end
@@ -1971,8 +1971,8 @@ ns.RegisterPage({
             return o[3], L[o[2]]
         end
 
-        -- Stat-Prioritaeten je Klasse/Rolle nach WoW Classic (Treffer: Nahkampf/Jaeger +9 %, Zauber +16 % gegen Bosse;
-        -- Verteidigung 440 = kritsicher ab Level 60; Staerke = 2 AP bei Krieger/Paladin/Schamane/Druide)
+        -- Stat priorities per class/role per WoW Classic (hit: melee/hunter +9 %, spells +16 % against bosses;
+        -- defense 440 = crit-immune at level 60; strength = 2 AP for warrior/paladin/shaman/druid)
         local PRIO = {
             MAGE = { { "sp" }, { "shit" }, { "stat4" }, { "scrit" }, { "stat5" }, tip = "Stats: spell damage, then spell hit up to +16 % (raid bosses), intellect, spell crit;Weapon: staff with spell damage, plus a wand for leftover mana;Rotation: spam Frostbolt or Fireball, Evocation when out of mana;Leveling: intellect and spirit = less downtime, sheep (moon) in groups" },
             WARLOCK = { { "sp" }, { "shit" }, { "stat3" }, { "stat4" }, { "scrit" }, tip = "Stats: spell damage, spell hit up to +16 % (raid), stamina, intellect;Weapon: staff or dagger + off-hand with spell damage, wand for leftover mana;Rotation: Corruption + curse, then Shadow Bolt; Life Tap instead of drinking;Tip: stamina pays off twice (Life Tap, Voidwalker/Soul Link)" },
@@ -1997,7 +1997,7 @@ ns.RegisterPage({
             local o = self:CurrentOption()
             return PRIO[o[4]]
         end
-        -- Werte aus der angelegten Ausruestung: Summe je Wert + Liste der Teile
+        -- Values from the equipped gear: sum per stat + list of items
         local GEARKEY = {
             STRENGTH = "stat1", AGILITY = "stat2", STAMINA = "stat3", INTELLECT = "stat4", SPIRIT = "stat5",
             ATTACK_POWER = "ap", SPELL_DAMAGE_DONE = "sp", SPELL_POWER = "sp", SPELL_HEALING_DONE = "heal",
@@ -2032,7 +2032,7 @@ ns.RegisterPage({
             for _, l in pairs(parts) do table.sort(l, function(a, b) return a.v > b.v end) end
             return sum, parts
         end
-        -- Tooltip-Zeilen "woraus setzt sich der Wert zusammen"
+        -- Tooltip rows "what the value is made of"
         local function gearLines(lines, G, P, key, label)
             local g = G[key] or 0
             if g ~= 0 then
@@ -2127,7 +2127,7 @@ ns.RegisterPage({
             end
             K_("scrit")
             if GetSpellCritChance then local c = num(GetSpellCritChance(2)) if c and c > 0 then add(L["Spell crit"], ("%.1f %%"):format(c)) end end
-            -- Zauber: Schaden (beste Schule), Heilung, Mana-Regeneration, Treffer
+            -- Spells: damage (best school), healing, mana regeneration, hit
             if GetSpellBonusDamage then
                 local best = 0
                 for school = 2, 7 do local v = num(GetSpellBonusDamage(school)) if v and v > best then best = v end end
@@ -2157,7 +2157,7 @@ ns.RegisterPage({
                 K_("mp5")
                 if base then add(L["Mana regen (5 s)"], fmt(base * 5) .. (casting and ("  |cff888888/ " .. fmt(casting * 5) .. "|r") or "")) end
             end
-            -- Treffer: WoW-Wert, sonst aus den Texten der angelegten Teile ("Trefferchance um 1%")
+            -- Hit: WoW value, otherwise from the texts of equipped items ("Trefferchance um 1%")
             local gearHit, gearSpell, hitParts = 0, 0, {}
             do
                 local tip = C_TooltipInfo and C_TooltipInfo.GetInventoryItem
@@ -2198,7 +2198,7 @@ ns.RegisterPage({
             K_("block")
             if GetBlockChance then local c = num(GetBlockChance()) if c and c > 0 then add(L["Block"], ("%.1f %%"):format(c)) end end
             local _, avg = GetAverageItemLevel()
-            -- Verteidigung (Tank) und Widerstaende
+            -- Defense (tank) and resistances
             K_("def")
             if UnitDefense then
                 local b, m = UnitDefense("player")
@@ -2211,7 +2211,7 @@ ns.RegisterPage({
                     local _, total = UnitResistance("player", school)
                     total = num(total)
                     local name = _G["SPELL_SCHOOL" .. school .. "_CAP"] or _G["RESISTANCE" .. school .. "_NAME"] or ("#" .. school)
-                    -- Symbol wie im Charakterfenster (Blizzards Bildleiste mit 5 Widerstaenden untereinander)
+                    -- Icon like in the character window (Blizzard's image strip with 5 resistances stacked)
                     local ICO = { [2] = { 0, 29 }, [4] = { 29, 58 }, [6] = { 58, 87 }, [3] = { 87, 116 }, [5] = { 116, 145 } }
                     local ic = ICO[school]
                     local tex = ic and ("|TInterface\\PaperDollInfoFrame\\UI-Character-ResistanceIcons:14:14:0:0:32:256:2:30:" .. ic[1] .. ":" .. ic[2] .. "|t  ") or ""
@@ -2230,13 +2230,13 @@ ns.RegisterPage({
             return out
         end
 
-        -- Werte eintragen: nur so viele Zeilen, wie in die Spalte passen (neu, sobald die Hoehe feststeht)
+        -- Fill in values: only as many rows as fit in the column (again once the height is known)
         function soon:FillStats(st)
             self:EnsureRoleSeg()
             st = st or self.lastStats
             if not st then return end
             self.lastStats = st
-            -- sortieren: fuer die Rolle relevante Werte zuerst, Rest hinter einer einklappbaren Zeile
+            -- sort: values relevant for the role first, the rest behind a collapsible row
             if ns.Card then pcall(ns.Card.Record, st) end
             local roleKey, roleName = self:Role()
             local rel = REL[roleKey] or {}
@@ -2246,7 +2246,7 @@ ns.RegisterPage({
                 elseif x.key == "ilvl" then ilvlX = x
                 elseif rel[x.key or ""] then top[#top + 1] = x else rest[#rest + 1] = x end
             end
-            -- Leiste oben: links Gegenstandsstufe, rechts die Widerstaende als farbige Kacheln
+            -- Bar on top: item level left, resistances as colored tiles right
             local SCHOOL = {
                 res2 = { 1, 0.45, 0.2, "Fires" }, res3 = { 0.35, 0.85, 0.35, "Nature" }, res4 = { 0.4, 0.75, 1, "Frost" },
                 res5 = { 0.7, 0.4, 1, "Shadow" }, res6 = { 0.95, 0.6, 1, "Arcane" },
@@ -2257,7 +2257,7 @@ ns.RegisterPage({
                 rb:SetPoint("TOPRIGHT", -12, -36)
                 rb:SetHeight(30)
                 rb.cells = {}
-                -- Gegenstandsstufe
+                -- Item level
                 local il = CreateFrame("Frame", nil, rb)
                 il:SetPoint("TOPLEFT") il:SetPoint("BOTTOMLEFT")
                 il:SetWidth(150)
@@ -2296,7 +2296,7 @@ ns.RegisterPage({
             for i, x in ipairs(res) do
                 local c = rb.cells[i]
                 if not c then
-                    -- Widerstaende: gleich grosse Glas-Pillen in einer Reihe, Schulfarbe nur als Zahl
+                    -- Resistances: equally sized glass pills in a row, school color only on the number
                     c = CreateFrame("Frame", nil, rb)
                     c:SetSize(60, 30)
                     IG.Glass(c, IG.GLASS_FILL, IG.GLASS_LINE, 8)
@@ -2330,7 +2330,7 @@ ns.RegisterPage({
             end
             for i = #res + 1, #rb.cells do rb.cells[i]:Hide() end
             rb:SetShown((#res > 0 or ilvlX ~= nil) and not self.consBox)
-            -- 0.6.334: mit eigener Verbrauchsgueter-Box: keine Widerstands-Reihe, Gegenstandsstufe rechts im Kopf
+            -- 0.6.334: with own consumables box: no resistance row, item level right in the header
             if self.consBox then
                 if not self.cs.ilvlTxt then
                     self.cs.ilvlTxt = K.Text(self.cs, 11, C.muted, "RIGHT")
@@ -2349,9 +2349,9 @@ ns.RegisterPage({
             st = view
             local h = self.cs:GetHeight() or 0
             if h < 60 then h = 300 end
-            -- Werte links in einer Spalte, rechts die Einblicke (Treffer, Tempo, Upgrade, Verbrauchsgueter)
-            local RH = self.consBox and 19 or 23   -- 0.6.358: Profil kompakter, alles ohne Scrollen
-            local perCol = math.max(1, math.floor((h - (self.consBox and 42 or 84) - 10) / RH))   -- unten Luft (auch fuer die Klapp-Leiste)
+            -- Values in one column on the left, insights on the right (hit, pace, upgrade, consumables)
+            local RH = self.consBox and 19 or 23   -- 0.6.358: profile more compact, everything without scrolling
+            local perCol = math.max(1, math.floor((h - (self.consBox and 42 or 84) - 10) / RH))   -- room at the bottom (also for the collapse bar)
             local fits = perCol
             if ns.Insights then pcall(ns.Insights.Fill, self, self.cs, st) end
             local W = self.cs:GetWidth() or 700
@@ -2366,7 +2366,7 @@ ns.RegisterPage({
                 r:SetWidth(colW)
             end
             local lvl = num(UnitLevel("player")) or 1
-            -- scrollen, wenn mehr Werte als Platz (Mausrad)
+            -- scroll if there are more values than space (mouse wheel)
             self.statOff = math.max(0, math.min(self.statOff or 0, #st - fits))
             local off = self.statOff
             if not self.cs.more then
@@ -2375,7 +2375,7 @@ ns.RegisterPage({
             end
             local below = #st - fits - off
             self.cs.more:SetText("")
-            -- schlanke Scrollleiste rechts der Werte + weicher Verlauf unten, wenn noch mehr kommt
+            -- slim scrollbar right of the values + soft gradient at the bottom if more follows
             if not self.cs.sbTrack then
                 self.cs.sbTrack = self.cs:CreateTexture(nil, "ARTWORK")
                 self.cs.sbTrack:SetColorTexture(1, 1, 1, 0.06)
@@ -2409,10 +2409,10 @@ ns.RegisterPage({
                 local x = st[i + off]
                 if x and i <= fits then
                     r.toggle = x.toggle
-                    -- etwas Luft vor der Klapp-Leiste "Weitere Werte"
+                    -- a little room before the collapse bar "More stats"
                     if x.toggle then
                         local pt, rel, rp, px, py = r:GetPoint(1)
-                        if pt then r:SetPoint(pt, rel, rp, px, py - (self.consBox and (self.showAll and 0 or 6) or 8)) end   -- 0.6.408: zugeklappt etwas Luft, ausgeklappt buendig
+                        if pt then r:SetPoint(pt, rel, rp, px, py - (self.consBox and (self.showAll and 0 or 6) or 8)) end   -- 0.6.408: a little room when collapsed, flush when expanded
                     end
                     r.l:SetText(x[1])
                     r.key = x.key
@@ -2420,14 +2420,14 @@ ns.RegisterPage({
                     local lc = x.toggle and C.text or C.muted
                     r.l:SetTextColor(lc[1], lc[2], lc[3])
                     if x.toggle then
-                        -- Klapp-Leiste: duenne Linie oben, kein Farbstreifen
+                        -- Collapse bar: thin line on top, no color stripe
                         r.q:SetColorTexture(1, 1, 1, 0.025)
                         r.qbar:SetColorTexture(0, 0, 0, 0)
                         r.v:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
                         r.l:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
                     end
                     local q = x[3] and soon.Quality(x[3])
-                    r.ratio = x[3]   -- 0.6.379: Verhaeltnis zum ueblichen Wert (fuer den Fortschritt im Hintergrund)
+                    r.ratio = x[3]   -- 0.6.379: ratio to the typical value (for the progress in the background)
                     local c = q and q[2]
                     if c then
                         r.q:SetColorTexture(0, 0, 0, 0)
@@ -2535,11 +2535,11 @@ ns.RegisterPage({
             end
             local tip = pl and pl.tip and L[pl.tip] or ""
             if tip ~= "" then
-                -- in Stichpunkte zerlegen (";" bzw. ". " trennt), Rolle vorne abtrennen ("Verstaerkung: ...")
+                -- split into bullet points (";" or ". " separates), split off the role at the front ("Verstaerkung: ...")
                 local lines = {}
                 for part in (tip .. ";"):gmatch("(.-)[;]") do
                     part = part:gsub("^%s+", ""):gsub("%s+$", "")
-                    -- Kennwort vorne ("Werte:", "Waffe:", ...) hervorheben
+                    -- Highlight the keyword at the front ("Werte:", "Waffe:", ...)
                     part = part:gsub("^([^:%s]+):", "|cffe8b44a%1:|r", 1)
                     if part ~= "" then lines[#lines + 1] = "|cffe8b44a•|r  " .. part end
                 end
@@ -2549,10 +2549,10 @@ ns.RegisterPage({
             else
                 self.pr.tipBox:Hide()
             end
-            -- nur so viele Prioritaets-Zeilen, wie ueber den Tipp-Kasten passen (keine Ueberlappung)
+            -- only as many priority rows as fit above the tip box (no overlap)
             local ph = self.pr:GetHeight() or 0
             local tipH = self.pr.tipBox:IsShown() and (42 + 20) or 12
-            local maxRows = math.min(6, math.max(1, math.floor((ph - 44 - tipH) / (self.prRowH or 26))))   -- 0.6.359: bis zu 6, hoehere Zeilen
+            local maxRows = math.min(6, math.max(1, math.floor((ph - 44 - tipH) / (self.prRowH or 26))))   -- 0.6.359: up to 6, taller rows
             if ph > 100 then for i, r in ipairs(self.pr.rows) do if i > maxRows then r:Hide() end end end
         end
 
@@ -2579,9 +2579,9 @@ ns.RegisterPage({
                 self.pct:SetText(math.floor(r.into / math.max(1, r.need) * 100) .. " %")
                 self.rank:SetText(plain((L["Rank %d"]):format(r.level)) .. "  |cffe8b44a" .. r.title .. "|r")
                 self.emb:SetRank(r.level)
-                -- 0.5.588: gemalter Rahmen zeigt die Rangzahl selbst im Sechseck -> Wappen nur ohne ihn
+                -- 0.5.588: painted frame shows the rank number itself in the hexagon -> crest only without it
                 self.emb:SetShown(not (self.av.art and self.av.art:IsShown()))
-                -- naechster Rahmen: Wappen der naechsten Stufe als Vorschau
+                -- next frame: crest of the next tier as preview
                 local idx = ns.Rank.FrameIndex(r.level)
                 local nf = ns.Rank.FRAMES[idx + 1]
                 if nf then
@@ -2596,14 +2596,14 @@ ns.RegisterPage({
                     self.chipF.icon:SetTexture(ns.MEDIA .. "emblems\\tier" .. idx)
                     self.chipF.value:SetText("|cffe8b44a" .. L["Highest frame reached"] .. "|r")
                 end
-                -- naechste Belohnung / naechster Rahmen: Text der Rang-Seite (einmal aufbauen, versteckt)
+                -- next reward / next frame: text of the rank page (build once, hidden)
                 local def = ns.PageDef("rank")
                 if def and not self.rankBuilt then
                     self.rankBuilt = true
                     pcall(def.build, self.rankHost)
                     local h = self.rankHost
                     if h.card then h.card:Hide() end
-                    if h.week then h.week:SetParent(self.weeklyHost) h.week:ClearAllPoints() h.week:SetAllPoints(self.weeklyHost) self.weekMoved = true end   -- eigener Reiter Aufgaben > Wochenaufgaben
+                    if h.week then h.week:SetParent(self.weeklyHost) h.week:ClearAllPoints() h.week:SetAllPoints(self.weeklyHost) self.weekMoved = true end   -- own tab Tasks > Weekly tasks
                     if h.week and self.StyleWeek then pcall(self.StyleWeek, self, h.week) end
                     self:PlaceCounters()
                 end
@@ -2614,7 +2614,7 @@ ns.RegisterPage({
                 self.chipR.value:SetText((first:gsub("^[^:]*:%s*", "")))
                 self.FitBar()
             end
-            -- Zahlen
+            -- Numbers
             local B = ns.Badges
             local mine, stats = {}, {}
             if B then mine, stats = B.Mine() end
@@ -2625,7 +2625,7 @@ ns.RegisterPage({
             end
             local chat = 0
             for _, e in ipairs(ns.db.gchat or {}) do if ns.isMe(e.s) then chat = chat + 1 end end
-            -- Vitrine: Stufen gesamt + Anzahl je Medaille
+            -- Showcase: total tiers + count per medal
             local byTier = { 0, 0, 0 }
             for _, t in pairs(mine) do if byTier[t] then byTier[t] = byTier[t] + 1 end end
             local vit = self.vit
@@ -2640,7 +2640,7 @@ ns.RegisterPage({
             local w = (vit.track:GetWidth() or 140)
             vit.fill:SetWidth(math.max(1, w * (total > 0 and earned / total or 0)))
             vit.pct:SetText(total > 0 and (math.floor(earned / total * 100 + 0.5) .. " %") or "")
-            -- beste Abzeichen (hoechste Stufe zuerst) als Symbole
+            -- best badges (highest tier first) as icons
             local best = {}
             for id, tier in pairs(mine) do
                 local bd = B.byId and B.byId[id]
@@ -2669,7 +2669,7 @@ ns.RegisterPage({
             vit.tip = (L["%d bronze, %d silver, %d gold"]):format(byTier[1], byTier[2], byTier[3])
             self.tiles[2]:Set(r and r.xp or 0, nil, nil, fresh)
             self.tiles[3]:Set(chat, L["Messages"], nil, fresh)
-            -- Liste
+            -- List
             local rows = {}
             for _, cat in ipairs(B and B.CATS or {}) do
                 if cat.key ~= "insta" then
@@ -2683,18 +2683,18 @@ ns.RegisterPage({
                 end
             end
             self.list:SetData(rows)
-            -- Charakterwerte
+            -- Character stats
             local st = self:CharStats()
             self:FillStats(st)
             self:FillPrio(st)
         end
         ------------------------------------------------------------------
-        -- Profil 2026: kompakte Glas-Kopfzeile + schlanke Reiterleiste -> deutlich mehr Platz fuer Inhalte
-        -- Kopf (112): Portraet | Name, Klasse, Level | Level- und Rang-Leiste | Belohnung + Abzeichen
-        -- darunter Reiter (34) und ggf. Unterreiter (24); Inhalt ab 164 bzw. 194 px (vorher 254 / 288)
+        -- Profile 2026: compact glass header + slim tab bar -> much more room for content
+        -- Header (112): portrait | name, class, level | level and rank bars | reward + badges
+        -- below it tabs (34) and possibly sub-tabs (24); content from 164 or 194 px (previously 254 / 288)
         ------------------------------------------------------------------
         do
-            local PH, X1, X2, RW = soon.HEAD_H, 140, 300, 0   -- 0.6.373: Karten rechts entfallen, Leisten bekommen die Breite
+            local PH, X1, X2, RW = soon.HEAD_H, 140, 300, 0   -- 0.6.373: cards on the right dropped, the bars get the width
             local ac = C.accent
             hc:ClearAllPoints()
             hc:SetPoint("TOPLEFT", 0, 0)
@@ -2702,17 +2702,17 @@ ns.RegisterPage({
             hc:SetHeight(PH)
             IG.Glass(hc, IG.GLASS_FILL, IG.GLASS_LINE, 14)
             hc.edge:Hide()
-            -- leichter Verlauf in der Klassenfarbe (Farbe setzt soon:Update) - innerhalb der runden Ecken
+            -- light gradient in the class color (color set by soon:Update) - inside the rounded corners
             hc.glow:ClearAllPoints()
             hc.glow:SetPoint("TOPLEFT", 3, -3)
             hc.glow:SetPoint("BOTTOMRIGHT", -3, 3)
-            hc.glow:Hide()   -- 0.6.333: kein Klassenfarben-Verlauf mehr (wirkte rosa)
-            -- Glut: kleine Funken in der Klassenfarbe steigen langsam auf (vor allem links ums Portraet)
+            hc.glow:Hide()   -- 0.6.333: no class color gradient anymore (looked pink)
+            -- Embers: small sparks in the class color rise slowly (mainly on the left around the portrait)
             local em = CreateFrame("Frame", nil, hc)
             em:SetPoint("TOPLEFT", 3, -3)
             em:SetPoint("BOTTOMRIGHT", -3, 3)
             em:SetClipsChildren(true)
-            -- ueber den Feldern (sonst verdeckt), faengt keine Klicks ab
+            -- above the fields (otherwise hidden), does not catch clicks
             em:SetFrameLevel(hc:GetFrameLevel() + 14)
             em:EnableMouse(false)
             em.p = {}
@@ -2721,7 +2721,7 @@ ns.RegisterPage({
                 t:SetTexture(ns.MEDIA .. "ember")
                 t:SetBlendMode("ADD")
                 t:Hide()
-                em.p[i] = { t = t, life = math.random() * 4 }   -- versetzt starten (0.5.513: positiv, sonst nie sichtbar)
+                em.p[i] = { t = t, life = math.random() * 4 }   -- start staggered (0.5.513: positive, otherwise never visible)
             end
             em.col = { 1, 0.6, 0.3 }
             em:SetScript("OnUpdate", function(self, el)
@@ -2736,7 +2736,7 @@ ns.RegisterPage({
                     q.life = q.life - el
                     if q.life <= 0 then
                         if true then
-                            -- neu: meist links (Portraet), selten weiter rechts
+                            -- new: mostly left (portrait), rarely further right
                             q.max = 3 + math.random() * 4
                             q.life = q.max
                             local spread = (math.random() < 0.45) and 0.3 or 1
@@ -2757,7 +2757,7 @@ ns.RegisterPage({
                         local x = q.x0 + math.sin(q.ph + k * 5) * 6
                         q.t:ClearAllPoints()
                         q.t:SetPoint("CENTER", self, "BOTTOMLEFT", x, q.y)
-                        -- Klassenfarbe, zur Glut hin etwas waermer; ein- und ausblenden
+                        -- Class color, a bit warmer towards the ember; fade in and out
                         q.t:SetVertexColor(math.min(1, c[1] * 0.8 + 0.25), c[2] * 0.75 + 0.1, c[3] * 0.6)
                         q.t:SetAlpha(math.sin(k * math.pi) * 0.75)
                         if q.y > h + 4 then q.life = 0 end
@@ -2765,8 +2765,8 @@ ns.RegisterPage({
                 end
             end)
             soon.embers = em
-            -- Portraet: der Rangrahmen bleibt (er zeigt den Rang); Aura, Strahlen und Drehringe entfallen
-            local AS = 0.92   -- 0.6.374: Profilbadge kleiner
+            -- Portrait: the rank frame stays (it shows the rank); aura, rays and rotating rings are dropped
+            local AS = 0.92   -- 0.6.374: profile badge smaller
             soon.av:SetScale(AS)
             soon.av:ClearAllPoints()
             soon.av:SetPoint("CENTER", hc, "LEFT", 66 / AS, 0)
@@ -2779,9 +2779,9 @@ ns.RegisterPage({
             soon:AvatarFx()
             soon.emb:SetScale(1.0)
             soon.emb:ClearAllPoints()
-            soon.emb:SetPoint("CENTER", soon.av, "BOTTOM", 0, 5)   -- 0.6.387: minimal hoeher
+            soon.emb:SetPoint("CENTER", soon.av, "BOTTOM", 0, 5)   -- 0.6.387: slightly taller
             hc.editHit:SetWidth(X2 - 16)
-            -- Name gross, darunter Klasse/Level als Pillen, Hinweis Visitenkarte
+            -- Name large, class/level as pills below, business card hint
             soon.name:ClearAllPoints()
             soon.name:SetPoint("TOPLEFT", hc, "TOPLEFT", X1, -26)
             soon.name:SetWidth(X2 - X1 - 16)
@@ -2803,7 +2803,7 @@ ns.RegisterPage({
             soon.cardHint:SetPoint("TOPLEFT", soon.clsPill, "BOTTOMLEFT", 2, -14)
             soon.cardHint:SetWidth(X2 - X1 - 16)
             soon.cardHint:SetText(L["Click: edit your card"])
-            -- Leisten: oben Level (Klassenfarbe), unten Oasis-Rang (Akzentfarbe), beide schmal und rund
+            -- Bars: level on top (class color), Oasis rank below (accent color), both slim and round
             soon.wxp:ClearAllPoints()
             soon.wxp:SetPoint("TOPLEFT", hc, "TOPLEFT", X2, -22)
             soon.wxp:SetTextColor(C.text[1], C.text[2], C.text[3])
@@ -2836,13 +2836,13 @@ ns.RegisterPage({
             soon.xpBorder:Hide()
             soon.xpShine:Hide()
             for _, t in ipairs(soon.xpTicks) do t:Hide() end
-            -- rechts: naechste Belohnung + Abzeichen als zwei Glaskarten
+            -- right: next reward + badges as two glass cards
             local cr = soon.chipR
             cr:ClearAllPoints()
             cr:SetPoint("TOPRIGHT", hc, "TOPRIGHT", -12, -14)
             cr:SetSize(RW, 56)
             cr.edge:Hide()
-            -- 0.6.333: schlichte Karte (feine graue Kante) statt Box-Rahmen
+            -- 0.6.333: plain card (thin grey edge) instead of box frame
             for _, x in ipairs({ cr, soon.vit }) do
                 x.noBoxFrame = true
                 if x.boxFrame then x.boxFrame:Hide() if x.boxFrame.fit then x.boxFrame.fit() end end
@@ -2861,7 +2861,7 @@ ns.RegisterPage({
             K.SetFontSafe(cr.value, K.FONT_HEAD, 13, "", K.FONT)
             soon.chipF:Hide()
             local vit = soon.vit
-            -- 0.6.373: "Naechste Belohnung" und "Abzeichen" entfallen im Kopf
+            -- 0.6.373: "Next reward" and "Badges" dropped from the header
             cr:Hide() cr.Show = function() end
             vit:Hide() vit.Show = function() end
             vit:ClearAllPoints()
@@ -2876,7 +2876,7 @@ ns.RegisterPage({
             vit.num:SetPoint("TOPLEFT", vit.lbl, "BOTTOMLEFT", 0, -4)
             K.SetFontSafe(vit.num, K.FONT_HEAD, 18, "", K.FONT)
             vit.pct:ClearAllPoints()
-            vit.pct:SetPoint("LEFT", vit.lbl, "RIGHT", 8, 0)   -- 0.6.360: neben der Ueberschrift (stiess sonst an die Abzeichen)
+            vit.pct:SetPoint("LEFT", vit.lbl, "RIGHT", 8, 0)   -- 0.6.360: next to the heading (otherwise bumped into the badges)
             vit.pct:SetJustifyH("LEFT")
             vit.pct:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
             for i, b in ipairs(vit.icons) do
@@ -2886,7 +2886,7 @@ ns.RegisterPage({
                 b.icon:ClearAllPoints()
                 b.icon:SetPoint("TOPLEFT", 3, -3)
                 b.icon:SetPoint("BOTTOMRIGHT", -3, 3)
-                -- jedes Abzeichen in einem eigenen kleinen Rahmen
+                -- each badge in its own small frame
                 if not b.box then b.box = CreateFrame("Frame", nil, b) b.box:SetAllPoints() b.box:SetFrameLevel(b:GetFrameLevel()) IG.Glass(b.box, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.1 }, 4) end
             end
             vit.track:ClearAllPoints()
@@ -2894,11 +2894,11 @@ ns.RegisterPage({
             vit.track:SetPoint("BOTTOMRIGHT", vit, "BOTTOMRIGHT", -(8 + #vit.icons * 23 + 6), 8)
             vit.track:SetHeight(3)
             vit.fill:SetHeight(3)
-            -- Breiten an die Fensterbreite anpassen
+            -- Adjust widths to the window width
             local function layoutHead()
                 local W = hc:GetWidth() or 0
                 if W < 200 then W = 751 end
-                local bw = math.min(430, math.max(120, W - X2 - 12 - RW - 20))   -- 0.6.374: nicht ueber die ganze Breite strecken
+                local bw = math.min(430, math.max(120, W - X2 - 12 - RW - 20))   -- 0.6.374: do not stretch across the full width
                 soon.xpW = bw
                 soon.xpTrack:SetWidth(bw)
                 soon.wTrack:SetWidth(bw)
@@ -2911,7 +2911,7 @@ ns.RegisterPage({
             soon.FitBar = layoutHead
             hc:SetScript("OnSizeChanged", layoutHead)
             layoutHead()
-            -- Reiterleiste + Unterreiter
+            -- Tab bar + sub-tabs
             soon.tabs:ClearAllPoints()
             soon.tabs:SetPoint("TOPLEFT", 0, soon.NAV_Y)
             soon.tabs:SetPoint("TOPRIGHT", 0, soon.NAV_Y)
@@ -2919,19 +2919,19 @@ ns.RegisterPage({
                 sg:ClearAllPoints()
                 sg:SetPoint("TOPLEFT", 6, soon.SUB_Y)
             end
-            -- Inhaltsflaechen im selben Glas
+            -- Content surfaces in the same glass
             IG.Glass(cs, IG.GLASS_FILL, IG.GLASS_LINE, 12)
             IG.Glass(pr, IG.GLASS_FILL, IG.GLASS_LINE, 12)
             if K.RoundMask then for _, r in ipairs(pr.rows) do K.RoundMask(r.bg, r, 6) end end
             if soon.dailyHost.panel then IG.Glass(soon.dailyHost.panel, IG.GLASS_FILL, IG.GLASS_LINE, 12) end
-            -- Rollenwahl (wird spaeter gebaut): Glasknoepfe, aktive Rolle in Akzentfarbe
+            -- Role choice (built later): glass buttons, active role in accent color
             local ensureRole = soon.EnsureRoleSeg
             function soon:EnsureRoleSeg()
                 local had = self.roleSeg
                 ensureRole(self)
                 local bar = self.roleSeg
                 if had or not bar then return end
-                -- 0.6.318: einzelne umrandete Knoepfe (wie im Entwurf); der aktive in Akzentfarbe
+                -- 0.6.318: individual bordered buttons (as in the draft); the active one in accent color
                 local CLEAR = { 1, 1, 1, 0 }
                 local OFF_F, OFF_L = { 1, 1, 1, 0.04 }, { 1, 1, 1, 0.16 }
                 local x = 0
@@ -2956,7 +2956,7 @@ ns.RegisterPage({
                 end
                 local ok, cur = pcall(self.CurrentOption, self)
                 if ok and cur then bar:Select(cur[1]) end
-                -- Wunsch-/Gruppenrolle: ebenfalls Pillen; gewaehlte Rollen dezent in Rollenfarbe
+                -- Preferred/group role: also pills; chosen roles subtly in role color
                 local rc = self.roleChips
                 if rc and rc.chips then
                     rc:SetHeight(30)
@@ -2983,7 +2983,7 @@ ns.RegisterPage({
                     rc:Refresh()
                 end
             end
-            -- Klassenfarbe als zweite Farbe (Kopf-Toenung, Level-Leiste); Leisten fuellen sich beim Oeffnen
+            -- Class color as second color (header tint, level bar); bars fill up when opening
             local baseUpdate = soon.Update
             function soon:Update(fresh)
                 baseUpdate(self, fresh)
@@ -3008,13 +3008,13 @@ ns.RegisterPage({
             end
         end
         ------------------------------------------------------------------
-        -- 0.6.319: Profil nach Entwurf 2 - Kopfbild, Klasse/Level als Text, Werte-Kacheln + Spezialisierungs-Kasten
+        -- 0.6.319: profile per draft 2 - header image, class/level as text, value tiles + specialization box
         ------------------------------------------------------------------
         do
-            -- Kopfbild rechts (Gildenmodul), nach links in den Kopf auslaufend
+            -- Header image on the right (guild module), fading out to the left into the header
             if ns.GuildPack then
                 hc.art = hc:CreateTexture(nil, "BACKGROUND", nil, 1)
-                -- 0.6.321: "Dunkle Oase bei Nacht" ueber die ganze Karte, dezent
+                -- 0.6.321: "Dark oasis at night" across the whole card, subtle
                 hc.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\profile_bg")
                 hc.art:SetTexCoord(0, 1, 0.1 * 356 / 512, 0.9 * 356 / 512)
                 hc.art:SetPoint("TOPRIGHT", -2, -2) hc.art:SetPoint("BOTTOMRIGHT", -2, 2)
@@ -3027,7 +3027,7 @@ ns.RegisterPage({
                 if not K.Gradient(hc.artFade, "HORIZONTAL", { bg[1], bg[2], bg[3], 1 }, { bg[1], bg[2], bg[3], 0 }) then hc.artFade:Hide() end
                 if K.RoundMask then pcall(K.RoundMask, hc.art, hc, 14) end
             end
-            -- 0.6.329: dunkle Klassenfarbe als Grund (setzt soon:Update), feines Punktraster und Abschattung von links
+            -- 0.6.329: dark class color as base (set by soon:Update), fine dot grid and shading from the left
             hc.dots = hc:CreateTexture(nil, "BACKGROUND", nil, 3)
             hc.dots:SetPoint("TOPLEFT", 3, -3) hc.dots:SetPoint("BOTTOMRIGHT", -3, 3)
             hc.dots:SetTexture(ns.MEDIA .. "dots", "REPEAT", "REPEAT")
@@ -3038,14 +3038,14 @@ ns.RegisterPage({
             hc.shadeL:SetWidth(420)
             if not K.Gradient(hc.shadeL, "HORIZONTAL", { 0, 0, 0, 0.55 }, { 0, 0, 0, 0 }) then hc.shadeL:Hide() end
             if K.RoundMask then pcall(K.RoundMask, hc.dots, hc, 14) pcall(K.RoundMask, hc.shadeL, hc, 14, { "tl", "bl" }) end
-            -- Klasse | Level als schlichter Text statt Pillen
+            -- Class | level as plain text instead of pills
             for _, pl in ipairs({ soon.clsPill, soon.lvlPill }) do
                 local set = pl.Set
                 function pl:Set(text, c)
                     set(self, text, c)
                     IG.Glass(self, { 1, 1, 1, 0 }, { 1, 1, 1, 0 })
                     if self.t then
-                        K.SetFontSafe(self.t, K.FONT, 13, "", K.FONT)   -- 0.6.492: kleiner
+                        K.SetFontSafe(self.t, K.FONT, 13, "", K.FONT)   -- 0.6.492: smaller
                         self.t:SetTextColor(C.text[1], C.text[2], C.text[3])
                         self:SetWidth((self.t:GetStringWidth() or 40) + 4)
                         self.t:ClearAllPoints() self.t:SetPoint("LEFT", 0, 0)
@@ -3053,7 +3053,7 @@ ns.RegisterPage({
                     if soon.FitName then soon.FitName() end
                 end
             end
-            -- 0.6.426: Name genau so breit wie "Klasse | Level" darunter, naeher zusammen
+            -- 0.6.426: name exactly as wide as "Class | Level" below, closer together
             function soon.FitName()
                 local n, c, l = soon.name, soon.clsPill, soon.lvlPill
                 if not (n and c and l and n.GetStringWidth) then return end
@@ -3062,7 +3062,7 @@ ns.RegisterPage({
                 K.SetFontSafe(n, K.FONT_HEAD, 28, "", K.FONT)
                 local w = (n.GetUnboundedStringWidth and n:GetUnboundedStringWidth()) or n:GetStringWidth() or 0
                 if w < 10 then return end
-                local size = math.max(16, math.min(30, math.floor(28 * target / w)))   -- 0.6.492: hoechstens 30 (lief in die Leisten rechts)
+                local size = math.max(16, math.min(30, math.floor(28 * target / w)))   -- 0.6.492: at most 30 (ran into the bars on the right)
                 K.SetFontSafe(n, K.FONT_HEAD, size, "", K.FONT)
                 n:SetWidth(math.max(target + 8, n:GetWidth() or 0))
                 c:ClearAllPoints()
@@ -3075,7 +3075,7 @@ ns.RegisterPage({
             soon.clsSep:SetSize(1, 16)
             soon.clsSep:SetPoint("LEFT", soon.clsPill, "RIGHT", 12, 0)
 
-            -- 0.6.359: Stat-Prioritaet wie im Entwurf - Rangzahl im Kaestchen, Name, Farbleiste, Wert
+            -- 0.6.359: stat priority as in the draft - rank number in a box, name, color bar, value
             local PRIO_COL = { { 0.93, 0.27, 0.32 }, { 0.86, 0.42, 0.66 }, { 0.86, 0.42, 0.66 }, { 0.55, 0.42, 0.88 }, { 0.55, 0.42, 0.88 }, { 0.55, 0.42, 0.88 } }
             soon.prRowH = 40
             for i, r in ipairs(pr.rows) do
@@ -3106,14 +3106,14 @@ ns.RegisterPage({
                 r.fill:SetPoint("LEFT", r.track, "LEFT")
                 if K.RoundMask then pcall(K.RoundMask, r.track, r.track, 3) pcall(K.RoundMask, r.fill, r.fill, 3) pcall(K.RoundMask, r.box, r.box, 4) end
             end
-            -- Schimmer: alle paar Sekunden laeuft ein heller Streif ueber die gefuellten Teile
+            -- Shimmer: every few seconds a bright streak runs over the filled parts
             for _, r in ipairs(pr.rows) do
                 r.sheen = r:CreateTexture(nil, "ARTWORK", nil, 2)
                 r.sheen:SetBlendMode("ADD")
                 r.sheen:SetSize(30, 12)
-                r.sheen:SetTexture(ns.MEDIA .. "ember")   -- 0.6.375: weich, Helligkeit ueber die Farbe
+                r.sheen:SetTexture(ns.MEDIA .. "ember")   -- 0.6.375: soft, brightness via the color
                 r.sheen:Hide()
-                -- 0.6.394: feine schraege Streifen laufen dauerhaft ueber den gefuellten Teil
+                -- 0.6.394: thin diagonal stripes run permanently over the filled part
                 r.stripe = r:CreateTexture(nil, "ARTWORK", nil, 3)
                 r.stripe:SetTexture(ns.MEDIA .. "stripes", "REPEAT", "REPEAT")
                 r.stripe:SetHorizTile(true)
@@ -3122,7 +3122,7 @@ ns.RegisterPage({
             local shT = 0
             pr:HookScript("OnUpdate", function(_, el)
                 if ns.db and ns.db.settings.noAnim then return end
-                -- 0.6.385: dauerhaft - der Schimmer laeuft ohne Pause, die Balken atmen sanft
+                -- 0.6.385: permanent - the shimmer runs without pause, the bars breathe gently
                 shT = (shT + (el or 0)) % 2.4
                 local p = shT / 2.4
                 local br = 0.88 + 0.12 * math.sin(GetTime() * 2.2)
@@ -3136,7 +3136,7 @@ ns.RegisterPage({
                         r.stripe:SetTexCoord(off, off + fwS / 16, 0, (r.fill:GetHeight() or 9) / 16)
                         r.stripe:SetShown(r:IsShown() and fwS > 6)
                     end
-                    if false and r:IsShown() and fw > 30 then   -- 0.6.407: weisser Lichtfleck entfernt
+                    if false and r:IsShown() and fw > 30 then   -- 0.6.407: white light spot removed
                         r.sheen:ClearAllPoints()
                         r.sheen:SetPoint("LEFT", r.fill, "LEFT", q * (fw - 24), 0)
                         local kk = math.sin(q * math.pi) * 0.6
@@ -3148,7 +3148,7 @@ ns.RegisterPage({
                 end
             end)
             soon:HookScript("OnShow", function() soon.prFresh = true end)
-            -- 0.6.373: Ziel je Wert (fuer Stat-Prioritaet und Charakterwerte)
+            -- 0.6.373: target per stat (for stat priority and character stats)
             function soon.GoalOf(k)
                 local lvl = num(UnitLevel("player")) or 1
                 if k == "hit" then return 9, "%" end
@@ -3164,7 +3164,7 @@ ns.RegisterPage({
                 if k == "hp" then return lvl * 30 + 60 end
                 return nil
             end
-            -- Charakterwerte: dezenter Fortschritt als Verlauf hinter jeder Zeile (Laenge = Anteil am Ziel)
+            -- Character stats: subtle progress as a gradient behind each row (length = share of the target)
             local fillStats = soon.FillStats
             function soon:FillStats(...)
                 fillStats(self, ...)
@@ -3174,7 +3174,7 @@ ns.RegisterPage({
                         r.prog = r:CreateTexture(nil, "BORDER", nil, 1)
                         r.prog:SetPoint("TOPLEFT") r.prog:SetPoint("BOTTOMLEFT")
                     end
-                    -- 0.6.379: dieselbe Einordnung wie der Tooltip (Verhaeltnis zum ueblichen Wert fuers Level)
+                    -- 0.6.379: same rating as the tooltip (ratio to the typical value for the level)
                     local g = r:IsShown() and not r.toggle and (r.ratio and 1 or soon.GoalOf(r.key))
                     if g and g > 0 then
                         local tx = strip(r.v:GetText() or ""):gsub(",", ".")
@@ -3184,9 +3184,9 @@ ns.RegisterPage({
                         local q = r.ratio or (v / g)
                         if r.ratio then v = 1 end
                         r.prog:SetWidth(math.max(1, w * math.min(1, q)))
-                        -- 0.6.375: Farbe nach Qualitaet - weiss, gruen, blau, episch, legendaer
+                        -- 0.6.375: color by quality - white, green, blue, epic, legendary
                         local qq = soon.Quality and soon.Quality(q)
-                        local qc = (qq and qq[2]) or { 1, 1, 1 }   -- Durchschnitt = weiss
+                        local qc = (qq and qq[2]) or { 1, 1, 1 }   -- Average = white
                         if not K.Gradient(r.prog, "HORIZONTAL", { qc[1], qc[2], qc[3], 0.18 }, { qc[1], qc[2], qc[3], 0.02 }) then r.prog:SetColorTexture(qc[1], qc[2], qc[3], 0.08) end
                         r.prog:SetShown(v > 0)
                     else
@@ -3196,7 +3196,7 @@ ns.RegisterPage({
             end
             local fillPrio = soon.FillPrio
             function soon:FillPrio(st)
-                -- 0.6.360: immer 6 Zeilen - Zeilenabstand richtet sich nach der Hoehe der Box
+                -- 0.6.360: always 6 rows - row spacing depends on the box height
                 local ph = self.pr:GetHeight() or 0
                 local step = ph > 100 and math.max(26, math.min(40, math.floor((ph - 52) / 6))) or 40
                 self.prRowH = step
@@ -3207,8 +3207,8 @@ ns.RegisterPage({
                     r:SetPoint("RIGHT", self.pr, "RIGHT", -12, 0)
                 end
                 fillPrio(self, st)
-                -- 0.6.363: Leisten gegen ein Ziel je Wert (voll = Ziel erreicht); Trefferchance gegen die Grenze,
-                -- alles andere gegen einen Richtwert fuer das eigene Level
+                -- 0.6.363: bars against a target per stat (full = target reached); hit chance against the cap,
+                -- everything else against a guideline for the own level
                 local lvl = num(UnitLevel("player")) or 1
                 local pl = self:Prio()
                 local goalOf = soon.GoalOf
@@ -3227,7 +3227,7 @@ ns.RegisterPage({
                 end
                 local vals, goals = {}, {}
                 for i, r in ipairs(self.pr.rows) do
-                    -- 0.6.368: eigene Zahlerkennung - hier gilt eine lokale num (nur ganze Zahlen), "6.9 %" wurde 0
+                    -- 0.6.368: own number parsing - a local num applies here (integers only), "6.9 %" became 0
                     local tx = strip(r.val:GetText() or ""):gsub(",", ".")
                     vals[i] = math.abs(tonumber(tx:match("%-?%d+%.?%d*") or "") or 0)
                     local k = pl and pl[i] and pl[i][1]
@@ -3242,26 +3242,26 @@ ns.RegisterPage({
                     end
                 end
                 for i, r in ipairs(self.pr.rows) do
-                    -- 0.6.371: eine Breite fuer alle Zeilen (aus der Box), sonst begann Zeile 1 woanders
+                    -- 0.6.371: one width for all rows (from the box), otherwise row 1 started elsewhere
                     local W = (self.pr:GetWidth() or 0) - 24
                     if W < 50 then W = 300 end
                     r.track:ClearAllPoints()
-                    -- Leiste rechts vom Namen; Name endet davor (wird sonst gekuerzt statt ueberlagert)
+                    -- Bar right of the name; name ends before it (otherwise truncated instead of overlapped)
                     r.track:SetPoint("LEFT", r, "LEFT", W * 0.5, 0)
                     r.track:SetWidth(W * 0.32)
                     r.name:SetPoint("RIGHT", r, "LEFT", W * 0.5 - 10, 0)
                     r.name:SetWordWrap(false)
-                    -- 0.6.409: Farbe nach Zielerfuellung statt nach Platz: rot < 50 %, orange < 80 %, gelb < 100 %, gruen ab 100 %
+                    -- 0.6.409: color by target completion instead of rank: red < 50 %, orange < 80 %, yellow < 100 %, green from 100 %
                     local qf = goals[i] and goals[i] > 0 and vals[i] / goals[i] or 0
                     local c = (qf >= 1 and { 0.30, 0.85, 0.45 }) or (qf >= 0.8 and { 0.95, 0.82, 0.30 }) or (qf >= 0.5 and { 0.98, 0.58, 0.22 }) or { 0.93, 0.30, 0.32 }
-                    -- 0.6.407: Verlauf von dunkler zu heller statt Einfarbig + Atmen
+                    -- 0.6.407: gradient from darker to lighter instead of single color + breathing
                     if not K.Gradient(r.fill, "HORIZONTAL", { c[1] * 0.55, c[2] * 0.55, c[3] * 0.55, 1 }, { math.min(1, c[1] * 1.1), math.min(1, c[2] * 1.1), math.min(1, c[3] * 1.1), 1 }) then
                         r.fill:SetColorTexture(c[1], c[2], c[3], 1)
                     end
                     r.fillCol = nil
                     local q = goals[i] and goals[i] > 0 and vals[i] / goals[i] or 0
                     r.diag = { vals[i], goals[i], q, W }
-                    -- 0.6.372: Balken wachsen beim Oeffnen und bei Aenderung von links auf ihren Wert (gestaffelt)
+                    -- 0.6.372: bars grow from the left to their value on open and on change (staggered)
                     local goalW = math.max(1, W * 0.32 * math.max(0.04, math.min(1, q)))
                     local noAnim = ns.db and ns.db.settings.noAnim
                     if noAnim or not K.Tween or (r.barW and math.abs(r.barW - goalW) < 0.5 and not self.prFresh) then
@@ -3281,7 +3281,7 @@ ns.RegisterPage({
                 end
                 self.prFresh = nil
             end
-            -- 0.6.367: Diagnose fuer den Profil-Kopf/Werte (/oa profildiag) - schreibt die echten Werte in den Chat
+            -- 0.6.367: diagnostics for the profile header/stats (/oa profildiag) - writes the real values to chat
             ns.slash.profildiag = function()
                 local pb = soon.pageBg
                 if pb then
@@ -3289,7 +3289,7 @@ ns.RegisterPage({
                     ns.print(("Seitenflaeche: shown=%s alpha=%.2f vc=%.2f,%.2f,%.2f,%.2f layer=%s soonAlpha=%.2f soonEff=%.2f level=%s strata=%s"):format(
                         tostring(pb:IsShown()), pb:GetAlpha() or -1, r or -1, g or -1, b or -1, a or -1, tostring(pb:GetDrawLayer()), soon:GetAlpha() or -1,
                         soon.GetEffectiveAlpha and soon:GetEffectiveAlpha() or -1, tostring(soon:GetFrameLevel()), tostring(soon:GetFrameStrata())))
-                    -- Test: 5 s knallgruen - wird es gruen, ist es diese Flaeche
+                    -- Test: 5 s bright green - if it turns green, it is this surface
 
                 end
                 for i, r in ipairs(pr.rows) do
@@ -3300,40 +3300,40 @@ ns.RegisterPage({
                     end
                 end
             end
-            -- 0.6.354: "So spielst du es" entfaellt im Profil
+            -- 0.6.354: "So spielst du es" dropped from the profile
             if pr.tipBox then
                 pr.tipBox:Hide()
                 pr.tipBox.Show = function() end
                 pr.tipBox.SetShown = function() end
             end
-            -- obere Reihe der Werte-Ansicht: drei Kacheln links, Spezialisierung/Wunschrolle rechts
-            local ROW = 78   -- 0.6.353: feste Abstaende (Beschriftung 10, Zahl +7, Leiste 10 vom Rand)
+            -- top row of the stats view: three tiles on the left, specialization/preferred role on the right
+            local ROW = 78   -- 0.6.353: fixed spacing (label 10, number +7, bar 10 from the edge)
             cs:ClearAllPoints()
-            -- 0.6.330: Verbrauchsgueter als eigene Box unter den Charakterwerten (2x2), Werte einspaltig
+            -- 0.6.330: consumables as own box below the character stats (2x2), stats in one column
             local cb = CreateFrame("Frame", nil, view)
-            -- 0.6.355: rechts unter der Stat-Prioritaet
+            -- 0.6.355: on the right below the stat priority
             cb:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", 0, 0)
             cb:SetPoint("LEFT", view, "CENTER", 6, 0)
             cb:SetHeight(124)
             IG.Glass(cb, IG.GLASS_FILL, IG.GLASS_LINE, 12)
             soon.consBox = cb
-            -- 0.6.356: Verbrauchsgueter im Profil entfernt (Box bleibt unsichtbar, haelt nur die Einblicke)
+            -- 0.6.356: consumables removed from the profile (box stays invisible, only holds the insights)
             cb:Hide()
             cb.Show = function() end
             cs:SetPoint("TOPLEFT", view, "TOPLEFT", 0, -(ROW + 12))
             cs:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 0, 0)
             cs:SetPoint("RIGHT", view, "CENTER", -6, 0)
-            -- Stat-Prioritaet rechts oben, endet ueber den Verbrauchsguetern
+            -- Stat priority top right, ends above the consumables
             pr:ClearAllPoints()
             pr:SetPoint("TOPLEFT", cs, "TOPRIGHT", 12, 0)
             pr:SetPoint("RIGHT", view, "RIGHT", 0, 0)
             pr:SetPoint("BOTTOM", view, "BOTTOM", 0, 0)
-            if cs.SetClipsChildren then cs:SetClipsChildren(true) end   -- Verbrauchsgueter liefen unten heraus
+            if cs.SetClipsChildren then cs:SetClipsChildren(true) end   -- consumables ran out at the bottom
             local tiles = CreateFrame("Frame", nil, view)
             tiles:SetPoint("TOPLEFT", view, "TOPLEFT", 0, 0)
-            tiles:SetPoint("RIGHT", view, "RIGHT", -162, 0)   -- 0.6.349: Kasten rechts nur noch Spezialisierung (~150), Kacheln bekommen den Rest   -- 0.6.326: halbe Breite, Kasten rechts bekommt die andere Haelfte
+            tiles:SetPoint("RIGHT", view, "RIGHT", -162, 0)   -- 0.6.349: box on the right only specialization (~150), tiles get the rest   -- 0.6.326: half width, box on the right gets the other half
             tiles:SetHeight(ROW)
-            soon.statTiles = tiles   -- soon.tiles ist schon belegt (Abzeichen-Kacheln)
+            soon.statTiles = tiles   -- soon.tiles is already taken (badge tiles)
             local DEF = {
                 { key = "hp", label = "Health", icon = "heart", col = { 0.95, 0.3, 0.32 } },
                 { key = "ap", label = "Attack power", icon = "role_dps", col = { 0.95, 0.72, 0.38 } },
@@ -3343,8 +3343,8 @@ ns.RegisterPage({
             for i, d in ipairs(DEF) do
                 local t = CreateFrame("Frame", nil, tiles)
                 IG.Glass(t, IG.GLASS_FILL, IG.GLASS_LINE, 10)
-                -- 0.6.326: schlichte Symbole in der Wertfarbe (Entwurf)
-                -- 0.6.355: Symbol im dezenten Farbkreis, mittig zu Beschriftung und Zahl
+                -- 0.6.326: plain icons in the stat color (draft)
+                -- 0.6.355: icon in a subtle color circle, centered to label and number
                 t.disc = t:CreateTexture(nil, "ARTWORK")
                 t.disc:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
                 t.disc:SetSize(36, 36)
@@ -3383,7 +3383,7 @@ ns.RegisterPage({
                 end
             end
             tiles:SetScript("OnSizeChanged", layoutTiles)
-            -- Werte: Live-Abfrage (nie im Kampf rechnen - Werte koennen dort geheim sein)
+            -- Stats: live query (never calculate in combat - values may be secret there)
             function soon:FillTiles()
                 if InCombatLockdown and InCombatLockdown() then return end
                 local lvl = num(UnitLevel("player")) or 1
@@ -3391,7 +3391,7 @@ ns.RegisterPage({
                 local b, pos, neg = UnitAttackPower("player")
                 local ap = (num(ns.safe(b)) or 0) + (num(ns.safe(pos)) or 0) + (num(ns.safe(neg)) or 0)
                 local crit = num(ns.safe(GetCritChance and GetCritChance())) or 0
-                -- 0.6.409: Balken = Anteil am Richtwert fuer das eigene Level (dieselben Ziele wie die Stat-Prioritaet)
+                -- 0.6.409: bar = share of the guideline for the own level (same targets as the stat priority)
                 local G = soon.GoalOf or function() return nil end
                 local gHp, gAp, gCr = G("hp") or (lvl * 30 + 60), G("ap") or (lvl * 8 + 40), G("crit") or (5 + lvl * 0.15)
                 local vals = {
@@ -3417,7 +3417,7 @@ ns.RegisterPage({
                     end
                 end
             end
-            -- Kasten rechts: Spezialisierung + Wunschrolle
+            -- Box on the right: specialization + preferred role
             local rb = CreateFrame("Frame", nil, view)
             rb:SetPoint("TOPLEFT", tiles, "TOPRIGHT", 12, 0)
             rb:SetPoint("TOPRIGHT", view, "TOPRIGHT", 0, 0)
@@ -3435,9 +3435,9 @@ ns.RegisterPage({
                 local bar = self.roleSeg
                 if not bar or bar.inBox then return end
                 bar.inBox = true
-                -- 0.6.344: nebeneinander, beide in natuerlicher Groesse; nur wenn es nicht passt, gemeinsam verkleinern.
-                -- Wird bei jeder Groessenaenderung neu gerechnet (beim Bauen war der Kasten noch 0 breit).
-                -- 0.6.349: Wunschrolle gehoert zu den Gruppen - im Profil nicht mehr zeigen
+                -- 0.6.344: side by side, both at natural size; only if it does not fit, shrink together.
+                -- Recalculated on every size change (when building, the box was still 0 wide).
+                -- 0.6.349: preferred role belongs to groups - no longer shown in the profile
                 if self.roleChips then self.roleChips:Hide() self.roleChips.Show = function() end end
                 rb.l2:Hide()
                 local rc = nil
@@ -3447,7 +3447,7 @@ ns.RegisterPage({
                     local cwList, cwTotal = {}, 0
                     if rc and rc.chips then
                         for i, b in ipairs(rc.chips) do
-                            -- 0.6.348: nur Symbol (Name steht im Tooltip)
+                            -- 0.6.348: icon only (name in the tooltip)
                             if b.label then b.label:Hide() end
                             if b.icon then b.icon:ClearAllPoints() b.icon:SetPoint("CENTER") end
                             local w = 30
@@ -3455,13 +3455,13 @@ ns.RegisterPage({
                             cwTotal = cwTotal + w + (i > 1 and 6 or 0)
                         end
                     end
-                    -- 0.6.349: Spezialisierung ebenfalls nur als Symbole (Name im Tooltip)
+                    -- 0.6.349: specialization also only as icons (name in the tooltip)
                     local bx = 0
                     for _, b in ipairs(bar.btns or {}) do
                         if b.t then b.t:Hide() end
                         if b.icon then
                             b.icon:ClearAllPoints() b.icon:SetPoint("CENTER")
-                            b.icon:SetSize(18, 18)   -- 0.6.350: Luft zum Rand
+                            b.icon:SetSize(18, 18)   -- 0.6.350: room to the edge
                             if K.RoundMask and not b.iconMasked then b.iconMasked = true pcall(K.RoundMask, b.icon, b.icon, 4) end
                         end
                         b:SetSize(30, 30)
@@ -3480,7 +3480,7 @@ ns.RegisterPage({
                     local sc = math.min(1, inner / math.max(1, bw + 24 + cwTotal))
                     bar:SetScale(sc)
                     bar:ClearAllPoints()
-                    -- 0.6.373: mittig im Kasten (waagrecht und unter der Ueberschrift)
+                    -- 0.6.373: centered in the box (horizontally and below the heading)
                     local bh = (rb:GetHeight() or 78)
                     local xL = 12 + math.max(0, (inner - bw * sc) / 2)
                     local yT = 22 + math.max(0, ((bh - 22) - 30 * sc) / 2)
@@ -3499,14 +3499,14 @@ ns.RegisterPage({
                             x = x + cwList[i] + 6
                         end
                         rb.l2:ClearAllPoints()
-                        -- Ueberschrift auf einer Hoehe mit "Spezialisierung"
+                        -- Heading level with "Specialization"
                         rb.l2:SetPoint("LEFT", rc, "LEFT", 0, 0)
                         rb.l2:SetPoint("TOP", rb, "TOP", 0, -6)
                     end
                 end
                 rb:HookScript("OnSizeChanged", function() pcall(layout) end)
                 pcall(layout)
-                -- 0.6.379: Spezialisierung im Kopf unter "Klasse | Level", ohne Kasten; Kacheln bekommen die volle Breite
+                -- 0.6.379: specialization in the header below "Class | Level", without a box; tiles get the full width
                 bar:SetParent(hc)
                 bar:SetFrameLevel(hc:GetFrameLevel() + 20)
                 bar:SetScale(1)
@@ -3523,9 +3523,9 @@ ns.RegisterPage({
                     K.SetFontSafe(self.roleLbl, K.FONT, 11, "", K.FONT)
                 end
             end
-            -- 0.6.322: Ring ums Portraet; 0.6.329: zeigt den Fortschritt im Oasis-Rang (Gold), ab 12 Uhr im Uhrzeigersinn
-            -- 0.6.342: Rang-Ring = voller Goldring (einfache Textur, sicher sichtbar) + dunkle Cooldown-Flaeche ueber
-            -- dem noch fehlenden Teil. Eigener Frame am Kopf, Ebene immer ueber dem Portraet.
+            -- 0.6.322: ring around the portrait; 0.6.329: shows Oasis rank progress (gold), clockwise from 12 o'clock
+            -- 0.6.342: rank ring = full gold ring (simple texture, reliably visible) + dark cooldown surface over
+            -- the still missing part. Own frame on the header, layer always above the portrait.
             local am = C.amber
             local lr = CreateFrame("Frame", nil, hc)
             lr:SetPoint("CENTER", soon.av, "CENTER", 0, 0)
@@ -3542,7 +3542,7 @@ ns.RegisterPage({
                 if cd.SetDrawBling then cd:SetDrawBling(false) end
                 if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(true) end
                 cd.noCooldownCount = true
-                -- 0.6.343: dieser Client zeichnet ohne Umkehr den abgelaufenen Teil -> umkehren = Rest abdecken
+                -- 0.6.343: without reversal this client draws the elapsed part -> reverse = cover the rest
                 if cd.SetReverse then cd:SetReverse(true) end
                 lr.cd = cd
             end
@@ -3555,19 +3555,19 @@ ns.RegisterPage({
                 lr:SetFrameLevel(base)
                 if lr.cd then lr.cd:SetFrameLevel(base + 1) end
                 lr:Show()
-                -- Zahl im Sechseck liegt auf dem Ring: Wappen darueber zeigen
+                -- Number in the hexagon lies on the ring: show crest above it
                 if self.emb then
                     self.emb:SetFrameLevel(base + 6)
                     self.emb:Show()
                 end
-                -- 0.6.403: eigene Zahlerkennung (hier gilt eine lokale num, die "97 %" nicht liest)
+                -- 0.6.403: own number parsing (a local num applies here that does not read "97 %")
                 local pt = tostring(self.pct and self.pct:GetText() or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub(",", ".")
                 local frac = (tonumber(pt:match("%d+%.?%d*") or "") or 0) / 100
                 frac = math.max(0, math.min(1, frac))
-                -- fast leer: kein Gold, nur blasse Spur (die Cooldown-Flaeche zeigt bei ~0 kein verlaessliches Bild)
+                -- almost empty: no gold, only a faint track (the cooldown surface shows no reliable image at ~0)
                 lr.gold:SetVertexColor(am[1], am[2], am[3], frac < 0.01 and 0.15 or 1)
                 if lr.cd then
-                    -- abgelaufen = Fortschritt, die dunkle Flaeche deckt den Rest ab
+                    -- elapsed = progress, the dark surface covers the rest
                     if frac >= 0.999 or frac < 0.01 then lr.cd:Hide() else
                         lr.cd:Show()
                         local D = 1000
@@ -3577,9 +3577,9 @@ ns.RegisterPage({
                 end
             end
             hc:HookScript("OnShow", function() ns.After(0.05, function() pcall(soon.FillRing, soon) end) end)
-            -- Rang geaendert (Aufstieg, neue XP): Kopf samt Ring neu fuellen
+            -- Rank changed (rank-up, new XP): refill header including ring
             ns.Listen("RANK", function() if soon:IsVisible() then pcall(soon.Update, soon) end end)
-            -- 0.6.324: Stift vor "Visitenkarte bearbeiten", Pfeil in der Belohnungskarte
+            -- 0.6.324: pencil before "Edit business card", arrow in the reward card
             soon.cardPen = hc:CreateTexture(nil, "ARTWORK")
             soon.cardPen:SetTexture("Interface\\Buttons\\UI-GuildButton-PublicNote-Up")
             soon.cardPen:SetSize(14, 14)
@@ -3588,7 +3588,7 @@ ns.RegisterPage({
             soon.cardHint:ClearAllPoints()
             soon.cardHint:SetPoint("LEFT", soon.cardPen, "RIGHT", 6, 0)
             soon.cardHint:SetText(L["Edit business card"])
-            -- 0.6.340: Hinweis entfaellt (Klick auf Portraet/Name oeffnet die Visitenkarte weiterhin)
+            -- 0.6.340: hint dropped (clicking portrait/name still opens the business card)
             soon.cardHint:Hide() soon.cardHint.Show = function() end
             soon.cardPen:Hide()
             if soon.chipR then
@@ -3597,13 +3597,13 @@ ns.RegisterPage({
                 soon.chipR.chev:SetText(">")
                 soon.chipR.value:SetPoint("RIGHT", soon.chipR, "RIGHT", -28, 0)
             end
-            -- 0.6.341: keine roten Box-Rahmen im Profil (Entwurf) - nur Glas mit feiner Kante
+            -- 0.6.341: no red box frames in the profile (draft) - only glass with a thin edge
             local function noFrame(x)
                 if not x then return end
                 x.noBoxFrame = true
                 if x.boxFrame then x.boxFrame:Hide() if x.boxFrame.fit then x.boxFrame.fit() end end
             end
-            -- 0.6.361: die Boxen tragen wieder den Oasis-Bildrahmen; nur die kleinen Karten im Kopf bleiben schlicht
+            -- 0.6.361: the boxes carry the Oasis image frame again; only the small cards in the header stay plain
             local function withFrame(x)
                 if not x then return end
                 x.noBoxFrame = nil
@@ -3611,20 +3611,20 @@ ns.RegisterPage({
                 if x.boxFrame then
                     x.boxFrame:Show()
                     if x.boxFrame.fit then x.boxFrame.fit() end
-                    -- 0.6.364: auf der Profil-Seite schwarze Rahmen (Linie dunkel, kein rotes Leuchten)
+                    -- 0.6.364: black frames on the profile page (dark line, no red glow)
                     x.boxFrame.tint = { 0.05, 0.05, 0.06 }
                     for _, g in ipairs(x.boxFrame.glows or {}) do g:SetVertexColor(0.05, 0.05, 0.06, 1) end
                     for _, pc in ipairs(x.boxFrame.pieces or {}) do pc:SetDesaturated(true) pc:SetVertexColor(0.22, 0.22, 0.24, 1) end
                 end
             end
-            -- 0.6.365: alte Panel-Flaeche unter dem Glas ausblenden (zweiter Hintergrund)
+            -- 0.6.365: hide the old panel surface under the glass (second background)
             for _, x in ipairs({ cs, pr }) do
                 if x.bg then x.bg:SetAlpha(0) end
                 for _, t in ipairs(x.skinFill or {}) do t:SetAlpha(0) end
                 for _, t in ipairs(x.skinLine or {}) do t:SetAlpha(0) end
                 for _, t in ipairs(x.borders or {}) do t:SetAlpha(0) end
             end
-            -- 0.6.375: Box-Flaechen deckender (vorher sehr durchsichtig)
+            -- 0.6.375: box surfaces more opaque (previously very transparent)
             local BOXFILL, BOXLINE = { 0.055, 0.055, 0.065, 0.85 }, { 1, 1, 1, 0.08 }
             function soon:SolidBoxes()
                 for _, x in ipairs({ self.cs, self.pr, self.roleBox }) do if x then IG.Glass(x, BOXFILL, BOXLINE) end end
@@ -3635,8 +3635,8 @@ ns.RegisterPage({
                 for _, x in ipairs({ hc, self.cs, self.pr, self.roleBox }) do withFrame(x) end
                 for _, t in ipairs((self.statTiles and self.statTiles.t) or {}) do withFrame(t) end
             end
-            -- 0.6.396: alle Profil-Reiter im Look der Werte-Seite - jede umrahmte Box darin bekommt schwarzen
-            -- Rahmen und eine deckende dunkle Glasflaeche (Erfolge, Abenteuer, Aufgaben, Koennen ...)
+            -- 0.6.396: all profile tabs in the look of the stats page - every framed box in them gets a black
+            -- frame and an opaque dark glass surface (achievements, adventure, tasks, skills ...)
             local styled = setmetatable({}, { __mode = "k" })
             function soon:StyleHosts()
                 local function walk(f, depth)
@@ -3654,7 +3654,7 @@ ns.RegisterPage({
                     if h and h:IsShown() then walk(h, 1) end
                 end
             end
-            -- 0.6.399: Wochenaufgaben im Stil der Werte-Seite (Glas, gerundete Zeilen, Haken im Farbkreis, dicker Balken)
+            -- 0.6.399: weekly tasks in the style of the stats page (glass, rounded rows, check in a color circle, thick bar)
             function soon:StyleWeek(week)
                 if week.styled then return end
                 week.styled = true
@@ -3667,7 +3667,7 @@ ns.RegisterPage({
                     r:SetPoint("TOPLEFT", week, "TOPLEFT", 14, -44 - (i - 1) * 66)
                     r:SetPoint("RIGHT", week, "RIGHT", -14, 0)
                     if r.bg then r.bg:SetColorTexture(1, 1, 1, 0.03) if K.RoundMask then pcall(K.RoundMask, r.bg, r, 8) end end
-                    -- Haken im Farbkreis
+                    -- Check in a color circle
                     r.disc = r:CreateTexture(nil, "BORDER")
                     r.disc:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
                     r.disc:SetSize(32, 32)
@@ -3702,11 +3702,11 @@ ns.RegisterPage({
                 pcall(self.NoFrames, self)
                 pcall(self.SolidBoxes, self)
                 up2(self, fresh)
-                -- Name in Weiss (Entwurf), Rang: "Rang N" in Gold, Titel hell
+                -- Name in white (draft), rank: "Rank N" in gold, title light
                 local _, cfx = UnitClass("player")
                 local cr2, cg2, cb2 = ns.classColor(ns.safe(cfx))
                 cr2, cg2, cb2 = cr2 or 0.6, cg2 or 0.6, cb2 or 0.6
-                IG.Glass(hc, { cr2 * 0.06 + 0.025, cg2 * 0.06 + 0.025, cb2 * 0.06 + 0.03, 0.97 }, { 1, 1, 1, 0.08 })   -- 0.6.332: viel dunkler
+                IG.Glass(hc, { cr2 * 0.06 + 0.025, cg2 * 0.06 + 0.025, cb2 * 0.06 + 0.03, 0.97 }, { 1, 1, 1, 0.08 })   -- 0.6.332: much darker
                 if self.xpW then self.rank:SetWidth(self.xpW) end
                 local me = ns.me and ns.me() or ""
                 self.name:SetText(ns.displayName and ns.displayName(me) or (me:match("^[^-]+") or me))
@@ -3714,14 +3714,14 @@ ns.RegisterPage({
                 if soon.FitName then soon.FitName() ns.After(0, soon.FitName) end   -- 0.6.426
                 local rt = (self.rank:GetText() or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
                 local head, rest = rt:match("^(.-)%s%s+[·%s]*(.+)$")
-                -- Rang-Wappen vor "Rang N" (0.6.335)
+                -- Rank crest before "Rank N" (0.6.335)
                 if not self.rankIco then
                     self.rankIco = hc:CreateTexture(nil, "ARTWORK")
                     self.rankIco:SetSize(18, 18)
                     self.rankIco:SetPoint("RIGHT", self.rank, "LEFT", -6, 0)
                     self.rank:ClearAllPoints()
                     self.rank:SetPoint("TOPLEFT", hc, "TOPLEFT", 300 + 24, -84)
-                    -- Leiste bleibt in der Spalte (haengt sonst am verschobenen Text)
+                    -- Bar stays in the column (otherwise attached to the shifted text)
                     self.xpTrack:ClearAllPoints()
                     self.xpTrack:SetPoint("TOPLEFT", hc, "TOPLEFT", 300, -110)
                 end
@@ -3739,7 +3739,7 @@ ns.RegisterPage({
             end
         end
         p.soon = soon
-        -- links: Profilkarte
+        -- left: profile card
         local left = K.Panel(p, C.panel)
         left:SetPoint("TOPLEFT")
         left:SetPoint("BOTTOMLEFT")
@@ -3758,7 +3758,7 @@ ns.RegisterPage({
         p.title = K.Text(left, 11, C.amber, "CENTER")
         p.title:SetPoint("TOP", p.name, "BOTTOM", 0, -3)
         p.title:SetWidth(230)
-        -- Zahlen: Posts / Follower / Folgt
+        -- Numbers: posts / followers / following
         p.stats = {}
         for i, lab in ipairs({ "Posts", "Follower", "Coming soon" }) do
             local s = CreateFrame("Button", nil, left)
@@ -3808,7 +3808,7 @@ ns.RegisterPage({
         p.action:SetPoint("TOP", 0, -292)
         p.back = K.Button(left, L["Go to my profile"], 200, 24, "ghost", function() IG.ShowProfile(me()) end)
         p.back:SetPoint("TOP", p.action, "BOTTOM", 0, -6)
-        -- beliebte Profile
+        -- popular profiles
         local ph = K.GameHead(left, L["Popular in the guild"], C.pink)
         ph:SetPoint("TOPLEFT", 12, -364)
         ph:SetPoint("RIGHT", -12, 0)
@@ -3827,7 +3827,7 @@ ns.RegisterPage({
             p.pop[i] = r
         end
 
-        -- rechts: Reiter + Raster
+        -- right: tabs + grid
         local right = CreateFrame("Frame", nil, p)
         right:SetPoint("TOPLEFT", 262, 0)
         right:SetPoint("BOTTOMRIGHT")
@@ -3892,7 +3892,7 @@ ns.RegisterPage({
         p.empty:SetWidth(360)
         p.empty:SetWordWrap(true)
 
-        -- Detailansicht (ueber dem Raster)
+        -- Detail view (above the grid)
         local d = K.Panel(right, C.panel)
         d:SetPoint("TOPLEFT", 0, -36)
         d:SetPoint("BOTTOMRIGHT")
@@ -3926,7 +3926,7 @@ ns.RegisterPage({
         d.like:SetScript("OnClick", function(self)
             if not d.post then return end
             IG.ToggleLike(d.post)
-            -- kleiner "Pop"
+            -- small "pop"
             K.Tween(self, 0.35, function(q) local s = 30 + 10 * math.sin(q * math.pi) self:SetSize(s, s) end, function() self:SetSize(30, 30) end)
         end)
         d.likes = K.Text(d, 12, C.text)
@@ -3962,7 +3962,7 @@ ns.RegisterPage({
     end,
     refresh = function(p)
         p.soon:SetShown(IG.SOON and true or false)
-        -- 0.5.653: alte Profilansicht (linke Karte mit Portrait-Kreis ...) schimmerte hinter der neuen Karte durch -> ausblenden
+        -- 0.5.653: old profile view (left card with portrait circle ...) shimmered through behind the new card -> hide
         if IG.SOON then
             for _, c in ipairs({ p:GetChildren() }) do
                 if c ~= p.soon and c:IsShown() then
@@ -3986,7 +3986,7 @@ ns.RegisterPage({
         local who = view.who or me()
         local mine = ns.isMe(who)
         if mine then unread = 0 ns.SetNavBadge("insta", nil) end
-        -- Profilkarte
+        -- Profile card
         local R = ns.Radar
         local cls = R and R.ClassOf(who)
         local cr, cg, cb = ns.classColor(cls)
@@ -4026,7 +4026,7 @@ ns.RegisterPage({
             p.action:SetLabel(IG.IFollow(who) and L["Unfollow"] or ("+ " .. L["Follows"]))
         end
         p.back:SetShown(not mine)
-        -- beliebt: meiste Follower
+        -- popular: most followers
         local cnt = {}
         for _, f in ipairs(Store.List("follows")) do local k = ns.short(f.target) cnt[k] = { n = ((cnt[k] and cnt[k].n) or 0) + 1, who = f.target } end
         for _, po in ipairs(Store.List("posts")) do local k = ns.short(po.by) cnt[k] = cnt[k] or { n = 0, who = po.by } end
@@ -4044,7 +4044,7 @@ ns.RegisterPage({
                 r:Hide()
             end
         end
-        -- Raster
+        -- Grid
         p.seg:Select(view.tab)
         local list = view.tab == "feed" and IG.Feed() or (view.tab == "all" and IG.AllPosts() or posts)
         local pages = math.max(1, math.ceil(#list / PER))
@@ -4106,9 +4106,9 @@ ns.RegisterPage({
 ns.slash.profil = function() IG.ShowProfile(me()) end
 
 ------------------------------------------------------------------------
--- Ausruestungs-Check im Blizzard-Charakterfenster: Gegenstandsstufe je Feld (in Qualitaetsfarbe),
--- schwaechstes Teil rot markiert, Oasis-Leiste mit Durchschnitt + "Upgrades finden".
--- Nur eigene Elemente auf den Feldern - Blizzards Knoepfe selbst werden nicht veraendert.
+-- Gear check in Blizzard's character window: item level per slot (in quality color),
+-- weakest item marked red, Oasis bar with average + "Find upgrades".
+-- Only own elements on the slots - Blizzard's buttons themselves are not changed.
 ------------------------------------------------------------------------
 local GEAR_SLOTS = { "Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet",
     "Finger0", "Finger1", "Trinket0", "Trinket1", "MainHand", "SecondaryHand", "Ranged" }
@@ -4132,7 +4132,7 @@ local function markFor(slotName)
     m.lvl = m:CreateFontString(nil, "OVERLAY")
     K.SetFontSafe(m.lvl, K.FONT_HEAD, 13, "THICKOUTLINE", K.FONT)
     m.lvl:SetAlpha(1)
-    -- oben links wie in den Taschen - unten rechts wirkt es wie eine Stapelzahl
+    -- top left like in the bags - bottom right looks like a stack count
     m.lvl:SetPoint("TOPLEFT", 1, -1)
     m.weak = m:CreateTexture(nil, "OVERLAY")
     m.weak:SetPoint("TOPLEFT", -1, 1)
@@ -4159,13 +4159,13 @@ local function updateGear()
             m.weak:SetColorTexture(1, 0.15, 0.15, 0)
             m.weakTag:Hide()
             if lvl then
-                -- 0.5.849: Farbe = Seltenheit des Teils (grau/weiss/gruen/blau/lila/orange) wie in den Taschen, fett und voll deckend
+                -- 0.5.849: color = rarity of the item (grey/white/green/blue/purple/orange) like in the bags, bold and fully opaque
                 local q = ns.safe(select(3, C_Item.GetItemInfo(link)))
                 if type(q) ~= "number" and C_Item.GetItemQualityByID then q = ns.safe(C_Item.GetItemQualityByID(link)) end
-                -- Rueckfall: Seltenheit aus dem Farbcode des Links ("|cnIQ3:" in Forever)
+                -- Fallback: rarity from the color code of the link ("|cnIQ3:" in Forever)
                 if type(q) ~= "number" and type(link) == "string" then q = tonumber(link:match("|cnIQ(%d):")) end
                 if type(q) ~= "number" then q = 1 end
-                -- feste Farbtabelle: GetItemQualityColor gibt es in diesem Client nicht (darum blieben die Zahlen weiss)
+                -- fixed color table: GetItemQualityColor does not exist in this client (that is why the numbers stayed white)
                 local QC = { [0] = { 0.62, 0.62, 0.62 }, [1] = { 1, 1, 1 }, [2] = { 0.12, 1, 0 }, [3] = { 0, 0.55, 1 },
                     [4] = { 0.78, 0.35, 1 }, [5] = { 1, 0.5, 0 }, [6] = { 0.9, 0.8, 0.5 }, [7] = { 0, 0.8, 1 } }
                 local qc = QC[q] or QC[1]
@@ -4211,7 +4211,7 @@ local function setupCharFrame()
     gearBar.btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     gearBar:SetScript("OnSizeChanged", nil)
     PaperDollFrame:HookScript("OnShow", function() ns.After(0.05, updateGear) end)
-    -- Breite an den Text anpassen
+    -- Fit width to the text
     gearBar:SetScript("OnUpdate", function(self)
         self:SetWidth(math.max(300, (self.t:GetStringWidth() or 200) + 140))
         self:SetScript("OnUpdate", nil)
@@ -4222,7 +4222,7 @@ ns.On("PLAYER_EQUIPMENT_CHANGED", function() ns.After(0.2, updateGear) end)
 ns.On("GET_ITEM_INFO_RECEIVED", function() if PaperDollFrame and PaperDollFrame:IsVisible() then updateGear() end end)
 
 ------------------------------------------------------------------------
--- Upgrade-Finder: Dungeon-Beute (Levelbereich) mit hoeherer Gegenstandsstufe als das angelegte Teil
+-- Upgrade finder: dungeon loot (level range) with a higher item level than the equipped item
 ------------------------------------------------------------------------
 do
     local U = {}
@@ -4236,7 +4236,7 @@ do
         INVTYPE_WEAPONOFFHAND = { "SecondaryHand" }, INVTYPE_SHIELD = { "SecondaryHand" }, INVTYPE_HOLDABLE = { "SecondaryHand" },
         INVTYPE_RANGED = { "Ranged" }, INVTYPE_RANGEDRIGHT = { "Ranged" }, INVTYPE_THROWN = { "Ranged" }, INVTYPE_RELIC = { "Ranged" },
     }
-    -- Ruestungsklasse (1 Stoff .. 4 Platte) und Waffen je Klasse
+    -- Armor class (1 cloth .. 4 plate) and weapons per class
     local ARMOR = { WARRIOR = 4, PALADIN = 4, HUNTER = 3, SHAMAN = 3, ROGUE = 2, DRUID = 2, PRIEST = 1, MAGE = 1, WARLOCK = 1 }
     local WEAP = {
         WARRIOR = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 13, 15, 16, 18 }, PALADIN = { 0, 1, 4, 5, 6, 7, 8 },
@@ -4267,7 +4267,7 @@ do
         local link = equippedLink(slot)
         return link and (itemLevelOf(link) or 0) or 0
     end
-    -- Wert eines Items fuer die gewaehlte Spezialisierung (Profil -> Meine Stats): Gewichte je Wert
+    -- Value of an item for the chosen specialization (Profile -> My stats): weights per stat
     local W = {
         melee = { STRENGTH = 2, AGILITY = 1.6, ATTACK_POWER = 1, CRIT_RATING = 14, HIT_RATING = 14, STAMINA = 0.3, DAMAGE_PER_SECOND = 9 },
         hunter = { AGILITY = 2, ATTACK_POWER = 1, RANGED_ATTACK_POWER = 1, INTELLECT = 0.4, CRIT_RATING = 14, HIT_RATING = 14, STAMINA = 0.3, DAMAGE_PER_SECOND = 6 },
@@ -4301,7 +4301,7 @@ do
 
     function U.Find()
         local out, pending = {}, 0
-        local stats = { total = 0, dungeons = 0 }   -- 0.5.938: fuer Ladeanzeige und "warum nichts gefunden"
+        local stats = { total = 0, dungeons = 0 }   -- 0.5.938: for the loading indicator and "why nothing was found"
         local lvl = ns.safe(UnitLevel("player")) or 1
         local cls = select(2, UnitClass("player"))
         local de = GetLocale and GetLocale() == "deDE"
@@ -4323,11 +4323,11 @@ do
                             else
                                 local slots = LOC[loc or ""]
                                 if slots and (minL or 0) > lvl and usable(cls, lvl, classID, sub) and (not stats.nextLvl or minL < stats.nextLvl) then
-                                    stats.nextLvl = minL   -- tragbar, aber erst spaeter
+                                    stats.nextLvl = minL   -- wearable, but only later
                                 end
                                 if slots and (minL or 0) <= lvl and usable(cls, lvl, classID, sub)
-                                    and not (ns.Upgrade and ns.Upgrade.Unlearned and ns.Upgrade.Unlearned(link)) then   -- 0.5.942: nichts Ungelerntes vorschlagen
-                                    -- nach Werten fuer die eigene Spezialisierung vergleichen (nicht nur Gegenstandsstufe)
+                                    and not (ns.Upgrade and ns.Upgrade.Unlearned and ns.Upgrade.Unlearned(link)) then   -- 0.5.942: do not suggest anything unlearned
+                                    -- compare by stats for the own specialization (not just item level)
                                     local role = myRole()
                                     local cur, curScore = math.huge, math.huge
                                     for _, sl in ipairs(slots) do
@@ -4361,7 +4361,7 @@ do
     local f
     local function build()
         f = CreateFrame("Frame", "OasisUpgrades", CharacterFrame or UIParent)
-        f:SetSize(360, 482)   -- 0.6.193: breiter fuer die Fundort-Zeile
+        f:SetSize(360, 482)   -- 0.6.193: wider for the source row
         if CharacterFrame then f:SetPoint("TOPLEFT", CharacterFrame, "TOPRIGHT", -30, -12) else f:SetPoint("CENTER") end
         f:SetFrameStrata("HIGH")
         f:EnableMouse(true)
@@ -4371,8 +4371,8 @@ do
         hd:SetPoint("TOPLEFT", 12, -10) hd:SetPoint("RIGHT", -36, 0)
         local close = K.CloseButton(f, function() f:Hide() end, L["Close (Esc)"])
         close:SetPoint("TOPRIGHT", -6, -6)
-        -- 0.6.193: Plaetze mit Upgrade als zweizeilige Karte (Symbol mit Qualitaetsrahmen, Name, darunter Fundort
-        -- Dungeon · Boss in Gold, rechts Gewinn als Plakette); leere Plaetze als schmale gedimmte Zeile. Hoehe passt sich an.
+        -- 0.6.193: slots with an upgrade as a two-line card (icon with quality frame, name, source below
+        -- Dungeon · boss in gold, gain as a badge on the right); empty slots as a narrow dimmed row. Height adapts.
         f.rows = {}
         for i, sl in ipairs(SLOTS) do
             local r = CreateFrame("Button", nil, f)
@@ -4442,7 +4442,7 @@ do
             r:SetFull(false)
             f.rows[i] = r
         end
-        -- Fusszeile: eigener Bereich unter den Plaetzen (Spezialisierung, Anzahl, Hinweis)
+        -- Footer: own area below the slots (specialization, count, hint)
         f.footBg = f:CreateTexture(nil, "BACKGROUND", nil, 1)
         f.footBg:SetPoint("BOTTOMLEFT", 1, 1)
         f.footBg:SetPoint("BOTTOMRIGHT", -1, 1)
@@ -4461,7 +4461,7 @@ do
         f.foot:SetPoint("BOTTOMLEFT", 12, 12)
         f.foot:SetPoint("RIGHT", f, "RIGHT", -12, 0)
         f.foot:SetWordWrap(false)
-        -- 0.5.938: Ladeanzeige, solange der Client die Gegenstaende noch nachlaedt (und kurz beim Oeffnen, damit man die Suche sieht)
+        -- 0.5.938: loading indicator while the client is still loading the items (and briefly on open so you see the search)
         local ld = CreateFrame("Frame", nil, f)
         ld:SetPoint("TOPLEFT", 1, -32)
         ld:SetPoint("BOTTOMRIGHT", -1, 54)
@@ -4482,7 +4482,7 @@ do
         ld.sub:SetPoint("CENTER", 0, -22)
         ld.shown, ld.goal = 0, 0
         ld:SetScript("OnUpdate", function(self, el)
-            -- Balken gleitet zum Ziel; Punkte hinter dem Text wandern
+            -- Bar glides to the target; dots after the text wander
             self.shown = self.shown + (self.goal - self.shown) * math.min(1, el * 8)
             self.fill:SetWidth(math.max(1, 220 * self.shown))
             self.dots = ((self.dots or 0) + el * 3) % 4
@@ -4496,7 +4496,7 @@ do
         if not (f and f:IsShown()) then return end
         local list, pending, stats = U.Find()
         stats = stats or { total = 0, dungeons = 0 }
-        -- Ladeanzeige: bis alles geladen ist, mindestens 0,6 s nach dem Oeffnen, hoechstens 8 s (manche Nummern liefert der Client nie)
+        -- Loading indicator: until everything is loaded, at least 0.6 s after opening, at most 8 s (the client never returns some IDs)
         local now = GetTime()
         f.loadStart = f.loadStart or now
         local waited = now - f.loadStart
@@ -4507,7 +4507,7 @@ do
             f.load:SetShown(loading)
         end
         local best = {}
-        for _, x in ipairs(list) do if not best[x.slot] then best[x.slot] = x end end   -- Liste ist nach Gewinn sortiert
+        for _, x in ipairs(list) do if not best[x.slot] then best[x.slot] = x end end   -- List is sorted by gain
         local n = 0
         for _, r in ipairs(f.rows) do
             local x = best[r.key]
@@ -4530,7 +4530,7 @@ do
                 r:SetFull(false)
             end
         end
-        -- Zeilen untereinander (Karten hoeher), Fensterhoehe passt sich an
+        -- Rows stacked (cards taller), window height adapts
         local y = -36
         for _, r in ipairs(f.rows) do
             r:ClearAllPoints()
@@ -4559,7 +4559,7 @@ do
     function U.Toggle()
         if not f then build() end
         if f:IsShown() then f:Hide() return end
-        f.loadStart = nil   -- jedes Oeffnen sucht neu und zeigt die Ladeanzeige
+        f.loadStart = nil   -- each open searches again and shows the loading indicator
         if f.load then f.load.shown = 0 end
         f:Show()
         U.Refresh()
@@ -4569,13 +4569,13 @@ end
 
 
 ------------------------------------------------------------------------
--- Profil-Reiter "Berufe & Ruf"
+-- Profile tab "Professions & reputation"
 ------------------------------------------------------------------------
 do
     local L, K, C = ns.L, ns.K, ns.K.C
     local PR = {}
     ns.ProfRep = PR
-    -- Classic-Ausbildungsstufen: Maximalstufe, Name, benoetigtes Level
+    -- Classic training tiers: max level, name, required level
     local TIERS = { { 75, "Apprentice", 1 }, { 150, "Journeyman", 10 }, { 225, "Expert", 20 }, { 300, "Artisan", 35 } }
     local STAND = { "Hated", "Hostile", "Unfriendly", "Neutral", "Friendly", "Honored", "Revered", "Exalted" }
     local SCOL = { { 0.8, 0.13, 0.13 }, { 0.8, 0.3, 0.13 }, { 0.75, 0.4, 0.15 }, { 0.9, 0.8, 0.2 },
@@ -4589,7 +4589,7 @@ do
         end
         return out
     end
-    -- Gildenvergleich: wer hat den Beruf noch, wer ist am hoechsten
+    -- Guild comparison: who else has the profession, who is highest
     local function guildFor(name)
         local cnt, best, bestN = 0, 0, nil
         for _, m in ipairs((ns.Radar and ns.Radar.roster) or {}) do
@@ -4607,11 +4607,11 @@ do
 
     local function reps()
         local out = {}
-        -- neue Schnittstelle (C_Reputation), sonst die alte
+        -- new API (C_Reputation), otherwise the old one
         local CR = C_Reputation
         if CR and CR.GetNumFactions and CR.GetFactionDataByIndex then
             local n = CR.GetNumFactions() or 0
-            -- eingeklappte Gruppen kurz aufklappen, sonst fehlen deren Fraktionen
+            -- briefly expand collapsed groups, otherwise their factions are missing
             if CR.ExpandAllFactionHeaders then pcall(CR.ExpandAllFactionHeaders) n = CR.GetNumFactions() or n end
             for i = 1, n do
                 local ok, f = pcall(CR.GetFactionDataByIndex, i)
@@ -4639,7 +4639,7 @@ do
         return out
     end
 
-    -- 0.6.401: Koennen im Stil der Werte-Seite - gerundete Zeilen und Leisten
+    -- 0.6.401: skills in the style of the stats page - rounded rows and bars
     local function roundBar(bar, r)
         for _, rg in ipairs({ bar:GetRegions() }) do
             if rg.GetObjectType and rg:GetObjectType() == "Texture" and K.RoundMask then pcall(K.RoundMask, rg, bar, r or 4) end
@@ -4664,7 +4664,7 @@ do
             r:SetPoint("RIGHT", -22, 0)
             r:SetHeight(56)
             r.bgx = rowBg(r)
-            -- Symbol im Farbkreis
+            -- Icon in a color circle
             r.disc = r:CreateTexture(nil, "BORDER")
             r.disc:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
             r.disc:SetSize(34, 34)
@@ -4763,7 +4763,7 @@ end
 
 
 ------------------------------------------------------------------------
--- Profil-Reiter "Chronik": Deine Woche (Spielzeit je Tag) + Meilensteine
+-- Profile tab "Chronicle": your week (playtime per day) + milestones
 ------------------------------------------------------------------------
 do
     local L, K, C = ns.L, ns.K, ns.K.C
@@ -4772,18 +4772,18 @@ do
     local DAYS = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" }
 
     local function dayKey(ts) return date("%Y-%m-%d", ts) end
-    -- Spielzeit mitzaehlen: jede Minute +60 s auf den heutigen Tag
+    -- Count playtime: every minute +60 s on today
     local function tick()
         local c = ns.char
         if not c then return end
         c.play = c.play or {}
         local k = dayKey(time())
         c.play[k] = (c.play[k] or 0) + 60
-        -- alte Tage (> 60) aufraeumen
+        -- clean up old days (> 60)
         local cut = dayKey(time() - 60 * 86400)
         for d in pairs(c.play) do if d < cut then c.play[d] = nil end end
     end
-    -- weitere Meilensteine (Berufsstufen, erster Start mit Oasis)
+    -- further milestones (profession tiers, first start with Oasis)
     function CH.Add(key, text, icon)
         local c = ns.char
         if not c then return end
@@ -4810,9 +4810,9 @@ do
     end)
     ns.On("SKILL_LINES_CHANGED", function() pcall(checkProfs) end)
 
-    -- Schrittlaenge beim Rennen (die Spielfigur rennt ~6,4 m/s -> ca. 4 Schritte pro Sekunde)
+    -- Stride length when running (the character runs ~6.4 m/s -> about 4 steps per second)
     CH.STRIDE = 1.6
-    -- gelaufene Strecke (Meter je Tag): jede Sekunde Abstand zur letzten Position, Spruenge (Portale) ignorieren
+    -- distance walked (meters per day): every second the distance to the last position, ignore jumps (portals)
     local lastX, lastY, lastInst
     C_Timer.NewTicker(1, function()
         local c = ns.char
@@ -4830,7 +4830,7 @@ do
             local k = dayKey(time())
             local before = c.walk[k] or 0
             c.walk[k] = before + d * 0.9144
-            -- Abzeichen: jeder volle Kilometer; Tagesziel 10.000 Schritte (ca. 7,5 km)
+            -- Badge: every full kilometer; daily goal 10,000 steps (about 7.5 km)
             c.walkAcc = (c.walkAcc or 0) + d * 0.9144
             if c.walkAcc >= 1000 and ns.Badges then
                 c.walkAcc = c.walkAcc - 1000
@@ -4844,7 +4844,7 @@ do
             if h and h.mini and h.mini[1] and h:IsVisible() then pcall(CH.UpdateWalk, h) end
         end
     end)
-    -- Schritte/km in den Kacheln (auch live aus dem Sekunden-Takt)
+    -- Steps/km in the tiles (also live from the per-second tick)
     function CH.UpdateWalk(h)
         local c = ns.char or {}
         local walk = c.walk or {}
@@ -4879,7 +4879,7 @@ do
     end
 
     local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" }
-    -- eigene Symbole je Art (nur Oasis-Texturen bzw. bewaehrte)
+    -- own icons per type (only Oasis textures or proven ones)
     local KIND = {
         level = { ns.MEDIA .. "icons\\badges\\quester", C.amber, "Level" },
         level10 = { ns.MEDIA .. "icons\\badges\\first10", C.amber, "Level" },
@@ -4922,16 +4922,16 @@ do
         h.delta:SetPoint("BOTTOMLEFT", h.sum, "BOTTOMRIGHT", 10, 4)
         h.sumL = K.Text(left, 10, C.dim)
         h.sumL:SetPoint("TOPLEFT", 12, -68)
-        -- Kennzahlen
+        -- Key figures
         h.tiles = { tile(left, "Avg per day", C.blue), tile(left, "Best day", C.amber), tile(left, "Streak", C.mint) }
         for i, t in ipairs(h.tiles) do
             t:SetPoint("TOPLEFT", 12 + (i - 1) * 117, -88)
             t:SetWidth(111)
             t:SetHeight(42)
         end
-        -- Balken je Tag (Verlauf), Schnitt als Linie
+        -- Bar per day (gradient), average as a line
         h.bars = {}
-        local chartTop, chartH = -152, 40   -- Platz ueber dem Diagramm fuer die Stunden-Zahl am hoechsten Balken
+        local chartTop, chartH = -152, 40   -- Room above the chart for the hour number on the highest bar
         h.chartH = chartH
         for i = 1, 7 do
             local b = CreateFrame("Frame", nil, left)
@@ -4967,7 +4967,7 @@ do
         h.avg:SetColorTexture(C.amber[1], C.amber[2], C.amber[3], 0.7)
         h.avgL = K.Text(left, 9, C.amber, "LEFT")
         h.avgL:SetSpacing(1)
-        -- letzte 4 Wochen
+        -- last 4 weeks
         local h4 = K.Text(left, 10, C.dim)
         h4:SetPoint("TOPLEFT", 12, chartTop - chartH - 30)
         h4:SetText(K.Upper(L["Last 4 weeks"]))
@@ -4988,7 +4988,7 @@ do
             h.weeks[i] = w
         end
         h.walkHead = K.Text(left, 10, C.dim)
-        -- feste Reihenfolge von oben (nicht vom unteren Rand aus, sonst ueberlappt es bei kleinem Fenster)
+        -- fixed order from the top (not from the bottom edge, otherwise it overlaps with a small window)
         local wy = chartTop - chartH - 80
         h.walkHead:SetPoint("TOPLEFT", 12, wy)
         h.walkHead:SetText(K.Upper(L["On foot"]))
@@ -5003,7 +5003,7 @@ do
         h.stats:SetSpacing(4)
         h.walkHead:Hide() h.walk:Hide() h.stats:Hide()
 
-        -- kleine Kennzahl-Kachel (Wert gross, Beschriftung klein, farbige Kante)
+        -- small key figure tile (value large, label small, colored edge)
         local function mini(parent, x, y, w, color, label)
             local m = CreateFrame("Frame", nil, parent)
             m:SetSize(w, 38)
@@ -5030,12 +5030,12 @@ do
         h.mini[3] = mini(left, 12, wy + 4, 170, C.amber, "Active days")
         h.mini[4] = mini(left, 188, wy + 4, 170, C.accent, "Level-ups this week")
 
-        -- rechts: Zeitleiste mit Monaten
+        -- right: timeline with months
         local right = K.Panel(h, C.panel)
         right:SetPoint("TOPLEFT", left, "TOPRIGHT", 10, 0) right:SetPoint("BOTTOMRIGHT")
         local hw = K.GameHead(right, L["On foot"], C.mint)
         hw:SetPoint("TOPLEFT", 12, -12) hw:SetPoint("RIGHT", -12, 0)
-        -- Smartwatch-Ringe: aussen Schritte heute (10.000), Mitte Schritte Woche (70.000), innen aktive Tage (7)
+        -- Smartwatch rings: outer steps today (10,000), middle steps this week (70,000), inner active days (7)
         h.walkBox = CreateFrame("Frame", nil, right)
         h.walkBox:SetPoint("TOPLEFT", 12, -38) h.walkBox:SetPoint("TOPRIGHT", -12, -38) h.walkBox:SetHeight(72)
         h.ringCol = { { 1, 0.20, 0.36 }, { 0.62, 1, 0.12 }, { 0.10, 0.85, 1 } }
@@ -5049,10 +5049,10 @@ do
             fs:SetWordWrap(false)
             h.ringTxt[i] = fs
         end
-        -- alte Kacheln bleiben als unsichtbare Platzhalter (Werte-Code schreibt weiter hinein)
+        -- old tiles stay as invisible placeholders (the stats code keeps writing into them)
         h.mini[1] = mini(h.walkBox, 0, 0, 10, C.mint, "Steps today") h.mini[1]:Hide()
         h.mini[2] = mini(h.walkBox, 0, 0, 10, C.blue, "Steps this week") h.mini[2]:Hide()
-        -- Meilensteine: kleiner, ruhiger
+        -- Milestones: smaller, calmer
         local hr = K.Text(right, 10, C.dim)
         hr:SetPoint("TOPLEFT", 12, -126)
         hr:SetText(K.Upper(L["Milestones"]))
@@ -5116,7 +5116,7 @@ do
         local c = ns.char or {}
         local play = c.play or {}
         local now = time()
-        local wd = (tonumber(date("%w", now)) + 6) % 7   -- 0 = Montag
+        local wd = (tonumber(date("%w", now)) + 6) % 7   -- 0 = Monday
         local total, maxV, days, best, bestD = 0, 1, 0, 0, nil
         local vals = {}
         for i = 1, 7 do
@@ -5143,14 +5143,14 @@ do
             h.delta:SetText("")
         end
         h.sumL:SetText(L["played this week (tracked by Oasis)"])
-        -- Serie: Tage am Stueck bis heute (oder gestern)
+        -- Streak: consecutive days up to today (or yesterday)
         local streak, d = 0, 0
         if (play[dayKey(now)] or 0) == 0 then d = 1 end
         while (play[dayKey(now - d * 86400)] or 0) > 0 and streak < 60 do streak = streak + 1 d = d + 1 end
         h.tiles[1].v:SetText(days > 0 and fmtH(total / days) or "-")
         h.tiles[2].v:SetText(bestD and (L[DAYS[bestD]] .. " |cff888888" .. fmtH(best) .. "|r") or "-")
         h.tiles[3].v:SetText(streak > 0 and ((L["%d days"]):format(streak)) or "-")
-        -- Balken + Schnittlinie
+        -- Bars + average line
         local avg = days > 0 and total / days or 0
         for i, b in ipairs(h.bars) do
             local x = vals[i]
@@ -5178,7 +5178,7 @@ do
         else
             h.avg:Hide() h.avgL:Hide()
         end
-        -- letzte 4 Wochen (diese zuerst)
+        -- last 4 weeks (this one first)
         local wk, wmax = {}, 1
         for i = 1, 4 do wk[i] = weekTotal(i - 1) if wk[i] > wmax then wmax = wk[i] end end
         for i, w in ipairs(h.weeks) do
@@ -5188,7 +5188,7 @@ do
             w.fill:SetColorTexture(col[1], col[2], col[3], 0.9)
             w.fill:SetWidth(math.max(1, 80 * wk[i] / wmax))
         end
-        -- Level diese Woche
+        -- Level this week
         local weekStart = now - wd * 86400 - (tonumber(date("%H", now)) * 3600 + tonumber(date("%M", now)) * 60)
         local lv = 0
         for _, ts in pairs(c.milestones or {}) do if tonumber(ts) and tonumber(ts) >= weekStart then lv = lv + 1 end end
@@ -5197,7 +5197,7 @@ do
             h.mini[3].v:SetText(days .. " |cff888888/ 7|r")
             h.mini[4].v:SetText(tostring(lv))
         end
-        -- Schritte (ca. 0,75 m pro Schritt) und Kilometer: heute / diese Woche
+        -- Steps (about 0.75 m per step) and kilometers: today / this week
         local walk = c.walk or {}
         local today = walk[dayKey(now)] or 0
         local wk = 0
@@ -5208,7 +5208,7 @@ do
         h.walk:SetText((L["Today %s steps"]):format(steps(today)) .. "  |cff888888(" .. ("%.1f"):format(today / 1000) .. " km)|r     "
             .. (L["Week %s steps"]):format(steps(wk)) .. "  |cff888888(" .. ("%.1f"):format(wk / 1000) .. " km)|r")
 
-        -- Zeitleiste: Level, Berufe, Oasis + eigene Chronik-Eintraege (Abzeichen, Bosse, Beute, Legacy, Deathroll)
+        -- Timeline: level, professions, Oasis + own chronicle entries (badges, bosses, loot, legacy, deathroll)
         local items = {}
         for lvl, ts in pairs(c.milestones or {}) do
             local n = tonumber(lvl)
@@ -5235,7 +5235,7 @@ do
             end
         end
         table.sort(items, function(a, b) return a.ts > b.ts end)
-        -- Monats-Ueberschriften einfuegen
+        -- insert month headings
         local out, lastM = {}, nil
         for _, x in ipairs(items) do
             local m = date("%Y-%m", x.ts)
@@ -5252,8 +5252,8 @@ end
 
 
 ------------------------------------------------------------------------
--- Visitenkarte (Titel, Status, Lieblings-Emojis), Vitrinen-Abzeichen neben dem Namen,
--- Gildenvergleich der Charakterwerte
+-- Business card (title, status, favorite emojis), showcase badges next to the name,
+-- guild comparison of the character stats
 ------------------------------------------------------------------------
 do
     local L, K, C = ns.L, ns.K, ns.K.C
@@ -5266,7 +5266,7 @@ do
         c.card = c.card or {}
         return c.card
     end
-    -- Daten eines Spielers (eigene aus ns.char, fremde aus dem geteilten Profil)
+    -- Data of a player (own from ns.char, others from the shared profile)
     function Card.Of(name)
         if not name then return {} end
         if ns.isMe(name) then
@@ -5282,7 +5282,7 @@ do
         return { t = p.ct, s = p.cs, e = p.ce, sb = p.sb }
     end
 
-    -- Vitrine: bis zu 3 Abzeichen; ohne Auswahl die drei hoechsten
+    -- Showcase: up to 3 badges; without a selection the three highest
     function Card.Showcase(name)
         local d = Card.Of(name)
         local ids = {}
@@ -5309,7 +5309,7 @@ do
         return #t > 0 and (" " .. table.concat(t, "")) or ""
     end
 
-    -- eigene Charakterwerte merken (Rohzahlen) -> werden im Profil geteilt
+    -- remember own character stats (raw numbers) -> shared in the profile
     function Card.Record(st)
         local c = ns.char
         if not c or type(st) ~= "table" then return end
@@ -5329,7 +5329,7 @@ do
         for k, v in tostring(s or ""):gmatch("([%w_]+):([%d%.]+)") do t[k] = tonumber(v) end
         return t
     end
-    -- Gildenschnitt fuer einen Wert: gleiche Klasse, Level +-3
+    -- Guild average for a stat: same class, level +-3
     function Card.GuildAvg(key)
         local R = ns.Radar
         if not (R and R.roster and key) then return end
@@ -5347,7 +5347,7 @@ do
         return sum / n, n
     end
 
-    -- im Profil teilen
+    -- share in the profile
     local base = IG.ProfileFields
     IG.ProfileFields = function(p)
         base(p)
@@ -5359,7 +5359,7 @@ do
         if ns.char and ns.char.statStr and ns.char.statStr ~= "" then p.cst = ns.char.statStr end
     end
 
-    -- Bearbeiten-Dialog
+    -- Edit dialog
     local dlg
     local function build()
         local f = CreateFrame("Frame", "OasisCardEdit", UIParent)
@@ -5467,7 +5467,7 @@ do
         dlg:Show()
     end
 
-    -- Anzeige in der Profilkarte (Titel, Status, Emojis, Vitrine)
+    -- Display in the profile card (title, status, emojis, showcase)
     local function render(txt)
         if ns.Emoji and ns.Emoji.Render then
             local ok, r = pcall(ns.Emoji.Render, txt)
@@ -5501,20 +5501,20 @@ end
 
 
 ------------------------------------------------------------------------
--- Einblicke rechts neben den Charakterwerten: Treffer-Ziel, Level-Tempo, Upgrade-Tipp, Verbrauchsgueter
+-- Insights to the right of the character stats: hit target, level pace, upgrade tip, consumables
 ------------------------------------------------------------------------
 do
     local L, K, C = ns.L, ns.K, ns.K.C
     local IN = {}
     ns.Insights = IN
 
-    -- Level-Tempo: XP dieser Sitzung mitschreiben
+    -- Level pace: record XP of this session
     local sess = { t0 = nil, xp = 0, last = nil, lastMax = nil }
     local function xpTick()
         local cur, max = UnitXP("player"), UnitXPMax("player")
         if not sess.t0 then sess.t0, sess.last, sess.lastMax = GetTime(), cur, max return end
         local d = cur - (sess.last or cur)
-        if d < 0 then d = d + (sess.lastMax or 0) end   -- Levelaufstieg
+        if d < 0 then d = d + (sess.lastMax or 0) end   -- Level-up
         if d > 0 then sess.xp = sess.xp + d end
         sess.last, sess.lastMax = cur, max
     end
@@ -5526,7 +5526,7 @@ do
         return ("%d:%02d %s"):format(math.floor(m / 60), m % 60, L["h"])
     end
 
-    -- Verbrauchsgueter je Rolle (Classic-Item-IDs); angezeigt wird das beste, das man schon benutzen kann
+    -- Consumables per role (Classic item IDs); the best one you can already use is shown
     local G = {
         str = { 2454, 3391, 9206 }, agi = { 2457, 3390, 8949, 9187, 13452 }, int = { 3383, 9179 }, sp = { 9155, 13454 },
         def = { 5997, 3389, 8951 }, fort = { 3825 }, mana = { 20007 }, stone = { 2862, 2863, 2871, 7964, 12404 },
@@ -5557,7 +5557,7 @@ do
 
     local function section(host, title, color, y)
         local h = K.GameHead(host, title, color)
-        h.text:SetText(title)   -- normale Schreibweise (Profil 2026)
+        h.text:SetText(title)   -- normal capitalization (profile 2026)
         h:SetPoint("TOPLEFT", 0, y)
         h:SetPoint("RIGHT", host, "RIGHT", 0, 0)
         return h
@@ -5577,19 +5577,19 @@ do
     local function build(soon, cs)
         local f = CreateFrame("Frame", nil, cs)
         soon.ins = f
-        -- 1) Treffer-Ziel
+        -- 1) Hit target
         f.h1 = section(f, L["Hit target"], C.red, 0)
         f.hitBar = bar(f, -24)
         f.hitTxt = K.Text(f, 11, C.muted)
         f.hitTxt:SetPoint("TOPLEFT", 0, -34)
-        -- 2) Level-Tempo
+        -- 2) Level pace
         f.h2 = section(f, L["Levelling pace"], C.mint, -58)
         f.tempo = K.Text(f, 11, C.text)
         f.tempo:SetPoint("TOPLEFT", 0, -80)
         f.tempo:SetPoint("RIGHT", f, "RIGHT", 0, 0)
         f.tempo:SetJustifyH("LEFT")
         f.tempo:SetSpacing(3)
-        -- 3) Upgrade-Tipp
+        -- 3) Upgrade tip
         f.h3 = section(f, L["Upgrade tip"], C.amber, -124)
         f.up = CreateFrame("Button", nil, f)
         f.up:SetPoint("TOPLEFT", 0, -146)
@@ -5613,14 +5613,14 @@ do
         f.up:SetScript("OnClick", function(self)
             if self.link and IsModifiedClick("CHATLINK") then ChatEdit_InsertLink(self.link) end
         end)
-        -- 4) Verbrauchsgueter
+        -- 4) Consumables
         f.h4 = section(f, L["Consumables"], C.blue, 0)
         f.h2:Hide() f.tempo:Hide()
         f.h1:Hide() f.hitBar:Hide() f.hitTxt:Hide()
         f.cons = {}
         for i = 1, 4 do
             local b = CreateFrame("Button", nil, f)
-            -- Profil 2026: Glaszeile, Name darf zweizeilig umbrechen (nicht mehr abgeschnitten)
+            -- Profile 2026: glass row, name may wrap to two lines (no longer cut off)
             b:SetPoint("TOPLEFT", 0, -28 - (i - 1) * 42)
             b:SetPoint("RIGHT", f, "RIGHT", 0, 0)
             b:SetHeight(38)
@@ -5654,7 +5654,7 @@ do
             b:SetScript("OnClick", function(self)
                 if not self.link then return end
                 if IsModifiedClick("CHATLINK") then ChatEdit_InsertLink(self.link) return end
-                -- Handwerks-Boerse: wer kann das herstellen?
+                -- Crafting exchange: who can craft this?
                 local name = self.link:match("%[(.-)%]")
                 if ns.Crafting and ns.Crafting.ShowItem then ns.Crafting.ShowItem(name) end
             end)
@@ -5678,7 +5678,7 @@ do
         local colW = math.floor((W - 24 - 20) / 2)
         f:ClearAllPoints()
         if soon.consBox then
-            -- 0.6.330: eigene Box unter den Charakterwerten, Verbrauchsgueter 2x2
+            -- 0.6.330: own box below the character stats, consumables 2x2
             local cb = soon.consBox
             if f:GetParent() ~= cb then f:SetParent(cb) f:SetFrameLevel(cb:GetFrameLevel() + 2) end
             f:SetPoint("TOPLEFT", cb, "TOPLEFT", 14, -12)
@@ -5699,7 +5699,7 @@ do
         local roleKey = soon.Role and select(1, soon:Role()) or "melee"
         local lvl = UnitLevel("player") or 1
 
-        -- 1) Treffer: Nahkampf/Jaeger/Tank 9 %, Zauber 16 %; Heiler braucht keinen
+        -- 1) Hit: melee/hunter/tank 9 %, spells 16 %; healers need none
         local byKey = {}
         for _, x in ipairs(soon.lastStats or {}) do if x.key then byKey[x.key] = x end end
         local caster = roleKey == "caster"
@@ -5716,7 +5716,7 @@ do
             f.hitTxt:SetText((L["%.1f %% of %d %%"]):format(raw, goal) .. (raw >= goal and ("  |cff66db9e" .. L["Reached!"] .. "|r") or ""))
         end
 
-        -- 2) Level-Tempo
+        -- 2) Level pace
         local cur, max = UnitXP("player"), UnitXPMax("player")
         local rest = GetXPExhaustion and GetXPExhaustion() or 0
         local lines = {}
@@ -5731,7 +5731,7 @@ do
         if rest and rest > 0 then lines[#lines + 1] = "|cff6199ff" .. (L["Rested: %s XP"]):format(BreakUpLargeNumbers and BreakUpLargeNumbers(rest) or rest) .. "|r" end
         f.tempo:SetText(table.concat(lines, "\n"))
 
-        -- 3) Upgrade-Tipp: jetzt im Charakterfenster ("Upgrades finden")
+        -- 3) Upgrade tip: now in the character window ("Find upgrades")
         local up = nil
         local u = up and up[1]
         if u then
@@ -5746,7 +5746,7 @@ do
             f.up.sub:SetText("")
         end
 
-        -- 4) Verbrauchsgueter
+        -- 4) Consumables
         local groups = ROLE[roleKey] or ROLE.melee
         local anyPending = false
         for i, b in ipairs(f.cons) do
@@ -5757,7 +5757,7 @@ do
             if best then
                 b.link = best.link
                 b.icon:SetTexture(best.tex)
-                -- Link ohne eckige Klammern anzeigen (spart Platz), Klick/Tooltip nutzen weiter den echten Link
+                -- Show link without square brackets (saves space), click/tooltip still use the real link
                 b.name:SetText((tostring(best.link or ""):gsub("|h%[(.-)%]|h", "|h%1|h")))
                 b.n = craftersOf(best.id)
                 b.who:SetText(b.n > 0 and (b.n .. " " .. L["Guild"]) or "")
@@ -5776,7 +5776,7 @@ end
 
 
 ------------------------------------------------------------------------
--- Profilkopf: WoW-Erfahrung + Level-Tempo
+-- Profile header: WoW experience + level pace
 ------------------------------------------------------------------------
 do
     local sess = { t0 = nil, xp = 0, last = nil, lastMax = nil }

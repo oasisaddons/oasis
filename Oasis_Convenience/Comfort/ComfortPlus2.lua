@@ -1,21 +1,21 @@
--- Oasis - Helfer, Teil 2: Instanz-Zaehler, neue Zauber beim Lehrer, Berufs-Abklingzeiten der Gilde,
--- Gegenstaende/Gold aller eigenen Charaktere, Quest-Fortschritt der Gruppe, Jaeger-Begleiter,
--- Reagenzien kaufen, Rare-Warnung, Ruhestein/IDs, Angel-Helfer, Ausruestungs-Sets, Reichweite.
--- Einstellungen: Reiter "Helfer"; Uebersicht: /oa chars oder Knopf im Reiter.
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Comfort", function()   -- Modul Komfort (abschaltbar, siehe ModuleLoader.lua)
-local TIPM = setmetatable({}, { __mode = "k" })   -- Merker je Tooltip (nie Felder auf Blizzard-Frames schreiben)
+-- Oasis - Helpers, part 2: instance counter, new spells at the trainer, guild profession cooldowns,
+-- items/gold of all own characters, group quest progress, hunter pet,
+-- buy reagents, rare warning, hearthstone/IDs, fishing helper, equipment sets, range.
+-- Settings: tab "Helpers"; overview: /oa chars or button in the tab.
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Comfort", function()   -- module Comfort (can be disabled, see ModuleLoader.lua)
+local TIPM = setmetatable({}, { __mode = "k" })   -- marker per tooltip (never write fields onto Blizzard frames)
 local L = ns.L
 local K, C = ns.K, ns.K.C
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be manipulated):
+-- sanitize texts, clamp numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -103,12 +103,12 @@ local function knows(id)
     return false
 end
 
--- neue Helfer einmalig an (Gilden-Meldungen und Kaufen bleiben aus, bis man sie will)
+-- new helpers on once (guild announcements and buying stay off until wanted)
 ns.Listen("LOGIN", function()
     local s = S()
     if not s.cp2Init then
         s.cp2Init = true
-        -- 0.6.522: nur Gilden-/Gruppen-Helfer an (Raid-IDs, Berufs-Abklingzeiten der Gilde, Quest-Fortschritt der Gruppe, Rare-Warnung)
+        -- 0.6.522: only guild/group helpers on (raid IDs, guild profession cooldowns, group quest progress, rare warning)
         for _, k in ipairs({ "cpInstances", "cpProfCD", "cpQuestShare", "cpRare" }) do
             if s[k] == nil then s[k] = true end
         end
@@ -116,7 +116,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- 1. Instanz-Zaehler (hoechstens 5 neue Instanzen pro Stunde, gilt fuer den ganzen Account)
+-- 1. Instance counter (at most 5 new instances per hour, applies to the whole account)
 ------------------------------------------------------------------------
 local function instList()
     ns.db.instHour = ns.db.instHour or {}
@@ -139,7 +139,7 @@ ns.On("PLAYER_ENTERING_WORLD", function()
     local name, _, _, _, _, _, _, mapID = GetInstanceInfo()
     if not mapID then return end
     local list = instList()
-    -- dieselbe (nicht zurueckgesetzte) Instanz zaehlt nicht nochmal
+    -- the same (not reset) instance does not count again
     for _, e in ipairs(list) do if e.map == mapID and not e.reset then lastInst = mapID return end end
     if lastInst == mapID then return end
     lastInst = mapID
@@ -152,14 +152,14 @@ ns.On("PLAYER_ENTERING_WORLD", function()
 end)
 ns.On("CHAT_MSG_SYSTEM", function(msg)
     if type(msg) ~= "string" or (issecretvalue and issecretvalue(msg)) then return end
-    -- "X wurde zurueckgesetzt": alle offenen Eintraege gelten als neue Instanz beim naechsten Betreten
+    -- "X has been reset": all open entries count as a new instance on next entry
     local pat = INSTANCE_RESET_SUCCESS and INSTANCE_RESET_SUCCESS:gsub("%%s", "(.+)")
     if pat and msg:match(pat) then
         for _, e in ipairs(instList()) do e.reset = true end
         lastInst = nil
     end
 end)
--- Warnung beim Betreten-Versuch, wenn die Stunde voll ist (Gruppe, Instanzportal in der Naehe gibt es nicht als Ereignis)
+-- warning on attempted entry when the hour is full (group, nearby instance portal does not exist as an event)
 ns.On("ZONE_CHANGED_NEW_AREA", function()
     if not on("cpInstances") then return end
     local n, nextFree = H2.InstanceStatus()
@@ -169,11 +169,11 @@ ns.On("ZONE_CHANGED_NEW_AREA", function()
 end)
 
 ------------------------------------------------------------------------
--- 2. Neue Zauber beim Lehrer (Liste lernt Oasis beim Lehrer-Besuch)
+-- 2. New spells at the trainer (Oasis learns the list when visiting the trainer)
 ------------------------------------------------------------------------
 local function readTrainer()
     if not GetNumTrainerServices or (IsTradeskillTrainer and IsTradeskillTrainer()) then return end
-    -- alle Filter kurz an, damit auch die noch nicht lernbaren Zauber kommen
+    -- briefly turn all filters on so the not-yet-learnable spells appear too
     local saved = {}
     if GetTrainerServiceTypeFilter and SetTrainerServiceTypeFilter then
         for _, f in ipairs({ "available", "unavailable", "used" }) do
@@ -219,9 +219,9 @@ ns.On("PLAYER_LEVEL_UP", function(lvl)
 end)
 
 ------------------------------------------------------------------------
--- 3. Berufs-Abklingzeiten (mit der Gilde geteilt)
+-- 3. Profession cooldowns (shared with the guild)
 ------------------------------------------------------------------------
--- Schluessel -> Zauber (alle Transmutationen teilen sich eine Abklingzeit)
+-- key -> spell (all transmutations share one cooldown)
 local PROFCD = {
     { key = "transmute", label = "Transmute", spells = { 17187, 11479, 11480, 17559, 17560, 17561, 17562, 17563, 17564, 17565, 17566, 25146 } },
     { key = "mooncloth", label = "Mooncloth", spells = { 18560 } },
@@ -267,7 +267,7 @@ ns.On("SPELL_UPDATE_COOLDOWN", function()
     ns.After(3, function() cdPending = nil pcall(shareProfCD) end)
 end)
 ns.Listen("LOGIN", function() ns.After(8, function() pcall(shareProfCD) end) end)
--- alle Abklingzeiten der Gilde: { { who, key, ready } }
+-- all guild cooldowns: { { who, key, ready } }
 function H2.GuildProfCDs()
     local out = {}
     for _, r in ipairs(Store.List("profcd", function(r) return not r.del end)) do
@@ -278,7 +278,7 @@ function H2.GuildProfCDs()
 end
 
 ------------------------------------------------------------------------
--- 4. Gegenstaende und Gold aller eigenen Charaktere
+-- 4. Items and gold of all own characters
 ------------------------------------------------------------------------
 local function scanBags(from, to)
     local t = {}
@@ -315,7 +315,7 @@ ns.On("BANKFRAME_OPENED", function()
     end)
 end)
 ns.Listen("LOGIN", function() ns.After(5, function() pcall(saveBags) end) end)
--- Tooltip-Zeilen
+-- tooltip lines
 local function altLines(tt)
     if not on("cpAltItems") or TIPM[tt] then return end
     local _, link = tt:GetItem()
@@ -352,9 +352,9 @@ end
 if GameTooltip then GameTooltip:HookScript("OnTooltipCleared", function(tt) TIPM[tt] = nil end) end
 
 ------------------------------------------------------------------------
--- 5. Quest-Fortschritt der Gruppe (nur Oasis-Mitspieler)
+-- 5. Group quest progress (Oasis groupmates only)
 ------------------------------------------------------------------------
-local partyQ = {}   -- Name -> { [Questtitel] = { "6/10 Kolkar", ... } }
+local partyQ = {}   -- name -> { [quest title] = { "6/10 Kolkar", ... } }
 local function myQuests()
     local out = {}
     local n = (C_QuestLog and C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetNumQuestLogEntries()) or (GetNumQuestLogEntries and GetNumQuestLogEntries()) or 0
@@ -392,7 +392,7 @@ end)
 ns.On("GROUP_ROSTER_UPDATE", function() lastQ = {} ns.After(3, function() pcall(sendQuests) end) end)
 Comm.On("QPROG", function(sender, _, title, s)
     if not on("cpQuestShare") or not title or ns.isMe(sender) then return end
-    -- nur Mitspieler der eigenen Gruppe, Texte entschaerft, Mengen begrenzt
+    -- only members of your own group, texts sanitized, amounts clamped
     local sh = ns.short(sender)
     if not ((UnitInParty and UnitInParty(sh)) or (UnitInRaid and UnitInRaid(sh))) then return end
     title = SEC.Text(title, 80)
@@ -410,7 +410,7 @@ Comm.On("QPROG", function(sender, _, title, s)
         objs[#objs + 1] = SEC.Text(o, 80)
     end
     partyQ[who][title] = objs
-    -- Ziel gerade fertig geworden? kurz melden, wenn man die Quest selbst hat
+    -- objective just completed? briefly report if you have the quest yourself
     if old and myQuests()[title] then
         for i, o in ipairs(objs) do
             local a, b = o:match("(%d+)/(%d+)")
@@ -421,7 +421,7 @@ Comm.On("QPROG", function(sender, _, title, s)
         end
     end
 end)
--- Tooltip eines Gruppenmitglieds: gemeinsame Quests
+-- tooltip of a group member: shared quests
 local function questLines(tt, unit)
     if not on("cpQuestShare") or not unit or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitIsUnit(unit, "player") then return end
     local name, realm = ns.UnitName(unit)
@@ -450,7 +450,7 @@ end
 function H2.PartyQuests() return partyQ end
 
 ------------------------------------------------------------------------
--- 6. Jaeger-Begleiter: Laune + Futter
+-- 6. Hunter pet: happiness + food
 ------------------------------------------------------------------------
 local lastHappy
 local function petCheck()
@@ -476,7 +476,7 @@ ns.On("MERCHANT_SHOW", function()
 end)
 
 ------------------------------------------------------------------------
--- 7. Reagenzien automatisch nachkaufen (bis zur Zielmenge)
+-- 7. Auto-restock reagents (up to the target amount)
 ------------------------------------------------------------------------
 H2.REAG_TARGET = { [17020] = 20, [17031] = 10, [17032] = 5, [17028] = 20, [17029] = 10, [5140] = 10, [17030] = 5,
     [21177] = 20, [17033] = 5, [17034] = 10, [17026] = 10 }
@@ -488,10 +488,10 @@ ns.On("MERCHANT_SHOW", function()
             local want = {}
             for id, n in pairs(H2.REAG_TARGET) do
                 local have = itemCount(id)
-                -- nur was man schon benutzt (einmal im Besitz gesehen)
+                -- only what you already use (seen in possession once)
                 if (S().cpReagSeen or {})[tostring(id)] and have < n then want[id] = n - have end
             end
-            -- Munition: gleiche Sorte wie die angelegte
+            -- ammo: same kind as the equipped one
             local ammoSlot = GetInventorySlotInfo and select(1, pcall(GetInventorySlotInfo, "AmmoSlot")) and GetInventorySlotInfo("AmmoSlot")
             local ammoID = ammoSlot and GetInventoryItemID and GetInventoryItemID("player", ammoSlot)
             if ammoID then
@@ -524,7 +524,7 @@ ns.On("MERCHANT_SHOW", function()
 end)
 
 ------------------------------------------------------------------------
--- 8. Rare-Warnung (+ an die Gilde)
+-- 8. Rare warning (+ to the guild)
 ------------------------------------------------------------------------
 local rareSeen = {}
 local function rareCheck(unit)
@@ -552,7 +552,7 @@ ns.On("PLAYER_TARGET_CHANGED", function() pcall(rareCheck, "target") end)
 ns.On("UPDATE_MOUSEOVER_UNIT", function() pcall(rareCheck, "mouseover") end)
 Comm.On("RARE", function(sender, _, name, zone, x, y)
     if not on("cpRare") or ns.isMe(sender) then return end
-    -- je Absender hoechstens alle 30 s; Texte entschaerft, Koordinaten 0..100
+    -- at most every 30 s per sender; texts sanitized, coordinates 0..100
     if not SEC.Rate("rare:" .. sender, 30) then return end
     x, y = SEC.Num(x, 0, 100), SEC.Num(y, 0, 100)
     K.Toast(L["Rare (guild)"], (L["%s sees %s - %s (%s, %s)"]):format(ns.displayName and ns.displayName(sender) or ns.short(sender),
@@ -560,7 +560,7 @@ Comm.On("RARE", function(sender, _, name, zone, x, y)
 end)
 
 ------------------------------------------------------------------------
--- 9. Ruhestein + Instanz-IDs aller eigenen Charaktere
+-- 9. Hearthstone + instance IDs of all own characters
 ------------------------------------------------------------------------
 local function saveBind()
     local c = char()
@@ -579,9 +579,9 @@ ns.On("HEARTHSTONE_BOUND", function() pcall(saveBind) end)
 ns.Listen("LOGIN", function() if RequestRaidInfo then RequestRaidInfo() end ns.After(6, function() pcall(saveBind) end) end)
 
 ------------------------------------------------------------------------
--- 10. Angel-Helfer: Doppel-Rechtsklick wirft aus + Fang-Statistik
+-- 10. Fishing helper: double right-click casts + catch statistics
 ------------------------------------------------------------------------
-local FISHING = 7620   -- Angeln (Zauber), Name kommt aus dem Spiel
+local FISHING = 7620   -- Fishing (spell), name comes from the game
 local fishBtn
 local function poleEquipped()
     local link = GetInventoryItemLink("player", 16)
@@ -628,7 +628,7 @@ ns.On("LOOT_OPENED", function()
 end)
 
 ------------------------------------------------------------------------
--- 11. Ausruestungs-Sets (eigene, ohne Blizzard-Manager)
+-- 11. Equipment sets (own, without Blizzard's manager)
 ------------------------------------------------------------------------
 local SET_SLOTS = { 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }
 function H2.SaveSet(name)
@@ -665,11 +665,11 @@ ns.slash.set = function(arg)
 end
 
 ------------------------------------------------------------------------
--- 12. Reichweite auf den Aktionsleisten (Knopf rot, wenn das Ziel zu weit weg ist)
+-- 12. Range on action bars (button red when the target is too far)
 ------------------------------------------------------------------------
--- 0.5.504: KEINE Felder mehr auf Blizzards gesicherten Aktionsknoepfen und kein Aufruf von deren
--- UpdateUsable aus Oasis heraus - das "beruehrte" die Aktionsleisten (Blockiert UNKNOWN im Kampf,
--- Leiste verschwand, Fehler beim Zaubern). Merker in eigener Tabelle, Farbe selbst berechnen.
+-- 0.5.504: NO more fields on Blizzard's secure action buttons and no calling their
+-- UpdateUsable from Oasis - that "touched" the action bars (Blocked UNKNOWN in combat,
+-- bar vanished, casting errors). Markers in own table, compute color ourselves.
 local rangeRed = setmetatable({}, { __mode = "k" })
 local function secret(v) return issecretvalue and issecretvalue(v) end
 local function rangeHook(self, checksRange, inRange)
@@ -700,7 +700,7 @@ if ActionBarActionButtonMixin and ActionBarActionButtonMixin.UpdateRangeIndicato
 end
 
 ------------------------------------------------------------------------
--- Uebersichtsfenster: Charaktere, Gilden-Abklingzeiten, Sets, Angeln
+-- overview window: characters, guild cooldowns, sets, fishing
 ------------------------------------------------------------------------
 local ov
 local function clearRows(f)
@@ -857,7 +857,7 @@ local function buildOverview()
     f.body = CreateFrame("Frame", nil, f)
     f.body:SetPoint("TOPLEFT", 16, -76)
     f.body:SetPoint("BOTTOMRIGHT", -16, 14)
-    if ns.EscClose then ns.EscClose("OasisHelperOverview") end   -- NICHT UISpecialFrames (sperrt sonst SpellStopCasting/-Targeting)
+    if ns.EscClose then ns.EscClose("OasisHelperOverview") end   -- NOT UISpecialFrames (otherwise blocks SpellStopCasting/-Targeting)
     f:Hide()
     return f
 end
@@ -878,7 +878,7 @@ end
 ns.slash.chars = function() H2.Overview("chars") end
 ns.slash.cds = function() H2.Overview("cds") end
 
--- fuer die Einstellungen (Reiter "Helfer")
+-- for the settings (tab "Helpers")
 H2.OPTS = {
     { "Instances & trainer", {
         { "cpInstances", "Instance counter (5 per hour)", "Tells you on entry how many instances you had in the last hour" },

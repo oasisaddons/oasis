@@ -1,16 +1,16 @@
--- Oasis Modul 1: Gilden-Radar (Mitglieder, Profile, Level-Rennen)
+-- Oasis module 1: guild radar (members, profiles, level race)
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be manipulated):
+-- Sanitize texts, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- neutralize escape sequences (|c |r |n |H |T |K |A ...) and control characters; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -58,14 +58,14 @@ end
 
 local Radar = {}
 ns.Radar = Radar
-Radar.roster = {}       -- Liste aus der Gildenliste
+Radar.roster = {}       -- List from the guild roster
 Radar.byName = {}
 Radar.online, Radar.total = 0, 0
 
 local MILESTONES = { 10, 20, 30, 40, 50, 60 }
 
 ------------------------------------------------------------------------
--- Eigenes Profil
+-- Own profile
 ------------------------------------------------------------------------
 local function myProfessions()
     local out = {}
@@ -94,7 +94,7 @@ function Radar.decodeProfs(s)
         local n, r, m, id = part:match("^(.-)/(%d+)/(%d+)/?(%d*)$")
         if n then
             id = tonumber(id)
-            -- Berufsname in der eigenen Sprache, falls die Skill-Line bekannt ist
+            -- Profession name in the own language, if the skill line is known
             if id and id > 0 and C_TradeSkillUI and C_TradeSkillUI.GetTradeSkillDisplayName then
                 local ok, local_ = pcall(C_TradeSkillUI.GetTradeSkillDisplayName, id)
                 if ok and ns.safe(local_) and local_ ~= "" then n = local_ end
@@ -104,7 +104,7 @@ function Radar.decodeProfs(s)
     end
     return out
 end
--- Tooltip fuer die Berufe-Symbole: Symbol, Name, Stufe (/ Hoechststufe)
+-- Tooltip for the profession icons: icon, name, level (/ max level)
 function Radar.ProfTip(owner, name, raw)
     local profs = Radar.decodeProfs(raw)
     local lines = { L["Professions"] .. (name and ("  |cff888888" .. ns.displayName(name) .. "|r") or "") }
@@ -117,9 +117,9 @@ function Radar.ProfTip(owner, name, raw)
     end
     K.ShowTip(owner, lines, "ANCHOR_RIGHT")
 end
--- unsichtbare Hover-Flaeche ueber einer Berufe-Spalte; Klick geht an die Zeile weiter
+-- invisible hover area over a profession column; click is passed on to the row
 function Radar.AttachProfTip(row, fs, getRaw)
-    -- genau so breit wie die Symbole (Tooltip haengt dann direkt rechts daneben)
+    -- exactly as wide as the icons (tooltip then hangs directly to the right)
     local h = CreateFrame("Frame", nil, row)
     h:SetPoint("LEFT", fs, "LEFT", -2, 0)
     h:SetHeight(20)
@@ -160,8 +160,8 @@ function Radar.decodeMilestones(s)
     return out
 end
 
--- 0.5.531: Ergebnis 5 s zwischenspeichern - wurde bei jedem Aktualisieren der Mitgliederliste komplett neu
--- gebaut (Rang, Abzeichen, Codierung), obwohl dort nur die Gegenstandsstufe gebraucht wird
+-- 0.5.531: cache the result for 5 s - it was completely rebuilt on every refresh of the member list
+-- (rank, badges, encoding), although only the item level is needed there
 local myProfCache, myProfAt = nil, -100
 local buildMyProfile
 function Radar.myProfile()
@@ -177,9 +177,9 @@ function buildMyProfile()
     local avg, equipped = ns.safeAll(GetAverageItemLevel())
     local p = {
         v = ns.version,
-        vd = ns.versionDate,   -- Datum der Version (fuer den Update-Hinweis)
+        vd = ns.versionDate,   -- Date of the version (for the update notice)
         lvl = ns.safe(UnitLevel("player")) or 0,
-        -- Fortschritt zum naechsten Level in Prozent (fuer die Mitgliederliste)
+        -- Progress to the next level in percent (for the member list)
         xp = (function()
             local c, m = ns.safe(UnitXP("player")) or 0, ns.safe(UnitXPMax("player")) or 0
             return m > 0 and math.floor(c / m * 100) or 0
@@ -196,7 +196,7 @@ function buildMyProfile()
         gr = ns.Officer and ns.Officer.GearString and ns.Officer.GearString() or nil,
         wk = ns.Rewards and ns.Rewards.WeekSummary and ns.Rewards.WeekSummary() or nil,
         lp = (function()
-            -- Schlossknacken (nur Schurken)
+            -- Lockpicking (rogues only)
             local n = GetNumSkillLines and GetNumSkillLines() or 0
             for i = 1, n do
                 local name, isHeader, _, rank = GetSkillLineInfo(i)
@@ -205,12 +205,12 @@ function buildMyProfile()
             end
         end)(),
     }
-    -- Volk + Geschlecht fuer das Kopfbild in der Profilkarte
+    -- Race + gender for the header image in the profile card
     local race = UnitRace and ns.safe(select(3, UnitRace("player")))
     local sex = UnitSex and ns.safe(UnitSex("player"))
     if race then p.rc = race p.sx = (sex == 3) and 1 or 0 end
-    if ns.Alts then p.main, p.alts, p.xm = ns.Alts.ProfileFields() end   -- xm = gewuenschter Main auf anderem Account (Anfrage)
-    p.ao = ns.db.settings.shareAltsOutside and 1 or nil   -- 0.5.617: Twinks ausserhalb der Gilde ausdruecklich freigegeben
+    if ns.Alts then p.main, p.alts, p.xm = ns.Alts.ProfileFields() end   -- xm = desired main on another account (request)
+    p.ao = ns.db.settings.shareAltsOutside and 1 or nil   -- 0.5.617: alts outside the guild explicitly shared
     if ns.Groups and ns.Profile then p.rl = ns.Profile.EncodeRoles(ns.Groups.MyRoles()) end
     if ns.Badges then p.bd = ns.Badges.Encode() end
     do
@@ -229,17 +229,17 @@ function buildMyProfile()
     if ns.Trade then ns.Trade.ProfileFields(p) end
     if ns.Rank then ns.Rank.ProfileFields(p) end
     if ns.Insta then ns.Insta.ProfileFields(p) end
-    -- eigener Online-Sound (spielen die anderen ab, wenn ich online komme)
+    -- own online sound (the others play it when I come online)
     if ns.Sound then
         local es = ns.Sound.ChoiceFor("entrance")
         if es and es ~= "none" then p.es = es end
-        -- eigener Todes-Sound (nur Entwickler; die anderen hoeren ihn statt ihres Tod-Sounds)
+        -- own death sound (developers only; the others hear it instead of their death sound)
         local ds = ns.IsDev() and ns.Sound.eventByKey.mydeath and ns.Sound.ChoiceFor("mydeath")
         if ds and ds ~= "none" then p.ds = ds end
     end
-    if ns.Deathroll and ns.Deathroll.MyFighter then p.drf = ns.Deathroll.MyFighter() end   -- Deathroll-Kaempfer (Gegnerkarten)
+    if ns.Deathroll and ns.Deathroll.MyFighter then p.drf = ns.Deathroll.MyFighter() end   -- Deathroll fighters (opponent cards)
     if ns.Members then p.gs = ns.Members.MyGroupState() p.gnames = ns.Members.MyGroupNames() end
-    -- Gruppenleiter? (Gruppen-Seite: "laeuft gerade" - wen anfluestern)
+    -- Group leader? (groups page: "running now" - whom to whisper)
     if UnitIsGroupLeader and IsInGroup and IsInGroup() and ns.safe(UnitIsGroupLeader("player")) then p.gl = 1 end
     if ns.db.settings.birthday then p.gb = ns.db.settings.birthday end
     if ns.Dungeons and st.profShareQuests ~= false then p.dq = ns.Dungeons.EncodeMyDungeonQuests() end
@@ -255,14 +255,14 @@ local function storeProfile(name, p)
     ns.Fire("PROFILE", name, p)
 end
 
--- Update-Hinweis: hat ein Gildenmitglied eine neuere Oasis-Version, einmal am Tag je Version Bescheid sagen
+-- Update notice: if a guild member has a newer Oasis version, notify once per day per version
 function Radar.VerNum(v)
     local a, b, c = tostring(v or ""):match("^(%d+)%.(%d+)%.?(%d*)")
     if not a then return 0 end
     return tonumber(a) * 1000000 + tonumber(b) * 1000 + (tonumber(c) or 0)
 end
--- Update-Erinnerung: hat jemand in der Gilde eine neuere Version, meldet sich Oasis beim Einloggen
--- und danach alle rdNagMin Minuten (solange man veraltet ist, nicht im Kampf/in Instanzen) mit Hinweis + Chatzeile
+-- Update reminder: if someone in the guild has a newer version, Oasis notifies on login
+-- and then every rdNagMin minutes (while outdated, not in combat/instances) with notice + chat line
 ns.GuildOption({ page = "radar", key = "rdNagMin", default = 20, min = 5, max = 240, step = 5, label = "Update reminder every",
     desc = "How often Oasis reminds members with an outdated version to update (only on their own screen)",
     fmt = function(v) return v .. " min" end })
@@ -294,14 +294,14 @@ function Radar.CheckUpdate(force)
     ns.db.updateNag = ns.now()
     local d = newestDate(best)
     local msg = (L["Oasis %s%s is out - you still have %s. Please download it on Discord."]):format(best, d and (" " .. (L["from %s"]):format(d)) or "", ns.version)
-    -- 0.5.717: nur noch als Chatzeile (kein Hinweis mehr mitten im Bild); der Ton bleibt
+    -- 0.5.717: only as a chat line now (no notice in the middle of the screen anymore); the sound stays
     if ns.Sound and ns.Sound.Play then pcall(ns.Sound.Play, "announce") end
     ns.print(K.hex(C.amber) .. msg .. "|r")
 end
 
--- Gildenchat-Hinweis fuer Mitglieder mit alter Version (die neue Erinnerung kennen alte Versionen ja noch nicht):
--- nur EIN Mitglied schreibt - das mit der neuesten Version und dem alphabetisch ersten Namen unter den Online-Mitgliedern
--- mit Oasis. Sieht ein anderer den Hinweis im Chat, setzt er seine eigene Uhr zurueck (kein Doppelpost).
+-- Guild chat notice for members with an old version (old versions do not know the new reminder yet):
+-- only ONE member writes - the one with the newest version and the alphabetically first name among online members
+-- with Oasis. If someone else sees the notice in chat, they reset their own clock (no double post).
 local CHAT_MARK = "[Oasis]"
 local function outdatedOnline()
     local mine = Radar.VerNum(ns.version)
@@ -322,24 +322,24 @@ Radar.OutdatedOnline = outdatedOnline
 function Radar.ChatUpdateHint(force)
     local every = (tonumber(ns.GuildOpt("rdNagChat")) or 60) * 60
     if every <= 0 and not force then return end
-    -- nur Gildenleitung/Entwickler bekommen den Klick-Hinweis (Senden ohne Klick sperrt WoW)
+    -- only guild leadership/developers get the click prompt (WoW blocks sending without a click)
     if not force and not (ns.isOfficer() or (ns.IsDev and ns.IsDev())) then return end
     if not IsInGuild() or quietNow() then return end
-    -- nur wer selbst die neueste Version der Gilde hat
+    -- only those who have the guild's newest version themselves
     local best = Radar.NewestVersion()
     if Radar.VerNum(best) > Radar.VerNum(ns.version) then return end
     local old, same = outdatedOnline()
     if #old == 0 then return end
-    -- Wahl: alphabetisch erster Name unter den Online-Mitgliedern mit aktueller Version, die den Hinweis auch senden duerfen
-    -- (Offiziere/Leitung, mich eingeschlossen) - sonst waehlt man jemanden, der nie postet
+    -- Choice: alphabetically first name among online members with the current version who are also allowed to send the notice
+    -- (officers/leadership, me included) - otherwise one would pick someone who never posts
     local me = ns.short(ns.me()):lower()
     local A = ns.Admin
     for _, n in ipairs(same) do
         local role = A and A.RoleOf and A.RoleOf(n)
         if (role == "lead" or role == "officer") and ns.short(n):lower() < me then return end
     end
-    -- gemeinsame Uhr: verChatLast = Zeitpunkt des letzten [Oasis]-Hinweises im Gildenchat (den sehen alle gleichzeitig).
-    -- Angebot nicht erneut zeigen, solange der Klick aussteht/abgelehnt wurde (verChatOffer, kurze Pause)
+    -- shared clock: verChatLast = time of the last [Oasis] notice in guild chat (everyone sees it at the same time).
+    -- do not show the offer again while the click is pending/declined (verChatOffer, short pause)
     if not force and ns.now() - (ns.db.verChatLast or 0) < every then return end
     if not force and ns.now() - (ns.db.verChatOffer or 0) < 5 * 60 then return end
     ns.db.verChatOffer = ns.now()
@@ -348,10 +348,10 @@ function Radar.ChatUpdateHint(force)
     if #old > 5 then names[#names + 1] = "+" .. (#old - 5) end
     local msg = (L["%s New version %s from %s is out - please download it on Discord. Still outdated: %s"]):format(CHAT_MARK, ns.version,
         ns.versionDate or "?", table.concat(names, ", "))
-    -- ohne Klick sperrt WoW das Senden -> Hinweis, Klick schickt die Nachricht in den Gildenchat
+    -- without a click WoW blocks sending -> notice, click sends the message to guild chat
     if ns.OfferChat then ns.OfferChat((#old == 1 and L["1 member with an old Oasis version online"] or (L["%d members with an old Oasis version online"]):format(#old)), msg, "GUILD", nil, ns.K.C.amber) end
 end
--- 0.5.715: /oa updatehint - zeigt, warum (k)ein Update-Hinweis kommt, und bietet ihn sofort an
+-- 0.5.715: /oa updatehint - shows why an update notice does (not) come, and offers it immediately
 ns.slash.updatehint = function()
     local old, same = outdatedOnline()
     local best = Radar.NewestVersion()
@@ -367,7 +367,7 @@ ns.slash.updatehint = function()
     if #old == 0 then ns.print("Nichts zu melden: Eine Version kennt Oasis erst, wenn das Mitglied sich gemeldet hat (kurz nach dem Login). Wer das Addon gar nicht hat, taucht hier nicht auf.") return end
     Radar.ChatUpdateHint(true)
 end
--- jemand anderes hat den Hinweis gerade gepostet -> eigene Uhr zuruecksetzen
+-- someone else just posted the notice -> reset own clock
 ns.On("CHAT_MSG_GUILD", function(text, sender)
     text = ns.safe(text)
     if type(text) == "string" and text:sub(1, #CHAT_MARK) == CHAT_MARK and text:find("Discord", 1, true) then
@@ -379,16 +379,16 @@ ns.Listen("PROFILE", function(name, p)
     Radar.CheckUpdate()
 end)
 ns.Listen("LOGIN", function()
-    ns.db.updateNag = 0   -- beim Einloggen immer einmal erinnern
-    -- frisch eingeloggt kennt man den letzten Hinweis im Chat nicht: erst nach 3 Min mitposten (kein Doppelpost kurz nach einem anderen)
+    ns.db.updateNag = 0   -- always remind once on login
+    -- freshly logged in you do not know the last notice in chat: only post after 3 min (no double post right after another)
     local every = (tonumber(ns.GuildOpt("rdNagChat")) or 15) * 60
     ns.db.verChatLast = math.max(ns.db.verChatLast or 0, ns.now() - every + 180)
     ns.Every(60, function() Radar.CheckUpdate() end)
     ns.Every(60, function() Radar.ChatUpdateHint() end)
 end)
--- neueste Version, die in der Gilde gesehen wurde (fuer die Uebersicht)
--- Schutz gegen gefaelschte Versionsnummern (Dauer-Hinweis fuer alle): eine neuere Version zaehlt erst,
--- wenn sie mindestens zwei Mitglieder haben oder ein Mitglied der Gildenleitung/Offiziere
+-- newest version seen in the guild (for the overview)
+-- Protection against faked version numbers (permanent notice for everyone): a newer version only counts
+-- if at least two members have it or one member of the guild leadership/officers
 function Radar.NewestVersion()
     local mine = Radar.VerNum(ns.version)
     local holders, lead = {}, {}
@@ -406,7 +406,7 @@ function Radar.NewestVersion()
     for v, list in pairs(holders) do
         if (#list >= 2 or lead[v]) and Radar.VerNum(v) > Radar.VerNum(best) then best, who = v, lead[v] or list[1] end
     end
-    -- realmweit (Oasis-Netz): neuere Version bei Oasis-Nutzern anderer Gilden
+    -- realm-wide (Oasis network): newer version among Oasis users of other guilds
     if ns.Net and ns.Net.Newest then
         local nv = ns.Net.Newest()
         if nv and Radar.VerNum(nv) > Radar.VerNum(best) then best, who = nv, ns.Net.Dev() or L["Oasis network"] end
@@ -417,10 +417,10 @@ end
 function Radar.SendHello(target)
     if not IsInGuild() then return end
     local p = Radar.myProfile()
-    -- erst kodieren, dann speichern (storeProfile setzt "seen" -> sonst aendert sich der Stand bei jedem Senden)
+    -- encode first, then store (storeProfile sets "seen" -> otherwise the state changes on every send)
     local rec = Comm.encodeRecord(p)
     storeProfile(ns.me(), p)
-    -- Kurzmeldung zuerst: eine einzige Nachricht (kommt praktisch immer an), das grosse Profil danach in Teilen
+    -- Short message first: a single message (almost always arrives), the large profile afterwards in parts
     local hi = ns.hash(rec)
     if target then
         Comm.Whisper(target, "HI", p.v, p.lvl, p.class, p.zone, hi)
@@ -432,12 +432,12 @@ function Radar.SendHello(target)
     Radar.myHelloHash = hi
 end
 
--- Kurzmeldung: Version/Stufe/Klasse/Gebiet sofort aktualisieren; passt das gespeicherte Profil nicht
--- mehr (andere Version oder anderer Profil-Stand), das ganze Profil gezielt nachfordern
+-- Short message: update version/level/class/zone immediately; if the stored profile no longer
+-- matches (different version or different profile state), request the whole profile specifically
 local hiAsked = {}
 Comm.On("HI", function(sender, _, v, lvl, class, zone, h)
     if ns.isMe(sender) then return end
-    -- Felder begrenzen: Version nur "1.2.3", Klasse nur Grossbuchstaben, Gebiet ohne Escape-Sequenzen
+    -- Limit fields: version only "1.2.3", class only uppercase letters, zone without escape sequences
     v = tostring(v or ""):match("^%d+%.%d+%.?%d*$") and #v <= 16 and v or nil
     lvl = SEC.Num(lvl, 1, 200, true)
     class = tostring(class or ""):match("^%u+$") and #class <= 16 and class or nil
@@ -463,7 +463,7 @@ Comm.On("HI", function(sender, _, v, lvl, class, zone, h)
     ns.RefreshPage("radar")
 end)
 
--- Profile aufraeumen: nicht (mehr) in der Gildenliste und 60 Tage nicht gesehen -> weg
+-- Clean up profiles: not (anymore) in the guild roster and not seen for 60 days -> removed
 local function pruneMembers()
     if not (Radar.byName and Radar.roster and #Radar.roster > 0) then return end
     local cut = ns.now() - 60 * 86400
@@ -478,8 +478,8 @@ local function pruneMembers()
 end
 ns.Listen("LOGIN", function() ns.After(90, function() pcall(pruneMembers) end) end)
 
--- jede Oasis-Nachricht zaehlt als "hat Oasis": fehlt das Profil noch, einen Platzhalter anlegen
--- und das Profil gezielt anfordern (grosse Profile kommen in vielen Teilen, da geht schon mal eins verloren)
+-- every Oasis message counts as "has Oasis": if the profile is still missing, create a placeholder
+-- and request the profile specifically (large profiles come in many parts, sometimes one gets lost)
 local askedProfile = {}
 ns.Listen("OASIS_SEEN", function(sender)
     if ns.isMe(sender) then return end
@@ -499,13 +499,13 @@ end)
 
 Comm.On("HELLO", function(sender, channel, rec)
     if not rec then return end
-    -- Profile nur von Gildenmitgliedern (Fremde koennten sonst die gespeicherten Daten fuellen)
+    -- Profiles only from guild members (strangers could otherwise fill the stored data)
     if Comm.FromGuild and not Comm.FromGuild(sender) then return end
     Comm.hellos = (Comm.hellos or 0) + 1
     if #rec > 12000 then return end
     local p = Comm.decodeRecord(rec)
     if not p then return end
-    -- fremdes Profil entschaerfen: keine Escape-Sequenzen in Texten, Groesse begrenzen, keine Demo-/Platzhalter-Flags
+    -- sanitize foreign profile: no escape sequences in texts, limit size, no demo/placeholder flags
     local n = 0
     for k, v in pairs(p) do
         n = n + 1
@@ -522,7 +522,7 @@ Comm.On("HELLO", function(sender, channel, rec)
     if not old then ns.debug("Neuer Oasis-Nutzer", sender) end
     ns.Debounce("radarProfile", 1.5, function() ns.RefreshPage("radar") end)
 end)
--- Diagnose: kommt von jemandem Oasis-Verkehr an, und unter welchem Namen? /oa probe wer <Name oder Teil davon>
+-- Diagnostics: does Oasis traffic arrive from someone, and under which name? /oa probe wer <name or part of it>
 ns.probes = ns.probes or {}
 ns.probes.wer = function(rest)
     local q = tostring(rest or ""):gsub("^%s+", ""):gsub("%s+$", ""):lower()
@@ -557,15 +557,15 @@ ns.probes.wer = function(rest)
     end
 end
 Comm.On("HELLOREQ", function(sender)
-    -- grosses Profil je Anfragendem hoechstens alle 30 s (sonst Fluester-Flut auf Zuruf)
+    -- large profile at most every 30 s per requester (otherwise whisper flood on demand)
     if not SEC.Rate("helloreq:" .. tostring(sender), 30) then return end
     ns.After(math.random(5, 60) / 10, function() Radar.SendHello(sender) end)
 end)
 
 ------------------------------------------------------------------------
--- Gildenliste
+-- Guild roster
 ------------------------------------------------------------------------
--- Alte lokale Schluessel nur bei eindeutiger Roster-Zuordnung weiterverwenden.
+-- Reuse old local keys only with an unambiguous roster match.
 local function mergeMissing(target, old)
     for k, v in pairs(old) do
         local present = rawget(target, k)
@@ -581,7 +581,7 @@ local function migrateNames()
             local moves = {}
             for old, value in pairs(data) do
                 if type(old) == "string" and old:sub(1, 2) ~= "__" and type(value) == "table" then
-                    -- n ist bei Notizen/Verdachtsmerkern auch ein Zaehler, kein Charaktername.
+                    -- for notes/suspicion markers n is also a counter, not a character name.
                     local name = type(value.name) == "string" and value.name
                         or type(value.n) == "string" and value.n or old
                     local full = ns.ResolveName(name)
@@ -606,7 +606,7 @@ end
 local function readRoster()
     if not IsInGuild() then
         Radar.roster, Radar.byName, Radar.online, Radar.total = {}, {}, 0, 0
-        -- Demo-Mitglieder auch ohne Gilde zeigen (/oa demo)
+        -- Show demo members even without a guild (/oa demo)
         if ns.Demo and ns.Demo.IsActive() then
             Radar.total, Radar.online = ns.Demo.InjectRoster(Radar.roster, Radar.byName)
         end
@@ -616,9 +616,9 @@ local function readRoster()
     Radar.total, Radar.online = total or 0, online or 0
     local list, by = {}, {}
     local myGuid = ns.safe(UnitGUID and UnitGUID("player"))
-    local short = {}   -- Kurzname (nur Vorname) -> Anzahl, um Doppeldeutigkeiten zu erkennen
+    local short = {}   -- Short name (first name only) -> count, to detect ambiguities
     for i = 1, (total or 0) do
-        -- einmal abfragen (vorher zweimal je Mitglied)
+        -- query once (previously twice per member)
         local name, rankName, rankIndex, level, _, zone, note, onote, isOnline, status, classFile,
             _, _, _, _, _, guid = ns.safeAll(GetGuildRosterInfo(i))
         if name then
@@ -632,7 +632,7 @@ local function readRoster()
                 local y, mo, d, h = GetGuildRosterLastOnline(i)
                 if y then m.offDays = (y or 0) * 365 + (mo or 0) * 30 + (d or 0) + (h or 0) / 24 end
             end
-            -- Alte Oasis-Daten fuehrten nur Vornamen. Aliase nur fuer eindeutige Alt-Daten behalten.
+            -- Old Oasis data only carried first names. Keep aliases only for unambiguous old data.
             local base, realm = full:match("^(.-)%-(.+)$")
             local first = base and base:match("^(%S+)%s")
             if first then
@@ -644,11 +644,11 @@ local function readRoster()
             by[full] = m
         end
     end
-    -- Kurzform nur eintragen, wenn sie eindeutig ist (zwei "Mira ..." in einer Gilde -> keine Zuordnung)
+    -- Only add the short form if it is unambiguous (two "Mira ..." in one guild -> no mapping)
     for _, m in ipairs(list) do
         if m.aname then
             if short[m.aname] == 1 and not by[m.aname] then by[m.aname] = m
-            else m.aname = nil end  -- mehrdeutige Vornamen nie verknuepfen
+            else m.aname = nil end  -- never link ambiguous first names
         end
     end
     if ns.Demo and ns.Demo.IsActive() then
@@ -663,9 +663,9 @@ local function readRoster()
 end
 
 function Radar.RequestRoster()
-    -- ohne "Offline anzeigen" liefert WoW nur die Online-Mitglieder -> Filter Alle/Inaktiv waeren leer
-    -- 0.5.773: nur einmal je Sitzung versuchen und in die Spur schreiben - ein geschuetzter Aufruf hier wurde sonst bei jeder
-    -- Anfrage erneut als "UNKNOWN()" blockiert gemeldet (Login, Zonenwechsel)
+    -- without "Show offline" WoW only returns online members -> filters All/Inactive would be empty
+    -- 0.5.773: try only once per session and write to the trace - otherwise a protected call here was reported
+    -- as blocked "UNKNOWN()" on every request (login, zone change)
     if not Radar.offlineTried and SetGuildRosterShowOffline and GetGuildRosterShowOffline and not GetGuildRosterShowOffline() then
         Radar.offlineTried = true
         ns.Trace("SetGuildRosterShowOffline")
@@ -674,7 +674,7 @@ function Radar.RequestRoster()
     if IsInGuild() then ns.RequestGuildRoster() end
 end
 
--- Profile unter beiden Namensformen finden (Forever: "Vorname Nachname-Realm" <-> "Vorname-Realm")
+-- Find profiles under both name forms (Forever: "Firstname Lastname-Realm" <-> "Firstname-Realm")
 local function aliasOf(name)
     if not name then return end
     local m = Radar.byName and Radar.byName[name]
@@ -684,7 +684,7 @@ local function aliasOf(name)
     end
 end
 Radar.AliasOf = aliasOf
--- gilt fuer alle nach Spielername gespeicherten Oasis-Daten (Profile, Rezepte, Legacy)
+-- applies to all Oasis data stored by player name (profiles, recipes, legacy)
 local aliasMeta = { __index = function(t, k)
     local a = aliasOf(k)
     if a and a ~= k then return rawget(t, a) end
@@ -698,7 +698,7 @@ end
 ns.Listen("DB_READY", linkMembers)
 ns.Listen("LOGIN", linkMembers)
 
--- 0.5.617: nutzt dieser Spieler (irgendein Charakter) Oasis? Fuer Datenschutz: Profile nur von Oasis-Nutzern
+-- 0.5.617: does this player (any character) use Oasis? For privacy: profiles only from Oasis users
 function Radar.UsesOasis(name)
     if not name then return false end
     if ns.isMe(name) or (ns.db.chars and ns.db.chars[name]) then return true end
@@ -708,7 +708,7 @@ function Radar.UsesOasis(name)
     p = main and ns.db.members[main]
     return p and p.v and not p.stub and true or false
 end
--- Mitglied mit Addon und aktuell online?
+-- Member with addon and currently online?
 function Radar.HasAddon(name)
     local p = ns.db.members[name]
     if not p then return false end
@@ -734,23 +734,23 @@ end
 local function updateFooter()
     local withAddon = 0
     for _, m in ipairs(Radar.roster) do
-        -- sich selbst nicht mitzaehlen (kommt unten fest dazu) - sonst doppelt, seit die
-        -- Gildenliste "Vorname Nachname" dem eigenen Profil zugeordnet wird
+        -- do not count oneself (added below explicitly) - otherwise doubled, since the
+        -- guild roster "Firstname Lastname" is mapped to the own profile
         if m.online and not ns.isMe(m.name) and Radar.HasAddon(m.name) then withAddon = withAddon + 1 end
     end
     Radar.withAddon = withAddon + 1
     ns.UpdateFooter((L["%s%d|r online  ·  %s%d|r with Oasis"]):format(K.hex(C.mint), Radar.online, K.hex(C.violet), Radar.withAddon))
 end
 
--- Gildenliste sofort neu einlesen (z.B. nach /oa demo)
+-- Re-read the guild roster immediately (e.g. after /oa demo)
 function Radar.Reload()
     readRoster()
     updateFooter()
     ns.Fire("ROSTER")
     ns.RefreshPage("radar")
 end
--- gebuendelt (Performance 0.5.482): das Event kommt bei jedem Ein-/Ausloggen, Zonenwechsel und jeder Anfrage
--- anderer Addons - danach haengen viele Module am "ROSTER"-Signal. Hoechstens einmal je Sekunde neu einlesen.
+-- batched (performance 0.5.482): the event fires on every login/logout, zone change and every request
+-- of other addons - many modules hang off the "ROSTER" signal afterwards. Re-read at most once per second.
 local rosterPending = false
 ns.On("GUILD_ROSTER_UPDATE", function()
     if rosterPending then return end
@@ -759,7 +759,7 @@ ns.On("GUILD_ROSTER_UPDATE", function()
 end)
 
 ------------------------------------------------------------------------
--- Level-Meilensteine
+-- Level milestones
 ------------------------------------------------------------------------
 ns.On("PLAYER_LEVEL_UP", function(level)
     level = tonumber(ns.safe(level))
@@ -769,9 +769,9 @@ ns.On("PLAYER_LEVEL_UP", function(level)
     ns.Fire("LEVEL_UP", level)
 end)
 
--- Rennen: fuer jeden Meilenstein die ersten 3
--- Stufen aus der Gildenliste mitschreiben (auch fuer Mitglieder ohne Oasis):
--- beim allerersten Blick ts = 0 ("schon vorher"), danach Zeitpunkt, an dem die Stufe erstmals gesehen wurde
+-- Race: the first 3 for each milestone
+-- Record levels from the guild roster (also for members without Oasis):
+-- on the very first look ts = 0 ("already before"), afterwards the time the level was first seen
 function Radar.RecordLevels(list)
     if #list == 0 then return end
     ns.db.lvlSeen = ns.db.lvlSeen or {}
@@ -792,8 +792,8 @@ function Radar.RecordLevels(list)
     end
     ns.db.lvlSeenInit = true
 end
--- 0.5.572: einmal je Durchlauf statt je Stufe (vorher 6x alle Mitglieder + Twink-Aufloesung, und Badges rief das je
--- Listenzeile auf -> bis 600 ms je Seitenaufbau). Ergebnis 3 s gemerkt, neue Profile/Gildenliste verwerfen es.
+-- 0.5.572: once per pass instead of per level (previously 6x all members + alt resolution, and Badges called it per
+-- list row -> up to 600 ms per page build). Result cached for 3 s, new profiles/guild roster discard it.
 local raceCache, raceAt
 function Radar.RaceDirty() raceCache = nil end
 function Radar.Race()
@@ -806,7 +806,7 @@ function Radar.Race()
     end
     local best = {}
     for _, lvl in ipairs(MILESTONES) do best[lvl] = {} end
-    -- aus der Gildenliste beobachtet
+    -- observed from the guild roster
     for name, t in pairs(ns.db.lvlSeen or {}) do
         for _, lvl in ipairs(MILESTONES) do
             if t[lvl] then
@@ -823,7 +823,7 @@ function Radar.Race()
                 if ms[lvl] then
                     local main = M(name)
                     local bl = best[lvl]
-                    -- genaue Zeit aus Oasis hat Vorrang vor der Beobachtung
+                    -- exact time from Oasis takes precedence over observation
                     if not bl[main] or bl[main].seen or ms[lvl] < bl[main].ts then bl[main] = { name = main, char = name, ts = ms[lvl] } end
                 end
             end
@@ -833,7 +833,7 @@ function Radar.Race()
     for _, lvl in ipairs(MILESTONES) do
         local entries = {}
         for _, x in pairs(best[lvl]) do entries[#entries + 1] = x end
-        -- unbekannte Zeit (0 = schon vor Oasis) hinten
+        -- unknown time (0 = already before Oasis) at the end
         table.sort(entries, function(a, b)
             local ax, bx = a.ts > 0 and a.ts or math.huge, b.ts > 0 and b.ts or math.huge
             if ax ~= bx then return ax < bx end
@@ -848,7 +848,7 @@ ns.Listen("PROFILE", function() raceCache = nil end)
 ns.Listen("ROSTER", function() raceCache = nil end)
 
 ------------------------------------------------------------------------
--- Berufe als Symbole
+-- Professions as icons
 ------------------------------------------------------------------------
 local PROF_BY_NAME = {
     schmiedekunst = 164, blacksmithing = 164, bergbau = 186, mining = 186, schneiderei = 197, tailoring = 197,
@@ -867,17 +867,17 @@ function Radar.ProfIcon(pf, size, color)
     local c = color or C.muted
     return ("|T%sicons\\prof_%d:%d:%d:0:0:64:64:0:64:0:64:%d:%d:%d|t"):format(ns.MEDIA, id, size or 13, size or 13, math.floor(c[1] * 255), math.floor(c[2] * 255), math.floor(c[3] * 255))
 end
--- herstellende Berufe (Sammel- und Nebenberufe zaehlen fuer "wer kann was bauen" nicht)
+-- crafting professions (gathering and secondary professions do not count for "who can craft what")
 Radar.CRAFT_PROFS = { [164] = true, [197] = true, [333] = true, [171] = true, [165] = true, [202] = true }
 function Radar.IsCraftProf(pf) return Radar.CRAFT_PROFS[Radar.ProfId(pf) or 0] == true end
--- Spalte: nur herstellende Berufe, je Symbol + Stufe
--- Spalte zeigt zusaetzlich die Sammelberufe (Kraeuterkunde 182, Bergbau 186, Kuerschnerei 393)
+-- Column: only crafting professions, icon + level each
+-- Column additionally shows the gathering professions (herbalism 182, mining 186, skinning 393)
 local GATHER_PROFS = { [182] = true, [186] = true, [393] = true }
 function Radar.ProfIcons(raw, size, limit)
     local t = {}
     local list = Radar.decodeProfs(raw)
     if limit then
-        -- nur Haupt-/Sammelberufe, hoechste zuerst, hoechstens limit Stueck
+        -- only primary/gathering professions, highest first, at most limit
         local keep = {}
         for _, pf in ipairs(list) do if Radar.IsCraftProf(pf) or GATHER_PROFS[Radar.ProfId(pf) or 0] then keep[#keep + 1] = pf end end
         table.sort(keep, function(a, b) return (a.rank or 0) > (b.rank or 0) end)
@@ -886,7 +886,7 @@ function Radar.ProfIcons(raw, size, limit)
     end
     for _, pf in ipairs(list) do
       if Radar.IsCraftProf(pf) or GATHER_PROFS[Radar.ProfId(pf) or 0] then
-        -- 0.6.510: ruhiger - Symbol hell-neutral (gemeistert gold), kleiner Abstand, Stufe nach Fortschritt abgestuft
+        -- 0.6.510: calmer - icon light neutral (mastered gold), small spacing, level shaded by progress
         local maxed = pf.max and pf.rank >= pf.max
         local c = maxed and C.amber or { 0.78, 0.78, 0.82 }
         local icon = Radar.ProfIcon(pf, (size or 13) + 1, c)
@@ -900,10 +900,10 @@ function Radar.ProfIcons(raw, size, limit)
 end
 
 ------------------------------------------------------------------------
--- Mitglieder-Karte (0.5.508): eigenes Oasis-Fenster statt GameTooltip - deckend, Kopf in Klassenfarbe
--- mit Klassensymbol und XP-Balken, Abschnitte mit kleiner Ueberschrift, Werte umbrechen statt ueberlaufen.
--- Sitzt neben dem Oasis-Fenster auf Hoehe der Zeile (nicht mehr ueber Minikarte/Questliste).
--- Schliesst sich selbst, sobald die Maus die Zeile verlaesst.
+-- Member card (0.5.508): own Oasis window instead of GameTooltip - opaque, header in class color
+-- with class icon and XP bar, sections with small headings, values wrap instead of overflowing.
+-- Sits next to the Oasis window level with the row (no longer over minimap/quest list).
+-- Closes itself as soon as the mouse leaves the row.
 ------------------------------------------------------------------------
 local DIM = { 0.55, 0.55, 0.6 }
 local CARD_W, PAD, LBL_W = 318, 16, 112
@@ -917,7 +917,7 @@ local function buildCard()
     K.Fill(f, { 0.045, 0.045, 0.055, 0.98 })
     K.Border(f, { 1, 1, 1, 0.1 })
     if K.ApplySkin then pcall(K.ApplySkin, f, "panel", { 0.045, 0.045, 0.055, 0.98 }) end
-    -- Kopf: Klassenfarbe als weicher Verlauf von links
+    -- Header: class color as soft gradient from the left
     f.head = f:CreateTexture(nil, "BORDER")
     f.head:SetPoint("TOPLEFT", 1, -1) f.head:SetPoint("TOPRIGHT", -1, -1) f.head:SetHeight(64)
     f.headLine = f:CreateTexture(nil, "ARTWORK")
@@ -939,7 +939,7 @@ local function buildCard()
     f.state:SetPoint("TOPRIGHT", -PAD, -17)
     f.rank = K.Text(f, 10, DIM, "RIGHT")
     f.rank:SetPoint("TOPRIGHT", f.state, "BOTTOMRIGHT", 0, -4)
-    -- XP-Balken am unteren Kopfrand
+    -- XP bar at the bottom edge of the header
     f.xpBg = f:CreateTexture(nil, "ARTWORK")
     f.xpBg:SetPoint("BOTTOMLEFT", f.head, "BOTTOMLEFT", 0, 0) f.xpBg:SetPoint("BOTTOMRIGHT", f.head, "BOTTOMRIGHT", 0, 0)
     f.xpBg:SetHeight(2)
@@ -948,7 +948,7 @@ local function buildCard()
     f.xp:SetPoint("BOTTOMLEFT", f.head, "BOTTOMLEFT", 0, 0)
     f.xp:SetHeight(2)
     f.pool = { lbl = {}, val = {}, sec = {}, txt = {}, num = {}, cap = {}, line = {} }
-    -- 0.5.523: Karte haengt am Mauszeiger (rechts daneben, bei wenig Platz links) und folgt ihm
+    -- 0.5.523: card hangs on the mouse cursor (to the right, left if little space) and follows it
     function f:Follow()
         local cx, cy = GetCursorPosition()
         local us = UIParent:GetEffectiveScale()
@@ -963,7 +963,7 @@ local function buildCard()
             self:SetPoint("TOPRIGHT", UIParent, "BOTTOMLEFT", cx - 18, cy + 14)
         end
     end
-    -- Rechtsklick (Menue) oder Klick: Karte weg und bleibt weg, bis die Maus die Zeile verlaesst
+    -- Right-click (menu) or click: card gone and stays gone until the mouse leaves the row
     f.mute = CreateFrame("Frame")
     f.mute:Hide()
     f.mute:SetScript("OnUpdate", function(self)
@@ -1010,7 +1010,7 @@ local function renderCard(owner, h, sections, foot)
     f.owner = owner
     f.used = {}
     for _, list in pairs(f.pool) do for _, fs in ipairs(list) do fs:Hide() end end
-    -- Kopf
+    -- Header
     local cr, cg, cb = ns.classColor(h.class)
     if not K.Gradient(f.head, "HORIZONTAL", { cr, cg, cb, 0.28 }, { cr, cg, cb, 0.02 }) then f.head:SetColorTexture(cr, cg, cb, 0.12) end
     f.headLine:SetColorTexture(cr, cg, cb, 0.35)
@@ -1033,10 +1033,10 @@ local function renderCard(owner, h, sections, foot)
     else
         f.xp:Hide() f.xpBg:Hide()
     end
-    -- Inhalt
+    -- Content
     local y = -64 - 14
     local valW = CARD_W - PAD * 2 - LBL_W
-    -- 0.6.270: Kennzahlen-Leiste (grosse Zahl, kleine Beschriftung) direkt unter dem Kopf
+    -- 0.6.270: key figures bar (large number, small label) directly below the header
     local stats = sections.stats
     if stats and #stats > 0 then
         local colW = (CARD_W - PAD * 2) / #stats
@@ -1060,7 +1060,7 @@ local function renderCard(owner, h, sections, foot)
     for _, s in ipairs(sections) do
         if (s.rows and #s.rows > 0) or (s.text and s.text ~= "") then
             if s.title then
-                -- ruhige Ueberschrift: grau, mit feiner Linie bis zum rechten Rand
+                -- calm heading: grey, with a thin line to the right edge
                 local t = take(f, "sec")
                 t:SetPoint("TOPLEFT", PAD, y)
                 t:SetText(K.Upper(s.title))
@@ -1096,7 +1096,7 @@ local function renderCard(owner, h, sections, foot)
             y = y - 10
         end
     end
-    -- Fuss
+    -- Footer
     for _, line in ipairs(foot) do
         local t = take(f, "txt", 10, { 0.45, 0.45, 0.5 })
         t:SetPoint("TOPLEFT", PAD, y)
@@ -1106,7 +1106,7 @@ local function renderCard(owner, h, sections, foot)
         y = y - (t:GetStringHeight() or 11) - 3
     end
     f:SetHeight(-y + 12)
-    -- Platz: am Mauszeiger
+    -- Position: at the mouse cursor
     f:Follow()
     f:Show()
     if GameTooltip:IsOwned(owner) then GameTooltip:Hide() end
@@ -1119,7 +1119,7 @@ function Radar.ShowMemberTip(owner, m, opts)
     opts = opts or {}
     local pr = ns.db.members[m.name]
     local M = ns.Members
-    -- Kopf
+    -- Header
     local cls = (LOCALIZED_CLASS_NAMES_MALE and m.class and LOCALIZED_CLASS_NAMES_MALE[m.class]) or ""
     local sub = L["Level "] .. (m.level or "?") .. " " .. cls
     if ns.Welcome and ns.Welcome.IsNew(m.name) then sub = sub .. "  |cff66db9e" .. L["NEW"] .. "|r" end
@@ -1129,7 +1129,7 @@ function Radar.ShowMemberTip(owner, m, opts)
     local h = { name = Radar.Colored(m.name), sub = sub, state = st, rank = m.rank, class = m.class,
         xp = (opts.xpPct and (m.level or 0) < 60) and opts.xpPct or nil }
     local sections = {}
-    -- 0.6.270: XP-Stand in die Unterzeile, Rang/Gegenstandsstufe/Legacy als Kennzahlen-Leiste
+    -- 0.6.270: XP state into the subline, rank/item level/legacy as key figures bar
     if h.xp then h.sub = h.sub .. "  |cff8a8a90·  " .. ("%d %%"):format(math.floor(h.xp)) .. " " .. L["to level "] .. ((m.level or 0) + 1) .. "|r" end
     local stats = {}
     if ns.Rank then
@@ -1143,7 +1143,7 @@ function Radar.ShowMemberTip(owner, m, opts)
     if pr and (pr.ilvl or 0) > 0 then stats[#stats + 1] = { tostring(pr.ilvl), L["Item level"] } end
     if pr and (pr.ln or 0) > 0 then stats[#stats + 1] = { tostring(pr.ln), L["Legacy challenges"] } end
     sections.stats = stats
-    -- Jetzt
+    -- Now
     local now = { title = L["Now"], rows = {} }
     sections[#sections + 1] = now
     if m.online then
@@ -1172,7 +1172,7 @@ function Radar.ShowMemberTip(owner, m, opts)
         local gain = M.LevelGain(m.name, 7, m.level)
         if gain > 0 then now.rows[#now.rows + 1] = { L["Levelling pace"], "|cff66db9e" .. (L["+%d in 7 days"]):format(gain) .. "|r" } end
     end
-    -- letzter Abgleich mit diesem Mitglied (nur Oasis-Nutzer)
+    -- last sync with this member (Oasis users only)
     if pr and not ns.isMe(m.name) and ns.Comm and ns.Comm.PeerSync then
         local t, _, _, fresh = ns.Comm.PeerSync(m.name)
         local busy = ns.Comm.PeerBusy and ns.Comm.PeerBusy(m.name)
@@ -1184,7 +1184,7 @@ function Radar.ShowMemberTip(owner, m, opts)
         else txt = "|cff8a8a90" .. L["never"] .. "|r" end
         now.rows[#now.rows + 1] = { L["Sync"], txt }
     end
-    -- Charakter
+    -- Character
     local ch = { title = L["Character"], rows = {} }
     sections[#sections + 1] = ch
     if ns.Profile then
@@ -1207,7 +1207,7 @@ function Radar.ShowMemberTip(owner, m, opts)
         local main = ns.Alts.Main(m.name)
         local chars = ns.Alts.CharsOf(main)
         if #chars > 1 then
-            -- 0.6.270: Twink zeigt "Twink von <Main>" plus die uebrigen Chars, kein doppelter Main mehr
+            -- 0.6.270: alt shows "Alt of <Main>" plus the remaining chars, no duplicate main anymore
             local isMain = ns.Alts.SameChar(main, ns.Alts.Canon(m.name))
             local function lv(c) local rm = Radar.byName[c] return rm and (" |cff888888" .. rm.level .. "|r") or "" end
             if isMain then
@@ -1222,7 +1222,7 @@ function Radar.ShowMemberTip(owner, m, opts)
             if #t > 0 then ch.rows[#ch.rows + 1] = { isMain and L["Alts"] or L["Other chars"], table.concat(t, ", ") } end
         end
     end
-    -- Gilde
+    -- Guild
     local gi = { title = L["Guild"], rows = {} }
     sections[#sections + 1] = gi
     if ns.Badges then
@@ -1237,7 +1237,7 @@ function Radar.ShowMemberTip(owner, m, opts)
     end
     if (m.note or "") ~= "" then gi.rows[#gi.rows + 1] = { L["Note"], m.note } end
     if M and (m.onote or "") ~= "" and (m.demo or M.CanSeeOfficerNote()) then gi.rows[#gi.rows + 1] = { "|cffff7a5c" .. L["Officer note"] .. "|r", m.onote } end
-    -- 0.5.537: kein Fussbereich mehr (Abgleich/Version/Klick-Hinweise) - Karte endet nach "Gilde"
+    -- 0.5.537: no footer anymore (sync/version/click hints) - card ends after "Guild"
     local foot = {}
     if opts.extra then foot[#foot + 1] = opts.extra end
     local ok, e = pcall(renderCard, owner, h, sections, foot)
@@ -1245,10 +1245,10 @@ function Radar.ShowMemberTip(owner, m, opts)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local filter, search = "all", ""
--- Zusatzfilter (nil = alle) und Sortierung
+-- Extra filter (nil = all) and sorting
 local F = { class = nil, level = nil, role = nil, prof = nil }
 local sortKey, sortDesc = nil, false
 
@@ -1319,8 +1319,8 @@ local function extraOk(m)
     return true
 end
 
--- Gruppenbloecke bleiben innerhalb der gewaehlten Sortierung zusammen.
--- Eigene Live-Gruppe hat Vorrang, fremde Meldungen verfallen nach zehn Minuten.
+-- Group blocks stay together within the chosen sorting.
+-- Own live group takes precedence, others' reports expire after ten minutes.
 function Radar.GroupRows(list)
     local byKey, assignments = {}, {}
     for _, m in ipairs(list) do if m.online then byKey[ns.NameKey(m.name)] = m end end
@@ -1378,7 +1378,7 @@ local function buildList()
     local q = search:lower()
     local source = Radar.roster
     if filter == "players" and ns.Alts then
-        -- pro Spieler eine Zeile: bevorzugt der eingeloggte Charakter, sonst der Main
+        -- one row per player: preferably the logged-in character, otherwise the main
         local pick = {}
         for _, m in ipairs(Radar.roster) do
             local main = ns.Alts.Main(m.name)
@@ -1417,7 +1417,7 @@ local function buildList()
     return out
 end
 
--- 2026: Glas-Optik wie Profil/Sammlungen/Abzeichen/Legacy (Helfer aus ns.Insta; fehlen sie, bleibt die alte Flaeche)
+-- 2026: glass look like profile/collections/badges/legacy (helpers from ns.Insta; if missing, the old surface stays)
 local function hasGlass() return ns.Insta and ns.Insta.Glass and true or false end
 local function glass(f, fill, line, r) if hasGlass() then ns.Insta.Glass(f, fill, line, r) end end
 local function round(t, box, r) if K.RoundMask and t then K.RoundMask(t, box or t, r) end end
@@ -1430,7 +1430,7 @@ local function calmBtn(b)
     b:SetScript("OnLeave", function(self) glass(self, { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.10 }) end)
     return b
 end
--- Gebiets-Pille in der Fusszeile
+-- Zone pill in the footer
 local function chipLook(c, hover)
     if not hasGlass() then
         c.bg:SetColorTexture(1, 1, 1, hover and 0.12 or (c.mine and 0.1 or 0.05))
@@ -1450,7 +1450,7 @@ ns.RegisterPage({
     build = function(p)
         p:SetScript("OnShow", function(self) self.fresh = true end)
         p.fresh = true
-        -- 0.5.572: nur sichtbare Zeilen neu zeichnen (Abgleich-Symbol) - ohne die ganze Seite neu aufzubauen
+        -- 0.5.572: only redraw visible rows (sync icon) - without rebuilding the whole page
         Radar.RefreshRows = function()
             if p:IsVisible() and p.list and p.list.Refresh then p.list:Refresh() end
         end
@@ -1465,7 +1465,7 @@ ns.RegisterPage({
             c:SetPoint("TOPLEFT", (i - 1) * 160, 0)
             p.cards[i] = c
         end
-        -- Kacheln entfallen: Zahlen stehen rechts in der Leiste "Wo ist die Gilde"
+        -- Tiles dropped: numbers are shown on the right in the "Where is the guild" bar
         for _, c in ipairs(p.cards) do c:Hide() c.Show = function() end end
         p.cards[4]:SetScript("OnClick", function()
             if p.cards[4].tip == nil then return end
@@ -1474,7 +1474,7 @@ ns.RegisterPage({
             ns.RefreshPage("radar")
         end)
         p:HookScript("OnSizeChanged", function(self, w)
-            -- Kachel "Mit Oasis" ausgeblendet -> drei Kacheln
+            -- Tile "With Oasis" hidden -> three tiles
             local vis = { self.cards[1], self.cards[2], self.cards[4] }
             local tw = math.floor(((w or 750) - 20) / 3)
             for i, c in ipairs(vis) do
@@ -1484,7 +1484,7 @@ ns.RegisterPage({
             end
         end)
 
-        -- "Spieler" (ein Eintrag je Spieler) entfaellt: Alle zuerst und als Standard
+        -- "Players" (one entry per player) dropped: All first and as default
         local segItems = { { key = "all", text = L["All"], icon = "groups" }, { key = "online", text = L["Online"], icon = "radar" } }
         if ns.isOfficer() then segItems[#segItems + 1] = { key = "inactive", text = L["Inactive"], icon = "eye_off" } end
         local function onSeg(k)
@@ -1501,7 +1501,7 @@ ns.RegisterPage({
             seg = K.Segments(p, segItems, onSeg, 80)
         end
         seg.items = segItems
-        local ROWY = seg.isGlass and -44 or -32     -- Filterzeile unter den Reitern
+        local ROWY = seg.isGlass and -44 or -32     -- Filter row below the tabs
         p.seg = seg
         seg:SetPoint("TOPLEFT", 0, -138)
         local s = K.Input(p, 250, L["Search: name, zone, profession …"], function(t)
@@ -1511,7 +1511,7 @@ ns.RegisterPage({
         s:SetPoint("LEFT", seg, "RIGHT", 12, 0)
         p.search = s
 
-        -- Filterleiste: Klasse, Level, Rolle, Beruf
+        -- Filter bar: class, level, role, profession
         p.drops = {}
         local defs = {
             { "class", L["Class"], 128 }, { "level", L["Level"], 118 }, { "role", L["Role"], 108 }, { "prof", L["Profession"], 120 },
@@ -1544,8 +1544,8 @@ ns.RegisterPage({
         p.reset:SetWidth(math.max(70, p.reset.label:GetStringWidth() + 20))
         calmBtn(p.reset)
         glass(p.search, { 1, 1, 1, 0.04 }, { 1, 1, 1, 0.10 }, 8)
-        -- Suche rechts neben den Filtern (gleiche Zeile)
-        -- 0.6.519: gezielt einladen + Blizzards Gildenfenster (Raenge/Rechte) - rechts in der Filterzeile
+        -- Search to the right of the filters (same row)
+        -- 0.6.519: targeted invite + Blizzard's guild window (ranks/permissions) - on the right in the filter row
         p.blizz = K.Button(p, L["Blizzard guild"], 0, 24, "ghost", function() ns.GuildTools.OpenBlizzard() end)
         p.blizz:SetWidth(math.max(90, p.blizz.label:GetStringWidth() + 20))
         calmBtn(p.blizz)
@@ -1556,7 +1556,7 @@ ns.RegisterPage({
         calmBtn(p.invite)
         p.invite:SetPoint("RIGHT", p.blizz, "LEFT", -6, 0)
         p.invite:SetShown(ns.GuildTools.CanInvite())
-        -- 0.6.536: Suche fuellt nur den Platz bis zu "Filter aus"/"Einladen"/"Blizzard-Gilde" (ueberlappte vorher rechts)
+        -- 0.6.536: search only fills the space up to "Filter off"/"Invite"/"Blizzard guild" (overlapped on the right before)
         local rightOf = p.invite:IsShown() and p.invite or p.blizz
         p.reset:SetPoint("TOP", seg, "TOP", 0, ROWY)
         p.reset:SetPoint("RIGHT", rightOf, "LEFT", -6, 0)
@@ -1564,14 +1564,14 @@ ns.RegisterPage({
         p.search:SetPoint("TOPLEFT", seg, "TOPLEFT", x, ROWY)
         p.search:SetPoint("RIGHT", p.reset, "LEFT", -6, 0)
 
-        -- Spaltenkoepfe (Klick: sortieren)
+        -- Column headers (click: sort)
         local hdr = CreateFrame("Frame", nil, p)
-        local TBLY = ROWY - 36                        -- Oberkante der Tabellen-Glasflaeche
+        local TBLY = ROWY - 36                        -- Top edge of the table glass surface
         p.tbl = CreateFrame("Frame", nil, p)
         p.tbl:SetPoint("TOPLEFT", seg, "TOPLEFT", 0, TBLY)
         p.tbl:SetPoint("BOTTOMRIGHT", 0, 38)
         p.tbl:SetFrameLevel(math.max(0, p:GetFrameLevel()))
-        -- 0.5.539: dunkle Flaeche hinter der Liste (vorher fast durchsichtig - Spielwelt schien durch)
+        -- 0.5.539: dark surface behind the list (previously almost transparent - the game world showed through)
         function Radar.ApplyListBg()
             local a = ns.db.settings.memberListAlpha or 0.82
             glass(p.tbl, { 0.02, 0.02, 0.028, a }, nil, 12)
@@ -1609,7 +1609,7 @@ ns.RegisterPage({
             if id then p.headBy[id] = b end
         end
         h(L["Name"], hasGlass() and 58 or 54, "name", "name") h(L["Rank"], 196, "rank", "grank") h(L["Lvl"], 306, "level", "lvl") h(L["Zone"], 368, "zone", "zone") h(L["Last seen"], 484, "last", "last") h(L["Roles"], 562, nil, "roles") h(L["Professions"], 606, nil, "profs")
-        -- rechts: Abzeichen + Oasis-Punkt
+        -- right: badges + Oasis dot
         local hb = K.Text(hdr, 11, C.dim, "RIGHT")
         hb:SetPoint("RIGHT", hasGlass() and -52 or -26, 0)
         hb:SetText(hasGlass() and L["Badge"] or K.Upper(L["Badge"]))
@@ -1633,8 +1633,8 @@ ns.RegisterPage({
         p.count = K.Text(p, 11, C.dim)
         p.count:SetPoint("LEFT", p.reset, "RIGHT", 10, 0)
 
-        -- 0.5.606: Glas-Karten je Zeile (44 px), Platz-Nummer mit Medaille, groesseres Avatar, Menue- und Einladen-Knopf
-        local list = K.List(p, hasGlass() and 40 or 30, function(l)   -- 0.6.415: mehr Luft
+        -- 0.5.606: glass cards per row (44 px), rank number with medal, larger avatar, menu and invite button
+        local list = K.List(p, hasGlass() and 40 or 30, function(l)   -- 0.6.415: more room
             local r = K.Row(l)
             if hasGlass() then
                 if r.stripe then r.stripe:SetAlpha(0) end
@@ -1644,7 +1644,7 @@ ns.RegisterPage({
                 r.card:SetFrameLevel(math.max(0, r:GetFrameLevel() - 1))
                 r.card:EnableMouse(false)
                 glass(r.card, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.04 }, 10)
-                -- Menue (wie Rechtsklick)
+                -- Menu (like right-click)
                 r.more = CreateFrame("Button", nil, r)
                 r.more:SetSize(22, 20)
                 r.more:SetPoint("RIGHT", r, "RIGHT", -46, 0)
@@ -1664,7 +1664,7 @@ ns.RegisterPage({
             r.online:SetSize(14, 14)
             r.online:SetPoint("LEFT", 7, 0)
             if hasGlass() then
-                -- Avatar-Kreis mit Klassensymbol, kleine Online-Markierung unten rechts
+                -- Avatar circle with class icon, small online marker bottom right
                 r.av = r:CreateTexture(nil, "ARTWORK", nil, 1)
                 r.av:SetSize(26, 26)
                 r.av:SetPoint("LEFT", 8, 0)
@@ -1691,11 +1691,11 @@ ns.RegisterPage({
                 r.onRing:SetSize(12, 12)
                 r.onRing:SetPoint("CENTER", r.online)
                 r.onRing:SetVertexColor(C.bg[1], C.bg[2], C.bg[3], 1)
-                -- Hover/Auswahl als runde Glas-Zeile
+                -- Hover/selection as round glass row
                 r.hl:SetColorTexture(1, 1, 1, 0.045)
                 round(r.hl, r, 8)
             end
-            -- Oasis-Rang-Emblem vor dem Namen: Kreis in Rahmenfarbe mit Rangnummer
+            -- Oasis rank emblem before the name: circle in frame color with rank number
             r.remb = r:CreateTexture(nil, "ARTWORK")
             r.remb:SetSize(20, 20)
             r.remb:SetPoint("LEFT", hasGlass() and 42 or 27, 0)
@@ -1710,8 +1710,8 @@ ns.RegisterPage({
             r.rembNum:SetShadowOffset(1, -1)
             r.rembNum:SetShadowColor(0, 0, 0, 0.9)
             r.rembNum:SetPoint("CENTER", r.remb, "CENTER", 0, 0)
-            -- Rahmen je Oasis-Rang (Holz, Bronze, Silber, Gold mit Steinen, Smaragd/Saphir mit Schein,
-            -- Amethyst/Rubin/Diamant doppelt, Legende/Herz mit Funken) - wie auf Profil und Uebersicht
+            -- Frame per Oasis rank (wood, bronze, silver, gold with gems, emerald/sapphire with glow,
+            -- amethyst/ruby/diamond double, legend/heart with sparks) - like on profile and overview
             if K.RankEmblem then
                 r.remblem = K.RankEmblem(r, 20)
                 r.remblem:SetPoint("CENTER", r.remb, "CENTER", 0, 0)
@@ -1719,9 +1719,9 @@ ns.RegisterPage({
                 r.remblem:Hide()
             end
             r:Col("name", hasGlass() and 72 or 54, hasGlass() and 136 or 140, 13)
-            -- "Neu" als kleine Pille hinter dem Namen
+            -- "New" as a small pill after the name
             r.newPill = CreateFrame("Frame", nil, r)
-            -- Abgleich-Symbol (0.5.515): gruen = gerade/heute abgeglichen, gelb = laenger her, grau = nutzt Oasis, noch nie
+            -- Sync icon (0.5.515): green = synced just now/today, yellow = longer ago, grey = uses Oasis, never synced
             r.sync = r:CreateTexture(nil, "OVERLAY")
             r.sync:SetTexture(ns.MEDIA .. "icons\\sync")
             r.sync:SetSize(9, 9)
@@ -1733,13 +1733,13 @@ ns.RegisterPage({
             r.newPill.t:SetText(L["New"])
             r.newPill:Hide()
             r:Col("grank", 196, 104, 12, C.muted)
-            -- Klassenfarbe als Streifen ganz links
+            -- Class color as a stripe at the far left
             r.cstripe = r:CreateTexture(nil, "ARTWORK")
             r.cstripe:SetPoint("TOPLEFT", 0, -4)
             r.cstripe:SetPoint("BOTTOMLEFT", 0, 4)
             r.cstripe:SetWidth(2)
             if hasGlass() then r.cstripe:SetAlpha(0) end
-            -- Level als kleines Abzeichen, Kante unten in der Farbe des Oasis-Rahmens
+            -- Level as a small badge, bottom edge in the color of the Oasis frame
             r.lvlBg = r:CreateTexture(nil, "ARTWORK")
             r.lvlBg:SetSize(34, 17)
             r.lvlBg:SetPoint("LEFT", 304, 0)
@@ -1749,7 +1749,7 @@ ns.RegisterPage({
             r.rankLine:SetPoint("BOTTOMRIGHT", r.lvlBg, "BOTTOMRIGHT")
             r.rankLine:SetHeight(2)
             if hasGlass() then
-                -- Level als ruhige Zahl, XP als feine runde Leiste darunter
+                -- Level as a calm number, XP as a thin round bar below
                 r.lvlBg:SetAlpha(0)
                 r.rankLine:SetAlpha(0)
             end
@@ -1757,7 +1757,7 @@ ns.RegisterPage({
             r.cols.lvl:ClearAllPoints()
             r.cols.lvl:SetPoint("LEFT", r.lvlBg, "LEFT", 0, 0)
             r.cols.lvl:SetWidth(34)
-            -- Fortschritt zum naechsten Level: Fuellung hinter der Zahl
+            -- Progress to the next level: fill behind the number
             r.xpFill = r:CreateTexture(nil, "ARTWORK", nil, 1)
             r.xpFill:SetPoint("TOPLEFT", r.lvlBg, "TOPLEFT")
             r.xpFill:SetPoint("BOTTOMLEFT", r.lvlBg, "BOTTOMLEFT")
@@ -1775,7 +1775,7 @@ ns.RegisterPage({
                 r.xpFill:SetHeight(2)
                 r.xpFill:SetColorTexture(C.mint[1], C.mint[2], C.mint[3], 0.8)
                 K.SetFontSafe(r.cols.lvl, K.FONT_HEAD or K.FONT, 16, "", K.FONT)
-                -- Level-Strahl: runde Spur, Fuellung als Verlauf, weicher Schein am Ende (dezent)
+                -- Level beam: round track, fill as gradient, soft glow at the end (subtle)
                 r.xpTrack:ClearAllPoints()
                 r.xpTrack:SetPoint("BOTTOMLEFT", r.lvlBg, "BOTTOMLEFT", 3, -4)
                 r.xpTrack:SetSize(28, 3)
@@ -1799,8 +1799,8 @@ ns.RegisterPage({
             r:Col("zone", 368, 110, 12, C.muted)
             r.cols.zone:SetWordWrap(false)
             r:Col("last", 484, 74, 11, C.muted)
-            -- 0.5.782: gleiche Quest wie ich - kleines gelbes Quest-Ausrufezeichen unten rechts am Klassensymbol (der gelbe Strich am
-            -- Zeilenrand war nicht als Hinweis erkennbar und wirkte wie ein Darstellungsfehler)
+            -- 0.5.782: same quest as me - small yellow quest exclamation mark bottom right on the class icon (the yellow line at the
+            -- row edge was not recognizable as a hint and looked like a rendering bug)
             r.qbar = r:CreateTexture(nil, "OVERLAY", nil, 6)
             r.qbar:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
             r.qbar:SetSize(15, 15)
@@ -1816,10 +1816,10 @@ ns.RegisterPage({
             r:Col("badges", 0, 60, 12, C.text, "RIGHT")
             r.cols.badges:ClearAllPoints()
             r.cols.badges:SetPoint("RIGHT", hasGlass() and -52 or -26, 0)
-            -- Oasis-Emblem: farbig = aktiv, blass = installiert aber gerade nicht aktiv, Strich = kein Oasis
+            -- Oasis emblem: colored = active, faded = installed but not active right now, dash = no Oasis
             r.addon = r:CreateTexture(nil, "ARTWORK")
             r.addon:SetTexture(ns.MEDIA .. "logo64")
-            r.addon:SetSize(22, 22)   -- 0.6.440: Logo lesbar
+            r.addon:SetSize(22, 22)   -- 0.6.440: logo readable
             r.addon:SetPoint("RIGHT", hasGlass() and -29 or -3, 0)
             r.noAddon = K.Text(r, 12, C.dim, "CENTER")
             r.noAddon:SetPoint("CENTER", r.addon, "CENTER", 0, 0)
@@ -1835,7 +1835,7 @@ ns.RegisterPage({
                 local m = self.item
                 local now = GetTime()
                 if self.lastClick and now - self.lastClick < 0.35 then
-                    -- Doppelklick: anfluestern (nur online und nicht man selbst)
+                    -- Double-click: whisper (only online and not oneself)
                     self.lastClick = nil
                     self.clickId = (self.clickId or 0) + 1
                     if m.online and not ns.isMe(m.name) then ns.Whisper(m.name) end
@@ -1848,9 +1848,9 @@ ns.RegisterPage({
                     if self.clickId == id and self.item == m and ns.Profile then ns.Profile.Show(m.name) end
                 end)
             end)
-            -- beim Drueberfahren: kleiner Einladen-Knopf
+            -- on hover: small invite button
             r.inv = CreateFrame("Button", nil, r)
-            -- rechts am Zeilenende (wie eine Aktion), mit weichem Auslauf ueber die Abzeichen
+            -- on the right at the end of the row (like an action), with a soft fade over the badges
             r.inv:SetSize(84, 20)
             r.inv:SetPoint("RIGHT", r, "RIGHT", -8, 0)
             r.inv:SetFrameLevel(r:GetFrameLevel() + 5)
@@ -1868,14 +1868,14 @@ ns.RegisterPage({
             r.inv.t:SetPoint("CENTER")
             r.inv.t:SetText("+  " .. K.Upper(L["Invite"]))
             if hasGlass() then
-                -- 2026: kleiner runder Icon-Knopf ganz rechts (eigene Aktionsspalte), ueberdeckt nichts
+                -- 2026: small round icon button at the far right (own action column), covers nothing
                 r.inv.fade:Hide()
                 r.inv.back:Hide()
                 r.inv.t:SetText("")
                 r.inv:ClearAllPoints()
                 r.inv:SetSize(20, 20)
                 r.inv:SetPoint("RIGHT", r, "RIGHT", -8, 0)
-                -- schlichtes Plus (zwei Striche) statt Gruppen-Symbol
+                -- plain plus (two strokes) instead of group icon
                 local ico = CreateFrame("Frame", nil, r.inv)
                 ico:SetAllPoints()
                 ico.h = ico:CreateTexture(nil, "OVERLAY") ico.h:SetSize(10, 2) ico.h:SetPoint("CENTER")
@@ -1913,7 +1913,7 @@ ns.RegisterPage({
                 self.bg:SetColorTexture(C.mint[1] * 0.25, C.mint[2] * 0.25, C.mint[3] * 0.25, 0.95)
                 if not self:GetParent():IsMouseOver() then self:Hide() end
             end)
-            -- 0.6.511: die grosse Karte nur ueber dem Namen; ueber Berufen, Abzeichen usw. nur deren eigener Tooltip
+            -- 0.6.511: the large card only over the name; over professions, badges etc. only their own tooltip
             local function nameHover(self, el)
                 self.nhT = (self.nhT or 0) + (el or 0)
                 if self.nhT < 0.05 then return end
@@ -1922,7 +1922,7 @@ ns.RegisterPage({
                 local over = self.item and nm and nm:IsShown() and nm:IsMouseOver()
                 if over and not self.cardOn then
                     self.cardOn = true
-                    -- Level-Fortschritt, Gruppe, Status stehen jetzt im Tooltip selbst (nicht doppelt anhaengen)
+                    -- Level progress, group, status are now in the tooltip itself (do not append twice)
                     Radar.ShowMemberTip(self, self.item, { xpPct = self.xpPct, hint = L["Click: profile  ·  double-click: whisper  ·  right-click: menu"] })
                 elseif not over and self.cardOn then
                     self.cardOn = nil
@@ -1944,14 +1944,14 @@ ns.RegisterPage({
             end)
             return r
         end, function(r, m, idx)
-            -- 2026: Spalten nach aktueller Aufteilung (nur wenn sie sich geaendert hat)
+            -- 2026: columns by current layout (only if it has changed)
             if p.ApplyCols then p.ApplyCols(r) end
-            -- teure Werte je Mitglied einmal je Seiten-Refresh berechnen (Scrollen nutzt den Cache)
+            -- compute expensive values per member once per page refresh (scrolling uses the cache)
             local cx = p.RowData(m)
             local group = Radar.groupRows and Radar.groupRows[m.name]
             if not r.groupLine then
-                -- Die Liste schneidet alles ausserhalb ihrer Flaeche ab (SetClipsChildren) - der Strich sitzt aber 10 px LINKS
-                -- neben der Zeile und war deshalb nie zu sehen. Darum an die Seite haengen (nicht abgeschnitten), an der Zeile ausrichten.
+                -- The list clips everything outside its area (SetClipsChildren) - but the line sits 10 px to the LEFT
+                -- of the row and was therefore never visible. So attach it to the page (not clipped), aligned with the row.
                 local list = r:GetParent()
                 local host = (list and list:GetParent()) or r
                 r.groupLine = host:CreateTexture(nil, "OVERLAY")
@@ -1961,7 +1961,7 @@ ns.RegisterPage({
                 r.groupCap:SetColorTexture(0.35, 0.62, 0.95, 0.6)
                 r.groupCap:SetSize(6, 2)
                 r.groupCap:SetPoint("LEFT", r, "LEFT", -10, 0)
-                -- Zeile ausgeblendet (Liste kuerzer, Seite gewechselt): Strich mit ausblenden
+                -- Row hidden (list shorter, page switched): hide the line too
                 r:HookScript("OnHide", function(self) self.groupLine:Hide() self.groupCap:Hide() end)
                 r:HookScript("OnShow", function(self) local on = self.groupOn and true or false self.groupLine:SetShown(on) self.groupCap:SetShown(on) end)
             end
@@ -1970,11 +1970,11 @@ ns.RegisterPage({
             r.groupCap:SetShown(group ~= nil and r:IsVisible())
             if group then
                 r.groupLine:ClearAllPoints()
-                -- Eigene linke Spalte: Verbindung endet vor Karte und Portraet.
+                -- Own left column: connection ends before card and portrait.
                 r.groupLine:SetPoint("TOPLEFT", r, group.first and "LEFT" or "TOPLEFT", -10, 0)
                 r.groupLine:SetPoint("BOTTOMLEFT", r, group.last and "LEFT" or "BOTTOMLEFT", -10, 0)
             end
-            -- Spaltenbreite geaendert: Twink-Zusatz passend neu kuerzen
+            -- Column width changed: re-truncate the alt suffix to fit
             if cx.altMain and cx.labelGen ~= p.colGen then
                 cx.label = p.TwinkLabel(m.name, cx.altMain)
                 cx.labelGen = p.colGen
@@ -1982,7 +1982,7 @@ ns.RegisterPage({
             end
             local pr = cx.pr
             r.cols.grank:SetText((m.rank or "") .. ((cx.ilvl and cx.ilvl > 0) and ("  |cff6199ff" .. L["iL"] .. " " .. cx.ilvl .. "|r") or ""))
-            -- 0.6.466: Aktivitaet der letzten 7 Tage als feiner Balken unten in der Zeile
+            -- 0.6.466: activity of the last 7 days as a thin bar at the bottom of the row
             if not r.actBar then
                 r.actBar = r:CreateTexture(nil, "OVERLAY")
                 r.actBar:SetHeight(2)
@@ -2019,14 +2019,14 @@ ns.RegisterPage({
                     r.cols.name:SetText(cx.label .. (cx.extra or ""))
                 end
                 if cx.isNew then
-                    -- Breite einmal je Mitglied messen (GetStringWidth ist teuer)
+                    -- Measure width once per member (GetStringWidth is expensive)
                     cx.labelW = cx.labelW or (r.cols.name:GetStringWidth() or 0)
                     r.newPill:ClearAllPoints()
                     r.newPill:SetPoint("LEFT", r.cols.name, "LEFT", math.max(0, math.min((r.cols.name:GetWidth() or 136) - 32, cx.labelW)) + 6, 0)
                 end
                 r.newPill:Hide()
                 if r.newDot then r.newDot:SetShown(cx.isNew and true or false) end
-                -- Avatar: Klassensymbol rund, sonst Initiale auf Scheibe in gedaempfter Klassenfarbe
+                -- Avatar: class icon round, otherwise initial on a disc in muted class color
                 if r.avClass ~= (m.class or "") then
                     r.avClass = m.class or ""
                     local GI = ns.GuildInfo
@@ -2049,14 +2049,14 @@ ns.RegisterPage({
             else
                 r.cols.name:SetText((cx.isNew and ("|cff66db9e" .. L["NEW"] .. "|r ") or "") .. cx.label)
             end
-            -- Abgleich mit diesem Mitglied
+            -- Sync with this member
             do
                 local me = ns.isMe(m.name)
                 local t, _, _, fresh = (not me and ns.Comm and ns.Comm.PeerSync) and ns.Comm.PeerSync(m.name)
                 r.sync:ClearAllPoints()
-                r.sync:SetPoint("RIGHT", r.cols.grank, "LEFT", -14, 0)   -- 0.6.441: mittig in der Zeile (mit Twink-Zeile stand es zu hoch)
+                r.sync:SetPoint("RIGHT", r.cols.grank, "LEFT", -14, 0)   -- 0.6.441: centered in the row (with the alt row it sat too high)
                 if me then
-                    -- eigene Zeile: letzter Abgleich mit der Gilde (0.5.552)
+                    -- own row: last sync with the guild (0.5.552)
                     local last = ns.db.meta.lastSync or 0
                     local cur = last > 0 and (ns.now() - last) < 900
                     local c = cur and C.mint or C.dim
@@ -2069,21 +2069,21 @@ ns.RegisterPage({
                         r.syncAnim:SetScript("OnUpdate", function(self, el)
                             r.syncSpin = (r.syncSpin or 0) + el
                             r.sync:SetRotation(-r.syncSpin * 6)
-                            -- hoechstens 15 s drehen (ein langer Abgleich laeuft gedrosselt im Hintergrund weiter)
+                            -- rotate at most 15 s (a long sync continues throttled in the background)
                             if (not (ns.Comm and ns.Comm.syncing) and r.syncSpin > 1.2) or r.syncSpin > 15 then r.sync:SetRotation(0) r.syncSpin = nil self:SetScript("OnUpdate", nil) end
                         end)
                     end
                 elseif not t and not pr then
                     r.sync:Hide()
                 else
-                    -- gruen nur, wenn aktuell: online und in den letzten 15 Min abgeglichen; sonst grau
+                    -- green only if current: online and synced in the last 15 min; otherwise grey
                     local age = t and (ns.now() - t) or nil
                     local fresh15 = age and age < 900 and m.online
                     local c = fresh15 and C.mint or C.dim
                     r.sync:SetVertexColor(c[1], c[2], c[3], fresh15 and 0.95 or (age and 0.55 or 0.3))
                     r.sync:Show()
                     r.syncT, r.syncName = t, m.name
-                    -- Ladeanzeige: dreht sich, solange mit ihm abgeglichen wird (und kurz danach)
+                    -- Loading indicator: rotates while syncing with them (and shortly after)
                     if (fresh or ns.Comm.PeerBusy(m.name)) and not r.syncSpin and not (r.syncCool and GetTime() - r.syncCool < 60) then
                         r.syncSpin = 0
                         r.syncAnim = r.syncAnim or CreateFrame("Frame", nil, r)
@@ -2094,7 +2094,7 @@ ns.RegisterPage({
                             local busy = r.syncName and ns.Comm.PeerBusy(r.syncName)
                             if (not busy and r.syncSpin > 1.2) or r.syncSpin > 15 then
                                 r.sync:SetRotation(0) r.syncSpin = nil self:SetScript("OnUpdate", nil)
-                                r.syncCool = GetTime()   -- danach erst in 60 s wieder anfangen zu drehen
+                                r.syncCool = GetTime()   -- only start rotating again after 60 s
                             end
                         end)
                     end
@@ -2113,7 +2113,7 @@ ns.RegisterPage({
             end
             if r.xpTrack then r.xpTrack:SetShown(r.xpFill:IsShown()) end
             if r.xpGlow then r.xpGlow:SetShown(r.xpFill:IsShown() and m.online and true or false) end
-            r.gain:SetText("")   -- 0.6.465: Level-Zuwachs (+17) nicht mehr in der Liste
+            r.gain:SetText("")   -- 0.6.465: level gain (+17) no longer in the list
             if hasGlass() then r.gain:SetTextColor(C.mint[1], C.mint[2], C.mint[3], 0.75) end
             r.cstripe:SetColorTexture(cx.cr or 0.5, cx.cg or 0.5, cx.cb or 0.5, m.online and 1 or 0.4)
             local orl, st = cx.orl, cx.st
@@ -2127,7 +2127,7 @@ ns.RegisterPage({
                 r.rankLine:Hide()
             end
             if r.remblem then
-                -- Wappen je Rang-Stufe ersetzt den einfachen Kreis (nur neu zeichnen, wenn sich der Rang aendert)
+                -- Crest per rank tier replaces the simple circle (only redraw when the rank changes)
                 r.remb:Hide()
                 r.rembIn:Hide()
                 r.rembNum:Hide()
@@ -2142,7 +2142,7 @@ ns.RegisterPage({
                 r.rembIn:SetShown(orl ~= nil)
                 r.rembNum:SetShown(orl ~= nil)
             end
-            r.qbar:Hide()   -- Quest-Ausrufezeichen entfernt
+            r.qbar:Hide()   -- Quest exclamation mark removed
             r.cols.zone:SetText(cx.zoneTxt)
             r.cols.last:SetText(cx.lastTxt)
             r.cols.profs:SetText(cx.profTxt)
@@ -2154,8 +2154,8 @@ ns.RegisterPage({
             r.addon:SetDesaturated(not cx.active)
             r.addon:SetAlpha(cx.active and 1 or 0.45)
             if hasGlass() then
-                -- Sehr dezente Klassenfarbe links, zur rechten Kartenhaelfte dunkel auslaufend.
-                -- Zwei Haelften halten jede Textur unter WoWs Grenze von drei Masken.
+                -- Very subtle class color on the left, fading dark towards the right half of the card.
+                -- Two halves keep each texture under WoW's limit of three masks.
                 if not r.classTint then
                     r.classTint = {}
                     for i = 1, 2 do
@@ -2180,19 +2180,19 @@ ns.RegisterPage({
                 if not K.Gradient(r.classTint[2], "HORIZONTAL", mid, { 0, 0, 0, 0.045 }) then
                     r.classTint[2]:SetColorTexture(0, 0, 0, 0.025)
                 end
-                -- Einladen nur fuer online, nicht ich, nicht schon in der Gruppe
+                -- Invite only for online, not me, not already in the group
                 r.inv:SetShown(cx.canInvite)
                 r.more:Show()
-                -- Karte: eigene Zeile mit Akzentrand, sonst ruhig (Platz-Nummern entfernt)
+                -- Card: own row with accent edge, otherwise calm (rank numbers removed)
                 local me = ns.isMe(m.name)
                 if me then
-                    -- 0.6.415: ruhiger - eigene Zeile nur leicht betont
+                    -- 0.6.415: calmer - own row only slightly emphasized
                     glass(r.card, { C.accent[1], C.accent[2], C.accent[3], 0.05 }, { C.accent[1], C.accent[2], C.accent[3], 0.32 })
                 else
                     glass(r.card, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.04 })
                 end
             end
-            -- online deutlich hervorheben: leichter gruener Schimmer; offline klar zurueckgenommen
+            -- strongly highlight online: light green shimmer; offline clearly toned down
             if not r.onBg then
                 r.onBg = r:CreateTexture(nil, "BACKGROUND", nil, 1)
                 r.onBg:SetAllPoints()
@@ -2201,7 +2201,7 @@ ns.RegisterPage({
                 end
             end
             r.onBg:SetShown(m.online and not hasGlass() and true or false)
-            -- offline gedaempft, aber lesbar
+            -- offline muted, but readable
             local offA = hasGlass() and 0.62 or 0.42
             r:SetAlpha(m.online and 1 or offA)
             if p.fresh then
@@ -2211,12 +2211,12 @@ ns.RegisterPage({
                 ns.After(1.6, function() if r.item == m then r:SetAlpha(target) end end)
             end
         end)
-        -- Je-Mitglied-Cache fuer die Zeilen (wird bei jedem Seiten-Refresh geleert: Roster, Profile, Filter)
+        -- Per-member cache for the rows (cleared on every page refresh: roster, profiles, filter)
         p.rowCache = {}
         function p.TwinkLabel(name, main)
             local w = p.colPos and p.colPos.name and p.colPos.name.w or 140
             local mn = ns.displayName(main) or ""
-            -- Main-Namen kuerzen (UTF-8-sicher)
+            -- Shorten main names (UTF-8 safe)
             local maxC = w >= 160 and 14 or 10
             local chars = {}
             for ch in mn:gmatch("[%z\1-\127\194-\244][\128-\191]*") do chars[#chars + 1] = ch end
@@ -2224,7 +2224,7 @@ ns.RegisterPage({
             local tag = (w >= 160) and (L["Alt of %s"]):format(mn) or ("\226\134\179 " .. mn)
             return Radar.Colored(name) .. "  |cff7c7c86" .. tag .. "|r"
         end
-        -- 0.6.466: Aktivitaet der letzten 7 Tage und Beitrittsdatum je Mitglied (aus der Chronik, alle 30 s neu)
+        -- 0.6.466: activity of the last 7 days and join date per member (from the chronicle, refreshed every 30 s)
         local actCache = { t = -100, act = {}, join = {} }
         local function actInfo()
             if GetTime() - actCache.t < 30 then return actCache end
@@ -2262,12 +2262,12 @@ ns.RegisterPage({
             cx.pr = pr
             cx.isNew = ns.Welcome and ns.Welcome.IsNew(name) or false
             cx.label = Radar.Label and Radar.Label(name) or Radar.Colored(name)
-            -- online Twink: klein grau "Twink von <Main>" (Kurzform "↳ <Main>" bei schmaler Namensspalte)
+            -- online alt: small grey "Alt of <Main>" (short form "↳ <Main>" with a narrow name column)
             if ns.Alts and ns.Alts.IsAlt(name) then
                 cx.altMain = ns.Alts.Main(name)
                 cx.label = p.TwinkLabel(name, cx.altMain)
                 cx.labelGen = p.colGen
-                -- 0.5.567: Glas-Liste zeigt Twinks zweizeilig: Name oben, darunter "Twink von <Main>"
+                -- 0.5.567: glass list shows alts on two lines: name on top, "Alt of <Main>" below
                 cx.plain = Radar.Colored(name)
                 cx.twTxt = "|cff9a8fc4" .. (L["Alt of %s"]):format(ns.displayName(cx.altMain) or "?") .. "|r"
             end
@@ -2276,7 +2276,7 @@ ns.RegisterPage({
             local roleTxt = ns.Profile and ns.Profile.RoleIcons(name, 14) or ""
             if roleTxt == "" and not (pr or me) then roleTxt = "|cff444444?|r" end
             cx.roleTxt = roleTxt
-            -- 0.6.466: Rolle als Symbol hinter dem Namen, Jahrestag als kleines Abzeichen
+            -- 0.6.466: role as icon after the name, anniversary as a small badge
             local ai = actInfo()
             local extra = ""
             if roleTxt ~= "" and not roleTxt:find("?", 1, true) then extra = extra .. "  " .. (ns.Profile.RoleIcons(name, 12) or "") end
@@ -2299,7 +2299,7 @@ ns.RegisterPage({
             cx.verified = true
             if ns.Rank then cx.orl, cx.verified = ns.Rank.Of(name) end
             if cx.orl then cx.st = ns.Rank.Frame(cx.orl) end
-            -- gelber Strich links: gleiche Quest wie ich - nur bei Mitgliedern, die gerade online sind (mit wem kann ich JETZT losziehen)
+            -- yellow line on the left: same quest as me - only for members who are online right now (who can I head out with NOW)
             cx.shared = ns.Members and not me and m.online and #ns.Members.SharedQuests(name) > 0
             local short = ns.short(name)
             local inGroup = not me and (UnitInParty(short) or UnitInRaid(short)) and true or false
@@ -2307,8 +2307,8 @@ ns.RegisterPage({
                 local icon = ns.Members and ns.Members.StatusIcon(name, 12) or ""
                 if inGroup then icon = ("|T%sicons\\groups:12:12:0:0:64:64:0:64:0:64:102:219:158|t "):format(ns.MEDIA)
                 elseif icon == "" and Radar.groupRows and Radar.groupRows[name] then
-                    -- steht in einer gemeldeten Gruppe (Klammer links), hat aber selbst kein Oasis: gleiches Symbol wie die anderen
-                    -- ist jemand aus derselben Gruppe im Dungeon (und im selben Gebiet), gilt das auch hier
+                    -- is in a reported group (bracket on the left) but has no Oasis itself: same icon as the others
+                    -- if someone from the same group is in the dungeon (and in the same zone), that applies here too
                     local gid, inst = Radar.groupRows[name].id, false
                     for other, mk in pairs(Radar.groupRows) do
                         if other ~= name and mk.id == gid and ns.Members and ns.Members.Status(other) == "inst" then
@@ -2336,12 +2336,12 @@ ns.RegisterPage({
                 else
                     cx.lastTxt = ""
                 end
-                -- 0.6.466: offline zuerst "zuletzt online", dann das letzte Gebiet
+                -- 0.6.466: offline first "last online", then the last zone
                 if cx.lastTxt ~= "" then cx.zoneTxt = cx.lastTxt .. "  |cff555555" .. (m.zone or "") .. "|r" end
             end
             local raw = pr and pr.profs or (ns.db.guildProfs and ns.db.guildProfs[name])
             if hasGlass() then
-                -- kompakt: nur die zwei hoechsten Berufe (Symbol + Zahl), alles Weitere im Tooltip
+                -- compact: only the two highest professions (icon + number), everything else in the tooltip
                 cx.profTxt = Radar.ProfIcons(raw, 13, 2)
             else
                 cx.profTxt = Radar.ProfIcons(raw, 13)
@@ -2355,8 +2355,8 @@ ns.RegisterPage({
             p.rowCache[m] = cx
             return cx
         end
-        -- 0.5.626: Messung (/oa leistung) + Vorberechnung im Hintergrund (je Bild hoechstens ~3 ms),
-        -- damit beim Scrollen keine Zeile erst ihre Daten ausrechnen muss
+        -- 0.5.626: measurement (/oa leistung) + precomputation in the background (at most ~3 ms per frame),
+        -- so that while scrolling no row has to compute its data first
         local rawRowData = p.RowData
         function p.RowData(m)
             local hit = p.rowCache[m]
@@ -2373,7 +2373,7 @@ ns.RegisterPage({
             if not data or not p:IsVisible() then self:Hide() return end
             local clock = debugprofilestop or function() return GetTime() * 1000 end
             local t0 = clock()
-            -- zuerst um die aktuelle Position herum, dann den Rest
+            -- first around the current position, then the rest
             local start = math.max(1, (p.list.offset or 0) - 2)
             local n = #data
             for k = 0, n - 1 do
@@ -2387,14 +2387,14 @@ ns.RegisterPage({
             self:Hide()
         end)
         p.WarmRows = function() warm:Show() end
-        -- 0.5.620: Mausrad kommt jetzt aus K.List (weich, pixelgenau) - eigene 2-Zeilen-Spruenge entfernt
-        -- Spaltenaufteilung 2026: proportional zur Breite, Mindestbreiten, 14 px Abstand; bei Platzmangel
-        -- faellt zuerst "Zuletzt", dann "Rollen" weg. Abzeichen + Oasis-Punkt teilen sich eine Spalte.
+        -- 0.5.620: mouse wheel now comes from K.List (smooth, pixel-precise) - own 2-row jumps removed
+        -- Column layout 2026: proportional to the width, minimum widths, 14 px spacing; when space is short
+        -- "Last" drops first, then "Roles". Badges + Oasis dot share a column.
         if hasGlass() then
-            local X0, GAP, INV = 72, 16, 116   -- 0.5.946: nochmal breiter -- 0.5.940: rechts mehr Luft (Abzeichen-Zahl, Oasis-Punkt, Menue, Einladen klebten aneinander) -- 0.5.607: kompakter (ohne Platz-Nummer), rechts Menue + Einladen
+            local X0, GAP, INV = 72, 16, 116   -- 0.5.946: wider again -- 0.5.940: more room on the right (badge count, Oasis dot, menu, invite stuck together) -- 0.5.607: more compact (without rank number), menu + invite on the right
             local SPEC = {
-                -- 0.5.939: Name breiter (mit Aktualisieren-Symbol und Twink-Zeile wurde es eng) - der Platz kommt aus "Gebiet",
-                -- Rang/Level/Gebiet/Berufe ruecken dadurch nach rechts
+                -- 0.5.939: name wider (with refresh icon and alt row it got tight) - the space comes from "Zone",
+                -- rank/level/zone/professions move to the right as a result
                 { k = "name", min = 144, w = 2.2, max = 250 }, { k = "grank", min = 70, w = 0.7, max = 120 },
                 { k = "lvl", fix = 50 }, { k = "zone", min = 90, w = 1.0 },
                 { k = "last", fix = 62, drop = 2 }, { k = "roles", fix = 44, drop = 1 },
@@ -2441,7 +2441,7 @@ ns.RegisterPage({
                 end
                 p.colPos = pos
                 p.colGen = p.colGen + 1
-                -- Spaltenkoepfe exakt ueber den Spalten
+                -- Column headers exactly above the columns
                 for k, b in pairs(p.headBy or {}) do
                     local ps = pos[k]
                     b:SetShown(ps ~= nil)
@@ -2456,8 +2456,8 @@ ns.RegisterPage({
                 p.ho:SetPoint("CENTER", p.hdr, "LEFT", W - 8 - 84, 0)
             end
             function p.ApplyCols(r)
-                -- 0.5.947: Breite von der Zeile selbst nehmen - die Aufteilung rechnete teils mit einer anderen Breite als die
-                -- Zeile hat, dann lagen Abzeichen, Oasis-Punkt, Menue und Einladen uebereinander
+                -- 0.5.947: take the width from the row itself - the layout sometimes calculated with a different width than the
+                -- row has, then badges, Oasis dot, menu and invite lay on top of each other
                 local rw = r:GetWidth()
                 if rw and rw > 300 and math.abs((p.colW or 0) - math.floor(rw + 8)) > 1 then p.LayoutCols(rw + 8) end
                 local pos = p.colPos
@@ -2480,14 +2480,14 @@ ns.RegisterPage({
                 r.cols.badges:ClearAllPoints()
                 r.cols.badges:SetPoint("RIGHT", r, "RIGHT", -104, 0)
                 r.cols.badges:SetWidth(bp.w - 4)
-                -- Oasis als kleiner Punkt (Logo 10 px) direkt hinter den Abzeichen
+                -- Oasis as a small dot (logo 10 px) directly after the badges
                 r.addon:ClearAllPoints()
-                r.addon:SetSize(18, 18)   -- 0.6.441: lesbar
+                r.addon:SetSize(18, 18)   -- 0.6.441: readable
                 r.addon:SetPoint("CENTER", r, "RIGHT", -84, 0)
             end
         end
         list:SetPoint("TOPLEFT", seg, "TOPLEFT", 18, TBLY - (hasGlass() and 26 or 20))
-        list:SetPoint("BOTTOMRIGHT", hasGlass() and -16 or 0, hasGlass() and 44 or 40)   -- 0.6.441: rechts gleicher Abstand wie links
+        list:SetPoint("BOTTOMRIGHT", hasGlass() and -16 or 0, hasGlass() and 44 or 40)   -- 0.6.441: same spacing on the right as on the left
         p.listInset = hasGlass()
         if p.LayoutCols then
             list:HookScript("OnSizeChanged", function(self, w) p.LayoutCols(w) self:Refresh() end)
@@ -2500,9 +2500,9 @@ ns.RegisterPage({
         zb.head = K.Text(zb, hasGlass() and 11 or 10, C.dim)
         zb.head:SetPoint("LEFT", 12, 0)
         zb.head:SetText(hasGlass() and L["Where the guild is"] or K.Upper(L["Where the guild is"]))
-        zb.head:Hide()   -- 0.5.595: "Wo ist die Gilde" + Gebiets-Kacheln entfernt, nur die Zahlen rechts bleiben
+        zb.head:Hide()   -- 0.5.595: "Where is the guild" + zone tiles removed, only the numbers on the right stay
         if hasGlass() then zb.fill:Hide() end
-        -- rechts: online / Mitglieder / Questpartner (Klick auf Questpartner = Filter)
+        -- right: online / members / quest partners (click on quest partners = filter)
         zb.stats = CreateFrame("Button", nil, zb)
         zb.stats:SetPoint("RIGHT", -10, 0)
         zb.stats:SetHeight(24)
@@ -2527,22 +2527,22 @@ ns.RegisterPage({
         list.empty:SetText(L["No members found."])
         p.list = list
 
-        -- Level-Rennen
+        -- Level race
         local race = CreateFrame("Frame", nil, p)
         race:SetPoint("TOPLEFT", 0, -2)
         race:SetPoint("TOPRIGHT", 0, -2)
-        race:SetHeight(158)   -- luftiger (08.10.): mehr Platz unter den Plaketten
+        race:SetHeight(158)   -- airier (08.10.): more room below the plaques
         race:SetClipsChildren(true)
-        -- einklappbar (Standard: offen); alles darunter haengt an der Unterkante
+        -- collapsible (default: open); everything below hangs on the bottom edge
         p.seg:ClearAllPoints()
         p.seg:SetPoint("TOPLEFT", race, "BOTTOMLEFT", 0, -8)
-        race.keep = {}   -- bleibt beim Einklappen sichtbar: Kopf, Hintergrund, Griff
+        race.keep = {}   -- stays visible when collapsed: header, background, handle
         local function raceFold()
             local closed = ns.db.settings.raceClosed
             race:SetHeight(closed and 34 or 158)
             if race.arrow then race.arrow:SetText("") end
             if race.handle then race.handle:SetClosed(closed) end
-            -- alles andere (Plaketten, Linie, "Du"-Markierung, Avatare) aus-/einblenden - ragte sonst unten heraus
+            -- hide/show everything else (plaques, line, "You" marker, avatars) - otherwise it stuck out at the bottom
             for _, c in ipairs({ race:GetChildren() }) do
                 if not race.keep[c] and c ~= race.fold and c ~= race.handle then
                     if closed then
@@ -2555,7 +2555,7 @@ ns.RegisterPage({
             end
         end
         race.Fold = raceFold
-        -- eingeklappt: kurz danach nochmal anwenden (Teile entstehen spaeter / Animationen setzen Alpha neu)
+        -- collapsed: apply again shortly after (parts are created later / animations reset alpha)
         local guard = CreateFrame("Frame", nil, race)
         guard.t = 0
         guard:SetScript("OnUpdate", function(self, el)
@@ -2585,7 +2585,7 @@ ns.RegisterPage({
         end)
         race.fold:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Level race"], "|cff888888" .. L["Click: collapse/expand"] .. "|r" }) end)
         race.fold:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        -- Griff unten mittig: kleine Pille mit Pfeil (zeigt nach oben = einklappen, nach unten = aufklappen)
+        -- Handle bottom center: small pill with arrow (up = collapse, down = expand)
         do
             local h = CreateFrame("Button", nil, race)
             h:SetSize(46, 14)
@@ -2596,13 +2596,13 @@ ns.RegisterPage({
             h.bg:SetTexture("Interface\\Buttons\\WHITE8X8")
             h.bg:SetVertexColor(1, 1, 1, 0.05)
             if K.ApplySkin then pcall(K.ApplySkin, h, "panel", { 1, 1, 1, 0.05 }) end
-            -- Pfeil aus zwei kurzen Strichen
+            -- Arrow from two short strokes
             h.l1 = h:CreateTexture(nil, "ARTWORK") h.l1:SetSize(7, 1.5)
             h.l2 = h:CreateTexture(nil, "ARTWORK") h.l2:SetSize(7, 1.5)
             local function col(c, a) h.l1:SetColorTexture(c[1], c[2], c[3], a) h.l2:SetColorTexture(c[1], c[2], c[3], a) end
             function h:SetClosed(closed)
                 self.closed = closed
-                -- ^ (offen -> einklappen) bzw. v (zu -> aufklappen)
+                -- ^ (open -> collapse) or v (closed -> expand)
                 local up = not closed
                 self.l1:ClearAllPoints() self.l2:ClearAllPoints()
                 self.l1:SetPoint("CENTER", self, "CENTER", -2.4, 0)
@@ -2621,11 +2621,11 @@ ns.RegisterPage({
             race.handle = h
         end
         raceFold()
-        local LEFTW = 300   -- Breite der Online-Aufstellung, rechts davon das Level-Rennen
-        -- zwei Karten mit Farbverlauf und Akzentlinie oben
+        local LEFTW = 300   -- Width of the online lineup, the level race to the right of it
+        -- two cards with gradient and accent line on top
         local function raceCard(color)
             local c = CreateFrame("Frame", nil, race)
-            c:SetFrameLevel(math.max(0, race:GetFrameLevel() - 1))   -- unter den Texten der Flaeche
+            c:SetFrameLevel(math.max(0, race:GetFrameLevel() - 1))   -- below the texts of the surface
             K.Fill(c, C.panel)
             c.grad = c:CreateTexture(nil, "BORDER")
             c.grad:SetAllPoints()
@@ -2641,17 +2641,17 @@ ns.RegisterPage({
         race.keep[cardL], race.keep[cardR] = true, true
         cardL:SetPoint("TOPLEFT") cardL:SetPoint("BOTTOMLEFT")
         cardL:SetWidth(LEFTW + 12)
-        -- Online-Aufstellung entfernt: Level-Rennen nutzt die ganze Breite
+        -- Online lineup removed: level race uses the full width
         local RX = 0
         cardL:Hide()
         cardR:SetPoint("TOPLEFT", RX, 0) cardR:SetPoint("BOTTOMRIGHT")
-        -- 0.5.604: dezentes Hintergrundbild (Wettrennen der Voelker), fuellt die Karte ohne Verzerrung (Ausschnitt per
-        -- feste Hoehe), nach links ausgeblendet; Ecken oben/rechts maskiert (WoW nimmt max. 3 Masken, links blendet es aus)
+        -- 0.5.604: subtle background image (race of the races), fills the card without distortion (crop via
+        -- fixed height), faded out to the left; corners top/right masked (WoW takes max. 3 masks, left fades out)
         do
             local bg = cardR:CreateTexture(nil, "BACKGROUND", nil, 4)
             bg:SetTexture(ns.MEDIA .. "race_bg")
-            -- feste Hoehe (aufgeklappt): maskierte Texturen ignorieren SetTexCoord, also kein Ausschnitt moeglich;
-            -- eingeklappt schneidet die Box das Bild einfach ab statt es zu stauchen
+            -- fixed height (expanded): masked textures ignore SetTexCoord, so no crop possible;
+            -- when collapsed the box simply clips the image instead of squashing it
             bg:SetPoint("TOPLEFT", 1, -1)
             bg:SetPoint("TOPRIGHT", -1, -1)
             bg:SetHeight(156)
@@ -2661,14 +2661,14 @@ ns.RegisterPage({
                 bg:SetAlpha(0.18)
             end
             if K.RoundMask then K.RoundMask(bg, cardR, 12, { "tl", "tr", "br" }) end
-            -- unten dunkler, damit Plaketten und Namen gut lesbar bleiben
+            -- darker at the bottom so plaques and names stay readable
             local shade = cardR:CreateTexture(nil, "BACKGROUND", nil, 5)
             shade:SetAllPoints(bg)
             if not K.Gradient(shade, "VERTICAL", { 0, 0, 0, 0.45 }, { 0, 0, 0, 0.05 }) then shade:Hide() end
             if K.RoundMask then K.RoundMask(shade, cardR, 12, { "tl", "tr", "br" }) end
             race.bgArt = bg
         end
-        -- Online-Aufstellung: Zahl gross, Klassenbalken, drei Rollen-Kacheln
+        -- Online lineup: large number, class bar, three role tiles
         local ch = K.GameHead(race, L["Online line-up"], C.mint)
         ch:SetPoint("TOPLEFT", 12, -12)
         ch:SetWidth(170)
@@ -2688,7 +2688,7 @@ ns.RegisterPage({
         end)
         p.compBar:SetScript("OnLeave", function() GameTooltip:Hide() end)
         p.compSegs = {}
-        -- Rollen-Kacheln
+        -- Role tiles
         p.roleTiles = {}
         local ROLE = { { "tank", "Tank", C.blue }, { "heal", "Healer", C.mint }, { "dps", "Damage", C.red } }
         for i, rd in ipairs(ROLE) do
@@ -2705,7 +2705,7 @@ ns.RegisterPage({
             t.top:SetPoint("TOPLEFT") t.top:SetPoint("TOPRIGHT") t.top:SetHeight(2)
             t.top:SetColorTexture(rd[3][1], rd[3][2], rd[3][3], 0.9)
             K.Border(t, C.line)
-            -- quer: Symbol links, Zahl + Beschriftung daneben (nichts ueberlappt)
+            -- horizontal: icon left, number + label next to it (nothing overlaps)
             t.disc = t:CreateTexture(nil, "ARTWORK", nil, 1)
             t.disc:SetTexture(ns.MEDIA .. "dot")
             t.disc:SetSize(28, 28)
@@ -2756,15 +2756,15 @@ ns.RegisterPage({
         p.compBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
         for _, w in ipairs({ ch, p.compCount, p.compBar, p.compHint, p.compBtn }) do w:Hide() end
         for _, t in ipairs(p.roleTiles) do t:Hide() end
-        -- Trennlinie zwischen Aufstellung und Level-Rennen
+        -- Divider between lineup and level race
         local vsep = race:CreateTexture(nil, "ARTWORK")
         vsep:SetColorTexture(C.line[1], C.line[2], C.line[3], 1)
         vsep:SetPoint("TOPLEFT", LEFTW + 12, -12)
         vsep:SetPoint("BOTTOMLEFT", LEFTW + 12, 12)
         vsep:SetWidth(1)
-        vsep:Hide()   -- jetzt zwei getrennte Karten
+        vsep:Hide()   -- now two separate cards
 
-        -- Level-Rennen als Zeitleiste
+        -- Level race as timeline
         local rh = K.GameHead(race, L["Level race"], C.amber)
         race.keep[rh] = true
         if hasGlass() then rh.text:SetText(L["Level race"]) if rh.mark then rh.mark:SetSize(3, 12) end end
@@ -2775,7 +2775,7 @@ ns.RegisterPage({
         since:SetText(L["since Oasis"])
         p.raceLines = {}
         for i = 1, 6 do
-            -- Verbindungslinie zur naechsten Stufe (gruen, wenn beide erreicht) - waagerecht
+            -- Connecting line to the next level (green if both reached) - horizontal
             local seg
             if i < 6 then
                 seg = race:CreateTexture(nil, "BACKGROUND", nil, 1)
@@ -2791,17 +2791,17 @@ ns.RegisterPage({
             badge.ring:SetTexture(ns.MEDIA .. "ring")
             badge.ring:SetPoint("TOPLEFT", -2, 2)
             badge.ring:SetPoint("BOTTOMRIGHT", 2, -2)
-            -- Schein hinter erreichten Stufen (pulsiert bei der hoechsten)
+            -- Glow behind reached levels (pulses at the highest)
             badge.glow = badge:CreateTexture(nil, "BACKGROUND", nil, -1)
             badge.glow:SetTexture(ns.MEDIA .. "dot")
             badge.glow:SetPoint("CENTER")
             badge.glow:SetSize(56, 56)
             badge.glow:SetBlendMode("ADD")
             badge.glow:Hide()
-            -- Zahl genau mittig: ueber die ganze Plakette gespannt, waagerecht und senkrecht zentriert
-            -- Zahl aus Ziffern-Grafiken: immer exakt mittig (Schrift sitzt je nach Font schief)
+            -- Number exactly centered: spanning the whole plaque, horizontally and vertically centered
+            -- Number from digit graphics: always exactly centered (text sits off depending on the font)
             badge.lvl = K.DigitText(badge, 13)
-            -- feiner innerer Lichtrand fuer mehr Tiefe
+            -- thin inner light edge for more depth
             badge.shine = badge:CreateTexture(nil, "ARTWORK", nil, 1)
             badge.shine:SetTexture(ns.MEDIA .. "ring")
             badge.shine:SetPoint("TOPLEFT", 3, -3)
@@ -2812,10 +2812,10 @@ ns.RegisterPage({
                 if not self.pulse then return end
                 self.glow:SetAlpha(0.25 + 0.2 * math.sin(GetTime() * 3))
             end)
-            -- drei feste Plaetze untereinander: Nummer in eigener Spalte, Name daneben
-            -- zwei Zeilen unter der Plakette, zentriert: Name (bzw. "offen") + Detail
+            -- three fixed places stacked: number in its own column, name next to it
+            -- two rows below the plaque, centered: name (or "open") + detail
             local slots = {}
-            -- drei Zeilen: Platz 1-3 (bzw. Anzahl / "wer ist dran")
+            -- three rows: places 1-3 (or count / "who is next")
             for j = 1, 3 do
                 local name = K.Text(race, j == 1 and 11 or 10, j == 1 and C.text or C.dim, "CENTER")
                 name:SetPoint("TOP", badge, "BOTTOM", 0, -10 - (j - 1) * 17)
@@ -2828,7 +2828,7 @@ ns.RegisterPage({
             p.raceLines[i] = { badge = badge, slots = slots, seg = seg }
         end
         p.race = race
-        -- Energiestrahl: von der hoechsten erreichten Stufe bis 60 laufen Lichtimpulse ueber die Linie
+        -- Energy beam: light pulses run along the line from the highest reached level to 60
         local beam = CreateFrame("Frame", nil, race)
         beam:SetAllPoints(race)
         beam:SetFrameLevel(race:GetFrameLevel() + 3)
@@ -2836,7 +2836,7 @@ ns.RegisterPage({
         beam.core = beam:CreateTexture(nil, "ARTWORK")
         beam.core:SetHeight(2)
         beam.core:SetBlendMode("ADD")
-        -- Impulse als kleine Kometen: heller Kopf + zwei verblassende Schweif-Punkte
+        -- Pulses as small comets: bright head + two fading tail dots
         beam.pulses = {}
         for i = 1, 3 do
             local pu = {}
@@ -2850,7 +2850,7 @@ ns.RegisterPage({
             end
             beam.pulses[i] = pu
         end
-        -- feine Funken, die gelegentlich von der Linie aufsteigen
+        -- fine sparks occasionally rising from the line
         beam.sparks = {}
         for i = 1, 6 do
             local t = beam:CreateTexture(nil, "OVERLAY")
@@ -2861,7 +2861,7 @@ ns.RegisterPage({
             beam.sparks[i] = { t = t, life = 0 }
         end
         beam:SetScript("OnUpdate", function(self, elx)
-            -- 0.5.625: 30 Bilder/s statt jedes Bild, Pause waehrend gescrollt wird (Positionsabfragen erzwingen Layout)
+            -- 0.5.625: 30 frames/s instead of every frame, pause while scrolling (position queries force layout)
             self.acc = (self.acc or 0) + (elx or 0)
             if self.acc < 0.033 then return end
             self.acc = 0
@@ -2877,7 +2877,7 @@ ns.RegisterPage({
             self.core:SetWidth(math.max(1, x2 - x1))
             local now = GetTime()
             self.core:SetAlpha(0.12 + 0.08 * math.sin(now * 6))
-            -- Farbe entlang der Linie: Stufenfarben ineinander uebergehend
+            -- Color along the line: level colors blending into each other
             local tiers, n = self.tiers or {}, math.max(1, (self.top or 2) - 1)
             local function colAt(ph)
                 local f = ph * n
@@ -2920,7 +2920,7 @@ ns.RegisterPage({
             end
         end)
         beam:Hide()
-        -- 2026: keine Lichtimpulse/Funken mehr ueber der Linie
+        -- 2026: no more light pulses/sparks over the line
         p.beam = (not hasGlass()) and beam or nil
         p.raceFill = race:CreateTexture(nil, "BACKGROUND", nil, 2)
         p.raceFill:SetHeight(hasGlass() and 2 or 4)
@@ -2948,7 +2948,7 @@ ns.RegisterPage({
         end
         p.leadMark = marker(C.mint, C.mint)
         p.meMark = marker(C.amber, C.amber)
-        -- weitere Online-Mitglieder als kleine Punkte in Klassenfarbe (unter Du/Spitzenreiter)
+        -- further online members as small dots in class color (below you/leader)
         p.onMarks = {}
         function p.OnMark(i)
             local m = p.onMarks[i]
@@ -2961,7 +2961,7 @@ ns.RegisterPage({
             end
             return m
         end
-        -- Breite verteilen: Rollen-Kacheln links, 6 Stufen rechts nebeneinander
+        -- Distribute width: role tiles left, 6 levels side by side on the right
         race:SetScript("OnSizeChanged", function(self)
             local W = self:GetWidth() or 750
             if W < 100 then W = 750 end
@@ -2989,15 +2989,15 @@ ns.RegisterPage({
         race:GetScript("OnSizeChanged")(race)
 
         ----------------------------------------------------------------
-        -- Level-Rennen 2026: Glas-Knoten, driftender Hintergrund, Lichtstrahl, Avatare auf der Strecke
-        -- (Bewegung nur bei sichtbarer Karte, gedrosselt auf ~30 fps; settings.noAnim = statisch)
+        -- Level race 2026: glass nodes, drifting background, light beam, avatars on the track
+        -- (motion only while the card is visible, throttled to ~30 fps; settings.noAnim = static)
         ----------------------------------------------------------------
         if hasGlass() then
             local function animOK() return not (ns.db and ns.db.settings and ns.db.settings.noAnim) end
-            local BADGE_Y = -63                          -- Mitte der Knoten (oben -46, 34 hoch)
+            local BADGE_Y = -63                          -- Center of the nodes (top -46, 34 high)
             local LVKEY = { "1-19", "20-29", "30-39", "40-49", "50-59", "60" }
             local fxTier = { { 0.85, 0.53, 0.27 }, { 0.80, 0.83, 0.90 }, { 1.00, 0.80, 0.25 }, { 0.30, 0.88, 0.50 }, { 0.35, 0.58, 1.00 }, { 1.00, 0.45, 0.10 } }
-            -- weicher, langsam driftender Hintergrund (in der Karte, Ecken rund)
+            -- soft, slowly drifting background (inside the card, rounded corners)
             local bgf = CreateFrame("Frame", nil, cardR)
             bgf:SetAllPoints(cardR)
             bgf:SetFrameLevel(cardR:GetFrameLevel())
@@ -3005,7 +3005,7 @@ ns.RegisterPage({
             local bcol = { C.accent, C.amber, C.blue }
             for i = 1, 3 do
                 local t = bgf:CreateTexture(nil, "BACKGROUND", nil, 3)
-                -- Nebelband aus Media\fx (eigene CC0-Grafik), weich getoent
+                -- Fog band from Media\fx (own CC0 graphic), softly tinted
                 t:SetTexture(ns.MEDIA .. "fx\\mist256")
                 t:SetSize(460, 150)
                 local c = bcol[i] or C.accent
@@ -3029,7 +3029,7 @@ ns.RegisterPage({
             end
             placeBlobs(0)
 
-            -- Fortschrittslinie + Lichtstrahl (ueber der Strecke, unter Knoten und Avataren)
+            -- Progress line + light beam (above the track, below nodes and avatars)
             local lf = CreateFrame("Frame", nil, race)
             lf:SetAllPoints(race)
             lf:SetFrameLevel(race:GetFrameLevel() + 2)
@@ -3044,12 +3044,12 @@ ns.RegisterPage({
             p.raceShine:SetBlendMode("ADD")
             p.raceShine:SetSize(70, 14)
             p.raceShine:SetAlpha(0)
-            -- 2026-FX (Media\fx, eigene CC0-Sprites): Komet mit Schweif, Funkeln + Funken an der Spitze,
-            -- Schein hinter der Zielstufe, langsam aufsteigende Lichtteilchen. ADD-Blend, gedaempft ueber die Farbe.
+            -- 2026 FX (Media\fx, own CC0 sprites): comet with tail, twinkle + sparks at the tip,
+            -- glow behind the target level, slowly rising light particles. ADD blend, muted via the color.
             local FX = ns.MEDIA .. "fx\\"
             p.raceShine:SetTexture(FX .. "comet256")
             p.raceShine:SetSize(150, 18)
-            -- Verlauf im Hintergrund: oben leicht Akzent, nach unten klar
+            -- Background gradient: slight accent on top, clear towards the bottom
             p.raceGrad = bgf:CreateTexture(nil, "BACKGROUND", nil, 2)
             p.raceGrad:SetAllPoints(cardR)
             if not K.Gradient(p.raceGrad, "VERTICAL", { C.accent[1], C.accent[2], C.accent[3], 0 }, { C.accent[1], C.accent[2], C.accent[3], 0.07 }) then p.raceGrad:Hide() end
@@ -3086,13 +3086,13 @@ ns.RegisterPage({
             end
             if p.raceFill then p.raceFill:SetAlpha(0) end
 
-            -- Knoten als runde Glas-Buttons mit grosser Zahl
+            -- Nodes as round glass buttons with a large number
             for i, line in ipairs(p.raceLines) do
                 local b = line.badge
                 b.bg:Hide() b.ring:Hide() b.shine:Hide() b.glow:Hide()
                 b.calm = true
                 glass(b, { 1, 1, 1, 0.04 }, { 1, 1, 1, 0.14 }, 17)
-                -- deckende Scheibe unter dem Glas: die Verbindungslinie soll nicht durch den Kreis scheinen
+                -- opaque disc under the glass: the connecting line should not shine through the circle
                 b.back = b:CreateTexture(nil, "BACKGROUND", nil, -8)
                 b.back:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
                 b.back:SetPoint("TOPLEFT", 1, -1)
@@ -3106,7 +3106,7 @@ ns.RegisterPage({
                 b.inner:Hide()
                 b.num = K.Title(b, 15, C.text, "CENTER")
                 if K.CenterNum then K.CenterNum(b.num, b, "CENTER", 0, 0) else b.num:SetPoint("CENTER", 0, 0) end
-                -- Stellvertreter: die alte Ziffern-Grafik wird nie gezeichnet, die Zahl kommt aus der Schrift
+                -- Stand-in: the old digit graphic is never drawn, the number comes from the font
                 b.lvl = {
                     SetText = function(_, v) b.num:SetText(v) end,
                     SetTextColor = function(_, r, g, bb) b.num:SetTextColor(r, g, bb) end,
@@ -3117,7 +3117,7 @@ ns.RegisterPage({
                 b.pulseRing:SetSize(40, 40)
                 b.pulseRing:Hide()
                 b.idx = i
-                -- Hover: leicht anheben; Klick: Tabelle auf diesen Levelbereich filtern
+                -- Hover: lift slightly; click: filter the table to this level range
                 b:HookScript("OnEnter", function(self)
                     local pt, rel, rp, x, y = self:GetPoint(1)
                     if pt and not self.lifted then self.lifted = true self:SetPoint(pt, rel, rp, x, (y or -40) + 2) end
@@ -3133,7 +3133,7 @@ ns.RegisterPage({
                 end)
             end
 
-            -- Avatare statt Punkte
+            -- Avatars instead of dots
             local MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
             function p.SetAv(m, cls)
                 if not m.av then
@@ -3157,7 +3157,7 @@ ns.RegisterPage({
                 if not m.fxSized then m.fxSized = true m:SetSize(16, 16) end
                 return m
             end
-            -- "Du" als kleine Akzent-Pille mit Pfeil
+            -- "You" as a small accent pill with arrow
             local me = p.meMark
             me.lbl:SetAlpha(0)
             me.pill = CreateFrame("Frame", nil, me)
@@ -3174,7 +3174,7 @@ ns.RegisterPage({
             me.pill.arrow:SetPoint("CENTER", me.pill, "BOTTOM", 0, -1)
             me.pill.arrow:SetVertexColor(ac[1], ac[2], ac[3], 0.85)
 
-            -- Geometrie wie im Refresh (xOf): Position eines Levels auf der Strecke
+            -- Geometry like in Refresh (xOf): position of a level on the track
             local function xOfLv(lv)
                 if not (p.raceX0 and p.raceColW) then return nil end
                 if lv >= 60 then return p.raceX0 + 5 * p.raceColW end
@@ -3184,7 +3184,7 @@ ns.RegisterPage({
                 return p.raceX0 + seg * p.raceColW + 17 + 8 + (t - seg) * math.max(0, p.raceColW - 34 - 16)
             end
 
-            -- Aktualisieren nach jedem Refresh
+            -- Update after every refresh
             function p.RaceFX(races, top, fresh)
                 local target = (top or 0) + 1
                 for i, line in ipairs(p.raceLines) do
@@ -3203,7 +3203,7 @@ ns.RegisterPage({
                         b.inner:Hide()
                         b.num:SetTextColor(tc[1] * 0.55 + 0.25, tc[2] * 0.55 + 0.25, tc[3] * 0.55 + 0.25)
                     end
-                    -- 0.5.572: Stufen-Abzeichen tragen die Zahl selbst -> Glaskreis, Scheibe und Zahl weg
+                    -- 0.5.572: level badges carry the number themselves -> glass circle, disc and number removed
                     if b.art then
                         glass(b, { 0, 0, 0, 0 }, sel and { ac[1], ac[2], ac[3], 0.95 } or { 0, 0, 0, 0 })
                         b.num:Hide()
@@ -3219,7 +3219,7 @@ ns.RegisterPage({
                     end
                     if line.seg then line.seg:SetColorTexture(1, 1, 1, 0.08) end
                 end
-                -- Fortschritt bis zum Spitzenreiter
+                -- Progress up to the leader
                 local lead = 0
                 for _, m in ipairs(Radar.roster or {}) do if (m.level or 0) > lead then lead = m.level end end
                 local x0, x1 = p.raceX0, lead >= 10 and xOfLv(lead) or nil
@@ -3230,7 +3230,7 @@ ns.RegisterPage({
                     p.raceProg:SetWidth(p.raceProgW)
                     p.raceProg:Show()
                     local tc = fxTier[math.max(1, math.min(6, top or 1))] or C.mint
-                    -- Linie laeuft nach links dunkel aus (rechts volle Stufenfarbe)
+                    -- Line fades dark to the left (full level color on the right)
                     if not K.Gradient(p.raceProg, "HORIZONTAL", { tc[1] * 0.15, tc[2] * 0.15, tc[3] * 0.15, 0.1 }, { tc[1], tc[2], tc[3], 0.9 }) then
                         p.raceProg:SetColorTexture(tc[1], tc[2], tc[3], 0.8)
                     end
@@ -3243,7 +3243,7 @@ ns.RegisterPage({
                     p.raceProgW = nil
                     p.raceProg:Hide()
                 end
-                -- sanfter Schein hinter der Zielstufe (in ihrer Farbe, gedaempft)
+                -- soft glow behind the target level (in its color, muted)
                 local tl = p.raceLines[target]
                 if tl then
                     local tc = fxTier[target] or C.mint
@@ -3255,12 +3255,12 @@ ns.RegisterPage({
                 else
                     p.raceTarget:Hide()
                 end
-                -- eigener Avatar
+                -- own avatar
                 local _, myCls = UnitClass("player")
                 if p.meMark:IsShown() then p.SetAv(p.meMark, myCls) end
             end
 
-            -- Animation: gedrosselt, nur wenn die Karte sichtbar und offen ist
+            -- Animation: throttled, only when the card is visible and open
             local drv = CreateFrame("Frame", nil, race)
             drv.acc = 0
             drv:SetScript("OnUpdate", function(self, el)
@@ -3279,7 +3279,7 @@ ns.RegisterPage({
                 local tm = GetTime()
                 placeBlobs(tm)
                 local full = p.raceProgW
-                -- Einfahren beim Oeffnen (Ease-Out)
+                -- Slide in on open (ease-out)
                 local cur = full
                 if p.raceT0 and full then
                     local q = math.min(1, (tm - p.raceT0) / 0.9)
@@ -3288,11 +3288,11 @@ ns.RegisterPage({
                     p.raceProg:SetWidth(cur)
                     if q >= 1 then p.raceT0 = nil end
                 end
-                -- Lichtstrahl laeuft den erreichten Teil entlang (Pause zwischen den Laeufen)
+                -- Light beam runs along the reached part (pause between runs)
                 if full and full > 40 and not p.raceT0 then
                     local ph = (tm % 3.6) / 2.2
                     if ph <= 1 then
-                        -- Komet: Kopf rechts am Laufpunkt, Schweif zieht nach links nach; Helligkeit ueber die Farbe
+                        -- Comet: head on the right at the run point, tail trails to the left; brightness via the color
                         local e = 1 - (1 - ph) * (1 - ph)
                         local tc = p.raceTC or C.mint
                         local k = 0.75 * math.sin(ph * math.pi)
@@ -3306,7 +3306,7 @@ ns.RegisterPage({
                 else
                     p.raceShine:SetAlpha(0)
                 end
-                -- Spitze: Funkel-Flipbook (4x4) + kleine Funken, die nach oben wegstieben
+                -- Tip: twinkle flipbook (4x4) + small sparks scattering upwards
                 local tc = p.raceTC or C.mint
                 local el = 0.033
                 if full and p.raceProg:IsShown() then
@@ -3337,7 +3337,7 @@ ns.RegisterPage({
                 else
                     p.raceTip:SetAlpha(0)
                 end
-                -- langsam aufsteigende Lichtteilchen im Hintergrund
+                -- slowly rising light particles in the background
                 local W, H = race:GetWidth() or 750, race:GetHeight() or 128
                 for _, s in ipairs(p.raceMotes) do
                     if s.life <= 0 then
@@ -3357,9 +3357,9 @@ ns.RegisterPage({
                         s.t:SetAlpha(1)
                     end
                 end
-                -- Schein hinter der Zielstufe atmet langsam
+                -- Glow behind the target level breathes slowly
                 if p.raceTarget:IsShown() then p.raceTarget:SetAlpha(0.75 + 0.25 * math.sin(tm * 1.6)) end
-                -- Zielstufe pulsiert sanft
+                -- Target level pulses softly
                 local ph = (tm % 2.2) / 2.2
                 for _, line in ipairs(p.raceLines) do
                     local pr = line.badge.pulseRing
@@ -3372,10 +3372,10 @@ ns.RegisterPage({
         end
     end,
     refresh = function(p)
-        -- 0.5.578: Abschnitte einzeln in /oa leistung (nur waehrend einer Messung)
+        -- 0.5.578: sections individually in /oa leistung (only during a measurement)
         local PT = ns.prof and debugprofilestop()
         local function PM(lbl) if PT and ns.prof then local t = debugprofilestop() ns.prof.add(nil, "Mitglieder: " .. lbl, t - PT) PT = t end end
-        -- 0.5.535: nur Filter gewechselt -> Liste neu, Kacheln/Gebiete/Klassen/Rollen bleiben (vorher ruckelte jeder Wechsel)
+        -- 0.5.535: only filter changed -> rebuild list, tiles/zones/classes/roles stay (previously every switch stuttered)
         local quick = p.onlyList
         p.onlyList = nil
         if p.seg and p.seg.value ~= filter then p.seg:Select(filter) end
@@ -3383,7 +3383,7 @@ ns.RegisterPage({
         if p.LayoutCols then p.LayoutCols(p.list:GetWidth()) end
         PM("Spalten")
         if p.seg and p.seg.isGlass and p.seg.buttons then
-            -- Zahlen an den Reitern: alle / online / inaktiv
+            -- Numbers on the tabs: all / online / inactive
             local nAll, nOn, nIn = 0, 0, 0
             local lim = ns.db.settings.inactiveDays or 30
             for _, m in ipairs(Radar.roster or {}) do
@@ -3425,10 +3425,10 @@ ns.RegisterPage({
         p.statOnline = ("|cff66db9e%d|r|cff888888 / %d %s|r"):format(Radar.online or 0, Radar.total or 0, L["online"])
         p.cards[2]:Set(Radar.total or 0, nil, nil, fresh)
         p.cards[3]:Set(Radar.withAddon or 1, nil, (Radar.online or 0) > 0 and (Radar.withAddon or 1) / Radar.online or nil, fresh)
-        -- Schnitt der Gegenstandsstufe aller, die sie per Oasis teilen
+        -- Average item level of all who share it via Oasis
         local gSum, gN = 0, 0
         local mine = Radar.myProfile and Radar.myProfile()
-        -- nur Level-60-Charaktere
+        -- only level 60 characters
         if mine and (tonumber(mine.ilvl) or 0) > 0 and (ns.safe(UnitLevel("player")) or 0) >= 60 then gSum, gN = gSum + mine.ilvl, gN + 1 end
         for _, m in ipairs(Radar.roster) do
             local pr = not ns.isMe(m.name) and (m.level or 0) >= 60 and (ns.db.members[m.name] or (m.aname and ns.db.members[m.aname]))
@@ -3441,7 +3441,7 @@ ns.RegisterPage({
             p.gearTxt = ("%.1f"):format(gSum / gN)
             p.cards[4].tip = nil
         else
-            -- noch keine 60er: wer passt gerade zum Questen (online, +-3 Level)?
+            -- no 60s yet: who fits for questing right now (online, +-3 levels)?
             local near, tip = 0, { L["Quest partners"], "|cff888888" .. L["online and within 3 levels of you"] .. "|r", " " }
             for _, m in ipairs(Radar.roster) do
                 if nearMe(m) then
@@ -3469,11 +3469,11 @@ ns.RegisterPage({
             p.zoneBar.stats:SetWidth(p.zoneBar.stats.t:GetStringWidth() + 4)
         end
         PM("Kacheln")
-        -- Zuletzt online: nur in der Online-Ansicht und wenn Platz ist
+        -- Last online: only in the online view and if there is room
         do
             local rc = p.recent
             local listH = (p:GetHeight() or 600) - 296 - 40
-            local show = false   -- ersetzt durch die Spalte "Zuletzt"
+            local show = false   -- replaced by the "Last" column
             local off = {}
             if show then
                 for _, m in ipairs(Radar.roster) do if not m.online and m.offDays then off[#off + 1] = m end end
@@ -3515,7 +3515,7 @@ ns.RegisterPage({
             p.list:SetPoint("BOTTOMRIGHT", p.listInset and -16 or 0, show and 100 or (p.listInset and 44 or 40))
         end
         PM("Last online")
-        -- Gebiete der Online-Mitglieder, meiste zuerst - 0.5.595 abgeschaltet
+        -- Zones of online members, most first - disabled in 0.5.595
         if false then
             local zb = p.zoneBar
             local cnt, order = {}, {}
@@ -3595,7 +3595,7 @@ ns.RegisterPage({
             p.compBar.lines = tip
             p.compCount:SetText(comp.total .. " |cff888888" .. L["online"] .. "|r")
             local R = comp.roles
-            -- wer hat welche Rolle (fuer die Tooltips)
+            -- who has which role (for the tooltips)
             local who = { tank = {}, heal = {}, dps = {} }
             if ns.Profile then
                 for _, m in ipairs(Radar.roster) do
@@ -3619,7 +3619,7 @@ ns.RegisterPage({
                 t.lbl:SetText(missing and ("|cffff5a4a" .. K.Upper(L["missing"]) .. "|r")
                     or (K.Upper(L[t.key == "tank" and "Tank" or t.key == "heal" and "Healer" or "Damage"]) .. (F.role == t.key and "  |cff66db9e" .. L["filter"] .. "|r" or "")))
                 if fresh then K.CountUp(t.num, n, 0.8) else t.num:SetText(n) end
-                -- fehlender Tank/Heiler: Kachel rot umrandet; gefilterte Rolle in ihrer Farbe
+                -- missing tank/healer: tile with red border; filtered role in its color
                 K.SetBorderColor(t, (F.role == t.key and t.color) or C.line)
                 local tc = missing and C.red or t.color
                 t.top:SetColorTexture(tc[1], tc[2], tc[3], missing and 1 or 0.9)
@@ -3627,7 +3627,7 @@ ns.RegisterPage({
                 local nc = missing and C.red or (n == 0 and C.dim or C.text)
                 t.num:SetTextColor(nc[1], nc[2], nc[3])
                 t.icon:SetAlpha(n == 0 and 0.45 or 1)
-                -- fehlende Rolle: ganze Kachel rot getoent, Kreis rot
+                -- missing role: whole tile tinted red, circle red
                 local bgc = missing and { C.red[1] * 0.22, C.red[2] * 0.22, C.red[3] * 0.22, 1 } or C.raised
                 t.bg:SetColorTexture(bgc[1], bgc[2], bgc[3], 1)
                 local dc = missing and C.red or t.color
@@ -3652,19 +3652,19 @@ ns.RegisterPage({
             end
         end
         PM("Gebiete/Klassen/Rollen")
-        -- Rennen separat zeichnen: Tabellen-/Gebietsaufbau und Avatare teilen sich kein Script-Zeitbudget.
+        -- Draw the race separately: table/zone build and avatars do not share a script time budget.
         p.raceRefresh = (p.raceRefresh or 0) + 1
         local raceRefresh = p.raceRefresh
         ns.After(0, function()
         if not p:IsVisible() or p.raceRefresh ~= raceRefresh then return end
         PT = ns.prof and debugprofilestop()
-        -- Level-Rennen: erreichte Stufen gruen, Plaetze 1-3 fest untereinander, offene zeigen, wer am naechsten dran ist
+        -- Level race: reached levels green, places 1-3 fixed stacked, open ones show who is closest
         local MEDAL = { "ffd24a", "c9d1ff", "d98a4a" }
-        -- jede Stufe eigene Farbe: Bronze, Silber, Gold, Smaragd, Saphir, Legendaer
+        -- each level its own color: bronze, silver, gold, emerald, sapphire, legendary
         local TIER = { { 0.85, 0.53, 0.27 }, { 0.80, 0.83, 0.90 }, { 1.00, 0.80, 0.25 }, { 0.30, 0.88, 0.50 }, { 0.35, 0.58, 1.00 }, { 1.00, 0.45, 0.10 } }
         local races = Radar.Race()
         PM("Rennen berechnen")
-        -- 0.5.626: nur neu zeichnen, wenn sich etwas geaendert hat (vorher bei jedem Seiten-Refresh ~0,4 s)
+        -- 0.5.626: only redraw if something changed (previously ~0.4 s on every page refresh)
         do
             local parts = { tostring(p.raceColW or 0), ns.db.settings.raceClosed and "c" or "o", ns.db.settings.noAnim and "n" or "a", tostring(ns.safe(UnitLevel("player")) or 0) }
             for _, r in ipairs(races) do
@@ -3685,7 +3685,7 @@ ns.RegisterPage({
         local top = 0
         for i, r in ipairs(races) do if #r.list > 0 then top = i end end
         if p.beam then
-            -- Energie fliesst durch den schon erreichten Teil (10 bis zur hoechsten erreichten Stufe)
+            -- Energy flows through the already reached part (10 up to the highest reached level)
             local first = p.raceLines[1]
             local reach = p.raceLines[top]
             if top >= 2 and first and reach and not (ns.db and ns.db.settings.noAnim) then
@@ -3719,7 +3719,7 @@ ns.RegisterPage({
                 b.glow:Hide()
                 b.pulse = nil
             end
-            -- 0.5.572: Stufen-Abzeichen statt Kreis (erreicht farbig, offen grau und blass)
+            -- 0.5.572: level badges instead of circle (reached colored, open grey and faded)
             local art = ns.LevelBadges and ns.LevelBadges.Exact(r.lvl, true)
             if art then
                 if not b.art then
@@ -3735,7 +3735,7 @@ ns.RegisterPage({
                 if b.lvl.Hide then b.lvl:Hide() end
                 b.glow:SetSize(70, 70)
             end
-            -- Linie zur naechsten Stufe: Farbverlauf zwischen den Stufenfarben, wenn beide erreicht
+            -- Line to the next level: gradient between the level colors if both reached
             if line.seg then
                 local nextDone = races[i + 1] and #races[i + 1].list > 0
                 local nc = TIER[i + 1] or tc
@@ -3752,17 +3752,17 @@ ns.RegisterPage({
                     if line.seg.SetGradient and CreateColor then pcall(line.seg.SetGradient, line.seg, "HORIZONTAL", CreateColor(1, 1, 1, 1), CreateColor(1, 1, 1, 1)) end
                 end
             end
-            -- Anzeige: erreicht -> Erster (Vorname) + Datum; die erste offene Stufe -> wer ist am naechsten dran
+            -- Display: reached -> first (first name) + date; the first open level -> who is closest
             local s1, s2, s3 = line.slots[1].name, line.slots[2].name, line.slots[3].name
             local tip = { (L["Level %d"]):format(r.lvl) }
             if done then
-                -- Siegertreppchen: nur wer eine bekannte Zeit hat, bekommt einen Platz (Gold, Silber, Bronze)
+                -- Podium: only those with a known time get a place (gold, silver, bronze)
                 local known = {}
                 for _, x in ipairs(r.list) do if x.ts > 0 then known[#known + 1] = x end end
                 local slots3 = { s1, s2, s3 }
                 for j = 1, 3 do slots3[j]:SetText("") end
                 if #known == 0 then
-                    -- wer zuerst da war, ist unbekannt -> nur zaehlen
+                    -- who was first is unknown -> only count
                     s1:SetText("|cff66db9e" .. (L["%d players"]):format(#r.list) .. "|r")
                     s2:SetText("|cff666666" .. L["reached"] .. "|r")
                 else
@@ -3777,7 +3777,7 @@ ns.RegisterPage({
                 end
                 for j, x in ipairs(r.list) do
                     if j > 10 then tip[#tip + 1] = "|cff777777" .. (L["+ %d more"]):format(#r.list - 10) .. "|r" break end
-                    -- Reihenfolge nur, wenn die Zeit bekannt ist; sonst einfach auflisten
+                    -- Order only if the time is known; otherwise simply list
                     tip[#tip + 1] = (x.ts > 0 and (j .. ".  ") or "·  ") .. Radar.Colored(x.name) .. (x.ts > 0 and ("  |cff888888" .. date(L["%m/%d %H:%M"], x.ts) .. "|r") or "")
                 end
             else
@@ -3791,7 +3791,7 @@ ns.RegisterPage({
                 end
                 if best then
                     if firstOpen then
-                    -- erste offene Stufe: wer als Naechstes ankommt
+                    -- first open level: who arrives next
                     s1:SetText(ns.colorName(firstOf(best.name), best.class))
                     s2:SetText("|cff777777" .. (L["Level %d"]):format(best.level) .. "|r")
                 end
@@ -3803,10 +3803,10 @@ ns.RegisterPage({
             b.tip = tip
             if fresh then K.FadeIn(b, 0.2 + i * 0.07) end
         end
-        -- Spitzenreiter und du auf der Strecke (zwischen den Stufen anteilig)
+        -- Leader and you on the track (proportionally between levels)
         if p.raceX0 then
-            -- Position auf der Strecke; nie auf einer Plakette (Abstand zu beiden Seiten), damit keine Zahl verdeckt wird
-            -- Strecke zwischen zwei Plaketten = von Rand zu Rand (Plakette 34 breit), Punkte 8 px Abstand zum Rand
+            -- Position on the track; never on a plaque (distance to both sides), so no number gets covered
+            -- Track between two plaques = edge to edge (plaque 34 wide), dots 8 px from the edge
             local function segStart(seg) return p.raceX0 + seg * p.raceColW + 17 end
             local function xOf(lv)
                 local t = math.max(0, math.min(5, ((lv or 1) - 10) / 10))
@@ -3818,9 +3818,9 @@ ns.RegisterPage({
             local lead
             for _, m in ipairs(Radar.roster) do if not lead or (m.level or 0) > (lead.level or 0) then lead = m end end
             local myLv = ns.safe(UnitLevel("player")) or 1
-            local badgeY = -63   -- Mitte der Plaketten (oben -46, 34 hoch)
+            local badgeY = -63   -- Center of the plaques (top -46, 34 high)
             if lead and (lead.level or 0) >= 10 then
-                -- nur das angefangene Teilstueck fuellen; ganze Strecken faerben schon die Segmente
+                -- only fill the started segment; full stretches are already colored by the segments
                 local lx, lseg = xOf(lead.level)
                 p.raceFill:ClearAllPoints()
                 p.raceFill:SetPoint("LEFT", p.race, "TOPLEFT", segStart(lseg), badgeY)
@@ -3838,8 +3838,8 @@ ns.RegisterPage({
                 p.raceFill:Hide()
                 p.leadMark:Hide()
             end
-            -- Online-Mitglieder AUF der Linie, Offline-Mitglieder ausgegraut darueber/darunter.
-            -- Nahe beieinander -> EIN Knoten mit Anzahl (sonst Knaeuel bei vielen auf aehnlicher Stufe).
+            -- Online members ON the line, offline members greyed out above/below.
+            -- Close together -> ONE node with count (otherwise a cluster with many at a similar level).
             for _, m in ipairs(p.onMarks) do m:Hide() end
             local function cluster(online)
                 local list = {}
@@ -3858,8 +3858,8 @@ ns.RegisterPage({
                 return groups
             end
             local mi = 0
-            -- jeder einzeln, klein und genau an seinem Level; gleiches Level -> senkrecht gestapelt
-            -- (online: auf der Linie, abwechselnd knapp darueber/darunter; offline: weiter aussen, ausgegraut)
+            -- each individually, small and exactly at their level; same level -> stacked vertically
+            -- (online: on the line, alternating just above/below; offline: further out, greyed out)
             local SZ = 11
             local function draw(groups, online)
                 local col = {}
@@ -3867,7 +3867,7 @@ ns.RegisterPage({
                     for _, o in ipairs(g.list) do
                         mi = mi + 1
                         local markerIndex = mi
-                        -- Pro Timer nur einen Marker aufbauen; alte Refresh-Auftraege verwerfen.
+                        -- Build only one marker per timer; discard old refresh jobs.
                         ns.After(markerIndex * 0.02, function()
                         if not p:IsVisible() or p.raceRefresh ~= raceRefresh then return end
                         local mk = p.OnMark(markerIndex)
@@ -3923,7 +3923,7 @@ ns.RegisterPage({
 })
 
 ------------------------------------------------------------------------
--- Start und Takt
+-- Start and tick
 ------------------------------------------------------------------------
 ns.Listen("LOGIN", function()
     ns.After(3, function()
@@ -3932,13 +3932,13 @@ ns.Listen("LOGIN", function()
         Comm.Guild("HELLOREQ")
     end)
     ns.Every(300, function() Radar.SendHello() end)
-    ns.Every(20, function() Radar.RequestRoster() end)   -- 0.5.788: 20 s statt 45 s (WoW erlaubt alle 10 s) - Online-Wechsel schneller bemerken
+    ns.Every(20, function() Radar.RequestRoster() end)   -- 0.5.788: 20 s instead of 45 s (WoW allows every 10 s) - notice online changes faster
 end)
 ns.On("SKILL_LINES_CHANGED", function() ns.After(2, function() Radar.SendHello() end) end)
 ns.On("ZONE_CHANGED_NEW_AREA", function() ns.After(3, function() Radar.SendHello() end) end)
 ns.On("PLAYER_GUILD_UPDATE", function() ns.After(2, Radar.RequestRoster) end)
--- 0.6.376: frisch einer Gilde beigetreten -> sofort mit Oasis melden und den Gildenstand holen (sonst erst
--- beim naechsten Login bzw. nach bis zu 5 Min sichtbar)
+-- 0.6.376: just joined a guild -> report with Oasis immediately and fetch the guild state (otherwise only
+-- visible on the next login or after up to 5 min)
 do
     local wasIn
     ns.Listen("LOGIN", function() wasIn = IsInGuild() end)
@@ -3954,8 +3954,8 @@ do
         end
         wasIn = now
     end)
-    -- 0.6.402: Sicherheitsnetz - alle 5 Min Online-Mitglieder ohne jede Oasis-Meldung einmal pro Sitzung leise
-    -- fragen (erkennt auch, wer Oasis erst waehrend des Spielens einschaltet); hoechstens 5 je Runde, versetzt
+    -- 0.6.402: safety net - every 5 min quietly ask online members without any Oasis report once per session
+    -- (also detects who enables Oasis only while playing); at most 5 per round, staggered
     local askedNet = {}
     ns.Listen("LOGIN", function()
         ns.Every(300, function()
@@ -3975,14 +3975,14 @@ do
             end
         end)
     end)
-    -- jemand ist der Gilde beigetreten: gezielt fragen, ob er Oasis hat (Antwort = sein Profil)
+    -- someone joined the guild: ask specifically whether they have Oasis (answer = their profile)
     local JOIN = ERR_GUILD_JOIN_S and ERR_GUILD_JOIN_S:gsub("%%s", "(.+)"):gsub("%.", "%%.")
     ns.On("CHAT_MSG_SYSTEM", function(msg)
         msg = ns.safe(msg)
         if not (JOIN and type(msg) == "string") then return end
         local who = msg:match("^" .. JOIN .. "$")
         if not who or ns.isMe(who) then return end
-        -- erst die Gildenliste holen, damit seine Antwort als "aus der Gilde" erkannt wird
+        -- fetch the guild roster first so their answer is recognized as "from the guild"
         Radar.RequestRoster()
         ns.After(3, Radar.RequestRoster)
         ns.After(8, function()
@@ -3993,7 +3993,7 @@ do
 end
 ns.Listen("MAIN_SHOWN", function() Radar.RequestRoster() end)
 
--- Filter von aussen setzen (z.B. Uebersicht -> "Inaktiv")
+-- Set filter from outside (e.g. overview -> "Inactive")
 function Radar.SetFilter(k)
     filter = k
     ns.RefreshPage("radar", true)

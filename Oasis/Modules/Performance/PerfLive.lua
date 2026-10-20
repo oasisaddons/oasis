@@ -1,17 +1,17 @@
--- Oasis - Live-Leistungsmesser (Einstellungen > Profil & Daten > Leistung)
--- Zeigt in Echtzeit, wie viel Rechenzeit Oasis gerade braucht: grosse Zahl, Kurve ueber die letzten Minuten, Spitze, Sitzungsschnitt, Speicher.
--- Datenquelle: Blizzards Addon-Profiler (C_AddOnProfiler) - misst das ganze Addon (Fenster, Ereignisse, Timer), nicht nur die Oasis-Funktionen.
--- Gemessen wird nur, solange der Reiter offen ist (ein Aufruf pro Sekunde, praktisch gratis).
+-- Oasis - live performance meter (Settings > Profile & Data > Performance)
+-- Shows in real time how much CPU time Oasis is using: big number, curve over the last minutes, peak, session average, memory.
+-- Data source: Blizzard's addon profiler (C_AddOnProfiler) - measures the whole addon (windows, events, timers), not just the Oasis functions.
+-- Measured only while the tab is open (one call per second, practically free).
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Performance", function()   -- Modul Leistungsmessung (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Performance", function()   -- Performance measurement module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
 local PERF = {}
 ns.PerfLive = PERF
 
-local MAXN = 300                       -- Sekunden Verlauf
-local hist = {}                        -- ms je Bild (RecentAverageTime), je Sekunde ein Wert
+local MAXN = 300                       -- seconds of history
+local hist = {}                        -- ms per frame (RecentAverageTime), one value per second
 local histMem = {}                     -- MB
 local paused, windowSec = false, 120
 local ADDONS = { ADDON, "Oasis_Guild" }
@@ -39,7 +39,7 @@ local function memMB()
     return sum / 1024
 end
 
--- Farbe nach Rechenzeit je Bild: bis 0,5 ms ruhig, bis 1,5 ms merklich, darueber viel
+-- color by CPU time per frame: up to 0.5 ms calm, up to 1.5 ms noticeable, above that a lot
 local function level(ms)
     if ms < 0.5 then return C.mint, L["calm"] end
     if ms < 1.5 then return C.amber, L["noticeable"] end
@@ -57,7 +57,7 @@ local function build(f)
         return
     end
 
-    -- Kopf: grosse Zahl + Einordnung ------------------------------------------------------
+    -- Header: big number + rating ------------------------------------------------------
     local top = H.cardH(f, 0, 0, W, 124, "stats", L["Compute time now"], L["Live, updated every second - Oasis and guild module combined"])
     top:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, 0)
     f.big = K.Title(top, 34, C.text)
@@ -67,7 +67,7 @@ local function build(f)
     f.unit:SetText(L["ms per frame"])
     f.state = K.Text(top, 12, C.text)
     f.state:SetPoint("TOPLEFT", f.big, "BOTTOMLEFT", 2, -4)
-    -- rechts im Kopf: vier Kennzahlen
+    -- right in the header: four stats
     f.tiles = {}
     local TILES = { { "peak", L["Peak"] }, { "avg", L["Session avg"] }, { "mem", L["Memory"] }, { "fps", L["Frames / sec"] } }
     for i, t in ipairs(TILES) do
@@ -130,7 +130,7 @@ local function build(f)
     g:SetScript("OnEnter", function(self)
         self:SetScript("OnUpdate", function() PERF.Hover(f) end)
     end)
-    -- unter dem Graph: Legende / Aktion
+    -- below the graph: legend / action
     f.legend = K.Text(gc, 11, C.muted)
     f.legend:SetPoint("BOTTOMLEFT", gc, "BOTTOMLEFT", 16, 12)
     f.report = K.Button(gc, L["Report (60 s)"], 150, 22, "ghost", function() if ns.PerfStart then ns.PerfStart(60) end end)
@@ -140,7 +140,7 @@ local function build(f)
     PERF.Draw(f)
 end
 
--- eine Messung ----------------------------------------------------------------------------
+-- one measurement ----------------------------------------------------------------------------
 function PERF.Sample(f)
     if paused then return end
     local ms = metric("RecentAverageTime")
@@ -151,11 +151,11 @@ function PERF.Sample(f)
     PERF.Draw(f)
 end
 
--- 0.5.779: Zeitachse fest (rechts = jetzt, links = Fensterbeginn) und geglaettete Kurve. Vorher wurden wenige Punkte ueber die ganze
--- Breite gezogen und die Flaeche bestand aus breiten Saeulen - das sah stufig aus.
-local STEP = 3   -- Pixel je Saeule der Flaeche; die Linie nimmt jeden zweiten Punkt
+-- 0.5.779: fixed time axis (right = now, left = window start) and smoothed curve. Before, a few points were stretched across the whole
+-- width and the area consisted of wide columns - that looked steppy.
+local STEP = 3   -- pixels per column of the area; the line takes every second point
 
--- x-Position einer Stichprobe i (1..n) im festen Zeitfenster
+-- x position of sample i (1..n) in the fixed time window
 local function xOf(g, i, n)
     local w = g:GetWidth()
     local slot = windowSec - n + i
@@ -164,7 +164,7 @@ end
 local function yOf(g, v, vmax)
     return math.max(1, v / vmax * (g:GetHeight() - 6))
 end
--- geglaetteter Wert an der gebrochenen Stelle t (1..n): Catmull-Rom durch die Stichproben, nie unter 0
+-- smoothed value at the fractional position t (1..n): Catmull-Rom through the samples, never below 0
 local function valAt(first, n, t)
     local i = math.floor(t)
     if i >= n then return hist[first + n - 1] end
@@ -174,7 +174,7 @@ local function valAt(first, n, t)
     local p0 = hist[first + math.max(1, i - 1) - 1]
     local p3 = hist[first + math.min(n, i + 2) - 1]
     local v = 0.5 * ((2 * p1) + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (-p0 + 3 * p1 - 3 * p2 + p3) * u * u * u)
-    -- Ueberschwinger begrenzen: nie ausserhalb der beiden Nachbarwerte um mehr als deren Abstand
+    -- limit overshoot: never outside the two neighbor values by more than their distance
     local lo, hi = math.min(p1, p2), math.max(p1, p2)
     local pad = (hi - lo) * 0.15
     if v < lo - pad then v = lo - pad elseif v > hi + pad then v = hi + pad end
@@ -186,7 +186,7 @@ function PERF.Draw(f)
     if not g or not f.big then return end
     local n = math.min(#hist, windowSec)
     local cur = hist[#hist]
-    -- Zahlen
+    -- Numbers
     if cur then
         local col, word = level(cur)
         f.big:SetText(("%.2f"):format(cur))
@@ -213,7 +213,7 @@ function PERF.Draw(f)
     local vmax = 0.2
     for i = first, #hist do if hist[i] > vmax then vmax = hist[i] end end
     vmax = vmax * 1.25
-    -- Hilfslinien
+    -- Guide lines
     for i = 1, 3 do
         local v = vmax * i / 3
         local y = v / vmax * (g:GetHeight() - 6)
@@ -226,7 +226,7 @@ function PERF.Draw(f)
         g.gridTx[i]:SetText(("%.2f ms"):format(v))
         g.gridTx[i]:Show()
     end
-    -- Flaeche (schmale Saeulen) und Kurve (kurze Linienstuecke), beide aus der geglaetteten Kurve
+    -- area (narrow columns) and curve (short line segments), both from the smoothed curve
     local col = level(cur or 0)
     local w = g:GetWidth()
     local x1 = xOf(g, 1, n)
@@ -274,7 +274,7 @@ function PERF.Draw(f)
     g.n, g.first, g.vmax = n, first, vmax
 end
 
--- Maus ueber dem Graph: Fadenkreuz, Punkt und Einzelwert
+-- mouse over the graph: crosshair, dot and single value
 function PERF.Hover(f)
     local g = f.g
     if not g or not g.n or g.n < 2 then return end
@@ -304,7 +304,7 @@ function PERF.Hover(f)
     g.read:Show()
 end
 
--- ein Messwert pro Sekunde, nur solange der Reiter sichtbar ist
+-- one sample per second, only while the tab is visible
 local tabFrame
 ns.Every(1, function()
     if tabFrame and tabFrame:IsVisible() then PERF.Sample(tabFrame) end

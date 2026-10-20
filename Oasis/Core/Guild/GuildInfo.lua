@@ -1,5 +1,5 @@
--- Oasis: Dashboard (Startseite) - Helden-Banner mit Ladebildschirm, Kacheln, Wer ist online,
--- Was gerade passiert, Als Naechstes; dazu Blizzard-Gildendaten (MOTD, Info, News als Chronik, Kalender)
+-- Oasis: dashboard (start page) - hero banner with loading screen, tiles, who is online,
+-- what is happening, up next; plus Blizzard guild data (MOTD, info, news as chronicle, calendar)
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
@@ -8,18 +8,18 @@ local Info = {}
 ns.GuildInfo = Info
 
 ------------------------------------------------------------------------
--- Blizzard-Daten
+-- Blizzard data
 ------------------------------------------------------------------------
 local cachedMOTD, cachedInfoText = "", ""
 function Info.MOTD()
-    -- Forever sperrt diese Gildenabfragen im Kampf, auch innerhalb von pcall.
+    -- Forever blocks these guild queries in combat, even inside pcall.
     if ns.inCombat() then return cachedMOTD end
     local m = C_GuildInfo and C_GuildInfo.GetMOTD and C_GuildInfo.GetMOTD() or (GetGuildRosterMOTD and GetGuildRosterMOTD())
     cachedMOTD = ns.safe(m) or ""
     return cachedMOTD
 end
--- Gildennachricht im Spiel bearbeiten (nur mit Recht CanEditMOTD)
--- NIE "StaticPopupDialogs = ..." zuweisen: das verseucht Blizzards Dialogliste -> Esc/Ausloggen blockiert (0.5.478)
+-- Edit the guild message of the day in game (only with permission CanEditMOTD)
+-- NEVER assign "StaticPopupDialogs = ...": that taints Blizzard's dialog list -> Esc/logout blocked (0.5.478)
 StaticPopupDialogs["OASIS_EDIT_MOTD"] = {
     text = "%s", button1 = OKAY or "OK", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 128,
     OnShow = function(self) local eb = self.editBox or self.EditBox if eb then eb:SetText(Info.MOTD()) eb:HighlightText() end end,
@@ -54,7 +54,7 @@ function Info.Reputation()
     return d
 end
 
--- Blizzard-News: Typen laut Blizzard-Konstanten (mit Rueckfall auf die bekannten Zahlen)
+-- Blizzard news: types per Blizzard constants (falling back to the known numbers)
 local NT = {
     looted = NEWS_ITEM_LOOTED or 0, crafted = NEWS_ITEM_CRAFTED or 1, purchased = NEWS_ITEM_PURCHASED or 2,
     guildAch = NEWS_GUILD_ACHIEVEMENT or 4, playerAch = NEWS_PLAYER_ACHIEVEMENT or 5,
@@ -80,7 +80,7 @@ function Info.News()
     return out
 end
 
--- News lokal in die Chronik uebernehmen (alle sehen dieselben News, daher kein Versand)
+-- Take news locally into the chronicle (everyone sees the same news, so nothing is sent)
 local function importNews()
     for _, n in ipairs(Info.News()) do
         local id = ("news-%d-%s-%s-%s"):format(n.type, date("%y%m%d", n.ts), n.who, tostring(n.data or n.what:match("item:(%d+)") or n.what:sub(1, 20)))
@@ -92,11 +92,11 @@ local function importNews()
 end
 ns.On("GUILD_NEWS_UPDATE", function() ns.After(1, importNews) ns.RefreshPage("home") end)
 ns.On("GUILD_MOTD", function() ns.RefreshPage("home") end)
--- Gildenliste kommt nach Login/Reload erst verzoegert -> "Wer ist online" danach neu zeichnen (0.5.536)
+-- Guild roster arrives delayed after login/reload -> redraw "Who is online" afterwards (0.5.536)
 ns.Listen("ROSTER", function() ns.Debounce("homeRoster", 1, function() ns.RefreshPage("home") end) end)
 
 ------------------------------------------------------------------------
--- Kalender (Blizzard-Gildentermine)
+-- Calendar (Blizzard guild events)
 ------------------------------------------------------------------------
 function Info.CalendarEvents()
     local out = {}
@@ -113,7 +113,7 @@ end
 ns.On("CALENDAR_UPDATE_GUILD_EVENTS", function() ns.RefreshPage("home") ns.RefreshPage("raid") end)
 
 ------------------------------------------------------------------------
--- Inaktive Mitglieder
+-- Inactive members
 ------------------------------------------------------------------------
 function Info.Inactive(days)
     days = days or ns.db.settings.inactiveDays or 30
@@ -126,7 +126,7 @@ function Info.Inactive(days)
 end
 
 ------------------------------------------------------------------------
--- Daten fuer das Dashboard
+-- Data for the dashboard
 ------------------------------------------------------------------------
 local KIND_COLOR = {
     level = C.blue, loot = C.pink, legacy = C.violet, boss = C.amber, guild = C.mint,
@@ -137,7 +137,7 @@ local KIND_ICON = {
     duel = "deathroll", badge = "badges", news = "chronicle",
 }
 
--- Vorschlaege "Fuer dich"
+-- Suggestions "For you"
 local function suggestions()
     local out = {}
     local lvl = ns.safe(UnitLevel("player")) or 0
@@ -195,7 +195,7 @@ local function suggestions()
     return out
 end
 
--- "Als Naechstes": Events (mit Zusagen), Double XP, Geburtstage, offene Gruppensuchen
+-- "Up next": events (with sign-ups), Double XP, birthdays, open group searches
 local function signupInfo(ev)
     if not (ns.Raid and ev.id and not ev.cal) then return "" end
     local n, t, h = 0, 0, 0
@@ -261,7 +261,7 @@ local function upcoming()
     return out
 end
 
--- Restzeit kurz: "2T 4h" / "3h 05m" / "12m" / "jetzt"
+-- Short remaining time: "2T 4h" / "3h 05m" / "12m" / "jetzt"
 local function countdown(sec)
     sec = math.floor(sec or 0)
     if sec <= 0 then return L["now"] end
@@ -270,7 +270,7 @@ local function countdown(sec)
     if h > 0 then return (L["%dh %02dm"]):format(h, m) end
     return (L["%dm"]):format(math.max(1, m))
 end
--- naechster Raid (sonst naechster Termin)
+-- next raid (otherwise next event)
 local function nextRaid()
     local now, first = ns.now(), nil
     for _, e in ipairs(eventList()) do
@@ -281,7 +281,7 @@ local function nextRaid()
     end
     return first, false
 end
--- ungelesene Gildenchat-Nachrichten (aus dem Navigations-Abzeichen)
+-- unread guild chat messages (from the navigation badge)
 local function chatUnread()
     local s = tostring(ns._badges and ns._badges.chat or "")
     return tonumber(s:match("(%d+)")) or 0, s:find("@", 1, true) ~= nil
@@ -294,16 +294,16 @@ local function greeting()
 end
 
 ------------------------------------------------------------------------
--- Banner-Hintergrund: Blizzard-Ladebildschirme aus dem Client
+-- Banner background: Blizzard loading screens from the client
 ------------------------------------------------------------------------
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local EMBER = ns.MEDIA .. "ember"
 local LS = "Interface\\Glues\\LoadingScreens\\"
 local CAM = LS .. "camelot160\\main\\loadscreen_camelot_"
--- { Pfad, Seitenverhaeltnis, Bildmitte senkrecht }
+-- { path, aspect ratio, vertical image center }
 local BG = {
-    oasis = { ns.MEDIA .. "dash_banner", 3, 0.5, 342 / 512 },   -- eigenes Oasis-Banner Horde (Bild nur im oberen Teil der Datei)
-    oasisally = { ns.MEDIA .. "dash_banner_ally", 2000 / 654, 0.5, 335 / 512 },   -- dasselbe mit Allianz-Bannern
+    oasis = { ns.MEDIA .. "dash_banner", 3, 0.5, 342 / 512 },   -- own Oasis banner Horde (image only in the upper part of the file)
+    oasisally = { ns.MEDIA .. "dash_banner_ally", 2000 / 654, 0.5, 335 / 512 },   -- the same with Alliance banners
     kalimdor = { CAM .. "kalimdor", 16 / 9, 0.45 },
     east = { CAM .. "easternkingdom", 16 / 9, 0.45 },
     lordaeron = { CAM .. "ruinsoflordaeron", 16 / 9, 0.45 },
@@ -319,8 +319,8 @@ local BG_NAMES = {
 }
 
 local function S() return ns.db and ns.db.settings or {} end
--- Midas-Banner (0.5.927): eigene Wahl gilt (settings.hideMidasAd true = aus, false = an). Ohne Wahl: in der oeffentlichen
--- Version AUS (Werbung im Spiel soll niemand ungefragt sehen - CurseForge-Regeln), mit Gildenmodul wie bisher an.
+-- Midas banner (0.5.927): own choice applies (settings.hideMidasAd true = off, false = on). Without a choice: in the public
+-- version OFF (nobody should see in-game ads unasked - CurseForge rules), with the guild module on as before.
 local function adWanted()
     local h = S().hideMidasAd
     if h == true then return false elseif h == false then return true end
@@ -329,7 +329,7 @@ end
 local function animOn() return not S().noAnim end
 local function moving() return animOn() and S().dashStill ~= true end
 
--- bekannt im Client? true/false, nil = nicht pruefbar
+-- known in the client? true/false, nil = not checkable
 local function fileKnown(path)
     if not GetFileIDFromPath then return nil end
     local ok, id = pcall(GetFileIDFromPath, path)
@@ -348,7 +348,7 @@ local function bgOrder()
     end
     return base
 end
--- Textur setzen: erst Dateien, die der Client sicher kennt, dann alles, was SetTexture annimmt
+-- Set texture: first files the client surely knows, then anything SetTexture accepts
 local function pickBackground(tex)
     local order = bgOrder()
     local anyCheck = false
@@ -360,7 +360,7 @@ local function pickBackground(tex)
             if ok and r ~= false then return k end
         end
     end
-    -- Pruef-API fehlt oder kennt nichts davon: auf die Rueckgabe von SetTexture verlassen
+    -- Check API missing or knows none of them: rely on the return value of SetTexture
     for _, k in ipairs(order) do
         if not anyCheck or fileKnown(BG[k][1]) == nil then
             local ok, r = pcall(tex.SetTexture, tex, BG[k][1])
@@ -390,7 +390,7 @@ ns.Probes.dashboard = function()
         ns.print("  PlayerModel: nicht verfuegbar (" .. tostring(mdl) .. ")")
     end
     ns.print("  gewaehlt: " .. tostring(pickBackground(t)) .. "  (Einstellung: " .. tostring(S().dashBg or "auto") .. ")")
-    -- Held der Woche
+    -- Hero of the week
     local okS, list = pcall(Info.HeroScores)
     list = okS and list or {}
     ns.print(("  Held der Woche: %d Kandidaten (Chronik 7 Tage)%s"):format(#list, okS and "" or ("  FEHLER " .. tostring(list))))
@@ -422,11 +422,11 @@ ns.Probes.dashboard = function()
 end
 
 ------------------------------------------------------------------------
--- Bausteine
+-- Building blocks
 ------------------------------------------------------------------------
 local function box(parent, title, color)
     local f = K.Panel(parent, C.panel)
-    if f.bg then f.bg:SetAlpha(0.8) end   -- leicht durchscheinend: Dashboard-Hintergrundbild schimmert durch
+    if f.bg then f.bg:SetAlpha(0.8) end   -- slightly translucent: dashboard background image shimmers through
     f.head = K.GameHead(f, title, color)
     f.head:SetPoint("TOPLEFT", 12, -12)
     f.head:SetPoint("RIGHT", -12, 0)
@@ -434,7 +434,7 @@ local function box(parent, title, color)
 end
 local function ease(t) return 1 - (1 - t) ^ 3 end
 
--- Klickmenue zu einem Mitglied (wie in der Mitgliederliste)
+-- Click menu for a member (like in the member list)
 local function memberMenu(owner, m)
     if not m then return end
     local items = {}
@@ -452,8 +452,8 @@ local function memberMenu(owner, m)
     K.ShowMenu(owner, items, ns.displayName(m.name), 150)
 end
 
--- genau EIN Klassensymbol: Atlas "classicon-<klasse>" (falls der Client ihn kennt), sonst Ausschnitt
--- aus dem Symbolblatt; false = nichts Passendes (dann Buchstabe in Klassenfarbe)
+-- exactly ONE class icon: atlas "classicon-<class>" (if the client knows it), otherwise a crop
+-- from the icon sheet; false = nothing suitable (then a letter in class color)
 local CLASS_SHEET = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes"
 local knownAtlases = {}
 local function atlasKnown(a)
@@ -469,8 +469,8 @@ local function setClassIcon(tex, class)
     if tex.SetAtlas and atlasKnown(atlas) and pcall(tex.SetAtlas, tex, atlas) then return true end
     local tc = CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[class]
     if tc then
-        -- maskierte Texturen (runde Avatare) duerfen keinen Ausschnitt setzen -> dann lieber Buchstabe
-        if tex.oasisSafeTC then return false end   -- maskiert: Ausschnitt wuerde still ignoriert (ganzes Symbolblatt)
+        -- masked textures (round avatars) must not set a crop -> rather use a letter then
+        if tex.oasisSafeTC then return false end   -- masked: a crop would be silently ignored (whole icon sheet)
         local okTC = pcall(tex.SetTexCoord, tex, tc[1] + 0.015, tc[2] - 0.015, tc[3] + 0.015, tc[4] - 0.015)
         if not okTC then return false end
         tex:SetTexture(CLASS_SHEET)
@@ -480,7 +480,7 @@ local function setClassIcon(tex, class)
 end
 Info.SetClassIcon = setClassIcon
 
--- runder Klassenkreis fuer "Wer ist online"
+-- round class circle for "Who is online"
 local function memberCell(parent)
     local c = CreateFrame("Button", nil, parent)
     c:SetSize(48, 58)
@@ -499,15 +499,15 @@ local function memberCell(parent)
     c.inner:SetVertexColor(0.07, 0.07, 0.08)
     c.inner:SetSize(36, 36)
     c.inner:SetPoint("CENTER", c.ring)
-    -- Klassensymbol OHNE Maske: mit Kreismaske ignorierte der Client den Ausschnitt (SetTexCoord)
-    -- und zeigte das komplette Symbolblatt aller Klassen. Quadrat passt in den inneren Kreis.
+    -- Class icon WITHOUT mask: with a circle mask the client ignored the crop (SetTexCoord)
+    -- and showed the full icon sheet of all classes. A square fits into the inner circle.
     c.icon = c:CreateTexture(nil, "ARTWORK", nil, 1)
     c.icon:SetSize(24, 24)
     c.icon:SetPoint("CENTER", c.ring)
     c.letter = K.Title(c, 15, C.text, "CENTER")
     c.letter:SetPoint("CENTER", c.ring)
-    -- 0.6.178: Ornament-Ring (Gildenmodul) statt Farbkreis; Klassensymbol fuellt die Oeffnung (ohne Maske -
-    -- Ecken liegen unter dem Ring). Oeffnung ~74 %, Ring bis ~90 % des Bildes.
+    -- 0.6.178: ornament ring (guild module) instead of color circle; class icon fills the opening (without mask -
+    -- corners lie under the ring). Opening ~74 %, ring up to ~90 % of the image.
     if ns.GuildPack then
         c.frame = c:CreateTexture(nil, "OVERLAY", nil, 1)
         c.frame:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\online_ring")
@@ -552,7 +552,7 @@ local function memberCell(parent)
     c:RegisterForClicks("AnyUp")
     c:SetScript("OnClick", function(self, btn)
         if self.more then ns.ShowPage("radar") return end
-        -- Rechtsklick = volles Mitglieder-Menue (wie in der Mitgliederliste), Linksklick = Schnellmenue
+        -- Right-click = full member menu (like in the member list), left-click = quick menu
         if btn == "RightButton" and self.member and ns.Members and ns.Members.ShowMenu then
             GameTooltip:Hide()
             ns.Members.ShowMenu(self, self.member)
@@ -560,7 +560,7 @@ local function memberCell(parent)
         end
         memberMenu(self, self.member)
     end)
-    -- Groesse je nach Anzahl: 44 (mit Name), 34 (Kurzname), 26 (ohne Name, Name im Tooltip)
+    -- Size by count: 44 (with name), 34 (short name), 26 (no name, name in tooltip)
     c.mode = 44
     function c:SetMode(s)
         if self.modeSet == s then return end
@@ -573,7 +573,7 @@ local function memberCell(parent)
         self.inner:SetSize(s - 4, s - 4)
         self.icon:SetSize(math.floor(s * 0.6), math.floor(s * 0.6))
         if self.frame then
-            local f = math.floor(s * 0.86)   -- etwas kleiner als der alte Kreis
+            local f = math.floor(s * 0.86)   -- slightly smaller than the old circle
             self.frame:SetSize(f, f)
             self.ring:SetAlpha(0)
             self.inner:SetSize(math.floor(f * 0.76), math.floor(f * 0.76))
@@ -640,8 +640,8 @@ local function memberCell(parent)
     return c
 end
 
--- Leerzustand: Symbol + kurzer Satz + Aktionsknoepfe, kompakt oben im Kasten
--- acts = { { "Text", "seite" oder function }, ... }
+-- Empty state: icon + short sentence + action buttons, compact at the top of the box
+-- acts = { { "Text", "page" or function }, ... }
 local function emptyState(parent, icon, color, text, acts)
     local f = CreateFrame("Frame", nil, parent)
     f:SetHeight(64)
@@ -684,7 +684,7 @@ local function emptyState(parent, icon, color, text, acts)
     return f
 end
 
--- Glas-Kaertchen (Durchsage / Nachricht des Tages) unten rechts im Banner
+-- Glass card (announcement / message of the day) bottom right in the banner
 local function glassCard(parent)
     local m = CreateFrame("Button", nil, parent)
     m:SetSize(250, 58)
@@ -717,13 +717,13 @@ local function glassCard(parent)
     return m
 end
 
--- 3D-Modell des eigenen Charakters (freigestellt, per Ziehen drehbar); nil, wenn der Client keins kann
+-- 3D model of the own character (cut out, rotatable by dragging); nil if the client cannot do it
 local function heroModel(parent)
     if not CreateFrame then return nil end
     local ok, mdl = pcall(CreateFrame, "PlayerModel", nil, parent)
     if not ok or not mdl or not mdl.SetUnit then return nil end
     mdl.rot = -0.35
-    -- self.look = { race, sex } (Held ohne greifbare Einheit) oder self.unit (Standard: eigener Charakter)
+    -- self.look = { race, sex } (hero without an available unit) or self.unit (default: own character)
     function mdl:Apply()
         pcall(self.ClearModel, self)
         local okU
@@ -739,7 +739,7 @@ local function heroModel(parent)
         pcall(self.SetPosition, self, 0, 0, -0.05)
         if self.SetRotation then pcall(self.SetRotation, self, self.rot) elseif self.SetFacing then pcall(self.SetFacing, self, self.rot) end
         pcall(self.SetAnimation, self, 0)
-        -- weiches Licht von vorne links (nur wenn der Client die neue Licht-API hat)
+        -- soft light from front left (only if the client has the new light API)
         if self.SetLight and CreateVector3D and CreateColor then
             pcall(self.SetLight, self, true, {
                 omnidirectional = false, point = CreateVector3D(-0.6, 1, -0.6),
@@ -769,7 +769,7 @@ local function heroModel(parent)
     end)
     mdl:SetScript("OnMouseUp", function(self, btn)
         self:SetScript("OnUpdate", nil)
-        -- kurzer Klick (ohne Drehen) auf den Helden: Profilkarte
+        -- short click (without rotating) on the hero: profile card
         if self.who and btn == "LeftButton" and (self.moved or 0) < 4 and ns.Profile and ns.Profile.Show then ns.Profile.Show(self.who) end
     end)
     mdl:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
@@ -786,10 +786,10 @@ local function heroModel(parent)
 end
 
 ------------------------------------------------------------------------
--- Seite: Dashboard
+-- Page: dashboard
 ------------------------------------------------------------------------
--- Wer ist online: EINE Liste fuer Kachel, Kopfzeile und Raster (eigener Charakter zaehlt immer mit)
--- (auch beim Anordnen aufrufbar - vorher konnte das Raster vor dem ersten Fuellen "niemand online" zeigen)
+-- Who is online: ONE list for tile, header and grid (own character always counts)
+-- (also callable during layout - before, the grid could show "nobody online" before the first fill)
 local function computeOnline()
     local R = ns.Radar or {}
     local ok, res = pcall(function()
@@ -817,16 +817,16 @@ local function computeOnline()
         return on
     end)
     if ok and type(res) == "table" then return res end
-    -- Notfall: wenigstens ich selbst
+    -- Emergency: at least myself
     local okMe, myName = pcall(ns.me)
     local _, cf = UnitClass("player")
     return { { name = okMe and myName or "?", online = true, class = ns.safe(cf), level = ns.safe(UnitLevel("player")), zone = "" } }
 end
 
 ------------------------------------------------------------------------
--- WOW-Daten: Held der Woche, Raid-Countdown, Begruessung, Gilden-Puls, Tagesziel, Rekorde
+-- WOW data: hero of the week, raid countdown, greeting, guild pulse, daily goal, records
 ------------------------------------------------------------------------
-local STRIDE = 1.6   -- Meter je Schritt (wie Insta.lua CH.STRIDE)
+local STRIDE = 1.6   -- Meters per step (like Insta.lua CH.STRIDE)
 local function fmtNum(n)
     n = math.floor(tonumber(n) or 0)
     return BreakUpLargeNumbers and BreakUpLargeNumbers(n) or tostring(n)
@@ -839,7 +839,7 @@ local function isMember(name)
     return (R and R.byName and R.byName[name] ~= nil) or (ns.db.members and type(ns.db.members[name]) == "table") or false
 end
 
--- Held der Woche: Punkte aus der Chronik der letzten 7 Tage (bei allen gleich), Gleichstand -> Name
+-- Hero of the week: points from the chronicle of the last 7 days (same for everyone), tie -> name
 local HERO_PTS = { level = 3, boss = 5, loot = 2, badge = 4, rank = 2, legacy = 4, duel = 1 }
 local HERO_TXT = { { "level", "%d level-ups", "1 level-up" }, { "boss", "%d bosses", "1 boss" }, { "badge", "%d badges" }, { "loot", "%d loot" },
     { "legacy", "%d legacy challenges", "1 legacy challenge" }, { "rank", "%d rank-ups", "1 rank-up" }, { "duel", "%d deathrolls" } }
@@ -875,7 +875,7 @@ function Info.Hero()
         h.reason = table.concat(parts, "  ·  ")
         return h
     end
-    -- ruhige Woche: hoechste Oasis-Rang-XP laut Profil (fuer alle gleich)
+    -- quiet week: highest Oasis rank XP per profile (same for everyone)
     local best
     for name, pr in pairs(ns.db.members or {}) do
         local x = type(pr) == "table" and tonumber(pr.orx)
@@ -888,8 +888,8 @@ function Info.Hero()
     if not lvl and ns.Rank and ns.Rank.LevelFor then lvl = select(1, ns.Rank.LevelFor(best.xp)) end
     return { name = best.name, score = 0, n = {}, reason = (L["Oasis rank %d"]):format(lvl or 0), byRank = true }
 end
--- Pechvogel der Woche: meiste Tode der letzten 7 Tage (Gegenstueck zum Helden)
--- exclude: diesen Namen ueberspringen (0.6.317: ist der Held auch der mit den meisten Toden, kommt der naechste)
+-- Unlucky one of the week: most deaths in the last 7 days (counterpart to the hero)
+-- exclude: skip this name (0.6.317: if the hero also has the most deaths, the next one comes)
 function Info.Unlucky(exclude)
     local since, by, best = ns.now() - 7 * 86400, {}, nil
     for _, d in ipairs((ns.Deaths and ns.Deaths.List and ns.Deaths.List()) or Store.List("deaths")) do
@@ -908,7 +908,7 @@ function Info.Unlucky(exclude)
     best.reason = (best.n == 1 and L["1 death"] or (L["%d deaths"]):format(best.n)) .. (kn and ("  ·  " .. (L["mostly by %s"]):format(kn)) or "")
     return best
 end
--- Einheit zum Namen (Gruppe/Ziel), damit das echte Modell samt Ausruestung erscheint
+-- Unit for the name (group/target) so the real model with gear appears
 local function unitFor(name)
     if not name then return nil end
     if ns.isMe(name) then return "player" end
@@ -927,11 +927,11 @@ local function unitFor(name)
 end
 Info.UnitFor = unitFor
 
--- Countdown: vor dem Release "WoW Forever Start", danach nur noch ein echter eingetragener Raid-Termin
--- (kein fester Raid-Start mehr - ohne Termin keine Uhr).
--- Zeiten als UTC-Sekunden; date() zeigt sie automatisch in der Ortszeit des Spielers.
--- Release 04.11.2026: Blizzard startet Classic-Versionen weltweit gleichzeitig (15:00 Pazifik = 00:00 MEZ
--- = 08:00 Korea). Je Region (GetCurrentRegion, sonst Client-Sprache) eigener Eintrag, falls Blizzard abweicht.
+-- Countdown: before release "WoW Forever Start", afterwards only a real scheduled raid event
+-- (no fixed raid start anymore - no event, no clock).
+-- Times as UTC seconds; date() automatically shows them in the player's local time.
+-- Release 04.11.2026: Blizzard launches Classic versions worldwide at the same time (15:00 Pacific = 00:00 CET
+-- = 08:00 Korea). Separate entry per region (GetCurrentRegion, otherwise client language) in case Blizzard differs.
 local RELEASE_UTC = {
     us = 1793833200,   -- 04.11.2026 15:00 PST
     eu = 1793833200,   -- 05.11.2026 00:00 MEZ
@@ -958,7 +958,7 @@ function Info.CountdownTarget()
     local ev, isRaid = nextRaid()
     if ev and isRaid and (ev.ts or 0) > now then return ev.ts, ev.title or L["Next raid"], ev end
 end
--- Gilden-Bereitschaft: Stufe 60, Onyxia freigeschaltet (Lockouts), Raid-Vorbereitung gruen (RaidPrep)
+-- Guild readiness: level 60, Onyxia unlocked (lockouts), raid preparation green (RaidPrep)
 function Info.Readiness()
     local total, n60, names = 0, 0, {}
     for _, m in ipairs((ns.Radar and ns.Radar.roster) or {}) do
@@ -988,7 +988,7 @@ function Info.Readiness()
     return out
 end
 
--- Begruessung mit Kontext seit dem letzten Besuch
+-- Greeting with context since the last visit
 local function awayText(sec)
     local d = math.floor(sec / 86400)
     if d >= 2 then return (L["%d days"]):format(d) elseif d == 1 then return L["1 day"] end
@@ -1008,7 +1008,7 @@ function Info.WelcomeText(last)
     for _, m in ipairs(ns.db.gchat or {}) do
         if type(m) == "table" and (m.ts or 0) > last and m.k ~= "sys" and not ns.isMe(m.s or "") then chat = chat + 1 end
     end
-    if demoOn() and chat == 0 then chat = 14 end   -- Demo: Beispielwert, der Demo-Chat wird nicht mitgeschrieben
+    if demoOn() and chat == 0 then chat = 14 end   -- Demo: sample value, the demo chat is not recorded
     local parts = {}
     if lv > 0 then parts[#parts + 1] = lv == 1 and L["1 level-up in the guild"] or (L["%d level-ups in the guild"]):format(lv) end
     if evn > 0 then parts[#parts + 1] = evn == 1 and L["1 new event"] or (L["%d new events"]):format(evn) end
@@ -1018,8 +1018,8 @@ function Info.WelcomeText(last)
     return s .. " " .. L["It has been quiet in the guild since."]
 end
 
--- Gilden-Puls: heute je halbe Stunde hoechstens gleichzeitig online (eigener Mitschnitt alle 5 min)
--- + typischer Tagesverlauf aus der Spielzeit-Statistik (Members: ns.db.play[name].h)
+-- Guild pulse: today per half hour the peak online at once (own recording every 5 min)
+-- + typical daily curve from the playtime statistics (Members: ns.db.play[name].h)
 local function slotOf(ts) local t = date("*t", ts) return t.hour * 2 + ((t.min or 0) >= 30 and 1 or 0) end
 local function slotText(k) k = k % 48 return ("%d:%02d"):format(math.floor(k / 2), (k % 2) * 30) end
 function Info.SamplePulse()
@@ -1052,7 +1052,7 @@ function Info.Pulse()
     for k = 0, 47 do typ[k] = hrs[math.floor(k / 2)] or 0 typMax = math.max(typMax, typ[k]) end
     local cur = slotOf(ns.now())
     local nOn = #computeOnline()
-    -- Demo: heutigen Verlauf aus dem typischen Verlauf ableiten (fester Wert je Halbstunde)
+    -- Demo: derive today's curve from the typical curve (fixed value per half hour)
     if demoOn() and typMax > 0 then
         for k = 0, cur do
             local v = math.floor(typ[k] / typMax * nOn * (0.75 + ((k * 37) % 10) / 40) + 0.5)
@@ -1062,7 +1062,7 @@ function Info.Pulse()
     if nOn > (today[cur] or 0) then today[cur] = nOn end
     local dayMax = 0
     for k = 0, 47 do dayMax = math.max(dayMax, today[k] or 0) end
-    -- Stosszeit: staerkstes 2-Stunden-Fenster (typisch, sonst heute)
+    -- Peak time: strongest 2-hour window (typical, otherwise today)
     local src = typMax > 0 and typ or today
     local bestK, bestV = nil, 0
     for k = 0, 44 do
@@ -1073,7 +1073,7 @@ function Info.Pulse()
         peak = bestK and (slotText(bestK) .. "–" .. slotText(bestK + 4)) or nil }
 end
 
--- Tagesziel: Schritte (Insta-Schrittzaehler), XP heute (eigener Tageszaehler), Wochenaufgaben
+-- Daily goal: steps (Insta step counter), XP today (own daily counter), weekly tasks
 function Info.DailyGoal()
     local day = date("%Y-%m-%d")
     local c = ns.char or ns.db
@@ -1113,7 +1113,7 @@ function Info.DailyGoal()
     return g
 end
 
--- Gilden-Rekorde
+-- Guild records
 function Info.Records()
     local out = {}
     local DR = ns.Deathroll
@@ -1167,7 +1167,7 @@ function Info.Records()
     return out
 end
 
--- Gildenkarte: Kontinent + Position je Mitglied
+-- Guild map: continent + position per member
 local CONT = { [1414] = "Kalimdor", [1415] = "Eastern Kingdoms" }
 local CONT_BY_INST = { [1] = 1414, [0] = 1415 }
 local function contOf(mapID)
@@ -1184,7 +1184,7 @@ local function vecXY(v)
     if v.GetXY then local ok, x, y = pcall(v.GetXY, v) if ok and x then return x, y end end
     return v.x, v.y
 end
--- Position auf dem Kontinent (0..1) + Kontinent
+-- Position on the continent (0..1) + continent
 local function posOnCont(mapID, x, y)
     if not (C_Map and mapID and x and y) then return nil end
     local cont = contOf(mapID)
@@ -1240,14 +1240,14 @@ ns.RegisterPage({
     build = function(p)
         p.fresh = true
         p.cells = {}
-        -- ganz schwaches Landschaftsbild hinter dem ganzen Dashboard (Media\dash_bg, 2:1)
-        -- 0.5.536: fuellt den ganzen Inhaltsbereich des Fensters (bis an die Raender), deutlich sichtbarer,
-        -- mit dunklem Verlauf darueber, damit die Karten lesbar bleiben
+        -- very faint landscape image behind the whole dashboard (Media\dash_bg, 2:1)
+        -- 0.5.536: fills the whole content area of the window (up to the edges), much more visible,
+        -- with a dark gradient on top so the cards stay readable
         local host = p:GetParent() or p
         p.pageBg = p:CreateTexture(nil, "BACKGROUND", nil, -8)
         p.pageBg:SetTexture(ns.MEDIA .. "dash_bg")
         p.pageBg:SetPoint("TOPLEFT", host, "TOPLEFT", -24, 24)
-        p.pageBg:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", 20, -36)   -- 0.5.562: endet innerhalb des Fensters (ragte unten ueber den Rand)
+        p.pageBg:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", 20, -36)   -- 0.5.562: ends inside the window (stuck out over the bottom edge)
         p.pageBg:SetAlpha(0.28)
         p.pageShade = p:CreateTexture(nil, "BACKGROUND", nil, -7)
         p.pageShade:SetAllPoints(p.pageBg)
@@ -1255,7 +1255,7 @@ ns.RegisterPage({
         local function fit(self)
             local w, h = self.pageBg:GetWidth(), self.pageBg:GetHeight()
             if not (w and h and w > 0 and h > 0) then return end
-            -- Seitenverhaeltnis halten: Bild 2:1 mittig zuschneiden (fuellt immer ganz)
+            -- Keep aspect ratio: crop the 2:1 image centered (always fills fully)
             local r = (w / h) / 2
             if r >= 1 then local c = (1 - 1 / r) / 2 self.pageBg:SetTexCoord(0, 1, c, 1 - c)
             else local c = (1 - r) / 2 self.pageBg:SetTexCoord(c, 1 - c, 0, 1) end
@@ -1264,7 +1264,7 @@ ns.RegisterPage({
         p:HookScript("OnShow", fit)
 
         ----------------------------------------------------------------
-        -- Helden-Banner
+        -- Hero banner
         ----------------------------------------------------------------
         local ban = CreateFrame("Frame", nil, p)
         ban:SetPoint("TOPLEFT")
@@ -1278,24 +1278,24 @@ ns.RegisterPage({
             ban.base:SetColorTexture(0.08, 0.08, 0.1, 1)
         end
         ban.img = ban:CreateTexture(nil, "BACKGROUND", nil, 0)
-        if K.BgImg then K.BgImg(ban.img) end   -- 0.6.227: Helligkeit einstellbar
+        if K.BgImg then K.BgImg(ban.img) end   -- 0.6.227: brightness adjustable
         ban.img:SetAllPoints()
-        -- Abdunklung: unten kraeftig (Text), links fuer die Schrift, Vignette oben/rechts
+        -- Darkening: strong at the bottom (text), left for the font, vignette top/right
         local function shade(layer, sub, dir, a, b, pts)
             local t = ban:CreateTexture(nil, layer, nil, sub)
             for _, pt in ipairs(pts) do t:SetPoint(pt[1], pt[2] or 0, pt[3] or 0) end
             if not K.Gradient(t, dir, a, b) then t:SetColorTexture(0, 0, 0, math.max(a[4], b[4]) * 0.5) end
             return t
         end
-        -- Bild soll leuchten: nur links ein dezenter Verlauf hinter der Schrift, unten ein kurzer Uebergang,
-        -- oben ein Hauch fuer die Kopfzeile. Kein Schleier ueber dem ganzen Bild.
+        -- Image should glow: only a subtle gradient on the left behind the text, a short transition at the bottom,
+        -- a hint at the top for the header. No veil over the whole image.
         ban.dimLeft = shade("BORDER", 0, "HORIZONTAL", { 0, 0, 0, 0.62 }, { 0, 0, 0, 0 }, { { "TOPLEFT" }, { "BOTTOMLEFT" } })
         ban.dimLeft:SetWidth(340)
         ban.dimBottom = shade("BORDER", 1, "VERTICAL", { 0.02, 0.02, 0.03, 0.70 }, { 0, 0, 0, 0 }, { { "BOTTOMLEFT" }, { "BOTTOMRIGHT" } })
         ban.dimBottom:SetHeight(46)
         ban.vigTop = shade("BORDER", 1, "VERTICAL", { 0, 0, 0, 0 }, { 0, 0, 0, 0.32 }, { { "TOPLEFT" }, { "TOPRIGHT" } })
         ban.vigTop:SetHeight(34)
-        -- Akzentlinie unten mit wanderndem Lichtpunkt
+        -- Accent line at the bottom with a wandering light dot
         ban.line = ban:CreateTexture(nil, "ARTWORK")
         ban.line:SetPoint("BOTTOMLEFT") ban.line:SetPoint("BOTTOMRIGHT")
         ban.line:SetHeight(2)
@@ -1305,8 +1305,8 @@ ns.RegisterPage({
         ban.spark:SetBlendMode("ADD")
         ban.spark:SetSize(120, 6)
         ban.spark:SetVertexColor(math.min(1, C.accent[1] + 0.4), math.min(1, C.accent[2] + 0.4), math.min(1, C.accent[3] + 0.4))
-        ban.line:Hide()   -- keine Akzentlinie unten (der Ticker schliesst das Banner ab)
-        -- feiner Lichtrand: abgeschaltet (Kanten unsichtbar), nur noch Halter fuer die Umlaeufer
+        ban.line:Hide()   -- no accent line at the bottom (the ticker closes off the banner)
+        -- fine light edge: disabled (edges invisible), only a holder for the orbiters now
         local edge = CreateFrame("Frame", nil, ban)
         edge:SetAllPoints()
         edge:EnableMouse(false)
@@ -1329,7 +1329,7 @@ ns.RegisterPage({
             ban.runners[i] = r
         end
 
-        -- Glut-/Lichtpartikel
+        -- Ember/light particles
         local pf = CreateFrame("Frame", nil, ban)
         pf:SetAllPoints()
         pf:EnableMouse(false)
@@ -1364,7 +1364,7 @@ ns.RegisterPage({
             ban.dots[i] = d
         end
 
-        -- Glanz, der ueber das Banner zieht
+        -- Gloss sweeping across the banner
         local sheen = CreateFrame("Frame", nil, ban)
         sheen:SetSize(220, 10)
         sheen:SetPoint("TOP") sheen:SetPoint("BOTTOM")
@@ -1380,14 +1380,14 @@ ns.RegisterPage({
         sheen:Hide()
         ban.sheen = sheen
 
-        -- Text links: Gildenname (Logo), Begruessung, Kurzzeile
+        -- Text left: guild name (logo), greeting, short line
         local tf = CreateFrame("Frame", nil, ban)
         tf:SetPoint("TOPLEFT") tf:SetPoint("BOTTOMRIGHT")
         tf:SetFrameLevel(pf:GetFrameLevel() + 2)
         ban.tf = tf
         ban.kicker = K.Text(tf, 10, { 1, 1, 1, 0.7 })
         ban.kicker:SetPoint("TOPLEFT", 20, -16)
-        ban.kicker:Hide()   -- "OASIS · DASHBOARD" doppelt zum Seitentitel
+        ban.kicker:Hide()   -- "OASIS · DASHBOARD" duplicates the page title
         ban.kicker.SetText = function() end
         ban.clock = K.Text(tf, 11, { 1, 1, 1, 0.82 }, "RIGHT")
         ban.clock:SetPoint("TOPRIGHT", -18, -14)
@@ -1400,7 +1400,7 @@ ns.RegisterPage({
         ban.greet:SetPoint("BOTTOMLEFT", ban.line2, "TOPLEFT", 0, 6)
         ban.greet:SetWordWrap(false)
         if ban.greet.SetShadowColor then ban.greet:SetShadowColor(0, 0, 0, 0.9) ban.greet:SetShadowOffset(1, -1) end
-        -- Gildenname: kleiner und eleganter, weicher Schatten + warmer Schein dahinter
+        -- Guild name: smaller and more elegant, soft shadow + warm glow behind
         ban.logoGlow = tf:CreateTexture(nil, "BACKGROUND")
         ban.logoGlow:SetTexture(EMBER)
         ban.logoGlow:SetBlendMode("ADD")
@@ -1410,7 +1410,7 @@ ns.RegisterPage({
         ban.logoShadow:SetTexture(CIRCLE)
         ban.logoShadow:SetVertexColor(0, 0, 0)
         ban.logoShadow:SetAlpha(0.45)
-        -- keine Ellipse (Schein/Schatten) hinter dem Logo
+        -- no ellipse (glow/shadow) behind the logo
         ban.logoGlow:Hide() ban.logoGlow.Show = function() end ban.logoGlow.SetShown = function() end
         ban.logoShadow:Hide() ban.logoShadow.Show = function() end ban.logoShadow.SetShown = function() end
         if ns.GuildLogo then
@@ -1430,15 +1430,15 @@ ns.RegisterPage({
         ban.logoGlow:SetPoint("BOTTOMRIGHT", la, "BOTTOMRIGHT", 30, -18)
         ban.logoShadow:SetPoint("TOPLEFT", la, "TOPLEFT", -40, 26)
         ban.logoShadow:SetPoint("BOTTOMRIGHT", la, "BOTTOMRIGHT", 40, -26)
-        -- Lichtstreifen ueber dem Gildennamen
+        -- Light streak over the guild name
         ban.nameShine = tf:CreateTexture(nil, "OVERLAY", nil, 6)
         ban.nameShine:SetTexture(ns.MEDIA .. "shine")
         ban.nameShine:SetBlendMode("ADD")
         ban.nameShine:SetSize(50, 38)
         ban.nameShine:SetAlpha(0)
 
-        -- 0.6.176: Banner im Ornament-Stil - leuchtender Zierrahmen (wie das Hauptfenster, mit Schimmer),
-        -- goldene Raute mit auslaufenden Linien ueber dem Gildennamen, Trennlinie mit Raute darunter
+        -- 0.6.176: banner in ornament style - glowing decorative frame (like the main window, with shimmer),
+        -- golden diamond with tapering lines above the guild name, divider with diamond below
         local GOLD = { 1, 0.78, 0.42 }
         if K.FrameLines then ban.frameLines = K.FrameLines(ban, 12) end
         local function diamond(parent, size, layer)
@@ -1456,7 +1456,7 @@ ns.RegisterPage({
         end
         do
             local la2 = ban.logo or ban.logoText
-            -- Ornament ueber dem Namen: Raute, links/rechts auslaufende Linien, kleiner Schein dahinter
+            -- Ornament above the name: diamond, lines tapering left/right, small glow behind
             local orn = CreateFrame("Frame", nil, tf)
             orn:SetSize(120, 14)
             orn:SetPoint("BOTTOM", la2, "TOP", 0, 6)
@@ -1475,7 +1475,7 @@ ns.RegisterPage({
             orn.l = hline(orn, 22, 0, 0.8) orn.l:SetPoint("RIGHT", orn.d, "LEFT", -4, 0)
             orn.r = hline(orn, 70, 0.8, 0) orn.r:SetPoint("LEFT", orn.d, "RIGHT", 4, 0)
             ban.orn = orn
-            -- Trennlinie zwischen Name und Begruessung: kleine Raute links, Linie laeuft nach rechts aus
+            -- Divider between name and greeting: small diamond on the left, line tapers off to the right
             local div = CreateFrame("Frame", nil, tf)
             div:SetSize(200, 8)
             div:SetPoint("BOTTOMLEFT", ban.greet, "TOPLEFT", -2, 3)
@@ -1483,13 +1483,13 @@ ns.RegisterPage({
             div.d:SetPoint("LEFT", 0, 0)
             div.l = hline(div, 170, 0.75, 0) div.l:SetPoint("LEFT", div.d, "RIGHT", 4, 0)
             ban.div = div
-            -- Name etwas hoeher, damit die Trennlinie Luft hat
+            -- Name a bit higher so the divider has room
             la2:ClearAllPoints()
             la2:SetPoint("BOTTOMLEFT", ban.greet, "TOPLEFT", 0, ban.logo and 16 or 14)
         end
-        -- rechts im Banner: der eigene Charakter als 3D-Modell auf einem Lichtkegel
+        -- right in the banner: the own character as 3D model on a light cone
         local stage = CreateFrame("Frame", nil, ban)
-        -- Buehne ragt rechts ueber den Bannerrand (wird dort abgeschnitten) -> Figur steht weit rechts
+        -- Stage sticks out over the right banner edge (gets clipped there) -> figure stands far right
         stage:SetPoint("TOPRIGHT", 34, 0)
         stage:SetPoint("BOTTOMRIGHT", 34, 0)
         stage:SetWidth(150)
@@ -1503,7 +1503,7 @@ ns.RegisterPage({
         stage.halo:SetVertexColor(1, 0.72, 0.42)
         stage.halo:SetAlpha(0.22)
         stage.floor = stage:CreateTexture(nil, "BORDER")
-        stage.floor:SetTexture(EMBER)   -- weicher, verwischter Schatten statt harter Scheibe
+        stage.floor:SetTexture(EMBER)   -- soft, blurred shadow instead of a hard disc
         stage.floor:SetVertexColor(0, 0, 0)
         stage.floor:SetAlpha(0.85)
         stage.floor:SetSize(150, 34)
@@ -1523,9 +1523,9 @@ ns.RegisterPage({
             stage:Hide()
         end
 
-        -- Gildeninfo klein oben rechts unter der Uhr (nur wenn hinterlegt)
+        -- Guild info small at top right below the clock (only if set)
         ban.info = K.Button(tf, L["Guild info"], 66, 16, "ghost")
-        -- 0.6.176: Info-Symbol rechts im Knopf
+        -- 0.6.176: info icon on the right in the button
         ban.info:SetWidth(82)
         ban.info.ico = ban.info:CreateTexture(nil, "OVERLAY")
         ban.info.ico:SetTexture("Interface\\FriendsFrame\\InformationIcon")
@@ -1539,14 +1539,14 @@ ns.RegisterPage({
         end)
         ban.info:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-        -- unten rechts: Durchsage / Nachricht des Tages als Glas-Kaertchen (nur wenn vorhanden)
+        -- bottom right: announcement / message of the day as glass card (only if present)
         local motd = glassCard(tf)
         motd:SetPoint("BOTTOMRIGHT", -14, 14)
         motd:SetFrameLevel(stage:GetFrameLevel() + 4)
         motd:Hide()
         ban.motd = motd
 
-        -- Held der Woche: zweites Modell auf derselben Buehne, im Wechsel mit dem eigenen Charakter
+        -- Hero of the week: second model on the same stage, alternating with the own character
         local GOLDC = { 1, 0.82, 0.42 }
         ban.hero = heroModel(stage)
         if ban.hero then
@@ -1555,15 +1555,15 @@ ns.RegisterPage({
             ban.hero.rot = 0.35
             ban.hero:Hide()
         end
-        -- Ersatz, wenn kein Modell kommt: Portraet-Kreis in Klassenfarbe
+        -- Fallback if no model arrives: portrait circle in class color
         local hport = CreateFrame("Button", nil, stage)
         hport:SetSize(70, 70)
         hport:SetPoint("CENTER", stage, "CENTER", -17, 8)
         hport.glow = hport:CreateTexture(nil, "BACKGROUND")
         hport.glow:SetTexture(EMBER) hport.glow:SetBlendMode("ADD")
         hport.glow:SetSize(120, 120) hport.glow:SetPoint("CENTER")
-        hport.glow:Hide()   -- ruhig: kein Leuchten hinter dem Portraet
-        -- weicher Schatten unter dem Kreis (hebt ihn vom Bannerbild ab, ohne zu leuchten)
+        hport.glow:Hide()   -- calm: no glow behind the portrait
+        -- soft shadow under the circle (lifts it off the banner image without glowing)
         hport.shadow = hport:CreateTexture(nil, "BACKGROUND", nil, -1)
         hport.shadow:SetTexture(CIRCLE) hport.shadow:SetVertexColor(0, 0, 0, 0.45)
         hport.shadow:SetSize(78, 78) hport.shadow:SetPoint("CENTER", 0, -2)
@@ -1581,7 +1581,7 @@ ns.RegisterPage({
         hport:SetScript("OnLeave", function() GameTooltip:Hide() end)
         hport:Hide()
         ban.heroPort = hport
-        -- Krone ueber dem Kopf + Namensschild am Fuss der Buehne
+        -- Crown above the head + name plate at the foot of the stage
         local crown = CreateFrame("Frame", nil, stage)
         crown:SetSize(40, 30)
         crown:SetPoint("TOP", stage, "TOP", -17, -18)
@@ -1600,7 +1600,7 @@ ns.RegisterPage({
         plate:SetSize(200, 40)
         plate:SetPoint("BOTTOM", stage, "BOTTOM", -17, 26)
         plate:SetFrameLevel(stage:GetFrameLevel() + 6)
-        -- Namensschild: ruhige dunkle Glasflaeche, Breite folgt dem Text (LoadHero)
+        -- Name plate: calm dark glass surface, width follows the text (LoadHero)
         plate:SetHeight(48)
         plate.bg = plate:CreateTexture(nil, "BACKGROUND")
         plate.bg:SetAllPoints()
@@ -1629,7 +1629,7 @@ ns.RegisterPage({
         plate:Hide()
         ban.heroPlate = plate
 
-        -- Live-Ticker am unteren Bannerrand (Mausueber haelt an, Klick: Chronik)
+        -- Live ticker at the bottom banner edge (mouseover pauses, click: chronicle)
         local tk = CreateFrame("Button", nil, ban)
         tk:SetPoint("BOTTOMLEFT", 0, 0)
         tk:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -1654,7 +1654,7 @@ ns.RegisterPage({
         tk.clip:SetPoint("BOTTOMRIGHT", -6, 0)
         tk.clip:SetClipsChildren(true)
         tk.items, tk.off, tk.n = {}, 0, 0
-        -- eigenes OnUpdate in voller Bildrate (die Banner-Animation laeuft gedrosselt mit 30 fps -> ruckelte)
+        -- own OnUpdate at full frame rate (the banner animation runs throttled at 30 fps -> stuttered)
         tk:SetScript("OnUpdate", function(self, el)
             if self.place then self.place(math.min(el, 0.1)) end
         end)
@@ -1663,7 +1663,7 @@ ns.RegisterPage({
         tk:SetScript("OnClick", function() ns.ShowPage("chronicle") end)
         tk:Hide()
         ban.ticker = tk
-        -- Glas/Modern: Banner mit runden Ecken (Bild, Abdunklungen, Ticker an den Ecken abgeschnitten)
+        -- Glass/modern: banner with rounded corners (image, darkenings, ticker clipped at the corners)
         do
             local sk = K.Skin and K.Skin("panel")
             if sk and sk.fill == "round_fill" and K.RoundMask then
@@ -1671,7 +1671,7 @@ ns.RegisterPage({
             end
         end
 
-        -- Willkommen zurueck (einmal je Sitzung, Schreibmaschine) an der Stelle der Kurzzeile
+        -- Welcome back (once per session, typewriter) in place of the short line
         ban.welcome = K.Text(tf, 12, { 1, 0.9, 0.72 })
         ban.welcome:SetJustifyH("LEFT")
         ban.welcome:SetJustifyV("BOTTOM")
@@ -1681,14 +1681,14 @@ ns.RegisterPage({
         ban.welcome:Hide()
 
         ----------------------------------------------------------------
-        -- Kachelreihe
+        -- Tile row
         ----------------------------------------------------------------
         p.tiles = {}
         local defs = {
             { ns.ICONS.radar, "Online now", C.mint, "radar" },
             { ns.ICONS.social or ns.ICONS.radar, "Members", C.blue, "radar" },
             { ns.ICONS.raid, "Next event", C.accent, "raid" },
-            { ns.MEDIA .. "icons\\announce", "Guild message", C.amber, "radar", 2 },   -- doppelt breit
+            { ns.MEDIA .. "icons\\announce", "Guild message", C.amber, "radar", 2 },   -- double width
         }
         for i, d in ipairs(defs) do
             local t
@@ -1745,7 +1745,7 @@ ns.RegisterPage({
             t.span = d[5] or 1
             p.tiles[i] = t
         end
-        -- Gildennachricht-Kachel: zweizeiliger Text statt Zahl, voller Text im Tooltip
+        -- Guild message tile: two-line text instead of a number, full text in the tooltip
         do
             local t = p.tiles[4]
             t.value:Hide()
@@ -1760,7 +1760,7 @@ ns.RegisterPage({
             t.msg:SetHeight(30)
             t:SetScript("OnClick", function(self) ns.ShowPage(self.page or "radar") end)
         end
-        -- Glanz-Sweep ueber eine Kachel (beim Oeffnen nacheinander)
+        -- Gloss sweep across a tile (one after another when opening)
         function p:SweepTile(t, delay)
             if not animOn() then return end
             local w = t:GetWidth() or 140
@@ -1773,19 +1773,19 @@ ns.RegisterPage({
         end
 
         ----------------------------------------------------------------
-        -- Spalte 1: Wer ist online
+        -- Column 1: who is online
         ----------------------------------------------------------------
         local online = box(p, L["Who's online"], C.mint)
         online.head:Live(true)
-        -- 0.6.177: Hintergrundbild (naechtliche Oase mit eigenem Zierrahmen, Gildenmodul) - gestreckt auf die Box,
-        -- die eigene Kante der Box tritt zurueck, damit es keinen Doppelrahmen gibt
+        -- 0.6.177: background image (night oasis with its own decorative frame, guild module) - stretched to the box,
+        -- the box's own edge recedes so there is no double frame
         if ns.GuildPack then
             online.art = online:CreateTexture(nil, "BACKGROUND", nil, 2)
-            if K.BgImg then K.BgImg(online.art) end   -- 0.6.227: Helligkeit einstellbar
+            if K.BgImg then K.BgImg(online.art) end   -- 0.6.227: brightness adjustable
             online.art:SetAllPoints()
             online.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\online_bg")
             if K.RoundMask then pcall(K.RoundMask, online.art, online, 8) end
-            -- 0.6.412: Bild dezenter - dunkler Schleier darueber
+            -- 0.6.412: image more subtle - dark veil on top
             local dim = online:CreateTexture(nil, "BACKGROUND", nil, 5)
             dim:SetAllPoints(online.art)
             dim:SetColorTexture(0.02, 0.02, 0.03, 0.5)
@@ -1794,16 +1794,16 @@ ns.RegisterPage({
             if online.borders then for _, b in ipairs(online.borders) do b:SetAlpha(0) end end
             if online.skinLine then for _, b in ipairs(online.skinLine) do b:SetAlpha(0) end end
         end
-        -- 0.5.778: Discord Voice rechtsbuendig in der Kopfzeile (vor dem Trennstrich zum Helden der Woche), mit Symbol, ohne Rahmen
+        -- 0.5.778: Discord voice right-aligned in the header (before the divider to the hero of the week), with icon, no frame
         online.voice = CreateFrame("Button", nil, online)
         online.voice:SetHeight(16)
-        online.voice:SetPoint("TOPRIGHT", online, "TOPRIGHT", -12, -10)   -- 0.6.171: Held/Pechvogel in eigener Box
+        online.voice:SetPoint("TOPRIGHT", online, "TOPRIGHT", -12, -10)   -- 0.6.171: hero/unlucky one in its own box
         online.voice.label = K.Text(online.voice, 10, C.muted, "RIGHT")
         online.voice.label:SetPoint("RIGHT", 0, 0)
         online.voice.icon = online.voice:CreateTexture(nil, "ARTWORK")
         online.voice.icon:SetSize(12, 12)
         online.voice.icon:SetTexture(ns.MEDIA .. "icons\\speaker")
-        online.voice.icon:SetVertexColor(0.45, 0.52, 0.95)   -- Discord-Blau
+        online.voice.icon:SetVertexColor(0.45, 0.52, 0.95)   -- Discord blue
         online.voice.icon:SetPoint("RIGHT", online.voice.label, "LEFT", -5, 0)
         online.voice:SetScript("OnEnter", function(self)
             local ln = ns.Discord and ns.Discord.Tip and ns.Discord.Tip()
@@ -1822,8 +1822,8 @@ ns.RegisterPage({
         online.grid = CreateFrame("Frame", nil, online)
         online.grid:SetPoint("TOPLEFT", 8, -38)
         online.grid:SetPoint("BOTTOMRIGHT", -8, 6)
-        -- rechts: Held der Woche <-> Pechvogel der Woche, blenden alle 8 s ineinander ueber
-        -- 0.6.171: eigene Box neben "Wer ist online" (vorher im selben Kasten mit Trennstrich)
+        -- right: hero of the week <-> unlucky one of the week, crossfade every 8 s
+        -- 0.6.171: own box next to "Who is online" (previously in the same box with a divider)
         local spotBox = K.Panel(p, C.panel)
         if spotBox.bg then spotBox.bg:SetAlpha(0.8) end
         spotBox:Hide()
@@ -1831,16 +1831,16 @@ ns.RegisterPage({
         local sp = CreateFrame("Button", nil, spotBox)
         sp:SetPoint("TOPLEFT", 1, -1)
         sp:SetPoint("BOTTOMRIGHT", -1, 1)
-        sp.div = sp:CreateTexture(nil, "ARTWORK")   -- Trennstrich entfaellt (eigene Box), bleibt als leeres Objekt
+        sp.div = sp:CreateTexture(nil, "ARTWORK")   -- Divider dropped (own box), stays as an empty object
         sp.div:Hide()
-        -- 0.6.171: Stil wie eine Karte - Kopfzeile mit Symbol, Bild rechts (nur Pechvogel, Gildenmodul), nach links
-        -- dunkel auslaufend; Klassenring links, Name gross in Gold, darunter der Grund
+        -- 0.6.171: card style - header with icon, image on the right (unlucky one only, guild module), fading dark
+        -- to the left; class ring left, name large in gold, the reason below
         local ART_W, ART_H = 1024, 356   -- Bildteil in unlucky_bg.tga (1024x512)
         local function layer()
             local f = CreateFrame("Frame", nil, sp)
             f:SetAllPoints()
             f.art = f:CreateTexture(nil, "BACKGROUND", nil, 1)
-            if K.BgImg then K.BgImg(f.art) end   -- 0.6.227: Helligkeit einstellbar
+            if K.BgImg then K.BgImg(f.art) end   -- 0.6.227: brightness adjustable
             f.art:SetAllPoints()
             f.art:Hide()
             f.shade = f:CreateTexture(nil, "BACKGROUND", nil, 2)
@@ -1848,7 +1848,7 @@ ns.RegisterPage({
             if not K.Gradient(f.shade, "HORIZONTAL", { 0.04, 0.04, 0.05, 0.96 }, { 0.04, 0.04, 0.05, 0.05 }) then f.shade:SetColorTexture(0, 0, 0, 0.5) end
             f.shade:Hide()
             if K.RoundMask then pcall(K.RoundMask, f.art, spotBox, 8) pcall(K.RoundMask, f.shade, spotBox, 8) end
-            -- 0.6.412: Bild dezenter - dunkler Schleier darueber
+            -- 0.6.412: image more subtle - dark veil on top
             local dim = f:CreateTexture(nil, "BACKGROUND", nil, 5)
             dim:SetAllPoints(f.art)
             dim:SetColorTexture(0.02, 0.02, 0.03, 0.5)
@@ -1878,15 +1878,15 @@ ns.RegisterPage({
             f.inner:SetTexture(CIRCLE) f.inner:SetVertexColor(0.08, 0.08, 0.1) f.inner:SetSize(52, 52) f.inner:SetPoint("CENTER", f.ring)
             f.icon = f:CreateTexture(nil, "ARTWORK", nil, 1)
             f.icon:SetSize(30, 30) f.icon:SetPoint("CENTER", f.ring)
-            -- 0.6.173: Ornament-Ring als Badge-Rahmen ums Klassensymbol (Gildenmodul); Innenradius ~70 % des Bildes
+            -- 0.6.173: ornament ring as badge frame around the class icon (guild module); inner radius ~70 % of the image
             if ns.GuildPack then
                 f.frame = f:CreateTexture(nil, "OVERLAY", nil, 2)
                 f.frame:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\badge_ring")
-                -- 0.6.174: kleiner (56), Klassensymbol fuellt die Oeffnung (~70 % = 40)
+                -- 0.6.174: smaller (56), class icon fills the opening (~70 % = 40)
                 f.frame:SetSize(56, 56) f.frame:SetPoint("CENTER", f.ring)
-                f.ring:SetAlpha(0)   -- Rahmen kommt aus dem Bild
+                f.ring:SetAlpha(0)   -- Frame comes from the image
                 f.inner:SetSize(40, 40)
-                f.icon:SetSize(36, 36)   -- 0.6.178: ohne Maske (zeigte sonst das ganze Klassenblatt), Ecken liegen unter dem Ring
+                f.icon:SetSize(36, 36)   -- 0.6.178: without mask (otherwise showed the whole class sheet), corners lie under the ring
             end
             f.badge = f:CreateTexture(nil, "OVERLAY")
             f.badge:SetSize(16, 16) f.badge:SetPoint("CENTER", f.ring, "TOPRIGHT", -6, -6)
@@ -1910,11 +1910,11 @@ ns.RegisterPage({
         for i = 1, 2 do
             local d = sp:CreateTexture(nil, "OVERLAY")
             d:SetTexture(CIRCLE) d:SetSize(5, 5)
-            d:SetPoint("BOTTOMRIGHT", -24 - (2 - i) * 10, 6)   -- 0.6.340: Platz fuer die Pfeile rechts/links
+            d:SetPoint("BOTTOMRIGHT", -24 - (2 - i) * 10, 6)   -- 0.6.340: room for the arrows right/left
             sp.dots[i] = d
         end
         local KINDS = {
-            -- art: Bild im Gildenmodul, w/h = Bildteil, th = Texturhoehe (0.6.313: Held mit eigenem Bild hero_bg)
+            -- art: image in the guild module, w/h = image part, th = texture height (0.6.313: hero with own image hero_bg)
             hero = { kick = "Hero of the week", col = { 1, 0.82, 0.42 }, badge = "Interface\\GroupFrame\\UI-Group-LeaderIcon",
                      art = "hero_bg", w = ART_W, h = ART_H, th = 512 },
             unl = { kick = "Unlucky one of the week", col = { 0.55, 0.7, 1 }, badge = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull",
@@ -1927,7 +1927,7 @@ ns.RegisterPage({
             f.headIcon:SetTexture(k.badge)
             f.whyIcon:SetTexture(k.badge)
             f.badge:SetTexture(k.badge)
-            -- Bild je Art (nur mit Gildenmodul)
+            -- Image per type (only with guild module)
             local art = k.art and ns.GuildPack
             if art then
                 f.artW, f.artH, f.artTH = k.w, k.h, k.th
@@ -1939,7 +1939,7 @@ ns.RegisterPage({
             local cls = ns.Radar.ClassOf and ns.Radar.ClassOf(it.name)
             local cr, cg, cb = ns.classColor(cls)
             f.ring:SetVertexColor(cr or 0.8, cg or 0.8, cb or 0.8)
-            -- 0.6.173: Ornament-Ring in Klassenfarbe (Bild ist graustufig, Farbe kommt per Vertexfarbe)
+            -- 0.6.173: ornament ring in class color (image is greyscale, color comes via vertex color)
             if f.frame then f.frame:SetVertexColor(cr or 0.85, cg or 0.85, cb or 0.85) end
             f.name:SetText(ns.Radar.Colored(it.name))
             f.why:SetText(it.reason or "")
@@ -1965,7 +1965,7 @@ ns.RegisterPage({
                 d:SetVertexColor(1, 1, 1, on and 0.8 or 0.25)
             end
         end
-        -- 0.6.323: manuell umschalten (Pfeile, Punkte), Ladeleiste bis zum naechsten Wechsel, Pause unter der Maus
+        -- 0.6.323: switch manually (arrows, dots), progress bar until the next switch, pause under the mouse
         local SLIDE = 8
         function sp:Go(to)
             local l = self.list
@@ -1993,7 +1993,7 @@ ns.RegisterPage({
         sp.progTrack:SetColorTexture(1, 1, 1, 0.08)
         local function arrow(dir)
             local b = CreateFrame("Button", nil, sp)
-            -- 0.6.340: unten rechts neben den Punkten statt ueber dem Klassensymbol
+            -- 0.6.340: bottom right next to the dots instead of above the class icon
             b:SetSize(16, 16)
             b:SetPoint("BOTTOMRIGHT", sp, "BOTTOMRIGHT", dir < 0 and -54 or -6, 1)
             b:SetFrameLevel(sp:GetFrameLevel() + 10)
@@ -2030,7 +2030,7 @@ ns.RegisterPage({
                 if q >= 1 then self.front, self.back, self.fade = self.back, nil, nil self.t = 0 end
                 return
             end
-            if not over then self.t = self.t + el end   -- unter der Maus steht der Wechsel
+            if not over then self.t = self.t + el end   -- under the mouse the rotation stops
             local w = (self.progTrack:GetWidth() or 0)
             self.prog:SetWidth(math.max(1, w * math.min(1, self.t / SLIDE)))
             if self.t >= SLIDE then self:Go(self.idx + 1) end
@@ -2057,10 +2057,10 @@ ns.RegisterPage({
         ----------------------------------------------------------------
         local feed = box(p, L["What's happening"], C.violet or C.accent)
         feed.head:Live(true)
-        -- 0.6.180: Zeilen wie in der Vorlage - Zeit links, Symbol, Text, Pfeil rechts, feine Trennlinie
-        feed.list = K.List(feed, 40, function(l)   -- 0.6.181: 40 statt 34, ruhiger
+        -- 0.6.180: rows like in the template - time left, icon, text, arrow right, thin divider
+        feed.list = K.List(feed, 40, function(l)   -- 0.6.181: 40 instead of 34, calmer
             local r = K.Row(l)
-            if r.stripe then r.stripe:SetAlpha(0) end   -- keine Streifen, nur feine Trennlinien
+            if r.stripe then r.stripe:SetAlpha(0) end   -- no stripes, only thin dividers
             r.bar = r:CreateTexture(nil, "ARTWORK")
             r.bar:SetPoint("LEFT", 4, 0)
             r.bar:SetSize(2, 18)
@@ -2105,7 +2105,7 @@ ns.RegisterPage({
                 r.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
                 r.icon:SetVertexColor(1, 1, 1)
             elseif lvlBadge then
-                -- 0.5.571: Stufe 10/20/.../60 -> Stufen-Abzeichen
+                -- 0.5.571: level 10/20/.../60 -> level badges
                 r.icon:SetTexture(lvlBadge)
                 r.icon:SetTexCoord(0, 1, 0, 1)
                 r.icon:SetVertexColor(1, 1, 1)
@@ -2119,7 +2119,7 @@ ns.RegisterPage({
             r.cols.text:SetText(txt)
             local ago = ns.ago(e.ts) or ""
             r.cols.when:SetText((ago:gsub("^%l", string.upper)))
-            -- Neuestes (letzte Stunde) leuchtet sanft
+            -- Newest (last hour) glows softly
             r.pulse:SetShown(idx == 1 and (ns.now() - (e.ts or 0)) < 3600)
             p.pulseTex = idx == 1 and r.pulse or p.pulseTex
             if p.fresh and animOn() then K.FadeIn(r, 0.5 + (idx or 1) * 0.06) end
@@ -2129,14 +2129,14 @@ ns.RegisterPage({
             { { "Find group", "groups" }, { "Guild chat", "chat" } })
 
         ----------------------------------------------------------------
-        -- Gilden-Highlight (unten links): Wochenaufgaben der Gilde
+        -- Guild highlight (bottom left): the guild's weekly tasks
         ----------------------------------------------------------------
         local hl = box(p, L["Guild highlight"], C.amber)
         p.hl = hl
         hl.glow = hl:CreateTexture(nil, "BORDER")
         hl.glow:SetAllPoints()
         if not K.Gradient(hl.glow, "HORIZONTAL", { C.amber[1], C.amber[2], C.amber[3], 0.07 }, { C.amber[1], C.amber[2], C.amber[3], 0 }) then hl.glow:Hide() end
-        hl.glow:Hide()   -- ruhig: kein farbiger Schleier ueber der Karte
+        hl.glow:Hide()   -- calm: no colored veil over the card
         hl.week = K.Text(hl, 10, C.muted, "RIGHT")
         hl.week:SetPoint("TOPRIGHT", -12, -15)
         hl.week:SetWordWrap(false)
@@ -2148,13 +2148,13 @@ ns.RegisterPage({
         wk:SetScript("OnClick", function() ns.ShowPage("rank") end)
         wk:SetScript("OnEnter", function(self) if self.tip then K.ShowTip(self, self.tip) end end)
         wk:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        -- Kopf/Restzeit stehen im Kartenkopf (hl.week); die drei Aufgaben nebeneinander als Spalten
+        -- Header/remaining time are in the card header (hl.week); the three tasks side by side as columns
         wk.head = K.Text(wk, 10, C.amber)
         wk.head:Hide()
         wk.left = K.Text(wk, 9, C.dim, "RIGHT")
         wk.left:Hide()
         wk.rows = {}
-        -- je Aufgabe eine Zeile in voller Breite: Haken-Punkt | Text | kleine Leiste | Stand
+        -- one full-width row per task: check dot | text | small bar | progress
         for i = 1, 3 do
             local r = CreateFrame("Frame", nil, wk)
             r:SetHeight(20)
@@ -2176,7 +2176,7 @@ ns.RegisterPage({
             r.t:SetPoint("LEFT", 16, 0)
             r.t:SetPoint("RIGHT", r.track, "LEFT", -12, 0)
             r.t:SetWordWrap(false)
-            -- vollstaendiger Text als Tooltip, falls er doch gekuerzt wird
+            -- full text as tooltip in case it gets truncated after all
             r:EnableMouse(true)
             r:SetScript("OnEnter", function(self) if self.full then K.ShowTip(self, { self.full, self.state }) end end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -2189,7 +2189,7 @@ ns.RegisterPage({
         feed.list:SetPoint("BOTTOMRIGHT", -8, 10)
         p.feed = feed
 
-        -- Reiter-Chips rechts im Kartenkopf: defs = { { key, "Text" }, ... }
+        -- Tab chips on the right in the card header: defs = { { key, "Text" }, ... }
         local function tabChips(bx, defs, onPick)
             bx.chips = {}
             local prev
@@ -2207,7 +2207,7 @@ ns.RegisterPage({
                 local w = tonumber(b.t:GetStringWidth()) or 0
                 if w <= 0 then w = #d[2] * 6 end
                 b:SetWidth(math.floor(w + 14))
-                -- Glas/Modern: schlichte Textreiter, aktiver mit feiner Unterstreichung (keine Kaesten)
+                -- Glass/modern: plain text tabs, active one with a thin underline (no boxes)
                 local sk = K.Skin and K.Skin("button")
                 if sk and sk.fill == "round_fill" then
                     b.plain = true
@@ -2233,7 +2233,7 @@ ns.RegisterPage({
                 bx.chips[#bx.chips + 1] = b
                 prev = b
             end
-            -- Ueberschrift der Karte nie unter die Reiter laufen lassen (gekuerzt), Zaehler/Live-Punkt weg
+            -- Never let the card heading run under the tabs (truncated), counter/live dot removed
             if bx.head and bx.head.text and prev then
                 bx.head.text:SetWordWrap(false)
                 bx.head.text:SetPoint("RIGHT", prev, "LEFT", -8, 0)
@@ -2253,7 +2253,7 @@ ns.RegisterPage({
         end
         tabChips(feed, { { "feed", "Live" }, { "map", "Map" }, { "pulse", "Pulse" } }, function(k) p:SetFeedTab(k) end)
 
-        -- Gildenkarte (Kontinent mit den meisten Mitgliedern, Punkte in Klassenfarbe)
+        -- Guild map (continent with most members, dots in class color)
         local mapF = CreateFrame("Frame", nil, feed)
         mapF:SetPoint("TOPLEFT", 8, -38)
         mapF:SetPoint("BOTTOMRIGHT", -8, 8)
@@ -2282,7 +2282,7 @@ ns.RegisterPage({
         mapF:Hide()
         feed.mapF = mapF
 
-        -- Gilden-Puls: heute (hell) gegen typischen Tag (Schatten)
+        -- Guild pulse: today (bright) against a typical day (shadow)
         local pulseF = CreateFrame("Frame", nil, feed)
         pulseF:SetPoint("TOPLEFT", 8, -38)
         pulseF:SetPoint("BOTTOMRIGHT", -8, 8)
@@ -2333,17 +2333,17 @@ ns.RegisterPage({
         feed.pulseF = pulseF
 
         ----------------------------------------------------------------
-        -- Untere Karte mit Reitern (wechselt von selbst): Countdown, Wochenaufgaben, Tagesziel, Rekorde
+        -- Lower card with tabs (rotates by itself): countdown, weekly tasks, daily goal, records
         ----------------------------------------------------------------
         hl.week:Hide()
-        -- Gildennachricht immer zuerst; Tagesziel + Rekorde sind ins Profil gewandert
+        -- Guild message always first; daily goal + records moved into the profile
         hl.order = { "motd", "count", "tasks" }
         hl.heads = {}
         hl.avail = { tasks = true }
         tabChips(hl, { { "motd", "Message" }, { "count", "Countdown" }, { "tasks", "Tasks" } },
             function(k) hl.rotT = -45 p:SetHlTab(k) end)
-        -- Ueberschrift darf nicht unter die Reiter laufen: Breite bis vor den linken Reiter, sonst gekuerzt;
-        -- Zaehler rechts neben dem Titel entfaellt hier (steht in der Karte selbst)
+        -- Heading must not run under the tabs: width up to the left tab, otherwise truncated;
+        -- the counter right of the title is dropped here (it is in the card itself)
         local function page()
             local f = CreateFrame("Button", nil, hl)
             f:SetPoint("TOPLEFT", 12, -34)
@@ -2351,7 +2351,7 @@ ns.RegisterPage({
             f:Hide()
             return f
         end
-        -- Gildennachricht: Symbolkachel (pulsiert bei neuer Nachricht), Kopfzeile + Nachricht, Knoepfe rechts
+        -- Guild message: icon tile (pulses on new message), header + message, buttons on the right
         local mo = page()
         local RED = C.red or { 0.9, 0.25, 0.28 }
         mo.box = CreateFrame("Frame", nil, mo)
@@ -2365,13 +2365,13 @@ ns.RegisterPage({
             mo.box.bg:SetColorTexture(0.10, 0.04, 0.05, 0.85)
             K.Border(mo.box, { RED[1], RED[2], RED[3], 0.45 })
         end
-        -- roter Verlauf von links (hinter der Kachel kraeftig, nach rechts auslaufend)
+        -- red gradient from the left (strong behind the tile, fading to the right)
         mo.box.tint = mo.box:CreateTexture(nil, "BORDER")
         mo.box.tint:SetPoint("TOPLEFT", 2, -2) mo.box.tint:SetPoint("BOTTOMLEFT", 2, 2)
         mo.box.tint:SetWidth(260)
         if not K.Gradient(mo.box.tint, "HORIZONTAL", { RED[1], RED[2], RED[3], 0.22 }, { RED[1], RED[2], RED[3], 0 }) then mo.box.tint:SetColorTexture(RED[1], RED[2], RED[3], 0.08) end
         if K.RoundMask then K.RoundMask(mo.box.tint, mo.box, 12) end
-        -- Symbolkachel
+        -- Icon tile
         mo.tile = CreateFrame("Frame", nil, mo.box)
         mo.tile:SetSize(36, 36)
         mo.tile:SetPoint("LEFT", 10, 0)
@@ -2388,7 +2388,7 @@ ns.RegisterPage({
         mo.ping:SetSize(70, 70)
         mo.ping:SetVertexColor(RED[1], RED[2], RED[3])
         mo.ping:SetAlpha(0)
-        -- Texte
+        -- Texts
         mo.kicker = K.Text(mo.box, 10, { RED[1] * 0.9 + 0.1, RED[2] * 0.6 + 0.3, RED[3] * 0.6 + 0.3 })
         mo.kicker:SetPoint("TOPLEFT", mo.tile, "TOPRIGHT", 12, 1)
         mo.kicker:SetText(L["Message from the guild leaders"])
@@ -2403,8 +2403,8 @@ ns.RegisterPage({
         mo.text:SetJustifyH("LEFT")
         mo.text:SetWordWrap(true)
         if mo.text.SetMaxLines then mo.text:SetMaxLines(2) end
-        -- Knoepfe rechts
-        -- nur wer die Gildennachricht aendern darf, sieht "Bearbeiten" (Klick auf die Box = Gildenchat)
+        -- Buttons on the right
+        -- only those allowed to change the guild message see "Edit" (click on the box = guild chat)
         mo.edit = K.Button(mo.box, L["Edit"], 92, 22, "ghost", function() Info.EditMOTD() end)
         mo.edit:SetPoint("RIGHT", -12, 0)
         mo.text:SetPoint("RIGHT", mo.edit, "LEFT", -12, 0)
@@ -2415,12 +2415,12 @@ ns.RegisterPage({
             self.text:SetPoint("TOPLEFT", self.kicker, "BOTTOMLEFT", 0, -3)
             if canEdit then self.text:SetPoint("RIGHT", self.edit, "LEFT", -12, 0) else self.text:SetPoint("RIGHT", self.box, "RIGHT", -14, 0) end
         end
-        -- neue Nachricht: Kachel pulsiert dreimal, "NEU" bis zum naechsten Oeffnen
+        -- new message: tile pulses three times, "NEU" until the next open
         function mo:SetMessage(txt)
             self.full = txt
             self.text:SetText(txt or "")
             local seen = ns.db.motdSeen
-            -- "NEU" bleibt in dieser Sitzung stehen (die Seite wird mehrmals aufgefrischt)
+            -- "NEU" stays for this session (the page is refreshed several times)
             local isNew = txt ~= nil and txt ~= "" and (seen ~= txt or self.newFor == txt)
             if isNew and seen ~= txt then self.newFor = txt end
             self.new:SetShown(isNew)
@@ -2452,7 +2452,7 @@ ns.RegisterPage({
         end)
         hl.mo = mo
 
-        -- Countdown: Tage : Std : Min : Sek als Klappziffern, rechts Gilden-Bereitschaft
+        -- Countdown: days : hours : min : sec as flip digits, guild readiness on the right
         local cd = page()
         cd:SetScript("OnClick", function() ns.ShowPage("raid") end)
         cd.groups = {}
@@ -2469,7 +2469,7 @@ ns.RegisterPage({
             g.bg = g:CreateTexture(nil, "BACKGROUND")
             g.bg:SetAllPoints()
             if not K.Gradient(g.bg, "VERTICAL", { 0.06, 0.06, 0.08, 0.95 }, { 0.16, 0.16, 0.20, 0.95 }) then g.bg:SetColorTexture(0.1, 0.1, 0.12, 0.95) end
-            -- Glas/Modern: runde Glasflaeche statt Klappkarte (keine Naht, keine harte Akzentkante)
+            -- Glass/modern: round glass surface instead of flip card (no seam, no hard accent edge)
             g.round = cd.round
             if g.round then
                 K.ApplySkin(g, "panel", { 1, 1, 1, 0.045 })
@@ -2494,7 +2494,7 @@ ns.RegisterPage({
             g.l:SetPoint("TOP", g, "BOTTOM", 0, -3)
             g.l:SetText(g.round and L[LBL[i]] or K.Upper(L[LBL[i]]))
             g.flip = 1
-            -- Glas: ruhig - kein Schein beim Umspringen
+            -- Glass: calm - no glow when flipping
             if g.round then g.glow:Hide() end
             if i > 1 then
                 local col = K.Title(cd, 16, C.dim, "CENTER")
@@ -2505,17 +2505,17 @@ ns.RegisterPage({
             cd.groups[i] = g
         end
         cd.digitsW = gx - 14
-        -- Vor dem Release: nur der Countdown, mittig, darunter Startzeit in Ortszeit
+        -- Before release: only the countdown, centered, start time in local time below
         cd.when = K.Text(cd, 10, C.muted, "CENTER")
         cd.when:Hide()
         function cd:Center(on)
             local w, h = self:GetWidth() or 0, self:GetHeight() or 0
             if self.round then return self:CenterRound(on, w, h) end
             local off = (on and w > self.digitsW) and math.floor((w - self.digitsW) / 2) or 0
-            -- senkrecht mittig: Ziffern (32) + Beschriftung (14) + Abstand + Startzeile (14) = ~70
+            -- vertically centered: digits (32) + label (14) + spacing + start line (14) = ~70
             local block = on and 72 or 46
             local dy = (on and h > block) and math.floor((h - block) / 2) or 0
-            -- Release-Countdown: die vier Felder fuellen die ganze Breite der Karte
+            -- Release countdown: the four fields fill the whole card width
             local gap = 14
             local gw = on and math.floor((w - gap * 3) / 4) or nil
             for i, g in ipairs(self.groups) do
@@ -2535,8 +2535,8 @@ ns.RegisterPage({
             self.when:SetShown(on and self.whenText ~= nil)
             if self.whenText then self.when:SetText(self.whenText) end
         end
-        -- Glas/Modern: Release = vier ruhige Felder ueber die volle Breite, Zahl + Einheit nebeneinander
-        -- ("28 Tage"), Startzeit steht im Kopf; Raid-Countdown (mit Bereitschaft) = kompakte Felder, Einheit darunter
+        -- Glass/modern: release = four calm fields across the full width, number + unit side by side
+        -- ("28 days"), start time is in the header; raid countdown (with readiness) = compact fields, unit below
         function cd:CenterRound(on, w, h)
             local gap = on and 10 or 14
             local th = on and math.max(30, math.min(44, h - 6)) or 32
@@ -2554,7 +2554,7 @@ ns.RegisterPage({
                 else
                     g:SetPoint("TOPLEFT", g.bx or 0, -dy)
                 end
-                -- Zahl + Einheit als Gruppe mittig im Feld; die Einheit sitzt auf der Grundlinie der Zahl
+                -- Number + unit as a group centered in the field; the unit sits on the baseline of the number
                 g.l:SetParent(inside and g or self)
                 g.l:ClearAllPoints()
                 if inside then
@@ -2569,7 +2569,7 @@ ns.RegisterPage({
                 g.t:SetPoint("CENTER", g.tx, g.ty)
                 if g.col then g.col:SetShown(not on) end
             end
-            -- Startzeit nicht mehr als eigene Zeile (machte die Karte eng) - steht im Kopf + Tooltip
+            -- Start time no longer as its own row (made the card cramped) - shown in header + tooltip
             self.when:Hide()
         end
         cd:SetScript("OnEnter", function(self)
@@ -2606,9 +2606,9 @@ ns.RegisterPage({
         end
         hl.cd = cd
 
-        -- Tagesziel: drei Ringe aus Lichtpunkten (Schritte, XP, Wochenaufgaben), voll = Feuerwerk
+        -- Daily goal: three rings of light dots (steps, XP, weekly tasks), full = fireworks
         local goal = page()
-        -- Smartwatch-Ringe (Bewegen / Trainieren / Stehen): Schritte, XP, Wochenaufgaben
+        -- Smartwatch rings (move / exercise / stand): steps, XP, weekly tasks
         local RCOL = { { 1, 0.20, 0.36 }, { 0.62, 1, 0.12 }, { 0.10, 0.85, 1 } }
         goal.rcol = RCOL
         goal.ringF = K.ActivityRings(goal, 66, RCOL)
@@ -2620,7 +2620,7 @@ ns.RegisterPage({
         goal.halo:SetVertexColor(C.mint[1], C.mint[2], C.mint[3])
         goal.halo:SetAlpha(0)
         goal.halo:Hide()
-        -- je Ring eine Zeile: Bezeichnung | Leiste in Ringfarbe | Wert (rechtsbuendig)
+        -- one row per ring: label | bar in ring color | value (right-aligned)
         goal.lines, goal.vals, goal.bars = {}, {}, {}
         for i = 1, 3 do
             local y = -(i - 1) * 16
@@ -2656,7 +2656,7 @@ ns.RegisterPage({
                 self.data and self.data.full and ("|cff66db9e" .. L["Click: fireworks again"] .. "|r") or nil })
         end)
         goal:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        -- Feuerwerk ueber der ganzen Karte
+        -- Fireworks over the whole card
         local fw = CreateFrame("Frame", nil, hl)
         fw:SetAllPoints()
         fw:SetClipsChildren(true)
@@ -2674,7 +2674,7 @@ ns.RegisterPage({
         hl.fw = fw
         hl.goal = goal
 
-        -- Rekorde: 2 x 2 Felder
+        -- Records: 2 x 2 fields
         local rec = page()
         rec.cells = {}
         for i = 1, 4 do
@@ -2715,7 +2715,7 @@ ns.RegisterPage({
         rec.prev, rec.next = arrow(-1), arrow(1)
         rec:EnableMouseWheel(true)
         rec:SetScript("OnMouseWheel", function(_, d) p:RecPage(d > 0 and -1 or 1) end)
-        -- Seitenpunkte unten mittig
+        -- Page dots bottom center
         rec.dots = {}
         for i = 1, 2 do
             local d = rec:CreateTexture(nil, "ARTWORK")
@@ -2726,12 +2726,12 @@ ns.RegisterPage({
         hl.rec = rec
 
         ----------------------------------------------------------------
-        -- Spalte 3: Als Naechstes (Durchsagen, Termine, Fuer dich)
+        -- Column 3: up next (announcements, events, for you)
         ----------------------------------------------------------------
         local nextBox = box(p, L["Coming up"], C.amber)
-        -- 0.6.180: jeder Eintrag als Karte - dunkle Flaeche, goldene Kante links, gerahmtes Symbol, Pfeil rechts,
-        -- bei "(x/y)" im Text ein Fortschrittsbalken mit Prozent
-        nextBox.list = K.List(nextBox, 60, function(l)   -- 0.6.181: hoehere Karten mit Abstand
+        -- 0.6.180: each entry as a card - dark surface, golden edge on the left, framed icon, arrow on the right,
+        -- with "(x/y)" in the text a progress bar with percent
+        nextBox.list = K.List(nextBox, 60, function(l)   -- 0.6.181: taller cards with spacing
             local r = K.Row(l)
             if r.stripe then r.stripe:SetAlpha(0) end
             if r.hl then r.hl:ClearAllPoints() r.hl:SetPoint("TOPLEFT", 6, -5) r.hl:SetPoint("BOTTOMRIGHT", -6, 5) r.hl:SetColorTexture(1, 1, 1, 0.05) end
@@ -2832,7 +2832,7 @@ ns.RegisterPage({
             local c = a.color or C.amber
             r.date.top:SetColorTexture(c[1], c[2], c[3], 1)
             r.edge:SetColorTexture(c[1], c[2], c[3], 0.9)
-            -- Fortschritt aus "(x/y)" im Text
+            -- Progress from "(x/y)" in the text
             local x, y = tostring(a.text or ""):match("%((%d+)%s*/%s*(%d+)%)")
             x, y = tonumber(x), tonumber(y)
             if x and y and y > 0 then
@@ -2872,15 +2872,15 @@ ns.RegisterPage({
         nextBox.empty = emptyState(nextBox, ns.ICONS.raid, C.amber, L["Nothing planned - how about an event?"],
             { { "Create event", "raid" }, { "Find group", "groups" } })
         p.nextBox = nextBox
-        -- 0.6.182: Hintergrundbilder mit eigenem Zierrahmen (Gildenmodul): links dunkle Oase, rechts Lager mit Fackeln.
-        -- Dann keine Oasis-Kante/Flaeche und kein Zierrahmen (sonst doppelt); ohne Gildenmodul wie bisher (0.6.180)
+        -- 0.6.182: background images with their own decorative frame (guild module): left dark oasis, right camp with torches.
+        -- Then no Oasis edge/surface and no decorative frame (otherwise doubled); without guild module as before (0.6.180)
         local function boxArt(bx, file)
             bx.art = bx:CreateTexture(nil, "BACKGROUND", nil, 2)
-            if K.BgImg then K.BgImg(bx.art) end   -- 0.6.227: Helligkeit einstellbar
+            if K.BgImg then K.BgImg(bx.art) end   -- 0.6.227: brightness adjustable
             bx.art:SetAllPoints()
             bx.art:SetTexture("Interface\\AddOns\\Oasis_Guild\\Media\\" .. file)
-            if K.RoundMask then pcall(K.RoundMask, bx.art, bx, 8) end   -- 0.6.315: in die Rahmenecken schneiden
-            -- 0.6.412: Bild dezenter - dunkler Schleier darueber
+            if K.RoundMask then pcall(K.RoundMask, bx.art, bx, 8) end   -- 0.6.315: cut into the frame corners
+            -- 0.6.412: image more subtle - dark veil on top
             local dim = bx:CreateTexture(nil, "BACKGROUND", nil, 5)
             dim:SetAllPoints(bx.art)
             dim:SetColorTexture(0.02, 0.02, 0.03, 0.5)
@@ -2897,14 +2897,14 @@ ns.RegisterPage({
             nextBox.frameLines = K.FrameLines(nextBox, 8)
         end
 
-        -- Werbebanner "Midas" (AH-Addon von Rebo) unten in Spalte 3, Hoehe = Breite / 3
+        -- Ad banner "Midas" (AH addon by Rebo) at the bottom of column 3, height = width / 3
         local ad = CreateFrame("Button", nil, p)
         ad:SetClipsChildren(true)
         ad.img = ad:CreateTexture(nil, "ARTWORK")
         ad.img:SetAllPoints()
         ad.img:SetTexture(ns.MEDIA .. "midas_ad")
         local AV = 342 / 512
-        -- Ausschnitt passend zum Rahmen (Bild 3:1; breiterer Rahmen -> oben/unten etwas abschneiden), z = Zoom
+        -- Crop matching the frame (image 3:1; wider frame -> cut a bit off top/bottom), z = zoom
         local function adZoom(z)
             local w, h = ad:GetWidth() or 300, ad:GetHeight() or 100
             local u0, u1, v0, v1 = 0, 1, 0, AV
@@ -2924,7 +2924,7 @@ ns.RegisterPage({
         ad.hl:SetBlendMode("ADD")
         ad.hl:Hide()
         K.Border(ad, { 1, 1, 1, 0.10 })
-        -- Hover: nur aufhellen, nie zoomen (Bild bleibt immer ganz zu sehen)
+        -- Hover: only brighten, never zoom (image always stays fully visible)
         ad:SetScript("OnEnter", function(self)
             self.hl:Show()
             adZoom(1)
@@ -2954,14 +2954,14 @@ ns.RegisterPage({
             end
         end)
         p.ad = ad
-        -- ohne Gilde: statt der Gildenkarten die eigenen Inhalte (Profil, Was tun?, Dungeons, Gilde finden, Oasis-Kontakte)
+        -- without guild: own content instead of the guild cards (profile, what to do?, dungeons, find guild, Oasis contacts)
         if ns.NoGuild and ns.NoGuild.BuildArea then
             p.ngArea = ns.NoGuild.BuildArea(p)
             p.ngArea:Hide()
         end
 
         ----------------------------------------------------------------
-        -- Anordnung (alles relativ zur Seitengroesse)
+        -- Layout (everything relative to the page size)
         ----------------------------------------------------------------
         local GAP = 10
         function p:PlaceTile(t)
@@ -2974,12 +2974,12 @@ ns.RegisterPage({
             if w < 60 then w = 230 end
             if h < 80 then h = 260 end
             local gw, gh = w - 16, h - 44
-            -- rechts sitzt Held/Pechvogel: Kreise nur bis davor
-            -- 0.6.174: Held/Pechvogel hat eine eigene Box - die Online-Box ist schon schmaler, nichts mehr abziehen
+            -- hero/unlucky one sits on the right: circles only up to there
+            -- 0.6.174: hero/unlucky one has its own box - the online box is already narrower, subtract nothing more
             local list = self.onlineList or computeOnline()
             self.onlineList = list
             local n = #list
-            -- Kreisgroesse: wenige gross, sonst die groesste Stufe, in die alle passen
+            -- Circle size: few = large, otherwise the largest size into which all fit
             local MODES = { { 44, 50, 60 }, { 34, 42, 50 }, { 26, 32, 32 } }
             local pick = MODES[3]
             for mi, md in ipairs(MODES) do
@@ -3010,11 +3010,11 @@ ns.RegisterPage({
                     c.member, c.more = nil, nil
                 end
             end
-            -- Leertext nur, wenn wirklich niemand in der Liste ist (nie unter Kreisen)
+            -- Empty text only if really nobody is in the list (never under circles)
             o.grid:SetShown(n > 0)
             o.empty:SetShown(n == 0)
         end
-        -- Dashboard ohne Gilde: Banner bleibt, darunter Karten-Reihe + Kontakte, Midas rechts daneben
+        -- Dashboard without guild: banner stays, below it a row of cards + contacts, Midas to the right
         function p:LayoutNoGuild(ty, W, H)
             for _, t in ipairs(self.tiles) do t:Hide() end
             self.online:Hide() if self.spotBox then self.spotBox:Hide() end self.feed:Hide() self.nextBox:Hide() self.hl:Hide()
@@ -3025,9 +3025,9 @@ ns.RegisterPage({
             a:SetSize(W, math.max(100, H + ty))
             local showAd = adWanted()
             local aw = showAd and math.floor(math.min(330, W * 0.36)) or 0
-            local off = a:LayoutDash(W, showAd and (aw + GAP) or 0, H + ty - 34) or 0   -- 34 = Rang-Leiste unten
+            local off = a:LayoutDash(W, showAd and (aw + GAP) or 0, H + ty - 34) or 0   -- 34 = rank bar at the bottom
             a:FillContacts()
-            showAd = showAd and a.adFits ~= false   -- Midas bleibt, solange es irgendwie passt
+            showAd = showAd and a.adFits ~= false   -- Midas stays as long as it fits somehow
             self.ad:SetShown(showAd)
             if showAd then
                 self.ad:ClearAllPoints()
@@ -3044,7 +3044,7 @@ ns.RegisterPage({
             if H < 100 then H = 560 end
             local banH = H >= 520 and 178 or 150
             self.ban:SetHeight(banH)
-            -- Modell rechts, Glas-Kaertchen unten rechts, Schrift links bekommt den Rest
+            -- Model on the right, glass card bottom right, text on the left gets the rest
             local sw = math.floor(math.min(240, W * 0.30))
             self.ban.stage:SetWidth(sw)
             self.ban.motd:SetWidth(math.floor(math.min(260, W * 0.34)))
@@ -3052,7 +3052,7 @@ ns.RegisterPage({
             self.ban.line2:SetWidth(textW)
             self.ban.greet:SetWidth(textW)
             self.ban.welcome:SetWidth(textW)
-            -- Ticker unten im Banner: Schrift, Kaertchen und Buehne ruecken darueber
+            -- Ticker at the bottom of the banner: text, card and stage move above it
             local tkOn = S().dashTicker ~= false
             local b = self.ban
             b.line2:ClearAllPoints()
@@ -3067,11 +3067,11 @@ ns.RegisterPage({
             b.heroPlate.maxW = math.min(240, sw)
             b.heroPlate:SetWidth(math.min(b.heroPlate.maxW, b.heroPlate.fitW or 200))
             self.ban.dimLeft:SetWidth(math.floor(math.min(420, W * 0.5)))
-            -- Schlichte Startseite (Einstieg fuer Neue): keine Kachelreihe, keine untere Zeile - nur drei klare Spalten
-            -- Kacheln entfallen: an ihrer Stelle "Wer ist online" in voller Breite
+            -- Simple start page (entry for newcomers): no tile row, no bottom row - just three clear columns
+            -- Tiles dropped: in their place "Who is online" at full width
             local simple = false
             for _, t in ipairs(self.tiles) do t:Hide() end
-            -- Kacheln
+            -- Tiles
             local ty = -(banH + GAP)
             if self.ngArea and ns.GuildView and not ns.GuildView() then
                 self:LayoutNoGuild(ty, W, H)
@@ -3081,7 +3081,7 @@ ns.RegisterPage({
                 self.ngArea:Hide()
                 self.online:Show() self.feed:Show() self.nextBox:Show()
             end
-            -- Spalten: Gildennachricht zaehlt doppelt (5 Spalten bei 4 Kacheln)
+            -- Columns: guild message counts double (5 columns with 4 tiles)
             local cols = 0
             for _, t in ipairs(self.tiles) do cols = cols + (t.span or 1) end
             local tw = math.floor((W - GAP * (cols - 1)) / cols)
@@ -3093,42 +3093,42 @@ ns.RegisterPage({
                 tx = tx + w + GAP
                 self:PlaceTile(t)
             end
-            -- Inhalt: oben drei Spalten gleich hoch, unten eine Zeile "Gilden-Highlight" + Midas (3:1)
-            local OH = 118   -- Hoehe der Online-Box (volle Breite)
+            -- Content: three columns of equal height on top, below one row "Guild highlight" + Midas (3:1)
+            local OH = 118   -- Height of the online box (full width)
             self.online:ClearAllPoints()
             self.online:SetPoint("TOPLEFT", 0, ty)
-            -- 0.6.171: Held/Pechvogel als eigene Box rechts daneben (nur wenn es einen gibt)
+            -- 0.6.171: hero/unlucky one as its own box to the right (only if there is one)
             local spOn = self.online.spot and self.online.spot.list and #self.online.spot.list > 0
-            -- 0.6.175: gleiche Spaltenbreiten wie die Boxen darunter (Was gerade passiert 55 % / Als Naechstes)
+            -- 0.6.175: same column widths as the boxes below (What's happening 55 % / Up next)
             local SPW = spOn and ((W - GAP) - math.floor((W - GAP) * 0.55)) or 0
             self.online:SetSize(spOn and (W - SPW - GAP) or W, OH)
             if self.spotBox then
                 self.spotBox:ClearAllPoints()
-                self.spotBox:SetPoint("TOPLEFT", self.online, "TOPRIGHT", GAP, 0)   -- 0.6.173: direkt an "Wer ist online" (0.6.172 lag ausserhalb des Fensters)
+                self.spotBox:SetPoint("TOPLEFT", self.online, "TOPRIGHT", GAP, 0)   -- 0.6.173: directly next to "Who is online" (0.6.172 was outside the window)
                 self.spotBox:SetSize(math.max(1, SPW), OH)
                 self.spotBox:SetShown(spOn and self.online:IsShown() and true or false)
             end
             local top = ty - OH - GAP
-            local ch = math.max(120, H + top - 10)   -- 10 px Luft zum unteren Rand
+            local ch = math.max(120, H + top - 10)   -- 10 px room to the bottom edge
             local inner = W - GAP
             local w2 = math.floor(inner * 0.55)
             local w3 = inner - w2
             local bh = (not simple and ch >= 250) and math.max(92, math.min(118, math.floor(ch * 0.38))) or 0
             local showAd = bh > 0 and adWanted()
-            -- Midas so breit wie die Box darueber ("Als Naechstes"), volle Zeilenhoehe; Countdown-Karte = Breite der linken Box
+            -- Midas as wide as the box above ("Up next"), full row height; countdown card = width of the left box
             local adH = showAd and bh or 0
             local aw = showAd and w3 or 0
             local ch2 = bh > 0 and (ch - bh - GAP) or ch
-            -- 0.5.916: zu wenig Hoehe fuer die untere Zeile (kleines Fenster) -> Midas trotzdem zeigen: unten in der rechten
-            -- Spalte, die Box "Als Naechstes" wird dafuer niedriger
+            -- 0.5.916: too little height for the bottom row (small window) -> still show Midas: at the bottom of the right
+            -- column, the "Up next" box gets shorter for it
             local adInCol = false
-            -- 0.6.183: aus - Midas in der rechten Spalte machte "Als Naechstes" kuerzer als "Was gerade passiert"
-            -- (ungleich hohe Boxen); Midas kommt nur noch in der eigenen Zeile darunter (grosses Fenster)
+            -- 0.6.183: off - Midas in the right column made "Up next" shorter than "What's happening"
+            -- (boxes of unequal height); Midas now only comes in its own row below (large window)
             if false and bh == 0 and not simple and adWanted() then
                 local h = math.min(110, math.floor(w3 / 3))
                 if ch2 - h - GAP >= 64 then adInCol, showAd, adH, aw = true, true, h, w3 end
             end
-            -- 0.6.184: "Als Naechstes" haengt oben UND unten an "Was gerade passiert" - immer exakt gleich hoch
+            -- 0.6.184: "Up next" is attached top AND bottom to "What's happening" - always exactly the same height
             self.feed:ClearAllPoints()
             self.feed:SetPoint("TOPLEFT", 0, top)
             self.feed:SetSize(w2, ch2)
@@ -3143,7 +3143,7 @@ ns.RegisterPage({
                 self.hl:ClearAllPoints()
                 self.hl:SetPoint("TOPLEFT", 0, rowY)
                 self.hl:SetSize(hw, bh)
-                -- Aufgaben untereinander, volle Breite, senkrecht mittig
+                -- Tasks stacked, full width, vertically centered
                 local rh = math.max(16, math.min(22, math.floor((bh - 44) / 3)))
                 local ry = math.max(0, math.floor((bh - 42 - rh * 3) / 2))
                 for i, r in ipairs(self.hl.wk.rows) do
@@ -3155,12 +3155,12 @@ ns.RegisterPage({
                 self.hl.empty:ClearAllPoints()
                 self.hl.empty:SetPoint("TOPLEFT", 14, -36)
                 self.hl.empty:SetPoint("RIGHT", -14, 0)
-                -- Countdown: Bereitschaft nur, wenn rechts neben den Ziffern Platz ist
+                -- Countdown: readiness only if there is room to the right of the digits
                 local inner2 = hw - 24
-                local relOnly = self.hl.cd.ev == nil   -- Release-Countdown: ohne Bereitschafts-Balken
+                local relOnly = self.hl.cd.ev == nil   -- Release countdown: without readiness bar
                 self.hl.cd.bars:SetShown(not relOnly and inner2 - self.hl.cd.digitsW - 22 >= 130)
                 self.hl.cd:Center(relOnly)
-                -- Rekorde: zwei grosse Felder nebeneinander, Pfeile links/rechts, Punkte darunter
+                -- Records: two large fields side by side, arrows left/right, dots below
                 local rec = self.hl.rec
                 local AW = 18
                 local rw = math.floor((inner2 - 2 * AW - 8) / 2)
@@ -3178,12 +3178,12 @@ ns.RegisterPage({
                     d:SetPoint("TOP", rec, "TOPLEFT", inner2 / 2 + (i - 1.5) * 10, ry - rh - 5)
                 end
                 self:RecPage(0)
-                -- schmale Karte: Kopf zeigt nur den Reiter-Titel ohne Zusatz (sonst stoesst er an die Chips)
+                -- narrow card: header shows only the tab title without extras (otherwise it bumps into the chips)
                 self.hl.narrow = hw < 400
             end
             self.ad:SetShown(showAd)
             if showAd then
-                -- immer ganzes Bild (3:1), rechts unten, senkrecht mittig in der Zeile
+                -- always the whole image (3:1), bottom right, vertically centered in the row
                 self.ad:ClearAllPoints()
                 self.ad:SetPoint("TOPRIGHT", 0, adInCol and (top - ch2 + adH) or rowY)
                 self.ad:SetSize(aw, adH)
@@ -3203,7 +3203,7 @@ ns.RegisterPage({
         end)
 
         ----------------------------------------------------------------
-        -- Bewegung: Ken-Burns, Partikel, Glanz, Uhr, Countdown (nur solange sichtbar)
+        -- Motion: Ken Burns, particles, gloss, clock, countdown (only while visible)
         ----------------------------------------------------------------
         local function applyCoords(b, zoom, px, py)
             local W, H = b:GetWidth() or 760, b:GetHeight() or 190
@@ -3229,7 +3229,7 @@ ns.RegisterPage({
             self.t = (self.t or 0) + dt
             self.since = (self.since or 0) + dt
             local mov = moving()
-            -- Bild: langsames Zoomen/Schwenken (36 s), beim Oeffnen kurzer Zoom von nah
+            -- Image: slow zoom/pan (36 s), short zoom from close when opening
             if self.bgKey then
                 local ph = self.t / 36 * math.pi * 2
                 local intro = animOn() and math.max(0, 1 - self.since / 1.6) or 0
@@ -3242,8 +3242,8 @@ ns.RegisterPage({
                 applyCoords(self, z + 0.22 * ease(intro) * intro, px, py)
             end
             local W, H = self:GetWidth() or 760, self:GetHeight() or 190
-            -- Partikel
-            -- ruhiges Banner: keine Glut-Partikel
+            -- Particles
+            -- calm banner: no ember particles
             self.pf:SetShown(false)
             if false then
                 for _, d in ipairs(self.dots) do
@@ -3259,7 +3259,7 @@ ns.RegisterPage({
                     d.t:SetPoint("CENTER", self, "BOTTOMLEFT", d.x + math.sin(d.phase) * d.sway, d.y)
                 end
             end
-            -- Glanz/Lichtpunkt/Namensglanz/Umlaeufer: abgeschaltet (ruhiges Banner); nur das Bild bewegt sich leicht
+            -- Gloss/light dot/name gloss/orbiters: disabled (calm banner); only the image moves slightly
             if false then
                 local c9 = self.t % 9
                 if self.sheen.ok and c9 < 2.2 then
@@ -3289,7 +3289,7 @@ ns.RegisterPage({
                     self.nameShine:SetAlpha(0)
                 end
                 if p.pulseTex then p.pulseTex:SetAlpha(0.5 + 0.5 * math.sin(self.t * 2.4)) end
-                -- Lichtrand: zwei Lichtpunkte laufen gegenlaeufig um das Banner (eine Runde ~14 s)
+                -- Light edge: two light dots run in opposite directions around the banner (one lap ~14 s)
                 local per = 2 * (W + H)
                 for i, r in ipairs(self.runners) do
                     local s = ((self.t / 14 + (i - 1) * 0.5) % 1) * per
@@ -3304,7 +3304,7 @@ ns.RegisterPage({
                     r:SetAlpha(0.75)
                     r:Show()
                 end
-                -- Buehne und Name atmen ganz leicht
+                -- Stage and name breathe very slightly
                 if self.stage and self.stage:IsShown() then
                     self.stage.halo:SetAlpha(0.18 + 0.07 * math.sin(self.t * 1.1))
                     self.stage.ring:SetAlpha(0.28 + 0.12 * math.sin(self.t * 1.7))
@@ -3318,7 +3318,7 @@ ns.RegisterPage({
                 if self.stage and self.stage.halo then self.stage.halo:SetAlpha(0) self.stage.ring:SetAlpha(0) end
             end
             if p.WowTick then p:WowTick(dt) end
-            -- jede Sekunde: Uhr + Countdown-Kachel
+            -- every second: clock + countdown tile
             slow = slow + dt
             if slow >= 1 then
                 slow = 0
@@ -3331,17 +3331,17 @@ ns.RegisterPage({
             local t3 = self.tiles[3]
             if t3 and t3.ev then t3.value:SetText(countdown((t3.ev.ts or 0) - ns.now())) end
             self:UpdateCountdown()
-            -- Tagesziel live (Schritte zaehlen jede Sekunde mit), nur wenn sichtbar
+            -- Daily goal live (steps counted every second), only when visible
             if self.hl.goal:IsVisible() then self:UpdateGoal(false) end
-            -- Karte alle 4 s frisch
+            -- Card refreshed every 4 s
             self.mapAcc = (self.mapAcc or 0) + 1
             if self.mapAcc >= 4 and self.feed.tab == "map" then self.mapAcc = 0 self:UpdateMap() end
         end
 
         ----------------------------------------------------------------
-        -- WOW-Teile: Laufzeit (nur ueber tick, also nur bei sichtbarer Seite)
+        -- WOW parts: runtime (only via tick, i.e. only when the page is visible)
         ----------------------------------------------------------------
-        -- Mischung eigener Charakter (0) <-> Held der Woche (1)
+        -- Blend own character (0) <-> hero of the week (1)
         function p:SetHeroMix(mix)
             local b = self.ban
             local ownOk = b.model ~= nil and not b.model.failed
@@ -3354,7 +3354,7 @@ ns.RegisterPage({
                 f:SetShown(on)
                 if on then
                     f:SetAlpha(alpha)
-                    -- Modelle nach dem Verstecken neu laden (sonst bleiben sie im Client oft leer)
+                    -- Reload models after hiding (otherwise they often stay empty in the client)
                     if not was and f.Apply and not f.failed then f:Apply() end
                 end
             end
@@ -3363,20 +3363,20 @@ ns.RegisterPage({
             vis(b.heroPort, b.heroData ~= nil and port and mix > 0.02, mix)
             vis(b.heroPlate, b.heroData ~= nil and mix > 0.02, mix)
             vis(b.crown, b.heroData ~= nil and mix > 0.02, mix)
-            -- Krone: beim Portraet direkt auf dem Ring, beim Modell ueber dem Kopf
+            -- Crown: on the ring for the portrait, above the head for the model
             if port ~= b.crownPort then
                 b.crownPort = port
                 b.crown:ClearAllPoints()
                 if port then b.crown:SetPoint("CENTER", b.heroPort, "TOP", 0, 1) else b.crown:SetPoint("TOP", b.stage, "TOP", -17, -18) end
             end
-            -- Durchsage-Kaertchen weicht dem Helden
+            -- Announcement card makes way for the hero
             if b.motd.has then vis(b.motd, mix < 0.98, 1 - mix) end
         end
         local function easeIO(q) return q < 0.5 and 2 * q * q or 1 - (-2 * q + 2) ^ 2 / 2 end
         function p:WowTick(dt)
             local b = self.ban
             local anim = animOn()
-            -- Held im Wechsel: 12 s ich, 10 s Held, je 1 s Ueberblendung
+            -- Hero alternating: 12 s me, 10 s hero, 1 s crossfade each
             if b.heroData then
                 b.heroT = (b.heroT or 0) + dt
                 local c = b.heroT % 24
@@ -3388,7 +3388,7 @@ ns.RegisterPage({
             -- Ticker
             local tk = b.ticker
             if not tk.place then tk.place = function(el) self:PlaceTicker(el) end end
-            -- Willkommen: Schreibmaschine, stehen lassen, ausblenden
+            -- Welcome: typewriter, hold, fade out
             local wl = b.wel
             if wl and wl.active then
                 wl.t = wl.t + dt
@@ -3406,7 +3406,7 @@ ns.RegisterPage({
                     if q >= 1 then self:EndWelcome() end
                 end
             end
-            -- Countdown-Ziffern klappen
+            -- Countdown digits flip
             local cd = self.hl.cd
             if cd:IsShown() then
                 for i, g in ipairs(cd.groups) do
@@ -3422,7 +3422,7 @@ ns.RegisterPage({
                     end
                 end
             end
-            -- Tagesziel-Schein, Feuerwerk
+            -- Daily goal glow, fireworks
             local goal = self.hl.goal
             if goal:IsShown() and goal.data and goal.data.full and anim then
                 goal.halo:SetAlpha(0.25 + 0.15 * math.sin((b.t or 0) * 2))
@@ -3452,7 +3452,7 @@ ns.RegisterPage({
                 end
                 if not alive then fw.on = false fw:Hide() end
             end
-            -- Karte: Punkte pulsieren
+            -- Map: dots pulse
             local mapF = self.feed.mapF
             if mapF:IsShown() and anim then
                 local t = b.t or 0
@@ -3460,7 +3460,7 @@ ns.RegisterPage({
                     if d:IsShown() then d.glow:SetAlpha(0.35 + 0.35 * math.sin(t * 3 + i * 0.7)) end
                 end
             end
-            -- untere Karte wechselt alle 14 s (nicht unter der Maus, nicht ohne Animation)
+            -- lower card rotates every 14 s (not under the mouse, not without animation)
             local hl = self.hl
             if hl:IsShown() and anim then
                 local over = false
@@ -3513,7 +3513,7 @@ ns.RegisterPage({
             local cum = 0
             for i = 1, tk.n do
                 local it = tk.items[i]
-                -- ohne Runden und ohne Pixelraster: weiches Gleiten statt ruckelnder 1-Pixel-Spruenge
+                -- without rounding and without pixel grid: smooth gliding instead of jerky 1-pixel jumps
                 local x = ((cum - tk.off + maxW) % total) - maxW
                 if not it.smooth then
                     it.smooth = true
@@ -3530,7 +3530,7 @@ ns.RegisterPage({
             end
         end
 
-        -- Willkommen zurueck
+        -- Welcome back
         function p:PlayWelcome(text)
             local b = self.ban
             local chars = {}
@@ -3554,7 +3554,7 @@ ns.RegisterPage({
             if animOn() then K.FadeIn(b.line2, 0) K.FadeIn(b.greet, 0) end
         end
 
-        -- Held laden (nur wenn sich Person oder Einheit aendert)
+        -- Load hero (only when person or unit changes)
         function p:LoadHero(h)
             local b = self.ban
             if not h then
@@ -3568,7 +3568,7 @@ ns.RegisterPage({
             local plate = b.heroPlate
             plate.name:SetText(ns.Radar.Colored(h.name))
             plate.why:SetText(h.reason or "")
-            -- Schild so breit wie der laengste Text (+ Rand), nie breiter als die Buehne
+            -- Plate as wide as the longest text (+ margin), never wider than the stage
             local tw = math.max(tonumber(plate.name:GetStringWidth()) or 0, tonumber(plate.why:GetStringWidth()) or 0, tonumber(plate.kick:GetStringWidth()) or 0)
             plate.fitW = math.max(150, math.floor(tw + 32))
             plate:SetWidth(math.min(plate.maxW or 220, plate.fitW))
@@ -3604,7 +3604,7 @@ ns.RegisterPage({
             b.heroMode = method
             Info.heroMethod = method
             b.mix = -1
-            -- kommt kein Modell an (Forever kann Volksmodelle verweigern): Portraet
+            -- if no model arrives (Forever may refuse race models): portrait
             if method ~= "portrait" and m and m.GetModelFileID then
                 ns.After(0.8, function()
                     if b.heroKey ~= key then return end
@@ -3618,7 +3618,7 @@ ns.RegisterPage({
             end
         end
 
-        -- Reiter der Feed-Karte
+        -- Tabs of the feed card
         function p:SetFeedTab(key)
             local f = self.feed
             local changed = f.tab ~= key
@@ -3633,9 +3633,9 @@ ns.RegisterPage({
             if changed and animOn() and key ~= "feed" then K.FadeIn(key == "map" and f.mapF or f.pulseF, 0) end
         end
 
-        -- Gildenkarte
+        -- Guild map
         function p:UpdateMap()
-            -- beide Kontinente nebeneinander; Klick auf eine Karte oeffnet die Weltkarte dort
+            -- both continents side by side; click on a map opens the world map there
             local mapF = self.feed.mapF
             local pts, _, count = Info.MapPoints()
             mapF.art:Hide()
@@ -3698,7 +3698,7 @@ ns.RegisterPage({
                 pn:ClearAllPoints()
                 pn:SetPoint("TOPLEFT", (idx - 1) * (pw + GAP), 0)
                 pn:SetSize(pw, mh)
-                -- Bild einpassen (Seitenverhaeltnis halten), senkrecht mittig ueber der Beschriftung
+                -- Fit image (keep aspect ratio), vertically centered above the caption
                 local asp = pn.layer and (pn.layer.w / pn.layer.h) or 1.5
                 local w, h = pw, pw / asp
                 if h > ph then h, w = ph, ph * asp end
@@ -3715,7 +3715,7 @@ ns.RegisterPage({
                         t:SetSize(ly.tw * sc, ly.th * sc)
                     end
                 end
-                -- Beschriftung unter der Karte, buendig mit dem Bild
+                -- Caption below the map, aligned with the image
                 pn.label:ClearAllPoints()
                 pn.label:SetPoint("TOPLEFT", pn.art, "BOTTOMLEFT", 0, -4)
                 pn.label:SetPoint("RIGHT", pn.art, "RIGHT", -20, 0)
@@ -3767,7 +3767,7 @@ ns.RegisterPage({
             end
         end
 
-        -- Gilden-Puls
+        -- Guild pulse
         function p:UpdatePulse(anim)
             local pf = self.feed.pulseF
             local d = Info.Pulse()
@@ -3782,8 +3782,8 @@ ns.RegisterPage({
             local heights = {}
             for k = 0, 47 do
                 local bar = pf.bars[k]
-                -- gemeinsame Skala fuer heute + typischen Tag (vorher je eigenes Maximum -> alles "voll"),
-                -- Obergrenze = groesster Wert + Luft, mindestens 5 Spieler
+                -- shared scale for today + typical day (previously each its own maximum -> everything "full"),
+                -- upper limit = largest value + headroom, at least 5 players
                 local top = math.max(5, math.ceil(math.max(d.typMax or 0, d.dayMax or 0) * 1.25))
                 local th = ((d.typ[k] or 0) / top) * ch
                 local dh = ((d.today[k] or 0) / top) * ch
@@ -3819,7 +3819,7 @@ ns.RegisterPage({
             end
         end
 
-        -- untere Karte
+        -- lower card
         function p:SetHlTab(key)
             local hl = self.hl
             hl.avail = hl.avail or {}
@@ -3859,7 +3859,7 @@ ns.RegisterPage({
             end
         end
 
-        -- Countdown jede Sekunde
+        -- Countdown every second
         function p:UpdateCountdown()
             local cd = self.hl.cd
             local hl = self.hl
@@ -3876,8 +3876,8 @@ ns.RegisterPage({
                     if not on and hl.tab == "count" then self:SetHlTab("tasks") else self:SetHlTab(hl.tab or "count") end
                 end
                 hl.heads.count = { cd.title or L["Raid countdown"], cd.target and date("%d.%m.%Y %H:%M", cd.target) or nil,
-                    -- Glas: Startzeit dezent hinter dem Titel (statt eigener Zeile in der Karte)
-                    (cd.round and cd.target) and ("   |cff8c8c94" .. date("%d.%m. %H:%M", cd.target) .. "|r") or nil }   -- Ortszeit des Spielers
+                    -- Glass: start time subtly after the title (instead of its own row in the card)
+                    (cd.round and cd.target) and ("   |cff8c8c94" .. date("%d.%m. %H:%M", cd.target) .. "|r") or nil }   -- Player's local time
                 if hl.tab == "count" then
                     hl.head.text:SetText(K.Upper(hl.heads.count[1]) .. (hl.heads.count[3] or ""))
                     hl.head:SetCount((not hl.narrow) and hl.heads.count[2] or nil)
@@ -3897,7 +3897,7 @@ ns.RegisterPage({
                 end
             end
         end
-        -- Bereitschaft (Werte) + Balken
+        -- Readiness (values) + bar
         function p:SetReadiness(r)
             local rows = self.hl.cd.rows
             local defs = {
@@ -3938,7 +3938,7 @@ ns.RegisterPage({
             end
         end
 
-        -- Tagesziel
+        -- Daily goal
         function p:UpdateGoal(anim)
             local goal = self.hl.goal
             local g = Info.DailyGoal()
@@ -3958,7 +3958,7 @@ ns.RegisterPage({
             local R = goal.rcol
             goal.lines[1]:SetText(L["Steps"])
             goal.vals[1]:SetText(fmtNum(g.steps) .. " |cff6b6b70/ " .. fmtNum(g.stepGoal) .. "|r")
-            -- zu Pferd/Flug zaehlt nicht: Hinweis, statt still bei 0 zu bleiben
+            -- mounted/flying does not count: show a hint instead of silently staying at 0
             local mounted = (IsMounted and IsMounted()) or (UnitOnTaxi and UnitOnTaxi("player"))
             goal.lines[2]:SetText(L["XP today"])
             goal.vals[2]:SetText(g.xpGoal > 0 and (fmtNum(g.xp) .. " |cff6b6b70/ " .. fmtNum(g.xpGoal) .. "|r") or ("|cff888888" .. L["max level"] .. "|r"))
@@ -3968,7 +3968,7 @@ ns.RegisterPage({
                 or (mounted and ("|cffe8b44a" .. L["Steps only count on foot (no mount, no flight)."] .. "|r"))
                 or L["Steps only count on foot (no mount, no flight)."])
             self.hl.heads.goal = { L["Your daily goal"], (math.floor((g.r1 + g.r2 + g.r3) / 3 * 100)) .. " %" }
-            -- Feuerwerk: einmal am Tag (Demo: einmal je Sitzung), sobald alle drei Ringe voll sind
+            -- Fireworks: once per day (demo: once per session) as soon as all three rings are full
             if g.full and goal:IsShown() then
                 local c = ns.char or ns.db
                 local day = date("%Y-%m-%d")
@@ -4008,8 +4008,8 @@ ns.RegisterPage({
             fw:Show()
         end
 
-        -- Rekorde
-        -- Rekorde blaettern (dir -1/+1, 0 = nur anzeigen)
+        -- Records
+        -- Page through records (dir -1/+1, 0 = only display)
         function p:RecPage(dir)
             local rec = self.hl.rec
             rec.pg = ((rec.pg or 1) - 1 + (dir or 0)) % rec.pages + 1
@@ -4036,7 +4036,7 @@ ns.RegisterPage({
                 end
             end
         end
-        -- Fehler im Bild-Takt nur EINMAL melden und den Takt abschalten (sonst feuert er jedes Bild)
+        -- Report errors in the frame tick only ONCE and disable the tick (otherwise it fires every frame)
         local function safeTick(self, el)
             local ok, e = pcall(tick, self, el)
             if not ok then
@@ -4053,7 +4053,7 @@ ns.RegisterPage({
         p:HookScript("OnShow", function(self)
             self.fresh = true
             self:StartMotion()
-            -- Modell nach dem Verstecken neu laden (sonst bleibt es im Client oft leer)
+            -- Reload model after hiding (otherwise it often stays empty in the client)
             if self.ban.model and not self.ban.model.failed then self.ban.model:Apply() end
             if self.ban.hero and self.ban.heroData and self.ban.heroMode ~= "portrait" and not self.ban.hero.failed then self.ban.hero:Apply() end
         end)
@@ -4061,7 +4061,7 @@ ns.RegisterPage({
         p:HookScript("OnHide", function(self) self.ban:SetScript("OnUpdate", nil) end)
         p:StartMotion()
 
-        -- Hintergrund waehlen (auch nach Einstellungsaenderung)
+        -- Choose background (also after a settings change)
         function p:ApplyBackground()
             local k = pickBackground(self.ban.img)
             self.ban.bgKey = k
@@ -4094,8 +4094,8 @@ ns.RegisterPage({
         local cr, cg, cb = ns.classColor(ns.safe(classFile))
         local myCol = ("|cff%02x%02x%02x"):format((cr or 1) * 255, (cg or 1) * 255, (cb or 1) * 255) .. ns.displayName(ns.me()) .. "|r"
         ban.greetNormal = greeting() .. ", " .. myCol
-        -- Willkommen zurueck: einmal je Sitzung, mit dem, was seit dem letzten Besuch passiert ist
-        -- nur wenn die Seite wirklich zu sehen ist (Hintergrund-Refresh zaehlt nicht als Besuch)
+        -- Welcome back: once per session, with what has happened since the last visit
+        -- only if the page is really visible (background refresh does not count as a visit)
         local seen = true
         if p.IsVisible then local okV, v = pcall(p.IsVisible, p) seen = not okV or v and true or false end
         if seen and Info.lastVisit == nil then Info.lastVisit = tonumber(ns.db.dashSeen) or false end
@@ -4130,8 +4130,8 @@ ns.RegisterPage({
         if unread > 0 then parts[#parts + 1] = (L["%d new in guild chat"]):format(unread) end
         ban.line2:SetText(table.concat(parts, "  |cff888888·|r  "))
 
-        -- Durchsage (3 Tage) vor Nachricht des Tages -> stehen jetzt in der Kachel "Gildennachricht",
-        -- das Glas-Kaertchen im Banner bleibt deshalb aus (sonst doppelt)
+        -- Announcement (3 days) before message of the day -> now shown in the "Guild message" tile,
+        -- so the glass card in the banner stays off (otherwise doubled)
         local note = ns.Admin and ns.Admin.LatestNotice and ns.Admin.LatestNotice()
         local motdText = Info.MOTD()
         ban.motd.has = false
@@ -4144,13 +4144,13 @@ ns.RegisterPage({
             ban.line2:SetText((L["Level %d"]):format(lv) .. (zn ~= "" and ("  |cff888888·|r  " .. zn) or "") .. "  |cff888888·|r  " .. L["travelling without a guild"])
         end
 
-        -- Held der Woche
+        -- Hero of the week
         local hero = nil
         if S().dashHero ~= false then
             local okH, h = pcall(Info.Hero)
             hero = okH and h or nil
         end
-        -- Held steht nicht mehr im Banner (ueberlappte), sondern rechts in "Wer ist online" im Wechsel mit dem Pechvogel
+        -- Hero is no longer in the banner (overlapped), but on the right in "Who is online" alternating with the unlucky one
         p:LoadHero(nil)
         if ban.stage then ban.stage:SetShown(ban.model ~= nil and not ban.model.failed) end
         p:SetHeroMix(0)
@@ -4162,11 +4162,11 @@ ns.RegisterPage({
             local sp = p.online.spot
             local key = ""
             for _, it in ipairs(list) do key = key .. it.kind .. it.name .. (it.reason or "") end
-            if sp.key ~= key then sp.key = key sp:SetData(list) if p.Layout then pcall(p.Layout, p) elseif p.LayoutGrid then p:LayoutGrid() end end   -- 0.6.174: ganzes Layout (Breite der Online-Box + eigene Box)
+            if sp.key ~= key then sp.key = key sp:SetData(list) if p.Layout then pcall(p.Layout, p) elseif p.LayoutGrid then p:LayoutGrid() end end   -- 0.6.174: whole layout (width of the online box + own box)
             p.online.grid:SetPoint("BOTTOMRIGHT", -8, 6)
         end
 
-        -- Live-Ticker: Held + letzte Ereignisse der Chronik
+        -- Live ticker: hero + latest chronicle events
         local tlist = {}
         if hero then
             tlist[#tlist + 1] = "|cffffd24a" .. L["Hero of the week:"] .. "|r " .. ns.Radar.Colored(hero.name) .. "  |cffa3a3a8" .. (hero.reason or "") .. "|r"
@@ -4201,7 +4201,7 @@ ns.RegisterPage({
         p:SetTicker(tlist)
 
         ----------------------------------------------------------------
-        -- Kacheln: Online | Mitglieder | Naechster Termin | Gildennachricht (doppelt breit)
+        -- Tiles: online | members | next event | guild message (double width)
         ----------------------------------------------------------------
         local t = p.tiles
         local total = math.max(R.total or 0, nOn)
@@ -4250,7 +4250,7 @@ ns.RegisterPage({
         for _, tile in ipairs(t) do tile.track:SetShown(tile.bar:IsShown()) end
 
         ----------------------------------------------------------------
-        -- Wer ist online
+        -- Who is online
         ----------------------------------------------------------------
         p.onlineList = on
         p:LayoutGrid()
@@ -4264,7 +4264,7 @@ ns.RegisterPage({
         local top, rankOf = {}, {}
         for _, e in ipairs(feed) do
             if e.kind == "badge" or (e.kind == "level" and e.rank) then
-                -- 0.5.545/547: Abzeichen und Oasis-Rang nicht im Dashboard (zu viele, stehen in der Chronik)
+                -- 0.5.545/547: badges and Oasis rank not in the dashboard (too many, they are in the chronicle)
             elseif e.kind == "level" and e.rank then
                 local k = e.who or "?"
                 local first = rankOf[k]
@@ -4289,7 +4289,7 @@ ns.RegisterPage({
         p.pulseTex = nil
         p.feed.list:SetData(top)
         p.feed.isEmpty = #top == 0
-        -- Gilde diese Woche: kurz im Kopf
+        -- Guild this week: briefly in the header
         local wkAgo = ns.now() - 7 * 86400
         local bosses, levels, loot = 0, 0, 0
         for _, e in ipairs(feed) do
@@ -4302,7 +4302,7 @@ ns.RegisterPage({
         p.feed.head:SetCount(nil)
         p:SetFeedTab(p.feed.tab or "feed")
 
-        -- Wochenaufgaben
+        -- Weekly tasks
         local wk = p.hl.wk
         local hasTasks = false
         if ns.Rewards and ns.Rewards.Tasks then
@@ -4362,7 +4362,7 @@ ns.RegisterPage({
         p.hl.hasTasks = hasTasks
         if not hasTasks then p.hl.heads.tasks = { L["Guild highlight"], nil } end
 
-        -- Raid-Countdown (Bereitschaft), Tagesziel, Rekorde, Puls
+        -- Raid countdown (readiness), daily goal, records, pulse
         if ns.db.settings.dashCountdown ~= false then
             local okR, r = pcall(Info.Readiness)
             if okR and r then p:SetReadiness(r) end
@@ -4374,7 +4374,7 @@ ns.RegisterPage({
         p.hl.heads.rec = { L["Guild records"], nil }
         pcall(Info.SamplePulse)
         if p.feed.tab == "pulse" then p:UpdatePulse(false) end
-        -- Gildennachricht in die Karte; beim Oeffnen des Dashboards immer zuerst zeigen
+        -- Guild message into the card; always show it first when opening the dashboard
         do
             local hl = p.hl
             local has = (motdText or "") ~= ""
@@ -4387,7 +4387,7 @@ ns.RegisterPage({
         if doAnim and p.hl.tab == "count" then p:AnimReadiness() end
 
         ----------------------------------------------------------------
-        -- Als Naechstes: Durchsagen, MOTD (falls oben eine Durchsage steht), Termine, Fuer dich
+        -- Up next: announcements, MOTD (if an announcement is shown above), events, for you
         ----------------------------------------------------------------
         local items = {}
         if note and motdText ~= "" then
@@ -4416,7 +4416,7 @@ ns.RegisterPage({
         p.nextBox.head:SetCount(#items > 0 and #items or nil)
 
         ----------------------------------------------------------------
-        -- Auftritt beim Oeffnen
+        -- Entrance animation when opening
         ----------------------------------------------------------------
         if doAnim then
             ban:SetAlpha(0)
@@ -4459,14 +4459,14 @@ ns.RegisterPage({
         p.fresh = false
     end,
 })
--- Gilde betreten/verlassen: Dashboard umschalten
+-- Join/leave guild: switch dashboard
 ns.On("PLAYER_GUILD_UPDATE", function()
     local def = ns.PageDef("home")
     if def and def.frame and def.frame.Layout then def.frame:Layout() ns.RefreshPage("home") end
 end)
 
 ------------------------------------------------------------------------
--- Einstellungen der Startseite
+-- Start page settings
 ------------------------------------------------------------------------
 local function addSettings()
     if not ns.AddPageSettings or Info.settingsAdded then return end

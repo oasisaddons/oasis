@@ -1,9 +1,9 @@
--- Oasis: "Wofuer ist das?" - unter Materialien im Item-Tooltip: in welchen Rezepten der Gilde sie stecken
--- Quellen: Rezeptlisten der Gilde (ns.db.recipes, per Abgleich), Material je Rezept (ns.db.reagents:
--- eigene Berufs-Scans, fehlende im Hintergrund ueber C_TradeSkillUI.GetRecipeSchematic nachgeladen).
--- Tooltip-Abfrage ist nur ein Tabellenzugriff; der Index wird im Hintergrund (ausserhalb des Kampfes) gebaut.
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Crafting", function()   -- Modul Handwerk (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis: "What is this for?" - below materials in the item tooltip: which guild recipes use them
+-- Sources: guild recipe lists (ns.db.recipes, via sync), materials per recipe (ns.db.reagents:
+-- own profession scans, missing ones loaded in the background via C_TradeSkillUI.GetRecipeSchematic).
+-- Tooltip lookup is just a table access; the index is built in the background (out of combat).
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Crafting", function()   -- module crafting (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 
 local RT = {}
@@ -14,7 +14,7 @@ local built = false
 
 local function on() return ns.db and ns.db.settings.tipReagent ~= false end
 
--- Material eines Rezepts: "itemID:menge,itemID:menge"
+-- materials of a recipe: "itemID:amount,itemID:amount"
 local function reagentsOf(rid)
     return ns.db.reagents and ns.db.reagents[rid]
 end
@@ -53,7 +53,7 @@ function RT.Build()
     return byRecipe
 end
 
--- fehlendes Material im Hintergrund nachladen (gedrosselt, nie im Kampf)
+-- load missing materials in the background (throttled, never in combat)
 local queue, ticker = {}, nil
 local function fill()
     local byRecipe = RT.Build()
@@ -93,7 +93,7 @@ local function fill()
     end)
 end
 ns.Listen("LOGIN", function() ns.After(40, function() pcall(fill) end) end)
--- neue Rezeptlisten aus der Gilde: hoechstens alle 5 Minuten neu einordnen
+-- new recipe lists from the guild: re-sort at most every 5 minutes
 local lastFill = 0
 ns.Listen("SYNCED", function()
     if GetTime() - lastFill < 300 then return end

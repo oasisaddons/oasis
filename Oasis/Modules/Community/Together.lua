@@ -1,12 +1,12 @@
--- Oasis: Gildenleben (0.6.527) - Seite mit vier Reitern
---  * Wochenaufgabe: ein gemeinsames Ziel der Woche (Leitung waehlt), Fortschritt zaehlt Oasis selbst aus Chronik,
---    Danke und Treffen - oder Abgaben (Material fuer die Bank). Store "wchal" (Leitung) + "wccontrib" (je Mitglied)
---  * Treffen: Gildentreffen an einem Ort zu einer Zeit (Store "meets"), 10 Min. vorher Hinweis mit Ziel-Pfeil,
---    wer dort ist, wird automatisch als dabei vermerkt (Store "meetatt")
---  * Danke & Beitrag: wer in den letzten 30 Tagen beigetragen hat (Danke bekommen, Auftraege erledigt, Material,
---    Paten, Treffen) - alphabetisch, ohne Rangliste: Wertschaetzung statt Wettbewerb
---  * Jahrbuch: Monatsseite der Gilde (Neue, Level-Meilensteine, Bosse, Treffen, Helfer, Todeswuerfeln, Friedhof)
---    zum Ansehen und als Text fuer Discord (Kopierfenster)
+-- Oasis: Guild life (0.6.527) - page with four tabs
+--  * Weekly task: a shared goal for the week (leadership picks), Oasis counts progress itself from chronicle,
+--    thanks and meetups - or contributions (materials for the bank). Store "wchal" (leadership) + "wccontrib" (per member)
+--  * Meetups: guild meetup at a place and time (store "meets"), notice with target arrow 10 min before,
+--    whoever is there is automatically marked as present (store "meetatt")
+--  * Thanks & contribution: who contributed in the last 30 days (got thanks, finished orders, materials,
+--    mentoring, meetups) - alphabetical, no ranking: appreciation instead of competition
+--  * Yearbook: monthly page of the guild (new members, level milestones, bosses, meetups, helpers, Deathroll, graveyard)
+--    to view and as text for Discord (copy window)
 local ADDON, ns = ...
 ns.ModuleFile("Oasis_Community", function()
 local L = ns.L
@@ -16,16 +16,16 @@ ns.GuildLife = GL
 local DAY, WEEK = 86400, 7 * 86400
 local function short(n) return ns.displayName and ns.displayName(n) or ns.short(n) end
 local function lead() return ns.isOfficer() and true or false end
-local function weekStart(t)   -- Montag 00:00 (Ortszeit) der Woche von t
+local function weekStart(t)   -- Monday 00:00 (local time) of the week of t
     t = t or ns.now()
     local d = date("*t", t)
-    local wd = (d.wday + 5) % 7   -- Montag = 0
+    local wd = (d.wday + 5) % 7   -- Monday = 0
     return time({ year = d.year, month = d.month, day = d.day - wd, hour = 0 })
 end
 GL.WeekStart = weekStart
 
 ------------------------------------------------------------------------
--- Wochenaufgabe
+-- Weekly task
 ------------------------------------------------------------------------
 GL.PRESETS = {
     { key = "levels", title = "Collect level milestones", goal = 15, desc = "Every level milestone in the chronicle counts" },
@@ -57,7 +57,7 @@ function GL.Contribute(n)
     local old = Store.Get("wccontrib", id)
     Store.Put("wccontrib", { id = id, ws = ch.ws, n = ((old and old.n) or 0) + n, by = ns.me(), ts = ns.now() })
 end
--- Fortschritt: Zahl + wer beigetragen hat ({ Name = Anzahl })
+-- Progress: number + who contributed ({ name = count })
 function GL.Progress(ch)
     ch = ch or GL.Challenge()
     if not ch then return 0, {} end
@@ -77,7 +77,7 @@ function GL.Progress(ch)
 end
 
 ------------------------------------------------------------------------
--- Treffen
+-- Meetups
 ------------------------------------------------------------------------
 local function myPos()
     local map = C_Map and C_Map.GetBestMapForUnit and ns.safe(C_Map.GetBestMapForUnit("player"))
@@ -94,7 +94,7 @@ function GL.Meets(upcomingOnly)
     table.sort(l, function(a, b) return (a.ts or 0) < (b.ts or 0) end)
     return l
 end
--- Zeit "HH:MM" (heute/morgen) oder "TT.MM HH:MM"
+-- time "HH:MM" (today/tomorrow) or "DD.MM HH:MM"
 local function parseTime(s)
     s = tostring(s or "")
     local d, mo, h, mi = s:match("(%d+)%.(%d+)%.?%s+(%d+):(%d+)")
@@ -122,7 +122,7 @@ end
 function GL.Goto(m)
     if ns.Map and ns.Map.SetTarget then ns.Map.SetTarget({ mapID = m.mapID, x = (m.x or 0) / 10000, y = (m.y or 0) / 10000, label = m.title, sub = L["Guild meetup"] }) end
 end
--- Hinweis 10 Minuten vorher, Anwesenheit automatisch (bis 40 m, -15 bis +60 Minuten)
+-- notice 10 minutes before, attendance automatic (up to 40 m, -15 to +60 minutes)
 local reminded = {}
 local function tick()
     if not ns.loggedIn or ns.inCombat() then return end
@@ -150,7 +150,7 @@ end
 C_Timer.NewTicker(20, function() pcall(tick) end)
 
 ------------------------------------------------------------------------
--- Danke & Beitrag (30 Tage, ohne Rangliste)
+-- Thanks & contribution (30 days, no ranking)
 ------------------------------------------------------------------------
 function GL.Contributions(days)
     local from = ns.now() - (days or 30) * DAY
@@ -176,7 +176,7 @@ function GL.Contributions(days)
 end
 
 ------------------------------------------------------------------------
--- Jahrbuch (Monat)
+-- Yearbook (month)
 ------------------------------------------------------------------------
 function GL.Month(offset)
     local d = date("*t")
@@ -236,7 +236,7 @@ function GL.MonthText(r, md)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local function glass(f, a) local G = ns.Insta and ns.Insta.Glass if not (G and pcall(G, f, { 1, 1, 1, a or 0.035 }, { 1, 1, 1, 0.09 }, 10)) then K.Fill(f, { 1, 1, 1, 0.03 }) end end
 local tab, monthOff = "week", 0

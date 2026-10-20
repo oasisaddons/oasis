@@ -1,11 +1,11 @@
--- Oasis: Talente anderer ansehen
---  * jeder Oasis-Nutzer teilt seinen Talent-Export (Blizzards Import-Text, sehr kurz) in der Gilden-Sammlung "talents"
---  * betrachtete Spieler (Inspect, auch fremde) werden lokal gemerkt (ns.db.inspTalents)
---  * eigenes Fenster zeichnet den Baum: Knoten mit Symbol + Rang, Verbindungen, Zauber-Tooltip
--- WoW Forever nutzt das Retail-Talentsystem (C_ClassTalents / C_Traits, gemessen per /oa talentprobe 08.10.).
--- Baum-Aufbau fuer fremde Klassen: Blizzards "Ansichts-Loadout" (C_ClassTalents.InitializeViewLoadout).
+-- Oasis: view others' talents
+--  * every Oasis user shares their talent export (Blizzard's import text, very short) in the guild collection "talents"
+--  * inspected players (Inspect, strangers too) are remembered locally (ns.db.inspTalents)
+--  * own window draws the tree: nodes with icon + rank, connections, spell tooltip
+-- WoW Forever uses the retail talent system (C_ClassTalents / C_Traits, measured via /oa talentprobe 08.10.).
+-- Tree layout for other classes: Blizzard's "view loadout" (C_ClassTalents.InitializeViewLoadout).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Talents", function()   -- Modul Talente (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Talents", function()   -- Module Talents (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -14,7 +14,7 @@ ns.Talents = T
 local COLL = "talents"
 
 ------------------------------------------------------------------------
--- Export-Text lesen (Blizzard ExportUtil: Base64, Bits von hinten nach vorn je Zeichen)
+-- Read export text (Blizzard ExportUtil: Base64, bits back to front per character)
 ------------------------------------------------------------------------
 local B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 local B64V = {}
@@ -43,7 +43,7 @@ local function reader(s)
     end
     return r
 end
--- Kopf: Version, Spezialisierung
+-- Header: version, specialization
 function T.Header(s)
     local r = reader(s)
     if not r then return nil end
@@ -51,11 +51,11 @@ function T.Header(s)
     local spec = r.take(16)
     return ver, spec, r
 end
--- Knoten-Raenge: nodes = Liste der Knoten-IDs in Baum-Reihenfolge, maxOf(nodeID) -> max. Rang
+-- Node ranks: nodes = list of node IDs in tree order, maxOf(nodeID) -> max rank
 function T.Decode(s, nodes, maxOf)
     local ver, spec, r = T.Header(s)
     if not r then return nil end
-    for _ = 1, 16 do r.take(8) end   -- Baum-Pruefsumme
+    for _ = 1, 16 do r.take(8) end   -- Tree checksum
     local ranks, choice = {}, {}
     for _, id in ipairs(nodes) do
         if r.eof then break end
@@ -75,7 +75,7 @@ function T.Decode(s, nodes, maxOf)
 end
 
 ------------------------------------------------------------------------
--- Baum-Aufbau (Positionen, Zauber, Verbindungen) fuer eine Spezialisierung
+-- Tree layout (positions, spells, connections) for a specialization
 ------------------------------------------------------------------------
 local layoutCache = {}
 local function nodeLayout(cfg, id)
@@ -87,7 +87,7 @@ local function nodeLayout(cfg, id)
         local okE, ei = pcall(C_Traits.GetEntryInfo, cfg, eid)
         local def = okE and ei and ei.definitionID
         local okD, di = def and pcall(C_Traits.GetDefinitionInfo, def)
-        -- 0.5.507: overriddenSpellID ist in Forever oft 0 (in Lua "wahr") -> dann den normalen Zauber nehmen
+        -- 0.5.507: overriddenSpellID is often 0 in Forever ("true" in Lua) -> then use the normal spell
         local ov = okD and di and di.overriddenSpellID
         spells[i] = okD and di and ((ov and ov ~= 0) and ov or di.spellID) or 0
         icons[i] = okD and di and di.overrideIcon or nil
@@ -97,7 +97,7 @@ local function nodeLayout(cfg, id)
     return { id = id, x = ni.posX, y = ni.posY, max = ni.maxRanks or 1, type = ni.type or 0, spells = spells, icons = icons, entries = entries, edges = edges,
         rank = ni.currentRank or 0 }
 end
--- eigene, aktive Konfiguration (mit echten Raengen)
+-- own active configuration (with real ranks)
 function T.MyLayout()
     if not (C_ClassTalents and C_ClassTalents.GetActiveConfigID and C_Traits) then return nil end
     local cfg = C_ClassTalents.GetActiveConfigID()
@@ -114,7 +114,7 @@ function T.MyLayout()
     end
     return { order = nodes, list = list, byId = byId, tree = tree, cfg = cfg }
 end
--- fremde Spezialisierung: Blizzards Ansichts-Loadout (wie beim Anklicken eines Talent-Links)
+-- other specialization: Blizzard's view loadout (like clicking a talent link)
 function T.SpecLayout(spec)
     if layoutCache[spec] then return layoutCache[spec] end
     if not (C_ClassTalents and C_ClassTalents.GetTraitTreeForSpec and C_Traits) then return nil end
@@ -136,7 +136,7 @@ function T.SpecLayout(spec)
 end
 
 ------------------------------------------------------------------------
--- eigenen Stand teilen
+-- share own state
 ------------------------------------------------------------------------
 local function mySpec()
     local S = C_SpecializationInfo
@@ -159,7 +159,7 @@ local function share()
     local old = Store.Get(COLL, id)
     local _, cls = UnitClass("player")
     local lvl = ns.safe(UnitLevel("player")) or 0
-    -- gelernte Symbole der eigenen Talente (zauber=symbol;...) - andere sehen dann auch Symbole
+    -- learned icons of own talents (spell=icon;...) - others then see icons too
     local ic
     do
         local db, parts, seen = ns.db.talIcons or {}, {}, {}
@@ -174,7 +174,7 @@ local function share()
         end
         ic = #parts > 0 and table.concat(parts, ";"):sub(1, 2400) or nil
     end
-    -- Zauber der eigenen Talente je Knoten (knoten=zauber;...): andere Klassen bekommen ihn aus WoW oft nicht -> Tooltip ohne Text
+    -- Spells of own talents per node (node=spell;...): other classes often don't get it from WoW -> tooltip without text
     local sp
     do
         local parts = {}
@@ -199,7 +199,7 @@ end
 ns.Listen("LOGIN", function() ns.After(20, share) end)
 ns.On("PLAYER_REGEN_ENABLED", function() if T.pendingShare then T.pendingShare = nil shareSoon() end end)
 
--- Rechte beim Empfang: nur der eigene Datensatz
+-- Permissions on receipt: only own record
 local function installAuth()
     local A = ns.Admin
     if not (A and A.AUTH) then return end
@@ -209,7 +209,7 @@ installAuth()
 ns.Listen("LOGIN", installAuth)
 
 ------------------------------------------------------------------------
--- Betrachten (Inspect): Talente fremder Spieler mitlesen (nur lokal)
+-- Inspect: read other players' talents (local only)
 ------------------------------------------------------------------------
 local inspecting   -- { unit, name, show }
 local function inspDB()
@@ -226,7 +226,7 @@ function T.Inspect(unit, show)
     return true
 end
 ns.On("INSPECT_READY", function(guid)
-    -- auch Blizzards eigenes Betrachten: Ziel/Maus pruefen
+    -- also Blizzard's own inspect: check target/mouseover
     local unit, name
     if inspecting and GetTime() - inspecting.t < 10 then unit, name = inspecting.unit, inspecting.name end
     if not unit then
@@ -253,7 +253,7 @@ ns.On("INSPECT_READY", function(guid)
 end)
 
 ------------------------------------------------------------------------
--- Daten zu einer Person
+-- Data about one person
 ------------------------------------------------------------------------
 function T.DataFor(name)
     if ns.isMe(name) then
@@ -266,7 +266,7 @@ function T.DataFor(name)
         if a then r = Store.Get(COLL, "tal-" .. a) end
     end
     if not r or r.del then
-        -- Vorname vergleichen (Realm kann abweichen, z.B. ClassicBetaPvE / ClassicBetaPvE2)
+        -- Compare first name (realm may differ, e.g. ClassicBetaPvE / ClassicBetaPvE2)
         local best
         for _, x in ipairs(Store.List(COLL)) do
             if x.who and ns.SameName(x.who, name) and (not best or (x.u or 0) > (best.u or 0)) then best = x end
@@ -279,7 +279,7 @@ function T.DataFor(name)
 end
 
 ------------------------------------------------------------------------
--- Fenster
+-- Window
 ------------------------------------------------------------------------
 local win
 local NODE = 34
@@ -299,7 +299,7 @@ local function build()
     K.Border(f, C.line)
     if K.ApplySkin then K.ApplySkin(f, "panel", C.bg) end
     ns.EscClose("OasisTalentView")
-    -- Kopf: Verlauf in der Klassenfarbe + Klassensymbol (Farbe setzt T.Show)
+    -- Header: gradient in class color + class icon (color set by T.Show)
     f.head = f:CreateTexture(nil, "BORDER")
     f.head:SetPoint("TOPLEFT", 1, -1) f.head:SetPoint("TOPRIGHT", -1, -1) f.head:SetHeight(58)
     f.headLine = f:CreateTexture(nil, "ARTWORK")
@@ -339,7 +339,7 @@ local function build()
         if f.export and ns.Bugs and ns.Bugs.ShowCopy then ns.Bugs.ShowCopy(f.export) end
     end)
     f.copy:SetPoint("BOTTOMLEFT", 18, 16)
-    -- Build uebernehmen (zweimal klicken = bestaetigen)
+    -- Apply build (click twice = confirm)
     f.apply = K.Button(f, L["Apply to me"], 170, 24, "primary", function(self)
         if not f.data then return end
         if not self.armed then
@@ -363,9 +363,9 @@ local function build()
     win = f
     return f
 end
--- Tooltip eines Knotens wie in Blizzards Talentbaum: Name als Ueberschrift, Rang, Beschreibung, naechster Rang.
--- 0.5.585: selbst aus Blizzards Tooltip-Daten gebaut - der fertige Tooltip zeigte in Forever bei passiven Talenten
--- keinen Namen ("Passiv" stand oben).
+-- Node tooltip like Blizzard's talent tree: name as heading, rank, description, next rank.
+-- 0.5.585: built ourselves from Blizzard's tooltip data - the finished tooltip showed in Forever for passive talents
+-- no name ("Passive" was at the top).
 local function tipData(kind, a, b)
     local fn = C_TooltipInfo and C_TooltipInfo[kind]
     if not fn or a == nil then return nil end
@@ -392,10 +392,10 @@ local function addLines(lines, name, seen)
     end
 end
 local showNodeTip
--- 0.5.890: der Aufbau laeuft geschuetzt. Scheitert er (oder bleibt der Tooltip leer), kommt wenigstens Name + Rang -
--- vorher blieb der Tooltip bei fremden Talenten dann ganz weg. Der Fehler landet einmal im Oasis-Fehlerprotokoll.
--- Zauber eines Knotens nachtraeglich holen: beim ersten Aufbau des Ansichts-Baums sind die Daten oft noch nicht geladen
--- (dann steht 0 im Zwischenspeicher). Beim Ueberfahren noch einmal fragen und merken.
+-- 0.5.890: building runs protected. If it fails (or the tooltip stays empty), at least name + rank appear -
+-- previously the tooltip for others' talents vanished entirely. The error lands once in the Oasis error log.
+-- Fetch a node's spell later: on the first build of the view tree the data is often not loaded yet
+-- (then 0 is in the cache). Ask again on hover and remember.
 local function lateSpell(self)
     if self.spell and self.spell ~= 0 then return end
     if not (self.entry and C_Traits) then return end
@@ -435,7 +435,7 @@ function T.ShowNodeTip(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText(name or self.defName or L["Talent"], 1, 1, 1)
         GameTooltip:AddLine((L["Rank %d / %d"]):format(self.r or 0, self.max or 1), 1, 0.82, 0.3)
-        -- nur fuer Entwickler: woran es liegt (Zauber, Eintrag, Knoten, Fehler)
+        -- developers only: what's causing it (spell, entry, node, error)
         if ns.IsDev and ns.IsDev() then
             GameTooltip:AddLine(("spell %s  entry %s  node %s  cfg %s"):format(tostring(self.spell), tostring(self.entry), tostring(self.node and self.node.id), tostring(self.cfg)), 0.5, 0.5, 0.5)
             if not ok then GameTooltip:AddLine(tostring(e):sub(1, 200), 1, 0.4, 0.4, true) end
@@ -450,7 +450,7 @@ showNodeTip = function(self)
         local ok, n = pcall(C_Spell.GetSpellName, self.spell)
         if ok and type(n) == "string" and n ~= "" then name = n end
     end
-    -- 0.5.676: aeltere Zauber-Abfrage als Ersatz (bei fremden Talenten lieferte Forever sonst nichts -> kein Tooltip)
+    -- 0.5.676: older spell query as fallback (for others' talents Forever otherwise returned nothing -> no tooltip)
     if not name and self.spell and self.spell ~= 0 and GetSpellInfo then
         local ok, n = pcall(GetSpellInfo, self.spell)
         if ok and type(n) == "string" and n ~= "" then name = n end
@@ -458,7 +458,7 @@ showNodeTip = function(self)
     local lines = (self.entry and tipData("GetTraitEntry", self.entry, math.max(r, 1))) or tipData("GetSpellByID", self.spell)
     if not name and lines and lines[1] and type(lines[1].leftText) == "string" then name = lines[1].leftText end
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    -- keine Tooltip-Daten: Blizzards fertigen Zauber-Tooltip nehmen, Rang darunter
+    -- no tooltip data: use Blizzard's finished spell tooltip, rank below
     if not lines and self.spell and self.spell ~= 0 and GameTooltip.SetSpellByID then
         local ok = pcall(GameTooltip.SetSpellByID, GameTooltip, self.spell)
         if ok and GameTooltip:NumLines() > 0 then
@@ -471,7 +471,7 @@ showNodeTip = function(self)
     GameTooltip:AddLine((L["Rank %d / %d"]):format(r, max), 1, 0.82, 0.3)
     local seen = {}
     if lines then addLines(lines, name, seen) end
-    -- naechster Rang (nur bei mehrstufigen, nicht vollen Talenten)
+    -- next rank (only for multi-rank talents that aren't maxed)
     if r > 0 and r < max and self.entry then
         local nxt = tipData("GetTraitEntry", self.entry, r + 1)
         if nxt then
@@ -513,8 +513,8 @@ local function nodeBtn(f, i)
     b.rank:SetPoint("CENTER", b.rankBg, "CENTER", 0, 0)
     b.rank:SetShadowColor(0, 0, 0, 1)
     hooksecurefunc(b.rank, "SetText", function(self, t) b.rankBg:SetShown(t ~= nil and t ~= "") end)
-    -- 0.5.584: Tooltip wie in Blizzards Talentbaum (Talent-Eintrag mit Rang-Beschreibung + naechster Rang),
-    -- sonst Zauber-Tooltip
+    -- 0.5.584: tooltip like Blizzard's talent tree (talent entry with rank description + next rank),
+    -- else spell tooltip
     b:EnableMouse(true)
     if b.SetMouseMotionEnabled then b:SetMouseMotionEnabled(true) end
     b:SetScript("OnEnter", function(self) T.ShowNodeTip(self) end)
@@ -525,7 +525,7 @@ end
 local function line(f, i)
     local l = f.lines[i]
     if l then return l end
-    -- eigene Ebene ueber den Hintergruenden, unter den Knoten
+    -- own layer above the backgrounds, below the nodes
     if not f.lineLayer then
         f.lineLayer = CreateFrame("Frame", nil, f.canvas)
         f.lineLayer:SetAllPoints()
@@ -538,7 +538,7 @@ local function line(f, i)
     f.lines[i] = l
     return l
 end
--- Hintergruende: Blizzards klassische Talent-Bilder je Klasse und Baum (liegen im Client, keine fremden Dateien)
+-- Backgrounds: Blizzard's classic talent images per class and tree (in the client, no third-party files)
 local TREE_BG = {
     WARRIOR = { "WarriorArms", "WarriorFury", "WarriorProtection" },
     PALADIN = { "PaladinHoly", "PaladinProtection", "PaladinCombat" },
@@ -578,7 +578,7 @@ local function columnBg(f, i)
 end
 local function drawBackgrounds(f, lay, minX, s, ox, cls)
     for _, c in ipairs(f.bgs or {}) do c:Hide() end
-    -- Baeume = Spalten: die zwei groessten Luecken in den x-Positionen trennen sie
+    -- Trees = columns: the two largest gaps in the x positions separate them
     local xs, seen = {}, {}
     for _, n in ipairs(lay.list) do if not seen[n.x] then seen[n.x] = true xs[#xs + 1] = n.x end end
     table.sort(xs)
@@ -603,7 +603,7 @@ local function drawBackgrounds(f, lay, minX, s, ox, cls)
         c:SetPoint("TOPLEFT", f.canvas, "TOPLEFT", l, 8)
         c:SetSize(math.max(40, r - l), H - 0)
         local w, h = c:GetWidth(), c:GetHeight()
-        local ok = false   -- alte klassische Talentbilder wirken gestaucht -> nicht mehr benutzt
+        local ok = false   -- old classic talent images look squashed -> no longer used
         local art = T.BgFor and T.BgFor(cls)
         local a = art and art[i]
         local hasArt = false
@@ -629,7 +629,7 @@ local function drawBackgrounds(f, lay, minX, s, ox, cls)
             end
         end
         for _, t in ipairs(c.parts) do t:SetShown(ok) end
-        -- ohne Bild: Verlauf in der Klassenfarbe; mit Bild nur eine leichte Toenung
+        -- without image: gradient in class color; with image only a light tint
         if hasArt then ok = true end
         if not K.Gradient(c.grad, "VERTICAL", { cr * 0.25, cg * 0.25, cb * 0.25, ok and 0.25 or 0.9 }, { cr * 0.5, cg * 0.5, cb * 0.5, ok and 0.05 or 0.45 }) then
             c.grad:SetColorTexture(cr * 0.3, cg * 0.3, cb * 0.3, ok and 0.15 or 0.6)
@@ -640,7 +640,7 @@ local function drawBackgrounds(f, lay, minX, s, ox, cls)
     end
 end
 
--- Talent-Symbol: Definition -> Zauber (Info/Textur/Item) ; 134400 = Fragezeichen = nichts gefunden
+-- Talent icon: definition -> spell (info/texture/item) ; 134400 = question mark = nothing found
 local QMARK = 134400
 local function good(t) return t and t ~= QMARK and t ~= 0 and t ~= "" end
 function T.IconFor(n, ci, spell)
@@ -677,11 +677,11 @@ function T.IconFor(n, ci, spell)
 end
 
 ------------------------------------------------------------------------
--- Symbole aus Blizzards Talentfenster lernen (0.5.506): die Symbol-Schnittstellen liefern in Forever
--- fuer viele Talente nur das Fragezeichen - Blizzards eigenes Fenster zeigt sie aber richtig.
--- Beim Oeffnen (Taste N) liest Oasis die Symbole der Knoepfe aus (nur lesen, nichts veraendern),
--- merkt sie je Zauber (account-weit) und teilt sie mit den eigenen Talenten (rec.ic).
--- Zusaetzlich: Diagnose der Knopf-Felder in ns.db.talHarvest (fuer Fehlersuche nach /reload).
+-- Learn icons from Blizzard's talent window (0.5.506): the icon interfaces return in Forever
+-- only the question mark for many talents - but Blizzard's own window shows them correctly.
+-- On open (key N) Oasis reads the button icons (read only, changes nothing),
+-- remembers them per spell (account-wide) and shares them with own talents (rec.ic).
+-- Additionally: diagnostics of the button fields in ns.db.talHarvest (for debugging after /reload).
 ------------------------------------------------------------------------
 local function iconDB() ns.db.talIcons = ns.db.talIcons or {} return ns.db.talIcons end
 T.IconDB = iconDB
@@ -702,7 +702,7 @@ local function texOf(fr)
         end
     end
 end
--- Zahlen am Knopf, die einen Zauber/Knoten benennen koennten
+-- Numbers on the button that could name a spell/node
 local ID_FIELDS = { "spellID", "nodeID", "talentID", "definitionID", "entryID", "id" }
 local ID_METHODS = { "GetSpellID", "GetNodeID", "GetTalentID", "GetDefinitionID", "GetEntryID" }
 local function idsOf(fr)
@@ -766,7 +766,7 @@ function T.Harvest(frame)
         if ok then for _, c in ipairs(kids) do visit(c, depth + 1) end end
     end
     pcall(visit, frame, 0)
-    -- Baum-Hintergruende: grosse Texturen (hoch, mindestens 150 x 250), von links nach rechts
+    -- Tree backgrounds: large textures (tall, at least 150 x 250), left to right
     local bgs, seenBg = {}, {}
     local function scanRegions(fr, depth)
         if depth > 6 then return end
@@ -809,7 +809,7 @@ function T.Harvest(frame)
     end
     return learned
 end
--- Baum-Hintergruende je Klasse: eigene (Harvest) oder von einem Mitglied derselben Klasse geteilt (rec.bg)
+-- Tree backgrounds per class: own (harvest) or shared by a member of the same class (rec.bg)
 local function decodeBg(str)
     local out = {}
     for part in tostring(str or ""):gmatch("[^;]+") do
@@ -835,7 +835,7 @@ function T.EncodeBg(list)
     return #parts > 0 and table.concat(parts, ";") or nil
 end
 function T.BgFor(cls)
-    do return nil end   -- 0.5.573: gelernte Bilder waren Effekt-Atlanten, nicht die Klassenbilder
+    do return nil end   -- 0.5.573: learned images were effect atlases, not the class images
     if not cls or cls == "" then return nil end
     local own = ns.db and ns.db.talBg and ns.db.talBg[cls]
     if own and #own > 0 then return own end
@@ -846,7 +846,7 @@ function T.BgFor(cls)
         end
     end
 end
--- geteilte Symbole aller Oasis-Nutzer (aus rec.ic: "zauber=symbol;...")
+-- shared icons of all Oasis users (from rec.ic: "spell=icon;...")
 local sharedIcons, sharedSig = {}, nil
 function T.SharedIcon(spell)
     local list = Store.List(COLL)
@@ -882,9 +882,9 @@ function T.SharedSpell(nodeID)
     return sharedSpells[nodeID]
 end
 
--- 0.5.542: Talentfenster neu - jeder Baum in einer eigenen, gleich breiten Spalte (Knoten so gross wie moeglich,
--- mittig), Kopf je Baum (Spezialisierung + Punkte), Hintergrund: gelerntes Blizzard-Baumbild, sonst Blizzards
--- klassisches Talentbild (zugeschnitten statt gestaucht), sonst Verlauf in Klassenfarbe; Wasserzeichen-Symbol.
+-- 0.5.542: new talent window - each tree in its own equally wide column (nodes as large as possible,
+-- centered), header per tree (specialization + points), background: learned Blizzard tree image, else Blizzard's
+-- classic talent image (cropped instead of squashed), else gradient in class color; watermark icon.
 local CLASS_ID = {}
 do
     local GCI = (C_CreatureInfo and C_CreatureInfo.GetClassInfo)
@@ -916,7 +916,7 @@ local function specInfo(cls, i)
         local ok, _, n, _, ic = pcall(fn, cid, i)
         if ok and n then name, icon = n, ic end
     end
-    -- Forever: Baum 1 heisst wie die Klasse, Baum 2/3 fehlen -> eigene Namen
+    -- Forever: tree 1 is named like the class, trees 2/3 missing -> own names
     local own = TREE_NAME[cls or ""] and TREE_NAME[cls][i]
     local clsName = cls and LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[cls]
     if own and (not name or name == clsName or name == (LOCALIZED_CLASS_NAMES_FEMALE and LOCALIZED_CLASS_NAMES_FEMALE[cls])) then
@@ -934,11 +934,11 @@ local function colFrame(f, i)
     c.base = c:CreateTexture(nil, "BACKGROUND", nil, -8)
     c.base:SetAllPoints()
     c.base:SetColorTexture(0.03, 0.03, 0.04, 1)
-    -- gelerntes Blizzard-Bild (ganze Flaeche)
+    -- learned Blizzard image (full area)
     c.art = c:CreateTexture(nil, "BACKGROUND", nil, -7)
     c.art:SetAllPoints()
     c.art:Hide()
-    -- klassisches Talentbild aus 4 Teilen (256+64 x 256+128), auf Spaltenhoehe skaliert, mittig beschnitten
+    -- classic talent image from 4 parts (256+64 x 256+128), scaled to column height, cropped centered
     c.clsArt = CreateFrame("Frame", nil, c)
     c.clsArt:SetFrameLevel(c:GetFrameLevel())
     c.parts = {}
@@ -986,8 +986,8 @@ local function paintCol(f, c, i, cls, pts, w, h)
     c.mark:SetTexture(icon)
     c.mark:SetShown(icon ~= nil)
     c.mark:SetAlpha(0.06)
-    -- 1) gelerntes Blizzard-Bild: AUS (0.5.573) - gelernt wurden nur Effekt-Atlanten (Sonnenstrahl, Glanz, Sterne),
-    --    nie die Klassenbilder. Jetzt immer Blizzards klassische Talentbaum-Hintergruende je Klasse und Baum.
+    -- 1) learned Blizzard image: OFF (0.5.573) - only effect atlases were learned (sunbeam, gloss, stars),
+    --    never the class images. Now always Blizzard's classic talent tree backgrounds per class and tree.
     local a = nil
     local hasArt = false
     if a then
@@ -998,7 +998,7 @@ local function paintCol(f, c, i, cls, pts, w, h)
         end
     end
     c.art:SetShown(hasArt)
-    -- 2) klassisches Talentbild, Seitenverhaeltnis 320:384 behalten, auf Spaltenhoehe, mittig
+    -- 2) classic talent image, keep aspect ratio 320:384, to column height, centered
     local names = TREE_BG[cls or ""]
     local classic = false
     if not hasArt and names and names[i] then
@@ -1016,12 +1016,12 @@ local function paintCol(f, c, i, cls, pts, w, h)
             t:ClearAllPoints()
             t:SetPoint(top and (left and "TOPLEFT" or "TOPRIGHT") or (left and "BOTTOMLEFT" or "BOTTOMRIGHT"), c.clsArt)
             t:SetSize(iw * (left and 256 / 320 or 64 / 320), ih * (top and 256 / 384 or 128 / 384))
-            -- rechte Teile sind 64 breit in einer 64er-Datei, untere 128 hoch in 128er-Datei
+            -- right parts are 64 wide in a 64 file, bottom ones 128 tall in a 128 file
             t:SetTexCoord(0, 1, 0, 1)
         end
     end
     c.clsArt:SetShown(classic)
-    -- Toenung + Abdunklung, damit Knoten lesbar bleiben
+    -- Tint + darkening so nodes stay readable
     local pic = hasArt or classic
     if not K.Gradient(c.grad, "VERTICAL", { cr * 0.18, cg * 0.18, cb * 0.18, pic and 0.35 or 0.95 }, { cr * 0.42, cg * 0.42, cb * 0.42, pic and 0.1 or 0.55 }) then
         c.grad:SetColorTexture(cr * 0.25, cg * 0.25, cb * 0.25, pic and 0.2 or 0.7)
@@ -1032,9 +1032,9 @@ local function paintCol(f, c, i, cls, pts, w, h)
     c:Show()
 end
 
--- Ausreisser entfernen: Blizzards Ansichts-Loadout liefert bei fremden Klassen vereinzelt Knoten weit abseits der Baeume
--- (z.B. ganz rechts oder ganz unten). Die ziehen den Massstab auseinander - alle echten Talente kleben dann auf einem Haufen.
--- Regel: liegen hoechstens 2 Knoten am Rand weiter weg als 40 % der uebrigen Ausdehnung, gehoeren sie nicht zum Baum.
+-- Remove outliers: Blizzard's view loadout occasionally returns nodes far off the trees for other classes
+-- (e.g. far right or far bottom). They stretch the scale - all real talents then clump together.
+-- Rule: if at most 2 nodes at the edge lie further out than 40 % of the remaining extent, they don't belong to the tree.
 local function trimOutliers(list)
     local out = {}
     for i, n in ipairs(list) do out[i] = n end
@@ -1060,7 +1060,7 @@ local function trimOutliers(list)
     end
     return out
 end
-T._trimOutliers = trimOutliers   -- fuer Tests
+T._trimOutliers = trimOutliers   -- for tests
 local function draw(f, lay, ranks, choice, cls)
     for _, b in ipairs(f.nodes) do b:Hide() end
     for _, l in ipairs(f.lines) do l:Hide() end
@@ -1068,7 +1068,7 @@ local function draw(f, lay, ranks, choice, cls)
     for _, c in ipairs(f.bgs or {}) do c:Hide() end
     if #lay.list == 0 then return 0 end
     local nodes = trimOutliers(lay.list)
-    -- Baeume = Spalten: die zwei groessten Luecken in den x-Positionen trennen sie
+    -- Trees = columns: the two largest gaps in the x positions separate them
     local xs, seen = {}, {}
     for _, n in ipairs(nodes) do if not seen[n.x] then seen[n.x] = true xs[#xs + 1] = n.x end end
     table.sort(xs)
@@ -1100,7 +1100,7 @@ local function draw(f, lay, ranks, choice, cls)
     local GAP, HEAD = 10, 48
     local cw = (CW - GAP * (nCol - 1)) / nCol
     local ah = CH - HEAD - 14
-    -- ein gemeinsamer Massstab fuer alle Baeume (gleiche Knotenabstaende), so gross wie moeglich
+    -- one shared scale for all trees (same node spacing), as large as possible
     local NODEZ = 36
     local s
     for _, t in ipairs(trees) do
@@ -1174,11 +1174,11 @@ local function draw(f, lay, ranks, choice, cls)
     if f.lineLayer then f.lineLayer:SetFrameLevel(f.canvas:GetFrameLevel() + 4) end
     return total
 end
-T._draw = function(...) return draw(...) end   -- fuer Tests
+T._draw = function(...) return draw(...) end   -- for tests
 
 ------------------------------------------------------------------------
--- Build uebernehmen: gleiche Spezialisierung -> Baum zuruecksetzen, Raenge von oben nach unten kaufen
--- (so weit die eigenen Punkte reichen), Wahlknoten gleich waehlen, dann bestaetigen. Nur per Klick.
+-- Apply build: same specialization -> reset tree, buy ranks top to bottom
+-- (as far as own points reach), pick choice nodes the same, then confirm. Click only.
 ------------------------------------------------------------------------
 function T.CanApply(d)
     if not d or not d.s or d.me then return false, nil end
@@ -1196,15 +1196,15 @@ function T.Apply(d)
     local ranks, choice = T.Decode(d.s, lay.order, function(id) local n = lay.byId[id] return n and n.max end)
     if not ranks then ns.print(L["Export string unreadable."]) return false end
     local cfg, tree = lay.cfg, lay.tree
-    -- alles zuruecksetzen (vorgemerkt, wird erst mit Bestaetigen wirksam)
+    -- reset everything (staged, takes effect only on confirm)
     if C_Traits.ResetTree then pcall(C_Traits.ResetTree, cfg, tree) end
-    -- von oben nach unten, links nach rechts (Voraussetzungen zuerst)
+    -- top to bottom, left to right (prerequisites first)
     local list = {}
     for _, n in ipairs(lay.list) do if (ranks[n.id] or 0) > 0 then list[#list + 1] = n end end
     table.sort(list, function(a, b) if a.y ~= b.y then return a.y < b.y end return a.x < b.x end)
     local want, got = 0, 0
     for _, n in ipairs(list) do want = want + ranks[n.id] end
-    -- mehrere Durchgaenge: was wegen Reihenfolge noch nicht ging, beim naechsten Mal
+    -- several passes: whatever didn't work due to ordering, next time
     for _ = 1, 3 do
         local progress = false
         for _, n in ipairs(list) do
@@ -1240,7 +1240,7 @@ function T.Apply(d)
     return false
 end
 
--- Zauberdaten nachgeladen: offenes Fenster neu zeichnen (gebuendelt)
+-- Spell data loaded: redraw open window (batched)
 ns.On("SPELL_DATA_LOAD_RESULT", function()
     if T.waitIcons and win and win:IsShown() and win.who then
         ns.Debounce("talIcons", 0.3, function() T.waitIcons = nil T.Show(win.who) end)
@@ -1272,7 +1272,7 @@ function T.Show(name)
         f.foot:SetText("")
         f.empty:SetText(L["No talents known yet. Members with Oasis share them automatically; other players: target and inspect them (right-click > Inspect) or reopen this with them targeted."])
         f.empty:Show()
-        -- Ziel in Reichweite? Dann gleich betrachten
+        -- Target in range? Then inspect right away
         if ns.safe(UnitExists("target")) and ns.fullName(ns.safe(ns.UnitName("target")) or "") == name then T.Inspect("target", true) end
         return
     end
@@ -1281,7 +1281,7 @@ function T.Show(name)
     if d.me then lay = T.MyLayout() end
     if not lay and spec and spec > 0 then
         local mine = T.MyLayout()
-        -- gleiche Spezialisierung wie ich: eigener Baum hat die richtige Reihenfolge
+        -- same specialization as mine: own tree has the right order
         if mine and mySpec() == spec then lay = mine else lay = T.SpecLayout(spec) end
     end
     if not lay then
@@ -1308,7 +1308,7 @@ function T.Show(name)
     f.missing = 0
     if f.SetClass then f:SetClass(d.cls) end
     local total = draw(f, lay, ranks, choice, d.cls)
-    -- viele Fragezeichen: einmal je Sitzung still pruefen, was die Symbol-Schnittstellen liefern (nach /reload lesbar)
+    -- many question marks: silently check once per session what the icon interfaces deliver (readable after /reload)
     if f.missing > #lay.list / 2 and not T.probed then
         T.probed = true
         if ns.probes and ns.probes.talicons then pcall(ns.probes.talicons, true) end
@@ -1338,8 +1338,8 @@ end
 ns.slash.talents = ns.slash.talente
 
 ------------------------------------------------------------------------
--- Seitenfenster an Blizzards Talentfenster: "Builds aus der Gilde" (gleiche Spezialisierung)
--- Eigenes Fenster an UIParent, nur daneben ausgerichtet - Blizzards Fenster wird nicht veraendert.
+-- Side window on Blizzard's talent window: "Builds from the guild" (same specialization)
+-- Own window on UIParent, only aligned beside it - Blizzard's window is not changed.
 ------------------------------------------------------------------------
 local side, hookedFrame
 local CANDIDATES = { "PlayerSpellsFrame", "ClassTalentFrame", "PlayerTalentFrame", "TalentFrame" }
@@ -1359,7 +1359,7 @@ function T.GuildBuilds()
     table.sort(out, function(a, b) if a.lvl ~= b.lvl then return a.lvl > b.lvl end return a.pts > b.pts end)
     return out
 end
--- 0.5.785: Position (angedockt am Talentfenster oder frei verschoben), eingeklappt/ausgeklappt - ueber das Zahnrad im Fenster
+-- 0.5.785: position (docked to the talent window or moved freely), collapsed/expanded - via the gear in the window
 local function sidePlace(f, anchor)
     local st = ns.db and ns.db.settings or {}
     f:ClearAllPoints()
@@ -1388,7 +1388,7 @@ local function buildSide()
         local l, t = self:GetLeft(), self:GetTop()
         if l and t and ns.db.settings.talentSidePos then ns.db.settings.talentSidePos = { l, t } end
     end)
-    -- Zahnrad: Menue (einklappen, frei verschieben / andocken, ausblenden)
+    -- Gear: menu (collapse, move freely / dock, hide)
     f.gear = CreateFrame("Button", nil, f)
     f.gear:SetSize(18, 18)
     f.gear:SetPoint("TOPRIGHT", -8, -10)
@@ -1399,7 +1399,7 @@ local function buildSide()
         K.ShowTip(self, { L["Settings"], L["Collapse, move, hide"] })
     end)
     f.gear:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
-    -- 0.5.787: Klick aufs Zahnrad oeffnet ein kleines Feld mit Schaltern (statt Menue) - deckend, ueber allem
+    -- 0.5.787: clicking the gear opens a small panel with toggles (instead of a menu) - opaque, above everything
     f.gear:SetScript("OnClick", function(self)
         local o = f.opts
         if not o then
@@ -1457,7 +1457,7 @@ local function buildSide()
         for _, t in ipairs(o.t) do t:Refresh() end
         o:Show()
     end)
-    -- kleiner Pfeil daneben: schnell ein-/ausklappen
+    -- small arrow beside it: quick collapse/expand
     f.fold = CreateFrame("Button", nil, f)
     f.fold:SetSize(18, 18)
     f.fold:SetPoint("RIGHT", f.gear, "LEFT", -2, 0)
@@ -1500,7 +1500,7 @@ function T.UpdateSide()
     if not (side and side:IsShown()) then return end
     local list = T.GuildBuilds()
     for _, r in ipairs(side.rows) do r:Hide() end
-    -- eingeklappt: nur die Kopfzeile (mit Anzahl), kein Inhalt
+    -- collapsed: only the header (with count), no content
     local fold = ns.db.settings.talentSideFold and true or false
     side.fold.t:SetText(fold and "+" or "-")
     side.sub:SetShown(not fold)
@@ -1555,7 +1555,7 @@ local function attach(frame)
         T.UpdateSide()
     end
 end
--- /oa builds: Seitenfenster wieder einblenden (nach "Ausblenden" im Zahnrad-Menue)
+-- /oa builds: show side window again (after "Hide" in the gear menu)
 ns.slash.builds = function()
     ns.db.settings.talentSide = nil
     if hookedFrame and hookedFrame:IsShown() then
@@ -1572,7 +1572,7 @@ local function findTalentFrame()
         local fr = _G[n]
         if type(fr) == "table" and fr.HookScript then return fr end
     end
-    -- Forever kann das Fenster anders nennen: einmalig nach "...TalentFrame" suchen (nur Hauptfenster an UIParent)
+    -- Forever may name the window differently: search once for "...TalentFrame" (only main windows on UIParent)
     for k, v in pairs(_G) do
         if type(k) == "string" and k:find("Talent") and k:find("Frame$") and type(v) == "table" and v.HookScript and v.GetParent then
             local okP, par = pcall(v.GetParent, v)
@@ -1596,7 +1596,7 @@ ns.slash.talentsymbole = function()
     ns.print((L["Talent icons learned: %d"]):format(T.Harvest(fr) or 0))
 end
 
--- Diagnose: /oa probe talicons  -> was liefern die Symbol-APIs fuer die ersten Talente?
+-- Diagnostics: /oa probe talicons  -> what do the icon APIs return for the first talents?
 ns.probes = ns.probes or {}
 ns.probes.talicons = function(quiet)
     local lay = T.MyLayout and T.MyLayout()

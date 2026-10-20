@@ -1,11 +1,11 @@
--- Oasis: Begegnungen ausserhalb der Gilde (0.5.512)
---  * Ausruestung betrachten: beim Betrachten (eigenes oder Blizzards) werden Ausruestung + Gegenstandsstufe gemerkt;
---    fremde Mitspieler in der Gruppe betrachtet Oasis ausser Kampf selbst (gedrosselt) - Talente gleich mit
---  * Realm-Blick: Klasse, Level und Gilde von Spielern, denen man begegnet (Ziel, Maus, Gruppe) -> Statistik
---  * Anwerben: gute, aktive Spieler ohne Gilde aus Gruppen; "Vorschlagen" teilt sie mit der Gilde (Store "scout")
--- Daten ueber Fremde bleiben in der Gilde (nur Vorschlaege werden geteilt), nie im Oasis-Netz.
+-- Oasis: encounters outside the guild (0.5.512)
+--  * Inspect gear: when inspecting (own or Blizzard's) gear + item level are remembered;
+--    Oasis inspects foreign group members itself out of combat (throttled) - talents included
+--  * Realm view: class, level and guild of players you meet (target, mouseover, group) -> statistics
+--  * Recruiting: good, active guildless players from groups; "Suggest" shares them with the guild (store "scout")
+-- Data about strangers stays in the guild (only suggestions are shared), never in the Oasis network.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Encounters", function()   -- Modul Begegnungen (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Encounters", function()   -- Encounters module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -25,7 +25,7 @@ end
 local function isGuildie(full) return ns.Radar and ns.Radar.byName and ns.Radar.byName[full] ~= nil end
 
 ------------------------------------------------------------------------
--- Begegnungen erfassen (nur ausser Kampf, je Name hoechstens alle 5 Minuten)
+-- record encounters (only out of combat, per name at most every 5 minutes)
 ------------------------------------------------------------------------
 local lastSeen = {}
 function S.See(unit)
@@ -42,13 +42,13 @@ function S.See(unit)
     e.l = ns.safe(UnitLevel(unit)) or e.l
     local g = ns.safe(GetGuildInfo(unit))
     if g ~= nil then e.g = g end
-    if g == nil and UnitIsVisible and ns.safe(UnitIsVisible(unit)) then e.g = e.g or "" end   -- sichtbar, ohne Gilde
+    if g == nil and UnitIsVisible and ns.safe(UnitIsVisible(unit)) then e.g = e.g or "" end   -- visible, without guild
     local fac = UnitFactionGroup and ns.safe(UnitFactionGroup(unit))
     if fac then e.fa = fac:sub(1, 1) end
     e.t = ns.now()
     e.z = ns.safe(GetRealZoneText()) or e.z
     sdb()[full] = e
-    -- Spielerbuch-Eintrag (Gruppe) bekommt die Gilde mit
+    -- player book entry (group) gets the guild too
     local a = ns.db.allies and ns.db.allies[full]
     if a and e.g ~= nil then a.guild = e.g end
 end
@@ -62,7 +62,7 @@ ns.On("GROUP_ROSTER_UPDATE", function()
         if UnitExists(u) then S.See(u) end
     end
 end)
--- aufraeumen: aelter als 90 Tage, hoechstens SEEN_MAX Eintraege
+-- clean up: older than 90 days, at most SEEN_MAX entries
 ns.Listen("LOGIN", function()
     ns.After(40, function()
         local db, list = sdb(), {}
@@ -77,7 +77,7 @@ ns.Listen("LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Ausruestung beim Betrachten merken
+-- remember gear on inspect
 ------------------------------------------------------------------------
 local SLOTS = { 1, 2, 3, 15, 5, 9, 10, 6, 7, 8, 11, 12, 13, 14, 16, 17, 18 }
 local SLOT_NAME = { [1] = "Head", [2] = "Neck", [3] = "Shoulders", [15] = "Back", [5] = "Chest", [9] = "Wrists",
@@ -123,12 +123,12 @@ function S.ReadGear(unit)
     local e = { t = ns.now(), i = items, il = n > 0 and math.floor(sum / n + 0.5) or nil, c = ns.safe(cls), l = ns.safe(UnitLevel(unit)) }
     local db = gdb()
     db[full] = e
-    -- begrenzen
+    -- cap
     local cnt, oldest, ok = 0, nil, nil
     for k, v in pairs(db) do cnt = cnt + 1 if not oldest or (v.t or 0) < oldest then oldest, ok = v.t or 0, k end end
     if cnt > GEAR_MAX and ok then db[ok] = nil end
     if missing > 0 and not S.retry then
-        -- Gegenstandsdaten noch nicht da: einmal kurz spaeter erneut lesen
+        -- item data not there yet: read again once shortly after
         S.retry = true
         ns.After(1.5, function() S.retry = nil if UnitExists(unit) and fullOf(unit) == full then S.ReadGear(unit) end end)
     end
@@ -141,7 +141,7 @@ ns.On("INSPECT_READY", function(guid)
     if u then pcall(S.ReadGear, u) end
 end)
 
--- fremde Mitspieler in der Gruppe ausser Kampf selbst betrachten (je Person hoechstens alle 20 Min, alle 4 s einer)
+-- inspect foreign group members out of combat ourselves (per person at most every 20 min, one every 4 s)
 local autoT = 0
 local function autoInspect()
     if not ns.db or ns.db.settings.scoutAutoInspect == false or ns.inCombat() or not IsInGroup() then return end
@@ -165,7 +165,7 @@ end
 ns.Listen("LOGIN", function() ns.Every(5, autoInspect) end)
 
 ------------------------------------------------------------------------
--- Ausruestungs-Fenster
+-- gear window
 ------------------------------------------------------------------------
 local function buildGear()
     local f = CreateFrame("Frame", "OasisGearView", UIParent)
@@ -274,7 +274,7 @@ function S.ShowGear(full)
     f:Raise()
 end
 function S.HasGear(full) return gdb()[full] ~= nil end
--- Ausruestung jetzt holen (Ziel) und anzeigen
+-- fetch gear now (target) and display
 function S.InspectAndShow(unit)
     local full = unit and fullOf(unit)
     if not full then return end
@@ -294,7 +294,7 @@ end
 ns.slash.gear = ns.slash.ausruestung
 
 ------------------------------------------------------------------------
--- Anwerben: Kandidaten (eigene Begegnungen) + Vorschlaege der Gilde (Store "scout")
+-- Recruiting: candidates (own encounters) + the guild's suggestions (store "scout")
 ------------------------------------------------------------------------
 function S.Suggest(name, note)
     local a = ns.db.allies and ns.db.allies[name] or {}
@@ -312,7 +312,7 @@ function S.Candidates()
         if s and s.g ~= nil then return s.g end
         return a and a.guild
     end
-    -- Vorschlaege aus der Gilde
+    -- suggestions from the guild
     for _, r in ipairs(Store.List(COLL)) do
         if r.target and not isGuildie(r.target) then
             local g = guildOf(r.target)
@@ -323,7 +323,7 @@ function S.Candidates()
             have[r.target] = true
         end
     end
-    -- eigene Mitspieler ohne Gilde: aktiv (30 Tage), nicht schlecht bewertet
+    -- own guildless fellow players: active (30 days), not rated badly
     for name, a in pairs(ns.db.allies or {}) do
         if not have[name] and not isGuildie(name) and not a.bad and not a.ninja and ns.now() - (a.last or 0) < 30 * 86400 then
             local g = guildOf(name)
@@ -341,7 +341,7 @@ function S.Candidates()
     return out
 end
 
--- Rechte beim Empfang: Vorschlag nur vom Vorschlagenden; loeschen auch Offiziere
+-- permissions on receive: suggestion only from the suggester; officers may delete too
 local function installAuth()
     local A = ns.Admin
     if not (A and A.AUTH) then return end
@@ -355,7 +355,7 @@ local function installAuth()
 end
 installAuth()
 ns.Listen("LOGIN", installAuth)
--- Gildenleitung: neuer Vorschlag -> Hinweis
+-- guild leadership: new suggestion -> notice
 ns.Listen("STORE", function(coll, rec, old)
     if coll ~= COLL then return end
     if rec and not old and not rec.del and not ns.isMe(rec.by) and ns.isOfficer and ns.isOfficer() and ns.db.settings.scoutHint ~= false then
@@ -366,7 +366,7 @@ ns.Listen("STORE", function(coll, rec, old)
 end)
 
 ------------------------------------------------------------------------
--- Realm-Statistik (letzte 30 Tage)
+-- Realm statistics (last 30 days)
 ------------------------------------------------------------------------
 local CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
 function S.Stats(days)
@@ -394,7 +394,7 @@ function S.Stats(days)
 end
 
 ------------------------------------------------------------------------
--- Seite "Anwerben & Realm"
+-- Page "Recruiting & Realm"
 ------------------------------------------------------------------------
 S.view = "recruit"
 local function bars(parent, n)
@@ -437,7 +437,7 @@ ns.RegisterPage({
         p.seg = K.Segments(p, { { key = "recruit", text = L["Recruiting"] }, { key = "stats", text = L["Realm statistics"] } },
             function(k) S.view = k ns.RefreshPage("scout") end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
-        -- Anwerben
+        -- Recruiting
         p.rec = CreateFrame("Frame", nil, p)
         p.rec:SetPoint("TOPLEFT", 0, -34) p.rec:SetPoint("BOTTOMRIGHT")
         p.rec.info = K.Text(p.rec, 11, C.muted)
@@ -516,7 +516,7 @@ ns.RegisterPage({
         p.list:SetPoint("TOPLEFT", p.rec, "TOPLEFT", 0, -40)
         p.list:SetPoint("BOTTOMRIGHT")
         p.list.empty:SetText(L["No candidates yet. Play with people outside the guild - guildless, well-rated players end up here."])
-        -- Statistik
+        -- Statistics
         p.st = CreateFrame("Frame", nil, p)
         p.st:SetPoint("TOPLEFT", 0, -34) p.st:SetPoint("BOTTOMRIGHT")
         p.st.sum = K.Text(p.st, 12, C.muted)

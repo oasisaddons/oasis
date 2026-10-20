@@ -1,19 +1,19 @@
--- Oasis: Dungeon-Journal-Oberflaeche
--- Startseite mit Dungeon-Karten (Blizzards Ladebildschirme), Dungeon-Seite mit Banner und Reitern
--- Bosse (Liste + 3D-Modell + Beute), Beute, Quests, Gilde.
+-- Oasis: Dungeon Journal UI
+-- Start page with dungeon cards (Blizzard's loading screens), dungeon page with banner and tabs
+-- Bosses (list + 3D model + loot), loot, quests, guild.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Dungeons", function()   -- Module Dungeons (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Security on receipt (others' addon messages may be manipulated):
+-- Sanitize texts, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- Neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -61,7 +61,7 @@ end
 local D = ns.Dungeons
 
 local LS = "Interface\\Glues\\LoadingScreens\\"
--- Blizzards Ladebildschirme (englischer Dungeon-Name -> Datei); fehlt eine Datei, bleibt die Farbstimmung
+-- Blizzard's loading screens (English dungeon name -> file); if a file is missing, the color mood remains
 local CAM = LS .. "camelot160\\main\\"
 local ART = {
     ["Ragefire Chasm"] = LS .. "LoadScreenRagefireChasm",
@@ -97,10 +97,10 @@ local ART = {
     ["Karazhan Crypts"] = LS .. "loadscreen_classic_karazhancrypts",
     ["Demon Fall Canyon"] = LS .. "loadscreen_classic_demon_fall_canyon",
 }
--- ohne eigenes Bild: WoW-Forever-Kontinentbild (Kalimdor / Oestliche Koenigreiche)
+-- without own image: WoW Forever continent image (Kalimdor / Eastern Kingdoms)
 local KALIMDOR = { ["The Barrens"] = true, ["Feralas"] = true, ["Ashenvale"] = true, ["Un'Goro Crater"] = true, ["Tanaris"] = true,
     ["Orgrimmar"] = true, ["Dustwallow Marsh"] = true, ["Desolace"] = true, ["Azshara"] = true, ["Thousand Needles"] = true }
--- Farbstimmung je Dungeon (fuer Karten ohne Bild und als Akzent)
+-- Color mood per dungeon (for cards without image and as accent)
 local TONE = {
     ragefire = { 0.55, 0.22, 0.08 }, hallofthanes = { 0.50, 0.36, 0.16 }, ruinsoflordaeron = { 0.38, 0.40, 0.30 },
     wailingcaverns = { 0.30, 0.42, 0.16 }, deadmines = { 0.45, 0.30, 0.16 }, shadowfangkeep = { 0.36, 0.26, 0.46 },
@@ -125,15 +125,15 @@ local function artOf(d)
     if z then return CAM .. (KALIMDOR[z] and "loadscreen_camelot_kalimdor" or "loadscreen_camelot_easternkingdom") end
 end
 
--- Dungeon-Karten aus dem Client: Karten-IDs per Name finden (alle Ebenen), Kacheln der Kartengrafik
+-- Dungeon maps from the client: find map IDs by name (all layers), tiles of the map graphic
 local mapCache = {}
--- Namen vergleichbar machen: Kleinschreibung, ohne Artikel (Die/Der/Das/The), ohne Satzzeichen
+-- Make names comparable: lowercase, without articles (Die/Der/Das/The), without punctuation
 local function normName(n)
     n = tostring(n or ""):lower()
     n = n:gsub("^die ", ""):gsub("^der ", ""):gsub("^das ", ""):gsub("^the ", "")
     return (n:gsub("[%p%s]", ""))
 end
--- im Dungeon stehend: die Karte, die WoW dort benutzt, merken (auch fuer spaeter)
+-- standing in the dungeon: remember the map WoW uses there (also for later)
 local function learnMap()
     local inInst, kind = IsInInstance()
     if not (inInst and (kind == "party" or kind == "raid")) then return end
@@ -156,7 +156,7 @@ local function dungeonMaps(d)
     end
     local want = {}
     for _, n in ipairs({ d.name, d.nameEN, d.nameDE, d.de }) do if n then want[normName(n)] = true end end
-    -- bekannte Karten aus den Boss-Daten (Blizzard-Kartennummern)
+    -- known maps from the boss data (Blizzard map numbers)
     if ns.BossPos and ns.BossPos[d.dbKey or d.key] then
         for _, bp in ipairs(ns.BossPos[d.dbKey or d.key]) do
             if bp.map and not seen[bp.map] then
@@ -165,7 +165,7 @@ local function dungeonMaps(d)
             end
         end
     end
-    -- gemerkte Karte aus einem Besuch
+    -- remembered map from a visit
     for n in pairs(want) do
         local id = ns.db.dungeonMapIds and ns.db.dungeonMapIds[n]
         if id then
@@ -180,7 +180,7 @@ local function dungeonMaps(d)
                 add(id, info.name)
             end
         end
-        -- Ebenen: Kinder der gefundenen Karte dazunehmen
+        -- Layers: add children of the found map
         if #out > 0 and C_Map.GetMapChildrenInfo then
             local ok, kids = pcall(C_Map.GetMapChildrenInfo, out[1].id)
             if ok and kids then
@@ -230,7 +230,7 @@ local function drawMap(host, mapID, focus)
     return true
 end
 
--- Quests ordnen: fehlende zuerst, dann die im Log, erledigte ans Ende; dazu die Anzahl je Zustand
+-- Sort quests: missing first, then those in the log, completed at the end; plus the count per state
 local QUEST_RANK = { open = 1, log = 2, done = 3 }
 local function questOrder(quests)
     local n = { open = 0, log = 0, done = 0 }
@@ -245,22 +245,22 @@ local function questOrder(quests)
     end)
     return n
 end
--- Zustand einer Quest als kurzes Wort mit Farbe (Liste und Zaehlzeile)
+-- State of a quest as a short colored word (list and count line)
 local QUEST_STATE = {
     open = { "Missing", "ff7fa6", { 1, 0.42, 0.62 } },
     log = { "Active", "ffd24a", { 1, 0.80, 0.25 } },
     done = { "Done", "66db9e", { 0.35, 0.85, 0.60 } },
 }
 
--- Forever Atlas installiert? (nur dann duerfen wir dessen eigene Kartenbilder verwenden)
+-- Forever Atlas installed? (only then may we use its own map images)
 local function hasForeverAtlas()
     local get = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
     if not get then return false end
     local ok, name, _, _, loadable, reason = pcall(get, "AtlasLootClassic")
     return ok and type(name) == "string" and reason ~= "MISSING"
 end
-local S   -- Seitenzustand (wird weiter unten gefuellt)
--- Boss anklicken: in den Reiter "Bosse" springen und diesen Boss zeigen
+local S   -- Page state (filled further below)
+-- Click boss: jump to the "Bosses" tab and show this boss
 local function openBoss(host, name)
     local d = host.curDungeon
     local raw = d and d.data and d.data.bosses
@@ -326,7 +326,7 @@ local function legacyPins(host, list, floor, toXY, hidden)
             pin.boss = bp[1]
             pin.hidden = hidden
             pin.tip = { bp[1] }
-            -- 0.6.307: was der Boss fallen laesst (Qualitaetsfarbe, Upgrades gruen) direkt im Tooltip
+            -- 0.6.307: what the boss drops (quality color, upgrades green) right in the tooltip
             if D.BossTipLines then
                 local ok, lines = pcall(D.BossTipLines, bp[1])
                 for _, ln in ipairs(ok and lines or {}) do pin.tip[#pin.tip + 1] = ln end
@@ -334,15 +334,15 @@ local function legacyPins(host, list, floor, toXY, hidden)
             if host.rough then pin.tip[#pin.tip + 1] = "|cffe8b44a" .. L["Position only approximate"] .. "|r" end
             pin.tip[#pin.tip + 1] = "|cff66db9e" .. L["Click: show boss and loot"] .. "|r"
             pin:SetAlpha(host.rough and 0.6 or 1)
-            -- auf Bildern mit eingezeichneten Bossen: unsichtbare Klickflaeche
+            -- on images with drawn bosses: invisible click area
             pin.ring:SetShown(not hidden) pin.dot:SetShown(not hidden) pin.num:SetShown(not hidden) pin.lbl:SetShown(not hidden)
             pin:SetSize(hidden and 34 or 22, hidden and 34 or 22)
             pin:Show()
         end
     end
 end
--- Karte des Clients zu einer Ebene: die Karten eines Dungeons nach Nummer geordnet; die Ebene zaehlt als Platz
--- in dieser Reihe (Fluegel teilen sich einen Ordner: Ebene 3 = dritte Karte), sonst der Platz in der Ebenenliste
+-- Client map for a layer: a dungeon's maps sorted by number; the layer counts as position
+-- in this row (wings share a folder: layer 3 = third map), else the position in the layer list
 local function clientMapFor(d, cfg, floor)
     if not d or not (C_Map and C_Map.GetMapArtLayerTextures) then return nil end
     local ok, found = pcall(dungeonMaps, d)
@@ -363,8 +363,8 @@ local function drawLegacyMap(host, cfg, floor)
     local W, H = host:GetWidth(), host:GetHeight()
     if W < 50 then W, H = 600, 400 end
     if cfg.folder then
-        -- Neuer Client (Forever): die alten Bildpfade gibt es dort nicht mehr - das Kartenbild kommt ueber die
-        -- Kartennummer des Dungeons, die Boss-Positionen (in % des Bildes) passen unveraendert darauf.
+        -- New client (Forever): the old image paths no longer exist there - the map image comes via the
+        -- Map number of the dungeon; the boss positions (in % of the image) fit on it unchanged.
         local m = clientMapFor(host.curDungeon, cfg, floor)
         if m and drawMap(host, m.id) and host.mapRect then
             local R = host.mapRect
@@ -373,7 +373,7 @@ local function drawLegacyMap(host, cfg, floor)
             return true
         end
         if host.tiles then for _, t in ipairs(host.tiles) do t:Hide() end end
-        -- 4x3 Kacheln in einem 3:2-Rahmen (so wie die Boss-Positionen aus Forever Atlas gemessen sind)
+        -- 4x3 tiles in a 3:2 frame (the way boss positions from Forever Atlas are measured)
         local asp = 1.5
         local dw = math.min(W, H * asp)
         local dh = dw / asp
@@ -407,7 +407,7 @@ local function drawLegacyMap(host, cfg, floor)
         t:ClearAllPoints()
         t:SetPoint("TOPLEFT", host, "TOPLEFT", ox, -oy)
         t:Show()
-        -- Bosse sind im Bild schon eingezeichnet: nur unsichtbare Klickflaechen darueber
+        -- Bosses are already drawn in the image: only invisible click areas over them
         legacyPins(host, cfg.pins, floor, function(x, y) return ox + x * dw, oy + y * dh end, true)
         return true
     end
@@ -423,7 +423,7 @@ end
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
--- Gemeinsames fuer Optik und Animation
+-- Shared stuff for look and animation
 ------------------------------------------------------------------------
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local EMBER = ns.MEDIA .. "ember"
@@ -444,7 +444,7 @@ local function pageShown()
 end
 
 ------------------------------------------------------------------------
--- Items: Name/Farbe/Icon aus dem Client, sonst aus der Datenbank
+-- Items: name/color/icon from the client, else from the database
 ------------------------------------------------------------------------
 local QCOL = { [0] = "ff9d9d9d", [1] = "ffffffff", [2] = "ff1eff00", [3] = "ff0070dd", [4] = "ffa335ee", [5] = "ffff8000" }
 local function itemInfo(it)
@@ -460,7 +460,7 @@ local function itemInfo(it)
     }
 end
 
--- Passt das Item zu mir? 2 = passt zu Klasse und Rolle, 1 = tragbar/allgemein, 0 = nicht fuer mich
+-- Does the item suit me? 2 = fits class and role, 1 = wearable/general, 0 = not for me
 local FIT_ARMOR = { WARRIOR = 4, PALADIN = 4, HUNTER = 3, SHAMAN = 3, ROGUE = 2, DRUID = 2, PRIEST = 1, MAGE = 1, WARLOCK = 1 }
 local FIT_WEAP = {
     WARRIOR = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 13, 15, 16, 18 }, PALADIN = { 0, 1, 4, 5, 6, 7, 8 },
@@ -518,10 +518,10 @@ local function fitFor(id)
 end
 D.FitFor = fitFor
 
--- Markierungen: gesucht / Gildenbank / habe ich
+-- Markers: wanted / guild bank / I have it
 local function markers(id)
     local t = {}
-    -- 0.6.308: alle Suchenden aus der Gilde, nicht nur der erste
+    -- 0.6.308: all seekers from the guild, not just the first
     local seek = {}
     for _, w in ipairs(Store.List("wants")) do
         if w.itemID == id and w.who and not ns.isMe(w.who) then seek[#seek + 1] = w.who end
@@ -529,7 +529,7 @@ local function markers(id)
     if #seek > 0 then
         t[#t + 1] = "|cffffc24d" .. (L["wanted: %s"]):format(ns.displayName(seek[1])) .. (#seek > 1 and (" +" .. (#seek - 1)) or "") .. "|r"
     end
-    -- wer aus der Gilde es schon erbeutet hat (neuester Eintrag im Beute-Log)
+    -- who from the guild has already looted it (newest entry in loot log)
     local got
     for _, x in ipairs(Store.List("loot")) do
         if x.itemID == id and x.who and (not got or (x.ts or 0) > (got.ts or 0)) then got = x end
@@ -543,7 +543,7 @@ local function markers(id)
 end
 
 ------------------------------------------------------------------------
--- Verbesserungen (Vergleich mit angelegter Ausruestung ueber ns.Upgrade)
+-- Upgrades (comparison with equipped gear via ns.Upgrade)
 ------------------------------------------------------------------------
 local upCache, dgUpCache = {}, {}
 local function upOn()
@@ -555,12 +555,12 @@ local function upPct(id)
     if c ~= nil then return c or nil end
     local pct = ns.Upgrade.ForItem(id)
     local okI, name = pcall(C_Item.GetItemInfo, id)
-    if okI and name then upCache[id] = pct or false end   -- erst merken, wenn der Client das Item kennt
+    if okI and name then upCache[id] = pct or false end   -- remember only once the client knows the item
     return pct
 end
 local function resetUp() wipe(upCache) wipe(dgUpCache) end
 D.ResetUpgrades = resetUp
--- einheitliche Kennzeichnung: up = besser als angelegt, fit = passt zur Klasse
+-- uniform labeling: up = better than equipped, fit = suits the class
 local function markOf(id)
     local pct = upPct(id)
     return { pct = pct, up = (pct and pct > 0) or false, fit = fitFor(id) }
@@ -574,7 +574,7 @@ local function sortLoot(rows)
     for i, r in ipairs(rows) do r.n = r.n or i r.rk = rankOf(r.it[1]) end
     table.sort(rows, function(a, c) if a.rk ~= c.rk then return a.rk > c.rk end return a.n < c.n end)
 end
--- Anzahl Verbesserungen in einem Dungeon (nur Daten ohne Blizzard-Journal-Zugriff)
+-- Number of upgrades in a dungeon (data only, without Blizzard journal access)
 local function dungeonUps(d)
     if not upOn() or not d or d.source == "blizzard" then return 0 end
     local c = dgUpCache[d.key]
@@ -610,7 +610,7 @@ end
 local function refreshSoon()
     if pageShown() then ns.RefreshPage("dungeons") end
 end
--- 0.6.307: Tooltip-Zeilen fuer einen Boss-Pin auf der Dungeonkarte: Beute (bis 8), Upgrades fuer mich gruen markiert
+-- 0.6.307: tooltip lines for a boss pin on the dungeon map: loot (up to 8), upgrades for me marked green
 function D.BossTipLines(bossName)
     local d = D.Get(S.dungeon)
     if not d or not bossName then return {} end
@@ -631,7 +631,7 @@ end
 ns.On("PLAYER_EQUIPMENT_CHANGED", function() resetUp() ns.After(0.3, refreshSoon) end)
 
 ------------------------------------------------------------------------
--- Beute-Karten (Boss- und Beute-Liste): Leuchten bei Verbesserung, Tooltip, Klick-Menue
+-- Loot cards (boss and loot list): glow on upgrade, tooltip, click menu
 ------------------------------------------------------------------------
 local function lootMenu(owner, id)
     local info = itemInfo({ id })
@@ -671,7 +671,7 @@ local function lootRow(l)
     r.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     r.pct = K.Title(r, 12, GREEN, "RIGHT")
     r.pct:SetPoint("TOPRIGHT", -12, -7)
-    -- Drop-Chance rechtsbuendig unten
+    -- Drop chance right-aligned at the bottom
     r.drop = K.Text(r, 11, { 0.79, 0.70, 0.48 }, "RIGHT")
     r.drop:SetPoint("BOTTOMRIGHT", -12, 7)
     r.cols.name = K.Text(r, 13, C.text)
@@ -731,7 +731,7 @@ local function lootUpdate(r, e)
     r:SetAlpha((m.fit == 0 and not e.noDim and s.dgDimUnfit ~= false) and 0.45 or 1)
     local mk = s.dgMarkers ~= false and markers(info.id) or ""
     if mk ~= "" then sub[#sub + 1] = mk end
-    -- Drop-Chance: FojjiCore (Forever-Werte, nur gelesen) wenn installiert, sonst die eigene Tabelle (Classic, aus AtlasLootClassic)
+    -- Drop chance: FojjiCore (Forever values, read only) if installed, else our own table (Classic, from AtlasLootClassic)
     local odds = (ns.Fojji and ns.Fojji.Odds and ns.Fojji.Odds(info.id)) or D.DropRate(info.id)
     r.drop:SetText(odds and (L["Drop %s %%"]):format(odds >= 10 and math.floor(odds + 0.5) or (math.floor(odds * 10 + 0.5) / 10)) or "")
     if e.versus and m.up and ns.Upgrade and ns.Upgrade.Against then
@@ -742,7 +742,7 @@ local function lootUpdate(r, e)
 end
 
 ------------------------------------------------------------------------
--- Reiter mit gleitendem Balken (wie Chronik)
+-- Tabs with sliding bar (like Chronicle)
 ------------------------------------------------------------------------
 local function slideTabs(parent, items, onPick)
     local f = CreateFrame("Frame", nil, parent)
@@ -845,7 +845,7 @@ local function slideTabs(parent, items, onPick)
     return f
 end
 
--- Leerzustand mit Aktionen
+-- Empty state with actions
 local function emptyState(parent)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(360, 130)
@@ -897,10 +897,10 @@ end
 ------------------------------------------------------------------------
 S = { view = "home", filter = nil, dungeon = nil, tab = "bosses", boss = 1, homeOffset = 0, lootSearch = "",
     homeSearch = "", homeZone = nil, sort = "level", upOnly = false, lootUp = false, lootSlot = nil, lootKind = nil }
--- Dungeon-Seite: fuenf Ansichten in drei Reitern; je Reiter merkt sich S.sub die zuletzt gezeigte Ansicht
+-- Dungeon page: five views in three tabs; per tab S.sub remembers the last shown view
 S.sub = { g1 = "bosses", g2 = "quests" }
-S.group = { bosses = "g1", loot = "g1", quests = "g2", map = "map", guild = "guild" }   -- 0.6.307: Karte eigener Reiter
--- Start-Filter neu anwenden (nach Aenderung in den Einstellungen)
+S.group = { bosses = "g1", loot = "g1", quests = "g2", map = "map", guild = "guild" }   -- 0.6.307: map as its own tab
+-- Reapply start filter (after a change in settings)
 function D.ResetFilter() S.filter = nil S.homeOffset = 0 ns.RefreshPage("dungeons") end
 
 local function fits(d)
@@ -934,7 +934,7 @@ local function homeList()
     end
     return out
 end
--- Stufenfarbe wie bei Quests: grau, gruen, gelb, orange, rot (nach deiner Stufe)
+-- Level color like quests: gray, green, yellow, orange, red (by your level)
 local function lvlColor(d)
     if not d.lo then return C.muted end
     local me = ns.safe(UnitLevel("player")) or 1
@@ -946,8 +946,8 @@ local function lvlColor(d)
     return { 0.6, 0.6, 0.6 }
 end
 
--- 0.6.311: stufenlose Schwierigkeitsfarbe gruen > gelb > orange > rot; heat 0 (leicht) .. 1 (zu schwer)
--- Stuetzpunkte nach Abstand Dungeon-Mitte zu eigener Stufe (wie lvlColor); weit unter der Stufe grau, ohne Glut
+-- 0.6.311: smooth difficulty color green > yellow > orange > red; heat 0 (easy) .. 1 (too hard)
+-- Anchor points by distance dungeon middle to own level (like lvlColor); far below level gray, no ember
 local DIFF_STOPS = { { -9, { 0.35, 0.85, 0.4 } }, { -2, { 0.75, 0.85, 0.3 } }, { 0, { 1, 0.82, 0.25 } }, { 3, { 1, 0.55, 0.25 } }, { 6, { 1, 0.28, 0.22 } } }
 local function diffColor(d)
     if not d.lo then return C.muted, 0 end
@@ -966,7 +966,7 @@ local function diffColor(d)
     end
     return DIFF_STOPS[1][2], heat
 end
--- Glut unter den Karten: rot stark und schnell, gruen schwach und ruhig; Maus drueber legt etwas drauf
+-- Ember under the cards: red strong and fast, green weak and calm; mouseover adds a bit
 local heatCards = setmetatable({}, { __mode = "k" })
 do
     local tick, clock = CreateFrame("Frame"), 0
@@ -984,7 +984,7 @@ do
     end)
 end
 
--- Drop-Chance eines Teils in Prozent aus ns.DungeonDropRate ([NPC] = { [Item] = % }); je Teil der hoechste Wert
+-- Drop chance of an item in percent from ns.DungeonDropRate ([NPC] = { [Item] = % }); per item the highest value
 local dropIdx
 function D.DropRate(itemID)
     if not itemID or not ns.DungeonDropRate then return nil end
@@ -998,7 +998,7 @@ function D.DropRate(itemID)
     end
     return dropIdx[itemID]
 end
--- Reiter "Taktik" beim Boss: worum es geht, je ein Satz fuer Tank/Heiler/Schaden, Tipps fuer die gewaehlte Klasse
+-- Tab "Tactics" on the boss: what it's about, one sentence each for tank/healer/damage, tips for the selected class
 function D.FillTactic(bt, d, b)
     local tac, T = bt.tac, ns.BossTactics
     local raw = d and d.data and d.data.bosses and d.data.bosses[S.boss]
@@ -1030,7 +1030,7 @@ function D.FillTactic(bt, d, b)
     end
     tac.cls:SetText(table.concat(lines, "\n"))
 end
--- Boss mit wenig Beute: darunter die besten Upgrades der anderen Bosse (Klick springt hin)
+-- Boss with little loot: below it the best upgrades of the other bosses (click jumps there)
 function D.FillMoreUps(bt, bosses, cur, nRows)
     local more = bt.more
     local list, seen = {}, {}
@@ -1046,7 +1046,7 @@ function D.FillMoreUps(bt, bosses, cur, nRows)
         end
     end
     table.sort(list, function(a, b) if a.pct ~= b.pct then return a.pct > b.pct end return a.n < b.n end)
-    -- nur so viele, wie unter der Beuteliste Platz ist
+    -- only as many as fit below the loot list
     local room = (bt.right:GetHeight() or 0) - 90 - (nRows or 0) * 52 - 44
     local n = math.max(0, math.min(#list, #more.row, math.floor(room / 30)))
     more.want = n > 0
@@ -1069,13 +1069,13 @@ function D.PickBoss(i)
     ns.RefreshPage("dungeons")
 end
 local function openDungeon(key, boss)
-    S.view, S.dungeon, S.tab, S.boss = "dungeon", key, boss and "bosses" or "guild", boss or 1   -- 0.6.303: ohne Boss: Gilde & Gruppe
+    S.view, S.dungeon, S.tab, S.boss = "dungeon", key, boss and "bosses" or "guild", boss or 1   -- 0.6.303: without boss: Guild & Group
     S.fadeIn = "dv"
     ns.RefreshPage("dungeons")
 end
 
 ------------------------------------------------------------------------
--- Startseite: Karten (Hover: Bild zoomt, Glow, leichtes Anheben)
+-- Start page: cards (hover: image zooms, glow, slight lift)
 ------------------------------------------------------------------------
 local CH, GAP = 160, 12
 
@@ -1084,7 +1084,7 @@ local function cardArt(c, z)
     local dz = 0.03 * z
     c.art:SetTexCoord(0.02 + dz, 0.98 - dz, 0.22 + dz * 0.75, 0.78 - dz * 0.75)
 end
--- Stellung der Karte: z = 0 ruhig, 1 ueberfahren (Bild naeher, Name rueckt hoch und macht der Beute Platz)
+-- Card pose: z = 0 at rest, 1 hovered (image closer, name moves up and makes room for loot)
 local function cardPose(c, z)
     c.hz = z
     cardArt(c, z)
@@ -1129,7 +1129,7 @@ local function pill(parent, color)
     return f
 end
 
--- die besten Teile fuer mich aus der Beute (erst beim Ueberfahren berechnet): Upgrades, ohne Upgrade-Vergleich passende Teile
+-- the best pieces for me from the loot (computed only on hover): upgrades, without upgrade comparison fitting pieces
 local LOOTN = 4
 local function cardLoot(c)
     local d = c.d
@@ -1162,7 +1162,7 @@ local function cardLoot(c)
         end
     end
     c.loot:SetShown(c.nLoot > 0)
-    -- erst merken, wenn der Client alle Teile kennt (sonst fehlen Upgrades beim ersten Ueberfahren)
+    -- remember only once the client knows all items (else upgrades are missing on first hover)
     if not upOn() or dgUpCache[d.key] then c.lootFor = d.key end
 end
 local function cardEnter(c, quiet)
@@ -1213,8 +1213,8 @@ local function buildCard(parent)
     c.topShade:SetPoint("TOPLEFT") c.topShade:SetPoint("TOPRIGHT")
     c.topShade:SetHeight(42)
     gradient(c.topShade, "VERTICAL", 0, 0.55)
-    -- 0.6.311: Glut pulsiert je nach Schwierigkeit (cardHeat); 0.6.318: in der Karte unten ueber dem Bild
-    -- (unter der Karte war sie verdeckt bzw. abgeschnitten), in die Ecken geschnitten
+    -- 0.6.311: ember pulses by difficulty (cardHeat); 0.6.318: in the card at the bottom above the image
+    -- (below the map it was hidden or cut off), clipped into the corners
     c.glow = c:CreateTexture(nil, "ARTWORK", nil, 2)
     c.glow:SetTexture(EMBER)
     c.glow:SetBlendMode("ADD")
@@ -1224,15 +1224,15 @@ local function buildCard(parent)
     c.glow:SetAlpha(0)
     c.heat = 0
     heatCards[c] = true
-    -- Farbton nach Schwierigkeit, laeuft von unten aus
+    -- Tint by difficulty, running from the bottom
     c.diffTint = c:CreateTexture(nil, "ARTWORK", nil, 1)
     c.diffTint:SetPoint("BOTTOMLEFT") c.diffTint:SetPoint("BOTTOMRIGHT")
     c.diffTint:SetHeight(70)
     K.Border(c, C.line)
-    -- 0.6.306: Oasis-Bildrahmen (rote Linie, abgeschraegte Ecken) wie bei allen Boxen; die alte Randlinie weicht
+    -- 0.6.306: Oasis image frame (red line, beveled corners) like all boxes; the old border line goes
     if K.BoxFrame and K.BoxFrame(c) then for _, x in ipairs(c.borders or {}) do x:Hide() end end
     do
-        -- 0.6.311: Flaechen in die abgeschraegten Ecken des Rahmens schneiden (eine gestreckte Maske, max. 3 je Textur)
+        -- 0.6.311: clip areas into the frame's beveled corners (one stretched mask, max. 3 per texture)
         local ok, m = pcall(c.CreateMaskTexture, c)
         if ok and m then
             m:SetTexture(ns.MEDIA .. "skins\\card_mask", "CLAMPTOWHITE", "CLAMPTOWHITE")
@@ -1240,7 +1240,7 @@ local function buildCard(parent)
             for _, t in ipairs({ c.bg, c.tone, c.art, c.hov, c.shade, c.topShade, c.diffTint, c.glow }) do
                 if K.MaskSafe then K.MaskSafe(t) end
                 pcall(t.AddMaskTexture, t, m)
-                t.ownMask = true   -- K.ClipBox laesst sie in Ruhe
+                t.ownMask = true   -- K.ClipBox leaves them alone
             end
         end
     end
@@ -1276,7 +1276,7 @@ local function buildCard(parent)
     end
     c.onl = K.Text(c, 11, C.mint, "RIGHT")
     c.onl:SetPoint("BOTTOMRIGHT", -12, 28)
-    -- Beute-Leiste: bis zu vier Teile, die mir etwas bringen; Klick springt zum Boss, der sie fallen laesst
+    -- Loot bar: up to four pieces that help me; click jumps to the boss that drops it
     c.loot = CreateFrame("Frame", nil, c)
     c.loot:SetSize(LOOTN * 32, 28)
     c.loot:SetPoint("BOTTOMLEFT", 12, 10)
@@ -1321,7 +1321,7 @@ local function buildCard(parent)
         c.loot.btn[i] = b
     end
     c:SetScript("OnEnter", function(self) cardEnter(self) end)
-    -- auf ein Beute-Symbol gewechselt: Karte bleibt offen
+    -- switched to a loot icon: card stays open
     c:SetScript("OnLeave", function(self)
         if self:IsMouseOver() and self.loot:IsShown() then return end
         cardLeave(self)
@@ -1342,7 +1342,7 @@ local function fillCard(c, d)
     c.art:SetTexture(art)
     c.art:SetShown(art ~= nil)
     c.hasArt = art ~= nil
-    -- anderer Dungeon auf dieser Karte (Mausrad): Beute-Leiste neu, unter der Maus gleich wieder fuellen
+    -- other dungeon on this card (mouse wheel): new loot bar, refill right away under the mouse
     if c.lootFor ~= d.key then
         c.lootFor, c.nLoot = nil, 0
         c.loot:Hide()
@@ -1355,7 +1355,7 @@ local function fillCard(c, d)
     c.lvl:SetText(d.level ~= "" and d.level or "?")
     local lc = lvlColor(d)
     c.lvl:SetTextColor(lc[1], lc[2], lc[3])
-    -- 0.6.311: keine Striche oben mehr; Farbe laeuft stufenlos gruen > gelb > orange > rot (diffColor)
+    -- 0.6.311: no more dashes at the top; color runs smoothly green > yellow > orange > red (diffColor)
     c.lvlEdge:Hide()
     c.band:Hide()
     local hc, heat = diffColor(d)
@@ -1370,9 +1370,9 @@ local function fillCard(c, d)
     local info = { ups = dungeonUps(d), on = d.closed and {} or othersInRange(d), q = 0 }
     if not d.closed then info.q = questCount(d) end
     c.info = info
-    -- Kennzeichen sagen, was die Zahl bedeutet; nur auf schmalen Karten bleibt die blosse Zahl
+    -- Labels say what the number means; only on narrow cards the bare number remains
     local wide = (c:GetWidth() or 240) >= 250
-    -- 0.6.303: keine Symbol-Pillen und Punkte mehr - eine Klartext-Zeile: wer aus der Gilde passt, Quests, Upgrades
+    -- 0.6.303: no more icon pills and dots - one plain text line: who from the guild fits, quests, upgrades
     c.upPill:Hide() c.qPill:Hide()
     for _, dot in ipairs(c.dots) do dot:Hide() end
     c.onl:SetText("")
@@ -1388,11 +1388,11 @@ local function fillCard(c, d)
 end
 
 ------------------------------------------------------------------------
--- Karte im Reiter "Karte": eigene Position und Gruppe (Weltkarten-Position -> Dungeonbild, kalibriert)
+-- Map in the "Map" tab: own position and group (world map position -> dungeon image, calibrated)
 ------------------------------------------------------------------------
 local MC = {}
 D.MapCal = MC
--- bekannte Standardwerte je Dungeon/Ebene (Schluessel "dbKey:Ebene"); noch keine gemessen
+-- known default values per dungeon/layer (key "dbKey:layer"); none measured yet
 MC.DEFAULTS = {}
 function MC.Key(d, floor) return (d.dbKey or d.key) .. ":" .. tostring(floor or 1) end
 function MC.Get(key)
@@ -1407,7 +1407,7 @@ local function lsq(xs, ys)
     local a = (n * sxy - sx * sy) / den
     return a, (sy - a * sx) / n
 end
--- Abbildung je Achse per kleinster Quadrate; Fehler = mittlerer Abstand in Bildanteilen
+-- Mapping per axis via least squares; error = mean distance in image fractions
 function MC.Solve(samples)
     if not samples or #samples < 2 then return nil end
     local mx, my, px, py = {}, {}, {}, {}
@@ -1442,14 +1442,14 @@ function MC.Share(key)
     return true
 end
 if ns.Comm and ns.Comm.On then
-    -- Kalibrierung von Gildenmitgliedern: nur uebernehmen, wenn man selbst keine hat
+    -- Calibration from guild members: only take it if you have none yourself
     ns.Comm.On("DMCAL", function(sender, _, key, map, ax, bx, ay, by)
         if not ns.db or type(key) ~= "string" or ns.isMe(sender) then return end
         if #key > 60 or key:find("[|%c]") then return end
         ns.db.dmapCal = ns.db.dmapCal or {}
         local own = ns.db.dmapCal[key]
         if own and not own.from then return end
-        -- Zahlen endlich und in sinnvollem Bereich (sonst Zeichenfehler), gespeicherte Menge begrenzt
+        -- Numbers finite and in a sensible range (else drawing errors), stored amount limited
         ax, bx, ay, by = SEC.Num(ax, -1e6, 1e6), SEC.Num(bx, -1e6, 1e6), SEC.Num(ay, -1e6, 1e6), SEC.Num(by, -1e6, 1e6)
         map = SEC.Num(map, 1, 1e7, true)
         if not (ax and bx and ay and by and map) then return end
@@ -1469,7 +1469,7 @@ local function mcBuild(mt)
     P:SetPoint("BOTTOMRIGHT", mt.canvas, "BOTTOMRIGHT")
     P:SetFrameLevel(mt.canvas:GetFrameLevel() + 25)
     P.dots = {}
-    -- Statuszeile unten links mit Knoepfen
+    -- Status line bottom left with buttons
     local bar = CreateFrame("Frame", nil, mt)
     bar:SetFrameLevel(mt:GetFrameLevel() + 32)
     bar:SetPoint("BOTTOMLEFT", 6, 6)
@@ -1499,7 +1499,7 @@ local function mcBuild(mt)
     bar.share:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Share with guild"], L["Sends only the conversion values. Members without their own calibration adopt them."] }) end)
     bar.share:SetScript("OnLeave", function() GameTooltip:Hide() end)
     P.bar = bar
-    -- Klick auf die Karte im Kalibriermodus: hier stehe ich
+    -- Click on the map in calibration mode: I'm standing here
     mt.canvas:EnableMouse(true)
     mt.canvas:SetScript("OnMouseUp", function(self, btn)
         if btn == "RightButton" and ns.InstancePos and IsInInstance and IsInInstance() then ns.InstancePos.ClickSet(self, mt.calKey) return end
@@ -1654,7 +1654,7 @@ function MC.Draw(mt)
     bar.text:SetText(t)
     layout()
 end
--- vom Reiter "Karte" aus aufgerufen (nach dem Zeichnen der Karte)
+-- called from the "Map" tab (after drawing the map)
 function MC.Update(mt, d, floor, lok)
     local P = mcBuild(mt)
     mt.calKey = MC.Key(d, floor)
@@ -1668,7 +1668,7 @@ function MC.Update(mt, d, floor, lok)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local ARMOR_KIND = { [1] = "Cloth", [2] = "Leather", [3] = "Mail", [4] = "Plate" }
 local function kindOf(id)
@@ -1705,7 +1705,7 @@ local function chip(parent, text, onClick)
 end
 
 ------------------------------------------------------------------------
--- Reiter Gilde / Quests: Personen-Kreise, runde Item-Symbole, Spalten-Karten
+-- Guild / Quests tab: person circles, round item icons, column cards
 ------------------------------------------------------------------------
 local QUAL_RGB = { [0] = { 0.62, 0.62, 0.62 }, [1] = { 1, 1, 1 }, [2] = { 0.12, 1, 0 }, [3] = { 0, 0.44, 0.87 }, [4] = { 0.64, 0.21, 0.93 }, [5] = { 1, 0.5, 0 } }
 local function personMenu(owner, name)
@@ -1721,7 +1721,7 @@ local function classOf(name)
     local m = ns.Radar and ns.Radar.byName and ns.Radar.byName[name]
     return (m and m.class) or (ns.Radar and ns.Radar.ClassOf and ns.Radar.ClassOf(name))
 end
--- runder Klassenkreis (Klassensymbol, sonst Anfangsbuchstabe)
+-- round class circle (class icon, else initial letter)
 local function classDisc(parent, size)
     local h = CreateFrame("Frame", nil, parent)
     h:SetSize(size, size)
@@ -1755,7 +1755,7 @@ local function classDisc(parent, size)
     end
     return h
 end
--- rundes Item-Symbol im Qualitaetsring
+-- round item icon in quality ring
 local function roundIcon(parent, size)
     local h = CreateFrame("Frame", nil, parent)
     h:SetSize(size, size)
@@ -1776,7 +1776,7 @@ local function roundIcon(parent, size)
     end
     return h
 end
--- Spalte als Karte: Akzentlinie, Titel, Zaehler, Liste, Leerzustand
+-- Column as card: accent line, title, counter, list, empty state
 local function colCard(parent, title, color, rowH, createRow, updateRow)
     local f = K.Panel(parent, C.panel)
     f.accent = f:CreateTexture(nil, "ARTWORK")
@@ -1811,10 +1811,10 @@ local function colCard(parent, title, color, rowH, createRow, updateRow)
     return f
 end
 
--- Gilden-Reiter: Daten (mit Demo-Ergaenzung, nichts davon wird gespeichert)
+-- Guild tab: data (with demo additions, none of it is saved)
 ------------------------------------------------------------------------
--- 0.6.304: Mitkommen-Liste je Dungeon (geteilt, Sammlung "dgjoin", 4 Stunden gueltig, nur der Autor aendert)
--- Wer Lust auf einen Dungeon hat, traegt sich mit Rolle ein; daraus bildet jemand per Klick die Gruppe.
+-- 0.6.304: join list per dungeon (shared, collection "dgjoin", valid 4 hours, only the author edits)
+-- Anyone up for a dungeon signs up with a role; from that someone forms the group with a click.
 ------------------------------------------------------------------------
 local JOIN_TTL = 4 * 3600
 local function joinId(key, who) return "dj-" .. tostring(key) .. "-" .. ns.short(who or ns.me()) end
@@ -1840,7 +1840,7 @@ local function joinOnline(name)
     local m = ns.Radar and ns.Radar.byName and rawget(ns.Radar.byName, name)
     return (m and m.online) or ns.isMe(name)
 end
--- Gruppe bilden: online Eingetragene einladen (hoechstens 4), erst je ein Tank und Heiler, dann Schaden
+-- Form group: invite online sign-ups (at most 4), first one tank and healer each, then damage
 function D.FormGroup(key)
     local list, pick, have = D.JoinList(key), {}, { tank = 0, heal = 0, dps = 0 }
     local me = D.MyJoin(key)
@@ -1898,7 +1898,7 @@ ns.RegisterPage({
         local home = CreateFrame("Frame", nil, p)
         home:SetAllPoints()
         p.home = home
-        -- eine Bedienzeile: zwei Reiter, Suche, ein Filter-Menue (Sortierung, Upgrades, geoeffnet, Gebiet)
+        -- one control row: two tabs, search, a filter menu (sorting, upgrades, opened, zone)
         home.seg = slideTabs(home, { { key = "mine", text = L["For me"] }, { key = "all", text = L["All"] } },
             function(k) S.filter = k S.homeOffset = 0 S.stagger = true ns.RefreshPage("dungeons") end)
         home.seg:SetPoint("TOPLEFT", 0, 0)
@@ -1947,13 +1947,13 @@ ns.RegisterPage({
         end)
         home.filter:SetPoint("LEFT", home.search, "RIGHT", 8, 0)
 
-        -- 0.6.303: "Jetzt mit der Gilde" - Dungeons, fuer die gerade mind. 2 aus der Gilde im Stufenbereich online sind;
-        -- Klick oeffnet den Dungeon im Reiter Gilde & Gruppe (Gruppe suchen, alle einladen, wer hat die Quests)
+        -- 0.6.303: "Now with the guild" - dungeons for which at least 2 from the guild in level range are online right now;
+        -- Click opens the dungeon in the Guild & Group tab (find group, invite all, who has the quests)
         home.gbar = CreateFrame("Frame", nil, home)
         home.gbar:SetPoint("TOPLEFT", 0, -40)
         home.gbar:SetPoint("RIGHT", home, "RIGHT", 0, 0)
         home.gbar:SetHeight(42)
-        -- 0.6.306: als Glasbox mit Oasis-Rahmen (wie die Karten)
+        -- 0.6.306: as a glass box with Oasis frame (like the cards)
         if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(home.gbar, nil, nil, 12) end
         home.gbar.lbl = K.Text(home.gbar, 11, C.muted)
         home.gbar.lbl:SetPoint("LEFT", 14, 0)
@@ -2019,7 +2019,7 @@ ns.RegisterPage({
         end)
         home.cards = {}
         for i = 1, 15 do home.cards[i] = buildCard(home.grid) end
-        -- Raster je nach Breite: 3 / 2 / 1 Spalten
+        -- Grid by width: 3 / 2 / 1 columns
         function home:Layout()
             local W, H = self.grid:GetWidth() or 0, self.grid:GetHeight() or 0
             if W < 50 then W, H = 750, 380 end
@@ -2036,7 +2036,7 @@ ns.RegisterPage({
                 c:SetPoint("TOPLEFT", c.bx, -c.by + 2 * (c.hz or 0))
                 c.slot = row < rows and i or nil
             end
-            -- schmal: Suche kuerzer, Zaehler weg
+            -- narrow: shorter search, counter gone
             local hw = self:GetWidth() or 750
             if hw < 50 then hw = 750 end
             self.search:SetWidth(hw < 620 and 130 or 190)
@@ -2046,7 +2046,7 @@ ns.RegisterPage({
         home.empty = emptyState(home)
         home.empty:SetPoint("TOP", home.grid, "TOP", 0, -40)
 
-        -- ===== Dungeon-Seite =====
+        -- ===== Dungeon page =====
         local dv = CreateFrame("Frame", nil, p)
         dv:SetAllPoints()
         p.dv = dv
@@ -2082,7 +2082,7 @@ ns.RegisterPage({
         dv.title:SetPoint("BOTTOMLEFT", 16, 40)
         dv.meta = K.Text(banner, 12, C.muted)
         dv.meta:SetPoint("BOTTOMLEFT", 16, 18)
-        -- Kennzahlen oben rechts
+        -- Stats top right
         dv.kpis = {}
         local KP = { { "bosses", "Bosses", C.accent }, { "ups", "Upgrades", GREEN }, { "quests", "Quests", { 1, 0.82, 0.3 } }, { "guild", "Guild around", C.mint } }
         for i, kd in ipairs(KP) do
@@ -2130,7 +2130,7 @@ ns.RegisterPage({
         end)
         dv.event:SetPoint("RIGHT", dv.lfg, "LEFT", -6, 0)
         dv.journal = K.Button(banner, L["Dungeon journal"], 120, 24, "ghost", function()
-            -- FojjiCore geladen: dessen Journal beim gewaehlten Boss oeffnen (Karten, Routen, Drop-Chancen liegen dort)
+            -- FojjiCore loaded: open its journal at the selected boss (maps, routes, drop chances are there)
             if ns.Fojji and ns.Fojji.Dungeon(S.dungeon) then
                 local d = D.Get(S.dungeon)
                 local ok, bosses = pcall(D.Bosses, d)
@@ -2151,7 +2151,7 @@ ns.RegisterPage({
             w = w or self:GetWidth() or 750
             dv.title:SetWidth(math.max(160, w - 420))
             dv.meta:SetWidth(math.max(160, w - 420))
-            -- schmal: Kennzahlen kleiner
+            -- narrow: smaller stats
             local kw = w < 700 and 70 or 80
             for i, kd in ipairs(KP) do
                 local k = dv.kpis[kd[1]]
@@ -2161,8 +2161,8 @@ ns.RegisterPage({
             end
         end)
 
-        -- drei Reiter statt fuenf; die Ansicht innerhalb eines Reiters schaltet der kleine Schalter rechts
-        -- 0.6.303: Gemeinschaft zuerst - "Gilde & Gruppe" ist der erste Reiter und oeffnet sich standardmaessig
+        -- three tabs instead of five; the small toggle on the right switches the view within a tab
+        -- 0.6.303: community first - "Guild & Group" is the first tab and opens by default
         dv.seg = slideTabs(dv, { { key = "guild", text = L["Guild & group"] }, { key = "g1", text = L["Bosses & loot"] },
             { key = "g2", text = L["Quests"] }, { key = "map", text = L["Map"] } }, function(k)
             S.tab = (k == "guild" or k == "map") and k or S.sub[k]
@@ -2188,7 +2188,7 @@ ns.RegisterPage({
         body:SetPoint("BOTTOMRIGHT")
         dv.body = body
 
-        -- Reiter Bosse: Bossliste links, Buehne mit Modell in der Mitte, Beute rechts
+        -- Bosses tab: boss list left, stage with model in the middle, loot right
         local bt = CreateFrame("Frame", nil, body)
         bt:SetAllPoints()
         dv.bossTab = bt
@@ -2253,7 +2253,7 @@ ns.RegisterPage({
             r.cols.name:SetTextColor(selOn and 1 or C.text[1], selOn and 1 or C.text[2], selOn and 1 or C.text[3])
         end)
         bt.list.empty:SetText(L["No bosses known."])
-        -- Auswahlbalken gleitet zum gewaehlten Boss (nur solange die Liste nicht scrollt)
+        -- Selection bar glides to the chosen boss (only while the list isn't scrolling)
         bt.selBar = bt.list:CreateTexture(nil, "OVERLAY")
         bt.selBar:SetWidth(2)
         bt.selBar:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
@@ -2279,7 +2279,7 @@ ns.RegisterPage({
             end
         end
 
-        -- Buehne: dunkler Verlauf, dezent das Dungeon-Bild, Lichtkegel, Boden-Schein
+        -- Stage: dark gradient, subtle dungeon image, light cone, floor glow
         local stage = CreateFrame("Frame", nil, bt)
         bt.stage = stage
         stage:SetClipsChildren(true)
@@ -2331,7 +2331,7 @@ ns.RegisterPage({
         bt.model = CreateFrame("PlayerModel", nil, stage)
         bt.model:SetPoint("TOPLEFT", 1, -22)
         bt.model:SetPoint("BOTTOMRIGHT", -1, 22)
-        -- Modell: Ziehen dreht (mit Schwung), Mausrad zoomt, Doppelklick setzt zurueck
+        -- Model: drag rotates (with momentum), mouse wheel zooms, double-click resets
         local mdl = bt.model
         mdl.facing, mdl.zoom, mdl.spin = 0, 1.15, 0
         mdl:EnableMouse(true)
@@ -2381,7 +2381,7 @@ ns.RegisterPage({
         bt.modelHint:SetAlpha(0.45)
         bt.bossIdx = K.Text(stage, 10, C.dim)
         bt.bossIdx:SetPoint("TOPLEFT", 10, -8)
-        -- Pfeile links/rechts: zum vorigen/naechsten Boss blaettern
+        -- Arrows left/right: page to previous/next boss
         bt.nav = {}
         for i, dir in ipairs({ -1, 1 }) do
             local a = CreateFrame("Button", nil, stage)
@@ -2407,7 +2407,7 @@ ns.RegisterPage({
             end)
             bt.nav[i] = a
         end
-        -- ohne Modell: Boss-Symbol statt eines falschen Modells
+        -- without model: boss icon instead of a wrong model
         bt.noModel = CreateFrame("Frame", nil, stage)
         bt.noModel:SetSize(160, 140)
         bt.noModel:SetPoint("CENTER", 0, 10)
@@ -2438,7 +2438,7 @@ ns.RegisterPage({
         bt.bossSep:SetPoint("TOPLEFT", 12, -52)
         bt.bossSep:SetPoint("TOPRIGHT", -12, -52)
         bt.bossSep:SetHeight(1)
-        -- Beute oder Taktik zum gewaehlten Boss
+        -- Loot or tactics for the selected boss
         bt.view = K.Segments(right, { { key = "loot", text = L["Loot"] }, { key = "tac", text = L["Tactics"] } }, function(k)
             S.bossView, S.bossAnim = k, true
             ns.RefreshPage("dungeons")
@@ -2503,7 +2503,7 @@ ns.RegisterPage({
         if tac.text.SetSpacing then tac.text:SetSpacing(3) end
         tac.label = K.Text(tac, 10, C.dim)
         tac.label:SetPoint("TOPLEFT", tac.text, "BOTTOMLEFT", 0, -18)
-        -- Klasse waehlen: zeigt, was genau diese Klasse bei dem Boss tun kann
+        -- Choose class: shows what exactly this class can do on the boss
         tac.btn = {}
         for i = 1, 9 do
             local cb = CreateFrame("Button", nil, tac)
@@ -2537,7 +2537,7 @@ ns.RegisterPage({
         tac.note:SetPoint("RIGHT")
         tac.note:SetText(L["Based on Classic - a boss may differ in WoW Forever."])
         bt.loot.empty:SetText(L["No known loot."])
-        -- 0.6.308: Modell standardmaessig aus - die Buehne nahm ein Drittel der Breite und war meist leer
+        -- 0.6.308: model off by default - the stage took a third of the width and was mostly empty
         bt.modelHidden = not (ns.db and ns.db.settings.dgModel)
         bt.modelToggle = K.Button(right, L["3D model"], 100, 22, "ghost", function()
             bt.modelHidden = not bt.modelHidden
@@ -2548,7 +2548,7 @@ ns.RegisterPage({
         function bt:Layout()
             local W = self:GetWidth() or 0
             if W < 50 then W = 750 end
-            local lw = math.min(290, math.max(210, math.floor(W * 0.29)))   -- 0.6.307: breiter, Bossnamen ganz
+            local lw = math.min(290, math.max(210, math.floor(W * 0.29)))   -- 0.6.307: wider, full boss names
             local showModel = W >= 720 and not self.modelHidden
             local sw = showModel and math.min(340, math.max(220, math.floor(W * 0.31))) or 0
             self.list:ClearAllPoints()
@@ -2570,7 +2570,7 @@ ns.RegisterPage({
         bt:SetScript("OnSizeChanged", function(self) self:Layout() end)
         bt:Layout()
 
-        -- Reiter Beute: Filter, Karten-Liste
+        -- Loot tab: filters, card list
         local lt = CreateFrame("Frame", nil, body)
         lt:SetAllPoints()
         dv.lootTab = lt
@@ -2610,16 +2610,16 @@ ns.RegisterPage({
             local used = 190 + 8 + (lt.up:GetWidth() or 100) + 8 + 150 + 8 + 160
             lt.hint:SetShown(w - used > (lt.hint:GetStringWidth() or 200) + 10)
         end)
-        -- Reiter Quests: Liste links, Details rechts
+        -- Quests tab: list left, details right
         local qt = CreateFrame("Frame", nil, body)
         qt:SetAllPoints()
         dv.questTab = qt
         qt.list = K.List(qt, 50, function(l)
             local r = K.Row(l)
-            -- leichter Farbverlauf je Zustand (von links auslaufend): fehlt rosa, aktiv gelb, erledigt gruen
+            -- light gradient per state (fading from the left): missing pink, active yellow, completed green
             r.tint = r:CreateTexture(nil, "BACKGROUND", nil, 1)
             r.tint:SetAllPoints()
-            -- Stufen-Plakette in Questfarbe, Status-Symbol in der Ecke
+            -- Level badge in quest color, status icon in the corner
             r.badge = CreateFrame("Frame", nil, r)
             r.badge:SetSize(32, 32)
             r.badge:SetPoint("LEFT", 7, 0)
@@ -2631,7 +2631,7 @@ ns.RegisterPage({
             r.mark = r.badge:CreateTexture(nil, "OVERLAY")
             r.mark:SetSize(16, 16)
             r.mark:SetPoint("CENTER", r.badge, "BOTTOMRIGHT", -1, 2)
-            -- Zustand ausgeschrieben oben rechts: fehlt / aktiv / erledigt
+            -- State spelled out top right: missing / active / completed
             r.cols.st = K.Text(r, 11, C.muted, "RIGHT")
             r.cols.st:SetPoint("TOPRIGHT", -8, -9)
             r.cols.name = K.Title(r, 12, C.text)
@@ -2682,7 +2682,7 @@ ns.RegisterPage({
             r.sel:SetShown(S.quest == q.id)
             r:SetAlpha(q.state == "done" and 0.55 or 1)
         end)
-        -- Zaehlzeile ueber der Liste: wie viele fehlen, laufen, sind erledigt
+        -- Count line above the list: how many are missing, running, completed
         qt.sum = K.Text(qt, 11, C.muted)
         qt.sum:SetPoint("TOPLEFT", 8, -4)
         qt.sum:SetWidth(288)
@@ -2714,7 +2714,7 @@ ns.RegisterPage({
         qd.share:SetPoint("TOPRIGHT", -12, -12)
         qd.share:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Share quest with group"], L["Only in a group and with the quest in your log."] }) end)
         qd.share:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        -- Wer aus der Gilde hat die Quest: Klassenkreise (Klick: Fluestern, Einladen, Profil)
+        -- Who from the guild has the quest: class circles (click: whisper, invite, profile)
         qd.whoLabel = K.Label(qd, L["Guild members on it"])
         qd.who = {}
         for i = 1, 6 do
@@ -2739,11 +2739,11 @@ ns.RegisterPage({
         qd.text:SetWordWrap(true)
         qd.text:SetJustifyV("TOP")
         qd.text:SetHeight(150)
-        -- rechts daneben: Zonenkarte mit Start (!) und Abgabe (?)
+        -- to the right: zone map with start (!) and turn-in (?)
         local mh = CreateFrame("Frame", nil, qd)
         mh:SetPoint("TOPLEFT", 14, -230)
         mh:SetPoint("BOTTOMRIGHT", -14, 132)
-        -- breit: Text links, Karte gross rechts ueber die ganze Hoehe; schmal: Karte unter dem Text
+        -- wide: text left, map large on the right over the full height; narrow: map below the text
         function qd:Layout()
             local w, h = self:GetWidth() or 0, self:GetHeight() or 0
             if w < 50 then w, h = 560, 420 end
@@ -2756,7 +2756,7 @@ ns.RegisterPage({
                 self.text:SetHeight(math.max(100, h - 62 - 116))
                 mh:SetPoint("TOPLEFT", tw + 6, -62)
             else
-                -- Karte gleich unter dem Text (so hoch wie er wirklich ist) statt mit festem Abstand
+                -- Map right below the text (as tall as it really is) instead of a fixed gap
                 local th = math.max(30, math.min(self.textH or 110, math.max(30, h - 62 - (self.bottomPad or 110) - 130)))
                 self.text:SetPoint("RIGHT", self, "RIGHT", -14, 0)
                 self.text:SetHeight(th)
@@ -2843,16 +2843,16 @@ ns.RegisterPage({
             ns.RefreshPage("dungeons")
         end)
         qd.clear:SetPoint("LEFT", qd.turnin, "RIGHT", 6, 0)
-        -- zur Karte des Dungeons mit den Boss-Standorten (Reiter Karte)
+        -- to the dungeon map with boss locations (Map tab)
         qd.dmap = K.Button(qd, L["Dungeon map"], 120, 26, "ghost", function()
-            S.tab, S.tabFade = "map", true   -- 0.6.307: Karte ist eigener Reiter
+            S.tab, S.tabFade = "map", true   -- 0.6.307: map is its own tab
             ns.RefreshPage("dungeons")
         end)
         qd.dmap:SetPoint("BOTTOMRIGHT", -14, 12)
         qd.dmap:HookScript("OnEnter",function(self) K.ShowTip(self, { L["Dungeon map"], L["Map of the dungeon with the boss locations"] }) end)
         qd.dmap:HookScript("OnLeave",function() GameTooltip:Hide() end)
 
-        -- Reiter Karte: Kartengrafik aus dem Client, Ebenen umschaltbar
+        -- Map tab: map graphic from the client, layers switchable
         local mt = K.Panel(body, C.panel)
         mt:SetAllPoints()
         dv.mapTab = mt
@@ -2867,7 +2867,7 @@ ns.RegisterPage({
         mt.empty:SetWordWrap(true)
         mt.canvas:SetScript("OnSizeChanged", function() if mt.cur then drawMap(mt.canvas, mt.cur) end end)
 
-        -- Reiter Gilde
+        -- Guild tab
         local gt = CreateFrame("Frame", nil, body)
         gt:SetAllPoints()
         dv.guildTab = gt
@@ -2909,7 +2909,7 @@ ns.RegisterPage({
         gt.invite:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Invite all"], (L["Invites up to %d members in the level range to your group."]):format(4) }) end)
         gt.invite:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-        -- 0.6.304: Leiste "Wer will mit?" - eintragen mit Rolle, Eingetragene mit Klasse/Rolle/online, Gruppe bilden
+        -- 0.6.304: bar "Who wants to come?" - sign up with role, signed-up with class/role/online, form group
         local ROLES = { "tank", "heal", "dps" }
         local RN = { tank = "Tank", heal = "Healer", dps = "Damage" }
         local jb = CreateFrame("Frame", nil, gt)
@@ -2961,7 +2961,7 @@ ns.RegisterPage({
         jb.form:SetPoint("TOPRIGHT", -12, -10)
         jb.form:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Form group"], L["Invites signed-up players who are online – one tank and healer first, then damage (up to 4)."] }) end)
         jb.form:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        -- Eingetragene: Klassenkreis mit Rollen-Symbol, Name, gedimmt wenn offline
+        -- Signed-up: class circle with role icon, name, dimmed when offline
         jb.people = {}
         for i = 1, 8 do
             local f = CreateFrame("Button", nil, jb)
@@ -3034,7 +3034,7 @@ ns.RegisterPage({
             self.sub:SetText(#list > shown and ((L["%d signed up"]):format(#list) .. "  ·  ") .. L["visible to the guild for 4 h"] or L["visible to the guild for 4 h"])
         end
 
-        -- (1) Online im Stufenbereich
+        -- (1) Online in level range
         gt.on = colCard(gt, L["Online in level range"], MINT, 44, function(l)
             local r = K.Row(l)
             r.disc = classDisc(r, 28)
@@ -3137,7 +3137,7 @@ ns.RegisterPage({
             if ns.Upgrade and ns.Upgrade.Glow then pcall(ns.Upgrade.Glow, r.iconHost, up and m.pct or nil, not animOn()) end
         end)
         gt.loot.empty.icon:SetTexture("Interface\\Icons\\INV_Misc_Bag_10")
-        -- (3) Gesucht aus diesem Dungeon
+        -- (3) Wanted from this dungeon
         gt.want = colCard(gt, L["Wanted from this dungeon"], GOLD, 50, function(l)
             local r = K.Row(l)
             r.iconHost = CreateFrame("Frame", nil, r)
@@ -3192,7 +3192,7 @@ ns.RegisterPage({
             r.have:SetShown(not mine)
         end)
         gt.want.empty.icon:SetTexture("Interface\\Icons\\INV_Misc_Note_01")
-        -- 0.6.305: Hinweis statt zweier leerer Karten (keine Gildenbeute, keine Wuensche aus diesem Dungeon)
+        -- 0.6.305: hint instead of two empty cards (no guild loot, no wishes from this dungeon)
         gt.hint = CreateFrame("Button", nil, gt)
         gt.hint:SetHeight(20)
         gt.hint.t = K.Text(gt.hint, 11, C.dim)
@@ -3206,8 +3206,8 @@ ns.RegisterPage({
             if W < 50 then W = 750 end
             if H < 50 then H = 390 end
             local gap = 10
-            -- 0.6.305: aufgeraeumt - keine Kennzahl-Zeile (steht im Banner), kein zweites "Gruppe suchen" (Banner);
-            -- "Wer will mit?" ganz oben, "Alle einladen" sitzt darin neben "Gruppe bilden"
+            -- 0.6.305: cleaned up - no stats line (it's in the banner), no second "Find group" (banner);
+            -- "Who wants to come?" at the very top, "Invite all" sits in it next to "Form group"
             for _, st in pairs(self.stats) do st:Hide() end
             self.lfg:Hide()
             self.join:ClearAllPoints()
@@ -3231,7 +3231,7 @@ ns.RegisterPage({
                 self.loot:SetPoint("TOPLEFT", wOn + gap, -top) self.loot:SetPoint("BOTTOMLEFT", wOn + gap, 0) self.loot:SetWidth(wLoot)
                 self.want:SetPoint("TOPLEFT", wOn + wLoot + 2 * gap, -top) self.want:SetPoint("BOTTOMRIGHT")
             else
-                -- schmal: Online links, rechts Beute oben / Gesucht unten
+                -- narrow: online left, right loot top / wanted bottom
                 local wOn = math.floor((W - gap) * 0.42)
                 local half = math.floor((H - top - gap) / 2)
                 self.on:SetPoint("TOPLEFT", 0, -top) self.on:SetPoint("BOTTOMLEFT") self.on:SetWidth(wOn)
@@ -3245,7 +3245,7 @@ ns.RegisterPage({
 
     refresh = function(p)
         if not S.filter then
-            -- persoenlicher Start-Filter (Einstellungen > Bereiche > Dungeons); ohne: "Fuer mich", sonst "Alle offenen"
+            -- personal start filter (Settings > Sections > Dungeons); without: "For me", else "All open"
             local pref = ns.db and ns.db.settings.dgFilter
             S.filter = pref or "mine"
             local any = false
@@ -3253,14 +3253,14 @@ ns.RegisterPage({
             if not any and not pref then S.filter = "open" end
             S.stagger = true
         end
-        -- "Alle offenen" ist kein eigener Reiter mehr: Reiter "Alle" mit dem Filter "Nur geoeffnete"
+        -- "All open" is no longer its own tab: tab "All" with the filter "Only opened"
         if S.filter == "open" then S.filter, S.openOnly = "all", true end
         local d = S.view == "dungeon" and D.Get(S.dungeon) or nil
         if not d then S.view = "home" end
         local wasHome = p.home:IsShown()
         p.home:SetShown(S.view == "home")
         p.dv:SetShown(S.view == "dungeon")
-        -- weicher Uebergang zwischen Uebersicht und Dungeon
+        -- soft transition between overview and dungeon
         if S.fadeIn == "dv" and S.view == "dungeon" then K.FadeIn(p.dv, 0) end
         if S.fadeIn == "home" and S.view == "home" then S.stagger = true end
         S.fadeIn = nil
@@ -3318,7 +3318,7 @@ ns.RegisterPage({
             return
         end
 
-        -- Dungeon-Seite
+        -- Dungeon page
         local dv = p.dv
         local t = tone(d)
         dv.tone:SetColorTexture(t[1], t[2], t[3], 1)
@@ -3340,7 +3340,7 @@ ns.RegisterPage({
         dv.journal:SetShown(fj or D.CanOpenJournal(d))
         dv.journal:SetLabel(fj and L["Open in FojjiCore"] or L["Dungeon journal"])
         dv.journal:SetWidth(fj and 150 or 120)
-        -- Kennzahlen
+        -- Stats
         local nUps = dungeonUps(d)
         local qLog, qAll = questCount(d)
         local inRange = othersInRange(d)
@@ -3399,7 +3399,7 @@ ns.RegisterPage({
                     K.ShowMenu(self, items, nil, 260)
                 end)
                 mt.floorDrop:SetShown(#fls > 1)
-                -- Blizzard-Kartenkacheln der neuen Schnittstelle ausblenden
+                -- Hide Blizzard map tiles of the new interface
                 if mt.canvas.tiles then for _, t in ipairs(mt.canvas.tiles) do t:Hide() end end
                 if mt.pins then for _, pin in ipairs(mt.pins) do pin:Hide() end end
                 if ns.DungeonTrace then ns.DungeonTrace.Draw(mt.canvas, nil) end
@@ -3414,7 +3414,7 @@ ns.RegisterPage({
             if mt.atlas then mt.atlas:SetShown(not lok) end
             if mt.traceInfo then mt.traceInfo:SetShown(false) end
             if mt.credit == nil then
-                -- eigene Ebene ueber der Karte mit dunklem Hintergrund, damit es lesbar bleibt
+                -- own layer above the map with dark background so it stays readable
                 local cf = CreateFrame("Frame", nil, mt)
                 cf:SetFrameLevel(mt:GetFrameLevel() + 30)
                 cf:SetPoint("BOTTOMRIGHT", -6, 6)
@@ -3450,7 +3450,7 @@ ns.RegisterPage({
             local cur = maps[S.mapIdx or 1]
             mt.cur = cur and cur.id or nil
             local ok = cur and drawMap(mt.canvas, cur.id)
-            -- Boss-Standorte auf der gewaehlten Ebene
+            -- Boss locations on the selected layer
             mt.pins = mt.pins or {}
             for _, pin in ipairs(mt.pins) do pin:Hide() end
             local list = ns.BossPos and ns.BossPos[d.dbKey or d.key]
@@ -3493,7 +3493,7 @@ ns.RegisterPage({
                     end
                 end
             end
-            -- keine Karte im Client: selbst erkundete Karte der Oasis-Spieler
+            -- no map in the client: self-explored map of Oasis players
             local traced = false
             if ns.DungeonTrace then
                 if not ok then
@@ -3509,7 +3509,7 @@ ns.RegisterPage({
                 end
             end
             mt.empty:SetShown(not ok and not traced)
-            -- keine Blizzard-Karte: Link zur Fan-Karte im Browser (zum Kopieren)
+            -- no Blizzard map: link to the fan map in the browser (for copying)
             if not mt.link then
                 mt.link = K.Input(mt, 360, "", nil)
                 mt.link:SetPoint("BOTTOM", mt, "BOTTOM", 0, 40)
@@ -3524,7 +3524,7 @@ ns.RegisterPage({
             if not mt.link:HasFocus() then mt.link:SetText(mt.link.url) end
             mt.link:SetShown(not ok)
             mt.linkHint:SetShown(not ok)
-            -- Atlas (Kartensammlung, GPL): wenn installiert, direkt oeffnen; sonst zur Installation auffordern
+            -- Atlas (map collection, GPL): if installed, open directly; else prompt to install
             if not mt.atlas then
                 mt.atlas = K.Button(mt, "", 220, 26, "primary", function()
                     local loaded = C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("Atlas")
@@ -3557,7 +3557,7 @@ ns.RegisterPage({
             local bt = dv.bossTab
             bt.tone = t
             bt.nBoss = #bosses
-            -- anderer Dungeon/Boss: Balken gleitet, Beute blendet gestaffelt ein
+            -- other dungeon/boss: bar glides, loot fades in staggered
             local bossKey = d.key .. ":" .. tostring(S.boss)
             local switched = S.bossAnim or bt.shownBoss ~= bossKey
             bt:MoveSel(#bosses, bosses[S.boss] and S.boss or (bosses[1] and 1) or nil, S.bossAnim and bt.shownFor == d.key)
@@ -3566,7 +3566,7 @@ ns.RegisterPage({
             for _, a in ipairs(bt.nav) do a:SetShown(#bosses > 1) end
             local b = bosses[S.boss] or bosses[1]
             local stage = bt.stage
-            -- Buehne: nur das eigene Ladebild des Dungeons (nie das Kontinentbild mit Logo), mittig und sehr dezent
+            -- Stage: only the dungeon's own loading image (never the continent image with logo), centered and very subtle
             local own = ART[d.nameEN or ""] or ART[d.key or ""]
             stage.art:SetShown(own ~= nil)
             if own then
@@ -3594,7 +3594,7 @@ ns.RegisterPage({
                 bt.bossMeta:SetText(table.concat(bm, "  ·  "))
                 local raw = d.data and d.data.bosses and d.data.bosses[S.boss]
                 local npc = b.npc or (raw and raw.npc) or (ns.DungeonNpc and (ns.DungeonNpc[b.nameEN or ""] or ns.DungeonNpc[raw and raw.name or ""] or ns.DungeonNpc[b.name or ""]))
-                -- Anzeige-ID zuerst (wie Deathroll), sonst Kreatur; laedt nichts -> Symbol statt falschem Modell
+                -- Display ID first (like Deathroll), else creature; loads nothing -> icon instead of a wrong model
                 local disp = b.disp or (raw and raw.disp) or (npc and ns.DungeonNpcDisplay and ns.DungeonNpcDisplay[npc])
                 local m = bt.model
                 local want = (b.trash or b.object) and nil or (disp and ("d" .. disp) or (npc and ("n" .. npc)))
@@ -3774,7 +3774,7 @@ ns.RegisterPage({
                 end
             end
             qd.rewLabel:SetShown(n > 0)
-            -- Gildenmitglieder mit der Quest rechts neben den Belohnungen
+            -- Guild members with the quest to the right of the rewards
             local wx = 14 + (n > 0 and (n * 36 + 18) or 0)
             local room = math.max(0, math.floor(((qd:GetWidth() or 440) - wx - 40) / 28))
             qd.whoLabel:ClearAllPoints()
@@ -3798,12 +3798,12 @@ ns.RegisterPage({
             qd.whoMore:ClearAllPoints()
             qd.whoMore:SetPoint("BOTTOMLEFT", wx + shownW * 28 + 4, 60)
             qd.whoMore:SetText(#others > shownW and shownW > 0 and ("+" .. (#others - shownW)) or "")
-            -- ohne Belohnungen und ohne Gildenmitglieder braucht der Fuss nur die Knopfzeile
+            -- without rewards and without guild members the footer only needs the button row
             qd.bottomPad = (n > 0 or shownW > 0) and 110 or 50
             qd:Layout()
 
             local s, f = loc.start, loc.finish
-            -- Karte daneben zeichnen
+            -- Draw map beside it
             local mh = qd.mapHost
             local function drawQuestMap()
                 local mid = (s and s.target and s.target.mapID) or (s and s.zoneMap)
@@ -3880,7 +3880,7 @@ ns.RegisterPage({
     end,
 })
 
--- Itemnamen kommen verzoegert: Seite neu zeichnen, gebuendelt
+-- Item names arrive delayed: redraw page, batched
 local pending
 ns.On("GET_ITEM_INFO_RECEIVED", function()
     if pending then return end
@@ -3888,15 +3888,15 @@ ns.On("GET_ITEM_INFO_RECEIVED", function()
     ns.After(0.4, function() pending = nil ns.RefreshPage("dungeons") end)
 end)
 
--- Termin/Gruppensuche koennen direkt einen Dungeon oeffnen
+-- Event/group finder can open a dungeon directly
 function D.ShowDungeon(key)
     S.view, S.dungeon, S.tab, S.boss = "dungeon", key, "bosses", 1
     ns.ShowPage("dungeons")
 end
 
 ------------------------------------------------------------------------
--- Im Dungeon: Oasis-Dungeonkarte direkt IN Blizzards Weltkarte (eigene Ebene ueber dem Kartenbereich).
--- Blizzards Karte selbst wird nicht veraendert; Knopf oben rechts schaltet zur normalen Weltkarte.
+-- In dungeon: Oasis dungeon map right INSIDE Blizzard's world map (own layer over the map area).
+-- Blizzard's map itself is not changed; button top right switches to the normal world map.
 ------------------------------------------------------------------------
 local wmOverlay, wmUser
 local function curDungeon()
@@ -3909,7 +3909,7 @@ local function curDungeon()
             if ok then key = D.KeyByZone(ns.safe(name) or "") end
         end
     elseif not inInst then
-        -- vor dem Dungeon (z.B. Hoehle vor den Hoehlen des Wehklagens): Unterzone heisst wie der Dungeon
+        -- in front of the dungeon (e.g. cave before the Wailing Caverns): subzone is named like the dungeon
         for _, z in ipairs({ ns.safe(GetSubZoneText and GetSubZoneText()), ns.safe(GetMinimapZoneText and GetMinimapZoneText()) }) do
             if not key and z and z ~= "" and D.KeyByZone then key = D.KeyByZone(z) end
         end
@@ -3939,7 +3939,7 @@ local function buildOverlay()
     o.floors = {}
     o.back = K.Button(o, L["World map"], 100, 22, "ghost", function() wmUser = "world" o:Hide() if o.toggle then o.toggle:Show() end end)
     o.back:SetPoint("TOPRIGHT", -12, -9)
-    -- kleiner Knopf, um von der Weltkarte zurueck zur Dungeonkarte zu kommen
+    -- small button to get back from the world map to the dungeon map
     local t
     t = K.Button(host, L["Dungeon map"], 110, 22, "primary", function() wmUser = nil o:Show() t:Hide() end)
     t:SetPoint("TOPRIGHT", host, "TOPRIGHT", -12, -9)
@@ -3947,14 +3947,14 @@ local function buildOverlay()
     t:Hide()
     o.toggle = t
     o:SetScript("OnSizeChanged", function(self) if self.d then self:Draw() end end)
-    -- Position festlegen: Klick auf die Stelle, an der du gerade stehst (2x an verschiedenen Orten genuegt)
+    -- Set position: click the spot where you are standing right now (2x at different places is enough)
     o.cal = K.Button(o, L["I am here ..."], 120, 22, "ghost", function()
         o.calMode = not o.calMode
         o.cal:SetLabel(o.calMode and L["Now click your spot"] or L["I am here ..."])
     end)
     o.cal:SetWidth(190)
     o.cal:SetPoint("RIGHT", o.back, "LEFT", -6, 0)
-    o.cal:Hide()   -- Einmessen per Klick entfernt (nur noch automatisch beim Pluendern von Bossen)
+    o.cal:Hide()   -- Click calibration removed (now only automatic when looting bosses)
     o.cal:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Position on the map"], L["Dungeon maps have no coordinates. Click here, then on the spot where you stand. Done at two distant spots, Oasis shows you and your group on the map - for the whole guild."] }) end)
     o.cal:SetScript("OnLeave", function() GameTooltip:Hide() end)
     o.canvas:EnableMouse(true)
@@ -3988,7 +3988,7 @@ local function buildOverlay()
         local fl = self.floor or (md.floors and md.floors[1]) or 1
         drawLegacyMap(self.canvas, md, fl)
         self.calKey = (d.dbKey or d.key) .. ":" .. tostring(fl)
-        -- Ebenen-Knoepfe
+        -- Layer buttons
         for _, b in ipairs(self.floors) do b:Hide() end
         local list = md.floors or {}
         if #list > 1 then
@@ -4016,7 +4016,7 @@ local function buildOverlay()
 end
 local function onWorldMapShow()
     if ns.db and ns.db.settings.dungeonMapOnM == false then return end
-    -- Dungeonkarte auf der Weltkarte nur IN einer Instanz (draussen, z.B. Ruinen von Lordaeron: Blizzard-Karte)
+    -- Dungeon map on the world map only INSIDE an instance (outside, e.g. Ruins of Lordaeron: Blizzard map)
     local okI, inInst, kind = pcall(IsInInstance)
     local inside = okI and ns.safe(inInst) and (kind == "party" or kind == "raid")
     local d, md
@@ -4034,13 +4034,13 @@ local function onWorldMapShow()
     o.toggle:Hide()
     C_Timer.After(0, function() o:Draw() end)
 end
--- Weltkarte zeigt eine andere Karte (z.B. Klick auf eine Quest -> Questgebiet): Dungeonkarte weg
+-- World map shows a different map (e.g. click on a quest -> quest zone): dungeon map gone
 local function onMapChanged()
     if not (wmOverlay and wmOverlay:IsShown()) then return end
     local okI, inInst = pcall(IsInInstance)
     if not (okI and ns.safe(inInst)) then wmOverlay:Hide() wmOverlay.toggle:Hide() return end
     local id = WorldMapFrame.GetMapID and WorldMapFrame:GetMapID()
-    -- Forever kann als Spielerkarte das Aussengebiet melden. Nur echte Navigation blendet die Instanz aus.
+    -- Forever may report the outer zone as the player map. Only real navigation hides the instance.
     if id and wmOverlay.openMapID and id ~= wmOverlay.openMapID then
         wmOverlay:Hide()
         wmOverlay.toggle:Show()
@@ -4052,7 +4052,7 @@ local function hookWorldMap()
     if WorldMapFrame and WorldMapFrame.HookScript then
         worldMapHooked = true
         WorldMapFrame:HookScript("OnShow", function()
-            -- Blizzard initialisiert die Karten-ID erst beim Oeffnen; danach unsere Ebene anzeigen.
+            -- Blizzard initializes the map ID only on open; then show our layer.
             C_Timer.After(0, function() if WorldMapFrame:IsShown() then pcall(onWorldMapShow) end end)
         end)
         if WorldMapFrame.OnMapChanged then hooksecurefunc(WorldMapFrame, "OnMapChanged", function() pcall(onMapChanged) end) end
@@ -4061,15 +4061,15 @@ local function hookWorldMap()
 end
 ns.Listen("LOGIN", hookWorldMap)
 ns.On("ADDON_LOADED", function(addon) if addon == "Blizzard_WorldMap" then hookWorldMap() end end)
--- neuer Dungeon: wieder mit der Dungeonkarte anfangen
+-- new dungeon: start again with the dungeon map
 ns.On("PLAYER_ENTERING_WORLD", function() wmUser = nil end)
 
 ------------------------------------------------------------------------
--- Positionen auf der Dungeonkarte
--- Classic liefert in Instanzen keine Kartenposition, wohl aber Weltkoordinaten (UnitPosition, nur fuer
--- einen selbst). Spieler legen 2+ Bezugspunkte fest ("Hier bin ich" + Klick) -> daraus wird die Umrechnung
--- Welt -> Karte berechnet (geteilt mit der Gilde, Store "mapcal"). Die Gruppe schickt sich die eigene
--- Weltposition alle 2 s per Addon-Nachricht (nur in Instanzen, nur an die Gruppe).
+-- Positions on the dungeon map
+-- Classic gives no map position in instances, but does give world coordinates (UnitPosition, only for
+-- yourself). Players set 2+ reference points ("I'm here" + click) -> the conversion is derived from that
+-- World -> map computed (shared with the guild, store "mapcal"). The group sends each other their own
+-- World position every 2 s via addon message (only in instances, only to the group).
 ------------------------------------------------------------------------
 local DP = {}
 ns.DungeonPos = DP
@@ -4101,7 +4101,7 @@ function DP.AddSample(key, px, py)
     ns.print(#samples >= 2 and L["Reference point saved - your position is shown now."]
         or L["Reference point saved - set another one far away."])
 end
--- lineare Umrechnung je Achse (kleinste Quadrate): Karte = a * Welt + b; pruefen, welche Weltachse passt
+-- linear conversion per axis (least squares): map = a * world + b; check which world axis fits
 local function fit(xs, ys)
     local n, sx, sy, sxx, sxy = #xs, 0, 0, 0, 0
     for i = 1, n do sx, sy, sxx, sxy = sx + xs[i], sy + ys[i], sxx + xs[i] * xs[i], sxy + xs[i] * ys[i] end
@@ -4121,7 +4121,7 @@ function DP.Transform(key)
             wx[#wx + 1], wy[#wy + 1], px[#px + 1], py[#py + 1] = tonumber(a), tonumber(b), tonumber(c), tonumber(dd)
         end
         if #wx >= 2 then
-            -- WoW: Karten-x haengt an der Welt-y-Achse und umgekehrt (meist), beides probieren und das Bessere nehmen
+            -- WoW: map x hangs on the world y axis and vice versa (mostly), try both and take the better one
             local ax, bx = fit(wy, px)
             local ay, by = fit(wx, py)
             if ax and ay then res = { ax = ax, bx = bx, ay = ay, by = by } end
@@ -4131,17 +4131,17 @@ function DP.Transform(key)
     return res or nil
 end
 ns.Listen("STORE", function(coll) if coll == "mapcal" then DP.cache = nil end end)
--- 0.6.304: Mitkommen-Liste live nachziehen, wenn sich jemand ein- oder austraegt
+-- 0.6.304: refresh join list live when someone signs in or out
 ns.Listen("STORE", function(coll) if coll == "dgjoin" then ns.Debounce("dgjoin", 0.3, refreshSoon) end end)
 local function toMap(tr, wx, wy, inst)
     if tr.ui then
-        -- direkt ueber Blizzards Kartenzuordnung (uiMap der Dungeonkarte); Achsenreihenfolge einmal ermittelt
+        -- directly via Blizzard's map mapping (uiMap of the dungeon map); axis order determined once
         local v = tr.swap and CreateVector2D(wx, wy) or CreateVector2D(wy, wx)
         local ok, _, pos = pcall(C_Map.GetMapPosFromWorldPos, inst or tr.inst, v, tr.ui)
         if ok and pos then
             local ux, uy = pos:GetXY()
-            -- Blizzards Dungeonkarte und das Oasis-Kartenbild sind nicht genau gleich geschnitten:
-            -- Umrechnung aus den Bossen, die auf beiden Karten stehen
+            -- Blizzard's dungeon map and the Oasis map image aren't cropped exactly the same:
+            -- Conversion from the bosses that are on both maps
             if tr.fx then return tr.fx * ux + tr.gx, tr.fy * uy + tr.gy end
             return ux, uy
         end
@@ -4149,8 +4149,8 @@ local function toMap(tr, wx, wy, inst)
     end
     return tr.ax * wy + tr.bx, tr.ay * wx + tr.by
 end
--- Automatisch ohne Einmessen: Blizzards Dungeon-Karten-IDs (uiMap) aus den Boss-Daten probieren.
--- Klappt, wenn der Client die Zuordnung Welt -> Karte kennt (auch ohne Kartenbild).
+-- Automatic without calibration: try Blizzard's dungeon map IDs (uiMap) from the boss data.
+-- Works if the client knows the world -> map mapping (even without map image).
 local directCache = {}
 function DP.Direct(dkey, floor, md0)
     local ck = tostring(dkey) .. ":" .. tostring(floor)
@@ -4158,7 +4158,7 @@ function DP.Direct(dkey, floor, md0)
     local res = false
     local list = ns.BossPos and ns.BossPos[dkey]
     if list and C_Map and C_Map.GetMapPosFromWorldPos and CreateVector2D then
-        -- Ebenen der Karte = verschiedene uiMap-IDs in der Reihenfolge ihres ersten Auftretens
+        -- Map layers = different uiMap IDs in order of first appearance
         local maps, seen = {}, {}
         for _, b in ipairs(list) do if b.map and not seen[b.map] then seen[b.map] = true maps[#maps + 1] = b.map end end
         table.sort(maps)
@@ -4174,7 +4174,7 @@ function DP.Direct(dkey, floor, md0)
                 end
             end
         end
-        -- Bosse auf beiden Karten -> Umrechnung Blizzard-Karte -> Oasis-Bild (je Achse)
+        -- Bosses on both maps -> conversion Blizzard map -> Oasis image (per axis)
         if res and md0 and md0.pins then
             local function norm(t) return (tostring(t or ""):lower():gsub("%s*%b()", ""):gsub("[^%w]", "")) end
             local ux, px, uy, py = {}, {}, {}, {}
@@ -4195,12 +4195,12 @@ function DP.Direct(dkey, floor, md0)
             end
         end
     end
-    -- nur Erfolg dauerhaft merken (ohne Position wird spaeter erneut probiert)
+    -- remember only success permanently (without position it is retried later)
     if res then directCache[ck] = res end
     return res or nil
 end
 
--- direkte Kartenposition (nur wenn das Spiel Weltkoordinaten liefert), fuer InstancePos
+-- direct map position (only if the game provides world coordinates), for InstancePos
 function DP.MyMapXY(dkey, floor)
     local wx, wy, inst = myWorld()
     if not wx then return nil end
@@ -4210,7 +4210,7 @@ function DP.MyMapXY(dkey, floor)
     return toMap(tr, wx, wy, inst)
 end
 
--- Gruppe: eigene Weltposition verteilen (nur in Instanzen)
+-- Group: share own world position (only in instances)
 DP.party = {}
 local sendAcc = 0
 local sender = CreateFrame("Frame")
@@ -4218,7 +4218,7 @@ sender:SetScript("OnUpdate", function(_, el)
     sendAcc = sendAcc + el
     if sendAcc < 2 then return end
     sendAcc = 0
-    -- in Dungeons und vor ihnen (Unterzone mit Dungeonkarte, z.B. Ruinen von Lordaeron)
+    -- in dungeons and in front of them (subzone with dungeon map, e.g. Ruins of Lordaeron)
     if not IsInGroup() or not curDungeon() or ns.db.settings.shareInstPos == false then return end
     local wx, wy, inst = myWorld()
     if not wx or not ns.Comm then return end
@@ -4226,7 +4226,7 @@ sender:SetScript("OnUpdate", function(_, el)
 end)
 if ns.Comm then
     ns.Comm.On("DPOS", function(sender, channel, x, y, inst)
-        -- nur ueber den Gruppenkanal, endliche Zahlen
+        -- only via the group channel, finite numbers
         if channel ~= "PARTY" and channel ~= "RAID" and channel ~= "INSTANCE_CHAT" then return end
         x, y, inst = SEC.Num(x, -1e6, 1e6), SEC.Num(y, -1e6, 1e6), SEC.Num(inst, 0, 1e7, true)
         if not x or not y then return end
@@ -4240,7 +4240,7 @@ function DP.DrawDots(o)
     if o.d then tr = DP.Direct(o.d.dbKey or o.d.key, o.floor or (o.md and o.md.floors and o.md.floors[1]) or 1, o.md) end
     tr = tr or (o.calKey and DP.Transform(o.calKey))
     local r = o.canvas.lrect
-    -- ohne Weltposition: Schaetzung aus InstancePos (Koppelnavigation/Boss-Anker/Rechtsklick)
+    -- without world position: estimate from InstancePos (dead reckoning/boss anchor/right-click)
     if (not tr or not myWorld()) and ns.InstancePos then
         ns.InstancePos.DrawOn(o.canvas, o, o.calKey, true)
         return
@@ -4295,8 +4295,8 @@ function DP.DrawDots(o)
     end
 end
 
--- Automatisch einmessen: beim Pluendern (oder Tod) eines Bosses steht man direkt an ihm -> Boss-Position
--- auf der Karte (aus den Kartendaten) + eigene Weltposition = Bezugspunkt. Nach 2 Bossen stimmt die Karte.
+-- Auto-calibrate: when looting (or killing) a boss you stand right at it -> boss position
+-- on the map (from map data) + own world position = reference point. After 2 bosses the map is right.
 local function npcOf(guid)
     guid = ns.safe(guid)
     if type(guid) ~= "string" then return nil end
@@ -4326,13 +4326,13 @@ local function autoSample(npc, near)
         end
     end
 end
--- Pluendern: man steht am Boss (genau)
+-- Looting: you stand at the boss (exact)
 ns.On("LOOT_OPENED", function()
     if UnitExists("target") and UnitIsDead("target") then pcall(autoSample, npcOf(UnitGUID("target")), true) end
 end)
--- (Kampflog absichtlich nicht: ist im Beta-Client fuer Addons eingeschraenkt)
+-- (Combat log deliberately not: restricted for addons in the beta client)
 
--- Test: was liefert das Spiel hier an Positionsdaten? (/oasis kartentest oder Knopf "Test" auf der Dungeonkarte)
+-- Test: what position data does the game deliver here? (/oasis kartentest or "Test" button on the dungeon map)
 function DP.Test()
     local function v(x) if x == nil then return "nil" end if ns.safe(x) == nil then return "|cffff5a4a(geheim)|r" end return tostring(x) end
     ns.print("|cffe8b44a" .. L["Map test"] .. "|r")
@@ -4378,9 +4378,9 @@ end
 ns.slash.kartentest = function() DP.Test() end
 
 ------------------------------------------------------------------------
--- Bereichs-Einstellungen "Dungeons" (inkl. neuem Schalter "Upgrades in der Beute hervorheben").
--- Settings.lua registriert den Bereich schon; ein zweiter Aufruf ersetzt ihn -> hier vollstaendig
--- (gleicher Inhalt wie dort + neuer Schalter), registriert nach dem Laden aller Dateien.
+-- Section settings "Dungeons" (incl. new toggle "Highlight upgrades in loot").
+-- Settings.lua already registers the section; a second call replaces it -> complete here
+-- (same content as there + new toggle), registered after all files have loaded.
 ------------------------------------------------------------------------
 local function dgSettings(det, y)
     local s = ns.db.settings

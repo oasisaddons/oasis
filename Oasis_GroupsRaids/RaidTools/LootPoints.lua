@@ -1,12 +1,12 @@
--- Oasis: Punkte fuer faire Beuteverteilung (EPGP-Prinzip, ohne Bieten)
---  Einsatz  = Punkte fuers Dabeisein (puenktlich, je Boss, bis zum Ende, Ersatzbank)
---  Beute    = Punkte fuer erhaltene Items (Hauptspec voll, Zweitspec ein Viertel, Transmog frei)
---  Prioritaet = Einsatz / (Beute + Grundwert). Hoechste Prioritaet bei "Bedarf" bekommt das Item.
---  Jede Woche verfallen x % (Standard 10), damit Neue aufholen koennen.
--- Punkte vergeben duerfen Offiziere (Rang einstellbar). Jede Buchung ist ein eigener Datensatz,
--- alle Clients rechnen den Stand selbst aus -> nichts geht verloren, alles ist nachvollziehbar.
+-- Oasis: points for fair loot distribution (EPGP principle, no bidding)
+--  Effort   = points for attending (on time, per boss, until the end, bench)
+--  Loot     = points for received items (main spec full, offspec a quarter, transmog free)
+--  Priority = effort / (loot + base value). Highest priority on "Need" gets the item.
+--  Each week x % decays (default 10) so newcomers can catch up.
+-- Officers may award points (rank configurable). Each booking is its own record,
+-- all clients compute the state themselves -> nothing gets lost, everything is traceable.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -33,7 +33,7 @@ function Points.SetCfg(changes)
 end
 
 ------------------------------------------------------------------------
--- Wer darf buchen?
+-- Who may book?
 ------------------------------------------------------------------------
 local function rankOf(name)
     if ns.isMe(name) and ns.Admin and ns.Admin.TestMode() then return 0 end
@@ -52,7 +52,7 @@ local function trusted(rec)
 end
 
 ------------------------------------------------------------------------
--- Stand ausrechnen
+-- Compute state
 ------------------------------------------------------------------------
 local function mainOf(name) return ns.Alts and ns.Alts.Main(name) or name end
 local cache, cacheKey
@@ -98,7 +98,7 @@ function Points.Standings()
     local out = {}
     for _, e in pairs(by) do
         e.pr = e.ep / (e.gp + cfg.base)
-        -- Raid-Anwesenheit der letzten 4 Wochen (Gildenpflege): entscheidet bei gleichem PR
+        -- Raid attendance of the last 4 weeks (guild upkeep): decides on equal PR
         e.att = ns.Officer and ns.Officer.Attendance and ns.Officer.Attendance(e.name, 28) or nil
         out[#out + 1] = e
     end
@@ -120,7 +120,7 @@ end
 function Points.FmtPR(pr) return ("%.2f"):format(pr or 0) end
 
 ------------------------------------------------------------------------
--- Buchen
+-- Book
 ------------------------------------------------------------------------
 function Points.Award(names, amount, reason, id, extra)
     if #names == 0 or not amount or amount == 0 then return end
@@ -136,7 +136,7 @@ function Points.Adjust(name, ep, gp, reason)
     return Store.Put("points", { id = ns.newId("pts"), kind = "adj", who = name, ep = ep or 0, gp = gp or 0, reason = reason or "", ts = ns.now() })
 end
 
--- Preis eines Items je nach Wahl
+-- Price of an item depending on choice
 function Points.ItemCost(link, choice)
     local cfg = Points.Cfg()
     if choice == "mog" or choice == "pass" then return 0 end
@@ -214,7 +214,7 @@ function Points.EndRaid()
     K.Toast(L["Raid ended"], (L["+%d effort for everyone who stayed"]):format(cfg.finish), C.mint)
     ns.RefreshPage("raid")
 end
--- Offizier betritt mit Schlachtzug eine Raid-Instanz: an den Start erinnern
+-- Officer enters a raid instance with a raid: remind to start
 local reminded
 ns.On("PLAYER_ENTERING_WORLD", function()
     ns.After(5, function()
@@ -231,7 +231,7 @@ ns.On("ENCOUNTER_END", function(encounterID, name, _, _, success)
     if ns.safe(success) == 1 then pcall(Points.BossKill, ns.safe(name), ns.safe(encounterID)) end
 end)
 
--- woechentlicher Verfall: eine feste ID je Woche, damit er nur einmal gilt
+-- weekly decay: one fixed ID per week so it applies only once
 local function weekKey() return date("%Y-%W") end
 local function weeklyDecay()
     if not Points.CanManage() then return end

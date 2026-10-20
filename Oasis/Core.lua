@@ -1,15 +1,15 @@
--- Oasis Gildenzentrale - Kern: Datenbank, Ereignisse, Hilfsfunktionen
+-- Oasis guild hub - core: database, events, helper functions
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.573"
+ns.version = "0.6.574"
 ns.versionDate = "20.10.2026"
-ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
-ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
+ns.SUPPORT_URL = ""   -- Link for "Copy report" (e.g. Discord invite); empty = text only
+ns.WAGO_ID = ""       -- Wago project ID for Wago Analytics (empty = off)   -- Version date: update with EVERY new version (update notice in guild chat)
 ns.MEDIA = "Interface\\AddOns\\Oasis\\Media\\"
 
 ------------------------------------------------------------------------
--- Secret-Values (Midnight-Sperre): alles, was geheim ist, wird zu nil
+-- Secret values (Midnight lockdown): anything secret becomes nil
 ------------------------------------------------------------------------
 local issecret = issecretvalue or function() return false end
 function ns.safe(v)
@@ -17,7 +17,7 @@ function ns.safe(v)
     if issecret(v) then return nil end
     return v
 end
--- mehrere Rueckgabewerte auf einmal entschaerfen
+-- defuse several return values at once
 function ns.safeAll(...)
     local n = select("#", ...)
     local t = {}
@@ -26,9 +26,9 @@ function ns.safeAll(...)
 end
 
 ------------------------------------------------------------------------
--- Ausgabe
+-- Output
 ------------------------------------------------------------------------
--- Farbverlauf ueber einen kurzen ASCII-Text (je Buchstabe ein Farbcode); from/to = { r, g, b } in 0..255
+-- Color gradient over a short ASCII text (one color code per letter); from/to = { r, g, b } in 0..255
 function ns.GradientText(text, from, to)
     local n, out = #text, {}
     for i = 1, n do
@@ -39,9 +39,9 @@ function ns.GradientText(text, from, to)
     end
     return table.concat(out) .. "|r"
 end
--- Name im Chat: Oasis-Rot nach warmem Orange, davor ein schmaler Strich statt eckiger Klammern
+-- Name in chat: Oasis red to warm orange, preceded by a thin bar instead of square brackets
 ns.BRAND = ns.GradientText("Oasis", { 255, 40, 20 }, { 255, 170, 70 })
-local PREFIX = "|cffff2814|||r " .. ns.BRAND   -- "||" = ein sichtbarer Strich, danach |r (vorher fehlte ein Strich: im Chat stand "|r")
+local PREFIX = "|cffff2814|||r " .. ns.BRAND   -- "||" = one visible bar, then |r (previously a bar was missing: chat showed "|r")
 function ns.print(...)
     print(PREFIX, ...)
 end
@@ -51,8 +51,8 @@ function ns.debug(...)
     end
 end
 local errSeen = {}
--- Fehlerort festhalten (0.5.505): pcall verliert die Aufrufkette, xpcall mit diesem Halter merkt sie sich
--- -> Fehlerberichte zeigen die echte Codezeile statt nur "Core.lua (Timer)".
+-- Record the error location (0.5.505): pcall loses the call stack, xpcall with this handler keeps it
+-- -> error reports show the real code line instead of just "Core.lua (Timer)".
 local function errTrace(e)
     ns.lastErrStack = debugstack and debugstack(2, 10, 0) or nil
     ns.lastErrAt = GetTime and GetTime() or 0
@@ -67,9 +67,9 @@ function ns.err(where, msg)
 end
 
 ------------------------------------------------------------------------
--- Namen
+-- Names
 ------------------------------------------------------------------------
--- Beim Laden liefert WoW teils "Unbekannt"/"Unknown" statt des echten Namens -> nie merken
+-- While loading, WoW sometimes returns "Unbekannt"/"Unknown" instead of the real name -> never store it
 local function validName(n)
     return type(n) == "string" and n ~= "" and n ~= UNKNOWNOBJECT and n ~= UNKNOWN and n ~= "Unknown" and n ~= "Unknown"
 end
@@ -92,8 +92,8 @@ function ns.fullName(name)
     if name:find("-", 1, true) then return name end
     return name .. "-" .. myRealm()
 end
--- Forever: UnitName liefert Vorname UND Nachname, nicht Name und Realm.
--- Addon-eigener Adapter: keine Blizzard-Globals ersetzen.
+-- Forever: UnitName returns first name AND last name, not name and realm.
+-- Addon's own adapter: do not replace Blizzard globals.
 function ns.UnitName(unit)
     local name, second = UnitName(unit)
     name, second = ns.safe(name), ns.safe(second)
@@ -112,7 +112,7 @@ function ns.UnitFullName(unit)
     if not name then return nil end
     return name, realm or myRealm()
 end
--- Nur fuer FontString:SetText: der Client darf geheime Namen direkt anzeigen.
+-- Only for FontString:SetText: the client may display secret names directly.
 function ns.UnitDisplayName(unit)
     if NameUtil and NameUtil.FormatUnitNameForDisplay then
         local ok, name = pcall(NameUtil.FormatUnitNameForDisplay, unit, true)
@@ -122,17 +122,17 @@ function ns.UnitDisplayName(unit)
     if name then return name end
     return UnitName(unit)
 end
--- Alte Vorname-Schluessel nur ueber eindeutig verknuepfte Roster-Eintraege aufloesen.
+-- Resolve old first-name keys only via unambiguously linked roster entries.
 function ns.ResolveName(name, fromGuild)
     local full = ns.fullName(name)
     if not full then return nil end
     local R = ns.Radar
     local member = R and R.byName and R.byName[full]
     if not member and R and R.byNameLower then member = R.byNameLower[full:lower()] end
-    -- Forever (regional eindeutige Namen): "Vorname Nachname" ist in der ganzen Region eindeutig, der Realm-Anhang nicht.
-    -- Jeder Client haengt an realmlose Namen SEINEN Realm - derselbe Charakter kommt so als "...-ClassicBetaPvE" und
-    -- "...-ClassicBetaPvE2" an (Gruppenmeldungen, Profile, Absender). Passt der Realm nicht, ueber den Namen allein
-    -- aufloesen - aber nur, wenn genau EIN Gildenmitglied so heisst.
+    -- Forever (regionally unique names): "First Last" is unique across the whole region, the realm suffix is not.
+    -- Every client appends ITS realm to realmless names - the same character arrives as "...-ClassicBetaPvE" and
+    -- "...-ClassicBetaPvE2" (group messages, profiles, senders). If the realm doesn't match, resolve by name alone
+    -- - but only if exactly ONE guild member has that name.
     if not member and R and R.roster and RegionalUniqueNamesEnabled and ns.safe(RegionalUniqueNamesEnabled()) then
         local idx = ns._baseIdx
         if not idx or idx.src ~= R.roster or idx.n ~= #R.roster then
@@ -140,7 +140,7 @@ function ns.ResolveName(name, fromGuild)
             for _, m in ipairs(R.roster) do
                 local base = type(m.name) == "string" and (m.name:match("^(.*)%-[^%-]+$") or m.name):lower()
                 if base and base ~= "" then
-                    if idx.map[base] == nil then idx.map[base] = m else idx.map[base] = false end   -- false = mehrdeutig
+                    if idx.map[base] == nil then idx.map[base] = m else idx.map[base] = false end   -- false = ambiguous
                     local first = base:match("^(%S+)%s")
                     if first then
                         if idx.first[first] == nil then idx.first[first] = m else idx.first[first] = false end
@@ -151,8 +151,8 @@ function ns.ResolveName(name, fromGuild)
         end
         local base = (full:match("^(.*)%-[^%-]+$") or full):lower()
         local hit = idx.map[base]
-        -- Addon-Nachrichten tragen teils nur den VORNAMEN ("Mira-ClassicBetaPvE2"). Der ist regional nicht eindeutig,
-        -- darum nur fuer Absender aus dem Gildenkanal (sicher ein Gildenmitglied) und nur bei genau einem Treffer.
+        -- Addon messages sometimes carry only the FIRST NAME ("Mira-ClassicBetaPvE2"). That is not regionally unique,
+        -- so only for senders from the guild channel (definitely a guild member) and only with exactly one match.
         if not hit and fromGuild and not base:find("%s") then hit = idx.first[base] end
         if hit then member = hit end
     end
@@ -167,14 +167,14 @@ function ns.SameName(a, b)
         and ns.NameKey(a) == ns.NameKey(b)
 end
 
--- 0.5.774: C_GuildInfo.GuildRoster() ist im Forever-Client geschuetzt ("Oasis wurde geblockt ... UNKNOWN()", Spur: GuildRoster direkt davor).
--- Die Gildenliste kommt ohnehin per GUILD_ROSTER_UPDATE vom Server; der Aufruf bleibt nur noch hinter settings.rosterCall = true.
+-- 0.5.774: C_GuildInfo.GuildRoster() is protected in the Forever client ("Oasis has been blocked ... UNKNOWN()", trace: GuildRoster right before).
+-- The guild list arrives from the server via GUILD_ROSTER_UPDATE anyway; the call now only runs with settings.rosterCall = true.
 function ns.RequestGuildRoster()
     local s = ns.db and ns.db.settings
-    -- 0.5.788: wieder standardmaessig AN - die Blockierung kam nachweislich von den Discord-Abfragen, nicht von hier. Ohne den Aufruf
-    -- bleibt die Gildenliste stehen (wer online kommt, wird erst spaet bemerkt). Abschalten nur noch zum Testen: rosterCall = false
+    -- 0.5.788: ON by default again - the block demonstrably came from the Discord queries, not from here. Without the call
+    -- the guild list stalls (people coming online are noticed late). Turn off only for testing: rosterCall = false
     if s and s.rosterCall == false then return end
-    -- 0.6.537: im Kampf nicht (Blockiert UNKNOWN() bei Daito 0.6.518 kam direkt nach GuildRoster, UNIT_AURA davor) - nach dem Kampf reicht GUILD_ROSTER_UPDATE
+    -- 0.6.537: not in combat (Blocked UNKNOWN() for Daito 0.6.518 came right after GuildRoster, UNIT_AURA before) - after combat GUILD_ROSTER_UPDATE is enough
     if InCombatLockdown and InCombatLockdown() then return end
     if C_GuildInfo and C_GuildInfo.GuildRoster then
         if ns.Trace then ns.Trace("C_GuildInfo.GuildRoster") end
@@ -195,13 +195,13 @@ function ns.short(name)
     if type(name) ~= "string" then return "?" end
     return (name:gsub("%-.*$", ""))
 end
--- Vollstaendiger Charaktername fuer Fluestern und Einladen (Realm nur intern).
+-- Full character name for whispering and inviting (realm only internally).
 function ns.ChatName(name)
     if not name then return "?" end
     return ns.short(ns.ResolveName(name))
 end
--- Anfluestern: "/w Vorname Nachname" versteht WoW nicht (nimmt nur das erste Wort) ->
--- WoWs eigene Funktion setzt den kompletten Namen als Ziel
+-- Whispering: WoW does not understand "/w First Last" (takes only the first word) ->
+-- WoW's own function sets the full name as target
 function ns.Whisper(name, text)
     if not name then return end
     if ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return end
@@ -217,13 +217,13 @@ function ns.Whisper(name, text)
         ns.OpenChat("/w " .. n .. " " .. (text or ""))
     end
 end
--- ns._meRoster: eigener Name, wie ihn die Gildenliste fuehrt (Forever: "Vorname Nachname-Realm")
+-- ns._meRoster: own name as the guild list has it (Forever: "First Last-Realm")
 function ns.isMe(name)
     return ns.SameName(name, ns.me()) or ns.SameName(name, ns._meRoster)
 end
 
 ------------------------------------------------------------------------
--- Zeit
+-- Time
 ------------------------------------------------------------------------
 function ns.now()
     return GetServerTime and GetServerTime() or time()
@@ -239,12 +239,12 @@ function ns.ago(ts)
     return date(ns.L["%m/%d/%y"], ts)
 end
 function ns.fmtDate(ts) return ts and date(ns.L["%m/%d %H:%M"], ts) or "-" end
--- date() liefert Wochentage immer englisch -> selbst uebersetzen
+-- date() always returns weekdays in English -> translate ourselves
 local WEEKDAYS = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" }
 function ns.weekday(ts, short)
     local w = ns.L[WEEKDAYS[tonumber(date("%w", ts)) + 1]]
     if not short then return w end
-    -- kurz: die ersten 2 Zeichen (UTF-8-sicher); Chinesisch "星期二" -> "周二", Koreanisch "화요일" -> "화"
+    -- short: the first 2 characters (UTF-8 safe); Chinese "星期二" -> "周二", Korean "화요일" -> "화"
     local chars = {}
     for ch in w:gmatch("[%z\1-\127\194-\244][\128-\191]*") do chars[#chars + 1] = ch end
     if chars[1] and #chars[1] >= 3 then
@@ -254,7 +254,7 @@ function ns.weekday(ts, short)
     return table.concat(chars, "", 1, math.min(2, #chars))
 end
 function ns.fmtWhen(ts) return ns.weekday(ts) .. ", " .. date(ns.L["%m/%d at %H:%M"], ts) end
--- Gebietsname in der eigenen Sprache (aus der Karten-ID), sonst gespeicherter Text
+-- Zone name in the own language (from the map ID), otherwise the stored text
 function ns.zoneName(mapID, fallback)
     if mapID and mapID ~= 0 and C_Map and C_Map.GetMapInfo then
         local info = C_Map.GetMapInfo(mapID)
@@ -267,7 +267,7 @@ function ns.newId(tag)
 end
 
 ------------------------------------------------------------------------
--- Klassenfarben
+-- Class colors
 ------------------------------------------------------------------------
 function ns.classColor(classFile)
     if classFile and C_ClassColor and C_ClassColor.GetClassColor then
@@ -284,7 +284,7 @@ function ns.classHex(classFile)
     local r, g, b = ns.classColor(classFile)
     return ("ff%02x%02x%02x"):format(r * 255, g * 255, b * 255)
 end
--- Rollen/Gruppen-Log zum Nachvollziehen (liegt nach /reload in SavedVariables: OasisDB.roleLog)
+-- Role/group log for tracing (in SavedVariables after /reload: OasisDB.roleLog)
 function ns.RoleLog(...)
     if not ns.db then return end
     ns.db.roleLog = ns.db.roleLog or {}
@@ -294,19 +294,19 @@ function ns.RoleLog(...)
     l[#l + 1] = ("%s %.2f %s"):format(date("%H:%M:%S"), GetTime() % 1000, table.concat(parts, " "))
     while #l > 300 do table.remove(l, 1) end
 end
--- Anzeige-Name: WoW Forever fuehrt Doppelnamen ("Mira Stern"). Fuer ANZEIGEN immer diesen nehmen,
--- fuer Vergleiche/Schluessel/Fluestern/Einladen weiter ns.short bzw. ns.isMe/Radar.byName.
+-- Display name: WoW Forever uses double names ("Mira Stern"). Always use this for DISPLAY,
+-- for comparisons/keys/whispering/inviting keep using ns.short or ns.isMe/Radar.byName.
 function ns.displayName(name)
     if not name or name == "" then return name or "?" end
     local full = ns.ResolveName(name)
     return ns.short(full)
 end
 ------------------------------------------------------------------------
--- Gilden-Optionen: Einstellungen, die die Gildenleitung fuer die ganze Gilde festlegt.
--- Module melden sie an (beim Laden der Datei), die Gildenleitung zeigt sie im Zahnrad des Moduls.
+-- Guild options: settings the guild leadership sets for the whole guild.
+-- Modules register them (when the file loads), the guild leadership shows them in the module's gear menu.
 -- def = { page = "chat", key = "chPin", default = true, kind = "bool"|"num"|"choice", label = "Text", desc = "Text",
---         min =, max =, step =, fmt = function(v) end, choices = { { key = ..., text = "..." }, ... }, lead = true (nur Gildenmeister) }
--- Lesen: ns.GuildOpt("chPin") -> gespeicherter Gildenwert oder Standard (= bisheriges Verhalten)
+--         min =, max =, step =, fmt = function(v) end, choices = { { key = ..., text = "..." }, ... }, lead = true (guild master only) }
+-- Read: ns.GuildOpt("chPin") -> stored guild value or default (= previous behavior)
 ------------------------------------------------------------------------
 ns.GuildOpts, ns.GuildOptsByKey = {}, {}
 function ns.GuildOption(def)
@@ -327,13 +327,13 @@ function ns.GuildOpt(key)
     return v
 end
 function ns.colorName(name, classFile)
-    -- WoW Forever: immer den vollen Namen zeigen ("Mira Stern" statt "Mira")
+    -- WoW Forever: always show the full name ("Mira Stern" instead of "Mira")
     local full = ns.ResolveName(name)
     return L["|c"] .. ns.classHex(classFile) .. ns.short(full) .. "|r"
 end
 
 ------------------------------------------------------------------------
--- Kampf / Instanz
+-- Combat / instance
 ------------------------------------------------------------------------
 function ns.inCombat()
     return (InCombatLockdown and InCombatLockdown()) or (ns.safe(UnitAffectingCombat("player")) == true)
@@ -342,11 +342,11 @@ function ns.inInstance()
     local inInst = IsInInstance()
     return inInst and true or false
 end
--- Entwickler-Modus: gibt es nur mit dem Gildenmodul (Oasis_Guild/Dev.lua ersetzt ns.IsDev und meldet /oa entwickler an).
--- In der oeffentlichen Version ist niemand Entwickler: Demo-Daten, Testmodus der Gildenleitung und Entwickler-Abfragen
--- bleiben aus - auch wenn jemand den gespeicherten Schalter von Hand setzt. Immer als ns.IsDev() aufrufen, nie zwischenspeichern.
+-- Developer mode: only exists with the guild module (Oasis_Guild/Dev.lua replaces ns.IsDev and registers /oa entwickler).
+-- In the public version nobody is a developer: demo data, guild leadership test mode and developer queries
+-- stay off - even if someone sets the stored switch by hand. Always call as ns.IsDev(), never cache it.
 function ns.IsDev() return false end
--- 0.6.275: eigene Position auf der Karte (mapID, x, y 0..1) - frueher Camp.MyPosition, gebraucht von Karte, Lager u. a.
+-- 0.6.275: own position on the map (mapID, x, y 0..1) - formerly Camp.MyPosition, used by map, camp, etc.
 function ns.MyMapPosition()
     local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
     if not mapID then return nil end
@@ -357,11 +357,11 @@ function ns.MyMapPosition()
     if not x or not y then return nil end
     return mapID, x, y
 end
--- 0.6.272: abschaltbare Module melden sich hier an (vorher in ModuleLoader.lua - Moduldateien mussten in der toc dahinter
--- stehen). ModuleLoader.LoadAll fuehrt beim Start nur die eingeschalteten aus; danach nimmt ns.ModuleFile nichts mehr an.
+-- 0.6.272: optional modules register here (previously in ModuleLoader.lua - module files had to come after it
+-- in the toc). ModuleLoader.LoadAll runs only the enabled ones at startup; after that ns.ModuleFile accepts nothing.
 ns.moduleFiles = {}
-ns.moduleOrder = {}   -- 0.6.285: Reihenfolge der toc (Module, die auf anderen aufbauen, laden danach)
--- chronicle entry "joined the guild" (German template from Oasis before 0.6.573 or English)
+ns.moduleOrder = {}   -- 0.6.285: toc order (modules that build on others load afterwards)
+-- chronicle entry "joined the guild" (German template from Oasis before 0.6.574 or English)
 function ns.IsJoinTk(tk) return type(tk) == "string" and (tk:find("^tritt") or tk:find("^joined the guild")) and true or false end
 function ns.ModuleFile(key, fn)
     local files = ns.moduleFiles
@@ -369,49 +369,49 @@ function ns.ModuleFile(key, fn)
     if not files[key] then files[key] = {} table.insert(ns.moduleOrder, key) end
     table.insert(files[key], fn)
 end
--- 0.6.254: zeichnet ein anderes Addon den Chat selbst (EllesmereUI-Chat: Blizzard-Fenster laufen unsichtbar mit und
--- werden gespiegelt)? Dann veraendert Oasis die Blizzard-Chatfenster nicht - Umschreiben/Entfernen von Zeilen,
--- Ausblenden, eingefuegter Verlauf und Markieren brachten dessen Fenster durcheinander (nur 2-3 Zeilen, Chat
--- wanderte nach oben weg).
+-- 0.6.254: does another addon draw the chat itself (EllesmereUI chat: Blizzard frames run invisibly alongside and
+-- are mirrored)? Then Oasis does not modify the Blizzard chat frames - rewriting/removing lines,
+-- hiding, inserted history and highlighting messed up its frames (only 2-3 lines, chat
+-- drifted away upwards).
 function ns.ForeignChat()
     local E = rawget(_G, "EllesmereUI")
     if type(E) == "table" and type(E._chatCFD) == "function" then return true end
-    -- Bereits beim Laden erkennen, bevor die fremde Fensterzuordnung bereitsteht.
+    -- Detect already while loading, before the foreign frame mapping is ready.
     local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
-    -- 0.6.537: auch Chattynator und Prat zeichnen den Chat selbst
+    -- 0.6.537: Chattynator and Prat also draw the chat themselves
     if not loaded then return false end
     for _, n in ipairs({ "EllesmereUIChat", "Chattynator", "Prat-3.0" }) do if loaded(n) then return true end end
     return false
 end
--- Minimap-Symbole von Oasis (0.5.960): die Mitte bleibt frei, damit der eigene Pfeil sichtbar ist, und die Symbole liegen in der
--- Ebene der Minimap selbst (vorher eine Ebene hoeher - dann verdeckten sie Rahmen und Kompass).
--- px/py = Abstand von der Minimap-Mitte in Bildschirm-Pixeln.
+-- Oasis minimap icons (0.5.960): the center stays free so the own arrow is visible, and the icons sit in the
+-- minimap's own layer (previously one layer higher - then they covered the border and compass).
+-- px/py = distance from the minimap center in screen pixels.
 function ns.MiniPinVisible(px, py)
     local s = ns.db and ns.db.settings
     if s and s.miniCenterClear == false then return true end
-    return (px or 0) * (px or 0) + (py or 0) * (py or 0) >= 20 * 20   -- 0.6.410: groesser, Spielerpfeil bleibt frei
+    return (px or 0) * (px or 0) + (py or 0) * (py or 0) >= 20 * 20   -- 0.6.410: larger, player arrow stays free
 end
 function ns.MiniPinLayer(p, add)
     if not (p and Minimap) then return end
     pcall(p.SetFrameStrata, p, Minimap:GetFrameStrata() or "LOW")
-    -- 0.6.144: eine Ebene tiefer (hoechstens +1) - Rahmen, Kompassnadel und Spieler-Pfeil bleiben obenauf
+    -- 0.6.144: one layer lower (at most +1) - border, compass needle and player arrow stay on top
     pcall(p.SetFrameLevel, p, (Minimap:GetFrameLevel() or 1) + math.min(add or 1, 1))
 end
--- Externe Programme (OasisSync, Export-Skripte, Einlese-Skripte) werden mit der oeffentlichen Version vorerst nicht verteilt
---. Einstellungen und Hinweise, die nur damit Sinn ergeben, gibt es deshalb nur mit dem Gildenmodul.
--- Oasis-Tools (Vorlagen fuer eigene Sounds/Emojis, Export-Programme) liegt als getrennte Datei im Oasis-Discord,
--- nie auf CurseForge/Wago/GitHub. Darum zeigt Oasis die Hinweise und Einstellungen dazu fuer alle.
+-- External programs (OasisSync, export scripts, import scripts) are not distributed with the public version for now
+--. Settings and hints that only make sense with them therefore exist only with the guild module.
+-- Oasis-Tools (templates for custom sounds/emojis, export programs) is a separate file in the Oasis Discord,
+-- never on CurseForge/Wago/GitHub. That's why Oasis shows the related hints and settings to everyone.
 ns.TOOLS_RELEASED = true
 function ns.ExternTools() return (ns.GuildPack or ns.TOOLS_RELEASED) and true or false end
--- alle Sounds/Emojis ohne Rang-Sperre (nur bei mir): Entwicklermodus oder /oa freischalten
+-- all sounds/emojis without rank lock (only for me): developer mode or /oa freischalten
 function ns.UnlockAll()
-    -- 0.5.562: ohne Rang-Sperre der Gilde (Standard) ist alles fuer alle frei - Emojis UND Sounds
-    -- 0.6.435: Rang-Sperre gilt immer (alte Gilden-Einstellung "frei" wird nicht mehr beachtet)
-    -- 0.6.421: Entwickler-Modus schaltet nicht mehr automatisch frei (zum Testen der Sperre) - nur der eigene Schalter
+    -- 0.5.562: without the guild's rank lock (default) everything is free for everyone - emojis AND sounds
+    -- 0.6.435: rank lock always applies (old guild setting "free" is no longer honored)
+    -- 0.6.421: developer mode no longer unlocks automatically (to test the lock) - only the own switch
     return (ns.db and ns.db.settings and ns.db.settings.unlockAll == true) or false
 end
 function ns.isOfficer()
-    if ns.db and ns.db.settings.adminTest ~= false and ns.IsDev() then return true end   -- Testmodus der Gildenleitung (nur Entwickler)
+    if ns.db and ns.db.settings.adminTest ~= false and ns.IsDev() then return true end   -- Guild leadership test mode (developers only)
     return C_GuildInfo and C_GuildInfo.IsGuildOfficer and C_GuildInfo.IsGuildOfficer() or false
 end
 function ns.groupChannel()
@@ -426,7 +426,7 @@ function ns.isGroupLead()
 end
 
 ------------------------------------------------------------------------
--- Spur: die letzten Oasis-Aktionen (fuer den Fehler-Rekorder "blocked from an action")
+-- Trace: the last Oasis actions (for the error recorder "blocked from an action")
 ------------------------------------------------------------------------
 ns.trail = {}
 function ns.Trace(what)
@@ -436,14 +436,14 @@ function ns.Trace(what)
 end
 
 ------------------------------------------------------------------------
--- Chat sicher benutzen
--- SendChatMessage ist in Chat-Sperren (Boss, Mythisch+, PvP, "geheime" Kampfphasen) geschuetzt:
--- ein Aufruf loest dann "Oasis wurde blockiert" aus - pcall hilft dagegen nicht. Also vorher pruefen.
+-- Using chat safely
+-- SendChatMessage is protected during chat lockdowns (boss, Mythic+, PvP, "secret" combat phases):
+-- a call then triggers "Oasis has been blocked" - pcall doesn't help. So check beforehand.
 ------------------------------------------------------------------------
 function ns.ChatLocked()
     if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown then
         local ok, r = pcall(C_ChatInfo.InChatMessagingLockdown)
-        -- Beta meldet das teils dauerhaft -> nur ernst nehmen, wenn wir wirklich in Instanz + Kampf sind
+        -- Beta sometimes reports this permanently -> only take it seriously when we really are in an instance + combat
         if ok and r == true and ns.inInstance() and ns.inCombat() then return true end
     end
     return false
@@ -459,22 +459,22 @@ function ns.SendChat(msg, channel, target)
     local send = (C_ChatInfo and C_ChatInfo.SendChatMessage) or SendChatMessage
     return pcall(send, msg, channel, nil, target)
 end
--- Automatische Chat-Nachrichten (ohne Klick) sperrt WoW Forever ("Blockiert: UNKNOWN()", 08.10.):
--- stattdessen ein Hinweis mit der Nachricht - ein Klick darauf sendet (Klick = Eingabe, erlaubt).
+-- WoW Forever blocks automatic chat messages (without a click) ("Blocked: UNKNOWN()", 08.10.):
+-- instead a notice with the message - clicking it sends (click = input, allowed).
 function ns.OfferChat(title, msg, channel, target, color)
     if type(msg) ~= "string" or msg == "" then return end
     local K = ns.K
     local preview = msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|H.-|h(.-)|h", "%1")
-    -- 0.6.236: an Zeichengrenze kuerzen (vorher mitten in UTF-8-Zeichen wie "–" -> kaputte Zeichen),
-    -- "Klick: senden" in eine eigene Zeile (ueberlagerte sonst den Text)
+    -- 0.6.236: truncate at a character boundary (previously in the middle of UTF-8 characters like "–" -> broken characters),
+    -- "Click: send" on its own line (otherwise it overlapped the text)
     if #preview > 160 then preview = ns.Utf8Cut(preview, 157) .. "..." end
-    -- 0.6.410: Nachricht gedaempft in Anfuehrungszeichen, "Klick: senden" als eigener Hinweis unten rechts
+    -- 0.6.410: message dimmed in quotes, "Click: send" as its own hint at the bottom right
     K.toastHint = "|cffe8b44a" .. L["Click: send"] .. "|r"
     K.Toast(title, "|cffa8a8ae\226\128\158" .. preview .. "\226\128\156|r", color or K.C.accent,
         function() ns.SendChat(msg, channel, target) end)
-    K.toastHint = nil   -- falls der Hinweis stumm war und nicht gezeigt wurde
+    K.toastHint = nil   -- in case the notice was muted and not shown
 end
--- Chat-Eingabe oeffnen ("/w Name ") - im Kampf nicht: das beruehrt die Blizzard-Eingabezeile
+-- Open chat input ("/w Name ") - not in combat: that touches the Blizzard edit box
 function ns.OpenChat(text)
     if ns.inCombat() then
         ns.print(L["Not possible in combat - try again shortly."])
@@ -498,7 +498,7 @@ function ns.itemID(link)
     if type(link) ~= "string" then return nil end
     return tonumber(link:match("item:(%d+)"))
 end
--- ruft cb(link, name, quality, icon, ilvl, equipLoc) sobald das Item im Cache ist
+-- calls cb(link, name, quality, icon, ilvl, equipLoc) once the item is in the cache
 function ns.withItem(idOrLink, cb)
     local id = ns.itemID(idOrLink)
     if not id then return end
@@ -516,28 +516,28 @@ function ns.withItem(idOrLink, cb)
 end
 
 ------------------------------------------------------------------------
--- Einfacher Hash (fuer "hat sich was geaendert?")
+-- Simple hash (for "did something change?")
 ------------------------------------------------------------------------
 function ns.hash(str)
     local h = 5381
     for i = 1, #str do
-        -- unter 2^31 bleiben, damit %x auch mit 32-Bit-long sicher formatiert
+        -- stay below 2^31 so %x formats safely even with 32-bit long
         h = (h * 33 + str:byte(i)) % 2147483647
     end
     return ("%08x"):format(h)
 end
 
 ------------------------------------------------------------------------
--- Fremde Texte entschaerfen (Addon-Nachrichten anderer Spieler):
---  * erlaubt: Farben |cAARRGGBB ... |r, Links auf Items/Zauber/Quests/Erfolge/Spieler (sauber geformt),
---    Symbole |T...|t nur bis 64 Pixel (Riesen-Texturen, die den Bildschirm ueberdecken, werden klein)
---  * alles andere (|K, |A, |n, |H anderer Art, kaputte Sequenzen) wird zu "||" = sichtbares "|", ohne Wirkung
---  * Laenge begrenzt (UTF-8-sicher abgeschnitten). Idempotent: zweimal saeubern = einmal saeubern.
+-- Sanitize foreign texts (addon messages from other players):
+--  * allowed: colors |cAARRGGBB ... |r, links to items/spells/quests/achievements/players (well-formed),
+--    icons |T...|t only up to 64 pixels (huge textures covering the screen are shrunk)
+--  * everything else (|K, |A, |n, other |H kinds, broken sequences) becomes "||" = visible "|", without effect
+--  * length limited (cut UTF-8 safely). Idempotent: sanitizing twice = sanitizing once.
 ------------------------------------------------------------------------
 function ns.Utf8Cut(s, maxLen)
     if type(s) ~= "string" or not maxLen or #s <= maxLen then return s end
     local cut = maxLen
-    -- nicht mitten in einem Mehrbyte-Zeichen abschneiden
+    -- don't cut in the middle of a multibyte character
     while cut > 0 do
         local b = s:byte(cut + 1)
         if not b or b < 128 or b >= 192 then break end
@@ -558,8 +558,8 @@ local function texOk(rest)
     end
     return true
 end
--- Gegenstands-Links: angezeigten Namen und Farbe aus dem echten Gegenstand nehmen
--- (ein manipulierter Client koennte sonst "[Donnerzorn]" auf ein graues Item schreiben)
+-- Item links: take the displayed name and color from the real item
+-- (otherwise a manipulated client could write "[Thunderfury]" on a gray item)
 local itemInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
 function ns.FixItemLinks(t)
     if type(t) ~= "string" or not t:find("|Hitem:", 1, true) then return t end
@@ -570,7 +570,7 @@ function ns.FixItemLinks(t)
             return "|c" .. (realCol or col) .. "|Hitem:" .. id .. rest .. "|h[" .. name .. "]|h|r"
         end
         if C_Item and C_Item.RequestLoadItemDataByID then pcall(C_Item.RequestLoadItemDataByID, tonumber(id)) end
-        -- noch nicht im Cache: neutral grau mit Nummer statt eines ungepruefften Namens
+        -- not in the cache yet: neutral gray with number instead of an unverified name
         return "|cff9d9d9d|Hitem:" .. id .. rest .. "|h[#" .. id .. "]|h|r"
     end))
 end
@@ -619,7 +619,7 @@ function ns.CleanText(s, maxLen)
             i = p + 1
         end
     end
-    -- offene Farbcodes schliessen (sonst faerbt ein Text die nachfolgende Anzeige mit)
+    -- close open color codes (otherwise a text colors the following display too)
     local open = 0
     for _, part in ipairs(out) do
         if part:sub(1, 2) == "|c" then open = open + 1 elseif part == "|r" and open > 0 then open = open - 1 end
@@ -629,20 +629,20 @@ function ns.CleanText(s, maxLen)
 end
 
 ------------------------------------------------------------------------
--- Ereignisse (WoW) und interne Nachrichten
+-- Events (WoW) and internal messages
 ------------------------------------------------------------------------
 local evFrame = CreateFrame("Frame")
 local evHandlers = {}
--- Einheiten-Events nur fuer die Einheiten anmelden, die Oasis wirklich braucht (sonst im Raid hunderte pro Sekunde)
+-- Register unit events only for the units Oasis really needs (otherwise hundreds per second in a raid)
 local PLAYER_UNIT_EVENTS = { UNIT_SPELLCAST_SENT = "player", UNIT_SPELLCAST_SUCCEEDED = "player", UNIT_HEALTH = "target" }
 function ns.On(event, fn)
     local list = evHandlers[event]
     if not list then
         list = {}
         evHandlers[event] = list
-        -- unbekannte Events werfen in der Beta Fehler -> abfangen
-        -- Zauber-Events nur fuer den eigenen Charakter anmelden (alle Oasis-Handler pruefen ohnehin unit == "player";
--- sonst kommen sie im Raid fuer jede Einheit, hunderte Male pro Sekunde) - Performance 0.5.482
+        -- unknown events throw errors in the beta -> catch them
+        -- Register spell events only for the own character (all Oasis handlers check unit == "player" anyway;
+-- otherwise they fire in a raid for every unit, hundreds of times per second) - performance 0.5.482
         local ok
         if PLAYER_UNIT_EVENTS[event] and evFrame.RegisterUnitEvent then ok = pcall(evFrame.RegisterUnitEvent, evFrame, event, PLAYER_UNIT_EVENTS[event])
         else ok = pcall(evFrame.RegisterEvent, evFrame, event) end
@@ -652,8 +652,8 @@ function ns.On(event, fn)
     if not ns.handlerSrc then ns.handlerSrc = setmetatable({}, { __mode = "k" }) end
     ns.handlerSrc[fn] = ns.Caller and ns.Caller() or nil
 end
--- Fehlerdiagnose (0.5.504): die letzten Ereignisse, die Oasis verarbeitet hat (Ringpuffer, kaum Kosten).
--- Wird WoW Oasis blockiert, steht im Fehlerbericht automatisch, welches Ereignis kurz davor lief.
+-- Error diagnosis (0.5.504): the last events Oasis processed (ring buffer, almost free).
+-- If WoW blocks Oasis, the error report automatically shows which event ran just before.
 local EV_N, evRingE, evRingT, evRingI = 24, {}, {}, 0
 function ns.LastEvents(maxAge)
     local now, out, seen = GetTime(), {}, {}
@@ -670,7 +670,7 @@ function ns.LastEvents(maxAge)
     return table.concat(out, ", ")
 end
 evFrame:SetScript("OnEvent", function(_, event, ...)
-    -- vor dem Start (Spielername noch unbekannt) nur Laden/Login verarbeiten
+    -- before startup (player name still unknown) only process loading/login
     if not ns.loggedIn and event ~= "ADDON_LOADED" and event ~= "PLAYER_LOGIN" then return end
     local list = evHandlers[event]
     if not list then return end
@@ -705,8 +705,8 @@ function ns.Fire(msg, ...)
     end
 end
 
--- Timer mit Fehlerschutz
--- Aufrufer-Zeile fuer die Leistungsmessung (WoW gibt Addons keine Quellzeile einer Funktion heraus)
+-- Timer with error protection
+-- Caller line for performance measurement (WoW doesn't give addons the source line of a function)
 local function caller()
     local st = debugstack and debugstack(3, 1, 0) or ""
     local f, l = st:match("([%w_]+[/\\][%w_]+%.lua)[\"%]]*:(%d+)")
@@ -737,7 +737,7 @@ function ns.Every(sec, fn)
         if not ok then ns.err("Ticker", e) end
     end)
 end
--- Leistung messen (0.5.528): /oa leistung -> 60 s lang Rechenzeit je Oasis-Funktion (Ereignisse, Timer)
+-- Performance measurement (0.5.528): /oa leistung -> 60 s of CPU time per Oasis function (events, timers)
 do
     local src = setmetatable({}, { __mode = "k" })
     local function where(fn)
@@ -762,7 +762,7 @@ do
             if ms > r.max then r.max = ms end
         end
         ns.prof = P
-        -- 0.5.625: Bildzeiten mitzaehlen (Ruckler = Bild dauert laenger als 33 bzw. 50 ms)
+        -- 0.5.625: count frame times (stutter = frame takes longer than 33 or 50 ms)
         P.frames, P.h33, P.h50, P.maxEl, P.sumEl = 0, 0, 0, 0, 0
         P.fr = P.fr or CreateFrame("Frame")
         P.fr:SetScript("OnUpdate", function(_, el)
@@ -808,13 +808,13 @@ do
         if ns.Bugs and ns.Bugs.ShowCopy then pcall(ns.Bugs.ShowCopy, table.concat(out, "\n")) end
     end
 end
--- Mehrfach-Aufrufe buendeln: fn laeuft einmal, "sec" nach dem ersten Aufruf (Performance 0.5.482:
--- beim Login-Abgleich kommen hunderte Datensaetze, Zaehler/Seiten wurden vorher fuer jeden neu berechnet)
+-- Bundle repeated calls: fn runs once, "sec" after the first call (performance 0.5.482:
+-- during login sync hundreds of records arrive, counters/pages were previously recalculated for each)
 local debounced = {}
 function ns.Debounce(key, sec, fn)
     if debounced[key] then return end
-    -- 0.5.876: negative/ungueltige Zeiten abfangen. C_Timer.After wirft sonst einen Fehler - und weil der Merker
-    -- dann schon gesetzt war, lief dieses Buendel bis zum naechsten /reload nie wieder.
+    -- 0.5.876: catch negative/invalid times. Otherwise C_Timer.After throws an error - and because the flag
+    -- was already set, this bundle never ran again until the next /reload.
     sec = tonumber(sec) or 0
     if sec ~= sec or sec < 0 then sec = 0 end
     debounced[key] = true
@@ -826,15 +826,15 @@ function ns.Debounce(key, sec, fn)
 end
 
 ------------------------------------------------------------------------
--- Datenbank
+-- Database
 ------------------------------------------------------------------------
 local DEFAULT_SETTINGS = {
-    shareMap = false,       -- 0.5.617 Datenschutz: Standard aus
+    shareMap = false,       -- 0.5.617 privacy: off by default
     shareRep = false,
-    wantAlarm = true,       -- Wunschliste-Alarm (Markt)
-    xpFloat = true,         -- Oasis-XP als +XP im Bild
-    priceAnswer = true,     -- 'pc [Item]' im Gildenchat beantworten
-    shareTrade = false,     -- Handelsbilanz fuer die Rangliste teilen (freiwillig)
+    wantAlarm = true,       -- Wish list alert (market)
+    xpFloat = true,         -- Oasis XP as +XP on screen
+    priceAnswer = true,     -- answer 'pc [Item]' in guild chat
+    shareTrade = false,     -- share trade balance for the leaderboard (optional)
     mapNames = true,
     minimapDots = true,
     inactiveDays = 30,
@@ -849,30 +849,30 @@ local DEFAULT_SETTINGS = {
     lootMinQuality = 3,
     radarRange = 300,
     debug = false,
-    -- Hinweise & Sound
+    -- Notices & sound
     toastDur = 7,
     toastHoldCombat = false,
     sound = true,
-    soundVol = 14,   -- 0.5.976: doppelt so laut wie bisher (70 %)
+    soundVol = 14,   -- 0.5.976: twice as loud as before (70 %)
     soundQuietCombat = true,
     soundEvents = {},
     music = "off",
     musicTrack = "orc",
-    -- Darstellung
-    uiFont = "inter",     -- Standardschrift (0.5.379 User-Entscheidung)
-    accent = "",          -- eigene Akzentfarbe (leer = wie die Gilde)
+    -- Appearance
+    uiFont = "inter",     -- Default font (0.5.379 user decision)
+    accent = "",          -- own accent color (empty = same as the guild)
     headFont = "friz",
     logoAnim = true,
-    chatEmoji = true,     -- Kurzcodes im Chat als Emoji anzeigen
-    drSilent = true,      -- Deathroll unter Oasis-Nutzern leise wuerfeln (kein /roll im Chat)
-    emojiButton = true,   -- Emoji-Knopf im Chat-Eingabefeld
-    emojiHotkey = true,   -- Alt+Leertaste im Chat oeffnet die Emoji-Auswahl
+    chatEmoji = true,     -- show shortcodes in chat as emoji
+    drSilent = true,      -- roll Deathroll quietly among Oasis users (no /roll in chat)
+    emojiButton = true,   -- emoji button in the chat edit box
+    emojiHotkey = true,   -- Alt+Space in chat opens the emoji picker
     hiddenPages = {},
     lang = "auto",
 }
 
--- 0.5.727: Einsteiger-Einstellungen - ruhig, wenige Seiten, nichts blinkt. Gilt fuer NEUE Installationen (leere Einstellungen)
--- und per /oa einsteiger fuer bestehende. Alles bleibt in den Einstellungen aenderbar; versteckte Seiten unter Bereiche.
+-- 0.5.727: beginner settings - calm, few pages, nothing blinks. Applies to NEW installs (empty settings)
+-- and via /oa einsteiger to existing ones. Everything stays changeable in the settings; hidden pages under Sections.
 local BEGINNER = {
     soundVol = 10, toastDur = 6, toastHoldCombat = true,
     dashStill = true, dashTicker = false, dashHero = false, hideMidasAd = true, calmStart = true,
@@ -904,16 +904,16 @@ local function initDB()
     local db = OasisDB
     db.settings = db.settings or {}
     local fresh = next(db.settings) == nil
-    ns.DEFAULT_SETTINGS = DEFAULT_SETTINGS   -- fuer "Seite zuruecksetzen" in den Einstellungen
+    ns.DEFAULT_SETTINGS = DEFAULT_SETTINGS   -- for "Reset page" in the settings
     applyDefaults(db.settings, DEFAULT_SETTINGS)
-    -- 0.5.740: Quests teilen soll einfach gehen - einmalig das Ablehnen geteilter Quests ausschalten (Standard war nie an; wer es bewusst wieder
-    -- einschaltet, behaelt es). Gruppe, Schlachtzug und Gilde werden ohnehin nie abgelehnt.
+    -- 0.5.740: sharing quests should just work - turn off declining shared quests once (default was never on; whoever deliberately
+    -- turns it back on keeps it). Group, raid and guild are never declined anyway.
     if db.settings.shareQuest740 == nil then
         db.settings.shareQuest740 = true
         db.settings.cfBlockShared = nil
     end
-    -- 0.5.976: Oasis-Sounds generell doppelt so laut. Bestehende Installationen: gespeicherte Lautstaerke (und die des
-    -- Online-Sounds) einmalig verdoppeln, hoechstens bis 200 % (Stufe 40). Neue Installationen haben schon den neuen Standard.
+    -- 0.5.976: Oasis sounds twice as loud overall. Existing installs: double the stored volume (and that of the
+    -- online sound) once, at most up to 200 % (level 40). New installs already have the new default.
     if db.settings.soundVolDoubled == nil then
         db.settings.soundVolDoubled = true
         if not fresh then
@@ -925,24 +925,24 @@ local function initDB()
     end
     if db.settings.beginner727 == nil then
         db.settings.beginner727 = true
-        if fresh then ns.ApplyBeginner(db.settings) end   -- nur neue Installationen; bestehende behalten ihre Wahl
+        if fresh then ns.ApplyBeginner(db.settings) end   -- only new installs; existing ones keep their choice
     end
-    -- 0.5.346: neues Standard-Design "Glas 2026" + Schrift Inter (einmalig; wer bewusst etwas anderes gewaehlt hat, behaelt es)
+    -- 0.5.346: new default design "Glas 2026" + font Inter (once; whoever deliberately chose something else keeps it)
     local st = db.settings
     if not st.glass26 then
         st.glass26 = true
-        if st.theme == nil or st.theme == "standard" or st.theme == "modern" or st.theme == "classic" then st.theme = "glass" end   -- 0.6.265: Klassisch, Modern, WoW Classic entfernt
+        if st.theme == nil or st.theme == "standard" or st.theme == "modern" or st.theme == "classic" then st.theme = "glass" end   -- 0.6.265: Classic, Modern, WoW Classic removed
         if st.uiFont == nil or st.uiFont == "arialn" then st.uiFont = "inter" end
     end
-    -- 0.5.379: Standardschrift Inter; Arial-Narrow-Rueckstellung von 0.5.378 zuruecknehmen
+    -- 0.5.379: default font Inter; revert the Arial Narrow reset from 0.5.378
     if not st.inter379 then
         st.inter379 = true
         if st.uiFont == nil or st.uiFont == "arialn" then st.uiFont = "inter" end
     end
-    db.members = db.members or {}      -- Profile der Mitglieder (per Addon geteilt)
+    db.members = db.members or {}      -- Member profiles (shared via addon)
     db.recipes = db.recipes or {}      -- [name] = { hash, u, profs = { [prof] = { [id] = name } } }
     db.legacy = db.legacy or {}        -- [name] = { hash, u, done = { [id] = true } }
-    db.store = db.store or {}          -- replizierte Sammlungen (Auftraege, Termine, Chronik ...)
+    db.store = db.store or {}          -- replicated collections (orders, events, chronicle ...)
     db.chars = db.chars or {}
     db.meta = db.meta or { lastSync = 0 }
     ns.db = db
@@ -962,35 +962,35 @@ end
 ns.On("ADDON_LOADED", function(name)
     if name ~= ADDON then return end
     initDB()
-    -- persoenliche Sprache und Schriften vor dem Aufbau der Oberflaeche
+    -- personal language and fonts before building the UI
     local s = ns.db.settings
     if s.lang and ns.langByKey[s.lang] then ns.lang = s.lang end
     if ns.PrepareLang then pcall(ns.PrepareLang) end
-    -- 0.5.568: eingeschaltete Module (Zusatz-Addons) laden - vor DB_READY/LOGIN, damit sie alles mitbekommen
+    -- 0.5.568: load enabled modules (add-on addons) - before DB_READY/LOGIN so they catch everything
     if ns.ModuleLoader then pcall(ns.ModuleLoader.LoadAll) end
     if ns.K then ns.K.ApplyUserFonts() end
     ns.Fire("DB_READY")
 end)
--- nach dem ersten Ladebildschirm: Oasis-Texte neu mit ihrer Schrift belegen (siehe K.RefreshFonts in Kit.lua)
+-- after the first loading screen: reassign Oasis texts with their font (see K.RefreshFonts in Kit.lua)
 do
     local done = false
     ns.On("PLAYER_ENTERING_WORLD", function()
         if done or not (ns.K and ns.K.RefreshFonts) then return end
         done = true
         ns.After(1, function() pcall(ns.K.RefreshFonts) end)
-        -- zweiter Durchgang, falls eine Schrift erst spaet fertig war; danach Vorlade-Texte weg
+        -- second pass in case a font was ready late; then remove the preload texts
         ns.After(5, function()
             pcall(ns.K.RefreshFonts)
             if ns.K.preloadFrame then ns.K.preloadFrame:Hide() end
         end)
-        -- 0.5.770: beim ersten Login des Tages (kalter Schrift-Cache) laedt WoW Schriftdateien oft erst nach Sekunden -> zwei spaete Durchgaenge
+        -- 0.5.770: on the first login of the day (cold font cache) WoW often loads font files only after seconds -> two late passes
         for _, d in ipairs({ 12, 30 }) do
             ns.After(d, function() pcall(ns.K.RefreshFonts) end)
         end
     end)
 end
 
--- Start erst, wenn WoW den Spielernamen kennt (sonst entstuenden Eintraege wie "Unbekannt")
+-- Start only once WoW knows the player name (otherwise entries like "Unbekannt" would appear)
 local function start()
     if ns.loggedIn then return true end
     if not ns.me() then return false end
@@ -1017,7 +1017,7 @@ ns.On("PLAYER_LOGIN", function()
 end)
 
 ------------------------------------------------------------------------
--- Slash-Befehle
+-- Slash commands
 ------------------------------------------------------------------------
 ns.slash = {}
 ns.slash.einsteiger = function()
@@ -1063,24 +1063,24 @@ ns.slash.debug = function()
 end
 
 
--- WoW-Systemtext ("%s ist jetzt online.", auch "%1$s") -> Lua-Suchmuster mit Fang je Platzhalter
+-- WoW system text ("%s ist jetzt online.", also "%1$s") -> Lua pattern with a capture per placeholder
 function ns.GlobalPattern(gs, anchor)
     if type(gs) ~= "string" then return nil end
-    gs = gs:gsub("%%(%d)%$", "%%")                                   -- nummerierte Platzhalter entfernen
-    local p = gs:gsub("([%%%(%)%.%+%-%*%?%[%]%^%$])", "%%%1")         -- Sonderzeichen (auch %) schuetzen
+    gs = gs:gsub("%%(%d)%$", "%%")                                   -- remove numbered placeholders
+    local p = gs:gsub("([%%%(%)%.%+%-%*%?%[%]%^%$])", "%%%1")         -- escape special characters (including %)
     p = p:gsub("%%%%s", "(.-)"):gsub("%%%%d", "(%%d+)")
     if anchor then p = "^" .. p .. "$" end
     local ok = pcall(string.match, "", p)
     return ok and p or nil
 end
 
--- Esc schliesst Oasis-Fenster, OHNE Blizzards Liste UISpecialFrames (die "beruehrt" sonst den Esc-Weg
--- und WoW blockiert danach Zauber-Abbruch und Kamera-Drehen). Eigener Tastenfaenger nur solange etwas offen ist.
+-- Esc closes Oasis frames WITHOUT Blizzard's UISpecialFrames list (it otherwise "taints" the Esc path
+-- and WoW then blocks spell cancel and camera turning). Own key catcher only while something is open.
 do
     local list, stack = {}, {}
-    -- 0.5.413: kein Tastenfaenger mehr (Weiterreichen aus Addon-Code sperrte SpellStopCasting/SpellStopTargeting).
-    -- Stattdessen: solange ein Oasis-Fenster offen ist (und kein Kampf), liegt ESC per Override auf einem
-    -- eigenen Knopf -> Blizzards ESC-Aktion laeuft dann gar nicht, nichts wird "beruehrt".
+    -- 0.5.413: no key catcher anymore (passing keys through from addon code locked SpellStopCasting/SpellStopTargeting).
+    -- Instead: while an Oasis frame is open (and not in combat), ESC is bound via override to an
+    -- own button -> Blizzard's ESC action doesn't run at all, nothing gets "tainted".
     local escBtn = CreateFrame("Button", "OasisEscCloseButton", UIParent)
     local bound = false
     local focusOf = setmetatable({}, { __mode = "k" })
@@ -1089,15 +1089,15 @@ do
         for i = #stack, 1, -1 do
             local f = stack[i]
             if f and f:IsVisible() then
-                -- offen, aber ohne Fokus (Hauptfenster, Klick ging in die Welt): Esc gehoert dem Spiel, bleibt im Stapel
+                -- open, but without focus (main window, click went into the world): Esc belongs to the game, stays in the stack
                 if not (focusOf[f] and not focusOf[f]()) then return f end
             else
                 table.remove(stack, i)
             end
         end
     end
-    -- liegt Esc wirklich auf unserem Knopf? (0.5.598: nicht nur dem Merker trauen - nach dem ersten Schliessen
-    -- war Esc beim zweiten Oeffnen nicht mehr belegt, obwohl der Merker es glaubte)
+    -- is Esc really bound to our button? (0.5.598: don't trust only the flag - after the first close
+    -- Esc was no longer bound on the second open, although the flag believed it was)
     local ACTION = "CLICK OasisEscCloseButton:LeftButton"
     local function reallyBound()
         if not GetBindingAction then return bound end
@@ -1117,7 +1117,7 @@ do
             bound = false
         end
     end
-    -- Selbstheilung: solange etwas offen ist, alle 0,3 s nachsehen (sehr billig: nur bei offenem Fenster aktiv)
+    -- Self-healing: while something is open, check every 0.3 s (very cheap: only active with an open frame)
     local guard = CreateFrame("Frame")
     guard:SetScript("OnUpdate", function(self, el)
         self.t = (self.t or 0) + el
@@ -1126,8 +1126,8 @@ do
         if #stack == 0 and not bound then return end
         update()
     end)
-    -- 0.5.596: NUR beim Loslassen reagieren. 0.5.594 reagierte schon beim Druecken -> Oasis zu, Belegung frei,
-    -- und das Loslassen derselben Taste oeffnete danach Blizzards Spielmenue.
+    -- 0.5.596: react ONLY on key release. 0.5.594 reacted on press -> Oasis closed, binding freed,
+    -- and releasing the same key then opened Blizzard's game menu.
     escBtn:RegisterForClicks("AnyUp")
     local lastEsc = 0
     escBtn:SetScript("OnClick", function()
@@ -1135,7 +1135,7 @@ do
         if now - lastEsc < 0.25 then return end
         lastEsc = now
         local f = topmost()
-        -- 0.5.605: eigener Schliess-Weg (z. B. Hauptfenster: wie der X-Knopf, mit Flug-Animation)
+        -- 0.5.605: own close path (e.g. main window: like the X button, with fly animation)
         if f then
             if closeOf[f] then
                 local ok = pcall(closeOf[f])
@@ -1146,7 +1146,7 @@ do
         end
         update()
     end)
-    -- vor dem Kampf freigeben (im Kampf darf die Belegung nicht mehr geaendert werden), danach wieder setzen
+    -- release before combat (in combat the binding can no longer be changed), set again afterwards
     local ev = CreateFrame("Frame")
     ev:RegisterEvent("PLAYER_REGEN_DISABLED")
     ev:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -1158,7 +1158,7 @@ do
         end
     end)
     ns.EscUpdate = function() update() end
-    -- Diagnose: /oa esc -> welche Fenster liegen im Esc-Stapel, ist Esc gerade belegt?
+    -- Diagnosis: /oa esc -> which frames are in the Esc stack, is Esc currently bound?
     function ns.EscDebug()
         local out = {}
         for i, f in ipairs(stack) do
@@ -1185,7 +1185,7 @@ do
             update()
         end)
         f:HookScript("OnHide", function() update() end)
-        -- Klick-Toene: nur eigene Oasis-Fenster (Name mit "Oasis" oder ohne Namen)
+        -- Click sounds: only own Oasis frames (name with "Oasis" or no name)
         local fname = f.GetName and f:GetName()
         if not fname or fname:find("^Oasis") then
             f:HookScript("OnShow", function(self)
@@ -1196,7 +1196,7 @@ do
     end
 end
 
--- Spieler in die Gruppe einladen (mit Rueckmeldung; volle Gruppe -> Schlachtzug)
+-- Invite player to the group (with feedback; full group -> raid)
 function ns.InviteName(name)
     if not name then return false end
     local n = ns.ChatName(name)

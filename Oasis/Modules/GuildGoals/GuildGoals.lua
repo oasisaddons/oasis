@@ -1,11 +1,11 @@
--- Oasis: Gildenziele - gemeinsame Vorhaben (z. B. Thunderfury: Bindungen, 100 Arkanitbarren)
--- Store "ggoals"   : ein Ziel je Datensatz (flach): title, desc, icon (itemID), s1..s6 Schritte, k1..k6 erledigt,
---                    m1..m6 "itemID:Menge" Material, fin = abgeschlossen. Anlegen: jedes Mitglied; aendern/loeschen:
---                    Ersteller oder Offiziere.
--- Store "ggcontrib": Beitrag je Mitglied und Material (id = ziel|nr|name, n = Menge) - Summe = Stand.
--- Beide Sammlungen sind geteilt und werden abgeglichen (RETENTION in Comm.lua).
+-- Oasis: guild goals - shared projects (e.g. Thunderfury: bindings, 100 arcanite bars)
+-- Store "ggoals"   : one goal per record (flat): title, desc, icon (itemID), s1..s6 steps, k1..k6 done,
+--                    m1..m6 "itemID:quantity" material, fin = completed. Create: any member; change/delete:
+--                    creator or officers.
+-- Store "ggcontrib": contribution per member and material (id = goal|no|name, n = quantity) - sum = progress.
+-- Both collections are shared and synced (RETENTION in Comm.lua).
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_GuildGoals", function()   -- Modul Gildenziele (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_GuildGoals", function()   -- Guild goals module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -15,7 +15,7 @@ local MAXS, MAXM = 6, 6
 local COLL, CONTRIB = "ggoals", "ggcontrib"
 
 ------------------------------------------------------------------------
--- Daten
+-- Data
 ------------------------------------------------------------------------
 function GG.List()
     local out = Store.List(COLL)
@@ -41,7 +41,7 @@ function GG.Steps(g)
     end
     return out
 end
--- Beitraege zu einem Material: Summe, meiner, Liste (Name, Menge)
+-- contributions to a material: sum, mine, list (name, quantity)
 function GG.Contrib(g, i)
     local sum, mine, list = 0, 0, {}
     local prefix = g.id .. "|" .. i .. "|"
@@ -99,7 +99,7 @@ function GG.SetFinished(g, fin)
     end
 end
 
--- Rechte beim Empfang (manipulierte Clients): Ziele nur Ersteller/Offiziere aendern; Beitraege nur der eigene
+-- permissions on receive (tampered clients): goals changed only by creator/officers; contributions only your own
 local function installAuth()
     local A = ns.Admin
     if not (A and A.AUTH) then return end
@@ -121,7 +121,7 @@ installAuth()
 ns.Listen("LOGIN", installAuth)
 
 ------------------------------------------------------------------------
--- Hinweise
+-- Notices
 ------------------------------------------------------------------------
 ns.Listen("STORE", function(coll, rec, old)
     if coll ~= COLL and coll ~= CONTRIB then return end
@@ -136,7 +136,7 @@ ns.Listen("STORE", function(coll, rec, old)
 end)
 
 ------------------------------------------------------------------------
--- Seite (0.5.597 neu: Glas-Design, Kennzahlen, Meilenstein-Pfad, Material-Karten, Helfer-Rangliste, Konfetti)
+-- Page (0.5.597 new: glass design, stats, milestone path, material cards, helper ranking, confetti)
 ------------------------------------------------------------------------
 local function iconOf(id)
     if not id or id == 0 then return "Interface\\Icons\\INV_Misc_QuestionMark" end
@@ -149,7 +149,7 @@ local function nameOf(id)
     return n or ("#" .. id)
 end
 local function pct(p) return math.floor(p * 100 + 0.5) .. "%" end
--- Emoji-Codes als Bilder (wie im Chat; gesperrte nur, wenn der Ersteller den Rang hat)
+-- emoji codes as images (like in chat; locked ones only if the creator has the rank)
 local function emo(text, who)
     if ns.Emoji and ns.Emoji.Render and type(text) == "string" then
         local ok, r = pcall(ns.Emoji.Render, text, who)
@@ -164,7 +164,7 @@ local function glass(f, fill, line, r)
     if not f.oasisFlat then f.oasisFlat = K.Fill(f, { 1, 1, 1, 0.03 }) K.Border(f, C.line) end
     return false
 end
--- Fortschrittsbalken mit Verlauf (rund), Set(p, animiert)
+-- progress bar with gradient (round), Set(p, animated)
 local function gradBar(parent, h)
     local b = CreateFrame("Frame", nil, parent)
     b:SetHeight(h)
@@ -196,7 +196,7 @@ local function gradBar(parent, h)
     b:Color(C.accent2 or C.accent, C.accent)
     return b
 end
--- Beitraege aller Ziele zusammen: wer hat am meisten beigetragen?
+-- contributions of all goals together: who contributed the most?
 local function helpers(onlyGoal)
     local sum = {}
     for id, r in pairs(Store.coll(CONTRIB)) do
@@ -211,10 +211,10 @@ local function helpers(onlyGoal)
     return out
 end
 
-local editing   -- nil | "new" | Ziel-ID
+local editing   -- nil | "new" | goal ID
 local LISTW = 288
 
--- Formular (neu / bearbeiten) --------------------------------------------
+-- Form (new / edit) --------------------------------------------
 local function buildForm(p)
     local f = CreateFrame("Frame", nil, p)
     f:SetPoint("TOPLEFT", LISTW + 12, -42)
@@ -225,7 +225,7 @@ local function buildForm(p)
     f.head = K.Title(f, 16, C.text)
     f.head:SetPoint("TOPLEFT", 18, -16)
     local y = -46
-    local ROW = 22   -- 0.5.598: enger, damit Meilensteine + Material ohne Ueberlappung passen (Knoepfe stehen oben)
+    local ROW = 22   -- 0.5.598: tighter so milestones + materials fit without overlap (buttons are at the top)
     local function label(text, x, yy) local t = K.Text(f, 11, C.muted) t:SetPoint("TOPLEFT", x, yy) t:SetText(text) return t end
     label(L["Title"], 18, y - 5)
     f.title = K.Input(f, 300, L["e.g. Thunderfury for our tank"])
@@ -274,7 +274,7 @@ local function buildForm(p)
         if ns.ItemSearch and ns.ItemSearch.Attach then ns.ItemSearch.Attach(e, function(id) e.pickedID = id end) end
         f.mats[i] = { item = e, n = n }
     end
-    -- Knoepfe oben rechts neben der Ueberschrift (unten fehlte der Platz)
+    -- buttons top right next to the heading (there was no room at the bottom)
     f.save = K.Button(f, L["Save"], 100, 24, "primary", function() GG.SaveForm(p) end)
     f.save:SetPoint("TOPRIGHT", -18, -12)
     f.cancel = K.Button(f, L["Cancel"], 90, 24, "ghost", function() editing = nil ns.RefreshPage("goals") end)
@@ -326,7 +326,7 @@ function GG.SaveForm(p)
     g.icon = itemFrom(f.icon)
     for i = 1, MAXS do
         local t = (f.steps[i]:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
-        if t ~= (old and old["s" .. i] or "") then g["k" .. i] = nil end   -- geaenderter Schritt: wieder offen
+        if t ~= (old and old["s" .. i] or "") then g["k" .. i] = nil end   -- changed step: open again
         g["s" .. i] = t ~= "" and t or nil
     end
     for i = 1, MAXM do
@@ -339,14 +339,14 @@ function GG.SaveForm(p)
     ns.RefreshPage("goals")
 end
 
--- Detail rechts -------------------------------------------------------------
+-- Detail on the right -------------------------------------------------------------
 local function buildDetail(p)
     local d = CreateFrame("Frame", nil, p)
     d:SetPoint("TOPLEFT", LISTW + 12, -42)
     d:SetPoint("BOTTOMRIGHT")
     glass(d, { 1, 1, 1, 0.035 }, { 1, 1, 1, 0.09 }, 14)
     p.detail = d
-    -- Kopf: Verlauf, Symbol, Titel
+    -- header: gradient, icon, title
     d.hero = d:CreateTexture(nil, "BACKGROUND", nil, 2)
     d.hero:SetPoint("TOPLEFT", 3, -3) d.hero:SetPoint("TOPRIGHT", -3, -3) d.hero:SetHeight(110)
     d.iconBox = CreateFrame("Frame", nil, d)
@@ -367,7 +367,7 @@ local function buildDetail(p)
         if GG.selected then editing = GG.selected ns.RefreshPage("goals") end
     end)
     d.edit:SetPoint("TOPRIGHT", -16, -18)
-    -- grosser Fortschritt
+    -- big progress
     d.pct = K.Title(d, 24, C.text, "RIGHT")
     d.pct:SetPoint("TOPRIGHT", -18, -84)
     d.bar = gradBar(d, 10)
@@ -375,10 +375,10 @@ local function buildDetail(p)
     d.bar:SetPoint("RIGHT", d.pct, "LEFT", -12, 0)
     d.sum = K.Text(d, 11, C.dim)
     d.sum:SetPoint("TOPLEFT", d.bar, "BOTTOMLEFT", 0, -6)
-    -- Erreicht-Banner (springt auf, wenn ein Ziel geschafft ist)
+    -- achieved banner (pops up when a goal is done)
     d.won = K.Title(d, 13, C.mint)
     d.won:SetPoint("TOPRIGHT", d.pct, "BOTTOMRIGHT", 0, -4)
-    -- Reiter
+    -- Tabs
     d.tab = "over"
     d.seg = K.Segments(d, { { key = "over", text = L["Overview"] }, { key = "mats", text = L["Materials"] }, { key = "help", text = L["Helpers"] } },
         function(k) d.tab = k if K.TabAnim then K.TabAnim(d.seg, k) end p.animTab = true ns.RefreshPage("goals", true) end)
@@ -386,7 +386,7 @@ local function buildDetail(p)
     d.body = CreateFrame("Frame", nil, d)
     d.body:SetPoint("TOPLEFT", 18, -168)
     d.body:SetPoint("BOTTOMRIGHT", -18, 52)
-    -- Uebersicht: Beschreibung + Meilenstein-Pfad
+    -- overview: description + milestone path
     d.desc = K.Text(d.body, 12, C.text)
     d.desc:SetPoint("TOPLEFT", 0, 0)
     d.desc:SetPoint("RIGHT", 0, 0)
@@ -421,7 +421,7 @@ local function buildDetail(p)
             local wasDone = self.done
             GG.ToggleStep(self.g, self.i)
             if not wasDone and animOn() then
-                -- Haken ploppt auf
+                -- checkmark pops up
                 local c = self.check
                 c:Show()
                 K.Tween(c, 0.35, function(q) local k = 0.4 + 0.9 * math.sin(q * math.pi * 0.75) c:SetSize(14 * k + 4, 14 * k + 4) end, function() c:SetSize(14, 14) end)
@@ -434,7 +434,7 @@ local function buildDetail(p)
     end
     d.noSteps = K.Text(d.body, 12, C.dim)
     d.noSteps:SetPoint("TOPLEFT", 0, -40)
-    -- Material-Karten
+    -- Material cards
     d.mats = {}
     for i = 1, MAXM do
         local r = CreateFrame("Frame", nil, d.body)
@@ -497,7 +497,7 @@ local function buildDetail(p)
     end
     d.noMats = K.Text(d.body, 12, C.dim)
     d.noMats:SetPoint("TOPLEFT", 0, -6)
-    -- Helfer-Rangliste
+    -- Helper ranking
     d.help = {}
     for i = 1, 8 do
         local r = CreateFrame("Frame", nil, d.body)
@@ -519,7 +519,7 @@ local function buildDetail(p)
     end
     d.noHelp = K.Text(d.body, 12, C.dim)
     d.noHelp:SetPoint("TOPLEFT", 0, -6)
-    -- Fuss
+    -- Footer
     d.finish = K.Button(d, L["Mark as reached"], 170, 26, "primary", function(self)
         local g = GG.selected and Store.Get(COLL, GG.selected)
         if not g then return end
@@ -536,7 +536,7 @@ local function buildDetail(p)
             if sum < m.need then parts[#parts + 1] = (L["%s %d/%d"]):format(nameOf(m.id), sum, m.need) end
             if #parts >= 4 then break end
         end
-        -- Klick = Eingabe -> Senden erlaubt
+        -- click = input -> sending allowed
         if ns.SendChat then ns.SendChat(table.concat(parts, " - "):sub(1, 255), "GUILD") end
     end)
     d.chat:SetPoint("RIGHT", d.finish, "LEFT", -8, 0)
@@ -576,7 +576,7 @@ local function fillDetail(p, g, animate)
     d.sum:SetText(table.concat(parts, "  ·  "))
     d.won:SetText(g.fin and L["GOAL REACHED"] or "")
     d.seg:Select(d.tab)
-    -- alles im Koerper verstecken, dann den Reiter fuellen
+    -- hide everything in the body, then fill the tab
     d.desc:Hide() d.path:Hide() d.noSteps:Hide() d.noMats:Hide() d.noHelp:Hide()
     for _, b in ipairs(d.steps) do b:Hide() end
     for _, r in ipairs(d.mats) do r:Hide() end
@@ -599,7 +599,7 @@ local function fillDetail(p, g, animate)
             d.noSteps:SetText(L["No milestones - materials only."])
             d.noSteps:Show()
         else
-            -- Pfad: senkrechte Linie durch die Knoten, erledigte Knoten gefuellt
+            -- path: vertical line through the nodes, done nodes filled
             d.path:ClearAllPoints()
             d.path:SetPoint("TOP", d.body, "TOPLEFT", 8, y - 15)
             d.path:SetHeight(math.max(1, (#steps - 1) * 32))
@@ -678,7 +678,7 @@ ns.RegisterPage({
     key = "goals", title = "Guild goals", order = 7.65,
     sub = "Shared guild projects - tick off milestones, gather materials",
     build = function(p)
-        -- Kennzahlen oben
+        -- stats on top
         p.tiles = {}
         local TT = { { "checklist", "Active goals" }, { "star_on", "Earned" }, { "heart", "Your contribution" }, { "social", "Helpers" } }
         for i, t in ipairs(TT) do
@@ -693,7 +693,7 @@ ns.RegisterPage({
             c.l:SetPoint("TOPLEFT", c.v, "BOTTOMLEFT", 0, -2)
             c.l:SetText(L[t[2]])
             p.tiles[i] = c
-            c:Hide()   -- Kennzahlen-Kacheln entfallen; Werte stehen in der Liste
+            c:Hide()   -- stat tiles dropped; values are in the list
         end
         p.newBtn = K.Button(p, L["New goal"], 120, 30, "primary", function()
             editing = (editing == "new") and nil or "new"
@@ -712,7 +712,7 @@ ns.RegisterPage({
         p:HookScript("OnSizeChanged", placeTiles)
         placeTiles()
         p:HookScript("OnShow", function() p.animAll = true end)
-        -- Liste links: Glas-Karten
+        -- list on the left: glass cards
         p.list = K.List(p, 70, function(l)
             local r = K.Row(l)
             if r.stripe then r.stripe:SetAlpha(0) end
@@ -786,7 +786,7 @@ ns.RegisterPage({
         if not GG.selected and list[1] and not editing then GG.selected = list[1].id end
         local g = GG.selected and Store.Get(COLL, GG.selected)
         if g and g.del then g = nil GG.selected = nil end
-        -- Kennzahlen
+        -- Stats
         local active, done, mine = 0, 0, 0
         for _, x in ipairs(list) do if x.fin then done = done + 1 else active = active + 1 end end
         for _, r in pairs(Store.coll(CONTRIB)) do if not r.del and ns.isMe(r.who) then mine = mine + math.max(0, tonumber(r.n) or 0) end end
@@ -808,7 +808,7 @@ ns.RegisterPage({
             if p.animDetail and animOn() then p.animTab = true end
             fillDetail(p, g, animate)
         end
-        -- Ziel gerade erreicht (auch von anderen): Konfetti, einmal je Ziel
+        -- goal just reached (also by others): confetti, once per goal
         if g and g.fin and not (p.cheered or {})[g.id] then
             p.cheered = p.cheered or {}
             p.cheered[g.id] = true
@@ -820,11 +820,11 @@ ns.RegisterPage({
 ns.slash.ziele = function() ns.ShowPage("goals") end
 
 ------------------------------------------------------------------------
--- 0.6.450: Schwarzes Brett - jedes Gildenmitglied heftet Notizen an (Suche, Biete, Termin, Hinweis, Spass).
--- Loeschen: wer sie geschrieben hat oder die Gildenleitung; Anheften (oben halten) nur die Gildenleitung.
+-- 0.6.450: bulletin board - every guild member pins notes (looking for, offering, event, notice, fun).
+-- Delete: whoever wrote it or guild leadership; pinning (keep on top) only guild leadership.
 ------------------------------------------------------------------------
 local BOARD = "board"
-if ns.ICONS then ns.ICONS.board = ns.MEDIA .. "icons\\announce" end   -- 0.6.452: Symbol in der Seitenleiste
+if ns.ICONS then ns.ICONS.board = ns.MEDIA .. "icons\\announce" end   -- 0.6.452: icon in the sidebar
 local BCATS = {
     { key = "info", text = "Info", col = { 0.55, 0.72, 1 } },
     { key = "search", text = "Looking for", col = { 1, 0.72, 0.3 } },

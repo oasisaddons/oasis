@@ -1,10 +1,10 @@
--- Oasis: Wunschliste unterwegs
---  * Dungeon betreten: "3 deiner Wunsch-Items koennen hier droppen" (+ was die Mitspieler aus der Gilde hier suchen)
+-- Oasis: wishlist on the go
+--  * Entering a dungeon: "3 of your wishlist items can drop here" (+ what guild groupmates are looking for here)
 --  * Wunsch-Item gelootet: "Ziel erreicht!" (Klick = abhaken), Eintrag in "Mein Weg"
---  * Sets: Wuensche zu einem eigenen Set zusammenfassen ("Pre-Raid 7/12"); erledigte (geloeschte) zaehlen mit
--- Quelle der Drops: ns.Dungeons.Source (Oasis-Dungeon-Datenbank + Dungeonkompass).
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Wishlist", function()   -- abschaltbar, siehe ModuleLoader.lua
+--  * Sets: group wishes into an own set ("Pre-Raid 7/12"); completed (deleted) ones count too
+-- drop source: ns.Dungeons.Source (Oasis dungeon database + dungeon compass).
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Wishlist", function()   -- can be disabled, see ModuleLoader.lua
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
@@ -14,7 +14,7 @@ ns.WishAlerts = WA
 local function S() return ns.db.settings end
 local function on(k) return S()[k] ~= false end
 
--- eigene, offene Wuensche
+-- own open wishes
 local function myOpen()
     local out = {}
     for _, w in ipairs(Store.List("wants")) do
@@ -26,7 +26,7 @@ end
 ------------------------------------------------------------------------
 -- Sets
 ------------------------------------------------------------------------
--- Fortschritt eines Sets: erledigt (geloescht = abgehakt), gesamt - nur eigene Wuensche
+-- progress of a set: done (deleted = checked off), total - own wishes only
 function WA.SetProgress(name)
     if not name or name == "" then return 0, 0 end
     local done, total = 0, 0
@@ -42,7 +42,7 @@ function WA.SetText(name)
     local d, t = WA.SetProgress(name)
     return t > 0 and ("%s %d/%d"):format(name, d, t) or nil
 end
--- alle eigenen Set-Namen (fuer die Auswahl)
+-- all own set names (for the selection)
 function WA.MySets()
     local seen, out = {}, {}
     for _, w in pairs(Store.coll("wants")) do
@@ -74,7 +74,7 @@ StaticPopupDialogs["OASIS_WANT_SET"] = {
     EditBoxOnEnterPressed = function(self) local p = self:GetParent() if p.button1 then p.button1:Click() end end,
     EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
 }
--- Menue-Eintraege fuer einen eigenen Wunsch
+-- menu entries for an own wish
 function WA.MenuItems(w)
     if not (w and ns.isMe(w.who)) then return {} end
     local m = {}
@@ -91,7 +91,7 @@ function WA.MenuItems(w)
 end
 
 ------------------------------------------------------------------------
--- Dungeon betreten
+-- entering a dungeon
 ------------------------------------------------------------------------
 local function currentDungeon()
     local inInst, kind = IsInInstance()
@@ -100,7 +100,7 @@ local function currentDungeon()
     if not name or not (ns.Dungeons and ns.Dungeons.KeyByZone) then return nil end
     return ns.Dungeons and ns.Dungeons.KeyByZone(name), name
 end
--- Wuensche, die hier droppen: eigene + die der Gilden-Mitspieler in der Gruppe
+-- wishes that drop here: own + those of guild groupmates in the party
 function WA.HereFor(key)
     local mine, group = {}, {}
     if not key or not (ns.Dungeons and ns.Dungeons.Source) then return mine, group end
@@ -150,14 +150,14 @@ ns.On("PLAYER_ENTERING_WORLD", function() ns.After(4, function() pcall(onEnter) 
 ns.On("ZONE_CHANGED_NEW_AREA", function() ns.After(4, function() pcall(onEnter) end) end)
 
 ------------------------------------------------------------------------
--- Gelootet: Ziel erreicht
+-- looted: goal reached
 ------------------------------------------------------------------------
 local reached = {}
 ns.On("CHAT_MSG_LOOT", function(text, playerName)
     text, playerName = ns.safe(text), ns.safe(playerName)
     if not text or not on("wantsGotHint") then return end
     if playerName and playerName ~= "" and ns.short(playerName) ~= ns.short(ns.me()) then return end
-    -- nur eigene Beute ("Ihr erhaltet Beute: ..."): bei fremder Beute steht der Name im Text
+    -- only own loot ("You receive loot: ..."): for others' loot the name is in the text
     local id = tonumber(text:match("|Hitem:(%d+)"))
     if not id then return end
     for _, w in ipairs(myOpen()) do
@@ -183,6 +183,6 @@ ns.On("CHAT_MSG_LOOT", function(text, playerName)
     end
 end)
 
--- Test im Spiel: /oa wunschtest -> tut so, als haettest du gerade einen Dungeon betreten
+-- in-game test: /oa wunschtest -> pretends you just entered a dungeon
 ns.slash.wunschtest = function() lastKey = nil pcall(onEnter) end
 end)

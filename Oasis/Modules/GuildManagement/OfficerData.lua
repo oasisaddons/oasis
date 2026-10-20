@@ -1,7 +1,7 @@
--- Oasis - Daten fuer die Gildenpflege: Ausruestung, Anwesenheit, Gildenprotokoll, Bannliste, Bewerber, Export.
--- Alles laeuft ueber die normale Oasis-Synchronisation (Store). Nichts wird automatisch gefluestert oder gepostet.
+-- Oasis - data for guild care: gear, attendance, guild log, ban list, applicants, export.
+-- Everything runs over the normal Oasis sync (Store). Nothing is whispered or posted automatically.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_GuildManagement", function()   -- Modul Gildenpflege (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_GuildManagement", function()   -- Guild care module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
 local Store = ns.Store
@@ -12,8 +12,8 @@ ns.Officer = O
 local function mainOf(n) return ns.Alts and ns.Alts.Main(n) or n end
 
 ------------------------------------------------------------------------
--- Ausruestung: jeder meldet seine eigenen Teile (kein Inspect noetig)
--- Format: "slot=itemID:enchantID,..." nur fuer verzauberbare Plaetze
+-- Gear: everyone reports their own items (no inspect needed)
+-- format: "slot=itemID:enchantID,..." only for enchantable slots
 ------------------------------------------------------------------------
 O.ENCH_SLOTS = {
     { 5, "Chest" }, { 9, "Wrists" }, { 10, "Hands" }, { 8, "Feet" }, { 15, "Back" },
@@ -30,7 +30,7 @@ function O.GearString()
     end
     return table.concat(parts, ",")
 end
--- fehlende Verzauberungen eines Mitglieds (aus seinem Profil)
+-- a member's missing enchants (from their profile)
 function O.MissingEnchants(name)
     local pr = ns.db.members[name]
     local gr = ns.isMe(name) and O.GearString() or (pr and pr.gr)
@@ -42,7 +42,7 @@ function O.MissingEnchants(name)
         if h and h.id > 0 and (h.ench or 0) == 0 then
             local ok = true
             if s[1] == 17 then
-                -- Nebenhand: nur Schilde und Waffen sind verzauberbar
+                -- off-hand: only shields and weapons are enchantable
                 local gi = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
                 local _, _, _, loc = gi(h.id)
                 ok = loc == "INVTYPE_SHIELD" or loc == "INVTYPE_WEAPON" or loc == "INVTYPE_WEAPONOFFHAND"
@@ -54,7 +54,7 @@ function O.MissingEnchants(name)
 end
 
 ------------------------------------------------------------------------
--- Raid-Anwesenheit: der Raidleiter schreibt bei jedem Boss-Kill den Raidtag mit (Mains)
+-- Raid attendance: the raid leader records the raid day on every boss kill (mains)
 ------------------------------------------------------------------------
 local function raidNames()
     local out, seen = {}, {}
@@ -76,7 +76,7 @@ ns.On("ENCOUNTER_END", function(_, encName, _, _, success)
     local id = day .. "@" .. inst
     local old = Store.Get("attend", id)
     local names = raidNames()
-    -- wer schon eingetragen war, bleibt drin (jemand geht vor dem letzten Boss)
+    -- whoever was already recorded stays in (someone leaves before the last boss)
     local set = {}
     if old and old.n then for n in old.n:gmatch("[^,]+") do set[n] = true end end
     for _, n in ipairs(names) do set[n] = true end
@@ -86,7 +86,7 @@ ns.On("ENCOUNTER_END", function(_, encName, _, _, success)
     Store.Put("attend", { id = id, d = day, inst = inst, n = table.concat(list, ","), b = ((old and old.b) or 0) + 1,
         last = ns.safe(encName) or "", ts = ns.now() })
 end)
--- Anwesenheit der letzten Tage: Quote 0..1, besucht, gesamt
+-- attendance of the last days: rate 0..1, attended, total
 function O.Attendance(name, days)
     local since = ns.now() - (days or 28) * 86400
     local m = mainOf(name)
@@ -101,7 +101,7 @@ function O.Attendance(name, days)
 end
 
 ------------------------------------------------------------------------
--- Gildenprotokoll aus den Systemmeldungen (alle sehen sie, gleiche Meldung = ein Eintrag)
+-- guild log from system messages (everyone sees them, same message = one entry)
 ------------------------------------------------------------------------
 local PATTERNS
 local function patterns()
@@ -151,7 +151,7 @@ function O.AuditText(r)
 end
 
 ------------------------------------------------------------------------
--- Bannliste: Leitung pflegt, alle bekommen Warnungen
+-- Ban list: leadership maintains it, everyone gets warnings
 ------------------------------------------------------------------------
 local function banKey(n) return ns.NameKey(n) end
 function O.BanOf(name)
@@ -171,9 +171,9 @@ function O.Unban(name)
     end
 end
 ------------------------------------------------------------------------
--- Sound-Sperre: die Leitung sperrt ein Mitglied fuer Soundeffekte. Der Gesperrte kann keine Sounds mehr senden,
--- und alle anderen Clients spielen/zeigen seine Sounds nicht (falls er eine alte oder veraenderte Version nutzt).
--- Gilt fuer den ganzen Spieler: Main und Twinks.
+-- Sound block: leadership blocks a member from sound effects. The blocked player can no longer send sounds,
+-- and all other clients don't play/show their sounds (in case they use an old or modified version).
+-- Applies to the whole player: main and alts.
 ------------------------------------------------------------------------
 function O.SoundMuteOf(name)
     if not name or name == "" then return nil end
@@ -221,7 +221,7 @@ local function banLine(tt, unit)
     local b = O.BanOf(ns.safe(ns.UnitName(unit)))
     if b then tt:AddLine("|cffff5a4a" .. L["Oasis ban list"] .. ":|r " .. (b.reason ~= "" and b.reason or L["no reason given"]), 1, 0.35, 0.3, true) end
 end
--- neue Clients: TooltipDataProcessor; alte: OnTooltipSetUnit (nur wenn es das Skript gibt)
+-- new clients: TooltipDataProcessor; old: OnTooltipSetUnit (only if the script exists)
 if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tt)
         if tt ~= GameTooltip then return end
@@ -233,7 +233,7 @@ elseif GameTooltip and GameTooltip.HasScript and GameTooltip:HasScript("OnToolti
 end
 
 ------------------------------------------------------------------------
--- Bewerber und Probezeit
+-- Applicants and trial
 ------------------------------------------------------------------------
 O.STATUS = { { "app", "Applicants", C.blue }, { "trial", "Trial", C.amber }, { "member", "Accepted", C.mint }, { "no", "Declined", C.red } }
 function O.Recruits()
@@ -257,14 +257,14 @@ function O.TrialLeft(r)
 end
 
 ------------------------------------------------------------------------
--- Export: Schnappschuss in OasisDB.export (WoW schreibt ihn beim Ausloggen / /reload auf die Platte).
--- Tools/oasis_export.py liest die Datei und macht JSON daraus / schickt sie an eine Weboberflaeche.
+-- Export: snapshot in OasisDB.export (WoW writes it to disk on logout / /reload).
+-- Tools/oasis_export.py reads the file and turns it into JSON / sends it to a web interface.
 ------------------------------------------------------------------------
--- Export nur, wenn gewuenscht: ausdruecklich eingeschaltet, sonst Standard = an fuer Gildenleitung/Entwickler,
--- aus fuer alle anderen (Performance 0.5.482: war fuer jeden an - 145 KB doppelte Daten in jeder Speicherdatei)
+-- Export only when wanted: explicitly enabled, otherwise default = on for guild leadership/developers,
+-- off for everyone else (performance 0.5.482: was on for everyone - 145 KB of duplicate data in every saved file)
 function O.ExportWanted()
-    -- 0.5.926: Export fuer alle. Wer den Schalter gesetzt hat, bekommt genau das. Ohne eigene Wahl: in der oeffentlichen
-    -- Version AUS (nichts doppelt speichern, was niemand nutzt), mit Gildenmodul wie bisher an fuer Leitung/Entwickler.
+    -- 0.5.926: export for everyone. Whoever set the toggle gets exactly that. Without own choice: in the public
+    -- version OFF (don't store duplicates nobody uses), with guild module on for leadership/developers as before.
     local s = ns.db and ns.db.settings and ns.db.settings.webExport
     if s ~= nil then return s ~= false end
     if not ns.GuildPack then return false end
@@ -294,22 +294,22 @@ function O.Snapshot()
         end
         return out
     end
-    -- echter Offiziersrang (nicht der Testmodus /oa testleitung)
+    -- real officer rank (not test mode /oa testleitung)
     local realOfficer = C_GuildInfo and C_GuildInfo.IsGuildOfficer and C_GuildInfo.IsGuildOfficer() or false
     ns.db.export = {
         v = 1, ts = ns.now(), by = ns.me(), guild = ns.Admin and ns.Admin.GuildName() or (GetGuildInfo("player")),
         roster = roster,
         attendance = list("attend", { "d", "inst", "n", "b", "last" }),
         loot = list("loot", { "item", "who", "ts", "boss", "inst", "link" }),
-        -- Gildenleitungs-Daten nur, wenn ein Offizier exportiert
-        -- 0.5.617 Datenschutz: Protokoll, Bannliste und Bewerber gehen nie auf die Webseite
+        -- guild leadership data only when an officer exports
+        -- 0.5.617 privacy: log, ban list and applicants never go to the website
         events = list("events", { "id", "title", "ts", "kind" }),
         signups = list("signups", { "id", "status", "role", "who" }),
     }
     if ns.Export then ns.Export.Merge(ns.db.export) end
     return ns.db.export
 end
--- WoW schreibt die Speicherdatei nur beim Ausloggen / /reload -> der Schnappschuss genuegt dann (vorher alle 10 Min)
+-- WoW only writes the saved file on logout / /reload -> the snapshot is enough then (before every 10 min)
 ns.Listen("LOGIN", function()
     ns.After(30, function() if not O.ExportWanted() then ns.db.export = nil end end)
 end)
@@ -317,7 +317,7 @@ ns.On("PLAYER_LOGOUT", function() pcall(O.Snapshot) end)
 
 
 ------------------------------------------------------------------------
--- Probezeit-Erinnerung: 2 Tage vorher und wenn sie abgelaufen ist (nur Gildenleitung, je Person einmal pro Tag)
+-- Trial reminder: 2 days before and when it has expired (guild leadership only, once per day per person)
 ------------------------------------------------------------------------
 local function trialCheck()
     if not (ns.Admin and ns.Admin.CanManage and ns.Admin.CanManage()) then return end
@@ -338,7 +338,7 @@ local function trialCheck()
             end
         end
     end
-    -- alte Merker aufraeumen
+    -- clean up old markers
     for k in pairs(ns.db.trialReminded) do if not k:find(day, 1, true) then ns.db.trialReminded[k] = nil end end
 end
 ns.Listen("LOGIN", function()

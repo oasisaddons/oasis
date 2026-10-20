@@ -1,8 +1,8 @@
--- Oasis: Glimmer (0.6.521) - bekannte Fundorte der Gilden-Sammelkarte in deiner Naehe leuchten an der Minimap auf
--- Nur Kraeuter/Erz/Angelstellen deiner eigenen Sammelberufe (wie die Sammelkarte), nur ausserhalb von Kampf und
--- Instanzen. Ab 60 m ein weicher, pulsierender Ring auf dem Fundort, ab 25 m einmal ein leiser Ton.
--- Schalter: Einstellungen > Karte (Gilden-Sammelkarte)
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
+-- Oasis: Glimmer (0.6.521) - known nodes of the guild gathering map near you light up on the minimap
+-- Only herbs/ore/fishing spots of your own gathering professions (like the gathering map), only out of combat and
+-- instances. From 60 m a soft, pulsing ring on the node, from 25 m a quiet sound once.
+-- toggle: Settings > Map (guild gathering map)
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
 ns.ModuleFile("Oasis_MapExtras", function()
 local GM = ns.Gather
 local function S() return ns.db.settings end

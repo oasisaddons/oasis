@@ -1,17 +1,17 @@
--- Oasis: Discord-Bruecke (Spielseite)
--- Die eigentliche Bruecke ist OasisSync.exe (Tools\OasisSync.cs, Doku Tools\OasisSync-Format.md, Abschnitt Discord):
---   * Spiel -> Discord: OasisSync liest Logs\WoWChatLog.txt (WoW schreibt sie nur bei aktivem /chatlog) und postet
---     Gildenzeilen per Webhook. Diese Datei kann das Chatlog beim Login automatisch einschalten (Einstellung).
---   * Discord -> Spiel: OasisSync legt Discord-Nachrichten als OasisImport.collections.discord in Oasis\Import.lua.
---     WoW liest die Datei nur beim Login / /reload -> Discord-Nachrichten erscheinen erst danach im Oasis-Gildenchat.
--- Discord-Nachrichten werden NUR angezeigt: nicht in den echten WoW-Chat gesendet und nicht an andere Oasis-Nutzer
--- weitergegeben (GuildChat schickt Eintraege mit src="discord" beim Nachladen verpasster Nachrichten nicht mit).
--- Grund: Wer die Bruecke betreibt, liefert die Nachrichten ohnehin selbst; Weitergabe wuerde mit mehreren
--- Betreibern doppeln, und fremde Discord-Namen sollen nicht als "Gildenchat" an die ganze Gilde wandern.
+-- Oasis: Discord bridge (game side)
+-- The actual bridge is OasisSync.exe (Tools\OasisSync.cs, docs Tools\OasisSync-Format.md, section Discord):
+--   * Game -> Discord: OasisSync reads Logs\WoWChatLog.txt (WoW only writes it with /chatlog active) and posts
+--     guild lines via webhook. This file can turn on the chat log automatically at login (setting).
+--   * Discord -> game: OasisSync puts Discord messages into Oasis\Import.lua as OasisImport.collections.discord.
+--     WoW only reads the file at login / /reload -> Discord messages only appear in Oasis guild chat afterwards.
+-- Discord messages are ONLY displayed: not sent to the real WoW chat and not passed on to other Oasis users
+-- (GuildChat doesn't include entries with src="discord" when reloading missed messages).
+-- Reason: whoever runs the bridge delivers the messages themselves anyway; passing them on would duplicate with several
+-- operators, and foreign Discord names shouldn't travel to the whole guild as "guild chat".
 --
--- Schalter im Chat-Bereich der Einstellungen: ns.AppendPageSettings (Settings.lua), Ladereihenfolge egal.
+-- Toggle in the chat section of the settings: ns.AppendPageSettings (Settings.lua), load order doesn't matter.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Discord", function()   -- Modul Discord (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Discord", function()   -- Discord module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 
 local DB = {}
@@ -21,7 +21,7 @@ local KEEP_DAYS = 30
 local function S() return (ns.db and ns.db.settings) or {} end
 
 ------------------------------------------------------------------------
--- Chatlog automatisch einschalten (Standard: aus)
+-- turn on chat log automatically (default: off)
 ------------------------------------------------------------------------
 function DB.ChatlogAvailable() return type(LoggingChat) == "function" end
 
@@ -36,7 +36,7 @@ function DB.EnableChatlog(force)
 end
 
 ------------------------------------------------------------------------
--- Discord-Nachrichten aus Import.lua im Oasis-Gildenchat zeigen
+-- show Discord messages from Import.lua in Oasis guild chat
 ------------------------------------------------------------------------
 local function prune(seen)
     local cut = (ns.now() - KEEP_DAYS * 86400)
@@ -45,7 +45,7 @@ end
 
 local function sanitize(s, max)
     s = tostring(s or "")
-    s = s:gsub("[%z\1-\9\11-\31]", ""):gsub("|", "||")   -- keine WoW-Steuercodes (Farben, Links, Texturen) aus Discord
+    s = s:gsub("[%z\1-\9\11-\31]", ""):gsub("|", "||")   -- no WoW control codes (colors, links, textures) from Discord
     if #s > max then s = s:sub(1, max) end
     return s
 end
@@ -82,7 +82,7 @@ end
 
 ns.Listen("LOGIN", function()
     ns.After(3, function() pcall(DB.EnableChatlog) end)
-    -- nach GuildChat (prune/cleanLog beim Login) und Import.Run (8 s)
+    -- after GuildChat (prune/cleanLog at login) and Import.Run (8 s)
     ns.After(10, function() pcall(DB.ShowImported) end)
 end)
 ns.slash.discord = function()
@@ -91,12 +91,12 @@ ns.slash.discord = function()
 end
 
 ------------------------------------------------------------------------
--- Einstellungen im Bereich "Chat"
+-- settings in the "Chat" section
 ------------------------------------------------------------------------
 function DB.BuildSettings(det, y)
     local K = ns.K
     if not K or not K.Toggle then return y end
-    if not (ns.ExternTools and ns.ExternTools()) then return y end   -- braucht OasisSync: oeffentlich vorerst nicht angeboten
+    if not (ns.ExternTools and ns.ExternTools()) then return y end   -- needs OasisSync: not offered publicly for now
     y = y - 6
     local t1 = K.Toggle(det, L["Show Discord messages in guild chat (via OasisSync, after /reload)"],
         function() return S().dcShow ~= false end,
@@ -117,6 +117,6 @@ function DB.BuildSettings(det, y)
     return y
 end
 
--- 0.6.289: Discord-Schalter an den Chat-Bereich der Einstellungen anhaengen (Modul laeuft nach Settings.lua)
+-- 0.6.289: append Discord toggles to the chat section of the settings (module runs after Settings.lua)
 if ns.AppendPageSettings then ns.AppendPageSettings("chat", function(det, y) return DB.BuildSettings(det, y) end) end
 end)

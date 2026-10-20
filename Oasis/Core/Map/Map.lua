@@ -1,16 +1,16 @@
--- Oasis Modul 7: Gildenkarte (Punkte auf der Weltkarte) + Live-Radar
+-- Oasis module 7: guild map (dots on the world map) + live radar
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Security on receive (other players' addon messages may be manipulated):
+-- Sanitize strings, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- Escape sequences (|c |r |n |H |T |K |A ...) and control characters neutralized; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -58,8 +58,8 @@ end
 
 local Map = {}
 ns.Map = Map
--- [name] = { mapID, x, y, t }. Gesendet wird unter "Vorname-Realm", die Gildenliste (Forever) fuehrt
--- "Vorname Nachname-Realm" -> Nachschlagen klappt unter beiden Namen
+-- [name] = { mapID, x, y, t }. Sent under "Firstname-Realm", the guild roster (Forever) lists
+-- "Firstname Lastname-Realm" -> lookup works under both names
 Map.pos = setmetatable({}, { __index = function(t, k)
     local a = ns.Radar and ns.Radar.AliasOf and ns.Radar.AliasOf(k)
     if a and a ~= k then return rawget(t, a) end
@@ -67,10 +67,10 @@ end })
 local EXPIRE = 150
 
 ------------------------------------------------------------------------
--- Eigene Position senden
+-- Send own position
 ------------------------------------------------------------------------
 local lastKey, lastTime = nil, 0
--- Layer: steckt in der Kennung von NPCs (Creature-0-Server-Instanz-ZONE-...); wird beim Anvisieren gelernt
+-- Layer: contained in the GUID of NPCs (Creature-0-Server-Instance-ZONE-...); learned when targeting
 Map.myLayer = nil
 local function learnLayer(unit)
     if not UnitExists(unit) or UnitIsPlayer(unit) then return end
@@ -85,8 +85,8 @@ ns.On("PLAYER_TARGET_CHANGED", function() pcall(learnLayer, "target") end)
 ns.On("UPDATE_MOUSEOVER_UNIT", function() pcall(learnLayer, "mouseover") end)
 ns.On("NAME_PLATE_UNIT_ADDED", function(u) if u then pcall(learnLayer, u) end end)
 ns.On("ZONE_CHANGED_NEW_AREA", function() Map.myLayer = nil end)
--- gleicher Layer wie ich? true / false / nil (unbekannt)
--- Tooltip-Zeile "Layer 1234 (wie du / anderer Layer)" - nil, wenn der Layer unbekannt ist
+-- same layer as me? true / false / nil (unknown)
+-- Tooltip line "Layer 1234 (like you / other layer)" - nil if the layer is unknown
 function Map.LayerLine(p)
     if not (p and p.layer) then return nil end
     local t = (L["Layer %s"]):format(tostring(p.layer))
@@ -130,7 +130,7 @@ local function sendPos()
     Comm.SendEx({ ch = "GUILD", key = "pos" }, "POS", mapID, xi, yi, Map.myLayer or "")
 end
 Map.sendPos = sendPos
--- 0.6.253: /oa positionen - warum sehe ich niemanden auf der Karte? (eigenes Senden, Gildenvorgabe, Empfangenes)
+-- 0.6.253: /oa positionen - why don't I see anyone on the map? (own sending, guild setting, received)
 ns.slash.positionen = function()
     local now = GetTime()
     ns.print(("Positionen | ich sende=%s | Gilde erlaubt=%s | Instanz=%s | Layer=%s"):format(
@@ -153,7 +153,7 @@ Comm.On("HELLOREQ", function() lastKey = nil end)
 
 Comm.On("POS", function(sender, _, mapID, x, y, layer)
     mapID = SEC.Num(mapID, 0, 1e7, true)
-    x, y = SEC.Num(x, 0, 10000), SEC.Num(y, 0, 10000)   -- Kartenkoordinaten 0..1 (x10000)
+    x, y = SEC.Num(x, 0, 10000), SEC.Num(y, 0, 10000)   -- Map coordinates 0..1 (x10000)
     if not mapID or mapID == 0 or not x or not y then
         Map.pos[sender] = nil
     else
@@ -161,12 +161,12 @@ Comm.On("POS", function(sender, _, mapID, x, y, layer)
         local now = GetTime()
         local prev = Map.pos[sender]
         local np = { mapID = mapID, x = x / 10000, y = y / 10000, t = now, layer = layer }
-        -- 0.6.139: gleiten statt springen - von der gerade angezeigten Stelle ueber die Zeit bis zur naechsten Meldung
+        -- 0.6.139: glide instead of jump - from the currently shown spot over time to the next report
         if prev and prev.mapID == mapID and now - prev.t < 20 then
             np.fx, np.fy = Map.Glide(prev, now)
             np.gt0 = now
             np.gdur = math.max(0.5, math.min(10, now - prev.t))
-            -- weit gesprungen (Flugpunkt, Ruhestein): nicht ueber die Karte gleiten
+            -- jumped far (flight point, hearthstone): don't glide across the map
             if math.abs(np.fx - np.x) + math.abs(np.fy - np.y) > 0.15 then np.fx = nil end
         end
         Map.pos[sender] = np
@@ -174,7 +174,7 @@ Comm.On("POS", function(sender, _, mapID, x, y, layer)
     Map.dirty = true
 end)
 
--- Eindeutige Roster-Zuordnung statt Vergleich von Vorname und vollem Namen.
+-- Unique roster mapping instead of comparing first name and full name.
 local function memberKey(name)
     if not name then return end
     local full = ns.fullName(name)
@@ -182,7 +182,7 @@ local function memberKey(name)
     return member and member.name or full
 end
 
--- angezeigte Position (gleitend zwischen zwei Meldungen); ohne Gleitdaten die gemeldete Stelle
+-- displayed position (gliding between two reports); without glide data the reported spot
 function Map.Glide(p, now)
     if not p.fx then return p.x, p.y end
     local q = ((now or GetTime()) - p.gt0) / p.gdur
@@ -214,11 +214,11 @@ function Map.Active()
 end
 
 ------------------------------------------------------------------------
--- Koordinaten zwischen Karten umrechnen
+-- Convert coordinates between maps
 ------------------------------------------------------------------------
 local cache = {}
--- Rueckfall ueber Kartenrechtecke (klappt in Classic auch dort, wo die Weltkoordinaten fehlen):
--- Position erst auf den gemeinsamen Kontinent umrechnen, dann auf die Zielkarte
+-- Fallback via map rectangles (works in Classic even where world coordinates are missing):
+-- convert the position to the shared continent first, then to the target map
 local function rectOn(child, parent)
     if not (C_Map and C_Map.GetMapRectOnMap) then return nil end
     local ok, a, b, c, d = pcall(C_Map.GetMapRectOnMap, child, parent)
@@ -271,8 +271,8 @@ end
 
 function Map.ShowOnWorldMap(mapID)
     if not mapID then return end
-    -- 0.5.941: im Kampf nicht oeffnen/umschalten - aus Addon-Code geoeffnet, darf Blizzards Karte ihre Pins nicht
-    -- einrichten (Blockiert-Meldung "Button:SetPassThroughButtons()"). Ziel und Minimap-Pfeil bleiben gesetzt.
+    -- 0.5.941: don't open/switch in combat - opened from addon code, Blizzard's map must not set up its pins
+    -- (blocked message "Button:SetPassThroughButtons()"). Target and minimap arrow stay set.
     if ns.inCombat and ns.inCombat() then
         if not Map.combatHintAt or GetTime() - Map.combatHintAt > 15 then
             Map.combatHintAt = GetTime()
@@ -286,13 +286,13 @@ function Map.ShowOnWorldMap(mapID)
     pcall(WorldMapFrame.SetMapID, WorldMapFrame, mapID)
 end
 
--- Mitglied auf der Weltkarte zeigen: genaue Position (wenn es Oasis hat und teilt) oder wenigstens das Gebiet
+-- Show a member on the world map: exact position (if they have Oasis and share it) or at least the zone
 local zoneCache = {}
 local function mapIDForZone(zone)
     if not zone or zone == "" or not (C_Map and C_Map.GetMapChildrenInfo) then return nil end
     if zoneCache[zone] ~= nil then return zoneCache[zone] or nil end
     local found = false
-    -- Azeroth, Kalimdor, Oestliche Koenigreiche, Scherbenwelt, Nordend
+    -- Azeroth, Kalimdor, Eastern Kingdoms, Outland, Northrend
     for _, root in ipairs({ 947, 1414, 1415, 1945, 113, 12, 13 }) do
         local ok, kids = pcall(C_Map.GetMapChildrenInfo, root, nil, true)
         if ok and type(kids) == "table" then
@@ -334,7 +334,7 @@ function Map.ShowMember(name, zone, alias)
 end
 
 ------------------------------------------------------------------------
--- Weltkarten-Punkte
+-- World map dots
 ------------------------------------------------------------------------
 local pins, pinPool = {}, {}
 local provider
@@ -355,13 +355,13 @@ local function newPin(canvas)
     p.dot:SetTexture(ns.MEDIA .. "dot")
     p.dot:SetSize(20, 20)
     p.dot:SetPoint("CENTER")
-    -- Oasis-Logo auf dem Punkt (nur bei Mitgliedern)
+    -- Oasis logo on the dot (members only)
     p.logo = p:CreateTexture(nil, "OVERLAY", nil, 2)
     p.logo:SetTexture(ns.MEDIA .. "logo64")
     p.logo:SetSize(12, 12)
     p.logo:SetPoint("CENTER", 0, 0)
     p.logo:Hide()
-    -- Gilden ohne Oasis-Logo: Anfangsbuchstaben des Gildennamens
+    -- Guilds without an Oasis logo: initials of the guild name
     p.mono = K.Title(p, 9, C.text, "CENTER")
     p.mono:SetPoint("CENTER", 0, 0)
     p.mono:SetShadowOffset(1, -1)
@@ -388,10 +388,10 @@ local function acquire(canvas)
     p.glow:SetVertexColor(0, 0, 0)
     p.glow:SetAlpha(0.7)
     p.ring:Show() p.glow:Show() p.dot:Show()
-    -- Ziel-Puls eines frueheren Einsatzes abschalten
+    -- Turn off the target pulse of an earlier use
     p:SetScript("OnUpdate", nil)
     if p.pulse then p.pulse:Hide() end
-    -- vorher als Mitglieder-Punkt benutzt: Standard-Aussehen wiederherstellen
+    -- previously used as a member dot: restore the default look
     if p.isMemberStyle then
         p.isMemberStyle = nil
         p.ring:SetTexture(ns.MEDIA .. "ring")
@@ -415,8 +415,8 @@ local function releaseAll()
     wipe(pins)
 end
 
--- Gilden-Zeichen auf dem Mitglieder-Punkt: Oasis-Logo oder Anfangsbuchstaben des Gildennamens
--- (je nachdem, was die Gildenleitung als Logo eingestellt hat)
+-- Guild mark on the member dot: Oasis logo or initials of the guild name
+-- (depending on what the guild leadership set as logo)
 local function initials(text)
     local out = {}
     for word in tostring(text or ""):gmatch("%S+") do
@@ -426,7 +426,7 @@ local function initials(text)
     end
     return table.concat(out)
 end
--- Klasse eines Kartenpunkts: Gildenliste, sonst Oasis-Profil (Namen mit Akzenten/Realm sicher)
+-- Class of a map dot: guild roster, otherwise Oasis profile (safe for names with accents/realm)
 function Map.ClassOf(e)
     local c = ns.Radar and ns.Radar.ClassOf and ns.Radar.ClassOf(e.name)
     if c then return c end
@@ -449,8 +449,8 @@ function Map.ApplyGuildMark(pin)
 end
 
 ------------------------------------------------------------------------
--- Heatmap: wo haelt sich die Gilde auf? Jede Minute: meine Position + alle geteilten Gilden-Positionen,
--- in einem 40x40-Raster je Karte. Hauptstaedte zaehlen nur 1/5 (dort steht man sowieso oft rum).
+-- Heatmap: where does the guild hang out? Every minute: my position + all shared guild positions,
+-- in a 40x40 grid per map. Capitals count only 1/5 (people stand around there a lot anyway).
 ------------------------------------------------------------------------
 local HEAT_N = 40
 local CAPITAL = { [1453] = true, [1454] = true, [1455] = true, [1456] = true, [1457] = true, [1458] = true }
@@ -463,7 +463,7 @@ local function heatAdd(mapID, x, y)
     h[cell] = (h[cell] or 0) + (CAPITAL[mapID] and 0.2 or 1)
 end
 local function heatTick()
-    -- nur sammeln, wenn die Heatmap an ist (Standard aus) - sonst waechst die Speicherdatei umsonst
+    -- only collect if the heatmap is on (default off) - otherwise the saved variables file grows for nothing
     if not ns.db or not ns.db.settings.mapHeat then return end
     if not ns.inInstance() then
         local mapID, x, y = ns.MyMapPosition()
@@ -473,7 +473,7 @@ local function heatTick()
         if not ns.isMe(e.name) then heatAdd(e.p.mapID, e.p.x, e.p.y) end
     end
 end
--- aeltere Werte langsam vergessen: pro Tag 3 %
+-- slowly forget older values: 3 % per day
 local function heatDecay()
     ns.db.heat = ns.db.heat or {}
     local day = math.floor(ns.now() / 86400)
@@ -490,11 +490,11 @@ local function heatDecay()
     ns.db.heatDay = day
 end
 ns.Listen("LOGIN", function()
-    -- Heatmap ist standardmaessig aus (einmalig auch fuer alle, die sie schon an hatten)
+    -- Heatmap is off by default (once also for everyone who already had it on)
     if not ns.db.settings.heatOffV2 then ns.db.settings.heatOffV2 = true ns.db.settings.mapHeat = false end
-    -- 0.5.568: Heatmap aus -> gesammelte Felder nicht weiter im Speicher halten
+    -- 0.5.568: heatmap off -> don't keep collected cells in memory any longer
     if not ns.db.settings.mapHeat then ns.db.heat, ns.db.heatDay = nil, nil end
-    -- Levelbereiche standardmaessig aus (einmalig auch fuer alle, bei denen sie schon an waren)
+    -- Level ranges off by default (once also for everyone who already had them on)
     if not ns.db.settings.levelsOffV2 then ns.db.settings.levelsOffV2 = true ns.db.settings.mapLevels = false end
     heatDecay()
     C_Timer.NewTicker(60, function() pcall(heatTick) end)
@@ -502,14 +502,14 @@ end)
 Map.HeatAdd = heatAdd
 
 local heatTex = {}
--- Waerme-Verlauf: dunkles Orange -> Gelb -> Rot (keine Regenbogenfarben mehr)
+-- Heat gradient: dark orange -> yellow -> red (no more rainbow colors)
 local function heatColor(q)
-    -- auf der hellen Karte gut sichtbar: Orange -> Rot -> Dunkelrot
+    -- clearly visible on the light map: orange -> red -> dark red
     if q < 0.5 then local t = q / 0.5 return 1, 0.55 - 0.3 * t, 0.1 end
     local t = (q - 0.5) / 0.5
     return 1 - 0.3 * t, 0.25 - 0.2 * t, 0.1
 end
--- Raster weichzeichnen (5x5-Gauss), damit aus einzelnen Punkten zusammenhaengende Flaechen werden
+-- Blur the grid (5x5 Gaussian) so single points become connected areas
 local KERNEL = { [0] = 1, [1] = 0.6, [2] = 0.22 }
 local function smooth(h)
     local out = {}
@@ -554,11 +554,11 @@ function Map.DrawHeat(canvas, mapID)
     local i = 0
     for c, v in pairs(h) do
         local q = math.sqrt(v / max)
-        if i > 1800 then break end   -- Obergrenze, damit die Karte fluessig bleibt
-        if q > 0.12 then   -- ganz schwache Raender weglassen
+        if i > 1800 then break end   -- Upper limit so the map stays smooth
+        if q > 0.12 then   -- leave out very faint edges
             local r, g, b = heatColor(q)
             local x, y = ((c % HEAT_N) + 0.5) * sw, -((math.floor(c / HEAT_N)) + 0.5) * sh
-            -- drei weiche Lagen pro Feld (gross + blass, mittel, klein + kraeftig) = unscharfer Fleck
+            -- three soft layers per cell (large + pale, medium, small + strong) = blurry blob
             for layer = 1, 3 do
                 i = i + 1
                 local t = heatTexture(canvas, i)
@@ -574,7 +574,7 @@ function Map.DrawHeat(canvas, mapID)
     end
 end
 
--- Levelbereiche der Gebiete (Classic-Stand) - klein und dezent in der Gebietsmitte auf der Kontinentkarte
+-- Level ranges of the zones (Classic state) - small and subtle in the zone center on the continent map
 local ZONE_LVL = {
     [1411] = { 1, 10 }, [1412] = { 1, 10 }, [1413] = { 10, 25 }, [1438] = { 1, 10 }, [1439] = { 10, 20 }, [1440] = { 18, 30 },
     [1441] = { 25, 35 }, [1442] = { 15, 27 }, [1443] = { 30, 40 }, [1444] = { 40, 50 }, [1445] = { 35, 45 }, [1446] = { 40, 50 },
@@ -584,7 +584,7 @@ local ZONE_LVL = {
     [1428] = { 50, 58 }, [1429] = { 1, 10 }, [1430] = { 55, 60 }, [1431] = { 18, 30 }, [1432] = { 10, 20 }, [1433] = { 15, 25 },
     [1434] = { 30, 45 }, [1435] = { 35, 45 }, [1436] = { 10, 20 }, [1437] = { 20, 30 },
 }
--- neue WoW-Forever-Gebiete (Kartennummer per Name gesucht): Flusslande/Riverglades 35-45, Hyjal 60, Zephras 1-12
+-- new WoW Forever zones (map number looked up by name): Flusslande/Riverglades 35-45, Hyjal 60, Zephras 1-12
 local ZONE_BY_NAME = {
     { names = { "flusslande", "riverglades", "dieflusslande" }, lv = { 35, 45 } },
     { names = { "hyjal", "berghyjal", "mounthyjal" }, lv = { 60, 60 } },
@@ -625,7 +625,7 @@ function Map.DrawZoneLevels(canvas, mapID)
             elseif t:GetParent() ~= canvas then
                 t:SetParent(canvas)
             end
-            -- zu leicht gruen, passend gelb, etwas zu hoch orange, viel zu hoch rot
+            -- too easy green, fitting yellow, a bit too high orange, much too high red
             local c
             if me > lv[2] then c = { 0.4, 0.9, 0.5 }
             elseif me >= lv[1] then c = { 1, 0.85, 0.3 }
@@ -651,18 +651,18 @@ function Map.UpdateWorldPins()
     local cw, ch = canvas:GetWidth(), canvas:GetHeight()
     local cscale = WorldMapFrame.GetCanvasScale and WorldMapFrame:GetCanvasScale() or 1
     local s = 1 / math.max(cscale, 0.01)
-    s = s * (ns.db.settings.mapPinScale or 1)   -- 0.5.933: Groesse einstellbar
+    s = s * (ns.db.settings.mapPinScale or 1)   -- 0.5.933: size configurable
     local function place(pin, x, y)
         pin:SetScale(s)
         pin:ClearAllPoints()
         pin:SetPoint("CENTER", canvas, "TOPLEFT", (x * cw) / s, (-y * ch) / s)
-        -- Ebene der Karte selbst: Pins liegen auf der Karte, aber nie ueber anderen Fenstern
+        -- Layer of the map itself: pins lie on the map but never above other windows
         pin:SetFrameStrata(canvas:GetFrameStrata())
-        pin:SetFrameLevel(math.min(9000, canvas:GetFrameLevel() + 2500))   -- ueber Blizzards Karten-Symbolen
+        pin:SetFrameLevel(math.min(9000, canvas:GetFrameLevel() + 2500))   -- above Blizzard's map icons
         pin:Show()
     end
-    -- Gruppenpositionen gehoeren Blizzard, unabhaengig vom Kartentyp.
-    -- GUID zusaetzlich vergleichen: Forever liefert unterschiedliche Namensformen.
+    -- Group positions belong to Blizzard, regardless of the map type.
+    -- Also compare GUID: Forever returns different name forms.
     local groupNames, groupGUIDs = {}, {}
     local prefix, count = IsInRaid() and "raid" or "party", IsInRaid() and 40 or 4
     for i = 0, count do
@@ -678,26 +678,26 @@ function Map.UpdateWorldPins()
         end
     end
     groupNames[memberKey(ns.me())] = true
-    -- Mitglieder
+    -- Members
     for _, e in ipairs(Map.Active()) do
         local gx, gy = Map.Glide(e.p)
         local x, y = translate(e.p.mapID, gx, gy, mapID)
-        -- wer in meiner Gruppe ist, hat schon Blizzards Punkt: dann nur Name + Layer (kein zweiter Punkt)
+        -- whoever is in my group already has Blizzard's dot: then only name + layer (no second dot)
         local sh = ns.short(e.name)
         local member = ns.Radar and ns.Radar.byName and ns.Radar.byName[memberKey(e.name)]
         local inGroup = groupNames[memberKey(e.name)] == true
             or (member and member.guid and groupGUIDs[member.guid] == true)
-        -- Keine alte Oasis-Position neben dem aktuellen Blizzard-Gruppenpunkt zeichnen.
+        -- Don't draw an old Oasis position next to the current Blizzard group dot.
         if x and not inGroup and not ns.isMe(e.name) then
             local pin = acquire(canvas)
             local r, g, b = ns.classColor(Map.ClassOf(e))
-            -- wie Blizzards Gruppenpunkte: kleiner runder Punkt in Klassenfarbe mit dunklem Rand
+            -- like Blizzard's group dots: small round dot in class color with dark border
             pin.ring:SetTexture(ns.MEDIA .. "dot")
             pin.ring:SetVertexColor(0, 0, 0, 1)
             pin.ring:ClearAllPoints()
             pin.ring:SetPoint("CENTER")
             pin.ring:SetSize(24, 24)
-            -- heller Innenrand, damit auch helle Klassenfarben auf der Karte gut sichtbar sind
+            -- light inner border so light class colors are also clearly visible on the map
             pin.glow:SetTexture(ns.MEDIA .. "dot")
             pin.glow:ClearAllPoints()
             pin.glow:SetPoint("CENTER")
@@ -707,22 +707,22 @@ function Map.UpdateWorldPins()
             pin.glow:SetDrawLayer("ARTWORK", 1)
             pin.dot:SetTexture(ns.MEDIA .. "dot")
             pin.dot:SetVertexColor(r, g, b)
-            pin.dot:SetSize(18, 18)   -- grosse Klassenfarben-Flaeche, nur duenner heller Rand
-            pin:SetSize(24, 24)   -- alle Mitglieder-Punkte gleich gross, Name direkt darunter
+            pin.dot:SetSize(18, 18)   -- large class color area, only a thin light border
+            pin:SetSize(24, 24)   -- all member dots the same size, name directly below
             pin.isMemberStyle = true
-            -- Mitglieder: nur Klassenfarbe (kein Gilden-Logo darauf)
+            -- Members: class color only (no guild logo on it)
             pin.logo:Hide()
             pin.mono:Hide()
             local lay = Map.SameLayer(e.name)
             local layTxt = lay == true and ("\n|cff66db9e" .. L["same layer"] .. "|r") or (lay == false and ("\n|cffd9786b" .. L["other layer"] .. "|r") or "")
-            -- Name weiss, nur beim Drueberfahren ueber den Punkt (Gruppenmitglieder ohne eigenen Punkt: immer)
+            -- Name white, only on hover over the dot (group members without their own dot: always)
             pin.label:SetText(ns.db.settings.mapNames and (ns.displayName(e.name) .. layTxt) or "")
             pin.hoverLabel = not inGroup
             pin.label:SetAlpha(inGroup and 1 or 0)
             pin.ring:SetShown(not inGroup)
             pin.glow:SetShown(not inGroup)
             pin.dot:SetShown(not inGroup)
-            -- "Auf der Karte zeigen": Kreis pulsiert ein paar Sekunden in der Akzentfarbe
+            -- "Auf der Karte zeigen": circle pulses for a few seconds in the accent color
             if Map.IsFlash(e.name) then
                 pin.ring:Show() pin.glow:Show() pin.dot:Show()
                 pin:SetScript("OnUpdate", function(self)
@@ -747,7 +747,7 @@ function Map.UpdateWorldPins()
             place(pin, x, y)
         end
     end
-    -- Lagerfeuer (0.6.499: nur mit Schalter "Lagerfeuer auf der Karte", Standard aus)
+    -- Campfires (0.6.499: only with toggle "Lagerfeuer auf der Karte", default off)
     if ns.Camp and ns.db.settings.mapCamp == true then
         for _, f in ipairs(ns.Camp.ActiveFires()) do
             local x, y = translate(f.mapID, (f.x or 0) / 10000, (f.y or 0) / 10000, mapID)
@@ -756,7 +756,7 @@ function Map.UpdateWorldPins()
                 pin.dot:SetTexture(ns.MEDIA .. "diamond")
                 pin.dot:SetVertexColor(C.pink[1], C.pink[2], C.pink[3])
                 pin.ring:SetVertexColor(C.amber[1], C.amber[2], C.amber[3])
-                pin.label:SetText(L["Campfire"] .. "  " .. math.max(0, math.ceil(((f.exp or 0) - ns.now()) / 60)) .. L[" min"])   -- 0.5.936: Restlaufzeit
+                pin.label:SetText(L["Campfire"] .. "  " .. math.max(0, math.ceil(((f.exp or 0) - ns.now()) / 60)) .. L[" min"])   -- 0.5.936: remaining time
                 pin.tip = { L["|cffff3fbfCampfire|r by "] .. ns.Radar.Colored(f.by) }
                 if (f.note or "") ~= "" then pin.tip[#pin.tip + 1] = f.note end
                 pin.tip[#pin.tip + 1] = L[""] .. math.max(0, math.ceil(((f.exp or 0) - ns.now()) / 60)) .. L[" min"]
@@ -764,7 +764,7 @@ function Map.UpdateWorldPins()
             end
         end
     end
-    -- Sterbeorte der letzten 14 Tage
+    -- Death locations of the last 14 days
     if ns.Deaths and ns.db.settings.mapDeaths then
         for _, d in ipairs(ns.Deaths.MapPins()) do
             local x, y = translate(d.mapID, (d.x or 0) / 10000, (d.y or 0) / 10000, mapID)
@@ -780,7 +780,7 @@ function Map.UpdateWorldPins()
             end
         end
     end
-    -- Questziel (Questgeber aus der Dungeon-Seite)
+    -- Quest target (quest giver from the dungeon page)
     local tg = Map.FollowTarget()
     if tg and not tg.member then
         local x, y = translate(tg.mapID, tg.x, tg.y, mapID)
@@ -789,12 +789,12 @@ function Map.UpdateWorldPins()
             pin.dot:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
             pin.dot:SetVertexColor(1, 1, 1)
             pin.ring:SetVertexColor(C.amber[1], C.amber[2], C.amber[3])
-            -- Ziel ist ein Mitglied: dessen Punkt beschriftet schon den Namen -> keine zweite Beschriftung
+            -- Target is a member: their dot already shows the name -> no second label
             pin.label:SetText(tg.member and "" or (tg.label or ""))
             pin.tip = { "|cffffd24a" .. (tg.label or "") .. "|r", tg.sub or "", L["|cff777777Disappears once you get there|r"] }
             place(pin, x, y)
             pin:SetAlpha(1)
-            -- ueber allem (auch ueber Blizzards Quest-Symbolen) und die ersten Sekunden rot pulsieren
+            -- above everything (including Blizzard's quest icons) and pulse red for the first seconds
             pin:SetFrameStrata("FULLSCREEN_DIALOG")
             pin:SetFrameLevel(math.min(9200, canvas:GetFrameLevel() + 2700))
             if not pin.pulse then
@@ -811,7 +811,7 @@ function Map.UpdateWorldPins()
                     self.pulse:SetVertexColor(1, 0.2, 0.15, 0.35)
                     return
                 end
-                local ph = (t * 1.6) % 1                  -- Welle von innen nach aussen
+                local ph = (t * 1.6) % 1                  -- Wave from the inside out
                 local sz = 20 + 70 * ph
                 self.pulse:SetSize(sz, sz)
                 self.pulse:SetVertexColor(1, 0.15, 0.1, 0.9 * (1 - ph))
@@ -821,9 +821,9 @@ function Map.UpdateWorldPins()
 end
 
 ------------------------------------------------------------------------
--- Questziel setzen / entfernen (Welt- und Minimap)
+-- Set / remove quest target (world map and minimap)
 ------------------------------------------------------------------------
--- Punkt eines Mitglieds kurz blinken lassen (bewegt sich mit, weil es sein eigener Punkt ist)
+-- Let a member's dot blink briefly (moves along because it is their own dot)
 function Map.Flash(name, secs)
     Map.flashName, Map.flashUntil = name, GetTime() + (secs or 4)
     Map.dirty = true
@@ -834,7 +834,7 @@ function Map.IsFlash(n)
     if not f or GetTime() > (Map.flashUntil or 0) then return false end
     return ns.SameName(n, f)
 end
--- Ziel auf ein Mitglied: Position immer aus dessen aktuellem Standort
+-- Target on a member: position always from their current location
 function Map.FollowTarget()
     local tg = Map.target
     if tg and tg.member then
@@ -852,7 +852,7 @@ function Map.SetTarget(t)
     Map.UpdateWorldPins()
     if Map.UpdateMinimap then Map.UpdateMinimap() end
     K.Toast(L["Target set"], (t.label or "") .. ((t.sub or "") ~= "" and ("  ·  " .. t.sub) or ""), C.amber, function() Map.ClearTarget() end)
-    if ns.Compat and ns.Compat.TomTomTarget then pcall(ns.Compat.TomTomTarget, t) end   -- 0.6.525: auch als TomTom-Wegpunkt
+    if ns.Compat and ns.Compat.TomTomTarget then pcall(ns.Compat.TomTomTarget, t) end   -- 0.6.525: also as TomTom waypoint
 end
 function Map.ClearTarget()
     Map.target = nil
@@ -864,9 +864,9 @@ end
 
 local function setupWorldMap()
     if provider or not WorldMapFrame or not MapCanvasDataProviderMixin then return end
-    -- 0.6.520: KEIN eigener DataProvider mehr - Blizzard ruft die Provider in einer Schleife auf; nach unserem
-    -- (unsicheren) Provider liefen Blizzards Pins verseucht -> im Kampf "Blocked: Button:SetPassThroughButtons()".
-    -- Nachgelagerte Hooks laufen getrennt und verseuchen Blizzards Ablauf nicht.
+    -- 0.6.520: NO own DataProvider anymore - Blizzard calls the providers in a loop; after our
+    -- (insecure) provider Blizzard's pins ran tainted -> in combat "Blocked: Button:SetPassThroughButtons()".
+    -- Post hooks run separately and don't taint Blizzard's flow.
     provider = true
     local function upd() local ok, e = pcall(Map.UpdateWorldPins) if not ok then ns.err("World map", e) end end
     if WorldMapFrame.OnMapChanged then hooksecurefunc(WorldMapFrame, "OnMapChanged", upd) end
@@ -876,12 +876,12 @@ local function setupWorldMap()
     WorldMapFrame:HookScript("OnHide", function() if Map.bar then Map.bar:Hide() end end)
 end
 
--- Oasis-Leiste unter der Weltkarte: Position teilen, Namen, Minimap-Punkte, Heatmap
+-- Oasis bar under the world map: share position, names, minimap dots, heatmap
 function Map.ShowMapBar()
     if not WorldMapFrame or not WorldMapFrame:IsShown() then return end
     if not Map.bar then
-        -- 0.5.965: Leiste mit kleinen Schiebeschaltern, alles in EINER Zeile. Wird es eng, rueckt sie zusammen
-        -- (kleinere Schrift, engere Abstaende, Knoepfe rechts nur als Symbol); erst wenn auch das nicht reicht, bricht sie um.
+        -- 0.5.965: bar with small slide toggles, everything in ONE row. When it gets tight, it contracts
+        -- (smaller font, tighter spacing, buttons on the right as icon only); only if that isn't enough either does it wrap.
         local b = CreateFrame("Frame", "OasisMapBar", UIParent)
         b:SetHeight(34)
         b:SetFrameStrata(WorldMapFrame:GetFrameStrata() or "HIGH")
@@ -897,7 +897,7 @@ function Map.ShowMapBar()
         b.logo:SetSize(18, 18)
         b.logo:SetPoint("TOPLEFT", 12, -8)
         b.boxes, b.seps = {}, {}
-        -- { Schalter, Text, danach, Gruppe, Tooltip }  (Heatmap, Position teilen und Minimap-Punkte stehen nur noch in den Einstellungen)
+        -- { toggle, text, after, group, tooltip }  (heatmap, share position and minimap dots are only in the settings now)
         local defs = {
             { "mapNames", "Names", function() Map.UpdateWorldPins() end, 1, "Names next to guild member dots" },
             { "mapLevels", "Level ranges", function() Map.UpdateWorldPins() end, 2, "Level range of zones on the map" },
@@ -907,7 +907,7 @@ function Map.ShowMapBar()
             { "gatherRoute", "Gathering route", function() if ns.Gather and ns.Gather.Refresh then ns.Gather.Refresh() end end, 3, "Connects the zone's spots into a loop" },
         }
         local SW_W, SW_H, KNOB = 22, 12, 8
-        -- 0.6.569: Aufdecken und Sammelpunkte stecken in Oasis Convenience - ohne das Teil-Addon keine Schalter
+        -- 0.6.569: reveal and gathering nodes live in Oasis Convenience - no toggles without that sub-addon
         local need = { mapReveal = ns.ComfortPlus, mapGather = ns.Gather, gatherRoute = ns.Gather }
         for _, d in ipairs(defs) do
           if need[d[1]] ~= nil or (d[1] ~= "mapReveal" and d[1] ~= "mapGather" and d[1] ~= "gatherRoute") then
@@ -916,7 +916,7 @@ function Map.ShowMapBar()
             t.hl = t:CreateTexture(nil, "HIGHLIGHT")
             t.hl:SetAllPoints()
             t.hl:SetColorTexture(1, 1, 1, 0.04)
-            -- kleiner Schiebeschalter: Bahn + runder Knopf (rechts = an)
+            -- small slide toggle: track + round knob (right = on)
             t.pill = K.Pill(t, SW_W, SW_H)
             t.pill:SetPoint("LEFT", 4, 0)
             t.knob = K.KnobCircle(t.pill, KNOB)
@@ -958,7 +958,7 @@ function Map.ShowMapBar()
             sp:SetSize(1, 14)
             b.seps[i] = sp
         end
-        -- Knoepfe rechts: Symbol + Text (bei wenig Platz nur das Symbol), beim Ueberfahren hell
+        -- Buttons on the right: icon + text (only the icon when space is tight), bright on hover
         local function action(text, icon, onClick, tip)
             local g = CreateFrame("Button", nil, b)
             g:SetHeight(26)
@@ -1003,7 +1003,7 @@ function Map.ShowMapBar()
         b.asep = b:CreateTexture(nil, "ARTWORK")
         b.asep:SetColorTexture(1, 1, 1, 0.10)
         b.asep:SetSize(1, 14)
-        -- Stufen von luftig nach eng: { Schriftgroesse, Abstand zwischen Gruppen, Knoepfe mit Text }
+        -- Levels from airy to tight: { font size, spacing between groups, buttons with text }
         local STEPS = { { 12, 18, true }, { 11, 14, true }, { 11, 12, false }, { 10, 8, false } }
         function b:Layout()
             local w = self:GetWidth() or 0
@@ -1026,7 +1026,7 @@ function Map.ShowMapBar()
             for _, s in ipairs(self.seps) do s:Hide() end
             for _, t in ipairs(self.boxes) do
                 local newGroup = prev and prev.group ~= t.group
-                -- erste Zeile teilt sich den Platz mit den Knoepfen rechts; Umbruch nur, wenn selbst die engste Stufe nicht passt
+                -- the first row shares the space with the buttons on the right; wrap only if even the tightest level doesn't fit
                 local limit = w - 8 - (row == 0 and actionsW + 16 or 0)
                 if w > 300 and x > LEFT and x + (newGroup and GAP or 0) + t:GetWidth() > limit then
                     row, x, newGroup = row + 1, LEFT, false
@@ -1068,9 +1068,9 @@ function Map.ShowMapBar()
 end
 
 ------------------------------------------------------------------------
--- Minimap-Punkte (in die bestehende Minimap integriert)
+-- Minimap dots (integrated into the existing minimap)
 ------------------------------------------------------------------------
--- Durchmesser der Minimap in Metern je Zoomstufe (wie HereBeDragons)
+-- Minimap diameter in meters per zoom level (like HereBeDragons)
 local MINIMAP_SIZE = {
     indoor = { [0] = 300, 240, 180, 120, 80, 50 },
     outdoor = { [0] = 466 + 2 / 3, 400, 333 + 1 / 3, 266 + 2 / 6, 200, 133 + 1 / 3 },
@@ -1082,8 +1082,8 @@ local function getCVar(name)
     return GetCVar and GetCVar(name)
 end
 
--- Umrechnung je Punkt merken (Performance 0.5.482): Positionen aendern sich nur, wenn eine neue Meldung kommt -
--- vorher liefen pro Takt (0,15 s) und Mitglied zwei C_Map-Abfragen, Vektor-Objekte und pcalls.
+-- Cache the conversion per dot (performance 0.5.482): positions only change when a new report arrives -
+-- previously each tick (0.15 s) and member ran two C_Map queries, vector objects and pcalls.
 local tcache = setmetatable({}, { __mode = "k" })
 local function cachedTranslate(rec, src, x, y, dst)
     local c = tcache[rec]
@@ -1093,7 +1093,7 @@ local function cachedTranslate(rec, src, x, y, dst)
     c[1], c[2], c[3], c[4], c[5], c[6] = src, x, y, dst, tx, ty
     return tx, ty
 end
--- wer in meiner Gruppe ist (Blizzard zeigt sie selbst) - nur bei Gruppenwechsel neu
+-- who is in my group (Blizzard shows them itself) - recomputed only on group change
 local inGroup, groupDirty = {}, true
 ns.On("GROUP_ROSTER_UPDATE", function() groupDirty = true end)
 local function isGrouped(name)
@@ -1109,7 +1109,7 @@ local function isGrouped(name)
     end
     return inGroup[ns.NameKey(name)] == true
 end
--- Tooltip erst beim Ueberfahren bauen (vorher pro Takt und Punkt eine neue Tabelle)
+-- Build the tooltip only on hover (previously a new table per tick and dot)
 local function pinTip(p)
     if p.kind == "m" then
         local m = ns.Radar.byName[p.who]
@@ -1168,9 +1168,9 @@ function Map.UpdateMinimap()
             local facing = rotate and ns.safe(GetPlayerFacing and GetPlayerFacing()) or nil
             local sinF, cosF = 0, 1
             if facing then sinF, cosF = math.sin(facing), math.cos(facing) end
-            local sc, userAlpha = ns.db.settings.mmDotScale or 1, ns.db.settings.mmDotAlpha or 1   -- 0.5.933: einstellbar
+            local sc, userAlpha = ns.db.settings.mmDotScale or 1, ns.db.settings.mmDotAlpha or 1   -- 0.5.933: configurable
 
-            -- Punkt setzen; liefert Pin und Entfernung (Meter)
+            -- Set a dot; returns pin and distance (meters)
             local function place(x, y)
                 local dx, dy = (x - mx) * w, (y - my) * h
                 local dist = math.floor(math.sqrt(dx * dx + dy * dy))
@@ -1181,10 +1181,10 @@ function Map.UpdateMinimap()
                 if edge then nx, ny = nx / d * 0.9, ny / d * 0.9 end
                 mmUsed = mmUsed + 1
                 local p = mmPin(mmUsed)
-                p:SetScale(sc)   -- Abstaende zaehlen im Massstab des Punkts -> durch sc teilen
+                p:SetScale(sc)   -- Distances count in the dot's scale -> divide by sc
                 p:ClearAllPoints()
                 p:SetPoint("CENTER", Minimap, "CENTER", nx * half / sc, -ny * half / sc)
-                -- direkt ueber dem eigenen Pfeil: unsichtbar (wer neben mir steht, verdeckt mich sonst)
+                -- directly above my own arrow: invisible (whoever stands next to me would otherwise cover me)
                 p:SetAlpha((not ns.MiniPinVisible or ns.MiniPinVisible(nx * half, ny * half)) and (edge and 0.55 or 1) * userAlpha or 0)
                 p:Show()
                 p.dist = dist
@@ -1193,7 +1193,7 @@ function Map.UpdateMinimap()
 
             local now = GetTime()
             for name, pos in pairs(Map.pos) do
-                -- Gruppenmitglieder zeigt Blizzard schon auf der Minimap -> keinen zweiten Punkt
+                -- Blizzard already shows group members on the minimap -> no second dot
                 if now - pos.t < EXPIRE and not isGrouped(name) then
                     local gx, gy = Map.Glide(pos, now)
                     local x, y = cachedTranslate(pos, pos.mapID, gx, gy, myMap)
@@ -1217,7 +1217,7 @@ function Map.UpdateMinimap()
                     end
                 end
             end
-            -- Questziel: immer zeigen, am Rand wenn weit weg; bei Ankunft entfernen
+            -- Quest target: always show, at the edge when far away; remove on arrival
             local tg = Map.FollowTarget()
             if tg then
                 local x, y = translate(tg.mapID, tg.x, tg.y, myMap)
@@ -1243,13 +1243,13 @@ function Map.UpdateMinimap()
 end
 
 ------------------------------------------------------------------------
--- Seite: Liste nach Gebiet (mit Entfernung + Richtung), Gebiete, Einstellungen
+-- Page: list by zone (with distance + direction), zones, settings
 ------------------------------------------------------------------------
-local NEAR = 500   -- Meter fuer "in deiner Naehe"
+local NEAR = 500   -- Meters for "near you"
 local search, openZones = "", {}
 local atan2 = math.atan2 or math.atan
 
--- Entfernung (Meter) und Richtung (Bogenmass, 0 = Norden, im Uhrzeigersinn) zu einer Position
+-- Distance (meters) and direction (radians, 0 = north, clockwise) to a position
 function Map.Distance(p)
     local myMap, mx, my = ns.MyMapPosition()
     if not myMap then return nil end
@@ -1290,7 +1290,7 @@ local function panel(parent, title)
     return f
 end
 
--- Daten fuer die Liste: nach Gebiet gruppiert, eigenes Gebiet zuerst, innen nach Entfernung/Name
+-- Data for the list: grouped by zone, own zone first, inside by distance/name
 local function buildRows()
     local myMap = C_Map.GetBestMapForUnit("player")
     local groups, order = {}, {}
@@ -1330,7 +1330,7 @@ ns.RegisterPage({
     key = "map", title = "Map & radar", order = 7, parent = "settings",
     sub = "Where is the guild? Who is near you – with distance, direction and dots on world map and minimap",
     build = function(p)
-        -- Kennzahlen
+        -- Key figures
         p.cards = {}
         local TD = { { ns.ICONS.map, "Sharing position", C.accent }, { ns.ICONS.radar, "In your zone", C.mint },
             { ns.ICONS.social, "Near you (500 m)", C.amber } }
@@ -1377,7 +1377,7 @@ ns.RegisterPage({
             r.arrow:SetPoint("RIGHT", -8, 0)
             r.cols.dist = K.Text(r, 12, C.text, "RIGHT")
             r.cols.dist:SetPoint("RIGHT", -32, 0)
-            -- Gebiets-Ueberschrift
+            -- Zone heading
             r.hTitle = K.Title(r, 13, C.text)
             r.hTitle:SetPoint("LEFT", 26, 0)
             r.hTwist = K.Text(r, 12, C.muted)
@@ -1459,7 +1459,7 @@ ns.RegisterPage({
         list.empty:SetText(L["Nobody is sharing their position.\nAnyone with Oasis and 'Share my position' on shows up here."])
         p.list = list
 
-        -- Gebiete
+        -- Zones
         local zp = panel(p, L["Zones"])
         zp:SetPoint("TOPRIGHT", 0, -66)
         zp:SetPoint("BOTTOMRIGHT", 0, 146)
@@ -1483,7 +1483,7 @@ ns.RegisterPage({
         p.zones:SetPoint("BOTTOMRIGHT", -4, 6)
         p.zones.empty:SetText(L["No positions yet."])
 
-        -- Einstellungen
+        -- Settings
         local sp = panel(p, L["Settings"])
         sp:SetPoint("BOTTOMRIGHT", 0, 0)
         sp:SetSize(SIDE, 164)
@@ -1546,7 +1546,7 @@ ns.Listen("LOGIN", function()
     ns.After(5, sendPos)
     C_Timer.NewTicker(1, function()
         local now = GetTime()
-        -- 0.6.139: laufe ich, oefter senden (fluessigere Punkte bei den anderen); im Stand wie eingestellt
+        -- 0.6.139: when I'm walking, send more often (smoother dots for the others); standing still as configured
         local mm, mx, my = ns.MyMapPosition()
         local moving = mm and Map.lastMoveX and (mm ~= Map.lastMoveMap or math.abs(mx - Map.lastMoveX) + math.abs(my - Map.lastMoveY) > 0.0004)
         Map.lastMoveMap, Map.lastMoveX, Map.lastMoveY = mm, mx, my
@@ -1564,8 +1564,8 @@ ns.Listen("LOGIN", function()
         end
     end)
     ns.Every(3, function() ns.RefreshPage("map") end)
-    -- Minimap fluessig nachfuehren (Bewegung/Drehung), aber nur wenn es etwas zu zeigen gibt
-    -- "gibt es gerade Lagerfeuer?" nur bei Aenderung bzw. alle 30 s pruefen statt 10x pro Sekunde
+    -- Keep the minimap updated smoothly (movement/rotation), but only if there is something to show
+    -- check "are there campfires right now?" only on change or every 30 s instead of 10x per second
     local hasFires = false
     local fires = {}
     local function checkFires()
@@ -1577,9 +1577,9 @@ ns.Listen("LOGIN", function()
     ns.Every(30, checkFires)
     checkFires()
     local mmTick = 0
-    -- 0.5.929: 20x statt 4x pro Sekunde - Gildenpunkte, Lagerfeuer und Ziel hingen beim Laufen sichtbar nach
+    -- 0.5.929: 20x instead of 4x per second - guild dots, campfires and target visibly lagged while walking
     C_Timer.NewTicker(0.05, function()
-        -- 0.5.722: abgelaufene Positionen regelmaessig loeschen, sonst bleibt next(Map.pos) dauerhaft wahr und der Ticker arbeitet immer
+        -- 0.5.722: delete expired positions regularly, otherwise next(Map.pos) stays true forever and the ticker always works
         mmTick = mmTick + 1
         if mmTick % 100 == 0 and next(Map.pos) then
             local now = GetTime()
@@ -1590,8 +1590,8 @@ ns.Listen("LOGIN", function()
             if not ok2 then ns.err("Kartenpunkte", e2) end
         end
         if mmUsed == 0 and not next(Map.pos) and not Map.target and not hasFires then return end
-        -- Leistung (0.6.479): volle 20x pro Sekunde nur, wenn ich mich bewege oder drehe bzw. die Minimap zoome -
-        -- im Stand reichen 2 Aktualisierungen pro Sekunde (neue Gildenpositionen kommen ohnehin hoechstens alle 2,5 s)
+        -- Performance (0.6.479): full 20x per second only when I move or turn or zoom the minimap -
+        -- standing still, 2 updates per second suffice (new guild positions come at most every 2.5 s anyway)
         if mmTick % 10 ~= 0 then
             local px, py
             if C_Map and C_Map.GetBestMapForUnit and C_Map.GetPlayerMapPosition then

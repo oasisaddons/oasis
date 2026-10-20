@@ -1,8 +1,8 @@
--- Oasis: Einstieg fuer Neue - kurzer Rundgang beim ersten Start + "Einfache Ansicht"
--- Einfach = nur die wichtigsten Bereiche in der Navigation; alles andere bleibt per
--- Einstellungen > Bereiche (oder "Alles zeigen") jederzeit erreichbar. Nutzt hiddenPages,
--- merkt sich aber, was es selbst ausgeblendet hat (settings.simpleHidden), damit "Alles zeigen"
--- nur das wieder einblendet und eigene Entscheidungen des Nutzers bleiben.
+-- Oasis: onboarding for new users - short tour on first start + "Einfache Ansicht"
+-- Simple = only the most important sections in the navigation; everything else stays reachable any time via
+-- Settings > Sections (or "Alles zeigen"). Uses hiddenPages,
+-- but remembers what it hid itself (settings.simpleHidden) so "Alles zeigen"
+-- only shows those again and the user's own decisions stay.
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -43,7 +43,7 @@ function OB.ShowAll()
 end
 
 ------------------------------------------------------------------------
--- Rundgang mit Spotlight: alles abdunkeln, ein Element hervorheben, daneben kurz erklaeren
+-- Tour with spotlight: dim everything, highlight one element, briefly explain next to it
 ------------------------------------------------------------------------
 local function mainF() return ns.MainFrame and ns.MainFrame() end
 local function navOf(key)
@@ -78,13 +78,13 @@ local function build()
     ov = CreateFrame("Frame", "OasisTour", UIParent)
     ov:SetAllPoints(UIParent)
     ov:SetFrameStrata("FULLSCREEN_DIALOG")
-    ov:EnableMouse(true)          -- nichts darunter anklickbar, solange der Rundgang laeuft
-    -- Esc beendet den Rundgang - ueber ns.EscClose, KEIN Tastenfaenger mit SetPropagateKeyboardInput
-    -- (der reicht jede Taste durch Addon-Code und sperrt danach SpellStopCasting/-Targeting)
+    ov:EnableMouse(true)          -- nothing underneath is clickable while the tour is running
+    -- Esc ends the tour - via ns.EscClose, NO key catcher with SetPropagateKeyboardInput
+    -- (it passes every key through addon code and then blocks SpellStopCasting/-Targeting)
     ov:SetScript("OnHide", function() if not (S().onboarded) then S().onboarded = ns.now() end end)
     if ns.EscClose then ns.EscClose(ov) end
     ov.top, ov.bottom, ov.left, ov.right = shade(ov), shade(ov), shade(ov), shade(ov)
-    -- Rahmen um das Hervorgehobene
+    -- Frame around the highlighted element
     ov.ring = CreateFrame("Frame", nil, ov)
     K.Border(ov.ring, C.accent, 2)
     ov.glow = ov.ring:CreateTexture(nil, "BACKGROUND")
@@ -94,7 +94,7 @@ local function build()
         self.t = (self.t or 0) + el
         ov.glow:SetAlpha(0.5 + 0.5 * math.sin(self.t * 3))
     end)
-    -- Erklaer-Blase
+    -- Explanation bubble
     local b = CreateFrame("Frame", nil, ov)
     b:SetSize(320, 150)
     K.Fill(b, { 0.05, 0.05, 0.06, 0.98 })
@@ -132,7 +132,7 @@ local function build()
     ov.bubble = b
 end
 
--- Loch an die Stelle des Ziels legen (Koordinaten in UIParent-Einheiten)
+-- Put the hole where the target is (coordinates in UIParent units)
 local function place(target, pad)
     local W, H = UIParent:GetWidth(), UIParent:GetHeight()
     local l, r, t, bt
@@ -151,7 +151,7 @@ local function place(target, pad)
     local b = ov.bubble
     b:ClearAllPoints()
     if not l then
-        -- kein Ziel: alles dunkel, Blase in der Mitte
+        -- no target: everything dark, bubble in the middle
         rect(ov.top, 0, 0, W, H)
         ov.bottom:Hide() ov.left:Hide() ov.right:Hide() ov.ring:Hide()
         b:SetPoint("CENTER", UIParent, "CENTER", 0, 40)
@@ -165,7 +165,7 @@ local function place(target, pad)
     ov.ring:ClearAllPoints()
     ov.ring:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", l, bt)
     ov.ring:SetPoint("TOPRIGHT", UIParent, "BOTTOMLEFT", r, t)
-    -- Blase dorthin, wo Platz ist: rechts, links, unten, oben - sonst in das Ziel hinein
+    -- Bubble where there is room: right, left, below, above - otherwise into the target
     local bw, bh = b:GetWidth(), b:GetHeight()
     local cy = math.max(bh / 2 + 10, math.min(H - bh / 2 - 10, (t + bt) / 2))
     if W - r > bw + 24 then b:SetPoint("LEFT", UIParent, "BOTTOMLEFT", r + 16, cy)
@@ -197,7 +197,7 @@ function OB.Step(i)
     b.all:SetShown(s.choice and true or false)
     b:SetHeight(math.max(130, (b.text:GetStringHeight() or 0) + 100))
     ov:Show()
-    -- Fenster/Navigation brauchen einen Moment, bis Groessen stimmen
+    -- Window/navigation need a moment until sizes are correct
     place(nil)
     C_Timer.After(0.15, function()
         if ov.i ~= i or not ov:IsShown() then return end
@@ -214,13 +214,13 @@ function OB.Finish(choice)
 end
 ns.slash.rundgang = function() OB.Show() end
 
--- erster Start: nach dem Einloggen kurz warten, dann einmalig zeigen
+-- first start: wait briefly after login, then show once
 ns.Listen("LOGIN", function()
-    -- die einfache Ansicht gibt es nicht mehr: wer sie gewaehlt hatte, sieht wieder alles
+    -- the simple view no longer exists: whoever had chosen it sees everything again
     if S().simpleMode then OB.ShowAll() end
-    -- Rundgang kommt nicht mehr automatisch - erstes Fenster ist die Interessen-Auswahl (Discover.lua);
-    -- der Rundgang bleibt mit /oa rundgang erreichbar
+    -- The tour no longer comes automatically - the first window is the interest picker (Discover.lua);
+    -- the tour remains reachable via /oa rundgang
     S().onboarded = S().onboarded or ns.now()
 end)
--- Kampf beginnt: Rundgang sofort weg (kommt beim naechsten Login wieder, solange nicht beendet)
+-- Combat starts: tour gone immediately (comes back at the next login as long as not finished)
 ns.On("PLAYER_REGEN_DISABLED", function() if ov and ov:IsShown() then ov:Hide() end end)

@@ -1,12 +1,12 @@
--- Oasis - Buff-Monitor (schwebendes Fenster): wer in Gruppe/Raid welche Buffs hat, was fehlt, was DU geben kannst
--- Kategorien schaltbar: Klassen-Buffs, Flaeschchen, Elixiere, Essen, Weltbuffs, Schutztraenke.
--- Auren nur ausserhalb des Kampfes lesen (im Kampf "secret") - im Kampf zeigt das Fenster den letzten Stand.
+-- Oasis - Buff monitor (floating window): who in group/raid has which buffs, what's missing, what YOU can give
+-- Toggleable categories: class buffs, flasks, elixirs, food, world buffs, protection potions.
+-- Read auras only out of combat ("secret" in combat) - in combat the window shows the last state.
 -- Schnittstelle (BuffPage.lua, RaidCheck.lua): BM.Scan() -> list, cols, missing, total, done, info
---   list[i] = { unit, name, class, dead, away, has = { [key] = true }, exp = { [key] = Ablaufzeit }, src = { [key] = Aura-Name } }
+--   list[i] = { unit, name, class, dead, away, has = { [key] = true }, exp = { [key] = expiry time }, src = { [key] = aura name } }
 --   cols[j] = Buff-Definition { key, cat, cls, short, label, icon, cons }
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
--- ns.Group kommt aus Core\Diagnostics\RaidSim.lua; fehlt die Datei, gelten die echten Blizzard-Abfragen
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
+-- ns.Group comes from Core\Diagnostics\RaidSim.lua; if the file is missing, the real Blizzard queries apply
 if not ns.Group then ns.Group = { IsSim = function() return false end, IsInGroup = function() return (IsInGroup and IsInGroup()) and true or false end, IsInRaid = function() return (IsInRaid and IsInRaid()) and true or false end, Num = function() return (GetNumGroupMembers and GetNumGroupMembers()) or 0 end, InInstance = function() if IsInInstance then return IsInInstance() end return false, "none" end, Instance = function() return nil end, Members = function() return {} end, Member = function() return nil end, IsLeader = function() return (UnitIsGroupLeader and UnitIsGroupLeader("player")) and true or false end, IsAssist = function() return false end } end
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -15,7 +15,7 @@ local BM = {}
 ns.BuffMonitor = BM
 
 ------------------------------------------------------------------------
--- Daten
+-- Data
 ------------------------------------------------------------------------
 -- Kategorien in Anzeigereihenfolge
 local CATS = {
@@ -29,8 +29,8 @@ local CATS = {
 local CAT_BY = {}
 for i, c in ipairs(CATS) do c.order = i CAT_BY[c.key] = c end
 
--- Buffs: ids = Einzelzauber (Raenge aufsteigend, Classic-IDs), gids = Gruppenversion, pat = Namens-Teilstuecke (klein, DE+EN)
--- cons = Verbrauchsgut/Weltbuff (keine Klasse noetig), soft = nur Hinweis (zaehlt nicht zur Vollstaendigkeit)
+-- Buffs: ids = single-target spell (ranks ascending, Classic IDs), gids = group version, pat = name fragments (lowercase, DE+EN)
+-- cons = consumable/world buff (no class needed), soft = hint only (doesn't count toward completeness)
 local NOT_CLASS = { "elixier", "elixir", "trank", "potion", "fläschchen", "flask" }
 local BUFFS = {
     { key = "fort", cat = "class", cls = "PRIEST", short = "Stamina",
@@ -57,20 +57,20 @@ local BUFFS = {
     { key = "wisdom", cat = "class", cls = "PALADIN", short = "Wisdom",
         ids = { 19742, 19850, 19852, 19853, 19854, 25290 }, gids = { 25894, 25918 },
         pat = { "segen der weisheit", "blessing of wisdom" } },
-    -- Totems: Aura nur in Totem-Reichweite und nur fuer die eigene Gruppe -> Hinweis, zaehlt nicht
+    -- Totems: aura only in totem range and only for own group -> hint, doesn't count
     { key = "totem", cat = "class", cls = "SHAMAN", short = "Totem", soft = true, icon = 136023,
         ids = { 8076, 8162, 8163, 10441, 25362, 8836, 10627, 25359, 5677, 10491, 10493, 10494 }, gids = {},
         pat = { "stärke der erde", "strength of earth", "anmut der luft", "grace of air", "manaquelle", "mana spring" } },
-    -- Flaeschchen
+    -- Flasks
     { key = "flask", cat = "flask", cons = true, short = "Flask", item = 13510,
         ids = { 17626, 17627, 17628, 17629 },
         pat = { "fläschchen", "flask" } },
-    -- Elixiere (Kampf- und Zauberelixiere zusammen)
+    -- Elixirs (battle and guardian elixirs together)
     { key = "elixir", cat = "elixir", cons = true, short = "Elixir", item = 13452,
         ids = { 17538, 11405, 26276, 11474, 11334, 17537, 24363, 17539, 11390, 3593, 11348, 11349, 16323, 16329, 17038 },
         pat = { "elixier", "elixir", "mungo", "mongoose", "der riesen", "of the giants", "feuermacht", "firepower",
             "schattenmacht", "shadow power", "zanza", "mojo", "rohe gewalt", "brute force", "blutmagie", "mageblood" } },
-    -- Essen
+    -- Food
     { key = "food", cat = "food", cons = true, short = "Food", item = 13935,
         ids = { 19705, 19706, 19708, 19709, 19710, 19711, 24799, 25661, 18192, 18194, 18222, 18141, 22730 },
         pat = { "satt", "well fed", "gut genährt", "gut gesättigt" } },
@@ -79,7 +79,7 @@ local BUFFS = {
         ids = { 22888, 16609, 15366, 24425, 22817, 22818, 22820 },
         pat = { "drachentöter", "dragonslayer", "kriegshäuptling", "warchief's blessing", "liebliche serenade", "songflower",
             "geist von zandalar", "spirit of zandalar", "fengus", "mol'dar", "slip'kik" } },
-    -- Schutztraenke (Feuer - Onyxia)
+    -- Protection potions (fire - Onyxia)
     { key = "fireprot", cat = "prot", cons = true, short = "Fire protection", item = 13457,
         ids = { 17543, 7233, 7230 },
         pat = { "feuerschutz", "fire protection" } },
@@ -88,15 +88,15 @@ BM.CATS = CATS
 
 local CLASSNAME = { PRIEST = "Priest", MAGE = "Mage", DRUID = "Druid", PALADIN = "Paladin", SHAMAN = "Shaman",
     WARRIOR = "Warrior", ROGUE = "Rogue", HUNTER = "Hunter", WARLOCK = "Warlock" }
-local SOON = 120   -- Sekunden: darunter "laeuft bald ab"
+local SOON = 120   -- Seconds: below it "expires soon"
 
 -- Zustand
-local f                    -- Fenster
-local lastAuras = {}       -- Name -> Auren vom letzten Lesen ausserhalb des Kampfes
-local myCast = {}          -- Buff-Key -> Zaubername, den ich wirken kann
+local f                    -- Window
+local lastAuras = {}       -- Name -> auras from the last read out of combat
+local myCast = {}          -- Buff key -> spell name I can cast
 local prepared, castPrepared = false, false
 local scrollOff = 0
-local pendingShow          -- im Kampf gewuenschtes Ein-/Ausblenden
+local pendingShow          -- show/hide requested in combat
 local pending
 
 ------------------------------------------------------------------------
@@ -171,7 +171,7 @@ local function inOnyxia()
     return n:find("onyxia", 1, true) ~= nil
 end
 
--- Kategorie an? (prot: "auto" = nur in Onyxias Hort)
+-- Category on? (prot: "auto" = only in Onyxia's Lair)
 local function catOn(key)
     local s = S()
     local t = s.buffCats
@@ -192,7 +192,7 @@ local function setCat(key, v)
     s.buffCats[key] = v
 end
 
--- Namen/Symbole aus dem Spiel (lokalisiert)
+-- Names/icons from the game (localized)
 local function prep()
     if prepared then return end
     for _, b in ipairs(BUFFS) do
@@ -218,7 +218,7 @@ local function prep()
 end
 BM.BUFFS, BM.Prep = BUFFS, prep
 
--- Was kann ich buffen? (hoechster bekannter Rang des Einzelzaubers)
+-- What can I buff? (highest known rank of the single-target spell)
 local function prepCast()
     if castPrepared then return end
     for k in pairs(myCast) do myCast[k] = nil end
@@ -238,7 +238,7 @@ end
 BM.MyCast = function() prepCast() return myCast end
 
 ------------------------------------------------------------------------
--- Auren lesen
+-- Read auras
 ------------------------------------------------------------------------
 local function readAuras(unit)
     local out = {}
@@ -278,7 +278,7 @@ local function matches(b, au)
 end
 
 ------------------------------------------------------------------------
--- Gruppe
+-- Group
 ------------------------------------------------------------------------
 local function units()
     local out = {}
@@ -311,7 +311,7 @@ local function demoList()
     return list
 end
 
--- Stand: Spalten (eingeschaltete Kategorien, Klassen-Buffs nur wenn die Klasse da ist), Zeilen je Mitglied
+-- State: columns (enabled categories, class buffs only if the class is present), rows per member
 function BM.Scan()
     prep()
     prepCast()
@@ -319,7 +319,7 @@ function BM.Scan()
     local sim = simOn()
     local demo = not sim and demoOn() and not ns.Group.IsInGroup()
     if sim then
-        -- Raid-Simulator: Restzeiten aus den simulierten Buffs (Ablaufzeit GetTime)
+        -- Raid simulator: remaining times from the simulated buffs (expiry GetTime)
         local t0 = GetTime and GetTime() or 0
         for _, m in ipairs(ns.Group.Members()) do
             local d = {}
@@ -405,7 +405,7 @@ function BM.Scan()
 end
 
 ------------------------------------------------------------------------
--- Fenster
+-- Window
 ------------------------------------------------------------------------
 local function dims()
     if S().buffCompact then return { RH = 16, CS = 12, CW = 16, NW = 84, GAP = 4, compact = true } end
@@ -482,7 +482,7 @@ local function build()
     f.bar.fill:SetPoint("LEFT")
     f.bar.fill:SetHeight(3)
 
-    -- Hinweise: was ich buffen kann / was andere buffen koennten
+    -- Hints: what I can buff / what others could buff
     f.info = K.Text(f, 11, C.text)
     f.info:SetPoint("TOPLEFT", 10, -38)
     f.info:SetPoint("RIGHT", f, "RIGHT", -10, 0)
@@ -503,7 +503,7 @@ local function build()
     f.hint:SetJustifyH("LEFT")
     f.hint:SetWordWrap(false)
 
-    -- Groesse aendern (Hoehe; Breite folgt den Spalten)
+    -- Resize (height; width follows the columns)
     f.grip = CreateFrame("Button", nil, f)
     f.grip:SetSize(14, 14)
     f.grip:SetPoint("BOTTOMRIGHT", -2, 2)
@@ -525,7 +525,7 @@ local function build()
         BM.Update()
     end)
 
-    -- gedrosselt: Restzeiten nachziehen (alle 5 s), Leuchten der Zeilen (nur sichtbar, ohne noAnim)
+    -- throttled: update remaining times (every 5 s), row glow (only visible, without noAnim)
     f.tick, f.pulse = 0, 0
     f:SetScript("OnUpdate", function(self, el)
         self.tick = self.tick + el
@@ -585,7 +585,7 @@ local function row(i)
     f.rows[i] = r
     return r
 end
--- Kaestchen: sicherer Knopf (Linksklick = mein Buff wirken bzw. Ziel, Rechtsklick = Ziel) - nur ausserhalb des Kampfes angelegt/umgestellt
+-- Box: secure button (left-click = cast my buff or target, right-click = target) - only created/changed out of combat
 local function cell(r, j)
     local c = r.cells[j]
     if c then return c end
@@ -658,9 +658,9 @@ function BM.Update()
     f.bar.fill:SetColorTexture(bc[1], bc[2], bc[3], 1)
     f.bar.fill:SetWidth(math.max(1, (f.bar:GetWidth() or 300) * pct))
 
-    -- Hinweiszeilen
+    -- Hint rows
     local lines = {}
-    local mineMissing = {}   -- key -> true, wenn ich ihn geben kann und er jemandem fehlt
+    local mineMissing = {}   -- key -> true if I can give it and someone is missing it
     for _, b in ipairs(cols) do
         local m = missing[b.key] or 0
         if info.mine[b.key] ~= nil and m > 0 then
@@ -682,7 +682,7 @@ function BM.Update()
     f.info:SetShown(#lines > 0)
     local infoH = #lines > 0 and (#lines * 13 + 4) or 0
 
-    -- Spalten-Positionen, nach Kategorie gruppiert
+    -- Column positions, grouped by category
     local x0 = 10 + D.NW
     local xs, lastCat, x = {}, nil, x0
     local groups = {}
@@ -696,7 +696,7 @@ function BM.Update()
     end
     local width = math.max(D.compact and 200 or 260, x + 10)
     local top = 36 + infoH
-    -- Kategorie-Beschriftungen
+    -- Category labels
     for _, t in ipairs(f.catLabels) do t:Hide() t.line:Hide() end
     for i, g in ipairs(groups) do
         local t = catLabel(i)
@@ -713,7 +713,7 @@ function BM.Update()
     end
     local headTop = top + (D.compact and 4 or 14)
 
-    -- Spaltenkoepfe
+    -- Column headers
     for _, h in ipairs(f.colHeads) do h:Hide() end
     local isize = D.compact and 14 or 20
     for j, b in ipairs(cols) do
@@ -738,7 +738,7 @@ function BM.Update()
     end
     local rowsTop = headTop + isize + 14
 
-    -- Zeilen: Hoehe aus Einstellung (Groessengriff), Rest per Mausrad
+    -- Rows: height from setting (resize grip), rest via mouse wheel
     local footer = 28
     local maxH = S().buffH or (ns.Group.IsInRaid() and 520 or 400)
     local fit = math.max(1, math.floor((maxH - rowsTop - footer) / D.RH))
@@ -773,7 +773,7 @@ function BM.Update()
             local off = m.away or m.dead
             local canMe = info.mine[b.key] ~= nil and not has and not off and not b.soft
             if canMe then needMe = true end
-            -- Darstellung: Symbol (normal) bzw. Farbflaeche (kompakt), Rand gruen/gelb/rot
+            -- Rendering: icon (normal) or color patch (compact), border green/yellow/red
             local col = has and (soon and C.amber or C.mint) or (b.soft and C.dim or C.red)
             if D.compact then
                 c.icon:SetTexture(nil)
@@ -819,7 +819,7 @@ function BM.Update()
     end
     f.glowing = glowing
 
-    -- Hinweis ohne Spalten/Gruppe
+    -- Hint without columns/group
     local empty = #cols == 0 or #list == 0
     f.note:ClearAllPoints()
     f.note:SetPoint("TOP", f, "TOP", 0, -(top + 10))
@@ -845,7 +845,7 @@ function BM.Update()
     f.hint:SetPoint("RIGHT", f, "RIGHT", -20, 0)
 end
 
--- Zahnrad-Menue: Kategorien, kompakt, festsetzen
+-- Gear menu: categories, compact, lock
 function BM.Menu(owner)
     if lockedNow() then ns.print(L["Not possible in combat - try again shortly."]) return end
     local items = {}
@@ -871,7 +871,7 @@ function BM.Menu(owner)
     K.ShowMenu(owner, items, L["Buff monitor"], 220)
 end
 
--- Fehlende Buffs in den Gruppen-/Raidchat (kurz, nur ausserhalb des Kampfes)
+-- Missing buffs to party/raid chat (short, only out of combat)
 function BM.Post()
     if ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return end
     local list, cols, missing = BM.Scan()
@@ -882,7 +882,7 @@ function BM.Post()
     end
     if #parts == 0 then return end
     local msg = L["Missing buffs: "] .. table.concat(parts, ", ")
-    if not ns.Group.IsInGroup() then ns.print(msg) return end   -- Demo/allein: nur lokal (Simulator: ns.SendChat schreibt nur lokal)
+    if not ns.Group.IsInGroup() then ns.print(msg) return end   -- Demo/solo: local only (simulator: ns.SendChat writes only locally)
     local ch = ns.Group.IsInRaid() and "RAID" or "PARTY"
     ns.SendChat(msg, ch)
 end
@@ -901,7 +901,7 @@ function BM.Toggle(force)
     BM.Update()
 end
 
--- automatisch aktualisieren (gedrosselt, nur sichtbar)
+-- refresh automatically (throttled, only when visible)
 local function soon()
     if pending then return end
     pending = true
@@ -933,7 +933,7 @@ ns.Listen("LOGIN", function() if S().buffShow and (IsInGroup() or demoOn()) then
 ns.slash.buffs = function() BM.Toggle() end
 
 ------------------------------------------------------------------------
--- Bereichs-Einstellungen (Seite "raidcheck" hat noch keinen eigenen Block -> neuer Block, nichts ersetzt)
+-- Section settings (page "raidcheck" has no own block yet -> new block, nothing replaced)
 ------------------------------------------------------------------------
 local settingsAdded = false
 local function addSettings()
@@ -976,7 +976,7 @@ addSettings()
 ns.Listen("LOGIN", addSettings)
 
 ------------------------------------------------------------------------
--- /oa probe buffs: was liefern die APIs hier?
+-- /oa probe buffs: what do the APIs deliver here?
 ------------------------------------------------------------------------
 ns.Probes = ns.Probes or {}
 ns.Probes.buffs = function()

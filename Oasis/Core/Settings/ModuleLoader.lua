@@ -1,15 +1,15 @@
--- Oasis: abschaltbare Module (0.5.568 als Zusatz-Addons, seit 0.5.580 wieder alles in EINEM Oasis-Ordner)
--- Grosse Bereiche liegen in Modules\<Name>\. Jede Datei dort verpackt ihren Inhalt in ns.ModuleFile("<Schluessel>", function() ... end).
--- Beim Start (ADDON_LOADED) werden nur eingeschaltete Module ausgefuehrt; abgeschaltete Funktionen werden verworfen
--- und belegen nach dem naechsten /reload keinen Speicher. Einstellungen > Bereiche > Module.
+-- Oasis: toggleable modules (0.5.568 as add-on addons, since 0.5.580 everything in ONE Oasis folder again)
+-- Large sections live in Modules\<Name>\. Each file there wraps its content in ns.ModuleFile("<key>", function() ... end).
+-- On startup (ADDON_LOADED) only enabled modules are run; disabled functions are discarded
+-- and use no memory after the next /reload. Settings > Sections > Modules.
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
 local M = {}
 ns.ModuleLoader = M
--- ns.ModuleFile steht seit 0.6.272 in Core.lua (Moduldateien duerfen ueberall in der toc stehen), gesammelt in ns.moduleFiles
--- 0.6.272: nach Kategorien geordnet (cat); die Einstellungsseite zeigt je Kategorie eine Ueberschrift
+-- ns.ModuleFile lives in Core.lua since 0.6.272 (module files may be anywhere in the toc), collected in ns.moduleFiles
+-- 0.6.272: ordered by category (cat); the settings page shows a heading per category
 M.CATS = { "Game content", "Guild and group", "Chat", "Comfort and map" }
 M.LIST = {
     { cat = "Game content", addon = "Oasis_Dungeons", title = "Dungeons", icon = "dungeons", desc = "Dungeon database, bosses, maps, quest locations and the dungeon page" },
@@ -51,9 +51,9 @@ M.LIST = {
     { cat = "Comfort and map", addon = "Oasis_BankSlots", title = "Bank slots", icon = "bank", desc = "Remember fixed slots in your bank" },
     { cat = "Comfort and map", addon = "Oasis_Performance", dev = true, title = "Performance", icon = "stats", desc = "Live CPU time display and guild measurements" },
 }
-M.state = {}   -- [addon] = "loaded" | "off" | "missing" | "disabled" | Fehlertext
+M.state = {}   -- [addon] = "loaded" | "off" | "missing" | "disabled" | error text
 
--- 0.6.571: Modul-Schluessel englisch - abgeschaltete Module unter dem alten Namen einmalig uebernehmen
+-- 0.6.571: module keys in English - take over disabled modules under the old name once
 M.RENAMED = { Oasis_Bankplaetze = "Oasis_BankSlots", Oasis_Begegnungen = "Oasis_Encounters", Oasis_Begruessung = "Oasis_Greeting", Oasis_Chronik = "Oasis_Chronicle", Oasis_EmojiVorschlaege = "Oasis_EmojiSuggest", Oasis_Fluestern = "Oasis_Whispers", Oasis_Gemeinschaft = "Oasis_Community", Oasis_Gildenbank = "Oasis_GuildBank", Oasis_Gildenpflege = "Oasis_GuildManagement", Oasis_Gildenziele = "Oasis_GuildGoals", Oasis_Gruppe = "Oasis_Group", Oasis_Handel = "Oasis_Market", Oasis_Handwerk = "Oasis_Crafting", Oasis_Itemvergleich = "Oasis_ItemCompare", Oasis_Kampf = "Oasis_Combat", Oasis_Kartenextras = "Oasis_MapExtras", Oasis_Komfort = "Oasis_Comfort", Oasis_Lager = "Oasis_Campfire", Oasis_Leistung = "Oasis_Performance", Oasis_MeinWeg = "Oasis_MyJourney", Oasis_Mitspieler = "Oasis_Social", Oasis_Questitems = "Oasis_QuestItems", Oasis_Questmarken = "Oasis_QuestTags", Oasis_Raidwerkzeuge = "Oasis_RaidTools", Oasis_Ruf = "Oasis_Reputation", Oasis_Sammlungen = "Oasis_Collections", Oasis_Spielchat = "Oasis_GameChat", Oasis_Talente = "Oasis_Talents", Oasis_Tode = "Oasis_Deaths", Oasis_Umfragen = "Oasis_Polls", Oasis_Waffenlehrer = "Oasis_WeaponTrainers", Oasis_Wunschliste = "Oasis_Wishlist" }
 local migrated
 local function off()
@@ -68,13 +68,13 @@ local function off()
 end
 function M.IsOn(addon) return not off()[addon] end
 function M.Loaded(addon) return M.state[addon] == "loaded" end
--- Ordner aus 0.5.564-0.5.579 (eigene Zusatz-Addons): werden nicht mehr gebraucht
+-- Folders from 0.5.564-0.5.579 (separate add-on addons): no longer needed
 M.OLD_FOLDERS = { "Oasis_Dungeons", "Oasis_Raidwerkzeuge", "Oasis_Deathroll", "Oasis_Brachland", "Oasis_Legacy", "Oasis_Questitems", "Oasis_Sprachen",
     "Oasis_Locale_FR", "Oasis_Locale_ES", "Oasis_Locale_IT", "Oasis_Locale_PT", "Oasis_Locale_RU", "Oasis_Locale_ZH", "Oasis_Locale_KO" }
--- beim Start (ADDON_LOADED, vor DB_READY/LOGIN): eingeschaltete Module ausfuehren, den Rest verwerfen
--- 0.6.566: Oasis wird in Teil-Addons zerlegt (Ordner Addons\<Teil>\, eigene toc mit LoadOnDemand).
--- Oasis laedt sie hier selbst, BEVOR die Module laufen - so haengen sie wie bisher an ns.ModuleFile und laufen vor DB_READY.
--- Ist ein Teil nicht installiert oder in der AddOn-Liste aus, fehlen seine Module (Zustand "missing").
+-- on startup (ADDON_LOADED, before DB_READY/LOGIN): run enabled modules, discard the rest
+-- 0.6.566: Oasis is split into sub-addons (folder Addons\<Teil>\, own toc with LoadOnDemand).
+-- Oasis loads them itself here, BEFORE the modules run - so they hook into ns.ModuleFile as before and run before DB_READY.
+-- If a part is not installed or disabled in the AddOn list, its modules are missing (state "missing").
 M.PARTS = {
     { addon = "Oasis_GroupsRaids", title = "Oasis - Groups & Raids", modules = { "Oasis_Group", "Oasis_Dungeons", "Oasis_QuestTags", "Oasis_RaidTools", "Oasis_Combat", "Oasis_Talents", "Oasis_Rares" } },
     { addon = "Oasis_Trade", title = "Oasis - Trade", modules = { "Oasis_Crafting", "Oasis_Market", "Oasis_Wishlist" } },
@@ -82,7 +82,7 @@ M.PARTS = {
 }
 M.partOf = {}
 for _, p in ipairs(M.PARTS) do for _, k in ipairs(p.modules) do M.partOf[k] = p end end
-M.partState = {}   -- [Teil] = "loaded" | Grund von LoadAddOn ("MISSING", "DISABLED" ...)
+M.partState = {}   -- [part] = "loaded" | reason from LoadAddOn ("MISSING", "DISABLED" ...)
 local function loadParts()
     local load = (C_AddOns and C_AddOns.LoadAddOn) or LoadAddOn
     for _, p in ipairs(M.PARTS) do
@@ -97,7 +97,7 @@ function M.LoadAll()
     pcall(loadParts)
     local files = ns.moduleFiles or {}
     ns.moduleFiles = nil
-    -- 0.6.285: in der Reihenfolge der toc ausfuehren (nicht der Anzeigeliste) - z. B. erweitert ein Modul ein anderes
+    -- 0.6.285: run in toc order (not the display list) - e.g. one module extends another
     local byKey, ordered = {}, {}
     for _, m in ipairs(M.LIST) do byKey[m.addon] = m end
     for _, k in ipairs(ns.moduleOrder or {}) do if byKey[k] then ordered[#ordered + 1] = byKey[k] byKey[k] = nil end end
@@ -120,8 +120,8 @@ function M.LoadAll()
             end
         end
     end
-    -- alte Zusatz-Ordner noch vorhanden? Dann Hinweis (Toast + Einstellungen > Module)
-    -- 0.5.583: GetAddOnInfo liefert auch fuer FEHLENDE Addons einen Namen (Grund "MISSING") -> DoesAddOnExist bzw. Grund pruefen
+    -- old add-on folders still present? Then a notice (toast + Settings > Modules)
+    -- 0.5.583: GetAddOnInfo also returns a name for MISSING addons (reason "MISSING") -> check DoesAddOnExist or the reason
     local exists = C_AddOns and C_AddOns.DoesAddOnExist
     local info = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
     M.stale = {}
@@ -137,7 +137,7 @@ function M.LoadAll()
         if found then M.stale[#M.stale + 1] = n end
     end
 end
--- Gildenmodul (Addon Oasis_Guild): vorhanden / eingeschaltet / ein- bzw. ausschalten ueber die AddOn-Verwaltung des Spiels
+-- Guild module (addon Oasis_Guild): present / enabled / toggle via the game's AddOn manager
 local GUILD = "Oasis_Guild"
 function M.GuildInstalled()
     local ex = C_AddOns and C_AddOns.DoesAddOnExist
@@ -166,7 +166,7 @@ function M.Set(addon, on)
     ns.db.settings.modOff[addon] = (not on) and true or nil
     M.dirty = true
 end
--- Speicher des ganzen Addons (Module zaehlen seit 0.5.580 mit zu Oasis)
+-- Memory of the whole addon (modules count toward Oasis since 0.5.580)
 function M.MemKB(addon)
     local get = (C_AddOns and C_AddOns.GetAddOnMemoryUsage) or GetAddOnMemoryUsage
     if not get then return nil end
@@ -178,10 +178,10 @@ function M.UpdateMem()
     local up = (C_AddOns and C_AddOns.UpdateAddOnMemoryUsage) or UpdateAddOnMemoryUsage
     if up then pcall(up) end
 end
--- alle Oasis-Teile fuer die Leistungsmessung (seit 0.5.580 nur noch ein Addon)
+-- all Oasis parts for performance measurement (since 0.5.580 just one addon)
 function M.Addons() return { ADDON } end
 
--- Einstellungen > Bereiche > Module -------------------------------------------------------
+-- Settings > Sections > Modules -------------------------------------------------------
 local STATE_TXT = {
     loaded = { "geladen", "66db9e" }, off = { "aus", "888888" },
     missing = { "fehlt", "e8b44a" },
@@ -189,7 +189,7 @@ local STATE_TXT = {
 local function fmtMB(kb) if not kb then return "" end return ("%.1f MB"):format(kb / 1024) end
 local function build(f)
     local H = ns.SettingsHelpers
-    -- 0.6.480: schlichte Kategorie-Zeilen statt section() - die automatische Kasten-Umrandung legte sich sonst um die Karten
+    -- 0.6.480: plain category rows instead of section() - the automatic box border otherwise wrapped around the cards
     local function cathead(text, yy)
         local t = K.Text(f, 11, C.dim)
         t:SetPoint("TOPLEFT", 2, yy)
@@ -206,16 +206,16 @@ local function build(f)
     intro:SetJustifyH("LEFT")
     intro:SetWordWrap(true)
     intro:SetText(L["Large areas can be switched off. Whatever you switch off is not loaded at all after the next /reload and uses no memory."])
-    -- 0.5.713: je Modul eine Glas-Karte (Symbol + Name, Schalter rechts, Beschreibung, Zustand unten rechts)
+    -- 0.5.713: one glass card per module (icon + name, toggle on the right, description, state bottom right)
     f.noCompact = true
     f.rows = {}
     local W, TH, GAP = 362, 96, 12
     local y = -40
-    -- je Kategorie Ueberschrift + Karten in zwei Spalten
+    -- per category a heading + cards in two columns
 
     for _, cat in ipairs(M.CATS) do
       local list = {}
-      -- 0.6.523: Entwickler-Module (Leistungsmessung) nur im Entwicklermodus
+      -- 0.6.523: developer modules (performance measurement) only in developer mode
       for _, m in ipairs(M.LIST) do if m.cat == cat and (not m.dev or (ns.IsDev and ns.IsDev())) then list[#list + 1] = m end end
       if #list > 0 then
         cathead(L[cat], y)
@@ -239,8 +239,8 @@ local function build(f)
       end
       if #list > 0 then y = y - (TH + GAP) - 8 end
     end
-    -- 0.5.728: Gildenmodul = eigenes Addon "Oasis_Guild" (Meme-Sounds, Musik, Gilden-Emojis, Fehlerberichte); hier und
-    -- in der AddOn-Liste des Spiels einzeln an-/abschaltbar. In der oeffentlichen Version ist der Ordner gar nicht dabei.
+    -- 0.5.728: guild module = separate addon "Oasis_Guild" (meme sounds, music, guild emojis, bug reports); toggleable
+    -- individually here and in the game's AddOn list. In the public version the folder is not included at all.
     local gm = H.cardH(f, 0, y, 2 * W + 14, 72, "home", L["Guild module"],
         L["Meme sounds, music, guild emojis and bug reports - a separate add-on for the guild only."])
     gm.s:SetWordWrap(true)
@@ -291,7 +291,7 @@ local function refresh(f)
         local txt = sd and ("|cff" .. sd[2] .. L[sd[1]] .. "|r") or ("|cffff6060" .. tostring(s or "?") .. "|r")
         if not M.IsOn(r.m.addon) and s == "loaded" then txt = "|cffe8b44a" .. L["off after /reload"] .. "|r" end
         if M.IsOn(r.m.addon) and s == "off" then txt = "|cffe8b44a" .. L["on after /reload"] .. "|r" end
-        -- 0.6.566: Modul steckt in einem Teil-Addon, das fehlt oder aus ist
+        -- 0.6.566: module lives in a sub-addon that is missing or disabled
         local part = M.partOf[r.m.addon]
         if part and s == "missing" and not M.PartLoaded(part.addon) then
             txt = "|cffe8b44a" .. (L["%s missing"]):format(part.title) .. "|r"
@@ -303,7 +303,7 @@ local function refresh(f)
     f.stale:SetText(has and staleText() or "")
     f.stale:SetShown(has and true or false)
 end
--- einmal je Version nach dem Login Bescheid sagen
+-- notify once per version after login
 ns.Listen("LOGIN", function()
     if not (M.stale and #M.stale > 0) or not ns.db then return end
     if ns.db.staleDirHint == ns.version then return end

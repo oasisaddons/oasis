@@ -1,12 +1,12 @@
--- Oasis - Komfort (frueher eigenes Zusatz-Addon): persoenliche Helfer, die seit 0.6.524 nicht mehr im
--- Hauptaddon stecken (Ausrichtung auf Gilde/Gruppe). Wer sie will, installiert dieses Addon zusaetzlich.
--- Haengt an der globalen Tabelle Oasis (= ns des Hauptaddons).
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Comfort", function()   -- 0.6.569: frueher Plugin Oasis_Comfort, jetzt Teil von Oasis Convenience
+-- Oasis - Comfort (formerly a separate add-on addon): personal helpers that are no longer in the
+-- main addon since 0.6.524 (focus on guild/group). Whoever wants them installs this addon in addition.
+-- Hooks onto the global table Oasis (= ns of the main addon).
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Comfort", function()   -- 0.6.569: formerly plugin Oasis_Comfort, now part of Oasis Convenience
 local O = ns
 local K = O.K
 
--- Questlog: neue WoW-Forever-Quests mit blauem Verlauf + "NEU" (QuestTags.lua fragt O.ComfortPlugin ab)
+-- Quest log: new WoW Forever quests with blue gradient + "NEW" (QuestTags.lua queries O.ComfortPlugin)
 O.ComfortPlugin = true
 
 local function isForever(id)
@@ -16,9 +16,9 @@ local function isForever(id)
 end
 
 ------------------------------------------------------------------------
--- Questbelohnung zur Auswahl: die beste Wahl markieren - Verbesserung (gruener Pfeil), sonst der beste
--- Haendlerpreis (Goldmuenze = wertvollste). Nur Teile, die der Charakter benutzen kann (WoW meldet das je Belohnung,
--- inkl. fehlender Waffenfertigkeit). Merker in einer Weak-Table, keine eigenen Felder an Blizzards Knoepfen.
+-- Quest reward choice: mark the best pick - upgrade (green arrow), otherwise the best
+-- vendor price (gold coin = most valuable). Only pieces the character can use (WoW reports this per reward,
+-- incl. missing weapon skill). Markers in a weak table, no own fields on Blizzard's buttons.
 ------------------------------------------------------------------------
 local REW = setmetatable({}, { __mode = "k" })
 local function rewardButton(i)
@@ -70,7 +70,7 @@ local function rate(retry)
         if not link then missing = true else
             local _, _, cnt, _, usable = GetQuestItemInfo("choice", i)
             usable, cnt = safe(usable), safe(cnt)
-            -- nicht benutzbar (Klasse oder fehlende Waffenfertigkeit): nie als Verbesserung vorschlagen
+            -- not usable (class or missing weapon skill): never suggest as upgrade
             local pct
             if usable ~= false and O.Upgrade and O.Upgrade.Compare then
                 local ok, p = pcall(O.Upgrade.Compare, link)
@@ -96,7 +96,7 @@ f:SetScript("OnEvent", function(_, e)
     if e == "QUEST_COMPLETE" then
         C_Timer.After(0.05, function() pcall(rate) end)
     elseif e == "PLAYER_LOGIN" then
-        -- Questlog sofort neu zeichnen, damit die Forever-Markierung ohne Umweg erscheint
+        -- redraw quest log immediately so the Forever marker appears without detour
         if type(QuestLog_Update) == "function" and QuestLogFrame and QuestLogFrame:IsShown() then pcall(QuestLog_Update) end
     end
 end)

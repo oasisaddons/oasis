@@ -1,21 +1,21 @@
--- Oasis: Sammlungen - Reittiere, Haustiere, Spielzeuge der Gilde
---  Jeder Charakter teilt Zaehler + kompakte ID-Listen (Basis 36), nur bei Aenderung und gedrosselt.
---  Seite: Gilden-Rangliste, "Wer hat ...?", seltenste Stuecke der Gilde, Vergleich mit mir.
---  Eigene Sammlungen "coll_chars", "coll_mounts", "coll_pets", "coll_toys" (NICHT "collections" - so heisst
---  in Export.lua die Liste der geteilten Store-Sammlungen). Eigene Nachrichten OARU/OARQ/OARA/OARB wie Rares.lua.
+-- Oasis: Collections - the guild's mounts, pets, toys
+--  Every character shares counters + compact ID lists (base 36), only on change and throttled.
+--  Page: guild ranking, "Who has ...?", rarest pieces in the guild, comparison with me.
+--  Own collections "coll_chars", "coll_mounts", "coll_pets", "coll_toys" (NOT "collections" - that's the name of
+--  in Export.lua the list of shared store collections). Own messages OARU/OARQ/OARA/OARB like Rares.lua.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Collections", function()   -- Modul Sammlungen (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Collections", function()   -- Collections module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be tampered with):
+-- sanitize texts, cap numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- escape sequences (|c |r |n |H |T |K |A ...) and control characters neutralized; links: valid item/spell links are kept
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -69,11 +69,11 @@ local CHARS = "coll_chars"
 local LISTS = { mount = "coll_mounts", pet = "coll_pets", toy = "coll_toys" }
 local KEEP = { coll_chars = 365 * 86400, coll_mounts = 365 * 86400, coll_pets = 365 * 86400, coll_toys = 365 * 86400 }
 local GROUP = "sammlung"
-local KINDS = { "mount", "pet" }   -- Spielzeuge gibt es in WoW Forever nicht
+local KINDS = { "mount", "pet" }   -- toys don't exist in WoW Forever
 local KIND_NAME = { mount = "Mounts", pet = "Pets", toy = "Toys" }
 local KIND_ICON = { mount = "Interface\\Icons\\Ability_Mount_RidingHorse", pet = "Interface\\Icons\\INV_Box_PetCarrier_01",
     toy = "Interface\\Icons\\INV_Misc_Toy_10" }
-local SEND_GAP = 600       -- hoechstens alle 10 Min senden
+local SEND_GAP = 600       -- send at most every 10 min
 local cache = { dirty = true }
 local nameCache = {}
 local lastScan = { mount = nil, pet = nil, toy = nil }
@@ -85,7 +85,7 @@ local function opt(key) local v = S()[key] if v == nil then return true end retu
 local function demoOn() return ns.Demo and ns.Demo.IsActive and ns.Demo.IsActive() end
 
 ------------------------------------------------------------------------
--- Probe-Verteiler (gleiches Muster wie Rares.lua)
+-- Probe dispatcher (same pattern as Rares.lua)
 ------------------------------------------------------------------------
 ns.probes = ns.probes or {}
 local function installProbe()
@@ -119,7 +119,7 @@ end
 installProbe()
 
 ------------------------------------------------------------------------
--- Kompakte ID-Listen (Basis 36, Komma)
+-- Compact ID lists (base 36, comma)
 ------------------------------------------------------------------------
 local DIG = "0123456789abcdefghijklmnopqrstuvwxyz"
 local function b36(n)
@@ -151,7 +151,7 @@ end
 Coll.b36, Coll.packIds, Coll.unpackIds = b36, packIds, unpackIds
 
 ------------------------------------------------------------------------
--- Eigene Store-Anbindung
+-- Own store connection
 ------------------------------------------------------------------------
 local function isDemoRec(r) return r.demo or tostring(r.id):find("demo-", 1, true) end
 local function clean(r)
@@ -168,13 +168,13 @@ local function put(coll, rec, send)
     end
     return rec
 end
--- Empfang pruefen: jeder Datensatz gehoert seinem Ersteller (id = "<art>-<Name>", by = Name).
--- direkt (OARU): nur der eigene Datensatz des Absenders; weitergereicht (OARB): fremde Datensaetze nie
--- einem anderen Ersteller zuschlagen. Zeitstempel nicht in der Zukunft, Sammlung begrenzt.
+-- Check on receive: every record belongs to its creator (id = "<type>-<name>", by = name).
+-- direct (OARU): only the sender's own record; relayed (OARB): never assign foreign records
+-- to another creator. Timestamps not in the future, collection capped.
 local function sameWho(a, b) return a and b and Comm.whoKey(a) == Comm.whoKey(b) end
 local function netOk(coll, rec, sender, relay)
     if type(rec) ~= "table" or type(rec.id) ~= "string" or #rec.id > 80 or isDemoRec(rec) then return false end
-    if Comm.FromGuild and not Comm.FromGuild(sender) then return false end   -- nur Gildenmitglieder
+    if Comm.FromGuild and not Comm.FromGuild(sender) then return false end   -- guild members only
     if rec.id:sub(1, #coll + 1) ~= coll .. "-" then return false end
     local owner = rec.id:sub(#coll + 2)
     if owner == "" or not rec.by or not sameWho(owner, rec.by) then return false end
@@ -211,7 +211,7 @@ end)
 local pendingAnswer = {}
 Comm.On("OARQ", function(sender, _, grp, since)
     if grp ~= GROUP or pendingAnswer[sender] then return end
-    if not SEC.Rate("oarq:" .. sender, 60) then return end   -- keine Fluester-Flut auf Zuruf
+    if not SEC.Rate("oarq:" .. sender, 60) then return end   -- no whisper flood on request
     since = tonumber(since) or 0
     pendingAnswer[sender] = true
     ns.After(math.random(30, 120) / 10, function()
@@ -241,16 +241,16 @@ Comm.On("OARA", function(_, _, grp, target)
 end)
 
 ------------------------------------------------------------------------
--- Eigene Sammlung lesen (jede Schnittstelle per pcall - Forever kann sie weglassen)
+-- Read own collection (every API via pcall - Forever may omit it)
 ------------------------------------------------------------------------
 local function call(t, f, ...)
     if not t or type(t[f]) ~= "function" then return false end
     return pcall(t[f], ...)
 end
 
--- Forever/Classic: Reittiere und Haustiere sind oft noch Gegenstaende in der Tasche (Journal leer).
--- Fallback: Taschen nach Gegenstaenden "Verschiedenes > Reittier" (15/5) bzw. "Haustier" (15/2) durchsuchen.
--- Quelle "b" = Item-ID. Liefert nil, wenn die Taschen-Schnittstelle fehlt.
+-- Forever/Classic: mounts and pets are often still items in the bags (journal empty).
+-- Fallback: search bags for items "Miscellaneous > Mount" (15/5) or "Companion Pets" (15/2).
+-- Source "b" = item ID. Returns nil if the bag API is missing.
 local function scanBags(subclass, kindKey)
     local CC = C_Container
     local numSlots = (CC and CC.GetContainerNumSlots) or GetContainerNumSlots
@@ -276,7 +276,7 @@ local function scanBags(subclass, kindKey)
 end
 Coll.ScanBags = scanBags
 
--- Reittiere: { [id] = true }, Quelle ("j" = Journal-ID, "s" = Zauber-ID, "b" = Item in der Tasche) oder nil = keine Schnittstelle
+-- Mounts: { [id] = true }, source ("j" = journal ID, "s" = spell ID, "b" = item in bag) or nil = no API
 function Coll.ScanMounts()
     local r1, r2, r3 = Coll.ScanMountsApi()
     if r1 and (r3 or 0) > 0 then return r1, r2, r3 end
@@ -311,7 +311,7 @@ function Coll.ScanMountsApi()
     return nil
 end
 
--- Haustiere: Arten-IDs; total = alle Exemplare (Fallback wie bei Reittieren: Tasche)
+-- Pets: species IDs; total = all copies (fallback like mounts: bags)
 function Coll.ScanPets()
     local r1, r2, r3 = Coll.ScanPetsApi()
     if r1 and (r3 or 0) > 0 then return r1, r2, r3 end
@@ -345,14 +345,14 @@ function Coll.ScanPetsApi()
     return nil
 end
 
--- Spielzeuge: Item-IDs (angezeigte Liste + Gegenprobe fuer alle aus der Gilde bekannten IDs)
+-- Toys: item IDs (displayed list + cross-check for all IDs known from the guild)
 function Coll.ScanToys()
     if not C_ToyBox then return nil end
     local set, n = {}, 0
     local ok, num = call(C_ToyBox, "GetNumFilteredToys")
     if not ok then ok, num = call(C_ToyBox, "GetNumTotalDisplayedToys") end
     if not ok or type(num) ~= "number" then return nil end
-    -- ohne PlayerHasToy laesst sich "besessen" nicht von "nur angezeigt" trennen -> lieber nichts melden
+    -- without PlayerHasToy "owned" can't be told apart from "only displayed" -> better report nothing
     local has = PlayerHasToy
     if not has then return nil end
     for i = 1, num do
@@ -371,7 +371,7 @@ function Coll.ScanToys()
 end
 
 ------------------------------------------------------------------------
--- Namen und Symbole
+-- Names and icons
 ------------------------------------------------------------------------
 local DEMO_NAMES = {}
 function Coll.Name(kind, id, src)
@@ -415,7 +415,7 @@ function Coll.Name(kind, id, src)
 end
 
 ------------------------------------------------------------------------
--- Eigene Daten erfassen und (gedrosselt, nur bei Aenderung) teilen
+-- Capture own data and share it (throttled, only on change)
 ------------------------------------------------------------------------
 local function myId(prefix) return prefix .. "-" .. (ns.me() or "?") end
 
@@ -489,14 +489,14 @@ for _, ev in ipairs({ "NEW_MOUNT_ADDED", "COMPANION_LEARNED", "COMPANION_UPDATE"
     "NEW_TOY_ADDED", "TOYS_UPDATED" }) do
     ns.On(ev, function() scanSoon(20) end)
 end
--- Taschen-Fallback (Forever): Reittier/Haustier gekauft, gelernt oder abgegeben -> gedrosselt neu zaehlen
+-- Bag fallback (Forever): mount/pet bought, learned or handed in -> recount, throttled
 ns.On("BAG_UPDATE_DELAYED", function() scanSoon(60) end)
 
 ------------------------------------------------------------------------
--- Gilden-Auswertung
+-- Guild evaluation
 ------------------------------------------------------------------------
--- Liefert eine Funktion Name -> einheitlicher Name. Erst ueber die Gildenliste (ns.ResolveName), danach - bei regional
--- eindeutigen Namen - ueber den Namen ohne Realm, damit auch Ausgetretene nicht doppelt stehen.
+-- Returns a function name -> unified name. First via the guild roster (ns.ResolveName), then - for regionally
+-- unique names - via the name without realm, so that people who left aren't listed twice either.
 function Coll.NameMerger()
     local regional = RegionalUniqueNamesEnabled and ns.safe(RegionalUniqueNamesEnabled()) and true or false
     local byBase = {}
@@ -517,8 +517,8 @@ local function rebuild()
     if not cache.dirty then return end
     local demo = demoOn()
     cache.chars, cache.own, cache.index, cache.src = {}, {}, {}, {}
-    -- Derselbe Charakter kommt unter mehreren Schreibweisen an (nur Vorname, anderer Realm-Anhang): auf den Namen
-    -- aus der Gildenliste zusammenfuehren, je Charakter zaehlt der neueste Datensatz.
+    -- The same character arrives under several spellings (first name only, different realm suffix): merge onto the name
+    -- from the guild roster; per character the newest record counts.
     local canon = Coll.NameMerger()
     local stamp = {}
     for _, r in ipairs(Store.List(CHARS, function(r) return demo or not r.demo end)) do
@@ -541,7 +541,7 @@ local function rebuild()
                 if not cache.chars[who] then cache.chars[who] = { by = who, m = -1, p = -1, t = -1 } end
             end
         end
-        cache.src[kind] = srcOf   -- 0.6.529: Quelle je Person (Sammlung einer Person ansehen)
+        cache.src[kind] = srcOf   -- 0.6.529: source per person (view a person's collection)
         for who, set in pairs(cache.own[kind]) do
             for id in pairs(set) do
                 local e = cache.index[kind][id]
@@ -553,7 +553,7 @@ local function rebuild()
     cache.dirty = false
 end
 function Coll.Index(kind) rebuild() return cache.index[kind] or {} end
--- 0.6.529: was eine Person hat -> { { id, src, name, icon, mine }, ... } alphabetisch
+-- 0.6.529: what a person owns -> { { id, src, name, icon, mine }, ... } alphabetical
 function Coll.OwnedBy(kind, who)
     rebuild()
     local set = cache.own[kind] and cache.own[kind][who]
@@ -570,7 +570,7 @@ function Coll.OwnedBy(kind, who)
 end
 
 ------------------------------------------------------------------------
--- 0.6.529: Sammlung einer Person ansehen (Klick in der Rangliste)
+-- 0.6.529: view a person's collection (click in the ranking)
 ------------------------------------------------------------------------
 local pv
 local function personView()
@@ -656,7 +656,7 @@ end
 function Coll.Ranking(kind)
     local out = {}
     for name, c in pairs(Coll.Chars()) do
-        -- Charaktere ohne jede Sammlungs-Schnittstelle (alle -1) nicht in die Rangliste
+        -- characters without any collection API (all -1) are left out of the ranking
         if (c.m or -1) >= 0 or (c.p or -1) >= 0 or (c.t or -1) >= 0 then
             local m, p, t = countOf(c, "mount"), countOf(c, "pet"), countOf(c, "toy")
             out[#out + 1] = { name = name, m = m, p = p, t = t, total = m + p, score = kind and countOf(c, kind) or (m + p), cls = c.cls }
@@ -671,7 +671,7 @@ ns.Listen("STORE", function(coll)
 end)
 
 ------------------------------------------------------------------------
--- Demo-Daten (nur lokal)
+-- Demo data (local only)
 ------------------------------------------------------------------------
 DEMO_NAMES.mount = { [990601] = "Swift Steppe Wolf", [990602] = "Rusty Kodo", [990603] = "Forsaken Skeletal Horse",
     [990604] = "Black War Raptor", [990605] = "Frostwolf War Bear", [990606] = "Emerald Dragonhawk" }
@@ -741,7 +741,7 @@ ns.probes.sammlung = function()
 end
 
 ------------------------------------------------------------------------
--- Einstellungen
+-- Settings
 ------------------------------------------------------------------------
 if ns.AddPageSettings then
     ns.AddPageSettings("sammlung", function(det, y)
@@ -756,7 +756,7 @@ if ns.AddPageSettings then
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local view, kind, search, selected = "rank", "mount", "", nil
 
@@ -786,7 +786,7 @@ local function apiMissing()
     return lastScan.mount == false and lastScan.pet == false
 end
 
-local rankSort = nil     -- Rangliste nach "mount" / "pet" / "toy" sortiert, nil = Gesamt
+local rankSort = nil     -- ranking sorted by "mount" / "pet" / "toy", nil = total
 local KCOL = { mount = C.amber, pet = C.mint, toy = C.blue }
 local KORDER = { "mount", "pet" }
 local CLASS_TEX = "Interface\\TargetingFrame\\UI-Classes-Circles"
@@ -806,7 +806,7 @@ ns.RegisterPage({
     key = "sammlung", title = "Collections", order = 7.82,
     sub = "Guild mounts and pets: ranking, who has what, rare ones",
     build = function(p)
-        -- 2026: Glas-Reiterleiste wie im Profil (Fallback: einfache Segmente)
+        -- 2026: glass tab bar like in the profile (fallback: simple segments)
         local IGL = ns.Insta
         local glass = function(f, fill, line, r) if IGL and IGL.Glass then IGL.Glass(f, fill, line, r) end end
         local round = function(t, box, r) if K.RoundMask and t then K.RoundMask(t, box or t, r) end end
@@ -820,17 +820,17 @@ ns.RegisterPage({
             p.seg = K.Segments(p, TABS, onTab)
         end
         p.seg:SetPoint("TOPLEFT", 0, 0)
-        local TOP = 44   -- Beginn der Karten unter der Reiterleiste
+        local TOP = 44   -- start of the cards below the tab bar
         p:HookScript("OnShow", function(self) self.fresh = true end)
         p.fresh = true
 
         ----------------------------------------------------------------
-        -- Sammlungs-Karten: eigene Zahl, Fortschritt gegen den Besten der Gilde, Klick = Auswahl/Sortierung
+        -- Collection cards: own number, progress against the guild's best, click = select/sort
         ----------------------------------------------------------------
         p.cards = {}
         local function card(key, label, icon, col)
             local c = CreateFrame("Button", nil, p)
-            -- 2026: Glaskarte, Zahl gross, Beschriftung normal geschrieben, runde Leiste; Auswahl = Kante in Sammlungsfarbe
+            -- 2026: glass card, big number, label written normally, round bar; selection = edge in collection color
             c:SetHeight(80)
             c.key = key
             c.col = col
@@ -856,7 +856,7 @@ ns.RegisterPage({
             c.bar:SetPoint("BOTTOMRIGHT", -14, 12)
             c.bar.fill:SetColorTexture(col[1], col[2], col[3], 0.9)
             round(c.bar.fill, c.bar, 2)
-            c.sel = c:CreateTexture(nil, "OVERLAY")   -- nur noch Merker fuer den Auswahlzustand
+            c.sel = c:CreateTexture(nil, "OVERLAY")   -- now only a marker for the selection state
             c.sel:SetAlpha(0)
             c.sel:Hide()
             function c:Mark(on)
@@ -908,11 +908,11 @@ ns.RegisterPage({
         p.hint:SetPoint("RIGHT", p, "RIGHT", 0, 0)
 
         ----------------------------------------------------------------
-        -- Rangliste: Podest fuer Platz 1-3, darunter die uebrigen mit Mehrfarben-Balken
+        -- Ranking: podium for places 1-3, below it the rest with multi-color bars
         ----------------------------------------------------------------
         local pod = CreateFrame("Frame", nil, p)
-        -- 2026: Podest als drei ruhige Glaskarten (Platz 1 in der Mitte etwas hoeher), Medaillenfarbe nur als
-        -- dezente Toenung, Ring und Platz-Text; keine Bloecke, keine pulsierende Krone
+        -- 2026: podium as three calm glass cards (1st place in the middle slightly higher), medal color only as
+        -- a subtle tint, ring and place text; no blocks, no pulsing crown
         pod:SetPoint("TOPLEFT", 0, -(TOP + 80 + 10))
         pod:SetPoint("TOPRIGHT", 0, -(TOP + 80 + 10))
         pod:SetHeight(150)
@@ -928,7 +928,7 @@ ns.RegisterPage({
             local pcl = PCOL[place]
             col:SetSize(200, PH[place])
             glass(col, { pcl[1], pcl[2], pcl[3], place == 1 and 0.07 or 0.045 }, { pcl[1], pcl[2], pcl[3], place == 1 and 0.45 or 0.28 }, 14)
-            -- 0.6.445: mit Gildenmodul dieselben Bildkarten wie die Todeswuerfel-Rangliste (Gold/Silber/Bronze + Krone)
+            -- 0.6.445: with the guild module the same picture cards as the Deathroll ranking (gold/silver/bronze + crown)
             if ns.GuildPack then
                 local MED = { "gold", "silver", "bronze" }
                 glass(col, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, 14)
@@ -1003,7 +1003,7 @@ ns.RegisterPage({
             r.bg = r:CreateTexture(nil, "BACKGROUND", nil, 1)
             r.bg:SetHeight(6)
             r.bg:SetColorTexture(1, 1, 1, 0.06)
-            -- runde Leiste: Ecken an der Spur, die Segmente werden an denselben Ecken abgerundet
+            -- round bar: corners on the track, the segments are rounded at the same corners
             round(r.bg, r.bg, 3)
             for _, s in ipairs(r.segs) do s:SetHeight(6) round(s, r.bg, 3) end
             round(r.cls, r.cls, 10)
@@ -1023,7 +1023,7 @@ ns.RegisterPage({
             local me = ns.isMe(e.name)
             r.cols.name:SetText(ns.Radar.Colored(e.name) .. (me and ("  |cffe8b44a" .. L["(you)"] .. "|r") or ""))
             setClass(r.cls, e.cls)
-            -- Mehrfarben-Balken (Reittiere/Haustiere/Spielzeuge) relativ zum Besten
+            -- multi-color bar (mounts/pets/toys) relative to the best
             local W = math.max(80, (r:GetWidth() or 700) - 70 - 190 - 150)
             r.bg:ClearAllPoints()
             r.bg:SetPoint("LEFT", r, "LEFT", 266, 0)
@@ -1047,7 +1047,7 @@ ns.RegisterPage({
             if r.sel then r.sel:SetShown(me) end
         end)
 
-        -- Gegenstaende (Wer hat / Selten / Ich)
+        -- Items (Who has / Rare / Me)
         p.items = K.List(p, 38, function(l)
             local r = K.Row(l)
             r.stripe = r:CreateTexture(nil, "ARTWORK")
@@ -1115,7 +1115,7 @@ ns.RegisterPage({
             self.items:SetPoint("BOTTOMRIGHT")
             self.pod:Layout()
         end
-        -- Listen in eine ruhige Glasflaeche
+        -- lists in a calm glass surface
         glass(p.rank, nil, nil, 12)
         glass(p.items, nil, nil, 12)
         p:Relayout()
@@ -1142,7 +1142,7 @@ ns.RegisterPage({
             local c = p.cards[i]
             local mine = cnt(k)
             local bv, bwho = best(k)
-            -- freundliche leere Zustaende: keine Schnittstelle / noch nichts erfasst
+            -- friendly empty states: no API / nothing captured yet
             if mine == nil then
                 c.num:SetText("|cff6b6b70–|r")
                 c.of:SetText(L["not available in this client"])
@@ -1182,10 +1182,10 @@ ns.RegisterPage({
         p.search:SetShown(view == "who" or view == "me")
         p.hint:SetShown(not isRank)
         if isRank then
-            -- Balken-Bezug: bei Sortierung nach einer Art zaehlt trotzdem die Gesamtsumme des Besten
+            -- bar reference: when sorted by one type, the best's grand total still counts
             local maxTot = 1
             for _, e in ipairs(ranking) do maxTot = math.max(maxTot, e.total) end
-            -- Podest
+            -- Podium
             p.pod:Layout()
             for place, col in pairs(p.pod.cols) do
                 local e = ranking[place]
@@ -1241,7 +1241,7 @@ ns.RegisterPage({
     end,
 })
 
--- Navigation: Gruppe "Ich"
+-- Navigation: group "Me"
 do
     local groups = ns.NAV_GROUPS
     if groups then

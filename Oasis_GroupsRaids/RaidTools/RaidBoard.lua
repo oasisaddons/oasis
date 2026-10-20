@@ -1,25 +1,25 @@
--- Oasis: Taktik-Karte - Instanzkarte mit Aufstellung
---  * Karte der aktuellen Instanz automatisch (C_Map-Kacheln, sonst alte Worldmap-Kacheln aus DungeonMapsData, sonst Raster)
---  * Zoom mit dem Mausrad (um den Mauszeiger), Verschieben mit rechter/mittlerer Maustaste
---  * Raidleiter/Assistent/Offizier: Tank-/Heiler-/DD-Symbole, Zielsymbole 1-8, Spieler, Pfeile, Text, Freihand
---  * Aenderungen gehen gebremst an Raid/Gruppe (RBSET), beim Oeffnen/Beitreten wird der Stand erfragt (RBREQ)
---  * Empfaenger uebernehmen nur Plaene vom Gruppenleiter oder Assistenten
---  Koordinaten normiert 0..1 auf die Karte; gespeichert je Karte in ns.db.raidBoards[karte].plans[A/B/C]
+-- Oasis: tactics map - instance map with lineup
+--  * Map of the current instance automatically (C_Map tiles, else old world map tiles from DungeonMapsData, else grid)
+--  * Zoom with mouse wheel (around the cursor), pan with right/middle mouse button
+--  * Raid leader/assistant/officer: tank/healer/DPS icons, target markers 1-8, players, arrows, text, freehand
+--  * Changes go throttled to raid/group (RBSET); on open/join the state is requested (RBREQ)
+--  * Receivers only accept plans from the group leader or assistants
+--  Coordinates normalized 0..1 to the map; stored per map in ns.db.raidBoards[map].plans[A/B/C]
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raidwerkzeuge (abschaltbar, siehe ModuleLoader.lua)
--- ns.Group kommt aus Core\Diagnostics\RaidSim.lua; fehlt die Datei, gelten die echten Blizzard-Abfragen
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
+-- ns.Group comes from Core\Diagnostics\RaidSim.lua; if the file is missing, the real Blizzard queries apply
 if not ns.Group then ns.Group = { IsSim = function() return false end, IsInGroup = function() return (IsInGroup and IsInGroup()) and true or false end, IsInRaid = function() return (IsInRaid and IsInRaid()) and true or false end, Num = function() return (GetNumGroupMembers and GetNumGroupMembers()) or 0 end, InInstance = function() if IsInInstance then return IsInInstance() end return false, "none" end, Instance = function() return nil end, Members = function() return {} end, Member = function() return nil end, IsLeader = function() return (UnitIsGroupLeader and UnitIsGroupLeader("player")) and true or false end, IsAssist = function() return false end } end
 local L = ns.L
 local K, C = ns.K, ns.K.C
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Security on receipt (others' addon messages may be manipulated):
+-- Sanitize texts, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- Neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -70,14 +70,14 @@ ns.RaidBoard = RB
 if ns.ICONS then ns.ICONS.raidboard = ns.ICONS.map or (ns.MEDIA .. "icons\\map") end
 
 ------------------------------------------------------------------------
--- Konstanten
+-- Constants
 ------------------------------------------------------------------------
 local ICON = ns.MEDIA .. "icons\\"
 local PLANS = { "A", "B", "C" }
 local COLORS = {
     { 0.95, 0.25, 0.25 },   -- 1 rot
     { 1.00, 0.85, 0.25 },   -- 2 gelb
-    { 0.35, 0.90, 0.45 },   -- 3 gruen
+    { 0.35, 0.90, 0.45 },   -- 3 green
     { 0.35, 0.65, 1.00 },   -- 4 blau
     { 1.00, 1.00, 1.00 },   -- 5 weiss
 }
@@ -85,29 +85,29 @@ local COLOR_NAMES = { "Red", "Yellow", "Green", "Blue", "White" }
 local ROLE_TEX = { T = ICON .. "role_tank", H = ICON .. "role_heal", D = ICON .. "role_dps" }
 local ROLE_COL = { T = { 0.40, 0.62, 1.00 }, H = { 0.40, 0.90, 0.55 }, D = { 0.95, 0.35, 0.35 } }
 local ROLE_NAME = { T = "Tank", H = "Healer", D = "Damage" }
-local MAX_ENC = 6000          -- groesster Plan in Zeichen (ca. 25 Nachrichten)
+local MAX_ENC = 6000          -- largest plan in characters (approx. 25 messages)
 local MAX_UNDO = 30
 local ALPH = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/"
 
--- Karten zur Auswahl (Raids zuerst); map = uiMapID (Retail-Kartenkatalog), legacy = Worldmap-Kacheln
+-- Maps to choose (raids first); map = uiMapID (retail map catalog), legacy = world map tiles
 local RAIDS = {
     { key = "m248", name = "Onyxia's Lair", map = 248, legacy = { folder = "OnyxiasLair", floors = { 1 } } },
     { key = "m329", name = "Hyjal", map = 329 },
-    { key = "barrow", name = "Barrow Deeps" },   -- TODO uiMapID unbekannt: wird im Raid automatisch erkannt
+    { key = "barrow", name = "Barrow Deeps" },   -- TODO uiMapID unknown: detected automatically in the raid
 }
 
 ------------------------------------------------------------------------
 -- Zustand
 ------------------------------------------------------------------------
-RB.board = nil        -- aktuelle Karte (Schluessel)
+RB.board = nil        -- current map (key)
 RB.plan = "A"
-RB.auto = true        -- Karte automatisch nach Aufenthaltsort
-RB.follow = true      -- Plaenen des Leiters folgen
+RB.auto = true        -- Map automatically by location
+RB.follow = true      -- Follow the leader's plans
 RB.tool = "move"      -- move | draw | arrow | label | erase | place
-RB.place = nil        -- { k = "m", t = "T" } oder { k = "p", n = name, c = class }
+RB.place = nil        -- { k = "m", t = "T" } or { k = "p", n = name, c = class }
 RB.color = 1
 RB.undo = {}
-local page            -- Seitenrahmen (nach build)
+local page            -- Page frame (after build)
 local sendPending, lastReqAnswer, lastReq, lastToast = false, 0, 0, 0
 
 ------------------------------------------------------------------------
@@ -135,7 +135,7 @@ end
 local function curPlan() return RB.Plan(nil, nil, true) end
 
 ------------------------------------------------------------------------
--- Kodierung (kompakt, ohne , ; ^ |)
+-- Encoding (compact, without , ; ^ |)
 ------------------------------------------------------------------------
 local DEC = {}
 for i = 1, #ALPH do DEC[ALPH:sub(i, i)] = i - 1 end
@@ -203,7 +203,7 @@ function RB.Decode(s)
 end
 
 ------------------------------------------------------------------------
--- Rechte / Gruppe
+-- Permissions / group
 ------------------------------------------------------------------------
 local function simOn() return ns.Sim and ns.Sim.Active() or false end
 local function groupUnits()
@@ -217,7 +217,7 @@ local function unitFull(u)
     local n = ns.safe(ns.UnitName(u))
     return n and ns.fullName(n)
 end
--- Leiter oder Assistent der aktuellen Gruppe?
+-- Leader or assistant of the current group?
 function RB.IsLeadName(sender)
     if not sender or not ns.Group.IsInGroup() then return false end
     if simOn() then return ns.Group.IsAssist(sender) end
@@ -234,15 +234,15 @@ local function iAmLead()
     if simOn() then return true end   -- Raid-Simulator: ich bin Raidleiter
     return IsInGroup() and (UnitIsGroupLeader("player") or (UnitIsGroupAssistant and UnitIsGroupAssistant("player"))) and true or false
 end
--- Zeichnen: allein (lokaler Plan) und in einer normalen Gruppe alle; im Schlachtzug nur
--- Leiter/Assistenten, Gildenleitung, benannte Schlachtzugsleiter (Admin.IsRaidLead) und Entwickler
+-- Drawing: solo (local plan) and in a normal group everyone; in a raid only
+-- Leaders/assistants, guild leadership, named raid leaders (Admin.IsRaidLead) and developers
 function RB.CanEdit()
     if ns.Demo and ns.Demo.IsActive() then return true end
     if ns.Admin and ns.Admin.Can and ns.Admin.Can("raid.board") then return true end
     if not ns.Group.IsInRaid() then return true end
     return iAmLead()
 end
--- Mitglied meiner aktuellen Gruppe?
+-- Member of my current group?
 function RB.InMyGroup(sender)
     if not sender or not ns.Group.IsInGroup() then return false end
     local want = ns.fullName(sender)
@@ -252,7 +252,7 @@ function RB.InMyGroup(sender)
     end
     return false
 end
--- Plan dieses Absenders uebernehmen? Gruppe: jedes Mitglied; Schlachtzug: Leiter/Assistent oder benannter Schlachtzugsleiter
+-- Accept this sender's plan? Group: any member; raid: leader/assistant or named raid leader
 function RB.AcceptFrom(sender)
     if RB.IsLeadName(sender) then return true end
     if simOn() then return false end
@@ -294,7 +294,7 @@ function RB.Members()
 end
 
 ------------------------------------------------------------------------
--- Karten
+-- Maps
 ------------------------------------------------------------------------
 local function dungeonName(key)
     for _, d in ipairs(ns.DungeonData or {}) do
@@ -316,7 +316,7 @@ local function mapInfo(id)
     local ok, mi = pcall(C_Map.GetMapInfo, id)
     return ok and type(mi) == "table" and mi or nil
 end
--- Ebenen einer Karte: { { map = id, name = "..." }, ... }
+-- Layers of a map: { { map = id, name = "..." }, ... }
 local function floorsOf(mapID)
     if not (C_Map and C_Map.GetMapGroupID and C_Map.GetMapGroupMembersInfo) then return nil end
     local ok, gid = pcall(C_Map.GetMapGroupID, mapID)
@@ -328,7 +328,7 @@ local function floorsOf(mapID)
     table.sort(out, function(a, b) return a.idx < b.idx end)
     return out
 end
--- Kartenkacheln ueber C_Map (Retail-Client)
+-- Map tiles via C_Map (retail client)
 local function artOf(mapID)
     if not (C_Map and C_Map.GetMapArtLayers and C_Map.GetMapArtLayerTextures) then return nil end
     local ok, layers = pcall(C_Map.GetMapArtLayers, mapID)
@@ -340,7 +340,7 @@ local function artOf(mapID)
     if not (lw and lh and tw and th) or lw <= 0 or lh <= 0 or tw <= 0 or th <= 0 then return nil end
     return { tex = tex, lw = lw, lh = lh, tw = tw, th = th, cols = math.ceil(lw / tw), rows = math.ceil(lh / th) }
 end
--- Schluessel -> { title, mapID, art, legacy, floor, floors }
+-- Key -> { title, mapID, art, legacy, floor, floors }
 function RB.BoardInfo(key)
     if not key then return nil end
     local info = { key = key }
@@ -378,8 +378,8 @@ function RB.BoardInfo(key)
     info.title = key:match("^x(.+)$") or key
     return info
 end
--- Dungeon-Schluessel (DungeonMapsData/BossPos) aus Instanz- oder Zonenname, deutsch oder englisch
--- (Forever: GetBestMapForUnit/UnitPosition liefern in Instanzen nil -> ueber den Namen gehen)
+-- Dungeon key (DungeonMapsData/BossPos) from instance or zone name, German or English
+-- (Forever: GetBestMapForUnit/UnitPosition return nil in instances -> go by name)
 local function dungeonKeyByName(name)
     local D = ns.Dungeons
     if not (D and name and name ~= "") then return nil end
@@ -397,16 +397,16 @@ local function boardByDungeon(dk)
     if m and artOf(m) then return "m" .. m end
     local cfg = ns.DungeonMapsData and ns.DungeonMapsData[dk]
     if cfg and cfg.floors and cfg.floors[1] then
-        -- Etage des ersten Bosses, sonst die erste
+        -- Floor of the first boss, else the first
         local fl = cfg.pins and cfg.pins[1] and tonumber(cfg.pins[1][4]) or cfg.floors[1]
         return "d" .. dk .. ":" .. fl
     end
     if m then return "m" .. m end
 end
 RB.DungeonBoard = function(name) return boardByDungeon(dungeonKeyByName(name)) end
--- Karte am aktuellen Ort
+-- Map at current location
 function RB.Detect()
-    -- Raid-Simulator: Karte des simulierten Raids
+    -- Raid simulator: map of the simulated raid
     if simOn() then
         local inst = ns.Group.Instance()
         local k = inst and inst.key
@@ -449,7 +449,7 @@ function RB.Catalog()
 end
 
 ------------------------------------------------------------------------
--- Aenderungen (lokal + Versand)
+-- Changes (local + sending)
 ------------------------------------------------------------------------
 local function pushUndo()
     local p = curPlan()
@@ -522,7 +522,7 @@ function RB.Undo()
     changed()
     return true
 end
--- naechstes Element an Punkt (fuer Radierer)
+-- nearest element at point (for eraser)
 function RB.HitTest(x, y, rad)
     rad = rad or 0.025
     local best, bd
@@ -553,7 +553,7 @@ end
 local function onSet(sender, _, board, plan, rev, enc)
     if not board or board == "" or ns.isMe(sender) then return end
     if not RB.AcceptFrom(sender) then ns.debug("RBSET ignoriert (keine Rechte)", sender) return end
-    -- nur bekannte Karten (sonst waechst die gespeicherte Ablage mit beliebigen Schluesseln), Groesse begrenzt
+    -- only known maps (else the stored data grows with arbitrary keys), size limited
     if type(board) ~= "string" or #board > 44 or board:find("[|%c,;%^]") then return end
     if not (board:match("^m%d+$") or board:match("^d[%w_]+:%d+$") or board:match("^x.+$") or board:match("^[%w_]+$")) then return end
     if not RB.Plan(board, plan) then
@@ -564,7 +564,7 @@ local function onSet(sender, _, board, plan, rev, enc)
     if type(enc) == "string" and #enc > 20000 then return end
     plan = (plan == "B" or plan == "C") and plan or "A"
     local items, nid = RB.Decode(enc)
-    -- Elemente/Punkte begrenzen, Beschriftungen entschaerfen
+    -- Limit elements/points, sanitize labels
     while #items > 400 do table.remove(items) end
     for _, it in ipairs(items) do
         if it.n then it.n = SEC.Text(it.n, 40) end
@@ -605,7 +605,7 @@ if ns.Comm then
 end
 
 ------------------------------------------------------------------------
--- Zeichnen
+-- Draw
 ------------------------------------------------------------------------
 local V = {}  -- Ansicht: zoom, ox, oy, bw, bh
 V.z, V.ox, V.oy = 1, 0, 0
@@ -629,7 +629,7 @@ local function getDot(host)
     if not d then d = host.canvas:CreateTexture(nil, "OVERLAY") host.dots[host.dotN] = d end
     return d
 end
--- Linie in Pixeln (x nach rechts, y nach unten) relativ zur Leinwand
+-- Line in pixels (x to the right, y down) relative to the canvas
 local function seg(host, x1, y1, x2, y2, col, th)
     local ln = getLine(host)
     if ln.isLine then
@@ -698,7 +698,7 @@ function RB.Layout()
     local W, H = host:GetWidth(), host:GetHeight()
     if not W or W < 50 then W, H = 640, 470 end
     local info = host.info
-    -- Seitenverhaeltnis der Karte
+    -- Map aspect ratio
     local asp = 1.5
     if info and info.art then asp = info.art.lw / info.art.lh
     elseif info and info.legacy and info.legacy.cfg.bundled then asp = info.legacy.cfg.aspect or 1 end
@@ -706,7 +706,7 @@ function RB.Layout()
     local bh = bw / asp
     V.bw, V.bh = bw, bh
     local cw, ch = bw * V.z, bh * V.z
-    -- Rand begrenzen: Karte bleibt sichtbar
+    -- Clamp edge: map stays visible
     local minX, maxX = math.min(0, W - cw), math.max(0, W - cw)
     local minY, maxY = math.min(0, H - ch), math.max(0, H - ch)
     if V.z <= 1 then V.ox, V.oy = (W - cw) / 2, (H - ch) / 2 end
@@ -766,7 +766,7 @@ function RB.Layout()
         host.grid:SetShown(true)
     end
     host.noArt:SetShown(info ~= nil and not info.art and not info.legacy)
-    -- Raster ohne Kartenbild
+    -- Grid without map image
     if host.grid:IsShown() then
         for i, g in ipairs(host.gridLines) do
             local vert = i <= 9
@@ -776,7 +776,7 @@ function RB.Layout()
             else g:SetSize(cw, 1) g:SetPoint("TOPLEFT", cv, "TOPLEFT", 0, -ch * k / 10) end
         end
     end
-    -- Zeichnungen
+    -- Drawings
     host.lineN, host.dotN = 0, 0
     local p = RB.board and RB.Plan() or nil
     local items = p and p.items or {}
@@ -845,7 +845,7 @@ function RB.Layout()
     RB.LayoutDots()
 end
 
--- Positionen der Gruppe (nur ausserhalb von Instanzen und wenn Karte = aktuelle Karte)
+-- Group positions (only outside instances and when map = current map)
 function RB.LayoutDots()
     local host = page and page.view
     if not host then return end
@@ -890,7 +890,7 @@ end
 ------------------------------------------------------------------------
 -- Maus
 ------------------------------------------------------------------------
--- Mausposition -> normiert (0..1) auf der Karte, dazu lokale Pixel in der Ansicht
+-- Mouse position -> normalized (0..1) on the map, plus local pixels in the view
 function RB.CursorPos()
     local host = page and page.view
     if not host then return 0.5, 0.5, 0, 0 end
@@ -981,7 +981,7 @@ function RB.MouseDown(btn)
     elseif t == "erase" then
         local it = RB.HitTest(nx, ny, 0.03 / V.z)
         if it then RB.Remove(it.id) end
-        -- weiter wischen, solange die Maustaste gedrueckt ist
+        -- keep wiping while the mouse button is held
         RB.erasing = true
         startUpdate()
     elseif t == "draw" then
@@ -1011,7 +1011,7 @@ function RB.EndAction()
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local function setBoard(key, manual)
     if manual then RB.auto = false end
@@ -1051,7 +1051,7 @@ local function toolButton(parent, tex, tip, tool, ptype, text)
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
     return b
 end
--- Palettenknopf: Klick = Platzier-Werkzeug; gedrueckt halten und auf die Karte ziehen = direkt setzen
+-- Palette button: click = placement tool; hold and drag onto the map = place directly
 local function paletteButton(parent, tex, tip, place, col)
     local b = toolButton(parent, tex, tip, "place", place.t or "P")
     if col and b.ic then b.ic:SetVertexColor(col[1], col[2], col[3]) end
@@ -1223,7 +1223,7 @@ ns.RegisterPage({
         p.status:SetJustifyH("RIGHT")
         p.follow = K.Toggle and K.Toggle(p, L["Follow leader"], function() return RB.follow end, function(v) RB.follow = v end) or nil
         if p.follow then p.follow:SetPoint("BOTTOMLEFT", 244, 0) p.follow:SetWidth(130) end
-        -- nur sichtbar: Positionen sekuendlich auffrischen
+        -- only when visible: refresh positions every second
         p:SetScript("OnUpdate", function(self, el)
             self.acc = (self.acc or 0) + el
             if self.acc < 1 then return end
@@ -1242,7 +1242,7 @@ ns.RegisterPage({
             local d = RB.Detect()
             if d then RB.board = d end
         end
-        -- Raid-Simulator: beim Start einmal auf die Karte des simulierten Raids springen (danach frei waehlbar)
+        -- Raid simulator: on start jump once to the simulated raid's map (freely selectable afterwards)
         if simOn() then
             local d = RB.Detect()
             if d and RB.simFor ~= d then RB.board, RB.simFor = d, d end
@@ -1256,7 +1256,7 @@ ns.RegisterPage({
         p.floorBtn:SetShown(info and info.floors ~= nil)
         p.seg:Select(RB.plan)
         local edit = RB.CanEdit()
-        -- Werkzeuge bleiben sichtbar, fuer Nicht-Berechtigte (nur im Schlachtzug) abgedunkelt und gesperrt
+        -- Tools stay visible, dimmed and locked for the unauthorized (only in raid)
         p.bar:Show()
         if not p.barLock then p.barLock = K.Lock(p.bar, { who = "raidlead", compact = true, check = RB.CanEdit }) end
         p.barLock:Update()
@@ -1301,7 +1301,7 @@ ns.On("ZONE_CHANGED_NEW_AREA", function()
 end)
 
 ------------------------------------------------------------------------
--- Demo: Beispiel-Aufstellung fuer Onyxia
+-- Demo: sample lineup for Onyxia
 ------------------------------------------------------------------------
 function RB.SeedDemo()
     local b = store()["m248"]
@@ -1334,7 +1334,7 @@ ns.Listen("LOGIN", function()
     if D and not D.boardHooked then
         D.boardHooked = true
         local load, remove = D.Load, D.Remove
-        -- keine vorgefertigte Demo-Aufstellung mehr; alte Demo-Plaene entfernen
+        -- no prebuilt demo lineup anymore; remove old demo plans
         D.Remove = function(...) remove(...) RB.RemoveDemo() end
         ns.After(3, RB.RemoveDemo)
     end

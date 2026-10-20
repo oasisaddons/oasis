@@ -1,8 +1,8 @@
--- Oasis: Dungeon-Datenbank fuer WoW Forever (nur Fakten: Namen, Stufen, Bosse, Item-/Quest-IDs).
--- Zusammengestellt am 28.09.2026 aus oeffentlichen Quellen (foreverchanges.pro, wowforevertalents.com),
--- deutsche Dungeon-Namen nach dem deDE-Client. Item- und Questnamen zeigt Oasis im Spiel aus dem Client an.
+-- Oasis: dungeon database for WoW Forever (facts only: names, levels, bosses, item/quest IDs).
+-- Compiled on 28.09.2026 from public sources (foreverchanges.pro, wowforevertalents.com),
+-- German dungeon names per the deDE client. Oasis shows item and quest names in game from the client.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Dungeons", function()   -- Modul Dungeons (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Dungeons", function()   -- Module Dungeons (can be disabled, see ModuleLoader.lua)
 ns.DungeonData = (function()
 -- WoW Forever dungeon data (facts only). Generated 2026-09-28 from:
 --   foreverchanges.pro (level ranges, zones, bosses, loot with item id + quality, quests incl. min level, giver, faction, rewards)
@@ -29,7 +29,7 @@ return {
       { id = 5724, name = "Returning the Lost Satchel", level = 16, min = 9, faction = "Horde", giver = "Maur Grimtotem, inside the dungeon", rewards = {15452, 15453, 270003} },
       { id = 5761, name = "Slaying the Beast", level = 16, min = 9, faction = "Horde", giver = "Neeru Fireblade, Orgrimmar", rewards = {} },
       { id = 5725, name = "The Power to Destroy...", level = 16, min = 9, faction = "Horde", giver = "Varimathras, Undercity", rewards = {15449, 15450, 15451} },
-      { id = 5722, name = "Returning the Lost Satchel", level = 16, rewards = {15452, 15453, 270003} }, -- nur wft (beta client quest cache)
+      { id = 5722, name = "Returning the Lost Satchel", level = 16, rewards = {15452, 15453, 270003} }, -- wft only (beta client quest cache)
     },
     sources = { "https://foreverchanges.pro/dungeons/ragefire-chasm", "https://wowforevertalents.com/dungeons/ragefire-chasm/", "https://www.wowhead.com/classic/de (zone name)" },
   },
@@ -103,9 +103,9 @@ return {
       { id = 6981, name = "The Glowing Shard", level = 26, min = 15, faction = "Both", giver = "From the item Glowing Shard", rewards = {} },
       { id = 914, name = "Leaders of the Fang", level = 22, min = 11, faction = "Horde", giver = "Nara Wildmane, Thunder Bluff", rewards = {6505, 6504, 270018} },
       { id = 962, name = "Serpentbloom", level = 18, min = 14, faction = "Horde", giver = "Apothecary Zamah, Thunder Bluff", rewards = {10919, 270008, 270009} },
-      { id = 1490, name = "Hamuul Runetotem", level = 16, rewards = {} }, -- nur wft (beta client quest cache)
-      { id = 1489, name = "Nara Wildmane", level = 16, rewards = {} }, -- nur wft (beta client quest cache)
-      { id = 3366, name = "The Glowing Shard", level = 25, rewards = {} }, -- nur wft (beta client quest cache)
+      { id = 1490, name = "Hamuul Runetotem", level = 16, rewards = {} }, -- wft only (beta client quest cache)
+      { id = 1489, name = "Nara Wildmane", level = 16, rewards = {} }, -- wft only (beta client quest cache)
+      { id = 3366, name = "The Glowing Shard", level = 25, rewards = {} }, -- wft only (beta client quest cache)
     },
     sources = { "https://foreverchanges.pro/dungeons/wailing-caverns", "https://wowforevertalents.com/dungeons/wailing-caverns/", "https://www.wowhead.com/classic/de (zone name)" },
   },
@@ -132,8 +132,8 @@ return {
       { id = 166, name = "The Defias Brotherhood", level = 22, min = 14, faction = "Alliance", giver = "Gryan Stoutmantle, Westfall", rewards = {6087, 2041, 2042} },
       { id = 167, name = "Oh Brother. . .", level = 20, min = 15, faction = "Alliance", giver = "Wilder Thistlenettle, Stormwind City", rewards = {1893, 270012, 270013} },
       { id = 2040, name = "Underground Assault", level = 20, min = 15, faction = "Alliance", giver = "Shoni the Shilent, Stormwind City", rewards = {7606, 7607, 270015, 270016} },
-      { id = 92753, name = "Destruction in Deadmines", level = 18, faction = "Alliance", rewards = {} }, -- nur wft (beta client quest cache)
-      { id = 373, name = "The Unsent Letter", level = 22, faction = "Alliance", rewards = {} }, -- nur wft (beta client quest cache)
+      { id = 92753, name = "Destruction in Deadmines", level = 18, faction = "Alliance", rewards = {} }, -- wft only (beta client quest cache)
+      { id = 373, name = "The Unsent Letter", level = 22, faction = "Alliance", rewards = {} }, -- wft only (beta client quest cache)
     },
     sources = { "https://foreverchanges.pro/dungeons/the-deadmines", "https://wowforevertalents.com/dungeons/deadmines/", "https://www.wowhead.com/classic/de (zone name)" },
   },
@@ -161,7 +161,7 @@ return {
       { id = 1013, name = "The Book of Ur", level = 26, min = 16, faction = "Horde", giver = "Keeper Bel'dugur, Undercity", rewards = {6335, 4534, 270030} },
       { id = 1098, name = "Deathstalkers in Shadowfang", level = 25, min = 18, faction = "Horde", giver = "High Executor Hadrec, Silverpine Forest", rewards = {3324, 270023, 270024} },
       { id = 1014, name = "Arugal Must Die", level = 27, min = 18, faction = "Horde", giver = "Dalar Dawnweaver, Silverpine Forest", rewards = {6414} },
-      { id = 1740, name = "The Orb of Soran'ruk", level = 25, rewards = {6898, 15109} }, -- nur wft (beta client quest cache)
+      { id = 1740, name = "The Orb of Soran'ruk", level = 25, rewards = {6898, 15109} }, -- wft only (beta client quest cache)
     },
     sources = { "https://foreverchanges.pro/dungeons/shadowfang-keep", "https://wowforevertalents.com/dungeons/shadowfang-keep/", "https://www.wowhead.com/classic/de (zone name)" },
   },
@@ -190,13 +190,13 @@ return {
       { id = 6565, name = "Allegiance to the Old Gods", level = 26, min = 17, faction = "Horde", giver = "Je'neu Sancrea, Ashenvale", rewards = {17694, 17695} },
       { id = 6561, name = "Blackfathom Villainy", level = 27, min = 18, faction = "Horde", giver = "Argent Guard Thaelrid, inside the dungeon", rewards = {7001, 7002, 270031, 270032} },
       { id = 6921, name = "Amongst the Ruins", level = 27, min = 21, faction = "Horde", giver = "Je'neu Sancrea, Ashenvale", rewards = {} },
-      { id = 6562, name = "The Essence of Aku'Mai", level = 22, rewards = {} }, -- nur wft (beta client quest cache)
-      { id = 1198, name = "Blackfathom Villainy", level = 27, faction = "Alliance", rewards = {7001, 7002, 270031, 270032} }, -- nur wft (beta client quest cache)
+      { id = 6562, name = "The Essence of Aku'Mai", level = 22, rewards = {} }, -- wft only (beta client quest cache)
+      { id = 1198, name = "Blackfathom Villainy", level = 27, faction = "Alliance", rewards = {7001, 7002, 270031, 270032} }, -- wft only (beta client quest cache)
     },
     sources = { "https://foreverchanges.pro/dungeons/blackfathom-deeps", "https://wowforevertalents.com/dungeons/blackfathom-deeps/", "https://www.wowhead.com/classic/de (zone name)" },
   },
   {
-    -- DE: Wowhead Classic "Das Verlies", foreverchanges/de "Verlies von Stormwind" -> Forever-Quelle genommen; wft GF level 23
+    -- DE: Wowhead Classic "Das Verlies", foreverchanges/de "Verlies von Stormwind" -> took the Forever source; wft GF level 23
     key = "stockade", name = "The Stockade", de = "Das Verlies", lo = 24, hi = 32, zone = "Stormwind City",
     faction = nil, status = "beta",
     bosses = {
@@ -220,9 +220,9 @@ return {
   {
     -- wft GF level 26
     key = "excavationsite", name = "Excavation Site: Wetlands", de = "Ausgrabungsstätte: Sumpfland", lo = 26, hi = 31, zone = "Wetlands",
-    faction = nil, status = "beta",   -- 0.5.699: seit 1.10. in der Beta (Stufen 26-31 laut Entwickler-Notizen)
+    faction = nil, status = "beta",   -- 0.5.699: in the beta since 1.10. (levels 26-31 per developer notes)
     bosses = {
-      -- Bossnamen aus wft (Forever-Client-Tabellen), noch keine Beute bekannt
+      -- Boss names from wft (Forever client tables), no loot known yet
       { name = "Saltspine", loot = {} },
       { name = "Shadetooth", loot = {} },
       { name = "Highland Horror", npc = 260808, loot = {} },
@@ -235,9 +235,9 @@ return {
   {
     -- wft GF level 28
     key = "cityofdalaran", name = "City of Dalaran", de = "Dalaran", lo = 28, hi = 33, zone = "Alterac Mountains",
-    faction = nil, status = "beta",   -- 0.5.699: seit 8.10. zum Testen verfuegbar
+    faction = nil, status = "beta",   -- 0.5.699: available for testing since 8.10.
     bosses = {
-      -- Bossnamen aus wft (Forever-Client-Tabellen), noch keine Beute bekannt
+      -- Boss names from wft (Forever client tables), no loot known yet
       { name = "Arcane Anomaly", loot = {} },
       { name = "Fel Ancient", loot = {} },
       { name = "Mana Devourer", loot = {} },
@@ -282,9 +282,9 @@ return {
       { id = 2843, name = "Gnomer-gooooone!", level = 35, min = 20, faction = "Horde", giver = "Scooty, Stranglethorn Vale", rewards = {9173} },
       { id = 2841, name = "Rig Wars", level = 35, min = 25, faction = "Horde", giver = "Nogg, Orgrimmar", rewards = {9623, 9624, 9625} },
       { id = 2949, name = "Return of the Ring", level = 34, min = 28, faction = "Horde", giver = "The Sparklematic 5200, inside the dungeon", rewards = {} },
-      { id = 2923, name = "Save Techbot's Brain!", level = 26, rewards = {} }, -- nur wft (beta client quest cache)
-      { id = 2927, name = "The Day After", level = 27, rewards = {} }, -- nur wft (beta client quest cache)
-      { id = 2842, name = "Gnomer-gooooone!", level = 35, rewards = {9173} }, -- nur wft (beta client quest cache)
+      { id = 2923, name = "Save Techbot's Brain!", level = 26, rewards = {} }, -- wft only (beta client quest cache)
+      { id = 2927, name = "The Day After", level = 27, rewards = {} }, -- wft only (beta client quest cache)
+      { id = 2842, name = "Gnomer-gooooone!", level = 35, rewards = {9173} }, -- wft only (beta client quest cache)
     },
     sources = { "https://foreverchanges.pro/dungeons/gnomeregan", "https://wowforevertalents.com/dungeons/gnomeregan/", "https://www.wowhead.com/classic/de (zone name)" },
   },
@@ -315,7 +315,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/razorfen-kraul", "https://wowforevertalents.com/dungeons/razorfen-kraul/", "https://www.wowhead.com/classic/de (zone name)" },
   },
   {
-    -- wft GF level 30; wft fuehrt diesen Flügel nur als Gesamt-Instanz (scarlet-monastery)
+    -- wft GF level 30; wft lists this wing only as the whole instance (scarlet-monastery)
     key = "smgraveyard", name = "Scarlet Monastery Graveyard", de = "Scharlachrotes Kloster - Friedhof", lo = 30, hi = 38, zone = "Tirisfal Glades",
     faction = nil, status = "beta",
     bosses = {
@@ -336,7 +336,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/scarlet-monastery-graveyard", "https://wowforevertalents.com/dungeons/scarlet-monastery/" },
   },
   {
-    -- wft GF level 30; wft fuehrt diesen Flügel nur als Gesamt-Instanz (scarlet-monastery)
+    -- wft GF level 30; wft lists this wing only as the whole instance (scarlet-monastery)
     key = "smlibrary", name = "Scarlet Monastery Library", de = "Scharlachrotes Kloster - Bibliothek", lo = 33, hi = 41, zone = "Tirisfal Glades",
     faction = nil, status = "beta",
     bosses = {
@@ -357,7 +357,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/scarlet-monastery-library", "https://wowforevertalents.com/dungeons/scarlet-monastery/" },
   },
   {
-    -- wft GF level 30; wft fuehrt diesen Flügel nur als Gesamt-Instanz (scarlet-monastery)
+    -- wft GF level 30; wft lists this wing only as the whole instance (scarlet-monastery)
     key = "smarmory", name = "Scarlet Monastery Armory", de = "Scharlachrotes Kloster - Waffenkammer", lo = 36, hi = 44, zone = "Tirisfal Glades",
     faction = nil, status = "beta",
     bosses = {
@@ -410,7 +410,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/razorfen-downs", "https://wowforevertalents.com/dungeons/razorfen-downs/", "https://www.wowhead.com/classic/de (zone name)" },
   },
   {
-    -- wft GF level 30; wft fuehrt diesen Flügel nur als Gesamt-Instanz (scarlet-monastery)
+    -- wft GF level 30; wft lists this wing only as the whole instance (scarlet-monastery)
     key = "smcathedral", name = "Scarlet Monastery Cathedral", de = "Scharlachrotes Kloster - Kathedrale", lo = 38, hi = 46, zone = "Tirisfal Glades",
     faction = nil, status = "beta",
     bosses = {
@@ -565,7 +565,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/alcaz-prison", "https://wowforevertalents.com/dungeons/defias-prison/" },
   },
   {
-    -- DE: Wowhead Classic "Der Tempel von Atal'Hakkar", foreverchanges/de "Versunkener Tempel" -> Forever-Quelle genommen; wft GF level 45
+    -- DE: Wowhead Classic "Der Tempel von Atal'Hakkar", foreverchanges/de "Versunkener Tempel" -> took the Forever source; wft GF level 45
     key = "sunkentemple", name = "Sunken Temple", de = "Der Tempel von Atal'Hakkar", lo = 50, hi = 60, zone = "Swamp of Sorrows",
     faction = nil, status = "beta",
     bosses = {
@@ -661,7 +661,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/blackrock-depths", "https://wowforevertalents.com/dungeons/blackrock-depths/", "https://www.wowhead.com/classic/de (zone name)" },
   },
   {
-    -- wft GF level 54; wft fuehrt diesen Flügel nur als Gesamt-Instanz (dire-maul)
+    -- wft GF level 54; wft lists this wing only as the whole instance (dire-maul)
     key = "diremauleast", name = "Dire Maul East", de = "Düsterbruch (Ost)", lo = 54, hi = 60, zone = "Feralas",
     faction = nil, status = "beta",
     bosses = {
@@ -701,7 +701,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/dire-maul-east", "https://wowforevertalents.com/dungeons/dire-maul/" },
   },
   {
-    -- wft GF level 53; wft fuehrt diesen Flügel nur als Gesamt-Instanz (blackrock-spire)
+    -- wft GF level 53; wft lists this wing only as the whole instance (blackrock-spire)
     key = "lbrs", name = "Lower Blackrock Spire", de = "Untere Schwarzfelsspitze", lo = 55, hi = 60, zone = "Blackrock Mountain",
     faction = nil, status = "beta",
     bosses = {
@@ -764,7 +764,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/blackmaw-hold", "https://wowforevertalents.com/dungeons/blackmaw-hold/" },
   },
   {
-    -- wft GF level 54; wft fuehrt diesen Flügel nur als Gesamt-Instanz (dire-maul)
+    -- wft GF level 54; wft lists this wing only as the whole instance (dire-maul)
     key = "diremaulnorth", name = "Dire Maul North", de = "Düsterbruch (Nord)", lo = 56, hi = 60, zone = "Feralas",
     faction = nil, status = "beta",
     bosses = {
@@ -806,7 +806,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/dire-maul-north", "https://wowforevertalents.com/dungeons/dire-maul/" },
   },
   {
-    -- wft GF level 54; wft fuehrt diesen Flügel nur als Gesamt-Instanz (dire-maul)
+    -- wft GF level 54; wft lists this wing only as the whole instance (dire-maul)
     key = "diremaulwest", name = "Dire Maul West", de = "Düsterbruch (West)", lo = 56, hi = 60, zone = "Feralas",
     faction = nil, status = "beta",
     bosses = {
@@ -883,7 +883,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/scholomance", "https://wowforevertalents.com/dungeons/scholomance/", "https://www.wowhead.com/classic/de (zone name)" },
   },
   {
-    -- wft GF level 55; wft fuehrt diesen Flügel nur als Gesamt-Instanz (stratholme)
+    -- wft GF level 55; wft lists this wing only as the whole instance (stratholme)
     key = "stratmain", name = "Stratholme Main Gate", de = "Stratholme (Haupttor)", lo = 58, hi = 60, zone = "Eastern Plaguelands",
     faction = nil, status = "beta",
     bosses = {
@@ -918,7 +918,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/stratholme-main-gate", "https://wowforevertalents.com/dungeons/stratholme/" },
   },
   {
-    -- wft GF level 55; wft fuehrt diesen Flügel nur als Gesamt-Instanz (stratholme)
+    -- wft GF level 55; wft lists this wing only as the whole instance (stratholme)
     key = "stratservice", name = "Stratholme Service Gate", de = "Stratholme (Dienstbotentor)", lo = 58, hi = 60, zone = "Eastern Plaguelands",
     faction = nil, status = "beta",
     bosses = {
@@ -960,7 +960,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/shapers-terrace", "https://wowforevertalents.com/dungeons/shaper-s-terrace/" },
   },
   {
-    -- wft GF level 53; wft fuehrt diesen Flügel nur als Gesamt-Instanz (blackrock-spire)
+    -- wft GF level 53; wft lists this wing only as the whole instance (blackrock-spire)
     key = "ubrs", name = "Upper Blackrock Spire", de = "Obere Schwarzfelsspitze", lo = 59, hi = 60, zone = "Blackrock Mountain",
     faction = nil, status = "beta",
     bosses = {
@@ -1004,7 +1004,7 @@ return {
     sources = { "https://foreverchanges.pro/dungeons/upper-blackrock-spire", "https://wowforevertalents.com/dungeons/blackrock-spire/" },
   },
   {
-    -- nur in den Forever-Client-Tabellen (wft), keine Stufe, nicht angekündigt/nicht betretbar in der Beta
+    -- only in the Forever client tables (wft), no level, not announced/not enterable in the beta
     key = "demonfallcanyon", name = "Demon Fall Canyon", zone = "Ashenvale", faction = nil, status = "client",
     bosses = {
       { name = "Grimroot", loot = {} },
@@ -1019,7 +1019,7 @@ return {
     sources = { "https://wowforevertalents.com/dungeons/demon-fall-canyon/" },
   },
   {
-    -- nur in den Forever-Client-Tabellen (wft), keine Stufe, nicht angekündigt/nicht betretbar in der Beta
+    -- only in the Forever client tables (wft), no level, not announced/not enterable in the beta
     key = "halfpinttavern", name = "Half-Pint Tavern", faction = nil, status = "client",
     bosses = {
       { name = "Deathulus", loot = {} },
@@ -1029,7 +1029,7 @@ return {
     sources = { "https://wowforevertalents.com/dungeons/half-pint-tavern/" },
   },
   {
-    -- nur in den Forever-Client-Tabellen (wft), keine Stufe, nicht angekündigt/nicht betretbar in der Beta
+    -- only in the Forever client tables (wft), no level, not announced/not enterable in the beta
     key = "karazhancrypts", name = "Karazhan Crypts", faction = nil, status = "client",
     bosses = {
       { name = "Harbinger of Sin", loot = {} },
@@ -1048,7 +1048,7 @@ return {
     sources = { "https://wowforevertalents.com/dungeons/karazhan-crypts/" },
   },
   {
-    -- nur in den Forever-Client-Tabellen (wft), keine Stufe, nicht angekündigt/nicht betretbar in der Beta
+    -- only in the Forever client tables (wft), no level, not announced/not enterable in the beta
     key = "manormistmantle", name = "Manor Mistmantle", zone = "Duskwood", faction = nil, status = "client",
     bosses = {
     },

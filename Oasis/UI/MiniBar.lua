@@ -1,9 +1,9 @@
--- Oasis: drehender Ring ums Logo + eingeklappte Oasis-Leiste (frei ziehbar, rastet oben am Bildschirmrand ein)
+-- Oasis: spinning ring around the logo + collapsed Oasis bar (freely draggable, snaps to the top screen edge)
 local ADDON, ns = ...
 local K, C, L = ns.K, ns.K.C, ns.L
 local M = ns.MEDIA
 
--- 0.6.507: ruhende Leisten-Symbole mit ganz leichtem Verlauf (oben heller, unten etwas dunkler)
+-- 0.6.507: idle bar icons with a very light gradient (lighter at the top, a bit darker at the bottom)
 local function restTint(t)
     local m = C.muted
     t:SetVertexColor(m[1], m[2], m[3])
@@ -14,7 +14,7 @@ local function restTint(t)
 end
 
 ------------------------------------------------------------------------
--- Drehender Ring (Verlauf Blau > Violett > Pink) um ein rundes Logo
+-- spinning ring (gradient blue > violet > pink) around a round logo
 ------------------------------------------------------------------------
 function ns.SpinRing(parent, anchor, size, speed)
     local f = CreateFrame("Frame", nil, parent)
@@ -35,20 +35,20 @@ function ns.SpinRing(parent, anchor, size, speed)
 end
 
 ------------------------------------------------------------------------
--- Animierte Wortmarke: roter Lichtstreifen laeuft durch die Buchstaben
--- (per Maske nur auf der Schrift), darunter eine Linie mit wanderndem Lichtpunkt
+-- animated wordmark: red light streak runs through the letters
+-- (via mask only on the lettering), below it a line with a wandering light dot
 ------------------------------------------------------------------------
 local wordmarks = setmetatable({}, { __mode = "k" })
--- Akzentfarbe geaendert: alle Wortmarken (Seitenleiste, Leiste) umfaerben
+-- accent color changed: recolor all wordmarks (sidebar, bar)
 ns.Listen("BRAND", function() for wm in pairs(wordmarks) do wm:UpdateColor() end end)
 function ns.Wordmark(parent, w, h, withLine)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(w, h)
     local base = f:CreateTexture(nil, "ARTWORK")
-    base:SetTexture(M .. "wordmark_base")     -- Buchstaben ohne i
+    base:SetTexture(M .. "wordmark_base")     -- letters without i
     base:SetAllPoints()
     f.base = base
-    -- das i als eigene Ebene in der Akzentfarbe (folgt Design/Akzent)
+    -- the i as its own layer in the accent color (follows design/accent)
     local dot = f:CreateTexture(nil, "ARTWORK", nil, 1)
     dot:SetTexture(M .. "wordmark_i")
     dot:SetAllPoints()
@@ -88,7 +88,7 @@ function ns.Wordmark(parent, w, h, withLine)
         spark:SetSize(34, 3)
     end
 
-    -- Takt: alle 5 s ein Durchlauf (1,4 s), die Linie laeuft staendig langsam
+    -- tick: one pass every 5 s (1.4 s), the line runs slowly all the time
     local t, CYCLE, RUN = 0, 5, 1.4
     f:SetScript("OnUpdate", function(_, el)
         t = t + el
@@ -117,10 +117,10 @@ function ns.Wordmark(parent, w, h, withLine)
 end
 
 ------------------------------------------------------------------------
--- Oasis-Leiste
+-- Oasis bar
 ------------------------------------------------------------------------
 local bar
--- Seiten, die als Knopf in der Leiste stehen koennen (Auswahl in den Einstellungen, Reiter "Leiste")
+-- pages that can be a button in the bar (selection in the settings, tab "Bar")
 local QUICK_ALL = { "home", "insta", "chat", "radar", "chronicle", "polls", "groups", "social", "allies", "dungeons", "camp",
     "raid", "buffs", "crafting", "trade", "wants", "bank", "deathroll", "deaths", "legacy", "badges" }
 local QUICK_DEFAULT = { home = true, chat = true, groups = true, dungeons = true, raid = true, crafting = true, mark = true }
@@ -128,13 +128,13 @@ ns.MINI_QUICK_ALL, ns.MINI_QUICK_DEFAULT = QUICK_ALL, QUICK_DEFAULT
 function ns.MiniQuickOn(key)
     local sel = ns.db and ns.db.settings.miniPages
     if sel == nil then return QUICK_DEFAULT[key] or false end
-    -- frueherer eigener Knopf "Buff-Monitor-Fenster" ist jetzt der Buff-Monitor-Knopf selbst
+    -- former own button "Buff monitor window" is now the buff monitor button itself
     if key == "buffs" and sel.buffmon then return true end
     return sel[key] and true or false
 end
 local QUICK = {}
 for _, k in ipairs(QUICK_ALL) do QUICK[#QUICK + 1] = { key = k } end
--- Buff-Monitor in der Leiste: oeffnet das kleine schwebende Fenster statt der grossen Seite
+-- buff monitor in the bar: opens the small floating window instead of the large page
 for _, q in ipairs(QUICK) do
     if q.key == "buffs" then
         q.tip = { "Buff monitor", "Click: window on/off", "Right-click: page in the Oasis window" }
@@ -144,28 +144,28 @@ for _, q in ipairs(QUICK) do
         end
     end
 end
--- Aktion statt Seite: Auto-Marker (nur in einer Gruppe sichtbar)
+-- action instead of page: auto marker (only visible in a group)
 QUICK[#QUICK + 1] = { key = "mark", action = true, icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8",
     tip = { "Auto marker", "Left-click: mark enemies (again = remove)", "Right-click: clear marks", "Shift + click: auto marker window" },
-    -- kommt der Klick hier an, lag der sichere Knopf nicht darueber -> neu ausrichten
+    -- if the click arrives here, the secure button wasn't on top -> realign
     fn = function()
-        -- 0.5.735: Shift + Klick oeffnet das Fenster auch dann, wenn der sichere Knopf den Klick nicht abfaengt (Makro /oa mark button)
+        -- 0.5.735: Shift + click opens the window even if the secure button doesn't catch the click (macro /oa mark button)
         if IsShiftKeyDown and IsShiftKeyDown() and ns.Marker and ns.Marker.Toggle then ns.Marker.Toggle() return end
         if InCombatLockdown() then ns.print(ns.L["Auto marker: click again after combat."]) return end
         if ns.UpdateMiniBar then ns.UpdateMiniBar() end
         ns.print(ns.L["Auto marker realigned - please click again."])
     end }
 
--- Popout-Fenster ein/aus (Auto-Marker-Box, Buff-Monitor)
+-- popout window on/off (auto marker box, buff monitor)
 QUICK[#QUICK + 1] = { key = "markbox", panel = true, icon = "Interface\\Icons\\Ability_Hunter_MarkedForDeath",
     tip = { "Auto marker window", "Click: window on/off" },
     fn = function() if ns.Marker and ns.Marker.Toggle then ns.Marker.Toggle() end end }
--- fuer Einstellungen/Vorschau
+-- for settings/preview
 ns.MINI_QUICK_PANELS = {
     { key = "markbox", label = "Auto marker window", icon = "Interface\\Icons\\Ability_Hunter_MarkedForDeath" },
 }
 
-local SNAP = 36   -- so nah am oberen Rand rastet die Leiste ein
+local SNAP = 36   -- this close to the top edge the bar snaps in
 
 local function savePos()
     local p, _, rp, x, y = bar:GetPoint(1)
@@ -187,13 +187,13 @@ end
 local function build()
     bar = CreateFrame("Frame", "OasisMiniBar", UIParent)
     bar:SetHeight(38)
-    bar:SetFrameStrata("HIGH")   -- ueber Aktionsleisten (unten angeheftet sonst nicht mehr greifbar)
+    bar:SetFrameStrata("HIGH")   -- above action bars (otherwise no longer grabbable when pinned at the bottom)
     bar:SetClampedToScreen(true)
     bar:SetMovable(true)
     bar:EnableMouse(true)
     bar:RegisterForDrag("LeftButton")
-    -- Hintergrund aus 9 Teilen: Ecken rund oder eckig, je nachdem an welchem Bildschirmrand die Leiste sitzt
-    -- (oben -> unten rund, unten -> oben rund, links -> rechts rund, rechts -> links rund, frei -> alle rund)
+    -- background from 9 parts: corners round or square depending on which screen edge the bar sits at
+    -- (top -> bottom round, bottom -> top round, left -> right round, right -> left round, free -> all round)
     local R = 10
     local RF = M .. "skins\\round_fill"
     local W8 = "Interface\\Buttons\\WHITE8X8"
@@ -220,20 +220,20 @@ local function build()
         c.tc = { d[2], d[3], d[4], d[5] }
         bar.corners[d[1]] = c
     end
-    -- leichter Glanz
+    -- light gloss
     local sheen = bar:CreateTexture(nil, "BACKGROUND", nil, 1)
     sheen:SetPoint("TOPLEFT", R, 0) sheen:SetPoint("TOPRIGHT", -R, 0) sheen:SetHeight(16)
     if not K.Gradient(sheen, "VERTICAL", { 1, 1, 1, 0 }, { 1, 1, 1, 0.045 }) then sheen:Hide() end
-    bar.sheen = sheen   -- Shape() zieht ihn bis an den Rand (0.5.702)
-    bar.topLine = bar:CreateTexture(nil, "BORDER")   -- alt (frei schwebend), bleibt unsichtbar
+    bar.sheen = sheen   -- Shape() pulls it to the edge (0.5.702)
+    bar.topLine = bar:CreateTexture(nil, "BORDER")   -- old (floating freely), stays invisible
     bar.topLine:Hide()
     ns._miniBar = bar
     if ns.ApplyMiniAlpha then ns.ApplyMiniAlpha() end
-    -- Akzentlinie + Schein auf der Innenseite (vom Rand weg)
+    -- accent line + glow on the inner side (away from the edge)
     bar.accent = bar:CreateTexture(nil, "ARTWORK")
     bar.accent:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
     bar.accentGlow = bar:CreateTexture(nil, "ARTWORK")
-    -- Rand bestimmen und Ecken/Akzent setzen
+    -- determine edge and set corners/accent
     function bar:EdgeOf()
         if self.docked then return "TOP" end
         local l, r, t, b = self:GetLeft(), self:GetRight(), self:GetTop(), self:GetBottom()
@@ -247,8 +247,8 @@ local function build()
     end
     function bar:Shape()
         local edge = self:EdgeOf()
-        -- volle Breite (Kompakt-Leiste): links/rechts liegt die Leiste am Bildschirmrand -> dort eckig,
-        -- Linie und Schein laufen bis ganz an den Rand
+        -- full width (compact bar): left/right the bar touches the screen edge -> square there,
+        -- line and glow run all the way to the edge
         local sL, sR = false, false
         do
             local l, r = self:GetLeft(), self:GetRight()
@@ -266,8 +266,8 @@ local function build()
             if touch[k] then c:SetTexture(W8) c:SetTexCoord(0, 1, 0, 1)
             else c:SetTexture(RF) c:SetTexCoord(unpack(c.tc)) end
         end
-        -- Glanz bis ganz an den Rand (vorher 10 px Einzug -> links/rechts wirkte die Leiste dunkler);
-        -- runde obere Ecken werden per Maske abgeschnitten (nur diese beiden Ecken, WoW erlaubt hoechstens 3 Masken)
+        -- gloss all the way to the edge (previously 10 px inset -> the bar looked darker left/right);
+        -- round top corners are cut off by mask (only these two corners, WoW allows at most 3 masks)
         if self.sheen then
             self.sheen:ClearAllPoints()
             self.sheen:SetPoint("TOPLEFT", 0, 0) self.sheen:SetPoint("TOPRIGHT", 0, 0) self.sheen:SetHeight(16)
@@ -281,12 +281,12 @@ local function build()
         local ac = C.accent
         local inner = ({ TOP = "BOTTOM", BOTTOM = "TOP", LEFT = "RIGHT", RIGHT = "LEFT" })[edge or ""]
         a:SetShown(inner ~= nil) g:SetShown(inner ~= nil)
-        -- Akzent laeuft in den runden Ecken als Bogen bis an den Rand weiter
+        -- accent continues in the round corners as an arc up to the edge
         self.arcs = self.arcs or {}
         for k, c in pairs(self.corners) do
             local arc = self.arcs[k]
             if not arc then
-                -- Bogen (gleiche Staerke wie die Linie) + Schein, beide exakt auf der Rundung (Media/skins/arc_corner, glow_corner)
+                -- arc (same strength as the line) + glow, both exactly on the rounding (Media/skins/arc_corner, glow_corner)
                 arc = self:CreateTexture(nil, "ARTWORK", nil, 2)
                 arc:SetTexture(M .. "skins" .. string.char(92) .. "arc_corner")
                 arc:SetSize(R, R)
@@ -309,7 +309,7 @@ local function build()
         local to = { ac[1], ac[2], ac[3], 0 }
         if inner == "BOTTOM" or inner == "TOP" then
             local y = inner == "BOTTOM" and 0 or 0
-            -- Linie endet am Bogen (bzw. am Bildschirmrand); der Schein laeuft weiter in die Rundung hinein
+            -- line ends at the arc (or at the screen edge); the glow continues into the rounding
             local lx, rx = sL and 0 or R, sR and 0 or R
             local gl, gr = sL and 0 or 4, sR and 0 or 4
             a:SetPoint(inner .. "LEFT", lx, y) a:SetPoint(inner .. "RIGHT", -rx, y) a:SetHeight(2)
@@ -323,8 +323,8 @@ local function build()
         end
     end
 
-    -- 0.6.244: oben angeheftet = Glut-Leiste als Bild (Gildenmodul, Tools/make_minibar.py): oben gerade, unten rund.
-    -- Drei Teile (Enden + dehnbare Mitte), damit die Rundungen bei jeder Breite rund bleiben. Sonst die normale Leiste.
+    -- 0.6.244: pinned at the top = ember bar as image (guild module, Tools/make_minibar.py): straight on top, round at the bottom.
+    -- three parts (ends + stretchable middle), so the roundings stay round at any width. Otherwise the normal bar.
     if ns.GuildPack then
         local GP = "Interface\\AddOns\\Oasis_Guild\\Media\\"
         bar.art = {}
@@ -334,12 +334,12 @@ local function build()
             t:Hide()
             bar.art[k] = t
         end
-        -- 0.6.248: Bild ragt unten 8 ueber die Leiste hinaus - Gluehlinie sass zu dicht unter den Symbolen
+        -- 0.6.248: image sticks out 8 below the bar - glow line sat too close under the icons
         local DROP = 8
         bar.art.l:SetPoint("TOPLEFT") bar.art.l:SetPoint("BOTTOMLEFT", 0, -DROP)
         bar.art.r:SetPoint("TOPRIGHT") bar.art.r:SetPoint("BOTTOMRIGHT", 0, -DROP)
         bar.art.m:SetPoint("TOPLEFT", bar.art.l, "TOPRIGHT") bar.art.m:SetPoint("BOTTOMRIGHT", bar.art.r, "BOTTOMLEFT")
-        -- 0.6.311: leichter Schimmer - additive Kopie des Bildes atmet langsam (aus mit "Animationen aus")
+        -- 0.6.311: light shimmer - additive copy of the image breathes slowly (off with "Animations off")
         bar.shine = {}
         for _, k in ipairs({ "l", "m", "r" }) do
             local s = bar:CreateTexture(nil, "BACKGROUND", nil, 3)
@@ -349,9 +349,9 @@ local function build()
             s:SetAlpha(0)
             bar.shine[k] = s
         end
-        -- 0.6.330: Lichtstreif laeuft alle 5 s entlang der Glutlinie unten
+        -- 0.6.330: light streak runs along the ember line at the bottom every 5 s
         local sw = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
-        sw:SetSize(170, 6)   -- 0.6.379: duenner Streif genau auf der Glutlinie
+        sw:SetSize(170, 6)   -- 0.6.379: thin streak exactly on the ember line
         sw:SetBlendMode("ADD")
         sw:SetTexture(ns.MEDIA .. "ember")
         local sw2 = bar:CreateTexture(nil, "BACKGROUND", nil, 4)
@@ -359,28 +359,28 @@ local function build()
         if not K.Gradient(sw2, "HORIZONTAL", { 1, 0.85, 0.7, 0.9 }, { 1, 0.85, 0.7, 0 }) then sw2:SetColorTexture(1, 0.85, 0.7, 0.4) end
         sw2:SetPoint("TOPLEFT", sw, "TOPRIGHT") sw2:SetPoint("BOTTOMLEFT", sw, "BOTTOMRIGHT") sw2:SetWidth(14)
         sw:Hide() sw2:Hide()
-        local swWait, swRun, swX0, swLen, swDir = 1.5, nil, 0, 120, 1   -- 0.6.338: dezentes Aufleuchten alle 8-12 s statt Dauerlauf
+        local swWait, swRun, swX0, swLen, swDir = 1.5, nil, 0, 120, 1   -- 0.6.338: subtle flash every 8-12 s instead of continuous run
         local clock = 0
         local pulse = CreateFrame("Frame", nil, bar)
         local pAcc = 0
         pulse:SetScript("OnUpdate", function(_, el)
-            -- Leistung (0.6.479): die Leiste ist immer sichtbar - Schimmer hoechstens 30x pro Sekunde statt in jedem Bild
+            -- performance (0.6.479): the bar is always visible - shimmer at most 30x per second instead of every frame
             pAcc = pAcc + (el or 0)
             if pAcc < 0.033 then return end
             el, pAcc = pAcc, 0
             local st = ns.db and ns.db.settings
             local on = not (st and st.noAnim)
             if on then clock = clock + (el or 0) end
-            -- Streif nur, wenn das Glut-Bild zu sehen ist
+            -- streak only when the ember image is visible
             local showArt = on and bar.art.m:IsShown()
             if showArt then
                 local W = bar:GetWidth() or 600
                 if not swRun then
                     swWait = swWait - (el or 0)
                     sw:Hide() sw2:Hide()
-                    -- 0.6.362: nur im geraden Mittelstueck (zwischen den runden Enden) starten und enden
+                    -- 0.6.362: start and end only in the straight middle piece (between the round ends)
                     local cw = bar.art.l:GetWidth() or 60
-                    -- 0.6.413: zufaellige Richtung, faehrt ein langes Stueck an der Kante entlang
+                    -- 0.6.413: random direction, travels a long stretch along the edge
                     if swWait <= 0 then
                         swRun = 0
                         swLen = math.max(60, (W - 2 * cw - 100) * (0.45 + math.random() * 0.4))
@@ -396,8 +396,8 @@ local function build()
                     else
                         local x = swX0 + swDir * swRun * swLen
                         sw:ClearAllPoints()
-                        sw:SetPoint("LEFT", bar, "BOTTOMLEFT", x, -4)   -- 0.6.429: minimal tiefer
-                        local a = math.sin(swRun * math.pi) ^ 0.8 * 1.0 * (bar.art.m:GetAlpha() or 1)   -- 0.6.413: dezenter, weich ein-/ausblenden
+                        sw:SetPoint("LEFT", bar, "BOTTOMLEFT", x, -4)   -- 0.6.429: minimally lower
+                        local a = math.sin(swRun * math.pi) ^ 0.8 * 1.0 * (bar.art.m:GetAlpha() or 1)   -- 0.6.413: more subtle, soft fade in/out
                         sw:SetVertexColor(1 * a, 0.85 * a, 0.7 * a, 1)
                         sw:Show() sw2:Hide()
                     end
@@ -417,11 +417,11 @@ local function build()
                 end
             end
         end)
-        C_Timer.After(0, function() if ns.ApplyMiniAlpha then pcall(ns.ApplyMiniAlpha) end end)   -- 0.6.263: Deckkraft + Farbe gleich anwenden
+        C_Timer.After(0, function() if ns.ApplyMiniAlpha then pcall(ns.ApplyMiniAlpha) end end)   -- 0.6.263: apply opacity + color right away
         local baseShape = bar.Shape
         function bar:Shape()
             baseShape(self)
-            -- 0.6.257: nur mit Bild (Textur geladen) - sonst stand die Leiste ganz ohne Hintergrund da
+            -- 0.6.257: only with image (texture loaded) - otherwise the bar had no background at all
             local on = self:EdgeOf() == "TOP" and (self.art.m:GetTexture() ~= nil)
             local cw = ((self:GetHeight() or 38) + 8) * 1.09
             self.art.l:SetWidth(cw) self.art.r:SetWidth(cw)
@@ -432,22 +432,22 @@ local function build()
             self.accent:Hide() self.accentGlow:Hide()
             for _, arc in pairs(self.arcs or {}) do arc:Hide() arc.glow:Hide() end
         end
-        -- vorher versteckte Teile wieder zeigen, wenn die Leiste vom oberen Rand weggezogen wird
+        -- show previously hidden parts again when the bar is dragged away from the top edge
         local baseShape2 = bar.Shape
         function bar:Shape()
             for _, t in ipairs(self.bgParts) do t:Show() end
             if self.sheen then self.sheen:Show() end
             baseShape2(self)
         end
-        -- 0.6.257: UI-Skala geaendert (z. B. EllesmereUI setzt UIParent:SetScale) -> Rand neu bestimmen und Form nachziehen
+        -- 0.6.257: UI scale changed (e.g. EllesmereUI sets UIParent:SetScale) -> redetermine edge and update shape
         local reshape = CreateFrame("Frame")
         for _, ev in ipairs({ "UI_SCALE_CHANGED", "DISPLAY_SIZE_CHANGED", "PLAYER_ENTERING_WORLD" }) do pcall(reshape.RegisterEvent, reshape, ev) end
         reshape:SetScript("OnEvent", function() C_Timer.After(1, function() if bar and bar.Shape then pcall(bar.Shape, bar) end end) end)
-        -- Enden-Breite folgt der Hoehe (kompakt / angedockt)
+        -- end width follows the height (compact / docked)
         bar:HookScript("OnSizeChanged", function(self) if self.art then local cw = ((self:GetHeight() or 38) + 8) * 1.09 self.art.l:SetWidth(cw) self.art.r:SetWidth(cw) end end)
     end
 
-    -- Wortmarke (animiert): Klick = aufklappen
+    -- wordmark (animated): click = expand
     local logoBtn = CreateFrame("Button", nil, bar)
     logoBtn:SetSize(76, 19)
     logoBtn:SetPoint("LEFT", 12, 0)
@@ -462,7 +462,7 @@ local function build()
     logoBtn.oasisDragFwd = true
     bar.name = logoBtn
     bar.wm = wm
-    -- ohne Logo: kleines Plus zum Aufklappen
+    -- without logo: small plus to expand
     bar.plus = K.Text(logoBtn, 14, C.accent, "CENTER")
     bar.plus:SetPoint("CENTER")
     bar.plus:SetText("+")
@@ -475,7 +475,7 @@ local function build()
     bar.dot:SetVertexColor(C.mint[1], C.mint[2], C.mint[3])
     bar.online = K.Text(bar, 12, C.muted)
     bar.online:SetPoint("LEFT", bar.dot, "RIGHT", 3, 0)
-    -- 0.5.574: "4 online" anklickbar -> Mitgliederliste, nur Online
+    -- 0.5.574: "4 online" clickable -> member list, online only
     bar.onlineBtn = CreateFrame("Button", nil, bar)
     bar.onlineBtn:SetPoint("TOPLEFT", bar.dot, "TOPLEFT", -4, 6)
     bar.onlineBtn:SetPoint("BOTTOMRIGHT", bar.online, "BOTTOMRIGHT", 4, -6)
@@ -564,7 +564,7 @@ local function build()
     end
 
     bar.hint = K.Text(bar, 11, C.accent, "RIGHT")
-    -- 0.5.954: "N neu" ist anklickbar - eine Seite mit Neuigkeiten: direkt dorthin; mehrere: Liste zum Auswaehlen
+    -- 0.5.954: "N new" is clickable - one page with news: go straight there; several: list to choose from
     bar.hintBtn = CreateFrame("Button", nil, bar)
     bar.hintBtn:SetPoint("TOPLEFT", bar.hint, "TOPLEFT", -4, 6)
     bar.hintBtn:SetPoint("BOTTOMRIGHT", bar.hint, "BOTTOMRIGHT", 4, -6)
@@ -594,7 +594,7 @@ local function build()
         end
         K.ShowMenu(self, items, L["News"])
     end)
-    -- Kompakt-Stil (FuBar): Schriftzug statt Wortmarke, rechts Uhrzeit
+    -- compact style (FuBar): lettering instead of wordmark, time on the right
     bar.label = K.Title(logoBtn, 12, C.accent)
     bar.label:SetPoint("LEFT", 0, 0)
     bar.label:SetText("OASIS")
@@ -602,7 +602,7 @@ local function build()
     bar.clock = K.Text(bar, 11, C.muted, "RIGHT")
     bar.clock:Hide()
 
-    -- Status: eigene Gruppensuche, eigene Anfragen, Beitrittswuensche
+    -- status: own group search, own requests, join requests
     local st = CreateFrame("Button", nil, bar)
     st:SetHeight(28)
     st.sep = st:CreateTexture(nil, "ARTWORK")
@@ -635,8 +635,8 @@ local function build()
     st:Hide()
     bar.status = st
 
-    -- Hilfslinie in der Bildschirmmitte, solange die Leiste in der Naehe ist
-    local guideF = CreateFrame("Frame", nil, UIParent)   -- eigene Ebene ganz oben, sonst liegen die Linien unter anderen Fenstern
+    -- guide line in the screen center while the bar is nearby
+    local guideF = CreateFrame("Frame", nil, UIParent)   -- own layer at the very top, otherwise the lines lie below other frames
     guideF:SetAllPoints(UIParent)
     guideF:SetFrameStrata("FULLSCREEN_DIALOG")
     guideF:EnableMouse(false)
@@ -650,9 +650,9 @@ local function build()
     guideH:SetPoint("LEFT", UIParent, "LEFT", 0, 0)
     guideH:SetPoint("RIGHT", UIParent, "RIGHT", 0, 0)
     guideH:Hide()
-    local MID = 70   -- so nah an der Mitte rastet sie ein
+    local MID = 70   -- this close to the center it snaps in
     bar:SetScript("OnDragStart", function(self)
-        if ns.MiniCompact() then return end   -- Kompakt-Leiste sitzt fest oben
+        if ns.MiniCompact() then return end   -- compact bar sits fixed at the top
         self.docked = false
         applyDockLook()
         self:StartMoving()
@@ -661,7 +661,7 @@ local function build()
         guideH:SetColorTexture(ac[1], ac[2], ac[3], 0.6)
         self.dragging = true
     end)
-    local drv = CreateFrame("Frame", nil, bar)   -- eigener Takt (bar setzt OnUpdate spaeter selbst)
+    local drv = CreateFrame("Frame", nil, bar)   -- own tick (bar sets OnUpdate itself later)
     drv:SetScript("OnUpdate", function()
         local self = bar
         if not self.dragging then return end
@@ -679,7 +679,7 @@ local function build()
         guide:Hide() guideH:Hide()
         local top = self:GetTop() or 0
         if (UIParent:GetTop() - top) < SNAP then dock() end
-        -- Einrasten in der Mitte: waagerecht (und frei schwebend auch senkrecht)
+        -- snap in the center: horizontally (and vertically too when floating freely)
         local cx, cy = self:GetCenter()
         local ux, uy = UIParent:GetCenter()
         local s = self:GetEffectiveScale() / UIParent:GetEffectiveScale()
@@ -696,7 +696,7 @@ local function build()
         savePos()
         applyDockLook()
     end)
-    -- Ziehen auch ueber den Knoepfen (sonst bleibt kaum freie Flaeche zum Anfassen)
+    -- dragging also over the buttons (otherwise there's hardly any free surface to grab)
     local function fwd(c)
         if c == bar.closeX or not c.RegisterForDrag or c.oasisDragFwd then return end
         c.oasisDragFwd = true
@@ -707,8 +707,8 @@ local function build()
     bar.FwdDrag = function() for _, c in ipairs({ bar:GetChildren() }) do if c:IsObjectType("Button") and not c:IsProtected() then fwd(c) end end end
     C_Timer.After(1, bar.FwdDrag)
 
-    -- Einrollen: Leiste rutscht bis auf einen schmalen Rand nach oben, beim Ueberfahren herunter
-    bar.slide = 0          -- 0 = ganz zu sehen, 1 = eingerollt
+    -- roll up: bar slides up to a narrow edge, comes down on hover
+    bar.slide = 0          -- 0 = fully visible, 1 = rolled up
     local slideDrv = CreateFrame("Frame", nil, UIParent)
     local away = 0
     slideDrv:SetScript("OnUpdate", function(_, el)
@@ -716,8 +716,8 @@ local function build()
         local auto = ns.MiniAutoHide and ns.MiniAutoHide()
         local want = 0
         if auto and not bar.dragging and not bar.preview then
-            -- 0.6.260: mit Glut-Bild steckt die Leiste eingerollt ganz ueber dem Bildschirmrand - sichtbar ist nur das
-            -- Bild darunter; die Maus dort muss sie auch ausrollen (Bereich nach unten um das Bild + Spielraum erweitern)
+            -- 0.6.260: with ember image the rolled-up bar sits entirely above the screen edge - only the image
+            -- below is visible; the mouse there must also roll it out (extend area downward around the image + leeway)
             local below = (bar.art and bar.art.m and bar.art.m:IsShown()) and -14 or 0
             if bar:IsMouseOver(4, below, 0, 0) or (GameTooltip:IsShown() and GameTooltip:GetOwner() and GameTooltip:GetOwner():GetParent() == bar) then
                 away = 0
@@ -734,7 +734,7 @@ local function build()
         ns.PlaceMiniBar()
     end)
 
-    -- Position wiederherstellen (Standard: oben mittig angedockt)
+    -- restore position (default: docked at the top center)
     local pos = ns.db.settings.miniPos
     bar:ClearAllPoints()
     if pos and pos.p then
@@ -756,19 +756,19 @@ local function build()
     bar:Hide()
 end
 
--- Inhalt und Breite der Leiste
--- Hintergrund-Transparenz der Topbar (Einstellungen > Topbar)
+-- content and width of the bar
+-- top bar background transparency (Settings > Top bar)
 function ns.ApplyMiniAlpha()
     local b = ns._miniBar
     local a = ns.db and ns.db.settings.miniAlpha or 1
     if b and b.bgParts then for _, t in ipairs(b.bgParts) do t:SetAlpha(a) end
     elseif b and b.bgTex then b.bgTex:SetAlpha(a) end
-    -- 0.6.261: auch das Glut-Bild (Gildenmodul) - sonst wirkte der Regler oben angeheftet gar nicht
+    -- 0.6.261: also the ember image (guild module) - otherwise the slider had no effect when pinned at the top
     if b and b.art then for _, k in ipairs({ "l", "m", "r" }) do if b.art[k] then b.art[k]:SetAlpha(a) end end end
-    if ns.TintMiniArt then pcall(ns.TintMiniArt) end   -- 0.6.263: auch beim Bauen/Einstellen einfaerben
+    if ns.TintMiniArt then pcall(ns.TintMiniArt) end   -- 0.6.263: also tint when building/adjusting
 end
--- 0.6.263: Glut-Bild der Leiste folgt der Akzentfarbe (wie Startfenster und Hintergruende): bei Rot das Original,
--- sonst entsaettigt und in der Akzentfarbe
+-- 0.6.263: the bar's ember image follows the accent color (like start window and backgrounds): original for red,
+-- otherwise desaturated and in the accent color
 local function tintMiniArt()
     local b = ns._miniBar
     if not (b and b.art) then return end
@@ -784,8 +784,8 @@ local function tintMiniArt()
     end
 end
 ns.TintMiniArt = tintMiniArt
--- gebuendelt (Performance 0.5.482): wird bei jedem Zaehler-Update, Gruppenwechsel und Abgleich-Datensatz
--- angestossen - jetzt hoechstens einmal je 0,1 s statt hunderte Male beim Login-Abgleich
+-- bundled (performance 0.5.482): triggered on every counter update, group change and sync record
+-- - now at most once per 0.1 s instead of hundreds of times during login sync
 local mbPending = false
 local updateMiniBarNow
 function ns.UpdateMiniBar()
@@ -803,18 +803,18 @@ function updateMiniBarNow()
         local hide = ns.db and ns.db.settings.miniNoLogo
         bar.name:SetWidth(hide and 16 or 76)
         bar.wm:SetShown(not hide)
-        bar.plus:SetShown(false)   -- 0.6.252: kein Plus mehr (Klick links klappt weiter auf)
+        bar.plus:SetShown(false)   -- 0.6.252: no plus anymore (click on the left keeps expanding)
     end
     if not bar then return end
     local compact = ns.MiniCompact()
-    -- 0.5.560: weitere Stile - minimal (nur Symbole, schmal) und dock (grosse Symbole, wachsen beim Ueberfahren)
+    -- 0.5.560: more styles - minimal (icons only, narrow) and dock (large icons, grow on hover)
     local style = ns.MiniStyle and ns.MiniStyle() or "normal"
     local minimal, dock = style == "minimal", style == "dock"
     local slim = minimal or dock
     bar:SetScale(math.max(0.6, math.min(1.6, (ns.db and ns.db.settings.miniScale) or 1)))
     bar:SetHeight(compact and 24 or (minimal and 30) or (dock and 48) or 38)
     bar.wm:SetShown(not compact and not slim and not (ns.db and ns.db.settings.miniNoLogo))
-    bar.plus:SetShown(false)   -- 0.6.252: kein Plus mehr
+    bar.plus:SetShown(false)   -- 0.6.252: no plus anymore
     bar.label:SetShown(compact)
     if compact then bar.name:SetWidth(bar.label:GetStringWidth() + 2) elseif slim then bar.name:SetWidth(16) end
     bar.dot:SetSize(compact and 8 or 12, compact and 8 or 12)
@@ -825,7 +825,7 @@ function updateMiniBarNow()
     bar.sep:SetHeight(compact and 14 or 20)
     local online = ns.Radar and ns.Radar.online or 0
     bar.online:SetText((L["%d online"]):format(online))
-    -- ohne Logo schiebt sich alles zusammen (Leiste wird schmaler)
+    -- without logo everything moves together (bar gets narrower)
     local logoW = compact and (bar.label:GetStringWidth() + 2) or ((slim or (ns.db and ns.db.settings.miniNoLogo)) and 16 or 76)
     local x
     if slim then
@@ -855,7 +855,7 @@ function updateMiniBarNow()
         local isz = IS or (b.realColor and 17 or 18)
         b.baseIcon = isz
         if b.icon then b.icon:SetSize(isz, isz) end
-        -- Dock: Symbol waechst beim Ueberfahren
+        -- dock: icon grows on hover
         if b.icon and not b.dockHook then
             b.dockHook = true
             b:HookScript("OnEnter", function(self)
@@ -881,7 +881,7 @@ function updateMiniBarNow()
         b.pill:SetShown(n > 0)
         b.badge:SetText(n > 0 and (n > 99 and "99" or tostring(n)) or "")
         b.hot = n > 0
-        -- leuchtet, solange Neues da ist, das noch nicht angesehen wurde (auch Unterseiten eines Hubs)
+        -- glows while there is news that hasn't been viewed yet (also subpages of a hub)
         if b.nglow then
             local on, ping = false, nil
             if vis and ns.GlowState then on, ping = ns.GlowState(b.key) end
@@ -891,14 +891,14 @@ function updateMiniBarNow()
         if b.action then
             local sec = ns.Marker and ns.Marker.Secure and ns.Marker.Secure()
             if sec and not InCombatLockdown() then
-                -- nicht an die Leiste anheften (sonst waere die Leiste im Kampf gesperrt): Bildschirm-Koordinaten
+                -- don't attach to the bar (otherwise the bar would be locked in combat): screen coordinates
                 local function place()
                     if InCombatLockdown() then return end
                     local l, bt = b:GetLeft(), b:GetBottom()
                     if not (l and bt and b:IsVisible()) then sec:Hide() return end
                     local r = b:GetEffectiveScale() / UIParent:GetEffectiveScale()
-                    -- 0.5.741: ganz nach vorn (gleiche Ebene wie die Leiste, aber hoeher als alle ihre Kinder) - sonst fing die Leiste den Klick ab
-                    -- und es kam nur 'Auto-Marker neu ausgerichtet'
+                    -- 0.5.741: all the way to the front (same strata as the bar, but higher than all its children) - otherwise the bar caught the click
+                    -- and only 'Auto marker realigned' appeared
                     sec:SetFrameStrata("HIGH")
                     sec:SetFrameLevel(math.min(65000, bar:GetFrameLevel() + 80))
                     sec:ClearAllPoints()
@@ -935,7 +935,7 @@ function updateMiniBarNow()
     if bar.hintBtn then bar.hintBtn:SetShown(total > 0) end
     local w = x + 10 + (total > 0 and (bar.hint:GetStringWidth() + 8) or 0)
 
-    -- Gruppenstatus
+    -- group status
     local st = bar.status
     local G = ns.Groups
     local mine = G and G.Mine()
@@ -973,7 +973,7 @@ function updateMiniBarNow()
     else
         st:Hide()
     end
-    -- Kompakt: Uhrzeit rechts (vor dem X), Breite = ganzer Bildschirm (siehe PlaceMiniBar)
+    -- compact: time on the right (before the X), width = whole screen (see PlaceMiniBar)
     bar.clock:SetShown(compact)
     if compact then
         bar.clock:ClearAllPoints()
@@ -984,7 +984,7 @@ function updateMiniBarNow()
     ns.PlaceMiniBar()
 end
 
--- Stil / Einrollen (Einstellungen > Topbar)
+-- style / roll up (Settings > Top bar)
 function ns.MiniCompact() return ns.db and ns.db.settings.miniStyle == "compact" or false end
 function ns.MiniStyle()
     local st = ns.db and ns.db.settings.miniStyle
@@ -994,13 +994,13 @@ function ns.MiniAutoHide()
     if not (ns.db and ns.db.settings.miniAutoHide) or not bar then return false end
     return ns.MiniCompact() or bar.docked == true
 end
--- Leiste an ihren Platz setzen: Kompakt = ganze Breite oben; angedockt = oben an der gemerkten Stelle;
--- beim Einrollen um (Hoehe - 3) nach oben verschoben
+-- put the bar in its place: compact = full width at the top; docked = at the top at the remembered spot;
+-- when rolled up shifted up by (height - 3)
 function ns.PlaceMiniBar()
     if not bar or bar.dragging then return end
     local compact = ns.MiniCompact()
     local auto = ns.MiniAutoHide()
-    -- 0.6.259: mit Glut-Bild (ragt 8 unter die Leiste) weiter hoch - nur die unterste rote Linie bleibt zu sehen
+    -- 0.6.259: with ember image (sticks out 8 below the bar) further up - only the lowest red line stays visible
     local art = bar.art and bar.art.m and bar.art.m:IsShown()
     local travel = art and (bar:GetHeight() + 8 - 5) or (bar:GetHeight() - 3)
     local off = auto and math.floor(travel * (bar.slide or 0) + 0.5) or 0
@@ -1019,30 +1019,30 @@ function ns.PlaceMiniBar()
     end
     if bar.Shape then
         bar:Shape()
-        -- Kompakt: alle Ecken eckig (durchgehende Leiste)
+        -- compact: all corners square (continuous bar)
         if compact then for _, c in pairs(bar.corners) do c:SetTexture("Interface\\Buttons\\WHITE8X8") c:SetTexCoord(0, 1, 0, 1) end
             for _, a in pairs(bar.arcs or {}) do a:Hide() a.glow:Hide() end end
     end
 end
 
--- Wann erscheint die Topbar? (Einstellungen > Topbar, Wunsch aus der Gilde 07.10.)
---   collapse = beim Schliessen klappt Oasis in die Leiste ein (bisheriges Verhalten)
---   always   = Leiste ist ab dem Einloggen immer da und verschwindet nie
---   off      = nie: das X schliesst Oasis einfach, keine Leiste
+-- when does the top bar appear? (Settings > Top bar, guild request 07.10.)
+--   collapse = on close Oasis collapses into the bar (previous behavior)
+--   always   = bar is always there from login and never disappears
+--   off      = never: the X simply closes Oasis, no bar
 function ns.TopbarMode()
     local m = ns.db and ns.db.settings.topbarMode
     return (m == "always" or m == "off") and m or "collapse"
 end
 
--- X an der Leiste: Oasis ganz schliessen (oeffnen per Minimap-Knopf oder /oasis) - nicht bei "immer"
+-- X on the bar: close Oasis completely (open via minimap button or /oasis) - not with "always"
 local function addCloseX()
-    do return end   -- 0.6.252: kein X mehr an der Leiste (schliessen ueber Einstellungen > Topbar bzw. /oasis)
+    do return end   -- 0.6.252: no X on the bar anymore (close via Settings > Top bar or /oasis)
     if not bar or bar.closeX then return end
     bar.closeX = ns.K.CloseButton(bar, function() ns.HideMiniBar() end, L["Close fully (/oasis reopens)"])
     bar.closeX:SetPoint("RIGHT", bar, "RIGHT", -6, 0)
     bar.closeX:SetFrameLevel(bar:GetFrameLevel() + 10)
 end
--- Design/Akzent gewechselt: Topbar umfaerben (0.5.540 - vorher blieb sie bis /reload in den alten Farben)
+-- design/accent changed: recolor top bar (0.5.540 - previously it kept the old colors until /reload)
 function ns.RestyleMiniBar()
     if not bar then return end
     local bc, ac = C.bg, C.accent
@@ -1070,14 +1070,14 @@ function ns.HideMiniBar(force)
     if bar then bar:Hide() bar.preview = nil end
     if ns.db then ns.db.settings.collapsed = false end
 end
--- Einstellung gewechselt: sofort umsetzen
+-- setting changed: apply immediately
 function ns.ApplyTopbarMode()
     local m = ns.TopbarMode()
     if m == "always" then ns.ShowMiniBar()
     elseif m == "off" then ns.HideMiniBar(true)
     elseif bar and bar.closeX then bar.closeX:Show() end
 end
--- Vorschau (Einstellungen > Topbar): echte Leiste an ihrem Platz zeigen, ohne einzuklappen
+-- preview (Settings > Top bar): show the real bar in its place without collapsing
 function ns.PreviewMiniBar(on)
     if on then
         if not bar then build() addCloseX() end
@@ -1092,9 +1092,9 @@ function ns.PreviewMiniBar(on)
     end
 end
 
--- Fenster <-> Leiste: das Fenster zieht sich in die Topbar hinein (bzw. waechst aus ihr heraus).
--- Echte Bewegung statt Effekt: Mittelpunkt wandert zur Leiste, Groesse schrumpft, am Ende blendet es aus.
--- Positionen in UIParent-Einheiten; der Rahmen wird waehrenddessen ueber Mitte+Skalierung gesetzt.
+-- window <-> bar: the window shrinks into the top bar (or grows out of it).
+-- real movement instead of an effect: center moves to the bar, size shrinks, at the end it fades out.
+-- positions in UIParent units; the frame is set via center+scale meanwhile.
 local flyDrv
 local function uiCenter(f)
     local x, y = f:GetCenter()
@@ -1102,8 +1102,8 @@ local function uiCenter(f)
     local k = f:GetEffectiveScale() / UIParent:GetEffectiveScale()
     return x * k, y * k
 end
--- 0.5.645: Statt das echte Fenster jedes Bild zu skalieren (hunderte Elemente, Schriften, Masken -> Ruckeln)
--- fliegt ein leichter Geister-Rahmen (Flaeche + Rand). Das echte Fenster bleibt still und blendet nur weich ein/aus.
+-- 0.5.645: instead of scaling the real window every frame (hundreds of elements, fonts, masks -> stutter)
+-- a light ghost frame flies (surface + border). The real window stays still and only fades in/out softly.
 local ghost
 local function ghostFrame()
     if ghost then return ghost end
@@ -1118,7 +1118,7 @@ end
 local function flyWindow(mf, toBar, done, target)
     local tgt = target or bar
     local anim = not (ns.db and ns.db.settings.noAnim)
-    -- ohne Animation: sofort Endzustand
+    -- without animation: final state immediately
     local function bail()
         if toBar then mf:Hide() else mf:SetAlpha(1) end
         if done then done() end
@@ -1141,7 +1141,7 @@ local function flyWindow(mf, toBar, done, target)
     ns._flyDrv = flyDrv
     local dur, t = toBar and 0.22 or 0.24, 0
     local function place(p)
-        -- p: 0 = Fenster an seinem Platz, 1 = ganz in der Leiste
+        -- p: 0 = window in its place, 1 = fully in the bar
         local cx, cy = wx + (bx - wx) * p, wy + (by - wy) * p
         g:SetSize(ww + (tw - ww) * p, wh + (th - wh) * p)
         g:ClearAllPoints()
@@ -1149,7 +1149,7 @@ local function flyWindow(mf, toBar, done, target)
         g:SetAlpha(math.min(1, (1 - p) * 1.4 + 0.15))
     end
     if toBar then
-        -- echtes Fenster sofort weg (kostet nichts mehr), der Geist uebernimmt
+        -- real window gone immediately (costs nothing anymore), the ghost takes over
         mf:Hide()
         mf:SetAlpha(a0)
     end
@@ -1164,15 +1164,15 @@ local function flyWindow(mf, toBar, done, target)
     place(toBar and 0 or 1)
     g:Show()
     flyDrv:SetScript("OnUpdate", function(_, el)
-        -- erstes Bild nach dem Aufbau (Seite bauen kann dauern) nicht als Sprung mitzaehlen
+        -- don't count the first frame after building (building the page can take a while) as a jump
         t = t + math.min(el, 1 / 30)
         local q = math.min(1, t / dur)
         if toBar then
-            place(q * q * q)                                   -- hinein: weich anfahren, schneller werden
+            place(q * q * q)                                   -- in: start softly, speed up
         else
-            local e = 1 - (1 - q) ^ 3                          -- heraus: schnell los, sanft auslaufen
+            local e = 1 - (1 - q) ^ 3                          -- out: start fast, ease out gently
             place(1 - e)
-            -- letztes Drittel: echtes Fenster blendet ueber den Geist ein
+            -- last third: real window fades in over the ghost
             if q > 0.66 then mf:SetAlpha(a0 * (q - 0.66) / 0.34) end
         end
         if toBar and q > 0.6 then tgt:SetAlpha(barA * (0.75 + 0.25 * math.sin((q - 0.6) / 0.4 * math.pi))) end
@@ -1180,7 +1180,7 @@ local function flyWindow(mf, toBar, done, target)
     end)
 end
 
--- Minimap-Knopf: Fenster fliegt in den Knopf hinein bzw. aus ihm heraus
+-- minimap button: window flies into the button or out of it
 function ns.FlyToggle(target)
     local mf = ns.MainFrame and ns.MainFrame()
     if mf and mf:IsShown() then
@@ -1192,10 +1192,10 @@ function ns.FlyToggle(target)
     end
 end
 
--- Einklappen: Hauptfenster zu, Leiste auf
+-- collapse: main window closed, bar open
 function ns.Collapse(force)
     local mf = ns.MainFrame and ns.MainFrame()
-    -- Topbar "nie": einfach schliessen (ausser ausdruecklich /oa mini bzw. "Jetzt einklappen")
+    -- top bar "never": simply close (unless explicitly /oa mini or "Collapse now")
     if ns.TopbarMode() == "off" and not force then
         if mf and mf:IsShown() then mf:Hide() end
         return
@@ -1206,9 +1206,9 @@ function ns.Collapse(force)
         if not ok then mf:Hide() end
     end
 end
--- Aufklappen, optional direkt auf eine Seite
+-- expand, optionally straight to a page
 function ns.Expand(page)
-    -- Topbar bleibt sichtbar (nur das X an der Leiste schliesst sie)
+    -- top bar stays visible (only the X on the bar closes it)
     local mf = ns.MainFrame and ns.MainFrame()
     local wasShown = mf and mf:IsShown()
     if page then ns.ShowPage(page) else ns.OpenMain() end
@@ -1221,18 +1221,18 @@ ns.slash.mini = function()
 end
 ns.slash.leiste = ns.slash.mini
 
--- eingeklappten Zustand ueber /reload und Login behalten
+-- keep collapsed state across /reload and login
 ns.Listen("LOGIN", function()
     local m = ns.TopbarMode()
     if m == "off" then ns.db.settings.collapsed = false return end
     if m == "always" or ns.db.settings.collapsed then ns.After(3, ns.ShowMiniBar) end
 end)
--- beim Ausloggen festhalten, ob die Leiste wirklich offen war (sonst ging sie beim naechsten Login verloren)
+-- on logout record whether the bar was really open (otherwise it got lost at the next login)
 ns.On("PLAYER_LOGOUT", function()
     if bar and ns.db then
         if bar:IsShown() and not bar.preview then ns.db.settings.collapsed = true end
     end
 end)
 
--- Gruppe betreten/verlassen: Marker-Knopf ein-/ausblenden
+-- join/leave group: show/hide marker button
 ns.On("GROUP_ROSTER_UPDATE", function() if ns.UpdateMiniBar then pcall(ns.UpdateMiniBar) end end)

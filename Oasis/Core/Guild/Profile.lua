@@ -1,11 +1,11 @@
--- Oasis: Profilkarte (Klick auf einen Namen) und Rollen-Symbole
+-- Oasis: profile card (click on a name) and role icons
 local ADDON, ns = ...
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store
 
 local Profile = {}
 ns.Profile = Profile
--- Charakter ausserhalb der Gilde? (Absender kommen in Forever nur als "Vorname-Realm" -> auch per Vorname pruefen)
+-- Character outside the guild? (senders arrive in Forever only as "Firstname-Realm" -> also check by first name)
 function Profile.OutsideGuild(c)
     if not c or ns.isMe(c) or not (ns.Admin and ns.Admin.InGuildList) then return false end
     if ns.Admin.InGuildList(c) ~= false then return false end
@@ -13,7 +13,7 @@ function Profile.OutsideGuild(c)
 end
 
 ------------------------------------------------------------------------
--- Rollen: eigene Symbole (Schild / Verbandskasten / Schwert), je Rolle eingefaerbt
+-- Roles: own icons (shield / first aid kit / sword), tinted per role
 ------------------------------------------------------------------------
 local ROLE_NAMES = { tank = "Tank", heal = "Healer", dps = "Damage" }
 Profile.ROLE_COLORS = { tank = { 0.38, 0.62, 1.00 }, heal = { 0.40, 0.86, 0.62 }, dps = { 1.00, 0.35, 0.30 } }
@@ -26,7 +26,7 @@ function Profile.RoleIcon(role, size, dim)
     return ("|T%s:%d:%d:0:0:64:64:0:64:0:64:%d:%d:%d|t"):format(Profile.RoleTexture(role), size or 14, size or 14,
         math.floor(c[1] * 255 * f), math.floor(c[2] * 255 * f), math.floor(c[3] * 255 * f))
 end
--- Rollen als Kurzstring "thd" <-> Tabelle
+-- Roles as short string "thd" <-> table
 function Profile.EncodeRoles(r)
     return (r.tank and "t" or "") .. (r.heal and "h" or "") .. (r.dps and "d" or "")
 end
@@ -49,16 +49,16 @@ function Profile.RoleIcons(name, size)
 end
 
 ------------------------------------------------------------------------
--- Rollenwahl: drei Knoepfe (eigene Rollen anklickbar, fremde nur Anzeige)
+-- Role choice: three buttons (own roles clickable, others display only)
 ------------------------------------------------------------------------
 local ROLE_ORDER = { "tank", "heal", "dps" }
 function Profile.SetMyRole(role, on)
     local r = ns.Groups and ns.Groups.MyRoles()
     if not r then return end
-    -- nur EINE Rolle (wie Blizzards Gruppenrolle)
+    -- only ONE role (like Blizzard's group role)
     for _, k in ipairs(ROLE_ORDER) do r[k] = false end
     r[role] = on and true or false
-    -- bewusste Wahl: 4 s lang keine Rueckmeldung von Blizzard uebernehmen (sonst springt es hin und her)
+    -- deliberate choice: ignore feedback from Blizzard for 4 s (otherwise it flips back and forth)
     Profile.lockUntil = GetTime() + 4
     ns.RoleLog("SetMyRole", role, on)
     Profile.PushBlizzardRoles(on and role or nil)
@@ -66,14 +66,14 @@ function Profile.SetMyRole(role, on)
     ns.Fire("ROLES_CHANGED")
     ns.RefreshPage("radar")
 end
--- Abgleich mit Blizzards Rollenwahl (Gruppensuche / Rollencheck), falls der Client sie hat
+-- Sync with Blizzard's role choice (group finder / role check), if the client has it
 local B2O = { TANK = "tank", HEALER = "heal", DAMAGER = "dps" }
 local O2B = { tank = "TANK", heal = "HEALER", dps = "DAMAGER" }
 function Profile.PushBlizzardRoles(justOn)
     local r = ns.Groups and ns.Groups.MyRoles()
     if not r or ns.inCombat() then return end
-    -- Gruppenrolle (Rechtsklick auf dein Portrait > Rolle waehlen): kennt nur EINE Rolle, nur in einer Gruppe.
-    -- Gerade angeklickte Rolle nehmen, sonst die einzige/erste gewaehlte
+    -- Group role (right-click your portrait > choose role): knows only ONE role, only in a group.
+    -- Take the role just clicked, otherwise the only/first chosen one
     if UnitSetRole and IsInGroup and IsInGroup() then
         local pick = justOn
         if not pick then for _, k in ipairs({ "tank", "heal", "dps" }) do if r[k] then pick = k break end end end
@@ -92,14 +92,14 @@ function Profile.PullBlizzardRoles()
     if not ok or not (tank or heal or dps) then return end
     local r = ns.Groups.MyRoles()
     if r.tank == (tank and true or false) and r.heal == (heal and true or false) and r.dps == (dps and true or false) then return end
-    -- nur eine Rolle uebernehmen (erste gewaehlte)
+    -- take over only one role (first chosen)
     r.tank, r.heal, r.dps = tank and true or false, (heal and not tank) and true or false, (dps and not tank and not heal) and true or false
     if ns.Radar then ns.Radar.SendHello() end
     ns.Fire("ROLES_CHANGED")
     ns.RefreshPage("radar")
 end
--- (abgeschaltet: Rollen der Gruppensuche stehen standardmaessig auf Schaden und ueberschrieben die Oasis-Rolle)
--- Gruppenrolle im Blizzard-Menue geaendert -> in Oasis als (zusaetzliche) Rolle uebernehmen
+-- (disabled: group finder roles default to damage and overwrote the Oasis role)
+-- Group role changed in the Blizzard menu -> take over in Oasis as (additional) role
 local function pullGroupRole()
     if not (UnitGroupRolesAssigned and ns.Groups) then return end
     local k = B2O[UnitGroupRolesAssigned("player") or ""]
@@ -114,8 +114,8 @@ local function pullGroupRole()
     ns.Fire("ROLES_CHANGED")
     ns.RefreshPage("radar")
 end
--- Beim Beitritt setzt WoW eine Standardrolle (meist Schaden) -> NICHT uebernehmen, sondern die Oasis-Rolle
--- an Blizzard geben. Erst danach gelten Aenderungen im Blizzard-Menue als echte Wahl.
+-- On joining, WoW sets a default role (usually damage) -> do NOT take it over, give the Oasis role
+-- to Blizzard instead. Only after that do changes in the Blizzard menu count as a real choice.
 local wasInGroup, joinedAt = IsInGroup and IsInGroup() or false, 0
 ns.On("GROUP_ROSTER_UPDATE", function()
     local now = IsInGroup and IsInGroup() or false
@@ -130,10 +130,10 @@ ns.On("PLAYER_ROLES_ASSIGNED", function()
     if GetTime() - joinedAt < 8 then return end
     ns.After(0.2, pullGroupRole)
 end)
--- (abgeschaltet: Rollen der Gruppensuche stehen standardmaessig auf Schaden und ueberschrieben die Oasis-Rolle)
--- (abgeschaltet: Rollen der Gruppensuche stehen standardmaessig auf Schaden und ueberschrieben die Oasis-Rolle)
+-- (disabled: group finder roles default to damage and overwrote the Oasis role)
+-- (disabled: group finder roles default to damage and overwrote the Oasis role)
 
--- nameFn() liefert den Spieler; bei mir selbst sind die Knoepfe klickbar
+-- nameFn() returns the player; for myself the buttons are clickable
 function Profile.RoleChips(parent, w, nameFn)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(w, 26)
@@ -178,8 +178,8 @@ function Profile.RoleChips(parent, w, nameFn)
             b.label:SetTextColor(tc[1], tc[2], tc[3])
             b:EnableMouse(mine)
         end
-        -- eigene Rolle nur in einer Gruppe aenderbar (wie Blizzards Gruppenrolle); sonst ausgegraut, letzte Wahl bleibt
-        -- ohne Gruppe: Wunschrolle (wird beim naechsten Gruppenbeitritt an Blizzard gegeben) - immer waehlbar
+        -- own role only changeable in a group (like Blizzard's group role); otherwise greyed out, last choice stays
+        -- without group: preferred role (given to Blizzard on the next group join) - always selectable
         local wish = mine and not (IsInGroup and IsInGroup())
         self:SetAlpha(1)
         if self.onLock then self.onLock(wish) end
@@ -189,11 +189,11 @@ function Profile.RoleChips(parent, w, nameFn)
 end
 
 ------------------------------------------------------------------------
--- Karte
+-- Card
 ------------------------------------------------------------------------
 local card
-local W, H = 420, 560   -- breiter (08.10.): fuenf Reiter mit Zaehlern passten nicht
--- 2026: Glas-Optik wie Profil-Seite/Sammlungen (Helfer aus ns.Insta; fehlen sie, bleibt die alte Karte)
+local W, H = 420, 560   -- wider (08.10.): five tabs with counters did not fit
+-- 2026: glass look like the profile page/collections (helpers from ns.Insta; if missing, the old card stays)
 local function hasGlass() return ns.Insta and ns.Insta.Glass and true or false end
 local function glass(f, fill, line, r) if hasGlass() then ns.Insta.Glass(f, fill, line, r) end end
 local function round(t, box, r) if K.RoundMask and t then K.RoundMask(t, box or t, r) end end
@@ -238,7 +238,7 @@ local function build()
     glass(f, { C.bg[1], C.bg[2], C.bg[3], 0.97 }, { 1, 1, 1, 0.10 }, 14)
     ns.EscClose("OasisProfileCard")
 
-    -- Kopf: Klassenfarbe als Streifen + zarter Verlauf, Name gross, Status als Plakette
+    -- Header: class color as stripe + soft gradient, large name, status as badge
     f.stripe = f:CreateTexture(nil, "ARTWORK")
     f.stripe:SetPoint("TOPLEFT", 1, -1)
     f.stripe:SetPoint("TOPRIGHT", -1, -1)
@@ -256,9 +256,9 @@ local function build()
         f.glow:SetHeight(120)
         round(f.glow, f, 14)
     end
-    -- Kopfbild: echtes Modell (ich / Ziel / Gruppe), sonst Volk+Geschlecht aus dem Oasis-Profil, sonst Klassensymbol
+    -- Header image: real model (me / target / group), otherwise race+gender from the Oasis profile, otherwise class icon
     f.head = CreateFrame("Frame", nil, f)
-    f.head:SetSize(56, 56)   -- 0.5.586: kleiner, der gemalte Rangrahmen liegt aussen herum
+    f.head:SetSize(56, 56)   -- 0.5.586: smaller, the painted rank frame sits around it
     f.head:SetPoint("TOPLEFT", 20, -22)
     f.head.bg = K.Fill(f.head, C.side)
     f.head.border = K.Border(f.head, C.line)
@@ -269,15 +269,15 @@ local function build()
         pcall(self.SetPortraitZoom, self, 1)
         pcall(self.SetFacing, self, 0.25)
     end)
-    -- Rang-Rahmen um das Kopfbild (Oasis-Rang: Holz, Bronze, Silber, Gold, Smaragd ...)
+    -- Rank frame around the header image (Oasis rank: wood, bronze, silver, gold, emerald ...)
     f.rframe = K.RankFrame(f, 56, hasGlass() and "circle" or "square")
     f.rframe:SetPoint("CENTER", f.head, "CENTER")
-    -- Rangrahmen UNTER das Kopfbild: sein Ring ist eine gefuellte Scheibe (Holz = brauner Kreis lag sonst ueber
-    -- Portrait/Klassensymbol, 08.10.); das Kopfbild ist kleiner, der Ring bleibt als Rand sichtbar
+    -- Rank frame BELOW the header image: its ring is a filled disc (wood = brown circle otherwise lay over
+    -- portrait/class icon, 08.10.); the header image is smaller, the ring stays visible as a border
     f.rframe:SetFrameLevel(f.head:GetFrameLevel())
     f.head:SetFrameLevel(f.rframe:GetFrameLevel() + 3)
     f.rframe:EnableMouse(false)
-    -- die gefuellte Innenscheibe des Rangrahmens liegt ueber dem Portrait (hoehere Ebene) -> weg, nur der Rand bleibt
+    -- the filled inner disc of the rank frame lies above the portrait (higher layer) -> removed, only the border stays
     if f.rframe.inner then f.rframe.inner:Hide() f.rframe.inner.Show = function() end end
     f.headIcon = f.head:CreateTexture(nil, "ARTWORK")
     f.headIcon:SetPoint("TOPLEFT", 6, -6)
@@ -298,9 +298,9 @@ local function build()
         f.headIcon:SetPoint("BOTTOMRIGHT", -3, 3)
         if f.headIcon.SetMask then pcall(f.headIcon.SetMask, f.headIcon, "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask") end K.MaskSafe(f.headIcon)
         f.model:Hide()
-        -- 0.5.582: kein zweiter Rangrahmen-Ring mehr um das Bild (lag versetzt ueber dem Klassenring);
-        -- der Oasis-Rang sitzt wie im grossen Profil als Wappen unten am Kopfbild
-        -- 0.5.586: gemalter Rangrahmen (Media/avatar) ueber dem Kopfbild; Klassenring nur ohne Rang
+        -- 0.5.582: no second rank frame ring around the image anymore (sat offset over the class ring);
+        -- the Oasis rank sits as a crest at the bottom of the header image, like in the large profile
+        -- 0.5.586: painted rank frame (Media/avatar) above the header image; class ring only without rank
         f.rframe:SetFrameLevel(f.head:GetFrameLevel() + 4)
         if K.RankEmblem then
             f.remb = K.RankEmblem(f, 30)
@@ -311,7 +311,7 @@ local function build()
     end
     f.name = K.Title(f, hasGlass() and 22 or 20, C.text)
     f.name:SetPoint("TOPLEFT", 100, -20)
-    -- Chips unter dem Namen (Level, Klasse, Gildenrang, Oasis-Rang, Online + Gebiet), bis zwei Zeilen
+    -- Chips below the name (level, class, guild rank, Oasis rank, online + zone), up to two rows
     f.tags = {}
     function f:SetTags(list)
         local x, y, maxW = 100, -50, W - 18
@@ -378,7 +378,7 @@ local function build()
     local close = K.CloseButton(f, function() f:Hide() end, L["Close (Esc)"])
     close:SetPoint("TOPRIGHT", -8, -8)
     ----------------------------------------------------------------
-    -- 2026: Aktionsleiste (runde Icon-Knoepfe) + Reiter in der Karte; nichts wird mehr abgeschnitten
+    -- 2026: action bar (round icon buttons) + tabs in the card; nothing is cut off anymore
     ----------------------------------------------------------------
     local ICO = ns.MEDIA .. "icons\\"
     f.actions = {}
@@ -411,7 +411,7 @@ local function build()
             GameTooltip:Hide()
         end)
         local click = b.SetScript
-        -- Klick nur, wenn aktiv (alte Aufrufer setzen OnClick wie bei K.Button)
+        -- Click only when active (old callers set OnClick like with K.Button)
         function b:SetScript(ev, fn)
             if ev == "OnClick" then
                 self.onClick = fn
@@ -428,7 +428,7 @@ local function build()
     f.mapBtn = action("map", "map", L["Show on map"])
     f.noteBtn = action("note", "checklist", L["Edit officer note"])
     f.chatBtn = action("chat", "announce", L["Mention in guild chat"])
-    -- Talente ansehen (geteilt per Oasis oder beim Betrachten gemerkt)
+    -- View talents (shared via Oasis or remembered when inspecting)
     f.talBtn = action("talents", "stats", L["View talents"])
     f.talBtn:SetScript("OnClick", function() if ns.Talents and f.who then ns.Talents.Show(f.who) end end)
     function f:LayoutActions()
@@ -445,7 +445,7 @@ local function build()
         end
     end
 
-    -- Reiter: Uebersicht | Berufe | Abzeichen | Chronik
+    -- Tabs: overview | professions | badges | chronicle
     local TABS = { { "over", L["Overview"] }, { "chars", L["Characters"] }, { "prof", L["Professions"] }, { "badge", L["Badge"] }, { "chron", L["Chronicle"] } }
     f.tabBtns, f.panes = {}, {}
     f.tabBar = CreateFrame("Frame", nil, f)
@@ -473,14 +473,14 @@ local function build()
         pane:Hide()
         f.panes[t[1]] = pane
     end
-    -- Reiter verteilen; "Charaktere" nur, wenn mehr als ein Charakter bekannt ist
+    -- Distribute tabs; "Characters" only if more than one character is known
     function f:LayoutTabs(showChars)
         self.showChars = showChars
         local vis = {}
         for _, b in ipairs(self.tabBtns) do
             if b.key ~= "chars" or showChars then vis[#vis + 1] = b else b:Hide() end
         end
-        -- Breite je Reiter nach Text (Zaehler "Berufe 5" brauchen mehr), Rest gleichmaessig verteilen
+        -- Width per tab by text (counters like "Professions 5" need more), distribute the rest evenly
         local avail = W - 32 - 8 - (#vis - 1) * 2
         local size = 12
         local nat, sum
@@ -522,7 +522,7 @@ local function build()
     end
     local over, profP, badgeP, chronP, charsP = f.panes.over, f.panes.prof, f.panes.badge, f.panes.chron, f.panes.chars
 
-    -- Charaktere: Main oben, Twinks eingerueckt an einer feinen Baumlinie
+    -- Characters: main on top, alts indented along a thin tree line
     f.treeRows = {}
     f.treeLine = charsP:CreateTexture(nil, "ARTWORK")
     f.treeLine:SetColorTexture(1, 1, 1, 0.14)
@@ -596,7 +596,7 @@ local function build()
     end
     f.treeMore = K.Text(charsP, 11, C.dim)
 
-    -- Uebersicht: Kennzahlen, Rollen, Charaktere/Notiz/Beute
+    -- Overview: key figures, roles, characters/note/loot
     f.tiles = {}
     local ktw = (W - 36 - 16) / 3
     for i, lab in ipairs({ "Item level", "Legacy", "Badge" }) do
@@ -644,7 +644,7 @@ local function build()
             end
         end
     end
-    -- ruhige Info-Zeilen (Glasflaeche)
+    -- calm info rows (glass surface)
     f.info = CreateFrame("Frame", nil, over)
     f.info:SetPoint("TOPLEFT", 16, -126)
     f.info:SetPoint("RIGHT", over, "RIGHT", -16, 0)
@@ -687,7 +687,7 @@ local function build()
     f.noteHit:SetScript("OnEnter", function(self) if f.noteFull and f.noteFull ~= "" then K.ShowTip(self, { L["Note"], f.noteFull }) end end)
     f.noteHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    -- Berufe: Zeilen mit Symbol, runder Leiste, Tooltip (Rezepte), Klick -> Handwerks-Boerse
+    -- Professions: rows with icon, round bar, tooltip (recipes), click -> crafting exchange
     f.profRows = {}
     for i = 1, 6 do
         local r = CreateFrame("Button", nil, profP)
@@ -722,7 +722,7 @@ local function build()
     f.noProfs:SetPoint("TOPLEFT", 18, -4)
     f.noProfs:SetText(L["No professions known."])
 
-    -- Abzeichen: Raster mit Tooltip, Klick -> Abzeichen-Seite
+    -- Badges: grid with tooltip, click -> badges page
     f.emblems = {}
     for i = 1, 32 do
         local e = ns.Badges.Emblem(badgeP, 34)
@@ -741,7 +741,7 @@ local function build()
     f.moreBadges = K.Text(badgeP, 11, C.dim)
     f.moreBadges:SetPoint("TOPLEFT", 18, -4 * 43 - 2)
 
-    -- Chronik: vollstaendig, scrollbar
+    -- Chronicle: complete, scrollable
     f.chronList = K.List(chronP, 34, function(l)
         local r = K.Row(l)
         if r.stripe then r.stripe:Hide() end
@@ -772,7 +772,7 @@ local function build()
     f.chronList:SetPoint("TOPLEFT", 12, 0)
     f.chronList:SetPoint("BOTTOMRIGHT", -12, 4)
     f.chronList.empty:SetText(L["Nothing yet."])
-    f.recent = K.Text(chronP, 11, C.text)   -- Kompatibilitaet (unsichtbar)
+    f.recent = K.Text(chronP, 11, C.text)   -- Compatibility (invisible)
     f.recent:Hide()
 
     f:SelectTab("over")
@@ -780,7 +780,7 @@ local function build()
     return f
 end
 
--- Einheit zu einem Gildenmitglied (fuer das echte Modell): ich, Ziel, Maus, Gruppe/Schlachtzug
+-- Unit for a guild member (for the real model): me, target, mouseover, party/raid
 local function unitFor(name)
     if ns.isMe(name) then return "player" end
     local want = ns.Radar.byName[name]
@@ -801,8 +801,8 @@ local function hasModel(m)
 end
 local function showHead(f, name, p, classFile)
     if f.head.disc then
-        -- Glas: maskierte Textur NUR fuer das echte Portrait (SetTexCoord ist bei Masken verboten),
-        -- Klassensymbol/Fragezeichen in eigener, unmaskierter Textur
+        -- Glass: masked texture ONLY for the real portrait (SetTexCoord is forbidden with masks),
+        -- Class icon/question mark in its own unmasked texture
         if not f.headCls then
             f.headCls = f.head:CreateTexture(nil, "ARTWORK", nil, 1)
             f.headCls:SetPoint("CENTER")
@@ -810,13 +810,13 @@ local function showHead(f, name, p, classFile)
         end
         local unit = unitFor(name)
         local ok = false
-        -- echtes Portrait nur, wenn WoW die Person gerade "sieht" (sonst liefert es eine leere braune Scheibe)
+        -- real portrait only when WoW currently "sees" the person (otherwise it returns an empty brown disc)
         local visible = unit and (not UnitIsVisible or ns.safe(UnitIsVisible(unit)))
         if visible and SetPortraitTexture then ok = pcall(SetPortraitTexture, f.headIcon, unit) and f.headIcon:GetTexture() ~= nil end
         f.headIcon:SetShown(ok and true or false)
         f.headCls:SetShown(not ok)
         if not ok then
-            -- sonst einfach das Klassensymbol
+            -- otherwise just the class icon
             f.headCls:SetSize(34, 34)
             local GI = ns.GuildInfo
             local okC = classFile and GI and GI.SetClassIcon and GI.SetClassIcon(f.headCls, classFile)
@@ -844,7 +844,7 @@ local function showHead(f, name, p, classFile)
     if shown then
         pcall(m.SetPortraitZoom, m, 1)
         pcall(m.SetFacing, m, 0.25)
-        -- klappt das Modell nicht, Klassensymbol zeigen
+        -- if the model fails, show the class icon
         ns.After(0.3, function()
             if f.who == name and not hasModel(m) then m:Hide() f.headIcon:Show() end
         end)
@@ -861,12 +861,12 @@ local function showHead(f, name, p, classFile)
     K.SetBorderColor(f.head, { cr, cg, cb, 0.8 })
 end
 
--- Name, den WoW fuer Fluestern/Einladen versteht (Forever: nur der Vorname)
+-- Name WoW understands for whisper/invite (Forever: first name only)
 local function chatName(name)
     return ns.ChatName(name)
 end
 
--- Reiter "Charaktere": Baum Main -> Twinks
+-- Tab "Characters": tree main -> alts
 function Profile.FillTree(f, name, R)
     local A = ns.Alts
     local main, alts, info
@@ -899,7 +899,7 @@ function Profile.FillTree(f, name, R)
             local dc = it.online and C.mint or C.dim
             r.dot:SetVertexColor(dc[1], dc[2], dc[3])
             r.dot:SetAlpha(it.online and 1 or 0.6)
-            -- Name + Pille
+            -- Name + pill
             r.name:SetText(ns.colorName(c, it.class))
             local nw = math.min(r.name:GetStringWidth() or 80, 150)
             r.name:SetWidth(nw + 2)
@@ -908,13 +908,13 @@ function Profile.FillTree(f, name, R)
             r.pill.t:SetTextColor(pc[1], pc[2], pc[3])
             r.pill:SetWidth((r.pill.t:GetStringWidth() or 28) + 12)
             glass(r.pill, { pc[1], pc[2], pc[3], 0.12 }, { pc[1], pc[2], pc[3], 0.40 }, 7)
-            -- "Lvl 30 Schurke"
+            -- "Lvl 30 Rogue"
             local cls = (LOCALIZED_CLASS_NAMES_MALE and it.class and LOCALIZED_CLASS_NAMES_MALE[it.class]) or ""
             r.subText = (L["Lvl %s %s"]):format(it.level or "?", cls):gsub("%s+$", "")
             if c == f.who then r.subText = r.subText .. "  |cff888888·  " .. L["this card"] .. "|r" end
             if Profile.OutsideGuild(c) then r.subText = r.subText .. "  |cff666666·  " .. L["not in the guild"] .. "|r" end
             r.sub:SetText(r.subText)
-            -- Berufe: Haupt- und Sammelberufe, Symbol + Stufe (Hoechststufe gold)
+            -- Professions: primary and gathering professions, icon + level (max level gold)
             local pt = R.ProfIcons(it.profs, 13, 4)
             r.profs:SetText(pt ~= "" and pt or "|cff555555-|r")
             r:SetAlpha(it.online and 1 or 0.8)
@@ -926,7 +926,7 @@ function Profile.FillTree(f, name, R)
             r.branch:Hide()
         end
     end
-    -- senkrechte Baumlinie vom Main bis zum letzten Twink
+    -- vertical tree line from the main to the last alt
     if #list > 1 and lastY then
         f.treeLine:ClearAllPoints()
         f.treeLine:SetPoint("TOPLEFT", f.panes.chars, "TOPLEFT", 16 + 20, -38)
@@ -1003,12 +1003,12 @@ function Profile.Show(name)
     f.oasis:SetShown(hasOasis)
     f.oasis:SetDesaturated(not (me or R.HasAddon(name)))
 
-    -- Rollen
+    -- Roles
     f.chips:Refresh()
     local _, known = Profile.RolesOf(name)
     f.roleHint:SetText(me and L["Click to change"] or (known and "" or L["not set"]))
 
-    -- Kennzahlen
+    -- Key figures
     local ln = me and (ns.Legacy and ns.Legacy.myDoneCount() or 0) or (p and p.ln or 0)
     local list = {}
     for id, tier in pairs(ns.Badges.Of(name)) do
@@ -1019,7 +1019,7 @@ function Profile.Show(name)
     f.tiles[2].value:SetText(ln or 0)
     f.tiles[3].value:SetText(#list)
 
-    -- Abzeichen: zuerst die Vitrine (vom Spieler gewaehlt), dann hoechste zuerst
+    -- Badges: showcase first (chosen by the player), then highest first
     local fav = {}
     if me then
         for i, id in pairs(ns.db.settings.badgeShowcase or {}) do fav[id] = i end
@@ -1049,7 +1049,7 @@ function Profile.Show(name)
     f.noBadges:SetShown(#list == 0)
     f.moreBadges:SetText(#list > #f.emblems and ("|cff888888" .. (L["+ %d more"]):format(#list - #f.emblems) .. "|r") or "")
 
-    -- Berufe (eigene aus dem Profil, sonst Blizzard-Gildenberufe)
+    -- Professions (own from the profile, otherwise Blizzard guild professions)
     local raw = p and p.profs or (ns.db.guildProfs and ns.db.guildProfs[name])
     local profs = R.decodeProfs(raw)
     for i, r in ipairs(f.profRows) do
@@ -1060,7 +1060,7 @@ function Profile.Show(name)
             r.name:SetText(R.ProfIcon(pf, 14, maxed and C.amber or C.text) .. "  " .. pf.name)
             r.bar:Set(hasMax and pf.rank / pf.max or 0)
             if hasGlass() then
-                -- neutral, Gold bei Hoechststufe
+                -- neutral, gold at max level
                 if maxed then r.bar.fill:SetColorTexture(C.amber[1], C.amber[2], C.amber[3], 0.9)
                 else r.bar.fill:SetColorTexture(0.72, 0.75, 0.82, 0.75) end
             end
@@ -1074,7 +1074,7 @@ function Profile.Show(name)
     end
     f.noProfs:SetShown(#profs == 0)
 
-    -- Charaktere (Main + Twinks); Twinks ausserhalb der Gilde gekennzeichnet (sie tragen nichts zur Gilde bei)
+    -- Characters (main + alts); alts outside the guild marked (they contribute nothing to the guild)
     local main = ns.Alts and ns.Alts.Main(name) or name
     local chars = ns.Alts and ns.Alts.CharsOf(main) or { name }
     local t = {}
@@ -1097,7 +1097,7 @@ function Profile.Show(name)
         f.vLoot:SetText("|cff666666-|r")
     end
 
-    -- Chronik aller Charaktere dieses Spielers
+    -- Chronicle of all characters of this player
     local set = {}
     for _, c in ipairs(chars) do set[c] = true end
     local entries = Store.List("chronicle", function(e) return set[e.who] or (R.byName[e.who] and set[R.byName[e.who].name]) end)
@@ -1119,34 +1119,34 @@ function Profile.Show(name)
     local whyOff = me and L["That is you"] or L["Only when online"]
     f.whisper.why, f.invite.why, f.duel.why = me and L["That is you"] or nil, whyOff, whyOff
     f.duel.avail = ns.Deathroll ~= nil
-    -- Auf der Karte zeigen (nur online und wenn die Position bekannt ist)
+    -- Show on the map (only online and if the position is known)
     f.mapBtn.avail = ns.Map and ns.Map.ShowMember and true or false
     f.mapBtn:SetEnabledState(online and true or false)
     f.mapBtn.why = L["Only when online"]
     f.mapBtn:SetScript("OnClick", function()
         if not ns.Map.ShowMember(name, zone) then K.Toast(L["Position unknown"], ns.displayName(name), C.dim) end
     end)
-    -- Offiziersnotiz bearbeiten (nur mit Recht und echtem Gildeneintrag)
+    -- Edit officer note (only with permission and a real guild entry)
     local canNote = ns.Members and ns.Members.CanEditOfficerNote and ns.Members.CanEditOfficerNote() and m and m.index and not m.demo
     f.noteBtn.avail = canNote and true or false
     f.noteBtn:SetEnabledState(true)
     f.noteBtn:SetScript("OnClick", function() ns.Members.EditOfficerNote(m) end)
-    -- im Gildenchat erwaehnen
+    -- mention in guild chat
     f.chatBtn.avail = (ChatFrame_OpenChat ~= nil) and not me
     f.chatBtn:SetEnabledState(true)
     f.chatBtn:SetScript("OnClick", function() ChatFrame_OpenChat("/g " .. chatName(name) .. " ") end)
     f:LayoutActions()
-    -- Reiter-Beschriftungen mit Anzahl
+    -- Tab labels with count
     for _, b in ipairs(f.tabBtns) do
         local n = b.key == "chars" and f.treeCount or b.key == "prof" and #profs or b.key == "badge" and #list or b.key == "chron" and #entries or nil
         b.label:SetText(b.count .. ((n and n > 0) and ("  |cff888888" .. n .. "|r") or ""))
     end
-    f:LayoutTabs(f.showChars)   -- Breiten nach den Texten mit Zaehlern neu verteilen
+    f:LayoutTabs(f.showChars)   -- Redistribute widths by the texts with counters
     if f.lastWho ~= name then f.lastWho = name f:SelectTab("over") end
     f:Show()
 end
 ns.Listen("ROLES_CHANGED", function() if card and card:IsShown() and card.who then Profile.Show(card.who) end end)
--- Main/Twink geaendert (eigene Wahl oder geteiltes Profil): offene Karte nachziehen, gebuendelt
+-- Main/alt changed (own choice or shared profile): refresh open card, batched
 local altsSoon
 ns.Listen("ALTS", function()
     if altsSoon or not (card and card:IsShown()) then return end

@@ -1,17 +1,17 @@
--- Oasis Modul 2: Handwerks-Boerse (Rezepte der Gilde + Auftraege)
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Crafting", function()   -- Modul Handwerk (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis module 2: crafting exchange (guild recipes + orders)
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Crafting", function()   -- module crafting (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be manipulated):
+-- sanitize texts, clamp numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -60,7 +60,7 @@ end
 local Crafting = {}
 ns.Crafting = Crafting
 
--- Gilden-Optionen (Gildenleitung)
+-- guild options (guild leadership)
 ns.GuildOption({ page = "crafting", key = "crOffMod", default = true, lead = true, label = "Officers manage others' orders",
     desc = "Officers may cancel other members' orders and remove finished ones" })
 ns.GuildOption({ page = "crafting", key = "crBdgMax", default = 5, min = 1, max = 20, step = 1, label = "Badge count per order",
@@ -69,7 +69,7 @@ ns.GuildOption({ page = "crafting", key = "crBdgMax", default = 5, min = 1, max 
 local function canModerate() return ns.isOfficer() and ns.GuildOpt("crOffMod") ~= false end
 
 ------------------------------------------------------------------------
--- Eigene Rezepte erfassen (sobald ein Berufsfenster offen ist)
+-- capture own recipes (as soon as a profession window is open)
 ------------------------------------------------------------------------
 local function computeHash(recipes)
     local keys = {}
@@ -110,7 +110,7 @@ local function scan()
     for _, id in ipairs(ids) do
         local r = T.GetRecipeInfo(id)
         if r and r.learned and ns.safe(r.name) then
-            -- hergestelltes Item merken (fuer Tooltips): "Name@ItemID"
+            -- remember crafted item (for tooltips): "Name@ItemID"
             local itemID
             if T.GetRecipeSchematic then
                 local ok, sch = pcall(T.GetRecipeSchematic, id, false)
@@ -163,7 +163,7 @@ ns.On("TRADE_SKILL_DATA_SOURCE_CHANGED", scanSoon)
 ns.On("NEW_RECIPE_LEARNED", scanSoon)
 
 ------------------------------------------------------------------------
--- Rezepte austauschen
+-- exchange recipes
 ------------------------------------------------------------------------
 local requested = {}
 local incoming = {}
@@ -188,8 +188,8 @@ Comm.On("RREQ", function(sender)
     end
     Comm.Whisper(sender, "RDONE", Crafting.myHash())
 end)
--- Rezeptlisten nur nach eigener Anfrage annehmen, begrenzt (Berufe, Rezepte, Namenslaenge) - sonst
--- koennte jeder die gespeicherten Daten (SavedVariables) beliebig aufblaehen
+-- only accept recipe lists after our own request, limited (professions, recipes, name length) - otherwise
+-- anyone could bloat the saved data (SavedVariables) at will
 local function askedFrom(sender) return requested[sender] and GetTime() - requested[sender] < 300 end
 Comm.On("RDATA", function(sender, _, prof, rec)
     if not prof or not rec or not askedFrom(sender) then return end
@@ -219,9 +219,9 @@ Comm.On("RDONE", function(sender, _, hash)
 end)
 
 ------------------------------------------------------------------------
--- Suchindex: Rezeptname / hergestelltes Item -> Handwerker
+-- search index: recipe name / crafted item -> crafters
 ------------------------------------------------------------------------
--- Rezept-/Berufsnamen in der eigenen Sprache (Rezept-IDs sind Zauber-IDs)
+-- recipe/profession names in your own language (recipe IDs are spell IDs)
 local nameCache, profCache = {}, {}
 function Crafting.LocalName(recipeID, itemID, fallback)
     local key = (recipeID or 0) .. ":" .. (itemID or 0)
@@ -234,7 +234,7 @@ function Crafting.LocalName(recipeID, itemID, fallback)
     end
     if n and n ~= "" then nameCache[key] = n return n end
     if itemID then
-        Crafting.waitNames[itemID] = true   -- Name kommt spaeter (GET_ITEM_INFO_RECEIVED)
+        Crafting.waitNames[itemID] = true   -- name arrives later (GET_ITEM_INFO_RECEIVED)
         if C_Item.RequestLoadItemDataByID then pcall(C_Item.RequestLoadItemDataByID, itemID) end
     end
     return fallback
@@ -251,19 +251,19 @@ function Crafting.LocalProf(recipeID, fallback)
     profCache[recipeID] = false
     return fallback
 end
--- Name eines Materials: kennt der Client das Item noch nicht, wird es angefordert (GET_ITEM_INFO_RECEIVED zeichnet
--- die Seite neu) und bis dahin stehen drei Punkte da - nie die nackte Nummer ("#2452").
+-- name of a material: if the client does not know the item yet, it is requested (GET_ITEM_INFO_RECEIVED redraws
+-- the page) and until then three dots show - never the bare number ("#2452").
 function Crafting.MatName(itemID)
     local n = C_Item.GetItemNameByID and ns.safe(C_Item.GetItemNameByID(itemID))
     if n and n ~= "" then return n end
-    n = ns.ItemSearch and ns.ItemSearch.Name and ns.ItemSearch.Name(itemID)   -- gemerkte Namen dieser Sprache
+    n = ns.ItemSearch and ns.ItemSearch.Name and ns.ItemSearch.Name(itemID)   -- remembered names in this language
     if n and n ~= "" then return n end
     if C_Item.RequestLoadItemDataByID then pcall(C_Item.RequestLoadItemDataByID, itemID) end
     return "..."
 end
--- Item-Namen kommen verzoegert: nur wenn ein im Index noch fehlender Name ankommt, den Index neu bauen -
--- gebuendelt nach 1 s (Performance 0.5.482: vorher machte JEDES geladene Item - Tooltips, Taschen, Chat -
--- den Index ungueltig, er wurde dann bei fast jedem Tooltip komplett neu gebaut)
+-- item names arrive delayed: only rebuild the index when a name still missing from it arrives -
+-- batched after 1 s (performance 0.5.482: previously EVERY loaded item - tooltips, bags, chat -
+-- invalidated the index, it was then fully rebuilt on almost every tooltip)
 Crafting.waitNames = {}
 local rebuildPending = false
 ns.On("GET_ITEM_INFO_RECEIVED", function(itemID)
@@ -326,13 +326,13 @@ function Crafting.CanCraft(member, recipeName, recipeID)
     end
     return false
 end
--- Anzeigename eines Auftrags in der eigenen Sprache
+-- display name of an order in your own language
 function Crafting.OrderName(o)
     return Crafting.LocalName(o.rid ~= 0 and o.rid or nil, o.item ~= 0 and o.item or nil, o.recipe or "?")
 end
 
 ------------------------------------------------------------------------
--- Auftraege
+-- orders
 ------------------------------------------------------------------------
 local STATUS = {
     open = { "Open", C.amber },
@@ -345,7 +345,7 @@ ns.Relabel(function()
     STATUS.open[1], STATUS.accepted[1], STATUS.done[1] = L["Open"], L["In progress"], L["Done"]
     STATUS.cancel[1], STATUS.declined[1] = L["Cancelled"], L["Declined"]
 end)
--- offene Auftraege an alle: "ablehnen" blendet sie nur fuer dich aus
+-- open orders to everyone: "decline" only hides them for you
 local function hiddenForMe(o)
     return ns.db and ns.db.ordersHidden and ns.db.ordersHidden[o.id] and true or false
 end
@@ -411,7 +411,7 @@ local function setStatus(o, status)
     if status == "declined" then r.declinedBy = ns.me() r.worker = nil end
     if status == "open" then r.worker = nil end
     Store.Put("orders", r)
-    -- eigene Auftraege zaehlen nicht, und hoechstens 5 Stueck pro Auftrag (sonst liesse sich das aufblasen)
+    -- own orders do not count, and at most 5 per order (otherwise it could be inflated)
     if status == "done" and ns.isMe(r.worker) and not ns.isMe(r.from) then
         if ns.Badges then ns.Badges.Add("crafted", math.min(tonumber(ns.GuildOpt("crBdgMax")) or 5, math.max(1, tonumber(r.qty) or 1))) end
         if ns.Rewards and ns.Rewards.Credit then ns.Rewards.Credit("crafted", r.from) end
@@ -419,12 +419,12 @@ local function setStatus(o, status)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- page
 ------------------------------------------------------------------------
 local search, selected, orderFilter, chosenCrafter = "", nil, "tome", nil
 local profFilter, onlyOnline, mode, crafterFilter = nil, false, "recipes", nil
 local onlyMine, onlyWanted, onlyFav = false, false, false
--- Favoriten (pro Charakter): immer oben, eigener Filter
+-- favorites (per character): always on top, own filter
 local function favs()
     ns.char.craftFav = ns.char.craftFav or {}
     return ns.char.craftFav
@@ -435,7 +435,7 @@ local qty, withMats = 1, false
 local noteBox, tipBox
 
 ------------------------------------------------------------------------
--- Hilfen: Symbol, Qualitaet, Material, Handwerker
+-- helpers: icon, quality, material, crafters
 ------------------------------------------------------------------------
 local function profIdOf(name) return ns.Radar.ProfId({ name = name or "" }) end
 
@@ -458,7 +458,7 @@ function Crafting.QualityHex(itemID)
     return c and c.hex or "|cffe6e6e6"
 end
 
--- Material: aus eigenem Scan oder Blizzards Rezept-Schema
+-- material: from own scan or Blizzard's recipe schematic
 local reagentCache = {}
 function Crafting.Reagents(e)
     if not e or not e.id then return nil end
@@ -486,7 +486,7 @@ function Crafting.Reagents(e)
     return out
 end
 
--- alle Handwerker eines Rezepts (Oasis + Blizzard-Rezeptsuche), online zuerst
+-- all crafters of a recipe (Oasis + Blizzard recipe search), online first
 function Crafting.CraftersOf(e)
     local out, seen = {}, {}
     local function add(m, blizz)
@@ -507,7 +507,7 @@ local function onlineCount(e)
     for _, c in ipairs(Crafting.CraftersOf(e)) do if c.online and not ns.isMe(c.name) then n = n + 1 end end
     return n
 end
--- Berufsstufe eines Mitglieds in einem Beruf (aus dem Profil)
+-- profession level of a member in a profession (from the profile)
 function Crafting.SkillOf(member, profName)
     local pid = profIdOf(profName)
     local pr = ns.db.members[member]
@@ -516,7 +516,7 @@ function Crafting.SkillOf(member, profName)
         if ns.Radar.ProfId(pf) == pid then return pf.rank, pf.max end
     end
 end
--- von anderen gesucht?
+-- wanted by others?
 local function wantedBy(e)
     if not e.itemID or not ns.Wants then return nil end
     local who = {}
@@ -544,7 +544,7 @@ local function filteredRecipes()
         if ok and onlyFav and not isFav(e) then ok = false end
         if ok then out[#out + 1] = e end
     end
-    -- Favoriten nach oben, Reihenfolge sonst unveraendert
+    -- favorites to the top, order otherwise unchanged
     local pos = {}
     for i, e in ipairs(out) do pos[e] = i end
     table.sort(out, function(a, b)
@@ -555,7 +555,7 @@ local function filteredRecipes()
     return out
 end
 
--- Handwerker-Uebersicht: Beruf -> Mitglieder mit Stufe
+-- crafter overview: profession -> members with level
 local function crafterRows()
     local byProf, names = {}, {}
     local function add(member, pf)
@@ -619,13 +619,13 @@ local function allProfIds()
 end
 
 ------------------------------------------------------------------------
--- Blizzard-Gildenberufe: Berufe aller Mitglieder (auch ohne Oasis)
--- und "wer in der Gilde kann dieses Rezept" ueber Blizzards Rezeptsuche
+-- Blizzard guild professions: professions of all members (even without Oasis)
+-- and "who in the guild can craft this recipe" via Blizzard's recipe search
 ------------------------------------------------------------------------
-Crafting.blizz = {}   -- [recipeID] = { Namen }
+Crafting.blizz = {}   -- [recipeID] = { names }
 local function scanGuildTradeSkills()
     if not (GetNumGuildTradeSkill and GetGuildTradeSkillInfo) then return end
-    -- eingeklappte Berufe aufklappen, sonst fehlen die Mitglieder
+    -- expand collapsed professions, otherwise members are missing
     for i = 1, (GetNumGuildTradeSkill() or 0) do
         local skillID, collapsed, _, header = GetGuildTradeSkillInfo(i)
         if header and collapsed and ExpandGuildTradeSkillHeader then ExpandGuildTradeSkillHeader(skillID) end
@@ -679,7 +679,7 @@ function Crafting.CrafterText(e, max)
         seen[m] = true
         if ns.Radar.IsOnline(m) or ns.isMe(m) then on[#on + 1] = ns.Radar.Label(m) else off[#off + 1] = "|cff777777" .. ns.displayName(m) .. "|r" end
     end
-    -- zusaetzlich aus Blizzards Rezeptsuche (Mitglieder ohne Oasis)
+    -- additionally from Blizzard's recipe search (members without Oasis)
     for _, m in ipairs(e.id and Crafting.blizz[e.id] or {}) do
         if not seen[m] then
             seen[m] = true
@@ -731,7 +731,7 @@ local function showItemTip(owner, e)
 end
 
 ------------------------------------------------------------------------
--- Seite (Neugestaltung): Bausteine
+-- page (redesign): building blocks
 ------------------------------------------------------------------------
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local EMBER = ns.MEDIA .. "ember"
@@ -741,8 +741,8 @@ local CHECK_TEX = "Interface\\RaidFrame\\ReadyCheck-Ready"
 local GOLD_TEX = "Interface\\MoneyFrame\\UI-GoldIcon"
 local QCOL = { [0] = { 0.62, 0.62, 0.62 }, [1] = { 0.86, 0.86, 0.88 }, [2] = { 0.12, 1, 0 }, [3] = { 0.1, 0.5, 0.95 },
     [4] = { 0.64, 0.21, 0.93 }, [5] = { 1, 0.5, 0 }, [6] = { 0.9, 0.8, 0.5 } }
-local H_HEAD, H_ROW, H_CRAFTER, H_ORDER = 26, 52, 34, 64   -- 0.6.464: Zeilen hoeher wie im Entwurf
-local TOP_Y = -2             -- Kacheln entfallen, Inhalt beginnt oben
+local H_HEAD, H_ROW, H_CRAFTER, H_ORDER = 26, 52, 34, 64   -- 0.6.464: taller rows like in the mockup
+local TOP_Y = -2             -- tiles dropped, content starts at the top
 local MTABS = {
     { key = "recipes", text = "Recipes", glyph = ICO .. "crafting", color = C.accent },
     { key = "crafters", text = "Crafters", glyph = ICO .. "social", color = C.blue },
@@ -759,10 +759,10 @@ local TILES = {
     { key = "mine", label = "You can", glyph = ICO .. "badges", color = C.mint, tip = "Click: only recipes you know" },
     { key = "tome", label = "Open for you", glyph = ICO .. "checklist", color = C.amber, tip = "Click: orders for you" },
 }
-local page   -- Seitenrahmen nach dem Aufbau
+local page   -- page frame after building
 
 local function animOn() return not (ns.db and ns.db.settings and ns.db.settings.noAnim) end
--- Glas 2026: ruhige Flaeche + feine Kante (Kante optional farbig)
+-- glass 2026: calm fill + fine edge (edge optionally colored)
 local GLINE = { 1, 1, 1, 0.10 }
 local function glass(f, r, a, line)
     local IG = ns.Insta
@@ -810,7 +810,7 @@ local function ringOf(id)
     return (q and QCOL[q]) or C.line, q
 end
 local function upper(s) return K.Upper and K.Upper(s) or tostring(s):upper() end
--- Suchtreffer im Text hervorheben (base = Farbcode davor)
+-- highlight search hits in the text (base = color code before it)
 local function hl(text, base)
     text = tostring(text or "")
     local q = (search or ""):lower()
@@ -849,7 +849,7 @@ local function recipeTip(owner, e, hint)
     if hint then GameTooltip:AddLine("|cff777777" .. hint .. "|r", 1, 1, 1, true) end
     GameTooltip:Show()
 end
--- neu zeichnen; reset = Liste nach oben + gestaffelt einblenden (Filterwechsel)
+-- redraw; reset = list to top + staggered fade-in (filter change)
 local function redraw(reset)
     if reset and page then page.switch = true end
     ns.RefreshPage("crafting")
@@ -900,7 +900,7 @@ local function recipeMenu(owner, e)
     K.ShowMenu(owner, items, e.name, 200)
 end
 
--- rundes Item-Bild mit Ring in Qualitaetsfarbe
+-- round item image with ring in quality color
 local function makeAvatar(parent, s)
     local a = CreateFrame("Frame", nil, parent)
     a:SetSize(s, s)
@@ -934,7 +934,7 @@ local function setAvatar(a, itemID, recipeID)
     return ring
 end
 
--- Leerzustand: Symbol im Kreis + Text + bis zu zwei Aktionen
+-- empty state: icon in a circle + text + up to two actions
 local function emptyState(parent)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(320, 120)
@@ -987,7 +987,7 @@ local function emptyState(parent)
     return f
 end
 
--- Reiterleiste: Symbol + Text + Zaehler, gleitender Balken in der Reiterfarbe
+-- tab bar: icon + text + counter, sliding bar in the tab color
 local function buildTabs(parent, defs, onPick, h)
     h = h or 30
     local f = CreateFrame("Frame", nil, parent)
@@ -1106,7 +1106,7 @@ local function buildTabs(parent, defs, onPick, h)
         end
         if changed or not self.indX then self:MoveInd(key, animate) end
     end
-    -- kurz aufleuchten (z.B. Auftrag ist dort gelandet)
+    -- flash briefly (e.g. order landed there)
     function f:Ping(key)
         local b = self:Btn(key)
         if not b or not animOn() then return end
@@ -1115,7 +1115,7 @@ local function buildTabs(parent, defs, onPick, h)
     return f
 end
 
--- Kennzahl-Kachel (Verlauf, Glow, Hover-Lift, hochzaehlend), Klick = Filter
+-- KPI tile (gradient, glow, hover lift, counting up), click = filter
 local function buildTile(parent, d, onClick)
     local c = d.color
     local t = CreateFrame("Button", nil, parent)
@@ -1178,7 +1178,7 @@ local function buildTile(parent, d, onClick)
         self.sel = on
         glass(self, 12, on and 0.06 or 0.03, on and gl(c, 0.55) or GLINE)
     end
-    -- Wert (+ Zusatz, Fortschritt 0..1); animate = hochzaehlen
+    -- value (+ extra, progress 0..1); animate = count up
     function t:SetValue(n, sub, progress, animate, delay)
         n = tonumber(n) or 0
         local vc = n > 0 and (self.col or C.text) or C.dim
@@ -1203,7 +1203,7 @@ local function buildTile(parent, d, onClick)
     return t
 end
 
--- Filter-Schalter mit Farbpunkt und Zaehler
+-- filter toggle with color dot and counter
 local function buildToggle(parent, text, color, get, set, tip)
     local b = CreateFrame("Button", nil, parent)
     b:SetHeight(22)
@@ -1254,7 +1254,7 @@ local function buildToggle(parent, text, color, get, set, tip)
     return b
 end
 
--- Abschnittskopf der Karte: Nummer im Kreis + GROSSBUCHSTABEN + Text rechts
+-- section header of the card: number in circle + CAPITALS + text on the right
 local function sectionHead(parent, n, text)
     local f = CreateFrame("Frame", nil, parent)
     f:SetHeight(16)
@@ -1276,10 +1276,10 @@ local function sectionHead(parent, n, text)
 end
 
 ------------------------------------------------------------------------
--- Listenzeilen
+-- list rows
 ------------------------------------------------------------------------
 local function rowHover(r, on)
-    if not on and r.IsMouseOver and r:IsMouseOver() then return end   -- nur auf Knopf/Stern gewechselt
+    if not on and r.IsMouseOver and r:IsMouseOver() then return end   -- only switched on button/star
     if r.hovered == on then return end
     r.hovered = on
     if r.hov then r.hov:SetShown(on) end
@@ -1321,7 +1321,7 @@ local function newDot(r)
     return d
 end
 
--- Kapitel (Beruf / Favoriten)
+-- chapters (profession / favorites)
 local function newHead(parent)
     local r = CreateFrame("Frame", nil, parent)
     r.g = K.Glyph(r, 14, nil, C.accent)
@@ -1345,7 +1345,7 @@ local function fillHead(r, it)
     r.info:SetText(it.n and tostring(it.n) or "")
 end
 
--- Rezept-Zeile: rundes Icon, Name (Treffer markiert), Klassenpunkte der Handwerker, Abzeichen, Stern
+-- recipe row: round icon, name (hit highlighted), class dots of the crafters, badges, star
 local function newRecipeRow(TL)
     local r = CreateFrame("Button", nil, TL)
     r:RegisterForClicks("AnyUp")
@@ -1362,7 +1362,7 @@ local function newRecipeRow(TL)
     r.name:SetWordWrap(false)
     r.sub = K.Text(r, 10, C.dim)
     r.sub:Hide()
-    -- 0.6.464: Spalten "Handwerker" (Punkt + Anzahl) und "Online" (Punkt)
+    -- 0.6.464: columns "Crafters" (dot + count) and "Online" (dot)
     r.cnt = K.Text(r, 11, C.muted)
     r.cntDot = r:CreateTexture(nil, "OVERLAY")
     r.cntDot:SetTexture(ns.MEDIA .. "dot")
@@ -1381,7 +1381,7 @@ local function newRecipeRow(TL)
     r.fav:SetPoint("RIGHT", -12, 0)
     r.fav.t = r.fav:CreateTexture(nil, "OVERLAY")
     r.fav.t:SetAllPoints()
-    r.fav.t:SetTexture(ns.MEDIA .. "icons\\star_on")   -- 0.6.464: Stern wie im Entwurf (eigenes Symbol)
+    r.fav.t:SetTexture(ns.MEDIA .. "icons\\star_on")   -- 0.6.464: star like in the mockup (own icon)
     r.fav:SetScript("OnClick", function(self)
         local e = r.item and r.item.e
         toggleFav(e)
@@ -1425,7 +1425,7 @@ local function fillRecipeRow(r, it)
     local fv = isFav(e)
     r.fav.t:SetVertexColor(fv and 1 or 0.6, fv and 0.82 or 0.6, fv and 0.3 or 0.62)
     r.fav:SetAlpha(fv and 1 or (r.hovered and 0.75 or 0.3))
-    -- 0.6.464: Spalten wie im Entwurf: Name | Handwerker | Online | Stern (Abzeichen "kannst du"/"gesucht" stehen im Tooltip/Filter)
+    -- 0.6.464: columns like in the mockup: Name | Crafters | Online | Star (badges "you can"/"wanted" are in tooltip/filter)
     r.bWant:Hide() r.bCan:Hide()
     for _, d in ipairs(r.dots) do d.ring:Hide() d.dot:Hide() end
     r.name:SetText(hl(e.name, Crafting.QualityHex(e.itemID)))
@@ -1443,7 +1443,7 @@ local function fillRecipeRow(r, it)
     r.fav.t:SetDesaturated(not fv)
 end
 
--- Handwerker-Zeile: Klassenkreis, online-Punkt, Fertigkeit als Balken
+-- crafter row: class circle, online dot, skill as bar
 local function newCrafterRow(TL)
     local r = CreateFrame("Button", nil, TL)
     r:RegisterForClicks("AnyUp")
@@ -1525,14 +1525,14 @@ local function fillCrafterRow(r, it)
     r.bar.fill:SetShown(pct > 0)
 end
 
--- Auftrag: Aktionen (Symbolknoepfe + Rechtsklick-Menue)
+-- order: actions (icon buttons + right-click menu)
 local function orderActs(o)
     local me = ns.me()
     local acts = {}
     if o.status == "open" and o.from ~= me and (ns.isMe(o.to) or ((o.to or "") == "" and Crafting.CanCraft(me, o.recipe, o.rid))) then
         acts[#acts + 1] = { glyph = ICO .. "checklist", color = C.mint, primary = true, text = L["Accept"],
             tip = { L["Accept"], L["You craft it - the customer is notified."] }, fn = function() setStatus(o, "accepted") end }
-        -- Ablehnen: direkt an mich -> Auftraggeber bekommt Bescheid; an alle -> nur fuer mich ausblenden
+        -- decline: addressed to me -> requester gets notified; to everyone -> only hide for me
         acts[#acts + 1] = { cross = true, color = C.muted, text = L["Decline"],
             tip = { L["Decline"], ns.isMe(o.to) and L["The requester will be notified."] or L["Order for everyone - only hidden for you."] },
             fn = function()
@@ -1548,12 +1548,12 @@ local function orderActs(o)
     elseif o.status == "accepted" and o.worker == me then
         acts[#acts + 1] = { tex = CHECK_TEX, color = C.mint, primary = true, text = L["Done"],
             tip = { L["Done"], L["The customer is told it's ready."] }, fn = function() setStatus(o, "done") end }
-        -- doch nicht schaffbar: zurueckgeben (an mich gerichtet -> abgelehnt, sonst wieder offen)
+        -- not doable after all: hand back (addressed to me -> declined, otherwise open again)
         acts[#acts + 1] = { glyph = ICO .. "sync", color = C.amber, text = L["Return"],
             tip = { L["Return"], L["You can't make it after all - the order goes back."] },
             fn = function() setStatus(o, ns.isMe(o.to) and "declined" or "open") end }
     end
-    -- anfluestern: der jeweils andere
+    -- whisper: the respective other one
     local other = (o.from == me) and (o.worker or ((o.to or "") ~= "" and o.to) or nil) or o.from
     if other and not ns.isMe(other) then
         acts[#acts + 1] = { glyph = ICO .. "badges\\chat", color = C.blue, text = L["Whisper"],
@@ -1628,7 +1628,7 @@ local function newActBtn(parent, r)
     return b
 end
 
--- Auftrags-Karte: Ampel, rundes Icon, Titel + Status, Wer > Wen, Aktionen
+-- order card: traffic light, round icon, title + status, who > whom, actions
 local LAMP = { open = 1, accepted = 2, done = 3, declined = 1 }
 local function newOrderCard(TL)
     local r = CreateFrame("Button", nil, TL)
@@ -1718,7 +1718,7 @@ local function fillOrderCard(r, it)
         r.lampGlow:ClearAllPoints()
         r.lampGlow:SetPoint("CENTER", r.lamp[lit], "CENTER", 0, 0)
     end
-    -- Aktionen rechts
+    -- actions on the right
     local acts = orderActs(o)
     local x = 8
     for i, a in ipairs(acts) do
@@ -1732,7 +1732,7 @@ local function fillOrderCard(r, it)
     end
     for i = #acts + 1, #r.abtn do r.abtn[i]:Hide() end
     local reserve = x + 4
-    -- Titel + Status
+    -- title + status
     r.badge:Set(st[1], st[2])
     local bw = r.badge:GetWidth() or 50
     r.title:SetText((o.qty or 1) .. "x " .. Crafting.QualityHex(e.itemID) .. Crafting.OrderName(o) .. "|r")
@@ -1749,7 +1749,7 @@ local function fillOrderCard(r, it)
         .. (#ex > 0 and ("  " .. table.concat(ex, " ")) or ""))
     r.meta:SetPoint("RIGHT", r, "RIGHT", -reserve, 0)
     if not r.hovered then glass(r, 10, 0.03, (o.from ~= me and lit == 1 and o.status == "open") and gl(C.amber, 0.45) or GLINE) end
-    -- frisch gesendet: kurz aufleuchten
+    -- freshly sent: flash briefly
     if page and page.flashId == o.id and animOn() then
         page.flashId = nil
         r.flash:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
@@ -1759,7 +1759,7 @@ local function fillOrderCard(r, it)
 end
 
 ------------------------------------------------------------------------
--- Liste mit Kapiteln (oben angeheftet), Zeilen je Schluessel wiederverwendet, gleitende Auswahl
+-- list with chapters (pinned on top), rows reused per key, sliding selection
 ------------------------------------------------------------------------
 local function buildVList(parent, kinds, withSticky)
     local TL = CreateFrame("Frame", nil, parent)
@@ -1771,7 +1771,7 @@ local function buildVList(parent, kinds, withSticky)
     TL.thumb = TL:CreateTexture(nil, "OVERLAY")
     TL.thumb:SetWidth(3)
     TL.thumb:SetColorTexture(C.line[1], C.line[2], C.line[3], 1)
-    -- Auswahl: eigener Rahmen, gleitet zur neuen Zeile
+    -- selection: own frame, slides to the new row
     TL.sel = CreateFrame("Frame", nil, TL)
     TL.sel:SetFrameLevel((TL:GetFrameLevel() or 1) + 8)
     TL.sel.fill = TL.sel:CreateTexture(nil, "ARTWORK")
@@ -1876,7 +1876,7 @@ local function buildVList(parent, kinds, withSticky)
                 break
             end
         end
-        -- Kapitel oben anheften, vom naechsten sanft hinausschieben
+        -- pin chapter on top, gently pushed out by the next one
         if self.sticky then
             if first and off > 0 then
                 local push = 0
@@ -1924,7 +1924,7 @@ local function buildVList(parent, kinds, withSticky)
     TL:SetScript("OnMouseWheel", function(self, delta) self:ScrollTo(self.target - delta * 3 * H_ROW, true) end)
     TL:SetScript("OnSizeChanged", function(self) self:Layout(true) end)
     TL:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) self.off = self.target end)
-    -- keep = Leseposition halten (Daten nachgeladen): Anker ist der oberste sichtbare Eintrag
+    -- keep = keep reading position (data reloaded): anchor is the topmost visible entry
     function TL:SetItems(items, keep)
         local anchorKey, anchorDy
         if keep and self.off > 0 then
@@ -1954,7 +1954,7 @@ local function buildVList(parent, kinds, withSticky)
         if self.selKey and not self.selAnim then self.selY = byKey[self.selKey].y end
         self:Layout()
     end
-    -- sichtbare Zeilen gestaffelt einblenden (Oeffnen/Filterwechsel)
+    -- fade in visible rows staggered (open/filter change)
     function TL:Stagger()
         if not animOn() then return end
         local list = {}
@@ -1967,7 +1967,7 @@ local function buildVList(parent, kinds, withSticky)
         end
         ns.After(1.2, function() for _, r in pairs(self.used) do r:SetAlpha(1) end end)
     end
-    -- Zeile in den sichtbaren Bereich holen
+    -- bring row into the visible area
     function TL:Reveal(key)
         local it = key and self.byKey[key]
         if not it then return end
@@ -1979,7 +1979,7 @@ local function buildVList(parent, kinds, withSticky)
 end
 
 ------------------------------------------------------------------------
--- Rezept-Karte
+-- recipe card
 ------------------------------------------------------------------------
 local function newCrafterChip(parent, p)
     local b = CreateFrame("Button", nil, parent)
@@ -2062,7 +2062,7 @@ local function setCrafterChip(b, c, on, rank, nAll, animate)
     end
 end
 
--- Bestand eines Materials: eigene Taschen, eigene Bank, Gildenbank, Twinks
+-- stock of a material: own bags, own bank, guild bank, alts
 local function stockOf(id)
     local bags, all = 0, 0
     if C_Item and C_Item.GetItemCount then
@@ -2130,11 +2130,11 @@ local function buildCard(p)
     p.cBody = CreateFrame("Frame", nil, card)
     p.cBody:SetAllPoints()
     local body = p.cBody
-    -- Banner: grosses Item-Icon mit Qualitaetsring, Name, Beruf + Markt, Favorit
+    -- banner: large item icon with quality ring, name, profession + market, favorite
     local bn = CreateFrame("Frame", nil, body)
     bn:SetPoint("TOPLEFT", 1, -1)
     bn:SetPoint("TOPRIGHT", -1, -1)
-    bn:SetHeight(100)   -- 0.6.464: grosser Kopf wie im Entwurf
+    bn:SetHeight(100)   -- 0.6.464: large header like in the mockup
     bn.grad = bn:CreateTexture(nil, "BACKGROUND", nil, 1)
     bn.grad:SetAllPoints()
     bn.line = bn:CreateTexture(nil, "ARTWORK")
@@ -2166,21 +2166,21 @@ local function buildCard(p)
     p.cFav:SetScript("OnEnter", function(self) K.ShowTip(self, { isFav(selected) and L["Remove favourite"] or L["Mark as favourite"], L["Favourites always stay on top."] }) end)
     p.cFav:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    -- 1: Handwerker
+    -- 1: crafters
     p.h1 = sectionHead(body, 1, L["Pick a crafter"])
     p.h1:SetPoint("TOPLEFT", 12, -112)
     p.h1:SetPoint("RIGHT", body, "RIGHT", -12, 0)
     p.h1.right:SetText(L["Click: choose  ·  Right-click: menu"])
     p.cChips = {}
     p.cMore = K.Text(body, 10, C.dim)
-    -- 2: Material
+    -- 2: materials
     p.h2 = sectionHead(body, 2, L["Materials"])
     p.cMats = {}
     p.matNone = K.Text(body, 11, C.dim)
     p.matNone:SetWordWrap(true)
     p.matNone:SetText(L["Materials show up once someone who knows the recipe shares it."])
 
-    -- 3: Auftrag (unten verankert)
+    -- 3: order (anchored at the bottom)
     p.h3 = sectionHead(body, 3, L["Order"])
     p.h3:SetPoint("BOTTOMLEFT", 12, 74)
     p.h3:SetPoint("RIGHT", body, "RIGHT", -12, 0)
@@ -2237,7 +2237,7 @@ local function buildCard(p)
     noteBox:SetPoint("BOTTOMLEFT", 12, 12)
     noteBox:SetPoint("RIGHT", p.send, "LEFT", -8, 0)
 
-    -- leere Karte: kurze Anleitung + Aktionen
+    -- empty card: short guide + actions
     p.cEmpty = emptyState(card)
     p.cEmpty:SetPoint("CENTER", 0, 22)
     p.cSteps = K.Text(p.cEmpty, 11, C.dim, "CENTER")
@@ -2246,7 +2246,7 @@ local function buildCard(p)
     p.cSteps:SetText("|cffe8b44a1|r " .. L["Find a recipe"] .. "   |cffe8b44a2|r " .. L["Pick a crafter"] .. "   |cffe8b44a3|r " .. L["Send order"])
 end
 
--- Karte fuellen (Breite/Hoehe aus p:Layout)
+-- fill card (width/height from p:Layout)
 local function fillCard(p)
     local e = selected
     p.cBody:SetShown(e ~= nil)
@@ -2283,7 +2283,7 @@ local function fillCard(p)
     p.cFav.t:SetDesaturated(not fv)
     p.cFav:SetAlpha(fv and 1 or 0.55)
 
-    -- 1: Handwerker-Chips ("Alle" zuerst), fliessend in bis zu zwei Zeilen
+    -- 1: crafter chips ("All" first), flowing in up to two lines
     local crafters = Crafting.CraftersOf(e)
     local opts = { { name = "", online = true } }
     local others = 0
@@ -2333,7 +2333,7 @@ local function fillCard(p)
         p.cMore:Show()
     end
 
-    -- 2: Material mit Bestand und Marktwert
+    -- 2: materials with stock and market value
     local top = -y + 30
     p.h2:ClearAllPoints()
     p.h2:SetPoint("TOPLEFT", p.cBody, "TOPLEFT", 12, -top)
@@ -2386,7 +2386,7 @@ local function fillCard(p)
             w:Show()
         end
         local line = total > 0 and ((known and "" or "≥ ") .. L["Material value "] .. "~" .. ns.Market.Format(total)) or ""
-        -- lohnt sich das Herstellen? Verkaufspreis des fertigen Teils gegen die Materialkosten
+        -- is crafting worth it? sell price of the finished piece vs material cost
         local sell = e.itemID and ns.Market and ns.Market.Price(e.itemID)
         if sell and total > 0 and known then
             local made = (e.yield or 1) * qty
@@ -2403,11 +2403,11 @@ local function fillCard(p)
         p.matNone:Show()
     end
 
-    -- 3: Auftrag
+    -- 3: order
     p.qty:SetText(qty)
     p.matChip:Update(false)
     p.minus:SetEnabledState(qty > 1)
-    -- Trinkgeld nur, wenn Platz ist
+    -- tip only if there is room
     local rowW = 12 + 22 + 2 + 36 + 2 + 22 + 4 + 30 + 10 + (p.matChip:GetWidth() or 90) + 10 + 62
     tipBox:SetShown(rowW <= RW - 12)
     local sent = p.sentUntil and GetTime() < p.sentUntil
@@ -2430,7 +2430,7 @@ local function fillCard(p)
     p.send.label:ClearAllPoints()
     p.send.label:SetPoint("CENTER", sent and 9 or 0, 0)
     p.send.check:SetShown(sent and true or false)
-    -- neues Rezept gewaehlt: Karte weich einblenden
+    -- new recipe selected: fade card in softly
     if p.cardAnim then
         p.cardAnim = nil
         if animOn() then
@@ -2442,7 +2442,7 @@ local function fillCard(p)
     end
 end
 
--- Auftrag gesendet: kleines Icon fliegt zum Reiter "Meine"
+-- order sent: small icon flies to the tab "Mine"
 local function flyToTab(p, e)
     if not animOn() or not p.oTabs then return end
     local tb = p.oTabs:Btn("mine")
@@ -2478,7 +2478,7 @@ local function flyToTab(p, e)
 end
 
 ------------------------------------------------------------------------
--- Daten fuer die Seite (Zaehler gedrosselt, damit Nachladen billig bleibt)
+-- data for the page (counters throttled so reloading stays cheap)
 ------------------------------------------------------------------------
 local infoCache = { t = -100 }
 local function recipeInfo(force)
@@ -2552,7 +2552,7 @@ local function profButton(p)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- page
 ------------------------------------------------------------------------
 local function onTile(k)
     local p = page
@@ -2589,15 +2589,15 @@ ns.RegisterPage({
         p.fresh = true
         p:HookScript("OnShow", function(self) self.fresh = true end)
 
-        -- Kennzahl-Kacheln (Klick = Filter)
+        -- KPI tiles (click = filter)
         p.tiles = {}
         for i, d in ipairs(TILES) do
             p.tiles[i] = buildTile(p, d, onTile)
             p.tiles[i]:Hide()
-            p.tiles[i].Show = function() end   -- bleiben aus: Filter laufen ueber die Reiter/Suche
+            p.tiles[i].Show = function() end   -- stay off: filters run via the tabs/search
         end
 
-        -- links: Reiter Rezepte | Handwerker + Suche
+        -- left: tabs Recipes | Crafters + search
         p.mode = buildTabs(p, MTABS, function(k)
             mode = k
             p.mode:Select(k, true)
@@ -2621,12 +2621,12 @@ ns.RegisterPage({
         p.searchX:SetPoint("RIGHT", -5, 0)
         p.searchX:Hide()
 
-        -- Berufe als Symbol-Leiste
+        -- professions as icon bar
         p.profBar = CreateFrame("Frame", nil, p)
         p.profBar:SetHeight(24)
         p.profBtns = {}
 
-        -- Filter-Schalter mit Zaehlern
+        -- filter toggles with counters
         p.chips = {
             buildToggle(p, L["online only"], C.mint, function() return onlyOnline end, function(v) onlyOnline = v redraw(true) end,
                 { L["online only"], "|cff888888" .. L["Only recipes someone online can craft right now"] .. "|r" }),
@@ -2639,7 +2639,7 @@ ns.RegisterPage({
         }
         p.count = K.Text(p, 10, C.dim, "RIGHT")
 
-        -- Filter "Rezepte von X"
+        -- filter "Recipes of X"
         p.cfStrip = CreateFrame("Frame", nil, p)
         p.cfStrip:SetHeight(22)
         p.cfStrip.bg = p.cfStrip:CreateTexture(nil, "BACKGROUND")
@@ -2655,14 +2655,14 @@ ns.RegisterPage({
         p.cfStrip.x:SetPoint("RIGHT", -4, 0)
         p.cfStrip:Hide()
 
-        -- Liste mit Berufs-Kapiteln
+        -- list with profession chapters
         p.tl = buildVList(p, {
             head = { make = function(TL) return newHead(TL) end, fill = fillHead },
             row = { make = newRecipeRow, fill = fillRecipeRow },
             crafter = { make = newCrafterRow, fill = fillCrafterRow },
         }, true)
         p.list = p.tl
-        -- 0.6.464: Spaltenkoepfe ueber der Liste
+        -- 0.6.464: column headers above the list
         p.colHead = {}
         for k, t in ipairs({ "Name", "Crafters", "Online" }) do
             local fs = K.Text(p, 11, C.dim)
@@ -2677,10 +2677,10 @@ ns.RegisterPage({
         p.empty = emptyState(p.tl)
         p.empty:SetPoint("TOP", 0, -30)
 
-        -- rechts: Rezept-Karte
+        -- right: recipe card
         buildCard(p)
 
-        -- rechts unten: Auftraege
+        -- bottom right: orders
         p.oTabs = buildTabs(p, OTABS, function(k)
             orderFilter = k
             p.oTabs:Select(k, true)
@@ -2717,20 +2717,20 @@ ns.RegisterPage({
         function p:Layout()
             local W, H = self:GetWidth() or 750, self:GetHeight() or 540
             if W < 100 then return end
-            -- Kacheln
+            -- tiles
             local gap = 8
             local tw = math.floor((W - gap * 3) / 4)
             for i, t in ipairs(self.tiles) do
                 t.bx, t.bw = (i - 1) * (tw + gap), tw
                 t:Place()
             end
-            -- 0.6.464: Aufbau nach Entwurf - links Reiter/Beruf/Filter/Liste, rechts oben Suche und Rezept-Karte,
-            -- unten ueber die ganze Breite die Auftragsuebersicht
+            -- 0.6.464: layout per mockup - left tabs/profession/filter/list, top right search and recipe card,
+            -- at the bottom the order overview across the full width
             local LW = math.max(300, math.min(480, math.floor(W * 0.46)))
             local RX = LW + 14
             local RW = math.max(240, W - RX)
             self.LW, self.RW = LW, RW
-            local ORD_H = math.max(210, math.min(250, math.floor(H * 0.32)))   -- 0.6.467: Leer-Hinweis war unten abgeschnitten
+            local ORD_H = math.max(210, math.min(250, math.floor(H * 0.32)))   -- 0.6.467: empty notice was cut off at the bottom
             local mainH = H + TOP_Y - ORD_H - 10
             self.mode.maxW = LW
             self.mode:Layout()
@@ -2753,7 +2753,7 @@ ns.RegisterPage({
             end
             self.count:Hide()
             local listTop = TOP_Y - 104
-            -- Spaltenkoepfe
+            -- column headers
             local cntX, onX = LW - 10 - 200, LW - 10 - 66
             self.colHead[1]:ClearAllPoints() self.colHead[1]:SetPoint("TOPLEFT", self, "TOPLEFT", 12, listTop)
             self.colHead[2]:ClearAllPoints() self.colHead[2]:SetPoint("TOPLEFT", self, "TOPLEFT", cntX + 14, listTop)
@@ -2769,13 +2769,13 @@ ns.RegisterPage({
             self.tl:ClearAllPoints()
             self.tl:SetPoint("TOPLEFT", 0, listTop)
             self.tl:SetSize(LW, math.max(80, mainH + listTop))
-            -- rechts: Rezept-Karte unter der Suche
+            -- right: recipe card below the search
             local cardH = math.max(250, mainH - 40)
             self.cardH = cardH
             self.card:ClearAllPoints()
             self.card:SetPoint("TOPLEFT", RX, TOP_Y - 40)
             self.card:SetSize(RW, cardH)
-            -- unten: Auftragsuebersicht ueber die ganze Breite
+            -- bottom: order overview across the full width
             local oy = TOP_Y - mainH - 10
             self.ordBox:ClearAllPoints()
             self.ordBox:SetPoint("TOPLEFT", self, "TOPLEFT", 0, oy)
@@ -2801,14 +2801,14 @@ ns.RegisterPage({
         local fresh, switch, oswitch = p.fresh, p.switch, p.oswitch
         p.fresh, p.switch, p.oswitch = false, nil, nil
         local index = Crafting.Index()
-        -- Auswahl nach Neuaufbau des Index wiederfinden (Name kann sich nach dem Nachladen aendern)
+        -- find selection again after index rebuild (name may change after loading)
         if selected then
             selected = Crafting.byName[selected.name] or (selected.itemID and Crafting.byItem[selected.itemID]) or nil
         end
         local info = recipeInfo(fresh or switch)
         p.nWanted, p.nFav = info.nWanted, info.nFav
 
-        -- Kacheln
+        -- tiles
         local nCrafters, nOn = crafterStats()
         local sets = orderSets()
         local vals = {
@@ -2826,7 +2826,7 @@ ns.RegisterPage({
         end
         if fresh and animOn() then for i, t in ipairs(p.tiles) do K.FadeIn(t, (i - 1) * 0.05) end end
 
-        -- Berufs-Symbole
+        -- profession icons
         local profs = allProfIds()
         local n = math.min(#profs, 14)
         local bs = math.max(18, math.min(24, math.floor(((p.LW or 360) + 2) / math.max(1, n)) - 2))
@@ -2845,7 +2845,7 @@ ns.RegisterPage({
             b:Show()
         end
 
-        -- Reiter + Filter-Schalter
+        -- tabs + filter toggles
         p.mode:SetCounts({ recipes = #index, crafters = nCrafters })
         p.mode:Select(mode, not fresh)
         p.chips[1]:Update(info.nOnline)
@@ -2857,7 +2857,7 @@ ns.RegisterPage({
         p.cfStrip:SetShown(crafterFilter ~= nil and mode == "recipes")
         if crafterFilter then p.cfStrip.text:SetText((L["Recipes by %s"]):format(ns.Radar.Colored(crafterFilter))) end
 
-        -- linke Liste: Kapitel je Beruf (Favoriten zuerst)
+        -- left list: chapter per profession (favorites first)
         local items = {}
         local filtered = search ~= "" or crafterFilter or onlyMine or onlyWanted or onlyFav or onlyOnline or profFilter
         local shownN = 0
@@ -2915,7 +2915,7 @@ ns.RegisterPage({
         p.selAnim = nil
         if fresh or switch then p.tl:Stagger() end
 
-        -- Leerzustand links
+        -- empty state left
         p.empty:SetShown(#items == 0)
         if #items == 0 then
             if mode == "crafters" then
@@ -2928,11 +2928,11 @@ ns.RegisterPage({
             end
         end
 
-        -- Rezept-Karte
+        -- recipe card
         local ok, err = pcall(fillCard, p)
         if not ok and ns.err then ns.err(L["Crafting"], err) end
 
-        -- Auftraege
+        -- orders
         p.oTabs:SetCounts({ tome = #sets.tome, mine = #sets.mine, open = #sets.open, done = #sets.done })
         p.oTabs:Select(orderFilter, not fresh)
         if p.justSent then
@@ -2965,7 +2965,7 @@ ns.RegisterPage({
     end,
 })
 
--- Item-Daten kommen nach: Seite gedrosselt neu zeichnen (Leseposition bleibt)
+-- item data arrives later: redraw page throttled (reading position stays)
 local itemPend
 local function itemsArrived()
     if itemPend or not (page and page.IsVisible and page:IsVisible()) then return end
@@ -2985,12 +2985,12 @@ end)
 ns.Listen("ROSTER", function() ns.RefreshPage("crafting") end)
 
 
--- von aussen: Handwerks-Boerse oeffnen und nach einem Item suchen (z.B. aus "Verbrauchsgueter" im Profil)
+-- from outside: open crafting exchange and search for an item (e.g. from "Consumables" in the profile)
 function Crafting.ShowItem(name)
     if not name or name == "" then return end
     search = name:lower()
     mode = "recipes"
-    -- andere Filter weg, sonst findet die Suche das Item evtl. nicht
+    -- clear other filters, otherwise the search may not find the item
     profFilter, crafterFilter = nil, nil
     onlyOnline, onlyMine, onlyWanted, onlyFav = false, false, false, false
     ns.ShowPage("crafting")

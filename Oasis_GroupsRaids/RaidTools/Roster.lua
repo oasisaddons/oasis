@@ -1,9 +1,9 @@
--- Oasis: Raid-Kader (0.6.527) - feste Raid-Teams mit Stamm und Ersatz
---  * Team = Name + Raidtag (Store "kader", aendern: Raidleitung - Recht raid.plan.sort)
---  * je Person: Anwesenheit der letzten 28 Tage (Gildenpflege) und ob sie sich abgemeldet hat
---  * "Ersatz an der Reihe": wer aus dem Ersatz zuletzt am wenigsten dabei war - faire Rotation
---  * jeder kann sich abmelden ("Ich fehle am ..." -> Store "absent"); die Raidleitung bekommt einen Hinweis
--- Ergaenzt Gargul/RCLootCouncil (Beute) und MRT (Notizen) - die kennen keinen festen Kader.
+-- Oasis: raid roster (0.6.527) - fixed raid teams with core and bench
+--  * Team = name + raid day (store "kader", edit: raid leadership - permission raid.plan.sort)
+--  * per person: attendance of the last 28 days (guild upkeep) and whether they signed off
+--  * "Bench's turn": whoever from the bench attended least recently - fair rotation
+--  * anyone can sign off ("I'm missing on ..." -> store "absent"); raid leadership gets a notice
+-- Complements Gargul/RCLootCouncil (loot) and MRT (notes) - they have no fixed roster.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_RaidTools", function()
 local L = ns.L
@@ -38,7 +38,7 @@ function KD.NewTeam(name, day)
     if name == "" then return end
     save({ id = ns.newId("kd"), name = name:sub(1, 40), day = (day or ""):sub(1, 40), stamm = "", ersatz = "", by = ns.me() })
 end
-function KD.Set(team, who, where)   -- where = "stamm" | "ersatz" | nil (entfernen)
+function KD.Set(team, who, where)   -- where = "stamm" (core) | "ersatz" (bench) | nil (remove)
     if not canEdit() or not team then return end
     who = ns.fullName(who)
     local st, er = {}, {}
@@ -50,7 +50,7 @@ function KD.Set(team, who, where)   -- where = "stamm" | "ersatz" | nil (entfern
 end
 function KD.Delete(team) if canEdit() and team then Store.Delete("kader", team.id) end end
 
--- Abmeldungen
+-- Sign-offs
 function KD.Absences(who)
     local today = date("%Y-%m-%d")
     return Store.List("absent", function(a) return (a.d or "") >= today and (not who or ns.SameName(a.who, who)) end)
@@ -64,7 +64,7 @@ function KD.Absent(dayText, why)
     Store.Put("absent", { id = "ab-" .. ns.NameKey(ns.me()) .. "-" .. iso, who = ns.me(), d = iso, why = tostring(why or ""):sub(1, 60), by = ns.me(), ts = ns.now() })
     K.Toast(L["Signed off"], (L["For %s - raid leaders see it in the roster."]):format(d .. "." .. m), C.mint)
 end
--- Hinweis an die Raidleitung, wenn sich jemand aus einem Stamm abmeldet
+-- Notify raid leadership when someone from a core roster signs off
 do
     ns.Listen("STORE", function(name, rec, old)
         if name ~= "absent" or old or not rec or ns.isMe(rec.who) or not canEdit() then return end
@@ -78,7 +78,7 @@ do
         end
     end)
 end
--- Ersatz an der Reihe: am wenigsten dabei, nicht abgemeldet
+-- Bench's turn: attended least, not signed off
 function KD.NextBench(team)
     local best, bq
     for _, n in ipairs(split(team.ersatz)) do
@@ -91,7 +91,7 @@ function KD.NextBench(team)
 end
 
 ------------------------------------------------------------------------
--- Seite "Kader"
+-- Page "Roster"
 ------------------------------------------------------------------------
 local cards = {}
 local function glass(f, a) local G = ns.Insta and ns.Insta.Glass if not (G and pcall(G, f, { 1, 1, 1, a or 0.035 }, { 1, 1, 1, 0.09 }, 10)) then K.Fill(f, { 1, 1, 1, 0.03 }) end end

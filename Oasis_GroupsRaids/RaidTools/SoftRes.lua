@@ -1,6 +1,6 @@
--- Oasis - Soft-Reserve: pro Raidtermin reserviert jeder (Main) ein Item. Sichtbar auf der Seite und im Item-Tooltip.
+-- Oasis - Soft reserve: per raid event everyone (main) reserves one item. Visible on the page and in the item tooltip.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raidwerkzeuge (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 local Store = ns.Store
@@ -9,7 +9,7 @@ local SR = {}
 ns.SoftRes = SR
 if ns.ICONS then ns.ICONS.softres = ns.MEDIA .. "icons\\wants" end
 
--- Gilden-Optionen (Gildenleitung legt fest; Standard = bisheriges Verhalten)
+-- Guild options (guild leadership decides; default = previous behavior)
 ns.GuildOption({ page = "softres", key = "srRank", default = 10, min = 1, max = 10, step = 1,
     label = "Reserving allowed", desc = "Up to which guild rank members may reserve items. 10 = everyone.",
     fmt = function(v) return (ns.L["up to rank %d"]):format(v) end })
@@ -38,8 +38,8 @@ function SR.Reserve(ev, itemID)
 end
 function SR.Clear(evId) Store.Delete("sres", rid(evId, ns.me())) end
 
--- Import von softres.it: dort "CSV" exportieren (Spalten u.a. ItemId, Name) und hier einfuegen.
--- Spielernamen werden ueber die Gildenliste (Vorname) zugeordnet, sonst so uebernommen.
+-- Import from softres.it: export "CSV" there (columns incl. ItemId, Name) and paste here.
+-- Player names are matched via the guild roster (first name), else taken as-is.
 local function splitCSV(line)
     local out, cur, q = {}, "", false
     for ch in line:gmatch(".") do
@@ -68,8 +68,8 @@ function SR.ImportCSV(ev, text)
                 if l == "itemid" or l == "item id" or l == "id" then idCol = i end
                 if l == "name" or l == "player" or l == "charactername" then nameCol = i end
             end
-            if not idCol then idCol, nameCol = 1, 2 end   -- ohne Kopfzeile: ItemId,Name
-            if tonumber(f[idCol] or "") == nil then f = nil end   -- war die Kopfzeile
+            if not idCol then idCol, nameCol = 1, 2 end   -- without header line: ItemId,Name
+            if tonumber(f[idCol] or "") == nil then f = nil end   -- was the header line
         end
         if f then
             local id, who = tonumber(f[idCol] or ""), f[nameCol or 2]
@@ -78,7 +78,7 @@ function SR.ImportCSV(ev, text)
                 if not full then unknown[#unknown + 1] = who end
                 local main = full and mainOf(full) or who
                 per[main] = (per[main] or 0) + 1
-                -- softres.it erlaubt mehrere Items je Spieler: ab dem zweiten eigene ID
+                -- softres.it allows multiple items per player: own ID from the second one on
                 local id2 = ev.id .. "@" .. main .. (per[main] > 1 and ("#" .. per[main]) or "")
                 Store.Put("sres", { id = id2, ev = ev.id, item = id, who = main, char = full or who, ts = ns.now(), src = "softres.it" })
                 n = n + 1
@@ -87,13 +87,13 @@ function SR.ImportCSV(ev, text)
     end
     return n, unknown
 end
--- Reservierungsseite direkt mit diesem Termin oeffnen (Termin-Karten auf der Raid-Seite)
+-- Open reservation page directly with this event (event cards on the raid page)
 function SR.Open(ev)
     SR.wantEv = ev
     ns.ShowPage("softres")
     ns.RefreshPage("softres")
 end
--- Reservierungen fuer ein Item in anstehenden Terminen (naechste 7 Tage)
+-- Reservations for an item in upcoming events (next 7 days)
 function SR.ForItem(itemID)
     local now, out = ns.now(), {}
     local evs = {}
@@ -130,7 +130,7 @@ else
     end
 end
 
--- Shift-Klick auf ein Item schreibt den Link ins Eingabefeld der Seite
+-- Shift-click on an item writes the link into the page's input field
 local linkBox
 if hooksecurefunc and ChatEdit_InsertLink then
     hooksecurefunc("ChatEdit_InsertLink", function(link)
@@ -146,7 +146,7 @@ ns.RegisterPage({
         page = p
         p.evBtns = {}
         local back = K.Button(p, "< " .. L["Raids & loot"], 150, 22, "ghost", function() ns.ShowPage("raid") end)
-        back:Hide()   -- 0.5.847: Reservierungen sind ein Reiter der Raids-Seite, der Zurueck-Knopf ist ueberfluessig
+        back:Hide()   -- 0.5.847: reservations are a tab of the raids page, the back button is redundant
         back:SetPoint("TOPRIGHT", 0, 0)
         local h = K.GameHead(p, L["Raid date"], C.amber)
         h:SetPoint("TOPLEFT", 0, 0)

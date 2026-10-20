@@ -1,17 +1,17 @@
--- Oasis: Mitspieler (Quest-Partner in der Gilde, kuerzliche Mitspieler von ausserhalb, Neuling-Kennzeichen)
+-- Oasis: companions (quest partners in the guild, recent players from outside, newcomer tag)
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Social", function()   -- Modul Mitspieler (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Social", function()   -- Companions module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be tampered with):
+-- sanitize texts, cap numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- escape sequences (|c |r |n |H |T |K |A ...) and control characters neutralized; links: valid item/spell links are kept
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -56,22 +56,22 @@ do
         return true
     end
 end
-local refreshSocial   -- weiter unten belegt
+local refreshSocial   -- assigned further below
 
 local Social = {}
 ns.Social = Social
 
 ------------------------------------------------------------------------
--- Eigene Quests (ID, Titel, Gebiet) -> per Profil geteilt
+-- own quests (ID, title, zone) -> shared via profile
 ------------------------------------------------------------------------
--- Quest im Questlog (bzw. Karte & Questlog) aufschlagen
+-- open quest in the quest log (or map & quest log)
 function Social.OpenQuest(id, q)
     id = tonumber(id)
     if not id then return end
     local Q = C_QuestLog
     local idx = Q and Q.GetLogIndexForQuestID and select(2, pcall(Q.GetLogIndexForQuestID, id))
     if type(idx) ~= "number" then idx = nil end
-    -- Fallback: ueber den Titel im eigenen Questlog suchen (IDs koennen in Forever abweichen)
+    -- fallback: search by title in your own quest log (IDs may differ in Forever)
     if not idx and q and q.title and Q and Q.GetNumQuestLogEntries and Q.GetInfo then
         for i = 1, (Q.GetNumQuestLogEntries() or 0) do
             local ok, info = pcall(Q.GetInfo, i)
@@ -83,7 +83,7 @@ function Social.OpenQuest(id, q)
         end
     end
     if not idx then
-        -- nicht bei mir: Demo-Quest bzw. Quest eines Mitspielers -> sagen, wer sie hat, und Ort zeigen
+        -- not mine: demo quest or a fellow player's quest -> say who has it and show the location
         if q and q.demo then ns.print(L["This is a demo quest - it is not in your quest log."]) return end
         local who = q and q.owners and q.owners[1]
         ns.print(who and (L["%s has this quest, not you."]):format(ns.displayName(who)) or L["This quest is not in your quest log."])
@@ -123,7 +123,7 @@ function Social.MyQuests()
     end
     return out
 end
--- Dungeon-Quest? Questlog-Ueberschrift = Dungeon-Name oder Blizzard-Kennzeichen (Dungeon/Raid)
+-- dungeon quest? quest log header = dungeon name or Blizzard tag (Dungeon/Raid)
 function Social.DungeonOf(q)
     if not q then return nil end
     local key = ns.Dungeons and ns.Dungeons.KeyByZone and ns.Dungeons.KeyByZone(q.zone)
@@ -135,7 +135,7 @@ function Social.DungeonOf(q)
     end
     return nil
 end
-local DUNGEON_C = { 0.64, 0.42, 1 }   -- lila wie epische Gegenstaende
+local DUNGEON_C = { 0.64, 0.42, 1 }   -- purple like epic items
 function Social.EncodeQuests()
     local t = {}
     for _, q in ipairs(Social.MyQuests()) do
@@ -149,7 +149,7 @@ local function questSet(s)
     for id in (s or ""):gmatch("%d+") do set[tonumber(id)] = true end
     return set
 end
--- Questfarbe wie im Questlog (rot/orange/gelb/gruen/grau je nach Abstand zum eigenen Level)
+-- quest color as in the quest log (red/orange/yellow/green/gray depending on distance to your level)
 function Social.QuestColor(q)
     local lvl = q and q.lvl
     if not lvl or lvl <= 0 then return "|cffe8b44a" end
@@ -176,14 +176,14 @@ function Social.InMyGroup(name)
     return (UnitInParty and UnitInParty(s)) or (UnitInRaid and UnitInRaid(s)) or false
 end
 
--- Quest-Partner: fuer jede eigene Quest die Mitglieder, die sie auch haben
+-- quest partners: for each of your quests the members who have it too
 function Social.Partners()
     local out = {}
     local others = {}
     for name, p in pairs(ns.db.members) do
         if not ns.isMe(name) and p.qs and p.qs ~= "" then others[name] = questSet(p.qs) end
     end
-    -- Oasis-Kontakte (auch ohne Gilde): Quests kommen ueber den Gruppenkanal, nur solange in der Gruppe
+    -- Oasis contacts (also without guild): quests come via the group channel, only while in the group
     for name, c in pairs((ns.db and ns.db.oasisContacts) or {}) do
         if not others[name] and not ns.isMe(name) and c.qs and c.qs ~= "" and Social.InMyGroup(name) then others[name] = questSet(c.qs) end
     end
@@ -211,7 +211,7 @@ function Social.Partners()
     return out
 end
 
--- pro Person: welche meiner Quests hat sie auch? (eine Zeile je Mitspieler, Namensformen zusammengefasst)
+-- per person: which of my quests do they have too? (one row per player, name forms merged)
 function Social.PartnersByName(partners)
     local by, order = {}, {}
     local function add(n, q, online)
@@ -234,7 +234,7 @@ function Social.PartnersByName(partners)
     return order
 end
 
--- Hinweis, wenn ein Mitglied gerade dieselbe Quest angenommen hat
+-- notice when a member just accepted the same quest
 local lastQS = {}
 local told = {}
 ns.Listen("PROFILE", function(name, p)
@@ -257,7 +257,7 @@ ns.Listen("PROFILE", function(name, p)
     end
 end)
 
--- Profil bei Quest-Aenderungen neu senden (gebuendelt)
+-- resend profile on quest changes (batched)
 local pending
 local function questsChanged()
     if pending then return end
@@ -273,15 +273,15 @@ ns.On("QUEST_REMOVED", questsChanged)
 ns.On("QUEST_TURNED_IN", questsChanged)
 
 ------------------------------------------------------------------------
--- Kuerzliche Mitspieler (nicht in der Gilde): eigene Erfassung + Blizzards Liste
+-- recent companions (not in the guild): own tracking + Blizzard's list
 ------------------------------------------------------------------------
--- eigener Eintrag (legt ihn an, wenn ich die Person nur aus den Gilden-Erfahrungen kenne)
+-- own entry (creates it if I only know the person from guild experiences)
 function Social.Entry(name)
     local e = ns.db.allies[name]
     if not e then
         e = { count = 0, note = "", last = 0 }
-        -- 0.6.302: Zeitpunkt, Klasse und Stufe aus den Gilden-Erfahrungen uebernehmen - mit last = 0 rutschte die
-        -- Zeile beim Bewerten ans Listenende (neueste oben) und es sah aus, als waere die Bewertung weg
+        -- 0.6.302: take time, class and level from guild experiences - with last = 0 the row slid
+        -- to the end of the list when rating (newest on top) and it looked as if the rating was gone
         for _, r in ipairs(ns.Store.List("rep")) do
             if r.target == name then
                 if r.class then e.class = r.class end
@@ -309,10 +309,10 @@ local function remember(unit)
     a.lvl = ns.safe(UnitLevel(unit)) or a.lvl
     a.last = ns.now()
     a.zone = ns.safe(GetRealZoneText()) or a.zone
-    -- Gilde (fuer "Anwerben"): "" = sichtbar ohne Gilde
+    -- guild (for "Recruiting"): "" = visible without guild
     local g = ns.safe(GetGuildInfo(unit))
     if g ~= nil then a.guild = g elseif ns.safe(UnitIsVisible(unit)) then a.guild = a.guild or "" end
-    -- Rolle in dieser Gruppe merken: Blizzard-Rolle (Gruppensuche) oder Platz in der Oasis-Gruppe
+    -- remember role in this group: Blizzard role (group finder) or spot in the Oasis group
     local seen
     local r = UnitGroupRolesAssigned and ns.safe(UnitGroupRolesAssigned(unit))
     if r == "TANK" then seen = "t" elseif r == "HEALER" then seen = "h" elseif r == "DAMAGER" then seen = "d" end
@@ -333,8 +333,8 @@ local function remember(unit)
     if unit:find("^party") or unit:find("^raid") then a.via = "group" end
     ns.db.allies[full] = a
 end
--- 0.6.301: auch ohne Gruppe ins Spielerbuch - gefluestert (beide Richtungen), gehandelt, Duell, von Hand eingetragen.
--- Gildenmitglieder und Battle.net-Kontakte (|K) nicht. via = woher der letzte Kontakt kam (zweite Zeile in der Liste).
+-- 0.6.301: into the player book even without a group - whispered (both directions), traded, duel, added by hand.
+-- Not guild members and Battle.net contacts (|K). via = where the last contact came from (second line in the list).
 function Social.Touch(name, via)
     if not ns.db then return end
     name = ns.safe(name)
@@ -355,7 +355,7 @@ ns.On("CHAT_MSG_WHISPER", function(_, sender) Social.Touch(sender, "whisper") en
 ns.On("CHAT_MSG_WHISPER_INFORM", function(_, target) Social.Touch(target, "whisper") end)
 ns.On("DUEL_REQUESTED", function(name) Social.Touch(name, "duel") end)
 ns.On("TRADE_SHOW", function()
-    -- Handelspartner ist die Einheit "NPC": ueber remember() kommen Klasse und Stufe gleich mit
+    -- trade partner is the unit "NPC": remember() picks up class and level right away
     if UnitExists and UnitExists("NPC") and UnitIsPlayer and UnitIsPlayer("NPC") then
         remember("NPC")
         local n = ns.UnitFullName and ns.safe((ns.UnitFullName("NPC")))
@@ -376,7 +376,7 @@ ns.On("GROUP_ROSTER_UPDATE", function()
     refreshSocial()
 end)
 
--- Blizzards "kuerzliche Verbuendete" dazunehmen, falls das System aktiv ist
+-- add Blizzard's "recent allies" if that system is active
 local function importBlizzard()
     local R = C_RecentAllies
     if not (R and R.IsSystemEnabled and R.GetRecentAllies) then return end
@@ -394,13 +394,13 @@ local function importBlizzard()
                 a.lvl = ns.safe(cd.level) or a.lvl
                 a.last = math.max(a.last or 0, ns.now() - 86400)
                 a.blizz = true
-                -- Klasse aus der Klassen-ID
+                -- class from the class ID
                 local cid = ns.safe(cd.classID)
                 if cid and not a.class and C_CreatureInfo and C_CreatureInfo.GetClassInfo then
                     local okc, ci = pcall(C_CreatureInfo.GetClassInfo, cid)
                     if okc and ci then a.class = ci.classFile end
                 end
-                -- Online-Status (stateData.isOnline), nur kurz gueltig
+                -- online status (stateData.isOnline), valid only briefly
                 local sd = ally.stateData
                 if type(sd) == "table" and sd.isOnline ~= nil then
                     a.online, a.onlineAt = ns.safe(sd.isOnline) and true or false, ns.now()
@@ -413,19 +413,19 @@ local function importBlizzard()
     end
 end
 
--- true = online, false = offline, nil = unbekannt (wird dann ausgegraut)
+-- true = online, false = offline, nil = unknown (then grayed out)
 function Social.AllyOnline(name, a)
     local short = ns.short(name)
-    -- in meiner Gruppe?
+    -- in my group?
     if (UnitInParty and UnitInParty(short)) or (UnitInRaid and UnitInRaid(short)) then
         return UnitIsConnected and UnitIsConnected(short) and true or false
     end
-    -- in der Freundesliste?
+    -- in the friends list?
     if C_FriendList and C_FriendList.GetFriendInfo then
         local ok, info = pcall(C_FriendList.GetFriendInfo, short)
         if ok and type(info) == "table" then return info.connected and true or false end
     end
-    -- Blizzards kuerzliche Verbuendete (frisch, hoechstens 3 Minuten alt)
+    -- Blizzard's recent allies (fresh, at most 3 minutes old)
     if a and a.online ~= nil and ns.now() - (a.onlineAt or 0) < 180 then return a.online end
     -- Demo
     if a and a.demo then return a.demoOnline and true or false end
@@ -437,7 +437,7 @@ local CLASS_ROLES = {
     HUNTER = "d", ROGUE = "d", MAGE = "d", WARLOCK = "d",
 }
 function Social.AllyRoles(a)
-    -- selbst eingetragen > in der Gruppe gesehen > aus der Klasse geschaetzt
+    -- entered yourself > seen in the group > estimated from the class
     local s = a.roles or a.seen or CLASS_ROLES[a.class or ""] or "d"
     return { tank = s:find("t") ~= nil, heal = s:find("h") ~= nil, dps = s:find("d") ~= nil }, (a.roles or a.seen) ~= nil, a.roles == nil and a.seen ~= nil
 end
@@ -479,7 +479,7 @@ function Social.Allies()
         end
     end
     for _, a in ipairs(out) do a.isOnline = Social.AllyOnline(a.name, ns.db.allies[a.name] or {}) == true end
-    -- 0.6.301: neuester Kontakt oben (vorher online/Favorit/Notiz zuerst - Neue rutschten nie nach vorn)
+    -- 0.6.301: newest contact on top (before online/favorite/note first - new ones never moved up)
     table.sort(out, function(a, b)
         if (a.last or 0) ~= (b.last or 0) then return (a.last or 0) > (b.last or 0) end
         return tostring(a.name) < tostring(b.name)
@@ -488,7 +488,7 @@ function Social.Allies()
 end
 
 ------------------------------------------------------------------------
--- Blizzards Neuling-Kennzeichen (neu in WoW)
+-- Blizzard's newcomer tag (new to WoW)
 ------------------------------------------------------------------------
 function Social.IAmNewcomer()
     local M = C_PlayerMentorship
@@ -498,7 +498,7 @@ function Social.IAmNewcomer()
 end
 
 ------------------------------------------------------------------------
--- In deiner Naehe: Gildenmitglieder im selben Gebiet oder im passenden Level
+-- Near you: guild members in the same zone or at a matching level
 ------------------------------------------------------------------------
 function Social.Near()
     local out = {}
@@ -510,7 +510,7 @@ function Social.Near()
         if m.online and not ns.isMe(m.name) then
             local sameZone = myZone ~= "" and m.zone == myZone
             local close = math.abs((m.level or 0) - myLvl) <= 5
-            -- "In deiner Naehe" heisst wirklich gleiches Gebiet (passendes Level allein reicht nicht)
+            -- "Near you" really means the same zone (matching level alone isn't enough)
             if sameZone then
                 local shared = 0
                 local pr = ns.db.members[m.name]
@@ -528,18 +528,18 @@ function Social.Near()
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local view, selected = "quests", nil
--- "Kuerzliche Mitspieler" ist eine eigene Seite (gleicher Aufbau, fest auf diese Ansicht)
+-- "Recent companions" is its own page (same layout, fixed to this view)
 refreshSocial = function()
     ns.RefreshPage("social")
     ns.RefreshPage("allies")
 end
 
 ------------------------------------------------------------------------
--- 0.6.137: Spieler von Hand ins Spielerbuch - Rechtsklick auf einen Namen (Chat, Gruppe, Schlachtzug, Ziel, Freunde)
--- oder /oa buch fuer das aktuelle Ziel. Legt den Eintrag an, oeffnet das Spielerbuch und setzt den Cursor in die Notiz.
+-- 0.6.137: add players to the player book by hand - right-click a name (chat, group, raid, target, friends)
+-- or /oa buch for the current target. Creates the entry, opens the player book and puts the cursor in the note.
 ------------------------------------------------------------------------
 function Social.AddToBook(name, unit)
     if type(name) ~= "string" or name == "" then return end
@@ -565,7 +565,7 @@ function Social.AddToBook(name, unit)
     end)
     K.Toast(L["Player book"], (L["%s is now in your player book - add a note."]):format(ns.displayName(full)), C.accent)
 end
--- Eintrag in Blizzards Rechtsklick-Menues (offizieller Weg: Menu.ModifyMenu, Blizzard-Menues bleiben unveraendert)
+-- entry in Blizzard's right-click menus (official way: Menu.ModifyMenu, Blizzard menus stay unchanged)
 local MENU_TAGS = { "MENU_UNIT_PLAYER", "MENU_UNIT_PARTY", "MENU_UNIT_RAID_PLAYER", "MENU_UNIT_TARGET", "MENU_UNIT_FRIEND",
     "MENU_UNIT_ENEMY_PLAYER", "MENU_UNIT_FOCUS", "MENU_UNIT_CHAT_ROSTER", "MENU_UNIT_COMMUNITIES_GUILD_MEMBER" }
 local function bookMenu(owner, root, ctx)
@@ -601,7 +601,7 @@ ns.slash.buch = function()
 end
 ns.slash.book = ns.slash.buch
 local allyFilter, roleFilter = "all", nil
-local rateFilter   -- 0.6.300: "good" | "bad" | nil, wirkt in jedem Reiter
+local rateFilter   -- 0.6.300: "good" | "bad" | nil, applies in every tab
 local allySearch = ""
 local bookLoaded = false
 local function bookState()
@@ -677,7 +677,7 @@ local socialPage = {
         p.segBase = { quests = L["Quest partners"], near = L["Near you"], allies = L["Recent players"] }
         p.hint = K.Text(p, 11, C.dim, "RIGHT")
         p.hint:SetPoint("TOPRIGHT", 0, -6)
-        -- Quest-Partner: nach Quest (Standard) oder nach Person gruppieren
+        -- quest partners: group by quest (default) or by person
         p.group = K.Segments(p, { { key = "quest", text = L["By quest"] }, { key = "person", text = L["By person"] } }, function(k)
             ns.db.settings.socialGroup = k
             Social.animNext = true
@@ -692,8 +692,8 @@ local socialPage = {
         p.doneBtn:SetPoint("RIGHT", p.group, "LEFT", -14, 0)
 
         ----------------------------------------------------------------
-        -- Quest-Partner: oben "Jetzt online" (eine Karte je Mitspieler),
-        -- darunter die Quests nach Gebiet, eine Zeile je Quest
+        -- quest partners: on top "Online now" (one card per companion),
+        -- below it the quests by zone, one row per quest
         ----------------------------------------------------------------
         p.sum = K.Panel(p, C.panel)
         p.sum:SetPoint("TOPLEFT", 0, -36)
@@ -748,7 +748,7 @@ local socialPage = {
             r.lvl = K.Text(r, 12, C.text, "CENTER")
             r.lvl:SetWidth(26)
             r.lvl:SetPoint("LEFT", 8, 0)
-            -- Personen-Zeile: Klassensymbol im Ring, darunter ein Balken fuer den Anteil gemeinsamer Quests
+            -- person row: class icon in a ring, below it a bar for the share of shared quests
             r.avRing = r:CreateTexture(nil, "ARTWORK")
             r.avRing:SetTexture(DOT)
             r.avRing:SetSize(26, 26)
@@ -769,7 +769,7 @@ local socialPage = {
             r.shareBg:SetPoint("BOTTOMLEFT", 70, 4)
             r.shareBg:SetWidth(180)
             r.shareBg:SetColorTexture(1, 1, 1, 0.06)
-            -- Quests einer aufgeklappten Person: Fuehrungslinie links
+            -- quests of an expanded person: guide line on the left
             r.guide = r:CreateTexture(nil, "ARTWORK")
             r.guide:SetWidth(1)
             r.guide:SetPoint("TOPLEFT", 49, 0)
@@ -778,7 +778,7 @@ local socialPage = {
             r.cols.name = K.Text(r, 13, C.text)
             r.cols.name:SetPoint("LEFT", 38, 0)
             r.cols.name:SetPoint("RIGHT", r, "RIGHT", -280, 0)
-            -- Dungeon-Symbol vor dem Titel (lila)
+            -- dungeon icon before the title (purple)
             r.dicon = K.Glyph(r, 15, ns.MEDIA .. "icons\\dungeons")
             r.dicon:SetPoint("LEFT", 37, 0)
             r.dicon:SetVertexColor(DUNGEON_C[1], DUNGEON_C[2], DUNGEON_C[3])
@@ -826,7 +826,7 @@ local socialPage = {
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
             r:SetScript("OnClick", function(self)
                 local e = self.item
-                -- Quest-Zeile: Quest im Questlog oeffnen
+                -- quest row: open quest in the quest log
                 if e and e.qrow and e.q and e.q.id then
                     local q = e.q
                     if not q.owners then q = setmetatable({ owners = (#(e.online or {}) > 0 and e.online) or e.offline }, { __index = e.q }) end
@@ -845,7 +845,7 @@ local socialPage = {
             r.head:SetShown(isHead) r.headR:SetShown(isHead) r.headLine:SetShown(isHead)
             r.lvl:SetShown(not isHead) r.cols.name:SetShown(not isHead) r.cols.qs:SetShown(not isHead)
             r.stripe:SetShown(not isHead and (r.index or 0) % 2 == 0)
-            -- Verlauf wie im Questlog: blau = neu in Forever, lila = Dungeon, orange = Gruppenquest
+            -- gradient as in the quest log: blue = new in Forever, purple = dungeon, orange = group quest
             local q0 = not isHead and e.q
             local gc = q0 and ((q0.new and { 0.3, 0.55, 1, 0.35 }) or (q0.dungeon and { DUNGEON_C[1], DUNGEON_C[2], DUNGEON_C[3], 0.28 })
                 or (q0.group and { 1, 0.55, 0.25, 0.22 }))
@@ -864,7 +864,7 @@ local socialPage = {
             r.guide:SetShown(e.sub and true or false)
             r:SetAlpha((person and not e.online) and 0.6 or 1)
             if isHead then
-                -- Gebiets-Ueberschrift (Dungeon: lila mit Symbol)
+                -- zone header (dungeon: purple with icon)
                 local dz = e.dungeon or (not e.solo and ns.Dungeons and ns.Dungeons.KeyByZone and ns.Dungeons.KeyByZone(e.zone))
                 r.head:ClearAllPoints()
                 r.head:SetPoint("BOTTOMLEFT", dz and 28 or 10, 5)
@@ -875,7 +875,7 @@ local socialPage = {
                 return
             end
             local function inviteBtn(names)
-                -- nur wer online und noch nicht in meiner Gruppe ist
+                -- only those online and not yet in my group
                 local todo, inGrp = {}, 0
                 for _, n in ipairs(names) do
                     if Social.InMyGroup(n) then inGrp = inGrp + 1 else todo[#todo + 1] = n end
@@ -911,7 +911,7 @@ local socialPage = {
                 inviteBtn(e.online)
                 return
             end
-            -- je Person
+            -- per person
             local m = ns.Radar.byName[e.name]
             local opened = Social.open and Social.open[e.name]
             r.lvl:SetText(opened and "|cffaaaaaav|r" or "|cff777777>|r")
@@ -943,7 +943,7 @@ local socialPage = {
         p.quests.empty:SetText(L["Nobody in the guild has the same quests right now.\nAs soon as members with Oasis pick up the same quests, they show up here."])
 
         ----------------------------------------------------------------
-        -- In deiner Naehe
+        -- Near you
         ----------------------------------------------------------------
         p.near = K.List(p, 38, function(l)
             local r = K.Row(l)
@@ -985,13 +985,13 @@ local socialPage = {
         p.near.empty:SetText(L["Nobody from the guild is online in your area or level right now."])
 
         ----------------------------------------------------------------
-        -- Kuerzliche Mitspieler (von ausserhalb der Gilde)
+        -- recent companions (from outside the guild)
         ----------------------------------------------------------------
         loadBook()
-        p.allies = K.List(p, 36, function(l)   -- 0.6.291: zwei Zeilen, kompakt (Name | Notiz/wann/wo)
+        p.allies = K.List(p, 36, function(l)   -- 0.6.291: two lines, compact (name | note/when/where)
             local r = K.Row(l)
-            r.noBoxFrame = true   -- 0.6.291: Zeilen ohne Bild-Rahmen
-            -- Bewertung: Haken = gut (Favorit), X = schlecht (Warnung)
+            r.noBoxFrame = true   -- 0.6.291: rows without image frame
+            -- rating: check = good (favorite), X = bad (warning)
             r.fav = CreateFrame("Button", nil, r)
             r.fav:SetSize(18, 18)
             r.fav:SetPoint("LEFT", 6, 0)
@@ -1007,7 +1007,7 @@ local socialPage = {
             r.warnBg = r:CreateTexture(nil, "BACKGROUND", nil, 2)
             r.warnBg:SetAllPoints()
             r.warnBg:SetColorTexture(0.85, 0.15, 0.15, 0.12)
-            -- schwach blau: Erfahrungen aus der Gilde vorhanden
+            -- faint blue: guild experiences exist
             r.guildBg = r:CreateTexture(nil, "BACKGROUND", nil, 1)
             r.guildBg:SetAllPoints()
             r.guildBg:SetColorTexture(0.35, 0.55, 1, 0.08)
@@ -1017,10 +1017,10 @@ local socialPage = {
             r.warnBar:SetWidth(3)
             r.warnBar:SetColorTexture(0.95, 0.2, 0.2, 1)
             r.cols.name = K.Text(r, 13, C.text)
-            -- Oasis-Kontakt: Tooltip "nutzt Oasis (Version, zuletzt gesehen)"
+            -- Oasis contact: tooltip "uses Oasis (version, last seen)"
             r:HookScript("OnEnter", function(self) if self.oasisTip and self.item then K.ShowTip(self, { ns.Radar.Colored(self.item.name), "|cff66db9e" .. self.oasisTip .. "|r" }) end end)
             r:HookScript("OnLeave", function(self) if self.oasisTip then GameTooltip:Hide() end end)
-            -- einzeilig: Name + Level | Wann/Wo | Rollen | Notiz | Knoepfe
+            -- single line: name + level | when/where | roles | note | buttons
             r.cav = r:CreateTexture(nil, "ARTWORK")
             r.cav:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
             r.cav:SetSize(24, 24)
@@ -1066,7 +1066,7 @@ local socialPage = {
             end
             r.cols.note:SetWidth(120)
             r.cols.note:Hide()
-            -- Notiz direkt hinter dem Namen eintippen (Enter oder Wegklicken speichert)
+            -- type the note right after the name (Enter or clicking away saves)
             r.noteEdit = CreateFrame("EditBox", nil, r)
             r.noteEdit:SetPoint("LEFT", 496, 0)
             r.noteEdit:SetHeight(20)
@@ -1110,7 +1110,7 @@ local socialPage = {
             r.guild:SetPoint("RIGHT", -30, 0)
             r.party = K.Button(r, L["Group"], 58, 20, "primary")
             r.party:SetPoint("RIGHT", r.guild, "LEFT", -6, 0)
-            -- Notiz endet vor den Knoepfen (vorher feste 300 px -> lag unter "Gruppe"/"Gilde")
+            -- note ends before the buttons (before a fixed 300 px -> lay under "Group"/"Guild")
             r.noteEdit:SetPoint("RIGHT", r.party, "LEFT", -8, 0)
             r:RegisterForClicks("AnyUp")
             r.bx = K.IconButton(r, "x", 18, nil, L["Remove from list"])
@@ -1169,7 +1169,7 @@ local socialPage = {
             return r
         end, function(r, a)
             r.fav.icon:SetDesaturated(not a.fav)
-            r.fav.icon:SetAlpha(1)   -- Deckkraft regelt der Knopf (showControls)
+            r.fav.icon:SetAlpha(1)   -- opacity is controlled by the button (showControls)
             r.bad.icon:SetDesaturated(not a.bad)
             r.bad.icon:SetAlpha(1)
             r.warnBg:SetShown(a.bad and true or false)
@@ -1191,7 +1191,7 @@ local socialPage = {
             r.fav:SetScript("OnLeave", function() GameTooltip:Hide() end)
             r.bad:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Bad - rather not"], L["Oasis warns you when they whisper you or are in your group."], a.bad and L["Click: undo"] or L["Click: mark as bad"] }) end)
             r.bad:SetScript("OnLeave", function() GameTooltip:Hide() end)
-            -- Notiz nimmt den Platz bis zu den Knoepfen (offline ohne Knoepfe: bis zum X)
+            -- note takes the room up to the buttons (offline without buttons: up to the X)
             local rw = r:GetWidth() or 0
             local canGuild = ((CanGuildInvite and CanGuildInvite()) or a.demo) and a.isOnline
             local reserve = a.isOnline and (canGuild and 160 or 100) or 34
@@ -1211,7 +1211,7 @@ local socialPage = {
             r.noteEdit:SetMaxLetters(250)
             if not r.noteEdit:HasFocus() then r.noteEdit:SetText(a.note or "") end
             r.noteEdit.ph:SetShown((a.note or "") == "" and not r.noteEdit:HasFocus())
-            -- Realm nicht anzeigen (alle auf demselben Server); WoW Forever: "Vorname-Nachname" als "Vorname Nachname"
+            -- don't show realm (all on the same server); WoW Forever: "First-Last" as "First Last"
             local on = a.isOnline
             local base, realm = a.name:match("^(.-)%-(.+)$")
             local myRealm = (ns.me() or ""):match("%-(.+)$")
@@ -1239,7 +1239,7 @@ local socialPage = {
             local gu, gd, glist = Social.GuildRep(a.name)
             local gtxt = ""
             if gd > 0 then gtxt = "|cffff5a5a" .. (L["Guild: %d bad"]):format(gd) .. "|r  ·  " elseif gu > 0 then gtxt = "|cff66db9e" .. (L["Guild: %d good"]):format(gu) .. "|r  ·  " end
-            -- 0.6.290: ohne Zeitstempel kein "01.01.70"
+            -- 0.6.290: no "01.01.70" without a timestamp
             local when = ((tonumber(a.last) or 0) > 86400) and ns.ago(a.last) or ""
             local VIA = { whisper = L["whispered"], trade = L["traded"], duel = L["Duel"], manual = L["added"], group = L["Group"], guild = L["from the guild"] }
             local via = a.via and VIA[a.via]
@@ -1248,7 +1248,7 @@ local socialPage = {
             metaText = metaText:gsub("  ·  $", "")
             r.cols.meta:SetText(metaText)
             r.glist = glist
-            r.guildBg:SetShown(false)   -- 0.6.290: keine blaue Flaeche mehr, "Gilde: x gut" steht als Text da
+            r.guildBg:SetShown(false)   -- 0.6.290: no blue area anymore, "Guild: x good" is shown as text
             r.cols.note:SetText(a.note or "")
             r.sel:SetShown(selected == a.name)
             local canInvite = (CanGuildInvite and CanGuildInvite()) or a.demo
@@ -1274,7 +1274,7 @@ local socialPage = {
             end)
             r:HookScript("OnEnter", function(self) self.bx:SetAlpha(1) end)
             r.bx:SetAlpha(0.25)
-            -- 0.6.290: zwei Zeilen - oben Name, darunter Notiz (bernstein) und wann/wo (leise); Details in der Karte
+            -- 0.6.290: two lines - name on top, below it note (amber) and when/where (quiet); details in the card
             r.noteEdit:Hide()
             r.cols.note:Hide()
             r.cols.name:SetWidth(math.max(120, rw - 86 - 110))
@@ -1283,9 +1283,9 @@ local socialPage = {
             r.cols.meta:SetText(note .. ((note ~= "" and metaText ~= "") and "   " or "") .. (metaText ~= "" and ("|cff777777" .. metaText .. "|r") or ""))
             r.cols.meta:Show()
             r.party:Hide() r.guild:Hide()
-            -- Bewertung und Rollen: nur Gesetztes zeigen, beim Ueberfahren alles zum Anklicken
+            -- rating and roles: show only what's set, on hover everything clickable
             local function showControls(hover)
-                -- gut/schlecht immer sichtbar (ungesetzt gedaempft), damit man sieht, dass man bewerten kann
+                -- good/bad always visible (unset dimmed) so you can see that you can rate
                 r.fav:SetAlpha(a.fav and 1 or (hover and 0.5 or 0.22))
                 r.bad:SetAlpha(a.bad and 1 or (hover and 0.5 or 0.22))
                 for k, b in pairs(r.roles) do b:SetAlpha(roles[k] and 1 or (hover and 0.5 or 0)) end
@@ -1305,7 +1305,7 @@ local socialPage = {
         end)
         p.bookSearch:SetPoint("TOPLEFT", 0, 0)
         p.bookSearch:SetText(allySearch)
-        -- 0.6.301: Spieler von Hand eintragen (Name; gleicher Realm reicht ohne Realm)
+        -- 0.6.301: add a player by hand (name; same realm works without realm)
         p.bookAdd = K.Button(p, "+ " .. L["Add"], 100, 24, "ghost", function()
             local function add(t)
                 t = (t or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -1317,7 +1317,7 @@ local socialPage = {
             if ns.WhisperLog and ns.WhisperLog.Prompt then
                 ns.WhisperLog.Prompt(L["Add player"], L["Player name (same realm: without realm)"], "", add, L["Add"])
             else
-                add(p.bookSearch:GetText())   -- ohne Fluester-Modul: Name aus dem Suchfeld
+                add(p.bookSearch:GetText())   -- without the whisper module: name from the search field
             end
         end)
         p.bookAdd:SetPoint("LEFT", p.bookSearch, "RIGHT", 8, 0)
@@ -1399,7 +1399,7 @@ local socialPage = {
             b:Refresh()
             p.roleFilter[k] = b
         end
-        -- 0.6.300: Bewertung filtern (gut / schlecht), zusaetzlich zu Reiter und Rolle
+        -- 0.6.300: filter by rating (good / bad), in addition to tab and role
         p.rateLabel = K.Text(p, 11, C.muted)
         p.rateLabel:SetPoint("LEFT", rx, "RIGHT", 18, 0)
         p.rateLabel:SetText(L["Rating:"])
@@ -1480,7 +1480,7 @@ local socialPage = {
             p.group:Select(mode)
             local rows = {}
             if mode == "quest" then
-                -- nach Gebiet: wo ich bin zuerst, dann wo am meisten online ist
+                -- by zone: where I am first, then where most are online
                 local here = ns.safe(GetRealZoneText()) or ""
                 local zones, zorder = {}, {}
                 for _, x in ipairs(partners) do
@@ -1502,7 +1502,7 @@ local socialPage = {
                     rows[#rows + 1] = { zrow = true, zone = g.zone, n = #g.list, on = g.on, here = g.zone == here and here ~= "", dungeon = dun }
                     for _, x in ipairs(g.list) do rows[#rows + 1] = { qrow = true, q = x.q, online = x.online, offline = x.offline } end
                 end
-                -- alle uebrigen eigenen Quests (z.B. Handwerk), die gerade niemand sonst hat - gedimmt am Ende
+                -- all other own quests (e.g. crafting) that nobody else has right now - dimmed at the end
                 local shared = {}
                 for _, x in ipairs(partners) do shared[x.q.id] = true end
                 local showDone = ns.db.settings.socialShowDone
@@ -1519,7 +1519,7 @@ local socialPage = {
                     for _, q in ipairs(solo) do rows[#rows + 1] = { qrow = true, solo = true, q = q, online = {}, offline = {} } end
                 end
             else
-                -- je Person eine Zeile, aufgeklappt darunter ihre Quests
+                -- one row per person, their quests expanded below
                 Social.maxShared = 1
                 for _, e in ipairs(Social.PartnersByName(partners)) do
                     if #e.quests > Social.maxShared then Social.maxShared = #e.quests end
@@ -1530,7 +1530,7 @@ local socialPage = {
                 end
             end
             p.quests:SetData(rows)
-            -- Ansicht gewechselt / Person aufgeklappt: Zeilen blenden kurz nacheinander ein
+            -- view changed / person expanded: rows fade in one after another
             if (Social.animNext or Social.animOpen) and not ns.db.settings.noAnim then
                 local k = 0
                 for _, row in ipairs(p.quests.rows) do
@@ -1544,7 +1544,7 @@ local socialPage = {
                 end
             end
             Social.animOpen = nil
-            -- oben: eine Karte je Mitspieler, der gerade online ist
+            -- top: one card per companion who is online right now
             local byName = Social.PartnersByName(partners)
             local onList, offCount = {}, 0
             for _, e in ipairs(byName) do
@@ -1655,7 +1655,7 @@ ns.RegisterPage({
 ns.Listen("DB_READY", function() ns.db.allies = ns.db.allies or {} end)
 ns.Listen("LOGIN", function()
     ns.db.allies = ns.db.allies or {}
-    -- Blizzards Neuling-Kennzeichen: Begruessung auch dann zeigen
+    -- Blizzard's newcomer tag: show the greeting then too
     ns.After(30, function()
         if Social.IAmNewcomer() and ns.Welcome and IsInGuild() then
             local g = GetGuildInfo("player")
@@ -1668,27 +1668,27 @@ ns.Listen("LOGIN", function()
     end)
 end)
 
--- Online-Status kommt aus der Gildenliste: bei jeder Aktualisierung neu zeichnen
+-- online status comes from the guild roster: redraw on every update
 ns.Listen("ROSTER", function() refreshSocial() end)
 
 ------------------------------------------------------------------------
--- Warnung bei schlecht bewerteten Mitspielern (X in "Kuerzliche Mitspieler")
+-- warning for badly rated companions (X in "Recent companions")
 ------------------------------------------------------------------------
--- mit der Gilde teilen: je Spieler und Bewerter ein Datensatz
+-- share with the guild: one record per player and rater
 ns.GuildOption({ page = "allies", key = "soRepShr", default = true,
     label = "Share ratings with the guild", desc = "Good/bad marks on players are shared with the guild (off = everyone keeps them private)." })
 ns.GuildOption({ page = "allies", key = "soWarnN", default = 1, min = 1, max = 5, step = 1,
     label = "Guild warning from votes", desc = "This many bad ratings from the guild are needed before a warning about a player is shown.",
     fmt = function(v) return v .. "x" end })
--- 0.6.302: je Bewerter und Spieler EINE Bewertung - Ziel ohne Realm in der Kennung ("Woodox" und "Woodox-Realm"
--- waren zwei Datensaetze und zaehlten doppelt); neue Bewertung ersetzt die alte
+-- 0.6.302: ONE rating per rater and player - target without realm in the key ("Woodox" and "Woodox-Realm"
+-- were two records and counted twice); a new rating replaces the old one
 local function repId(target) return "rep:" .. ns.me() .. ":" .. ns.short(target) end
 function Social.ShareRep(target)
     if not ns.db or ns.db.settings.shareRep == false then return end
     if ns.GuildOpt("soRepShr") == false then return end
     local e = ns.db.allies[target]
     if not e then return end
-    -- eigene Altbestaende unter anderer Schreibweise des Namens entfernen (sonst zaehlt die alte Bewertung weiter)
+    -- remove own old entries under a different spelling of the name (otherwise the old rating keeps counting)
     local sh, id = ns.short(target), repId(target)
     for _, r in ipairs(ns.Store.List("rep")) do
         if r.id ~= id and not r.del and r.target and ns.short(r.target) == sh and ns.isMe(r.who) then ns.Store.Delete("rep", r.id) end
@@ -1704,11 +1704,11 @@ function Social.ShareRep(target)
     end
     ns.Store.Put("rep", { id = repId(target), who = ns.me(), target = target, v = v, note = note, class = e.class, lvl = e.lvl, ninja = nj })
 end
--- Was sagt die Gilde (ohne mich)? -> up, down, { {who, v, note}, ... }
+-- What does the guild say (without me)? -> up, down, { {who, v, note}, ... }
 function Social.GuildRep(target)
     local up, down, list, ninja = 0, 0, {}, 0
     local sh = ns.short(target)
-    -- 0.6.302: je Bewerter nur die neueste Bewertung (neu bewertet = ueberschreibt die alte)
+    -- 0.6.302: per rater only the newest rating (rated again = overwrites the old one)
     local newest = {}
     for _, r in ipairs(ns.Store.List("rep")) do
         if r.target and ns.short(r.target) == sh and not ns.isMe(r.who) then
@@ -1728,14 +1728,14 @@ local function badEntry(name)
     name = ns.safe(name)
     if not name or not ns.db or not ns.db.allies then return end
     local e = ns.db.allies[name] or ns.db.allies[ns.fullName(name)]
-    if e and e.fav then return end   -- selbst als gut markiert: keine Warnung
+    if e and e.fav then return end   -- marked as good yourself: no warning
     if e and e.ninja then return { note = L["reported by you as a ninja looter"] .. ((e.note or "") ~= "" and (" - " .. e.note) or ""), ninja = true }, name end
     if e and e.bad then return e, name end
     local sh = ns.short(name)
     for k, v in pairs(ns.db.allies) do
         if v.bad and ns.short(k) == sh then return v, k end
     end
-    -- Gilde: Ninja-Looter-Meldung zaehlt sofort, sonst mehr schlechte als gute Erfahrungen
+    -- Guild: a ninja looter report counts immediately, otherwise more bad than good experiences
     local up, down, list, ninja = Social.GuildRep(name)
     if ninja > 0 then
         local by = {}
@@ -1750,7 +1750,7 @@ local function badEntry(name)
 end
 Social.BadEntry = badEntry
 local function warn(name, e, why)
-    -- Notizen stammen von Mitgliedern (geteilt): ohne Escape-Sequenzen, gekuerzt
+    -- notes come from members (shared): without escape sequences, shortened
     e = { note = SEC.Text(e.note, 120) }
     why = SEC.Text(why, 200)
     local note = (e.note or "") ~= "" and ("  |cffffc24d\"" .. e.note .. "\"|r") or ""
@@ -1790,7 +1790,7 @@ ns.On("GROUP_ROSTER_UPDATE", function()
     end
 end)
 
--- Tooltip ueber Spielern (Welt, Gruppe, Plaketten): eigene Bewertung und Erfahrungen der Gilde
+-- tooltip over players (world, group, nameplates): own rating and guild experiences
 local function repLine(tt, unit)
     if not ns.db or ns.db.settings.allyTooltip == false then return end
     if not unit or not UnitIsPlayer(unit) or UnitIsUnit(unit, "player") then return end

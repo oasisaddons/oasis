@@ -1,6 +1,6 @@
--- Oasis: Fehler-Rekorder fuer "Oasis wurde blockiert (nur fuer die Blizzard-Oberflaeche)"
--- WoW meldet dabei, WELCHE geschuetzte Funktion blockiert wurde (ADDON_ACTION_FORBIDDEN / _BLOCKED).
--- Oasis merkt sich das zusammen mit den letzten eigenen Aktionen (ns.Trace) und zeigt es mit /oa fehler.
+-- Oasis: error recorder for "Oasis wurde blockiert (nur fuer die Blizzard-Oberflaeche)"
+-- WoW reports WHICH protected function was blocked (ADDON_ACTION_FORBIDDEN / _BLOCKED).
+-- Oasis remembers it together with your last own actions (ns.Trace) and shows it with /oa fehler.
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -9,7 +9,7 @@ local Taint = {}
 ns.Taint = Taint
 local KEEP = 30
 
--- bekannte Ausloeser: Funktion -> Erklaerung (Sprach-Schluessel)
+-- known triggers: function -> explanation (locale key)
 local WHY = {
     UNKNOWN = "The protected function was blocked. The exact cause is still unknown.",
     SendChatMessage = "Chat messages require direct input in this client.",
@@ -36,13 +36,13 @@ local function db()
     ns.db.taint = ns.db.taint or {}
     return ns.db.taint
 end
--- vorab deklariert: Taint.Fill nutzt sie, definiert werden sie weiter unten
--- (vorher globale nil-Aufrufe -> /oa fehler stuerzte beim Oeffnen ab)
+-- declared up front: Taint.Fill uses them, they are defined further down
+-- (previously global nil calls -> /oa fehler crashed when opening)
 local gdb, fillGuild, otherAddons
 
--- Taint-Protokoll automatisch: nach der ersten Blockierung schaltet Oasis WoWs Taint-Log ein
--- (Logs\taint.log nennt die genaue Codezeile) und nach 3 Tagen ohne neue Blockierung wieder aus.
--- Nur ausserhalb des Kampfes; ein selbst eingeschaltetes Protokoll laesst Oasis in Ruhe.
+-- Taint log automatically: after the first block Oasis turns on WoW's taint log
+-- (Logs\taint.log names the exact code line) and turns it off again after 3 days without a new block.
+-- Only out of combat; Oasis leaves a log you turned on yourself alone.
 local function cvarOn() return GetCVar and tostring(GetCVar("taintLog") or "0") ~= "0" end
 local function setLog(v)
     if not SetCVar then return end
@@ -72,9 +72,9 @@ end)
 local function record(event, addon, fn)
     addon, fn = ns.safe(addon), ns.safe(fn)
     if addon ~= ADDON then return end
-    -- Oasis-Netz: Kanal-Beitritt vom Client gesperrt -> still aufgeben, nicht als Fehler melden
+    -- Oasis network: channel join blocked by the client -> give up silently, don't report as an error
     if ns.Net and ns.Net.OnBlocked and ns.Net.OnBlocked(fn) then return end
-    -- Beobachtete Funktion beibehalten; zeitliche Naehe ist nur ein Hinweis.
+    -- Keep the observed function; temporal proximity is only a hint.
     local suspected
     do
         local last = ns.trail[#ns.trail]
@@ -98,8 +98,8 @@ local function record(event, addon, fn)
         local t = ns.trail[i]
         trail[#trail + 1] = ("%s (vor %.1fs%s)"):format(t.w, now - t.t, t.c and ", Kampf" or "")
     end
-    -- 0.5.775: Lua-Aufrufkette im Moment der Blockierung (das Ereignis kommt synchron aus dem blockierten Aufruf) - nennt die Funktion
-    -- in Oasis, die den geschuetzten Aufruf gemacht hat. Pfade gekuerzt, die ersten acht Zeilen.
+    -- 0.5.775: Lua call stack at the moment of the block (the event comes synchronously from the blocked call) - names the function
+    -- in Oasis that made the protected call. Paths shortened, the first eight lines.
     do
         local ok, st = pcall(function() return debugstack and debugstack(2, 14, 0) or "" end)
         if ok and type(st) == "string" and st ~= "" then
@@ -111,7 +111,7 @@ local function record(event, addon, fn)
             if #keep > 0 then trail[#trail + 1] = "Aufrufkette: " .. table.concat(keep, " < ") end
         end
     end
-    -- automatisch dazu: welche Ereignisse Oasis kurz davor verarbeitet hat
+    -- added automatically: which events Oasis processed shortly before
     local evs = ns.LastEvents and ns.LastEvents(3) or ""
     if evs ~= "" then table.insert(trail, 1, "Ereignisse: " .. evs) end
     Taint.AutoLog()
@@ -123,7 +123,7 @@ local function record(event, addon, fn)
     }
     while #l > KEEP do table.remove(l, 1) end
     if Taint.Report then pcall(Taint.Report, l[#l]) end
-    -- geteilte Fehlerberichte (Abgleich): kommt beim Entwickler auch an, wenn er gerade offline ist
+    -- shared bug reports (sync): reach the developer even if he is currently offline
     if ns.Bugs and ns.Bugs.RecordBlock then
         local e = l[#l]
         pcall(ns.Bugs.RecordBlock, { fn = e.fn, combat = e.combat, page = e.page,
@@ -136,7 +136,7 @@ ns.On("ADDON_ACTION_FORBIDDEN", function(addon, fn) record("ADDON_ACTION_FORBIDD
 ns.On("ADDON_ACTION_BLOCKED", function(addon, fn) record("ADDON_ACTION_BLOCKED", addon, fn) end)
 
 ------------------------------------------------------------------------
--- Anzeige
+-- Display
 ------------------------------------------------------------------------
 function Taint.Fill()
     local f = Taint.win
@@ -171,9 +171,9 @@ function Taint.Fill()
 end
 
 ------------------------------------------------------------------------
--- Meldungen in der Gilde teilen: jede Oasis-Version schickt Blockierungen (nur Technik: Funktion, Version,
--- Seite, letzte Oasis-Aktionen, sichtbare sichere Oasis-Knoepfe, andere Addons) an die Gilde.
--- Gespeichert/angezeigt wird das nur bei Entwicklern (/oa entwickler) - im Fenster unter "Aus der Gilde".
+-- Share reports in the guild: every Oasis version sends blocks (technical only: function, version,
+-- page, last Oasis actions, visible secure Oasis buttons, other addons) to the guild.
+-- Stored/shown only for developers (/oa entwickler) - in the window under "Aus der Gilde".
 ------------------------------------------------------------------------
 local SECURE = { "OasisMarkerButton", "OasisMarkSecure", "OasisTrackButton", "OasisFishButton" }
 local function secureShown()
@@ -202,13 +202,13 @@ local sent, sentAny = {}, 0
 function Taint.Report(e)
     if not (e and ns.Comm and IsInGuild()) or ns.db.settings.shareErrors == false then return end
     local key = tostring(e.fn)
-    if sent[key] and GetTime() - sent[key] < 600 then return end   -- je Funktion hoechstens alle 10 Min
-    if sentAny >= 5 then return end                                 -- hoechstens 5 Meldungen je Sitzung
+    if sent[key] and GetTime() - sent[key] < 600 then return end   -- at most every 10 min per function
+    if sentAny >= 5 then return end                                 -- at most 5 reports per session
     sent[key] = GetTime()
     sentAny = sentAny + 1
     local zone = ns.safe(GetRealZoneText()) or ""
     local trail = (e.trail or ""):gsub("\n", " | "):sub(1, 400)
-    -- erst nach dem Kampf schicken (Addon-Nachrichten gehen zwar, aber nicht stoeren)
+    -- send only after combat (addon messages do work, but don't disturb)
     local function go()
         ns.Comm.Guild("TNT", ns.version or "?", key:sub(1, 60), e.ev or "B", e.combat and "1" or "0", tostring(e.page or ""):sub(1, 30),
             zone:sub(1, 40), trail, secureShown(), ns.db.settings.shareAddonList and otherAddons():sub(1, 400) or "", (GetLocale and GetLocale()) or "")
@@ -295,7 +295,7 @@ local function build()
     end)
     f.smf = smf
 
-    -- Taint-Log: WoW schreibt dann Logs\taint.log (nach /reload bzw. Ausloggen) - die Datei zeigt die genaue Zeile
+    -- Taint log: WoW then writes Logs\taint.log (after /reload or logout) - the file shows the exact line
     f.logBtn = K.Button(f, L["Enable taint log"], 170, 26, "primary", function()
         if ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return end
         local on = tostring(GetCVar("taintLog") or "0") ~= "0"
@@ -309,7 +309,7 @@ local function build()
         Taint.Fill()
     end)
     clear:SetPoint("LEFT", f.logBtn, "RIGHT", 8, 0)
-    -- nur Entwickler: Meldungen aller Oasis-Nutzer der Gilde
+    -- developers only: reports of all Oasis users in the guild
     f.guildBtn = K.Button(f, "", 170, 26, "ghost", function() Taint.guildView = not Taint.guildView Taint.Fill() end)
     f.guildBtn:SetPoint("BOTTOMRIGHT", -16, 14)
     f.guildBtn:SetShown(ns.IsDev and ns.IsDev() or false)

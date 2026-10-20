@@ -1,7 +1,7 @@
--- Oasis: Schafweide (0.6.539) - jedes Gildenmitglied mit Oasis laeuft als Schaf ueber die Wiese.
--- Ab bestimmten Oasis-Raengen gibt es andere Tiere und Farben (Skins). Groesse nur nach Tiefe (0.6.548).
--- Den eigenen Skin meldet jeder selbst (Sammlung "sheep", OWNED); beim Anzeigen wird der Rang des Besitzers
--- geprueft - wer sich einen Skin ueber seinem Rang einstellt, erscheint bei den anderen trotzdem weiss.
+-- Oasis: Sheep pasture (0.6.539) - every guild member with Oasis walks across the meadow as a sheep.
+-- From certain Oasis ranks there are other animals and colors (skins). Size only by depth (0.6.548).
+-- Everyone reports their own skin (collection "sheep", OWNED); on display the owner's rank is
+-- checked - whoever picks a skin above their rank still appears white to the others.
 local ADDON, ns = ...
 ns.ModuleFile("Oasis_Community", function()
 local K, C, L = ns.K, ns.K.C, ns.L
@@ -9,13 +9,13 @@ local Store = ns.Store
 local Weide = {}
 ns.Weide = Weide
 
-local SHEEP_NPC = 1933        -- Schaf (wie beim Todeswuerfeln)
-local SHEEP_DISPLAY = 856     -- Schaf-Modell (Verwandlung), geht auch ohne Kreatur im Zwischenspeicher
-local MAX_SHEEP = 40          -- mehr Modelle kosten zu viel Leistung
-local ART = "Interface\\AddOns\\Oasis_Guild\\Media\\weide_bg"   -- Bild nur im Gildenmodul
-local MEADOW_TOP, MEADOW_BOTTOM = 0.34, 0.82   -- 0.6.562: weiter in die Tiefe   -- Laufbereich (Fuesse), Anteil der Hoehe von oben: hinten an den Baeumen bis ganz vorne - nie im Himmel
+local SHEEP_NPC = 1933        -- sheep (like in Deathroll)
+local SHEEP_DISPLAY = 856     -- sheep model (polymorph), works even without the creature in the cache
+local MAX_SHEEP = 40          -- more models cost too much performance
+local ART = "Interface\\AddOns\\Oasis_Guild\\Media\\weide_bg"   -- image only in the guild module
+local MEADOW_TOP, MEADOW_BOTTOM = 0.34, 0.82   -- 0.6.562: further into depth   -- walking area (feet), fraction of height from the top: from the trees at the back to the very front - never in the sky
 
--- Skins: Licht-Farbe auf dem Schafmodell. lvl = ab Oasis-Rang
+-- Skins: light color on the sheep model. lvl = from Oasis rank
 Weide.SKINS = {
     { key = "white", text = "White", lvl = 1, amb = { 1, 1, 1 }, ai = 0.8, dif = { 1, 0.95, 0.9 }, di = 0.9 },
     { key = "cream", text = "Cream", lvl = 10, amb = { 1, 0.9, 0.7 }, ai = 0.8, dif = { 1, 0.85, 0.6 }, di = 0.9 },
@@ -30,7 +30,7 @@ Weide.SKINS = {
 }
 local BY = {}
 for _, s in ipairs(Weide.SKINS) do BY[s.key] = s end
--- 0.6.540: Verkleidungen - andere Tiere ab hoeheren Raengen (Kreatur-IDs aus der Spielwelt; laedt eine nicht, bleibt es ein Schaf)
+-- 0.6.540: disguises - other animals from higher ranks (creature IDs from the game world; if one doesn't load, it stays a sheep)
 Weide.FORMS = {
     { key = "sheep", text = "Sheep", lvl = 1 },
     { key = "rabbit", text = "Rabbit", lvl = 15, npc = 721 },
@@ -50,7 +50,7 @@ local function rankOf(name)
     if ns.isMe(name) then return myRank() end
     return (ns.Rank and ns.Rank.Of and ns.Rank.Of(name)) or 1
 end
--- Skin eines Mitglieds - nur wenn sein Rang ihn erlaubt (sonst weiss)
+-- a member's skin - only if their rank allows it (otherwise white)
 function Weide.SkinOf(name, lvl)
     local key
     if ns.isMe(name) then key = ns.db.settings.sheepSkin
@@ -82,7 +82,7 @@ function Weide.SetMySkin(key)
     return true
 end
 
--- 0.6.540 Gildotchi: drei Beduerfnisse, jedes faellt von 100 auf 0 in "span" Sekunden nach der letzten Pflege
+-- 0.6.540 Gildotchi: three needs, each drops from 100 to 0 in "span" seconds after the last care
 Weide.NEEDS = {
     { key = "f", text = "Fed", act = "Feed", span = 24 * 3600, cd = 3 * 3600, say = "Hungry!" },
     { key = "j", text = "Happy", act = "Pet", span = 12 * 3600, cd = 1 * 3600, say = "Pet me!" },
@@ -93,8 +93,8 @@ local function careRec(name)
     local r = Store.Get("sheep", "shp-" .. ns.NameKey(name))
     return r or {}
 end
--- Werte 0-100 je Beduerfnis + Laune (Durchschnitt); ohne jede Pflege startet ein Schaf halb zufrieden
--- 0.6.548: Gilde hilft - juengstes Fuettern durch andere (Sammlung "gfeed", jeder meldet nur sich)
+-- values 0-100 per need + mood (average); without any care a sheep starts half content
+-- 0.6.548: guild helps - most recent feeding by others (collection "gfeed", everyone reports only themselves)
 function Weide.GuildFed(name)
     local key, best, by = ns.NameKey(name), nil, nil
     for _, g in ipairs(Store.List("gfeed")) do
@@ -103,7 +103,7 @@ function Weide.GuildFed(name)
     return best, by
 end
 local function today(off) return date("%Y-%m-%d", (ns.now() + (off or 0) * 86400)) end
--- letzte Pflege ueberhaupt (eigene oder durch die Gilde); nil = noch nie gepflegt
+-- last care at all (own or by the guild); nil = never cared for
 function Weide.LastCare(name)
     local r, last = careRec(name), nil
     for _, n in ipairs(Weide.NEEDS) do local t = tonumber(r[n.key]) if t and t > (last or 0) then last = t end end
@@ -111,7 +111,7 @@ function Weide.LastCare(name)
     if gf and gf > (last or 0) then last = gf end
     return last
 end
--- 0.6.548: nach 7 Tagen ohne Pflege ist das Tier ausgebuext (nicht auf der Weide, "Zurueckholen" bringt es sofort wieder)
+-- 0.6.548: after 7 days without care the animal has run away (not on the pasture, "Bring back" returns it immediately)
 Weide.AWAY = 7 * 86400
 function Weide.IsAway(name)
     local last = Weide.LastCare(name)
@@ -119,10 +119,10 @@ function Weide.IsAway(name)
 end
 function Weide.Recall()
     local g = careRec(ns.me())
-    for _, n in ipairs(Weide.NEEDS) do g[n.key] = ns.now() - n.span * 0.5 end   -- halb zufrieden zurueck
+    for _, n in ipairs(Weide.NEEDS) do g[n.key] = ns.now() - n.span * 0.5 end   -- back to half content
     Weide.Report()
 end
--- 0.6.548: Pflege-Serie - Tage am Stueck mit mindestens einer Pflege; zaehlt nur, wenn heute oder gestern gepflegt
+-- 0.6.548: care streak - consecutive days with at least one care; only counts if cared for today or yesterday
 function Weide.Streak(name)
     local r = careRec(name)
     if r.sd == today() or r.sd == today(-1) then return tonumber(r.sn) or 0 end
@@ -163,7 +163,7 @@ local function fmtLeft(sec)
     if sec >= 3600 then return ("%d Std. %d Min."):format(math.floor(sec / 3600), math.floor(sec % 3600 / 60)) end
     return ("%d min"):format(math.max(1, math.ceil(sec / 60)))
 end
--- Pflegen: true oder false + Restzeit in Sekunden
+-- Care: true or false + remaining time in seconds
 function Weide.Care(key)
     local g = careRec(ns.me())
     for _, n in ipairs(Weide.NEEDS) do
@@ -171,7 +171,7 @@ function Weide.Care(key)
             local left = (tonumber(g[key]) or 0) + n.cd - ns.now()
             if left > 0 then return false, left end
             g[key] = ns.now()
-            -- Serie: heute schon gezaehlt? sonst gestern -> +1, laenger her -> neu bei 1
+            -- Streak: already counted today? else yesterday -> +1, longer ago -> restart at 1
             if g.sd ~= today() then
                 g.sn = (g.sd == today(-1)) and ((tonumber(g.sn) or 0) + 1) or 1
                 g.sd = today()
@@ -183,7 +183,7 @@ function Weide.Care(key)
     return false, 0
 end
 
--- Fremdes Tier fuettern: einmal am Tag je Tier
+-- feed someone else's animal: once a day per animal
 function Weide.FeedOther(name)
     if not name or ns.isMe(name) or not IsInGuild() then return false end
     local id = "gf-" .. ns.NameKey(ns.me()) .. "-" .. ns.NameKey(name) .. "-" .. today()
@@ -196,7 +196,7 @@ function Weide.FeedOther(name)
     return true
 end
 
--- Wer steht auf der Weide? Mains mit Oasis, in den letzten 14 Tagen gesehen
+-- Who is on the pasture? Mains with Oasis, seen in the last 14 days
 function Weide.Flock()
     local out = {}
     Weide.away = {}
@@ -219,7 +219,7 @@ local function light(m, s, r, g, b)
     if not (m.SetLight and CreateVector3D and CreateColor) then return end
     local amb, dif, ai, di = s.amb, s.dif, s.ai, s.di
     if s.rainbow then amb, dif, ai, di = { r, g, b }, { r, g, b }, 0.85, 0.9 end
-    -- 0.6.548: vernachlaessigt -> Farbe Richtung Grau, etwas dunkler
+    -- 0.6.548: neglected -> color toward gray, a bit darker
     local sad = m.sad or 0
     if sad > 0 then
         local function mix(c) return { c[1] + (0.5 - c[1]) * sad * 0.7, c[2] + (0.5 - c[2]) * sad * 0.7, c[3] + (0.5 - c[3]) * sad * 0.7 } end
@@ -233,9 +233,9 @@ local function light(m, s, r, g, b)
 end
 
 ------------------------------------------------------------------------
--- Ein Schaf: eigenes Modell, laeuft zu zufaelligen Zielen, bleibt mal stehen und grast
+-- One sheep: own model, walks to random targets, sometimes stops and grazes
 ------------------------------------------------------------------------
--- Tier in ein Modell laden; laedt es nicht (nicht im Zwischenspeicher), wird es ein Schaf
+-- load animal into a model; if it doesn't load (not in cache), it becomes a sheep
 function Weide.LoadForm(m, f)
     pcall(m.ClearModel, m)
     if f and f.npc then
@@ -262,7 +262,7 @@ local function newSheep(field)
         local okm, id = pcall(self.GetModelFileID, self)
         if not okm or not id or id == 0 then self:LoadSheep() end
     end)
-    -- Name (dezent) und darueber die Sprechblase - eigener Rahmen direkt ueber diesem Tier (0.6.546)
+    -- name (subtle) and above it the speech bubble - own frame directly above this animal (0.6.546)
     m.lab = CreateFrame("Frame", nil, field)
     m.lab:SetAllPoints(m)
     m.name = K.Text(m.lab, 12, C.text, "CENTER")
@@ -283,7 +283,7 @@ local function newSheep(field)
     m.sayIn = 3 + math.random() * 20
     m:SetScript("OnModelLoaded", function(self)
         pcall(self.SetPortraitZoom, self, 0)
-        pcall(self.SetCamDistanceScale, self, 0.85)   -- naeher dran: Tier fuellt den Rahmen
+        pcall(self.SetCamDistanceScale, self, 0.85)   -- closer: animal fills the frame
         pcall(self.SetPosition, self, 0, 0, 0)
         if self.skin then light(self, self.skin, 1, 1, 1) end
         self.anim = nil
@@ -314,7 +314,7 @@ local function newSheep(field)
             K.Toast(L["Guildotchi"], L["Already fed today - again tomorrow."], C.amber or C.accent)
         end
     end)
-    -- Glitzern (Pflege-Serie ab 3 Tagen)
+    -- sparkle (care streak of 3+ days)
     m.spark = {}
     for i = 1, 3 do
         local t = m.lab:CreateTexture(nil, "OVERLAY")
@@ -326,10 +326,10 @@ local function newSheep(field)
     end
     return m
 end
--- 0.6.547: Maeh-Geraeusch (CC0, "Sheep Baa" von AntumDeluge nach mikewest, opengameart.org/node/132779) - nur mit Gildenmodul,
--- folgt dem Oasis-Lautstaerkeregler, nur wenn die Wiese sichtbar ist
--- 0.6.557: jedes Maeh eines Schafs ist zu hoeren (Toene duerfen sich ueberlagern), zufaellig aus fuenf Stimmen;
--- vier davon CC0 von Joseph Sardin / BigSoundBank (sheep 3, 4, 5, 7)
+-- 0.6.547: baa sound (CC0, "Sheep Baa" by AntumDeluge after mikewest, opengameart.org/node/132779) - only with guild module,
+-- follows the Oasis volume slider, only while the meadow is visible
+-- 0.6.557: every baa of a sheep can be heard (sounds may overlap), randomly from five voices;
+-- four of them CC0 by Joseph Sardin / BigSoundBank (sheep 3, 4, 5, 7)
 local SND = "Interface\\AddOns\\Oasis_Guild\\Media\\sounds\\"
 local VOICES = { "maeh", "maeh03", "maeh04", "maeh05", "maeh07" }
 function Weide.Maeh()
@@ -347,36 +347,36 @@ end
 local function setAnim(m, id)
     if m.anim ~= id then m.anim = id pcall(m.SetAnimation, m, id) end
 end
--- zu nah an einem anderen Tier? (x quer in Anteilen der Breite, y = Tiefe)
-local GAP_X, GAP_Y = 0.13, 0.12   -- 0.6.548: deutlich mehr Abstand
--- 0.6.558: Abstand nach der echten Groesse (wie beim Zeichnen: 0.35 + 1.25 * y^1.8) - vorne waren die Tiere
--- dreimal so breit wie der feste Abstand und liefen ineinander
-local function bodyW(y) return 0.16 + 1.44 * (y or 0) ^ 1.6 end   -- 0.6.560: hinten viel kleiner (wie beim Zeichnen)
+-- too close to another animal? (x across in fractions of width, y = depth)
+local GAP_X, GAP_Y = 0.13, 0.12   -- 0.6.548: clearly more distance
+-- 0.6.558: distance by actual size (like when drawing: 0.35 + 1.25 * y^1.8) - at the front the animals were
+-- three times as wide as the fixed distance and walked into each other
+local function bodyW(y) return 0.16 + 1.44 * (y or 0) ^ 1.6 end   -- 0.6.560: much smaller at the back (like when drawing)
 local function crowded(s, x, y, flock)
     for _, o in ipairs(flock or {}) do
         if o ~= s and o:IsShown() and o.who then
-            local need = 0.17 * (bodyW(y) + bodyW(o.y))   -- 0.6.559: seitlich ist ein Schaf fast doppelt so lang wie breit
+            local need = 0.17 * (bodyW(y) + bodyW(o.y))   -- 0.6.559: from the side a sheep is almost twice as long as wide
             local needY = GAP_Y * (0.9 + 0.9 * math.max(y, o.y))
             if math.abs(o.x - x) < need and math.abs(o.y - y) < needY then return o end
         end
     end
 end
--- 0.6.549: Ziel mit moeglichst viel Platz - von 10 Vorschlaegen (halb in der Naehe, halb irgendwo auf der Wiese)
--- gewinnt der mit dem groessten Abstand zum naechsten Tier -> die Herde verteilt sich ueber die ganze Flaeche
+-- 0.6.549: target with as much room as possible - of 10 candidates (half nearby, half anywhere on the meadow)
+-- the one with the largest distance to the nearest animal wins -> the herd spreads over the whole area
 local function room(s, x, y, flock)
     local best = 9
     for _, o in ipairs(flock or {}) do
         if o ~= s and o:IsShown() and o.who then
-            local ox, oy = o.tx or o.x, o.ty or o.y   -- auch dahin, wo die anderen gerade hinlaufen
+            local ox, oy = o.tx or o.x, o.ty or o.y   -- also where the others are currently heading
             local d = math.sqrt((ox - x) ^ 2 + ((oy - y) * 1.3) ^ 2)
-            -- 0.6.555: vorne sind die Tiere bis zu dreimal so gross - gleicher Abstand wirkt dort viel enger
+            -- 0.6.555: at the front animals are up to three times as big - the same distance looks much tighter there
             d = d / (0.45 + 0.9 * math.max(y, oy))
             if d < best then best = d end
         end
     end
     return best
 end
--- 0.6.562: zu nah -> langsam auseinanderschieben, ohne sich umzudrehen (vorher: wegrennen, blockieren, umdrehen -> Zappeln)
+-- 0.6.562: too close -> slowly push apart without turning around (before: run away, block, turn -> jitter)
 local function push(s, o, dt)
     local dx, dy = s.x - o.x, s.y - o.y
     if math.abs(dx) + math.abs(dy) < 0.001 then dx = (math.random() - 0.5) end
@@ -389,10 +389,10 @@ local function pickTarget(s, flock)
     for i = 1, 10 do
         local x, y
         if i % 2 == 0 then
-            x, y = 0.03 + math.random() * 0.94, math.random() ^ 1.8   -- 0.6.562: deutlich eher hinten (dort ist mehr Platz)
+            x, y = 0.03 + math.random() * 0.94, math.random() ^ 1.8   -- 0.6.562: clearly more likely at the back (more room there)
         else
             x = math.max(0.02, math.min(0.98, s.x + (math.random() - 0.5) * 0.5))
-            y = math.max(0, math.min(1, s.y + (math.random() - 0.5) * 0.6))   -- y: 0 = hinten (klein), 1 = vorne (gross)
+            y = math.max(0, math.min(1, s.y + (math.random() - 0.5) * 0.6))   -- y: 0 = back (small), 1 = front (big)
         end
         local sc = room(s, x, y, flock)
         if sc > bs then bx, by, bs = x, y, sc end
@@ -402,34 +402,34 @@ local function pickTarget(s, flock)
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
-local LIST_W = 190   -- 0.6.546: schmaler, mehr Platz fuer die Wiese
+local LIST_W = 190   -- 0.6.546: narrower, more room for the meadow
 ns.RegisterPage({
     key = "pasture", title = "Guildotchi", order = 7.64,
     sub = "Every guild member with Oasis has an animal on the pasture - feed, pet and brush it. Higher ranks unlock new animals and colours.",
     build = function(p)
-        -- Wiese
+        -- Meadow
         local field = CreateFrame("Frame", nil, p)
-        field:SetPoint("TOPLEFT", 4, -4)   -- Platz fuer den Rahmen
+        field:SetPoint("TOPLEFT", 4, -4)   -- room for the frame
         field:SetPoint("BOTTOMRIGHT", -(LIST_W + 24), 46)
-        -- kein SetClipsChildren: 3D-Modelle werden in beschnittenen Rahmen nicht gezeichnet (0.6.540)
+        -- no SetClipsChildren: 3D models are not drawn in clipped frames (0.6.540)
         p.field = field
         field.bg = field:CreateTexture(nil, "BACKGROUND")
         field.bg:SetAllPoints()
-        field.bg:SetColorTexture(0.32, 0.55, 0.22, 1)   -- ohne Gildenmodul: schlichte gruene Wiese
-        if ns.GuildPack then   -- Kennzeichen: Gildenmodul geladen
+        field.bg:SetColorTexture(0.32, 0.55, 0.22, 1)   -- without guild module: plain green meadow
+        if ns.GuildPack then   -- flag: guild module loaded
             field.bg:SetTexture(ART)
             field.bg:SetTexCoord(0, 1, 0, 0.75)
         end
         K.Border(field, C.line)
-        -- 0.6.543: Rahmen im Stil des Logos (Gold, Petrol-Innenkante, Edelsteine), 9-teilig damit die Ecken scharf bleiben
+        -- 0.6.543: frame in the style of the logo (gold, petrol inner edge, gems), 9-slice so the corners stay sharp
         if ns.GuildPack then
             local fr = CreateFrame("Frame", nil, p)
             fr:SetPoint("TOPLEFT", field, "TOPLEFT", -6, 6)
-            fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 7, -12)   -- 0.6.555: Wiese ragte unten heraus   -- unten liegt das Band im Bild hoeher (Rand 53 statt 43 px)
+            fr:SetPoint("BOTTOMRIGHT", field, "BOTTOMRIGHT", 7, -12)   -- 0.6.555: meadow stuck out at the bottom   -- at the bottom the band sits higher in the image (edge 53 instead of 43 px)
             fr:SetFrameLevel(field:GetFrameLevel() + 55)
-            -- 0.6.552: Rahmen aus der Vorlage (1448x1086, als 1024x768 in 1024x1024): Ecken und Mittelschmuck unverzerrt, Kanten gestreckt
+            -- 0.6.552: frame from the template (1448x1086, as 1024x768 in 1024x1024): corners and center ornament undistorted, edges stretched
             local TEX = "Interface\\AddOns\\Oasis_Guild\\Media\\gildotchi_frame"
             local SW, SH, KK = 1448, 1086, 0.3
             local function piece(x1, y1, x2, y2)
@@ -439,7 +439,7 @@ ns.RegisterPage({
                 x:SetSize((x2 - x1) * KK, (y2 - y1) * KK)
                 return x
             end
-            local CO, EW = 115, 60          -- Eckgroesse, Kantenstaerke (Vorlage)
+            local CO, EW = 115, 60          -- corner size, edge thickness (template)
             local tl, tr = piece(0, 0, CO, CO), piece(SW - CO, 0, SW, CO)
             local bl, br = piece(0, SH - CO, CO, SH), piece(SW - CO, SH - CO, SW, SH)
             tl:SetPoint("TOPLEFT") tr:SetPoint("TOPRIGHT") bl:SetPoint("BOTTOMLEFT") br:SetPoint("BOTTOMRIGHT")
@@ -463,10 +463,10 @@ ns.RegisterPage({
             vseg(tr, rm, SW - EW, SW, false) vseg(rm, br, SW - EW, SW, false)
             p.frameArt = fr
         end
-        -- 0.6.542: Logo oben mittig, ragt ueber die Wiese hinaus (nur mit Gildenmodul)
+        -- 0.6.542: logo top center, sticks out over the meadow (only with guild module)
         if ns.GuildPack then
             local logo = CreateFrame("Frame", nil, p)
-            logo:SetSize(210, 77)   -- 0.6.547: kleiner
+            logo:SetSize(210, 77)   -- 0.6.547: smaller
             logo:SetPoint("TOP", field, "TOP", 0, 24)
             logo:SetFrameLevel(field:GetFrameLevel() + 70)
             logo.t = logo:CreateTexture(nil, "OVERLAY")
@@ -479,7 +479,7 @@ ns.RegisterPage({
         field.empty = K.Text(field, 13, C.text, "CENTER")
         field.empty:SetPoint("CENTER")
 
-        -- Bewegung: ein OnUpdate fuer alle Schafe
+        -- Movement: one OnUpdate for all sheep
         local tick, hue, sortT = 0, 0, 0
         local order = {}
         field:SetScript("OnUpdate", function(self, dt)
@@ -489,7 +489,7 @@ ns.RegisterPage({
             tick, hue = tick + dt, (hue + dt * 0.15) % 1
             local rb = tick > 0.12
             if rb then tick = 0 end
-            -- 0.6.546: Zeichenreihenfolge nach Tiefe - ein Tier weiter vorne liegt immer vor den hinteren (je Tier eigene Ebene)
+            -- 0.6.546: draw order by depth - an animal further front is always in front of those behind (own layer per animal)
             sortT = sortT + dt
             if sortT > 0.1 then
                 sortT = 0
@@ -506,7 +506,7 @@ ns.RegisterPage({
                     end
                 end
             end
-            -- 0.6.548: Todeswuerfeln - selten laufen zwei Tiere zusammen und wuerfeln, bis eins die 1 hat (nur Optik, jeder sieht sein eigenes)
+            -- 0.6.548: Deathroll - rarely two animals walk together and roll until one gets the 1 (visual only, everyone sees their own)
             self.duelIn = (self.duelIn or (90 + math.random() * 120)) - dt
             if self.duelIn <= 0 and not self.duel then
                 self.duelIn = 180 + math.random() * 180
@@ -531,7 +531,7 @@ ns.RegisterPage({
                     local db = math.abs(du.b.x - du.b.tx) + math.abs(du.b.y - du.b.ty)
                     if (da < 0.02 and db < 0.02) or du.t > 25 then
                         du.phase, du.t = "roll", 0
-                        pcall(du.a.SetFacing, du.a, -1.5708) du.a.face = -1.5708   -- schauen sich an
+                        pcall(du.a.SetFacing, du.a, -1.5708) du.a.face = -1.5708   -- look at each other
                         pcall(du.b.SetFacing, du.b, 1.5708) du.b.face = 1.5708
                         say(du.a, L["Death roll?"], 1.6)
                     end
@@ -559,7 +559,7 @@ ns.RegisterPage({
             for _, s in ipairs(self.sheep) do
                 if s:IsShown() and s.who then
                     if s.lying then
-                        -- 0.6.548: ganz vernachlaessigt - liegt im Gras
+                        -- 0.6.548: totally neglected - lies in the grass
                         setAnim(s, 1)
                         s.sayIn = (s.sayIn or 10) - dt
                     elseif s.duel and s.duel.phase ~= "walk" then
@@ -568,7 +568,7 @@ ns.RegisterPage({
                         s.wait = s.wait - dt
                         setAnim(s, 0)
                         if s.wait <= 0 then pickTarget(s, self.sheep) end
-                        -- steht es zu nah an einem anderen (z. B. nach dem Start)? sanft auseinander
+                        -- standing too close to another (e.g. after start)? gently apart
                         if not s.duel then
                             local o = crowded(s, s.x, s.y, self.sheep)
                             if o then push(s, o, dt) end
@@ -581,15 +581,15 @@ ns.RegisterPage({
                         if d < 0.01 then
                             s.wait = (1.5 + math.random() * 4) * (s.mood and s.mood < 30 and 2.5 or 1)
                         else
-                            local v = 0.045 * (0.6 + 0.6 * s.y) * (s.mood and (0.45 + s.mood / 120) or 1)   -- vorne schneller, traurige Schafe trotten
+                            local v = 0.045 * (0.6 + 0.6 * s.y) * (s.mood and (0.45 + s.mood / 120) or 1)   -- faster at the front, sad sheep trudge
                             local step = math.min(d, v * dt)
                             local nx, ny = s.x + dx / d * step, s.y + dy / d * step
                             local o = crowded(s, nx, ny, self.sheep)
-                            if o and s.duel and (o == s.duel.a or o == s.duel.b) then o = nil end   -- zum Duell darf man nah ran
-                            -- 0.6.546: nicht ineinanderlaufen - wer vor einem anderen Tier steht, bleibt kurz stehen und sucht sich ein neues Ziel
+                            if o and s.duel and (o == s.duel.a or o == s.duel.b) then o = nil end   -- for a duel you may get close
+                            -- 0.6.546: don't walk into each other - whoever stands in front of another animal stops briefly and picks a new target
                             local away = o and (math.abs(nx - o.x) + math.abs(ny - o.y)) > (math.abs(s.x - o.x) + math.abs(s.y - o.y))
                             if o and not away then
-                                -- 0.6.562: im Weg -> sanft zur Seite, nach 1 s ein neues Ziel mit Platz (kein Umdrehen auf der Stelle)
+                                -- 0.6.562: in the way -> gently aside, after 1 s a new target with room (no turning on the spot)
                                 push(s, o, dt)
                                 setAnim(s, 0)
                                 s.blocked = (s.blocked or 0) + dt
@@ -598,13 +598,13 @@ ns.RegisterPage({
                                 s.blocked = 0
                                 s.x, s.y = nx, ny
                                 setAnim(s, 4)
-                                -- Blickrichtung: 0 = zur Kamera, rechts = -pi/2, weg = pi; nur beim Laufen und erst ab merklicher Aenderung
+                                -- Facing: 0 = toward camera, right = -pi/2, away = pi; only while walking and only after a noticeable change
                                 local face = math.atan2 and math.atan2(-dx, dy) or 0
                                 if not s.face or math.abs(face - s.face) > 0.25 then s.face = face pcall(s.SetFacing, s, face) end
                             end
                         end
                     end
-                    -- Sprechblase: alle 15-40 s kurz "Maeh!" oder was gerade fehlt
+                    -- speech bubble: every 15-40 s briefly "Baa!" or whatever is lacking
                     if s.sayLeft then
                         s.sayLeft = s.sayLeft - dt
                         if s.sayLeft <= 0 then s.sayLeft = nil s.say:Hide() s.sayBg:Hide() end
@@ -614,11 +614,11 @@ ns.RegisterPage({
                         s.say:Show() s.sayBg:Show() s.sayLeft = 3
                         if self:IsVisible() and (not s.form or s.form.key == "sheep") then Weide.Maeh() end
                     end
-                    -- Groesse: nur nach Tiefe
-                    local size = 140 * bodyW(s.y) * math.max(0.6, H / 520)   -- 0.6.548: Groesse nur nach Tiefe, nicht nach Rang
-                    size = size * (1 - 0.15 * (s.sad or 0))   -- 0.6.548: vernachlaessigt etwas kleiner
+                    -- size: only by depth
+                    local size = 140 * bodyW(s.y) * math.max(0.6, H / 520)   -- 0.6.548: size only by depth, not by rank
+                    size = size * (1 - 0.15 * (s.sad or 0))   -- 0.6.548: neglected a bit smaller
                     local feet = H * (MEADOW_TOP + s.y * (MEADOW_BOTTOM - MEADOW_TOP))
-                    -- 0.6.547: Namen hinten kleiner, vorne groesser (9-14 pt)
+                    -- 0.6.547: names smaller at the back, bigger at the front (9-14 pt)
                     local fs = 9 + math.floor(s.y * 5 + 0.5)
                     if s.fs ~= fs then
                         s.fs = fs
@@ -627,9 +627,9 @@ ns.RegisterPage({
                     end
                     s:SetSize(size, size)
                     s:ClearAllPoints()
-                    s:SetPoint("BOTTOMLEFT", self, "TOPLEFT", s.x * (W - size), -feet - size * 0.08)   -- Unterkante = Fuesse (kleiner Rand im Modell)
+                    s:SetPoint("BOTTOMLEFT", self, "TOPLEFT", s.x * (W - size), -feet - size * 0.08)   -- bottom edge = feet (small margin in the model)
 
-                    -- Glitzern (Serie ab 3 Tagen): drei Sternchen kreisen kurz um den Kopf
+                    -- sparkle (streak of 3+ days): three little stars briefly circle the head
                     if (s.streak or 0) >= 3 then
                         s.sparkT = (s.sparkT or math.random() * 6) + dt
                         local ph = s.sparkT % 6
@@ -655,7 +655,7 @@ ns.RegisterPage({
             end
         end)
 
-        -- 0.6.545: Aussehen waehlen - Knopf unter der Wiese oeffnet eine Auswahl mit Modell-Vorschau
+        -- 0.6.545: choose look - button below the meadow opens a picker with model preview
         local bar = CreateFrame("Frame", nil, p)
         bar:SetPoint("TOPLEFT", field, "BOTTOMLEFT", 0, -12)
         bar:SetPoint("RIGHT", field, "RIGHT", 0, 0)
@@ -668,7 +668,7 @@ ns.RegisterPage({
         bar.btn:SetPoint("LEFT", 0, 0)
         bar.cur = K.Text(bar, 11, C.muted)
         bar.cur:SetPoint("LEFT", bar.btn, "RIGHT", 12, 0)
-        -- 0.6.545: als AFK-Bildschirm (Vollbild, sobald du AFK bist)
+        -- 0.6.545: as AFK screen (fullscreen as soon as you are AFK)
         bar.afk = K.Toggle(bar, L["As AFK screen"], function() return ns.db.settings.gotchiAfk == true end,
             function(v) ns.db.settings.gotchiAfk = v and true or nil end)
         bar.afk:SetWidth(190)
@@ -677,7 +677,7 @@ ns.RegisterPage({
             function(v) if v then ns.db.settings.gotchiSound = nil else ns.db.settings.gotchiSound = false end end)
         bar.snd:SetWidth(170)
         bar.snd:SetPoint("RIGHT", bar.afk, "LEFT", -12, 0)
-        -- 0.6.556: Text "Aussehen" endet vor den Schaltern (lag darunter)
+        -- 0.6.556: text "Look" ends before the toggles (was underneath)
         bar.cur:SetPoint("RIGHT", bar.snd, "LEFT", -12, 0)
         bar.cur:SetJustifyH("LEFT") bar.cur:SetWordWrap(false)
 
@@ -772,14 +772,14 @@ ns.RegisterPage({
         end
         pick:SetScript("OnSizeChanged", function(self) if self:IsShown() then self:Update() end end)
 
-        -- Rangliste rechts
+        -- ranking on the right
         local side = CreateFrame("Frame", nil, p)
         side:SetPoint("TOPLEFT", field, "TOPRIGHT", 24, 10)
         side:SetPoint("BOTTOMRIGHT", 0, 0)
         p.side = side
         side.bg = K.Fill(side, C.panel or { 0, 0, 0, 0.4 })
         K.Border(side, C.line)
-        -- Mein Gildotchi: Laune, drei Balken, drei Knoepfe
+        -- My Gildotchi: mood, three bars, three buttons
         side.me = K.Text(side, 13, C.text)
         side.me:SetPoint("TOPLEFT", 12, -10)
         side.me:SetText(L["My Guildotchi"])
@@ -788,7 +788,7 @@ ns.RegisterPage({
         side.mood:SetPoint("RIGHT", side, "RIGHT", -8, 0)
         side.mood:SetJustifyH("LEFT")
         side.mood:SetWordWrap(false)
-        -- 0.6.548: ausgebuext -> Zurueckholen
+        -- 0.6.548: ran away -> bring back
         side.recall = K.Button(side, L["Bring back"], 100, 20, "primary", function()
             Weide.Recall()
             K.Toast(L["Guildotchi"], L["Your animal is back on the pasture."], C.mint)
@@ -843,9 +843,9 @@ ns.RegisterPage({
     refresh = function(p)
         local all = Weide.Flock()
         local flock = {}
-        for _, f in ipairs(all) do if not f.away then flock[#flock + 1] = f end end   -- ausgebuexte Tiere sind nicht auf der Weide
+        for _, f in ipairs(all) do if not f.away then flock[#flock + 1] = f end end   -- runaway animals are not on the pasture
         local field = p.field
-        -- Schafe zuteilen (bekannte behalten ihren Platz)
+        -- assign sheep (known ones keep their spot)
         local n = math.min(#flock, MAX_SHEEP)
         for i = 1, n do
             local s = field.sheep[i]
@@ -854,7 +854,7 @@ ns.RegisterPage({
                 if not s then break end
                 field.sheep[i] = s
                 s.x, s.y = math.random() * 0.9 + 0.05, math.random()
-                -- Startplatz: die freieste von 12 Stellen
+                -- starting spot: the freest of 12 spots
                 local bs = -1
                 for _ = 1, 12 do
                     local x, y = math.random() * 0.9 + 0.05, math.random()
@@ -873,7 +873,7 @@ ns.RegisterPage({
             local nd = Weide.Needs(who.name)
             s.mood, s.wish = nd.mood, nil
             for _, n in ipairs(Weide.NEEDS) do if nd[n.key] < 25 then s.wish = L[n.say] break end end
-            -- 0.6.548: vernachlaessigt (Laune unter 20) grauer/kleiner, unter 8 legt es sich hin
+            -- 0.6.548: neglected (mood below 20) grayer/smaller, below 8 it lies down
             local sad = nd.mood < 20 and (20 - nd.mood) / 20 or 0
             if math.abs((s.sad or 0) - sad) > 0.05 then s.sad = sad light(s, s.skin, 1, 1, 1) end
             s.lying = nd.mood < 8 and not s.duel
@@ -895,12 +895,12 @@ ns.RegisterPage({
         end
         field.empty:SetText(#flock == 0 and L["No sheep on the pasture yet."] or "")
 
-        -- aktuelles Aussehen
+        -- current look
         local mine = myRank()
         p.bar.cur:SetText(L[Weide.FormOf(ns.me(), mine).text] .. " - " .. L[Weide.SkinOf(ns.me(), mine).text])
         if p.pick:IsShown() then p.pick:Update() end
 
-        -- Mein Gildotchi
+        -- My Gildotchi
         local side = p.side
         local nd = Weide.Needs(ns.me())
         local mt, mc = Weide.MoodText(nd.mood)
@@ -918,7 +918,7 @@ ns.RegisterPage({
             local left = (tonumber(g[r.need.key]) or 0) + r.need.cd - ns.now()
             r.btn:SetAlpha(left > 0 and 0.5 or 1)
         end
-        -- Rangliste
+        -- Ranking
         local on = 0
         for _, f in ipairs(flock) do if f.online then on = on + 1 end end
         side.sum:SetText((L["%d sheep, %d online now"]):format(#flock, on))
@@ -941,8 +941,8 @@ ns.Listen("STORE", function(name) if name == "sheep" then ns.RefreshPage("pastur
 ns.slash.weide = function() ns.ShowPage("pasture") end
 ns.slash.gildotchi = ns.slash.weide
 
--- 0.6.545: AFK-Bildschirm - eigene Wiese im Vollbild, solange du AFK bist (nie im Kampf).
--- Klick, Taste oder "nicht mehr AFK" schliesst ihn.
+-- 0.6.545: AFK screen - own meadow in fullscreen while you are AFK (never in combat).
+-- Click, key or "no longer AFK" closes it.
 local saver
 function Weide.ShowSaver(force)
     if not force and ns.db.settings.gotchiAfk ~= true then return end
@@ -994,7 +994,7 @@ ns.On("PLAYER_FLAGS_CHANGED", function(unit)
 end)
 ns.On("PLAYER_REGEN_DISABLED", function() Weide.HideSaver() end)
 ns.slash.afkschafe = function() Weide.ShowSaver(true) end
--- Diagnose: laden die Schafmodelle?
+-- Diagnostics: do the sheep models load?
 ns.slash.schaftest = function()
     local def = ns.PageDef and ns.PageDef("pasture")
     local f = def and def.frame and def.frame.field

@@ -1,21 +1,21 @@
--- Oasis Modul 4: Legacy-Tracker
--- Die 65 Legacy-Challenges von WoW Forever (Stand Beta 28.09.2026, Quellen: classicwowforever.com/legacy,
--- endgametools.com). Punkte gehoeren dem Account -> Oasis rechnet je Spieler (Main + Twinks).
--- Klassen- und Berufs-Challenges erkennt Oasis selbst (Gildenliste, Twinks, Berufsdaten),
--- Ehrfuerchtig/PvP-Rang fuer die eigenen Charaktere, der Rest wird abgehakt und mit der Gilde geteilt.
+-- Oasis module 4: Legacy tracker
+-- The 65 Legacy challenges of WoW Forever (as of beta 28.09.2026, sources: classicwowforever.com/legacy,
+-- endgametools.com). Points belong to the account -> Oasis counts per player (main + alts).
+-- Oasis detects class and profession challenges itself (guild roster, alts, profession data),
+-- Exalted/PvP rank for your own characters, the rest is ticked off and shared with the guild.
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_Legacy", function()   -- Modul Legacy (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Legacy", function()   -- Legacy module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be tampered with):
+-- sanitize texts, cap numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- escape sequences (|c |r |n |H |T |K |A ...) and control characters neutralized; links: valid item/spell links are kept
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -63,14 +63,14 @@ end
 
 local Legacy = {}
 ns.Legacy = Legacy
-Legacy.list = {}        -- alle Challenges (statisch)
+Legacy.list = {}        -- all challenges (static)
 Legacy.byId = {}
-Legacy.searches = {}    -- aktive Gruppensuchen [name] = { name, id, activity, note, t }
+Legacy.searches = {}    -- active group searches [name] = { name, id, activity, note, t }
 
 local MAX_SPEND = 16
--- 0.5.699: Beta-Geschenk - mit dem Update vom 8.10.2026 (Build 70291) haben alle Beta-Spieler die Legacy-Challenge
--- geschenkt bekommen = 16 Legacy-Punkte. Oasis kennt die echten Punkte nicht (nur abgehakte Challenges) -> mindestens
--- so viele zaehlen. Ausschalten (z. B. wenn es live geht): ns.db.settings.legacyGrant = false
+-- 0.5.699: beta gift - with the update of 8.10.2026 (build 70291) all beta players got the Legacy challenge
+-- as a gift = 16 Legacy points. Oasis doesn't know the real points (only ticked challenges) -> count at least
+-- that many. Turn off (e.g. when it goes live): ns.db.settings.legacyGrant = false
 local GRANT_BUILD = 70291
 function ns.LegacyGrant()
     if ns.db and ns.db.settings and ns.db.settings.legacyGrant == false then return 0 end
@@ -80,7 +80,7 @@ end
 local REWARDS = { 15, 25, 40, 55 }
 
 ------------------------------------------------------------------------
--- Challenge-Katalog
+-- Challenge catalog
 ------------------------------------------------------------------------
 local CATS = {
     { key = "class", name = "Classes", icon = "Interface\\Icons\\Achievement_Level_60" },
@@ -101,7 +101,7 @@ local CLASS_TIERS = { { 25, "Novice" }, { 45, "Experienced" }, { 60, "Master" } 
 local PROFS = { { 171, "Alchemy" }, { 164, "Blacksmithing" }, { 333, "Enchanting" }, { 202, "Engineering" },
     { 165, "Leatherworking" }, { 197, "Tailoring" } }
 local PROF_TIERS = { { 150, "Journeyman" }, { 225, "Expert" }, { 300, "Artisan" } }
--- Ehrfuerchtig: Horde- und Allianz-Fraktion je Schlachtfeld
+-- Exalted: Horde and Alliance faction per battleground
 local REPS = { av = { 729, 730 }, ab = { 510, 509 }, wsg = { 889, 890 } }
 
 local function className(cf)
@@ -170,7 +170,7 @@ function Legacy.Icon(e)
 end
 
 ------------------------------------------------------------------------
--- Spieler (Main + Twinks) und ihre Charaktere
+-- players (main + alts) and their characters
 ------------------------------------------------------------------------
 local function profsOf(name)
     local c = ns.db.chars[name]
@@ -188,7 +188,7 @@ local function charInfo(name)
     return lvl, cls
 end
 
--- alle bekannten Spieler: [main] = { chars = {...} }
+-- all known players: [main] = { chars = {...} }
 function Legacy.Players()
     local players = {}
     local function put(name)
@@ -204,7 +204,7 @@ function Legacy.Players()
     return players
 end
 
--- Stand eines Spielers: done[id] = Charaktername/true, best[id] = Fortschritt (0..1) + Text
+-- a player's state: done[id] = character name/true, best[id] = progress (0..1) + text
 function Legacy.StateOf(chars)
     local done, prog = {}, {}
     for _, name in ipairs(chars) do
@@ -253,9 +253,9 @@ local function count(done)
 end
 Legacy.Count = count
 
--- eigener Account
+-- own account
 local myCache, realCache
--- real = true: ohne Demo-Stand (fuer alles, was gespeichert oder an die Gilde gesendet wird)
+-- real = true: without demo state (for everything that is saved or sent to the guild)
 function Legacy.Mine(real)
     local useDemo = Legacy.demoMine and not real
     local cache = useDemo and myCache or realCache
@@ -266,7 +266,7 @@ function Legacy.Mine(real)
     for name in pairs(ns.db.chars) do
         for id in pairs(ns.db.chars[name].legacyAuto or {}) do if Legacy.byId[id] then done[id] = done[id] or name end end
     end
-    -- Demo-Modus: eigener Beispielstand (nur lokal, nie gespeichert oder gesendet)
+    -- demo mode: own sample state (local only, never saved or sent)
     if useDemo then
         for id in pairs(Legacy.demoMine.done) do if Legacy.byId[id] then done[id] = done[id] or true end end
         for id, x in pairs(Legacy.demoMine.prog) do if not done[id] and not prog[id] then prog[id] = x end end
@@ -279,7 +279,7 @@ end
 local allCache
 local function dirty() myCache, realCache, allCache = nil, nil, nil end
 
--- alle Spieler mit Stand, kurz zwischengespeichert (Liste mit 65 Zeilen fragt sonst 65x die ganze Gilde ab)
+-- all players with state, briefly cached (a list with 65 rows would otherwise query the whole guild 65x)
 function Legacy.AllStates()
     if allCache and GetTime() - allCache.t < 3 then return allCache.list end
     local myMain = ns.Alts and ns.Alts.MyMain() or ns.me()
@@ -304,7 +304,7 @@ function Legacy.myHash()
 end
 function Legacy.myDoneCount() return count((Legacy.Mine(true))) end
 
--- Wer hat's / wer braucht's (je Spieler)
+-- Who has it / who needs it (per player)
 function Legacy.WhoDone(id)
     local done, need = {}, {}
     for _, x in ipairs(Legacy.AllStates()) do
@@ -315,7 +315,7 @@ function Legacy.WhoDone(id)
 end
 
 ------------------------------------------------------------------------
--- Eigene Charaktere: Klasse, Berufe, Ruf, PvP-Rang merken (account-weit in OasisDB)
+-- Own characters: remember class, professions, reputation, PvP rank (account-wide in OasisDB)
 ------------------------------------------------------------------------
 local function repExalted(id)
     if C_Reputation and C_Reputation.GetFactionDataByID then
@@ -344,9 +344,9 @@ local function pvpRank()
 end
 
 local firstCheck = true
--- Blizzards Legacy-Fenster oeffnen: der Name unterscheidet sich je nach Client, daher mehrere Wege
+-- open Blizzard's Legacy window: the name differs per client, hence several ways
 function Legacy.OpenBlizzard()
-    -- nachladbare Blizzard-Erweiterung mit "Legacy" im Namen zuerst laden
+    -- load a loadable Blizzard addon with "Legacy" in its name first
     local GetNum = (C_AddOns and C_AddOns.GetNumAddOns) or GetNumAddOns
     local GetInfo = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
     local Load = (C_AddOns and C_AddOns.LoadAddOn) or LoadAddOn
@@ -363,14 +363,14 @@ function Legacy.OpenBlizzard()
         local f = _G[fr]
         if type(f) == "table" and f.SetShown then f:SetShown(not f:IsShown()) return true end
     end
-    -- letzter Versuch: oberstes Blizzard-Fenster mit "Legacy" im Namen
+    -- last attempt: top-level Blizzard frame with "Legacy" in its name
     for k, v in pairs(_G) do
         if type(k) == "string" and k:find("Legacy") and not k:find("^Oasis") and type(v) == "table" and v.GetObjectType then
             local ok, typ = pcall(v.GetObjectType, v)
             if ok and typ == "Frame" and v.GetParent and v:GetParent() == UIParent then v:SetShown(not v:IsShown()) return true end
         end
     end
-    -- weitere Funktionen mit "Legacy" im Namen (Toggle/Show/Open)
+    -- other functions with "Legacy" in their name (Toggle/Show/Open)
     local tried = {}
     for k, v in pairs(_G) do
         if type(k) == "string" and type(v) == "function" and k:find("[Ll]egacy") and (k:find("Toggle") or k:find("Show") or k:find("Open")) and not k:find("^Oasis") then
@@ -381,7 +381,7 @@ function Legacy.OpenBlizzard()
     for _, k in ipairs(tried) do
         if pcall(_G[k]) then return true end
     end
-    -- Chat-Befehl des Spiels (z.B. /legacy)
+    -- the game's chat command (e.g. /legacy)
     for key, fn in pairs(SlashCmdList or {}) do
         if type(key) == "string" and key:upper():find("LEGACY") and type(fn) == "function" then
             if pcall(fn, "") then return true end
@@ -412,7 +412,7 @@ function Legacy.Scan()
     local rank = pvpRank()
     for _, r in ipairs({ 3, 7, 10, 13, 14 }) do if rank >= r then c.legacyAuto["pr:" .. r] = true end end
     dirty()
-    -- neu geschafft? (Chronik + Gildenchat)
+    -- newly completed? (chronicle + guild chat)
     local done = Legacy.Mine(true)
     if not ns.db.legacyKnown then
         ns.db.legacyKnown = {}
@@ -421,7 +421,7 @@ function Legacy.Scan()
         for id in pairs(done) do
             if not ns.db.legacyKnown[id] then
                 ns.db.legacyKnown[id] = true
-                -- nur melden, was dieser Charakter gerade geschafft hat (nicht nachgeladene Twink-/Gildendaten)
+                -- only report what this character just completed (not reloaded alt/guild data)
                 if not firstCheck and (done[id] == ns.me() or Legacy.IsManual(id)) then
                     ns.Fire("LEGACY_DONE", { id = id, name = Legacy.Name(Legacy.byId[id]) })
                 end
@@ -452,7 +452,7 @@ ns.On("PLAYER_PVP_RANK_CHANGED", function() ns.After(3, Legacy.Scan) end)
 ns.Listen("PROFILE", function() dirty() end)
 
 ------------------------------------------------------------------------
--- Austausch: Schluessel der geschafften Challenges (ganzer Account)
+-- Exchange: keys of completed challenges (whole account)
 ------------------------------------------------------------------------
 local requested = {}
 ns.Listen("PROFILE", function(name, p)
@@ -464,7 +464,7 @@ ns.Listen("PROFILE", function(name, p)
     ns.After(math.random(10, 80) / 10, function() Comm.Whisper(name, "LREQ") end)
 end)
 Comm.On("LREQ", function(sender)
-    -- je Absender hoechstens 1x pro Minute beantworten (sonst antwortet die ganze Gilde im Dauerfeuer)
+    -- answer each sender at most once per minute (otherwise the whole guild answers in rapid fire)
     if not SEC.Rate("lreq:" .. tostring(sender), 60) then return end
     local done = Legacy.Mine(true)
     local ids = {}
@@ -473,7 +473,7 @@ Comm.On("LREQ", function(sender)
     Comm.Whisper(sender, "LDATA", Legacy.myHash(), table.concat(ids, "+"))
 end)
 Comm.On("LDATA", function(sender, _, hash, ids)
-    -- nur nach eigener Anfrage (sonst fuellt jeder die gespeicherten Daten)
+    -- only after own request (otherwise anyone fills the saved data)
     if not requested[sender] or GetTime() - requested[sender] > 300 then return end
     local done = {}
     for id in tostring(ids or ""):sub(1, 4000):gmatch("[^+]+") do if Legacy.byId[id] then done[id] = true end end
@@ -482,9 +482,9 @@ Comm.On("LDATA", function(sender, _, hash, ids)
 end)
 
 ------------------------------------------------------------------------
--- Mitstreiter suchen
+-- Find companions
 ------------------------------------------------------------------------
--- Gilden-Optionen (Gildenleitung): Mitstreiter-Suche an die Gilde erlauben, Mindestabstand gegen Spam
+-- Guild options (guild leadership): allow companion search to the guild, minimum interval against spam
 ns.GuildOption({ page = "legacy", key = "lgLfg", default = true,
     label = "Partner search to the guild", desc = "Players may look for partners in the guild for a Legacy challenge (notice for everyone)." })
 ns.GuildOption({ page = "legacy", key = "lgCd", default = 0, min = 0, max = 30, step = 1,
@@ -507,10 +507,10 @@ end
 Comm.On("LFG", function(sender, _, id, name, note)
     if ns.GuildOpt("lgLfg") == false then return end
     local e = Legacy.byId[id]
-    if not e then return end   -- nur bekannte Challenges (kein freier Text als Titel)
+    if not e then return end   -- only known challenges (no free text as title)
     name = Legacy.Name(e)
     note = SEC.Text(note, 80)
-    -- je Absender hoechstens jede Minute (Hinweis + Ton)
+    -- per sender at most once a minute (notice + sound)
     if not SEC.Rate("lfg:" .. sender, 60) then return end
     Legacy.searches[sender] = { name = sender, id = id, activity = name, note = note, t = ns.now() }
     if not ((Legacy.Mine())[id]) or ns.db.settings.legacyLfgDone then
@@ -530,7 +530,7 @@ function Legacy.ActiveSearches()
 end
 
 ------------------------------------------------------------------------
--- Perk-Planer (21 Perks in 3 Baeumen, max. 16 Punkte je Charakter)
+-- Perk planner (21 perks in 3 trees, max. 16 points per character)
 ------------------------------------------------------------------------
 local TREES = {
     { key = "adv", name = "Adventure", perks = {
@@ -562,7 +562,7 @@ local TREES = {
     } },
 }
 Legacy.TREES = TREES
--- 0.5.680: Symbol je Perk (Blizzard-Icons aus dem Spiel)
+-- 0.5.680: icon per perk (Blizzard icons from the game)
 local PERK_ICON = {
     wellrested = "Spell_Nature_Sleep", thrill = "Spell_Shadow_LifeDrain02", quickdead = "Ability_Rogue_Sprint",
     alert = "Spell_Shadow_DetectInvisibility", talented = "INV_Misc_Book_11", fieldguide = "INV_Misc_Map_01",
@@ -602,7 +602,7 @@ function Legacy.PerkChange(key, delta)
     if r < 0 or r > pk.max then return end
     if delta > 0 and (Legacy.PlanSpent() >= MAX_SPEND or not Legacy.PerkAvailable(key)) then return end
     p[key] = r > 0 and r or nil
-    -- abhaengige Perks, deren Bedingung nicht mehr stimmt, zuruecksetzen
+    -- reset dependent perks whose condition no longer holds
     if delta < 0 then
         for k in pairs(p) do if k ~= key and not Legacy.PerkAvailable(k) then p[k] = nil end end
     end
@@ -610,7 +610,7 @@ function Legacy.PerkChange(key, delta)
 end
 
 ------------------------------------------------------------------------
--- Demo (nur lokal): Legacy-Stand der Demo-Leute + eigener Beispielstand
+-- Demo (local only): Legacy state of the demo people + own sample state
 ------------------------------------------------------------------------
 local DEMO = {
     Grukthar = "d:1+d:2+r:ony+pr:3+pr:7+pe:wsg+pf:4+a:explorer",
@@ -623,7 +623,7 @@ local DEMO = {
     Yenzi = "d:1+d:2+pe:ab",
     Drogbar = "d:1+pr:3+pe:wsg",
 }
--- eigener Demo-Stand: 12 Punkte (3 vor der Sammelbelohnung), dazu Fortschritte fuer "Naechste Schritte"
+-- own demo state: 12 points (3 before the collection reward), plus progress for "Next steps"
 local DEMO_ME = "c:WARRIOR:25+c:WARRIOR:45+c:PRIEST:25+p:164:150+p:164:225+d:1+d:2+r:ony+pr:3+pe:wsg+pf:4+a:explorer"
 local DEMO_PROG = { { "c:WARRIOR:60", 52 }, { "p:164:300", 262 }, { "c:PRIEST:45", 38 }, { "p:171:150", 118 }, { "c:MAGE:25", 14 } }
 function Legacy.SeedDemo()
@@ -661,17 +661,17 @@ function Legacy.RemoveDemo()
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local view, catFilter, stateFilter, search, selected, forMe = "home", "all", "open", "", nil, false
-local TOP = -54                       -- Inhalt unter den Reitern
+local TOP = -54                       -- content below the tabs
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local EMBER = ns.MEDIA .. "ember"
 local ICON = ns.MEDIA .. "icons\\"
 local CAT_COLOR = { class = C.amber, prof = C.mint, dungeon = C.blue, raid = C.accent, pvp = C.red, adv = C.pink }
 local TREE_COLOR = { adv = C.mint, prof = C.amber, res = C.blue }
 local MEDAL = { { 1, 0.80, 0.25 }, { 0.80, 0.82, 0.88 }, { 0.85, 0.54, 0.30 } }
--- wohin ein Knopf in den Details fuehrt (nur wenn die Seite existiert und sichtbar ist)
+-- where a button in the details leads (only if the page exists and is visible)
 local GOTO = { dungeon = { "groups", "Find a group" }, raid = { "raid", "Raid dates" }, pvp = { "groups", "Find a group" },
     adv = { "map", "To the map" } }
 
@@ -684,11 +684,11 @@ local function grad(tex, dir, c, a1, a2)
 end
 local function pageOk(key) return ns.PageDef(key) ~= nil and ns.PageVisible(key) end
 
--- 2026: Glas-Optik wie Profil/Sammlungen/Abzeichen (Helfer aus ns.Insta; fehlen sie, bleibt die alte Flaeche)
+-- 2026: glass look like Profile/Collections/Badges (helpers from ns.Insta; if missing, the old surface stays)
 local function hasGlass() return ns.Insta and ns.Insta.Glass and true or false end
 local function glass(f, fill, line, r) if hasGlass() then ns.Insta.Glass(f, fill, line, r) end end
 local function round(t, box, r) if K.RoundMask and t then K.RoundMask(t, box or t, r) end end
--- ruhiger Glasknopf: primaer = dezent in Akzentfarbe getoent, sonst neutral
+-- calm glass button: primary = subtly tinted in accent color, otherwise neutral
 local function calmBtn(b, primary)
     if not (b and hasGlass()) then return b end
     local ac = C.accent
@@ -700,7 +700,7 @@ local function calmBtn(b, primary)
     b:SetScript("OnLeave", function(self) glass(self, fill, line) end)
     return b
 end
--- Segmente als Glas-Pillen (Funktion und Select-Schnittstelle bleiben)
+-- segments as glass pills (function and Select interface stay)
 local function pillSegs(seg)
     if not (seg and seg.buttons and hasGlass()) then return seg end
     local x = 0
@@ -727,7 +727,7 @@ local function pillSegs(seg)
     seg:Select(seg.value)
     return seg
 end
--- Abschnittskopf in normaler Schreibweise, ohne pulsierenden Punkt
+-- section header in normal case, without pulsing dot
 local function gameHead(parent, text, color)
     local h = K.GameHead(parent, text, color)
     h.text:SetText(text)
@@ -804,7 +804,7 @@ local function openProfile(name)
     if ns.Profile and ns.Profile.Show then pcall(ns.Profile.Show, name) end
 end
 
--- Fuer mich relevant: Klassen/Berufe, die einer meiner Charaktere hat (oder schon angefangen ist), alles andere immer
+-- Relevant to me: classes/professions one of my characters has (or has started), everything else always
 local function relevantSets(done, prog)
     local cls, prof = {}, {}
     local function mark(id)
@@ -828,7 +828,7 @@ local function isRelevant(e, done, cls, prof)
     return true
 end
 
--- konkreter naechster Schritt fuer eine Challenge
+-- concrete next step for a challenge
 local function stepText(e, x)
     if x and x.cur and x.max then
         local left = math.max(0, x.max - x.cur)
@@ -839,7 +839,7 @@ local function stepText(e, x)
     return Legacy.Req(e)
 end
 
--- Naechste Schritte: laufende Suchen anderer, angefangene Challenges, dann gemeinsame Ziele der Gilde
+-- Next steps: others' running searches, started challenges, then shared guild goals
 local function nextSteps(done, prog)
     local out, seen = {}, {}
     for _, s in ipairs(Legacy.ActiveSearches()) do
@@ -868,7 +868,7 @@ local function nextSteps(done, prog)
     return out
 end
 
--- gemeinsam angehen: abzuhakende Challenges nach Bedarf in der Gilde (ich brauche es -> suchen, ich habe es -> helfen)
+-- tackle together: challenges to tick off by need in the guild (I need it -> search, I have it -> help)
 local function together(done)
     local out = {}
     for _, e in ipairs(Legacy.list) do
@@ -889,15 +889,15 @@ local function together(done)
 end
 
 ------------------------------------------------------------------------
--- Bausteine: Punktring, Kasten, Kachel-Veredelung, Leerzustand
+-- Building blocks: dot ring, box, tile finish, empty state
 ------------------------------------------------------------------------
--- Fortschrittsring aus Punkten (laeuft auf jedem Client, kein Cooldown-Trick noetig)
+-- progress ring made of dots (runs on every client, no cooldown trick needed)
 local function Ring(parent, size, color)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(size, size)
     f.dots = {}
     f.color = color or C.accent
-    -- 2026: dicht gesetzte, kleine Punkte ergeben eine ruhige durchgehende Linie
+    -- 2026: densely placed small dots form a calm continuous line
     local n = math.max(28, math.floor(size * 1.5))
     local r = size / 2 - 3
     for i = 1, n do
@@ -947,7 +947,7 @@ local function box(parent, title, color)
     return f
 end
 
--- Verlauf, Symbol-Schein, Hover-Glow mit leichtem Anheben, Glanz-Sweep (wie Dashboard-Kacheln)
+-- gradient, icon glow, hover glow with slight lift, shine sweep (like dashboard tiles)
 local function dress(t, c)
     t.grad = t:CreateTexture(nil, "BORDER", nil, 1)
     t.grad:SetAllPoints()
@@ -964,7 +964,7 @@ local function dress(t, c)
     grad(t.hov, "VERTICAL", c, 0, 0.22)
     t.hov:SetAlpha(0)
     if hasGlass() then
-        -- 2026: Glaskarte statt Verlauf/Schein; Hover nur leicht heller
+        -- 2026: glass card instead of gradient/glow; hover only slightly brighter
         t.grad:Hide()
         t.iconGlow:SetTexture(nil)
         t.iconGlow:Hide()
@@ -1009,14 +1009,14 @@ local function sweep(t, delay)
         t.sweep:SetAlpha(0.55 * math.sin(q * math.pi))
     end, function() t.sweep:SetAlpha(0) end, delay)
 end
--- Inhalt von unten weich einblenden (gestaffelt)
+-- fade content in softly from below (staggered)
 local function rise(f, delay)
     if not animOn() then f:SetAlpha(1) return end
     f:SetAlpha(0)
     K.Tween(f, 0.3, function(q) f:SetAlpha(q) end, function() f:SetAlpha(1) end, delay)
     ns.After((delay or 0) + 1, function() if (f:GetAlpha() or 1) < 1 then f:SetAlpha(1) end end)
 end
--- Balken weich fuellen
+-- fill bar smoothly
 local function fillBar(bar, v, animate, delay)
     if animate and animOn() and (v or 0) > 0 then
         bar:Set(0)
@@ -1028,7 +1028,7 @@ end
 local function barColor(bar, c, a) bar.fill:SetColorTexture(c[1], c[2], c[3], a or 1) end
 local function roundBar(bar, r) round(bar.fill, bar, r or 2) return bar end
 
--- Kennzahl-Kachel 2026: Glaskarte, grosse Zahl, normal geschriebene Beschriftung mit Farbmarke, runde Leiste
+-- stat tile 2026: glass card, big number, normally written label with color mark, round bar
 local function hudTile(parent, icon, label, color, onClick)
     local t = K.HudTile(parent, icon, label, color, onClick)
     if not hasGlass() then return t end
@@ -1067,7 +1067,7 @@ local function hudTile(parent, icon, label, color, onClick)
     return t
 end
 
--- Challenge-Symbol: Klassen ueber den Klassen-Atlas (die ClassIcon_-Dateien fehlen im Client -> "?")
+-- challenge icon: classes via the class atlas (the ClassIcon_ files are missing in the client -> "?")
 local function setIcon(tex, e)
     local GI = ns.GuildInfo
     if e and e.cat == "class" and e.class and GI and GI.SetClassIcon and GI.SetClassIcon(tex, e.class) then return end
@@ -1075,7 +1075,7 @@ local function setIcon(tex, e)
     tex:SetTexture(path)
     tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 end
--- Spieler-Symbol in Ranglisten: Klassensymbol rund, sonst Initiale auf ruhiger Scheibe
+-- player icon in rankings: round class icon, otherwise initial on a calm disc
 local function portCell(r, size, x)
     r.portDisc = r:CreateTexture(nil, "ARTWORK", nil, 1)
     r.portDisc:SetTexture(CIRCLE)
@@ -1106,7 +1106,7 @@ local function setPort(r, name)
     end
 end
 
--- Leerzustand: Symbol + Satz + Aktionsknoepfe
+-- empty state: icon + sentence + action buttons
 local function emptyState(parent, icon, color, text, acts)
     local f = CreateFrame("Frame", nil, parent)
     f:SetHeight(64)
@@ -1148,7 +1148,7 @@ local function emptyState(parent, icon, color, text, acts)
     return f
 end
 
--- Rang-Medaille (1-3 gold/silber/bronze, sonst schlichte Zahl)
+-- rank medal (1-3 gold/silver/bronze, otherwise a plain number)
 local function medal(r, x)
     r.medal = r:CreateTexture(nil, "ARTWORK")
     r.medal:SetTexture(CIRCLE)
@@ -1177,7 +1177,7 @@ local function medal(r, x)
 end
 
 ------------------------------------------------------------------------
--- Reiter + Inhalt wechseln
+-- switch tab + content
 ------------------------------------------------------------------------
 local function makeTabs(p, items, onChange)
     if ns.Insta and ns.Insta.ProfileTabs then
@@ -1191,7 +1191,7 @@ local function goView(p, k)
         if view ~= k then view = k p.fresh = true end
         ns.RefreshPage("legacy")
     else
-        p.tabs:Select(k, true)   -- animiert den Balken und ruft onChange
+        p.tabs:Select(k, true)   -- animates the bar and calls onChange
     end
 end
 local function openChallenge(p, id)
@@ -1248,7 +1248,7 @@ ns.RegisterPage({
         end
 
         ----------------------------------------------------------------
-        -- Uebersicht
+        -- Overview
         ----------------------------------------------------------------
         local home = content()
         p.home = home
@@ -1319,7 +1319,7 @@ ns.RegisterPage({
             p.catCards[i] = b
         end
 
-        -- Naechste Schritte
+        -- Next steps
         local np = box(home, L["Next steps"], C.amber)
         p.nextBox = np
         p.nextList = K.List(np, 46, function(l)
@@ -1389,7 +1389,7 @@ ns.RegisterPage({
         p.nextEmpty = emptyState(np, ICON .. "legacy", C.mint, L["All done – great! Now help others in the guild."],
             { { "View guild", function() goView(p, "guild") end } })
 
-        -- Rangliste
+        -- Ranking
         local rp = box(home, L["Guild ranking"], C.blue)
         p.rankBox = rp
         p.rankList = K.List(rp, 30, function(l)
@@ -1442,7 +1442,7 @@ ns.RegisterPage({
         p.rankList:SetPoint("BOTTOMRIGHT", -4, 6)
         p.rankList.empty:SetText(L["No guild data yet."])
 
-        -- Mitstreiter gesucht
+        -- Companions wanted
         local sp = box(home, L["Looking for companions"], C.violet)
         p.searchBox = sp
         p.searchList = K.List(sp, 36, function(l)
@@ -1690,7 +1690,7 @@ ns.RegisterPage({
         list:SetScript("OnSizeChanged", function(self) self:Layout() end)
 
         ----------------------------------------------------------------
-        -- Perk-Planer
+        -- Perk planner
         ----------------------------------------------------------------
         local perks = content()
         p.perks = perks
@@ -1797,7 +1797,7 @@ ns.RegisterPage({
                 r.flash:SetAllPoints()
                 r.flash:SetAlpha(0)
                 r.key = pk[1]
-                -- Symbol links (Rand leicht beschnitten)
+                -- icon on the left (edge slightly cropped)
                 r.ic = r:CreateTexture(nil, "ARTWORK", nil, 1)
                 r.ic:SetSize(26, 26)
                 r.ic:SetPoint("LEFT", 10, 0)
@@ -1850,7 +1850,7 @@ ns.RegisterPage({
         end)
 
         ----------------------------------------------------------------
-        -- Gilde
+        -- Guild
         ----------------------------------------------------------------
         local guild = content()
         p.guild = guild
@@ -1870,7 +1870,7 @@ ns.RegisterPage({
         p.gTable = gt
         p.gHead = {}
         for i, c in ipairs(CATS) do
-            -- Kopf als Kategorie-Symbol (Namen passen in schmale Spalten nicht), Name im Tooltip
+            -- header as category icon (names don't fit in narrow columns), name in the tooltip
             local h = CreateFrame("Frame", nil, gt)
             h:SetSize(20, 20)
             h.icon = K.Icon(h, 18, c.icon)
@@ -2023,7 +2023,7 @@ ns.RegisterPage({
 
     refresh = function(p)
         if p.tabs.value ~= view then p.tabs:Select(view) end
-        -- nur der Inhalt wechselt (weich), Reiter und Kopf bleiben stehen
+        -- only the content changes (smoothly), tabs and header stay put
         local frames = { home = p.home, list = p.list, perks = p.perks, guild = p.guild }
         if p.shownView ~= view then
             for k, f in pairs(frames) do f:SetShown(k == view) end
@@ -2083,7 +2083,7 @@ ns.RegisterPage({
             if fresh then
                 for i, tile in ipairs(t) do rise(tile, (i - 1) * 0.06) sweep(tile, 0.5 + i * 0.12) end
             end
-            -- Kategorien
+            -- Categories
             local have, total = catCounts(done)
             for i, c in ipairs(CATS) do
                 local b = p.catCards[i]
@@ -2097,17 +2097,17 @@ ns.RegisterPage({
                 b.open = open
                 if fresh then rise(b, 0.15 + i * 0.05) end
             end
-            -- Naechste Schritte
+            -- Next steps
             p.rewardNext = nr and (nr - mine == 1) or false
             local steps = nextSteps(done, prog)
             p.nextBox.head:SetCount(#steps > 0 and #steps or nil)
             p.nextList:SetData(steps)
             p.nextEmpty:SetShown(#steps == 0)
-            -- Rangliste
+            -- Ranking
             p.rankTop = rank[1] and rank[1].n or 1
             p.rankBox.head:SetCount(#rank)
             p.rankList:SetData(rank)
-            -- Suchen
+            -- Searches
             local ss = Legacy.ActiveSearches()
             p.searchBox.head:SetCount(#ss > 0 and #ss or nil)
             p.searchBox.head:Live(#ss > 0)

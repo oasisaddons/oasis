@@ -1,6 +1,6 @@
--- Oasis: Tastenkuerzel fuer das Fenster (0.5.565)
---  * stehen auch in WoWs Tastaturbelegung unter "Oasis" (Bindings.xml)
---  * Einstellungen > Allgemein > Tastenkuerzel: Knopf anklicken, Taste druecken - fertig
+-- Oasis: keybindings for the window (0.5.565)
+--  * also listed in WoW's key bindings under "Oasis" (Bindings.xml)
+--  * Settings > General > Keybindings: click the button, press a key - done
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -8,7 +8,7 @@ local K, C = ns.K, ns.K.C
 local KB = {}
 ns.Keybinds = KB
 
--- Reihenfolge = Anzeige; page = Seite direkt oeffnen (nochmal druecken schliesst)
+-- Order = display; page = open the page directly (pressing again closes it)
 KB.ACTIONS = {
     { cmd = "OASIS_TOGGLE", text = "Open / close Oasis", icon = "home" },
     { cmd = "OASIS_TOPBAR", text = "Toggle topbar", icon = "brush" },
@@ -23,7 +23,7 @@ KB.ACTIONS = {
     { cmd = "OASIS_BLIZZGUILD", text = "Blizzard guild window", icon = "social" },
     { cmd = "OASIS_INVITE", text = "Invite player to guild", icon = "social" },
 }
--- Namen fuer WoWs Tastaturbelegung (erst wenn alle Texte geladen sind - LocaleData481 steht in der toc dahinter)
+-- Names for WoW's key bindings (only once all texts are loaded - LocaleData481 comes after it in the toc)
 local function names() for _, a in ipairs(KB.ACTIONS) do _G["BINDING_NAME_" .. a.cmd] = L[a.text] end end
 names()
 ns.Listen("DB_READY", names)
@@ -50,7 +50,7 @@ function KB.Run(cmd)
         end
     end
 end
--- aus Bindings.xml aufgerufen
+-- called from Bindings.xml
 function Oasis_KeyAction(cmd) local ok, e = pcall(KB.Run, cmd) if not ok and ns.err then ns.err("Taste " .. tostring(cmd), e) end end
 
 local MODS = { LSHIFT = 1, RSHIFT = 1, LCTRL = 1, RCTRL = 1, LALT = 1, RALT = 1, LMETA = 1, RMETA = 1, UNKNOWN = 1 }
@@ -82,8 +82,8 @@ function KB.Set(cmd, key)
     return true
 end
 
--- Einstellungen > Allgemein > Tastenkuerzel ---------------------------------------------
-local capture   -- Knopf, der gerade auf eine Taste wartet
+-- Settings > General > Keybindings ---------------------------------------------
+local capture   -- Button currently waiting for a key
 local function stopCapture()
     if not capture then return end
     local b = capture
@@ -97,7 +97,7 @@ local function keyButton(parent, a)
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     function b:Update()
         local k = GetBindingKey(a.cmd)
-        -- 0.6.496: Gildenfenster-Taste zaehlt als Belegung fuer "Oasis oeffnen / schliessen"
+        -- 0.6.496: guild window key counts as binding for "Oasis oeffnen / schliessen"
         if not k and a.cmd == "OASIS_TOGGLE" and ns.db and ns.db.settings.guildKeyOasis == true then
             local gk = GetBindingKey("TOGGLEGUILDTAB") or "J"
             self:SetLabel(capture == self and ("|cffffd27a" .. L["Press a key ..."] .. "|r") or (keyText(gk) .. " |cff888888(" .. L["guild window"] .. ")|r"))
@@ -127,7 +127,7 @@ local function keyButton(parent, a)
     b:HookScript("OnHide", function(self) if capture == self then stopCapture() end end)
     return b
 end
--- 0.5.601: neu aufgebaut - Glas-Karten, jede Zeile ein eigenes Element (Symbol, Text, Tasten-Knopf), Esc-Karte darunter
+-- 0.5.601: rebuilt - glass cards, each row its own element (icon, text, key button), Esc card below
 local function glass(c, fill, line, r)
     local G = ns.Insta and ns.Insta.Glass
     if G and pcall(G, c, fill or { 1, 1, 1, 0.035 }, line or { 1, 1, 1, 0.09 }, r or 12) then return end
@@ -174,7 +174,7 @@ local function row(c, i, a, top)
     r.btn = keyButton(r, a)
     r.btn:SetSize(140, 26)
     r.btn:SetPoint("RIGHT", -6, 0)
-    -- belegt: Taste in Akzentfarbe als "Tastenkappe", sonst gedimmt
+    -- bound: key in accent color as a "keycap", otherwise dimmed
     local upd = r.btn.Update
     function r.btn:Update()
         upd(self)
@@ -184,8 +184,8 @@ local function row(c, i, a, top)
     end
     return r
 end
--- 0.6.476: Taste des Gildenfensters (Standard J) oeffnet Oasis - als Override-Belegung, nur ausserhalb des Kampfes;
--- aus = Blizzards Gildenfenster wieder. Fremde Belegungen bleiben unangetastet.
+-- 0.6.476: guild window key (default J) opens Oasis - as override binding, only out of combat;
+-- off = Blizzard's guild window again. Other bindings stay untouched.
 local gk = CreateFrame("Frame")
 local applying = false
 function KB.ApplyGuildKey()
@@ -193,7 +193,7 @@ function KB.ApplyGuildKey()
     if InCombatLockdown and InCombatLockdown() then gk:RegisterEvent("PLAYER_REGEN_ENABLED") return end
     applying = true
     ClearOverrideBindings(gk)
-    if ns.db and ns.db.settings.guildKeyOasis == true then   -- 0.6.519: wieder Standard aus (J = Blizzard)
+    if ns.db and ns.db.settings.guildKeyOasis == true then   -- 0.6.519: default off again (J = Blizzard)
         local keys = { GetBindingKey("TOGGLEGUILDTAB") }
         if #keys == 0 then keys = { "J" } end
         for _, k in ipairs(keys) do if k then SetOverrideBinding(gk, false, k, "OASIS_TOGGLE") end end
@@ -221,7 +221,7 @@ local function build(f)
     fill(left, 1, 4)
     local right = card(f, W + GAP, 0, W, 58 + nPages * ROWH, "home", L["Open pages directly"])
     fill(right, 5, #KB.ACTIONS)
-    -- Esc + Hinweis
+    -- Esc + hint
     local esc = card(f, 0, -(58 + nWin * ROWH) - GAP, W, 170, "eye_off", L["Esc key"],
         L["Esc closes the Oasis window (not in combat - there Esc belongs to the game)."])
     f.escFocus = K.Toggle(esc, L["Esc only if I last clicked into Oasis"], function() return ns.db.settings.escFocusOnly and true or false end,
@@ -232,7 +232,7 @@ local function build(f)
         function(v) ns.db.settings.guildKeyOasis = v and true or nil KB.ApplyGuildKey() end)
     f.guildKey:SetWidth(W - 32)
     f.guildKey:SetPoint("TOPLEFT", 16, -108)
-    -- Bedienung
+    -- Controls
     local help = K.Text(f, 11, C.dim)
     help:SetPoint("TOPLEFT", right, "BOTTOMLEFT", 4, -12)
     help:SetWidth(W - 8)

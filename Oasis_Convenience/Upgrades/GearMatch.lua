@@ -1,25 +1,25 @@
--- Oasis: Gildenweite Upgrade-Suche (BoE-Matching)
--- Jeder Oasis-Client teilt freiwillig seine HANDELBAREN Ausruestungsteile (nicht seelengebunden, Taschen + Bank)
--- und kompakt seine angelegte Ausruestung (Platz -> Wertung nach eigener Rolle) + Klasse/Stufe/Rolle.
--- Lokal wird verglichen: welches geteilte Teil (auch Gildenbank) ist fuer wen ein Upgrade?
--- Daten: ns.db.store.gearmatch (ein Datensatz je Charakter, id = Charaktername), Nachricht "GMS".
--- Feld gb = beste Wertung je Platz aus ALLEN tragbaren Teilen in Taschen + gemerkter Bank (auch seelengebunden),
--- damit gelagerte bessere Teile (z.B. Tank-Schild) kein schlechteres "Upgrade" ausloesen. Schluessel wie g
--- (Platznummer), dazu 21 = Zweihand, 22 = Schild, 23 = Nebenhand-Gegenstand. Alte Clients ohne gb: wie bisher.
--- Bewertung kommt aus Upgrade.lua (UP.Score / UP.Role / UP.CanWearFor) - hier wird nichts nachgebaut.
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Upgrades", function()   -- Modul Upgrade-Suche (abschaltbar, siehe ModuleLoader.lua)
+-- Oasis: guild-wide upgrade search (BoE matching)
+-- Every Oasis client voluntarily shares its TRADEABLE gear (not soulbound, bags + bank)
+-- and compactly its equipped gear (slot -> rating by own role) + class/level/role.
+-- Compared locally: which shared piece (incl. guild bank) is an upgrade for whom?
+-- Data: ns.db.store.gearmatch (one record per character, id = character name), message "GMS".
+-- field gb = best rating per slot from ALL wearable pieces in bags + remembered bank (incl. soulbound),
+-- so stored better pieces (e.g. tank shield) do not trigger a worse "upgrade". Keys like g
+-- (slot number), plus 21 = two-hand, 22 = shield, 23 = off-hand item. Old clients without gb: as before.
+-- Rating comes from Upgrade.lua (UP.Score / UP.Role / UP.CanWearFor) - nothing is rebuilt here.
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
+ns.ModuleFile("Oasis_Upgrades", function()   -- module upgrade search (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Safety on receive (other players' addon messages may be manipulated):
+-- sanitize texts, clamp numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -69,17 +69,17 @@ local GM = {}
 ns.GearMatch = GM
 
 local COLL = "gearmatch"
-local KEEP = 21 * 86400          -- aeltere Datensaetze (Spieler lange nicht da) verwerfen
+local KEEP = 21 * 86400          -- discard older records (player absent for long)
 local MAX_ITEMS = 80
-local SEND_GAP = 60              -- hoechstens alle 60 s senden
+local SEND_GAP = 60              -- send at most every 60 s
 local GEAR_SLOTS = { 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }
 local GB_OWNER = "@gildenbank"
--- Lagerschluessel fuer gb (Ausruestungsort -> Schluessel)
+-- storage key for gb (equip location -> key)
 local STORE_KEY = { INVTYPE_2HWEAPON = 21, INVTYPE_SHIELD = 22, INVTYPE_HOLDABLE = 23,
     INVTYPE_WEAPON = 16, INVTYPE_WEAPONMAINHAND = 16, INVTYPE_WEAPONOFFHAND = 17 }
 
 if ns.ICONS and ns.MEDIA then ns.ICONS.gearmatch = ns.MEDIA .. "icons\\stats" end
--- Navigation: unter "Handel" einsortieren (ohne Main.lua zu aendern)
+-- navigation: sort under "Trade" (without changing Main.lua)
 for _, g in ipairs(ns.NAV_GROUPS or {}) do
     if g.key == "convenience" then
         local has = false
@@ -88,7 +88,7 @@ for _, g in ipairs(ns.NAV_GROUPS or {}) do
     end
 end
 
--- Zustand (vor allen Funktionen, die ihn nutzen)
+-- state (before all functions that use it)
 local lastHash, lastSent, sendPending = nil, 0, false
 local myCache, myCacheT = nil, -100
 local gainCache = {}
@@ -105,7 +105,7 @@ local function shareOn() return not S().gmShareOff end
 local function minPct() return tonumber(S().gmMinPct) or 5 end
 
 ------------------------------------------------------------------------
--- Item-Schluessel: "id" oder "id_suffix" (Zufallswerte "...des Adlers") <-> Link
+-- item key: "id" or "id_suffix" (random stats "...of the Eagle") <-> link
 ------------------------------------------------------------------------
 local function keyOf(link)
     if type(link) ~= "string" then return nil end
@@ -147,7 +147,7 @@ local function itemIcon(id)
     local ok, ic = pcall(function() return C_Item.GetItemIconByID and C_Item.GetItemIconByID(id) end)
     return (ok and ns.safe(ic)) or 134400
 end
--- echter Chat-Link (fuer die Fluester-Bitte), sonst [Name]
+-- real chat link (for the whisper request), otherwise [Name]
 local function chatLink(key)
     local ok, _, hl = pcall(C_Item.GetItemInfo, linkOf(key))
     hl = ok and ns.safe(hl) or nil
@@ -164,7 +164,7 @@ local function minLevel(link)
 end
 
 ------------------------------------------------------------------------
--- Eigene Daten einlesen
+-- read own data
 ------------------------------------------------------------------------
 local function tradableIn(bags, out, seen)
     if not (C_Container and C_Container.GetContainerNumSlots and C_Container.GetContainerItemInfo) then return end
@@ -184,7 +184,7 @@ local function tradableIn(bags, out, seen)
         end
     end
 end
--- beste Wertung je Lagerschluessel aus ALLEN tragbaren Teilen (auch seelengebunden) nach eigener Rolle
+-- best rating per storage key from ALL wearable pieces (incl. soulbound) by own role
 local function bestIn(bags, best, role, cls, lvl)
     if not (C_Container and C_Container.GetContainerNumSlots and C_Container.GetContainerItemInfo) or not UP() then return end
     for _, bag in ipairs(bags) do
@@ -225,7 +225,7 @@ function GM.ScanBank()
     local out = {}
     tradableIn(bankIds(), out, {})
     bankStore()[ns.me() or "?"] = table.concat(out, ",")
-    -- Bestwerte der Bank (alle tragbaren Teile) fuer gb merken
+    -- remember bank best values (all wearable pieces) for gb
     if UP() then
         local _, cls = UnitClass("player")
         local lvl = tonumber(ns.safe(UnitLevel("player"))) or 1
@@ -245,7 +245,7 @@ local function myGear(role)
         if l then
             local sc = UP().Score(l, role) or 0
             parts[#parts + 1] = s .. "=" .. (math.floor(sc * 10 + 0.5) / 10)
-            -- Waffenstil: 1 = Zweihand, 2 = zwei Einhaender (Waffe in der Nebenhand)
+            -- weapon style: 1 = two-hand, 2 = dual wield (weapon in off-hand)
             if s == 16 and equipLoc(l) == "INVTYPE_2HWEAPON" then h2 = 1 end
             if s == 17 and not h2 then
                 local ol = equipLoc(l)
@@ -256,14 +256,14 @@ local function myGear(role)
     return table.concat(parts, ","), h2
 end
 
--- eigener Datensatz (live, kurz zwischengespeichert)
+-- own record (live, briefly cached)
 function GM.MyRecord(force)
     if not force and myCache and GetTime() - myCacheT < 2 then return myCache end
     if not UP() or not ns.me() then return nil end
     local _, cls = UnitClass("player")
     local role = UP().Role()
     local g, h2 = myGear(role)
-    -- beste gelagerte Teile (Taschen + gemerkte Bank, gleiche Rolle)
+    -- best stored pieces (bags + remembered bank, same role)
     local lvl = tonumber(ns.safe(UnitLevel("player"))) or 1
     local best = {}
     pcall(bestIn, bagIds(), best, role, cls, lvl)
@@ -288,7 +288,7 @@ function GM.MyRecord(force)
 end
 
 ------------------------------------------------------------------------
--- Teilen (gedrosselt, nur bei Aenderung)
+-- share (throttled, only on change)
 ------------------------------------------------------------------------
 local function doShare(force)
     sendPending = false
@@ -323,7 +323,7 @@ Comm.On("GMS", function(sender, _, recStr)
     if #recStr > 8000 then return end
     local r = Comm.decodeRecord(recStr)
     if not r then return end
-    -- Texte ohne Escape-Sequenzen, Feldzahl begrenzt
+    -- texts without escape sequences, field count limited
     local n = 0
     for k, v in pairs(r) do
         n = n + 1
@@ -331,12 +331,12 @@ Comm.On("GMS", function(sender, _, recStr)
         elseif type(v) == "string" then r[k] = SEC.Text(v, 2000)
         elseif type(v) == "number" and (v ~= v or v == math.huge or v == -math.huge) then r[k] = 0 end
     end
-    -- nur eigener Datensatz des Absenders (kein Weiterreichen, keine fremden Namen)
+    -- only the sender's own record (no relaying, no foreign names)
     r.id, r.by, r.demo = sender, sender, nil
     r.u = math.min(tonumber(r.u) or ns.now(), ns.now() + 300)
     Store.merge(COLL, r, true, sender)
 end)
--- neu eingeloggte Mitglieder bekommen unseren Stand
+-- newly logged-in members get our state
 Comm.On("HELLOREQ", function() GM.Share(true) end)
 
 ------------------------------------------------------------------------
@@ -353,7 +353,7 @@ local function levelOf(rec)
     if m and tonumber(m.level) and tonumber(m.level) > lvl then lvl = tonumber(m.level) end
     return lvl
 end
--- Demo: feste, plausible Werte (Itemwerte sind dort evtl. nicht geladen)
+-- demo: fixed, plausible values (item stats may not be loaded there)
 local function demoGain(key, who)
     local h = 0
     for b in (tostring(key) .. "#" .. tostring(who)):gmatch(".") do h = (h * 31 + b:byte()) % 100003 end
@@ -361,7 +361,7 @@ local function demoGain(key, who)
     return 4 + h % 29
 end
 
--- Prozent-Gewinn eines Teils fuer einen Datensatz, nil = kein Upgrade / nicht nutzbar
+-- percent gain of a piece for a record, nil = no upgrade / not usable
 function GM.Gain(key, rec)
     if not rec or not key or not UP() then return nil end
     local ck = key .. "@" .. tostring(rec.id) .. "@" .. tostring(rec.u or 0) .. "@" .. tostring(rec.g or "") .. "@" .. tostring(rec.gb or "") .. "@" .. tostring(rec.lvl or "")
@@ -369,7 +369,7 @@ function GM.Gain(key, rec)
     local c = gainCache[ck]
     if c ~= nil then return c or nil end
     local link = linkOf(key)
-    -- Item noch nicht im Cache (fremde Teile!): Werte fehlen -> nachladen und NICHT als "kein Upgrade" merken
+    -- item not in cache yet (foreign pieces!): stats missing -> load and do NOT remember as "no upgrade"
     if link and C_Item and C_Item.GetItemInfo then
         local okI, nm = pcall(C_Item.GetItemInfo, link)
         if not (okI and ns.safe(nm)) then
@@ -389,22 +389,22 @@ function GM.Gain(key, rec)
         local new = UP().Score(link, rec.role) or 0
         if new > 0 then
             local g = parseGear(rec.g)
-            -- gb: beste gelagerte Wertung je Platz (fehlt bei alten Clients -> leer, Verhalten wie bisher)
+            -- gb: best stored rating per slot (missing on old clients -> empty, behavior as before)
             local gb = parseGear(rec.gb)
             local sk = STORE_KEY[loc] or slots[1]
             local old
             if loc == "INVTYPE_2HWEAPON" then old = (g[16] or 0) + (g[17] or 0)
             elseif loc == "INVTYPE_WEAPON" or loc == "INVTYPE_WEAPONMAINHAND" then old = g[16] or 0
             elseif (loc == "INVTYPE_SHIELD" or loc == "INVTYPE_HOLDABLE") and (tonumber(rec.h2) or 0) >= 1 then
-                -- spielt mit Zweihand oder zwei Waffen: Schild/Nebenhand-Gegenstand ist kein echtes Upgrade -
-                -- ausser er hat so ein Teil gelagert (z.B. Tank-Schild fuer Instanzen): dann gegen das gelagerte
+                -- plays two-hand or dual wield: shield/off-hand item is no real upgrade -
+                -- unless they have such a piece stored (e.g. tank shield for dungeons): then compare against the stored one
                 if gb[sk] then old = gb[sk] else old = nil new = 0 end
             elseif loc == "INVTYPE_WEAPONOFFHAND" or loc == "INVTYPE_SHIELD" or loc == "INVTYPE_HOLDABLE" then
                 old = (tonumber(rec.h2) == 1) and (g[16] or 0) or (g[17] or 0)
             else
                 for _, s in ipairs(slots) do local v = g[s] or 0 if not old or v < old then old = v end end
             end
-            -- gelagertes besseres Teil fuer denselben Platz zaehlt als "hat er schon"
+            -- a better stored piece for the same slot counts as "already has it"
             if old and gb[sk] and gb[sk] > old then old = gb[sk] end
             old = old or 0
             if new <= 0 then pct = nil
@@ -418,7 +418,7 @@ function GM.Gain(key, rec)
     return pct
 end
 
--- nachgeladene Items: neu rechnen (gebuendelt)
+-- loaded items: recompute (batched)
 ns.On("GET_ITEM_INFO_RECEIVED", function(id)
     id = tonumber(ns.safe(id))
     if not (id and GM.pending and GM.pending[id]) then return end
@@ -436,7 +436,7 @@ local function valid(rec)
     if rec.demo and not demoOn() then return false end
     return (ns.now() - (rec.u or 0)) < KEEP
 end
--- alle fremden Datensaetze (Empfaenger)
+-- all foreign records (recipients)
 function GM.Others()
     local out = {}
     for _, r in pairs(Store.coll(COLL)) do
@@ -445,7 +445,7 @@ function GM.Others()
     return out
 end
 
--- Gildenbank: tragbare Teile (immer handelbar)
+-- guild bank: wearable pieces (always tradeable)
 local function bankKeys()
     local out = {}
     local B = ns.GuildBank
@@ -460,7 +460,7 @@ local function bankKeys()
     return out
 end
 
--- Sicht 1: was in der Gilde (andere + Gildenbank) ist ein Upgrade fuer mich?
+-- view 1: what in the guild (others + guild bank) is an upgrade for me?
 function GM.ForMe()
     local me = GM.MyRecord()
     local out = {}
@@ -485,7 +485,7 @@ function GM.ForMe()
     return out
 end
 
--- Sicht 3: ALLE geteilten handelbaren Teile der anderen (nicht seelengebunden, unbenutzt im Inventar/Bank) - mit Upgrade-Wert, falls passend
+-- view 3: ALL shared tradeable pieces of others (not soulbound, unused in inventory/bank) - with upgrade value if fitting
 function GM.AllShared()
     local me = GM.MyRecord()
     local out = {}
@@ -504,10 +504,10 @@ function GM.AllShared()
     return out
 end
 
--- Demo: diese Teile gelten als "meine", damit Sicht 2 etwas zeigt
+-- demo: these pieces count as "mine" so view 2 shows something
 local DEMO_MINE = { "15062", "14551", "2099", "12793", "869" }
 
--- Sicht 2: meine handelbaren Teile -> wem helfen sie?
+-- view 2: my tradeable pieces -> whom do they help?
 function GM.MyHelps()
     local me = GM.MyRecord()
     local out = {}
@@ -528,7 +528,7 @@ function GM.MyHelps()
     return out
 end
 
--- fuer wen (ausser mir) ist dieses Teil ein Upgrade? -> Namensliste
+-- for whom (besides me) is this piece an upgrade? -> list of names
 function GM.WhoNeeds(link)
     local key = keyOf(link)
     if not key then return {} end
@@ -555,7 +555,7 @@ local function ownerText(owner)
 end
 
 ------------------------------------------------------------------------
--- Hinweis bei neuem Upgrade fuer mich (je Teil + Besitzer nur einmal)
+-- notice on a new upgrade for me (only once per piece + owner)
 ------------------------------------------------------------------------
 local function seenStore()
     ns.db.gmSeen = ns.db.gmSeen or {}
@@ -574,7 +574,7 @@ function GM.CheckNew()
             end
         end
     end
-    -- alte Merker (60 Tage) aufraeumen
+    -- clean up old markers (60 days)
     for k, ts in pairs(seen) do if (tonumber(ts) or 0) < ns.now() - 60 * 86400 then seen[k] = nil end end
     local best = fresh[1]
     if not best then return end
@@ -603,7 +603,7 @@ ns.Listen("STORE", function(coll, rec)
 end)
 
 ------------------------------------------------------------------------
--- Tooltip: "Upgrade fuer: Name1, Name2"
+-- tooltip: "Upgrade for: Name1, Name2"
 ------------------------------------------------------------------------
 if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tt, data)
@@ -614,7 +614,7 @@ if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and
         if not link then return end
         local ok2, list = pcall(GM.WhoNeeds, link)
         if not ok2 or not list or #list == 0 then return end
-        -- eigener Block wie "Entzaubern ergibt": Abstand, Ueberschrift, je Person eine Zeile (Name in Klassenfarbe, Gewinn rechts)
+        -- own block like "Disenchants into": spacing, header, one line per person (name in class color, gain right)
         tt:AddLine(" ")
         tt:AddLine(L["Upgrade for"], 0.4, 0.86, 0.62)
         for i, x in ipairs(list) do
@@ -628,7 +628,7 @@ if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and
 end
 
 ------------------------------------------------------------------------
--- Ereignisse
+-- events
 ------------------------------------------------------------------------
 local function changed()
     myCache = nil
@@ -640,14 +640,14 @@ ns.On("PLAYER_LEVEL_UP", changed)
 ns.On("BANKFRAME_OPENED", function() bankOpen = true ns.After(1, function() pcall(GM.ScanBank) changed() end) end)
 ns.On("BANKFRAME_CLOSED", function() pcall(GM.ScanBank) bankOpen = false end)
 ns.On("PLAYERBANKSLOTS_CHANGED", function() if bankOpen then ns.After(1, function() pcall(GM.ScanBank) changed() end) end end)
--- im Kampf wird nicht gelesen/gesendet -> danach nachholen
+-- nothing is read/sent in combat -> catch up afterwards
 ns.On("PLAYER_REGEN_ENABLED", function() if lastHash and not sendPending then changed() end end)
 
 ------------------------------------------------------------------------
--- Demo-Daten (nur lokal)
+-- demo data (local only)
 ------------------------------------------------------------------------
 local DEMO_PEOPLE = {
-    -- Name, Klasse, Stufe, Rolle, angelegt (Platz=Wertung), handelbare Teile
+    -- name, class, level, role, equipped (slot=rating), tradeable pieces
     { "Hoknar", "SHAMAN", 38, "healer", "1=18,3=14,5=22,7=19,8=11,10=10,16=21,17=12", "12640,14154,2244" },
     { "Tavira", "PRIEST", 41, "healer", "1=20,5=25,7=21,9=8,10=9,15=7,16=30", "15063,811" },
     { "Grukthar", "WARRIOR", 44, "tank", "1=40,3=31,5=52,7=44,8=29,10=26,16=24,17=30", "12793,869,14551" },
@@ -674,7 +674,7 @@ function GM.RemoveDemo()
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- page
 ------------------------------------------------------------------------
 local function askText(e)
     if not e.pct then return (L["Hi! You have %s - could you give or sell it to me?"]):format(chatLink(e.key)) end
@@ -685,7 +685,7 @@ local function offerText(e)
     return (L["Hi! I have %s - Oasis says it is an upgrade for you (+%d%%). Want it? Happy to send it by mail."]):format(chatLink(e.key), math.min(e.pct, 999))
 end
 
--- Platz-Gruppen fuer den Filter
+-- slot groups for the filter
 local JEWEL = { INVTYPE_NECK = true, INVTYPE_FINGER = true, INVTYPE_TRINKET = true, INVTYPE_CLOAK = true }
 local WEAPONLOC = { INVTYPE_WEAPON = true, INVTYPE_2HWEAPON = true, INVTYPE_WEAPONMAINHAND = true, INVTYPE_WEAPONOFFHAND = true,
     INVTYPE_SHIELD = true, INVTYPE_HOLDABLE = true, INVTYPE_RANGED = true, INVTYPE_RANGEDRIGHT = true, INVTYPE_THROWN = true, INVTYPE_RELIC = true }
@@ -697,7 +697,7 @@ local function groupOf(key)
     if WEAPONLOC[loc] then return "weapon", loc end
     return "armor", loc
 end
--- "Kopf · Platte" aus den Spiel-Texten (automatisch in der Client-Sprache)
+-- "Head · Plate" from the game texts (automatically in the client language)
 local function slotText(key)
     local ok, _, _, sub, loc = pcall(C_Item.GetItemInfoInstant, linkOf(key))
     if not ok then return "" end
@@ -727,7 +727,7 @@ ns.RegisterPage({
         p.seg = K.Segments(p, { { key = "forme", text = L["For me"] }, { key = "helps", text = L["My items help"] }, { key = "all", text = L["Bazaar"] } },
             function(k) view = k p.fresh = true ns.RefreshPage("gearmatch") end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
-        -- Suche rechts oben
+        -- search top right
         p.search = K.Input(p, 180, L["Search item..."], function(t)
             search = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
             ns.RefreshPage("gearmatch")
@@ -735,12 +735,12 @@ ns.RegisterPage({
         p.search:SetPoint("TOPRIGHT", 0, 0)
         glass(p.search, 8, 0.04)
 
-        -- Ueberblick: drei Glaskarten, Zahl zaehlt hoch, Klick wechselt die Sicht
+        -- overview: three glass cards, number counts up, click switches the view
         local ov = CreateFrame("Frame", nil, p)
         ov:SetPoint("TOPLEFT", 0, -38)
         ov:SetPoint("TOPRIGHT", 0, -38)
         ov:SetHeight(70)
-        ov:Hide()   -- 0.5.858: die drei Kacheln doppelten die Reiter; die Zahlen stehen jetzt an den Reitern
+        ov:Hide()   -- 0.5.858: the three tiles duplicated the tabs; the numbers are now on the tabs
         p.stats = {}
         local SD = {
             { "forme", "Upgrades for you", C.mint, "Teile anderer, die dich verbessern" },
@@ -760,7 +760,7 @@ ns.RegisterPage({
             c.d:SetPoint("RIGHT", -12, 0)
             c.d:SetWordWrap(false)
             c.d:SetText(L[d[4]])
-            -- feine Markierung unten, nur bei der aktiven Sicht
+            -- fine marker at the bottom, only for the active view
             c.mark = c:CreateTexture(nil, "ARTWORK")
             c.mark:SetHeight(2)
             c.mark:SetPoint("BOTTOMLEFT", 16, 1)
@@ -789,7 +789,7 @@ ns.RegisterPage({
         p.headT:SetPoint("TOPLEFT", 16, -14)
         p.headN = K.Text(panel, 11, C.dim)
         p.headN:SetPoint("LEFT", p.headT, "RIGHT", 10, -1)
-        -- Platz-Filter rechts im Kopf
+        -- slot filter right in the header
         p.slot = K.Segments(panel, { { key = "all", text = L["All"] }, { key = "armor", text = L["Armour"] }, { key = "weapon", text = L["Weapons"] }, { key = "jewel", text = L["Trinkets"] } },
             function(k) slotFilter = k ns.RefreshPage("gearmatch") end, nil, { size = 11, pad = 14 })
         p.slot:SetPoint("TOPRIGHT", -10, -9)
@@ -819,7 +819,7 @@ ns.RegisterPage({
             r.cols.who:SetPoint("BOTTOMLEFT", 56, 10)
             r.cols.who:SetPoint("RIGHT", r, "RIGHT", -250, 0)
             r.cols.who:SetWordWrap(false)
-            -- Zuwachs: Zahl + Balken (Laenge = Anteil am besten Teil der Liste)
+            -- gain: number + bar (length = share of the best piece in the list)
             r.cols.pct = K.Title(r, 16, C.mint, "RIGHT")
             r.cols.pct:SetPoint("TOPRIGHT", r, "TOPRIGHT", -124, -10)
             r.track = r:CreateTexture(nil, "ARTWORK")
@@ -841,7 +841,7 @@ ns.RegisterPage({
                 if e.target then GameTooltip:AddLine(L["By mail: mailbox, recipient "] .. ns.displayName(e.target), 0.6, 0.6, 0.6, true) end
                 GameTooltip:AddLine("|cff888888" .. L["Shift-click: insert into chat"] .. "|r")
                 GameTooltip:Show()
-                -- Vergleich mit dem, was ich gerade trage
+                -- comparison with what I am wearing right now
                 if not e.target and GameTooltip_ShowCompareItem then pcall(GameTooltip_ShowCompareItem, GameTooltip) end
             end)
             r:SetScript("OnLeave", function(self) glass(self.card, 10, 0.02) GameTooltip:Hide() end)
@@ -879,7 +879,7 @@ ns.RegisterPage({
                     r.fill:SetWidth(w)
                 end
             else
-                r.cols.pct:SetText("")   -- 0.5.859: "kein Upgrade" in jeder Zeile war Laerm - nur echte Upgrades tragen eine Zahl
+                r.cols.pct:SetText("")   -- 0.5.859: "no upgrade" on every line was noise - only real upgrades carry a number
             end
             if e.quest then
                 r.cols.who:SetText(L["owned by "] .. ownerText(e.owner) .. "  |cff888888" .. (L["spare - for %s"]):format(e.qtitle) .. "|r")
@@ -904,7 +904,7 @@ ns.RegisterPage({
         p.list:SetPoint("BOTTOMRIGHT", -8, 8)
         p.list.empty:SetText("")
 
-        -- leere Liste: ruhiger Hinweis mit naechstem Schritt statt nur Text
+        -- empty list: calm notice with next step instead of just text
         local em = CreateFrame("Frame", nil, panel)
         em:SetSize(420, 150)
         em:SetPoint("CENTER", 0, 10)
@@ -997,7 +997,7 @@ ns.RegisterPage({
             c.v:SetTextColor(counts[i] > 0 and c.col[1] or C.dim[1], counts[i] > 0 and c.col[2] or C.dim[2], counts[i] > 0 and c.col[3] or C.dim[3])
             c.mark:SetShown(c.key == view)
         end
-        -- Zahlen an den Reitern
+        -- numbers on the tabs
         for _, b in ipairs(p.seg.buttons or {}) do
             local i = (b.key == "forme" and 1) or (b.key == "helps" and 2) or 3
             local base = (i == 1 and L["For me"]) or (i == 2 and L["My items help"]) or L["Bazaar"]
@@ -1015,7 +1015,7 @@ ns.RegisterPage({
     end,
 })
 
--- Bereichs-Einstellungen
+-- area settings
 if ns.AddPageSettings then
     ns.AddPageSettings("gearmatch", function(det, y)
         det.t = det.t or {}
@@ -1054,7 +1054,7 @@ end
 -- Start
 ------------------------------------------------------------------------
 ns.Listen("LOGIN", function()
-    -- alte Datensaetze verwerfen
+    -- discard old records
     local c = Store.coll(COLL)
     for id, r in pairs(c) do
         if type(r) ~= "table" or (not r.demo and ns.now() - (r.u or 0) > KEEP) then c[id] = nil end

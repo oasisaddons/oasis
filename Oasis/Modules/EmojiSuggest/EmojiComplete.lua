@@ -1,10 +1,10 @@
--- Oasis: Emoji-Autovervollstaendigung im Chat
--- Tippt man ":" und mindestens 2 Buchstaben (z.B. ":lo"), erscheint ueber der Eingabe eine Liste
--- passender Emojis mit Bild. Tab nimmt den markierten Vorschlag, Klick nimmt den angeklickten.
--- Nur Hooks (keine ersetzten Skripte) an der Chat-Eingabe, damit nichts an Blizzards Chat kaputtgeht.
--- Abschalten: Einstellungen > Komfort > Chat > "Emoji-Vorschlaege beim Tippen".
+-- Oasis: emoji autocomplete in chat
+-- Typing ":" and at least 2 letters (e.g. ":lo") shows a list of matching emojis with images
+-- above the input. Tab takes the highlighted suggestion, click takes the clicked one.
+-- Only hooks (no replaced scripts) on the chat input, so nothing in Blizzard's chat breaks.
+-- Turn off: Settings > Comfort > Chat > "Emoji suggestions while typing".
 local ADDON, ns = ...
-ns.ModuleFile("Oasis_EmojiSuggest", function()   -- Modul Emoji-Vorschlaege (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_EmojiSuggest", function()   -- Emoji suggestions module (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C
 
@@ -12,7 +12,7 @@ local EC = {}
 ns.EmojiComplete = EC
 local MAX = 8
 
--- Index: alle :codes: mit ihrem Eintrag (eigene Emojis zuerst, keine Raid-Symbole)
+-- Index: all :codes: with their entry (own emojis first, no raid symbols)
 local index
 local function buildIndex()
     index = {}
@@ -40,7 +40,7 @@ local function matches(prefix)
     prefix = prefix:lower()
     local starts, contains = {}, {}
     for _, x in ipairs(index) do
-        -- gesperrte Emojis (Oasis-Rang zu niedrig) nicht vorschlagen
+        -- don't suggest locked emojis (Oasis rank too low)
         local ok = not ns.Emoji.Allowed or ns.Emoji.Allowed(x.e, ns.me and ns.me())
         if not ok then
         elseif x.name:sub(1, #prefix) == prefix then starts[#starts + 1] = x
@@ -52,7 +52,7 @@ local function matches(prefix)
 end
 
 ------------------------------------------------------------------------
--- Vorschlagsliste
+-- Suggestion list
 ------------------------------------------------------------------------
 local pop
 local function buildPop()
@@ -110,24 +110,24 @@ local function mark(i)
     for k, r in ipairs(pop.rows) do r.bg:SetShown(k == i) end
 end
 
--- Teilwort ":xx" direkt vor dem Cursor
+-- partial word ":xx" directly before the cursor
 local function partial(eb)
     local text = ns.safe(eb:GetText()) or ""
     local pos = eb:GetCursorPosition() or #text
     local before = text:sub(1, pos)
     local s, word = before:match("()%:([%w%+%-_]+)$")
     if not s then return nil end
-    -- nur am Wortanfang (sonst z.B. Uhrzeiten "12:30")
+    -- only at word start (otherwise e.g. times like "12:30")
     if s > 1 and not before:sub(s - 1, s - 1):match("%s") then return nil end
     if #word < 2 then return nil end
     return word, s, pos, text
 end
-EC.Matches, EC.Partial = matches, partial   -- fuer Tests
+EC.Matches, EC.Partial = matches, partial   -- for tests
 local function enabled() return not (ns.db and ns.db.settings.emojiNoComplete) end
 
 function EC.Update(eb)
     if not enabled() then EC.Hide() return end
-    -- selbst getippt waehrend des Durchschaltens: aktueller Vorschlag bleibt stehen
+    -- typed yourself while cycling: current suggestion stays
     if pop and pop.cyc then pop.cyc = nil end
     local word = partial(eb)
     if not word then EC.Hide() return end
@@ -145,7 +145,7 @@ function EC.Accept(x)
     local newText = text:sub(1, s - 1) .. x.code .. " " .. text:sub(pos + 1)
     eb:SetText(newText)
     eb:SetCursorPosition(s - 1 + #x.code + 1)
-    -- per Vorschlag eingesetzte Emojis landen auch in "Zuletzt" (vorher nur Klicks in der Auswahl)
+    -- emojis inserted via suggestion also land in "Recent" (before only clicks in the picker)
     if ns.Emoji and ns.Emoji.Remember then pcall(ns.Emoji.Remember, x.code) end
     EC.Hide()
     return true
@@ -180,7 +180,7 @@ local function attach(eb)
     eb:HookScript("OnTextChanged", function(self, user)
         if user then pcall(EC.Update, self) end
     end)
-    -- Tab schaltet durch die Vorschlaege (jeder Tab setzt den naechsten direkt ein), bei nur einem: einsetzen
+    -- Tab cycles through the suggestions (each Tab inserts the next directly), with only one: insert
     eb:HookScript("OnTabPressed", function(self)
         if pop and pop:IsShown() and pop.eb == self then pcall(EC.Cycle) end
     end)
@@ -192,6 +192,6 @@ end
 ns.Listen("LOGIN", function()
     for i = 1, (NUM_CHAT_WINDOWS or 10) do attach(_G["ChatFrame" .. i .. "EditBox"]) end
 end)
--- auch die Eingabe der Gildenchat-Seite (sobald es sie gibt)
+-- also the input of the guild chat page (once it exists)
 function EC.Attach(eb) attach(eb) end
 end)

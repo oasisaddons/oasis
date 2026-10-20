@@ -1,6 +1,6 @@
--- Oasis: Mitglieder-Extras
--- Spielzeit + Tageszeit, Level-Tempo, Gruppen-/Dungeonstatus, Online-Aufstellung,
--- Offiziersnotiz, Geburtstage und Gildenjubilaeen, Rechtsklick-Menue
+-- Oasis: member extras
+-- Playtime + time of day, level pace, group/dungeon status, online lineup,
+-- officer note, birthdays and guild anniversaries, right-click menu
 local ADDON, ns = ...
 local L = ns.L
 local K, C = ns.K, ns.K.C
@@ -11,15 +11,15 @@ local KEEP_DAYS = 30
 
 local function dayKey(ts) return date("%Y-%m-%d", ts or ns.now()) end
 local function store()
-    ns.db.play = ns.db.play or {}       -- [name] = { d = { [Tag] = Sekunden }, h = { [Stunde] = Sekunden } }
-    ns.db.lvlHist = ns.db.lvlHist or {} -- [name] = { [Tag] = Level }
+    ns.db.play = ns.db.play or {}       -- [name] = { d = { [day] = seconds }, h = { [hour] = seconds } }
+    ns.db.lvlHist = ns.db.lvlHist or {} -- [name] = { [day] = level }
     return ns.db.play, ns.db.lvlHist
 end
 Members.Store = store
 Members.DayKey = dayKey
 
 ------------------------------------------------------------------------
--- Mitschnitt aus der Gildenliste (jedes Einlesen, ca. alle 45 s)
+-- Recorded from the guild roster (every read, about every 45 s)
 ------------------------------------------------------------------------
 local lastSample
 local function sample()
@@ -27,7 +27,7 @@ local function sample()
     local now = ns.now()
     local delta = lastSample and (now - lastSample) or 0
     lastSample = now
-    if delta > 180 then delta = 0 end   -- Luecke (z.B. Ladebildschirm): nicht hochrechnen
+    if delta > 180 then delta = 0 end   -- Gap (e.g. loading screen): do not extrapolate
     local play, hist = store()
     local today, hour = dayKey(now), tonumber(date("%H", now))
     for _, m in ipairs(ns.Radar.roster) do
@@ -48,20 +48,20 @@ local function sample()
 end
 ns.Listen("ROSTER", function() pcall(sample) end)
 
--- alte Tage wegraeumen
+-- clear out old days
 local function prune()
     local play, hist = store()
     local cut = dayKey(ns.now() - KEEP_DAYS * 86400)
     for name, e in pairs(play) do
         for d in pairs(e.d or {}) do if d < cut then e.d[d] = nil end end
-        -- 0.5.617: keine Tage mehr im Zeitraum (oder kein Oasis-Nutzer) -> auch das Stunden-Profil loeschen
+        -- 0.5.617: no days left in the period (or not an Oasis user) -> also delete the hourly profile
         if not next(e.d or {}) or (ns.Radar and ns.Radar.UsesOasis and next(ns.db.members or {}) and not ns.Radar.UsesOasis(name)) then play[name] = nil end
     end
     for _, h in pairs(hist) do for d in pairs(h) do if d < cut then h[d] = nil end end end
 end
 
 ------------------------------------------------------------------------
--- Auswertung
+-- Evaluation
 ------------------------------------------------------------------------
 function Members.PlayToday(name)
     local e = store()[name]
@@ -81,7 +81,7 @@ function Members.FmtDuration(sec)
     if h == 0 then return (L["%d min"]):format(m) end
     return (L["%d:%02d h"]):format(h, m)
 end
--- Tageszeit mit der meisten Spielzeit (4-Stunden-Fenster)
+-- Time of day with the most playtime (4-hour window)
 local PARTS = {
     { 5, 11, "morgens" }, { 11, 14, "mittags" }, { 14, 18, "nachmittags" }, { 18, 23, "abends" },
 }
@@ -102,7 +102,7 @@ function Members.Peak(name)
     for _, p in ipairs(PARTS) do if mid >= p[1] and mid < p[2] then part = p[3] end end
     return (L["mostly %s (%d-%d h)"]):format(L[part], bestH, (bestH + 4) % 24), part
 end
--- gewonnene Level in den letzten Tagen
+-- levels gained in the last days
 function Members.LevelGain(name, days, current)
     local _, hist = store()
     local h = hist[name]
@@ -119,9 +119,9 @@ function Members.LevelGain(name, days, current)
 end
 
 ------------------------------------------------------------------------
--- Gruppenstatus (wird per HELLO geteilt: "i5" = im Dungeon mit 5, "g3" = Gruppe mit 3)
+-- Group status (shared via HELLO: "i5" = in dungeon with 5, "g3" = group of 3)
 ------------------------------------------------------------------------
--- Vollstaendige Namen, gleiche Signatur auf allen Gruppenclients; keine Gebietsschaetzung.
+-- Full names, same signature on all group clients; no zone guessing.
 function Members.MyGroupNames()
     local n = ns.safe(GetNumGroupMembers and GetNumGroupMembers()) or 0
     if n < 2 then return "" end
@@ -159,7 +159,7 @@ function Members.Status(name)
     if kind == "i" then return "inst", tonumber(n) end
     if kind == "g" then return "group", tonumber(n) end
 end
--- kleines Symbol fuer die Gebietsspalte
+-- small icon for the zone column
 function Members.StatusIcon(name, size)
     local kind, n = Members.Status(name)
     if not kind then return "", nil end
@@ -170,7 +170,7 @@ function Members.StatusIcon(name, size)
     return tex, txt
 end
 
--- Status aenderung schnell an die Gilde (hoechstens alle 20 s)
+-- Status change quickly to the guild (at most every 20 s)
 local lastHello, pending = 0, false
 local function helloSoon()
     if pending then return end
@@ -196,7 +196,7 @@ ns.On("GROUP_ROSTER_UPDATE", checkState)
 ns.On("PLAYER_ENTERING_WORLD", function() ns.After(3, checkState) end)
 
 ------------------------------------------------------------------------
--- Online-Aufstellung: Klassen und Rollen der Leute, die gerade da sind
+-- Online lineup: classes and roles of the people currently on
 ------------------------------------------------------------------------
 function Members.Composition()
     local classes, order = {}, {}
@@ -222,7 +222,7 @@ function Members.Composition()
 end
 
 ------------------------------------------------------------------------
--- Geburtstage und Jubilaeen
+-- Birthdays and anniversaries
 ------------------------------------------------------------------------
 function Members.ParseBirthday(s)
     local d, m = tostring(s or ""):match("^%s*(%d%d?)%.(%d%d?)%.?%s*$")
@@ -239,7 +239,7 @@ function Members.IsBirthday(name)
     local b = Members.Birthday(name)
     return b and b == date("%d.%m", ns.now())
 end
--- volle Monate/Jahre in der Gilde, falls heute ein Jubilaeum ist
+-- full months/years in the guild if today is an anniversary
 function Members.Anniversary(name)
     local t = ns.Welcome and ns.Welcome.JoinedAt(name)
     if not t then return end
@@ -255,7 +255,7 @@ function Members.MemberSince(name)
     return t and date(L["%m/%d/%Y"], t)
 end
 
--- einmal pro Tag nach dem Einloggen: wer hat heute Geburtstag/Jubilaeum
+-- once per day after login: who has a birthday/anniversary today
 ns.GuildOption({ page = "radar", key = "mbBday", default = true, label = "Announce birthdays and anniversaries",
     desc = "Once a day a notice of who has a birthday or guild anniversary today" })
 local function announce()
@@ -296,7 +296,7 @@ end
 ns.slash.birthday = ns.slash.geburtstag
 
 ------------------------------------------------------------------------
--- Offiziersnotiz (Blizzard-Gildenliste)
+-- Officer note (Blizzard guild roster)
 ------------------------------------------------------------------------
 function Members.CanSeeOfficerNote()
     if C_GuildInfo and C_GuildInfo.CanViewOfficerNote then return C_GuildInfo.CanViewOfficerNote() end
@@ -306,7 +306,7 @@ function Members.CanEditOfficerNote()
     if C_GuildInfo and C_GuildInfo.CanEditOfficerNote then return C_GuildInfo.CanEditOfficerNote() end
     return CanEditOfficerNote and CanEditOfficerNote()
 end
--- nie die globale Tabelle selbst neu setzen (das "beruehrt" Blizzards Popups und blockiert Esc/Zauber)
+-- never reassign the global table itself (that "touches" Blizzard's popups and blocks Esc/spells)
 StaticPopupDialogs.OASIS_OFFICER_NOTE = {
     text = "%s", button1 = OKAY or "OK", button2 = CANCEL or "Cancel",
     hasEditBox = true, maxLetters = 31, timeout = 0, whileDead = true, hideOnEscape = true,
@@ -332,14 +332,14 @@ function Members.EditOfficerNote(m)
 end
 
 ------------------------------------------------------------------------
--- Rechtsklick-Menue einer Mitgliederzeile
+-- Right-click menu of a member row
 ------------------------------------------------------------------------
 function Members.ShowMenu(owner, m)
     if not m then return end
     local me = ns.isMe(m.name)
     local I = ns.MEDIA .. "icons\\"
-    -- Karte: Position ueber den Vornamen finden (Forever-Doppelnamen: Absender "Lena", Gildenliste
-    -- "Lena Berg"), sonst wenigstens das Gebiet aus der Gildenliste
+    -- Map: find position via the first name (Forever double names: sender "Lena", guild roster
+    -- "Lena Berg"), otherwise at least the zone from the guild roster
     local canMap = ns.Map and ns.Map.ShowMember and (me or (ns.Map.PosOf and ns.Map.PosOf(m.name)) or (m.online and (m.zone or "") ~= ""))
     local items = {
         { text = L["Show profile"], icon = I .. "profile", fn = function() if ns.Profile then ns.Profile.Show(m.name) end end },
@@ -353,7 +353,7 @@ function Members.ShowMenu(owner, m)
             if not ns.Map.ShowMember(m.name, m.zone) then ns.print(L["Position and zone unknown."]) end
         end },
     }
-    -- 0.6.469: Danke sagen und Pate werden (Modul Gemeinschaft)
+    -- 0.6.469: say thanks and become a mentor (Community module)
     local CO = ns.Community
     if CO and not me and not m.demo then
         items[#items + 1] = { text = L["Say thanks"], icon = I .. "heart", fn = function() CO.Thank(m.name, "") end }
@@ -371,7 +371,7 @@ function Members.ShowMenu(owner, m)
 end
 
 ------------------------------------------------------------------------
--- Tooltip-Zeilen fuer die Mitgliederliste
+-- Tooltip lines for the member list
 ------------------------------------------------------------------------
 function Members.TooltipLines(m, lines)
     local today = Members.PlayToday(m.name)
@@ -401,7 +401,7 @@ function Members.TooltipLines(m, lines)
     end
 end
 
--- Quests, die ich und das Mitglied gerade beide haben
+-- Quests that I and the member both currently have
 local partnerCache, partnerTime = {}, 0
 function Members.SharedQuests(name)
     if not ns.Social then return {} end

@@ -1,11 +1,11 @@
--- Echte Crits: oeffentliche Kampflog-Ereignisse oder manueller Import einer lokalen Logdatei.
+-- Real crits: public combat log events or manual import of a local log file.
 local _, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Combat", function()   -- Modul Kampf-Rangliste (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Combat", function()   -- Module Combat leaderboard (can be disabled, see ModuleLoader.lua)
 local CB = ns.CombatBoard
 local secret = issecretvalue or function() return false end
 local readFailed
--- Der moderne Forever-Client verbietet bereits die Registrierung von CLEU.
--- pcall schuetzt davor nicht: die Blockiert-Meldung entsteht trotzdem beim Laden.
+-- The modern Forever client already forbids registering CLEU.
+-- pcall doesn't protect against this: the blocked message still appears on load.
 local legacyLive = CombatLogGetCurrentEventInfo and not (C_CombatLog and C_CombatLog.IsCombatLogRestricted)
 local function plain(v) return not secret(v) end
 local function numeric(v) return plain(v) and type(v) == "number" and v > 0 and v < 1e12 and v == math.floor(v) end
@@ -53,14 +53,14 @@ function CB.ReadCritEvent(_, event, _, sourceGUID, _, _, _, _, _, _, _, ...)
 end
 if legacyLive then ns.On("COMBAT_LOG_EVENT_UNFILTERED", function()
     if CB.CheckCritSource() ~= "live" then return end
-    -- Secret-Werte erst im eigenen Leser pruefen; niemals tostring/arithmetisch umwandeln.
+    -- Check secret values in our own reader first; never convert via tostring/arithmetic.
     local ok = pcall(function() CB.ReadCritEvent(CombatLogGetCurrentEventInfo()) end)
     if not ok then readFailed = true ns.db.cbCritDiag.mode = "restricted" end
 end) end
 ns.Listen("LOGIN", CB.CheckCritSource)
--- Ohne Kampflog: WoW meldet jeden Treffer auf eine Einheit (UNIT_COMBAT) samt "CRITICAL". Wer zugeschlagen hat, steht nicht dabei,
--- darum zaehlt es nur, solange man allein (keine Gruppe, keine Instanz) im Kampf ist - dann stammt der Treffer aufs eigene Ziel
--- von einem selbst (oder dem eigenen Begleiter). Gruppen und Dungeons kommen weiter ueber die Logdatei (OasisSync).
+-- Without combat log: WoW reports every hit on a unit (UNIT_COMBAT) including "CRITICAL". Who hit is not included,
+-- so it only counts while you're in combat solo (no group, no instance) - then the hit on your own target comes
+-- from yourself (or your own pet). Groups and dungeons still come via the log file (OasisSync).
 function CB.ReadUnitCombat(unit, action, flag, amount)
     if secret(unit) or secret(action) or secret(flag) or secret(amount) then return false end
     if flag ~= "CRITICAL" or not numeric(amount) then return false end
@@ -78,7 +78,7 @@ end
 ns.On("UNIT_COMBAT", function(unit, action, flag, amount) pcall(CB.ReadUnitCombat, unit, action, flag, amount) end)
 ns.On("PLAYER_ENTERING_WORLD", function() readFailed = nil CB.CheckCritSource() end)
 ns.On("ADDON_RESTRICTION_STATE_CHANGED", function() readFailed = nil CB.CheckCritSource() end)
--- Kurzer, kopierbarer Importcode aus ImportCrits.py, ausschliesslich fuer den eigenen Namen.
+-- Short, copyable import code from ImportCrits.py, exclusively for the own name.
 ns.slash.critimport = function(text)
     if ns.inCombat() then ns.print(ns.L["Not possible in combat - try again shortly."]) return end
     local name, damage, dsid, heal, hsid = (text or ""):match("^OAC1:([^:]+):(%d+),(%d+):(%d+),(%d+)$")
@@ -94,8 +94,8 @@ ns.slash.critimport = function(text)
     ns.RefreshPage("fight", true)
 end
 
--- Automatischer Weg ohne Code-Einfuegen: ImportCrits.bat schreibt CritImport.lua (OasisCritImport) aus den lokalen
--- Kampflog-Dateien. Im Forever-Log steht der Name als "Vorname-Realm-"; uebernommen wird nur der eigene Charakter.
+-- Automatic path without pasting code: ImportCrits.bat writes CritImport.lua (OasisCritImport) from the local
+-- combat log files. In the Forever log the name appears as "Name-Realm-"; only the own character is taken.
 function CB.TakeCritFile()
     local t = rawget(_G, "OasisCritImport")
     local me = ns.me and ns.me()
@@ -120,11 +120,11 @@ function CB.TakeCritFile()
     return n
 end
 ns.Listen("LOGIN", function() if ns.After then ns.After(6, function() pcall(CB.TakeCritFile) end) end end)
--- 0.5.787: Kampflog-Datei standardmaessig mitschreiben lassen (wie /combatlog), damit der Crit-Import ohne Vorarbeit geht.
--- Abschaltbar mit /oa kampflog. Sperrt der Client den Aufruf, schaltet sich die Automatik selbst dauerhaft ab (keine Dauer-Meldung).
+-- 0.5.787: have the combat log file written by default (like /combatlog) so crit import works without prep.
+-- Can be disabled with /oa kampflog. If the client blocks the call, the automation permanently turns itself off (no repeated message).
 do
     local triedAt
-    -- 0.5.938: ohne eigene Wahl nur mit Gildenmodul an - die oeffentliche Version schreibt nicht ungefragt eine Datei mit
+    -- 0.5.938: without own choice only on with the guild module - the public version doesn't write a file unasked
     local function wanted()
         local s = ns.db and ns.db.settings
         if not s then return false end
@@ -151,7 +151,7 @@ do
         end
     end)
     ns.Listen("LOGIN", function() ns.After(8, function() pcall(autoLog) end) end)
-    -- Schalter in den Einstellungen (Bereiche > Kampf-Rangliste): sofort anwenden
+    -- Toggle in settings (Sections > Combat leaderboard): apply immediately
     function CB.ApplyAutoLog()
         if wanted() then pcall(autoLog) elseif LoggingCombat then pcall(LoggingCombat, false) end
     end
@@ -164,9 +164,9 @@ do
 end
 
 ------------------------------------------------------------------------
--- Entwickler-Abfrage (/oa probe dm): Was gibt Blizzards Schadensanzeige je Quelle und je Zauber her?
--- Frage dahinter: steht dort ein hoechster Einzeltreffer / Crit - dann gingen Dungeon-Crits ohne Logdatei.
--- Schreibt nur Feldnamen, Typen und lesbare eigene Werte nach ns.db.dmProbe (nach /reload in den SavedVariables).
+-- Developer query (/oa probe dm): what does Blizzard's damage meter give per source and per spell?
+-- Underlying question: is there a highest single hit / crit - then dungeon crits would work without a log file.
+-- Writes only field names, types and readable own values to ns.db.dmProbe (in the SavedVariables after /reload).
 ------------------------------------------------------------------------
 do
     local function describe(out, pre, t, depth)
@@ -182,7 +182,7 @@ do
                 if depth > 0 then describe(out, pre .. "." .. k, v, depth - 1) end
             else out[#out + 1] = pre .. "." .. k .. " = " .. type(v) .. ":" .. tostring(v):sub(1, 40) end
         end
-        -- Liste: nur das erste Element aufschluesseln
+        -- List: break down only the first element
         if type(t[1]) == "table" and depth > 0 then describe(out, pre .. "[1]", t[1], depth - 1)
         elseif t[1] ~= nil then out[#out + 1] = pre .. "[1] = " .. (secret(t[1]) and "<secret>" or type(t[1])) end
     end
@@ -238,7 +238,7 @@ do
         while #out > 400 do table.remove(out) end
         ns.db.dmProbe = { t = ns.now(), v = ns.version, group = IsInGroup and IsInGroup() and true or false,
             inst = ns.inInstance and ns.inInstance() and true or false, lines = out }
-        -- Kurzfassung gleich im Chat: wie viel ist gesperrt, was ist lesbar
+        -- Summary right in chat: how much is locked, what is readable
         local sec, open, sample = 0, 0, {}
         for _, l in ipairs(out) do
             if l:find("<secret>", 1, true) then sec = sec + 1
@@ -254,8 +254,8 @@ do
 end
 
 ------------------------------------------------------------------------
--- Entwickler-Abfrage (/oa probe stat): Charakterstatistiken des Clients ("Schwerster verursachter Treffer" usw.).
--- Die zaehlt WoW selbst mit - auch in Gruppe und Dungeon. Frage: liefert Forever dort Zahlen oder nur "--"?
+-- Developer query (/oa probe stat): client character statistics ("Largest hit dealt" etc.).
+-- WoW counts these itself - also in group and dungeon. Question: does Forever return numbers there or just "--"?
 ------------------------------------------------------------------------
 do
     ns.probes = ns.probes or {}
@@ -272,7 +272,7 @@ do
             n = n + 1
             local nm = secret(name) and "<secret>" or tostring(name)
             local low = nm:lower()
-            -- alles mit Treffer/Heilung/Schaden/kritisch merken, den Rest nur zaehlen
+            -- remember everything with hit/heal/damage/critical, only count the rest
             if low:find("hit", 1, true) or low:find("treffer", 1, true) or low:find("heal", 1, true) or low:find("heil", 1, true)
                 or low:find("crit", 1, true) or low:find("krit", 1, true) or low:find("damage", 1, true) or low:find("schaden", 1, true) then
                 out[#out + 1] = ("%d %s = %s"):format(aid, nm, okS and show(rawV) or "Bug")
@@ -295,8 +295,8 @@ do
 end
 
 ------------------------------------------------------------------------
--- Entwickler-Abfrage (/oa probe log): Zeilen aus Blizzards Kampflog-Chatfenster LESEN (nichts veraendern).
--- Dort steht "Euer X trifft Y kritisch fuer 123" - auch in Gruppe/Dungeon. Frage: sind die Zeilen fuer Addons lesbar?
+-- Developer query (/oa probe log): READ lines from Blizzard's combat log chat window (change nothing).
+-- It says "Your X crits Y for 123" - also in group/dungeon. Question: are the lines readable for addons?
 ------------------------------------------------------------------------
 do
     ns.probes = ns.probes or {}
@@ -345,12 +345,12 @@ do
 end
 
 ------------------------------------------------------------------------
--- 0.5.900: Crits in Gruppe und Dungeon SCHAETZEN (alles im Spiel, ohne Logdatei).
--- WoW meldet in der Gruppe nur "Einheit wurde kritisch fuer X getroffen", nicht von wem. Oasis nimmt den Treffer nur dann,
---   1. wenn er hoechstens eine halbe Sekunde nach einem EIGENEN Zauber/Spezialangriff auf das eigene Ziel faellt und
---   2. wenn Blizzards Schadensanzeige nach dem Kampf bestaetigt, dass genau dieser Zauber bei mir mindestens so viel gemacht hat.
--- Weisse Treffer (kein Zauber-Ereignis) und Zauber mit langer Flugzeit fallen heraus. Quelle im Datensatz: "group" (= geschaetzt).
--- Zaehler fuer die Fehlersuche: ns.db.cbGroupDiag.
+-- 0.5.900: ESTIMATE crits in group and dungeon (all in game, no log file).
+-- In a group WoW only reports "unit was critically hit for X", not by whom. Oasis only takes the hit
+--   1. if it lands at most half a second after an OWN spell/special attack on my own target and
+--   2. if Blizzard's damage meter after combat confirms that exactly this spell did at least that much for me.
+-- White hits (no spell event) and spells with long travel time are dropped. Source in record: "group" (= estimated).
+-- Counters for debugging: ns.db.cbGroupDiag.
 ------------------------------------------------------------------------
 do
     local WINDOW = 0.5
@@ -383,7 +383,7 @@ do
         if secret(amount) or not numeric(amount) then diag("amountSecret") return false end
         if key == "mh" and not (UnitCanAttack and UnitCanAttack("player", "target")) then return false end
         if not lastCast or GetTime() - lastCast.t > WINDOW then diag("noCast") return false end
-        if lastCast.used then return false end   -- je eigenem Angriff nur der erste Treffer (auch: dieselbe Einheit unter zwei Namen)
+        if lastCast.used then return false end   -- per own attack only the first hit (also: the same unit under two names)
         lastCast.used = true
         cands[#cands + 1] = { key = key, amount = amount, sid = lastCast.sid }
         while #cands > 30 do table.remove(cands, 1) end
@@ -392,7 +392,7 @@ do
     end
     ns.On("UNIT_COMBAT", function(unit, action, flag, amount) pcall(CB.ReadGroupCombat, unit, action, flag, amount) end)
 
-    -- meine Zauber-Summen einer Sitzung: { [zauberID] = Summe, [name] = Summe } | false = noch gesperrt | nil = nicht vorhanden
+    -- my spell totals of a session: { [spellID] = total, [name] = total } | false = still locked | nil = not present
     local function mySpells(id, typ)
         local DM = C_DamageMeter
         local guid = UnitGUID and UnitGUID("player")
@@ -449,7 +449,7 @@ do
         if #cands == 0 then return end
         local list = cands
         cands = {}
-        -- Sitzung des gerade beendeten Kampfes: kurz warten, bis die Schadensanzeige sie fuehrt
+        -- Session of the fight that just ended: wait briefly until the damage meter lists it
         ns.After(2, function()
             local id
             local ok, l = pcall(function() return C_DamageMeter and C_DamageMeter.GetAvailableCombatSessions and C_DamageMeter.GetAvailableCombatSessions() end)

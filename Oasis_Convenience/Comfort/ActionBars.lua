@@ -1,8 +1,8 @@
--- Oasis: Aktionsleisten speichern und laden (0.6.521)
--- Belegung aller 120 Plaetze (Zauber, Makros, Items) unter einem Namen je Charakter; Laden legt sie wieder hin.
--- Nur ausserhalb des Kampfes. /oa leisten [speichern|laden|loeschen] Name, ohne Namen: Liste
--- Einstellungen > Komfort: Knoepfe dazu.
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
+-- Oasis: save and load action bars (0.6.521)
+-- layout of all 120 slots (spells, macros, items) under a name per character; loading puts them back.
+-- Only out of combat. /oa leisten [speichern|laden|loeschen] Name, without a name: list
+-- Settings > Comfort: buttons for it.
+local ADDON, ns = ...  ns = Oasis or ns  -- sub-addon: namespace of Oasis
 ns.ModuleFile("Oasis_Comfort", function()
 local L = ns.L
 local AB = {}

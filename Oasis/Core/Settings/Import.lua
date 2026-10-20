@@ -1,13 +1,13 @@
--- Oasis: Import von der Gilden-Webseite (Rueckrichtung zu Export.lua)
--- WoW-Addons koennen nicht ins Internet. OasisSync.exe holt deshalb Daten vom Portal und schreibt sie als
--- Lua-Datei Oasis\Import.lua (globale Tabelle OasisImport). WoW liest sie beim Start bzw. /reload ein,
--- dieses Modul uebernimmt sie dann in die gemeinsamen Daten (Store) -> von dort an die ganze Gilde.
--- Format: Tools\OasisSync-Format.md, Abschnitt "Web -> Oasis".
+-- Oasis: import from the guild website (reverse direction of Export.lua)
+-- WoW addons cannot access the internet. So OasisSync.exe fetches data from the portal and writes it as the
+-- Lua file Oasis\Import.lua (global table OasisImport). WoW reads it on startup or /reload,
+-- this module then takes it into the shared data (Store) -> from there to the whole guild.
+-- Format: Tools\OasisSync-Format.md, section "Web -> Oasis".
 --
--- Sicherheit (die Datei liegt auf dem eigenen PC, wird aber an die Gilde weitergegeben):
---   * Anmeldungen (signups): nur die EIGENEN (who = ich)
---   * Termine, Aufstellungen, Durchsagen, Umfragen: nur wenn ich Offizier/Gildenleitung bin
---   * Datensatz nur uebernehmen, wenn er neuer ist als der vorhandene (gleiche Regel wie im Gilden-Abgleich)
+-- Security (the file lives on your own PC but is passed on to the guild):
+--   * Sign-ups (signups): only your OWN (who = me)
+--   * Events, lineups, announcements, polls: only if I am officer/guild leadership
+--   * Only take a record if it is newer than the existing one (same rule as in guild sync)
 local ADDON, ns = ...
 local L = ns.L
 local Store = ns.Store
@@ -23,10 +23,10 @@ local function canLead()
     return ns.isOfficer() or (ns.Admin and ns.Admin.CanManage and ns.Admin.CanManage()) or false
 end
 
--- nur einfache Werte/Tabellen uebernehmen
+-- only take simple values/tables
 local function clean(v, depth)
     local t = type(v)
-    -- Texte entschaerfen/kuerzen, nur endliche Zahlen (die Daten gehen an die ganze Gilde)
+    -- Sanitize/shorten strings, finite numbers only (the data goes to the whole guild)
     if t == "string" then return ns.CleanText(v, 4000) end
     if t == "number" then if v == v and v > -1e15 and v < 1e15 then return v end return nil end
     if t == "boolean" then return v end
@@ -48,7 +48,7 @@ function Import.Run(silent)
         if not silent then ns.print(L["Website import: newer format - please update Oasis."]) end
         return 0
     end
-    -- dieselbe Datei nicht mehrfach einlesen
+    -- don't read the same file more than once
     local stamp = tostring(data.ts or "") .. ":" .. tostring(data.n or "")
     if ns.db.importStamp == stamp then return 0 end
     local lead = canLead()
@@ -59,7 +59,7 @@ function Import.Run(silent)
                 if idx > 2000 then break end
                 local rec = clean(raw, 0)
                 local ok = rec and type(rec.id) == "string" and rec.id ~= "" and #rec.id <= 160
-                -- Zeitstempel nie in der Zukunft (sonst gewaenne der Satz gegen jede spaetere Aenderung)
+                -- Timestamps never in the future (otherwise the record would win against every later change)
                 if ok and type(rec.u) == "number" and rec.u > ns.now() then rec.u = ns.now() end
                 if ok and rec.by ~= nil and type(rec.by) ~= "string" then rec.by = nil end
                 if ok and LEAD_ONLY[coll] and not lead then ok = false end
@@ -89,6 +89,6 @@ function Import.Run(silent)
     return n
 end
 
--- nach dem Login (Gildenrang muss bekannt sein) einlesen
+-- read after login (guild rank must be known)
 ns.Listen("LOGIN", function() ns.After(8, function() pcall(Import.Run, true) end) end)
 ns.slash.import = function() ns.db.importStamp = nil Import.Run(false) end

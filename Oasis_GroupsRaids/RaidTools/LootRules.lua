@@ -1,9 +1,9 @@
--- Oasis: Pluender-Regeln (wie PackMule) - der Plundermeister legt fest, wohin bestimmte Beute
--- automatisch geht, z.B. "Handwerkswaren an Bankchar", "Graues an mich". Greift beim Oeffnen
--- einer Leiche, nur als Plundermeister. Was eine Regel trifft, kommt nicht in die Verteilung.
--- Reiter "Pluender-Regeln" auf der Seite Raid-Check (Bausteine aus ns.RCUI, RaidCheck.lua).
+-- Oasis: loot rules (like PackMule) - the master looter decides where certain loot
+-- goes automatically, e.g. "trade goods to bank char", "grays to me". Applies on opening
+-- of a corpse, only as master looter. Whatever a rule matches is not distributed.
+-- Tab "Loot rules" on the raid check page (building blocks from ns.RCUI, RaidCheck.lua).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raidwerkzeuge (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local function refreshAll() if ns.RCRefresh then ns.RCRefresh() else ns.RefreshPage("lootrules") end end
 local K, C = ns.K, ns.K.C
@@ -28,7 +28,7 @@ local function S() return ns.db.settings end
 function LR.Rules() S().lootRules = S().lootRules or {} return S().lootRules end
 function LR.On() return S().lootRulesOn ~= false end
 
--- trifft eine Regel diesen Pluender-Platz? -> Ziel (Name) oder nil
+-- does a rule match this loot slot? -> target (name) or nil
 function LR.Match(slot)
     if not LR.On() then return nil end
     local link = GetLootSlotLink(slot)
@@ -53,7 +53,7 @@ local function target(to)
     if not to or to == "" or to:lower() == "ich" or to:lower() == "me" then return ns.me() end
     return to
 end
--- Item an Spieler geben (Master-Loot-Kandidaten durchsuchen)
+-- Give item to player (search master loot candidates)
 local function give(slot, name)
     if not (GetMasterLootCandidate and GiveMasterLoot) then return false end
     local want = ns.short(name):lower()
@@ -90,7 +90,7 @@ end
 ns.On("LOOT_OPENED", function() ns.After(0.05, function() pcall(LR.Apply) end) end)
 
 ------------------------------------------------------------------------
--- Oberflaeche (eingebettet in Raid-Check) - schlicht: Satz zum Anlegen, Liste, kleiner Verlauf
+-- UI (embedded in raid check) - plain: sentence to create, list, small history
 ------------------------------------------------------------------------
 local QCOL = { q0 = { 0.62, 0.62, 0.62 }, q1 = { 0.92, 0.92, 0.92 }, q2 = { 0.12, 1, 0 }, q3 = { 0.1, 0.5, 0.95 } }
 local KIND_GLYPH = { q0 = "wants", q1 = "wants", q2 = "wants", q3 = "wants", trade = "crafting", recipe = "chronicle", quest = "checklist", name = "pin" }
@@ -148,7 +148,7 @@ local function addRule(f, kind, value, to)
     refreshAll()
     return true
 end
--- Namensvorschlaege aus Gruppe/Raid und Gilde
+-- Name suggestions from group/raid and guild
 local function candidates()
     local out, seen = {}, {}
     local function add(n, cls, src)
@@ -237,7 +237,7 @@ local function attachSuggest(eb)
     return box
 end
 
--- einzeilige Schrift, die bei Platzmangel mit "..." abschneidet
+-- single-line font that truncates with "..." when space is short
 local function line(parent, size, color, justify)
     local t = K.Text(parent, size, color, justify)
     t:SetWordWrap(false)
@@ -247,7 +247,7 @@ end
 
 function LR.Build(f)
     local UI = U()
-    -- Kopf: eine Zeile Erklaerung, darunter Schalter + Status
+    -- Header: one line of explanation, below it toggles + status
     f.intro = line(f, 11, C.muted)
     f.intro:SetPoint("TOPLEFT", 0, -2)
     f.intro:SetPoint("RIGHT", f, "RIGHT", 0, 0)
@@ -259,7 +259,7 @@ function LR.Build(f)
     f.ml:SetPoint("LEFT", f.on, "LEFT", 150, 0)
     f.ml:SetPoint("RIGHT", f, "RIGHT", 0, 0)
 
-    -- Regel anlegen als Satz: [Was v] [Zusatz] geht an [Name] [Hinzufuegen]          [Vorlagen v]
+    -- Create rule as a sentence: [What v] [Extra] goes to [Name] [Add]          [Templates v]
     f.kind = "trade"
     f.kindBtn = K.Button(f, "", 170, 24, "ghost")
     f.kindBtn.isDropdown = true
@@ -316,7 +316,7 @@ function LR.Build(f)
     end
     f:LayoutAdd()
     setKind("trade")
-    -- Vorlagen als kleines Menue
+    -- Templates as a small menu
     local function applyTemplate(t)
         if t.bank then
             setKind(t.kind)
@@ -337,11 +337,11 @@ function LR.Build(f)
     f.tpl.isDropdown = true
     f.tpl:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, -60)
 
-    -- Liste der Regeln (volle Breite)
+    -- List of rules (full width)
     f.listHead = line(f, 10, C.dim)
     f.listHead:SetPoint("TOPLEFT", 0, -98)
     f.listHead:SetPoint("RIGHT", f, "RIGHT", 0, 0)
-    -- gemeinsames Feld zum Aendern des Ziels (Klick auf den Namen)
+    -- shared field for changing the target (click on the name)
     f.edit = K.Input(f, 170, L["Name (empty = me)"])
     f.edit:SetFrameStrata("DIALOG")
     f.edit:Hide()
@@ -457,7 +457,7 @@ function LR.Build(f)
     f.empty:SetPoint("TOP", f.list, "TOP", 0, -20)
     f.empty.btn.isDropdown = true
 
-    -- Verlauf: kompakt unten, einklappbar
+    -- History: compact at the bottom, collapsible
     f.logOpen = true
     f.log = CreateFrame("Frame", nil, f)
     f.log:SetPoint("BOTTOMLEFT", 0, 0)
@@ -508,7 +508,7 @@ function LR.Refresh(f)
     else
         f.ml:SetText("|cfffac257" .. L["Only works while you are master looter"] .. "|r")
     end
-    -- Verlauf (oben berechnet, weil er die Listenhoehe bestimmt)
+    -- History (computed above, because it determines the list height)
     local log = LR.log
     local demoLog = #log == 0 and demoOn()
     if demoLog then

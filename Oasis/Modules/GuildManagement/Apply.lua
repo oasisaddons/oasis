@@ -1,10 +1,10 @@
--- Oasis: Rekrutierungs-Mappe (0.6.527)
---  * Bewerben: Spieler (auch ohne Gilde, mit Oasis) schicken einem Offizier eine Bewerbung per Addon-Fluestern:
---    Klasse/Stufe (automatisch), Rolle, Spielzeiten, Ziele, ein paar Worte. /oa bewerben Name oder "Gilde finden".
---  * Offizier: landet bei Gildenpflege > Bewerber (Store "recruits", nur Offiziere) + Hinweis; antwortet "angekommen".
---  * Mappe: Bewerbung ansehen, mit 1-5 Sternen + Satz bewerten (Store "rrating", nur Offiziere), Schnitt aller
---    Bewertungen, Einladen / Probezeit / Ablehnen mit einem Klick.
--- Nichts geht automatisch in den Chat; Bewerbungen kommen nur ueber Oasis-Addon-Nachrichten.
+-- Oasis: recruitment folder (0.6.527)
+--  * Apply: players (also guildless, with Oasis) send an officer an application via addon whisper:
+--    class/level (automatic), role, play times, goals, a few words. /oa bewerben Name or "Find guild".
+--  * Officer: lands in Guild care > Applicants (store "recruits", officers only) + notice; replies "received".
+--  * Folder: view application, rate with 1-5 stars + a sentence (store "rrating", officers only), average of all
+--    ratings, invite / trial / decline with one click.
+-- Nothing goes to chat automatically; applications only arrive via Oasis addon messages.
 local ADDON, ns = ...
 ns.ModuleFile("Oasis_GuildManagement", function()
 local L = ns.L
@@ -17,7 +17,7 @@ local function cut(s, n) s = tostring(s or ""):gsub("[%c|]", " ") if #s > n then
 local function canRecruit() return (CanGuildInvite and ns.safe(CanGuildInvite())) or ns.isOfficer() end
 
 ------------------------------------------------------------------------
--- Senden (Bewerber)
+-- Send (applicant)
 ------------------------------------------------------------------------
 function AP.Send(target, role, times, goals, msg)
     target = (target or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -34,7 +34,7 @@ Comm.On("APPLYNO", function(sender)
 end)
 
 ------------------------------------------------------------------------
--- Empfangen (Offizier)
+-- Receive (officer)
 ------------------------------------------------------------------------
 local lastFrom = {}
 Comm.On("APPLY", function(sender, channel, cls, lvl, role, times, goals, msg, ver)
@@ -53,7 +53,7 @@ Comm.On("APPLY", function(sender, channel, cls, lvl, role, times, goals, msg, ve
 end)
 
 ------------------------------------------------------------------------
--- Bewertungen der Offiziere
+-- officers' ratings
 ------------------------------------------------------------------------
 function AP.Rate(name, stars, text)
     if not ns.isOfficer() then return end
@@ -72,7 +72,7 @@ function AP.RecruitOf(name)
 end
 
 ------------------------------------------------------------------------
--- Formular (Bewerber)
+-- Form (applicant)
 ------------------------------------------------------------------------
 local form
 function AP.ShowForm(target)
@@ -117,7 +117,7 @@ ns.slash.bewerben = function(arg) AP.ShowForm(arg) end
 ns.slash.apply = ns.slash.bewerben
 
 ------------------------------------------------------------------------
--- Mappe (Offiziere)
+-- Folder (officers)
 ------------------------------------------------------------------------
 local file
 local STATUS = { app = "Applicants", trial = "Trial", member = "Accepted", no = "Declined" }

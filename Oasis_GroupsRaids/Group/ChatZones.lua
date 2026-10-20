@@ -1,7 +1,7 @@
--- Oasis: Gebiet und Stufe im Chat (0.6.521)
--- Vor Gilden-, Offiziers-, Gruppen- und Raidzeilen steht klein "[23 Brachland]" der sprechenden Person.
--- Quelle: Gildenliste (Blizzard) und Raidliste; Fremde ohne Daten bleiben unveraendert. Standard aus,
--- Schalter: Einstellungen > Meine Gruppe. Mit fremdem Chat-Addon (ns.ForeignChat) greift Oasis nicht ein.
+-- Oasis: zone and level in chat (0.6.521)
+-- Before guild, officer, party and raid lines the speaker's "[23 Barrens]" appears in small text.
+-- Source: guild roster (Blizzard) and raid roster; strangers without data stay unchanged. Default off,
+-- Toggle: Settings > My Group. With a third-party chat addon (ns.ForeignChat) Oasis does not interfere.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Group", function()
 local P = ns.Party

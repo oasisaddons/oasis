@@ -1,26 +1,26 @@
--- Oasis: Raid-Vorbereitung - bin ich (und sind alle) bereit fuer den naechsten Raidtermin?
---  * je Raid ein Profil (Barrow Deeps / Hyjal / Onyxia): Widerstaende, Pflicht-Ausruestung, Schluessel
---  * Verbrauchsgueter in den Taschen je Rolle + Klassen-Reagenzien (Item-IDs in Tabellen unten)
---  * Haltbarkeit der Ausruestung
---  * fehlende Schluessel/Freischaltungen: ns.Lockouts (falls vorhanden), sonst eigene Item-Pruefung
---  * jeder teilt seinen Stand gedrosselt vor dem Termin (Nachricht RPREP, Sammlung "raidprep" lokal)
---  * Seite "Raid-Vorbereitung" (Nav-Gruppe Raid): Ampel je Teilnehmer + eigene Checkliste
--- Ergaenzt RaidCheck (Bereitschaft/Buffs/Verzauberungen direkt vor dem Pull) - hier geht es um die Tage davor.
+-- Oasis: raid prep - am I (and is everyone) ready for the next raid event?
+--  * one profile per raid (Barrow Deeps / Hyjal / Onyxia): resistances, required gear, keys
+--  * Consumables in bags per role + class reagents (item IDs in tables below)
+--  * Equipment durability
+--  * missing keys/attunements: ns.Lockouts (if present), else own item check
+--  * everyone shares their state throttled before the event (message RPREP, collection "raidprep" local)
+--  * Page "Raid prep" (nav group Raid): traffic light per participant + own checklist
+-- Complements RaidCheck (readiness/buffs/enchants right before the pull) - this is about the days before.
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_RaidTools", function()   -- Modul Raidwerkzeuge (abschaltbar, siehe ModuleLoader.lua)
--- ns.Group kommt aus Core\Diagnostics\RaidSim.lua; fehlt die Datei, gelten die echten Blizzard-Abfragen
+ns.ModuleFile("Oasis_RaidTools", function()   -- Module Raid tools (can be disabled, see ModuleLoader.lua)
+-- ns.Group comes from Core\Diagnostics\RaidSim.lua; if the file is missing, the real Blizzard queries apply
 if not ns.Group then ns.Group = { IsSim = function() return false end, IsInGroup = function() return (IsInGroup and IsInGroup()) and true or false end, IsInRaid = function() return (IsInRaid and IsInRaid()) and true or false end, Num = function() return (GetNumGroupMembers and GetNumGroupMembers()) or 0 end, InInstance = function() if IsInInstance then return IsInInstance() end return false, "none" end, Instance = function() return nil end, Members = function() return {} end, Member = function() return nil end, IsLeader = function() return (UnitIsGroupLeader and UnitIsGroupLeader("player")) and true or false end, IsAssist = function() return false end } end
 local L = ns.L
 local K, C, Store, Comm = ns.K, ns.K.C, ns.Store, ns.Comm
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Security on receipt (others' addon messages may be manipulated):
+-- Sanitize texts, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- Neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -70,7 +70,7 @@ local RP = {}
 ns.RaidPrep = RP
 local COLL = "raidprep"
 if ns.ICONS then ns.ICONS.raidprep = ns.MEDIA .. "icons\\checklist" end
--- in die Navigationsgruppe "Raid" einhaengen (ohne Main.lua anzufassen)
+-- hook into the "Raid" navigation group (without touching Main.lua)
 for _, g in ipairs(ns.NAV_GROUPS or {}) do
     if g.key == "raid" then
         local has
@@ -82,7 +82,7 @@ for _, g in ipairs(ns.NAV_GROUPS or {}) do
 end
 
 ------------------------------------------------------------------------
--- Gemeinsame Hilfen: /oa probe <thema> (andere Module koennen ns.Probes[thema] eintragen)
+-- Shared helpers: /oa probe <topic> (other modules can register ns.Probes[topic])
 ------------------------------------------------------------------------
 ns.Probes = ns.Probes or {}
 if not ns._ProbesHooked then
@@ -105,13 +105,13 @@ if not ns._ProbesHooked then
 end
 
 ------------------------------------------------------------------------
--- Daten: Widerstaende, Verbrauchsgueter, Profile
+-- Data: resistances, consumables, profiles
 ------------------------------------------------------------------------
--- UnitResistance-Index: 1 Heilig, 2 Feuer, 3 Natur, 4 Frost, 5 Schatten, 6 Arkan
+-- UnitResistance index: 1 holy, 2 fire, 3 nature, 4 frost, 5 shadow, 6 arcane
 local RES_NAME = { [1] = "Holy", [2] = "Fires", [3] = "Nature", [4] = "Frost", [5] = "Shadow", [6] = "Arcane" }
 RP.RES_NAME = RES_NAME
 
--- Verbrauchsgueter je Rolle: ids = gleichwertige Alternativen (zusammengezaehlt), n = Sollmenge, opt = nur Empfehlung
+-- Consumables per role: ids = equivalent alternatives (summed), n = target amount, opt = recommendation only
 local BASE = {
     all = {
         { ids = { 13446, 3928 }, n = 5, label = "Major Healing Potion" },
@@ -140,7 +140,7 @@ local BASE = {
         { ids = { 13511 }, n = 1, label = "Flask of Distilled Wisdom", opt = true },
     },
 }
--- Klassen-Reagenzien
+-- Class reagents
 local REAGENTS = {
     MAGE = { { ids = { 17020 }, n = 20, label = "Arcane Powder" }, { ids = { 17031 }, n = 2, label = "Rune of Teleportation", opt = true } },
     PRIEST = { { ids = { 17029 }, n = 20, label = "Holy Candle" } },
@@ -150,8 +150,8 @@ local REAGENTS = {
     WARLOCK = { { ids = { 6265 }, n = 10, label = "Soul Shard" }, { ids = { 5565 }, n = 1, label = "Infernal Stone", opt = true } },
     ROGUE = { { ids = { 5140 }, n = 10, label = "Flash Powder" }, { ids = { 8928 }, n = 20, label = "Instant Poison VI" } },
 }
--- Raid-Profile: match = Suchworte in Termin-Titel/Instanz; res[schule] = { tank =, other = }
--- keys = Item, das man besitzen muss (Bank zaehlt); gear = Item, das angelegt sein muss
+-- Raid profiles: match = search words in event title/instance; res[school] = { tank =, other = }
+-- keys = item you must own (bank counts); gear = item that must be equipped
 RP.RAIDS = {
     { key = "barrow", name = "Barrow Deeps", size = 10, match = { "barrow", "deeps", "huegelgrab" },
         res = {}, cons = {}, keys = {}, gear = {} },
@@ -169,7 +169,7 @@ RP.RAIDS = {
 }
 RP.byKey = {}
 for _, r in ipairs(RP.RAIDS) do RP.byKey[r.key] = r end
--- Beschriftung je Item (erste ID eines Eintrags) fuer die Anzeige fremder Staende
+-- Label per item (first ID of an entry) for showing others' states
 local LABEL = {}
 local function regLabels(list) for _, e in ipairs(list or {}) do LABEL[e.ids and e.ids[1] or e.id] = e.label end end
 for _, l in pairs(BASE) do regLabels(l) end
@@ -186,7 +186,7 @@ local CASTER = { MAGE = true, WARLOCK = true }
 local HEALER = { PRIEST = true, PALADIN = true, SHAMAN = true, DRUID = true }
 
 ------------------------------------------------------------------------
--- Einstellungen
+-- Settings
 ------------------------------------------------------------------------
 local function S() return ns.db.settings end
 local function shareOn() return S().rpShare ~= false end
@@ -206,7 +206,7 @@ ns.AddPageSettings("raidprep", function(det, y)
 end)
 
 ------------------------------------------------------------------------
--- Termin und Profil
+-- Event and profile
 ------------------------------------------------------------------------
 local function lower(s) return tostring(s or ""):lower() end
 function RP.ProfileFor(ev)
@@ -216,7 +216,7 @@ function RP.ProfileFor(ev)
         for _, m in ipairs(r.match) do if hay:find(m, 1, true) then return r end end
     end
 end
--- naechster Termin: mit eigener Zusage zuerst, sonst der naechste ueberhaupt
+-- next event: with own commitment first, else the next one overall
 function RP.NextEvent()
     local R = ns.Raid
     if not R then return nil end
@@ -232,11 +232,11 @@ function RP.NextEvent()
         end
     end
 end
--- aktives Profil: selbst gewaehlt > aus dem Termin > Onyxia (bekanntester Fall)
+-- active profile: self-chosen > from the event > Onyxia (most common case)
 function RP.CurrentProfile(ev)
     local own = ns.char and ns.char.rpRaid
     if own and RP.byKey[own] then return RP.byKey[own], true end
-    -- Raid-Simulator: Profil des simulierten Raids
+    -- Raid simulator: profile of the simulated raid
     if ns.Sim and ns.Sim.Active() then
         local inst = ns.Group.Instance()
         if inst and inst.key and RP.byKey[inst.key] then return RP.byKey[inst.key], false end
@@ -244,7 +244,7 @@ function RP.CurrentProfile(ev)
     return RP.ProfileFor(ev or RP.NextEvent()) or RP.byKey.onyxia, false
 end
 
--- Anforderungen aendern: Raidleitung (wie Boss-Taktiken)
+-- Change requirements: raid leadership (like boss tactics)
 function RP.CanEditReq()
     if ns.RaidCheck and ns.RaidCheck.CanEdit then return ns.RaidCheck.CanEdit() end
     return ns.Admin and ns.Admin.Can and ns.Admin.Can("raid.tactics.edit") or false
@@ -270,7 +270,7 @@ function RP.MyRole(ev)
 end
 
 ------------------------------------------------------------------------
--- Eigener Stand (nur ausserhalb des Kampfes)
+-- Own state (only out of combat)
 ------------------------------------------------------------------------
 local function count(id, bank)
     local n
@@ -314,7 +314,7 @@ local function durability()
     if n == 0 then return nil end
     return math.floor(low * 100 + 0.5), math.floor(sum / n * 100 + 0.5)
 end
--- Schluessel/Freischaltungen ueber Lockouts.lua (falls vorhanden): liefert Liste fehlender Texte oder nil
+-- Keys/attunements via Lockouts.lua (if present): returns list of missing texts or nil
 local function lockoutMissing(profile)
     local LO = ns.Lockouts
     if type(LO) ~= "table" then return nil end
@@ -364,9 +364,9 @@ end
 RP.lockoutMissing = lockoutMissing
 
 ------------------------------------------------------------------------
--- Anforderungen der Raidleitung je Raid (Sammlung "rpreq", id "req-<raid>"):
---   fireT/fireO = Feuer-Widerstand Tank/andere, off = "id,id" (abgeschaltet), n = "id:n,..." (Sollmenge),
---   add = "id:n:rolle,..." (zusaetzlich, rolle = all/tank/heal/melee/caster)
+-- Raid leadership requirements per raid (collection "rpreq", id "req-<raid>"):
+--   fireT/fireO = fire resistance tank/others, off = "id,id" (disabled), n = "id:n,..." (target amount),
+--   add = "id:n:rolle,..." (additional, rolle = all/tank/heal/melee/caster)
 ------------------------------------------------------------------------
 function RP.Req(key)
     local r = Store.Get("rpreq", "req-" .. tostring(key))
@@ -384,7 +384,7 @@ local function itemLabel(id)
     local n = C_Item and C_Item.GetItemNameByID and ns.safe(C_Item.GetItemNameByID(id))
     return n or ("#" .. id)
 end
--- wirksame Widerstaende eines Profils (Raidleitung kann Feuer anpassen, 0 = aus)
+-- effective resistances of a profile (raid leadership can adjust fire, 0 = off)
 function RP.EffRes(profile)
     if not profile then return {} end
     local rq = RP.Req(profile.key)
@@ -402,14 +402,14 @@ local function needList(profile, role, cls)
     if profile then
         add(profile.cons.all) add(profile.cons[role])
     end
-    -- Raidleitung: zusaetzliche Items fuer diese Rolle
+    -- Raid leadership: additional items for this role
     local rq = profile and RP.Req(profile.key)
     if rq then
         for _, a in ipairs(parseAdd(rq.add)) do
             if a.role == "all" or a.role == role then out[#out + 1] = { ids = { a.id }, n = a.n, label = itemLabel(a.id), lead = true } end
         end
     end
-    -- gleiche Items zusammenfassen (Profil hebt die Sollmenge an)
+    -- merge identical items (profile raises the target amount)
     local merged, byId = {}, {}
     for _, e in ipairs(out) do
         local k = e.ids[1]
@@ -423,7 +423,7 @@ local function needList(profile, role, cls)
             merged[#merged + 1] = m
         end
     end
-    -- Raidleitung: abgeschaltete Items raus, Sollmengen ueberschreiben
+    -- Raid leadership: remove disabled items, override target amounts
     if rq then
         local off, nn = parseSet(rq.off), parseN(rq.n)
         local f = {}
@@ -440,7 +440,7 @@ end
 RP.needList = needList
 
 -- Liefert { light = "g"|"a"|"r", lines = { {text, sev, ok} }, miss = "kodiert", dura, res = {}, role, raid }
--- Kodierung fehlt: i<id>x<n> (Pflicht), o<id>x<n> (optional), r<schule>:<soll>:<ist>, k<id>, g<id>, d<prozent>, l:<text>
+-- Encoding missing: i<id>x<n> (required), o<id>x<n> (optional), r<school>:<target>:<actual>, k<id>, g<id>, d<percent>, l:<text>
 function RP.MyState(profile, role)
     local ev = RP.NextEvent()
     profile = profile or RP.CurrentProfile(ev)
@@ -450,7 +450,7 @@ function RP.MyState(profile, role)
     local worst = 0
     local function sev(s) if s > worst then worst = s end end
     local function line(text, s, ok) st.lines[#st.lines + 1] = { text = text, sev = s, ok = ok } end
-    -- Haltbarkeit
+    -- Durability
     local low, avg = durability()
     st.dura = low
     if low then
@@ -463,7 +463,7 @@ function RP.MyState(profile, role)
         line(L["Durability: not readable"], 0, true)
     end
     if profile then
-        -- Widerstaende
+        -- Resistances
         for school, need in pairs(RP.EffRes(profile)) do
             local want = (role == "tank") and need.tank or need.other
             local have = resistance(school)
@@ -479,7 +479,7 @@ function RP.MyState(profile, role)
                 line((L["%s resistance: %d (goal %d)"]):format(L[RES_NAME[school]], have, want), 0, true)
             end
         end
-        -- Pflicht-Ausruestung
+        -- Required gear
         for _, g in ipairs(profile.gear) do
             local eq = equipped(g.id)
             if eq == false then
@@ -490,7 +490,7 @@ function RP.MyState(profile, role)
                 line((L["%s equipped"]):format(L[g.label]), 0, true)
             end
         end
-        -- Schluessel / Freischaltungen
+        -- Keys / attunements
         local lo = lockoutMissing(profile)
         if lo then
             for _, t in ipairs(lo) do
@@ -512,7 +512,7 @@ function RP.MyState(profile, role)
             line(L["Attunements: no data (lockouts module missing)"], 0, true)
         end
     end
-    -- Verbrauchsgueter in den Taschen
+    -- Consumables in bags
     for _, e in ipairs(needList(profile, role, cls)) do
         local have = 0
         for _, id in ipairs(e.ids) do have = have + count(id, false) end
@@ -522,7 +522,7 @@ function RP.MyState(profile, role)
             st.codes[#st.codes + 1] = ("o%dx%d"):format(e.ids[1], e.n - have)
             line((L["optional: %dx %s"]):format(e.n - have, L[e.label]), 0)
         else
-            -- fehlende Verbrauchsgueter machen die Ampel gelb (rot nur bei Ausruestung/Schluessel/Widerstand)
+            -- missing consumables turn the light yellow (red only for gear/keys/resistance)
             local s = have == 0 and 2 or 1
             sev(1)
             st.codes[#st.codes + 1] = ("i%dx%d"):format(e.ids[1], e.n - have)
@@ -534,7 +534,7 @@ function RP.MyState(profile, role)
     return st
 end
 
--- fremden Stand (Kodierung) lesbar machen
+-- make others' state (encoding) readable
 function RP.FormatCode(code)
     local id, n = code:match("^i(%d+)x(%d+)$")
     if id then return (L["missing: %dx %s"]):format(tonumber(n), L[LABEL[tonumber(id)] or ("#" .. id)]), 1 end
@@ -562,7 +562,7 @@ function RP.FormatMiss(s, withOpt)
 end
 
 ------------------------------------------------------------------------
--- Teilen (gedrosselt) und Empfangen
+-- Share (throttled) and receive
 ------------------------------------------------------------------------
 local lastSent, lastHash, lastReq = 0, nil, 0
 local function myRecord(st, ev)
@@ -593,7 +593,7 @@ Comm.On("RPREP", function(sender, _, s)
     if not s or #s > 4000 then return end
     local rec = Comm.decodeRecord(s)
     if not rec then return end
-    -- Felder entschaerfen/begrenzen, Zeitstempel nicht in der Zukunft
+    -- Sanitize/limit fields, timestamps not in the future
     local n = 0
     for k, v in pairs(rec) do
         n = n + 1
@@ -611,7 +611,7 @@ Comm.On("RPREP", function(sender, _, s)
     Store.merge(COLL, rec, true, sender)
     ns.RefreshPage("raidprep") ns.RefreshPage("raidprepteam")
 end)
--- jemand oeffnet die Ansicht und bittet um aktuelle Staende -> gestreut antworten
+-- someone opens the view and asks for current states -> reply staggered
 Comm.On("RPREQ", function()
     if not shareOn() then return end
     ns.After(math.random(10, 80) / 10, function() RP.Share(false) end)
@@ -622,7 +622,7 @@ function RP.RequestAll()
     Comm.SendEx({ ch = "GUILD", key = "rpreq" }, "RPREQ", "1")
 end
 
--- Takt: am Termintag (bis 24 Std vorher, bis 3 Std nach Beginn) automatisch teilen
+-- Cadence: on event day (up to 24 h before, up to 3 h after start) share automatically
 local toastDay
 local function tick()
     if not shareOn() or ns.inCombat() then return end
@@ -660,11 +660,11 @@ ns.On("UPDATE_INVENTORY_DURABILITY", markDirty)
 ns.On("PLAYER_EQUIPMENT_CHANGED", markDirty)
 
 ------------------------------------------------------------------------
--- Teilnehmer fuer den naechsten Termin
+-- Participants for the next event
 ------------------------------------------------------------------------
 local function demoOn() return ns.Demo and ns.Demo.IsActive() end
 local function simOn() return ns.Sim and ns.Sim.Active() or false end
--- Raid-Simulator: Stand je Sim-Mitglied aus Haltbarkeit, Feuerwiderstand und Buffs (nur angezeigt, nie gespeichert)
+-- Raid simulator: state per sim member from durability, fire resistance and buffs (display only, never saved)
 local SIM_CASTER = { MAGE = true, WARLOCK = true, PRIEST = true, SHAMAN = true, DRUID = true }
 local function simRole(m)
     if m.role == "TANK" then return "tank" end
@@ -761,7 +761,7 @@ function RP.Participants(ev)
 end
 
 ------------------------------------------------------------------------
--- Demo (Wrapper-Muster wie Camp.SeedDemo)
+-- Demo (wrapper pattern like Camp.SeedDemo)
 ------------------------------------------------------------------------
 local DEMO = {
     { "Grukthar", "tank", "g", 92, 168, "" },
@@ -789,7 +789,7 @@ function RP.RemoveDemo()
 end
 
 ------------------------------------------------------------------------
--- Seite (Optik wie Raid-Check: Reiter mit gleitendem Balken, Kacheln, Ampeln; Bausteine ns.RCUI)
+-- Page (look like raid check: tabs with sliding bar, tiles, traffic lights; building blocks ns.RCUI)
 ------------------------------------------------------------------------
 local LIGHT = { g = C.mint, a = C.amber, r = C.red }
 local LIGHT_TEXT = { g = "bereit", a = "fast", r = "fehlt viel" }
@@ -848,7 +848,7 @@ local PREP = {
             K.Toast(L["Raid prep"], L["Request sent to the guild."], C.mint)
         end)
         tm.ask:SetPoint("TOPRIGHT", 0, -34)
-        -- Raidleitung: Anforderungen je Raid festlegen
+        -- Raid leadership: set requirements per raid
         tm.reqBtn = K.Button(tm, L["Requirements"], 150, 26, "ghost", function()
             tm.editing = not tm.editing
             ns.RefreshPage("raidprepteam")
@@ -869,7 +869,7 @@ local PREP = {
         ed.hint = K.Text(ed, 10, C.dim)
         ed.hint:SetPoint("LEFT", ed.title, "RIGHT", 10, -1)
         ed.hint:SetText(L["Check = required  ·  mouse wheel or +/- = amount  ·  applies to the whole guild"])
-        -- Feuer-Widerstand
+        -- Fire resistance
         local function stepper(parent, label, x, y, get, set, step, max)
             local w = CreateFrame("Frame", nil, parent)
             w:SetSize(170, 24)
@@ -896,7 +896,7 @@ local PREP = {
         ed.draft = {}
         ed.fT = stepper(ed, L["Fire res. tank"], 16, -44, function() return ed.draft.fireT or 0 end, function(v) ed.draft.fireT = v end, 5, 315)
         ed.fO = stepper(ed, L["Fire res. others"], 200, -44, function() return ed.draft.fireO or 0 end, function(v) ed.draft.fireO = v end, 5, 315)
-        -- Liste der Verbrauchsgueter (alle Rollen)
+        -- List of consumables (all roles)
         ed.rows = {}
         ed.list = CreateFrame("Frame", nil, ed)
         ed.list:SetPoint("TOPLEFT", 16, -80)
@@ -985,7 +985,7 @@ local PREP = {
             end
             self.more = #items > vis
         end
-        -- Item hinzufuegen (Shift-Klick) + Rolle
+        -- Add item (shift-click) + role
         ed.addBox = K.Input(ed, 220, L["Add item via Shift-click ..."])
         ed.addBox:SetPoint("BOTTOMLEFT", 16, 48)
         if hooksecurefunc and ChatEdit_InsertLink then
@@ -1277,7 +1277,7 @@ local PREP = {
             me.light:SetColor(c)
             me.light.title:SetText(L[st.light == "g" and "All set" or st.light == "a" and "Almost ready" or "Something is missing"])
             me.light.sub:SetText((L["%s as %s"]):format(L[prof.name], L[ROLE_TEXT[st.role] or "?"]))
-            -- fehlende zuerst
+            -- missing first
             local lines, open = {}, 0
             for _, l in ipairs(st.lines) do if not l.ok and l.sev > 0 then lines[#lines + 1] = l open = open + 1 end end
             for _, l in ipairs(st.lines) do if not l.ok and l.sev == 0 then lines[#lines + 1] = l end end
@@ -1295,7 +1295,7 @@ local PREP = {
         end
     end,
 }
--- zwei Seiten aus einem Bauplan: eigene Checkliste (Raids) und Kader der Angemeldeten (Raidleitung)
+-- two pages from one blueprint: own checklist (Raids) and roster of signups (raid leadership)
 local function variant(key, title, sub, order, view)
     local d = {}
     for k, v in pairs(PREP) do d[k] = v end
@@ -1347,7 +1347,7 @@ ns.Probes.prep = ns.Probes.vorbereitung
 -- Start
 ------------------------------------------------------------------------
 ns.Listen("LOGIN", function()
-    -- eigene Aufbewahrung (Sammlung steht nicht in Comm.lua RETENTION): 14 Tage
+    -- own retention (collection is not in Comm.lua RETENTION): 14 days
     local c = Store.coll(COLL)
     local now = ns.now()
     for id, r in pairs(c) do if not r.demo and now - (r.u or 0) > 14 * 86400 then c[id] = nil end end

@@ -1,5 +1,5 @@
--- Leere Systemereignisse erzeugen im Forever-Client echte Chatzeilen.
--- Vor AddMessage filtern, damit auch andere Chatdarstellungen keine Leerzeilen spiegeln.
+-- Empty system events create real chat lines in the Forever client.
+-- Filter before AddMessage so other chat displays don't mirror empty lines either.
 local ADDON, ns = ...
 local issecret = issecretvalue or function() return false end
 local function emptySystem(_, event, text)

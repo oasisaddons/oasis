@@ -1,21 +1,21 @@
--- Oasis: Seltene Gegner - gildenweit geteilte Sichtungen von Rares/Rare-Elites/Weltbossen
---  Quellen: Vignetten (C_VignetteInfo), Namensplaketten, eigenes Ziel; Tod per Kampflog (falls lesbar)
---  oder "Ziel ist tot" nach dem Kampf. Aus den Toden je Gegner: Wiederkehr-Schaetzung (kuerzester/mittlerer Abstand).
---  Geteilt ueber den Store (eigene Sammlungen "rare_seen" + "rare_kills", eigene Nachrichten OARU/OARQ/OARA/OARB,
---  weil Comm.lua nur fest eingetragene Sammlungen annimmt).
+-- Oasis: Rare mobs - guild-wide shared sightings of rares/rare elites/world bosses
+--  Sources: vignettes (C_VignetteInfo), nameplates, own target; death via combat log (if readable)
+--  or "target is dead" after combat. From deaths per mob: respawn estimate (shortest/average interval).
+--  Shared via the store (own collections "rare_seen" + "rare_kills", own messages OARU/OARQ/OARA/OARB,
+--  because Comm.lua only accepts registered collections).
 local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
-ns.ModuleFile("Oasis_Rares", function()   -- Modul Seltene Gegner (abschaltbar, siehe ModuleLoader.lua)
+ns.ModuleFile("Oasis_Rares", function()   -- Module Rare mobs (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
--- Sicherheit beim Empfang (Addon-Nachrichten anderer koennen manipuliert sein):
--- Texte entschaerfen, Zahlen begrenzen, Namen pruefen, Flut drosseln
+-- Security on receipt (others' addon messages may be manipulated):
+-- Sanitize texts, limit numbers, check names, throttle floods
 local SEC = {}
 do
     local function cut(s, max)
         if not max or #s <= max then return s end
         return (s:sub(1, max):gsub("[\192-\255][\128-\191]*$", ""))
     end
-    -- Escape-Sequenzen (|c |r |n |H |T |K |A ...) und Steuerzeichen unschaedlich; links: gueltige Item-/Zauberlinks bleiben
+    -- Neutralize escape sequences (|c |r |n |H |T |K |A ...) and control chars; links: valid item/spell links stay
     function SEC.Text(s, max, links)
         if s == nil then return "" end
         s = tostring(s):gsub("[%z\1-\31\127]", " ")
@@ -71,20 +71,20 @@ local KEEP = { [SEEN] = 30 * 86400, [KILLS] = 120 * 86400 }
 local SKULL = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull"
 local CLS_TAG = { worldboss = "World boss", rareelite = "Rare elite", rare = "Rare", elite = "Elite" }
 local CLS_COLOR = { worldboss = "|cffff5060", rareelite = "|cffe8b44a", rare = "|cffc8c8ff", elite = "|cffff8a3d" }
-local FRESH = 300            -- so lange gilt eine Sichtung als "frisch" (Hinweis)
-local ALIVE_FOR = 20 * 60    -- so lange zeigen wir "lebt" nach der letzten Sichtung
-local RESEND = 300           -- gleicher Gegner, gleicher Zustand: hoechstens alle 5 Min neu senden
+local FRESH = 300            -- this long a sighting counts as "fresh" (hint)
+local ALIVE_FOR = 20 * 60    -- this long we show "alive" after the last sighting
+local RESEND = 300           -- same mob, same state: resend at most every 5 min
 local KILL_BUCKET = 600      -- Tode innerhalb 10 Min = derselbe Tod
 
 local state = {
     sent = {},        -- key -> { t, st } zuletzt von mir gesendet
-    guids = {},       -- GUID -> key (diese Sitzung gesehen, fuer den Tod per Kampflog)
-    toastAt = {},     -- key -> Zeit des letzten Hinweises
+    guids = {},       -- GUID -> key (seen this session, for death via combat log)
+    toastAt = {},     -- key -> time of the last hint
     toastAll = 0,
     targetGUID = nil, targetKey = nil,
     vigAt = 0,
     quiet = false,
-    sources = {},     -- Diagnose: welche Quelle hat zuletzt etwas geliefert
+    sources = {},     -- Diagnostics: which source delivered something last
 }
 Rares.state = state
 
@@ -93,7 +93,7 @@ local function opt(key) local v = S()[key] if v == nil then return true end retu
 local function demoOn() return ns.Demo and ns.Demo.IsActive and ns.Demo.IsActive() end
 
 ------------------------------------------------------------------------
--- Probe-Befehl /oa probe <thema> (gemeinsamer Verteiler, auch fuer andere Module)
+-- Probe command /oa probe <topic> (shared dispatcher, also for other modules)
 ------------------------------------------------------------------------
 ns.probes = ns.probes or {}
 local function installProbe()
@@ -127,10 +127,10 @@ end
 installProbe()
 
 ------------------------------------------------------------------------
--- Eigene Store-Anbindung (Senden, Empfangen, Abgleich fuer spaeter Eingeloggte)
+-- Own store binding (send, receive, sync for later logins)
 ------------------------------------------------------------------------
 local function isDemoRec(r) return r.demo or tostring(r.id):find("demo-", 1, true) end
--- Anzeige-Hilfsfelder ("_zone" ...) nie mitsenden
+-- Never send display helper fields ("_zone" ...)
 local function clean(r)
     local c = {}
     for k, v in pairs(r) do if type(k) == "string" and k:sub(1, 1) ~= "_" then c[k] = v end end
@@ -146,11 +146,11 @@ local function put(coll, rec)
 end
 Rares.put = put
 
--- Empfang pruefen: gemeinsame Sichtungen (jeder darf melden), aber Felder begrenzen, Texte entschaerfen,
--- Zeitstempel nicht in der Zukunft, Koordinaten im Kartenbereich, Sammlung begrenzt
+-- Check receipt: shared sightings (anyone may report), but limit fields, sanitize texts,
+-- Timestamps not in the future, coordinates within map area, collection limited
 local function netOk(coll, rec, sender)
     if type(rec) ~= "table" or type(rec.id) ~= "string" or #rec.id > 80 or isDemoRec(rec) then return false end
-    if sender and Comm.FromGuild and not Comm.FromGuild(sender) then return false end   -- nur Gildenmitglieder
+    if sender and Comm.FromGuild and not Comm.FromGuild(sender) then return false end   -- guild members only
     rec.demo, rec.sim = nil, nil
     rec.u = math.min(tonumber(rec.u) or 0, ns.now() + 300)
     if rec.ts then rec.ts = math.min(tonumber(rec.ts) or 0, ns.now() + 300) end
@@ -160,7 +160,7 @@ local function netOk(coll, rec, sender)
     end
     for _, k in ipairs({ "x", "y" }) do
         local v = tonumber(rec[k])
-        if v and (v < 0 or v > 10000) then rec[k] = 0 end   -- gespeichert als 0..10000
+        if v and (v < 0 or v > 10000) then rec[k] = 0 end   -- stored as 0..10000
     end
     local c = Store.coll(coll)
     if not c[rec.id] then
@@ -191,7 +191,7 @@ end)
 local pendingAnswer = {}
 Comm.On("OARQ", function(sender, channel, grp, since)
     if grp ~= GROUP or pendingAnswer[sender] then return end
-    if not SEC.Rate("oarq:" .. sender, 60) then return end   -- keine Fluester-Flut auf Zuruf
+    if not SEC.Rate("oarq:" .. sender, 60) then return end   -- no whisper flood on request
     since = tonumber(since) or 0
     pendingAnswer[sender] = true
     ns.After(math.random(20, 90) / 10, function()
@@ -231,7 +231,7 @@ local function prune()
 end
 
 ------------------------------------------------------------------------
--- Hilfen: Position, Einheit -> Gegner
+-- Helpers: position, unit -> mob
 ------------------------------------------------------------------------
 local function myPos()
     if not (C_Map and C_Map.GetBestMapForUnit) then return nil end
@@ -266,7 +266,7 @@ local function wanted(cls)
     return false
 end
 
--- Fraktionsanfuehrer/Stadt-NPCs: WoW stuft sie als "worldboss" ein, sind aber keine Weltbosse (0.5.535)
+-- Faction leaders/city NPCs: WoW classifies them as "worldboss", but they are not world bosses (0.5.535)
 local NOT_BOSS = {}
 for _, n in ipairs({ "Thrall", "Vol'jin", "Cairne Bloodhoof", "Cairne Bloodhoof", "Sylvanas Windlaeufer", "Sylvanas Windläufer",
     "Sylvanas Windrunner", "Lor'themar Theron", "Magni Bronzebart", "Magni Bronzebeard", "Bolvar Fordragon", "Tyrande Wisperwind",
@@ -274,11 +274,11 @@ for _, n in ipairs({ "Thrall", "Vol'jin", "Cairne Bloodhoof", "Cairne Bloodhoof"
     "König Varian Wrynn", "King Varian Wrynn", "Prophet Velen", "Lady Katrana Prestor", "Rexxar", "Baine Bluthuf", "Baine Bloodhoof",
     "Varimathras", "Jaina Prachtmeer", "Jaina Proudmoore", "Fandral Hirschhaupt", "Fandral Staghelm" }) do NOT_BOSS[n:lower()] = true end
 function Rares.NotBoss(name) return NOT_BOSS[tostring(name or ""):lower()] == true end
--- Einheit pruefen: { key, npc, name, cls, guid, dead } oder nil
+-- Check unit: { key, npc, name, cls, guid, dead } or nil
 local function unitInfo(unit)
     if not UnitExists(unit) then return nil end
     if ns.safe(UnitIsPlayer(unit)) then return nil end
-    -- nur angreifbare Gegner (freundliche Anfuehrer wie Thrall sind fuer WoW auch "worldboss")
+    -- only attackable mobs (friendly leaders like Thrall are "worldboss" to WoW too)
     if UnitCanAttack and ns.safe(UnitCanAttack("player", unit)) == false then return nil end
     if UnitPlayerControlled and ns.safe(UnitPlayerControlled(unit)) then return nil end
     local cls = ns.safe(UnitClassification and UnitClassification(unit))
@@ -292,11 +292,11 @@ local function unitInfo(unit)
 end
 
 ------------------------------------------------------------------------
--- Sichtung / Tod melden
+-- Report sighting / death
 ------------------------------------------------------------------------
 function Rares.Get(key) local r = Store.Get(SEEN, "rs-" .. key) if r and not r.del then return r end end
 
--- info: { key, npc, name, cls }, map/x/y optional (sonst eigene Position), src = Quelle
+-- info: { key, npc, name, cls }, map/x/y optional (else own position), src = source
 function Rares.Sight(info, map, x, y, src, dead)
     if not info or not info.key or ns.inInstance() then return end
     if not map then map, x, y = myPos() end
@@ -306,7 +306,7 @@ function Rares.Sight(info, map, x, y, src, dead)
     local now = ns.now()
     local last = state.sent[info.key]
     local old = Rares.Get(info.key)
-    -- gedrosselt: gleicher Zustand kurz hintereinander nicht nochmal
+    -- throttled: same state in quick succession not again
     if last and last.st == st and now - last.t < RESEND then return end
     if not dead and old and old.st == "a" and now - (old.ts or 0) < RESEND / 2 and old.by ~= ns.me() then return end
     state.sent[info.key] = { t = now, st = st }
@@ -333,7 +333,7 @@ end
 
 function Rares.Kill(info, map, ts)
     ts = ts or ns.now()
-    -- schon ein Tod in den letzten 10 Min (von irgendwem)?
+    -- already a death in the last 10 min (by anyone)?
     for _, k in ipairs(Store.List(KILLS, function(r) return r.key == info.key end)) do
         if math.abs((k.ts or 0) - ts) < KILL_BUCKET then return end
     end
@@ -342,7 +342,7 @@ function Rares.Kill(info, map, ts)
 end
 
 ------------------------------------------------------------------------
--- Wiederkehr-Schaetzung aus den Toden
+-- Respawn estimate from deaths
 ------------------------------------------------------------------------
 function Rares.Respawn(key)
     local ts = {}
@@ -372,7 +372,7 @@ local function dur(sec)
 end
 Rares.dur = dur
 
--- Text fuer "naechstes Erscheinen"; zweiter Wert: sortierbare Zeit (nil = unbekannt)
+-- Text for "next spawn"; second value: sortable time (nil = unknown)
 function Rares.NextText(rec)
     local now = ns.now()
     if rec.st == "a" and now - (rec.ts or 0) < ALIVE_FOR then return "|cff66db9e" .. L["alive now"] .. "|r", now end
@@ -387,9 +387,9 @@ function Rares.NextText(rec)
 end
 
 ------------------------------------------------------------------------
--- Quellen
+-- Sources
 ------------------------------------------------------------------------
--- auf dem Flugmeister-Flug nichts melden: man kann dort weder anhalten noch angreifen
+-- report nothing on a flight master flight: you can neither stop nor attack there
 local function flying()
     return opt("rareFlyQuiet") and UnitOnTaxi and ns.safe(UnitOnTaxi("player")) == true
 end
@@ -402,12 +402,12 @@ local function checkUnit(unit, src)
     return info
 end
 
--- Ziel
+-- Target
 ns.On("PLAYER_TARGET_CHANGED", function()
     local info = checkUnit("target", "t")
     if info and not info.dead then state.targetGUID, state.targetKey = info.guid, info else state.targetGUID, state.targetKey = nil, nil end
 end)
--- Ziel tot? (Rueckfall, wenn das Kampflog nicht lesbar ist) - billig, nur solange ein Rare im Ziel ist
+-- Target dead? (fallback when the combat log isn't readable) - cheap, only while a rare is targeted
 local function checkTargetDead()
     if not state.targetKey then return end
     if not UnitExists("target") then return end
@@ -422,17 +422,17 @@ end
 ns.On("PLAYER_REGEN_ENABLED", function() ns.After(0.5, checkTargetDead) end)
 ns.On("UNIT_HEALTH", function(unit) if unit == "target" and state.targetKey and not ns.inCombat() then checkTargetDead() end end)
 
--- Namensplaketten
+-- Name plates
 ns.On("NAME_PLATE_UNIT_ADDED", function(unit)
     unit = ns.safe(unit)
     if unit then checkUnit(unit, "n") end
 end)
 
 -- Kampflog (in Midnight ggf. gesperrt/geheim -> still ignorieren)
--- Kampflog NICHT anmelden: COMBAT_LOG_EVENT_UNFILTERED ist in Forever/Midnight fuer Addons verboten
--- (RegisterEvent loest 'Oasis wurde geblockt' aus).
+-- Do NOT register combat log: COMBAT_LOG_EVENT_UNFILTERED is forbidden for addons in Forever/Midnight
+-- (RegisterEvent triggers 'Oasis was blocked').
 
--- Vignetten (Totenkopf/Stern auf der Minimap)
+-- Vignettes (skull/star on the minimap)
 local function vignetteInfo(vguid)
     local V = C_VignetteInfo
     if not (V and V.GetVignetteInfo) then return nil end
@@ -474,7 +474,7 @@ ns.On("VIGNETTE_MINIMAP_UPDATED", function() ns.After(0.3, function() Rares.Scan
 ns.On("VIGNETTES_UPDATED", function() ns.After(0.3, function() Rares.ScanVignettes() end) end)
 
 ------------------------------------------------------------------------
--- Liste fuer die Seite
+-- List for the page
 ------------------------------------------------------------------------
 function Rares.List(filter)
     local demo = demoOn()
@@ -490,7 +490,7 @@ end
 local function clsText(cls) return (CLS_COLOR[cls] or "|cffc8c8c8") .. L[CLS_TAG[cls] or "Rare"] .. "|r" end
 Rares.clsText = clsText
 
--- Weltkarte: Ziel setzen (oeffentliche API von Map.lua)
+-- World map: set target (public API of Map.lua)
 function Rares.ShowOnMap(rec)
     if type(rec) == "string" then rec = Rares.Get(rec) end
     if not rec or not rec.map then return end
@@ -503,14 +503,14 @@ function Rares.ShowOnMap(rec)
 end
 
 ------------------------------------------------------------------------
--- Hinweis bei frischer Sichtung im eigenen Gebiet (gedrosselt)
+-- Notice on fresh sighting in own zone (throttled)
 ------------------------------------------------------------------------
 ns.Listen("STORE", function(coll, rec, old)
     if coll ~= SEEN and coll ~= KILLS then return end
     ns.RefreshPage("rares")
     if coll ~= SEEN or state.quiet or ns.demoLoading or rec.demo or rec.del then return end
     if not opt("rareToast") or ns.isMe(rec.by) or rec.st ~= "a" then return end
-    if opt("rareFlyQuiet") and UnitOnTaxi and ns.safe(UnitOnTaxi("player")) == true then return end   -- auf dem Flug nicht stoeren
+    if opt("rareFlyQuiet") and UnitOnTaxi and ns.safe(UnitOnTaxi("player")) == true then return end   -- don't disturb during flight
     local now = ns.now()
     if now - (rec.ts or 0) > FRESH then return end
     if old and old.st == "a" and now - (old.ts or 0) < 1800 then return end
@@ -524,7 +524,7 @@ ns.Listen("STORE", function(coll, rec, old)
 end)
 
 ------------------------------------------------------------------------
--- Weltkarten-Punkte (Muster wie GatherMap: haengt an Map.UpdateWorldPins)
+-- World map pins (pattern like GatherMap: hooks Map.UpdateWorldPins)
 ------------------------------------------------------------------------
 local wPool, wUsed = {}, 0
 local function wPin(canvas)
@@ -535,7 +535,7 @@ local function wPin(canvas)
         p:SetSize(16, 16)
         p.icon = p:CreateTexture(nil, "ARTWORK")
         p.icon:SetAllPoints()
-        p.lbl = K.Text(p, 10, C.text)   -- 0.5.934: "vor 40 Min" neben dem Totenkopf
+        p.lbl = K.Text(p, 10, C.text)   -- 0.5.934: "40 min ago" next to the skull
         p.lbl:SetPoint("LEFT", p, "RIGHT", 2, 0)
         p.lbl:SetShadowOffset(1, -1)
         p:EnableMouse(true)
@@ -585,10 +585,10 @@ function Rares.DrawWorld()
 end
 
 ------------------------------------------------------------------------
--- Demo-Daten (nur lokal)
+-- Demo data (local only)
 ------------------------------------------------------------------------
 local DEMO = {
-    -- npc, Name, Klasse, mapID, x, y, Gebiet, Finder, gesehen vor (Min), Zustand, Tode vor (Std)
+    -- npc, name, class, mapID, x, y, zone, finder, seen ago (min), state, deaths ago (h)
     { 990501, "Grimfur the Elder", "rare", 1413, 0.42, 0.33, "The Barrens", "Hoknar", 3, "a", { 30, 22, 13.5, 6 } },
     { 990502, "Stormwing", "rareelite", 1413, 0.61, 0.52, "The Barrens", "Tavira", 95, "d", { 1.6, 9.1, 17.0 } },
     { 990503, "Clawmother Ishka", "rare", 1411, 0.38, 0.22, "Durotar", "Grukthar", 420, "d", { 7, 15, 26, 33 } },
@@ -615,7 +615,7 @@ end
 function Rares.RemoveDemo() ns.RefreshPage("rares") end
 
 ------------------------------------------------------------------------
--- Probe: was liefern die Schnittstellen im Spiel?
+-- Probe: what do the in-game interfaces deliver?
 ------------------------------------------------------------------------
 ns.probes.rares = function()
     local function has(t, f) return (t and t[f]) and "ja" or "NEIN" end
@@ -669,7 +669,7 @@ ns.probes.rares = function()
 end
 
 ------------------------------------------------------------------------
--- Einstellungen (Zahnrad der Seite)
+-- Settings (page gear)
 ------------------------------------------------------------------------
 if ns.AddPageSettings then
     ns.AddPageSettings("rares", function(det, y)
@@ -702,12 +702,12 @@ if ns.AddPageSettings then
 end
 
 ------------------------------------------------------------------------
--- Seite
+-- Page
 ------------------------------------------------------------------------
 local view, onlyZone, search = "recent", false, ""
 
 local function rowsFor(list)
-    -- nach Gebiet gruppieren, darin nach letzter Sichtung
+    -- group by zone, within that by last sighting
     table.sort(list, function(a, b)
         if a._zone ~= b._zone then return a._zone < b._zone end
         return (a.ts or 0) > (b.ts or 0)
@@ -759,7 +759,7 @@ ns.RegisterPage({
         p:HookScript("OnShow", function(self) self.fresh = true end)
         p.fresh = true
 
-        p.list = K.List(p, 50, function(l)   -- 0.6.451: Zeilen als ruhige Karten mit mehr Luft
+        p.list = K.List(p, 50, function(l)   -- 0.6.451: rows as calm cards with more air
             local r = K.Row(l)
             if r.stripe then r.stripe:SetAlpha(0) end
             r.card = r:CreateTexture(nil, "BACKGROUND", nil, -1)
@@ -903,7 +903,7 @@ ns.RegisterPage({
     end,
 })
 
--- Navigation: in die Gruppe "Zusammen spielen", gleich hinter Dungeons
+-- Navigation: in the "Play together" group, right after Dungeons
 do
     local groups = ns.NAV_GROUPS
     if groups then
@@ -949,8 +949,8 @@ ns.Listen("STORE", function(coll)
 end)
 
 ------------------------------------------------------------------------
--- Minimap (0.5.934): Sichtungen der letzten 7 Tage im eigenen Gebiet als kleiner Totenkopf.
--- Rechnung und Zustand kommen aus GatherMap (GM.MiniCtx / GM.MiniPlace).
+-- Minimap (0.5.934): sightings of the last 7 days in own zone as a small skull.
+-- Math and state come from GatherMap (GM.MiniCtx / GM.MiniPlace).
 ------------------------------------------------------------------------
 local mPool, mUsed, mList, mAt, mMap = {}, 0, {}, 0, nil
 function Rares.DrawMinimap()
