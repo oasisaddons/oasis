@@ -15,8 +15,8 @@ local MAX_SHEEP = 40          -- more models cost too much performance
 local ART = "Interface\\AddOns\\Oasis\\Media\\art\\weide_bg"   -- image only in the guild module
 -- walking area (feet), fraction of the meadow height from the top. 0.6.579: the grass in the picture starts at ~41 %;
 -- before, the animals walked up to 34 % (tiny, at the tree line, names floating without a visible animal)
-local MEADOW_TOP, MEADOW_BOTTOM = 0.47, 0.88
-local SHADOW = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"   -- soft round mask, tinted black = ground shadow
+local MEADOW_TOP, MEADOW_BOTTOM = 0.52, 0.88   -- 0.6.582: the back row stood at the tree line
+local SHADOW = "Interface\\AddOns\\Oasis\\Media\\art\\shadow"   -- 0.6.582: own soft shadow (radial gradient) - the Blizzard mask had a hard edge
 
 -- Skins: light color on the sheep model. lvl = from Oasis rank
 Weide.SKINS = {
@@ -49,14 +49,45 @@ local FBY = {}
 for _, f in ipairs(Weide.FORMS) do FBY[f.key] = f end
 
 local function myRank() return ns.Rank and ns.Rank.Mine and ns.Rank.Mine().level or 1 end
+-- 0.6.583: simulation for big guilds (/oa schafsim [n], /oa schafsim aus) - fake animals only on this PC, nothing is sent
+Weide.sim = nil
+local simRec = {}
+local function simIdx(name) return Weide.sim and type(name) == "string" and tonumber(name:match("^Sim(%d+)%-Sim$")) end
+function Weide.IsSim(name) return simIdx(name) ~= nil end
+local function simLvl(i) return 1 + (i * 37) % 100 end
+local function simCare(i)
+    local r = simRec[i]
+    if r then return r end
+    local now = ns.now()
+    local roll = (i * 7919) % 100   -- deterministic mix: most happy, some hungry, a few neglected
+    local age = roll < 70 and (i * 977) % 30000 or (roll < 92 and 40000 + (i * 331) % 40000 or 200000 + (i * 113) % 300000)
+    r = { f = now - age, j = now - age * 0.6, c = now - age * 1.2, sd = date("%Y-%m-%d", now - (roll < 80 and 0 or 86400)),
+        sn = (i * 13) % 40, tc = (i * 29) % 400, skin = Weide.SKINS[1 + i % #Weide.SKINS].key, form = (i % 4 == 0) and "sheep" or nil }
+    if not r.form then
+        local f = Weide.FORMS[1 + (i * 7) % #Weide.FORMS]
+        r.form = (simLvl(i) >= f.lvl) and f.key or "sheep"
+    end
+    simRec[i] = r
+    return r
+end
+function Weide.Simulate(n)
+    simRec = {}
+    Weide.sim = (n and n > 0) and math.min(100, n) or nil
+    if ns.RefreshPage then ns.RefreshPage("pasture", true) end
+    if Weide.sim and ns.ShowPage then ns.ShowPage("pasture") end
+end
 local function rankOf(name)
+    local si = simIdx(name)
+    if si then return simLvl(si) end
     if ns.isMe(name) then return myRank() end
     return (ns.Rank and ns.Rank.Of and ns.Rank.Of(name)) or 1
 end
 -- a member's skin - only if their rank allows it (otherwise white)
 function Weide.SkinOf(name, lvl)
     local key
-    if ns.isMe(name) then key = ns.db.settings.sheepSkin
+    local si = simIdx(name)
+    if si then key = simCare(si).skin
+    elseif ns.isMe(name) then key = ns.db.settings.sheepSkin
     else local r = Store.Get("sheep", "shp-" .. ns.NameKey(name)) key = r and r.skin end
     local s = BY[key or ""]
     if not s or (lvl or 1) < s.lvl then return BY.white end
@@ -64,7 +95,9 @@ function Weide.SkinOf(name, lvl)
 end
 function Weide.FormOf(name, lvl)
     local key
-    if ns.isMe(name) then key = ns.db.settings.sheepForm
+    local si = simIdx(name)
+    if si then key = simCare(si).form
+    elseif ns.isMe(name) then key = ns.db.settings.sheepForm
     else local r = Store.Get("sheep", "shp-" .. ns.NameKey(name)) key = r and r.form end
     local f = FBY[key or ""]
     if not f or (lvl or 1) < f.lvl then return FBY.sheep end
@@ -92,6 +125,8 @@ Weide.NEEDS = {
     { key = "c", text = "Groomed", act = "Brush", span = 48 * 3600, cd = 8 * 3600, say = "I am all scruffy!" },
 }
 local function careRec(name)
+    local si = simIdx(name)
+    if si then return simCare(si) end
     if ns.isMe(name) then ns.db.settings.gildotchi = ns.db.settings.gildotchi or {} return ns.db.settings.gildotchi end
     local r = Store.Get("sheep", "shp-" .. ns.NameKey(name))
     return r or {}
@@ -135,7 +170,7 @@ Weide.REACTS = {
 local lastReact = {}
 function Weide.React(name, idx)
     local r = Weide.REACTS[idx]
-    if not r or not name or ns.isMe(name) or not IsInGuild() then return false end
+    if not r or not name or ns.isMe(name) or not IsInGuild() or Weide.IsSim(name) then return false end
     local key = ns.NameKey(name)
     if (lastReact[key] or 0) > ns.now() - 600 then return false end   -- at most every 10 minutes per animal
     lastReact[key] = ns.now()
@@ -318,7 +353,7 @@ function Weide.Gifts(name)
 end
 -- feed someone else's animal: once a day per animal
 function Weide.FeedOther(name)
-    if not name or ns.isMe(name) or not IsInGuild() then return false end
+    if not name or ns.isMe(name) or not IsInGuild() or Weide.IsSim(name) then return false end
     local id = "gf-" .. ns.NameKey(ns.me()) .. "-" .. ns.NameKey(name) .. "-" .. today()
     if Store.Get("gfeed", id) then return false, "today" end
     Store.Put("gfeed", { id = id, target = ns.NameKey(name), by = ns.me(), ts = ns.now(), gift = math.random(#Weide.GIFTS) })
@@ -339,6 +374,15 @@ end
 function Weide.Flock()
     local out = {}
     Weide.away = {}
+    if Weide.sim then
+        out[1] = { name = ns.me(), lvl = myRank(), online = true }
+        for i = 1, Weide.sim - 1 do
+            local nm = "Sim" .. i .. "-Sim"
+            out[#out + 1] = { name = nm, lvl = simLvl(i), online = i % 3 ~= 0, away = Weide.IsAway(nm) }
+        end
+        table.sort(out, function(a, b) if a.lvl ~= b.lvl then return a.lvl > b.lvl end return a.name < b.name end)
+        return out
+    end
     for _, m in ipairs(ns.Radar and ns.Radar.roster or {}) do
         local p = ns.db.members and ns.db.members[m.name]
         local isAlt = ns.Alts and ns.Alts.IsAlt and ns.Alts.IsAlt(m.name)
@@ -426,6 +470,7 @@ local function newSheep(field)
         pcall(self.SetPosition, self, 0, 0, 0)
         if self.skin then light(self, self.skin, 1, 1, 1) end
         self.anim = nil
+        if self.sleeping then pcall(self.SetRoll, self, math.pi) pcall(self.SetPaused, self, true) end   -- 0.6.582: stays on its back after reloading
     end)
     m:SetScript("OnEnter", function(self)
         if not self.who then return end
@@ -493,7 +538,7 @@ local function newSheep(field)
     -- 0.6.579: soft ground shadow (on the meadow, below every model) - the animals stand on the grass instead of floating
     m.shadow = field:CreateTexture(nil, "ARTWORK")
     m.shadow:SetTexture(SHADOW)
-    m.shadow:SetVertexColor(0, 0, 0, 0.32)
+    m.shadow:SetVertexColor(1, 1, 1, 1)
     m.shadow:Hide()
     -- 0.6.579: little hearts rise when the animal is cared for or fed
     m.hearts = {}
@@ -526,7 +571,20 @@ function Weide.Maeh()
         pcall(PlaySoundFile, dir .. lv .. ".ogg", "Master")
     end
 end
-local ANIM_SLEEP = 100   -- creature "sleep" animation (lying, eyes closed); models without it simply stand
+-- 0.6.582: sleeping = lying on its back as a still picture (rolled over, animation paused) - works for every model,
+-- the creature sleep animation did not exist for all of them
+local function setSleep(m, on)
+    if (m.sleeping or false) == (on or false) then return end
+    m.sleeping = on or nil
+    if on then
+        if m.anim ~= 0 then m.anim = 0 pcall(m.SetAnimation, m, 0) end
+        pcall(m.SetRoll, m, math.pi)
+        pcall(m.SetPaused, m, true)
+    else
+        pcall(m.SetRoll, m, 0)
+        pcall(m.SetPaused, m, false)
+    end
+end
 local function setAnim(m, id)
     if m.anim ~= id then m.anim = id pcall(m.SetAnimation, m, id) end
 end
@@ -608,7 +666,7 @@ ns.RegisterPage({
         -- Meadow
         local field = CreateFrame("Frame", nil, p)
         field:SetPoint("TOPLEFT", 4, -4)   -- room for the frame
-        field:SetPoint("BOTTOMRIGHT", -(LIST_W + 24), 46)
+        field:SetPoint("BOTTOMRIGHT", -(LIST_W + 24), 76)   -- 0.6.582: two rows below the meadow
         -- no SetClipsChildren: 3D models are not drawn in clipped frames (0.6.540)
         p.field = field
         field.bg = field:CreateTexture(nil, "BACKGROUND")
@@ -756,8 +814,9 @@ ns.RegisterPage({
                 if s:IsShown() and s.who then
                     if s.lying then
                         -- 0.6.548: totally neglected - lies in the grass; 0.6.579: asleep instead of the death pose
-                        setAnim(s, ANIM_SLEEP)
+                        setSleep(s, true)
                         s.sayIn = (s.sayIn or 10) - dt
+                    elseif s.sleeping and setSleep(s, false) then
                     elseif s.duel and s.duel.phase ~= "walk" then
                         setAnim(s, 0)
                     elseif s.wait then
@@ -827,9 +886,10 @@ ns.RegisterPage({
                     s:SetPoint("BOTTOMLEFT", self, "TOPLEFT", s.x * (W - size), -feet - size * 0.08)   -- bottom edge = feet (small margin in the model)
                     -- 0.6.579: ground shadow under the feet, name right above the head (the model fills only the lower part of its square)
                     s.shadow:ClearAllPoints()
-                    s.shadow:SetPoint("CENTER", self, "TOPLEFT", s.x * (W - size) + size * 0.5, -feet + size * 0.01)
-                    s.shadow:SetSize(size * (s.lying and 0.62 or 0.5), size * 0.12)
-                    s.shadow:SetAlpha(0.6 + 0.4 * s.y)
+                    -- 0.6.582: the feet sit a bit above the bottom edge of the model square - shadow higher, smaller, softer
+                    s.shadow:SetPoint("CENTER", self, "TOPLEFT", s.x * (W - size) + size * 0.5, -feet + size * 0.1)
+                    s.shadow:SetSize(size * (s.lying and 0.6 or 0.5), size * 0.14)
+                    s.shadow:SetAlpha(0.35 + 0.2 * s.y)
                     s.shadow:Show()
                     if math.abs((s.nameOff or 0) - size) > 2 then
                         s.nameOff = size
@@ -1148,18 +1208,19 @@ ns.RegisterPage({
         bar.afk = K.Toggle(bar, L["As AFK screen"], function() return ns.db.settings.gotchiAfk == true end,
             function(v) ns.db.settings.gotchiAfk = v and true or nil end)
         bar.afk:SetWidth(190)
-        bar.afk:SetPoint("RIGHT", bar, "RIGHT", 0, -2)
         bar.snd = K.Toggle(bar, L["Baa sounds"], function() return ns.db.settings.gotchiSound ~= false end,
             function(v) if v then ns.db.settings.gotchiSound = nil else ns.db.settings.gotchiSound = false end end)
         bar.snd:SetWidth(170)
-        bar.snd:SetPoint("RIGHT", bar.afk, "LEFT", -12, 0)
         -- 0.6.579: time of day on the meadow (local clock)
         bar.day = K.Toggle(bar, L["Day, night & seasons"], function() return ns.db.settings.gotchiDayNight ~= false end,
             function(v) if v then ns.db.settings.gotchiDayNight = nil else ns.db.settings.gotchiDayNight = false end field.skyT = 99 end)
-        bar.day:SetWidth(160)
-        bar.day:SetPoint("RIGHT", bar.snd, "LEFT", -12, 0)
+        bar.day:SetWidth(230)
+        -- 0.6.582: second row below the buttons (in one row they covered the buttons)
+        bar.day:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 0, -6)
+        bar.snd:SetPoint("LEFT", bar.day, "RIGHT", 16, 0)
+        bar.afk:SetPoint("LEFT", bar.snd, "RIGHT", 16, 0)
         -- 0.6.556: text "Look" ends before the toggles (was underneath)
-        bar.cur:SetPoint("RIGHT", bar.day, "LEFT", -12, 0)
+        bar.cur:SetPoint("RIGHT", bar, "RIGHT", 0, 0)
         bar.cur:SetJustifyH("LEFT") bar.cur:SetWordWrap(false)
 
         local pick = CreateFrame("Frame", nil, p)
@@ -1385,7 +1446,7 @@ ns.RegisterPage({
             for id in pairs(ns.db.settings.gotchiSeen) do if not live[id] then ns.db.settings.gotchiSeen[id] = nil end end
         end
         -- assign sheep (known ones keep their spot)
-        local n = math.min(#flock, MAX_SHEEP)
+        local n = math.min(#flock, Weide.sim and 100 or MAX_SHEEP)   -- 0.6.583: the simulation may show up to 100
         for i = 1, n do
             local s = field.sheep[i]
             if not s then
@@ -1523,6 +1584,17 @@ ns.RegisterPage({
 })
 ns.Listen("STORE", function(name) if name == "sheep" then ns.RefreshPage("pasture") end end)
 ns.slash.weide = function() ns.ShowPage("pasture") end
+-- 0.6.583: /oa schafsim [n] - fake flock of n animals (default 100) to see a big guild; /oa schafsim aus - back to the real one
+ns.slash.schafsim = function(arg)
+    arg = (arg or ""):lower()
+    if arg == "aus" or arg == "off" or arg == "0" then
+        Weide.Simulate(nil)
+        ns.print(L["Guildotchi: simulation off."])
+    else
+        Weide.Simulate(tonumber(arg) or 100)
+        ns.print((L["Guildotchi: simulating %d animals (only on this PC). Off: /oa schafsim off"]):format(Weide.sim))
+    end
+end
 ns.slash.gildotchi = ns.slash.weide
 
 -- 0.6.545: AFK screen - own meadow in fullscreen while you are AFK (never in combat).
