@@ -163,13 +163,13 @@ local function hint(src, id)
     local t = {}
     if src.bag then
         local n = ns.Wants and ns.Wants.Count(id) or 0
-        t[#t + 1] = "|cff66db9e" .. (n > 0 and ((L["Du hast %d"]):format(n)) or L["Taschen"]) .. "|r"
+        t[#t + 1] = "|cff66db9e" .. (n > 0 and ((L["You have %d"]):format(n)) or L["bags"]) .. "|r"
     end
     if src.bank then
         local n = ns.GuildBank and ns.GuildBank.Count(id) or 0
         t[#t + 1] = "|cffb4a8ff" .. (L["Bank %d"]):format(n) .. "|r"
     end
-    if src.craft then t[#t + 1] = "|cff6099ff" .. L["herstellbar"] .. "|r" end
+    if src.craft then t[#t + 1] = "|cff6099ff" .. L["craftable"] .. "|r" end
     if #t == 0 and src.dungeon then t[#t + 1] = "|cff888888" .. L["Dungeon"] .. "|r" end
     if #t == 0 and src.ah then t[#t + 1] = "|cff888888" .. L["AH"] .. "|r" end
     return table.concat(t, "  ")

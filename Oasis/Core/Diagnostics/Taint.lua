@@ -11,25 +11,25 @@ local KEEP = 30
 
 -- bekannte Ausloeser: Funktion -> Erklaerung (Sprach-Schluessel)
 local WHY = {
-    UNKNOWN = "Die geschuetzte Funktion wurde blockiert. Der genaue Ausloeser ist noch unbekannt.",
-    SendChatMessage = "Chatnachrichten erfordern in diesem Client eine direkte Eingabe.",
-    ["C_ChatInfo.SendChatMessage"] = "Chatnachrichten erfordern in diesem Client eine direkte Eingabe.",
-    CastSpellByName = "Chat-Eingabe und Zauberbefehle koennen beteiligt sein.",
-    CastSpellByID = "Chat-Eingabe und Zauberbefehle koennen beteiligt sein.",
-    TargetUnit = "Chat-Eingabe und Zielwechsel koennen beteiligt sein.",
-    FocusUnit = "Chat-Eingabe und Zielwechsel koennen beteiligt sein.",
-    SetRaidSubgroup = "Raid-Gruppen lassen sich im Kampf nicht umsortieren.",
-    SwapRaidSubgroup = "Raid-Gruppen lassen sich im Kampf nicht umsortieren.",
-    SetCVar = "Eine Einstellung wurde waehrend einer geschuetzten Aktion geaendert.",
-    UseContainerItem = "Eine Taschenaktion wurde blockiert.",
-    ["C_Container.UseContainerItem"] = "Eine Taschenaktion wurde blockiert.",
+    UNKNOWN = "The protected function was blocked. The exact cause is still unknown.",
+    SendChatMessage = "Chat messages require direct input in this client.",
+    ["C_ChatInfo.SendChatMessage"] = "Chat messages require direct input in this client.",
+    CastSpellByName = "Chat input and spell commands may be involved.",
+    CastSpellByID = "Chat input and spell commands may be involved.",
+    TargetUnit = "Chat input and target changes may be involved.",
+    FocusUnit = "Chat input and target changes may be involved.",
+    SetRaidSubgroup = "Raid groups cannot be rearranged in combat.",
+    SwapRaidSubgroup = "Raid groups cannot be rearranged in combat.",
+    SetCVar = "A setting was changed during a protected action.",
+    UseContainerItem = "A bag action was blocked.",
+    ["C_Container.UseContainerItem"] = "A bag action was blocked.",
 }
 
 function Taint.Why(fn)
     local why = WHY[tostring(fn or "")] or WHY[(tostring(fn or "")):gsub("%(%)$", "")]
-    if not why then return (L["Blockierung von %s beobachtet; Ausloeser nicht bestaetigt."]):format(tostring(fn or "?")) end
+    if not why then return (L["A block of %s was observed; its cause has not been confirmed."]):format(tostring(fn or "?")) end
     if tostring(fn or ""):gsub("%(%)$", "") == "UNKNOWN" then return L[why] end
-    return L["Moeglicher Zusammenhang:"] .. " " .. L[why]
+    return L["Possible connection:"] .. " " .. L[why]
 end
 
 local function db()
@@ -129,7 +129,7 @@ local function record(event, addon, fn)
         pcall(ns.Bugs.RecordBlock, { fn = e.fn, combat = e.combat, page = e.page,
             trail = (e.trail or ""):gsub("\n", " | "), addons = otherAddons and otherAddons() or "" })
     end
-    ns.print("|cffff5060" .. L["Blockiert:"] .. "|r " .. tostring(fn) .. "  |cff888888- " .. L["/oa fehler zeigt, warum"] .. "|r")
+    ns.print("|cffff5060" .. L["Blocked:"] .. "|r " .. tostring(fn) .. "  |cff888888- " .. L["/oa fehler shows why"] .. "|r")
     if Taint.win and Taint.win:IsShown() then Taint.Fill() end
 end
 ns.On("ADDON_ACTION_FORBIDDEN", function(addon, fn) record("ADDON_ACTION_FORBIDDEN", addon, fn) end)
@@ -142,32 +142,32 @@ function Taint.Fill()
     local f = Taint.win
     local smf = f.smf
     smf:Clear()
-    if f.guildBtn then f.guildBtn:SetLabel(Taint.guildView and L["Eigene Meldungen"] or ((L["Aus der Gilde (%d)"]):format(#gdb()))) end
+    if f.guildBtn then f.guildBtn:SetLabel(Taint.guildView and L["My reports"] or ((L["From the guild (%d)"]):format(#gdb()))) end
     if Taint.guildView then fillGuild(smf) smf:ScrollToTop() return end
     local l = db()
     if #l == 0 then
-        smf:AddMessage("|cff888888" .. L["Noch nichts blockiert. Sobald WoW Oasis blockiert, steht hier welche Funktion und was Oasis kurz vorher gemacht hat."] .. "|r")
+        smf:AddMessage("|cff888888" .. L["Nothing blocked yet. As soon as WoW blocks Oasis, this shows which function and what Oasis did just before."] .. "|r")
     end
     for i = #l, 1, -1 do
         local e = l[i]
         local head = ("|cffffd24a%s|r  |cffff5060%s|r%s%s"):format(ns.fmtDate(e.ts), e.fn,
             e.ev == "F" and "  |cff888888(Popup)|r" or "  |cff888888(still)|r",
-            e.combat and ("  |cffff8a3d" .. L["im Kampf"] .. "|r") or "")
+            e.combat and ("  |cffff8a3d" .. L["in a fight"] .. "|r") or "")
         smf:AddMessage(head)
-        if (e.count or 1) > 1 then smf:AddMessage("   " .. (L["%d Wiederholungen, zuletzt %s"]):format(e.count, ns.fmtDate(e.lastTs or e.ts))) end
+        if (e.count or 1) > 1 then smf:AddMessage("   " .. (L["%d occurrences, last %s"]):format(e.count, ns.fmtDate(e.lastTs or e.ts))) end
         local why = Taint.Why(e.fn)
-        smf:AddMessage("   " .. (why or ("|cff888888" .. L["Unbekannter Ausloeser - Taint-Log einschalten (Knopf unten), nachstellen, /reload."] .. "|r")))
-        if e.suspected then smf:AddMessage("   " .. L["Moeglicher Zusammenhang:"] .. " " .. e.suspected) end
-        if e.page then smf:AddMessage("   |cff888888" .. L["Offene Seite:"] .. "|r " .. e.page) end
+        smf:AddMessage("   " .. (why or ("|cff888888" .. L["Unknown cause - enable the taint log (button below), reproduce, /reload."] .. "|r")))
+        if e.suspected then smf:AddMessage("   " .. L["Possible connection:"] .. " " .. e.suspected) end
+        if e.page then smf:AddMessage("   |cff888888" .. L["Open page:"] .. "|r " .. e.page) end
         if e.trail and e.trail ~= "" then
-            smf:AddMessage("   |cff888888" .. L["Zuletzt in Oasis:"] .. "|r")
+            smf:AddMessage("   |cff888888" .. L["Last Oasis actions:"] .. "|r")
             for line in e.trail:gmatch("[^\n]+") do smf:AddMessage("     · " .. line) end
         end
         smf:AddMessage(" ")
     end
     smf:ScrollToTop()
     local on = GetCVar and tostring(GetCVar("taintLog") or "0") ~= "0"
-    f.logBtn.label:SetText(on and L["Taint-Log: an"] or L["Taint-Log einschalten"])
+    f.logBtn.label:SetText(on and L["Taint log: on"] or L["Enable taint log"])
 end
 
 ------------------------------------------------------------------------
@@ -240,15 +240,15 @@ if ns.Comm then
 end
 function fillGuild(smf)
     local l = gdb()
-    if #l == 0 then smf:AddMessage("|cff888888" .. L["Noch keine Meldungen aus der Gilde."] .. "|r") return end
+    if #l == 0 then smf:AddMessage("|cff888888" .. L["No reports from the guild yet."] .. "|r") return end
     for i = #l, 1, -1 do
         local e = l[i]
         smf:AddMessage(("|cffffd24a%s|r  %s  |cff888888v%s %s|r  |cffff5060%s|r%s"):format(ns.fmtDate(e.ts), ns.Radar and ns.Radar.Colored and ns.Radar.Colored(e.who) or e.who,
-            e.v or "?", e.loc or "", e.fn or "?", e.combat and ("  |cffff8a3d" .. L["im Kampf"] .. "|r") or ""))
-        if (e.page or "") ~= "" or (e.zone or "") ~= "" then smf:AddMessage("   |cff888888" .. L["Seite/Gebiet:"] .. "|r " .. (e.page or "-") .. "  ·  " .. (e.zone or "")) end
-        if (e.sec or "") ~= "" then smf:AddMessage("   |cff888888" .. L["Sichere Knoepfe sichtbar:"] .. "|r " .. e.sec) end
-        if (e.trail or "") ~= "" then smf:AddMessage("   |cff888888" .. L["Zuletzt in Oasis:"] .. "|r " .. e.trail) end
-        if (e.addons or "") ~= "" then smf:AddMessage("   |cff888888" .. L["Andere Addons:"] .. "|r " .. e.addons) end
+            e.v or "?", e.loc or "", e.fn or "?", e.combat and ("  |cffff8a3d" .. L["in a fight"] .. "|r") or ""))
+        if (e.page or "") ~= "" or (e.zone or "") ~= "" then smf:AddMessage("   |cff888888" .. L["Page/zone:"] .. "|r " .. (e.page or "-") .. "  ·  " .. (e.zone or "")) end
+        if (e.sec or "") ~= "" then smf:AddMessage("   |cff888888" .. L["Secure buttons shown:"] .. "|r " .. e.sec) end
+        if (e.trail or "") ~= "" then smf:AddMessage("   |cff888888" .. L["Last Oasis actions:"] .. "|r " .. e.trail) end
+        if (e.addons or "") ~= "" then smf:AddMessage("   |cff888888" .. L["Other addons:"] .. "|r " .. e.addons) end
         smf:AddMessage(" ")
     end
 end
@@ -269,12 +269,12 @@ local function build()
     ns.EscClose("OasisTaintFrame")
     local t = K.Title(f, 16, C.text)
     t:SetPoint("TOPLEFT", 18, -16)
-    t:SetText(L["Oasis wurde blockiert - warum?"])
+    t:SetText(L["Oasis was blocked - why?"])
     local sub = K.Text(f, 11, C.muted)
     sub:SetPoint("TOPLEFT", t, "BOTTOMLEFT", 0, -6)
     sub:SetPoint("RIGHT", -40, 0)
     sub:SetWordWrap(true)
-    sub:SetText(L["WoW sperrt einige Funktionen fuer Addons (Kampf, Boss, Chat-Eingabe). Hier steht, welche Funktion es war und was Oasis davor gemacht hat."])
+    sub:SetText(L["WoW locks some functions for addons (combat, bosses, chat input). This shows which function it was and what Oasis did before."])
     local close = K.CloseButton(f, function() f:Hide() end)
     close:SetPoint("TOPRIGHT", -8, -8)
 
@@ -296,15 +296,15 @@ local function build()
     f.smf = smf
 
     -- Taint-Log: WoW schreibt dann Logs\taint.log (nach /reload bzw. Ausloggen) - die Datei zeigt die genaue Zeile
-    f.logBtn = K.Button(f, L["Taint-Log einschalten"], 170, 26, "primary", function()
-        if ns.inCombat() then ns.print(L["Im Kampf nicht moeglich - gleich nochmal."]) return end
+    f.logBtn = K.Button(f, L["Enable taint log"], 170, 26, "primary", function()
+        if ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return end
         local on = tostring(GetCVar("taintLog") or "0") ~= "0"
         pcall(SetCVar, "taintLog", on and 0 or 2)
-        ns.print(on and L["Taint-Log aus."] or L["Taint-Log an: Fehler nachstellen, dann /reload. Die Datei liegt unter World of Warcraft\\_classic_beta_\\Logs\\taint.log"])
+        ns.print(on and L["Taint log off."] or L["Taint log on: reproduce the error, then /reload. The file is World of Warcraft\\_classic_beta_\\Logs\\taint.log"])
         Taint.Fill()
     end)
     f.logBtn:SetPoint("BOTTOMLEFT", 16, 14)
-    local clear = K.Button(f, L["Liste leeren"], 110, 26, "ghost", function()
+    local clear = K.Button(f, L["Clear list"], 110, 26, "ghost", function()
         ns.db.taint = {}
         Taint.Fill()
     end)

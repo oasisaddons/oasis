@@ -75,7 +75,7 @@ local SIZES = {
     [20] = { t = 3, h = 5, inst = "Hyjal" },
     [40] = { t = 4, h = 10, inst = "Onyxias Hort" },
 }
-local DAYS = { "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag" }
+local DAYS = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" }
 
 if ns.ICONS then ns.ICONS.raidtime = ns.MEDIA .. "icons\\stats" end
 -- eigener Navigationspunkt in der Gruppe "Raid" (direkt hinter "raid")
@@ -476,9 +476,9 @@ function RT.NextTs(wd, h)
 end
 
 function RT.CanCreate()
-    if not (ns.Raid and ns.Raid.CreateEvent) then return false, L["Raid-Modul fehlt"] end
+    if not (ns.Raid and ns.Raid.CreateEvent) then return false, L["Raid module missing"] end
     -- Rechte-Modell: Termine anlegen = Schlachtzugsleiter und hoeher (Admin.Can("raid.events"))
-    if ns.Admin and ns.Admin.Can and not ns.Admin.Can("raid.events") then return false, L["Termine anlegen duerfen nur Schlachtzugsleiter und hoeher."] end
+    if ns.Admin and ns.Admin.Can and not ns.Admin.Can("raid.events") then return false, L["Only raid leaders and above may create events."] end
     return true
 end
 function RT.CreateFrom(c, size)
@@ -488,10 +488,10 @@ function RT.CreateFrom(c, size)
     local inst = L[need.inst]
     local ts = RT.NextTs(c.wd, c.h)
     local made = ns.Raid.CreateEvent({ title = inst, inst = inst, ts = ts, max = size, kind = "raid",
-        desc = (L["Vorschlag Raid-Zeit: erwartet %d (Tanks %d, Heiler %d)"]):format(math.floor(c.exp + 0.5), math.floor(c.t + 0.5), math.floor(c.hl + 0.5)) },
+        desc = (L["Raid Time suggestion: %d expected (tanks %d, healers %d)"]):format(math.floor(c.exp + 0.5), math.floor(c.t + 0.5), math.floor(c.hl + 0.5)) },
         ns.Raid.toCalendar, 1)
     if made and made[1] then
-        K.Toast(L["Termin angelegt"], inst .. "  ·  " .. ns.fmtWhen(ts), C.mint, function()
+        K.Toast(L["Event created"], inst .. "  ·  " .. ns.fmtWhen(ts), C.mint, function()
             ns.ShowPage("raid")
             if ns.Raid.OpenEvent then ns.Raid.OpenEvent(made[1].id) end
         end)
@@ -549,7 +549,7 @@ local function dayShort(wd)
     return table.concat(chars)
 end
 local function fmtWindow(c)
-    return (L["%s, %d-%d Uhr"]):format(L[DAYS[c.wd + 1]], c.h, (c.h + c.len) % 24)
+    return (L["%s, %d-%d h"]):format(L[DAYS[c.wd + 1]], c.h, (c.h + c.len) % 24)
 end
 -- Rahmen auf feste Position setzen und merken (Layout-Pruefung im Test liest body.rects)
 local function place(body, key, f, x, y, w, h)
@@ -645,22 +645,22 @@ local function newSugCard(p, body, i)
     c.next:SetPoint("TOPLEFT", 54, -32)
     c.next:SetPoint("RIGHT", c, "RIGHT", -12, 0)
     c.next:SetWordWrap(false)
-    c.mExp = newMeter(c, "groups", L["Besetzung"], C.accent)
+    c.mExp = newMeter(c, "groups", L["Turnout"], C.accent)
     c.mTank = newMeter(c, "role_tank", L["Tanks"], C.blue)
-    c.mHeal = newMeter(c, "role_heal", L["Heiler"], C.mint)
+    c.mHeal = newMeter(c, "role_heal", L["Healer"], C.mint)
     c.avHead = K.Text(c, 9, C.dim)
     c.avHead:SetPoint("TOPLEFT", 12, -120)
-    c.avHead:SetText(L["Wahrscheinlich dabei"])
+    c.avHead:SetText(L["Likely to join"])
     c.av = {}
     c.more = K.Text(c, 10, C.muted)
-    c.btn = K.Button(c, L["Als Termin anlegen"], 150, 24, i == 1 and "primary" or "ghost", function()
+    c.btn = K.Button(c, L["Create as event"], 150, 24, i == 1 and "primary" or "ghost", function()
         if c.cand then RT.CreateFrom(c.cand, p.size) end
     end)
     c.btn:SetScript("OnEnter", function(self)
         local ok, why = RT.CanCreate()
         if c.cand then
-            K.ShowTip(self, { L["Als Termin anlegen"], L[SIZES[p.size].inst] .. "  ·  " .. ns.fmtWhen(RT.NextTs(c.cand.wd, c.cand.h)),
-                ok and L["Legt einen Raidtermin an (wie auf der Raid-Seite)."] or ("|cffe64047" .. tostring(why) .. "|r") })
+            K.ShowTip(self, { L["Create as event"], L[SIZES[p.size].inst] .. "  ·  " .. ns.fmtWhen(RT.NextTs(c.cand.wd, c.cand.h)),
+                ok and L["Creates a raid event (same as on the Raid page)."] or ("|cffe64047" .. tostring(why) .. "|r") })
         end
     end)
     c.btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -723,8 +723,8 @@ local function buildHeat(p, body)
     local U = ns.RCUI
     local hm = U.Card(body, C.accent)
     p.hm = hm
-    hm.head = K.GameHead(hm, L["Wer ist wann online"], C.accent)
-    hm.head.text:SetText(L["Wer ist wann online"])
+    hm.head = K.GameHead(hm, L["Who is online when"], C.accent)
+    hm.head.text:SetText(L["Who is online when"])
     if hm.head.mark then hm.head.mark:Hide() end
     hm.head:SetPoint("TOPLEFT", 14, -12)
     hm.head:SetPoint("RIGHT", hm, "RIGHT", -12, 0)
@@ -759,8 +759,8 @@ local function buildHeat(p, body)
                 hm.days[wd]:SetTextColor(C.text[1], C.text[2], C.text[3])
                 local c = p.heat and p.heat[self.slot]
                 if not c then return end
-                local lines = { (L["%s, %d-%d Uhr"]):format(L[DAYS[wd + 1]], h, (h + 1) % 24),
-                    (L["%d online (Tanks %d, Heiler %d)"]):format(c.n, c.t, c.h) }
+                local lines = { (L["%s, %d-%d h"]):format(L[DAYS[wd + 1]], h, (h + 1) % 24),
+                    (L["%d online (tanks %d, healers %d)"]):format(c.n, c.t, c.h) }
                 local names = {}
                 for i, pr in ipairs(c.who) do
                     if i > 14 then names[#names + 1] = "..." break end
@@ -779,7 +779,7 @@ local function buildHeat(p, body)
     end
     -- Legende: Farbskala, Markierung, Quellen
     hm.lowT = K.Text(hm, 10, C.dim)
-    hm.lowT:SetText(L["wenig"])
+    hm.lowT:SetText(L["few"])
     hm.scale = {}
     for k = 1, 6 do
         local t = hm:CreateTexture(nil, "ARTWORK")
@@ -790,12 +790,12 @@ local function buildHeat(p, body)
         hm.scale[k] = t
     end
     hm.highT = K.Text(hm, 10, C.dim)
-    hm.highT:SetText(L["viele"])
+    hm.highT:SetText(L["many"])
     hm.markT = hm:CreateTexture(nil, "ARTWORK")
     hm.markT:SetSize(12, 3)
     hm.markT:SetColorTexture(C.mint[1], C.mint[2], C.mint[3], 1)
     hm.markL = K.Text(hm, 10, C.dim)
-    hm.markL:SetText(L["vorgeschlagenes Fenster"])
+    hm.markL:SetText(L["suggested window"])
     hm.src = K.Text(hm, 10, C.dim)
     hm.src:SetWordWrap(true)
     hm.src:SetJustifyV("TOP")
@@ -860,15 +860,15 @@ local function buildHeat(p, body)
 end
 
 ns.RegisterPage({
-    key = "raidtime", title = "Raid-Zeit", order = 5.1,
-    sub = "Wann passt es den meisten? Heatmap der Gilde und die besten Zeitfenster je Raidgroesse",
+    key = "raidtime", title = "Raid Time", order = 5.1,
+    sub = "When suits most people? Guild heatmap and the best time slots per raid size",
     build = function(p)
         p.size = 20
         local U = ns.RCUI
         if not U then
             p.miss = K.Text(p, 13, C.dim, "CENTER")
             p.miss:SetPoint("CENTER")
-            p.miss:SetText(L["Raid-Check-Modul fehlt - diese Ansicht braucht seine Bausteine."])
+            p.miss:SetText(L["Raid check module missing – this view needs its building blocks."])
             return
         end
         local sc = U.Scroll(p)
@@ -880,8 +880,8 @@ ns.RegisterPage({
         -- 1) Kopf-Kacheln
         p.tiles = {}
         for i, d in ipairs({
-            { "profile", "Wochen-Profile", C.blue }, { "raid", "Bestes Fenster", C.amber },
-            { "role_tank", "Tanks", C.blue }, { "role_heal", "Heiler", C.mint } }) do
+            { "profile", "Weekly profiles", C.blue }, { "raid", "Best slot", C.amber },
+            { "role_tank", "Tanks", C.blue }, { "role_heal", "Healer", C.mint } }) do
             p.tiles[i] = K.HudTile(body, glyph(d[1]), L[d[2]], d[3])
         end
         -- 2) Steuerleiste: Raidgroesse + Ziel
@@ -889,7 +889,7 @@ ns.RegisterPage({
         p.ctrl = ctrl
         ctrl.lab = K.Text(ctrl, 10, C.dim)
         ctrl.lab:SetPoint("TOPLEFT", 0, -7)
-        ctrl.lab:SetText(L["Raidgroesse"])
+        ctrl.lab:SetText(L["Raid size"])
         p.seg = K.Segments(ctrl, { { key = 10, text = "10" }, { key = 20, text = "20" }, { key = 40, text = "40" } }, function(k)
             p.size = k
             p.animCards = true
@@ -902,8 +902,8 @@ ns.RegisterPage({
         -- 3) Heatmap
         buildHeat(p, body)
         -- 4) Vorschlaege
-        p.sHead = K.GameHead(body, L["Beste Zeitfenster"], C.amber)
-        p.sHead.text:SetText(L["Beste Zeitfenster"])
+        p.sHead = K.GameHead(body, L["Best time slots"], C.amber)
+        p.sHead.text:SetText(L["Best time slots"])
         if p.sHead.mark then p.sHead.mark:Hide() end
         p.cards = {}
         for i = 1, 3 do p.cards[i] = newSugCard(p, body, i) end
@@ -995,10 +995,10 @@ ns.RegisterPage({
         for _, pr in ipairs(profiles) do
             if pr.src == "own" then nOwn = nOwn + 1 elseif pr.src == "play" then nPlay = nPlay + 1 else nShared = nShared + 1 end
         end
-        p.hm.head:SetCount(maxN > 0 and (L["max. %d gleichzeitig"]):format(maxN) or "")
-        p.hm.src:SetText((L["Quellen: %d geteilt, %d eigene Beobachtung, %d grob aus Spielzeit. Ueberfahren zeigt, wer da ist."]):format(nShared, nOwn, nPlay))
+        p.hm.head:SetCount(maxN > 0 and (L["max. %d at once"]):format(maxN) or "")
+        p.hm.src:SetText((L["Sources: %d shared, %d own observation, %d rough from play time. Hover to see who is there."]):format(nShared, nOwn, nPlay))
         local need = SIZES[p.size]
-        p.info:SetText((L["Ziel %d Spieler: mind. %d Tanks, %d Heiler  ·  Fenster %d Std  ·  %s"]):format(p.size, need.t, need.h,
+        p.info:SetText((L["Target %d players: at least %d tanks, %d healers  ·  slot %d h  ·  %s"]):format(p.size, need.t, need.h,
             tonumber(S().rtLen) or 3, L[need.inst]))
         p.sHead:SetCount(#sugg > 0 and tostring(#sugg) or "")
         local fresh = p.fresh
@@ -1010,7 +1010,7 @@ ns.RegisterPage({
             c:SetShown(cand ~= nil)
             if cand then
                 c.when:SetText(fmtWindow(cand))
-                c.next:SetText((L["naechster Termin: %s"]):format(ns.fmtWhen(RT.NextTs(cand.wd, cand.h))))
+                c.next:SetText((L["next date: %s"]):format(ns.fmtWhen(RT.NextTs(cand.wd, cand.h))))
                 c.mExp:Set(cand.exp, p.size, anim)
                 c.mTank:Set(cand.t, need.t, anim)
                 c.mHeal:Set(cand.hl, need.h, anim)
@@ -1022,18 +1022,18 @@ ns.RegisterPage({
         if #sugg == 0 then
             if #profiles == 0 then
                 if S().rtTrack == false then
-                    p.empty:Set(L["Der Mitschnitt der Spielzeiten ist aus. Schalte ihn ein, dann lernt Oasis mit jedem Abend dazu."],
-                        L["Mitschnitt einschalten"], function() S().rtTrack = true lastSample = 0 pcall(sample) ns.RefreshPage("raidtime") end)
+                    p.empty:Set(L["Play-time tracking is off. Turn it on and Oasis learns a little more every evening."],
+                        L["Turn on tracking"], function() S().rtTrack = true lastSample = 0 pcall(sample) ns.RefreshPage("raidtime") end)
                 else
-                    p.empty:Set(L["Noch keine Spielzeiten bekannt. Oasis lernt mit jedem Abend, an dem du online bist - und uebernimmt die Profile der anderen."],
-                        ns.Demo and ns.Demo.Load and not demoOn() and L["Beispiel ansehen"] or nil,
+                    p.empty:Set(L["No play times known yet. Oasis learns every evening you are online - and takes over the profiles of others."],
+                        ns.Demo and ns.Demo.Load and not demoOn() and L["Show example"] or nil,
                         function() if ns.Demo and ns.Demo.Load then ns.Demo.Load() ns.RefreshPage("raidtime") end end)
                 end
             elseif S().rtEvening ~= false then
-                p.empty:Set(L["Abends ist noch kein Fenster mit genug Leuten. Probier eine kleinere Raidgroesse - oder lass auch Zeiten tagsueber zu."],
-                    L["Auch tagsueber"], function() S().rtEvening = false ns.RefreshPage("raidtime") end)
+                p.empty:Set(L["No evening window with enough people yet. Try a smaller raid size – or allow daytime slots too."],
+                    L["Include daytime"], function() S().rtEvening = false ns.RefreshPage("raidtime") end)
             else
-                p.empty:Set(L["Kein Zeitfenster mit genug Leuten. Probier eine kleinere Raidgroesse oder einen kuerzeren Raidabend (Zahnrad)."])
+                p.empty:Set(L["No time window with enough people. Try a smaller raid size or a shorter raid night (gear icon)."])
             end
             p.empty:Show()
         else
@@ -1042,11 +1042,11 @@ ns.RegisterPage({
         -- Kacheln
         local best = sugg[1]
         local tAnim = fresh and animOn()
-        p.tiles[1]:Set(#profiles, (L["%d geteilt"]):format(nShared), nil, tAnim)
+        p.tiles[1]:Set(#profiles, (L["%d shared"]):format(nShared), nil, tAnim)
         p.tiles[2]:Set(best and (dayShort(best.wd) .. " " .. best.h .. ":00") or "-",
-            best and (L["%d erwartet"]):format(math.floor(best.exp + 0.5)) or "", best and math.min(1, best.exp / p.size), tAnim)
-        p.tiles[3]:Set(best and math.floor(best.t + 0.5) or 0, (L["von %d"]):format(need.t), best and math.min(1, best.t / need.t), tAnim)
-        p.tiles[4]:Set(best and math.floor(best.hl + 0.5) or 0, (L["von %d"]):format(need.h), best and math.min(1, best.hl / need.h), tAnim)
+            best and (L["%d expected"]):format(math.floor(best.exp + 0.5)) or "", best and math.min(1, best.exp / p.size), tAnim)
+        p.tiles[3]:Set(best and math.floor(best.t + 0.5) or 0, (L["of %d"]):format(need.t), best and math.min(1, best.t / need.t), tAnim)
+        p.tiles[4]:Set(best and math.floor(best.hl + 0.5) or 0, (L["of %d"]):format(need.h), best and math.min(1, best.hl / need.h), tAnim)
         p:Layout()
         if fresh then
             p.hm:Sweep()
@@ -1073,22 +1073,22 @@ addSettings(function(det, y)
         det.t[#det.t + 1] = t
         y = y - 44
     end
-    tog("Spielzeiten mitschneiden", "rtTrack", "Merkt sich aus der Gildenliste, wer an welchem Wochentag zu welcher Stunde online ist (nur Mains, Twinks zaehlen zum Main)", true)
-    tog("Wochen-Profile mit der Gilde teilen", "rtShare", "Teilt pro Main nur eine kleine Stunden-Maske (wann meist online) - so haben alle dieselbe Heatmap", true)
-    tog("Nur Abende vorschlagen", "rtEvening", "Zeitfenster beginnen zwischen 17 und 22 Uhr", true)
+    tog("Record play times", "rtTrack", "Remembers from the guild roster who is online on which weekday at which hour (mains only, alts count for their main)", true)
+    tog("Share weekly profiles with the guild", "rtShare", "Shares only a small hour mask per main (when usually online) - so everyone sees the same heatmap", true)
+    tog("Suggest evenings only", "rtEvening", "Time slots start between 17:00 and 22:00", true)
     local lbl = K.Text(det, 12, C.text)
     lbl:SetPoint("TOPLEFT", 14, y - 2)
-    lbl:SetText(L["Laenge eines Raidabends"])
+    lbl:SetText(L["Length of a raid night"])
     local sl = K.Slider(det, 220, 2, 5, 1, function() return tonumber(S().rtLen) or 3 end, function(v) S().rtLen = v ns.RefreshPage("raidtime") end,
-        function(v) return (L["%d Std"]):format(v) end)
+        function(v) return (L["%d h"]):format(v) end)
     sl:SetPoint("TOPLEFT", 220, y)
     det.t[#det.t + 1] = sl
     y = y - 32
     local lbl2 = K.Text(det, 12, C.text)
     lbl2:SetPoint("TOPLEFT", 14, y - 2)
-    lbl2:SetText(L["Nur Mains ab Level"])
+    lbl2:SetText(L["Only mains from level"])
     local sl2 = K.Slider(det, 220, 0, 60, 5, function() return tonumber(S().rtMinLevel) or 0 end, function(v) S().rtMinLevel = v ns.RefreshPage("raidtime") end,
-        function(v) return v == 0 and L["alle Level"] or tostring(v) end)
+        function(v) return v == 0 and L["all levels"] or tostring(v) end)
     sl2:SetPoint("TOPLEFT", 220, y)
     det.t[#det.t + 1] = sl2
     y = y - 32

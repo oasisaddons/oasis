@@ -431,17 +431,17 @@ local function seedStore()
     put("wants", { id = "demo-want4", itemID = 4245, name = "Kleiner Seidenrucksack", qty = 2, note = "Taschenplatz!", who = nm(19), created = now - 4000 })
     put("wants", { id = "demo-want3", itemID = 1482, name = "Shadowfang", qty = 1, note = "", who = nm(4), created = now - 40000 })
     -- Umfragen
-    put("polls", { id = "demo-poll1", q = L["Welcher Abend fuer den naechsten Gildenrun?"], o1 = L["Mittwoch"], o2 = L["Freitag"], o3 = L["Sonntag"], multi = false, exp = now + 2 * 86400, created = now - 3600, who = nm(1) })
+    put("polls", { id = "demo-poll1", q = L["Which evening for the next guild run?"], o1 = L["Wednesday"], o2 = L["Friday"], o3 = L["Sunday"], multi = false, exp = now + 2 * 86400, created = now - 3600, who = nm(1) })
     for i, pick in ipairs({ "2", "2", "1", "3", "2" }) do
         put("votes", { id = "demo-poll1@" .. nm(i), poll = "demo-poll1", who = nm(i), pick = pick })
     end
     -- weitere Umfragen: Mehrfachauswahl (laeuft) + eine beendete mit Ergebnis
-    put("polls", { id = "demo-poll2", q = L["Was soll die Gildenbank fuer den Raid stellen?"], o1 = L["Feuerschutztraenke"], o2 = L["Flaeschchen"],
-        o3 = L["Buff-Essen"], o4 = L["Reparaturgeld"], multi = true, exp = now + 4 * 86400, created = now - 7200, who = nm(6) })
+    put("polls", { id = "demo-poll2", q = L["What should the guild bank provide for the raid?"], o1 = L["Fire protection potions"], o2 = L["Flasks"],
+        o3 = L["Buff food"], o4 = L["Repair money"], multi = true, exp = now + 4 * 86400, created = now - 7200, who = nm(6) })
     for i, pick in ipairs({ "1,2", "1", "1,3", "2,4", "1,4", "3", "1,2,3" }) do
         put("votes", { id = "demo-poll2@" .. nm(i + 1), poll = "demo-poll2", who = nm(i + 1), pick = pick })
     end
-    put("polls", { id = "demo-poll3", q = L["Erster Raid: Barrow Deeps oder gleich Onyxia?"], o1 = L["Barrow Deeps"], o2 = L["Onyxia"],
+    put("polls", { id = "demo-poll3", q = L["First raid: Barrow Deeps or straight to Onyxia?"], o1 = L["Barrow Deeps"], o2 = L["Onyxia"],
         multi = false, exp = now - 2 * 86400, closed = true, created = now - 6 * 86400, who = nm(1) })
     for i, pick in ipairs({ "1", "1", "2", "1", "1", "2", "1", "1", "2", "1", "1" }) do
         put("votes", { id = "demo-poll3@" .. nm(i), poll = "demo-poll3", who = nm(i), pick = pick })
@@ -477,11 +477,11 @@ local function seedStore()
         local present = {}
         for _, i in ipairs(raiders) do if (i + n) % 5 ~= 0 then present[#present + 1] = nm(i) end end
         local who = table.concat(present, ",")
-        put("points", { id = "demo-pts-start-" .. n, kind = "ep", who = who, amount = 10, reason = L["Puenktlich da"], start = true, raid = night[2], ts = t0, by = nm(1) })
+        put("points", { id = "demo-pts-start-" .. n, kind = "ep", who = who, amount = 10, reason = L["On time"], start = true, raid = night[2], ts = t0, by = nm(1) })
         for b, boss in ipairs(night[3]) do
             put("points", { id = "demo-pts-boss-" .. n .. "-" .. b, kind = "ep", who = who, amount = 10, reason = boss, raid = night[2], ts = t0 + b * 1800, by = nm(1) })
         end
-        put("points", { id = "demo-pts-end-" .. n, kind = "ep", who = who, amount = 10, reason = L["Bis zum Ende dabei"], raid = night[2], ts = t0 + 3 * 3600, by = nm(1) })
+        put("points", { id = "demo-pts-end-" .. n, kind = "ep", who = who, amount = 10, reason = L["Stayed until the end"], raid = night[2], ts = t0 + 3 * 3600, by = nm(1) })
         if n < 3 then put("points", { id = "demo-pts-decay-" .. n, kind = "decay", pct = 10, ts = t0 + 3 * 86400, by = nm(1) }) end
     end
     local drops = {
@@ -492,7 +492,7 @@ local function seedStore()
     for k, d in ipairs(drops) do
         put("points", { id = "demo-pts-gp-" .. k, kind = "gp", who = nm(d[1]), amount = d[3], item = d[2], choice = d[4], ts = now - d[5] * 86400 + 5000, by = nm(1) })
     end
-    put("points", { id = "demo-pts-adj-1", kind = "adj", who = nm(10), ep = 20, gp = 0, reason = L["Flaschen und Buffs fuer alle vorbereitet"], ts = now - 6 * 86400, by = nm(1) })
+    put("points", { id = "demo-pts-adj-1", kind = "adj", who = nm(10), ep = 20, gp = 0, reason = L["Prepared flasks and buffs for everyone"], ts = now - 6 * 86400, by = nm(1) })
     -- Gruppensuche
     put("lfg", { id = "demo-lfg2", who = nm(9), title = "Zul'Farrak", note = "Treffpunkt Gadgetzan", layout = "thddd", m = nm(9) .. ":t," .. nm(12) .. ":d," .. nm(18) .. ":d," .. nm(16) .. ":d", tank = false, heal = true, dps = false, size = 5, count = 4, auto = true, open = true, lvl = 44, class = "WARRIOR", exp = now + 40 * 60 })
     put("lfg", { id = "demo-lfg3", who = nm(19), title = "Questen im Brachland", note = "", layout = "thddd", m = nm(19) .. ":h", tank = true, heal = false, dps = true, size = 5, count = 1, auto = true, open = true, lvl = 12, class = "SHAMAN", exp = now + 25 * 60 })
@@ -592,7 +592,7 @@ local EVENTS = {
         if not i then return end
         local s = state()[i]
         s.on, s.off = true, 0
-        pcall(ns.print, "|cffffff00" .. (L["%s ist jetzt online."]):format(ns.displayName(nm(i))) .. "|r")
+        pcall(ns.print, "|cffffff00" .. (L["%s is now online."]):format(ns.displayName(nm(i))) .. "|r")
     end },
     { 12, function() -- ausloggen (mindestens 10 bleiben da)
         if countOnline() <= 10 then return end
@@ -600,7 +600,7 @@ local EVENTS = {
         if not i then return end
         local s = state()[i]
         s.on, s.off = false, 0
-        pcall(ns.print, "|cffffff00" .. (L["%s ist jetzt offline."]):format(ns.displayName(nm(i))) .. "|r")
+        pcall(ns.print, "|cffffff00" .. (L["%s is now offline."]):format(ns.displayName(nm(i))) .. "|r")
     end },
     { 10, function() -- Gebietswechsel
         local i = pick(function(i, s) return s.on and not NEAR[i] end)
@@ -689,7 +689,7 @@ function Demo.Load()
     nextEvent = GetTime() + 8
     refreshAll()
     if ns.Admin and ns.Admin.ApplyBrand then pcall(ns.Admin.ApplyBrand, true) end   -- Logo: langer Demo-Gildenname
-    if not Demo.quiet then ns.print(L["Demo-Daten geladen (nur bei dir, wird nicht an die Gilde gesendet). Entfernen: /oa demo aus"]) end
+    if not Demo.quiet then ns.print(L["Demo data loaded (only on your client, never sent to the guild). Remove: /oa demo off"]) end
 end
 
 function Demo.Remove()
@@ -719,7 +719,7 @@ function Demo.Remove()
         pcall(ns.ShowPage, "home")
     end
     if ns.Admin and ns.Admin.ApplyBrand then pcall(ns.Admin.ApplyBrand, true) end   -- Logo wieder mit dem echten Namen
-    if not Demo.quiet then ns.print((L["Demo-Daten entfernt (%d Eintraege)."]):format(n)) end
+    if not Demo.quiet then ns.print((L["Demo data removed (%d entries)."]):format(n)) end
 end
 
 -- Sprache gewechselt, waehrend die Beispieldaten laufen: in der neuen Sprache neu anlegen
@@ -749,7 +749,7 @@ ns.Listen("LOGIN", function()
             ns.demoLoading = false
             if not ok then ns.err("Demo", err) end
             ns.db.demoVersion = DEMO_VERSION
-            ns.print(L["Demo-Daten auf den neuen Stand gebracht."])
+            ns.print(L["Demo data updated to the latest version."])
         end
         pcall(Demo.LocalizeAll)
         movePeople()

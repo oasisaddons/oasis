@@ -94,8 +94,8 @@ function GG.SetFinished(g, fin)
     c.fin = fin and 1 or nil
     Store.Put(COLL, c)
     if fin then
-        K.Toast(L["Gildenziel erreicht!"], tostring(g.title or "?"), C.mint)
-        if ns.Chronicle and ns.Chronicle.Add then pcall(ns.Chronicle.Add, "goal", (L["Gildenziel erreicht: %s"]):format(tostring(g.title or "?"))) end
+        K.Toast(L["Guild goal reached!"], tostring(g.title or "?"), C.mint)
+        if ns.Chronicle and ns.Chronicle.Add then pcall(ns.Chronicle.Add, "goal", (L["Guild goal reached: %s"]):format(tostring(g.title or "?"))) end
     end
 end
 
@@ -127,10 +127,10 @@ ns.Listen("STORE", function(coll, rec, old)
     if coll ~= COLL and coll ~= CONTRIB then return end
     if coll == COLL and rec and not old and not rec.del and not ns.isMe(rec.by) and ns.db.settings.ggHint ~= false then
         if ns.Sound and ns.Sound.Next then ns.Sound.Next("notice") end
-        K.Toast(L["Neues Gildenziel"], ns.displayName(rec.by) .. ": " .. tostring(rec.title or "?"), C.accent, function() ns.ShowPage("goals") end)
+        K.Toast(L["New guild goal"], ns.displayName(rec.by) .. ": " .. tostring(rec.title or "?"), C.accent, function() ns.ShowPage("goals") end)
     end
     if coll == COLL and rec and old and rec.fin == 1 and not old.fin and not ns.isMe(rec.mb) then
-        K.Toast(L["Gildenziel erreicht!"], tostring(rec.title or "?"), C.mint, function() ns.ShowPage("goals") end)
+        K.Toast(L["Guild goal reached!"], tostring(rec.title or "?"), C.mint, function() ns.ShowPage("goals") end)
     end
     ns.RefreshPage("goals")
 end)
@@ -227,31 +227,31 @@ local function buildForm(p)
     local y = -46
     local ROW = 22   -- 0.5.598: enger, damit Meilensteine + Material ohne Ueberlappung passen (Knoepfe stehen oben)
     local function label(text, x, yy) local t = K.Text(f, 11, C.muted) t:SetPoint("TOPLEFT", x, yy) t:SetText(text) return t end
-    label(L["Titel"], 18, y - 5)
-    f.title = K.Input(f, 300, L["z. B. Thunderfury fuer unseren Tank"])
+    label(L["Title"], 18, y - 5)
+    f.title = K.Input(f, 300, L["e.g. Thunderfury for our tank"])
     f.title:SetPoint("TOPLEFT", 112, y)
     f.title:SetPoint("RIGHT", -18, 0)
     f.title:SetMaxLetters(60)
     f.title:SetHeight(20)
     y = y - 27
-    label(L["Beschreibung"], 18, y - 5)
+    label(L["Description"], 18, y - 5)
     f.desc = K.Input(f, 300, L["optional"])
     f.desc:SetPoint("TOPLEFT", 112, y)
     f.desc:SetPoint("RIGHT", -18, 0)
     f.desc:SetMaxLetters(160)
     f.desc:SetHeight(20)
     y = y - 27
-    label(L["Symbol (Item)"], 18, y - 5)
-    f.icon = K.Input(f, 300, L["Item-Name oder Link, optional"])
+    label(L["Icon (item)"], 18, y - 5)
+    f.icon = K.Input(f, 300, L["Item name or link, optional"])
     f.icon:SetPoint("TOPLEFT", 112, y)
     f.icon:SetPoint("RIGHT", -18, 0)
     f.icon:SetHeight(20)
     if ns.ItemSearch and ns.ItemSearch.Attach then ns.ItemSearch.Attach(f.icon, function(id) f.icon.pickedID = id end) end
     y = y - 34
-    label(L["Meilensteine"], 18, y + 4)
+    label(L["Milestones"], 18, y + 4)
     f.steps = {}
     for i = 1, MAXS do
-        local e = K.Input(f, 400, (L["Schritt %d"]):format(i))
+        local e = K.Input(f, 400, (L["Step %d"]):format(i))
         e:SetPoint("TOPLEFT", 18, y - 14 - (i - 1) * ROW)
         e:SetPoint("RIGHT", -18, 0)
         e:SetHeight(20)
@@ -259,10 +259,10 @@ local function buildForm(p)
         f.steps[i] = e
     end
     y = y - 14 - MAXS * ROW - 10
-    label(L["Material (Item + Menge)"], 18, y + 4)
+    label(L["Materials (item + amount)"], 18, y + 4)
     f.mats = {}
     for i = 1, MAXM do
-        local n = K.Input(f, 70, L["Menge"])
+        local n = K.Input(f, 70, L["Qty"])
         n:SetPoint("TOPRIGHT", f, "TOPRIGHT", -18, y - 14 - (i - 1) * ROW)
         n:SetHeight(20)
         n:SetNumeric(true)
@@ -275,15 +275,15 @@ local function buildForm(p)
         f.mats[i] = { item = e, n = n }
     end
     -- Knoepfe oben rechts neben der Ueberschrift (unten fehlte der Platz)
-    f.save = K.Button(f, L["Speichern"], 100, 24, "primary", function() GG.SaveForm(p) end)
+    f.save = K.Button(f, L["Save"], 100, 24, "primary", function() GG.SaveForm(p) end)
     f.save:SetPoint("TOPRIGHT", -18, -12)
-    f.cancel = K.Button(f, L["Abbrechen"], 90, 24, "ghost", function() editing = nil ns.RefreshPage("goals") end)
+    f.cancel = K.Button(f, L["Cancel"], 90, 24, "ghost", function() editing = nil ns.RefreshPage("goals") end)
     f.cancel:SetPoint("RIGHT", f.save, "LEFT", -8, 0)
-    f.del = K.Button(f, L["Loeschen"], 90, 24, "ghost", function()
+    f.del = K.Button(f, L["Put out"], 90, 24, "ghost", function()
         local g = type(editing) == "string" and editing ~= "new" and Store.Get(COLL, editing)
         if g and GG.CanEdit(g) then
             if f.del.armed then Store.Delete(COLL, g.id) editing = nil GG.selected = nil ns.RefreshPage("goals")
-            else f.del.armed = true f.del:SetLabel(L["Wirklich loeschen?"]) end
+            else f.del.armed = true f.del:SetLabel(L["Really delete?"]) end
         end
     end)
     f.del:SetPoint("RIGHT", f.cancel, "LEFT", -8, 0)
@@ -298,7 +298,7 @@ local function itemFrom(e)
 end
 function GG.FillForm(p, g)
     local f = p.form
-    f.head:SetText(g and L["Ziel bearbeiten"] or L["Neues Gildenziel"])
+    f.head:SetText(g and L["Edit goal"] or L["New guild goal"])
     f.title:SetText(g and g.title or "")
     f.desc:SetText(g and g.desc or "")
     f.icon.pickedID = g and tonumber(g.icon) or nil
@@ -312,12 +312,12 @@ function GG.FillForm(p, g)
     end
     f.del:SetShown(g ~= nil and GG.CanEdit(g))
     f.del.armed = nil
-    f.del:SetLabel(L["Loeschen"])
+    f.del:SetLabel(L["Put out"])
 end
 function GG.SaveForm(p)
     local f = p.form
     local title = (f.title:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
-    if title == "" then K.Toast(L["Gildenziele"], L["Bitte einen Titel eingeben."], C.amber) return end
+    if title == "" then K.Toast(L["Guild goals"], L["Please enter a title."], C.amber) return end
     local old = type(editing) == "string" and editing ~= "new" and Store.Get(COLL, editing) or nil
     if old and not GG.CanEdit(old) then return end
     local g = old and copyOf(old) or { id = ns.newId("gg"), created = ns.now() }
@@ -363,7 +363,7 @@ local function buildDetail(p)
     d.meta = K.Text(d, 11, C.muted)
     d.meta:SetPoint("TOPLEFT", d.title, "BOTTOMLEFT", 0, -6)
     d.meta:SetPoint("RIGHT", -18, 0)
-    d.edit = K.Button(d, L["Bearbeiten"], 104, 24, "ghost", function()
+    d.edit = K.Button(d, L["Edit"], 104, 24, "ghost", function()
         if GG.selected then editing = GG.selected ns.RefreshPage("goals") end
     end)
     d.edit:SetPoint("TOPRIGHT", -16, -18)
@@ -380,7 +380,7 @@ local function buildDetail(p)
     d.won:SetPoint("TOPRIGHT", d.pct, "BOTTOMRIGHT", 0, -4)
     -- Reiter
     d.tab = "over"
-    d.seg = K.Segments(d, { { key = "over", text = L["Uebersicht"] }, { key = "mats", text = L["Material"] }, { key = "help", text = L["Helfer"] } },
+    d.seg = K.Segments(d, { { key = "over", text = L["Overview"] }, { key = "mats", text = L["Materials"] }, { key = "help", text = L["Helpers"] } },
         function(k) d.tab = k if K.TabAnim then K.TabAnim(d.seg, k) end p.animTab = true ns.RefreshPage("goals", true) end)
     d.seg:SetPoint("TOPLEFT", 12, -132)
     d.body = CreateFrame("Frame", nil, d)
@@ -428,7 +428,7 @@ local function buildDetail(p)
                 K.Burst(p, self.node, 10, { C.mint, C.accent })
             end
         end)
-        b:SetScript("OnEnter", function(self) self.hl:Show() if self.g and GG.CanEdit(self.g) then K.ShowTip(self, L["Klick: abhaken / wieder oeffnen"]) end end)
+        b:SetScript("OnEnter", function(self) self.hl:Show() if self.g and GG.CanEdit(self.g) then K.ShowTip(self, L["Click: tick off / reopen"]) end end)
         b:SetScript("OnLeave", function(self) self.hl:Hide() GameTooltip:Hide() end)
         d.steps[i] = b
     end
@@ -486,10 +486,10 @@ local function buildDetail(p)
             if self.id then pcall(GameTooltip.SetItemByID, GameTooltip, self.id) end
             local _, _, list = GG.Contrib(self.g, self.i)
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(L["Beigetragen:"], 0.6, 0.6, 0.65)
+            GameTooltip:AddLine(L["Contributed:"], 0.6, 0.6, 0.65)
             for j = 1, math.min(10, #list) do GameTooltip:AddDoubleLine("  " .. ns.displayName(list[j].who), list[j].n, 0.9, 0.9, 0.9, 1, 1, 1) end
-            if #list == 0 then GameTooltip:AddLine("  " .. L["noch niemand"], 0.5, 0.5, 0.55) end
-            GameTooltip:AddLine(L["+/- zaehlt, was DU beigetragen hast"], 0.5, 0.5, 0.55)
+            if #list == 0 then GameTooltip:AddLine("  " .. L["nobody yet"], 0.5, 0.5, 0.55) end
+            GameTooltip:AddLine(L["+/- counts what YOU contributed"], 0.5, 0.5, 0.55)
             GameTooltip:Show()
         end)
         r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -520,17 +520,17 @@ local function buildDetail(p)
     d.noHelp = K.Text(d.body, 12, C.dim)
     d.noHelp:SetPoint("TOPLEFT", 0, -6)
     -- Fuss
-    d.finish = K.Button(d, L["Als erreicht markieren"], 170, 26, "primary", function(self)
+    d.finish = K.Button(d, L["Mark as reached"], 170, 26, "primary", function(self)
         local g = GG.selected and Store.Get(COLL, GG.selected)
         if not g then return end
         GG.SetFinished(g, not g.fin)
         if not g.fin then K.Burst(p, d.pct, 40) end
     end)
     d.finish:SetPoint("BOTTOMRIGHT", -16, 14)
-    d.chat = K.Button(d, L["Im Gildenchat teilen"], 150, 26, "ghost", function()
+    d.chat = K.Button(d, L["Share in guild chat"], 150, 26, "ghost", function()
         local g = GG.selected and Store.Get(COLL, GG.selected)
         if not g then return end
-        local parts = { (L["Gildenziel: %s (%s)"]):format(tostring(g.title or "?"), pct(GG.Progress(g))) }
+        local parts = { (L["Guild goal: %s (%s)"]):format(tostring(g.title or "?"), pct(GG.Progress(g))) }
         for _, m in ipairs(GG.Mats(g)) do
             local sum = GG.Contrib(g, m.i)
             if sum < m.need then parts[#parts + 1] = (L["%s %d/%d"]):format(nameOf(m.id), sum, m.need) end
@@ -551,7 +551,7 @@ local function fillDetail(p, g, animate)
     local show = g ~= nil
     for _, w in ipairs({ d.iconBox, d.title, d.meta, d.edit, d.pct, d.bar, d.sum, d.won, d.seg, d.body, d.finish, d.chat, d.hero }) do w:SetShown(show) end
     d.none:SetShown(not show)
-    d.none:SetText(L["Links ein Ziel waehlen oder ein neues anlegen."])
+    d.none:SetText(L["Pick a goal on the left or create a new one."])
     if not g then return end
     local ac = g.fin and C.mint or C.accent
     if not K.Gradient(d.hero, "VERTICAL", { ac[1], ac[2], ac[3], 0 }, { ac[1], ac[2], ac[3], 0.16 }) then d.hero:SetColorTexture(ac[1], ac[2], ac[3], 0.05) end
@@ -571,10 +571,10 @@ local function fillDetail(p, g, animate)
     for _, s in ipairs(steps) do if s.done then sd = sd + 1 end end
     for _, m in ipairs(mats) do if GG.Contrib(g, m.i) >= m.need then md = md + 1 end end
     local parts = {}
-    if #steps > 0 then parts[#parts + 1] = (L["%d von %d Meilensteinen"]):format(sd, #steps) end
-    if #mats > 0 then parts[#parts + 1] = (L["%d von %d Materialien"]):format(md, #mats) end
+    if #steps > 0 then parts[#parts + 1] = (L["%d of %d milestones"]):format(sd, #steps) end
+    if #mats > 0 then parts[#parts + 1] = (L["%d of %d materials"]):format(md, #mats) end
     d.sum:SetText(table.concat(parts, "  ·  "))
-    d.won:SetText(g.fin and L["ZIEL ERREICHT"] or "")
+    d.won:SetText(g.fin and L["GOAL REACHED"] or "")
     d.seg:Select(d.tab)
     -- alles im Koerper verstecken, dann den Reiter fuellen
     d.desc:Hide() d.path:Hide() d.noSteps:Hide() d.noMats:Hide() d.noHelp:Hide()
@@ -596,7 +596,7 @@ local function fillDetail(p, g, animate)
         if #steps == 0 then
             d.noSteps:ClearAllPoints()
             d.noSteps:SetPoint("TOPLEFT", 0, y)
-            d.noSteps:SetText(L["Keine Meilensteine - nur Material."])
+            d.noSteps:SetText(L["No milestones - materials only."])
             d.noSteps:Show()
         else
             -- Pfad: senkrechte Linie durch die Knoten, erledigte Knoten gefuellt
@@ -621,7 +621,7 @@ local function fillDetail(p, g, animate)
         end
     elseif d.tab == "mats" then
         if #mats == 0 then
-            d.noMats:SetText(L["Fuer dieses Ziel wird kein Material gesammelt."])
+            d.noMats:SetText(L["No materials are collected for this goal."])
             d.noMats:Show()
         end
         local y = 0
@@ -648,7 +648,7 @@ local function fillDetail(p, g, animate)
     else
         local list = helpers(g)
         if #list == 0 then
-            d.noHelp:SetText(L["Noch hat niemand Material beigetragen."])
+            d.noHelp:SetText(L["Nobody has contributed materials yet."])
             d.noHelp:Show()
         end
         local top = list[1] and list[1].n or 1
@@ -669,18 +669,18 @@ local function fillDetail(p, g, animate)
         end
     end
     d.finish:SetShown(GG.CanEdit(g))
-    d.finish:SetLabel(g.fin and L["Wieder offen"] or L["Als erreicht markieren"])
+    d.finish:SetLabel(g.fin and L["Reopen"] or L["Mark as reached"])
     p.animTab = nil
 end
 
 if ns.ICONS then ns.ICONS.goals = ns.MEDIA .. "icons\\checklist" end
 ns.RegisterPage({
-    key = "goals", title = "Gildenziele", order = 7.65,
-    sub = "Gemeinsame Vorhaben der Gilde - Meilensteine abhaken, Material zusammentragen",
+    key = "goals", title = "Guild goals", order = 7.65,
+    sub = "Shared guild projects - tick off milestones, gather materials",
     build = function(p)
         -- Kennzahlen oben
         p.tiles = {}
-        local TT = { { "checklist", "Aktive Ziele" }, { "star_on", "Erreicht" }, { "heart", "Dein Beitrag" }, { "social", "Helfer" } }
+        local TT = { { "checklist", "Active goals" }, { "star_on", "Earned" }, { "heart", "Your contribution" }, { "social", "Helpers" } }
         for i, t in ipairs(TT) do
             local c = CreateFrame("Frame", nil, p)
             c:SetHeight(52)
@@ -695,7 +695,7 @@ ns.RegisterPage({
             p.tiles[i] = c
             c:Hide()   -- Kennzahlen-Kacheln entfallen; Werte stehen in der Liste
         end
-        p.newBtn = K.Button(p, L["Neues Ziel"], 120, 30, "primary", function()
+        p.newBtn = K.Button(p, L["New goal"], 120, 30, "primary", function()
             editing = (editing == "new") and nil or "new"
             ns.RefreshPage("goals")
         end)
@@ -767,7 +767,7 @@ ns.RegisterPage({
             r.p:SetText(pct(pr))
             local pc = g.fin and C.mint or C.text
             r.p:SetTextColor(pc[1], pc[2], pc[3])
-            r.m:SetText(g.fin and ("|cff66db9e" .. L["erreicht"] .. "|r  ·  " .. ns.displayName(g.by or "?")) or (ns.displayName(g.by or "?") .. "  ·  " .. ns.ago(g.created or g.u or 0)))
+            r.m:SetText(g.fin and ("|cff66db9e" .. L["reached"] .. "|r  ·  " .. ns.displayName(g.by or "?")) or (ns.displayName(g.by or "?") .. "  ·  " .. ns.ago(g.created or g.u or 0)))
             r.bar:Color(g.fin and C.mint or (C.accent2 or C.accent), g.fin and C.mint or C.accent)
             r.bar:Set(pr, false)
             r.paint(r)
@@ -776,7 +776,7 @@ ns.RegisterPage({
         p.list:SetPoint("TOPLEFT", 0, -42)
         p.list:SetPoint("BOTTOMLEFT", 0, 0)
         p.list:SetWidth(LISTW)
-        p.list.empty:SetText(L["Noch keine Gildenziele. Lege das erste an - z. B. eine legendaere Waffe oder Material fuer den Raid."])
+        p.list.empty:SetText(L["No guild goals yet. Create the first one - e.g. a legendary weapon or raid materials."])
         buildDetail(p)
         buildForm(p)
     end,
@@ -794,7 +794,7 @@ ns.RegisterPage({
         for i, c in ipairs(p.tiles) do
             if p.animAll and animOn() then K.CountUp(c.v, vals[i], 0.7, nil, (i - 1) * 0.06) else c.v:SetText(vals[i]) end
         end
-        p.newBtn:SetLabel(editing == "new" and L["Abbrechen"] or L["Neues Ziel"])
+        p.newBtn:SetLabel(editing == "new" and L["Cancel"] or L["New goal"])
         if editing then
             local eg = editing ~= "new" and Store.Get(COLL, editing) or nil
             if p.form.forId ~= editing then GG.FillForm(p, eg) p.form.forId = editing if animOn() then K.FadeIn(p.form, 0) end end
@@ -826,11 +826,11 @@ ns.slash.ziele = function() ns.ShowPage("goals") end
 local BOARD = "board"
 if ns.ICONS then ns.ICONS.board = ns.MEDIA .. "icons\\announce" end   -- 0.6.452: Symbol in der Seitenleiste
 local BCATS = {
-    { key = "info", text = "Brett: Hinweis", col = { 0.55, 0.72, 1 } },
-    { key = "search", text = "Brett: Suche", col = { 1, 0.72, 0.3 } },
-    { key = "offer", text = "Brett: Biete", col = { 0.4, 0.86, 0.55 } },
-    { key = "event", text = "Brett: Termin", col = { 0.85, 0.55, 1 } },
-    { key = "fun", text = "Brett: Spass", col = { 1, 0.5, 0.6 } },
+    { key = "info", text = "Info", col = { 0.55, 0.72, 1 } },
+    { key = "search", text = "Looking for", col = { 1, 0.72, 0.3 } },
+    { key = "offer", text = "Offering", col = { 0.4, 0.86, 0.55 } },
+    { key = "event", text = "Date", col = { 0.85, 0.55, 1 } },
+    { key = "fun", text = "Fun", col = { 1, 0.5, 0.6 } },
 }
 local BCAT = {}
 for _, c in ipairs(BCATS) do BCAT[c.key] = c end
@@ -848,11 +848,11 @@ function GG.BoardList(filter)
 end
 function GG.CanDelNote(r) return r and (ns.isMe(r.by) or ns.isOfficer()) end
 ns.RegisterPage({
-    key = "board", title = "Schwarzes Brett", order = 7.64,
-    sub = "Notizen fuer die ganze Gilde - Suche, Biete, Termine, Hinweise",
+    key = "board", title = "Notice board", order = 7.64,
+    sub = "Notes for the whole guild - looking for, offering, dates, info",
     build = function(p)
         p.cat, p.filter = "info", "all"
-        p.input = K.Input(p, 400, L["Notiz an das Brett schreiben ..."], function() end)
+        p.input = K.Input(p, 400, L["Write a note for the board ..."], function() end)
         p.input:SetPoint("TOPLEFT", 0, -4)
         p.input:SetPoint("RIGHT", p, "RIGHT", -270, 0)
         if p.input.SetMaxLetters then p.input:SetMaxLetters(MAXLEN) end
@@ -870,22 +870,22 @@ ns.RegisterPage({
             p:ShowCat()
         end)
         p.catBtn:SetPoint("LEFT", p.input, "RIGHT", 8, 0)
-        p.catBtn:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Art der Notiz"], L["Klick: naechste Art"] }) end)
+        p.catBtn:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Kind of note"], L["Click: next kind"] }) end)
         p.catBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
         function p:ShowCat()
             local c = BCAT[self.cat]
             self.catBtn:SetLabel(K.hex(c.col) .. L[c.text] .. "|r")
         end
         p:ShowCat()
-        p.postBtn = K.Button(p, L["Ans Brett heften"], 130, 28, "primary", post)
+        p.postBtn = K.Button(p, L["Pin to board"], 130, 28, "primary", post)
         p.postBtn:SetPoint("LEFT", p.catBtn, "RIGHT", 8, 0)
-        local items = { { key = "all", text = L["Alle"] } }
+        local items = { { key = "all", text = L["All"] } }
         for _, c in ipairs(BCATS) do items[#items + 1] = { key = c.key, text = L[c.text] } end
         p.seg = K.Segments(p, items, function(k) p.filter = k ns.RefreshPage("board", true) end)
         p.seg:SetPoint("TOPLEFT", 0, -46)
         p.empty = K.Text(p, 12, C.dim, "CENTER")
         p.empty:SetPoint("TOP", 0, -140)
-        p.empty:SetText(L["Noch nichts am Brett. Schreib die erste Notiz - z. B. Suche Gruppe fuer ... oder Biete ..."])
+        p.empty:SetText(L["Nothing on the board yet. Write the first note - e.g. Looking for a group for ... or Offering ..."])
         p.cards = {}
         local function card(i)
             local c = CreateFrame("Frame", nil, p)
@@ -918,13 +918,13 @@ ns.RegisterPage({
                 b:SetScript("OnClick", fn)
                 return b
             end
-            c.del = iconBtn(ns.MEDIA .. "icons\\eraser", L["Loeschen (zweimal klicken)"], function(self)
+            c.del = iconBtn(ns.MEDIA .. "icons\\eraser", L["Delete (click twice)"], function(self)
                 if not (c.r and GG.CanDelNote(c.r)) then return end
                 if self.armed and GetTime() - self.armed < 4 then Store.Delete(BOARD, c.r.id) ns.RefreshPage("board", true)
-                else self.armed = GetTime() K.Toast(L["Schwarzes Brett"], L["Nochmal klicken zum Loeschen."], C.amber) end
+                else self.armed = GetTime() K.Toast(L["Notice board"], L["Click again to delete."], C.amber) end
             end)
             c.del:SetPoint("BOTTOMRIGHT", -8, 7)
-            c.pinBtn = iconBtn(ns.MEDIA .. "icons\\pin", L["Oben anheften (Gildenleitung)"], function()
+            c.pinBtn = iconBtn(ns.MEDIA .. "icons\\pin", L["Pin to top (officers)"], function()
                 if not (c.r and ns.isOfficer()) then return end
                 local r = {}
                 for k, v in pairs(c.r) do r[k] = v end
@@ -972,7 +972,7 @@ ns.RegisterPage({
         if #list > SHOWN then
             p.more:ClearAllPoints()
             p.more:SetPoint("TOP", p, "TOP", 0, -84 - math.ceil(SHOWN / cols) * (ch + gap))
-            p.more:SetText((L["%d aeltere Notizen ausgeblendet"]):format(#list - SHOWN))
+            p.more:SetText((L["%d older notes hidden"]):format(#list - SHOWN))
         end
     end,
 })

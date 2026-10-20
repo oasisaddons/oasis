@@ -185,12 +185,12 @@ function Points.Active()
     if r and ns.now() - (r.t or 0) < 8 * 3600 then return r end
 end
 function Points.StartRaid(title)
-    if not Points.CanManage() then ns.print(L["Punkte vergeben duerfen nur Offiziere."]) return end
+    if not Points.CanManage() then ns.print(L["Only officers can award points."]) return end
     local cfg = Points.Cfg()
     local rid = date("%Y%m%d%H") .. ns.short(ns.me())
     ns.db.pointsRaid = { id = rid, t = ns.now(), title = title or (ns.safe(GetRealZoneText()) or ""), bosses = 0 }
-    Points.Award(withBench(groupNames()), cfg.onTime, L["Puenktlich da"], "pts-start-" .. rid, { start = true, raid = title })
-    K.Toast(L["Raid gestartet"], (L["+%d Einsatz fuer alle, die da sind"]):format(cfg.onTime), C.mint)
+    Points.Award(withBench(groupNames()), cfg.onTime, L["On time"], "pts-start-" .. rid, { start = true, raid = title })
+    K.Toast(L["Raid started"], (L["+%d effort for everyone present"]):format(cfg.onTime), C.mint)
     ns.RefreshPage("raid")
 end
 function Points.BossKill(bossName, encounterID)
@@ -201,17 +201,17 @@ function Points.BossKill(bossName, encounterID)
     if Store.Get("points", id) then return end
     r.bosses = (r.bosses or 0) + 1
     Points.Award(withBench(groupNames()), cfg.boss, bossName or L["Boss"], id, { raid = r.title })
-    K.Toast((L["%s besiegt"]):format(bossName or L["Boss"]), (L["+%d Einsatz fuer den Raid"]):format(cfg.boss), C.mint)
+    K.Toast((L["%s defeated"]):format(bossName or L["Boss"]), (L["+%d effort for the raid"]):format(cfg.boss), C.mint)
     ns.RefreshPage("raid")
 end
 function Points.EndRaid()
     local r = Points.Active()
     if not r then return end
     local cfg = Points.Cfg()
-    Points.Award(withBench(groupNames()), cfg.finish, L["Bis zum Ende dabei"], "pts-end-" .. r.id, { raid = r.title })
+    Points.Award(withBench(groupNames()), cfg.finish, L["Stayed until the end"], "pts-end-" .. r.id, { raid = r.title })
     ns.db.pointsRaid = nil
     wipe(Points.bench)
-    K.Toast(L["Raid beendet"], (L["+%d Einsatz fuer alle bis zum Schluss"]):format(cfg.finish), C.mint)
+    K.Toast(L["Raid ended"], (L["+%d effort for everyone who stayed"]):format(cfg.finish), C.mint)
     ns.RefreshPage("raid")
 end
 -- Offizier betritt mit Schlachtzug eine Raid-Instanz: an den Start erinnern
@@ -223,7 +223,7 @@ ns.On("PLAYER_ENTERING_WORLD", function()
         local zone = ns.safe(GetRealZoneText()) or ""
         if reminded == zone or ns.db.settings.raidPointsPrompt == false then return end
         reminded = zone
-        K.Toast(L["Raid-Punkte starten?"], (L["%s  -  Klick: +%d Einsatz fuer alle, die da sind"]):format(zone, Points.Cfg().onTime), C.accent,
+        K.Toast(L["Start raid points?"], (L["%s  –  click: +%d effort for everyone present"]):format(zone, Points.Cfg().onTime), C.accent,
             function() Points.StartRaid(zone) end)
     end)
 end)

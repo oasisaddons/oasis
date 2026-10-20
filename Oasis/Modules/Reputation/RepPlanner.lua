@@ -32,19 +32,19 @@ local function weekKey(ts) return date("%Y-%W", ts or ns.now()) end
 
 -- wichtige Fraktionen (Classic/Forever-Raids): ID -> Name (Ersatz, falls der Client ihn nicht liefert) + Hinweis
 local KEY_FACTIONS = {
-    [749] = { "Hydraxianische Wasserfuersten", "Geschmolzener Kern: Wasser der Hydraxianer loescht die Runen" },
-    [529] = { "Argentumdaemmerung", "Scholomance, Stratholme, Naxxramas-Zugang" },
-    [576] = { "Holzschlundfeste", "Felsenquell-Rezepte, Weg nach Winterquell" },
-    [59] = { "Thoriumbruderschaft", "Feuerwiderstand-Rezepte fuer den Geschmolzenen Kern" },
-    [609] = { "Zirkel des Cenarius", "Ahn'Qiraj, Naturwiderstand" },
-    [270] = { "Stamm der Zandalar", "Zul'Gurub-Belohnungen" },
-    [910] = { "Brut Nozdormus", "Tempel von Ahn'Qiraj" },
-    [990] = { "Die Waechter der Sande", "Hyjal" },
-    [809] = { "Shen'dralar", "Duesterbruch, Buecher" },
-    [909] = { "Dunkelmond-Jahrmarkt", "Karten und Preise" },
+    [749] = { "Hydraxian Waterlords", "Molten Core: Aqual Quintessence douses the runes" },
+    [529] = { "Argent Dawn", "Scholomance, Stratholme, Naxxramas attunement" },
+    [576] = { "Timbermaw Hold", "Recipes, passage to Winterspring" },
+    [59] = { "Thorium Brotherhood", "Fire resistance recipes for Molten Core" },
+    [609] = { "Cenarion Circle", "Ahn'Qiraj, nature resistance" },
+    [270] = { "Zandalar Tribe", "Zul'Gurub rewards" },
+    [910] = { "Brood of Nozdormu", "Temple of Ahn'Qiraj" },
+    [990] = { "The Scale of the Sands", "Hyjal" },
+    [809] = { "Shen'dralar", "Dire Maul, librams" },
+    [909] = { "Darkmoon Faire", "Cards and prizes" },
 }
 RP.KEY_FACTIONS = KEY_FACTIONS
-local STANDING = { "Hasserfuellt", "Feindselig", "Unfreundlich", "Neutral", "Freundlich", "Wohlwollend", "Respektvoll", "Ehrfuerchtig" }
+local STANDING = { "Hated", "Hostile", "Unfriendly", "Neutral", "Friendly", "Honored", "Revered", "Exalted" }
 local ST_COLOR = {
     { 0.8, 0.13, 0.13 }, { 1, 0, 0 }, { 0.93, 0.4, 0.13 }, { 1, 1, 0 }, { 0, 0.7, 0.1 }, { 0, 0.8, 0.4 }, { 0.2, 0.6, 1 }, { 0.75, 0.45, 1 },
 }
@@ -278,7 +278,7 @@ function RP.SeedDemo()
         local parts = {}
         for id, v in pairs(d[3]) do
             local kf = KEY_FACTIONS[id]
-            parts[#parts + 1] = ("%d:%d:%d:%d:%d:%s"):format(id, v[1], v[2], v[3], d[4][id] or 0, kf and L[kf[1]] or (id == 349 and L["Rabenholdt"] or "?"))
+            parts[#parts + 1] = ("%d:%d:%d:%d:%d:%s"):format(id, v[1], v[2], v[3], d[4][id] or 0, kf and L[kf[1]] or (id == 349 and L["Ravenholdt"] or "?"))
         end
         Store.merge(COLL, { id = "demo-rf-" .. i, demo = true, u = ns.now(), by = ns.fullName(d[1]), c = ns.fullName(d[1]), cls = d[2], wk = wk, f = table.concat(parts, ";") })
     end
@@ -317,11 +317,11 @@ local function charRow(l)
     r:Col("val", 440, 90, 11, C.muted)
     r:Col("gain", 532, 80, 11, C.mint)
     r:Col("extra", 614, 110, 11, C.muted)
-    r.inv = K.Button(r, L["Einladen"], 76, 20, "ghost", function(self)
+    r.inv = K.Button(r, L["Invite"], 76, 20, "ghost", function(self)
         local it = self:GetParent().item
         local c = it and (it.c or it)
         if not c then return end
-        if c.demo then ns.print(L["(Demo) Einladung an "] .. ns.displayName(c.name)) return end
+        if c.demo then ns.print(L["(Demo) Invite sent to "] .. ns.displayName(c.name)) return end
         ns.InviteName(c.name)
     end)
     r.inv:SetPoint("RIGHT", -6, 0)
@@ -364,16 +364,16 @@ local function fillChar(r, c, extra)
         r.bar:Set(p)
     end
     r.cols.val:SetText((c.max or 0) > 0 and (c.cur .. " / " .. c.max) or "")
-    r.cols.gain:SetText((c.gain or 0) > 0 and ((L["+%d Woche"]):format(c.gain)) or "")
+    r.cols.gain:SetText((c.gain or 0) > 0 and ((L["+%d week"]):format(c.gain)) or "")
     r.cols.extra:SetText(extra or "")
     r.inv:SetShown(c.online and not ns.isMe(c.name))
 end
 
 ns.RegisterPage({
-    key = "repplan", title = "Ruf-Planer", order = 4.2,
-    sub = "Wer steht wo bei welcher Fraktion? Kurz vor dem Ziel, gemeinsam farmen, Fortschritt dieser Woche",
+    key = "repplan", title = "Reputation Planner", order = 4.2,
+    sub = "Who stands where with which faction? Close to the goal, farm together, progress this week",
     build = function(p)
-        p.seg = K.Segments(p, { { key = "factions", text = L["Fraktionen"] }, { key = "near", text = L["Kurz davor"] }, { key = "farm", text = L["Gemeinsam farmen"] } }, function(k)
+        p.seg = K.Segments(p, { { key = "factions", text = L["Factions"] }, { key = "near", text = L["Almost there"] }, { key = "farm", text = L["Farm together"] } }, function(k)
             view = k animNext = true ns.RefreshPage("repplan")
         end, 120)
         p.seg:SetPoint("TOPLEFT", 0, 0)
@@ -402,7 +402,7 @@ ns.RegisterPage({
             r.gain:SetPoint("TOPRIGHT", -10, -8)
             r.gainL = K.Text(r, 9, C.dim, "RIGHT")
             r.gainL:SetPoint("BOTTOMRIGHT", -10, 9)
-            r.gainL:SetText(L["diese Woche"])
+            r.gainL:SetText(L["this week"])
             r.cols.name:SetPoint("RIGHT", r.gain, "LEFT", -6, 0)
             r:SetScript("OnClick", function(self) selKey = self.item and self.item.key animNext = true ns.RefreshPage("repplan") end)
             return r
@@ -410,7 +410,7 @@ ns.RegisterPage({
             local on = selKey == fa.key
             r.cols.name:SetText((fa.important and STAR or "") .. fa.name)
             r.cols.name:SetTextColor(on and 1 or C.text[1], on and 1 or C.text[2], on and 1 or C.text[3])
-            r.sub:SetText((L["%d Charaktere"]):format(#fa.chars))
+            r.sub:SetText((L["%d characters"]):format(#fa.chars))
             r.gain:SetText(fa.weekGain > 0 and ("+" .. fa.weekGain) or "")
             r.gainL:SetShown(fa.weekGain > 0)
             r.sel:SetShown(on)
@@ -419,7 +419,7 @@ ns.RegisterPage({
         fv.list:SetPoint("TOPLEFT", 0, 0)
         fv.list:SetPoint("BOTTOMLEFT", 0, 0)
         fv.list:SetWidth(250)
-        fv.list.empty:SetText(L["Noch keine Rufdaten. Sie kommen automatisch, sobald Mitglieder mit Oasis online sind."])
+        fv.list.empty:SetText(L["No reputation data yet. It arrives automatically once members with Oasis are online."])
         fv.card = K.Panel(fv, C.panel)
         fv.card:SetPoint("TOPLEFT", 262, 0)
         fv.card:SetPoint("BOTTOMRIGHT")
@@ -442,7 +442,7 @@ ns.RegisterPage({
             r.cols.st:SetText(stText(e.c.st) .. " |cff888888>|r " .. stText(e.target))
         end)
         nv.list:SetPoint("TOPLEFT") nv.list:SetPoint("BOTTOMRIGHT")
-        nv.list.empty:SetText(L["Niemand steht kurz vor Respektvoll oder Ehrfuerchtig (ab 75 %)."])
+        nv.list.empty:SetText(L["Nobody is close to Revered or Exalted (from 75 %)."])
         ------------------------------------------------------------ Gemeinsam farmen
         local gv = CreateFrame("Frame", nil, p)
         gv:SetPoint("TOPLEFT", 0, -34) gv:SetPoint("BOTTOMRIGHT")
@@ -452,7 +452,7 @@ ns.RegisterPage({
             r.cols.extra:SetWidth(200)
         end)
         gv.list:SetPoint("TOPLEFT") gv.list:SetPoint("BOTTOMRIGHT")
-        gv.list.empty:SetText(L["Keine Mitspieler mit gleicher Fraktion gefunden. Oasis kennt deinen Ruf erst nach dem ersten Einlesen (ausserhalb des Kampfes)."])
+        gv.list.empty:SetText(L["No members with the same faction found. Oasis knows your reputation only after the first read (out of combat)."])
         p:HookScript("OnShow", function() animNext = true end)
         p:HookScript("OnShow", function() ns.After(0.2, function() pcall(RP.Share) end) end)
     end,
@@ -469,12 +469,12 @@ ns.RegisterPage({
         for _, fa in ipairs(facs) do weekSum = weekSum + fa.weekGain end
         -- Zaehler an den Reitern (frueher eigene Kacheln): Kurz davor / Gemeinsam farmen (davon online)
         for _, b in ipairs(p.seg.buttons or {}) do
-            local base = (b.key == "factions" and L["Fraktionen"]) or (b.key == "near" and L["Kurz davor"]) or L["Gemeinsam farmen"]
+            local base = (b.key == "factions" and L["Factions"]) or (b.key == "near" and L["Almost there"]) or L["Farm together"]
             local n = (b.key == "factions" and #facs) or (b.key == "near" and #near) or onlineFarm
             if b.label then b.label:SetText(base .. ((n or 0) > 0 and ("  |cff888888" .. n .. "|r") or "")) end
         end
         local apiOk = (C_Reputation and C_Reputation.GetFactionDataByIndex) or GetFactionInfo
-        p.hint:SetText(apiOk and ((weekSum > 0 and ("|cff66db9e" .. (L["Gilde diese Woche: +%d Ruf"]):format(weekSum) .. "|r  ·  ") or "") .. L["Rechtsklick: anfluestern  ·  Stern = wichtig fuer Raids"]) or ("|cffff8a3d" .. L["Dieser Client liefert keine Rufdaten - du siehst nur die Staende der anderen."] .. "|r"))
+        p.hint:SetText(apiOk and ((weekSum > 0 and ("|cff66db9e" .. (L["Guild this week: +%d rep"]):format(weekSum) .. "|r  ·  ") or "") .. L["Right-click: whisper  ·  star = important for raids"]) or ("|cffff8a3d" .. L["This client provides no reputation data - you only see the standings of others."] .. "|r"))
         if view == "factions" then
             p.fv.list:SetData(facs)
             local sel
@@ -507,8 +507,8 @@ end
 addSettings(function(det, y)
     det.t = det.t or {}
     if S().repShare == nil then S().repShare = true end
-    local t = K.Toggle(det, L["Ruf mit der Gilde teilen"], function() return S().repShare ~= false end, function(v) S().repShare = v end,
-        L["Teilt deine Rufstaende (nur bei Aenderung, hoechstens alle 5 Minuten), damit andere gemeinsam mit dir farmen koennen"])
+    local t = K.Toggle(det, L["Share reputation with the guild"], function() return S().repShare ~= false end, function(v) S().repShare = v end,
+        L["Shares your standings (only on change, at most every 5 minutes) so others can farm together with you"])
     t:SetPoint("TOPLEFT", 14, y)
     det.t[#det.t + 1] = t
     return y - 54

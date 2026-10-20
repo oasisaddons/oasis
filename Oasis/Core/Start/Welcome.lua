@@ -67,7 +67,7 @@ local NEW_DAYS = 14
 function Welcome.JoinedAt(name)
     local best
     for _, e in ipairs(Store.List("chronicle", function(e) return e.kind == "guild" and e.who == name end)) do
-        if (e.tk or ""):find("^tritt") then best = math.max(best or 0, e.ts or 0) end
+        if ns.IsJoinTk(e.tk) then best = math.max(best or 0, e.ts or 0) end
     end
     return best
 end
@@ -79,19 +79,19 @@ end
 
 -- Hinweis an die Gilde, wenn jemand beitritt
 local greeted = {}
-ns.GuildOption({ page = "radar", key = "wlToast", default = true, label = "Neue Mitglieder melden",
-    desc = "Hinweis mit Klick-Willkommen, wenn jemand der Gilde beitritt" })
+ns.GuildOption({ page = "radar", key = "wlToast", default = true, label = "Announce new members",
+    desc = "Notice with click-to-welcome when someone joins the guild" })
 ns.Listen("STORE", function(coll, rec, old)
     if coll ~= "chronicle" or old or rec.del or rec.kind ~= "guild" then return end
-    if not (rec.tk or ""):find("^tritt") or (ns.now() - (rec.ts or 0)) > 600 or ns.isMe(rec.who) then return end
+    if not ns.IsJoinTk(rec.tk) or (ns.now() - (rec.ts or 0)) > 600 or ns.isMe(rec.who) then return end
     if greeted[rec.who] or ns.GuildOpt("wlToast") == false then return end
     -- Chronik-Eintraege kann jedes Mitglied schreiben: nur echte Namen aus der Gildenliste begruessen
     if not SEC.Name(rec.who) then return end
     if ns.Admin and ns.Admin.InGuildList and ns.Admin.InGuildList(rec.who) ~= true then return end
     greeted[rec.who] = true
     ns.Sound.Next("welcome")
-    K.Toast((L["Neu in der Gilde: %s"]):format(ns.displayName(rec.who)), L["Klick: Willkommen im Gildenchat sagen"], C.mint, function()
-        ns.SendChat((L["Willkommen in der Gilde, %s!"]):format(ns.displayName(rec.who)), "GUILD")
+    K.Toast((L["New in the guild: %s"]):format(ns.displayName(rec.who)), L["Click: say welcome in guild chat"], C.mint, function()
+        ns.SendChat((L["Welcome to the guild, %s!"]):format(ns.displayName(rec.who)), "GUILD")
         if ns.Badges then ns.Badges.Add("gz", 1) end
         if ns.Rewards and ns.Rewards.Credit then ns.Rewards.Credit("gz", rec.who) end
     end)
@@ -110,18 +110,18 @@ local win
 local DUMMY = {
     guild = "Oasis", total = 87, preview = true,
     online = {
-        { name = "Durotan", level = 60, class = "WARRIOR", rank = "Gildenmeister", rankIndex = 0 },
-        { name = "Lyssandra", level = 60, class = "PRIEST", rank = "Offizier", rankIndex = 1 },
-        { name = "Brummbart", level = 58, class = "HUNTER", rank = "Offizier", rankIndex = 1 },
-        { name = "Zul'kira", level = 22, class = "MAGE", rank = "Mitglied", rankIndex = 3 },
-        { name = "Feuerfaust", level = 19, class = "SHAMAN", rank = "Mitglied", rankIndex = 3 },
-        { name = "Nachtschatten", level = 24, class = "ROGUE", rank = "Mitglied", rankIndex = 3 },
+        { name = "Durotan", level = 60, class = "WARRIOR", rank = "Guild Master", rankIndex = 0 },
+        { name = "Lyssandra", level = 60, class = "PRIEST", rank = "Officer", rankIndex = 1 },
+        { name = "Brummbart", level = 58, class = "HUNTER", rank = "Officer", rankIndex = 1 },
+        { name = "Zul'kira", level = 22, class = "MAGE", rank = "Member", rankIndex = 3 },
+        { name = "Feuerfaust", level = 19, class = "SHAMAN", rank = "Member", rankIndex = 3 },
+        { name = "Nachtschatten", level = 24, class = "ROGUE", rank = "Member", rankIndex = 3 },
         { name = "Eichenherz", level = 41, class = "DRUID", rank = "Veteran", rankIndex = 2 },
-        { name = "Morgana", level = 35, class = "WARLOCK", rank = "Mitglied", rankIndex = 3 },
+        { name = "Morgana", level = 35, class = "WARLOCK", rank = "Member", rankIndex = 3 },
         { name = "Silberhand", level = 60, class = "PALADIN", rank = "Veteran", rankIndex = 2 },
     },
     myLevel = 21,
-    next = { "Naechster Termin: Molten Core, Freitag, 20:00", "3 offene Gruppensuchen", "1 laufende Umfragen" },
+    next = { "Next event: Molten Core, Friday, 20:00", "3 open group searches", "1 running poll" },
     events = 2, oasis = 23,
     motd = "Raids Mi + So 20 Uhr. Fragen? Einfach einen Offizier anfluestern!",
 }
@@ -138,12 +138,12 @@ local function collect()
     local evs = ns.Raid and ns.Raid.Events() or {}
     local week = ns.now() + 7 * 86400
     for _, ev in ipairs(evs) do if (ev.ts or 0) < week then d.events = d.events + 1 end end
-    if evs[1] then d.next[#d.next + 1] = (L["Naechster Termin: %s"]):format((evs[1].title or "?") .. ", " .. ns.fmtWhen(evs[1].ts)) end
+    if evs[1] then d.next[#d.next + 1] = (L["Next event: %s"]):format((evs[1].title or "?") .. ", " .. ns.fmtWhen(evs[1].ts)) end
     local lfg = ns.Groups and #ns.Groups.Active() or 0
-    if lfg > 0 then d.next[#d.next + 1] = (L["%d offene Gruppensuchen"]):format(lfg) end
+    if lfg > 0 then d.next[#d.next + 1] = (L["%d open group searches"]):format(lfg) end
     local polls = 0
     if ns.Polls then for _, p in ipairs(ns.Polls.All()) do if ns.Polls.IsOpen(p) then polls = polls + 1 end end end
-    if polls > 0 then d.next[#d.next + 1] = (L["%d laufende Umfragen"]):format(polls) end
+    if polls > 0 then d.next[#d.next + 1] = (L["%d open polls"]):format(polls) end
     d.oasis = R and R.withAddon or 0
     d.motd = ns.GuildInfo and ns.GuildInfo.MOTD and ns.GuildInfo.MOTD() or ""
     return d
@@ -167,7 +167,7 @@ end
 
 local function colored(m) return ns.colorName(m.name, m.class) end
 local function whisper(m)
-    if win and win.data and win.data.preview then ns.print(L["Vorschau: "] .. "/w " .. ns.short(m.name)) return end
+    if win and win.data and win.data.preview then ns.print(L["Preview: "] .. "/w " .. ns.short(m.name)) return end
     ns.Whisper(m.name)
 end
 
@@ -205,7 +205,7 @@ local function contactCard(parent)
     c.rank:SetPoint("TOPLEFT", c.name, "BOTTOMLEFT", 0, -4)
     c.act = K.Text(c, 10, C.dim)
     c.act:SetPoint("BOTTOMLEFT", 12, 8)
-    c.act:SetText(L["Klick: anfluestern"])
+    c.act:SetText(L["Click: whisper"])
     c:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     c:SetScript("OnEnter", function(self)
         K.SetBorderColor(self, C.accent2)
@@ -226,7 +226,7 @@ local function contactCard(parent)
         local r, g, b = ns.classColor(m.class)
         self.bar:SetColorTexture(r, g, b, 1)
         self.name:SetText(colored(m))
-        self.rank:SetText((m.rank ~= "" and m.rank or "?") .. "  ·  " .. (L["Stufe %d"]):format(m.level or 0))
+        self.rank:SetText((m.rank ~= "" and m.rank or "?") .. "  ·  " .. (L["Level %d"]):format(m.level or 0))
         self:Show()
     end
     return c
@@ -234,9 +234,9 @@ end
 
 -- Schritt-Kachel: Nummer im Kreis, Text, Haken wenn erledigt
 local STEPS = {
-    { key = "hello", text = "Hallo sagen", sub = "Kurz im Gildenchat melden" },
-    { key = "profile", text = "Profil anlegen", sub = "Klasse, Rolle, was du suchst", page = "insta" },
-    { key = "group", text = "Gruppe finden", sub = "Mitspieler fuer Quests & Dungeons", page = "groups" },
+    { key = "hello", text = "Say hello", sub = "Say hi in guild chat" },
+    { key = "profile", text = "Create profile", sub = "Class, role, what you're looking for", page = "insta" },
+    { key = "group", text = "Find a group", sub = "Partners for quests & dungeons", page = "groups" },
 }
 local function stepTile(parent, i, step, onClick)
     local b = CreateFrame("Button", nil, parent)
@@ -304,7 +304,7 @@ local function build()
     f.logo = logo
     f.tag = K.Text(f, 10, C.accent)
     f.tag:SetPoint("TOPLEFT", logo, "TOPRIGHT", 16, -4)
-    f.tag:SetText(K.Upper(L["Neu in der Gilde"]))
+    f.tag:SetText(K.Upper(L["New in the guild"]))
     f.title = K.Title(f, 22, C.text)
     f.title:SetPoint("TOPLEFT", f.tag, "BOTTOMLEFT", 0, -5)
     f.title:SetPoint("RIGHT", -44, 0)
@@ -321,23 +321,23 @@ local function build()
     f.preview:SetPoint("RIGHT", close, "LEFT", -8, 0)
     f.preview.t = K.Text(f.preview, 10, C.amber, "CENTER")
     f.preview.t:SetPoint("CENTER")
-    f.preview.t:SetText(K.Upper(L["Vorschau"]))
+    f.preview.t:SetText(K.Upper(L["Preview"]))
     local d = K.Divider(f)
     d:SetPoint("TOPLEFT", PAD, -104)
     d:SetPoint("TOPRIGHT", -PAD, -104)
 
     -- drei Zahlen
     local tw = (W - 2 * PAD - 2 * 10) / 3
-    f.stOnline = statTile(f, C.mint, L["gerade online"])
-    f.stTotal = statTile(f, C.accent, L["Mitglieder"])
-    f.stEvents = statTile(f, C.amber, L["Termine diese Woche"])
+    f.stOnline = statTile(f, C.mint, L["online now"])
+    f.stTotal = statTile(f, C.accent, L["Members"])
+    f.stEvents = statTile(f, C.amber, L["Events this week"])
     for i, t in ipairs({ f.stOnline, f.stTotal, f.stEvents }) do
         t:SetWidth(tw)
         t:SetPoint("TOPLEFT", PAD + (i - 1) * (tw + 10), -118)
     end
 
     -- Ansprechpartner
-    local h1 = K.GameHead(f, L["Deine Ansprechpartner"], C.accent)
+    local h1 = K.GameHead(f, L["Who to ask"], C.accent)
     h1:SetPoint("TOPLEFT", PAD, -192)
     h1:SetPoint("RIGHT", -PAD, 0)
     f.h1 = h1
@@ -350,10 +350,10 @@ local function build()
     end
     f.noContacts = K.Text(f, 12, C.dim)
     f.noContacts:SetPoint("TOPLEFT", PAD + 2, -222)
-    f.noContacts:SetText(L["Gerade ist niemand online - schau spaeter nochmal rein."])
+    f.noContacts:SetText(L["Nobody is online right now - check back later."])
 
     -- Nachricht der Gilde (MOTD) - fuer Neue meist das Wichtigste (Regeln, Discord, Raidzeiten)
-    f.hm = K.GameHead(f, L["Nachricht der Gilde"], C.blue)
+    f.hm = K.GameHead(f, L["Guild message"], C.blue)
     f.hm:SetPoint("RIGHT", -PAD, 0)
     f.motd = K.Text(f, 12, C.text)
     f.motd:SetPoint("RIGHT", -PAD, 0)
@@ -362,7 +362,7 @@ local function build()
     f.motd:SetSpacing(3)
 
     -- Levelbereich
-    local h2 = K.GameHead(f, L["In deinem Levelbereich"], C.mint)
+    local h2 = K.GameHead(f, L["Around your level"], C.mint)
     h2:SetPoint("TOPLEFT", PAD, -294)
     h2:SetPoint("RIGHT", -PAD, 0)
     f.h2 = h2
@@ -373,7 +373,7 @@ local function build()
     f.peers:SetJustifyV("TOP")
 
     -- Was gerade laeuft
-    local h3 = K.GameHead(f, L["Was gerade laeuft"], C.amber)
+    local h3 = K.GameHead(f, L["Going on right now"], C.amber)
     f.h3 = h3
     h3:SetPoint("TOPLEFT", PAD, -356)
     h3:SetPoint("RIGHT", -PAD, 0)
@@ -385,7 +385,7 @@ local function build()
     f.next:SetSpacing(4)
 
     -- Erste Schritte
-    local h4 = K.GameHead(f, L["Erste Schritte"], C.pink)
+    local h4 = K.GameHead(f, L["First steps"], C.pink)
     h4:SetPoint("TOPLEFT", PAD, -448)
     h4:SetPoint("RIGHT", -PAD, 0)
     f.h4 = h4
@@ -401,18 +401,18 @@ local function build()
     local fd = K.Divider(f)
     fd:SetPoint("BOTTOMLEFT", PAD, 58)
     fd:SetPoint("BOTTOMRIGHT", -PAD, 58)
-    f.open = K.Button(f, L["Oasis oeffnen"], 140, 28, "primary", function()
+    f.open = K.Button(f, L["Open Oasis"], 140, 28, "primary", function()
         f:Hide()
         ns.ShowPage("home")
     end)
     f.open:SetPoint("BOTTOMLEFT", PAD, 18)
-    f.later = K.Button(f, L["Spaeter"], 100, 28, "ghost", function() f:Hide() end)
+    f.later = K.Button(f, L["Later"], 100, 28, "ghost", function() f:Hide() end)
     f.later:SetPoint("LEFT", f.open, "RIGHT", 8, 0)
     -- alter Knopf-Name bleibt als Verweis (DoStep/Refresh nutzen ihn)
     f.hello = { SetEnabledState = function() end }
     f.hint = K.Text(f, 10, C.dim, "RIGHT")
     f.hint:SetPoint("BOTTOMRIGHT", -PAD, 26)
-    f.hint:SetText(L["Wieder oeffnen: /oa willkommen"])
+    f.hint:SetText(L["Reopen: /oa welcome"])
     win = f
     return f
 end
@@ -426,9 +426,9 @@ function Welcome.DoStep(step)
     local preview = f and f.data and f.data.preview
     if step.key == "hello" then
         if preview then
-            ns.print(L["Vorschau: "] .. L["Hallo zusammen! Ich bin neu in der Gilde."])
+            ns.print(L["Preview: "] .. L["Hi everyone! I am new to the guild."])
         else
-            ns.SendChat(L["Hallo zusammen! Ich bin neu in der Gilde."], "GUILD")
+            ns.SendChat(L["Hi everyone! I am new to the guild."], "GUILD")
         end
         f.hello:SetEnabledState(false)
     elseif step.page then
@@ -444,18 +444,18 @@ function Welcome.Refresh()
     local f, dd = win, win and win.data
     if not dd then return end
     local contacts, peers = split(dd)
-    f.title:SetText((L["Willkommen in %s!"]):format(dd.guild or "Oasis"))
-    f.subtitle:SetText(L["Schoen, dass du da bist. Hier siehst du, wer dir weiterhelfen kann."])
+    f.title:SetText((L["Welcome to %s!"]):format(dd.guild or "Oasis"))
+    f.subtitle:SetText(L["Great to have you. Here is who can help you out."])
     f.preview:SetShown(dd.preview and true or false)
     f.stOnline.value:SetText(#dd.online)
     f.stTotal.value:SetText(dd.total > 0 and dd.total or "-")
     -- "0 Termine diese Woche" wirkt abschreckend -> dann lieber zeigen, wie viele Oasis nutzen
     if (dd.events or 0) > 0 then
         f.stEvents.value:SetText(dd.events)
-        f.stEvents.label:SetText(L["Termine diese Woche"])
+        f.stEvents.label:SetText(L["Events this week"])
     else
         f.stEvents.value:SetText(dd.oasis or 0)
-        f.stEvents.label:SetText(L["nutzen Oasis"])
+        f.stEvents.label:SetText(L["use Oasis"])
     end
     for i, c in ipairs(f.cards) do c:Set(contacts[i]) end
     f.noContacts:SetShown(#contacts == 0)

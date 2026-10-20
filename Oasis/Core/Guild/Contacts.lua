@@ -214,6 +214,6 @@ end
 -- kurzer Tooltip-Text
 function Contacts.TipLine(c)
     if not c then return nil end
-    return (L["nutzt Oasis (Version %s, zuletzt gesehen %s)"]):format(c.v or "?", ns.ago and ns.ago(c.seen or 0) or "?")
+    return (L["uses Oasis (version %s, last seen %s)"]):format(c.v or "?", ns.ago and ns.ago(c.seen or 0) or "?")
 end
 Contacts.LOGO = "|T" .. ns.MEDIA .. "logo64:12:12|t"

@@ -149,6 +149,6 @@ function Scan.Run()
         n = n + 1
         if type(x) == "string" and x:find("^FEHLER") then bad = bad + 1 end
     end
-    ns.print((L["Scan fertig: %d Pruefungen, %d Fehler. Jetzt /reload, dann ist das Ergebnis gespeichert."]):format(n, bad))
+    ns.print((L["Scan done: %d checks, %d errors. Now /reload to save the results."]):format(n, bad))
 end
 ns.slash.scan = function(...) if ns.IsDev and ns.IsDev() then return Scan.Run(...) end end   -- 0.6.524: nur Entwicklermodus

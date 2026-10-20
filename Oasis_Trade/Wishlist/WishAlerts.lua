@@ -80,13 +80,13 @@ function WA.MenuItems(w)
     local m = {}
     for _, name in ipairs(WA.MySets()) do
         if name ~= w.set and #m < 6 then
-            m[#m + 1] = { text = (L["Zu Set: %s"]):format(name), fn = function() WA.AssignSet(w, name) end }
+            m[#m + 1] = { text = (L["To set: %s"]):format(name), fn = function() WA.AssignSet(w, name) end }
         end
     end
-    m[#m + 1] = { text = w.set and L["Set umbenennen / neues Set ..."] or L["Zu einem Set hinzufuegen ..."], fn = function()
-        StaticPopup_Show("OASIS_WANT_SET", L["Name des Sets (z. B. Pre-Raid, Heiler-Set):"], nil, { w = w })
+    m[#m + 1] = { text = w.set and L["Rename set / new set ..."] or L["Add to a set ..."], fn = function()
+        StaticPopup_Show("OASIS_WANT_SET", L["Set name (e.g. Pre-Raid, Healer set):"], nil, { w = w })
     end }
-    if w.set then m[#m + 1] = { text = L["Aus dem Set nehmen"], fn = function() WA.AssignSet(w, "") end } end
+    if w.set then m[#m + 1] = { text = L["Remove from set"], fn = function() WA.AssignSet(w, "") end } end
     return m
 end
 
@@ -130,7 +130,7 @@ local function onEnter()
     if not key or not on("wantsDungeonHint") then return end
     local mine, group = WA.HereFor(key)
     if #mine == 0 and #group == 0 then return end
-    ns.print("|cffffc24d" .. (L["Wunschliste in %s:"]):format(name or key) .. "|r")
+    ns.print("|cffffc24d" .. (L["Wishlist in %s:"]):format(name or key) .. "|r")
     for _, x in ipairs(mine) do
         ns.print("  " .. itemText(x.w) .. (x.src.boss and ("  |cff888888" .. x.src.boss .. "|r") or "")
             .. (x.w.set and ("  |cff66db9e" .. (WA.SetText(x.w.set) or "") .. "|r") or ""))
@@ -139,11 +139,11 @@ local function onEnter()
         ns.print("  " .. ns.displayName(x.w.who) .. ": " .. itemText(x.w) .. (x.src.boss and ("  |cff888888" .. x.src.boss .. "|r") or ""))
     end
     if ns.Sound and ns.Sound.Next then ns.Sound.Next("wants") end
-    local title = #mine > 0 and ((#mine == 1 and L["1 Wunsch-Item kann hier droppen"]) or (L["%d deiner Wunsch-Items koennen hier droppen"]):format(#mine))
-        or (L["Deine Gruppe sucht hier %d Items"]):format(#group)
+    local title = #mine > 0 and ((#mine == 1 and L["1 wishlist item can drop here"]) or (L["%d of your wishlist items can drop here"]):format(#mine))
+        or (L["Your group is looking for %d items here"]):format(#group)
     local sub = {}
     for i = 1, math.min(3, #mine) do sub[#sub + 1] = tostring(mine[i].w.name or "?") end
-    if #group > 0 and #mine > 0 then sub[#sub + 1] = (L["+%d fuer die Gruppe"]):format(#group) end
+    if #group > 0 and #mine > 0 then sub[#sub + 1] = (L["+%d for the group"]):format(#group) end
     K.Toast(title, table.concat(sub, ", "), C.amber, function() ns.ShowPage("wants") end)
 end
 ns.On("PLAYER_ENTERING_WORLD", function() ns.After(4, function() pcall(onEnter) end) end)
@@ -168,17 +168,17 @@ ns.On("CHAT_MSG_LOOT", function(text, playerName)
             if ns.Sound and ns.Sound.Next then ns.Sound.Next("record") end
             local setInfo = w.set and (" · " .. (WA.SetText(w.set) or "")) or ""
             if have >= qty then
-                K.Toast(L["Ziel erreicht!"], tostring(w.name or "?") .. setInfo .. "  -  " .. L["Klick: abhaken"], C.mint, function()
+                K.Toast(L["Goal reached!"], tostring(w.name or "?") .. setInfo .. "  -  " .. L["Click: tick off"], C.mint, function()
                     Store.Delete("wants", w.id)
                     if w.set then ns.After(0.2, function()
-                        K.Toast(L["Set-Fortschritt"], WA.SetText(w.set) or w.set, C.mint)
+                        K.Toast(L["Set progress"], WA.SetText(w.set) or w.set, C.mint)
                     end) end
                 end)
             else
-                K.Toast(L["Wunsch-Item gefunden"], (L["%s: %d von %d"]):format(tostring(w.name or "?"), have, qty) .. setInfo, C.mint,
+                K.Toast(L["Wishlist item found"], (L["%s: %d of %d"]):format(tostring(w.name or "?"), have, qty) .. setInfo, C.mint,
                     function() ns.ShowPage("wants") end)
             end
-            if ns.Life and ns.Life.Event then pcall(ns.Life.Event, "loot", (L["Wunsch erfuellt: %s"]):format(tostring(w.name or "?")), nil, w.link) end
+            if ns.Life and ns.Life.Event then pcall(ns.Life.Event, "loot", (L["Wish fulfilled: %s"]):format(tostring(w.name or "?")), nil, w.link) end
         end
     end
 end)

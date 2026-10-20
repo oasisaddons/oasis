@@ -10,35 +10,35 @@ ns.Sound = Sound
 
 -- Auswahl: key, Anzeigename, eigene Datei (own) oder WoW-Soundkit (kit + Ersatz-ID)
 Sound.CHOICES = {
-    { key = "none", text = "Kein Sound" },
+    { key = "none", text = "No sound" },
     -- neu (06.10.): ohne Rang-Sperre, im Fenster blau als NEU markiert
     -- Oberflaeche: spielt den Ton aus dem gewaehlten UI-Soundpaket (Sound.UI_PACKS)
-    { key = "ui_open", text = "Oasis: Fenster auf", own = true, ui = "open", dur = 0.3 },
-    { key = "ui_close", text = "Oasis: Fenster zu", own = true, ui = "close", dur = 0.3 },
-    { key = "ui_click", text = "Oasis: Klick", own = true, ui = "click", dur = 0.1 },
-    { key = "ui_select", text = "Oasis: Auswahl", own = true, ui = "select", dur = 0.1 },
-    { key = "ui_toggle", text = "Oasis: Schalter", own = true, ui = "toggle", dur = 0.2 },
-    { key = "ui_confirm", text = "Oasis: Bestaetigen", own = true, ui = "confirm", dur = 0.3 },
-    { key = "ui_notify", text = "Oasis: Hinweis (Soundpaket)", own = true, ui = "notify", dur = 1.5 },
+    { key = "ui_open", text = "Oasis: Window open", own = true, ui = "open", dur = 0.3 },
+    { key = "ui_close", text = "Oasis: Window close", own = true, ui = "close", dur = 0.3 },
+    { key = "ui_click", text = "Oasis: Click", own = true, ui = "click", dur = 0.1 },
+    { key = "ui_select", text = "Oasis: Select", own = true, ui = "select", dur = 0.1 },
+    { key = "ui_toggle", text = "Oasis: Switch", own = true, ui = "toggle", dur = 0.2 },
+    { key = "ui_confirm", text = "Oasis: Confirm", own = true, ui = "confirm", dur = 0.3 },
+    { key = "ui_notify", text = "Oasis: Notice (sound pack)", own = true, ui = "notify", dur = 1.5 },
     -- Clear UI (Ni Sound): Hinweistoene
-    { key = "wow_raidwarn", text = "WoW: Raid-Warnung", kit = "RAID_WARNING", id = 8959 },
-    { key = "wow_ready", text = "WoW: Bereitschaftscheck", kit = "READY_CHECK", id = 8960 },
-    { key = "wow_levelup", text = "WoW: Stufenaufstieg", kit = "LEVELUP", id = 888 },
-    { key = "wow_quest", text = "WoW: Quest abgeschlossen", kit = "IG_QUEST_LIST_COMPLETE", id = 878 },
-    { key = "wow_whisper", text = "WoW: Fluestern", kit = "TELL_MESSAGE", id = 3081 },
-    { key = "wow_invite", text = "WoW: Einladung", kit = "IG_PLAYER_INVITE", id = 880 },
-    { key = "wow_toast", text = "WoW: Battle.net-Hinweis", kit = "UI_BNET_TOAST", id = 18019 },
-    { key = "wow_auction", text = "WoW: Auktionshaus", kit = "AUCTION_WINDOW_OPEN", id = 5274 },
-    { key = "wow_mission", text = "WoW: Erfolg (Mission)", kit = "UI_GARRISON_MISSION_COMPLETE_MISSION_SUCCESS", id = 44294 },
-    { key = "wow_open", text = "WoW: Fenster auf", kit = "IG_CHARACTER_INFO_OPEN", id = 839 },
-    { key = "wow_close", text = "WoW: Fenster zu", kit = "IG_CHARACTER_INFO_CLOSE", id = 840 },
-    { key = "wow_click", text = "WoW: Klick", kit = "IG_MAINMENU_OPTION_CHECKBOX_ON", id = 856 },
+    { key = "wow_raidwarn", text = "WoW: Raid warning", kit = "RAID_WARNING", id = 8959 },
+    { key = "wow_ready", text = "WoW: Ready check", kit = "READY_CHECK", id = 8960 },
+    { key = "wow_levelup", text = "WoW: Level up", kit = "LEVELUP", id = 888 },
+    { key = "wow_quest", text = "WoW: Quest complete", kit = "IG_QUEST_LIST_COMPLETE", id = 878 },
+    { key = "wow_whisper", text = "WoW: Whisper", kit = "TELL_MESSAGE", id = 3081 },
+    { key = "wow_invite", text = "WoW: Invite", kit = "IG_PLAYER_INVITE", id = 880 },
+    { key = "wow_toast", text = "WoW: Battle.net toast", kit = "UI_BNET_TOAST", id = 18019 },
+    { key = "wow_auction", text = "WoW: Auction house", kit = "AUCTION_WINDOW_OPEN", id = 5274 },
+    { key = "wow_mission", text = "WoW: Success (mission)", kit = "UI_GARRISON_MISSION_COMPLETE_MISSION_SUCCESS", id = 44294 },
+    { key = "wow_open", text = "WoW: Window open", kit = "IG_CHARACTER_INFO_OPEN", id = 839 },
+    { key = "wow_close", text = "WoW: Window close", kit = "IG_CHARACTER_INFO_CLOSE", id = 840 },
+    { key = "wow_click", text = "WoW: Click", kit = "IG_MAINMENU_OPTION_CHECKBOX_ON", id = 856 },
 }
 -- 0.5.716: Toene der UI-Soundpakete einzeln waehlbar (Reiter "Soundpaket"): key = Ordner <kuerzel>_<rolle>
 do
     local PK = { { "ke", "Kenney" } }   -- Artlist-Pakete (Klar, Smartphone, Casual, Building, Slick) liegen im Gildenmodul
-    local RL = { { "click", "Klick", 0.1 }, { "select", "Auswahl", 0.1 }, { "toggle", "Schalter", 0.2 },
-        { "confirm", "Bestaetigen", 0.3 }, { "open", "Fenster auf", 0.3 }, { "close", "Fenster zu", 0.3 }, { "notify", "Hinweis", 1.5 } }
+    local RL = { { "click", "Click", 0.1 }, { "select", "Select", 0.1 }, { "toggle", "Switch", 0.2 },
+        { "confirm", "Confirm", 0.3 }, { "open", "Window open", 0.3 }, { "close", "Window close", 0.3 }, { "notify", "Note", 1.5 } }
     for _, p in ipairs(PK) do
         do
             for _, r in ipairs(RL) do
@@ -55,47 +55,47 @@ for _, c in ipairs(Sound.CHOICES) do Sound.byKey[c.key] = c end
 
 -- Ereignisse mit Standard-Sound, in der Reihenfolge der Einstellungen
 Sound.EVENTS = {
-    { key = "entrance", text = "Dein Online-Sound (hoeren alle mit Oasis)", def = "none" },
-    { key = "toast", text = "Allgemeine Hinweise", def = "ui_notify" },
-    { key = "announce", text = "Durchsage der Gildenleitung", def = "bahn" },
-    { key = "alert", text = "Wichtige Durchsage", def = "alarm" },
-    { key = "request", text = "Anfrage an deine Gruppe", def = "huh" },
-    { key = "group", text = "Neue Gruppensuche in der Gilde", def = "ni_ton" },
-    { key = "order", text = "Handwerks-Auftrag an dich", def = "muenze" },
-    { key = "wants", text = "Gesucht / Angebote", def = "muenze" },
-    { key = "event", text = "Neuer Termin", def = "trommel" },
-    { key = "loot", text = "Beute-Vergabe im Raid", def = "wow_raidwarn" },
-    { key = "poll", text = "Neue Umfrage", def = "ni_glockenspiel" },
-    { key = "rankup", text = "Oasis-Rangaufstieg", def = "fanfare" },
-    { key = "levelup", text = "Charakter-Stufenaufstieg", def = "erfolg" },
-    { key = "badge", text = "Abzeichen erhalten", def = "animewow" },
-    { key = "welcome", text = "Neues Gildenmitglied", def = "rizz" },
-    { key = "birthday", text = "Geburtstag", def = "french" },
-    { key = "death", text = "Tod eines Mitglieds", def = "funeralbell" },
-    { key = "chronicle", text = "Chronik (Level, Beute, Boss)", def = "none" },
-    { key = "camp", text = "Lagerfeuer", def = "ni_sanft" },
-    { key = "dr_invite", text = "Deathroll: Herausforderung", def = "run" },
-    { key = "dr_turn", text = "Deathroll: du bist dran", def = "wuerfel" },
-    { key = "dr_win", text = "Deathroll: gewonnen", def = "drwinner" },
-    { key = "dr_lose", text = "Deathroll: verloren", def = "drloser" },
-    { key = "open", text = "Oasis-Fenster oeffnen", def = "ui_open" },
-    { key = "close", text = "Oasis-Fenster schliessen", def = "ui_close" },
+    { key = "entrance", text = "Your online sound (everyone with Oasis hears it)", def = "none" },
+    { key = "toast", text = "General notifications", def = "ui_notify" },
+    { key = "announce", text = "Leadership announcement", def = "bahn" },
+    { key = "alert", text = "Important announcement", def = "alarm" },
+    { key = "request", text = "Request to join your group", def = "huh" },
+    { key = "group", text = "New group search in the guild", def = "ni_ton" },
+    { key = "order", text = "Crafting order for you", def = "muenze" },
+    { key = "wants", text = "Wishlist / offers", def = "muenze" },
+    { key = "event", text = "New event", def = "trommel" },
+    { key = "loot", text = "Loot award in raid", def = "wow_raidwarn" },
+    { key = "poll", text = "New poll", def = "ni_glockenspiel" },
+    { key = "rankup", text = "Oasis rank up", def = "fanfare" },
+    { key = "levelup", text = "Character level up", def = "erfolg" },
+    { key = "badge", text = "Badge earned", def = "animewow" },
+    { key = "welcome", text = "New guild member", def = "rizz" },
+    { key = "birthday", text = "Birthday", def = "french" },
+    { key = "death", text = "Member death", def = "funeralbell" },
+    { key = "chronicle", text = "Chronicle (level, loot, boss)", def = "none" },
+    { key = "camp", text = "Campfire", def = "ni_sanft" },
+    { key = "dr_invite", text = "Deathroll: challenge", def = "run" },
+    { key = "dr_turn", text = "Deathroll: your turn", def = "wuerfel" },
+    { key = "dr_win", text = "Deathroll: won", def = "drwinner" },
+    { key = "dr_lose", text = "Deathroll: lost", def = "drloser" },
+    { key = "open", text = "Open Oasis window", def = "ui_open" },
+    { key = "close", text = "Close Oasis window", def = "ui_close" },
 }
 Sound.eventByKey = {}
 for _, e in ipairs(Sound.EVENTS) do Sound.eventByKey[e.key] = e end
 
 -- Musik (WoW-Datei-IDs aus dem Spielclient), laeuft solange das Oasis-Fenster offen ist
 Sound.MUSIC = {
-    { key = "orc", text = "Orc-Rastplatz", id = 53756 },
-    { key = "tauren", text = "Tauren-Rastplatz", id = 53768 },
-    { key = "hordetavern", text = "Horde-Taverne", id = 53744 },
-    { key = "undead", text = "Untoten-Taverne", id = 53774 },
+    { key = "orc", text = "Orc rest area", id = 53756 },
+    { key = "tauren", text = "Tauren rest area", id = 53768 },
+    { key = "hordetavern", text = "Horde tavern", id = 53744 },
+    { key = "undead", text = "Undead tavern", id = 53774 },
     { key = "orgrimmar", text = "Orgrimmar", id = 53198 },
-    { key = "thunderbluff", text = "Donnerfels", id = 53213 },
-    { key = "pirate", text = "Piraten-Taverne", id = 53762 },
-    { key = "dwarf", text = "Zwergen-Taverne", id = 53739 },
-    { key = "human", text = "Menschen-Taverne", id = 53748 },
-    { key = "theme", text = "WoW-Titelmusik", id = 53223 },
+    { key = "thunderbluff", text = "Thunder Bluff", id = 53213 },
+    { key = "pirate", text = "Pirate tavern", id = 53762 },
+    { key = "dwarf", text = "Dwarf tavern", id = 53739 },
+    { key = "human", text = "Human tavern", id = 53748 },
+    { key = "theme", text = "WoW main theme", id = 53223 },
 }
 Sound.musicByKey = {}
 for _, m in ipairs(Sound.MUSIC) do Sound.musicByKey[m.key] = m end
@@ -149,9 +149,9 @@ local PAKET = { toast = "ui_notify", announce = "ui_notify", alert = "ui_notify"
     death = "ui_notify", chronicle = "none", camp = "ui_select", dr_invite = "ui_notify", dr_turn = "ui_select",
     dr_win = "ui_confirm", dr_lose = "ui_close" }
 Sound.PRESETS = {
-    { key = "default", text = "Oasis-Standard", map = {} },
-    { key = "paket", text = "Aus dem Soundpaket (ruhig)", map = PAKET },
-    { key = "wow", text = "WoW-Klassiker", map = { toast = "wow_toast", announce = "wow_raidwarn", alert = "wow_raidwarn",
+    { key = "default", text = "Oasis default", map = {} },
+    { key = "paket", text = "From the sound pack (calm)", map = PAKET },
+    { key = "wow", text = "WoW classics", map = { toast = "wow_toast", announce = "wow_raidwarn", alert = "wow_raidwarn",
         request = "wow_invite", group = "wow_whisper", order = "wow_auction", wants = "wow_auction", loot = "wow_ready",
         rankup = "wow_mission", levelup = "wow_levelup", badge = "wow_quest", welcome = "wow_invite", dr_invite = "wow_invite",
         dr_turn = "wow_click", dr_win = "wow_mission" } },
@@ -180,7 +180,7 @@ Sound.UI_PACKS = {
     { key = "kenney", text = "Kenney", prefix = "ke_", alias = { notify = "confirm" } },
     { key = "wow", text = "WoW", map = { click = "wow_click", select = "wow_click", toggle = "wow_click",
         confirm = "wow_click", open = "wow_open", close = "wow_close", notify = "wow_toast" } },
-    { key = "none", text = "Aus" },
+    { key = "none", text = "Off" },
 }
 Sound.uiPackByKey = {}
 for _, p in ipairs(Sound.UI_PACKS) do Sound.uiPackByKey[p.key] = p end
@@ -198,8 +198,8 @@ function Sound.SetUiPack(k)
 end
 -- liefert Datei-Ordner (eigener Sound) bzw. WoW-Choice-Key fuer eine Rolle, nil = Paket aus
 -- Rollen der Klick-Toene (Reihenfolge fuer das Zuweisen-Fenster)
-Sound.UI_ROLES = { { "click", "Klick" }, { "select", "Auswahl" }, { "toggle", "Schalter" },
-    { "confirm", "Bestaetigen" }, { "open", "Fenster auf" }, { "close", "Fenster zu" }, { "notify", "Hinweis" } }
+Sound.UI_ROLES = { { "click", "Click" }, { "select", "Select" }, { "toggle", "Switch" },
+    { "confirm", "Confirm" }, { "open", "Window open" }, { "close", "Window close" }, { "notify", "Note" } }
 -- eigene Zuweisung je Rolle: settings.uiRole[rolle] = Paket-Key oder "none" (stumm); nil = wie das Paket
 function Sound.UiRoleChoice(role)
     local s = S()
@@ -385,7 +385,7 @@ ns.Listen("LOGIN", function()
     if st and not st.chs678 and ns.IsDev and ns.IsDev() then st.chs678 = true st.chatSounds = nil end
 end)
 ns.slash.onlinelog = function()
-    ns.print(L["Online-Meldungen (neueste unten):"])
+    ns.print(L["Online notices (newest last):"])
     if #Sound.entranceLog == 0 then ns.print("  -") end
     for _, l in ipairs(Sound.entranceLog) do ns.print("  " .. l) end
 end
@@ -454,7 +454,7 @@ function Sound.PlayEntrance(name, src)
                     while n and GetTime() - n.at > 15 do n = table.remove(q, 1) end
                     if not n then Sound.entranceTimer = nil return end
                     lastEntrance = 0
-                    pcall(Sound.PlayEntrance, n.name, "Warteschlange")
+                    pcall(Sound.PlayEntrance, n.name, "Queue")
                     C_Timer.After(8.2, nextOne)
                 end
                 C_Timer.After(math.max(0, 8.2 - (now - lastEntrance)), nextOne)
@@ -551,8 +551,8 @@ function Sound.EntrancePopup(name, key, handle, isTest)
         pop.mute.icon:SetPoint("BOTTOMRIGHT", -4, 4)
         pop.mute:SetScript("OnEnter", function(self)
             self.bg:SetColorTexture(1, 1, 1, 0.14)
-            K.ShowTip(self, { pop.muted and L["Wieder anschalten"] or L["Stummschalten"],
-                pop.muted and L["Der Online-Sound dieser Person ist bei dir aus."] or L["Stoppt den Sound und spielt ihn bei dieser Person nicht mehr ab."] })
+            K.ShowTip(self, { pop.muted and L["Turn back on"] or L["Mute"],
+                pop.muted and L["This person's online sound is muted for you."] or L["Stops the sound and won't play it for this person again."] })
         end)
         pop.mute:SetScript("OnLeave", function(self) self.bg:SetColorTexture(1, 1, 1, 0.06) GameTooltip:Hide() end)
         pop.mute:SetScript("OnClick", function()
@@ -603,9 +603,9 @@ function Sound.EntrancePopup(name, key, handle, isTest)
     end
     pop.who, pop.handle, pop.isTest, pop.muted, pop.t = ns.short(name), handle, isTest, false, 0
     local c = Sound.byKey[key]
-    pop.name:SetText((ns.colorName and ns.colorName(name, ns.Radar and ns.Radar.ClassOf(name)) or ns.displayName(name)) .. "  |cff66db9e" .. L["ist online"] .. "|r")
+    pop.name:SetText((ns.colorName and ns.colorName(name, ns.Radar and ns.Radar.ClassOf(name)) or ns.displayName(name)) .. "  |cff66db9e" .. L["is online"] .. "|r")
     if key == "none" then
-        pop.sub:SetText(L["ist jetzt online"] .. (isTest and ("   |cffe8b44a" .. L["Test"] .. "|r") or ""))
+        pop.sub:SetText(L["is now online"] .. (isTest and ("   |cffe8b44a" .. L["Test"] .. "|r") or ""))
     else
         pop.sub:SetText("|T" .. ns.MEDIA .. "icons\\speaker:12:12|t  " .. (c and L[c.text] or key) .. (isTest and ("   |cffe8b44a" .. L["Test"] .. "|r") or ""))
     end
@@ -657,8 +657,8 @@ local DUR = { glocke = 1, ping = 0.5, blubb = 0.6, zweiton = 0.8, nein = 0.8, al
     quack = 1.1, ritter = 1.1, chinarap = 12, bahn = 2.3 }
 local MUSIC = { french = true, chinarap = true }
 Sound.TABS = {
-    { key = "all", text = "Alle" }, { key = "oasis", text = "Oasis" }, { key = "german", text = "German" }, { key = "meme", text = "Memes" },
-    { key = "music", text = "Musik" }, { key = "wow", text = "WoW" }, { key = "pack", text = "Soundpaket" },
+    { key = "all", text = "All" }, { key = "oasis", text = "Oasis" }, { key = "german", text = "German" }, { key = "meme", text = "Memes" },
+    { key = "music", text = "Music" }, { key = "wow", text = "WoW" }, { key = "pack", text = "Sound pack" },
     { key = "guild", text = "Discord" },   -- 0.5.802: Sounds aus dem Gilden-Discord (im Chat-Auswahlfenster der Reiter "OASIS")
 }
 -- 0.5.682: deutschsprachige Sounds im eigenen Reiter "German"
@@ -856,11 +856,11 @@ local function cleanName(c) return (L[c.text]:gsub("^Oasis: ", ""):gsub("^Meme: 
 -- Titel des Auswahlfensters passend zum Ziel ("Sound an Mira schicken" ...)
 function Sound.SetSendTarget(channel, target)
     local lbl = {
-        GUILD = L["Sound in den Gildenchat schicken"], OFFICER = L["Sound an die Offiziere schicken"],
-        PARTY = L["Sound an die Gruppe schicken"], RAID = L["Sound an den Schlachtzug schicken"], INSTANCE_CHAT = L["Sound an die Gruppe schicken"],
+        GUILD = L["Send a sound to guild chat"], OFFICER = L["Send sound to officers"],
+        PARTY = L["Send sound to group"], RAID = L["Send sound to raid"], INSTANCE_CHAT = L["Send sound to group"],
     }
     if (channel == "WHISPER" or channel == "BN_WHISPER") and target then
-        Sound.sendLabel = (L["Sound an %s schicken"]):format(ns.short(target))
+        Sound.sendLabel = (L["Send sound to %s"]):format(ns.short(target))
     else
         Sound.sendLabel = lbl[channel or "GUILD"] or lbl.GUILD
     end
@@ -910,12 +910,12 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         gear:SetSize(20, 20)
         gear.icon = K.Glyph(gear, 14, ns.MEDIA .. "icons\\settings", C.muted)
         gear.icon:SetPoint("CENTER")
-        gear:SetScript("OnEnter", function(self) self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3]) K.ShowTip(self, { L["Einstellungen"], L["Verhalten, Favoriten, Zuletzt benutzte"] }) end)
+        gear:SetScript("OnEnter", function(self) self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3]) K.ShowTip(self, { L["Settings"], L["Behaviour, favourites, recently used"] }) end)
         gear:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
         gear:SetScript("OnClick", function() Sound.ShowPickerOptions() end)
         f.gear = gear
         -- Suche (Enter = ersten Treffer nehmen)
-        f.search = K.Input(f, 548, L["Sound suchen ..."], function(t) f.q = (t or ""):lower() f.sel = nil f:Fill() end)
+        f.search = K.Input(f, 548, L["Search sounds ..."], function(t) f.q = (t or ""):lower() f.sel = nil f:Fill() end)
         f.search:SetScript("OnEnterPressed", function(self)
             local pick = f:SelItem() or f.firstHit
             self:ClearFocus()
@@ -946,27 +946,27 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         end)
         function f:SelItem() return self.sel and self.shown and self.shown[self.sel] or nil end
         -- Zufall: ein freigeschalteter Sound aus dem aktuellen Reiter
-        f.rand = K.Button(f, L["Zufall"], 96, 24, "ghost", function()
+        f.rand = K.Button(f, L["Random"], 96, 24, "ghost", function()
             local pool = {}
             for _, it in ipairs(f.shown or {}) do if it.key ~= "none" and Sound.Unlocked(it.key) then pool[#pool + 1] = it end end
             if #pool == 0 then return end
             f:PickItem(pool[math.random(#pool)])
         end)
         f.rand:SetPoint("LEFT", f.search, "RIGHT", 10, 0)
-        f.rand:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Zufall"], L["Schickt einen zufaelligen Sound aus diesem Reiter"] }) end)
+        f.rand:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Random"], L["Sends a random sound from this tab"] }) end)
         f.rand:SetScript("OnLeave", function() GameTooltip:Hide() end)
         -- Ziel waehlen (nur beim Verschicken): Gilde / Gruppe / Raid / letzter Fluesterpartner
         f.chans = {}
         -- Farben wie im Spiel: Gilde gruen, Gruppe blau, Raid orange, Fluestern rosa
         local CHCOL = { GUILD = { 0.25, 1, 0.25 }, PARTY = { 0.67, 0.67, 1 }, RAID = { 1, 0.5, 0 }, WHISPER = { 1, 0.5, 1 } }
-        local CH = { { "GUILD", "Gilde" }, { "PARTY", "Gruppe" }, { "RAID", "Raid" }, { "WHISPER", "Fluestern" } }
+        local CH = { { "GUILD", "Guild" }, { "PARTY", "Group" }, { "RAID", "Raid" }, { "WHISPER", "Whisper" } }
         for i, d in ipairs(CH) do
             local b = K.Button(f, L[d[2]], 86, 26, "ghost", function()
                 local tgt
                 if d[1] == "WHISPER" then
                     tgt = Sound.chOverride and Sound.chOverride.tgt
                     if not tgt and ChatEdit_GetLastTellTarget then tgt = ns.safe(ChatEdit_GetLastTellTarget()) end
-                    if not tgt or tgt == "" then ns.print(L["Noch niemand angefluestert."]) return end
+                    if not tgt or tgt == "" then ns.print(L["You have not whispered anyone yet."]) return end
                 end
                 Sound.chOverride = { ch = d[1], tgt = tgt }
                 f:MarkChan()
@@ -990,23 +990,23 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 b.label:SetTextColor(b.col[1], b.col[2], b.col[3], on and 1 or 0.7)
                 if b.ch == "WHISPER" then
                     local o = Sound.chOverride
-                    b.label:SetText((on and o and o.tgt) and ns.short(o.tgt) or L["Fluestern"])
+                    b.label:SetText((on and o and o.tgt) and ns.short(o.tgt) or L["Whisper"])
                 end
             end
             local o = Sound.chOverride
-            local lbl = { GUILD = L["Sound in den Gildenchat schicken"], PARTY = L["Sound an die Gruppe schicken"], RAID = L["Sound an den Schlachtzug schicken"] }
+            local lbl = { GUILD = L["Send a sound to guild chat"], PARTY = L["Send sound to group"], RAID = L["Send sound to raid"] }
             if self.noNone then
-                self.head.text:SetText(K.Upper((o and o.tgt and (o.ch == "WHISPER" or o.ch == "BN_WHISPER")) and (L["Sound an %s schicken"]):format(ns.short(o.tgt)) or lbl[cur] or lbl.GUILD))
+                self.head.text:SetText(K.Upper((o and o.tgt and (o.ch == "WHISPER" or o.ch == "BN_WHISPER")) and (L["Send sound to %s"]):format(ns.short(o.tgt)) or lbl[cur] or lbl.GUILD))
             end
             if self.title then self.title:SetText("OASIS  |cffb8b8bc" .. K.Upper(L["Soundboard"]) .. "|r") end
         end
         f.gear:SetPoint("RIGHT", x, "LEFT", -6, 0)
         f.search:SetPoint("TOPLEFT", 14, -52)
         -- Reiter: Favoriten, Zuletzt, Memes, Musik (0.5.590)
-        local items = { { key = "fav", text = L["Favoriten"] }, { key = "recent", text = L["Zuletzt"] },
-            { key = "often", text = L["Haeufig"] }, { key = "popular", text = L["Beliebt"] },
+        local items = { { key = "fav", text = L["Favourites"] }, { key = "recent", text = L["Last seen"] },
+            { key = "often", text = L["Frequent"] }, { key = "popular", text = L["Popular"] },
             -- ein einziger Reiter OASIS fuer alle eigenen Sounds (Gilde, German, Memes, Musik zusammengelegt)
-            { key = "guild", text = "OASIS" }, { key = "music", text = L["OASIS Musik"] }, { key = "pack", text = L["Soundpaket"] } }
+            { key = "guild", text = "OASIS" }, { key = "music", text = L["OASIS music"] }, { key = "pack", text = L["Sound pack"] } }
         f.tabs = K.Segments(f, items, function(k)
             f.tab = k
             local s = S() if s then s.soundTab = k end
@@ -1043,7 +1043,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             c.play.icon:SetTexture(ns.MEDIA .. "icons\\speaker")
             c.play:SetScript("OnClick", function() if c.item then Sound.Preview(c.item.key) end end)
             if ns.K.NoUiSound then ns.K.NoUiSound(c.play) end
-            c.play:SetScript("OnEnter", function(self) self.bg:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.25) K.ShowTip(self, L["Anhoeren"]) end)
+            c.play:SetScript("OnEnter", function(self) self.bg:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.25) K.ShowTip(self, L["Lists"]) end)
             c.play:SetScript("OnLeave", function(self) self.bg:SetColorTexture(1, 1, 1, 0.05) GameTooltip:Hide() end)
             -- Equalizer (laeuft gerade)
             c.eq = {}
@@ -1065,7 +1065,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             c.newTag.bg:SetColorTexture(0.25, 0.55, 1, 0.22)
             c.newTag.t = K.Text(c.newTag, 9, { 0.6, 0.8, 1 }, "CENTER")
             c.newTag.t:SetPoint("CENTER")
-            c.newTag.t:SetText(K.Upper(L["NEU"]))
+            c.newTag.t:SetText(K.Upper(L["NEW"]))
             c.newTag:Hide()
             c.name:SetPoint("RIGHT", c, "RIGHT", -52, 0)
             c.name:SetWordWrap(false)
@@ -1080,7 +1080,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             c.star:SetScript("OnClick", function() if c.item then f:ToggleFav(c.item.key, c) end end)
             c.star:SetScript("OnEnter", function(self)
                 c:GetScript("OnEnter")(c)
-                K.ShowTip(self, { L["Favorit"], L["Klick: als Favorit merken / entfernen"] })
+                K.ShowTip(self, { L["Favourite"], L["Click: add to / remove from favourites"] })
             end)
             c.star:SetScript("OnLeave", function() c:GetScript("OnLeave")(c) end)
             function c:PaintStar(hover)
@@ -1120,9 +1120,9 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 self.bg:SetColorTexture(1, 1, 1, 0.07)
                 self:PaintStar(true)
                 if not Sound.Unlocked(it.key) then
-                    K.ShowTip(self, { cleanName(it), (L["Ab Oasis-Rang %d"]):format(it.lvl or 1) })
+                    K.ShowTip(self, { cleanName(it), (L["From Oasis rank %d"]):format(it.lvl or 1) })
                 elseif it.key ~= "none" then
-                    K.ShowTip(self, { cleanName(it), "|cff888888" .. (it.dur and (("%.1f s"):format(it.dur) .. "  ·  ") or "") .. L["Klick: auswaehlen  ·  Rechtsklick: Favorit"] .. "|r" })
+                    K.ShowTip(self, { cleanName(it), "|cff888888" .. (it.dur and (("%.1f s"):format(it.dur) .. "  ·  ") or "") .. L["Click: select  ·  Right-click: favourite"] .. "|r" })
                     -- auf Wunsch beim Ueberfahren kurz vorhoeren (mit Verzoegerung, sonst plaerrt es beim Durchfahren)
                     local s = S()
                     if s and s.soundHoverPreview then
@@ -1156,7 +1156,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 self:Show()
                 local un = Sound.Unlocked(it.key)
                 local sel = it.key == picker.current
-                self.name:SetText(it.key == "none" and L["Kein Sound"] or cleanName(it))
+                self.name:SetText(it.key == "none" and L["No sound"] or cleanName(it))
                 self.name:SetTextColor(un and 0.94 or 0.5, un and 0.94 or 0.5, un and 0.94 or 0.5)
                 self.newTag:SetShown(it.new and true or false)
                 if it.new then
@@ -1168,7 +1168,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 if un then
                     self.meta:SetText(it.dur and ("%.1f s"):format(it.dur) or "")
                 else
-                    self.meta:SetText("|cffe8b44a" .. (L["Rang %d"]):format(it.lvl or 1) .. "|r")
+                    self.meta:SetText("|cffe8b44a" .. (L["Rank %d"]):format(it.lvl or 1) .. "|r")
                 end
                 self.play:SetShown(it.key ~= "none")
                 self:SetAlpha(un and 1 or 0.6)
@@ -1245,7 +1245,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         function f:PickItem(it, cell)
             if not it then return end
             if not Sound.Unlocked(it.key) then
-                K.Toast(L["Noch gesperrt"], (L["Ab Oasis-Rang %d"]):format(it.lvl), C.dim)
+                K.Toast(L["Still locked"], (L["From Oasis rank %d"]):format(it.lvl), C.dim)
                 return
             end
             Sound.Remember(it.key)
@@ -1327,7 +1327,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             if left > 0 then
                 self.cdBar:SetWidth(math.max(1, (self:GetWidth() - 16) * left / (Sound.SEND_CD or 30)))
                 self.cdBar:Show()
-                self.foot:SetText("|cffe8b44a" .. (L["Naechster Sound in %d s"]):format(math.ceil(left)) .. "|r")
+                self.foot:SetText("|cffe8b44a" .. (L["Next sound in %d s"]):format(math.ceil(left)) .. "|r")
                 self.cdShown = true
             elseif self.cdShown then
                 self.cdShown = nil
@@ -1342,7 +1342,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
         f.att:SetHeight(28)
         f.att.lbl = K.Text(f.att, 11, C.muted)
         f.att.lbl:SetPoint("LEFT", 2, 0)
-        f.att.lbl:SetText(L["Emoji dazu:"])
+        f.att.lbl:SetText(L["Add emoji:"])
         f.att.slots = {}
         for i = 1, 12 do
             local b = CreateFrame("Button", nil, f.att)
@@ -1371,13 +1371,13 @@ function Sound.OpenPicker(anchor, current, onPick, title)
                 end
                 f:PaintAttach()
             end)
-            b:SetScript("OnEnter", function(self) K.ShowTip(self, { self.code or "", L["Klick: mitschicken (bis zu 5, in Klick-Reihenfolge)"] }) end)
+            b:SetScript("OnEnter", function(self) K.ShowTip(self, { self.code or "", L["Click: send along (up to 5, in click order)"] }) end)
             b:SetScript("OnLeave", function() GameTooltip:Hide() end)
             f.att.slots[i] = b
         end
         f.att.empty = K.Text(f.att, 10, C.dim)
         f.att.empty:SetPoint("LEFT", f.att.lbl, "RIGHT", 8, 0)
-        f.att.empty:SetText(L["Noch keine Emojis benutzt - Favoriten aus der Emoji-Auswahl erscheinen hier."])
+        f.att.empty:SetText(L["No emojis used yet - favourites from the emoji picker appear here."])
         function f:PaintAttach()
             local E = ns.Emoji
             local codes = (E and E.QuickCodes) and E.QuickCodes(12) or {}
@@ -1452,7 +1452,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             local pairs2 = {}
             self.rowOf = {}
             if self.tab == "guild" and q == "" then
-                local GROUPS = { { "guild", L["Gilde"] }, { "german", L["Deutsch"] }, { "meme", L["Memes"] } }
+                local GROUPS = { { "guild", L["Guild"] }, { "german", L["German"] }, { "meme", L["Memes"] } }
                 local by = {}
                 for _, it in ipairs(out) do local k = it.cat or "meme" by[k] = by[k] or {} table.insert(by[k], it) end
                 local ordered = {}
@@ -1477,9 +1477,9 @@ function Sound.OpenPicker(anchor, current, onPick, title)
             self.list:SetData(pairs2)
             self.firstHit = nil
             for _, it in ipairs(out) do if it.key ~= "none" and Sound.Unlocked(it.key) then self.firstHit = it break end end
-            local EMPTY = { often = L["Noch nichts benutzt."], popular = L["In der Gilde wurden noch keine Sounds geschickt."] }
-            self.list.empty:SetText(q ~= "" and L["Nichts gefunden."] or EMPTY[self.tab] or (self.tab == "recent" and L["Noch nichts benutzt."]
-                or (self.tab == "fav" and L["Noch keine Favoriten - Stern oder Rechtsklick auf einen Sound."] or L["Nichts gefunden."])))
+            local EMPTY = { often = L["Nothing used yet."], popular = L["No sounds have been sent in the guild yet."] }
+            self.list.empty:SetText(q ~= "" and L["Nothing found."] or EMPTY[self.tab] or (self.tab == "recent" and L["Nothing used yet."]
+                or (self.tab == "fav" and L["No favourites yet - click the star or right-click a sound."] or L["Nothing found."])))
             self.tabs:Select(self.tab)
             -- Reiterwechsel: Liste weich einblenden und leicht von unten hereinschieben
             if self.lastTab ~= self.tab and not (ns.db and ns.db.settings.noAnim) then
@@ -1510,7 +1510,7 @@ function Sound.OpenPicker(anchor, current, onPick, title)
     picker:PlaceList()
     if picker.att:IsShown() then picker:PaintAttach() end
     picker.sel = nil
-    picker.head.text:SetText(ns.K.Upper(title == "send" and (Sound.sendLabel or L["Sound in den Gildenchat schicken"]) or (title or L["Sounds"])))
+    picker.head.text:SetText(ns.K.Upper(title == "send" and (Sound.sendLabel or L["Send a sound to guild chat"]) or (title or L["Sounds"])))
     Sound.sendLabel = nil
     picker:MarkChan()
     -- beim Schliessen die Chat-Eingabe (z.B. Fluestern) wieder oeffnen - die Suche hatte ihr den Fokus genommen
@@ -1560,7 +1560,7 @@ function Sound.ShowPickerOptions()
         if not (G and pcall(G, o, { 0.035, 0.035, 0.045, 0.96 }, { 1, 1, 1, 0.1 }, 12)) then K.Fill(o, C.bg) K.Border(o, C.line) end
         local t = K.Title(o, 13, C.text)
         t:SetPoint("TOPLEFT", 14, -12)
-        t:SetText(L["Einstellungen"])
+        t:SetText(L["Settings"])
         local x = K.CloseButton(o, function() o:Hide() end)
         x:SetPoint("TOPRIGHT", -4, -4)
         local y = -42
@@ -1572,19 +1572,19 @@ function Sound.ShowPickerOptions()
             y = y - 30
             o.toggles[#o.toggles + 1] = tg
         end
-        tog(L["Fenster nach dem Schicken offen lassen"], function() return st.soundKeepOpen and true or false end, function(v) st.soundKeepOpen = v and true or nil end)
-        tog(L["Beim Ueberfahren vorhoeren"], function() return st.soundHoverPreview and true or false end, function(v) st.soundHoverPreview = v and true or nil end)
-        tog(L["Favoriten zuerst zeigen"], function() return st.soundFavFirst ~= false end, function(v) st.soundFavFirst = v and true or false picker:Fill() end)
-        o.clearRecent = K.Button(o, L["Zuletzt benutzte leeren"], 232, 24, "ghost", function()
+        tog(L["Keep window open after sending"], function() return st.soundKeepOpen and true or false end, function(v) st.soundKeepOpen = v and true or nil end)
+        tog(L["Preview on hover"], function() return st.soundHoverPreview and true or false end, function(v) st.soundHoverPreview = v and true or nil end)
+        tog(L["Show favourites first"], function() return st.soundFavFirst ~= false end, function(v) st.soundFavFirst = v and true or false picker:Fill() end)
+        o.clearRecent = K.Button(o, L["Clear recently used"], 232, 24, "ghost", function()
             st.soundRecent = {}
             picker:Fill()
-            K.Toast(L["Sounds"], L["Zuletzt benutzte geleert."], C.mint)
+            K.Toast(L["Sounds"], L["Recently used cleared."], C.mint)
         end)
         o.clearRecent:SetPoint("BOTTOMLEFT", 14, 44)
-        o.clearFav = K.Button(o, L["Favoriten leeren"], 232, 24, "ghost", function()
+        o.clearFav = K.Button(o, L["Clear favourites"], 232, 24, "ghost", function()
             st.soundFav = {}
             picker:Fill()
-            K.Toast(L["Sounds"], L["Favoriten geleert."], C.mint)
+            K.Toast(L["Sounds"], L["Favourites cleared."], C.mint)
         end)
         o.clearFav:SetPoint("BOTTOMLEFT", 14, 14)
         function o:Refresh() for _, tg in ipairs(self.toggles) do tg:Refresh() end end
@@ -1640,12 +1640,12 @@ function Sound.SendInChat(key, channel, target)
     if not Sound.Unlocked(key) or Sound.byKey[key].dev then return end
     -- von der Gildenleitung fuer Soundeffekte gesperrt
     if ns.SoundMuted and ns.SoundMuted(ns.me()) then
-        ns.K.Toast(L["Soundeffekte gesperrt"], L["Die Gildenleitung hat Soundeffekte fuer dich gesperrt."], ns.K.C.dim)
+        ns.K.Toast(L["Sound effects muted"], L["Guild leadership has muted sound effects for you."], ns.K.C.dim)
         return
     end
     local left = Sound.SEND_CD - (GetTime() - (Sound.lastSend or -999))
     if left > 0 then
-        ns.K.Toast(L["Kurz warten"], (L["Naechster Sound in %d s"]):format(math.ceil(left)), ns.K.C.dim)
+        ns.K.Toast(L["Wait a moment"], (L["Next sound in %d s"]):format(math.ceil(left)), ns.K.C.dim)
         return
     end
     Sound.lastSend = GetTime()
@@ -1657,7 +1657,7 @@ function Sound.SendInChat(key, channel, target)
     -- oben im Fenster umgestellt?
     if Sound.chOverride and Sound.chOverride.ch then channel, target = Sound.chOverride.ch, Sound.chOverride.tgt end
     if (channel == "PARTY" and not IsInGroup()) or (channel == "RAID" and not IsInRaid()) then
-        ns.print(channel == "RAID" and L["Du bist in keinem Schlachtzug."] or L["Du bist in keiner Gruppe."])
+        ns.print(channel == "RAID" and L["You are not in a raid."] or L["You are not in a group."])
         return
     end
     local Comm = ns.Comm
@@ -1672,7 +1672,7 @@ function Sound.SendInChat(key, channel, target)
         if gid and BNSendGameData then
             pcall(BNSendGameData, gid, "OASISND", key)
         else
-            ns.print(L["Sound geht nicht: dein Battle.net-Freund ist gerade nicht in WoW."])
+            ns.print(L["Cannot send sound: your Battle.net friend is not in WoW right now."])
             return
         end
     elseif channel == "WHISPER" and target then
@@ -1689,9 +1689,9 @@ function Sound.SendInChat(key, channel, target)
     if s and s.sound then
         local ok, h = pcall(Sound.PlayChoice, key, s.soundVol)
         -- 0.5.670: WoW spielt die Datei nicht (neu dazugekommen -> erst nach WoW-Neustart bekannt)
-        if not (ok and h) and (tonumber(s.soundVol) or 14) > 0 then ns.print(L["Sound nicht abspielbar - neue Sound-Dateien kennt WoW erst nach einem kompletten Neustart."]) end
+        if not (ok and h) and (tonumber(s.soundVol) or 14) > 0 then ns.print(L["Sound could not be played - WoW only knows new sound files after a full restart."]) end
     elseif s and s.sound == false then
-        ns.print(L["Du hoerst den Sound nicht selbst: Sounds sind ausgeschaltet (Einstellungen > Klang & Hinweise > Sound)."])
+        ns.print(L["You don't hear the sound yourself: sounds are turned off (Settings > Sound & notices > Sound)."])
     end
     -- bei mir selbst als Zeile im Chat zeigen (klickbar zum Anhoeren)
     -- bei mir im passenden Chat zeigen (klickbar zum Anhoeren)

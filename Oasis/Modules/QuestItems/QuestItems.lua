@@ -548,28 +548,28 @@ local function linkOf(id, name)
     return name or "?"
 end
 function QI.AskFor(who, nd, qtitle, demo)
-    if demo then ns.print((L["Demo: wuerde %s anfluestern."]):format(ns.displayName(who))) return end
-    ns.Whisper(who, (L["Hi! Hast du %s uebrig? Brauche es fuer %s (%d/%d)."]):format(linkOf(nd.id, nd.name), qtitle or "?", nd.have or 0, nd.need or 1))
+    if demo then ns.print((L["Demo: would whisper %s."]):format(ns.displayName(who))) return end
+    ns.Whisper(who, (L["Hi! Do you have a spare %s? I need it for %s (%d/%d)."]):format(linkOf(nd.id, nd.name), qtitle or "?", nd.have or 0, nd.need or 1))
 end
 function QI.OfferTo(who, o, qtitle, demo)
-    if demo then ns.print((L["Demo: wuerde %s anfluestern."]):format(ns.displayName(who))) return end
-    ns.Whisper(who, (L["Hi! Ich habe %s fuer dich (%s) - wo bist du?"]):format(linkOf(o.id, o.name), qtitle or "?"))
+    if demo then ns.print((L["Demo: would whisper %s."]):format(ns.displayName(who))) return end
+    ns.Whisper(who, (L["Hi! I have %s for you (%s) - where are you?"]):format(linkOf(o.id, o.name), qtitle or "?"))
 end
 function QI.FarmTogether(who, nd, demo)
-    if demo then ns.print((L["Demo: wuerde %s einladen."]):format(ns.displayName(who))) return end
+    if demo then ns.print((L["Demo: would invite %s."]):format(ns.displayName(who))) return end
     if ns.InviteName then ns.InviteName(who) end
-    ns.Whisper(who, (L["Lust, %s zusammen zu farmen? Ich hab dich eingeladen."]):format(linkOf(nd.id, nd.name)))
+    ns.Whisper(who, (L["Want to farm %s together? I invited you."]):format(linkOf(nd.id, nd.name)))
 end
 function QI.Invite(who, demo)
-    if demo then ns.print((L["Demo: wuerde %s einladen."]):format(ns.displayName(who))) return end
+    if demo then ns.print((L["Demo: would invite %s."]):format(ns.displayName(who))) return end
     if ns.InviteName then ns.InviteName(who) end
 end
 -- Quest an die Gruppe teilen
 function QI.Push(qid)
-    if ns.inCombat() then ns.print(L["Im Kampf nicht moeglich - gleich nochmal."]) return end
+    if ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return end
     local Q = C_QuestLog
     if not (QuestLogPushQuest and api(Q, "SetSelectedQuest")) then
-        ns.print(L["Quest teilen geht hier nicht - im Questlog auf Teilen klicken."])
+        ns.print(L["Sharing does not work here - click Share in the quest log."])
         return
     end
     local prev = api(Q, "GetSelectedQuest") and select(2, pcall(Q.GetSelectedQuest)) or nil
@@ -577,7 +577,7 @@ function QI.Push(qid)
     ns.Trace("QuestLogPushQuest")
     local ok = pcall(QuestLogPushQuest)
     if prev then pcall(Q.SetSelectedQuest, prev) end
-    ns.print(ok and (L["Quest an die Gruppe geteilt: %s"]):format(questTitle(qid) or "?") or L["Quest teilen hat nicht geklappt."])
+    ns.print(ok and (L["Quest shared with the group: %s"]):format(questTitle(qid) or "?") or L["Sharing the quest did not work."])
 end
 
 ------------------------------------------------------------------------
@@ -596,8 +596,8 @@ local function checkToast()
                 local key = Comm.whoKey(g.who) .. ":" .. low(row.nd.name)
                 if not toastKeys[key] or now - toastKeys[key] > TOAST_KEY_GAP then
                     toastKeys[key], toastAt = now, now
-                    K.Toast((L["%s hat %s uebrig"]):format(ns.displayName(g.who), row.nd.name),
-                        (L["Fuer %s (%d/%d) - Klick: anfluestern"]):format(row.q.title, row.nd.have, row.nd.need), C.mint,
+                    K.Toast((L["%s has spare %s"]):format(ns.displayName(g.who), row.nd.name),
+                        (L["For %s (%d/%d) - click: whisper"]):format(row.q.title, row.nd.have, row.nd.need), C.mint,
                         function() QI.AskFor(g.who, row.nd, row.q.title, g.demo) end)
                     return
                 end
@@ -639,7 +639,7 @@ local function tipLine(tt, itemID)
         if #parts >= 4 then parts[#parts + 1] = "..." break end
     end
     if #parts == 0 then return end
-    tt:AddLine("|cffff1200Oasis|r  " .. L["Gebraucht von:"] .. " " .. table.concat(parts, ", "), 0.85, 0.85, 0.85, true)
+    tt:AddLine("|cffff1200Oasis|r  " .. L["Needed by:"] .. " " .. table.concat(parts, ", "), 0.85, 0.85, 0.85, true)
 end
 if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Item then
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tt, data)
@@ -666,9 +666,9 @@ function QI.SeedDemo()
         Store.merge(COLL, { id = "demo-qi-" .. i, who = who, by = who, n = d[2], s = d[3], p = d[4], t = d[5], demo = true, u = ns.now() })
     end
     demoMine = {
-        { id = 1062, title = L["Ziegenwaerter"], demo = true, lvl = 24, zone = L["Steinkrallengebirge"], needs = {
-            { id = 5086, name = "Zhevrahufe", have = 1, need = 4 }, { name = "Federn der Harpyie", have = 2, need = 8 } } },
-        { id = 870, title = L["Die vergessenen Teiche"], demo = true, lvl = 18, push = true, zone = L["Brachland"], needs = { { name = "Raptorkopf", have = 0, need = 4 } } },
+        { id = 1062, title = L["Goatherd"], demo = true, lvl = 24, zone = L["Stonetalon Mountains"], needs = {
+            { id = 5086, name = "Zhevra hooves", have = 1, need = 4 }, { name = "Harpy feathers", have = 2, need = 8 } } },
+        { id = 870, title = L["The Forgotten Pools"], demo = true, lvl = 18, push = true, zone = L["The Barrens"], needs = { { name = "Raptor head", have = 0, need = 4 } } },
     }
     if refreshPage then refreshPage() end
 end
@@ -689,19 +689,19 @@ local ICO = ns.MEDIA .. "icons\\"
 local QCOL = { [0] = { 0.62, 0.62, 0.62 }, [1] = { 0.78, 0.78, 0.80 }, [2] = { 0.12, 1, 0 }, [3] = { 0.1, 0.5, 0.95 },
     [4] = { 0.64, 0.21, 0.93 }, [5] = { 1, 0.5, 0 }, [6] = { 0.9, 0.8, 0.5 } }
 local H_HEAD, H_CARD, H_SLIM, GAP, CARD_X = 30, 78, 50, 5, 0
-local WHY = { d = "Quest abgeschlossen", x = "mehr als noetig", o = "keine aktive Quest", b = "in deinen Taschen" }
+local WHY = { d = "quest completed", x = "more than needed", o = "no active quest", b = "in your bags" }
 local TABS = {
-    { key = "help", text = "Hilfe fuer mich", glyph = "wants", color = C.amber },
-    { key = "can", text = "Ich kann helfen", glyph = "heart", color = C.blue },
-    { key = "mine", text = "Meine Questitems", glyph = "checklist", color = C.mint },
+    { key = "help", text = "Help for me", glyph = "wants", color = C.amber },
+    { key = "can", text = "I can help", glyph = "heart", color = C.blue },
+    { key = "mine", text = "My quest items", glyph = "checklist", color = C.mint },
 }
 local TILES = {
-    { key = "open", label = "Offene Questitems", glyph = "wants", color = C.amber, tip = "Klick: alle offenen Questitems" },
-    { key = "helpers", label = "Helfer online", glyph = "social", color = C.mint, tip = "Klick: nur Eintraege mit Helfern online" },
-    { key = "can", label = "Ich kann helfen", glyph = "heart", color = C.blue, tip = "Klick: wem du helfen kannst" },
-    { key = "push", label = "Teilbare Quests", glyph = "announce", color = C.pink, tip = "Klick: Quests, die dir jemand teilen kann" },
+    { key = "open", label = "Open quest items", glyph = "wants", color = C.amber, tip = "Click: all open quest items" },
+    { key = "helpers", label = "Helpers online", glyph = "social", color = C.mint, tip = "Click: only entries with helpers online" },
+    { key = "can", label = "I can help", glyph = "heart", color = C.blue, tip = "Click: whom you can help" },
+    { key = "push", label = "Shareable quests", glyph = "announce", color = C.pink, tip = "Click: quests someone can share with you" },
 }
-local SORTS = { { key = "helper", text = "Helfer zuerst" }, { key = "close", text = "Fast fertig" }, { key = "name", text = "Name" } }
+local SORTS = { { key = "helper", text = "Helpers first" }, { key = "close", text = "Almost done" }, { key = "name", text = "Name" } }
 local search, onlyHelp, tileFilter, sortBy = "", false, nil, "helper"
 local page
 local collapsed = {}
@@ -840,7 +840,7 @@ local function questLine(title, lvl)
     return K.hex(questColor(lvl)) .. "[" .. lvl .. "] " .. title .. "|r"
 end
 local function openQuest(qid, logIndex)
-    if ns.inCombat and ns.inCombat() then ns.print(L["Im Kampf nicht moeglich - gleich nochmal."]) return end
+    if ns.inCombat and ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return end
     if QuestMapFrame_OpenToQuestDetails then
         if pcall(QuestMapFrame_OpenToQuestDetails, qid) then return end
     end
@@ -1109,7 +1109,7 @@ local function buildTile(parent, d, onClick)
     end
     t:SetScript("OnEnter", function(self)
         hover(true)
-        K.ShowTip(self, { L[d.label], "|cff888888" .. (self.sel and L["Klick: Filter aufheben"] or L[d.tip]) .. "|r" })
+        K.ShowTip(self, { L[d.label], "|cff888888" .. (self.sel and L["Click: clear filter"] or L[d.tip]) .. "|r" })
     end)
     t:SetScript("OnLeave", function() hover(false) GameTooltip:Hide() end)
     t:SetScript("OnClick", function() onClick(d.key) end)
@@ -1178,12 +1178,12 @@ local function buildStatus(p, onShare)
     f.btn.g:SetPoint("LEFT", 9, 0)
     f.btn.label = K.Text(f.btn, 11, C.text)
     f.btn.label:SetPoint("LEFT", f.btn.g, "RIGHT", 5, 0)
-    f.btn.label:SetText(L["Jetzt teilen"])
+    f.btn.label:SetText(L["Share now"])
     f.sep:SetPoint("RIGHT", f.btn, "LEFT", 0, 0)
     f.btn:SetScript("OnEnter", function(self)
         self.hov:Show()
         self.g:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
-        K.ShowTip(self, { L["Jetzt teilen"], "|cff888888" .. L["Schickt deinen Stand sofort an die Gilde"] .. "|r" })
+        K.ShowTip(self, { L["Share now"], "|cff888888" .. L["Sends your status to the guild right away"] .. "|r" })
     end)
     f.btn:SetScript("OnLeave", function(self)
         self.hov:Hide()
@@ -1265,12 +1265,12 @@ local function setAvatar(a, vm)
 end
 
 local function whisperTo(who, demo, text)
-    if demo then ns.print((L["Demo: wuerde %s anfluestern."]):format(ns.displayName(who))) return end
+    if demo then ns.print((L["Demo: would whisper %s."]):format(ns.displayName(who))) return end
     ns.Whisper(who, text)
 end
 local function hideEntry(key)
     hidden()[key] = ns.now()
-    ns.print(L["Ausgeblendet - ueber den Knopf oben wieder zeigen."])
+    ns.print(L["Hidden - use the button at the top to show it again."])
     if refreshPage then refreshPage() end
 end
 
@@ -1297,7 +1297,7 @@ local function buildList(p)
             saveUI()
             ns.RefreshPage("questitems")
         end)
-        r:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Klick: Gebiet auf- oder zuklappen"] }) end)
+        r:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Click: expand or collapse zone"] }) end)
         r:SetScript("OnLeave", function() GameTooltip:Hide() end)
         r.mark = r:CreateTexture(nil, "ARTWORK")
         r.mark:SetSize(3, 12)
@@ -1341,7 +1341,7 @@ local function buildList(p)
     local function cardTip(r)
         local vm = r.item and r.item.vm
         if not vm then return end
-        local hint = "|cff777777" .. L["Rechtsklick: Aktionen"] .. (vm.id and ("  ·  " .. L["Shift-Klick: verlinken"]) or "") .. "|r"
+        local hint = "|cff777777" .. L["Right-click: actions"] .. (vm.id and ("  ·  " .. L["Shift-click: link"]) or "") .. "|r"
         if vm.id then
             GameTooltip:SetOwner(r, "ANCHOR_RIGHT")
             if pcall(GameTooltip.SetItemByID, GameTooltip, vm.id) then
@@ -1391,7 +1391,7 @@ local function buildList(p)
             if x then
                 K.ShowTip(self, { (ns.Radar and ns.Radar.Colored and ns.Radar.Colored(x.who) or ns.displayName(x.who))
                     .. (x.on and ("  " .. K.hex(C.mint) .. L["online"] .. "|r") or ("  |cff888888" .. L["offline"] .. "|r")),
-                    x.tip or "", "|cff777777" .. (x.click or L["Klick: anfluestern"]) .. "  ·  " .. L["Rechtsklick: Aktionen"] .. "|r" })
+                    x.tip or "", "|cff777777" .. (x.click or L["Click: whisper"]) .. "  ·  " .. L["Right-click: actions"] .. "|r" })
             end
         end)
         b:SetScript("OnLeave", function(self)
@@ -1587,7 +1587,7 @@ local function buildList(p)
         if it.slim and #(vm.chips or {}) > 0 then
             local online = 0
             for _, chip in ipairs(vm.chips) do if chip.on then online = online + 1 end end
-            qline = qline .. "  |cff555555·|r  " .. K.hex(online > 0 and C.mint or C.muted) .. (L["%d Helfer, %d online"]):format(#vm.chips, online) .. "|r"
+            qline = qline .. "  |cff555555·|r  " .. K.hex(online > 0 and C.mint or C.muted) .. (L["%d helpers, %d online"]):format(#vm.chips, online) .. "|r"
         end
         r.qline:SetText(qline)
         r.qline:ClearAllPoints()
@@ -1678,7 +1678,7 @@ local function buildList(p)
                 if r.item ~= it then
                     r.item = it
                     local ok, err = pcall(FILL[it.t], r, it)
-                    if not ok and ns.err then ns.err(L["Questitems"], err) end
+                    if not ok and ns.err then ns.err(L["Quest items"], err) end
                 end
             elseif it.y >= off + H and first then
                 if it.t == "head" and not nextH then nextH = it end
@@ -1792,13 +1792,13 @@ local function vmNeed(e)
     local bestG, bestF, anyOn
     for _, g in ipairs(e.givers) do
         v.chips[#v.chips + 1] = { who = g.who, on = g.on, giver = true, extra = K.hex(C.amber) .. g.n .. "x|r",
-            tip = (L["hat %d uebrig"]):format(g.n) .. (WHY[g.why] and (" (" .. L[WHY[g.why]] .. ")") or ""),
+            tip = (L["has %d spare"]):format(g.n) .. (WHY[g.why] and (" (" .. L[WHY[g.why]] .. ")") or ""),
             fn = function() QI.AskFor(g.who, nd, q.title, g.demo) end }
         if g.on then anyOn = true if not bestG then bestG = g end end
     end
     for _, f in ipairs(e.farmers) do
         v.chips[#v.chips + 1] = { who = f.who, on = f.on, extra = "|cff888888" .. f.have .. "/" .. f.need .. "|r",
-            tip = L["sammelt es auch"] .. (f.same and (" - " .. L["gleiche Quest"]) or ""), click = L["Klick: zusammen farmen (einladen)"],
+            tip = L["is collecting it too"] .. (f.same and (" - " .. L["same quest"]) or ""), click = L["Click: farm together (invite)"],
             fn = function() QI.FarmTogether(f.who, nd, f.demo) end }
         if f.on then anyOn = true if not bestF and not inGroup(f.who) then bestF = f end end
     end
@@ -1807,39 +1807,39 @@ local function vmNeed(e)
     if bestG then s = 0 elseif #e.givers > 0 then s = 1 elseif anyOn then s = 2 elseif #e.farmers > 0 then s = 3 end
     v.score = s
     if bestG then
-        v.primary = { text = L["Nachfragen"], tip = (L["%s anfluestern: hast du es uebrig?"]):format(ns.displayName(bestG.who)),
+        v.primary = { text = L["Ask"], tip = (L["Whisper %s: do you have it spare?"]):format(ns.displayName(bestG.who)),
             fn = function() QI.AskFor(bestG.who, nd, q.title, bestG.demo) end }
     elseif bestF then
-        v.primary = { text = L["Zusammen farmen"], tip = (L["%s einladen und zusammen farmen"]):format(ns.displayName(bestF.who)),
+        v.primary = { text = L["Farm together"], tip = (L["Invite %s and farm together"]):format(ns.displayName(bestF.who)),
             fn = function() QI.FarmTogether(bestF.who, nd, bestF.demo) end }
     end
     local w = bestG or e.givers[1] or e.farmers[1]
     if w then
-        v.acts[#v.acts + 1] = { glyph = "announce", tip = (L["%s anfluestern"]):format(ns.displayName(w.who)),
+        v.acts[#v.acts + 1] = { glyph = "announce", tip = (L["Whisper %s"]):format(ns.displayName(w.who)),
             fn = function() if w.n then QI.AskFor(w.who, nd, q.title, w.demo) else whisperTo(w.who, w.demo) end end }
     end
     local inv
     for _, x in ipairs(e.givers) do if x.on and not inGroup(x.who) then inv = x break end end
     if not inv then for _, x in ipairs(e.farmers) do if x.on and not inGroup(x.who) then inv = x break end end end
     if inv then
-        v.acts[#v.acts + 1] = { glyph = "groups", tip = (L["%s einladen"]):format(ns.displayName(inv.who)), fn = function() QI.Invite(inv.who, inv.demo) end }
+        v.acts[#v.acts + 1] = { glyph = "groups", tip = (L["Invite %s"]):format(ns.displayName(inv.who)), fn = function() QI.Invite(inv.who, inv.demo) end }
     end
-    if not q.demo then v.acts[#v.acts + 1] = { glyph = "map", tip = L["Quest im Questlog oeffnen"], fn = function() openQuest(q.id, q.logIndex) end } end
+    if not q.demo then v.acts[#v.acts + 1] = { glyph = "map", tip = L["Open quest in quest log"], fn = function() openQuest(q.id, q.logIndex) end } end
     v.qline = questLine(q.title, q.lvl)
-    if #v.chips == 0 then v.qline = v.qline .. "  |cff555555·|r  |cff666666" .. L["Noch niemand aus der Gilde hat es uebrig."] .. "|r" end
+    if #v.chips == 0 then v.qline = v.qline .. "  |cff555555·|r  |cff666666" .. L["Nobody in the guild has it spare yet."] .. "|r" end
     v.tip[1] = questLine(q.title, q.lvl) .. ((q.zone and q.zone ~= "") and ("  |cff888888" .. q.zone .. "|r") or "")
     if #e.givers > 0 or #e.farmers > 0 then
-        v.tip[2] = (L["%d haben es uebrig, %d sammeln auch"]):format(#e.givers, #e.farmers)
+        v.tip[2] = (L["%d have it spare, %d are collecting it too"]):format(#e.givers, #e.farmers)
     end
     v.search = table.concat({ low(nd.name), low(q.title), low(q.zone), chipNames(e.givers), chipNames(e.farmers) }, " ")
     v.menu = function()
         local m = {}
         for _, g in ipairs(e.givers) do
-            m[#m + 1] = { text = (L["Fluestern: %s (%dx uebrig)"]):format(ns.displayName(g.who), g.n), fn = function() QI.AskFor(g.who, nd, q.title, g.demo) end }
+            m[#m + 1] = { text = (L["Whisper: %s (%dx spare)"]):format(ns.displayName(g.who), g.n), fn = function() QI.AskFor(g.who, nd, q.title, g.demo) end }
         end
         for _, f in ipairs(e.farmers) do
             if not inGroup(f.who) then
-                m[#m + 1] = { text = (L["Zusammen farmen: %s"]):format(ns.displayName(f.who)), disabled = not f.on, fn = function() QI.FarmTogether(f.who, nd, f.demo) end }
+                m[#m + 1] = { text = (L["Farm together: %s"]):format(ns.displayName(f.who)), disabled = not f.on, fn = function() QI.FarmTogether(f.who, nd, f.demo) end }
             end
         end
         local seen, nInv = {}, 0
@@ -1847,13 +1847,13 @@ local function vmNeed(e)
             for _, x in ipairs(list) do
                 if x.on and not inGroup(x.who) and not seen[x.who] and nInv < 3 then
                     seen[x.who], nInv = true, nInv + 1
-                    m[#m + 1] = { text = (L["Einladen: %s"]):format(ns.displayName(x.who)), fn = function() QI.Invite(x.who, x.demo) end }
+                    m[#m + 1] = { text = (L["Invite: %s"]):format(ns.displayName(x.who)), fn = function() QI.Invite(x.who, x.demo) end }
                 end
             end
         end
-        m[#m + 1] = { text = L["Gegenstand im Chat verlinken"], fn = function() linkItem(id, nd.name) end }
-        if not q.demo then m[#m + 1] = { text = L["Quest im Questlog oeffnen"], fn = function() openQuest(q.id, q.logIndex) end } end
-        m[#m + 1] = { text = L["Ausblenden"], fn = function() hideEntry(v.key) end }
+        m[#m + 1] = { text = L["Link item in chat"], fn = function() linkItem(id, nd.name) end }
+        if not q.demo then m[#m + 1] = { text = L["Open quest in quest log"], fn = function() openQuest(q.id, q.logIndex) end } end
+        m[#m + 1] = { text = L["Hide"], fn = function() hideEntry(v.key) end }
         return m
     end
     return v
@@ -1862,22 +1862,22 @@ local function vmPush(e)
     local who = ns.displayName(e.who)
     local function ask()
         if e.demo then QI.Invite(e.who, true) return end
-        ns.Whisper(e.who, (L["Kannst du mir %s teilen?"]):format(e.title))
+        ns.Whisper(e.who, (L["Can you share %s with me?"]):format(e.title))
     end
     local v = { key = "p:" .. e.qid .. ":" .. Comm.whoKey(e.who), kind = "push", name = e.title, nameColor = C.text, glyph = "announce", color = C.pink,
-        badge = L["teilbare Quest"], badgeColor = C.pink, zone = L["Teilbare Quests"], score = 4, hot = true, acts = {},
-        qline = "|cffa3a3a8" .. (L["%s kann dir die Quest teilen"]):format(who) .. "|r",
-        chips = { { who = e.who, on = e.on, tip = L["kann dir die Quest teilen"], click = L["Klick: um die Quest bitten"], fn = ask } },
-        tip = { (L["%s kann dir die Quest teilen"]):format(who) } }
+        badge = L["shareable quest"], badgeColor = C.pink, zone = L["Shareable quests"], score = 4, hot = true, acts = {},
+        qline = "|cffa3a3a8" .. (L["%s can share the quest with you"]):format(who) .. "|r",
+        chips = { { who = e.who, on = e.on, tip = L["can share the quest with you"], click = L["Click: ask for the quest"], fn = ask } },
+        tip = { (L["%s can share the quest with you"]):format(who) } }
     if not inGroup(e.who) then
-        v.primary = { text = L["Einladen"], tip = (L["%s einladen - dann kann die Quest geteilt werden"]):format(who), fn = function() QI.Invite(e.who, e.demo) end }
+        v.primary = { text = L["Invite"], tip = (L["Invite %s - then the quest can be shared"]):format(who), fn = function() QI.Invite(e.who, e.demo) end }
     end
-    v.acts[1] = { glyph = "announce", tip = L["Um die Quest bitten (fluestern)"], fn = ask }
+    v.acts[1] = { glyph = "announce", tip = L["Ask for the quest (whisper)"], fn = ask }
     v.search = low(e.title) .. " " .. low(who)
     v.menu = function()
-        local m = { { text = L["Um die Quest bitten (fluestern)"], fn = ask } }
-        if not inGroup(e.who) then m[#m + 1] = { text = (L["Einladen: %s"]):format(who), fn = function() QI.Invite(e.who, e.demo) end } end
-        m[#m + 1] = { text = L["Ausblenden"], fn = function() hideEntry(v.key) end }
+        local m = { { text = L["Ask for the quest (whisper)"], fn = ask } }
+        if not inGroup(e.who) then m[#m + 1] = { text = (L["Invite: %s"]):format(who), fn = function() QI.Invite(e.who, e.demo) end } end
+        m[#m + 1] = { text = L["Hide"], fn = function() hideEntry(v.key) end }
         return m
     end
     return v
@@ -1889,45 +1889,45 @@ local function vmGive(e)
     local function offer() QI.OfferTo(e.who, o, e.title, e.demo) end
     local v = { key = "g:" .. Comm.whoKey(e.who) .. ":" .. (o.qid or 0) .. ":" .. low(o.name), kind = "give", id = id, name = o.name, have = o.have, need = o.need,
         glyph = "wants", color = C.blue, zone = e.on and L["Online"] or L["Offline"], score = e.on and 1 or 3, hot = e.on, acts = {},
-        qline = questLine(e.title) .. "  |cff555555·|r  " .. K.hex(C.mint) .. (L["du hast %d"]):format(e.have) .. "|r"
+        qline = questLine(e.title) .. "  |cff555555·|r  " .. K.hex(C.mint) .. (L["you have %d"]):format(e.have) .. "|r"
             .. (e.why and WHY[e.why] and ("  |cff777777(" .. L[WHY[e.why]] .. ")|r") or ""),
-        chips = { { who = e.who, on = e.on, extra = "|cff888888" .. o.have .. "/" .. o.need .. "|r", tip = (L["braucht es fuer %s"]):format(e.title or "?"),
-            click = L["Klick: anbieten (fluestern)"], fn = offer } },
-        tip = { (L["%s braucht es fuer %s"]):format(who, e.title or "?"), (L["du hast %d"]):format(e.have) } }
+        chips = { { who = e.who, on = e.on, extra = "|cff888888" .. o.have .. "/" .. o.need .. "|r", tip = (L["needs it for %s"]):format(e.title or "?"),
+            click = L["Click: offer (whisper)"], fn = offer } },
+        tip = { (L["%s needs it for %s"]):format(who, e.title or "?"), (L["you have %d"]):format(e.have) } }
     if e.on then
-        v.primary = { text = L["Anbieten"], tip = (L["%s anfluestern: ich habe es fuer dich"]):format(who), fn = offer }
-        if not inGroup(e.who) then v.acts[#v.acts + 1] = { glyph = "groups", tip = (L["%s einladen"]):format(who), fn = function() QI.Invite(e.who, e.demo) end } end
+        v.primary = { text = L["Offer"], tip = (L["Whisper %s: I have it for you"]):format(who), fn = offer }
+        if not inGroup(e.who) then v.acts[#v.acts + 1] = { glyph = "groups", tip = (L["Invite %s"]):format(who), fn = function() QI.Invite(e.who, e.demo) end } end
     end
-    table.insert(v.acts, 1, { glyph = "announce", tip = (L["%s anfluestern"]):format(who), fn = offer })
+    table.insert(v.acts, 1, { glyph = "announce", tip = (L["Whisper %s"]):format(who), fn = offer })
     v.search = low(o.name) .. " " .. low(e.title) .. " " .. low(who)
     v.menu = function()
-        local m = { { text = (L["Fluestern: %s"]):format(who), fn = offer } }
-        if e.on and not inGroup(e.who) then m[#m + 1] = { text = (L["Einladen: %s"]):format(who), fn = function() QI.Invite(e.who, e.demo) end } end
-        m[#m + 1] = { text = L["Gegenstand im Chat verlinken"], fn = function() linkItem(id, o.name) end }
-        m[#m + 1] = { text = L["Ausblenden"], fn = function() hideEntry(v.key) end }
+        local m = { { text = (L["Whisper: %s"]):format(who), fn = offer } }
+        if e.on and not inGroup(e.who) then m[#m + 1] = { text = (L["Invite: %s"]):format(who), fn = function() QI.Invite(e.who, e.demo) end } end
+        m[#m + 1] = { text = L["Link item in chat"], fn = function() linkItem(id, o.name) end }
+        m[#m + 1] = { text = L["Hide"], fn = function() hideEntry(v.key) end }
         return m
     end
     return v
 end
 local function vmShare(e)
     local q = e.q
-    local function push() if q.demo then ns.print(L["Demo: Quest wuerde geteilt."]) else QI.Push(q.id) end end
-    local v = { key = "s:" .. q.id, kind = "share", name = q.title, nameColor = C.text, glyph = "social", color = C.blue, badge = L["teilbare Quest"],
-        badgeColor = C.blue, zone = L["Quest teilen"], score = 0, hot = true, chips = {}, acts = {},
-        qline = "|cffa3a3a8" .. L["In deiner Gruppe ohne diese Quest:"] .. "|r",
-        primary = { text = L["Teilen"], tip = L["Quest an die Gruppe teilen"], fn = push }, tip = { L["In deiner Gruppe ohne diese Quest:"] } }
+    local function push() if q.demo then ns.print(L["Demo: quest would be shared."]) else QI.Push(q.id) end end
+    local v = { key = "s:" .. q.id, kind = "share", name = q.title, nameColor = C.text, glyph = "social", color = C.blue, badge = L["shareable quest"],
+        badgeColor = C.blue, zone = L["Share quest"], score = 0, hot = true, chips = {}, acts = {},
+        qline = "|cffa3a3a8" .. L["In your group without this quest:"] .. "|r",
+        primary = { text = L["Share"], tip = L["Share quest with group"], fn = push }, tip = { L["In your group without this quest:"] } }
     local names = {}
     for _, n in ipairs(e.names) do
-        v.chips[#v.chips + 1] = { who = n, on = true, tip = L["in deiner Gruppe"], fn = function() whisperTo(n, q.demo) end }
+        v.chips[#v.chips + 1] = { who = n, on = true, tip = L["in your group"], fn = function() whisperTo(n, q.demo) end }
         names[#names + 1] = low(ns.displayName(n))
         v.tip[#v.tip + 1] = ns.displayName(n)
     end
-    if not q.demo then v.acts[1] = { glyph = "map", tip = L["Quest im Questlog oeffnen"], fn = function() openQuest(q.id, q.logIndex) end } end
+    if not q.demo then v.acts[1] = { glyph = "map", tip = L["Open quest in quest log"], fn = function() openQuest(q.id, q.logIndex) end } end
     v.search = low(q.title) .. " " .. table.concat(names, " ")
     v.menu = function()
-        local m = { { text = L["Quest an die Gruppe teilen"], fn = push } }
-        if not q.demo then m[#m + 1] = { text = L["Quest im Questlog oeffnen"], fn = function() openQuest(q.id, q.logIndex) end } end
-        m[#m + 1] = { text = L["Ausblenden"], fn = function() hideEntry(v.key) end }
+        local m = { { text = L["Share quest with group"], fn = push } }
+        if not q.demo then m[#m + 1] = { text = L["Open quest in quest log"], fn = function() openQuest(q.id, q.logIndex) end } end
+        m[#m + 1] = { text = L["Hide"], fn = function() hideEntry(v.key) end }
         return m
     end
     return v
@@ -1936,14 +1936,14 @@ local function vmMine(q, nd)
     local id = itemIdOf(nd)
     local v = { key = "m:" .. q.id .. ":" .. low(nd.name), kind = "mine", id = id, name = nd.name, have = nd.have or 0, need = nd.need or 1, done = nd.done,
         zone = q.zone, glyph = "checklist", color = C.mint, score = nd.done and 3 or 1, chips = {}, acts = {},
-        qline = questLine(q.title, q.lvl) .. (nd.done and ("  |cff555555·|r  " .. K.hex(C.mint) .. L["fertig"] .. "|r") or ""),
+        qline = questLine(q.title, q.lvl) .. (nd.done and ("  |cff555555·|r  " .. K.hex(C.mint) .. L["done"] .. "|r") or ""),
         tip = { questLine(q.title, q.lvl) } }
-    v.acts[1] = { glyph = "pin", tip = L["Gegenstand im Chat verlinken"], fn = function() linkItem(id, nd.name) end }
-    if not q.demo then v.acts[2] = { glyph = "map", tip = L["Quest im Questlog oeffnen"], fn = function() openQuest(q.id, q.logIndex) end } end
+    v.acts[1] = { glyph = "pin", tip = L["Link item in chat"], fn = function() linkItem(id, nd.name) end }
+    if not q.demo then v.acts[2] = { glyph = "map", tip = L["Open quest in quest log"], fn = function() openQuest(q.id, q.logIndex) end } end
     v.search = low(nd.name) .. " " .. low(q.title) .. " " .. low(q.zone)
     v.menu = function()
-        local m = { { text = L["Gegenstand im Chat verlinken"], fn = function() linkItem(id, nd.name) end } }
-        if not q.demo then m[#m + 1] = { text = L["Quest im Questlog oeffnen"], fn = function() openQuest(q.id, q.logIndex) end } end
+        local m = { { text = L["Link item in chat"], fn = function() linkItem(id, nd.name) end } }
+        if not q.demo then m[#m + 1] = { text = L["Open quest in quest log"], fn = function() openQuest(q.id, q.logIndex) end } end
         return m
     end
     return v
@@ -1951,12 +1951,12 @@ end
 local function vmSpare(s)
     local qt = s.qid and questTitle(s.qid) or nil
     local v = { key = "x:" .. s.id .. ":" .. (s.qid or 0), kind = "spare", id = s.id, name = s.name, glyph = "wants", color = C.blue,
-        badge = s.n .. "x " .. L["uebrig"], badgeColor = C.blue, zone = L["Uebrig in deinen Taschen"], score = 2, chips = {}, acts = {},
+        badge = s.n .. "x " .. L["spare"], badgeColor = C.blue, zone = L["Spare in your bags"], score = 2, chips = {}, acts = {},
         qline = "|cffa3a3a8" .. L[WHY[s.why] or "uebrig"] .. (qt and ("  |cff555555·|r  " .. qt) or "") .. "|r",
-        tip = { L["Wird der Gilde automatisch angeboten."] } }
-    v.acts[1] = { glyph = "pin", tip = L["Gegenstand im Chat verlinken"], fn = function() linkItem(s.id, s.name) end }
+        tip = { L["Offered to the guild automatically."] } }
+    v.acts[1] = { glyph = "pin", tip = L["Link item in chat"], fn = function() linkItem(s.id, s.name) end }
     v.search = low(s.name) .. " " .. low(qt)
-    v.menu = function() return { { text = L["Gegenstand im Chat verlinken"], fn = function() linkItem(s.id, s.name) end } } end
+    v.menu = function() return { { text = L["Link item in chat"], fn = function() linkItem(s.id, s.name) end } } end
     return v
 end
 
@@ -1965,7 +1965,7 @@ local function closeness(v) return v.need and ((v.have or 0) / math.max(1, v.nee
 local function arrange(vms, color)
     local groups, byZone = {}, {}
     for _, v in ipairs(vms) do
-        local z = (v.zone and v.zone ~= "") and v.zone or L["Ohne Gebiet"]
+        local z = (v.zone and v.zone ~= "") and v.zone or L["No zone"]
         local g = byZone[z]
         if not g then
             g = { zone = z, list = {}, best = 99, hot = 0, close = -2 }
@@ -1998,8 +1998,8 @@ local function arrange(vms, color)
     end)
     local items = {}
     for _, g in ipairs(groups) do
-        local info = (L["%d Eintraege"]):format(#g.list)
-        if g.hot > 0 and view == "help" then info = info .. "  ·  " .. K.hex(C.mint) .. (L["%d mit Helfern online"]):format(g.hot) .. "|r" end
+        local info = (L["%d entries"]):format(#g.list)
+        if g.hot > 0 and view == "help" then info = info .. "  ·  " .. K.hex(C.mint) .. (L["%d with helpers online"]):format(g.hot) .. "|r" end
         -- Bei einer Suche alle Treffer zeigen, ohne den gespeicherten Klappzustand zu verlieren.
         local here = ns.safe(GetRealZoneText()) or ""
         local folded = collapsed[g.zone]
@@ -2040,8 +2040,8 @@ end
 local TOOL_Y = -116
 local apiOk = true
 ns.RegisterPage({
-    key = "questitems", title = "Questitems", order = 2.82,
-    sub = "Wer hat das Questitem, das du brauchst? Und wem kannst du helfen?",
+    key = "questitems", title = "Quest items", order = 2.82,
+    sub = "Who has the quest item you need? And whom can you help?",
     build = function(p)
         loadUI()
         page = p
@@ -2062,7 +2062,7 @@ ns.RegisterPage({
         for i, d in ipairs(TILES) do p.tiles[i] = buildTile(p.tileRow, d, onTile) end
 
         -- Werkzeugleiste: Suche, Sortierung, "nur mit Helfern", Ausgeblendete, Anzahl
-        p.search = K.Input(p, 170, L["Suchen ..."], function(t)
+        p.search = K.Input(p, 170, L["Search ..."], function(t)
             local s = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
             if s == search then return end
             search = s
@@ -2079,17 +2079,17 @@ ns.RegisterPage({
             for _, s in ipairs(SORTS) do
                 items[#items + 1] = { text = L[s.text], checked = sortBy == s.key, fn = function() sortBy = s.key ns.RefreshPage("questitems") end }
             end
-            K.ShowMenu(self, items, L["Sortieren nach"], 160)
+            K.ShowMenu(self, items, L["Sort by"], 160)
         end)
-        p.helpChip = buildChip(p, L["Nur Helfer online"], function() return onlyHelp end, function(v) onlyHelp = v ns.RefreshPage("questitems") end)
+        p.helpChip = buildChip(p, L["Online helpers only"], function() return onlyHelp end, function(v) onlyHelp = v ns.RefreshPage("questitems") end)
         p.hidChip = K.Button(p, "", 120, 22, "ghost", function()
             ns.char.qiHidden = {}
             ns.RefreshPage("questitems")
         end)
         K.SetFontSafe(p.hidChip.label, K.FONT, 11, "", K.FONT)
-        p.hidChip:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Ausgeblendete Eintraege"], "|cff888888" .. L["Klick: alle wieder zeigen"] .. "|r" }) end)
+        p.hidChip:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Hidden entries"], "|cff888888" .. L["Click: show all again"] .. "|r" }) end)
         p.hidChip:HookScript("OnLeave", function() GameTooltip:Hide() end)
-        p.viewButton = calmButton(K.Button(p, L["Ansicht"], 76, 22, "ghost"))
+        p.viewButton = calmButton(K.Button(p, L["Reset view"], 76, 22, "ghost"))
         p.viewButton.isDropdown = true
         p.viewButton:SetScript("OnClick", function(self)
             local function setCompact(value)
@@ -2103,15 +2103,15 @@ ns.RegisterPage({
                 ns.RefreshPage("questitems")
             end
             K.ShowMenu(self, {
-                { text = L["Aktuelles Gebiet zuerst"], checked = zoneMode == "focus", fn = function() zoneMode = "focus" ns.RefreshPage("questitems") end },
-                { text = L["Nur aktuelles Gebiet"], checked = zoneMode == "here", fn = function() zoneMode = "here" ns.RefreshPage("questitems") end },
-                { text = L["Alle Gebiete"], checked = zoneMode == "all", fn = function() zoneMode = "all" ns.RefreshPage("questitems") end },
-                { text = L["Animationen aus"], checked = S().noAnim == true, fn = function() S().noAnim = not S().noAnim ns.RefreshPage("questitems") end },
-                { text = L["Kompakte Liste"], checked = compact(), fn = function() setCompact(true) end },
-                { text = L["Ausfuehrliche Karten"], checked = not compact(), fn = function() setCompact(false) end },
-                { text = L["Alle Gebiete zuklappen"], fn = function() foldAll(true) end },
-                { text = L["Alle Gebiete aufklappen"], fn = function() foldAll(false) end },
-            }, L["Ansicht"], 210)
+                { text = L["Current zone first"], checked = zoneMode == "focus", fn = function() zoneMode = "focus" ns.RefreshPage("questitems") end },
+                { text = L["Current zone only"], checked = zoneMode == "here", fn = function() zoneMode = "here" ns.RefreshPage("questitems") end },
+                { text = L["All zones"], checked = zoneMode == "all", fn = function() zoneMode = "all" ns.RefreshPage("questitems") end },
+                { text = L["Disable animations"], checked = S().noAnim == true, fn = function() S().noAnim = not S().noAnim ns.RefreshPage("questitems") end },
+                { text = L["Compact list"], checked = compact(), fn = function() setCompact(true) end },
+                { text = L["Detailed cards"], checked = not compact(), fn = function() setCompact(false) end },
+                { text = L["Collapse all zones"], fn = function() foldAll(true) end },
+                { text = L["Expand all zones"], fn = function() foldAll(false) end },
+            }, L["Reset view"], 210)
         end)
         p.count = K.Text(p, 11, C.dim, "RIGHT")
         p.count:SetPoint("TOPRIGHT", p, "TOPRIGHT", -12, TOOL_Y - 6)
@@ -2206,15 +2206,15 @@ ns.RegisterPage({
         local n = #others()
         local dot, long, short
         if S().qiShare == false then
-            dot, long, short = C.red, L["Teilen ist aus (Einstellungen)"], L["Teilen ist aus"]
+            dot, long, short = C.red, L["Sharing is off (settings)"], L["Sharing is off"]
         else
             dot = lastSent == 0 and C.dim or ((ns.now() - lastSent < 900) and C.mint or C.amber)
-            local when = lastSent > 0 and ns.ago(lastSent) or L["noch nicht"]
-            long = (L["%d Mitspieler mit Questitem-Daten"]):format(n) .. "  |cff555555·|r  " .. L["geteilt"] .. " " .. when
-            short = (L["%d Mitspieler"]):format(n) .. "  |cff555555·|r  " .. when
+            local when = lastSent > 0 and ns.ago(lastSent) or L["not yet"]
+            long = (L["%d players with quest item data"]):format(n) .. "  |cff555555·|r  " .. L["shared"] .. " " .. when
+            short = (L["%d players"]):format(n) .. "  |cff555555·|r  " .. when
         end
-        p.statusArgs = { dot, long, short, { L["Questitems der Gilde"], long,
-            "|cff888888" .. L["Nur Mitglieder mit Oasis. Geteilt werden offene Questitems, uebrige Questitems und teilbare Quests."] .. "|r" } }
+        p.statusArgs = { dot, long, short, { L["Guild quest items"], long,
+            "|cff888888" .. L["Only members with Oasis. Shared: open quest items, spare quest items and shareable quests."] .. "|r" } }
 
         -- Eintraege des Reiters
         local vms, nHidden, total = {}, 0, 0
@@ -2255,10 +2255,10 @@ ns.RegisterPage({
         if #items == 0 then
             local filtered = zoneMode == "here" or search ~= "" or (view == "help" and (onlyHelp or tileFilter ~= nil)) or nHidden > 0
             if not ok then
-                p.empty:Set("wants", C.red, L["Dein Spiel liefert das Questlog nicht wie erwartet - die Seite bleibt leer.\nMit /oa probe questitems siehst du, was ankommt."],
-                    L["Probe ausfuehren"], function() QI.Probe() end)
+                p.empty:Set("wants", C.red, L["Your game client does not return the quest log as expected - this page stays empty.\nUse /oa probe questitems to see what arrives."],
+                    L["Run probe"], function() QI.Probe() end)
             elseif filtered and total > 0 then
-                p.empty:Set("wants", C.muted, L["Nichts gefunden - andere Filter probieren?"], L["Filter zuruecksetzen"], function()
+                p.empty:Set("wants", C.muted, L["Nothing found – try other filters?"], L["Reset filters"], function()
                     search, onlyHelp, tileFilter, zoneMode = "", false, nil, "all"
                     p.search:SetText("")
                     p.helpChip:Update()
@@ -2266,14 +2266,14 @@ ns.RegisterPage({
                     ns.RefreshPage("questitems")
                 end)
             elseif view == "help" then
-                p.empty:Set("wants", C.amber, L["Keine offenen Questitems in deinem Questlog.\nNimm Sammelquests an - Oasis zeigt dir, wer aus der Gilde helfen kann."],
-                    L["Gemeinsam questen"], function() ns.ShowPage("social") end, L["Ich kann helfen"], function() switchTo("can", nil) end)
+                p.empty:Set("wants", C.amber, L["No open quest items in your quest log.\nAccept collection quests - Oasis shows you who in the guild can help."],
+                    L["Quest together"], function() ns.ShowPage("social") end, L["I can help"], function() switchTo("can", nil) end)
             elseif view == "can" then
-                p.empty:Set("heart", C.blue, L["Gerade braucht niemand etwas, das du hast.\nUebrige Questitems in deinen Taschen werden automatisch angeboten."],
-                    L["Meine Questitems"], function() switchTo("mine", nil) end, L["Jetzt teilen"], function() lastHash = nil sendNow(true) ns.RefreshPage("questitems") end)
+                p.empty:Set("heart", C.blue, L["Nobody needs anything you have right now.\nSpare quest items in your bags are offered automatically."],
+                    L["My quest items"], function() switchTo("mine", nil) end, L["Share now"], function() lastHash = nil sendNow(true) ns.RefreshPage("questitems") end)
             else
-                p.empty:Set("checklist", C.mint, L["Keine Questitems im Questlog oder in den Taschen."],
-                    L["Questlog oeffnen"], function()
+                p.empty:Set("checklist", C.mint, L["No quest items in your quest log or bags."],
+                    L["Open quest log"], function()
                         if ToggleQuestLog then pcall(ToggleQuestLog) elseif QuestLogFrame and ShowUIPanel then pcall(ShowUIPanel, QuestLogFrame) end
                     end)
             end
@@ -2282,17 +2282,17 @@ ns.RegisterPage({
         -- Werkzeugleiste
         local sl
         for _, s in ipairs(SORTS) do if s.key == sortBy then sl = L[s.text] end end
-        p.sort:SetLabel("|cff888888" .. L["Sortierung:"] .. "|r " .. (sl or "") .. "  |cff666666v|r")
+        p.sort:SetLabel("|cff888888" .. L["Sort:"] .. "|r " .. (sl or "") .. "  |cff666666v|r")
         p.sort:SetWidth(math.floor((p.sort.label:GetStringWidth() or 120) + 24))
         p.helpChip:Update()
         p.nHidden = nHidden
         if nHidden > 0 then
-            p.hidChip:SetLabel((L["%d ausgeblendet"]):format(nHidden) .. "  |cff888888x|r")
+            p.hidChip:SetLabel((L["%d hidden"]):format(nHidden) .. "  |cff888888x|r")
             p.hidChip:SetWidth(math.floor((p.hidChip.label:GetStringWidth() or 90) + 22))
         end
         local cards = 0
         for _, it in ipairs(items) do if it.t == "card" then cards = cards + 1 end end
-        p.count:SetText((L["%d Eintraege"]):format(cards))
+        p.count:SetText((L["%d entries"]):format(cards))
         p:Layout()
         saveUI()
     end,
@@ -2319,9 +2319,9 @@ if ns.AddPageSettings then
     ns.AddPageSettings("questitems", function(det, y)
         local s = S()
         local defs = {
-            { "Meine Questitems mit der Gilde teilen", "qiShare", "Offene und uebrige Questitems sowie teilbare Quests" },
-            { "Hinweis, wenn mir jemand helfen kann", "qiToast", "Hoechstens alle 2 Minuten, je Spieler und Item alle 30 Minuten" },
-            { "Zeile im Item-Tooltip: Gebraucht von", "qiTooltip", "Zeigt, wer aus der Gilde das Item fuer eine Quest braucht" },
+            { "Share my quest items with the guild", "qiShare", "Open and spare quest items plus shareable quests" },
+            { "Notify me when someone can help", "qiToast", "At most every 2 minutes, per player and item every 30 minutes" },
+            { "Item tooltip line: needed by", "qiTooltip", "Shows who in the guild needs the item for a quest" },
         }
         for _, d in ipairs(defs) do
             if s[d[2]] == nil then s[d[2]] = true end

@@ -19,12 +19,12 @@ ns.BuffMonitor = BM
 ------------------------------------------------------------------------
 -- Kategorien in Anzeigereihenfolge
 local CATS = {
-    { key = "class", label = "Klassen-Buffs", short = "Klasse" },
-    { key = "flask", label = "Flaeschchen", short = "Flasche" },
-    { key = "elixir", label = "Elixiere", short = "Elixier" },
-    { key = "food", label = "Essen", short = "Essen" },
-    { key = "world", label = "Weltbuffs", short = "Welt" },
-    { key = "prot", label = "Schutztraenke", short = "Schutz" },
+    { key = "class", label = "Class buffs", short = "Class" },
+    { key = "flask", label = "Flasks", short = "Flask" },
+    { key = "elixir", label = "Elixirs", short = "Elixir" },
+    { key = "food", label = "Food", short = "Food" },
+    { key = "world", label = "World buffs", short = "World" },
+    { key = "prot", label = "Protection potions", short = "Prot." },
 }
 local CAT_BY = {}
 for i, c in ipairs(CATS) do c.order = i CAT_BY[c.key] = c end
@@ -33,28 +33,28 @@ for i, c in ipairs(CATS) do c.order = i CAT_BY[c.key] = c end
 -- cons = Verbrauchsgut/Weltbuff (keine Klasse noetig), soft = nur Hinweis (zaehlt nicht zur Vollstaendigkeit)
 local NOT_CLASS = { "elixier", "elixir", "trank", "potion", "fläschchen", "flask" }
 local BUFFS = {
-    { key = "fort", cat = "class", cls = "PRIEST", short = "Ausdauer",
+    { key = "fort", cat = "class", cls = "PRIEST", short = "Stamina",
         ids = { 1243, 1244, 1245, 2791, 10937, 10938 }, gids = { 21562, 21564 },
         pat = { "seelenstärke", "fortitude" } },
     { key = "spirit", cat = "class", cls = "PRIEST", short = "Willen",
         ids = { 14752, 14818, 14819, 27841 }, gids = { 27681 },
         pat = { "göttlicher wille", "willenskraft", "divine spirit", "prayer of spirit" } },
-    { key = "shadow", cat = "class", cls = "PRIEST", short = "Schatten",
+    { key = "shadow", cat = "class", cls = "PRIEST", short = "Shadow",
         ids = { 976, 10957, 10958 }, gids = { 27683 },
         pat = { "schattenschutz", "shadow protection" } },
     { key = "motw", cat = "class", cls = "DRUID", short = "Wildnis",
         ids = { 1126, 5232, 6756, 5234, 8907, 9884, 9885 }, gids = { 21849, 21850 },
         pat = { "mal der wildnis", "gabe der wildnis", "mark of the wild", "gift of the wild" } },
-    { key = "int", cat = "class", cls = "MAGE", short = "Intelligenz",
+    { key = "int", cat = "class", cls = "MAGE", short = "Intellect",
         ids = { 1459, 1460, 1461, 10156, 10157 }, gids = { 23028 },
         pat = { "arkane intelligenz", "arkane brillanz", "arcane intellect", "arcane brilliance" } },
-    { key = "kings", cat = "class", cls = "PALADIN", short = "Koenige",
+    { key = "kings", cat = "class", cls = "PALADIN", short = "Kings",
         ids = { 20217 }, gids = { 25898 },
         pat = { "segen der könige", "blessing of kings" } },
-    { key = "might", cat = "class", cls = "PALADIN", short = "Macht",
+    { key = "might", cat = "class", cls = "PALADIN", short = "Might",
         ids = { 19740, 19834, 19835, 19836, 19837, 19838, 25291 }, gids = { 25782, 25916 },
         pat = { "segen der macht", "blessing of might" } },
-    { key = "wisdom", cat = "class", cls = "PALADIN", short = "Weisheit",
+    { key = "wisdom", cat = "class", cls = "PALADIN", short = "Wisdom",
         ids = { 19742, 19850, 19852, 19853, 19854, 25290 }, gids = { 25894, 25918 },
         pat = { "segen der weisheit", "blessing of wisdom" } },
     -- Totems: Aura nur in Totem-Reichweite und nur fuer die eigene Gruppe -> Hinweis, zaehlt nicht
@@ -62,32 +62,32 @@ local BUFFS = {
         ids = { 8076, 8162, 8163, 10441, 25362, 8836, 10627, 25359, 5677, 10491, 10493, 10494 }, gids = {},
         pat = { "stärke der erde", "strength of earth", "anmut der luft", "grace of air", "manaquelle", "mana spring" } },
     -- Flaeschchen
-    { key = "flask", cat = "flask", cons = true, short = "Fläschchen", item = 13510,
+    { key = "flask", cat = "flask", cons = true, short = "Flask", item = 13510,
         ids = { 17626, 17627, 17628, 17629 },
         pat = { "fläschchen", "flask" } },
     -- Elixiere (Kampf- und Zauberelixiere zusammen)
-    { key = "elixir", cat = "elixir", cons = true, short = "Elixier", item = 13452,
+    { key = "elixir", cat = "elixir", cons = true, short = "Elixir", item = 13452,
         ids = { 17538, 11405, 26276, 11474, 11334, 17537, 24363, 17539, 11390, 3593, 11348, 11349, 16323, 16329, 17038 },
         pat = { "elixier", "elixir", "mungo", "mongoose", "der riesen", "of the giants", "feuermacht", "firepower",
             "schattenmacht", "shadow power", "zanza", "mojo", "rohe gewalt", "brute force", "blutmagie", "mageblood" } },
     -- Essen
-    { key = "food", cat = "food", cons = true, short = "Essen", item = 13935,
+    { key = "food", cat = "food", cons = true, short = "Food", item = 13935,
         ids = { 19705, 19706, 19708, 19709, 19710, 19711, 24799, 25661, 18192, 18194, 18222, 18141, 22730 },
         pat = { "satt", "well fed", "gut genährt", "gut gesättigt" } },
     -- Weltbuffs
-    { key = "world", cat = "world", cons = true, short = "Weltbuff", item = 19002,
+    { key = "world", cat = "world", cons = true, short = "World buff", item = 19002,
         ids = { 22888, 16609, 15366, 24425, 22817, 22818, 22820 },
         pat = { "drachentöter", "dragonslayer", "kriegshäuptling", "warchief's blessing", "liebliche serenade", "songflower",
             "geist von zandalar", "spirit of zandalar", "fengus", "mol'dar", "slip'kik" } },
     -- Schutztraenke (Feuer - Onyxia)
-    { key = "fireprot", cat = "prot", cons = true, short = "Feuerschutz", item = 13457,
+    { key = "fireprot", cat = "prot", cons = true, short = "Fire protection", item = 13457,
         ids = { 17543, 7233, 7230 },
         pat = { "feuerschutz", "fire protection" } },
 }
 BM.CATS = CATS
 
-local CLASSNAME = { PRIEST = "Priester", MAGE = "Magier", DRUID = "Druide", PALADIN = "Paladin", SHAMAN = "Schamane",
-    WARRIOR = "Krieger", ROGUE = "Schurke", HUNTER = "Jaeger", WARLOCK = "Hexenmeister" }
+local CLASSNAME = { PRIEST = "Priest", MAGE = "Mage", DRUID = "Druid", PALADIN = "Paladin", SHAMAN = "Shaman",
+    WARRIOR = "Warrior", ROGUE = "Rogue", HUNTER = "Hunter", WARLOCK = "Warlock" }
 local SOON = 120   -- Sekunden: darunter "laeuft bald ab"
 
 -- Zustand
@@ -155,7 +155,7 @@ local function colorName(name, cls)
     return ("|cff%02x%02x%02x"):format((r or 0.8) * 255, (g or 0.8) * 255, (b or 0.8) * 255) .. ns.displayName(name) .. "|r"
 end
 local function fmtLeft(sec)
-    if not sec then return L["ohne Ablauf"] end
+    if not sec then return L["no expiry"] end
     if sec >= 3600 then return ("%d h %02d min"):format(math.floor(sec / 3600), math.floor(sec % 3600 / 60)) end
     if sec >= 60 then return ("%d min"):format(math.floor(sec / 60)) end
     return ("%d s"):format(math.max(0, math.floor(sec)))
@@ -294,7 +294,7 @@ end
 -- Beispielgruppe (Demo): Restzeiten in Sekunden, fehlende Keys = Buff fehlt
 local function demoList()
     local _, me = UnitClass("player")
-    local myName = ns.safe(ns.UnitName("player")) or "Du"
+    local myName = ns.safe(ns.UnitName("player")) or "You"
     local rows = {
         { name = myName, class = me or "WARRIOR", d = { fort = 1500, motw = 1600, flask = 5400, food = 700, elixir = 90 } },
         { name = "Heilfix", class = "PRIEST", d = { fort = 1700, int = 1500, motw = 1700, spirit = 1600, flask = 6200, food = 800 } },
@@ -455,12 +455,12 @@ local function build()
     K.Fill(f, { 0.04, 0.04, 0.05, 0.94 })
     K.Border(f, C.line)
 
-    f.head = K.GameHead(f, L["Buff-Monitor"], C.mint)
+    f.head = K.GameHead(f, L["Buff monitor"], C.mint)
     f.head:SetPoint("TOPLEFT", 10, -8)
     f.head:SetWidth(120)
     f.close = K.CloseButton(f, function() BM.Toggle(false) end)
     f.close:SetPoint("TOPRIGHT", -6, -6)
-    f.gear = K.IconButton(f, "*", 18, function(self) BM.Menu(self) end, { L["Einstellungen"], L["Kategorien ein- und ausschalten, kompakt, festsetzen"] })
+    f.gear = K.IconButton(f, "*", 18, function(self) BM.Menu(self) end, { L["Settings"], L["Toggle categories, compact mode, lock"] })
     f.gear:SetPoint("RIGHT", f.close, "LEFT", -4, 0)
     if f.gear.label then
         f.gear.label:SetText("")
@@ -493,9 +493,9 @@ local function build()
     f.note = K.Text(f, 11, C.dim, "CENTER")
     f.note:SetWordWrap(true)
 
-    f.post = K.Button(f, L["Ansagen"], 70, 18, "ghost", function() BM.Post() end)
+    f.post = K.Button(f, L["Announce"], 70, 18, "ghost", function() BM.Post() end)
     f.post:SetPoint("BOTTOMLEFT", 8, 6)
-    f.post:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Fehlende Buffs ansagen"], L["Kurze Nachricht im Gruppen- bzw. Raidchat (nur ausserhalb des Kampfes)"] }) end)
+    f.post:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Announce missing buffs"], L["Short message to party or raid chat (out of combat only)"] }) end)
     f.post:HookScript("OnLeave", function() GameTooltip:Hide() end)
     f.hint = K.Text(f, 10, C.dim)
     f.hint:SetPoint("LEFT", f.post, "RIGHT", 8, 0)
@@ -636,7 +636,7 @@ local function providerText(b, info, list)
     local parts = {}
     for i, n in ipairs(who) do
         if i > 3 then parts[#parts + 1] = "..." break end
-        parts[#parts + 1] = ns.isMe(n) and L["du"] or ns.displayName(n)
+        parts[#parts + 1] = ns.isMe(n) and L["you"] or ns.displayName(n)
     end
     return className(b.cls) .. " (" .. table.concat(parts, ", ") .. ")"
 end
@@ -644,7 +644,7 @@ end
 function BM.Update()
     if not f or not f:IsShown() then return end
     if ns.inCombat() then
-        f.hint:SetText("|cffe8b44a" .. L["Im Kampf: letzter Stand, nichts klickbar umgestellt"] .. "|r")
+        f.hint:SetText("|cffe8b44a" .. L["In combat: last known state"] .. "|r")
         return
     end
     local D = dims()
@@ -652,7 +652,7 @@ function BM.Update()
     local now = GetTime and GetTime() or 0
 
     -- Kopf
-    f.sum:SetText(info.players > 0 and (L["%d/%d vollstaendig"]):format(info.complete, info.players) or "")
+    f.sum:SetText(info.players > 0 and (L["%d/%d complete"]):format(info.complete, info.players) or "")
     local pct = total > 0 and done / total or 1
     local bc = pct >= 1 and C.mint or (pct >= 0.7 and C.amber or C.red)
     f.bar.fill:SetColorTexture(bc[1], bc[2], bc[3], 1)
@@ -665,7 +665,7 @@ function BM.Update()
         local m = missing[b.key] or 0
         if info.mine[b.key] ~= nil and m > 0 then
             mineMissing[b.key] = true
-            lines[#lines + 1] = "|cffe8b44a" .. L["Du kannst"] .. ":|r " .. b.label .. " - " .. (L["fehlt bei %d"]):format(m)
+            lines[#lines + 1] = "|cffe8b44a" .. L["You can"] .. ":|r " .. b.label .. " - " .. (L["missing on %d"]):format(m)
         end
     end
     if not D.compact then
@@ -673,7 +673,7 @@ function BM.Update()
             local m = missing[b.key] or 0
             if b.cls and m > 0 and info.mine[b.key] == nil then
                 local p = providerText(b, info, list)
-                if p then lines[#lines + 1] = "|cff9999a0" .. p .. " " .. L["da"] .. ":|r " .. b.label .. " " .. (L["fehlt bei %d"]):format(m) end
+                if p then lines[#lines + 1] = "|cff9999a0" .. p .. " " .. L["present"] .. ":|r " .. b.label .. " " .. (L["missing on %d"]):format(m) end
             end
             if #lines >= 4 then break end
         end
@@ -729,10 +729,10 @@ function BM.Update()
         local who = {}
         for _, r in ipairs(list) do if not r.has[b.key] and not r.away and not r.dead then who[#who + 1] = ns.displayName(r.name) end end
         local tip = { b.label, "|cff888888" .. L[CAT_BY[b.cat].label] .. "|r" }
-        tip[#tip + 1] = m > 0 and ((L["fehlt bei %d"]):format(m) .. ": " .. table.concat(who, ", ")) or L["alle haben ihn"]
-        if b.cls then tip[#tip + 1] = L["Geben kann"] .. ": " .. (providerText(b, info, list) or className(b.cls)) end
-        if b.soft then tip[#tip + 1] = L["Totem-Auren nur in Reichweite - zaehlt nicht zur Vollstaendigkeit"] end
-        if info.mine[b.key] ~= nil then tip[#tip + 1] = "|cffe8b44a" .. L["Du kannst diesen Buff geben"] .. "|r" end
+        tip[#tip + 1] = m > 0 and ((L["missing on %d"]):format(m) .. ": " .. table.concat(who, ", ")) or L["everyone has it"]
+        if b.cls then tip[#tip + 1] = L["Can be given by"] .. ": " .. (providerText(b, info, list) or className(b.cls)) end
+        if b.soft then tip[#tip + 1] = L["Totem auras only in range - not counted for completeness"] end
+        if info.mine[b.key] ~= nil then tip[#tip + 1] = "|cffe8b44a" .. L["You can cast this buff"] .. "|r" end
         h.tip = tip
         h:Show()
     end
@@ -758,7 +758,7 @@ function BM.Update()
         r.cls:SetColorTexture(cr or 0.5, cg or 0.5, cb or 0.5, 1)
         K.SetFontSafe(r.name, K.FONT, D.compact and 10 or 12, "", K.FONT)
         r.name:SetWidth(D.NW - 6)
-        local tag = m.away and ("  |cff777777" .. L["offline"] .. "|r") or (m.dead and ("  |cff777777" .. L["tot"] .. "|r") or "")
+        local tag = m.away and ("  |cff777777" .. L["offline"] .. "|r") or (m.dead and ("  |cff777777" .. L["dead"] .. "|r") or "")
         r.name:SetText(colorName(m.name, m.class) .. tag)
         local needMe = false
         for _, c in pairs(r.cells) do c:Hide() end
@@ -797,16 +797,16 @@ function BM.Update()
             -- Tooltip
             local tip = { colorName(m.name, m.class) .. "  -  " .. b.label }
             if has then
-                tip[#tip + 1] = (soon and "|cffe8b44a" or "|cff66db9e") .. L["drauf"] .. "|r" .. (m.src[b.key] and (": " .. m.src[b.key]) or "")
-                tip[#tip + 1] = L["Restzeit"] .. ": " .. fmtLeft(left)
+                tip[#tip + 1] = (soon and "|cffe8b44a" or "|cff66db9e") .. L["active"] .. "|r" .. (m.src[b.key] and (": " .. m.src[b.key]) or "")
+                tip[#tip + 1] = L["Time left"] .. ": " .. fmtLeft(left)
             elseif off then
-                tip[#tip + 1] = "|cff777777" .. (m.away and L["offline"] or L["tot"]) .. "|r"
+                tip[#tip + 1] = "|cff777777" .. (m.away and L["offline"] or L["dead"]) .. "|r"
             else
-                tip[#tip + 1] = "|cffff5a4a" .. L["fehlt"] .. "|r"
+                tip[#tip + 1] = "|cffff5a4a" .. L["missing"] .. "|r"
             end
-            if b.cls then tip[#tip + 1] = L["Geben kann"] .. ": " .. (providerText(b, info, list) or className(b.cls)) end
+            if b.cls then tip[#tip + 1] = L["Can be given by"] .. ": " .. (providerText(b, info, list) or className(b.cls)) end
             if m.unit and c.secure then
-                tip[#tip + 1] = "|cff888888" .. (canMe and L["Linksklick: Buff wirken - Rechtsklick: als Ziel"] or L["Klick: als Ziel waehlen"]) .. "|r"
+                tip[#tip + 1] = "|cff888888" .. (canMe and L["Left-click: cast buff - right-click: target"] or L["Click: choose as target"]) .. "|r"
             end
             c.tipLines = tip
             setCellAction(c, m.unit, (canMe or (has and info.mine[b.key] ~= nil)) and info.mine[b.key] or nil)
@@ -825,18 +825,18 @@ function BM.Update()
     f.note:SetPoint("TOP", f, "TOP", 0, -(top + 10))
     f.note:SetWidth(width - 20)
     f.note:SetShown(empty)
-    f.note:SetText(#list == 0 and L["Nicht in einer Gruppe."]
-        or L["Keine Kategorie aktiv oder keine passende Klasse in der Gruppe - Zahnrad oben rechts."])
+    f.note:SetText(#list == 0 and L["Not in a group."]
+        or L["No category active or no matching class in the group - see the gear at the top right."])
 
     local h = empty and (top + 70) or (rowsTop + shown * D.RH + footer + 4)
     f:SetSize(width, h)
     local more = n - scrollOff - shown
     local hint
-    if info.demo then hint = "|cff9999a0" .. L["Beispielgruppe (Demo)"] .. "|r"
-    elseif info.sim and scrollOff == 0 and more <= 0 then hint = "|cff9999a0" .. L["Simulierter Raid"] .. "|r"
-    elseif scrollOff > 0 or more > 0 then hint = (L["Mausrad: %d weitere"]):format(scrollOff + more)
-    elseif pct >= 1 and total > 0 then hint = "|cff66db9e" .. L["Alles gebufft!"] .. "|r"
-    elseif info.soon > 0 then hint = "|cffe8b44a" .. (L["%d laufen bald ab"]):format(info.soon) .. "|r"
+    if info.demo then hint = "|cff9999a0" .. L["Example group (demo)"] .. "|r"
+    elseif info.sim and scrollOff == 0 and more <= 0 then hint = "|cff9999a0" .. L["Simulated raid"] .. "|r"
+    elseif scrollOff > 0 or more > 0 then hint = (L["Mouse wheel: %d more"]):format(scrollOff + more)
+    elseif pct >= 1 and total > 0 then hint = "|cff66db9e" .. L["All buffed!"] .. "|r"
+    elseif info.soon > 0 then hint = "|cffe8b44a" .. (L["%d expiring soon"]):format(info.soon) .. "|r"
     else hint = "" end
     f.hint:SetText(hint)
     f.post:SetShown(total > done and #list > 1)
@@ -847,13 +847,13 @@ end
 
 -- Zahnrad-Menue: Kategorien, kompakt, festsetzen
 function BM.Menu(owner)
-    if lockedNow() then ns.print(L["Im Kampf nicht moeglich - gleich nochmal."]) return end
+    if lockedNow() then ns.print(L["Not possible in combat - try again shortly."]) return end
     local items = {}
     for _, c in ipairs(CATS) do
         local on, raw = catOn(c.key)
         local txt = L[c.label]
         if c.key == "prot" then
-            txt = txt .. "  |cff888888(" .. (raw == "auto" and L["automatisch: Onyxia"] or (raw and L["an"] or L["aus"])) .. ")|r"
+            txt = txt .. "  |cff888888(" .. (raw == "auto" and L["automatic: Onyxia"] or (raw and L["on"] or L["off"])) .. ")|r"
         end
         items[#items + 1] = { text = txt, checked = on, fn = function()
             if c.key == "prot" then
@@ -865,15 +865,15 @@ function BM.Menu(owner)
             if ns.RefreshPage then ns.RefreshPage("buffs") end
         end }
     end
-    items[#items + 1] = { text = L["Kompakt"], checked = S().buffCompact, fn = function() S().buffCompact = not S().buffCompact or nil BM.Update() end }
-    items[#items + 1] = { text = L["Fenster festsetzen"], checked = S().buffLock, fn = function() S().buffLock = not S().buffLock BM.Update() end }
-    items[#items + 1] = { text = L["Fehlende Buffs ansagen"], fn = function() BM.Post() end }
-    K.ShowMenu(owner, items, L["Buff-Monitor"], 220)
+    items[#items + 1] = { text = L["Compact"], checked = S().buffCompact, fn = function() S().buffCompact = not S().buffCompact or nil BM.Update() end }
+    items[#items + 1] = { text = L["Lock window"], checked = S().buffLock, fn = function() S().buffLock = not S().buffLock BM.Update() end }
+    items[#items + 1] = { text = L["Announce missing buffs"], fn = function() BM.Post() end }
+    K.ShowMenu(owner, items, L["Buff monitor"], 220)
 end
 
 -- Fehlende Buffs in den Gruppen-/Raidchat (kurz, nur ausserhalb des Kampfes)
 function BM.Post()
-    if ns.inCombat() then ns.print(L["Im Kampf nicht moeglich - gleich nochmal."]) return end
+    if ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return end
     local list, cols, missing = BM.Scan()
     local parts = {}
     for _, b in ipairs(cols) do
@@ -881,7 +881,7 @@ function BM.Post()
         if #parts >= 6 then break end
     end
     if #parts == 0 then return end
-    local msg = L["Es fehlen Buffs: "] .. table.concat(parts, ", ")
+    local msg = L["Missing buffs: "] .. table.concat(parts, ", ")
     if not ns.Group.IsInGroup() then ns.print(msg) return end   -- Demo/allein: nur lokal (Simulator: ns.SendChat schreibt nur lokal)
     local ch = ns.Group.IsInRaid() and "RAID" or "PARTY"
     ns.SendChat(msg, ch)
@@ -893,7 +893,7 @@ function BM.Toggle(force)
     if show == nil then show = not f:IsShown() end
     if lockedNow() and show ~= f:IsShown() then
         pendingShow = show
-        ns.print(L["Buff-Monitor: nach dem Kampf"])
+        ns.print(L["Buff monitor: after combat"])
         return
     end
     f:SetShown(show)
@@ -942,7 +942,7 @@ local function addSettings()
     ns.AddPageSettings("raidcheck", function(det, y)
         local t = K.Text(det, 12, C.amber)
         t:SetPoint("TOPLEFT", 14, y)
-        t:SetText(L["Buff-Monitor: Kategorien"])
+        t:SetText(L["Buff monitor: categories"])
         y = y - 26
         det.t = det.t or {}
         for _, c in ipairs(CATS) do
@@ -956,15 +956,15 @@ local function addSettings()
         end
         local lab = K.Text(det, 12, C.text)
         lab:SetPoint("TOPLEFT", 14, y - 4)
-        lab:SetText(L["Schutztraenke (Feuer)"])
+        lab:SetText(L["Protection potions (fire)"])
         local function protKey() local _, raw = catOn("prot") return raw == "auto" and "auto" or (raw and "on" or "off") end
         local seg = K.Segments(det, {
-            { key = "auto", text = L["Automatisch (Onyxia)"] }, { key = "on", text = L["an"] }, { key = "off", text = L["aus"] },
+            { key = "auto", text = L["Automatic (Onyxia)"] }, { key = "on", text = L["on"] }, { key = "off", text = L["off"] },
         }, function(k) setCat("prot", k == "auto" and "auto" or (k == "on")) BM.Update() end)
         seg:SetPoint("TOPLEFT", 200, y)
         seg:Select(protKey())
         y = y - 32
-        local tg = K.Toggle(det, L["Kompakte Darstellung"], function() return S().buffCompact and true or false end, function(v) S().buffCompact = v or nil BM.Update() end)
+        local tg = K.Toggle(det, L["Compact view"], function() return S().buffCompact and true or false end, function(v) S().buffCompact = v or nil BM.Update() end)
         tg:SetPoint("TOPLEFT", 14, y)
         tg:SetWidth(600)
         det.t[#det.t + 1] = tg

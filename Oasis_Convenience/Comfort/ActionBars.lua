@@ -33,12 +33,12 @@ function AB.Save(name)
         end
     end
     store()[name] = { slots = set, ts = time() }
-    ns.print((L["Aktionsleisten gespeichert: %s"]):format(name))
+    ns.print((L["Action bars saved: %s"]):format(name))
 end
 function AB.Load(name)
     local s = store()[name]
-    if not s then ns.print((L["Keine gespeicherten Leisten mit dem Namen %s."]):format(tostring(name))) return end
-    if InCombatLockdown() then ns.print(L["Im Kampf nicht moeglich - gleich nochmal."]) return end
+    if not s then ns.print((L["No saved bars named %s."]):format(tostring(name))) return end
+    if InCombatLockdown() then ns.print(L["Not possible in combat - try again shortly."]) return end
     if GetCursorInfo() then ClearCursor() end
     local placed, missing = 0, 0
     for i = 1, SLOTS do
@@ -68,10 +68,10 @@ function AB.Load(name)
             end
         end
     end
-    ns.print((L["Aktionsleisten geladen: %s (%d gesetzt, %d nicht verfuegbar)"]):format(name, placed, missing))
+    ns.print((L["Action bars loaded: %s (%d placed, %d unavailable)"]):format(name, placed, missing))
 end
 function AB.Delete(name)
-    if store()[name] then store()[name] = nil ns.print((L["Geloescht: %s"]):format(name)) end
+    if store()[name] then store()[name] = nil ns.print((L["Deleted: %s"]):format(name)) end
 end
 ns.slash.leisten = function(arg)
     local cmd, name = (arg or ""):match("^(%S*)%s*(.-)$")
@@ -81,8 +81,8 @@ ns.slash.leisten = function(arg)
     elseif cmd == "loeschen" or cmd == "l\195\182schen" or cmd == "delete" then AB.Delete(name)
     else
         local n = AB.Names()
-        ns.print(#n > 0 and (L["Gespeicherte Leisten: %s"]):format(table.concat(n, ", ")) or L["Noch keine Leisten gespeichert."])
-        ns.print(L["/oa leisten speichern Name  -  /oa leisten laden Name  -  /oa leisten loeschen Name"])
+        ns.print(#n > 0 and (L["Saved bars: %s"]):format(table.concat(n, ", ")) or L["No bars saved yet."])
+        ns.print(L["/oa bars save Name  -  /oa bars load Name  -  /oa bars delete Name"])
     end
 end
 ns.slash.bars = ns.slash.leisten

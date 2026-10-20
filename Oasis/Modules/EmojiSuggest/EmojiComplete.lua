@@ -64,7 +64,7 @@ local function buildPop()
     pop.rows = {}
     pop.hint = K.Text(pop, 9, C.dim, "RIGHT")
     pop.hint:SetPoint("BOTTOMRIGHT", -6, 4)
-    pop.hint:SetText(L["Tab = naechstes"])
+    pop.hint:SetText(L["Tab = next"])
     for i = 1, MAX do
         local r = CreateFrame("Button", nil, pop)
         r:SetHeight(22)

@@ -61,11 +61,11 @@ local Wants = {}
 ns.Wants = Wants
 
 -- Gilden-Optionen (Gildenleitung)
-ns.GuildOption({ page = "wants", key = "wnOffMod", default = true, lead = true, label = "Offiziere entfernen fremde Wuensche",
-    desc = "Offiziere duerfen Eintraege anderer Mitglieder von der Gesucht-Liste loeschen" })
-ns.GuildOption({ page = "wants", key = "wnLootCd", default = 5, min = 1, max = 60, step = 1, label = "Loot-Hinweis hoechstens alle",
-    desc = "Abstand, bevor derselbe Wunsch beim Looten erneut gemeldet wird",
-    fmt = function(v) return v .. " Min" end })
+ns.GuildOption({ page = "wants", key = "wnOffMod", default = true, lead = true, label = "Officers remove others' wants",
+    desc = "Officers may delete other members' entries from the wanted list" })
+ns.GuildOption({ page = "wants", key = "wnLootCd", default = 5, min = 1, max = 60, step = 1, label = "Loot hint at most every",
+    desc = "Delay before the same want is announced again on loot",
+    fmt = function(v) return v .. " min" end })
 
 ------------------------------------------------------------------------
 -- Daten
@@ -131,7 +131,7 @@ function Wants.Offer(w)
     end
     local have = Wants.Count(w.itemID)
     Comm.Whisper(w.who, "HAVE", w.id, w.name or "?", have)
-    K.Toast(L["Angebot geschickt"], ns.displayName(w.who) .. L[" bekommt Bescheid."], C.mint)
+    K.Toast(L["Offer sent"], ns.displayName(w.who) .. L[" has been notified."], C.mint)
 end
 Comm.On("HAVE", function(sender, _, id, name, have)
     have = SEC.Num(have, 0, 100000, true) or 0
@@ -141,8 +141,8 @@ Comm.On("HAVE", function(sender, _, id, name, have)
     if not SEC.Rate("have:" .. sender .. ":" .. id, 60) then return end
     name = w.name or SEC.Text(name, 60)
     ns.Sound.Next("wants")
-    K.Toast(ns.displayName(sender) .. L[" hat "] .. (name or "?") .. L[" fuer dich"],
-        (have > 0 and (have .. L[" Stueck in den Taschen"]) or L["meldet sich bei dir"]) .. L["  -  Klick zum Anfluestern"], C.mint,
+    K.Toast(ns.displayName(sender) .. L[" has "] .. (name or "?") .. L[" for you"],
+        (have > 0 and (have .. L[" in their bags"]) or L["will get in touch"]) .. L["  ·  Click to whisper"], C.mint,
         function() ns.Whisper(sender) end)
 end)
 
@@ -160,7 +160,7 @@ ns.On("CHAT_MSG_LOOT", function(text, playerName)
         if not ns.isMe(w.who) and (not notified[w.id] or GetTime() - notified[w.id] > (tonumber(ns.GuildOpt("wnLootCd")) or 5) * 60) then
             notified[w.id] = GetTime()
             ns.Sound.Next("wants")
-            K.Toast(ns.displayName(w.who) .. L[" sucht das!"], (tonumber(w.qty) or 1) .. L["x "] .. SEC.Text(w.name or "?", 60) .. L["  -  Klick: Bescheid sagen"], C.amber,
+            K.Toast(ns.displayName(w.who) .. L[" needs this!"], (tonumber(w.qty) or 1) .. L["x "] .. SEC.Text(w.name or "?", 60) .. L["  ·  Click to let them know"], C.amber,
                 function() Wants.Offer(w) end)
         end
     end
@@ -180,7 +180,7 @@ ns.Listen("STORE", function(coll, rec, old)
     if coll ~= "wants" then return end
     if not old and not rec.del and not ns.isMe(rec.who) and ns.db.settings.wantsBagHint ~= false and Wants.Count(rec.itemID) > 0 then
         ns.Sound.Next("wants")
-        K.Toast(ns.displayName(rec.who) .. L[" sucht "] .. (rec.name or "?"), L["Du hast "] .. Wants.Count(rec.itemID) .. L[" davon in den Taschen"], C.amber,
+        K.Toast(ns.displayName(rec.who) .. L[" is looking for "] .. (rec.name or "?"), L["You have "] .. Wants.Count(rec.itemID) .. L[" of them in your bags"], C.amber,
             function() ns.ShowPage("wants") end)
     end
     ns.Debounce("wantsStore", 0.4, function() updateBadge() ns.RefreshPage("wants") end)
@@ -221,7 +221,7 @@ function buildLines(itemID, st)
             t[#t + 1] = ns.Radar.Label(w.who) .. " |cffffc24d" .. (w.qty or 1) .. L["x|r"]
         end
         if #wants > 4 then t[#t + 1] = "+" .. (#wants - 4) end
-        lines[#lines + 1] = L["|cffffc24dGesucht von:|r "] .. table.concat(t, ", ")
+        lines[#lines + 1] = L["|cffffc24dWanted by:|r "] .. table.concat(t, ", ")
     end
     if name then
         local orders = {}
@@ -231,21 +231,21 @@ function buildLines(itemID, st)
         end
         for i = 1, math.min(3, #orders) do
             local o = orders[i]
-            lines[#lines + 1] = L["|cff4f86ffAuftrag:|r "] .. ns.Radar.Label(o.from) .. L[" moechte "] .. (o.qty or 1) .. "x" ..
-                (o.status == "accepted" and (L[" |cff888888("] .. ns.displayName(o.worker or "?") .. L[" baut)|r"]) or "")
+            lines[#lines + 1] = L["|cff4f86ffOrder:|r "] .. ns.Radar.Label(o.from) .. L[" wants "] .. (o.qty or 1) .. "x" ..
+                (o.status == "accepted" and (L[" |cff888888("] .. ns.displayName(o.worker or "?") .. L[" is crafting)|r"]) or "")
         end
     end
     if ns.Market and not ns.Market.HasMidas() then
         local p = ns.Market.Price(itemID)
-        if p then lines[#lines + 1] = "|cffe8b44a" .. L["Gilden-Preis:"] .. "|r ~" .. ns.Market.Format(p) end
+        if p then lines[#lines + 1] = "|cffe8b44a" .. L["Guild price:"] .. "|r ~" .. ns.Market.Format(p) end
     end
     local bank = ns.GuildBank and ns.GuildBank.Count(itemID) or 0
-    if bank > 0 and st.tipBank ~= false then lines[#lines + 1] = "|cff9b8cff" .. L["In der Gildenbank:"] .. "|r " .. bank end
+    if bank > 0 and st.tipBank ~= false then lines[#lines + 1] = "|cff9b8cff" .. L["In the guild bank:"] .. "|r " .. bank end
     local src = ns.Dungeons and ns.Dungeons.TooltipLine(itemID)
     if src then lines[#lines + 1] = "|cff888888" .. src .. "|r" end
     if ns.Crafting and st.tipCrafters ~= false then
         local e = ns.Crafting.ForItem(itemID, name)
-        if e then lines[#lines + 1] = L["|cff4df2b8Herstellbar von:|r "] .. ns.Crafting.CrafterText(e, 4) end
+        if e then lines[#lines + 1] = L["|cff4df2b8Crafted by:|r "] .. ns.Crafting.CrafterText(e, 4) end
     end
     return lines
 end
@@ -314,25 +314,25 @@ local QCOL = { [0] = { 0.62, 0.62, 0.62 }, [1] = { 0.78, 0.78, 0.80 }, [2] = { 0
 local PURPLE = C.purple or { 0.62, 0.55, 1 }
 local H_HEAD, H_CARD, H_SLIM, GAP = 30, 70, 54, 6
 local TABS = {
-    { key = "all", text = "Alle", glyph = "wants", color = C.accent },
-    { key = "deliver", text = "Kann ich liefern", glyph = "heart", color = C.mint },
-    { key = "bank", text = "In der Bank", glyph = "bank", color = PURPLE },
-    { key = "craft", text = "Herstellbar", glyph = "crafting", color = C.blue },
-    { key = "mine", text = "Meine", glyph = "profile", color = C.amber },
+    { key = "all", text = "All", glyph = "wants", color = C.accent },
+    { key = "deliver", text = "I can supply", glyph = "heart", color = C.mint },
+    { key = "bank", text = "In the bank", glyph = "bank", color = PURPLE },
+    { key = "craft", text = "Craftable", glyph = "crafting", color = C.blue },
+    { key = "mine", text = "Mine", glyph = "profile", color = C.amber },
 }
 local TILES = {
-    { key = "all", label = "Wunschliste", glyph = "wants", color = C.accent, tip = "Klick: alle Wuensche" },
-    { key = "deliver", label = "Kann ich liefern", glyph = "heart", color = C.mint, tip = "Klick: was du hast oder bauen kannst" },
-    { key = "bank", label = "In der Bank", glyph = "bank", color = PURPLE, tip = "Klick: liegt in der Gildenbank" },
-    { key = "craft", label = "Herstellbar", glyph = "crafting", color = C.blue, tip = "Klick: kann jemand in der Gilde bauen" },
+    { key = "all", label = "Wish list", glyph = "wants", color = C.accent, tip = "Click: all wishes" },
+    { key = "deliver", label = "I can supply", glyph = "heart", color = C.mint, tip = "Click: what you have or can craft" },
+    { key = "bank", label = "In the bank", glyph = "bank", color = PURPLE, tip = "Click: in the guild bank" },
+    { key = "craft", label = "Craftable", glyph = "crafting", color = C.blue, tip = "Click: someone in the guild can craft it" },
 }
 local GROUPS = {
-    { key = "deliver", label = "Kannst du liefern", color = C.mint },
-    { key = "bank", label = "In der Gildenbank", color = PURPLE },
-    { key = "craft", label = "Herstellbar", color = C.blue },
-    { key = "rest", label = "Rest", color = C.muted },
+    { key = "deliver", label = "You can deliver", color = C.mint },
+    { key = "bank", label = "In the guild bank", color = PURPLE },
+    { key = "craft", label = "Craftable", color = C.blue },
+    { key = "rest", label = "Other", color = C.muted },
 }
-local SORTS = { { key = "new", text = "Neueste" }, { key = "price", text = "Preisangebot" }, { key = "qty", text = "Menge" }, { key = "name", text = "Name" } }
+local SORTS = { { key = "new", text = "Newest" }, { key = "price", text = "Price offer" }, { key = "qty", text = "Qty" }, { key = "name", text = "Name" } }
 local search, sortBy = "", "new"
 local page, flashKey
 
@@ -419,24 +419,24 @@ end
 -- Aktionen (Demo-Eintraege fluestern niemanden an)
 ------------------------------------------------------------------------
 local function offer(w)
-    if isDemo(w) then ns.print((L["Demo: wuerde %s Bescheid sagen."]):format(ns.displayName(w.who))) return end
+    if isDemo(w) then ns.print((L["Demo: would notify %s."]):format(ns.displayName(w.who))) return end
     Wants.Offer(w)
 end
 local function whisper(w, who)
     who = who or w.who
-    if isDemo(w) then ns.print((L["Demo: wuerde %s anfluestern."]):format(ns.displayName(who))) return end
+    if isDemo(w) then ns.print((L["Demo: would whisper %s."]):format(ns.displayName(who))) return end
     ns.Whisper(who)
 end
 local function order(w, s)
     local e = s.recipe
     if not (e and ns.Crafting) then return end
-    if isDemo(w) then ns.print(L["Demo: Auftrag wuerde gesendet."]) return end
-    ns.Crafting.NewOrder(e.name, e.prof, nil, w.qty or 1, L["fuer meine Gesucht-Liste"], e.id, e.itemID)
-    K.Toast(L["Auftrag gesendet"], (w.qty or 1) .. "x " .. e.name, C.accent)
+    if isDemo(w) then ns.print(L["Demo: order would be sent."]) return end
+    ns.Crafting.NewOrder(e.name, e.prof, nil, w.qty or 1, L["for my wishlist"], e.id, e.itemID)
+    K.Toast(L["Order sent"], (w.qty or 1) .. "x " .. e.name, C.accent)
 end
 local function done(w)
     Store.Delete("wants", w.id)
-    K.Toast(L["Abgehakt!"], w.name or "?", C.mint)
+    K.Toast(L["Done!"], w.name or "?", C.mint)
 end
 local function canDelete(w)
     return ns.isMe(w.who) or (ns.isOfficer() and ns.GuildOpt("wnOffMod") ~= false)
@@ -665,7 +665,7 @@ local function buildTile(parent, d, onClick)
     end
     t:SetScript("OnEnter", function(self)
         hover(true)
-        K.ShowTip(self, { L[d.label], "|cff888888" .. ((self.sel and d.key ~= "all") and L["Klick: Filter aufheben"] or L[d.tip]) .. "|r" })
+        K.ShowTip(self, { L[d.label], "|cff888888" .. ((self.sel and d.key ~= "all") and L["Click: clear filter"] or L[d.tip]) .. "|r" })
     end)
     t:SetScript("OnLeave", function() hover(false) GameTooltip:Hide() end)
     t:SetScript("OnClick", function() onClick(d.key) end)
@@ -783,7 +783,7 @@ local function buildList(p)
     local function cardTip(r)
         local vm = r.item and r.item.vm
         if not vm then return end
-        local hint = "|cff777777" .. L["Rechtsklick: Aktionen"] .. (vm.id and ("  ·  " .. L["Shift-Klick: verlinken"]) or "") .. "|r"
+        local hint = "|cff777777" .. L["Right-click: actions"] .. (vm.id and ("  ·  " .. L["Shift-click: link"]) or "") .. "|r"
         if vm.id then
             GameTooltip:SetOwner(r, "ANCHOR_RIGHT")
             if pcall(GameTooltip.SetItemByID, GameTooltip, vm.id) then
@@ -1020,10 +1020,10 @@ local function buildList(p)
         local avail = W - 58 - reserve
         local pw = 0
         if vm.price then
-            r.price.text:SetText((L["%dg/Stk"]):format(vm.price))
+            r.price.text:SetText((L["%dg each"]):format(vm.price))
             pw = math.floor((r.price.text:GetStringWidth() or 40) + 26)
             r.price:SetWidth(pw)
-            r.price.tip = { L["Preisangebot"], (L["zahlt %dg/Stk"]):format(vm.price) .. "  |cff888888(" .. (L["gesamt %dg"]):format(vm.price * (vm.qty or 1)) .. ")|r" }
+            r.price.tip = { L["Price offer"], (L["pays %dg each"]):format(vm.price) .. "  |cff888888(" .. (L["total %dg"]):format(vm.price * (vm.qty or 1)) .. ")|r" }
         end
         r.name:SetWidth(math.max(40, math.min((r.name:GetStringWidth() or 0) + 2, avail - (pw > 0 and pw + 8 or 0))))
         r.name:ClearAllPoints()
@@ -1133,7 +1133,7 @@ local function buildList(p)
                 if r.item ~= it then
                     r.item = it
                     local ok, err = pcall(FILL[it.t], r, it)
-                    if not ok and ns.err then ns.err(L["Gesucht"], err) end
+                    if not ok and ns.err then ns.err(L["Wanted"], err) end
                 end
             elseif it.y >= off + H and first then
                 if it.t == "head" and not nextH then nextH = it end
@@ -1248,24 +1248,24 @@ local function vmWant(w)
         color = color, hot = deliver, chips = {}, acts = {}, tip = {}, t = w.created or w.u or 0 }
     local who = ns.displayName(w.who)
     -- Zeile 2
-    local meta = colored(w.who) .. (mine and ("  |cff888888(" .. L["du"] .. ")|r") or "")
+    local meta = colored(w.who) .. (mine and ("  |cff888888(" .. L["you"] .. ")|r") or "")
     if (w.note or "") ~= "" then meta = meta .. "  |cff555555·|r  |cffc8c8cc" .. w.note .. "|r" end
     meta = meta .. "  |cff555555·|r  |cff777777" .. ns.ago(w.u or w.created) .. "|r"
     v.meta = meta
     -- Quellen
     if s.have > 0 then
-        v.chips[#v.chips + 1] = { glyph = "checklist", text = (L["Du hast %d"]):format(s.have), color = C.mint,
-            tip = { (L["Du hast %d"]):format(s.have), "|cff888888" .. L["in deinen Taschen"] .. "|r" }, fn = (not mine) and function() offer(w) end or nil }
+        v.chips[#v.chips + 1] = { glyph = "checklist", text = (L["You have %d"]):format(s.have), color = C.mint,
+            tip = { (L["You have %d"]):format(s.have), "|cff888888" .. L["in your bags"] .. "|r" }, fn = (not mine) and function() offer(w) end or nil }
     end
     if s.bank > 0 then
         v.chips[#v.chips + 1] = { glyph = "bank", text = (L["Bank %d"]):format(s.bank), color = PURPLE,
-            tip = { L["In der Gildenbank:"] .. " " .. s.bank, "|cff888888" .. L["Klick: Gildenbank oeffnen"] .. "|r" }, fn = function() ns.ShowPage("bank") end }
+            tip = { L["In the guild bank:"] .. " " .. s.bank, "|cff888888" .. L["Click: open guild bank"] .. "|r" }, fn = function() ns.ShowPage("bank") end }
     end
     local firstOn
     if s.iCanCraft then
-        v.chips[#v.chips + 1] = { glyph = "crafting", text = L["du kannst es bauen"], color = C.blue, tip = { L["du kannst es bauen"] } }
+        v.chips[#v.chips + 1] = { glyph = "crafting", text = L["you can craft it"], color = C.blue, tip = { L["you can craft it"] } }
     elseif s.crafters and #s.crafters > 0 then
-        local cls, tip, n = {}, { L["Herstellbar von:"] }, 0
+        local cls, tip, n = {}, { L["Craftable by:"] }, 0
         for _, c in ipairs(s.crafters) do
             if not ns.isMe(c.name) then
                 n = n + 1
@@ -1275,66 +1275,66 @@ local function vmWant(w)
             end
         end
         if n > 0 then
-            tip[#tip + 1] = "|cff777777" .. (firstOn and (L["Klick: %s anfluestern"]):format(ns.displayName(firstOn)) or L["gerade niemand online"]) .. "|r"
-            v.chips[#v.chips + 1] = { glyph = "crafting", text = L["Baut:"], color = C.blue, classes = cls, more = n > 4 and (n - 4) or nil, tip = tip,
+            tip[#tip + 1] = "|cff777777" .. (firstOn and (L["Click: whisper %s"]):format(ns.displayName(firstOn)) or L["nobody online right now"]) .. "|r"
+            v.chips[#v.chips + 1] = { glyph = "crafting", text = L["Crafts:"], color = C.blue, classes = cls, more = n > 4 and (n - 4) or nil, tip = tip,
                 fn = firstOn and function() whisper(w, firstOn) end or nil }
         end
     end
     if s.price then
         v.chips[#v.chips + 1] = { text = L["AH"] .. " ~" .. plain(ns.Market.Format(s.price)), color = C.amber,
-            tip = { L["Auktionshaus"], "~" .. ns.Market.Format(s.price) .. " " .. L[" /Stk"], (L["gesamt %s"]):format(ns.Market.Format(s.price * (w.qty or 1))) } }
+            tip = { L["Auction House"], "~" .. ns.Market.Format(s.price) .. " " .. L[" /each"], (L["total %s"]):format(ns.Market.Format(s.price * (w.qty or 1))) } }
     end
     if s.dungeon then
-        v.chips[#v.chips + 1] = { glyph = "dungeons", text = shortDungeon(s.dungeon), color = C.muted, tip = { L["Quelle"], s.dungeon } }
+        v.chips[#v.chips + 1] = { glyph = "dungeons", text = shortDungeon(s.dungeon), color = C.muted, tip = { L["Source"], s.dungeon } }
     end
     -- eigenes Set ("Pre-Raid 3/7"), siehe WishAlerts.lua
     if w.set and w.set ~= "" and ns.WishAlerts then
         local st = ns.WishAlerts.SetText(w.set)
-        if st then v.chips[#v.chips + 1] = { glyph = "checklist", text = st, color = C.mint, tip = { L["Set"], st, "|cff888888" .. L["Rechtsklick: Set aendern"] .. "|r" } } end
+        if st then v.chips[#v.chips + 1] = { glyph = "checklist", text = st, color = C.mint, tip = { L["Set"], st, "|cff888888" .. L["Right-click: change set"] .. "|r" } } end
     end
     -- Tooltip-Zeilen
-    v.tip[1] = (L["Gesucht von %s"]):format(colored(w.who)) .. "  |cffffc24d" .. (w.qty or 1) .. "x|r"
+    v.tip[1] = (L["Wanted by %s"]):format(colored(w.who)) .. "  |cffffc24d" .. (w.qty or 1) .. "x|r"
     if (w.note or "") ~= "" then v.tip[#v.tip + 1] = "|cffc8c8cc" .. w.note .. "|r" end
-    if v.price then v.tip[#v.tip + 1] = "|cffe8b44a" .. (L["zahlt %dg/Stk"]):format(v.price) .. "|r" end
+    if v.price then v.tip[#v.tip + 1] = "|cffe8b44a" .. (L["pays %dg each"]):format(v.price) .. "|r" end
     -- Hauptaktion je nach Lage
     local others = 0
     for _, c in ipairs(s.crafters or {}) do if not ns.isMe(c.name) then others = others + 1 end end
     if not mine and s.have > 0 then
-        v.primary = { text = L["Hab ich!"], tip = (L["%s Bescheid sagen: du hast es"]):format(who), fn = function() offer(w) end }
+        v.primary = { text = L["I have it!"], tip = (L["Tell %s: you have it"]):format(who), fn = function() offer(w) end }
     elseif not mine and s.iCanCraft then
-        v.primary = { text = L["Kann ich bauen"], tip = (L["%s Bescheid sagen: du kannst es bauen"]):format(who), fn = function() offer(w) end }
+        v.primary = { text = L["I can craft it"], tip = (L["Tell %s: you can craft it"]):format(who), fn = function() offer(w) end }
     elseif mine and s.recipe and others > 0 and not s.iCanCraft then
-        v.primary = { text = L["Auftrag geben"], tip = L["Handwerksauftrag an die Gilde schicken"], fn = function() order(w, s) end }
+        v.primary = { text = L["Place order"], tip = L["Send a crafting order to the guild"], fn = function() order(w, s) end }
     elseif mine then
-        v.primary = { text = L["Erledigt"], tip = L["Wunsch abhaken und entfernen"], fn = function() done(w) end }
+        v.primary = { text = L["Done"], tip = L["Tick off and remove the wish"], fn = function() done(w) end }
     end
     -- weitere Aktionen beim Ueberfahren
     if not mine then
-        v.acts[#v.acts + 1] = { glyph = "announce", tip = (L["%s anfluestern"]):format(who), fn = function() whisper(w) end }
+        v.acts[#v.acts + 1] = { glyph = "announce", tip = (L["Whisper %s"]):format(who), fn = function() whisper(w) end }
     end
-    v.acts[#v.acts + 1] = { glyph = "pin", tip = L["Gegenstand im Chat verlinken"], fn = function() linkItem(w) end }
-    if mine and v.primary and v.primary.text ~= L["Erledigt"] then
-        v.acts[#v.acts + 1] = { glyph = "checklist", tip = L["Erledigt"], fn = function() done(w) end }
+    v.acts[#v.acts + 1] = { glyph = "pin", tip = L["Link item in chat"], fn = function() linkItem(w) end }
+    if mine and v.primary and v.primary.text ~= L["Done"] then
+        v.acts[#v.acts + 1] = { glyph = "checklist", tip = L["Done"], fn = function() done(w) end }
     end
     local del = canDelete(w)
     if del then
-        v.acts[#v.acts + 1] = { glyph = "eraser", tip = L["Eintrag entfernen"], fn = function() Store.Delete("wants", w.id) end }
+        v.acts[#v.acts + 1] = { glyph = "eraser", tip = L["Remove entry"], fn = function() Store.Delete("wants", w.id) end }
     end
     v.search = table.concat({ low(name), low(w.note), low(who), low(s.dungeon) }, " ")
     v.menu = function()
         local m = {}
         if not mine then
-            m[#m + 1] = { text = (L["Fluestern: %s"]):format(who), fn = function() whisper(w) end }
-            m[#m + 1] = { text = L["Hab ich!"], disabled = not (s.have > 0 or s.iCanCraft), fn = function() offer(w) end }
+            m[#m + 1] = { text = (L["Whisper: %s"]):format(who), fn = function() whisper(w) end }
+            m[#m + 1] = { text = L["I have it!"], disabled = not (s.have > 0 or s.iCanCraft), fn = function() offer(w) end }
         end
         if s.recipe and others > 0 and not s.iCanCraft then
-            m[#m + 1] = { text = L["Auftrag geben"], fn = function() order(w, s) end }
+            m[#m + 1] = { text = L["Place order"], fn = function() order(w, s) end }
         end
-        if firstOn then m[#m + 1] = { text = (L["Handwerker anfluestern: %s"]):format(ns.displayName(firstOn)), fn = function() whisper(w, firstOn) end } end
-        m[#m + 1] = { text = L["Gegenstand im Chat verlinken"], fn = function() linkItem(w) end }
-        if mine then m[#m + 1] = { text = L["Erledigt"], fn = function() done(w) end } end
+        if firstOn then m[#m + 1] = { text = (L["Whisper crafter: %s"]):format(ns.displayName(firstOn)), fn = function() whisper(w, firstOn) end } end
+        m[#m + 1] = { text = L["Link item in chat"], fn = function() linkItem(w) end }
+        if mine then m[#m + 1] = { text = L["Done"], fn = function() done(w) end } end
         if mine and ns.WishAlerts then for _, x in ipairs(ns.WishAlerts.MenuItems(w)) do m[#m + 1] = x end end
-        if del then m[#m + 1] = { text = L["Loeschen"], fn = function() Store.Delete("wants", w.id) end } end
+        if del then m[#m + 1] = { text = L["Put out"], fn = function() Store.Delete("wants", w.id) end } end
         return m
     end
     return v
@@ -1386,8 +1386,8 @@ local function arrange(vms)
         local list = byG[g.key]
         if list and #list > 0 then
             table.sort(list, cmp)
-            local info = (L["%d Eintraege"]):format(#list)
-            if g.key == "deliver" then info = info .. "  ·  " .. K.hex(C.mint) .. L["jemand freut sich"] .. "|r" end
+            local info = (L["%d entries"]):format(#list)
+            if g.key == "deliver" then info = info .. "  ·  " .. K.hex(C.mint) .. L["someone will be happy"] .. "|r" end
             items[#items + 1] = { t = "head", key = "h:" .. g.key, label = L[g.label], info = info, color = g.color, h = H_HEAD }
             for _, v in ipairs(list) do
                 local slim = #v.chips == 0
@@ -1431,7 +1431,7 @@ local function buildForm(p)
     f.glow:SetAlpha(0)
     f.av = makeAvatar(f, 32)
     f.av:SetPoint("TOPLEFT", 10, -8)
-    local item = K.Input(f, 230, L["Item eintippen oder Shift-Klick ..."])
+    local item = K.Input(f, 230, L["Type an item or shift-click ..."])
     item:SetHeight(26)
     glass(item, 8, 0.04)
     item:SetPoint("LEFT", f.av, "RIGHT", 8, 0)
@@ -1463,11 +1463,11 @@ local function buildForm(p)
     p.qty:SetPoint("RIGHT", st.plus, "LEFT", 0, 0)
     p.qty:SetJustifyH("CENTER")
     p.qty:SetText(formQty)
-    st:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Menge"], "|cff888888" .. L["Mausrad oder +/-, mit Shift in 10er-Schritten"] .. "|r" }) end)
+    st:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Qty"], "|cff888888" .. L["Mouse wheel or +/-, Shift for steps of 10"] .. "|r" }) end)
     st:SetScript("OnLeave", function() GameTooltip:Hide() end)
     f.step = st
     -- Preisangebot mit Gold-Symbol
-    local price = K.Input(f, 78, L["Preis"])
+    local price = K.Input(f, 78, L["Price"])
     price:SetHeight(26)
     glass(price, 8, 0.04)
     price:SetNumeric(true)
@@ -1477,14 +1477,14 @@ local function buildForm(p)
     price.coin:SetTexture(COIN)
     price.coin:SetSize(12, 12)
     price.coin:SetPoint("RIGHT", -8, 0)
-    price:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Preisangebot"], L["Was du pro Stueck zahlen wuerdest (freiwillig)."] }) end)
+    price:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Price offer"], L["What you'd pay per piece (optional)."] }) end)
     price:SetScript("OnLeave", function() GameTooltip:Hide() end)
     f.price = price
-    local note = K.Input(f, 150, L["Notiz ..."])
+    local note = K.Input(f, 150, L["Note ..."])
     note:SetHeight(26)
     glass(note, 8, 0.04)
     f.note = note
-    local add = K.Button(f, L["Eintragen"], 118, 28, "primary")
+    local add = K.Button(f, L["Add"], 118, 28, "primary")
     K.SetFontSafe(add.label, K.FONT, 13, "", K.FONT)
     f.add = add
     add:SetScript("OnClick", function()
@@ -1507,8 +1507,8 @@ local function buildForm(p)
         p.scrollTo = flashKey
         if filter ~= "all" and filter ~= "mine" then filter = "all" p.switch = true end
         -- Bestaetigung: Knopf und Zeile leuchten kurz gruen
-        add:SetLabel(L["Eingetragen!"])
-        ns.After(1.4, function() add:SetLabel(L["Eintragen"]) end)
+        add:SetLabel(L["Added!"])
+        ns.After(1.4, function() add:SetLabel(L["Add"]) end)
         if animOn() then
             f.glow:SetAlpha(1)
             K.Tween(f.glow, 1.0, function(q) f.glow:SetAlpha(1 - q) end, function() f.glow:SetAlpha(0) end, 0.15)
@@ -1540,8 +1540,8 @@ end
 ------------------------------------------------------------------------
 local FORM_Y, TAB_Y, LIST_Y = 0, -76, -116   -- 0.5.853: Kennzahl-Kacheln entfallen
 ns.RegisterPage({
-    key = "wants", title = "Gesucht", order = 2.5,
-    sub = "Einkaufsliste der Gilde - wer etwas hat oder bauen kann, bekommt beim Looten und im Tooltip Bescheid",
+    key = "wants", title = "Wanted", order = 2.5,
+    sub = "The guild's shopping list – anyone who has or can craft something gets notified on loot and in the tooltip",
     build = function(p)
         page = p
         p.fresh = true
@@ -1575,9 +1575,9 @@ ns.RegisterPage({
             for _, s in ipairs(SORTS) do
                 items[#items + 1] = { text = L[s.text], checked = sortBy == s.key, fn = function() sortBy = s.key ns.RefreshPage("wants") end }
             end
-            K.ShowMenu(self, items, L["Sortieren nach"], 160)
+            K.ShowMenu(self, items, L["Sort by"], 160)
         end)
-        p.search = K.Input(p, 140, L["Suchen ..."], function(t)
+        p.search = K.Input(p, 140, L["Search ..."], function(t)
             local s = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
             if s == search then return end
             search = s
@@ -1589,17 +1589,17 @@ ns.RegisterPage({
         p.fojji = K.Button(p, "", 150, 22, "ghost", function()
             if ns.Fojji and ns.Fojji.Has() then
                 local n = ns.Fojji.ImportWishes()
-                if n > 0 and K.Toast then K.Toast(L["Wunschliste"], (L["%d Wuensche aus FojjiCore in die Oasis-Wunschliste uebernommen."]):format(n), C.mint) end
+                if n > 0 and K.Toast then K.Toast(L["Wish list"], (L["%d wishes copied from FojjiCore to the Oasis wishlist."]):format(n), C.mint) end
             end
             local NW = ns.Compat and ns.Compat.Naowh
             if NW and NW.Has() then
                 local n = NW.ImportWishes()
-                if n > 0 and K.Toast then K.Toast(L["Wunschliste"], (L["%d BiS-Teile aus Naowh in die Oasis-Wunschliste uebernommen."]):format(n), C.mint) end
+                if n > 0 and K.Toast then K.Toast(L["Wish list"], (L["%d BiS items from Naowh added to the Oasis wishlist."]):format(n), C.mint) end
             end
             ns.RefreshPage("wants")
         end)
         p.fojji:SetPoint("RIGHT", p.search, "LEFT", -6, 0)
-        p.fojji:SetScript("OnEnter", function(self) K.ShowTip(self, { self.src or "FojjiCore", L["Uebernimmt, was du in FojjiCores Wunschliste oder Naowhs BiS-Liste stehen hast (nur, was du noch nicht besitzt). Die Gilde sieht diese Wuensche dann hier."] }) end)
+        p.fojji:SetScript("OnEnter", function(self) K.ShowTip(self, { self.src or "FojjiCore", L["Copies what is on your FojjiCore wishlist or Naowh BiS list (only what you don't own yet). The guild then sees these wishes here."] }) end)
         p.fojji:SetScript("OnLeave", function() GameTooltip:Hide() end)
         p.fojji:Hide()
         -- Liste + Leerzustand
@@ -1635,9 +1635,9 @@ ns.RegisterPage({
             local was = p.fojji:IsShown()
             p.fojji:SetShown(nf + nn > 0)
             p.fojji.src = (nf > 0 and nn > 0) and "FojjiCore + Naowh" or (nn > 0 and "Naowh Forever" or "FojjiCore")
-            if nf > 0 and nn > 0 then p.fojji:SetLabel((L["Aus Addons (%d)"]):format(nf + nn))
-            elseif nn > 0 then p.fojji:SetLabel((L["Aus Naowh-BiS (%d)"]):format(nn))
-            elseif nf > 0 then p.fojji:SetLabel((L["Aus FojjiCore (%d)"]):format(nf)) end
+            if nf > 0 and nn > 0 then p.fojji:SetLabel((L["From addons (%d)"]):format(nf + nn))
+            elseif nn > 0 then p.fojji:SetLabel((L["From Naowh BiS (%d)"]):format(nn))
+            elseif nf > 0 then p.fojji:SetLabel((L["From FojjiCore (%d)"]):format(nf)) end
             if was ~= p.fojji:IsShown() then p:Layout() end
         end
         local fresh, switch = p.fresh, p.switch
@@ -1652,7 +1652,7 @@ ns.RegisterPage({
             if fresh and animOn() then K.CountUp(t.value, n, 0.8, nil, (i - 1) * 0.05)
             elseif t.shown ~= n then t.value:SetText(n) end
             t.shown = n
-            if t.key == "all" then t.sub:SetText(counts.mine > 0 and (L["%d von dir"]):format(counts.mine) or "") end
+            if t.key == "all" then t.sub:SetText(counts.mine > 0 and (L["%d yours"]):format(counts.mine) or "") end
         end
         if fresh and animOn() then for i, t in ipairs(p.tiles) do K.FadeIn(t, (i - 1) * 0.05) end end
         p.tabs:SetCounts(counts)
@@ -1663,7 +1663,7 @@ ns.RegisterPage({
             local ok, v = pcall(vmWant, w)
             if ok and v then
                 if passes(v) then vms[#vms + 1] = v end
-            elseif not ok and ns.err then ns.err(L["Gesucht"], v) end
+            elseif not ok and ns.err then ns.err(L["Wanted"], v) end
         end
         local items = arrange(vms)
         p.tl:SetItems(items, not (fresh or switch))
@@ -1681,29 +1681,29 @@ ns.RegisterPage({
         if #items == 0 then
             local function focusForm() p.itemBox:SetFocus() end
             if counts.all == 0 then
-                p.empty:Set("wants", C.accent, L["Noch nichts auf der Wunschliste.\nTrag oben ein, was du brauchst - alle mit Oasis sehen es im Tooltip und beim Looten."],
-                    L["Etwas eintragen"], focusForm)
+                p.empty:Set("wants", C.accent, L["Nothing on the wish list yet.\nAdd what you need above - everyone with Oasis sees it in tooltips and when looting."],
+                    L["Add something"], focusForm)
             elseif search ~= "" then
-                p.empty:Set("wants", C.muted, L["Nichts gefunden - andere Filter probieren?"], L["Filter zuruecksetzen"], function()
+                p.empty:Set("wants", C.muted, L["Nothing found – try other filters?"], L["Reset filters"], function()
                     search = ""
                     p.search:SetText("")
                     switchTo("all")
                 end)
             elseif filter == "mine" then
-                p.empty:Set("profile", C.amber, L["Du suchst gerade nichts.\nWas fehlt dir noch? Die Gilde hilft."], L["Etwas eintragen"], focusForm)
+                p.empty:Set("profile", C.amber, L["You're not looking for anything.\nWhat are you missing? The guild helps."], L["Add something"], focusForm)
             elseif filter == "deliver" then
-                p.empty:Set("heart", C.mint, L["Gerade kannst du keinen Wunsch erfuellen.\nOasis meldet sich, sobald du etwas Gesuchtes lootest."], L["Alle Wuensche"], function() switchTo("all") end)
+                p.empty:Set("heart", C.mint, L["You can't fulfil any wish right now.\nOasis tells you as soon as you loot something wanted."], L["All wishes"], function() switchTo("all") end)
             elseif filter == "bank" then
-                p.empty:Set("bank", PURPLE, L["Nichts davon liegt in der Gildenbank."], L["Alle Wuensche"], function() switchTo("all") end,
-                    L["Gildenbank"], function() ns.ShowPage("bank") end)
+                p.empty:Set("bank", PURPLE, L["None of it is in the guild bank."], L["All wishes"], function() switchTo("all") end,
+                    L["Guild bank"], function() ns.ShowPage("bank") end)
             else
-                p.empty:Set("crafting", C.blue, L["Fuer keinen Wunsch ist ein Rezept in der Gilde bekannt."], L["Alle Wuensche"], function() switchTo("all") end)
+                p.empty:Set("crafting", C.blue, L["No recipe in the guild for any wish."], L["All wishes"], function() switchTo("all") end)
             end
         end
         -- Sortierknopf
         local sl
         for _, s in ipairs(SORTS) do if s.key == sortBy then sl = L[s.text] end end
-        p.sort:SetLabel("|cff888888" .. L["Sortierung:"] .. "|r " .. (sl or "") .. "  |cff666666v|r")
+        p.sort:SetLabel("|cff888888" .. L["Sort:"] .. "|r " .. (sl or "") .. "  |cff666666v|r")
         p.sort:SetWidth(math.floor((p.sort.label:GetStringWidth() or 100) + 24))
         -- Vorschau des gewaehlten Items
         local f = p.form
@@ -1712,14 +1712,14 @@ ns.RegisterPage({
             setAvatar(f.av, id, C.accent, false)
             local s = Wants.Sources({ itemID = id })
             local t = {}
-            if s.have > 0 then t[#t + 1] = "|cff66db9e" .. (L["Du hast %d"]):format(s.have) .. "|r" end
-            if s.bank > 0 then t[#t + 1] = "|cffb4a8ff" .. (L["In der Gildenbank: %d"]):format(s.bank) .. "|r" end
-            if s.crafters and #s.crafters > 0 then t[#t + 1] = "|cff6099ff" .. (L["%d in der Gilde koennen es bauen"]):format(#s.crafters) .. "|r" end
-            if s.price then t[#t + 1] = L["AH"] .. " ~" .. ns.Market.Format(s.price) .. L[" /Stk"] end
-            f.info:SetText(#t > 0 and table.concat(t, "   ·   ") or ("|cff777777" .. L["Niemand in der Gilde hat es gerade - ab auf die Liste!"] .. "|r"))
+            if s.have > 0 then t[#t + 1] = "|cff66db9e" .. (L["You have %d"]):format(s.have) .. "|r" end
+            if s.bank > 0 then t[#t + 1] = "|cffb4a8ff" .. (L["In the guild bank: %d"]):format(s.bank) .. "|r" end
+            if s.crafters and #s.crafters > 0 then t[#t + 1] = "|cff6099ff" .. (L["%d in the guild can craft it"]):format(#s.crafters) .. "|r" end
+            if s.price then t[#t + 1] = L["AH"] .. " ~" .. ns.Market.Format(s.price) .. L[" /each"] end
+            f.info:SetText(#t > 0 and table.concat(t, "   ·   ") or ("|cff777777" .. L["Nobody in the guild has it right now – put it on the list!"] .. "|r"))
         else
             setAvatar(f.av, nil, C.dim, false)
-            f.info:SetText("|cff666666" .. L["Tippen - Oasis schlaegt Items vor (Taschen, Gildenbank, Rezepte, Dungeons, Auktionshaus)."] .. "|r")
+            f.info:SetText("|cff666666" .. L["Start typing – Oasis suggests items (bags, guild bank, recipes, dungeons, auction house)."] .. "|r")
         end
         p:Layout()
     end,

@@ -64,7 +64,7 @@ local MAXOPT = 6
 
 -- Gilden-Optionen (Gildenleitung): wer darf Umfragen starten, duerfen Offiziere fremde verwalten
 ns.GuildOption({ page = "polls", key = "plOffEd", default = true,
-    label = "Offiziere verwalten fremde Umfragen", desc = "Offiziere duerfen Umfragen anderer beenden, verlaengern, posten und loeschen. Aus: nur der Ersteller und die Gildenleitung." })
+    label = "Officers manage others' polls", desc = "Officers may end, extend, post and delete other members' polls. Off: only the creator and the guild leadership." })
 local function canManage() return ns.Admin and ns.Admin.CanManage and ns.Admin.CanManage() or false end
 local function rankAllowed(limit)
     if not limit or limit >= 10 then return true end
@@ -164,7 +164,7 @@ function Polls.Vote(p, idx)
 end
 
 function Polls.Create(q, opts, multi, dur, anon)
-    if not Polls.CanCreate() then ns.print(L["Umfragen koennen nur Offiziere und die Gildenleitung starten."]) return end
+    if not Polls.CanCreate() then ns.print(L["Only officers and the guild leadership can start polls."]) return end
     local rec = { id = ns.newId("poll"), q = q, multi = multi and true or false, anon = anon and true or nil, names = (not anon) or nil, exp = ns.now() + dur, created = ns.now() }
     local n = 0
     for _, o in ipairs(opts) do
@@ -174,7 +174,7 @@ function Polls.Create(q, opts, multi, dur, anon)
             rec["o" .. n] = o
         end
     end
-    if q == "" or n < 2 then ns.print(L["Eine Frage und mindestens zwei Antworten angeben."]) return end
+    if q == "" or n < 2 then ns.print(L["Enter a question and at least two answers."]) return end
     return Store.Put("polls", rec)
 end
 function Polls.Close(p)
@@ -198,7 +198,7 @@ ns.Listen("STORE", function(coll, rec, old)
     if coll == "polls" then
         if not old and not rec.del and not ns.isMe(rec.by) and Polls.IsOpen(rec) then
             ns.Sound.Next("poll")
-            K.Toast(L["Neue Umfrage"], SEC.Text(rec.q or "?", 120), C.accent, function()
+            K.Toast(L["New poll"], SEC.Text(rec.q or "?", 120), C.accent, function()
                 Polls.selected = rec.id
                 ns.ShowPage("polls")
             end)
@@ -216,7 +216,7 @@ local creating = false
 local multi, durIdx, customHours = false, 4, nil
 local secret = true   -- 0.5.617: neue Umfragen standardmaessig geheim
 local DUR = {
-    { 1800, "30 Min" }, { 3600, "1 Std" }, { 3 * 3600, "3 Std" }, { 86400, "1 Tag" }, { 3 * 86400, "3 Tage" }, { 7 * 86400, "1 Woche" },
+    { 1800, "30 min" }, { 3600, "1 hr" }, { 3 * 3600, "3 hrs" }, { 86400, "1 day" }, { 3 * 86400, "3 days" }, { 7 * 86400, "1 week" },
 }
 local function chosenDuration()
     if customHours and customHours > 0 then return math.floor(customHours * 3600) end
@@ -225,21 +225,21 @@ end
 
 -- "noch 2 Tg 3 Std" / "noch 3:12 Std" / "noch 12 Min"
 local function remaining(p, precise)
-    if p.closed then return L["beendet"] end
+    if p.closed then return L["finished"] end
     local d = math.floor((p.exp or 0) - ns.now())
-    if d <= 0 then return L["beendet"] end
+    if d <= 0 then return L["finished"] end
     if precise then
         local days = math.floor(d / 86400)
         local rest = d % 86400
         local t = ("%02d:%02d:%02d"):format(math.floor(rest / 3600), math.floor((rest % 3600) / 60), rest % 60)
-        return days > 0 and ((L["endet in %d Tg %s"]):format(days, t)) or ((L["endet in %s"]):format(t))
+        return days > 0 and ((L["ends in %d d %s"]):format(days, t)) or ((L["ends in %s"]):format(t))
     end
     if d >= 86400 then
         local h = math.floor((d % 86400) / 3600)
-        return (L["noch %d Tg"]):format(math.floor(d / 86400)) .. (h > 0 and (" " .. (L["%d Std"]):format(h)) or "")
+        return (L["%d d left"]):format(math.floor(d / 86400)) .. (h > 0 and (" " .. (L["%d h"]):format(h)) or "")
     end
-    if d >= 3600 then return (L["noch %d:%02d Std"]):format(math.floor(d / 3600), math.floor((d % 3600) / 60)) end
-    return (L["noch %d Min"]):format(math.max(1, math.floor(d / 60)))
+    if d >= 3600 then return (L["%d:%02d h left"]):format(math.floor(d / 3600), math.floor((d % 3600) / 60)) end
+    return (L["%d min left"]):format(math.max(1, math.floor(d / 60)))
 end
 Polls.Remaining = remaining
 
@@ -267,7 +267,7 @@ local function checkEnded()
                 ns.db.pollSeen = ns.db.pollSeen or {}
                 ns.db.pollSeen[p.id] = true
                 local w, n, total = Polls.Winner(p)
-                K.Toast(L["Umfrage beendet: "] .. SEC.Text(p.q or "?", 120), w and ((L["Gewonnen: %s (%d von %d)"]):format(SEC.Text(w, 60), n, total)) or L["Keine Stimmen"], C.accent,
+                K.Toast(L["Poll ended: "] .. SEC.Text(p.q or "?", 120), w and ((L["Winner: %s (%d of %d)"]):format(SEC.Text(w, 60), n, total)) or L["No votes"], C.accent,
                     function() Polls.selected = p.id ns.ShowPage("polls") end)
             end
         end
@@ -283,9 +283,9 @@ local function listRows()
     table.sort(open, function(a, b) return (a.exp or 0) < (b.exp or 0) end)
     table.sort(done, function(a, b) return (a.exp or 0) > (b.exp or 0) end)
     local rows = {}
-    if #open > 0 then rows[#rows + 1] = { header = L["Laufend"], n = #open } end
+    if #open > 0 then rows[#rows + 1] = { header = L["Running"], n = #open } end
     for _, p in ipairs(open) do rows[#rows + 1] = p end
-    if #done > 0 then rows[#rows + 1] = { header = L["Beendet"], n = #done } end
+    if #done > 0 then rows[#rows + 1] = { header = L["Ended"], n = #done } end
     for _, p in ipairs(done) do rows[#rows + 1] = p end
     return rows
 end
@@ -309,20 +309,20 @@ local function emo(text, who)
 end
 -- Vorlagen fuer schnelle Umfragen
 local TEMPLATES = {
-    { "Ja / Nein", { "Ja", "Nein" } },
-    { "Ja / Nein / Vielleicht", { "Ja", "Nein", "Vielleicht" } },
-    { "Wochentag", { "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag" } },
-    { "Uhrzeit", { "18:00", "19:00", "20:00", "21:00" } },
-    { "Bewertung", { ":D Super", ":) Gut", ":| Geht so", ":( Schlecht" } },
+    { "Yes / No", { "Yes", "No" } },
+    { "Yes / No / Maybe", { "Yes", "No", "Maybe" } },
+    { "Weekday", { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" } },
+    { "Time", { "18:00", "19:00", "20:00", "21:00" } },
+    { "Rating", { ":D Great", ":) Good", ":| Okay", ":( Bad" } },
 }
 local LISTW = 288
 ns.RegisterPage({
-    key = "polls", title = "Umfragen", order = 7.6,
-    sub = "Die Gilde abstimmen lassen - jeder Spieler hat eine Stimme, das Ergebnis ist live",
+    key = "polls", title = "Polls", order = 7.6,
+    sub = "Let the guild vote – one vote per player, live results",
     build = function(p)
         -- Kennzahlen oben
         p.tiles = {}
-        local TT = { { "announce", "Laufend" }, { "star_on", "Offen fuer dich" }, { "checklist", "Beendet" }, { "social", "Stimmen gesamt" } }
+        local TT = { { "announce", "Running" }, { "star_on", "Open for you" }, { "checklist", "Ended" }, { "social", "Total votes" } }
         for i, t in ipairs(TT) do
             local c = CreateFrame("Frame", nil, p)
             c:SetHeight(52)
@@ -337,7 +337,7 @@ ns.RegisterPage({
             p.tiles[i] = c
             c:Hide()   -- Kennzahlen-Kacheln entfallen; Werte stehen in der Liste
         end
-        local new = K.Button(p, L["Neue Umfrage"], 130, 30, "primary", function()
+        local new = K.Button(p, L["New poll"], 130, 30, "primary", function()
             creating = not creating
             ns.RefreshPage("polls")
         end)
@@ -416,12 +416,12 @@ ns.RegisterPage({
             local counts, total = Polls.Result(poll)
             local voted = next(Polls.MyPick(poll)) ~= nil
             if open then
-                r.meta:SetText(ns.displayName(poll.by) .. "  ·  " .. (L["%d Stimmen"]):format(total) .. "  ·  |cffe8b44a" .. remaining(poll) .. "|r")
-                r.tag:SetText(voted and ("|cff66db9e" .. L["ABGESTIMMT"] .. "|r") or K.hex(C.accent) .. L["OFFEN"] .. "|r")
+                r.meta:SetText(ns.displayName(poll.by) .. "  ·  " .. (L["%d votes"]):format(total) .. "  ·  |cffe8b44a" .. remaining(poll) .. "|r")
+                r.tag:SetText(voted and ("|cff66db9e" .. L["VOTED"] .. "|r") or K.hex(C.accent) .. L["OPEN"] .. "|r")
             else
                 local w, n = Polls.Winner(poll)
-                r.meta:SetText(w and ("|cff66db9e" .. emo(w, poll.by) .. "|r  |cff777777" .. (L["%d von %d"]):format(n, total) .. "|r") or ("|cff666666" .. L["keine Stimmen"] .. "|r"))
-                r.tag:SetText("|cff777777" .. L["BEENDET"] .. "|r")
+                r.meta:SetText(w and ("|cff66db9e" .. emo(w, poll.by) .. "|r  |cff777777" .. (L["%d of %d"]):format(n, total) .. "|r") or ("|cff666666" .. L["no votes"] .. "|r"))
+                r.tag:SetText("|cff777777" .. L["ENDED"] .. "|r")
             end
             local best = 0
             for _, n in pairs(counts) do best = math.max(best, n) end
@@ -437,7 +437,7 @@ ns.RegisterPage({
         p.list:SetPoint("TOPLEFT", 0, 25)
         p.list:SetPoint("BOTTOMLEFT", 0, 0)
         p.list:SetWidth(LISTW)
-        p.list.empty:SetText(L["Noch keine Umfragen."])
+        p.list.empty:SetText(L["No polls yet."])
 
         -- Detail rechts -------------------------------------------------
         local d = CreateFrame("Frame", nil, p)
@@ -546,13 +546,13 @@ ns.RegisterPage({
             end
             d.opts[i] = o
         end
-        d.close = K.Button(d, L["Jetzt beenden"], 120, 24, "ghost")
+        d.close = K.Button(d, L["End now"], 120, 24, "ghost")
         d.close:SetPoint("BOTTOMLEFT", 18, 14)
-        d.extend = K.Button(d, L["+1 Tag"], 70, 24, "ghost")
+        d.extend = K.Button(d, L["+1 day"], 70, 24, "ghost")
         d.extend:SetPoint("LEFT", d.close, "RIGHT", 6, 0)
-        d.post = K.Button(d, L["Ergebnis im Gildenchat posten"], 200, 24, "primary")
+        d.post = K.Button(d, L["Post result in guild chat"], 200, 24, "primary")
         d.post:SetPoint("BOTTOMLEFT", 18, 14)
-        d.del = K.Button(d, L["Loeschen"], 90, 24, "danger")
+        d.del = K.Button(d, L["Put out"], 90, 24, "danger")
         d.del:SetPoint("BOTTOMRIGHT", -18, 14)
         d.hint = K.Text(d, 10, C.dim)
         d.hint:SetPoint("BOTTOMLEFT", 18, 46)
@@ -565,13 +565,13 @@ ns.RegisterPage({
         p.form = f
         local h = K.Title(f, 15, C.text)
         h:SetPoint("TOPLEFT", 18, -14)
-        h:SetText(L["Neue Umfrage"])
+        h:SetText(L["New poll"])
         -- Vorlagen
         f.tpl = {}
         local tx = 18
         local tl = K.Text(f, 10, C.dim)
         tl:SetPoint("TOPLEFT", 18, -38)
-        tl:SetText(L["Vorlagen:"])
+        tl:SetText(L["Templates:"])
         tx = 18 + 56
         for i, t in ipairs(TEMPLATES) do
             local b = K.Button(f, L[t[1]], 10, 20, "ghost", function()
@@ -594,7 +594,7 @@ ns.RegisterPage({
             if ns.Emoji and ns.Emoji.Entry and ns.Emoji.SetIcon then ns.Emoji.SetIcon(b.icon, ns.Emoji.Entry(":)")) else b.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark") end
             b.icon:SetDesaturated(true)
             b.icon:SetAlpha(0.6)
-            b:SetScript("OnEnter", function(self) self.icon:SetDesaturated(false) self.icon:SetAlpha(1) K.ShowTip(self, { L["Emoji einfuegen"] }) end)
+            b:SetScript("OnEnter", function(self) self.icon:SetDesaturated(false) self.icon:SetAlpha(1) K.ShowTip(self, { L["Insert emoji"] }) end)
             b:SetScript("OnLeave", function(self) self.icon:SetDesaturated(true) self.icon:SetAlpha(0.6) GameTooltip:Hide() end)
             b:SetScript("OnClick", function(self)
                 if ns.Emoji and ns.Emoji.TogglePicker then
@@ -606,14 +606,14 @@ ns.RegisterPage({
             e:SetTextInsets(7, 26, 0, 0)
             return b
         end
-        f.q = K.Input(f, 400, L["Frage, z.B. Raid am Mittwoch oder Donnerstag?"], function() f:Preview() end)
+        f.q = K.Input(f, 400, L["Question, e.g. raid on Wednesday or Thursday?"], function() f:Preview() end)
         f.q:SetPoint("TOPLEFT", 18, -62)
         f.q:SetPoint("RIGHT", -18, 0)
         f.q:SetMaxLetters(140)
         emojiBtn(f.q)
         f.o = {}
         for i = 1, MAXOPT do
-            local e = K.Input(f, 400, (L["Antwort %d"]):format(i) .. (i > 2 and (" " .. L["(optional)"]) or ""), function() f:Preview() end)
+            local e = K.Input(f, 400, (L["Answer %d"]):format(i) .. (i > 2 and (" " .. L["(optional)"]) or ""), function() f:Preview() end)
             e:SetPoint("TOPLEFT", 18, -96 - (i - 1) * 28)
             e:SetPoint("RIGHT", -18, 0)
             e:SetMaxLetters(80)
@@ -621,13 +621,13 @@ ns.RegisterPage({
             f.o[i] = e
         end
         local by = -96 - MAXOPT * 28
-        local mt = K.Toggle(f, L["Mehrfachauswahl erlauben"], function() return multi end, function(v) multi = v end)
+        local mt = K.Toggle(f, L["Allow multiple answers"], function() return multi end, function(v) multi = v end)
         mt:SetPoint("TOPLEFT", 18, by - 4)
-        local st = K.Toggle(f, L["Geheime Abstimmung (ohne Namen)"], function() return secret end, function(v) secret = v end)
+        local st = K.Toggle(f, L["Secret vote (no names)"], function() return secret end, function(v) secret = v end)
         st:SetPoint("TOPLEFT", 260, by - 4)
         local dl = K.Text(f, 11, C.muted)
         dl:SetPoint("TOPLEFT", 18, by - 36)
-        dl:SetText(L["Wie lange?"])
+        dl:SetText(L["How long?"])
         f.durBtns = {}
         for i, dd in ipairs(DUR) do
             local b = K.Button(f, L[dd[2]], 60, 22, "ghost", function()
@@ -638,7 +638,7 @@ ns.RegisterPage({
             b:SetPoint("TOPLEFT", 18 + (i - 1) * 64, by - 52)
             f.durBtns[i] = b
         end
-        f.custom = K.Input(f, 60, L["Std"], function(t)
+        f.custom = K.Input(f, 60, L["h"], function(t)
             customHours = tonumber(t)
             ns.RefreshPage("polls")
         end)
@@ -646,7 +646,7 @@ ns.RegisterPage({
         f.custom:SetPoint("TOPLEFT", 18, by - 80)
         local cl = K.Text(f, 11, C.muted)
         cl:SetPoint("LEFT", f.custom, "RIGHT", 8, 0)
-        cl:SetText(L["eigene Dauer in Stunden"])
+        cl:SetText(L["custom duration in hours"])
         f.ends = K.Text(f, 11, C.amber)
         f.ends:SetPoint("LEFT", cl, "RIGHT", 14, 0)
         -- Vorschau: so sieht die Frage mit Emojis aus
@@ -659,9 +659,9 @@ ns.RegisterPage({
             local q = self.q:GetText() or ""
             local n = 0
             for i = 1, MAXOPT do if (self.o[i]:GetText() or "") ~= "" then n = n + 1 end end
-            self.prev:SetText(q ~= "" and ("|cff777777" .. L["Vorschau:"] .. "|r  " .. emo(q, ns.me()) .. "  |cff777777(" .. (L["%d Antworten"]):format(n) .. ")|r") or "")
+            self.prev:SetText(q ~= "" and ("|cff777777" .. L["Preview:"] .. "|r  " .. emo(q, ns.me()) .. "  |cff777777(" .. (L["%d responses"]):format(n) .. ")|r") or "")
         end
-        local go = K.Button(f, L["Umfrage starten"], 160, 28, "primary", function(self)
+        local go = K.Button(f, L["Start poll"], 160, 28, "primary", function(self)
             local opts = {}
             for i = 1, MAXOPT do opts[i] = f.o[i]:GetText() end
             local rec = Polls.Create(f.q:GetText(), opts, multi, chosenDuration(), secret)
@@ -701,16 +701,16 @@ ns.RegisterPage({
         end
         p.tiles[2].v:SetTextColor((nMine > 0 and C.amber or C.text)[1], (nMine > 0 and C.amber or C.text)[2], (nMine > 0 and C.amber or C.text)[3])
         if not Polls.CanCreate() then creating = false end
-        K.LockButton(p.newBtn, Polls.CanCreate, L["Umfragen koennen nur Offiziere und die Gildenleitung starten."])
-        p.list.empty:SetText(Polls.CanCreate() and L["Noch keine Umfragen."] or (L["Noch keine Umfragen."] .. "\n|cff777777" .. L["Umfragen koennen nur Offiziere und die Gildenleitung starten."] .. "|r"))
-        p.newBtn:SetLabel(creating and L["Abbrechen"] or L["Neue Umfrage"])
+        K.LockButton(p.newBtn, Polls.CanCreate, L["Only officers and the guild leadership can start polls."])
+        p.list.empty:SetText(Polls.CanCreate() and L["No polls yet."] or (L["No polls yet."] .. "\n|cff777777" .. L["Only officers and the guild leadership can start polls."] .. "|r"))
+        p.newBtn:SetLabel(creating and L["Cancel"] or L["New poll"])
         local wasForm = p.form:IsShown()
         p.form:SetShown(creating)
         if creating then
             local f = p.form
             if not wasForm and animOn() then K.FadeIn(f, 0) end
             for i, b in ipairs(f.durBtns) do K.SetBorderColor(b, (not customHours and durIdx == i) and C.accent or C.line) end
-            f.ends:SetText(L["Endet "] .. ns.weekday(ns.now() + chosenDuration(), true) .. " " .. date(L["%d.%m. um %H:%M"], ns.now() + chosenDuration()))
+            f.ends:SetText(L["Ends "] .. ns.weekday(ns.now() + chosenDuration(), true) .. " " .. date(L["%m/%d at %H:%M"], ns.now() + chosenDuration()))
             f:Preview()
             p.detail:Hide()
             p.animAll = nil
@@ -737,8 +737,8 @@ ns.RegisterPage({
         local counts, total, voters = Polls.Result(poll)
         local members = 0
         for _ in pairs(ns.db.members) do members = members + 1 end
-        d.meta:SetText(ns.Radar.Colored(poll.by) .. "  ·  " .. (L["%d Stimmen"]):format(total) .. (poll.multi and ("  ·  " .. L["Mehrfachauswahl"]) or "")
-            .. ((not poll.names) and ("  ·  |cff66db9e" .. L["geheim"] .. "|r") or ""))
+        d.meta:SetText(ns.Radar.Colored(poll.by) .. "  ·  " .. (L["%d votes"]):format(total) .. (poll.multi and ("  ·  " .. L["Multiple choice"]) or "")
+            .. ((not poll.names) and ("  ·  |cff66db9e" .. L["secret"] .. "|r") or ""))
         d.timer:SetShown(open)
         d.timerL:SetShown(open)
         d.tbar:SetShown(open)
@@ -746,14 +746,14 @@ ns.RegisterPage({
         d.winner:SetShown(not open)
         if open then
             d.timer:SetText((remaining(poll, true):gsub("^%S+ %S+ ", "")))
-            d.timerL:SetText(L["bis zum Ende"])
+            d.timerL:SetText(L["until it ends"])
             local span = (poll.exp or 0) - (poll.created or poll.exp or 0)
             local fr = span > 0 and ((poll.exp - ns.now()) / span) or 0
             d.tbar.fill:SetWidth(math.max(1, (d.tbar:GetWidth() > 2 and d.tbar:GetWidth() or 300) * math.max(0, math.min(1, fr))))
-            d.part:SetText(members > 0 and ((L["Beteiligung %d %%"]):format(math.floor(math.min(1, total / (members + 1)) * 100 + 0.5)) .. "  |cff555555" .. (L["(von %d mit Oasis)"]):format(members + 1) .. "|r") or "")
+            d.part:SetText(members > 0 and ((L["Turnout %d %%"]):format(math.floor(math.min(1, total / (members + 1)) * 100 + 0.5)) .. "  |cff555555" .. (L["(of %d with Oasis)"]):format(members + 1) .. "|r") or "")
         else
             local w, n = Polls.Winner(poll)
-            d.winner:SetText(w and ((L["Ergebnis: %s gewinnt (%d von %d Stimmen)"]):format(emo(w, poll.by), n, total)) or L["Beendet - keine Stimmen"])
+            d.winner:SetText(w and ((L["Result: %s wins (%d of %d votes)"]):format(emo(w, poll.by), n, total)) or L["Ended – no votes"])
         end
         local mine = Polls.MyPick(poll)
         local opts = Polls.Options(poll)
@@ -776,17 +776,17 @@ ns.RegisterPage({
                 row.lead = n > 0 and n == best
                 row.closed = not open
                 row.crown:SetShown(row.lead and not open)
-                row.text:SetText(emo(o.text, poll.by) .. (row.mine and ("  |cff66db9e" .. L["(deine Stimme)"] .. "|r") or ""))
+                row.text:SetText(emo(o.text, poll.by) .. (row.mine and ("  |cff66db9e" .. L["(your vote)"] .. "|r") or ""))
                 if animate then K.CountUp(row.pct, math.floor(pctv * 100 + 0.5), 0.6, function(v) return math.floor(v + 0.5) .. "%" end, (i - 1) * 0.05)
                 else row.pct:SetText(("%d%%"):format(pctv * 100 + 0.5)) end
-                row.cnt:SetText((L["%d Stimmen"]):format(n))
+                row.cnt:SetText((L["%d votes"]):format(n))
                 local names = {}
                 for j, vn in ipairs(row.voters or {}) do
                     if j > 5 then names[#names + 1] = "|cff777777+" .. (#row.voters - 5) .. "|r" break end
                     names[#names + 1] = ns.Radar.Colored(vn)
                 end
-                if not poll.names then row.who:SetText("|cff555555" .. L["geheime Abstimmung"] .. "|r")
-                else row.who:SetText(#names > 0 and table.concat(names, "|cff555555, |r") or ("|cff555555" .. L["noch keine Stimme"] .. "|r")) end
+                if not poll.names then row.who:SetText("|cff555555" .. L["secret vote"] .. "|r")
+                else row.who:SetText(#names > 0 and table.concat(names, "|cff555555, |r") or ("|cff555555" .. L["no votes yet"] .. "|r")) end
                 local bc = row.mine and C.accent or { 0.22, 0.22, 0.25 }
                 row.badge:SetVertexColor(bc[1], bc[2], bc[3], 1)
                 -- Balken mit Verlauf, wachsen weich zum neuen Stand
@@ -838,11 +838,11 @@ ns.RegisterPage({
         d.post:SetScript("OnClick", function()
             local w, n = Polls.Winner(poll)
             -- Klick = Eingabe -> Senden erlaubt; fremde Texte ohne Escape-Sequenzen
-            if w then ns.SendChat((L["[Oasis] Umfrage \"%s\": %s gewinnt (%d von %d Stimmen)"]):format(SEC.Text(poll.q or "?", 100), SEC.Text(w, 60), n, total):sub(1, 255), "GUILD") end
+            if w then ns.SendChat((L["[Oasis] Poll \"%s\": %s wins (%d of %d votes)"]):format(SEC.Text(poll.q or "?", 100), SEC.Text(w, 60), n, total):sub(1, 255), "GUILD") end
         end)
         d.del:SetShown(canEdit)
         d.del:SetScript("OnClick", function() Store.Delete("polls", poll.id) Polls.selected = nil end)
-        d.hint:SetText(open and (poll.multi and L["Klick: Antwort an/abwaehlen"] or L["Klick: abstimmen - du kannst deine Stimme aendern"]) or "")
+        d.hint:SetText(open and (poll.multi and L["Click: toggle answer"] or L["Click: vote – you can change your vote"]) or "")
         -- Sieger-Konfetti einmal, wenn man eine frisch beendete Umfrage ansieht
         if not open and total > 0 and newPoll and not (p.cheered or {})[poll.id] and ns.now() - (poll.exp or 0) < 86400 then
             p.cheered = p.cheered or {}

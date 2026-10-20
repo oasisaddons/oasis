@@ -136,7 +136,7 @@ local function myRec()
     return c
 end
 
-local REC_NAMES = { bd = "Schaden", dps = "DPS", mh = "Hoechster Treffer", bh = "Heilung", mhh = "Groesste Heilung", bt = "Eingesteckt" }
+local REC_NAMES = { bd = "Damage", dps = "DPS", mh = "Biggest hit", bh = "Healing", mhh = "Biggest heal", bt = "Damage taken" }
 local function fmt(v)
     if not v then return "-" end
     if v >= 1e6 then return ("%.1f Mio"):format(v / 1e6) end
@@ -334,7 +334,7 @@ local function tryEntry(entry)
         local r = recs[1]
         local more = #recs > 1 and ("  |cff888888+" .. (#recs - 1) .. "|r") or ""
         if ns.Sound and ns.Sound.Next then ns.Sound.Next("record") end
-        K.Toast(L["Neuer Rekord!"], (L["%s: %s (vorher %s)"]):format(L[REC_NAMES[r.k]], fmt(r.new), fmt(r.old)) .. more, nil,
+        K.Toast(L["New record!"], (L["%s: %s (was %s)"]):format(L[REC_NAMES[r.k]], fmt(r.new), fmt(r.old)) .. more, nil,
             function() CB.Open(r.k) end)
         CB.flash = r.k
     end
@@ -440,13 +440,13 @@ ns.Listen("STORE", function(coll) if coll == COLL then ns.Debounce("combatBoard"
 -- Seite
 ------------------------------------------------------------------------
 local CATS = {
-    { key = "bd", text = "Schaden", sub = "meister Schaden in einem Kampf", icon = "raid" },
-    { key = "dps", text = "DPS", sub = "hoechster Schaden je Sekunde (Kampf ab 10 s)", icon = "stats" },
-    { key = "mh", text = "Hoechster Crit", sub = "groesster kritischer Einzeltreffer", icon = "star_on", spell = true },
-    { key = "bh", text = "Heilung", sub = "meiste Heilung in einem Kampf", icon = "heart" },
-    { key = "mhh", text = "Crit-Heilung", sub = "groesste kritische Einzelheilung", icon = "heart", spell = true },
-    { key = "bt", text = "Eingesteckt", sub = "meister Schaden eingesteckt in einem Kampf", icon = "deaths" },
-    { key = "wd", text = "Woche", sub = "Schaden diese Woche zusammen", icon = "checklist", week = true },
+    { key = "bd", text = "Damage", sub = "Most damage in one fight", icon = "raid" },
+    { key = "dps", text = "DPS", sub = "Highest damage per second (fights of 10 s or more)", icon = "stats" },
+    { key = "mh", text = "Highest critical hit", sub = "biggest single critical hit", icon = "star_on", spell = true },
+    { key = "bh", text = "Healing", sub = "Most healing in one fight", icon = "heart" },
+    { key = "mhh", text = "Critical heal", sub = "biggest single critical heal", icon = "heart", spell = true },
+    { key = "bt", text = "Damage taken", sub = "Most damage taken in one fight", icon = "deaths" },
+    { key = "wd", text = "week", sub = "Total damage this week", icon = "checklist", week = true },
 }
 local function catOf(k) for _, c in ipairs(CATS) do if c.key == k then return c end end return CATS[1] end
 local function valueOf(r, cat, wk)
@@ -624,7 +624,7 @@ function CB.ShowTip(owner, rec)
             lines[#lines + 1] = L[c.text] .. ":  |cffffffff" .. fmt(v) .. "|r" .. (pos and ("  |cff888888#" .. pos .. "|r") or "")
         end
     end
-    lines[#lines + 1] = "|cff888888" .. L["Klick: Details"] .. "|r"
+    lines[#lines + 1] = "|cff888888" .. L["Click: details"] .. "|r"
     K.ShowTip(owner, lines)
 end
 function CB.Open(catKey)
@@ -634,8 +634,8 @@ function CB.Open(catKey)
 end
 
 ns.RegisterPage({
-    key = "fight", title = "Kampf-Rangliste", order = 2.6,
-    sub = "Wer teilt am meisten aus, heilt am meisten, steckt am meisten ein?",
+    key = "fight", title = "Combat ranking", order = 2.6,
+    sub = "Who deals, heals and takes the most?",
     build = function(p)
         CB.page = p
         p.cat = "bd"
@@ -650,7 +650,7 @@ ns.RegisterPage({
         p:HookScript("OnShow", function() p.animNext = true end)
 
         -- Rangliste (links): Podest + Liste
-        local list = card(p, "raid", L["Rangliste"], "")
+        local list = card(p, "raid", L["Ranking"], "")
         list:SetPoint("TOPLEFT", 0, -40)
         list:SetPoint("BOTTOMRIGHT", p, "BOTTOMRIGHT", -282, 0)
         p.listCard = list
@@ -706,14 +706,14 @@ ns.RegisterPage({
         p.empty:SetPoint("CENTER", list, "CENTER", 0, 10)
         p.empty:SetWidth(320)
         p.empty:SetWordWrap(true)
-        p.retryStats = K.Button(list, L["Crit-Quelle pruefen"], 200, 24, "ghost", function()
+        p.retryStats = K.Button(list, L["Check critical hit source"], 200, 24, "ghost", function()
             if CB.CheckCritSource then CB.CheckCritSource(true) end
             ns.RefreshPage("fight", true)
         end)
         p.retryStats:SetPoint("TOP", p.empty, "BOTTOM", 0, -16)
 
         -- Spieler-Karte (rechts oben)
-        local pc = card(p, "profile", L["Spieler"], "")
+        local pc = card(p, "profile", L["Player"], "")
         pc:SetPoint("TOPRIGHT", 0, -40)
         pc:SetSize(270, 262)
         p.pc = pc
@@ -756,14 +756,14 @@ ns.RegisterPage({
             r.fill:SetPoint("BOTTOMLEFT", r.track, "BOTTOMLEFT")
             r.fill:SetWidth(1)
             r.key = c.key
-            r:SetScript("OnEnter", function(self) self.hl:Show() K.ShowTip(self, { L[c.text], "|cff888888" .. L[c.sub] .. "|r", "|cff888888" .. L["Klick: Rangliste"] .. "|r" }) end)
+            r:SetScript("OnEnter", function(self) self.hl:Show() K.ShowTip(self, { L[c.text], "|cff888888" .. L[c.sub] .. "|r", "|cff888888" .. L["Click: ranking"] .. "|r" }) end)
             r:SetScript("OnLeave", function(self) self.hl:Hide() GameTooltip:Hide() end)
             r:SetScript("OnClick", function() p.cat = c.key p.animNext = true ns.RefreshPage("fight", true) end)
             pc.rows[i] = r
         end
 
         -- Letzter Kampf (rechts unten)
-        local lf = card(p, "stats", L["Letzter Kampf"], "")
+        local lf = card(p, "stats", L["Last fight"], "")
         lf:SetPoint("TOPRIGHT", pc, "BOTTOMRIGHT", 0, -12)
         lf:SetPoint("BOTTOMLEFT", p, "BOTTOMRIGHT", -270, 0)
         p.lf = lf
@@ -772,7 +772,7 @@ ns.RegisterPage({
         lf.bigL = K.Text(lf, 10, C.dim)
         lf.bigL:SetPoint("LEFT", lf.big, "RIGHT", 8, -2)
         lf.cells = {}
-        local CELL = { { "DPS", "dps" }, { "Heilung", "h" }, { "Eingesteckt", "tk" }, { "Dauer", "dur" } }
+        local CELL = { { "DPS", "dps" }, { "Healing", "h" }, { "Damage taken", "tk" }, { "Duration", "dur" } }
         for i, d in ipairs(CELL) do
             local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
             local l = K.Text(lf, 10, C.dim)
@@ -794,10 +794,10 @@ ns.RegisterPage({
         p.listCard.t:SetText(L[cat.text])
         local diag = ns.db.cbStatDiag
         local checked = cat.spell and ns.db.cbCritDiag and ns.db.cbCritDiag.t or diag and diag.t
-        local source = cat.spell and L["Quelle: eigene Crits. Solo sicher erkannt; in Gruppe und Dungeon geschaetzt (Treffer direkt nach dem eigenen Angriff)."] or L["Quelle: Blizzards Schadensanzeige."]
+        local source = cat.spell and L["Source: your own crits. Reliable when solo; estimated in groups and dungeons (hit right after your own attack)."] or L["Source: Blizzard damage meter."]
         -- klarstellen, was gezaehlt wird: der beste EINZELNE Kampf, egal wo - Ort und Zeit gehoeren zu diesem Kampf
-        if not cat.spell and not cat.week then source = L["Gezaehlt wird der beste einzelne Kampf je Spieler - egal ob Dungeon oder offene Welt."] .. "\n" .. source end
-        p.listCard.s:SetText(source .. (cat.spell and checked and ("\n" .. (L["Letzte Pruefung: %s"]):format(ns.ago(checked))) or ""))
+        if not cat.spell and not cat.week then source = L["Counts each player's best single fight - dungeon or open world."] .. "\n" .. source end
+        p.listCard.s:SetText(source .. (cat.spell and checked and ("\n" .. (L["Last check: %s"]):format(ns.ago(checked))) or ""))
         local anim = p.animNext and animOn()
         p.animNext = false
         local list = ranking(cat)
@@ -807,30 +807,30 @@ ns.RegisterPage({
         p.podLine:SetShown(any)
         p.empty:SetShown(not any)
         p.retryStats:SetShown(cat.spell and not any and not ns.inCombat())
-        local emptyStat = not GetStatistic and L["Die Charakterstatistik ist in diesem Client nicht verfuegbar."]
-            or (not diag or not diag[cat.key .. "ID"]) and L["Die passende Charakterstatistik wurde noch nicht gefunden."]
-            or diag[cat.key .. "State"] == "empty" and L["Noch kein positiver Einzelrekord gemeldet."]
-            or L["Die Statistik liefert derzeit keinen lesbaren Wert."]
+        local emptyStat = not GetStatistic and L["Character statistics are unavailable in this client."]
+            or (not diag or not diag[cat.key .. "ID"]) and L["The matching character statistic has not been found yet."]
+            or diag[cat.key .. "State"] == "empty" and L["No positive single-hit record has been reported yet."]
+            or L["The statistic currently provides no readable value."]
         if cat.spell then
             local cd = ns.db.cbCritDiag
             emptyStat = cd and (cd.mode == "restricted" or cd.mode == "unavailable")
-                and L["Noch kein Crit erfasst. Kritische Treffer zaehlen automatisch, sobald du allein in der offenen Welt kaempfst."]
-                or L["Noch kein lesbarer eigener Crit erfasst. Neue kritische Treffer werden automatisch aufgezeichnet."]
+                and L["No crit recorded yet. Critical hits count automatically while you fight alone in the open world."]
+                or L["No readable critical hit from you recorded yet. New critical hits are recorded automatically."]
         end
-        p.empty:SetText(cat.spell and emptyStat or C_DamageMeter and L["Noch keine Werte - nach dem naechsten Kampf erscheint hier, wer vorne liegt."]
-            or L["Blizzards Schadensanzeige ist in diesem Client nicht verfuegbar - Ranglisten koennen nicht gemessen werden."])
+        p.empty:SetText(cat.spell and emptyStat or C_DamageMeter and L["No values yet - after the next fight you'll see who is ahead."]
+            or L["Blizzard's damage meter is not available in this client - rankings can't be measured."])
         local function info(r)
-            if cat.week then return (L["%d Kaempfe"]):format(r.wf or 0) end
+            if cat.week then return (L["%d fights"]):format(r.wf or 0) end
             if r[cat.key .. "src"] == "statistic" then
                 local at = r[cat.key .. "t"]
-                return L["Charakterstatistik - hoechster Einzelwert, Crit-Status unbekannt"] .. (at and ("  ·  " .. ns.ago(at)) or "")
+                return L["Character statistic – highest single value, critical status unknown"] .. (at and ("  ·  " .. ns.ago(at)) or "")
             end
             if r[cat.key .. "crit"] == true then
                 local sp = r[cat.key .. "s"]
-                local label = r[cat.key .. "src"] == "logfile" and L["Logdatei: bestaetigter Crit"] or L["bestaetigter Crit"]
+                local label = r[cat.key .. "src"] == "logfile" and L["Log file: confirmed critical hit"] or L["confirmed crit"]
                 if r[cat.key .. "src"] == "group" then
                     local safe = tonumber(r[cat.key .. "c"])
-                    label = L["Gruppe: geschaetzter Crit"] .. (safe and safe > 0 and ("  ·  " .. (L["sicher: %d"]):format(safe)) or "")
+                    label = L["Group: estimated crit"] .. (safe and safe > 0 and ("  ·  " .. (L["confirmed: %d"]):format(safe)) or "")
                 end
                 return label .. (sp and ("  ·  " .. sp) or "")
             end
@@ -847,11 +847,11 @@ ns.RegisterPage({
                 setClass(s.ic, e.r.cls)
                 s.ic:SetDesaturated(false)
                 s.ic:SetAlpha(1)
-                s.name:SetText(colored(e.r.who) .. (ns.isMe(e.r.who) and ("  |cff888888" .. L["du"] .. "|r") or ""))
+                s.name:SetText(colored(e.r.who) .. (ns.isMe(e.r.who) and ("  |cff888888" .. L["you"] .. "|r") or ""))
                 s.rank:SetText(i)
             else
                 s.ic:SetColorTexture(1, 1, 1, 0.06)
-                s.name:SetText("|cff555555" .. L["frei"] .. "|r")
+                s.name:SetText("|cff555555" .. L["open"] .. "|r")
                 K.Tween(s.val, 0.01, function() end, function() s.val:SetText("") end)
                 s.val:SetText("")
                 s.rank:SetText(i)
@@ -886,7 +886,7 @@ ns.RegisterPage({
                 local pos = i + 3
                 row.pos:SetText(pos)
                 setClass(row.ic, r.cls)
-                row.name:SetText(colored(r.who) .. (ns.isMe(r.who) and ("  |cff888888" .. L["du"] .. "|r") or ""))
+                row.name:SetText(colored(r.who) .. (ns.isMe(r.who) and ("  |cff888888" .. L["you"] .. "|r") or ""))
                 row.info:SetText(info(r))
                 local cr, cg, cb = ns.classColor(r.cls)
                 row.bar:SetColorTexture(cr or 0.6, cg or 0.6, cb or 0.6, 0.13)
@@ -912,22 +912,22 @@ ns.RegisterPage({
         p.hintT:SetShown(few)
         p.hint:SetShown(few)
         if few then
-            p.hintT:SetText(cat.spell and L["So kommt dein Crit in die Rangliste"] or L["Hier ist noch Platz"])
-            p.hint:SetText(cat.spell and L["Kritische Treffer beim Solo-Spiel zaehlen automatisch. In Gruppe und Dungeon schaetzt Oasis sie und markiert sie so."]
-                or L["Weitere Plaetze fuellen sich, sobald mehr Gildenmitglieder mit Oasis gekaempft haben."])
+            p.hintT:SetText(cat.spell and L["How your crit gets onto the board"] or L["Room for more"])
+            p.hint:SetText(cat.spell and L["Critical hits while playing solo count automatically. In groups and dungeons Oasis estimates them and marks them as such."]
+                or L["More places fill up as more guild members with Oasis have fought."])
         end
         local shown = math.min(#list, ROWS + 3)
-        p.more:SetText(#list > shown and (L["+ %d weitere"]):format(#list - shown) or "")
+        p.more:SetText(#list > shown and (L["+ %d more"]):format(#list - shown) or "")
         -- eigener Platz
         local me = ns.me()
         local myPos, myVal
         for i, e in ipairs(list) do if ns.isMe(e.r.who) then myPos, myVal = i, e.v break end end
         if myPos then
-            p.meBar.l:SetText(L["Dein Platz"] .. "  |cffffffff#" .. myPos .. "|r  |cff888888" .. (L["von %d"]):format(#list) .. "|r")
-            p.meBar.v:SetText(fmt(myVal) .. (myPos > 1 and ("  |cff888888-" .. fmt(list[myPos - 1].v - myVal) .. " " .. L["bis Platz %d"]:format(myPos - 1) .. "|r") or ""))
+            p.meBar.l:SetText(L["Your rank"] .. "  |cffffffff#" .. myPos .. "|r  |cff888888" .. (L["of %d"]):format(#list) .. "|r")
+            p.meBar.v:SetText(fmt(myVal) .. (myPos > 1 and ("  |cff888888-" .. fmt(list[myPos - 1].v - myVal) .. " " .. L["to place %d"]:format(myPos - 1) .. "|r") or ""))
         else
-            p.meBar.l:SetText(L["Dein Platz"])
-            p.meBar.v:SetText("|cff888888" .. L["noch kein Wert"] .. "|r")
+            p.meBar.l:SetText(L["Your rank"])
+            p.meBar.v:SetText("|cff888888" .. L["no value yet"] .. "|r")
         end
         p.meBar:SetShown(any or CB.Waiting() > 0)
 
@@ -939,11 +939,11 @@ ns.RegisterPage({
         if rec then
             setClass(pc.av, rec.cls)
             pc.t:SetText(colored(rec.who))
-            pc.s:SetText(ns.isMe(rec.who) and L["Deine Rekorde"] or (rec.t and (L["zuletzt"] .. " " .. ns.ago(rec.t)) or ""))
+            pc.s:SetText(ns.isMe(rec.who) and L["Your records"] or (rec.t and (L["last"] .. " " .. ns.ago(rec.t)) or ""))
         else
             pc.av:SetColorTexture(1, 1, 1, 0.06)
             pc.t:SetText(colored(selWho or "?"))
-            pc.s:SetText(L["Nach jedem Kampf automatisch"])
+            pc.s:SetText(L["Automatically after every fight"])
         end
         local wk = week()
         for i, c in ipairs(CATS) do
@@ -983,29 +983,29 @@ ns.RegisterPage({
         if last then
             lf.s:SetText((last.z or "") .. (last.t and ("  ·  " .. ns.ago(last.t)) or ""))
             if anim and last.d then K.CountUp(lf.big, last.d, 0.8, fmt, 0.2) else lf.big:SetText(last.d and fmt(last.d) or "-") end
-            lf.bigL:SetText(L["Schaden"])
+            lf.bigL:SetText(L["Damage"])
             lf.cells.dps:SetText(last.dps and fmt(last.dps) or "-")
             lf.cells.h:SetText(last.h and fmt(last.h) or "-")
             lf.cells.tk:SetText(last.tk and fmt(last.tk) or "-")
             lf.cells.dur:SetText(last.dur and (SecondsToTime and SecondsToTime(math.floor(last.dur)) or (math.floor(last.dur) .. " s")) or "-")
         else
-            lf.s:SetText(L["Noch kein Kampf ausgewertet"])
+            lf.s:SetText(L["No fight recorded yet"])
             lf.big:SetText("-")
             lf.bigL:SetText("")
             for _, v in pairs(lf.cells) do v:SetText("-") end
         end
         local st
         if waiting > 0 then
-            st = "|cffe8b44a" .. (L["%d Kaempfe warten auf Freigabe"]):format(waiting) .. "|r  " ..
-                L["Blizzard sperrt die Werte in Instanzen nach dem Kampf eine Weile - Oasis wertet sie aus, sobald sie frei sind (meist nach dem Boss oder beim Verlassen)."]
+            st = "|cffe8b44a" .. (L["%d fights waiting for release"]):format(waiting) .. "|r  " ..
+                L["Blizzard locks the values in instances for a while after combat - Oasis records them as soon as they are released (usually after the boss or when you leave)."]
         elseif last and last.late then
-            st = "|cff66db9e" .. L["Nachgeholt"] .. "|r  " .. L["Der Kampf war erst gesperrt und wurde nachtraeglich ausgewertet."]
+            st = "|cff66db9e" .. L["Caught up"] .. "|r  " .. L["The fight was locked at first and was recorded afterwards."]
         elseif CB.lost > 0 then
-            st = "|cff888888" .. (L["%d Kaempfe verloren (Schadensanzeige zurueckgesetzt)"]):format(CB.lost) .. "|r"
+            st = "|cff888888" .. (L["%d fights lost (damage meter was reset)"]):format(CB.lost) .. "|r"
         else
-            st = L["Oasis liest nach jedem Kampf Blizzards eingebaute Schadensanzeige - auch in Instanzen."]
+            st = L["Oasis reads Blizzard's built-in damage meter after every fight - in instances too."]
         end
-        lf.state:SetText(st .. ((ns.db.cbDiag and ns.db.cbDiag.t) and ("  " .. (L["Letzte Pruefung: %s"]):format(ns.ago(ns.db.cbDiag.t))) or ""))
+        lf.state:SetText(st .. ((ns.db.cbDiag and ns.db.cbDiag.t) and ("  " .. (L["Last check: %s"]):format(ns.ago(ns.db.cbDiag.t))) or ""))
     end,
 })
 ns.probes = ns.probes or {}

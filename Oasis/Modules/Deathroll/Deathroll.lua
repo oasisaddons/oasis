@@ -66,11 +66,11 @@ DR.game = nil
 -- Gilden-Optionen (Gildenleitung): Einsaetze, offene Einladungen an die Gilde, Chronik
 -- 0.5.912: Standard AUS (Spiele um Gold koennen gegen Blizzard-/Realm-Regeln verstossen) - die Gildenleitung schaltet es bewusst ein
 ns.GuildOption({ page = "deathroll", key = "drStake", default = false,
-    label = "Einsaetze erlauben", desc = "Spieler duerfen einen Einsatz (z.B. Gold) angeben. Aus: alle Spiele laufen ohne Einsatz. Bitte die Regeln eures Realms zu Gluecksspiel beachten." })
+    label = "Allow stakes", desc = "Players may state a stake (e.g. gold). Off: all games run without a stake. Please observe your realm's rules on gambling." })
 ns.GuildOption({ page = "deathroll", key = "drLobby", default = true,
-    label = "Offene Einladungen an die Gilde", desc = "Spieler duerfen sich in die Warteschlange stellen, die die ganze Gilde als Hinweis sieht. Aus: nur direkte Herausforderungen." })
+    label = "Open invites to the guild", desc = "Players may join the queue that the whole guild sees as a notice. Off: direct challenges only." })
 ns.GuildOption({ page = "deathroll", key = "drChron", default = true,
-    label = "Siege in die Chronik", desc = "Gewonnene Spiele werden in der Gilden-Chronik eingetragen." })
+    label = "Wins in the chronicle", desc = "Won games are recorded in the guild chronicle." })
 local function stakeOK(stake)
     if ns.GuildOpt("drStake") ~= true then return "" end
     return SEC.Text(stake, 40)
@@ -136,7 +136,7 @@ local function abort(g, why, tell)
     if tell and not g.bot and not g.manual then Comm.Whisper(other(g, ns.me()), "DRABORT", g.id) end
     C_Timer.After(0, DR.MusicUpdate)
     if was == "invite_in" and invPop and invPop:IsShown() then invPop:Hide() end
-    K.Toast(L["Deathroll abgebrochen"], why or L["Das Spiel zaehlt nicht."], C.amber)
+    K.Toast(L["Deathroll cancelled"], why or L["This game does not count."], C.amber)
     DR.Update()
     ns.RefreshPage("deathroll")
 end
@@ -151,7 +151,7 @@ local function watch(g)
             return
         end
         if not ns.isMe(g.turn) and GetTime() - (g.lastMove or GetTime()) > TURN_TTL then
-            abort(g, (L["%s wuerfelt nicht mehr - Spiel ohne Wertung beendet."]):format(ns.displayName(other(g, ns.me()))), true)
+            abort(g, (L["%s stopped rolling - game ended without rating."]):format(ns.displayName(other(g, ns.me()))), true)
         end
     end)
 end
@@ -179,7 +179,7 @@ local function finish(g)
     if DR.scored[g.id] then g.unverified = g.unverified or "twice" end
     DR.scored[g.id] = true
     if g.unverified == true then
-        ns.print(L["Deathroll: Ergebnis nicht gewertet - Wuerfe des Gegners waren nicht im Systemchat zu sehen."])
+        ns.print(L["Deathroll: Result not counted - opponent's rolls weren't seen in system chat."])
     end
     if ns.Badges and not g.unverified then
         ns.Badges.Add("drPlays", 1)
@@ -195,12 +195,12 @@ local function finish(g)
         if ns.Chronicle and ns.GuildOpt("drChron") ~= false then
             local hasStake = (g.stake or "") ~= ""
             ns.Chronicle.Add("duel", "chr-" .. g.id,
-                hasStake and "gewinnt Todeswuerfeln gegen %s (ab %s, Einsatz %s)" or "gewinnt Todeswuerfeln gegen %s (ab %s)",
+                hasStake and "wins a deathroll against %s (from %s, stake %s)" or "wins a deathroll against %s (from %s)",
                 { ns.short(g.loser), g.start, g.stake })
         end
     end
     ns.Sound.Play(iWon and "dr_win" or "dr_lose") ns.Sound.Next("none")
-    K.Toast(iWon and L["Gewonnen!"] or L["Verloren ..."], (iWon and ns.displayName(g.loser) or L["Du"]) .. L[" hat die 1 gewuerfelt."], iWon and C.mint or C.red)
+    K.Toast(iWon and L["Won!"] or L["You lost …"], (iWon and ns.displayName(g.loser) or L["You"]) .. L[" rolled the 1."], iWon and C.mint or C.red)
     DR.Update()
     ns.RefreshPage("deathroll")
 end
@@ -243,7 +243,7 @@ ns.On("CHAT_MSG_SYSTEM", function(text)
         if who then
             who = who:gsub("|H.-|h%[?(.-)%]?|h", "%1")
             if sameName(who, other(g, ns.me())) then
-                abort(g, (L["%s ist offline gegangen - Spiel ohne Wertung beendet."]):format(ns.displayName(other(g, ns.me()))), false)
+                abort(g, (L["%s went offline - game ended without rating."]):format(ns.displayName(other(g, ns.me()))), false)
                 return
             end
         end
@@ -269,21 +269,21 @@ end)
 
 function DR.Challenge(target, start, stake, manual, look)
     if DR.game and (DR.game.state == "live" or DR.game.state == "invite_in") then
-        ns.print(L["Es laeuft schon ein Spiel."]) DR.Show() return
+        ns.print(L["A game is already running."]) DR.Show() return
     end
     target = ((target or ""):gsub("^%s+", ""):gsub("%s+$", ""))   -- WoW Forever: Leerzeichen im Namen behalten ("Anna Berg")
     if target == "" then target = ns.safe(ns.UnitName("target")) or "" end
-    if target == "" then ns.print(L["Gegner angeben oder anvisieren."]) return end
+    if target == "" then ns.print(L["Enter or target an opponent."]) return end
     target = ns.fullName(target)
     -- Addon-Nachrichten kommen unter "Vorname-Realm" an -> Gegner unter dieser Form fuehren, sonst passt der Zug nicht
     do
         local m = ns.Radar and ns.Radar.byName and ns.Radar.byName[target]
         if m then target = m.name end
     end
-    if ns.isMe(target) then ns.print(L["Gegen dich selbst? Mutig, aber nein."]) return end
+    if ns.isMe(target) then ns.print(L["Against yourself? Brave, but no."]) return end
     -- nur eine Anfrage gleichzeitig: offene eigene Anfrage an jemand anderen sperrt
     if DR.game and DR.game.state == "invite_out" and not sameName(DR.game.b, target) then
-        ns.print((L["Warte auf Antwort von %s - Klick auf %s zieht zurueck"]):format(ns.displayName(DR.game.b), ns.displayName(DR.game.b)))
+        ns.print((L["Waiting for %s - click %s to withdraw"]):format(ns.displayName(DR.game.b), ns.displayName(DR.game.b)))
         return
     end
     if DR.game and DR.game.state == "invite_out" then return end   -- an denselben schon unterwegs
@@ -360,7 +360,7 @@ end
 function DR.Rematch(g)
     g = g or DR.game
     if not g then return end
-    if DR.game ~= g and DR.Running() then ns.print(L["Es laeuft schon ein Spiel."]) return end
+    if DR.game ~= g and DR.Running() then ns.print(L["A game is already running."]) return end
     local opp = other(g, ns.me())
     local look = g.look and g.look[opp]
     if g.bot then
@@ -369,7 +369,7 @@ function DR.Rematch(g)
         return
     end
     if not g.manual and ns.Radar and ns.Radar.IsOnline and ns.Radar.IsOnline(opp) == false then
-        ns.print((L["%s ist offline - Revanche nicht moeglich."]):format(ns.displayName(opp)))
+        ns.print((L["%s is offline - no rematch possible."]):format(ns.displayName(opp)))
         return
     end
     if g.state == "invite_out" then return end   -- laeuft schon
@@ -456,7 +456,7 @@ Comm.On("DRSEED", function(sender, _, id, seed)
     local weak = #g.theirCommit <= 8
     local expect = weak and ns.hash("c:" .. (seed or "")) or strongHash("c2:" .. (seed or ""))
     if expect ~= g.theirCommit then
-        ns.print(L["Deathroll: Die Wuerfel des Gegners passen nicht - es geht mit /roll weiter."])
+        ns.print(L["Deathroll: the opponent's dice don't match - continuing with /roll."])
         g.silent = false
         DR.Update()
         return
@@ -477,7 +477,7 @@ function DR.Roll()
     if not g or g.state ~= "live" or not ns.isMe(g.turn) or DR.anim then return end
     -- leise: Wurf aus den abgestimmten Zahlen, nichts im Chat
     if g.silent then
-        if not g.seedsReady then ns.print(L["Wuerfel werden noch abgestimmt - gleich nochmal."]) return end
+        if not g.seedsReady then ns.print(L["Dice are still being synced - try again in a moment."]) return end
         apply(g.turn, silentRoll(g, g.n + 1), g.max, false)
         return
     end
@@ -489,7 +489,7 @@ function DR.Roll()
     local n, max = g.n, g.max
     DR.lastUnmatched = nil
     local roll = RandomRoll or (C_RandomRoll and C_RandomRoll.RandomRoll)
-    if not roll then ns.print(L["Wuerfeln ist in diesem Client nicht verfuegbar."]) return end
+    if not roll then ns.print(L["Rolling isn't available in this client."]) return end
     ns.Trace("RandomRoll 1-" .. max)
     local ok, e = pcall(roll, 1, max)
     if not ok then ns.err("Deathroll", e) return end
@@ -497,9 +497,9 @@ function DR.Roll()
     ns.After(3, function()
         if DR.game == g and g.state == "live" and g.n == n and ns.isMe(g.turn) then
             if DR.lastUnmatched then
-                ns.print(L["Wurf nicht erkannt:"] .. " |cffffffff" .. DR.lastUnmatched .. "|r")
+                ns.print(L["Roll not recognised:"] .. " |cffffffff" .. DR.lastUnmatched .. "|r")
             else
-                ns.print(L["Kein Wurf im Chat angekommen - bitte nochmal wuerfeln."])
+                ns.print(L["No roll arrived in chat - please roll again."])
             end
         end
     end)
@@ -613,7 +613,7 @@ function DR.InvitePopup(sender, start, stake)
         f.sub:SetPoint("RIGHT", -12, 0)
         f.timer = K.Bar(f, 312, 2)
         f.timer:SetPoint("BOTTOM", 0, 50)
-        f.yes = K.Button(f, L["Annehmen"], 150, 28, "primary", function()
+        f.yes = K.Button(f, L["Accept"], 150, 28, "primary", function()
             -- Doppelklick: nur der erste zaehlt
             if f.clicked then return end
             f.clicked = true
@@ -625,7 +625,7 @@ function DR.InvitePopup(sender, start, stake)
             DR.Show()
         end)
         f.yes:SetPoint("BOTTOMLEFT", 14, 12)
-        f.no = K.Button(f, L["Ablehnen"], 150, 28, "ghost", function()
+        f.no = K.Button(f, L["Decline"], 150, 28, "ghost", function()
             DR.Decline()
             f:Hide()
         end)
@@ -652,8 +652,8 @@ function DR.InvitePopup(sender, start, stake)
     f.left = INVITE_TTL
     f.clicked = nil
     if f.yes.SetEnabledState then f.yes:SetEnabledState(true) end
-    f.title:SetText(ns.displayName(sender) .. L[" fordert dich heraus!"])
-    f.sub:SetText(L["Todeswuerfeln ab "] .. start .. ((stake or "") ~= "" and (L[" um "] .. stake) or ""))
+    f.title:SetText(ns.displayName(sender) .. L[" challenges you!"])
+    f.sub:SetText(L["Deathroll from "] .. start .. ((stake or "") ~= "" and (L[" for "] .. stake) or ""))
     f:Show()
     f:Raise()
     if K.FadeIn then K.FadeIn(f, 0) end
@@ -681,7 +681,7 @@ Comm.On("DRACC", function(sender, _, id, race, sex)
         g.look[g.b] = { race = SEC.Num(race, 0, 200, true), sex = SEC.Num(sex, 0, 3, true) }
         if DR.frame and DR.frame:IsShown() then DR.frame.gameId = nil end
     end
-    K.Toast(ns.displayName(sender) .. L[" nimmt an!"], L["Du faengst an: wuerfle 1-"] .. g.max, C.mint)
+    K.Toast(ns.displayName(sender) .. L[" accepts!"], L["You start: roll 1-"] .. g.max, C.mint)
     DR.StartSeeds(g)
     watch(g)
     -- eigenes Kampffenster inzwischen geschlossen (z. B. bei Revanche)? -> wieder oeffnen
@@ -691,15 +691,15 @@ Comm.On("DRNO", function(sender, _, id)
     local og = DR.outgoing
     if og and og.id == id and fromOpp(og, sender) then
         DR.outgoing = nil
-        K.Toast(ns.displayName(sender) .. L[" kneift"], L["Herausforderung abgelehnt."], C.dim)
+        K.Toast(ns.displayName(sender) .. L[" chickened out"], L["Challenge declined."], C.dim)
         return
     end
     local g = DR.game
     if not g or g.id ~= id or not fromOpp(g, sender) or g.state == "live" or g.state == "done" or g.state == "aborted" then return end
     if g.state == "invite_in" then
-        K.Toast(ns.displayName(sender) .. L[" zieht zurueck"], L["Herausforderung zurueckgezogen."], C.dim)
+        K.Toast(ns.displayName(sender) .. L[" withdraws"], L["Challenge withdrawn."], C.dim)
     else
-        K.Toast(ns.displayName(sender) .. L[" kneift"], L["Herausforderung abgelehnt."], C.dim)
+        K.Toast(ns.displayName(sender) .. L[" chickened out"], L["Challenge declined."], C.dim)
     end
     local wasIn = g.state == "invite_in"
     DR.game = nil
@@ -711,12 +711,12 @@ Comm.On("DRBUSY", function(sender, _, id)
     local og = DR.outgoing
     if og and og.id == id and fromOpp(og, sender) then
         DR.outgoing = nil
-        K.Toast(ns.displayName(sender) .. L[" spielt gerade schon"], L["Versuch es gleich nochmal."], C.dim)
+        K.Toast(ns.displayName(sender) .. L[" is already playing"], L["Try again in a moment."], C.dim)
         return
     end
     local g = DR.game
     if g and g.id == id and fromOpp(g, sender) and (g.state == "invite_out" or g.state == "noanswer") then
-        K.Toast(ns.displayName(sender) .. L[" spielt gerade schon"], L["Versuch es gleich nochmal."], C.dim)
+        K.Toast(ns.displayName(sender) .. L[" is already playing"], L["Try again in a moment."], C.dim)
         DR.game = nil
         if DR.frame and DR.frame:IsShown() then DR.frame.allowHide = true DR.frame:Hide() end
     end
@@ -725,7 +725,7 @@ end)
 Comm.On("DRABORT", function(sender, _, id)
     local g = DR.game
     if not g or g.id ~= id or not fromOpp(g, sender) then return end
-    abort(g, (L["%s hat das Spiel abgebrochen - ohne Wertung."]):format(ns.displayName(sender)), false)
+    abort(g, (L["%s cancelled the game - no rating."]):format(ns.displayName(sender)), false)
 end)
 -- Gegner verlaesst die Gruppe (Spiel lief ueber den Gruppenkanal) -> Abbruch ohne Wertung
 ns.On("GROUP_ROSTER_UPDATE", function()
@@ -737,7 +737,7 @@ ns.On("GROUP_ROSTER_UPDATE", function()
     local inGroup = (UnitInParty and UnitInParty(s)) or (UnitInRaid and UnitInRaid(s))
     local inGuild = ns.Admin and ns.Admin.InGuildList and ns.Admin.InGuildList(opp) == true
     if not inGroup and not inGuild then
-        abort(g, (L["%s hat die Gruppe verlassen - Spiel ohne Wertung beendet."]):format(ns.displayName(opp)), false)
+        abort(g, (L["%s left the group - game ended without rating."]):format(ns.displayName(opp)), false)
     end
 end)
 -- Sicherung, falls der Systemchat den Wurf nicht zeigt (zu weit weg)
@@ -751,7 +751,7 @@ Comm.On("DRROLL", function(sender, _, id, n, roll, max)
         -- leises Spiel: nur Wuerfe, die zu den abgestimmten Zahlen passen
         if not g.seedsReady then return end
         if roll ~= DR.SilentRoll(g, g.n + 1) then
-            ns.print(L["Deathroll: Der Wurf des Gegners stimmt nicht - wird ignoriert."])
+            ns.print(L["Deathroll: the opponent's roll doesn't check out - ignored."])
             return
         end
         apply(sender, roll, max, true)
@@ -801,12 +801,12 @@ local function sendQueue()
     if DR.NetBroadcast then DR.NetBroadcast("Q", DR.inQueue.start, DR.inQueue.stake or "", race, sex) end   -- 0.6.213
 end
 function DR.JoinQueue(start, stake)
-    if busy() then ns.print(L["Es laeuft schon ein Spiel."]) return end
-    if ns.GuildOpt("drLobby") == false then ns.print(L["Die Gildenleitung hat offene Einladungen abgeschaltet - fordere jemanden direkt heraus."]) return end
+    if busy() then ns.print(L["A game is already running."]) return end
+    if ns.GuildOpt("drLobby") == false then ns.print(L["The guild leadership has disabled open invites - challenge someone directly."]) return end
     DR.inQueue = { start = math.max(2, math.min(1000000, tonumber(start) or 100)), stake = stakeOK(stake), t = ns.now() }
     if DR.NetJoin then DR.NetJoin(DR.inQueue.start) end   -- 0.6.213: Stufen-Kanal passend zum Startwert (aus dem Klick)
     sendQueue()
-    K.Toast(L["Du wartest auf einen Gegner"], L["Die Gilde sieht deine Einladung. Sobald jemand mitspielt, geht es los."], C.accent)
+    K.Toast(L["Waiting for an opponent"], L["The guild sees your invite. As soon as someone joins, the game starts."], C.accent)
     ns.RefreshPage("deathroll")
 end
 function DR.LeaveQueue(silent)
@@ -840,7 +840,7 @@ local function onQueue(sender, start, stake, race, sex, viaNet)
     -- Hinweis/Ton nur fuer Gildenmitglieder - Fremde aus dem Netz stehen still in der Liste (keine Toast-Flut)
     if isNew and inGuild and not busy() and not DR.inQueue and ns.db.settings.drOpenInvites ~= false then
         ns.Sound.Next("dr_invite")
-        K.Toast(ns.displayName(sender) .. L[" will Deathroll spielen"], (L["ab %s - klick zum Mitspielen"]):format(start or "100"), C.accent,
+        K.Toast(ns.displayName(sender) .. L[" wants to play Deathroll"], (L["from %s – click to join"]):format(start or "100"), C.accent,
             function() DR.JoinGame(sender) end)
     end
     ns.RefreshPage("deathroll")
@@ -1014,7 +1014,7 @@ ns.slash.drnetz = function(rest)
         return
     end
     local now = GetTime()
-    local function ago(t) return t and ("vor %d s"):format(now - t) or "nie" end
+    local function ago(t) return t and ("%d s ago"):format(now - t) or "nie" end
     out(("Schalter: %s   Gilden-Lobby erlaubt: %s"):format(netOn() and "|cff66db9ean|r" or "|cffe06060aus|r", tostring(ns.GuildOpt("drLobby") ~= false)))
     local want = tierChan(DR.inQueue and DR.inQueue.start or 100)
     local parts = {}
@@ -1037,7 +1037,7 @@ ns.slash.drnetz = function(rest)
     out(("%d suchen:"):format(#list))
     for _, q in ipairs(list) do
         out(("  %s  ab %s%s  |cff888888%s, %s|r"):format(ns.displayName(q.name), q.start, (q.stake or "") ~= "" and (", " .. q.stake) or "",
-            q.demo and "Demo" or (q.net and "Netz" or "Gilde"), ("vor %d s"):format(ns.now() - (q.t or ns.now()))))
+            q.demo and "Demo" or (q.net and "Network" or "Guild"), ("%d s ago"):format(ns.now() - (q.t or ns.now()))))
     end
 end
 ns.slash.drnet = ns.slash.drnetz
@@ -1045,8 +1045,8 @@ ns.slash.drnet = ns.slash.drnetz
 -- einem Wartenden beitreten
 function DR.JoinGame(host)
     local q = DR.queue[host]
-    if not q then ns.print(L["Die Einladung ist nicht mehr da."]) return end
-    if busy() then ns.print(L["Es laeuft schon ein Spiel."]) return end
+    if not q then ns.print(L["That invite is gone."]) return end
+    if busy() then ns.print(L["A game is already running."]) return end
     DR.LeaveQueue()
     if q.demo then
         DR.queue[host] = nil
@@ -1056,7 +1056,7 @@ function DR.JoinGame(host)
     DR.pendingJoin = host
     local race, sex = myLook()
     Comm.Whisper(host, "DRJOIN", race, sex)
-    K.Toast(L["Anfrage gesendet"], (L["Warte auf %s ..."]):format(ns.displayName(host)), C.dim)
+    K.Toast(L["Request sent"], (L["Waiting for %s ..."]):format(ns.displayName(host)), C.dim)
     ns.After(20, function() if DR.pendingJoin == host then DR.pendingJoin = nil end end)
 end
 Comm.On("DRJOIN", function(sender, _, race, sex)
@@ -1069,7 +1069,7 @@ Comm.On("DRFULL", function(sender)
     if DR.pendingJoin == sender then
         DR.pendingJoin = nil
         DR.queue[sender] = nil
-        K.Toast(ns.displayName(sender) .. L[" spielt schon"], L["Jemand anderes war schneller."], C.dim)
+        K.Toast(ns.displayName(sender) .. L[" is already playing"], L["Someone else was faster."], C.dim)
         ns.RefreshPage("deathroll")
     end
 end)
@@ -1077,7 +1077,7 @@ end)
 -- Uebungsspiel gegen einen Demo-Gegner (wuerfelt selbst, nichts wird gespeichert oder gesendet)
 function DR.StartBot(name, start, stake, race, sex)
     if busy() then return end
-    local opp = ns.fullName(L[name or "Uebungspuppe"])
+    local opp = ns.fullName(L[name or "Training Dummy"])
     local g = {
         id = ns.newId("drb"), a = ns.me(), b = opp, start = tonumber(start) or 100, max = tonumber(start) or 100, turn = ns.me(), n = 0,
         hist = {}, stake = stake or "", manual = true, bot = true, state = "live", t = GetTime(),
@@ -1109,42 +1109,42 @@ end
 -- zoom/dist/y: Kamera je Figur (grosse Modelle weiter weg).
 ------------------------------------------------------------------------
 DR.FIGHTERS = {
-    { key = "me", name = "Dein Charakter", sub = "So wie du gerade aussiehst" },
-    { key = "thrall", npc = 4949, disp = 4527, name = "Thrall", sub = "Kriegshaeuptling der Horde" },
-    { key = "cairne", npc = 3057, disp = 4307, name = "Cairne Bluthuf", sub = "Hochhaeuptling der Tauren", dist = 1.2 },
-    { key = "sylvanas", npc = 10181, disp = 11657, name = "Sylvanas", sub = "Die Bansheekoenigin" },
-    { key = "voljin", npc = 10540, disp = 10357, name = "Vol'jin", sub = "Anfuehrer der Dunkelspeere", zoom = 0, dist = 1.1, y = 0 },
-    { key = "grunt", npc = 3296, disp = 4259, name = "Grunzer", sub = "Wache von Orgrimmar" },
-    { key = "mankrik", npc = 3432, disp = 3855, name = "Mankrik", sub = "Sucht immer noch seine Frau" },
-    { key = "hogger", npc = 448, disp = 384, name = "Hogger", sub = "Schrecken des Waldes von Elwynn" },
-    { key = "vancleef", npc = 639, disp = 2029, name = "Edwin VanCleef", sub = "Boss der Defias" },
+    { key = "me", name = "Your character", sub = "Just the way you look right now" },
+    { key = "thrall", npc = 4949, disp = 4527, name = "Thrall", sub = "Warchief of the Horde" },
+    { key = "cairne", npc = 3057, disp = 4307, name = "Cairne Bloodhoof", sub = "High Chieftain of the Tauren", dist = 1.2 },
+    { key = "sylvanas", npc = 10181, disp = 11657, name = "Sylvanas", sub = "The Banshee Queen" },
+    { key = "voljin", npc = 10540, disp = 10357, name = "Vol'jin", sub = "Leader of the Darkspear", zoom = 0, dist = 1.1, y = 0 },
+    { key = "grunt", npc = 3296, disp = 4259, name = "Grunt", sub = "Guard of Orgrimmar" },
+    { key = "mankrik", npc = 3432, disp = 3855, name = "Mankrik", sub = "Still looking for his wife" },
+    { key = "hogger", npc = 448, disp = 384, name = "Hogger", sub = "Terror of Elwynn Forest" },
+    { key = "vancleef", npc = 639, disp = 2029, name = "Edwin VanCleef", sub = "Boss of the Defias" },
     { key = "murloc", npc = 285, disp = 617, name = "Murloc", sub = "Mrrglglglgl!" },
-    { key = "kobold", npc = 6, disp = 10913, name = "Kobold", sub = "Du nix Kerze nehmen!" },
+    { key = "kobold", npc = 6, disp = 10913, name = "Kobold", sub = "You no take candle!" },
     -- (Gnoll sah aus wie Hogger -> ersetzt)
-    { key = "theradras", npc = 12201, name = "Prinzessin Theradras", sub = "Maraudon", zoom = 0, dist = 1.1, y = 0, fdist = 1.9 },
-    { key = "ogre", npc = 2562, disp = 1052, name = "Oger", sub = "Felsfaust-Oger", dist = 1.3 },
-    { key = "rattlegore", npc = 11622, disp = 12073, name = "Blutrippe", sub = "Scholomance", dist = 1.4, fdist = 1.6 },
-    { key = "onyxia", npc = 10184, disp = 8570, name = "Onyxia", sub = "Brutmutter der Schwarzdrachen", zoom = 0, dist = 1, y = 0, fdist = 1.8 },
-    { key = "ragnaros", npc = 11502, disp = 11121, name = "Ragnaros", sub = "Der Feuerfuerst", zoom = 0, dist = 1, y = 0, fdist = 1.8 },
+    { key = "theradras", npc = 12201, name = "Princess Theradras", sub = "Maraudon", zoom = 0, dist = 1.1, y = 0, fdist = 1.9 },
+    { key = "ogre", npc = 2562, disp = 1052, name = "Ogre", sub = "Stonefist ogre", dist = 1.3 },
+    { key = "rattlegore", npc = 11622, disp = 12073, name = "Bloodrib", sub = "Scholomance", dist = 1.4, fdist = 1.6 },
+    { key = "onyxia", npc = 10184, disp = 8570, name = "Onyxia", sub = "Broodmother of the black dragons", zoom = 0, dist = 1, y = 0, fdist = 1.8 },
+    { key = "ragnaros", npc = 11502, disp = 11121, name = "Ragnaros", sub = "The Firelord", zoom = 0, dist = 1, y = 0, fdist = 1.8 },
     -- ab hier: per Gildenrang (Oasis-Rang 1-100) freigeschaltet - je hoeher, desto absurder
-    { key = "chicken", npc = 620, name = "Huhn", sub = "Gack. Gack gack.", rank = 3, zoom = 0, dist = 1, y = 0 },
-    { key = "sheep", npc = 1933, name = "Schaf", sub = "Hat schon mal einen Magier getroffen", rank = 6, zoom = 0, dist = 1, y = 0 },
-    { key = "rabbit", npc = 721, name = "Kaninchen", sub = "Toedlicher als es aussieht", rank = 9, zoom = 0, dist = 1, y = 0 },
-    { key = "cow", npc = 2442, name = "Kuh", sub = "Muuuh.", rank = 12, zoom = 0, dist = 1, y = 0 },
-    { key = "frog", npc = 1420, name = "Kroete", sub = "Wartet auf einen Kuss", rank = 15, zoom = 0, dist = 1, y = 0 },
-    { key = "prairiedog", npc = 2620, name = "Praeriehund", sub = "Schaut nur kurz raus", rank = 18, zoom = 0, dist = 1, y = 0 },
-    { key = "gazlowe", npc = 3391, name = "Gazlowe", sub = "Boss von Ratschet - alles hat seinen Preis", rank = 22 },
-    { key = "leper", npc = 6223, name = "Lepragnom", sub = "Gnomeregan war mal schoen", rank = 26 },
-    { key = "mukla", npc = 1559, name = "Koenig Mukla", sub = "Herrscher der Schlingendorn-Affen", rank = 30, dist = 1.1 },
-    { key = "golem", npc = 36, name = "Erntegolem", sub = "Westfall, Ernte 1. Klasse", rank = 35, dist = 1.1 },
-    { key = "bigglesworth", npc = 16998, name = "Mr. Bigglesworth", sub = "Kel'Thuzads Katze. Wehe dir.", rank = 40, zoom = 0, dist = 1, y = 0 },
-    { key = "hakkar", npc = 14834, name = "Hakkar", sub = "Der Seelenschinder", rank = 50, zoom = 0, dist = 1, y = 0, fdist = 1.6 },
-    { key = "kazzak", npc = 12397, name = "Lord Kazzak", sub = "Hoellenfeuer und gute Laune", rank = 60, zoom = 0, dist = 1, y = 0, fdist = 1.6 },
-    { key = "nefarian", npc = 11583, name = "Nefarian", sub = "Herr des Pechschwingenhorts", rank = 70, zoom = 0, dist = 1, y = 0, fdist = 1.8 },
-    { key = "cthun", npc = 15727, name = "C'Thun", sub = "Du wirst sterben.", rank = 80, zoom = 0, dist = 1, y = 0, fdist = 1.8 },
-    { key = "kelthuzad", npc = 15990, name = "Kel'Thuzad", sub = "Erzlich von Naxxramas", rank = 90, zoom = 0, dist = 1, y = 0, fdist = 1.5 },
+    { key = "chicken", npc = 620, name = "Chicken", sub = "Cluck. Cluck cluck.", rank = 3, zoom = 0, dist = 1, y = 0 },
+    { key = "sheep", npc = 1933, name = "Sheep", sub = "Has met a mage before", rank = 6, zoom = 0, dist = 1, y = 0 },
+    { key = "rabbit", npc = 721, name = "Rabbit", sub = "Deadlier than it looks", rank = 9, zoom = 0, dist = 1, y = 0 },
+    { key = "cow", npc = 2442, name = "Cow", sub = "Moooo.", rank = 12, zoom = 0, dist = 1, y = 0 },
+    { key = "frog", npc = 1420, name = "Toad", sub = "Waiting for a kiss", rank = 15, zoom = 0, dist = 1, y = 0 },
+    { key = "prairiedog", npc = 2620, name = "Prairie dog", sub = "Just peeking out", rank = 18, zoom = 0, dist = 1, y = 0 },
+    { key = "gazlowe", npc = 3391, name = "Gazlowe", sub = "Boss of Ratchet - everything has its price", rank = 22 },
+    { key = "leper", npc = 6223, name = "Leper gnome", sub = "Gnomeregan used to be nice", rank = 26 },
+    { key = "mukla", npc = 1559, name = "King Mukla", sub = "Ruler of the Stranglethorn apes", rank = 30, dist = 1.1 },
+    { key = "golem", npc = 36, name = "Harvest golem", sub = "Westfall, first-class harvest", rank = 35, dist = 1.1 },
+    { key = "bigglesworth", npc = 16998, name = "Mr. Bigglesworth", sub = "Kel'Thuzad's cat. Woe to you.", rank = 40, zoom = 0, dist = 1, y = 0 },
+    { key = "hakkar", npc = 14834, name = "Hakkar", sub = "The Soulflayer", rank = 50, zoom = 0, dist = 1, y = 0, fdist = 1.6 },
+    { key = "kazzak", npc = 12397, name = "Lord Kazzak", sub = "Hellfire and good spirits", rank = 60, zoom = 0, dist = 1, y = 0, fdist = 1.6 },
+    { key = "nefarian", npc = 11583, name = "Nefarian", sub = "Lord of Blackwing Lair", rank = 70, zoom = 0, dist = 1, y = 0, fdist = 1.8 },
+    { key = "cthun", npc = 15727, name = "C'Thun", sub = "You will die.", rank = 80, zoom = 0, dist = 1, y = 0, fdist = 1.8 },
+    { key = "kelthuzad", npc = 15990, name = "Kel'Thuzad", sub = "Archlich of Naxxramas", rank = 90, zoom = 0, dist = 1, y = 0, fdist = 1.5 },
     -- Hoechster Rang: ein Stuhl. Wer alles erreicht hat, muss niemandem mehr etwas beweisen.
-    { key = "chair", name = "Ein Stuhl", sub = "Hoechster Rang. Du hast es dir verdient: Hinsetzen.", rank = 100, zoom = 0, dist = 1, y = 0, fdist = 1.2,
+    { key = "chair", name = "A chair", sub = "Highest rank. You have earned it: sit down.", rank = 100, zoom = 0, dist = 1, y = 0, fdist = 1.2,
       -- Datei-IDs (wago.tools): Gasthaus-Stuhl, einfacher Stuhl, Zwergenstuhl, Tauren-Holzstuhl
       model = { 198114, 198116, 198115, 197300, 200393 } },
 }
@@ -1322,7 +1322,7 @@ local function buildPicker()
     top:SetColorTexture(C.red[1], C.red[2], C.red[3], 1)
     f.title = K.Title(f, 20, C.text)
     f.title:SetPoint("TOPLEFT", 20, -16)
-    f.title:SetText(K.Upper(L["Waehle deinen Kaempfer"]))
+    f.title:SetText(K.Upper(L["Choose your fighter"]))
     local close = K.CloseButton(f, function() f:Hide() end)
     close:SetPoint("TOPRIGHT", -8, -8)
     -- Vorschau links (Buehne mit Lichtkegel)
@@ -1422,7 +1422,7 @@ local function buildPicker()
             t.lock.ico:SetPoint("CENTER", 0, 8)
             t.lock.txt = K.Text(t.lock, 10, C.muted, "CENTER")
             t.lock.txt:SetPoint("TOP", t.lock.ico, "BOTTOM", 0, -3)
-            t.lock.txt:SetText((L["ab Rang %d"]):format(fi.rank))
+            t.lock.txt:SetText((L["from rank %d"]):format(fi.rank))
         end
         t:SetScript("OnEnter", function(self) f:Preview(self.fi) K.SetBorderColor(self, C.amber) self.glow:SetAlpha(0.35) end)
         t:SetScript("OnLeave", function(self) f:Preview(DR.Fighter(DR.MyFighter())) f:Mark() end)
@@ -1438,14 +1438,14 @@ local function buildPicker()
         end)
         f.tiles[i] = t
     end
-    f.ok = K.Button(f, L["Bereit!"], 200, 34, "primary", function() f:Hide() end)
+    f.ok = K.Button(f, L["Ready!"], 200, 34, "primary", function() f:Hide() end)
     f.ok:Hide()   -- Auswahl per Klick auf eine Figur
     f.ok:SetPoint("BOTTOMRIGHT", -16, 16)
     f.hint = K.Text(f, 10, C.dim)
     f.hint:SetPoint("BOTTOMLEFT", 302, 26)
     f.hint:SetPoint("RIGHT", -16, 0)
     f.hint:SetWordWrap(true)
-    f.hint:SetText(L["Klick auf eine Figur waehlt sie. Dein Gegner sieht genau diese Figur."])
+    f.hint:SetText(L["Click a figure to choose it. Your opponent sees exactly this figure."])
     function f:Load(m, fi, facing, full)
         m.fi, m.facing, m.full = fi, facing, full
         DR.LoadFighter(m, fi)
@@ -1462,7 +1462,7 @@ local function buildPicker()
         C_Timer.After(0.35, function() if self.big.fi == fi then DR.ApplyCam(self.big, fi, nil, PICK_DIST) end end)
         self.bigName:SetText(K.Upper(L[fi.name]))
         if DR.Unlocked(fi) then self.bigSub:SetText(L[fi.sub])
-        else self.bigSub:SetText("|cffff6655" .. (L["Gesperrt - freigeschaltet ab Oasis-Rang %d"]):format(fi.rank) .. "|r") end
+        else self.bigSub:SetText("|cffff6655" .. (L["Locked - unlocks at Oasis rank %d"]):format(fi.rank) .. "|r") end
     end
     function f:Mark()
         local cur = DR.MyFighter()
@@ -1531,7 +1531,7 @@ function DR.ShowPicker()
                 pcall(PlaySound, (SOUNDKIT and SOUNDKIT.PVP_THROUGH_QUEUE) or 8459, "Master")
                 if not DR.smashHint then
                     DR.smashHint = true
-                    ns.print(L["Kaempferwahl-Sound konnte nicht abgespielt werden - neue Sound-Dateien kennt WoW erst nach einem kompletten Neustart (nicht /reload)."])
+                    ns.print(L["Fighter selection sound couldn't play - WoW only knows new sound files after a full restart (not /reload)."])
                 end
             end
         end
@@ -1693,10 +1693,10 @@ end
 -- TENSION-END
 DR.Tension, DR.NumColor, DR.HpColor = tension, numColor, hpColor
 -- Sprueche der Uebungspuppe, wenn sie eine Revanche will (je nachdem, wer gewonnen hat)
-local BOT_TAUNT_WIN = { "Das war nur Glueck! Nochmal!", "Noch eine Runde - ich will meine Ehre zurueck!",
-    "Revanche! Diesmal gewinne ich.", "Beim naechsten Wurf siehst du alt aus!" }
-local BOT_TAUNT_LOSS = { "Zu leicht. Traust du dich nochmal?", "Hihi - noch eine Runde?",
-    "Schon fertig? Ich will Revanche!", "Gewinnen ist einfach. Nochmal?" }
+local BOT_TAUNT_WIN = { "That was just luck! Again!", "One more round - I want my honour back!",
+    "Rematch! This time I win.", "Next roll you're done for!" }
+local BOT_TAUNT_LOSS = { "Too easy. Dare to go again?", "Hehe - another round?",
+    "Done already? I want a rematch!", "Winning is easy. Again?" }
 DR.BOT_TAUNTS = { win = BOT_TAUNT_WIN, loss = BOT_TAUNT_LOSS }
 
 local function sideFrame(f, left)
@@ -1933,7 +1933,7 @@ local function build()
     vig("TOPRIGHT", "BOTTOMRIGHT", 90, nil, "HORIZONTAL", R0, R1)
     local title = K.Title(f, 13, C.muted, "CENTER")
     title:SetPoint("TOP", 0, -14)
-    title:SetText(L["DEATHROLL"])
+    title:SetText(L["Deathroll"])
     f.titleFS = title
     f.stake = K.Text(f, 11, C.amber, "CENTER")
     f.stake:SetPoint("TOP", title, "BOTTOM", 0, -3)
@@ -1944,9 +1944,9 @@ local function build()
         f.allowHide = true
         f:Hide()
         if g and g.state == "invite_in" then
-            K.Toast(L["Deathroll laeuft weiter"], L["Nur ausgeblendet - klick hier, um zurueckzukehren."], C.accent, function() DR.Show() end)
+            K.Toast(L["Deathroll continues"], L["Only hidden - click here to return."], C.accent, function() DR.Show() end)
         end
-    end, L["Schliessen - im laufenden Spiel heisst das aufgeben"])
+    end, L["Close - during a game this means giving up"])
     close:SetFrameLevel(f:GetFrameLevel() + 20)
     close:SetPoint("TOPRIGHT", -8, -8)
 
@@ -1970,7 +1970,7 @@ local function build()
     grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
     grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
     grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
-    grip:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Groesse aendern"], L["Ziehen: groesser/kleiner  ·  Doppelklick: Standard"] }) end)
+    grip:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Resize"], L["Drag: bigger/smaller  ·  Double-click: default"] }) end)
     grip:SetScript("OnLeave", function() GameTooltip:Hide() end)
     grip:SetScript("OnMouseDown", function(self)
         local x = GetCursorPosition()
@@ -2044,22 +2044,22 @@ local function build()
     f.hist:SetWidth(W - 40)
 
     -- Kaempfer waehlen (vor dem ersten Wurf)
-    f.pick = K.Button(f.front, L["Kaempfer waehlen"], 140, 22, "ghost", function() DR.ShowPicker() end)
+    f.pick = K.Button(f.front, L["Choose fighter"], 140, 22, "ghost", function() DR.ShowPicker() end)
     f.pick:SetPoint("TOPLEFT", 12, -12)
     -- Lautstaerke: Musik (0-5) und Sound (0-10, gilt fuer alle Oasis-Toene)
     if K.Slider then
         local function S2() return ns.db.settings end
         f.mLbl = K.Text(f.front, 9, C.dim)
         f.mLbl:SetPoint("BOTTOMLEFT", 12, 34)
-        f.mLbl:SetText(K.Upper(L["Musik"]))
+        f.mLbl:SetText(K.Upper(L["Music"]))
         f.mVol = K.Slider(f.front, 110, 0, 5, 1, function() return tonumber(S2().drMusicVol) or 5 end,
-            function(v) S2().drMusicVol = v DR.RestartMusic() end, function(v) return v == 0 and L["aus"] or tostring(v) end)
+            function(v) S2().drMusicVol = v DR.RestartMusic() end, function(v) return v == 0 and L["off"] or tostring(v) end)
         f.mVol:SetPoint("LEFT", f.mLbl, "RIGHT", 8, 0)
         f.sLbl = K.Text(f.front, 9, C.dim)
         f.sLbl:SetPoint("BOTTOMLEFT", 12, 12)
         f.sLbl:SetText(K.Upper(L["Sound"]))
         f.sVol = K.Slider(f.front, 110, 0, ns.Sound and ns.Sound.VOL_MAX or 10, 1, function() return tonumber(S2().soundVol) or 7 end,
-            function(v) S2().soundVol = v end, function(v) return v == 0 and L["aus"] or (ns.Sound and ns.Sound.VolText and ns.Sound.VolText(v) or tostring(v)) end)
+            function(v) S2().soundVol = v end, function(v) return v == 0 and L["off"] or (ns.Sound and ns.Sound.VolText and ns.Sound.VolText(v) or tostring(v)) end)
         f.sVol:SetPoint("LEFT", f.mLbl, "RIGHT", 8, -22)
     end
     -- VS-Einblendung zu Beginn (wie bei Tekken)
@@ -2237,7 +2237,7 @@ local function build()
         local GOLD = { 1, 0.82, 0.45 }
         local function shadow(fs) if fs and fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 1) fs:SetShadowOffset(1, -1) end end
         -- Titel
-        f.titleFS:SetText(L["Todeswuerfeln"])
+        f.titleFS:SetText(L["Deathroll"])
         K.SetFontSafe(f.titleFS, K.FONT_HEAD or K.FONT, 26, "", K.FONT)
         f.titleFS:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
         f.titleFS:ClearAllPoints() f.titleFS:SetPoint("TOP", 0, -16)
@@ -2386,9 +2386,9 @@ end
 function DR.AskGiveUp()
     if not StaticPopupDialogs then DR.GiveUp() return end
     StaticPopupDialogs.OASIS_DR_GIVEUP = StaticPopupDialogs.OASIS_DR_GIVEUP or {
-        text = L["Deathroll wirklich aufgeben?\nDann hast du verloren."],
-        button1 = L["Aufgeben"],
-        button2 = L["Weiterspielen"],
+        text = L["Really give up the deathroll?\nYou will lose."],
+        button1 = L["Give up"],
+        button2 = L["Keep playing"],
         OnAccept = function()
             DR.GiveUp()
             if DR.frame then DR.frame.allowHide = true DR.frame:Hide() end
@@ -2453,7 +2453,7 @@ function DR.Show()
                 f.cd.t:SetShadowOffset(3, -3)
                 f.cd:Hide()
             end
-            local steps = { "3", "2", "1", L["KAMPF!"] }
+            local steps = { "3", "2", "1", L["Fight!"] }
             f.cd:Show()
             for i, txt in ipairs(steps) do
                 ns.After(0.6 + (i - 1) * 0.7, function()
@@ -2542,8 +2542,8 @@ function DR.Update()
     f.liveGame = live
     f.A.active = live and sameName(g.turn, g.a)
     f.B.active = live and sameName(g.turn, g.b)
-    f.A.turn:SetText(f.A.active and L["AM ZUG"] or "")
-    f.B.turn:SetText(f.B.active and L["AM ZUG"] or "")
+    f.A.turn:SetText(f.A.active and L["Your move"] or "")
+    f.B.turn:SetText(f.B.active and L["Your move"] or "")
     local hA, hB = hpOf(g, g.a), hpOf(g, g.b)
     if g.state == "done" then
         if sameName(g.loser, g.a) then hA = 0 else hB = 0 end
@@ -2556,22 +2556,22 @@ function DR.Update()
         f.num:SetText(g.max)
         f.num:SetTextColor(numColor(g.max, g.start))
     end
-    f.numLbl:SetText(g.state == "done" and L["Endstand"] or (L["wuerfeln von 1 bis %d"]):format(g.max))
-    f.stake:SetText(((g.stake or "") ~= "" and (L["Notiz: "] .. g.stake) or "") .. (g.bot and ("  |cff888888" .. L["(Uebungsspiel)"] .. "|r") or ""))
+    f.numLbl:SetText(g.state == "done" and L["Final"] or (L["roll from 1 to %d"]):format(g.max))
+    f.stake:SetText(((g.stake or "") ~= "" and (L["Note: "] .. g.stake) or "") .. (g.bot and ("  |cff888888" .. L["(practice game)"] .. "|r") or ""))
     local myTurn = live and ns.isMe(g.turn)
     local c = C.text
     local st = ""
-    if g.state == "invite_out" then st, c = L["Warte auf "] .. ns.displayName(g.b) .. " ...", C.muted
-    elseif g.state == "noanswer" and g.rematch then st, c = (L["Keine Antwort von %s auf die Revanche."]):format(ns.displayName(g.b)), C.amber
-    elseif g.state == "noanswer" then st, c = ns.displayName(g.b) .. L[" antwortet nicht (kein Oasis?)"], C.amber
-    elseif g.state == "aborted" then st, c = g.abortWhy or L["Spiel abgebrochen - ohne Wertung."], C.amber
-    elseif g.state == "invite_in" and g.rematchIn then st, c = (L["%s will Revanche!"]):format(ns.displayName(g.a)), C.pink
-    elseif g.state == "invite_in" then st, c = ns.displayName(g.a) .. L[" fordert dich heraus!"], C.pink
+    if g.state == "invite_out" then st, c = L["Waiting for "] .. ns.displayName(g.b) .. " ...", C.muted
+    elseif g.state == "noanswer" and g.rematch then st, c = (L["No answer from %s to the rematch."]):format(ns.displayName(g.b)), C.amber
+    elseif g.state == "noanswer" then st, c = ns.displayName(g.b) .. L[" is not answering (no Oasis?)"], C.amber
+    elseif g.state == "aborted" then st, c = g.abortWhy or L["Game cancelled - no rating."], C.amber
+    elseif g.state == "invite_in" and g.rematchIn then st, c = (L["%s wants a rematch!"]):format(ns.displayName(g.a)), C.pink
+    elseif g.state == "invite_in" then st, c = ns.displayName(g.a) .. L[" challenges you!"], C.pink
     elseif live then
-        if myTurn then st, c = L["Du bist dran!"], C.mint else st, c = ns.displayName(g.turn) .. L[" wuerfelt ..."], C.muted end
+        if myTurn then st, c = L["Your turn!"], C.mint else st, c = ns.displayName(g.turn) .. L[" is rolling …"], C.muted end
     elseif g.state == "done" then
         local won = ns.isMe(g.winner)
-        st, c = won and L["Gewonnen!"] or (ns.displayName(g.winner) .. L[" gewinnt"]), won and C.mint or C.red
+        st, c = won and L["Won!"] or (ns.displayName(g.winner) .. L[" wins"]), won and C.mint or C.red
         -- Uebungspuppe: meldet sich nach dem Ergebnis mit einem Spruch und will Revanche
         if g.bot and not g.botSched then
             g.botSched = true
@@ -2585,7 +2585,7 @@ function DR.Update()
         end
         if not f.resultT then
             f.resultT = 0
-            f.result:SetText(won and L["SIEG!"] or L["NIEDERLAGE"])
+            f.result:SetText(won and L["Victory!"] or L["Defeat"])
             f.result:SetTextColor(unpack(won and C.mint or C.red))
             local winSide = sameName(g.winner, g.a) and f.A or f.B
             local loseSide = winSide == f.A and f.B or f.A
@@ -2608,31 +2608,31 @@ function DR.Update()
         btn:Show()
     end
     if g.state == "invite_in" then
-        set(f.b1, g.rematchIn and L["Revanche annehmen"] or L["Annehmen"], DR.Accept)
-        set(f.b2, L["Ablehnen"], DR.Decline)
+        set(f.b1, g.rematchIn and L["Accept rematch"] or L["Accept"], DR.Accept)
+        set(f.b2, L["Decline"], DR.Decline)
     elseif g.state == "noanswer" and g.rematch then
-        set(f.b1, L["Revanche erneut senden"], function() DR.Rematch(g) end)
-        set(f.b2, L["Abbrechen"], DR.Decline)
+        set(f.b1, L["Send rematch again"], function() DR.Rematch(g) end)
+        set(f.b2, L["Cancel"], DR.Decline)
     elseif g.state == "noanswer" then
-        set(f.b1, L["Ohne Addon spielen"], DR.GoManual)
-        set(f.b2, L["Abbrechen"], DR.Decline)
+        set(f.b1, L["Play without addon"], DR.GoManual)
+        set(f.b2, L["Cancel"], DR.Decline)
     elseif g.state == "invite_out" then
-        set(f.b1, g.rematch and L["Revanche gesendet ..."] or L["WUERFELN"], DR.Roll, false)
-        set(f.b2, L["Abbrechen"], DR.Decline)
+        set(f.b1, g.rematch and L["Rematch sent ..."] or L["Roll"], DR.Roll, false)
+        set(f.b2, L["Cancel"], DR.Decline)
     elseif live then
         -- 0.6.220: im Ornament-Stil nur "Wuerfeln" (Bereich steht unter der Zahl)
-        set(f.b1, myTurn and (f.artMode and L["Wuerfeln"] or (L["WUERFELN  1-%d"]):format(g.max)) or L["Gegner ist dran ..."], DR.Roll, myTurn)
-        set(f.b2, L["Aufgeben"], DR.GiveUp)
+        set(f.b1, myTurn and (f.artMode and L["Roll"] or (L["Roll  1-%d"]):format(g.max)) or L["Opponent's turn ..."], DR.Roll, myTurn)
+        set(f.b2, L["Give up"], DR.GiveUp)
     else
-        set(f.b1, (g.bot and g.botWants) and L["Revanche annehmen"] or L["Revanche"], function() DR.Rematch(g) end)
-        set(f.b2, L["Schliessen"], function()
+        set(f.b1, (g.bot and g.botWants) and L["Accept rematch"] or L["Rematch"], function() DR.Rematch(g) end)
+        set(f.b2, L["Close"], function()
             if DR.game == g then DR.game = nil end
             f.allowHide = true
             f:Hide()
         end)
     end
     f.pick:SetShown(g.state ~= "done" and g.state ~= "aborted" and g.n == 0)
-    f.hint:SetText((g.manual and live and not g.bot) and (L["Ohne Addon: "] .. ns.displayName(other(g, ns.me())) .. L[" muss /roll "] .. g.max .. L[" tippen."]) or "")
+    f.hint:SetText((g.manual and live and not g.bot) and (L["Without addon: "] .. ns.displayName(other(g, ns.me())) .. L[" has to type /roll "] .. g.max .. L["."]) or "")
 
     -- Verlauf als Kette: 100 > 57 > 12 ...
     local chain = { "|cff666666" .. g.start .. "|r" }
@@ -2719,12 +2719,12 @@ function DR.Duels()
 end
 function DR.ResetRanking()
     local A = ns.Admin
-    if not (A and A.CanManage and A.CanManage()) then ns.print(L["Nur die Gildenleitung kann die Deathroll-Rangliste zuruecksetzen."]) return end
+    if not (A and A.CanManage and A.CanManage()) then ns.print(L["Only guild management can reset the deathroll leaderboard."]) return end
     local cfg = {}
     for k, v in pairs(A.Cfg() or {}) do cfg[k] = v end
     cfg.drReset = ns.now()
     if A.Save(cfg) then
-        ns.print(L["Deathroll-Rangliste zurueckgesetzt - fuer die ganze Gilde."])
+        ns.print(L["Deathroll leaderboard reset - for the whole guild."])
         ns.RefreshPage("deathroll")
     end
 end
@@ -2744,7 +2744,7 @@ function DR.MonthRange(offset)
     return from, time(t)
 end
 -- Monatsname in der Oasis-Sprache
-local MONTHS = { "Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember" }
+local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" }
 function DR.MonthName(offset)
     local from = DR.MonthRange(offset)
     return L[MONTHS[tonumber(date("%m", from))]]
@@ -2889,8 +2889,8 @@ local function fmtNum(n)
 end
 
 local function streakText(n)
-    if n >= 2 then return "|cff66db9e" .. (L["%d Siege in Folge"]):format(n) .. "|r" end
-    if n <= -2 then return "|cffe06060" .. (L["%d Niederlagen in Folge"]):format(-n) .. "|r" end
+    if n >= 2 then return "|cff66db9e" .. (L["%d wins in a row"]):format(n) .. "|r" end
+    if n <= -2 then return "|cffe06060" .. (L["%d losses in a row"]):format(-n) .. "|r" end
     return ""
 end
 
@@ -2908,7 +2908,7 @@ local function curStake(p) return (p.stake:GetText() or ""):gsub("^%s+", ""):gsu
 local function challenge(p, who)
     who = (who or ""):gsub("^%s+", ""):gsub("%s+$", "")
     if who == "" then who = ns.safe(ns.UnitName("target")) or "" end
-    if who == "" then ns.print(L["Wen moechtest du herausfordern? Namen eingeben oder jemanden anvisieren."]) return end
+    if who == "" then ns.print(L["Who do you want to challenge? Enter a name or target someone."]) return end
     local full = ns.fullName(who)
     local has = ns.Radar and ns.Radar.HasAddon and (ns.Radar.HasAddon(full) or ns.Radar.HasAddon(who))
     -- Oasis-Kontakt in meiner Gruppe: Spiel ueber den Gruppenkanal moeglich (sonst normales /roll-Duell)
@@ -2990,8 +2990,8 @@ function DR.LayoutStats(p)
 end
 
 ns.RegisterPage({
-    key = "deathroll", title = "Todeswuerfeln", order = 7.5,
-    sub = "Abwechselnd wuerfeln, das Ergebnis ist das neue Maximum - wer die 1 wuerfelt, verliert",
+    key = "deathroll", title = "Deathroll", order = 7.5,
+    sub = "Take turns rolling, each result becomes the new maximum – whoever rolls a 1 loses",
     build = function(p)
         p:HookScript("OnShow", function(self) self.fresh = true C_Timer.After(0, DR.MusicUpdate) end)
         p:HookScript("OnHide", function() C_Timer.After(0, DR.MusicUpdate) end)
@@ -3097,7 +3097,7 @@ ns.RegisterPage({
         end
         fc.cap = K.Text(fc, 9, C.amber, "CENTER")
         fc.cap:SetPoint("TOP", 0, -6)
-        fc.cap:SetText(K.Upper(L["Klick: Kaempfer waehlen"]))
+        fc.cap:SetText(K.Upper(L["Click: choose fighter"]))
         fc.cap:SetAlpha(0)
         fc:SetScript("OnClick", function() DR.ShowPicker() end)
         fc:SetScript("OnEnter", function(self) self.cap:SetAlpha(1) self.light:SetAlpha(0.55) end)
@@ -3159,10 +3159,10 @@ ns.RegisterPage({
             f:Hide()
             hero.flames[i] = f
         end
-        p.stBal = stat(hero, L["Bilanz"])
-        p.stQuote = stat(hero, L["Quote"])
-        p.stStreak = stat(hero, L["Serie"])
-        p.stRank = stat(hero, L["Platz"])
+        p.stBal = stat(hero, L["Record"])
+        p.stQuote = stat(hero, L["Rate"])
+        p.stStreak = stat(hero, L["Streak"])
+        p.stRank = stat(hero, L["Rank"])
         hero:HookScript("OnSizeChanged", function() DR.LayoutStats(p) end)
         -- Startwert + Einsatz (unten in der Mitte)
         local bar = CreateFrame("Frame", nil, hero)
@@ -3174,15 +3174,15 @@ ns.RegisterPage({
         bar.line:SetColorTexture(1, 1, 1, 0.07)
         local c1 = K.Text(bar, 10, C.dim)
         c1:SetPoint("LEFT", 8, 0)
-        c1:SetText(K.Upper(L["Startwert"]))
+        c1:SetText(K.Upper(L["Start value"]))
         p.start = K.Input(bar, 64, "100")
         p.start:SetPoint("LEFT", c1, "RIGHT", 12, 0)
         p.start:SetNumeric(true)
         p.start:SetText(startVal)
         local c2 = K.Text(bar, 10, C.dim)
         c2:SetPoint("LEFT", p.start, "RIGHT", 16, 0)
-        c2:SetText(K.Upper(L["Notiz"]))   -- 0.6.517: freie Notiz (Gold wird nicht verwaltet)
-        p.stake = K.Input(bar, 96, L["z.B. 10g"])
+        c2:SetText(K.Upper(L["Note"]))   -- 0.6.517: freie Notiz (Gold wird nicht verwaltet)
+        p.stake = K.Input(bar, 96, L["e.g. 10g"])
         p.stake:SetPoint("LEFT", c2, "RIGHT", 12, 0)
         p.startLbl, p.stakeLbl = c1, c2
         if ns.GuildPack then   -- 0.6.200: auf dem Lava-Bild heller + Schatten
@@ -3224,10 +3224,10 @@ ns.RegisterPage({
         p.play.halo:SetPoint("CENTER") p.play.halo:SetSize(330, 140)
         p.play.halo:SetBlendMode("ADD")
         p.play.halo:SetVertexColor(C.red[1], C.red[2], C.red[3])
-        p.practice = K.Button(right, L["Ueben gegen die Puppe"], 200, 26, "ghost", function()
-            if DR.Running() then ns.print(L["Es laeuft schon ein Spiel."]) DR.Show() return end
+        p.practice = K.Button(right, L["Practice against the dummy"], 200, 26, "ghost", function()
+            if DR.Running() then ns.print(L["A game is already running."]) DR.Show() return end
             if DR.game then DR.Decline() end
-            DR.StartBot("Uebungspuppe", curStart(p), "", 2, 0)
+            DR.StartBot("Training Dummy", curStart(p), "", 2, 0)
         end)
         p.practice:SetPoint("BOTTOM", right, "BOTTOM", 0, 2)   -- 0.6.515: Ueben auf Hoehe von Startwert/Einsatz, Kampf auf Hoehe der Kaesten
         p.play:SetPoint("BOTTOM", p.practice, "TOP", 0, 16)
@@ -3325,7 +3325,7 @@ ns.RegisterPage({
         ----------------------------------------------------------------
         -- links: GEGNER als Kaempferkarten (wer wartet, steht oben und leuchtet)
         ----------------------------------------------------------------
-        local ch = panel(p, L["Gegner"], C.red)
+        local ch = panel(p, L["Opponents"], C.red)
         ch:SetPoint("TOPLEFT", 0, TOP)
         ch:SetPoint("BOTTOMLEFT")
         ch:SetWidth(LW)
@@ -3348,28 +3348,28 @@ ns.RegisterPage({
             if not on then return end
             local ok = DR.net and DR.net.chan and DR.NetChanId and DR.NetChanId(DR.net.chan)
             self.ok = ok and true or false
-            self.t:SetText(ok and ("|cffc8c8cc" .. L["Netz"] .. "|r") or ("|cffe8b44a" .. L["Netz verbinden"] .. "|r"))
+            self.t:SetText(ok and ("|cffc8c8cc" .. L["Network"] .. "|r") or ("|cffe8b44a" .. L["Connect network"] .. "|r"))
             self.dot:SetTexture("Interface\\COMMON\\Indicator-" .. (ok and "Green" or "Red"))
         end
         nb:SetScript("OnClick", function(self)
             if not self.ok then
                 if DR.net then DR.net.joinTry = nil end
                 DR.NetJoin(curStart(p))
-                self.t:SetText("|cffe8b44a" .. L["verbinde ..."] .. "|r")
+                self.t:SetText("|cffe8b44a" .. L["connecting …"] .. "|r")
                 C_Timer.After(3.5, function() self:Update() end)
             end
         end)
         nb:SetScript("OnEnter", function(self)
-            local lines = { L["Todeswuerfel-Netz"] }
+            local lines = { L["Deathroll network"] }
             if self.ok then
                 local n = 0
                 for _, q in pairs(DR.queue) do if q.net then n = n + 1 end end
-                lines[#lines + 1] = "|cff66db9e" .. L["verbunden"] .. "|r  " .. tostring(DR.net.chan)
-                lines[#lines + 1] = (L["%d Suchende aus anderen Gilden"]):format(n)
-                lines[#lines + 1] = "|cff888888" .. L["Stufe richtet sich nach deinem Startwert (bis 1.000 / 10.000 / darueber)."] .. "|r"
+                lines[#lines + 1] = "|cff66db9e" .. L["connected"] .. "|r  " .. tostring(DR.net.chan)
+                lines[#lines + 1] = (L["%d players searching from other guilds"]):format(n)
+                lines[#lines + 1] = "|cff888888" .. L["Level follows your start value (up to 1,000 / 10,000 / above)."] .. "|r"
             else
-                lines[#lines + 1] = "|cffe06060" .. L["nicht verbunden"] .. "|r"
-                lines[#lines + 1] = "|cff888888" .. L["Klick: verbinden - dann siehst du Gegner auch ausserhalb der Gilde."] .. "|r"
+                lines[#lines + 1] = "|cffe06060" .. L["not connected"] .. "|r"
+                lines[#lines + 1] = "|cff888888" .. L["Click: connect - then you also see opponents outside your guild."] .. "|r"
             end
             K.ShowTip(self, lines)
         end)
@@ -3378,11 +3378,11 @@ ns.RegisterPage({
         nb:SetScript("OnUpdate", function(self, el) self.acc = self.acc + el if self.acc > 1 then self.acc = 0 self:Update() end end)
         nb:Update()
         p.netBtn = nb
-        p.name = K.Input(ch, LW - 24 - 78, L["Name oder Ziel"])
+        p.name = K.Input(ch, LW - 24 - 78, L["Name or target"])
         p.name:SetPoint("TOPLEFT", 12, -40)
         if K.AttachNameSuggest then K.AttachNameSuggest(p.name) end
         p.name.onEnter = function(t) challenge(p, t) end
-        p.go = K.Button(ch, L["Fordern"], 70, 24, "primary", function() challenge(p, p.name:GetText()) end)
+        p.go = K.Button(ch, L["Challenge"], 70, 24, "primary", function() challenge(p, p.name:GetText()) end)
         p.go:SetPoint("LEFT", p.name, "RIGHT", 8, 0)
         imgBtn(p.go, "dr_fight_btn", 80, 30)   -- 0.6.201
         -- 0.6.212: Bild ragt seitlich ueber den Knopf -> Eingabefeld etwas schmaler, damit nichts rechts ueberlaeuft
@@ -3452,18 +3452,18 @@ ns.RegisterPage({
                     K.SetBorderColor(self, C.accent)
                     self.shine:SetAlpha(0.5)
                 end
-                local stt = it.q and ("|cffe8b44a" .. L["wartet"] .. "  " .. L["ab "] .. fmtNum(it.q.start) .. "|r")
-                    or (it.oasis and ("|cff66db9e" .. L["hat Oasis"] .. "|r") or ("|cff888888" .. L["nur /roll"] .. "|r"))
+                local stt = it.q and ("|cffe8b44a" .. L["waiting"] .. "  " .. L["from "] .. fmtNum(it.q.start) .. "|r")
+                    or (it.oasis and ("|cff66db9e" .. L["has Oasis"] .. "|r") or ("|cff888888" .. L["/roll only"] .. "|r"))
                 local hint
-                if mode == "pending" then hint = L["Klick: Anfrage zurueckziehen"]
+                if mode == "pending" then hint = L["Click: withdraw request"]
                 elseif mode == "locked" then
                     local g = DR.game
                     if g and g.state == "invite_out" then
-                        hint = (L["Warte auf Antwort von %s - Klick auf %s zieht zurueck"]):format(ns.displayName(opp), ns.displayName(opp))
-                    else hint = (L["Du spielst gerade gegen %s"]):format(ns.displayName(opp or "?")) end
-                elseif mode == "playing" then hint = L["Klick: zum Kampf"]
-                else hint = it.q and L["Wartet auf einen Gegner - Klick: annehmen"] or L["Klick: herausfordern"] end
-                K.ShowTip(self, { ns.Radar.Colored(it.name), stt, hint, "|cff888888" .. L["Rechtsklick: Menue"] .. "|r" })
+                        hint = (L["Waiting for %s - click %s to withdraw"]):format(ns.displayName(opp), ns.displayName(opp))
+                    else hint = (L["You are playing against %s"]):format(ns.displayName(opp or "?")) end
+                elseif mode == "playing" then hint = L["Click: back to the fight"]
+                else hint = it.q and L["Waiting for an opponent - click: accept"] or L["Click: challenge"] end
+                K.ShowTip(self, { ns.Radar.Colored(it.name), stt, hint, "|cff888888" .. L["Right-click: menu"] .. "|r" })
             end)
             c:SetScript("OnLeave", function(self) K.SetBorderColor(self, self.item and self.item.q and C.amber or C.line) self.shine:SetAlpha(0.25) GameTooltip:Hide() end)
             c:SetScript("OnClick", function(self, btn)
@@ -3472,9 +3472,9 @@ ns.RegisterPage({
                 if btn == "RightButton" then
                     local who = it.name
                     K.ShowMenu(self, {
-                        { text = L["Herausfordern"], disabled = DR.CardMode(who) == "locked", fn = function() DR.CardClick(it, p) end },
-                        { text = L["Fluestern"], fn = function() if ChatFrame_SendTell then ChatFrame_SendTell(Comm.WhisperName(who)) end end },
-                        { text = L["Profil ansehen"], disabled = not (ns.Profile and ns.Profile.Show), fn = function() ns.Profile.Show(who) end },
+                        { text = L["Challenge"], disabled = DR.CardMode(who) == "locked", fn = function() DR.CardClick(it, p) end },
+                        { text = L["Whisper"], fn = function() if ChatFrame_SendTell then ChatFrame_SendTell(Comm.WhisperName(who)) end end },
+                        { text = L["View profile"], disabled = not (ns.Profile and ns.Profile.Show), fn = function() ns.Profile.Show(who) end },
                     }, ns.displayName(who))
                     return
                 end
@@ -3491,9 +3491,9 @@ ns.RegisterPage({
                 local pend = mode == "pending"
                 self.side:SetShown(pend)
                 if pend then
-                    self.state:SetText(L["Anfrage gesendet ..."])
+                    self.state:SetText(L["Request sent ..."])
                     if not (ns.db and ns.db.settings.noAnim) then pcall(self.spin.SetRotation, self.spin, -self.t * 4) end
-                elseif mode == "playing" then self.state:SetText(L["im Kampf"])
+                elseif mode == "playing" then self.state:SetText(L["in a fight"])
                 else self.state:SetText("") end
             end)
             return c
@@ -3534,8 +3534,8 @@ ns.RegisterPage({
             if lvl and lvl > 0 then sub[#sub + 1] = (L["Lvl %d"]):format(lvl) end
             local cn = it.class and ((LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[it.class]) or (m and m.classLoc))
             if cn then sub[#sub + 1] = cn end
-            if it.q then sub[#sub + 1] = "|cffe8b44a" .. L["ab "] .. fmtNum(it.q.start) .. "|r" end
-            sub[#sub + 1] = it.rec ~= "" and it.rec or L["neu"]
+            if it.q then sub[#sub + 1] = "|cffe8b44a" .. L["from "] .. fmtNum(it.q.start) .. "|r" end
+            sub[#sub + 1] = it.rec ~= "" and it.rec or L["new"]
             c.f:SetText(table.concat(sub, " · "))
             c.n:SetText(ns.Radar.Colored(it.name))
             -- Status-Punkt am Avatar
@@ -3560,7 +3560,7 @@ ns.RegisterPage({
         end)
         p.onList:SetPoint("TOPLEFT", 8, -74)
         p.onList:SetPoint("BOTTOMRIGHT", -8, 6)
-        p.onList.empty:SetText(L["Gerade ist sonst niemand online."])
+        p.onList.empty:SetText(L["Nobody else is online right now."])
 
         ----------------------------------------------------------------
         -- rechts: Rangliste (Podest) / Deine Gegner / Verlauf (Kampf-Feed)
@@ -3568,34 +3568,34 @@ ns.RegisterPage({
         local rp = K.Panel(p, C.panel)
         rp:SetPoint("TOPLEFT", LW + 10, TOP)
         rp:SetPoint("BOTTOMRIGHT")
-        p.rightSeg = K.Segments(rp, { { key = "rank", text = L["Rangliste"] }, { key = "rivals", text = L["Deine Gegner"] },
-            { key = "last", text = L["Verlauf"] } }, function(k)
+        p.rightSeg = K.Segments(rp, { { key = "rank", text = L["Ranking"] }, { key = "rivals", text = L["Your opponents"] },
+            { key = "last", text = L["Gradient"] } }, function(k)
             rightView = k
             ns.RefreshPage("deathroll")
         end)
         p.rightSeg:SetPoint("TOPLEFT", 6, -6)
-        p.lastSeg = K.Segments(rp, { { key = "all", text = L["Alle"] }, { key = "mine", text = L["Meine"] } }, function(k)
+        p.lastSeg = K.Segments(rp, { { key = "all", text = L["All"] }, { key = "mine", text = L["Mine"] } }, function(k)
             lastFilter = k
             ns.RefreshPage("deathroll")
         end)
         p.lastSeg:SetPoint("TOPRIGHT", -6, -6)
         -- 0.5.622: Elo steht als Spalte, eigener Reiter entfaellt
-        p.seasonSeg = K.Segments(rp, { { key = "month", text = L["Monat"] }, { key = "all", text = L["Gesamt"] } }, function(k)
+        p.seasonSeg = K.Segments(rp, { { key = "month", text = L["Month"] }, { key = "all", text = L["Total"] } }, function(k)
             seasonView = k
             ns.RefreshPage("deathroll")
         end)
         p.seasonSeg:SetPoint("TOPRIGHT", -6, -6)   -- 0.5.799: neben den Reitern statt in eigener Zeile (mehr Platz fuer die Liste)
         -- Reiter immer ueber Podest/Modellen
         for _, sg in ipairs({ p.rightSeg, p.lastSeg, p.seasonSeg }) do if sg.SetFrameLevel then sg:SetFrameLevel(rp:GetFrameLevel() + 30) end end
-        p.resetBtn = K.Button(rp, L["Zuruecksetzen"], 96, 20, "ghost", function(self)
+        p.resetBtn = K.Button(rp, L["Reset"], 96, 20, "ghost", function(self)
             if not self.armed then
                 self.armed = true
-                self.label:SetText(L["Wirklich?"])
-                ns.After(3, function() self.armed = nil self.label:SetText(L["Zuruecksetzen"]) end)
+                self.label:SetText(L["Sure?"])
+                ns.After(3, function() self.armed = nil self.label:SetText(L["Reset"]) end)
                 return
             end
             self.armed = nil
-            self.label:SetText(L["Zuruecksetzen"])
+            self.label:SetText(L["Reset"])
             DR.ResetRanking()
         end)
         p.resetBtn:SetPoint("BOTTOMRIGHT", -8, 5)
@@ -3717,11 +3717,11 @@ ns.RegisterPage({
                 local s = self.item
                 if not s or rightView ~= "rank" or not s.name then return end
                 local lines = { ns.Radar.Colored(s.name) }
-                if s.elo then lines[#lines + 1] = (L["Elo %d (Bestwert %d)"]):format(s.elo, s.peak or s.elo) end
+                if s.elo then lines[#lines + 1] = (L["Elo %d (best %d)"]):format(s.elo, s.peak or s.elo) end
                 local stt = streakText(s.streak or 0)
                 if stt ~= "" then lines[#lines + 1] = stt end
                 if s.chars and #s.chars > 1 then
-                    lines[#lines + 1] = "|cff888888" .. L["Charaktere:"] .. "|r"
+                    lines[#lines + 1] = "|cff888888" .. L["Characters:"] .. "|r"
                     for _, x in ipairs(s.chars) do
                         lines[#lines + 1] = ns.Radar.Colored(x.name) .. "  |cff66db9e" .. x.w .. "|r|cff666666 : |r|cffe06060" .. x.l .. "|r"
                     end
@@ -3744,11 +3744,11 @@ ns.RegisterPage({
                 local c = ns.isMe(d.winner) and C.mint or (ns.isMe(d.loser) and C.red or C.dim)
                 r.dice:SetVertexColor(c[1], c[2], c[3])
                 -- Kampf-Feed: "X besiegt Y in 7 Wuerfen"
-                local big = (d.start or 0) >= 1000 and ("  |cffe8b44a" .. L["Hochrisiko!"] .. "|r") or ""
-                r.cols.name:SetText(ns.Radar.Colored(d.winner) .. " |cff888888" .. L["besiegt"] .. "|r " .. ns.Radar.Colored(d.loser)
-                    .. " |cff888888" .. (L["in %d Wuerfen"]):format(d.rolls or 0) .. "|r" .. big)
-                local sub = { L["ab "] .. fmtNum(d.start or 0) }
-                if (d.stake or "") ~= "" then sub[#sub + 1] = "|cffe8b44a" .. L["um"] .. " " .. d.stake .. "|r" end
+                local big = (d.start or 0) >= 1000 and ("  |cffe8b44a" .. L["High stakes!"] .. "|r") or ""
+                r.cols.name:SetText(ns.Radar.Colored(d.winner) .. " |cff888888" .. L["defeats"] .. "|r " .. ns.Radar.Colored(d.loser)
+                    .. " |cff888888" .. (L["in %d rolls"]):format(d.rolls or 0) .. "|r" .. big)
+                local sub = { L["from "] .. fmtNum(d.start or 0) }
+                if (d.stake or "") ~= "" then sub[#sub + 1] = "|cffe8b44a" .. L["at"] .. " " .. d.stake .. "|r" end
                 r.cols.sub:SetText(table.concat(sub, "  ·  "))
                 r.cols.wl:SetText("|cff777777" .. ns.ago(d.ts or d.u) .. "|r")
                 r.cols.elo:Hide() r.cols.eloD:Hide()
@@ -3773,9 +3773,9 @@ ns.RegisterPage({
                 r.cols.name:SetPoint("LEFT", 58, 0)
                 r.cols.name:SetPoint("RIGHT", r, "RIGHT", -182, 0)
                 local mark = ""
-                if (s.streak or 0) >= 3 then mark = "  |cffff8a2a" .. L["heiss"] .. "|r" end
+                if (s.streak or 0) >= 3 then mark = "  |cffff8a2a" .. L["hot"] .. "|r" end
                 if s.chars and #s.chars > 1 then mark = mark .. "  |cff777777+" .. (#s.chars - 1) .. "|r" end
-                r.cols.name:SetText(ns.Radar.Colored(s.name) .. (ns.isMe(s.name) and (" |cff888888(" .. L["du"] .. ")|r") or "") .. mark)
+                r.cols.name:SetText(ns.Radar.Colored(s.name) .. (ns.isMe(s.name) and (" |cff888888(" .. L["you"] .. ")|r") or "") .. mark)
                 r.cols.sub:SetText("")
                 r.cols.sub:Hide()
                 r.bar:Hide()
@@ -3797,8 +3797,8 @@ ns.RegisterPage({
                 r.cols.name:ClearAllPoints() r.cols.name:SetPoint("TOPLEFT", 40, -3) r.cols.name:SetPoint("RIGHT", r, "RIGHT", -112, 0)
                 r.cols.pos:SetText("")
                 r.cols.name:SetText(ns.Radar.Colored(s.name))
-                local lead = s.w > s.l and ("|cff66db9e" .. L["du fuehrst"] .. "|r") or (s.w < s.l and ("|cffe06060" .. L["du liegst hinten"] .. "|r") or L["ausgeglichen"])
-                r.cols.sub:SetText(lead .. "  ·  " .. L["zuletzt "] .. ns.ago(s.last))
+                local lead = s.w > s.l and ("|cff66db9e" .. L["you lead"] .. "|r") or (s.w < s.l and ("|cffe06060" .. L["you trail"] .. "|r") or L["even"])
+                r.cols.sub:SetText(lead .. "  ·  " .. L["last "] .. ns.ago(s.last))
             end
             -- 0.6.288: Bilanz in festen Spalten (Siege rechtsbuendig | Doppelpunkt | Niederlagen linksbuendig | Quote
             -- rechtsbuendig) - vorher ein Text, der je nach Ziffernbreite hin und her sprang
@@ -3835,9 +3835,9 @@ ns.RegisterPage({
             t:SetText(txt)
             return t
         end
-        hd(L["Spieler"], "LEFT", 58, "LEFT")
+        hd(L["Player"], "LEFT", 58, "LEFT")
         local he = hd(L["Elo"], "RIGHT", -120, "RIGHT") he:SetWidth(54)
-        hd(L["Bilanz"], "RIGHT", -10, "RIGHT")
+        hd(L["Record"], "RIGHT", -10, "RIGHT")
     end,
 
     refresh = function(p)
@@ -3851,8 +3851,8 @@ ns.RegisterPage({
         if seasonView == "elo" then seasonView = "month" end
         p.seasonSeg:Select(seasonView)
         local champ, cw = DR.MonthChampion(-1)
-        p.seasonInfo:SetText(champ and ((L["Wuerfelkoenig im %s: %s (%d Siege)"]):format(DR.MonthName(-1), ns.Radar.Colored(champ), cw))
-            or ((L["Saison %s - wer am Monatsende vorne liegt, wird Wuerfelkoenig des Monats."]):format(DR.MonthName(0))))
+        p.seasonInfo:SetText(champ and ((L["Dice King of %s: %s (%d wins)"]):format(DR.MonthName(-1), ns.Radar.Colored(champ), cw))
+            or ((L["Season %s - whoever leads at the end of the month becomes Dice King of the Month."]):format(DR.MonthName(0))))
         -- Banner-Werte
         local ranking = DR.Ranking()
         local me = mainOf(ns.me())
@@ -3875,12 +3875,12 @@ ns.RegisterPage({
         DR.LayoutStats(p)
         -- Titel nach Serie/Platz
         local title
-        if pos == 1 and #month > 1 then title = L["Wuerfelkoenig"] .. " · " .. DR.MonthName(0)
-        elseif st >= 5 then title = L["Unbesiegbar"]
-        elseif st >= 3 then title = L["Heiss gelaufen"]
-        elseif st <= -3 then title = L["Pechvogel"]
-        elseif w + l == 0 then title = L["Neu in der Arena"]
-        else title = (L["Platz %d im %s"]):format(pos or (#month + 1), DR.MonthName(0)) end
+        if pos == 1 and #month > 1 then title = L["Dice King"] .. " · " .. DR.MonthName(0)
+        elseif st >= 5 then title = L["Unbeatable"]
+        elseif st >= 3 then title = L["On fire"]
+        elseif st <= -3 then title = L["Unlucky"]
+        elseif w + l == 0 then title = L["New to the arena"]
+        else title = (L["#%d in %s"]):format(pos or (#month + 1), DR.MonthName(0)) end
         p.hero.rankT:SetText(title)
         -- Flammen ab 3 Siegen in Folge
         local nFl = st >= 7 and 3 or (st >= 5 and 2 or (st >= 3 and 1 or 0))
@@ -3914,13 +3914,13 @@ ns.RegisterPage({
         p.right.radar:SetShown(searching)
         p.right.ring:SetShown(searching)
         if DR.Running() then
-            p.play:SetLabel(L["ZUM KAMPF"])
-            p.playHint:SetText("|cffff7838" .. L["Ein Spiel laeuft gerade."] .. "|r")
+            p.play:SetLabel(L["To the fight"])
+            p.playHint:SetText("|cffff7838" .. L["A game is in progress."] .. "|r")
         elseif searching then
-            p.play:SetLabel(L["SUCHE ..."])
-            p.playHint:SetText("|cffff7838" .. (L["Suche Gegner ab %s ... (Klick: abbrechen)"]):format(fmtNum(DR.inQueue.start)) .. "|r")
+            p.play:SetLabel(L["Searching …"])
+            p.playHint:SetText("|cffff7838" .. (L["Searching for opponent from %s ... (click: cancel)"]):format(fmtNum(DR.inQueue.start)) .. "|r")
         else
-            p.play:SetLabel(L["KAMPF!"])
+            p.play:SetLabel(L["Fight!"])
             p.playHint:SetText("")   -- 0.6.205: Ruhetext "Die Gilde bekommt Bescheid" entfernt
         end
         p.practice:SetShown(not DR.Running())
@@ -3930,7 +3930,7 @@ ns.RegisterPage({
         local items, seen = {}, {}
         local function recOf(name)
             local rv = rivals[mainOf(name)]
-            return rv and (L["Bilanz"] .. " |cff66db9e" .. rv.w .. "|r|cff666666:|r|cffe06060" .. rv.l .. "|r") or ""
+            return rv and (L["Record"] .. " |cff66db9e" .. rv.w .. "|r|cff666666:|r|cffe06060" .. rv.l .. "|r") or ""
         end
         local waiting = 0
         for _, q in ipairs(DR.Waiting()) do
@@ -3965,7 +3965,7 @@ ns.RegisterPage({
         end)
         for _, x in ipairs(on) do items[#items + 1] = x end
         p.onList:SetData(items)
-        p.lobCount:SetText(waiting > 0 and ("|cffe8b44a" .. (L["%d warten"]):format(waiting) .. "|r") or ("|cff888888" .. (L["%d online"]):format(#items) .. "|r"))
+        p.lobCount:SetText(waiting > 0 and ("|cffe8b44a" .. (L["%d waiting"]):format(waiting) .. "|r") or ("|cff888888" .. (L["%d online"]):format(#items) .. "|r"))
         -- rechts
         local all = DR.Duels()
         local showPod = rightView == "rank"
@@ -3989,7 +3989,7 @@ ns.RegisterPage({
             end
             table.sort(d, function(a, b) return (a.ts or 0) > (b.ts or 0) end)
             p.rank:SetData(d)
-            p.rank.empty:SetText(L["Noch keine Spiele."])
+            p.rank.empty:SetText(L["No games yet."])
         elseif showPod then
             local list = seasonView == "month" and month or (seasonView == "elo" and DR.Elo() or ranking)
             p.podium:Layout()
@@ -4028,7 +4028,7 @@ ns.RegisterPage({
                     if col.crown then col.crown:Show() end
                     col:SetAlpha(1)
                 else
-                    col.n:SetText("|cff555555" .. L["frei"] .. "|r")
+                    col.n:SetText("|cff555555" .. L["open"] .. "|r")
                     col.wl:SetText("")
                     col.m:Hide() col.m.key = nil
                     col.cls:Hide()
@@ -4039,10 +4039,10 @@ ns.RegisterPage({
             local rest = {}
             for i = 4, #list do local s = list[i] s.pos = i rest[#rest + 1] = s end
             p.rank:SetData(rest)
-            p.rank.empty:SetText(#list == 0 and (seasonView == "month" and L["Diesen Monat noch keine Spiele."] or L["Noch keine Spiele."]) or "")
+            p.rank.empty:SetText(#list == 0 and (seasonView == "month" and L["No games this month yet."] or L["No games yet."]) or "")
         else
             p.rank:SetData(DR.Rivals())
-            p.rank.empty:SetText(L["Du hast noch nicht gewuerfelt. Fordere jemanden heraus!"])
+            p.rank.empty:SetText(L["You haven't rolled yet. Challenge someone!"])
         end
     end,
 })
@@ -4146,7 +4146,7 @@ do
         seg:Select(seg.value)
     end
     -- Gross-Schrift-Beschriftungen in normale Schreibweise zurueckholen
-    local UPPER = { "Startwert", "Einsatz", "Klick: Kaempfer waehlen", "Musik", "Sound", "Fordern", "Waehle deinen Kaempfer", "Bilanz", "Quote", "Serie", "Platz" }
+    local UPPER = { "Start value", "Effort", "Click: choose fighter", "Music", "Sound", "Challenge", "Choose your fighter", "Record", "Rate", "Streak", "Rank" }
     local function deupper(frame)
         if not frame then return end
         local map = {}
@@ -4260,7 +4260,7 @@ do
             fc.cap:SetTextColor(C.text[1], C.text[2], C.text[3])
             hero.title:SetText(ns.short(ns.me()))
             -- Kennzahlen als Glas-Pillen
-            local stats = { { p.stBal, "Bilanz" }, { p.stQuote, "Quote" }, { p.stStreak, "Serie" }, { p.stRank, "Platz" } }
+            local stats = { { p.stBal, "Record" }, { p.stQuote, "Rate" }, { p.stStreak, "Streak" }, { p.stRank, "Rank" } }
             -- 0.6.200: auf dem Lava-Bild dunkle, fast deckende Kacheln mit Bronzekante (Glas war kaum lesbar)
             local onArt = ns.GuildPack and true or false
             local BRONZE = { 0.85, 0.55, 0.25, 0.6 }
@@ -4310,7 +4310,7 @@ do
             -- Gegner + Rangliste als Glasflaechen, Koepfe normal geschrieben
             local ch = p.onList:GetParent()
             glass(ch, nil, nil, 12)
-            if ch.head then ch.head.text:SetText(L["Gegner"]) end
+            if ch.head then ch.head.text:SetText(L["Opponents"]) end
             -- 0.6.201: Gegner-Box mit Tavernen-Bild (eigener Rahmen), Kopf in Gold, Online-Zahl mit gruenem Punkt,
             -- leer: DEATHROLL-Emblem ueber dem Hinweis
             if ns.GuildPack and not ch.art then
@@ -4501,7 +4501,7 @@ do
         f.stageLight:SetBlendMode("ADD")
         f.fx = addFx(f, ac, 14, f:GetFrameLevel() + 1)
         for _, r in ipairs({ f:GetRegions() }) do
-            if r.GetText and r:GetText() == L["DEATHROLL"] then r:SetText(L["Todeswuerfeln"]) end
+            if r.GetText and r:GetText() == L["Deathroll"] then r:SetText(L["Deathroll"]) end
         end
         for _, s in ipairs({ f.A, f.B }) do
             -- HP-Leiste rund (Glas), Fuellungen gerundet
@@ -4524,7 +4524,7 @@ do
         end
         calm(f.b1, true, 12)
         calm(f.b2) calm(f.pick)
-        if f.mLbl then f.mLbl:SetText(L["Musik"]) f.sLbl:SetText(L["Sound"]) end
+        if f.mLbl then f.mLbl:SetText(L["Music"]) f.sLbl:SetText(L["Sound"]) end
         f.vs.bg:SetColorTexture(0, 0, 0, 0.6)
         f.vs.word:SetTextColor(ac[1], ac[2], ac[3])
         -- Ergebnis-Rueckblick: Glasflaeche hinter dem Wurfverlauf
@@ -4591,7 +4591,7 @@ do
             for _, rg in ipairs({ f:GetRegions() }) do
                 if rg.GetObjectType and rg:GetObjectType() == "Texture" and rg:GetHeight() and rg:GetHeight() <= 3 then rg:Hide() end
             end
-            f.title:SetText(L["Waehle deinen Kaempfer"])
+            f.title:SetText(L["Choose your fighter"])
             f.fx = addFx(f, ac, 10)
             calm(f.ok, true, 12)
             for _, t in ipairs(f.tiles) do

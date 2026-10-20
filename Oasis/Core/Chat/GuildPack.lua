@@ -165,11 +165,11 @@ local function check()
     if ns.db.packHint.last == key then return end
     if not m or m.v < o.v then
         ns.db.packHint.last = key
-        K.Toast(L["Neues Gildenpaket"], (L["Die Gildenleitung hat Version %d mit eigenen Emojis und Sounds freigegeben. Frag nach der ZIP und entpacke sie in den AddOns-Ordner."]):format(o.v),
+        K.Toast(L["New guild pack"], (L["The guild leadership released version %d with custom emojis and sounds. Ask for the ZIP and unpack it into the AddOns folder."]):format(o.v),
             C.accent, function() ns.ShowPage("settings") if ns.Settings and ns.Settings.SetTab then pcall(ns.Settings.SetTab, "ownmedia") end end)
     elseif m.v == o.v and MP.Fingerprint() ~= o.fp then
         ns.db.packHint.last = key
-        K.Toast(L["Gildenpaket weicht ab"], L["Dein Paket hat dieselbe Version wie das offizielle, aber einen anderen Inhalt. Hol dir die ZIP von der Gildenleitung."], C.amber or C.accent)
+        K.Toast(L["Guild pack differs"], L["Your pack has the same version as the official one but different content. Get the ZIP from the guild leadership."], C.amber or C.accent)
     end
 end
 ns.Listen("STORE", function(name) if name == "gpack" then ns.After(2, function() pcall(check) end) ns.RefreshPage("settings") end end)
@@ -211,24 +211,24 @@ StaticPopupDialogs["OASIS_PACK_URL"] = {
     EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
     timeout = 0, whileDead = true, hideOnEscape = true,
 }
-function MP.ShowUrl() StaticPopup_Show("OASIS_PACK_URL", L["Strg+C kopiert den Link - im Browser oeffnen:"]) end
+function MP.ShowUrl() StaticPopup_Show("OASIS_PACK_URL", L["Ctrl+C copies the link - open it in your browser:"]) end
 local function build(f)
     local H = ns.SettingsHelpers
     f.noCompact = true
-    local c = H.cardH(f, 0, 0, 740, 150, "smile", L["Eigene Emojis & Sounds fuer deine Gilde"])
+    local c = H.cardH(f, 0, 0, 740, 150, "smile", L["Custom emojis & sounds for your guild"])
     f.how = K.Text(c, 12, C.text)
     f.how:SetPoint("TOPLEFT", 14, -48) f.how:SetPoint("RIGHT", -14, 0)
     f.how:SetJustifyH("LEFT") f.how:SetWordWrap(true) f.how:SetSpacing(4)
-    f.how:SetText(L["1. Auf der Webseite Bilder und Sounds hineinziehen - alles passiert in deinem Browser.\n2. Gildenpaket herunterladen und in den AddOns-Ordner entpacken, WoW neu starten.\n3. Die ZIP in eurem Discord teilen - alle in der Gilde entpacken sie genauso."])
-    f.go = K.Button(c, L["Link zur Bau-Seite"], 180, 26, "primary", MP.ShowUrl)
+    f.how:SetText(L["1. Drop images and sounds onto the website - everything happens in your browser.\n2. Download the guild pack, unpack it into the AddOns folder, restart WoW.\n3. Share the ZIP in your Discord - everyone in the guild unpacks it the same way."])
+    f.go = K.Button(c, L["Link to the builder"], 180, 26, "primary", MP.ShowUrl)
     f.go:SetPoint("BOTTOMLEFT", 14, 14)
     f.url = K.Text(c, 12, C.muted) f.url:SetPoint("LEFT", f.go, "RIGHT", 12, 0) f.url:SetText(MP.URL)
-    local s = H.cardH(f, 0, -164, 740, 196, "checklist", L["Dein Stand"])
+    local s = H.cardH(f, 0, -164, 740, 196, "checklist", L["Your status"])
     f.state = K.Text(s, 12, C.text)
     f.state:SetPoint("TOPLEFT", 14, -48) f.state:SetPoint("RIGHT", -14, 0)
     f.state:SetJustifyH("LEFT") f.state:SetWordWrap(true) f.state:SetSpacing(5)
-    f.pub = K.Button(s, L["Als offizielles Gildenpaket freigeben"], 270, 24, "ghost", function()
-        if MP.Publish() then K.Toast(L["Gildenpaket"], L["Freigegeben: Version, Inhalt und Rangsperren gelten jetzt fuer die ganze Gilde."], C.mint) end
+    f.pub = K.Button(s, L["Release as official guild pack"], 270, 24, "ghost", function()
+        if MP.Publish() then K.Toast(L["Guild pack"], L["Released: version, content and rank locks now apply to the whole guild."], C.mint) end
         ns.RefreshPage("settings")
     end)
     f.pub:SetPoint("BOTTOMLEFT", 14, 14)
@@ -237,25 +237,25 @@ local function refresh(f)
     local m, o = MP.Mine(), MP.Official()
     local lines = {}
     if m then
-        lines[#lines + 1] = (L["Installiert: Gildenpaket %s, Version %d (%s) - %d Emojis, %d Sounds"]):format(m.guild, m.v, m.made, m.emojis, m.sounds)
+        lines[#lines + 1] = (L["Installed: guild pack %s, version %d (%s) - %d emojis, %d sounds"]):format(m.guild, m.v, m.made, m.emojis, m.sounds)
     elseif MP.LegacyInstalled() then
-        lines[#lines + 1] = L["Installiert: eigene Emojis/Sounds ohne Versionsangabe (altes Import-Skript). Mit der Bau-Seite neu bauen, dann sieht die Gilde die Version."]
+        lines[#lines + 1] = L["Installed: custom emojis/sounds without a version (old import script). Rebuild them on the builder so the guild sees the version."]
     else
-        lines[#lines + 1] = "|cff888888" .. L["Kein Gildenpaket installiert."] .. "|r"
+        lines[#lines + 1] = "|cff888888" .. L["No guild pack installed."] .. "|r"
     end
     if o then
         local same = m and m.v == o.v and MP.Fingerprint() == o.fp
         local col = same and "|cff66db9e" or "|cffe8b44a"
-        lines[#lines + 1] = col .. (L["Offiziell freigegeben: Version %d (von %s, %s)"]):format(o.v, ns.short(o.by or "?"), o.made or "") .. "|r"
-        if not same then lines[#lines + 1] = (m and m.v == o.v) and L["Dein Paket hat einen anderen Inhalt als das offizielle - hol dir die ZIP von der Gildenleitung."]
-            or L["Frag die Leitung nach der neuen ZIP, entpacke sie in den AddOns-Ordner und starte WoW neu."] end
+        lines[#lines + 1] = col .. (L["Officially released: version %d (by %s, %s)"]):format(o.v, ns.short(o.by or "?"), o.made or "") .. "|r"
+        if not same then lines[#lines + 1] = (m and m.v == o.v) and L["Your pack differs from the official one - get the ZIP from the guild leadership."]
+            or L["Ask the leadership for the new ZIP, unpack it into the AddOns folder and restart WoW."] end
     else
-        lines[#lines + 1] = "|cff888888" .. L["Die Gildenleitung hat noch kein Paket freigegeben."] .. "|r"
+        lines[#lines + 1] = "|cff888888" .. L["The guild leadership hasn't released a pack yet."] .. "|r"
     end
-    lines[#lines + 1] = "|cff888888" .. L["Rangsperren gelten nach der Freigabe der Leitung - Aendern der eigenen Dateien hebt sie nicht auf. Ohne Paket erscheinen Emojis als :code:, eigene Sounds als Standardton."] .. "|r"
+    lines[#lines + 1] = "|cff888888" .. L["Rank locks follow the leadership's release - editing your own files does not lift them. Without the pack, emojis show as :code: and custom sounds as the default sound."] .. "|r"
     f.state:SetText(table.concat(lines, "\n"))
     f.pub:SetShown(m ~= nil and MP.CanPublish() and IsInGuild())
 end
-if ns.AddSettingsTab then ns.AddSettingsTab("ownmedia", "Emojis & Sounds", build, refresh) end
+if ns.AddSettingsTab then ns.AddSettingsTab("ownmedia", "Emojis & sounds", build, refresh) end
 ns.slash.paket = function() MP.ShowUrl() end
 ns.slash.studio = ns.slash.paket

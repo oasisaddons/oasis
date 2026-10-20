@@ -73,7 +73,7 @@ function P.Share(force)
     if rec.ses then rec.ses = math.floor(rec.ses * 1000 + 0.5) / 1000 end
     Store.Put(COLL, rec)
     P.lastShare = GetTime()
-    if force then ns.print(L["Leistung gesendet."]) end
+    if force then ns.print(L["Performance sent."]) end
 end
 function P.AddonCount()
     local GetNum = (C_AddOns and C_AddOns.GetNumAddOns) or GetNumAddOns
@@ -105,7 +105,7 @@ function P.RequestAll()
     if ns.Comm and ns.Comm.Guild then ns.Comm.Guild("PERFREQ") end
     P.reqAt = nil
     ns.After(60, function() pcall(P.Share) end)
-    K.Toast(L["Leistung"], L["Alle Oasis-Nutzer messen jetzt 60 Sekunden und schicken das Ergebnis."], C.accent)
+    K.Toast(L["Performance"], L["All Oasis users now measure for 60 seconds and send the result."], C.accent)
 end
 -- Rechte: nur der eigene Datensatz
 local function installAuth()
@@ -142,7 +142,7 @@ ns.Listen("LOGIN", function()
             for k, v in pairs(cfg) do c[k] = v end
             c.emLock = true
             pcall(A.Save, c)
-            ns.print(L["Emojis und Sounds gibt es jetzt erst ab dem passenden Oasis-Rang."])
+            ns.print(L["Emojis and sounds now unlock with the matching Oasis rank."])
         end
     end)
 end)
@@ -179,54 +179,54 @@ end
 -- Spalten der Leistungstabelle: Schluessel, Ueberschrift, x, Breite, rechtsbuendig
 local COLS = {
     { k = "name", t = "Name", x = 14, w = 170 },
-    { k = "avg", t = "ms/Bild", x = 190, w = 62, r = true },
-    { k = "cav", t = "im Kampf", x = 256, w = 66, r = true },
-    { k = "peak", t = "Spitze", x = 326, w = 58, r = true },
+    { k = "avg", t = "ms/frame", x = 190, w = 62, r = true },
+    { k = "cav", t = "in a fight", x = 256, w = 66, r = true },
+    { k = "peak", t = "Peak", x = 326, w = 58, r = true },
     { k = "fps", t = "FPS", x = 388, w = 44, r = true },
-    { k = "mem", t = "Speicher", x = 436, w = 70, r = true },
+    { k = "mem", t = "Memory", x = 436, w = 70, r = true },
     -- 0.5.671: Spalte "Module" weg (seit 0.5.580 ein einziger Ordner, immer 0)
     { k = "v", t = "Version", x = 524, w = 70 },
     { k = "t", t = "gemessen", x = 608, w = 90 },
 }
 local ROWS = 16
 ns.RegisterPage({
-    key = "dev", title = "Entwickler", order = 98.5,
-    sub = "Freischaltungen, Werkzeuge und Leistung der Mitglieder",
+    key = "dev", title = "Developer", order = 98.5,
+    sub = "Unlocks, tools and member performance",
     visible = function() return ns.IsDev and ns.IsDev() or false end,
     build = function(p)
         p.sortKey, p.sortDesc = "avg", true
         -- Freischaltungen (links oben)
-        local a = devCard(p, "star_on", L["Freischaltungen"], L["Emojis und Sounds fuer die Gilde oder nur fuer dich"])
+        local a = devCard(p, "star_on", L["Unlocks"], L["Emojis and sounds for the guild or just for you"])
         a:SetPoint("TOPLEFT", 0, 0)
         a:SetPoint("RIGHT", p, "CENTER", -7, 0)
         a:SetHeight(160)
-        p.lock = K.Toggle(a, L["Emojis & Sounds erst ab Oasis-Rang (Gilde)"], function() local c = guildCfg() return c and c.emLock == true or false end, function(v)
+        p.lock = K.Toggle(a, L["Emojis & sounds only from Oasis rank (guild)"], function() local c = guildCfg() return c and c.emLock == true or false end, function(v)
             local cfg = guildCfg()
             if not cfg then return end
             local c = {}
             for k, x in pairs(cfg) do c[k] = x end
             c.emLock = v and true or false
-            if not ns.Admin.Save(c) then K.Toast(L["Freischaltungen"], L["Nur die Gildenleitung kann das aendern."], C.amber or C.accent) end
+            if not ns.Admin.Save(c) then K.Toast(L["Unlocks"], L["Only the guild leadership can change this."], C.amber or C.accent) end
         end)
         p.lock:SetPoint("TOPLEFT", 14, -58)
         p.lock:SetWidth(320)
-        p.mine = K.Toggle(a, L["Fuer mich alles freischalten"], function() return ns.db.settings.unlockAll == true end, function(v) ns.db.settings.unlockAll = v and true or nil end)
+        p.mine = K.Toggle(a, L["Unlock everything for me"], function() return ns.db.settings.unlockAll == true end, function(v) ns.db.settings.unlockAll = v and true or nil end)
         p.mine:SetPoint("TOPLEFT", 14, -88)
         p.mine:SetWidth(320)
         -- Werkzeuge (rechts oben)
-        local w = devCard(p, "settings", L["Werkzeuge"], L["Diagnose und Abgleich"])
+        local w = devCard(p, "settings", L["Tools"], L["Diagnostics and sync"])
         w:SetPoint("TOPRIGHT", 0, 0)
         w:SetPoint("LEFT", p, "CENTER", 7, 0)
         w:SetHeight(160)
         local tools = {
             -- 0.6.534: Fehlerberichte direkt erreichbar (vorher nur Rechtsklick auf das Kaefer-Symbol bzw. Reiter)
-            { L["Fehlerberichte"], function() ns.ShowPage("bugs") end, true },
-            { L["Fehler melden"], function() if ns.slash.bug then ns.slash.bug() end end },
-            { L["Blockiert-Protokoll"], function() if ns.slash.fehler then ns.slash.fehler() end end },
-            { L["Leistung messen (60 s)"], function() if ns.slash.leistung then ns.slash.leistung("60") end end },
-            { L["Blizzard-Pruefung"], function() if ns.probes and ns.probes.blizz then ns.probes.blizz() end end },
-            { L["Talent-Symbole lernen"], function() if ns.slash.talentsymbole then ns.slash.talentsymbole() end end },
-            { L["Jetzt abgleichen"], function() if ns.Comm and ns.Comm.RequestSync then ns.Comm.RequestSync(true) end end },
+            { L["Bug reports"], function() ns.ShowPage("bugs") end, true },
+            { L["Report a bug"], function() if ns.slash.bug then ns.slash.bug() end end },
+            { L["Blocked log"], function() if ns.slash.fehler then ns.slash.fehler() end end },
+            { L["Measure performance (60 s)"], function() if ns.slash.leistung then ns.slash.leistung("60") end end },
+            { L["Blizzard check"], function() if ns.probes and ns.probes.blizz then ns.probes.blizz() end end },
+            { L["Learn talent icons"], function() if ns.slash.talentsymbole then ns.slash.talentsymbole() end end },
+            { L["Sync now"], function() if ns.Comm and ns.Comm.RequestSync then ns.Comm.RequestSync(true) end end },
         }
         p.tools = {}
         for i, t in ipairs(tools) do
@@ -246,10 +246,10 @@ ns.RegisterPage({
         w:SetScript("OnSizeChanged", layoutTools)
         layoutTools()
         -- Leistung der Mitglieder (volle Breite)
-        local t = devCard(p, "stats", L["Leistung der Mitglieder"], L["Oasis-Rechenzeit je Bild bei jedem Mitglied - gruen gut, gelb mittel, rot hoch"])
+        local t = devCard(p, "stats", L["Member performance"], L["Oasis CPU time per frame for each member - green good, yellow medium, red high"])
         t:SetPoint("TOPLEFT", 0, -174)
         t:SetPoint("BOTTOMRIGHT", 0, 0)
-        p.req = K.Button(t, L["Alle jetzt messen"], 150, 24, "primary", function() P.RequestAll() end)
+        p.req = K.Button(t, L["Measure everyone now"], 150, 24, "primary", function() P.RequestAll() end)
         p.req:SetPoint("TOPRIGHT", -14, -12)
         p.heads = {}
         for _, c in ipairs(COLS) do
@@ -297,7 +297,7 @@ ns.RegisterPage({
         end
         p.empty = K.Text(t, 12, C.dim)
         p.empty:SetPoint("TOPLEFT", 14, -84)
-        p.empty:SetText(L["Noch keine Daten - Mitglieder schicken ihre Messung alle 15 Min (ab dieser Version)."])
+        p.empty:SetText(L["No data yet - members send their measurement every 15 min (from this version)."])
         p.more = K.Text(t, 10, C.dim)
         p.more:SetPoint("BOTTOMLEFT", 14, 10)
     end,
@@ -305,7 +305,7 @@ ns.RegisterPage({
         -- 0.6.534: Zahl der neuen Fehlerberichte am Knopf
         if p.bugsBtn then
             local n = ns.Bugs and ns.Bugs.NewCount and ns.Bugs.NewCount() or 0
-            p.bugsBtn:SetLabel(L["Fehlerberichte"] .. (n > 0 and ("  (" .. n .. ")") or ""))
+            p.bugsBtn:SetLabel(L["Bug reports"] .. (n > 0 and ("  (" .. n .. ")") or ""))
         end
         if p.lock then p.lock:Refresh() p.mine:Refresh() end
         local list = Store.List(COLL)
@@ -366,7 +366,7 @@ ns.RegisterPage({
                 r.bar:SetWidth(math.max(1, COLS[2].w * math.min(1, avg / maxAvg)))
             end
         end
-        p.more:SetText(#list > ROWS and (L["+%d weitere"]):format(#list - ROWS) or "")
+        p.more:SetText(#list > ROWS and (L["+%d more"]):format(#list - ROWS) or "")
     end,
 })
 end)

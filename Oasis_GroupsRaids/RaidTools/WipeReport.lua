@@ -97,21 +97,21 @@ if not ns._ProbesHooked then
         local keys = {}
         for k in pairs(ns.Probes) do keys[#keys + 1] = k end
         table.sort(keys)
-        ns.print(L["Probe-Themen: "] .. table.concat(keys, ", "))
+        ns.print(L["Probe topics: "] .. table.concat(keys, ", "))
     end
 end
 
 local function S() return ns.db.settings end
 local function shareOn() return S().wrShare ~= false end
 ns.AddPageSettings("wipes", function(det, y)
-    local t = K.Toggle(det, L["Kampfberichte mit der Gilde teilen"], function() return shareOn() end, function(v) S().wrShare = v end,
-        L["Nach jedem Bosskampf: Dauer, Tode, Boss-Leben, Schaden/Heilung (falls lesbar)"])
+    local t = K.Toggle(det, L["Share fight reports with the guild"], function() return shareOn() end, function(v) S().wrShare = v end,
+        L["After every boss fight: duration, deaths, boss health, damage/healing (if readable)"])
     t:SetPoint("TOPLEFT", 14, y)
     t:SetWidth(600)
     det.t[#det.t + 1] = t
     y = y - 46
-    local t2 = K.Toggle(det, L["Kurze Zusammenfassung im Chatfenster"], function() return S().wrPrint == true end, function(v) S().wrPrint = v end,
-        L["Nur fuer dich: nach dem Kampf eine Zeile mit Dauer und erstem Tod"])
+    local t2 = K.Toggle(det, L["Short summary in the chat window"], function() return S().wrPrint == true end, function(v) S().wrPrint = v end,
+        L["Just for you: one line with duration and first death after the fight"])
     t2:SetPoint("TOPLEFT", 14, y)
     t2:SetWidth(600)
     det.t[#det.t + 1] = t2
@@ -417,7 +417,7 @@ local function finishFight(success)
     rec = storeReport(rec)
     ns.RefreshPage("wipes")
     if S().wrPrint then
-        ns.print((L["Kampfbericht %s: %s, %s, erster Tod: %s"]):format(f.boss, success == true and L["Besiegt"] or success == false and L["Wipe"] or L["Ende"],
+        ns.print((L["Fight report %s: %s, %s, first death: %s"]):format(f.boss, success == true and L["Kill"] or success == false and L["Wipe"] or L["End"],
             WR.FmtDur(dur), first and ns.displayName(first) or "-"))
     end
     -- eigener Tod: kleine Meldung an alle (exakte Zeit fuer die Reihenfolge)
@@ -541,11 +541,11 @@ function WR.Patterns(list)
     end
     local out = {}
     for name, c in pairs(firsts) do
-        if c >= 2 then out[#out + 1] = { w = c * 10 + 1, text = (L["%s stirbt %dx als Erster"]):format(ns.displayName(name), c), name = name } end
+        if c >= 2 then out[#out + 1] = { w = c * 10 + 1, text = (L["%s dies first %dx"]):format(ns.displayName(name), c), name = name } end
     end
     for name, c in pairs(deaths) do
         if n >= 3 and c >= math.max(3, math.ceil(n * 0.6)) then
-            out[#out + 1] = { w = c, text = (L["%s stirbt in %d von %d Versuchen"]):format(ns.displayName(name), c, n), name = name }
+            out[#out + 1] = { w = c, text = (L["%s dies in %d of %d attempts"]):format(ns.displayName(name), c, n), name = name }
         end
     end
     table.sort(out, function(a, b) return a.w > b.w end)
@@ -559,10 +559,10 @@ function WR.SeedDemo()
     local now = ns.now()
     local base = now - 2 * 86400
     local runs = {
-        { "Onyxia", "Onyxias Hort", 0, 212, false, 38.5, "Zul'mira~41.2~self|Hoknar~63.0~msg|Mokrash~88.4~poll|Yenzi~131.9~log" },
-        { "Onyxia", "Onyxias Hort", 600, 274, false, 21.0, "Zul'mira~38.7~msg|Drogbar~150.2~log|Hoknar~171.0~poll|Nakira~250.5~msg" },
-        { "Onyxia", "Onyxias Hort", 1300, 301, false, 9.4, "Zul'mira~44.1~self|Yenzi~190.3~msg|Hoknar~299.0~after" },
-        { "Onyxia", "Onyxias Hort", 2000, 318, true, 0, "Mokrash~120.0~poll|Yenzi~201.5~msg" },
+        { "Onyxia", "Onyxia's Lair", 0, 212, false, 38.5, "Zul'mira~41.2~self|Hoknar~63.0~msg|Mokrash~88.4~poll|Yenzi~131.9~log" },
+        { "Onyxia", "Onyxia's Lair", 600, 274, false, 21.0, "Zul'mira~38.7~msg|Drogbar~150.2~log|Hoknar~171.0~poll|Nakira~250.5~msg" },
+        { "Onyxia", "Onyxia's Lair", 1300, 301, false, 9.4, "Zul'mira~44.1~self|Yenzi~190.3~msg|Hoknar~299.0~after" },
+        { "Onyxia", "Onyxia's Lair", 2000, 318, true, 0, "Mokrash~120.0~poll|Yenzi~201.5~msg" },
         { "Archimonde", "Hyjal", 86400, 402, false, 54.0, "Tavira~95.0~msg|Grukthar~140.0~self|Hoknar~141.5~log" },
         { "Archimonde", "Hyjal", 87200, 377, false, 47.5, "Hoknar~80.3~msg|Tavira~102.4~poll|Nakira~330.0~msg" },
     }
@@ -585,14 +585,14 @@ end
 -- Kopf-Karte, Verlauf aller Versuche (Balken), Zeitstrahl der Tode, Schaden/Heilung und Mustern
 ------------------------------------------------------------------------
 local DOT = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
-local SRC_TEXT = { self = "selbst gemeldet", msg = "per Oasis gemeldet", log = "Kampflog", poll = "beobachtet (ca.)", after = "nach dem Kampf tot" }
+local SRC_TEXT = { self = "self-reported", msg = "reported via Oasis", log = "combat log", poll = "observed (approx.)", after = "dead after the fight" }
 local CHART_H = 70
 local function animOn() return not (ns.db and ns.db.settings and ns.db.settings.noAnim) end
 local function glyph(n) return ns.MEDIA .. "icons\\" .. n end
 local function resultText(r)
-    if r.ok == true then return "|cff66db9e" .. L["Besiegt"] .. "|r" end
+    if r.ok == true then return "|cff66db9e" .. L["Kill"] .. "|r" end
     if r.ok == false then return "|cffe64047" .. L["Wipe"] .. "|r" end
-    return "|cff9a9aa0" .. L["Ende"] .. "|r"
+    return "|cff9a9aa0" .. L["End"] .. "|r"
 end
 local function resultCol(r) return r.ok == true and C.mint or r.ok == false and C.red or C.dim end
 -- Fortschritt eines Versuchs (0..1): Sieg = 1, sonst verlorenes Boss-Leben
@@ -658,8 +658,8 @@ local function buildDetail(p, ct)
     hd.sub:SetPoint("RIGHT", hd, "RIGHT", -14, 0)
     hd.sub:SetWordWrap(false)
     hd.stats = {
-        newStat(hd, L["Dauer"], C.blue), newStat(hd, L["Tote"], C.red),
-        newStat(hd, L["Boss-Leben"], C.amber), newStat(hd, L["Erster Tod"], C.pink),
+        newStat(hd, L["Duration"], C.blue), newStat(hd, L["Deaths"], C.red),
+        newStat(hd, L["Boss health"], C.amber), newStat(hd, L["First death"], C.pink),
     }
     function hd:Layout(w)
         local inner = w - 28
@@ -676,7 +676,7 @@ local function buildDetail(p, ct)
     -- b) Verlauf aller Versuche
     local ch = U.Card(ct, C.amber)
     p.chart = ch
-    ch.head = K.GameHead(ch, L["Verlauf aller Versuche"], C.amber)
+    ch.head = K.GameHead(ch, L["All attempts"], C.amber)
     ch.head:SetPoint("TOPLEFT", 14, -12)
     ch.head:SetPoint("RIGHT", ch, "RIGHT", -14, 0)
     ch.base = ch:CreateTexture(nil, "ARTWORK")
@@ -706,9 +706,9 @@ local function buildDetail(p, ct)
             local r = s.run
             if not r then return end
             local ds = WR.DecodeDeaths(r.deaths)
-            K.ShowTip(s, { (L["Versuch %d"]):format(r._nr or 0) .. "  ·  " .. resultText(r),
-                ns.fmtDate(r.ts) .. "  ·  " .. WR.FmtDur(r.dur) .. "  ·  " .. (L["%d Tote"]):format(#ds),
-                (r.ok ~= true and r.hp) and (L["Boss bei %.1f%%"]):format(r.hp) or nil })
+            K.ShowTip(s, { (L["Attempt %d"]):format(r._nr or 0) .. "  ·  " .. resultText(r),
+                ns.fmtDate(r.ts) .. "  ·  " .. WR.FmtDur(r.dur) .. "  ·  " .. (L["%d deaths"]):format(#ds),
+                (r.ok ~= true and r.hp) and (L["Boss at %.1f%%"]):format(r.hp) or nil })
         end)
         b:SetScript("OnLeave", function() GameTooltip:Hide() end)
         self.bars[i] = b
@@ -717,7 +717,7 @@ local function buildDetail(p, ct)
     -- c) Zeitstrahl der Tode
     local tl = U.Card(ct, C.red)
     p.tl = tl
-    tl.head = K.GameHead(tl, L["Zeitstrahl der Tode"], C.red)
+    tl.head = K.GameHead(tl, L["Death timeline"], C.red)
     tl.head:SetPoint("TOPLEFT", 14, -12)
     tl.head:SetPoint("RIGHT", tl, "RIGHT", -14, 0)
     tl.bar = CreateFrame("Frame", nil, tl)
@@ -730,7 +730,7 @@ local function buildDetail(p, ct)
     tl.t1 = K.Text(tl, 10, C.dim, "RIGHT")
     tl.marks, tl.rows = {}, {}
     tl.none = K.Text(tl, 12, C.mint)
-    tl.none:SetText(L["Niemand gestorben - sauber gespielt."])
+    tl.none:SetText(L["Nobody died – clean run."])
     function tl:Mark(i)
         local m = self.marks[i]
         if m then return m end
@@ -777,16 +777,16 @@ local function buildDetail(p, ct)
     -- d) Schaden / Heilung
     local mt = U.Card(ct, C.blue)
     p.mt = mt
-    mt.head = K.GameHead(mt, L["Schaden & Heilung"], C.blue)
+    mt.head = K.GameHead(mt, L["Damage & healing"], C.blue)
     mt.head:SetPoint("TOPLEFT", 14, -12)
     mt.head:SetPoint("RIGHT", mt, "RIGHT", -14, 0)
     mt.none = K.Text(mt, 11, C.dim)
     mt.none:SetWordWrap(true)
-    mt.none:SetText(L["Schaden/Heilung: nicht lesbar oder nicht uebertragen."])
+    mt.none:SetText(L["Damage/healing: not readable or not transmitted."])
     mt.cols = {}
     for k = 1, 2 do
         local col = { lab = K.Text(mt, 10, C.dim), lines = {} }
-        col.lab:SetText(K.Upper(L[k == 1 and "Schaden" or "Heilung"]))
+        col.lab:SetText(K.Upper(L[k == 1 and "Damage" or "Healing"]))
         for j = 1, 5 do
             local ln = CreateFrame("Frame", nil, mt)
             ln:SetHeight(18)
@@ -807,7 +807,7 @@ local function buildDetail(p, ct)
     -- e) Muster
     local pt = U.Card(ct, C.pink)
     p.pt = pt
-    pt.head = K.GameHead(pt, L["Muster"], C.pink)
+    pt.head = K.GameHead(pt, L["Patterns"], C.pink)
     pt.head:SetPoint("TOPLEFT", 14, -12)
     pt.head:SetPoint("RIGHT", pt, "RIGHT", -14, 0)
     pt.lines = {}
@@ -827,7 +827,7 @@ local function buildDetail(p, ct)
     end
     pt.none = K.Text(pt, 11, C.dim)
     pt.none:SetWordWrap(true)
-    pt.none:SetText(L["Noch kein Muster - dafuer braucht es mehrere Versuche."])
+    pt.none:SetText(L["No pattern yet – that needs several attempts."])
 end
 
 -- Detail fuellen + anordnen (Breite dw); liefert die Inhaltshoehe
@@ -841,14 +841,14 @@ local function fillDetail(p, b, r, dw, anim)
     hd:SetColor(resultCol(r))
     hd.title:SetText(r.boss or "?")
     local rc = resultCol(r)
-    hd.pill:Set(r.ok == true and L["Besiegt"] or r.ok == false and L["Wipe"] or L["Ende"], rc)
-    hd.sub:SetText((L["Versuch %d"]):format(r._nr or 0) .. "  ·  " .. ns.fmtWhen(r.ts or 0) .. (((r.inst or "") ~= "") and ("  ·  " .. r.inst) or "")
-        .. ((tonumber(r.size) or 0) > 0 and ("  ·  " .. (L["%d Spieler"]):format(r.size)) or ""))
+    hd.pill:Set(r.ok == true and L["Kill"] or r.ok == false and L["Wipe"] or L["End"], rc)
+    hd.sub:SetText((L["Attempt %d"]):format(r._nr or 0) .. "  ·  " .. ns.fmtWhen(r.ts or 0) .. (((r.inst or "") ~= "") and ("  ·  " .. r.inst) or "")
+        .. ((tonumber(r.size) or 0) > 0 and ("  ·  " .. (L["%d players"]):format(r.size)) or ""))
     local ds = WR.DecodeDeaths(r.deaths)
     local first = ds[1] and ds[1].t and ds[1].n
     hd.stats[1].val:SetText(WR.FmtDur(r.dur))
     if anim and animOn() and #ds > 0 then K.CountUp(hd.stats[2].val, #ds, 0.5) else hd.stats[2].val:SetText(#ds) end
-    hd.stats[3].val:SetText(r.ok == true and ("|cff66db9e" .. L["Besiegt"] .. "|r") or (r.hp and ("%.1f%%"):format(r.hp)) or "-")
+    hd.stats[3].val:SetText(r.ok == true and ("|cff66db9e" .. L["Kill"] .. "|r") or (r.hp and ("%.1f%%"):format(r.hp)) or "-")
     hd.stats[4].val:SetText(first and coloredName(first) or "-")
     local hh = hd:Layout(dw)
     place(ct, "head", hd, 0, y, dw, hh)
@@ -897,11 +897,11 @@ local function fillDetail(p, b, r, dw, anim)
     ch.base:ClearAllPoints()
     ch.base:SetPoint("TOPLEFT", ch, "TOPLEFT", 14, by - CHART_H)
     ch.base:SetWidth(inner)
-    ch.head:SetCount((L["%d Versuche, %d Siege"]):format(b.n, b.kills))
+    ch.head:SetCount((L["%d attempts, %d kills"]):format(b.n, b.kills))
     ch.hint:ClearAllPoints()
     ch.hint:SetPoint("TOPLEFT", ch, "TOPLEFT", 14, by - CHART_H - 18)
     ch.hint:SetWidth(inner)
-    ch.hint:SetText((from > 1 and ((L["die letzten %d"]):format(shown) .. "  ·  ") or "") .. L["Hoehe = geschafftes Boss-Leben, Klick waehlt den Versuch"])
+    ch.hint:SetText((from > 1 and ((L["last %d"]):format(shown) .. "  ·  ") or "") .. L["Height = boss health taken down, click selects the attempt"])
     local chH = -by + CHART_H + 36
     place(ct, "chart", ch, 0, y, dw, chH)
     y = y - chH - 10
@@ -928,7 +928,7 @@ local function fillDetail(p, b, r, dw, anim)
             m:ClearAllPoints()
             local px = math.max(6, math.min(inner - 6, inner * math.min(1, x.t / dur)))
             m:SetPoint("CENTER", tl.bar, "LEFT", px, 0)
-            m.tip = { coloredName(x.n), WR.FmtDur(x.t) .. "  ·  " .. L[SRC_TEXT[x.src] or "-"] .. (i == 1 and ("  ·  |cffe64047" .. L["erster Tod"] .. "|r") or "") }
+            m.tip = { coloredName(x.n), WR.FmtDur(x.t) .. "  ·  " .. L[SRC_TEXT[x.src] or "-"] .. (i == 1 and ("  ·  |cffe64047" .. L["first death"] .. "|r") or "") }
             m:Show()
             if anim and animOn() then
                 m:SetAlpha(0)
@@ -951,7 +951,7 @@ local function fillDetail(p, b, r, dw, anim)
             row.nr:SetText(i .. ".")
             row.t:SetText(x.t and WR.FmtDur(x.t) or "?")
             ns.RCUI.ClassIcon(row.cls, classOf(x.n))
-            row.name:SetText(coloredName(x.n) .. (i == 1 and x.t and ("  |cffe64047" .. L["erster Tod"] .. "|r") or ""))
+            row.name:SetText(coloredName(x.n) .. (i == 1 and x.t and ("  |cffe64047" .. L["first death"] .. "|r") or ""))
             row.name:SetWidth(math.max(60, inner - 92 - (showSrc and 130 or 4)))
             row.src:SetShown(showSrc)
             row.src:SetWidth(126)
@@ -1052,25 +1052,25 @@ local function fillDetail(p, b, r, dw, anim)
 end
 
 ns.RegisterPage({
-    key = "wipes", title = "Kampfberichte", order = 2.764,
-    sub = "Jeder Bossversuch: Dauer, Reihenfolge der Tode, Boss-Leben und wiederkehrende Muster",
+    key = "wipes", title = "Fight reports", order = 2.764,
+    sub = "Every boss attempt: duration, order of deaths, boss health and recurring patterns",
     build = function(p)
         local U = ns.RCUI
         p.rects = {}
         if not U then
             p.miss = K.Text(p, 13, C.dim, "CENTER")
             p.miss:SetPoint("CENTER")
-            p.miss:SetText(L["Raid-Check-Modul fehlt - diese Ansicht braucht seine Bausteine."])
+            p.miss:SetText(L["Raid check module missing – this view needs its building blocks."])
             return
         end
         -- 1) Kopf-Kacheln
         p.tiles = {}
-        for i, d in ipairs({ { "deaths", "Versuche", C.accent }, { "checklist", "Siege", C.mint },
-            { "raid", "Bestes Ergebnis", C.amber }, { "heart", "Tode je Versuch", C.red } }) do
+        for i, d in ipairs({ { "deaths", "Attempts", C.accent }, { "checklist", "wins", C.mint },
+            { "raid", "Best result", C.amber }, { "heart", "Deaths per attempt", C.red } }) do
             p.tiles[i] = K.HudTile(p, glyph(d[1]), L[d[2]], d[3])
         end
         -- 2) Boss-Liste (breit) bzw. Auswahlknopf (schmal)
-        p.bossHead = K.GameHead(p, L["Bosse"], C.accent)
+        p.bossHead = K.GameHead(p, L["Bosses"], C.accent)
         p.bosses = K.List(p, 56, function(l)
             local r = K.Row(l)
             r.name = K.Title(r, 13, C.text)
@@ -1099,7 +1099,7 @@ ns.RegisterPage({
             return r
         end, function(r, e)
             r.name:SetText(e.boss)
-            r.meta:SetText((L["%d Versuche, %d Siege"]):format(e.n, e.kills) .. ((e.inst or "") ~= "" and ("  ·  " .. e.inst) or ""))
+            r.meta:SetText((L["%d attempts, %d kills"]):format(e.n, e.kills) .. ((e.inst or "") ~= "" and ("  ·  " .. e.inst) or ""))
             r.check:SetShown(e.kills > 0)
             local best = 0
             for _, x in ipairs(e.list) do best = math.max(best, progressOf(x)) end
@@ -1113,10 +1113,10 @@ ns.RegisterPage({
         p.pick = K.Button(p, "", 200, 26, "ghost", function(self)
             local items = {}
             for _, x in ipairs(p.bossData or {}) do
-                items[#items + 1] = { text = x.boss .. "  |cff888888" .. (L["%d Versuche, %d Siege"]):format(x.n, x.kills) .. "|r", checked = x.boss == WR.selBoss,
+                items[#items + 1] = { text = x.boss .. "  |cff888888" .. (L["%d attempts, %d kills"]):format(x.n, x.kills) .. "|r", checked = x.boss == WR.selBoss,
                     fn = function() WR.selBoss, WR.selRun = x.boss, nil p.animRun = true ns.RefreshPage("wipes") end }
             end
-            K.ShowMenu(self, items, L["Boss waehlen"], 220)
+            K.ShowMenu(self, items, L["Choose boss"], 220)
         end)
         p.pick.isDropdown = true
         p.pick.label:ClearAllPoints()
@@ -1194,13 +1194,13 @@ ns.RegisterPage({
             for _, run in ipairs(x.list) do nDeaths = nDeaths + #WR.DecodeDeaths(run.deaths) end
         end
         local fresh = p.fresh and animOn()
-        p.tiles[1]:Set(nRuns, (L["%d Bosse"]):format(#bosses), nil, fresh)
-        p.tiles[2]:Set(nKills, nRuns > 0 and (L["%d%% Quote"]):format(math.floor(nKills / nRuns * 100 + 0.5)) or "", nRuns > 0 and nKills / nRuns or nil, fresh)
+        p.tiles[1]:Set(nRuns, (L["%d bosses"]):format(#bosses), nil, fresh)
+        p.tiles[2]:Set(nKills, nRuns > 0 and (L["%d%% rate"]):format(math.floor(nKills / nRuns * 100 + 0.5)) or "", nRuns > 0 and nKills / nRuns or nil, fresh)
         local bestTxt, bestSub, bestProg = "-", "", nil
         if b then
             local best = 0
             for _, x in ipairs(b.list) do best = math.max(best, progressOf(x)) end
-            if b.kills > 0 then bestTxt = L["Besiegt"]
+            if b.kills > 0 then bestTxt = L["Kill"]
             else
                 local hpMin
                 for _, x in ipairs(b.list) do local hp = tonumber(x.hp) if hp and (not hpMin or hp < hpMin) then hpMin = hp end end
@@ -1209,12 +1209,12 @@ ns.RegisterPage({
             bestSub, bestProg = b.boss, best
         end
         p.tiles[3]:Set(bestTxt, bestSub, bestProg, false)
-        p.tiles[4]:Set(nRuns > 0 and ("%.1f"):format(nDeaths / nRuns) or "-", L["im Schnitt"], nil, false)
+        p.tiles[4]:Set(nRuns > 0 and ("%.1f"):format(nDeaths / nRuns) or "-", L["on average"], nil, false)
         p.bosses:SetData(bosses)
-        p.pick:SetLabel(b and ("|cffa3a3a8" .. L["Boss"] .. ":|r " .. b.boss .. "  |cff888888" .. (L["%d Versuche, %d Siege"]):format(b.n, b.kills) .. "|r") or "")
+        p.pick:SetLabel(b and ("|cffa3a3a8" .. L["Boss"] .. ":|r " .. b.boss .. "  |cff888888" .. (L["%d attempts, %d kills"]):format(b.n, b.kills) .. "|r") or "")
         if not b then
-            p.empty:Set(L["Noch keine Kampfberichte. Nach dem ersten Bosskampf steht hier jeder Versuch - mit Zeitstrahl der Tode und wiederkehrenden Mustern."],
-                (ns.Demo and ns.Demo.Load and not demoOn()) and L["Beispiel ansehen"] or nil,
+            p.empty:Set(L["No combat reports yet. After the first boss fight every attempt shows up here – with a death timeline and recurring patterns."],
+                (ns.Demo and ns.Demo.Load and not demoOn()) and L["Show example"] or nil,
                 function() if ns.Demo and ns.Demo.Load then ns.Demo.Load() ns.RefreshPage("wipes") end end)
         end
         local anim = p.fresh or p.animRun or (p.lastR and r and p.lastR.id ~= r.id)
@@ -1249,13 +1249,13 @@ local function dump(v, depth, prefix, out)
     if n == 0 then out[#out + 1] = prefix .. " = {}" end
 end
 ns.Probes.kampf = function()
-    ns.print(L["Probe Kampf (C_DamageMeter):"])
+    ns.print(L["Probe fight (C_DamageMeter):"])
     local DM = C_DamageMeter
-    if type(DM) ~= "table" then ns.print("  C_DamageMeter: " .. L["nicht vorhanden"]) else
+    if type(DM) ~= "table" then ns.print("  C_DamageMeter: " .. L["not available"]) else
         local fns = {}
         for k, v in pairs(DM) do fns[#fns + 1] = k .. (type(v) == "function" and "()" or "") end
         table.sort(fns)
-        ns.print("  " .. L["Funktionen: "] .. table.concat(fns, ", "))
+        ns.print("  " .. L["Functions: "] .. table.concat(fns, ", "))
         for _, f in ipairs({ "IsDamageMeterAvailable", "GetAvailableCombatSessions" }) do
             if DM[f] then
                 local out = {}
@@ -1277,10 +1277,10 @@ ns.Probes.kampf = function()
             for _, l in ipairs(o2) do ns.print(l) end
         end
         local m = readMeter()
-        ns.print("  " .. L["Ausgewertet: "] .. (m and ((m.dmg and ("dmg=" .. m.dmg:sub(1, 120)) or "") .. " " .. (m.heal and ("heal=" .. m.heal:sub(1, 120)) or "")) or "-"))
+        ns.print("  " .. L["Parsed: "] .. (m and ((m.dmg and ("dmg=" .. m.dmg:sub(1, 120)) or "") .. " " .. (m.heal and ("heal=" .. m.heal:sub(1, 120)) or "")) or "-"))
     end
     ns.print("  CombatLogGetCurrentEventInfo: " .. tostring(CombatLogGetCurrentEventInfo ~= nil) .. "  issecretvalue: " .. tostring(issecretvalue ~= nil))
-    ns.print("  " .. L["Laufender Kampf: "] .. (cur and (cur.boss .. " " .. WR.FmtDur(GetTime() - cur.start)) or "-") .. "  Boss-HP: " .. tostring(bossHP()))
+    ns.print("  " .. L["Current fight: "] .. (cur and (cur.boss .. " " .. WR.FmtDur(GetTime() - cur.start)) or "-") .. "  Boss-HP: " .. tostring(bossHP()))
 end
 ns.Probes.combat = ns.Probes.kampf
 

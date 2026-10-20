@@ -100,7 +100,7 @@ if not ns._ProbesHooked then
         local keys = {}
         for k in pairs(ns.Probes) do keys[#keys + 1] = k end
         table.sort(keys)
-        ns.print(L["Probe-Themen: "] .. table.concat(keys, ", "))
+        ns.print(L["Probe topics: "] .. table.concat(keys, ", "))
     end
 end
 
@@ -108,47 +108,47 @@ end
 -- Daten: Widerstaende, Verbrauchsgueter, Profile
 ------------------------------------------------------------------------
 -- UnitResistance-Index: 1 Heilig, 2 Feuer, 3 Natur, 4 Frost, 5 Schatten, 6 Arkan
-local RES_NAME = { [1] = "Heilig", [2] = "Feuer", [3] = "Natur", [4] = "Frost", [5] = "Schatten", [6] = "Arkan" }
+local RES_NAME = { [1] = "Holy", [2] = "Fires", [3] = "Nature", [4] = "Frost", [5] = "Shadow", [6] = "Arcane" }
 RP.RES_NAME = RES_NAME
 
 -- Verbrauchsgueter je Rolle: ids = gleichwertige Alternativen (zusammengezaehlt), n = Sollmenge, opt = nur Empfehlung
 local BASE = {
     all = {
-        { ids = { 13446, 3928 }, n = 5, label = "Erheblicher Heiltrank" },
-        { ids = { 20452, 18254, 13931, 13928, 21023, 12218, 13929, 18045 }, n = 10, label = "Buff-Essen" },
+        { ids = { 13446, 3928 }, n = 5, label = "Major Healing Potion" },
+        { ids = { 20452, 18254, 13931, 13928, 21023, 12218, 13929, 18045 }, n = 10, label = "Buff food" },
     },
     tank = {
-        { ids = { 13445 }, n = 2, label = "Elixier der hoeheren Verteidigung" },
-        { ids = { 3825 }, n = 2, label = "Elixier der Seelenstaerke" },
-        { ids = { 5634 }, n = 1, label = "Trank der freien Aktion" },
-        { ids = { 13510 }, n = 1, label = "Flaeschchen der Titanen", opt = true },
+        { ids = { 13445 }, n = 2, label = "Elixir of Superior Defense" },
+        { ids = { 3825 }, n = 2, label = "Elixir of Fortitude" },
+        { ids = { 5634 }, n = 1, label = "Free Action Potion" },
+        { ids = { 13510 }, n = 1, label = "Flask of the Titans", opt = true },
     },
     melee = {
-        { ids = { 13452 }, n = 2, label = "Elixier des Mungos" },
-        { ids = { 9206 }, n = 2, label = "Elixier der Riesen" },
-        { ids = { 5634 }, n = 1, label = "Trank der freien Aktion", opt = true },
+        { ids = { 13452 }, n = 2, label = "Elixir of the Mongoose" },
+        { ids = { 9206 }, n = 2, label = "Elixir of Giants" },
+        { ids = { 5634 }, n = 1, label = "Free Action Potion", opt = true },
     },
     caster = {
-        { ids = { 13454 }, n = 2, label = "Grosses Arkanelixier" },
-        { ids = { 13444 }, n = 5, label = "Erheblicher Manatrank" },
-        { ids = { 13512 }, n = 1, label = "Flaeschchen der obersten Macht", opt = true },
+        { ids = { 13454 }, n = 2, label = "Greater Arcane Elixir" },
+        { ids = { 13444 }, n = 5, label = "Major Mana Potion" },
+        { ids = { 13512 }, n = 1, label = "Flask of Supreme Power", opt = true },
     },
     heal = {
-        { ids = { 13444 }, n = 5, label = "Erheblicher Manatrank" },
-        { ids = { 20007 }, n = 2, label = "Magiebluttrank" },
-        { ids = { 12662, 20520 }, n = 3, label = "Daemonische oder Dunkle Rune" },
-        { ids = { 13511 }, n = 1, label = "Flaeschchen der destillierten Weisheit", opt = true },
+        { ids = { 13444 }, n = 5, label = "Major Mana Potion" },
+        { ids = { 20007 }, n = 2, label = "Mageblood Potion" },
+        { ids = { 12662, 20520 }, n = 3, label = "Demonic or Dark Rune" },
+        { ids = { 13511 }, n = 1, label = "Flask of Distilled Wisdom", opt = true },
     },
 }
 -- Klassen-Reagenzien
 local REAGENTS = {
-    MAGE = { { ids = { 17020 }, n = 20, label = "Arkanes Pulver" }, { ids = { 17031 }, n = 2, label = "Rune der Teleportation", opt = true } },
-    PRIEST = { { ids = { 17029 }, n = 20, label = "Heilige Kerze" } },
-    DRUID = { { ids = { 17026 }, n = 10, label = "Wilde Dornwurzel" } },
-    PALADIN = { { ids = { 21177 }, n = 40, label = "Symbol der Koenige" }, { ids = { 17033 }, n = 2, label = "Symbol der Goettlichkeit", opt = true } },
+    MAGE = { { ids = { 17020 }, n = 20, label = "Arcane Powder" }, { ids = { 17031 }, n = 2, label = "Rune of Teleportation", opt = true } },
+    PRIEST = { { ids = { 17029 }, n = 20, label = "Holy Candle" } },
+    DRUID = { { ids = { 17026 }, n = 10, label = "Wild Thornroot" } },
+    PALADIN = { { ids = { 21177 }, n = 40, label = "Symbol of Kings" }, { ids = { 17033 }, n = 2, label = "Symbol of Divinity", opt = true } },
     SHAMAN = { { ids = { 17030 }, n = 3, label = "Ankh" } },
-    WARLOCK = { { ids = { 6265 }, n = 10, label = "Seelensplitter" }, { ids = { 5565 }, n = 1, label = "Hoellenstein", opt = true } },
-    ROGUE = { { ids = { 5140 }, n = 10, label = "Blitzpulver" }, { ids = { 8928 }, n = 20, label = "Sofort wirkendes Gift VI" } },
+    WARLOCK = { { ids = { 6265 }, n = 10, label = "Soul Shard" }, { ids = { 5565 }, n = 1, label = "Infernal Stone", opt = true } },
+    ROGUE = { { ids = { 5140 }, n = 10, label = "Flash Powder" }, { ids = { 8928 }, n = 20, label = "Instant Poison VI" } },
 }
 -- Raid-Profile: match = Suchworte in Termin-Titel/Instanz; res[schule] = { tank =, other = }
 -- keys = Item, das man besitzen muss (Bank zaehlt); gear = Item, das angelegt sein muss
@@ -157,15 +157,15 @@ RP.RAIDS = {
         res = {}, cons = {}, keys = {}, gear = {} },
     { key = "hyjal", name = "Hyjal", size = 20, match = { "hyjal" },
         res = { [2] = { tank = 120, other = 60 } },
-        cons = { all = { { ids = { 13457 }, n = 3, label = "Grosser Feuerschutztrank" } },
-                 tank = { { ids = { 13457 }, n = 5, label = "Grosser Feuerschutztrank" } } },
+        cons = { all = { { ids = { 13457 }, n = 3, label = "Greater Fire Protection Potion" } },
+                 tank = { { ids = { 13457 }, n = 5, label = "Greater Fire Protection Potion" } } },
         keys = {}, gear = {} },
-    { key = "onyxia", name = "Onyxias Hort", size = 40, match = { "onyx" },
+    { key = "onyxia", name = "Onyxia's Lair", size = 40, match = { "onyx" },
         res = { [2] = { tank = 150, other = 40 } },
-        cons = { all = { { ids = { 13457 }, n = 2, label = "Grosser Feuerschutztrank" } },
-                 tank = { { ids = { 13457 }, n = 4, label = "Grosser Feuerschutztrank" } } },
-        keys = { { id = 16309, label = "Drachenfeueramulett" } },
-        gear = { { id = 15138, label = "Onyxiaschuppenumhang" } } },
+        cons = { all = { { ids = { 13457 }, n = 2, label = "Greater Fire Protection Potion" } },
+                 tank = { { ids = { 13457 }, n = 4, label = "Greater Fire Protection Potion" } } },
+        keys = { { id = 16309, label = "Drakefire Amulet" } },
+        gear = { { id = 15138, label = "Onyxia Scale Cloak" } } },
 }
 RP.byKey = {}
 for _, r in ipairs(RP.RAIDS) do RP.byKey[r.key] = r end
@@ -179,7 +179,7 @@ for _, r in ipairs(RP.RAIDS) do
     regLabels(r.keys) regLabels(r.gear)
 end
 
-local ROLES = { { key = "tank", text = "Tank" }, { key = "heal", text = "Heiler" }, { key = "melee", text = "Nahkampf" }, { key = "caster", text = "Zauber-DD" } }
+local ROLES = { { key = "tank", text = "Tank" }, { key = "heal", text = "Healer" }, { key = "melee", text = "Melee" }, { key = "caster", text = "Caster DPS" } }
 local ROLE_TEXT = {}
 for _, r in ipairs(ROLES) do ROLE_TEXT[r.key] = r.text end
 local CASTER = { MAGE = true, WARLOCK = true }
@@ -191,14 +191,14 @@ local HEALER = { PRIEST = true, PALADIN = true, SHAMAN = true, DRUID = true }
 local function S() return ns.db.settings end
 local function shareOn() return S().rpShare ~= false end
 ns.AddPageSettings("raidprep", function(det, y)
-    local t = K.Toggle(det, L["Meinen Stand vor Raidterminen teilen"], function() return shareOn() end, function(v) S().rpShare = v end,
-        L["Ampel, Haltbarkeit, Widerstaende und was fehlt - hoechstens alle paar Minuten, nur am Tag des Termins"])
+    local t = K.Toggle(det, L["Share my status before raids"], function() return shareOn() end, function(v) S().rpShare = v end,
+        L["Traffic light, durability, resistances and what is missing – at most every few minutes, only on raid day"])
     t:SetPoint("TOPLEFT", 14, y)
     t:SetWidth(600)
     det.t[#det.t + 1] = t
     y = y - 46
-    local t2 = K.Toggle(det, L["Hinweis, wenn mir etwas fehlt"], function() return S().rpToast ~= false end, function(v) S().rpToast = v end,
-        L["Einmal am Termintag, wenn deine Ampel nicht gruen ist"])
+    local t2 = K.Toggle(det, L["Notify me when something is missing"], function() return S().rpToast ~= false end, function(v) S().rpToast = v end,
+        L["Once on raid day if your light is not green"])
     t2:SetPoint("TOPLEFT", 14, y)
     t2:SetWidth(600)
     det.t[#det.t + 1] = t2
@@ -331,11 +331,11 @@ local function lockoutMissing(profile)
             if ok then
                 if st == "locked" then
                     local u = r.unlock and type(LO.UNLOCK_BY) == "table" and LO.UNLOCK_BY[r.unlock]
-                    return { u and u.text and L[u.text] or (L["Freischaltung fuer %s"]):format(L[profile.name]) }
+                    return { u and u.text and L[u.text] or (L["Attunement for %s"]):format(L[profile.name]) }
                 elseif st == "low" then
-                    return { L["Stufe fuer diesen Raid"] }
+                    return { L["level for this raid"] }
                 elseif st == "bound" then
-                    return { L["schon gebunden (Raid-ID diese Woche)"] }
+                    return { L["already saved (raid ID this week)"] }
                 elseif st == "free" then
                     return {}
                 end
@@ -355,7 +355,7 @@ local function lockoutMissing(profile)
     for _, fname in ipairs({ "HasAccess", "IsAttuned", "HasKey" }) do
         if type(LO[fname]) == "function" then
             local ok, res = pcall(LO[fname], profile.key, profile.name)
-            if ok and res == false then return { (L["Freischaltung fuer %s"]):format(L[profile.name]) } end
+            if ok and res == false then return { (L["Attunement for %s"]):format(L[profile.name]) } end
             if ok and res == true then return {} end
         end
     end
@@ -455,12 +455,12 @@ function RP.MyState(profile, role)
     st.dura = low
     if low then
         if low < 30 then sev(2) st.codes[#st.codes + 1] = "d" .. low
-            line((L["Haltbarkeit: %d%% (reparieren!)"]):format(low), 2)
+            line((L["Durability: %d%% (repair!)"]):format(low), 2)
         elseif low < 70 then sev(1) st.codes[#st.codes + 1] = "d" .. low
-            line((L["Haltbarkeit: %d%% (reparieren)"]):format(low), 1)
-        else line((L["Haltbarkeit: %d%%"]):format(avg or low), 0, true) end
+            line((L["Durability: %d%% (repair)"]):format(low), 1)
+        else line((L["Durability: %d%%"]):format(avg or low), 0, true) end
     else
-        line(L["Haltbarkeit: nicht lesbar"], 0, true)
+        line(L["Durability: not readable"], 0, true)
     end
     if profile then
         -- Widerstaende
@@ -469,14 +469,14 @@ function RP.MyState(profile, role)
             local have = resistance(school)
             st.res[school] = have
             if have == nil then
-                line((L["%s-Widerstand: nicht lesbar"]):format(L[RES_NAME[school]]), 0, true)
+                line((L["%s resistance: not readable"]):format(L[RES_NAME[school]]), 0, true)
             elseif have < want then
                 local s = have < want / 2 and 2 or 1
                 sev(s)
                 st.codes[#st.codes + 1] = ("r%d:%d:%d"):format(school, want, have)
-                line((L["fehlt: %d %s-Widerstand (%d von %d)"]):format(want - have, L[RES_NAME[school]], have, want), s)
+                line((L["missing: %d %s resistance (%d of %d)"]):format(want - have, L[RES_NAME[school]], have, want), s)
             else
-                line((L["%s-Widerstand: %d (Ziel %d)"]):format(L[RES_NAME[school]], have, want), 0, true)
+                line((L["%s resistance: %d (goal %d)"]):format(L[RES_NAME[school]], have, want), 0, true)
             end
         end
         -- Pflicht-Ausruestung
@@ -485,9 +485,9 @@ function RP.MyState(profile, role)
             if eq == false then
                 sev(2)
                 st.codes[#st.codes + 1] = "g" .. g.id
-                line((L["fehlt: %s angelegt"]):format(L[g.label]), 2)
+                line((L["missing: %s equipped"]):format(L[g.label]), 2)
             elseif eq then
-                line((L["%s angelegt"]):format(L[g.label]), 0, true)
+                line((L["%s equipped"]):format(L[g.label]), 0, true)
             end
         end
         -- Schluessel / Freischaltungen
@@ -496,20 +496,20 @@ function RP.MyState(profile, role)
             for _, t in ipairs(lo) do
                 sev(2)
                 st.codes[#st.codes + 1] = "l:" .. t:gsub("[,]", " ")
-                line((L["fehlt: %s"]):format(t), 2)
+                line((L["missing: %s"]):format(t), 2)
             end
         end
         for _, k in ipairs(profile.keys) do
             if count(k.id, true) <= 0 and equipped(k.id) ~= true then
                 sev(2)
                 st.codes[#st.codes + 1] = "k" .. k.id
-                line((L["fehlt: %s"]):format(L[k.label]), 2)
+                line((L["missing: %s"]):format(L[k.label]), 2)
             else
-                line((L["%s vorhanden"]):format(L[k.label]), 0, true)
+                line((L["%s present"]):format(L[k.label]), 0, true)
             end
         end
         if not lo and #profile.keys == 0 then
-            line(L["Freischaltungen: keine Daten (Lockouts-Modul fehlt)"], 0, true)
+            line(L["Attunements: no data (lockouts module missing)"], 0, true)
         end
     end
     -- Verbrauchsgueter in den Taschen
@@ -526,7 +526,7 @@ function RP.MyState(profile, role)
             local s = have == 0 and 2 or 1
             sev(1)
             st.codes[#st.codes + 1] = ("i%dx%d"):format(e.ids[1], e.n - have)
-            line((L["fehlt: %dx %s"]):format(e.n - have, L[e.label]), s)
+            line((L["missing: %dx %s"]):format(e.n - have, L[e.label]), s)
         end
     end
     st.light = worst >= 2 and "r" or worst == 1 and "a" or "g"
@@ -537,19 +537,19 @@ end
 -- fremden Stand (Kodierung) lesbar machen
 function RP.FormatCode(code)
     local id, n = code:match("^i(%d+)x(%d+)$")
-    if id then return (L["fehlt: %dx %s"]):format(tonumber(n), L[LABEL[tonumber(id)] or ("#" .. id)]), 1 end
+    if id then return (L["missing: %dx %s"]):format(tonumber(n), L[LABEL[tonumber(id)] or ("#" .. id)]), 1 end
     id, n = code:match("^o(%d+)x(%d+)$")
     if id then return (L["optional: %dx %s"]):format(tonumber(n), L[LABEL[tonumber(id)] or ("#" .. id)]), 0 end
     local sc, want, have = code:match("^r(%d+):(%d+):(%d+)$")
-    if sc then return (L["fehlt: %d %s-Widerstand (%d von %d)"]):format(tonumber(want) - tonumber(have), L[RES_NAME[tonumber(sc)] or "?"], tonumber(have), tonumber(want)), 1 end
+    if sc then return (L["missing: %d %s resistance (%d of %d)"]):format(tonumber(want) - tonumber(have), L[RES_NAME[tonumber(sc)] or "?"], tonumber(have), tonumber(want)), 1 end
     id = code:match("^k(%d+)$")
-    if id then return (L["fehlt: %s"]):format(L[LABEL[tonumber(id)] or ("#" .. id)]), 2 end
+    if id then return (L["missing: %s"]):format(L[LABEL[tonumber(id)] or ("#" .. id)]), 2 end
     id = code:match("^g(%d+)$")
-    if id then return (L["fehlt: %s angelegt"]):format(L[LABEL[tonumber(id)] or ("#" .. id)]), 2 end
+    if id then return (L["missing: %s equipped"]):format(L[LABEL[tonumber(id)] or ("#" .. id)]), 2 end
     n = code:match("^d(%d+)$")
-    if n then return (L["Haltbarkeit: %d%% (reparieren)"]):format(tonumber(n)), tonumber(n) < 30 and 2 or 1 end
+    if n then return (L["Durability: %d%% (repair)"]):format(tonumber(n)), tonumber(n) < 30 and 2 or 1 end
     local t = code:match("^l:(.*)$")
-    if t then return (L["fehlt: %s"]):format(t), 2 end
+    if t then return (L["missing: %s"]):format(t), 2 end
     return code, 0
 end
 function RP.FormatMiss(s, withOpt)
@@ -640,7 +640,7 @@ local function tick()
                 ns.char.rpToastDay = day
                 local first
                 for _, l in ipairs(st.lines) do if not l.ok and l.sev > 0 then first = l.text break end end
-                K.Toast(L["Raid-Vorbereitung"], first or "", st.light == "r" and C.red or C.amber, function() ns.ShowPage("raidprep") end)
+                K.Toast(L["Raid prep"], first or "", st.light == "r" and C.red or C.amber, function() ns.ShowPage("raidprep") end)
             end
         end
     end
@@ -800,14 +800,14 @@ local ROLE_GLYPH = { tank = "role_tank", heal = "role_heal", melee = "role_dps",
 local ROLE_COL = { tank = C.blue, heal = C.mint, melee = C.red, caster = C.pink, dps = C.red }
 
 local PREP = {
-    key = "raidprep", title = "Raid-Vorbereitung", order = 2.762,
-    sub = "Was du fuer den naechsten Raid noch brauchst - Widerstaende, Verbrauchsgueter, Haltbarkeit, Schluessel",
+    key = "raidprep", title = "Raid prep", order = 2.762,
+    sub = "What you still need for the next raid - resistances, consumables, durability, keys",
     build = function(p)
         local UI = ns.RCUI
         p.view = "team"
         p.seg = UI.Tabs(p, {
-            { key = "team", text = L["Teilnehmer"], icon = "groups", color = C.mint, tip = L["Ampel je Teilnehmer fuer den naechsten Termin"] },
-            { key = "me", text = L["Meine Checkliste"], icon = "checklist", color = C.amber, tip = L["Was dir selbst noch fehlt"] },
+            { key = "team", text = L["Roster"], icon = "groups", color = C.mint, tip = L["Status light per participant for the next event"] },
+            { key = "me", text = L["My checklist"], icon = "checklist", color = C.amber, tip = L["What you are still missing"] },
         }, function(k)
             p.view = k
             ns.RefreshPage("raidprep") ns.RefreshPage("raidprepteam")
@@ -823,7 +823,7 @@ local PREP = {
         p.profHead = K.Text(p, 10, C.dim)
         p.profHead:SetPoint("TOPLEFT", 0, -48)
         p.profHead:SetText(L["Raid"])
-        local items = { { key = "auto", text = L["Automatisch"] } }
+        local items = { { key = "auto", text = L["Automatic"] } }
         for _, r in ipairs(RP.RAIDS) do items[#items + 1] = { key = r.key, text = L[r.name] } end
         p.prof = K.Segments(p, items, function(k)
             ns.char.rpRaid = (k ~= "auto") and k or nil
@@ -837,23 +837,23 @@ local PREP = {
         tm:SetPoint("TOPLEFT", 0, -74) tm:SetPoint("BOTTOMRIGHT")
         p.tm = tm
         tm.tiles, tm.tileList = {}, {}
-        for i, d in ipairs({ { "g", "Bereit", C.mint, "checklist" }, { "a", "Fast bereit", C.amber, "stats" }, { "r", "Fehlt viel", C.red, "deaths" }, { "x", "Kein Stand", C.dim, "sync" } }) do
+        for i, d in ipairs({ { "g", "Ready", C.mint, "checklist" }, { "a", "Almost ready", C.amber, "stats" }, { "r", "Missing a lot", C.red, "deaths" }, { "x", "No data", C.dim, "sync" } }) do
             local t = UI.Tile(tm, d[4], L[d[2]], d[3])
             tm.tiles[d[1]] = t
             tm.tileList[i] = t
         end
-        tm.ask = K.Button(tm, L["Staende anfragen"], 150, 26, "ghost", function()
+        tm.ask = K.Button(tm, L["Request status"], 150, 26, "ghost", function()
             lastReq = 0
             RP.RequestAll()
-            K.Toast(L["Raid-Vorbereitung"], L["Anfrage an die Gilde geschickt."], C.mint)
+            K.Toast(L["Raid prep"], L["Request sent to the guild."], C.mint)
         end)
         tm.ask:SetPoint("TOPRIGHT", 0, -34)
         -- Raidleitung: Anforderungen je Raid festlegen
-        tm.reqBtn = K.Button(tm, L["Anforderungen"], 150, 26, "ghost", function()
+        tm.reqBtn = K.Button(tm, L["Requirements"], 150, 26, "ghost", function()
             tm.editing = not tm.editing
             ns.RefreshPage("raidprepteam")
         end)
-        tm.reqBtn:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Anforderungen festlegen"], L["Was jeder fuer diesen Raid dabei haben muss - gilt fuer die ganze Gilde."] }) end)
+        tm.reqBtn:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Set requirements"], L["What everyone must bring for this raid - applies to the whole guild."] }) end)
         tm.reqBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
         tm.reqBtn:SetPoint("TOPRIGHT", -158, 0)
         tm.reqBtn:SetHeight(60)
@@ -868,7 +868,7 @@ local PREP = {
         ed.title:SetPoint("TOPLEFT", 16, -14)
         ed.hint = K.Text(ed, 10, C.dim)
         ed.hint:SetPoint("LEFT", ed.title, "RIGHT", 10, -1)
-        ed.hint:SetText(L["Haken = Pflicht  ·  Mausrad oder +/- = Menge  ·  gilt fuer die ganze Gilde"])
+        ed.hint:SetText(L["Check = required  ·  mouse wheel or +/- = amount  ·  applies to the whole guild"])
         -- Feuer-Widerstand
         local function stepper(parent, label, x, y, get, set, step, max)
             local w = CreateFrame("Frame", nil, parent)
@@ -894,8 +894,8 @@ local PREP = {
             return w
         end
         ed.draft = {}
-        ed.fT = stepper(ed, L["Feuer-Wid. Tank"], 16, -44, function() return ed.draft.fireT or 0 end, function(v) ed.draft.fireT = v end, 5, 315)
-        ed.fO = stepper(ed, L["Feuer-Wid. andere"], 200, -44, function() return ed.draft.fireO or 0 end, function(v) ed.draft.fireO = v end, 5, 315)
+        ed.fT = stepper(ed, L["Fire res. tank"], 16, -44, function() return ed.draft.fireT or 0 end, function(v) ed.draft.fireT = v end, 5, 315)
+        ed.fO = stepper(ed, L["Fire res. others"], 200, -44, function() return ed.draft.fireO or 0 end, function(v) ed.draft.fireO = v end, 5, 315)
         -- Liste der Verbrauchsgueter (alle Rollen)
         ed.rows = {}
         ed.list = CreateFrame("Frame", nil, ed)
@@ -905,7 +905,7 @@ local PREP = {
         ed.list:EnableMouseWheel(true)
         ed.off = 0
         ed.list:SetScript("OnMouseWheel", function(_, d) ed.off = math.max(0, ed.off - d * 2) ed:Draw() end)
-        local ROLE_SHORT = { all = "alle", tank = "Tank", heal = "Heiler", melee = "Nahkampf", caster = "Zauber-DD" }
+        local ROLE_SHORT = { all = "alle", tank = "Tank", heal = "Healer", melee = "Melee", caster = "Caster DPS" }
         local function row(i)
             local r = ed.rows[i]
             if r then return r end
@@ -975,7 +975,7 @@ local PREP = {
                 r:SetPoint("RIGHT", self.list, "RIGHT", 0, 0)
                 r.icon:SetTexture(C_Item.GetItemIconByID and C_Item.GetItemIconByID(it.id) or 134400)
                 local on = not self.draft.off[it.id]
-                r.name:SetText((on and "" or "|cff666666") .. L[it.label] .. (it.opt and ("  |cff888888" .. L["optional"] .. "|r") or "") .. (it.added and ("  |cffe8b44a" .. L["von der Leitung"] .. "|r") or "") .. (on and "" or "|r"))
+                r.name:SetText((on and "" or "|cff666666") .. L[it.label] .. (it.opt and ("  |cff888888" .. L["optional"] .. "|r") or "") .. (it.added and ("  |cffe8b44a" .. L["from leadership"] .. "|r") or "") .. (on and "" or "|r"))
                 r.role:SetText(L[ROLE_SHORT[it.role] or it.role])
                 r.chk:Refresh()
                 r.n:Sync()
@@ -986,23 +986,23 @@ local PREP = {
             self.more = #items > vis
         end
         -- Item hinzufuegen (Shift-Klick) + Rolle
-        ed.addBox = K.Input(ed, 220, L["Item per Shift-Klick hinzufuegen ..."])
+        ed.addBox = K.Input(ed, 220, L["Add item via Shift-click ..."])
         ed.addBox:SetPoint("BOTTOMLEFT", 16, 48)
         if hooksecurefunc and ChatEdit_InsertLink then
             hooksecurefunc("ChatEdit_InsertLink", function(link) if ed.addBox:HasFocus() and link then ed.addBox:SetText(link) end end)
         end
-        ed.addRole = K.Segments(ed, { { key = "all", text = L["alle"] }, { key = "tank", text = L["Tank"] }, { key = "heal", text = L["Heiler"] },
-            { key = "melee", text = L["Nahkampf"] }, { key = "caster", text = L["Zauber-DD"] } }, function() end, nil, { size = 11, pad = 10 })
+        ed.addRole = K.Segments(ed, { { key = "all", text = L["everyone"] }, { key = "tank", text = L["Tank"] }, { key = "heal", text = L["Healer"] },
+            { key = "melee", text = L["Melee"] }, { key = "caster", text = L["Caster DPS"] } }, function() end, nil, { size = 11, pad = 10 })
         ed.addRole:SetPoint("LEFT", ed.addBox, "RIGHT", 8, 0)
-        ed.addBtn = K.Button(ed, L["Hinzufuegen"], 100, 24, "ghost", function()
+        ed.addBtn = K.Button(ed, L["Add"], 100, 24, "ghost", function()
             local id = ns.itemID(ed.addBox:GetText())
-            if not id then K.Toast(L["Anforderungen"], L["Item per Shift-Klick einfuegen."], C.amber) return end
+            if not id then K.Toast(L["Requirements"], L["Insert item via Shift-click."], C.amber) return end
             table.insert(ed.draft.add, { id = id, n = 1, role = ed.addRole.value or "all" })
             ed.addBox:SetText("")
             ed:Draw()
         end)
         ed.addBtn:SetPoint("BOTTOMRIGHT", -16, 48)
-        ed.save = K.Button(ed, L["Speichern"], 120, 26, "primary", function()
+        ed.save = K.Button(ed, L["Save"], 120, 26, "primary", function()
             local d = ed.draft
             local off, nn, add = {}, {}, {}
             for id in pairs(d.off) do off[#off + 1] = id end
@@ -1010,17 +1010,17 @@ local PREP = {
             for _, a in ipairs(d.add) do add[#add + 1] = a.id .. ":" .. (d.n[a.id] or a.n) .. ":" .. a.role end
             Store.Put("rpreq", { id = "req-" .. ed.prof.key, fireT = d.fireT or 0, fireO = d.fireO or 0,
                 off = table.concat(off, ","), n = table.concat(nn, ","), add = table.concat(add, ",") })
-            K.Toast(L["Anforderungen gespeichert"], L[ed.prof.name], C.mint)
+            K.Toast(L["Requirements saved"], L[ed.prof.name], C.mint)
             tm.editing = false
             ns.RefreshPage("raidprepteam") ns.RefreshPage("raidprep") ns.RefreshPage("raidprepteam")
         end)
         ed.save:SetPoint("BOTTOMRIGHT", -16, 12)
-        ed.reset = K.Button(ed, L["Standard"], 100, 26, "ghost", function()
+        ed.reset = K.Button(ed, L["Default"], 100, 26, "ghost", function()
             if RP.Req(ed.prof.key) then Store.Delete("rpreq", "req-" .. ed.prof.key) end
             ed:Load(ed.prof)
         end)
         ed.reset:SetPoint("RIGHT", ed.save, "LEFT", -8, 0)
-        ed.cancel = K.Button(ed, L["Abbrechen"], 100, 26, "ghost", function() tm.editing = false ns.RefreshPage("raidprepteam") end)
+        ed.cancel = K.Button(ed, L["Cancel"], 100, 26, "ghost", function() tm.editing = false ns.RefreshPage("raidprepteam") end)
         ed.cancel:SetPoint("RIGHT", ed.reset, "LEFT", -8, 0)
         function ed:Load(prof)
             self.prof = prof
@@ -1028,13 +1028,13 @@ local PREP = {
             local fire = prof.res[2] or { tank = 0, other = 0 }
             self.draft = { fireT = rq and rq.fireT or fire.tank, fireO = rq and rq.fireO or fire.other,
                 off = rq and parseSet(rq.off) or {}, n = rq and parseN(rq.n) or {}, add = rq and parseAdd(rq.add) or {} }
-            self.title:SetText((L["Anforderungen: %s"]):format(L[prof.name]))
+            self.title:SetText((L["Requirements: %s"]):format(L[prof.name]))
             self.fT:Sync() self.fO:Sync()
             self.off = 0
             self:Draw()
         end
-        tm.share = K.Button(tm, L["Meinen Stand teilen"], 150, 26, "ghost", function()
-            if RP.Share(true) then K.Toast(L["Raid-Vorbereitung"], L["Dein Stand wurde geteilt."], C.mint) end
+        tm.share = K.Button(tm, L["Share my status"], 150, 26, "ghost", function()
+            if RP.Share(true) then K.Toast(L["Raid prep"], L["Your status was shared."], C.mint) end
             ns.RefreshPage("raidprep") ns.RefreshPage("raidprepteam")
         end)
         tm.share:SetPoint("TOPRIGHT", 0, 0)
@@ -1048,11 +1048,11 @@ local PREP = {
         tm.head:SetPoint("TOPLEFT", 0, -72)
         tm.head:SetPoint("RIGHT", tm, "RIGHT", -8, 0)
         tm.head:SetHeight(18)
-        local heads = { { "Name", 54 }, { "Haltbar", 230 }, { "Feuer-Wid.", 320 }, { "Fehlt", 380 } }
+        local heads = { { "Name", 54 }, { "Durab.", 230 }, { "Fire res.", 320 }, { "Missing", 380 } }
         for _, h in ipairs(heads) do
             local t = K.Text(tm.head, 10, C.dim) t:SetPoint("LEFT", h[2], 0) t:SetText(L[h[1]])
         end
-        local ht = K.Text(tm.head, 10, C.dim, "RIGHT") ht:SetPoint("RIGHT", -8, 0) ht:SetText(L["Stand"])
+        local ht = K.Text(tm.head, 10, C.dim, "RIGHT") ht:SetPoint("RIGHT", -8, 0) ht:SetText(L["Last update"])
         local hl = tm.head:CreateTexture(nil, "ARTWORK")
         hl:SetPoint("BOTTOMLEFT") hl:SetPoint("BOTTOMRIGHT")
         hl:SetHeight(1)
@@ -1097,7 +1097,7 @@ local PREP = {
                 if not (e and e.rec) then return end
                 local lines = { ns.displayName(e.name) }
                 for _, m in ipairs(RP.FormatMiss(e.rec.miss, true)) do lines[#lines + 1] = SEV_HEX[m.sev] .. m.text .. "|r" end
-                if #lines == 1 then lines[2] = L["Alles da."] end
+                if #lines == 1 then lines[2] = L["Everything there."] end
                 K.ShowTip(self, lines)
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1112,7 +1112,7 @@ local PREP = {
             UI.ClassIcon(r.cls, e.class or (rm and rm.class))
             r.cols.name:SetText(ns.Radar and ns.Radar.Colored and ns.Radar.Colored(e.name) or ns.displayName(e.name))
             local rk = lower(e.role)
-            r.role:SetText(L[ROLE_TEXT[rk] or (rk == "dps" and "Schaden") or "-"])
+            r.role:SetText(L[ROLE_TEXT[rk] or (rk == "dps" and "Damage") or "-"])
             local rc = ROLE_COL[rk] or C.dim
             r.roleIc:SetTexture(ns.MEDIA .. "icons\\" .. (ROLE_GLYPH[rk] or "role_dps"))
             r.roleIc:SetVertexColor(rc[1], rc[2], rc[3])
@@ -1120,7 +1120,7 @@ local PREP = {
             if not rec then
                 r.cols.dura:SetText("|cff555555-|r") r.cols.fire:SetText("|cff555555-|r")
                 r.duraFill:Hide()
-                r.cols.miss:SetText("|cff777777" .. L["kein Stand (ohne Oasis oder noch nicht geteilt)"] .. "|r")
+                r.cols.miss:SetText("|cff777777" .. L["no data (no Oasis or not shared yet)"] .. "|r")
                 r.cols.ts:SetText("")
                 return
             end
@@ -1136,7 +1136,7 @@ local PREP = {
             r.cols.fire:SetText(f < 0 and "|cff555555-|r" or tostring(f))
             local ms = RP.FormatMiss(rec.miss, false)
             local parts = {}
-            for _, m in ipairs(ms) do parts[#parts + 1] = SEV_HEX[m.sev] .. m.text:gsub("^" .. L["fehlt: "], "") .. "|r" end
+            for _, m in ipairs(ms) do parts[#parts + 1] = SEV_HEX[m.sev] .. m.text:gsub("^" .. L["missing: "], "") .. "|r" end
             r.cols.miss:SetText(#parts > 0 and table.concat(parts, ", ") or ("|cff66db9e" .. L[LIGHT_TEXT.g] .. "|r"))
             r.cols.ts:SetText(e.old and ("|cffff8a3d" .. ns.ago(rec.ts or rec.u) .. "|r") or ns.ago(rec.ts or rec.u))
         end)
@@ -1179,14 +1179,14 @@ local PREP = {
         me.light.count = K.Text(me.light, 11, C.dim, "CENTER")
         me.light.count:SetPoint("TOP", me.light.sub, "BOTTOM", 0, -4)
         me.light.count:SetWidth(220)
-        me.btn = K.Button(me.light, L["Meinen Stand teilen"], 218, 26, "ghost", function()
-            if RP.Share(true) then K.Toast(L["Raid-Vorbereitung"], L["Dein Stand wurde geteilt."], C.mint) end
+        me.btn = K.Button(me.light, L["Share my status"], 218, 26, "ghost", function()
+            if RP.Share(true) then K.Toast(L["Raid prep"], L["Your status was shared."], C.mint) end
         end)
         me.btn:SetPoint("BOTTOM", 0, 12)
         me.roleLbl = K.Text(me, 10, C.dim)
         me.roleLbl:SetPoint("TOPLEFT", 0, -226)
-        me.roleLbl:SetText(L["Meine Rolle:"])
-        local ritems = { { key = "auto", text = L["Automatisch"] } }
+        me.roleLbl:SetText(L["My role:"])
+        local ritems = { { key = "auto", text = L["Automatic"] } }
         for _, r in ipairs(ROLES) do ritems[#ritems + 1] = { key = r.key, text = L[r.text] } end
         me.role = K.Segments(me, ritems, function(k)
             ns.char.rpRole = (k ~= "auto") and k or nil
@@ -1197,7 +1197,7 @@ local PREP = {
         me.combat:SetPoint("TOPLEFT", 0, -276)
         me.combat:SetWidth(250)
         me.combat:SetWordWrap(true)
-        me.listHead = K.GameHead(me, L["Meine Checkliste"], C.amber)
+        me.listHead = K.GameHead(me, L["My checklist"], C.amber)
         if me.listHead.mark then me.listHead.mark:Hide() end
         me.listHead:SetPoint("TOPLEFT", 266, 0)
         me.listHead:SetPoint("RIGHT", me, "RIGHT", 0, 0)
@@ -1211,12 +1211,12 @@ local PREP = {
             return r
         end, function(r, e)
             r.light:SetState(e.ok and "ok" or e.sev == 0 and "none" or e.sev == 1 and "warn" or "bad")
-            local tx = tostring(e.text or ""):gsub("^" .. L["fehlt: "], "|cff888888" .. L["fehlt: "] .. "|r")
+            local tx = tostring(e.text or ""):gsub("^" .. L["missing: "], "|cff888888" .. L["missing: "] .. "|r")
             r.cols.text:SetText((e.ok and "|cff8a8a90" or (e.sev == 2 and "|cffe8e8ea" or "|cffcfcfd4")) .. tx .. "|r")
         end)
         me.list:SetPoint("TOPLEFT", 266, -26)
         me.list:SetPoint("BOTTOMRIGHT")
-        me.list.empty:SetText(L["Nichts zu pruefen."])
+        me.list.empty:SetText(L["Nothing to check."])
         p:SetScript("OnShow", function() RP.RequestAll() end)
         RP.RequestAll()
     end,
@@ -1232,18 +1232,18 @@ local PREP = {
             tmE.list:SetShown(not editing)
             if tmE.head then tmE.head:SetShown(not editing) end
             if tmE.empty and editing then tmE.empty:Hide() end
-            tmE.reqBtn:SetLabel(editing and L["Fertig"] or L["Anforderungen"])
+            tmE.reqBtn:SetLabel(editing and L["Done"] or L["Requirements"])
             K.UpdateLockButton(tmE.reqBtn)
             if editing then return end
         end
         local ev = RP.NextEvent()
         local prof, manual = RP.CurrentProfile(ev)
         p.prof:Select(manual and prof.key or "auto")
-        p.profLbl:SetText(manual and "" or (L["Profil: %s"]):format(L[prof.name]))
+        p.profLbl:SetText(manual and "" or (L["Profile: %s"]):format(L[prof.name]))
         if ev then
             p.ev:SetText(("|cffe8e8ea%s|r  %s%s"):format(ev.title or "?", ns.fmtWhen(ev.ts or 0), (ev.inst or "") ~= "" and ("  ·  " .. ev.inst) or ""))
         else
-            p.ev:SetText(L["Kein kommender Termin"])
+            p.ev:SetText(L["No upcoming raid"])
         end
         if p.view == "team" then
             local list = RP.Participants(ev)
@@ -1258,8 +1258,8 @@ local PREP = {
             end
             p.tm.head:SetShown(#list > 0)
             if #list == 0 then
-                p.tm.empty:Set(L["Kein kommender Raidtermin und keine Gruppe. Lege im Bereich Raids einen Termin an."],
-                    L["Zu den Raids"], function() ns.ShowPage("raid") end)
+                p.tm.empty:Set(L["No upcoming raid and no group. Create a raid in the Raids section."],
+                    L["Go to raids"], function() ns.ShowPage("raid") end)
                 p.tm.empty:Show()
             else
                 p.tm.empty:Hide()
@@ -1268,21 +1268,21 @@ local PREP = {
             local me = p.me
             me.role:Select(ns.char.rpRole or "auto")
             local fight = ns.inCombat()
-            me.combat:SetText(fight and L["Im Kampf werden Taschen und Widerstaende nicht neu gelesen."] or "")
+            me.combat:SetText(fight and L["Bags and resistances are not re-read during combat."] or "")
             local st = me.last
             if not fight or not st then st = RP.MyState(prof, nil) me.last = st end
             local c = LIGHT[st.light]
             me.light.dot:SetVertexColor(c[1], c[2], c[3])
             me.light.halo:SetVertexColor(c[1], c[2], c[3])
             me.light:SetColor(c)
-            me.light.title:SetText(L[st.light == "g" and "Alles bereit" or st.light == "a" and "Fast bereit" or "Es fehlt etwas"])
-            me.light.sub:SetText((L["%s als %s"]):format(L[prof.name], L[ROLE_TEXT[st.role] or "?"]))
+            me.light.title:SetText(L[st.light == "g" and "All set" or st.light == "a" and "Almost ready" or "Something is missing"])
+            me.light.sub:SetText((L["%s as %s"]):format(L[prof.name], L[ROLE_TEXT[st.role] or "?"]))
             -- fehlende zuerst
             local lines, open = {}, 0
             for _, l in ipairs(st.lines) do if not l.ok and l.sev > 0 then lines[#lines + 1] = l open = open + 1 end end
             for _, l in ipairs(st.lines) do if not l.ok and l.sev == 0 then lines[#lines + 1] = l end end
             for _, l in ipairs(st.lines) do if l.ok then lines[#lines + 1] = l end end
-            me.light.count:SetText(open > 0 and (L["%d Punkte offen"]):format(open) or L["Alles erledigt"])
+            me.light.count:SetText(open > 0 and (L["%d items open"]):format(open) or L["All done"])
             if me.lastLight ~= st.light and ns.RCUI.animOn() then
                 me.lastLight = st.light
                 K.Tween(me.light.dot, 0.5, function(q)
@@ -1311,15 +1311,15 @@ local function variant(key, title, sub, order, view)
     end
     return d
 end
-ns.RegisterPage(variant("raidprep", "Raid-Vorbereitung", "Was du fuer den naechsten Raid noch brauchst - Widerstaende, Verbrauchsgueter, Haltbarkeit, Schluessel", 2.762, "me"))
-ns.RegisterPage(variant("raidprepteam", "Kader-Check", "Wie gut sind die Angemeldeten vorbereitet - und was die Raidleitung je Raid verlangt", 2.7621, "team"))
+ns.RegisterPage(variant("raidprep", "Raid prep", "What you still need for the next raid - resistances, consumables, durability, keys", 2.762, "me"))
+ns.RegisterPage(variant("raidprepteam", "Roster check", "How well prepared the sign-ups are - and what the raid lead requires per raid", 2.7621, "team"))
 if ns.ICONS then ns.ICONS.raidprepteam = ns.MEDIA .. "icons\\\\checklist" end
 
 ------------------------------------------------------------------------
 -- /oa probe vorbereitung
 ------------------------------------------------------------------------
 ns.Probes.vorbereitung = function()
-    ns.print(L["Probe Raid-Vorbereitung:"])
+    ns.print(L["Probe raid prep:"])
     ns.print("  UnitResistance: " .. tostring(UnitResistance ~= nil))
     for school = 1, 6 do
         local ok, a, b, c2 = pcall(UnitResistance or error, "player", school)

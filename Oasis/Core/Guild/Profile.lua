@@ -15,7 +15,7 @@ end
 ------------------------------------------------------------------------
 -- Rollen: eigene Symbole (Schild / Verbandskasten / Schwert), je Rolle eingefaerbt
 ------------------------------------------------------------------------
-local ROLE_NAMES = { tank = "Tank", heal = "Heiler", dps = "Schaden" }
+local ROLE_NAMES = { tank = "Tank", heal = "Healer", dps = "Damage" }
 Profile.ROLE_COLORS = { tank = { 0.38, 0.62, 1.00 }, heal = { 0.40, 0.86, 0.62 }, dps = { 1.00, 0.35, 0.30 } }
 function Profile.RoleTexture(role) return ns.MEDIA .. "icons\\role_" .. role end
 
@@ -158,7 +158,7 @@ function Profile.RoleChips(parent, w, nameFn)
             f:Refresh()
         end)
         b:SetScript("OnEnter", function(self)
-            if ns.isMe(nameFn()) then K.ShowTip(self, { L[ROLE_NAMES[role]], (IsInGroup and IsInGroup()) and L["Klick: Rolle an/aus - die Gilde sieht deine Wahl"] or L["Klick: Wunschrolle - wird beim naechsten Gruppenbeitritt an WoW gegeben"] }) end
+            if ns.isMe(nameFn()) then K.ShowTip(self, { L[ROLE_NAMES[role]], (IsInGroup and IsInGroup()) and L["Click: role on/off – the guild sees your choice"] or L["Click: preferred role - applied to WoW when you next join a group"] }) end
         end)
         b:SetScript("OnLeave", function() GameTooltip:Hide() end)
         f.chips[i] = b
@@ -375,7 +375,7 @@ local function build()
     f.oasis:SetTexture(ns.MEDIA .. "logo64")
     f.oasis:SetSize(18, 18)
     f.oasis:SetPoint("TOPRIGHT", -40, -18)
-    local close = K.CloseButton(f, function() f:Hide() end, L["Schliessen (Esc)"])
+    local close = K.CloseButton(f, function() f:Hide() end, L["Close (Esc)"])
     close:SetPoint("TOPRIGHT", -8, -8)
     ----------------------------------------------------------------
     -- 2026: Aktionsleiste (runde Icon-Knoepfe) + Reiter in der Karte; nichts wird mehr abgeschnitten
@@ -403,7 +403,7 @@ local function build()
                 glass(self, { ac[1], ac[2], ac[3], 0.16 }, { ac[1], ac[2], ac[3], 0.6 })
                 self.ico:SetVertexColor(ac[1], ac[2], ac[3])
             end
-            K.ShowTip(self, self.enabled and self.tip or { self.tip, "|cff888888" .. (self.why or L["gerade nicht moeglich"]) .. "|r" })
+            K.ShowTip(self, self.enabled and self.tip or { self.tip, "|cff888888" .. (self.why or L["not possible right now"]) .. "|r" })
         end)
         b:SetScript("OnLeave", function(self)
             glass(self, { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.12 })
@@ -422,14 +422,14 @@ local function build()
         f.actions[#f.actions + 1] = b
         return b
     end
-    f.whisper = action("whisper", "social", L["Anfluestern"])
-    f.invite = action("invite", "groups", L["In Gruppe einladen"])
-    f.duel = action("duel", "deathroll", L["Todeswuerfeln"])
-    f.mapBtn = action("map", "map", L["Auf der Karte zeigen"])
-    f.noteBtn = action("note", "checklist", L["Offiziersnotiz bearbeiten"])
-    f.chatBtn = action("chat", "announce", L["Im Gildenchat erwaehnen"])
+    f.whisper = action("whisper", "social", L["Whisper"])
+    f.invite = action("invite", "groups", L["Invite to group"])
+    f.duel = action("duel", "deathroll", L["Deathroll"])
+    f.mapBtn = action("map", "map", L["Show on map"])
+    f.noteBtn = action("note", "checklist", L["Edit officer note"])
+    f.chatBtn = action("chat", "announce", L["Mention in guild chat"])
     -- Talente ansehen (geteilt per Oasis oder beim Betrachten gemerkt)
-    f.talBtn = action("talents", "stats", L["Talente ansehen"])
+    f.talBtn = action("talents", "stats", L["View talents"])
     f.talBtn:SetScript("OnClick", function() if ns.Talents and f.who then ns.Talents.Show(f.who) end end)
     function f:LayoutActions()
         local x = 18
@@ -446,7 +446,7 @@ local function build()
     end
 
     -- Reiter: Uebersicht | Berufe | Abzeichen | Chronik
-    local TABS = { { "over", L["Uebersicht"] }, { "chars", L["Charaktere"] }, { "prof", L["Berufe"] }, { "badge", L["Abzeichen"] }, { "chron", L["Chronik"] } }
+    local TABS = { { "over", L["Overview"] }, { "chars", L["Characters"] }, { "prof", L["Professions"] }, { "badge", L["Badge"] }, { "chron", L["Chronicle"] } }
     f.tabBtns, f.panes = {}, {}
     f.tabBar = CreateFrame("Frame", nil, f)
     f.tabBar:SetPoint("TOPLEFT", 16, -160)
@@ -582,11 +582,11 @@ local function build()
                         0.9, 0.9, 0.9, 0.9, 0.9, 0.9)
                 end
             else
-                GT:AddLine(L["Keine Berufe bekannt."], 0.5, 0.5, 0.5)
+                GT:AddLine(L["No professions known."], 0.5, 0.5, 0.5)
             end
             if self.who ~= f.who then
                 GT:AddLine(" ")
-                GT:AddLine(L["Klick: Profilkarte oeffnen"], 0.53, 0.53, 0.53)
+                GT:AddLine(L["Click: open profile card"], 0.53, 0.53, 0.53)
             end
             GT:Show()
         end)
@@ -599,7 +599,7 @@ local function build()
     -- Uebersicht: Kennzahlen, Rollen, Charaktere/Notiz/Beute
     f.tiles = {}
     local ktw = (W - 36 - 16) / 3
-    for i, lab in ipairs({ "Gegenstandsstufe", "Legacy", "Abzeichen" }) do
+    for i, lab in ipairs({ "Item level", "Legacy", "Badge" }) do
         local t = CreateFrame("Button", nil, over)
         t:SetSize(ktw, 54)
         t:SetPoint("TOPLEFT", 18 + (i - 1) * (ktw + 8), 0)
@@ -615,18 +615,18 @@ local function build()
         t.label:SetPoint("BOTTOM", 0, 8)
         t.label:SetPoint("LEFT", 6, 0) t.label:SetPoint("RIGHT", -6, 0)
         t.label:SetWordWrap(false)
-        t.label:SetText(L[i == 1 and "Gegenstandsstufe" or lab])
+        t.label:SetText(L[i == 1 and "Item level" or lab])
         t:SetScript("OnEnter", function(self) self.hov:Show() if self.tip then K.ShowTip(self, self.tip) end end)
         t:SetScript("OnLeave", function(self) self.hov:Hide() GameTooltip:Hide() end)
         f.tiles[i] = t
     end
-    f.tiles[1].tip = { L["Gegenstandsstufe"], "|cff888888" .. L["Schnitt der angelegten Ausruestung (per Oasis geteilt)"] .. "|r" }
-    f.tiles[2].tip = { L["Legacy"], "|cff888888" .. L["Klick: Legacy-Seite"] .. "|r" }
+    f.tiles[1].tip = { L["Item level"], "|cff888888" .. L["Average of equipped gear (shared via Oasis)"] .. "|r" }
+    f.tiles[2].tip = { L["Legacy"], "|cff888888" .. L["Click: Legacy page"] .. "|r" }
     f.tiles[2]:SetScript("OnClick", function() ns.ShowPage("legacy") end)
-    f.tiles[3].tip = { L["Abzeichen"], "|cff888888" .. L["Klick: Abzeichen ansehen"] .. "|r" }
+    f.tiles[3].tip = { L["Badge"], "|cff888888" .. L["Click: view badges"] .. "|r" }
     f.tiles[3]:SetScript("OnClick", function() f:SelectTab("badge") end)
 
-    label(over, L["Rollen"], -70)
+    label(over, L["Roles"], -70)
     f.roleHint = K.Text(over, 10, C.dim, "RIGHT")
     f.roleHint:SetPoint("TOPRIGHT", -18, -70)
     f.chips = Profile.RoleChips(over, W - 36, function() return f.who end)
@@ -660,9 +660,9 @@ local function build()
         v:SetWordWrap(false)
         return v
     end
-    f.vChars = infoRow(-12, L["Charaktere"])
-    f.vNote = infoRow(-40, L["Notiz"])
-    f.vLoot = infoRow(-68, L["Beute"])
+    f.vChars = infoRow(-12, L["Characters"])
+    f.vNote = infoRow(-40, L["Note"])
+    f.vLoot = infoRow(-68, L["Loot"])
     f.charHit = CreateFrame("Frame", nil, f.info)
     f.charHit:SetPoint("TOPLEFT", 6, -6)
     f.charHit:SetPoint("RIGHT", -6, 0)
@@ -676,7 +676,7 @@ local function build()
     f.lootHit:SetHeight(24)
     f.lootHit:EnableMouse(true)
     f.lootHit:SetScript("OnEnter", function(self)
-        if f.who and ns.LootMaster and ns.LootMaster.StatsTip then K.ShowTip(self, ns.LootMaster.StatsTip({ L["Beute"] }, f.who)) end
+        if f.who and ns.LootMaster and ns.LootMaster.StatsTip then K.ShowTip(self, ns.LootMaster.StatsTip({ L["Loot"] }, f.who)) end
     end)
     f.lootHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
     f.noteHit = CreateFrame("Frame", nil, f.info)
@@ -684,7 +684,7 @@ local function build()
     f.noteHit:SetPoint("RIGHT", -6, 0)
     f.noteHit:SetHeight(24)
     f.noteHit:EnableMouse(true)
-    f.noteHit:SetScript("OnEnter", function(self) if f.noteFull and f.noteFull ~= "" then K.ShowTip(self, { L["Notiz"], f.noteFull }) end end)
+    f.noteHit:SetScript("OnEnter", function(self) if f.noteFull and f.noteFull ~= "" then K.ShowTip(self, { L["Note"], f.noteFull }) end end)
     f.noteHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- Berufe: Zeilen mit Symbol, runder Leiste, Tooltip (Rezepte), Klick -> Handwerks-Boerse
@@ -708,7 +708,7 @@ local function build()
             if self.raw and ns.Radar.ProfTip then
                 ns.Radar.ProfTip(self, f.who, self.raw)
                 GameTooltip:AddLine(" ")
-                GameTooltip:AddLine(L["Klick: in der Handwerks-Boerse suchen"], 0.53, 0.53, 0.53)
+                GameTooltip:AddLine(L["Click: search in the crafting exchange"], 0.53, 0.53, 0.53)
                 GameTooltip:Show()
             end
         end)
@@ -720,7 +720,7 @@ local function build()
     end
     f.noProfs = K.Text(profP, 12, C.dim)
     f.noProfs:SetPoint("TOPLEFT", 18, -4)
-    f.noProfs:SetText(L["Keine Berufe bekannt."])
+    f.noProfs:SetText(L["No professions known."])
 
     -- Abzeichen: Raster mit Tooltip, Klick -> Abzeichen-Seite
     f.emblems = {}
@@ -729,7 +729,7 @@ local function build()
         e:SetPoint("TOPLEFT", 18 + ((i - 1) % 8) * 43, -((math.floor((i - 1) / 8)) * 43))
         e:EnableMouse(true)
         e:SetScript("OnEnter", function(self)
-            if self.b then K.ShowTip(self, { ns.Badges.Label(self.b.id, self.tier), L[self.b.desc], " ", "|cff888888" .. L["Klick: Abzeichen-Seite"] .. "|r" }) end
+            if self.b then K.ShowTip(self, { ns.Badges.Label(self.b.id, self.tier), L[self.b.desc], " ", "|cff888888" .. L["Click: badges page"] .. "|r" }) end
         end)
         e:SetScript("OnLeave", function() GameTooltip:Hide() end)
         e:SetScript("OnMouseUp", function() ns.ShowPage("badges") end)
@@ -737,7 +737,7 @@ local function build()
     end
     f.noBadges = K.Text(badgeP, 12, C.dim)
     f.noBadges:SetPoint("TOPLEFT", 18, -4)
-    f.noBadges:SetText(L["Noch keine Abzeichen."])
+    f.noBadges:SetText(L["No badges yet."])
     f.moreBadges = K.Text(badgeP, 11, C.dim)
     f.moreBadges:SetPoint("TOPLEFT", 18, -4 * 43 - 2)
 
@@ -771,7 +771,7 @@ local function build()
     end)
     f.chronList:SetPoint("TOPLEFT", 12, 0)
     f.chronList:SetPoint("BOTTOMRIGHT", -12, 4)
-    f.chronList.empty:SetText(L["Noch nichts passiert."])
+    f.chronList.empty:SetText(L["Nothing yet."])
     f.recent = K.Text(chronP, 11, C.text)   -- Kompatibilitaet (unsichtbar)
     f.recent:Hide()
 
@@ -904,15 +904,15 @@ function Profile.FillTree(f, name, R)
             local nw = math.min(r.name:GetStringWidth() or 80, 150)
             r.name:SetWidth(nw + 2)
             local pc = isMain and C.amber or C.muted
-            r.pill.t:SetText(isMain and L["Main"] or L["Twink"])
+            r.pill.t:SetText(isMain and L["Main"] or L["Alt"])
             r.pill.t:SetTextColor(pc[1], pc[2], pc[3])
             r.pill:SetWidth((r.pill.t:GetStringWidth() or 28) + 12)
             glass(r.pill, { pc[1], pc[2], pc[3], 0.12 }, { pc[1], pc[2], pc[3], 0.40 }, 7)
             -- "Lvl 30 Schurke"
             local cls = (LOCALIZED_CLASS_NAMES_MALE and it.class and LOCALIZED_CLASS_NAMES_MALE[it.class]) or ""
             r.subText = (L["Lvl %s %s"]):format(it.level or "?", cls):gsub("%s+$", "")
-            if c == f.who then r.subText = r.subText .. "  |cff888888·  " .. L["diese Karte"] .. "|r" end
-            if Profile.OutsideGuild(c) then r.subText = r.subText .. "  |cff666666·  " .. L["nicht in der Gilde"] .. "|r" end
+            if c == f.who then r.subText = r.subText .. "  |cff888888·  " .. L["this card"] .. "|r" end
+            if Profile.OutsideGuild(c) then r.subText = r.subText .. "  |cff666666·  " .. L["not in the guild"] .. "|r" end
             r.sub:SetText(r.subText)
             -- Berufe: Haupt- und Sammelberufe, Symbol + Stufe (Hoechststufe gold)
             local pt = R.ProfIcons(it.profs, 13, 4)
@@ -938,7 +938,7 @@ function Profile.FillTree(f, name, R)
     local more = #list - #rows
     f.treeMore:ClearAllPoints()
     f.treeMore:SetPoint("TOPLEFT", f.panes.chars, "TOPLEFT", 18 + INDENT, -y - 2)
-    f.treeMore:SetText(more > 0 and ("|cff888888" .. (L["+ %d weitere"]):format(more) .. "|r") or "")
+    f.treeMore:SetText(more > 0 and ("|cff888888" .. (L["+ %d more"]):format(more) .. "|r") or "")
 end
 
 function Profile.Show(name)
@@ -966,7 +966,7 @@ function Profile.Show(name)
     if ns.Rank then orl, verified = ns.Rank.Of(name) end
     if orl then
         local st = ns.Rank.Frame(orl)
-        parts[#parts + 1] = K.hex(st.color) .. (L["Rang %d"]):format(orl) .. "  " .. ns.Rank.Title(orl) .. "|r" .. (verified and "" or (" |cffe69a4a(" .. L["ungeprueft"] .. ")|r"))
+        parts[#parts + 1] = K.hex(st.color) .. (L["Rank %d"]):format(orl) .. "  " .. ns.Rank.Title(orl) .. "|r" .. (verified and "" or (" |cffe69a4a(" .. L["unverified"] .. ")|r"))
         local key = st.name .. (K.RingTier and K.RingTier(orl) or "")
         if f.rframe.styleName ~= key then f.rframe:SetStyle(st, orl) f.rframe.styleName = key end
         f.rframe:Show()
@@ -984,7 +984,7 @@ function Profile.Show(name)
         if m and m.rank ~= "" then tags[#tags + 1] = { text = m.rank } end
         if orl then
             local st = ns.Rank.Frame(orl)
-            tags[#tags + 1] = { text = K.hex(st.color) .. (L["Rang %d"]):format(orl) .. "  " .. ns.Rank.Title(orl) .. "|r" .. (verified and "" or (" |cffe69a4a(" .. L["ungeprueft"] .. ")|r")), color = st.color }
+            tags[#tags + 1] = { text = K.hex(st.color) .. (L["Rank %d"]):format(orl) .. "  " .. ns.Rank.Title(orl) .. "|r" .. (verified and "" or (" |cffe69a4a(" .. L["unverified"] .. ")|r")), color = st.color }
         end
         local onl = ns.isMe(name) or (m and m.online)
         local zn = m and m.zone ~= "" and m.zone or nil
@@ -1006,7 +1006,7 @@ function Profile.Show(name)
     -- Rollen
     f.chips:Refresh()
     local _, known = Profile.RolesOf(name)
-    f.roleHint:SetText(me and L["Klick zum Aendern"] or (known and "" or L["nicht angegeben"]))
+    f.roleHint:SetText(me and L["Click to change"] or (known and "" or L["not set"]))
 
     -- Kennzahlen
     local ln = me and (ns.Legacy and ns.Legacy.myDoneCount() or 0) or (p and p.ln or 0)
@@ -1047,7 +1047,7 @@ function Profile.Show(name)
         end
     end
     f.noBadges:SetShown(#list == 0)
-    f.moreBadges:SetText(#list > #f.emblems and ("|cff888888" .. (L["+ %d weitere"]):format(#list - #f.emblems) .. "|r") or "")
+    f.moreBadges:SetText(#list > #f.emblems and ("|cff888888" .. (L["+ %d more"]):format(#list - #f.emblems) .. "|r") or "")
 
     -- Berufe (eigene aus dem Profil, sonst Blizzard-Gildenberufe)
     local raw = p and p.profs or (ns.db.guildProfs and ns.db.guildProfs[name])
@@ -1082,17 +1082,17 @@ function Profile.Show(name)
         local cm = R.byName[c]
         local lv = cm and cm.level or (ns.db.members[c] and ns.db.members[c].lvl)
         t[#t + 1] = ns.colorName(c, R.ClassOf(c)) .. (lv and (" |cff888888" .. lv .. "|r") or "") .. (c == main and #chars > 1 and (" |cffff1200" .. L["Main"] .. "|r") or "")
-            .. (Profile.OutsideGuild(c) and (" |cff666666(" .. L["nicht in der Gilde"] .. ")|r") or "")
+            .. (Profile.OutsideGuild(c) and (" |cff666666(" .. L["not in the guild"] .. ")|r") or "")
     end
     f.vChars:SetText(table.concat(t, ",  "))
     Profile.FillTree(f, name, R)
-    f.charLines = { L["Charaktere"] }
+    f.charLines = { L["Characters"] }
     for _, s in ipairs(t) do f.charLines[#f.charLines + 1] = s end
     f.vNote:SetText(m and m.note ~= "" and m.note or "|cff666666-|r")
     f.noteFull = m and m.note or ""
     if ns.LootMaster and ns.LootMaster.Stats then
         local st = ns.LootMaster.Stats(name)
-        f.vLoot:SetText(st.total > 0 and ((L["%d Items  ·  %d in 30 Tagen"]):format(st.total, st.d30) .. (st.last and ("  ·  " .. st.last) or "")) or "|cff666666-|r")
+        f.vLoot:SetText(st.total > 0 and ((L["%d items  ·  %d in 30 days"]):format(st.total, st.d30) .. (st.last and ("  ·  " .. st.last) or "")) or "|cff666666-|r")
     else
         f.vLoot:SetText("|cff666666-|r")
     end
@@ -1116,15 +1116,15 @@ function Profile.Show(name)
     f.whisper:SetScript("OnClick", function() ns.Whisper(name) end)
     f.invite:SetScript("OnClick", function() if C_PartyInfo and C_PartyInfo.InviteUnit then pcall(C_PartyInfo.InviteUnit, chatName(name)) end end)
     f.duel:SetScript("OnClick", function() if ns.Deathroll then ns.Deathroll.Challenge(name, 100, "", false) end end)
-    local whyOff = me and L["Das bist du"] or L["Nur wenn online"]
-    f.whisper.why, f.invite.why, f.duel.why = me and L["Das bist du"] or nil, whyOff, whyOff
+    local whyOff = me and L["That is you"] or L["Only when online"]
+    f.whisper.why, f.invite.why, f.duel.why = me and L["That is you"] or nil, whyOff, whyOff
     f.duel.avail = ns.Deathroll ~= nil
     -- Auf der Karte zeigen (nur online und wenn die Position bekannt ist)
     f.mapBtn.avail = ns.Map and ns.Map.ShowMember and true or false
     f.mapBtn:SetEnabledState(online and true or false)
-    f.mapBtn.why = L["Nur wenn online"]
+    f.mapBtn.why = L["Only when online"]
     f.mapBtn:SetScript("OnClick", function()
-        if not ns.Map.ShowMember(name, zone) then K.Toast(L["Position unbekannt"], ns.displayName(name), C.dim) end
+        if not ns.Map.ShowMember(name, zone) then K.Toast(L["Position unknown"], ns.displayName(name), C.dim) end
     end)
     -- Offiziersnotiz bearbeiten (nur mit Recht und echtem Gildeneintrag)
     local canNote = ns.Members and ns.Members.CanEditOfficerNote and ns.Members.CanEditOfficerNote() and m and m.index and not m.demo

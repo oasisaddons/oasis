@@ -12,198 +12,198 @@ local I = ns.MEDIA .. "icons\\badges\\"
 
 Badges.TIERS = {
     { name = "Bronze", color = { 0.85, 0.55, 0.32 } },
-    { name = "Silber", color = { 0.80, 0.83, 0.90 } },
+    { name = "Silver", color = { 0.80, 0.83, 0.90 } },
     { name = "Gold", color = { 1.00, 0.80, 0.25 } },
 }
 Badges.UNIQUE_COLOR = C.accent
 
 -- Kategorien (Reihenfolge der Seite)
 Badges.CATS = {
-    { key = "zusammen", name = "Zusammen unterwegs" },
-    { key = "helfen", name = "Fuereinander da" },
-    { key = "stimmung", name = "Gute Stimmung" },
-    { key = "unfug", name = "Emotes & Unfug" },
-    { key = "welt", name = "Abenteuer & Welt" },
-    { key = "handel", name = "Handwerk & Handel" },
-    { key = "zeit", name = "Zeit & Treue" },
-    { key = "glueck", name = "Glueck, Pech & Wuerfel" },
-    { key = "raid", name = "Raid-Momente" },
+    { key = "zusammen", name = "Together" },
+    { key = "helfen", name = "Looking Out for Each Other" },
+    { key = "stimmung", name = "Good Vibes" },
+    { key = "unfug", name = "Emotes & Mischief" },
+    { key = "welt", name = "Adventure & World" },
+    { key = "handel", name = "Crafting & trade" },
+    { key = "zeit", name = "Time & Loyalty" },
+    { key = "glueck", name = "Luck, Misfortune & Dice" },
+    { key = "raid", name = "Raid moments" },
     { key = "insta", name = "Oasigram" },
-    { key = "titel", name = "Gilden-Titel" },
+    { key = "titel", name = "Guild Titles" },
 }
 
 -- Stufen-Abzeichen: Zaehler + Schwellen (Bronze/Silber/Gold)
 Badges.LIST = {
     -- Zusammen unterwegs
-    { cat = "zusammen", id = "pack", name = "Rudeltier", desc = "Minuten mit Gildenmitgliedern in einer Gruppe", stat = "groupMin", tiers = { 60, 600, 3000 } },
-    { cat = "zusammen", id = "bosscrew", name = "Boss-Crew", desc = "Bosse mit mindestens zwei Gildenmitgliedern gelegt", stat = "bossCrew", tiers = { 5, 25, 100 } },
-    { cat = "zusammen", id = "carry", name = "Babysitter", desc = "Minuten mit Gildenmitgliedern gespielt, die 8+ Level unter dir sind", stat = "carryMin", tiers = { 30, 300, 1500 } },
-    { cat = "zusammen", id = "questbuddy", name = "Quest-Kumpel", desc = "Quests zusammen mit Gildenmitgliedern abgegeben", stat = "questsGroup", tiers = { 10, 50, 200 } },
-    { cat = "zusammen", id = "dungeonfan", name = "Dungeon-Stammgast", desc = "Dungeons mit mindestens zwei Gildenmitgliedern betreten", stat = "dungeonRuns", tiers = { 5, 25, 100 } },
-    { cat = "zusammen", id = "leader", name = "Rudelfuehrer", desc = "Gruppensuchen gestartet - einer muss ja vorangehen", stat = "lfgStarted", tiers = { 3, 15, 50 } },
-    { cat = "zusammen", id = "matchmaker", name = "Kuppler", desc = "Deine Gruppensuche wurde voll", stat = "groupsFilled", tiers = { 1, 10, 30 } },
-    { cat = "zusammen", id = "adventurer", name = "Immer dabei", desc = "Gruppen der Gilde beigetreten", stat = "joined", tiers = { 3, 15, 50 } },
-    { cat = "zusammen", id = "punctual", name = "Schweizer Uhr", desc = "Terminen der Gilde zugesagt", stat = "signups", tiers = { 3, 15, 50 } },
-    { cat = "zusammen", id = "organizer", name = "Organisator", desc = "Termine fuer die Gilde erstellt", stat = "eventsCreated", tiers = { 1, 5, 20 } },
-    { cat = "zusammen", id = "duelist", name = "Duellant", desc = "Duelle gegen Gildenmitglieder", stat = "duels", tiers = { 5, 25, 100 } },
-    { cat = "zusammen", id = "duelwinner", name = "Duellmeister", desc = "Duelle gegen Gildenmitglieder gewonnen", stat = "duelWins", tiers = { 3, 15, 50 } },
+    { cat = "zusammen", id = "pack", name = "Pack Animal", desc = "Minutes grouped with guildmates", stat = "groupMin", tiers = { 60, 600, 3000 } },
+    { cat = "zusammen", id = "bosscrew", name = "Boss Crew", desc = "Bosses killed with at least two guildmates", stat = "bossCrew", tiers = { 5, 25, 100 } },
+    { cat = "zusammen", id = "carry", name = "Babysitter", desc = "Minutes played with guildmates 8+ levels below you", stat = "carryMin", tiers = { 30, 300, 1500 } },
+    { cat = "zusammen", id = "questbuddy", name = "Quest Buddy", desc = "Quests turned in together with guildmates", stat = "questsGroup", tiers = { 10, 50, 200 } },
+    { cat = "zusammen", id = "dungeonfan", name = "Dungeon Regular", desc = "Dungeons entered with at least two guildmates", stat = "dungeonRuns", tiers = { 5, 25, 100 } },
+    { cat = "zusammen", id = "leader", name = "Pack Leader", desc = "Group searches started – someone has to lead", stat = "lfgStarted", tiers = { 3, 15, 50 } },
+    { cat = "zusammen", id = "matchmaker", name = "Matchmaker", desc = "Your group search filled up", stat = "groupsFilled", tiers = { 1, 10, 30 } },
+    { cat = "zusammen", id = "adventurer", name = "Always There", desc = "Joined guild groups", stat = "joined", tiers = { 3, 15, 50 } },
+    { cat = "zusammen", id = "punctual", name = "Swiss Watch", desc = "Signed up for guild events", stat = "signups", tiers = { 3, 15, 50 } },
+    { cat = "zusammen", id = "organizer", name = "Organizer", desc = "Events created for the guild", stat = "eventsCreated", tiers = { 1, 5, 20 } },
+    { cat = "zusammen", id = "duelist", name = "Duelist", desc = "Duels against guildmates", stat = "duels", tiers = { 5, 25, 100 } },
+    { cat = "zusammen", id = "duelwinner", name = "Duel Master", desc = "Duels won against guildmates", stat = "duelWins", tiers = { 3, 15, 50 } },
     -- Fuereinander da
-    { cat = "helfen", id = "angel", name = "Schutzengel", desc = "Gildenmitglieder wiederbelebt", stat = "rez", tiers = { 3, 20, 100 } },
-    { cat = "helfen", id = "medic", name = "Sanitaeter", desc = "Gildenmitglieder verbunden", stat = "bandageGuild", tiers = { 5, 25, 100 } },
-    { cat = "helfen", id = "buffer", name = "Buff-Onkel", desc = "Zauber auf Gildenmitglieder gewirkt", stat = "castsOnGuild", tiers = { 20, 200, 1000 } },
-    { cat = "helfen", id = "standup", name = "Stehaufmaennchen", desc = "Von Gildenmitgliedern wiederbelebt worden", stat = "rezzedByGuild", tiers = { 3, 20, 100 } },
-    { cat = "helfen", id = "crafter", name = "Heinzelmaennchen", desc = "Auftraege fuer andere hergestellt - still und heimlich", stat = "crafted", tiers = { 5, 25, 100 } },
-    { cat = "helfen", id = "helper", name = "Spendierhosen", desc = "Gesuchte Items an andere abgegeben", stat = "helped", tiers = { 3, 15, 50 } },
-    { cat = "helfen", id = "trader", name = "Handelspartner", desc = "Handel mit Gildenmitgliedern abgeschlossen", stat = "trades", tiers = { 5, 25, 100 } },
-    { cat = "helfen", id = "postman", name = "Postbote", desc = "Post an Gildenmitglieder geschickt", stat = "mails", tiers = { 3, 20, 100 } },
-    { cat = "helfen", id = "generous", name = "Grosszuegig", desc = "Auftraege mit Trinkgeld vergeben", stat = "tips", tiers = { 1, 10, 30 } },
-    { cat = "helfen", id = "patron", name = "Maezen", desc = "Gold in die Gildenbank eingezahlt", stat = "bankGold", tiers = { 1, 10, 100 } },
-    { cat = "helfen", id = "fire", name = "Pfadfinder", desc = "Lagerfeuer fuer die Gilde angezuendet", stat = "campfires", tiers = { 3, 15, 50 } },
+    { cat = "helfen", id = "angel", name = "Guardian Angel", desc = "Guildmates resurrected", stat = "rez", tiers = { 3, 20, 100 } },
+    { cat = "helfen", id = "medic", name = "Medic", desc = "Bandaged guildmates", stat = "bandageGuild", tiers = { 5, 25, 100 } },
+    { cat = "helfen", id = "buffer", name = "Buff Buddy", desc = "Spells cast on guildmates", stat = "castsOnGuild", tiers = { 20, 200, 1000 } },
+    { cat = "helfen", id = "standup", name = "Bounce Back", desc = "Resurrected by guildmates", stat = "rezzedByGuild", tiers = { 3, 20, 100 } },
+    { cat = "helfen", id = "crafter", name = "Little Helper", desc = "Crafted orders for others – quietly", stat = "crafted", tiers = { 5, 25, 100 } },
+    { cat = "helfen", id = "helper", name = "Big Spender", desc = "Gave wanted items to others", stat = "helped", tiers = { 3, 15, 50 } },
+    { cat = "helfen", id = "trader", name = "Trade Partner", desc = "Trades completed with guildmates", stat = "trades", tiers = { 5, 25, 100 } },
+    { cat = "helfen", id = "postman", name = "Postman", desc = "Mail sent to guildmates", stat = "mails", tiers = { 3, 20, 100 } },
+    { cat = "helfen", id = "generous", name = "Generous", desc = "Orders placed with a tip", stat = "tips", tiers = { 1, 10, 30 } },
+    { cat = "helfen", id = "patron", name = "Patron", desc = "Gold deposited into the guild bank", stat = "bankGold", tiers = { 1, 10, 100 } },
+    { cat = "helfen", id = "fire", name = "Scout", desc = "Campfires lit for the guild", stat = "campfires", tiers = { 3, 15, 50 } },
     -- Gute Stimmung
-    { cat = "stimmung", id = "welcome", name = "Empfangskomitee", desc = "Neue Mitglieder im Gildenchat begruesst", stat = "welcomed", tiers = { 3, 15, 50 } },
-    { cat = "stimmung", id = "cheer", name = "GZ-Maschine", desc = "GZ! GZ! GZ! - anderen gratuliert", stat = "gz", tiers = { 5, 25, 100 } },
-    { cat = "stimmung", id = "moin", name = "Moin-Meister", desc = "Die Gilde begruesst (moin, hallo, servus ...)", stat = "greetings", tiers = { 10, 50, 250 } },
-    { cat = "stimmung", id = "sandman", name = "Sandmaennchen", desc = "Gute Nacht gewuenscht (gn, n8 ...)", stat = "goodnights", tiers = { 5, 25, 100 } },
-    { cat = "stimmung", id = "polite", name = "Hoeflich", desc = "Danke im Gildenchat gesagt", stat = "thanks", tiers = { 10, 50, 250 } },
-    { cat = "stimmung", id = "lol", name = "Lachsack", desc = "haha, lol, xD im Gildenchat", stat = "lols", tiers = { 10, 100, 500 } },
-    { cat = "stimmung", id = "chat", name = "Plaudertasche", desc = "Nachrichten im Gildenchat - Schweigen ist Silber", stat = "chat", tiers = { 50, 500, 2500 } },
-    { cat = "stimmung", id = "showoff", name = "Angeber", desc = "Items im Gildenchat verlinkt", stat = "links", tiers = { 10, 50, 250 } },
-    { cat = "stimmung", id = "whisper", name = "Fluesterpost", desc = "Gildenmitglieder angefluestert", stat = "whispers", tiers = { 20, 200, 1000 } },
-    { cat = "stimmung", id = "voter", name = "Demokrat", desc = "In Gilden-Umfragen abgestimmt", stat = "votes", tiers = { 3, 15, 50 } },
-    { cat = "stimmung", id = "asker", name = "Fragesteller", desc = "Umfragen fuer die Gilde erstellt", stat = "pollsCreated", tiers = { 1, 5, 20 } },
+    { cat = "stimmung", id = "welcome", name = "Welcome Committee", desc = "Welcomed new members in guild chat", stat = "welcomed", tiers = { 3, 15, 50 } },
+    { cat = "stimmung", id = "cheer", name = "GZ Machine", desc = "GZ! GZ! GZ! – congratulated others", stat = "gz", tiers = { 5, 25, 100 } },
+    { cat = "stimmung", id = "moin", name = "Morning Master", desc = "Greeted the guild (hi, hello, morning ...)", stat = "greetings", tiers = { 10, 50, 250 } },
+    { cat = "stimmung", id = "sandman", name = "Sandman", desc = "Said good night (gn, n8 ...)", stat = "goodnights", tiers = { 5, 25, 100 } },
+    { cat = "stimmung", id = "polite", name = "Polite", desc = "Said thanks in guild chat", stat = "thanks", tiers = { 10, 50, 250 } },
+    { cat = "stimmung", id = "lol", name = "Laugh Track", desc = "haha, lol, xD in guild chat", stat = "lols", tiers = { 10, 100, 500 } },
+    { cat = "stimmung", id = "chat", name = "Chatterbox", desc = "Guild chat messages – silence is silver", stat = "chat", tiers = { 50, 500, 2500 } },
+    { cat = "stimmung", id = "showoff", name = "Show-Off", desc = "Items linked in guild chat", stat = "links", tiers = { 10, 50, 250 } },
+    { cat = "stimmung", id = "whisper", name = "Whisper Network", desc = "Whispered guildmates", stat = "whispers", tiers = { 20, 200, 1000 } },
+    { cat = "stimmung", id = "voter", name = "Democrat", desc = "Voted in guild polls", stat = "votes", tiers = { 3, 15, 50 } },
+    { cat = "stimmung", id = "asker", name = "Pollster", desc = "Polls created for the guild", stat = "pollsCreated", tiers = { 1, 5, 20 } },
     -- Emotes & Unfug
-    { cat = "unfug", id = "hugs", name = "Knuddelbaer", desc = "Gildenmitglieder umarmt, bejubelt oder gedankt (/umarmen, /jubeln, /danke ...)", stat = "hugs", tiers = { 10, 50, 250 } },
-    { cat = "unfug", id = "cuddly", name = "Kuscheltier", desc = "Von Gildenmitgliedern umarmt, bejubelt oder angestupst worden", stat = "emotesReceived", tiers = { 10, 50, 250 } },
-    { cat = "unfug", id = "party", name = "Partyloewe", desc = "/tanzen mit Gildenmitgliedern in der Gruppe", stat = "dances", tiers = { 5, 25, 100 } },
-    { cat = "unfug", id = "jester", name = "Spassvogel", desc = "Mit Gildenmitgliedern gelacht (/lachen, /kichern ...)", stat = "laughs", tiers = { 10, 50, 250 } },
-    { cat = "unfug", id = "drama", name = "Drama-Queen", desc = "/weinen, /seufzen, /schmollen - das volle Programm", stat = "drama", tiers = { 10, 50, 200 } },
-    { cat = "unfug", id = "slapper", name = "Ohrfeigen-Profi", desc = "Gildenmitglieder geohrfeigt (/ohrfeige)", stat = "slaps", tiers = { 5, 25, 100 } },
-    { cat = "unfug", id = "poker", name = "Anstupser", desc = "Gildenmitglieder angestupst (/anstupsen)", stat = "pokes", tiers = { 10, 50, 200 } },
-    { cat = "unfug", id = "chicken", name = "Angsthase", desc = "/huhn gemacht - bok bok!", stat = "chickens", tiers = { 10, 50, 200 } },
-    { cat = "unfug", id = "roller", name = "Wuerfelfinger", desc = "/wuerfeln benutzt", stat = "rolls", tiers = { 20, 100, 500 } },
-    { cat = "unfug", id = "sleepy", name = "Schlafmuetze", desc = "Minuten AFK", stat = "afkMin", tiers = { 60, 600, 3000 } },
+    { cat = "unfug", id = "hugs", name = "Cuddle Bear", desc = "Hugged, cheered or thanked guildmates (/hug, /cheer, /thank ...)", stat = "hugs", tiers = { 10, 50, 250 } },
+    { cat = "unfug", id = "cuddly", name = "Teddy Bear", desc = "Hugged, cheered or poked by guildmates", stat = "emotesReceived", tiers = { 10, 50, 250 } },
+    { cat = "unfug", id = "party", name = "Party Animal", desc = "/dance with guildmates in your group", stat = "dances", tiers = { 5, 25, 100 } },
+    { cat = "unfug", id = "jester", name = "Joker", desc = "Laughed with guildmates (/laugh, /giggle ...)", stat = "laughs", tiers = { 10, 50, 250 } },
+    { cat = "unfug", id = "drama", name = "Drama Queen", desc = "/cry, /sigh, /sulk – the full show", stat = "drama", tiers = { 10, 50, 200 } },
+    { cat = "unfug", id = "slapper", name = "Slap Pro", desc = "Slapped guildmates (/slap)", stat = "slaps", tiers = { 5, 25, 100 } },
+    { cat = "unfug", id = "poker", name = "Poker", desc = "Poked guildmates (/poke)", stat = "pokes", tiers = { 10, 50, 200 } },
+    { cat = "unfug", id = "chicken", name = "Scaredy Cat", desc = "/chicken – bawk bawk!", stat = "chickens", tiers = { 10, 50, 200 } },
+    { cat = "unfug", id = "roller", name = "Dice Finger", desc = "Used /roll", stat = "rolls", tiers = { 20, 100, 500 } },
+    { cat = "unfug", id = "sleepy", name = "Sleepyhead", desc = "Minutes AFK", stat = "afkMin", tiers = { 60, 600, 3000 } },
     -- Abenteuer & Welt
-    { cat = "welt", id = "veteran", name = "Erfahren", desc = "Hoechstes Charakter-Level", stat = "level", tiers = { 20, 40, 60 } },
-    { cat = "welt", id = "quester", name = "Questmaschine", desc = "Quests abgegeben", stat = "quests", tiers = { 50, 250, 1000 } },
-    { cat = "welt", id = "explorer", name = "Entdecker", desc = "Verschiedene Gebiete besucht", stat = "zones", tiers = { 10, 25, 45 } },
-    { cat = "welt", id = "dungeonseen", name = "Dungeon-Sammler", desc = "Verschiedene Dungeons betreten", stat = "dungeonsSeen", tiers = { 5, 15, 30 } },
-    { cat = "welt", id = "flyer", name = "Vielflieger", desc = "Flugrouten benutzt", stat = "taxis", tiers = { 10, 50, 200 } },
-    { cat = "welt", id = "homesick", name = "Heimweh", desc = "Ruhestein benutzt", stat = "hearth", tiers = { 10, 50, 200 } },
-    { cat = "welt", id = "innkeeper", name = "Kneipengaenger", desc = "In Gasthaeusern und Staedten eingekehrt", stat = "inns", tiers = { 20, 100, 500 } },
-    { cat = "welt", id = "hunter", name = "Monsterjaeger", desc = "Gegner besiegt (mit Erfahrung)", stat = "kills", tiers = { 500, 5000, 20000 } },
-    { cat = "welt", id = "looter", name = "Pluenderer", desc = "Beute aufgesammelt", stat = "loots", tiers = { 100, 1000, 5000 } },
-    { cat = "welt", id = "fisher", name = "Petri Heil", desc = "Fische gefangen", stat = "fish", tiers = { 25, 250, 1000 } },
-    { cat = "welt", id = "gatherer", name = "Sammelwut", desc = "Kraeuter, Erze und Leder gesammelt", stat = "gathers", tiers = { 50, 500, 2000 } },
-    { cat = "welt", id = "rider", name = "Reiter", desc = "Aufs Reittier gestiegen", stat = "mounts", tiers = { 50, 500, 2000 } },
-    { cat = "welt", id = "swimmer", name = "Wasserratte", desc = "Minuten geschwommen", stat = "swimMin", tiers = { 30, 300, 1500 } },
-    { cat = "welt", id = "jumper", name = "Hopser", desc = "Gesprungen. Einfach so.", stat = "jumps", tiers = { 1000, 10000, 50000 } },
-    { cat = "welt", id = "walker", ico = "explorer", name = "Marathon", desc = "Kilometer zu Fuss unterwegs (42 = ein Marathon)", stat = "walkKm", tiers = { 10, 42, 200 } },
-    { cat = "welt", id = "stepper", ico = "streak", name = "Schrittzaehler", desc = "Tage mit 10.000 Schritten", stat = "stepGoal", tiers = { 1, 7, 30 } },
-    { cat = "welt", id = "glutton", name = "Vielfrass", desc = "Gegessen", stat = "eats", tiers = { 50, 500, 2000 } },
-    { cat = "welt", id = "thirsty", name = "Durstig", desc = "Getrunken", stat = "drinks", tiers = { 50, 500, 2000 } },
-    { cat = "welt", id = "legacy", name = "Vermaechtnis", desc = "Legacy-Challenges geschafft", stat = "legacy", tiers = { 5, 20, 50 } },
+    { cat = "welt", id = "veteran", name = "Experienced", desc = "Highest character level", stat = "level", tiers = { 20, 40, 60 } },
+    { cat = "welt", id = "quester", name = "Quest Machine", desc = "Quests turned in", stat = "quests", tiers = { 50, 250, 1000 } },
+    { cat = "welt", id = "explorer", name = "Explorer", desc = "Different zones visited", stat = "zones", tiers = { 10, 25, 45 } },
+    { cat = "welt", id = "dungeonseen", name = "Dungeon Collector", desc = "Different dungeons entered", stat = "dungeonsSeen", tiers = { 5, 15, 30 } },
+    { cat = "welt", id = "flyer", name = "Frequent Flier", desc = "Flight paths taken", stat = "taxis", tiers = { 10, 50, 200 } },
+    { cat = "welt", id = "homesick", name = "Homesick", desc = "Hearthstone used", stat = "hearth", tiers = { 10, 50, 200 } },
+    { cat = "welt", id = "innkeeper", name = "Pub Crawler", desc = "Rested in inns and cities", stat = "inns", tiers = { 20, 100, 500 } },
+    { cat = "welt", id = "hunter", name = "Monster Hunter", desc = "Enemies defeated (for experience)", stat = "kills", tiers = { 500, 5000, 20000 } },
+    { cat = "welt", id = "looter", name = "Looter", desc = "Loot picked up", stat = "loots", tiers = { 100, 1000, 5000 } },
+    { cat = "welt", id = "fisher", name = "Tight Lines", desc = "Fish caught", stat = "fish", tiers = { 25, 250, 1000 } },
+    { cat = "welt", id = "gatherer", name = "Gathering Frenzy", desc = "Herbs, ore and leather gathered", stat = "gathers", tiers = { 50, 500, 2000 } },
+    { cat = "welt", id = "rider", name = "Rider", desc = "Mounted up", stat = "mounts", tiers = { 50, 500, 2000 } },
+    { cat = "welt", id = "swimmer", name = "Water Rat", desc = "Minutes swum", stat = "swimMin", tiers = { 30, 300, 1500 } },
+    { cat = "welt", id = "jumper", name = "Bunny Hopper", desc = "Jumped. Just because.", stat = "jumps", tiers = { 1000, 10000, 50000 } },
+    { cat = "welt", id = "walker", ico = "explorer", name = "Marathon", desc = "Kilometers on foot (42 = a marathon)", stat = "walkKm", tiers = { 10, 42, 200 } },
+    { cat = "welt", id = "stepper", ico = "streak", name = "Step counter", desc = "Days with 10,000 steps", stat = "stepGoal", tiers = { 1, 7, 30 } },
+    { cat = "welt", id = "glutton", name = "Glutton", desc = "Eaten", stat = "eats", tiers = { 50, 500, 2000 } },
+    { cat = "welt", id = "thirsty", name = "Thirsty", desc = "Drunk", stat = "drinks", tiers = { 50, 500, 2000 } },
+    { cat = "welt", id = "legacy", name = "Legacy", desc = "Legacy challenges completed", stat = "legacy", tiers = { 5, 20, 50 } },
     -- Handwerk & Handel
-    { cat = "handel", id = "master", name = "Meister", desc = "Hoechste Berufsstufe", stat = "profMax", tiers = { 150, 225, 300 } },
-    { cat = "handel", id = "crafty", name = "Fleissige Haende", desc = "Gegenstaende hergestellt", stat = "crafts", tiers = { 50, 500, 2500 } },
-    { cat = "handel", id = "customer", name = "Auftraggeber", desc = "Handwerks-Auftraege erteilt", stat = "ordersPlaced", tiers = { 3, 15, 50 } },
-    { cat = "handel", id = "wishlist", name = "Wunschzettel", desc = "Gesuchte Items eingetragen", stat = "wantsPosted", tiers = { 1, 10, 30 } },
-    { cat = "handel", id = "auctioneer", name = "Auktionator", desc = "Auktionen eingestellt", stat = "auctionsPosted", tiers = { 10, 100, 500 } },
-    { cat = "handel", id = "merchant", name = "Geschaeftsmann", desc = "Auktionen verkauft", stat = "auctionsSold", tiers = { 10, 100, 500 } },
-    { cat = "handel", id = "golddigger", name = "Goldgraeber", desc = "Gold aus Beute (in Gold)", stat = "goldLooted", tiers = { 10, 100, 1000 } },
-    { cat = "handel", id = "repair", name = "Dauerreparatur", desc = "Gold fuer Reparaturen ausgegeben", stat = "repairGold", tiers = { 1, 10, 50 } },
+    { cat = "handel", id = "master", name = "Master", desc = "Highest profession skill", stat = "profMax", tiers = { 150, 225, 300 } },
+    { cat = "handel", id = "crafty", name = "Busy Hands", desc = "Items crafted", stat = "crafts", tiers = { 50, 500, 2500 } },
+    { cat = "handel", id = "customer", name = "Customer", desc = "Crafting orders placed", stat = "ordersPlaced", tiers = { 3, 15, 50 } },
+    { cat = "handel", id = "wishlist", name = "Wish List", desc = "Wanted items posted", stat = "wantsPosted", tiers = { 1, 10, 30 } },
+    { cat = "handel", id = "auctioneer", name = "Auctioneer", desc = "Auctions posted", stat = "auctionsPosted", tiers = { 10, 100, 500 } },
+    { cat = "handel", id = "merchant", name = "Businessman", desc = "Auctions sold", stat = "auctionsSold", tiers = { 10, 100, 500 } },
+    { cat = "handel", id = "golddigger", name = "Gold Digger", desc = "Gold from loot (in gold)", stat = "goldLooted", tiers = { 10, 100, 1000 } },
+    { cat = "handel", id = "repair", name = "Always Repairing", desc = "Gold spent on repairs", stat = "repairGold", tiers = { 1, 10, 50 } },
     -- Zeit & Treue
-    { cat = "zeit", id = "loyal", name = "Treue Seele", desc = "Tage in der Oasis online", stat = "daysOnline", tiers = { 7, 30, 100 } },
-    { cat = "zeit", id = "streak", name = "Unermuedlich", desc = "Tage am Stueck online (beste Serie)", stat = "bestStreak", tiers = { 3, 7, 30 } },
-    { cat = "zeit", id = "marathon", name = "Dauerzocker", desc = "Minuten online", stat = "playMin", tiers = { 600, 6000, 30000 } },
-    { cat = "zeit", id = "weekend", name = "Wochenendkrieger", desc = "Wochenendtage online", stat = "weekendDays", tiers = { 4, 15, 50 } },
-    { cat = "zeit", id = "owl", name = "Nachteule", desc = "Tage zwischen 1 und 5 Uhr online - schlaf mal!", stat = "nightDays", tiers = { 3, 15, 50 } },
-    { cat = "zeit", id = "rooster", name = "Fruehaufsteher", desc = "Tage zwischen 5 und 8 Uhr online", stat = "earlyDays", tiers = { 3, 15, 50 } },
-    { cat = "zeit", id = "family", name = "Grosse Familie", desc = "Charaktere mit Oasis", stat = "chars", tiers = { 2, 4, 8 } },
+    { cat = "zeit", id = "loyal", name = "Loyal Soul", desc = "Days online in Oasis", stat = "daysOnline", tiers = { 7, 30, 100 } },
+    { cat = "zeit", id = "streak", name = "Tireless", desc = "Days online in a row (best streak)", stat = "bestStreak", tiers = { 3, 7, 30 } },
+    { cat = "zeit", id = "marathon", name = "Marathon Gamer", desc = "Minutes online", stat = "playMin", tiers = { 600, 6000, 30000 } },
+    { cat = "zeit", id = "weekend", name = "Weekend Warrior", desc = "Weekend days online", stat = "weekendDays", tiers = { 4, 15, 50 } },
+    { cat = "zeit", id = "owl", name = "Night Owl", desc = "Days online between 1 and 5 am – go to sleep!", stat = "nightDays", tiers = { 3, 15, 50 } },
+    { cat = "zeit", id = "rooster", name = "Early Bird", desc = "Days online between 5 and 8 am", stat = "earlyDays", tiers = { 3, 15, 50 } },
+    { cat = "zeit", id = "family", name = "Big Family", desc = "Characters with Oasis", stat = "chars", tiers = { 2, 4, 8 } },
     -- Glueck, Pech & Wuerfel
-    { cat = "glueck", id = "lucky", name = "Glueckspilz", desc = "Epische Gegenstaende erbeutet", stat = "epics", tiers = { 1, 5, 20 } },
-    { cat = "glueck", id = "dice", name = "Wuerfelhai", desc = "Todeswuerfeln gewonnen", stat = "drWins", tiers = { 1, 10, 50 } },
-    { cat = "glueck", id = "unlucky", name = "Pechvogel", desc = "Todeswuerfeln verloren - irgendwer muss ja", stat = "drLosses", tiers = { 5, 25, 100 } },
-    { cat = "glueck", id = "gambler", name = "Zocker", desc = "Todeswuerfeln gespielt", stat = "drPlays", tiers = { 10, 50, 200 } },
-    { cat = "glueck", id = "highroller", name = "High Roller", desc = "Todeswuerfeln ab 1000 gewonnen", stat = "bigWins", tiers = { 1, 5, 20 } },
-    { cat = "glueck", id = "survivor", name = "Stirb langsam", desc = "Level-Ups ohne Tod dazwischen", stat = "cleanLevels", tiers = { 5, 15, 30 } },
-    { cat = "glueck", id = "fodder", name = "Kanonenfutter", desc = "In der Gruppe mit Gildenmitgliedern gestorben", stat = "groupDeaths", tiers = { 5, 25, 100 } },
-    { cat = "glueck", id = "graveyard", name = "Friedhofs-Abo", desc = "Gestorben. Der Geistheiler kennt dich beim Vornamen.", stat = "deaths", tiers = { 5, 25, 100 } },
+    { cat = "glueck", id = "lucky", name = "Lucky Duck", desc = "Epic items looted", stat = "epics", tiers = { 1, 5, 20 } },
+    { cat = "glueck", id = "dice", name = "Dice Shark", desc = "Deathrolls won", stat = "drWins", tiers = { 1, 10, 50 } },
+    { cat = "glueck", id = "unlucky", name = "Unlucky", desc = "Deathrolls lost – someone has to", stat = "drLosses", tiers = { 5, 25, 100 } },
+    { cat = "glueck", id = "gambler", name = "Gambler", desc = "Deathrolls played", stat = "drPlays", tiers = { 10, 50, 200 } },
+    { cat = "glueck", id = "highroller", name = "High Roller", desc = "Deathrolls from 1000 won", stat = "bigWins", tiers = { 1, 5, 20 } },
+    { cat = "glueck", id = "survivor", name = "Die Hard", desc = "Level-ups without dying in between", stat = "cleanLevels", tiers = { 5, 15, 30 } },
+    { cat = "glueck", id = "fodder", name = "Cannon Fodder", desc = "Died while grouped with guildmates", stat = "groupDeaths", tiers = { 5, 25, 100 } },
+    { cat = "glueck", id = "graveyard", name = "Graveyard Regular", desc = "Died. The spirit healer knows you by name.", stat = "deaths", tiers = { 5, 25, 100 } },
 }
 -- Einmalige Gilden-Titel: gehoeren genau einem Spieler
 -- Raid-Momente (Symbole werden von vorhandenen geliehen: ico)
 for _, b in ipairs({
-    { cat = "raid", id = "firstdown", ico = "fodder", name = "Erster am Boden", desc = "Im Bosskampf als Erster der Gruppe gestorben. Irgendwer muss den Boden testen.", stat = "firstDown", tiers = { 1, 5, 20 } },
-    { cat = "raid", id = "wipecause", ico = "drama", name = "Wipe-Verursacher", desc = "Als Erster gefallen - und danach ging der ganze Kampf schief. Zufall? Sicher.", stat = "wipeCause", tiers = { 1, 5, 15 } },
-    { cat = "raid", id = "wipevet", ico = "survivor", name = "Wipe-Veteran", desc = "Bosskaempfe mit der Gilde verloren - und trotzdem wieder angetreten", stat = "wipes", tiers = { 3, 15, 50 } },
-    { cat = "raid", id = "laststand", ico = "showoff", name = "Letzter Mann stehend", desc = "Im Bosskampf als Letzter der Gruppe gefallen. Heldenhaft. Leider trotzdem tot.", stat = "lastStanding", tiers = { 1, 5, 20 } },
-    { cat = "raid", id = "bossfan", ico = "bosscrew", name = "Bossbezwinger", desc = "Bosskaempfe mit der Gilde gewonnen", stat = "bossWins", tiers = { 5, 25, 100 } },
-    { cat = "insta", id = "influencer", ico = "showoff", name = "Influencer", desc = "Schnappschuesse auf Oasigram gepostet", stat = "instaPosts", tiers = { 1, 10, 40 } },
-    { cat = "insta", id = "heartgiver", ico = "cuddly", name = "Herzchenverteiler", desc = "Posts von anderen geliked", stat = "instaLikes", tiers = { 5, 50, 200 } },
-    { cat = "insta", id = "beloved", ico = "heart", name = "Publikumsliebling", desc = "Likes auf deine Posts bekommen", stat = "instaLiked", tiers = { 5, 50, 250 } },
-    { cat = "insta", id = "networker", ico = "family", name = "Netzwerker", desc = "Leuten aus der Gilde gefolgt", stat = "instaFollows", tiers = { 3, 10, 25 } },
+    { cat = "raid", id = "firstdown", ico = "fodder", name = "First on the floor", desc = "Died first in the group during a boss fight. Someone has to test the floor.", stat = "firstDown", tiers = { 1, 5, 20 } },
+    { cat = "raid", id = "wipecause", ico = "drama", name = "Wipe starter", desc = "Fell first - and then the whole fight went wrong. Coincidence? Surely.", stat = "wipeCause", tiers = { 1, 5, 15 } },
+    { cat = "raid", id = "wipevet", ico = "survivor", name = "Wipe veteran", desc = "Lost boss fights with the guild - and still came back", stat = "wipes", tiers = { 3, 15, 50 } },
+    { cat = "raid", id = "laststand", ico = "showoff", name = "Last one standing", desc = "Fell last in the group during a boss fight. Heroic. Still dead, sadly.", stat = "lastStanding", tiers = { 1, 5, 20 } },
+    { cat = "raid", id = "bossfan", ico = "bosscrew", name = "Boss slayer", desc = "Boss fights won with the guild", stat = "bossWins", tiers = { 5, 25, 100 } },
+    { cat = "insta", id = "influencer", ico = "showoff", name = "Influencer", desc = "Snapshots posted on Oasigram", stat = "instaPosts", tiers = { 1, 10, 40 } },
+    { cat = "insta", id = "heartgiver", ico = "cuddly", name = "Heart Giver", desc = "Posts by others liked", stat = "instaLikes", tiers = { 5, 50, 200 } },
+    { cat = "insta", id = "beloved", ico = "heart", name = "Crowd Favorite", desc = "Likes received on your posts", stat = "instaLiked", tiers = { 5, 50, 250 } },
+    { cat = "insta", id = "networker", ico = "family", name = "Networker", desc = "Guild members followed", stat = "instaFollows", tiers = { 3, 10, 25 } },
 }) do Badges.LIST[#Badges.LIST + 1] = b end
 
 Badges.UNIQUE = {
-    { id = "first10", name = "Erster 10er", desc = "Als Erster der Gilde Level 10" },
-    { id = "first20", name = "Erster 20er", desc = "Als Erster der Gilde Level 20" },
-    { id = "first30", name = "Erster 30er", desc = "Als Erster der Gilde Level 30" },
-    { id = "first40", name = "Erster 40er", desc = "Als Erster der Gilde Level 40" },
-    { id = "first50", name = "Erster 50er", desc = "Als Erster der Gilde Level 50" },
-    { id = "first60", name = "Erster 60er", desc = "Als Erster der Gilde Level 60" },
-    { id = "platzhirsch", name = "Platzhirsch", desc = "Hoechstes Level der Gilde - allein an der Spitze" },
-    { id = "dicechamp", name = "Wuerfelkoenig", desc = "Die meisten Todeswuerfeln-Siege der Gilde" },
-    { id = "topcrafter", name = "Meisterschmied", desc = "Die meisten erledigten Auftraege der Gilde" },
-    { id = "luckychild", name = "Glueckskind", desc = "Die meisten epischen Gegenstaende der Gilde" },
-    { id = "chick", name = "Kueken der Oasis", desc = "Das neueste Mitglied der Gilde (letzte 30 Tage)" },
-    { id = "reaper", name = "Todesmagnet", desc = "Die meisten Tode der Gilde in den letzten 30 Tagen" },
-    { id = "voice", name = "Gildenstimme", desc = "Die meisten Nachrichten im Gildenchat", shared = "chat", min = 100 },
-    { id = "heart", name = "Herz der Oasis", desc = "Die meiste Zeit mit Gildenmitgliedern in Gruppen", shared = "groupMin", min = 120 },
-    { id = "cuddleking", name = "Kuschelkoenig", desc = "Die meisten Umarmungen und Jubel fuer andere", shared = "hugs", min = 20 },
-    { id = "nightking", name = "Nachtschwaermer", desc = "Die meisten Naechte online", shared = "nightDays", min = 3 },
-    { id = "saint", name = "Heiliger der Gilde", desc = "Die meisten Wiederbelebungen", shared = "rez", min = 5 },
-    { id = "globetrotter", name = "Weltenbummler", desc = "Die meisten besuchten Gebiete", shared = "zones", min = 15 },
-    { id = "fishking", name = "Anglerkoenig", desc = "Die meisten gefangenen Fische", shared = "fish", min = 50 },
-    { id = "jumpking", name = "Kaenguru", desc = "Die meisten Spruenge der Gilde", shared = "jumps", min = 2000 },
-    { id = "goldweek", ico = "golddigger", name = "Goldmacher der Woche", desc = "Beste Handelsbilanz der letzten 7 Tage (freiwillig geteilt, Markt-Seite)" },
-    { id = "lootgoblin", ico = "looter", name = "Lootgoblin", desc = "Die meiste Beute der Gilde in den letzten 30 Tagen. Glaenzt es? Meins!" },
-    { id = "dicemonth", ico = "roller", name = "Wuerfelkoenig des Monats", desc = "Die meisten Todeswuerfeln-Siege im letzten Monat (Saison)" },
+    { id = "first10", name = "First level 10", desc = "First in the guild to reach level 10" },
+    { id = "first20", name = "First level 20", desc = "First in the guild to reach level 20" },
+    { id = "first30", name = "First to 30", desc = "First in the guild to reach level 30" },
+    { id = "first40", name = "First level 40", desc = "First in the guild to reach level 40" },
+    { id = "first50", name = "First level 50", desc = "First in the guild to reach level 50" },
+    { id = "first60", name = "First to 60", desc = "First in the guild to reach level 60" },
+    { id = "platzhirsch", name = "Top Dog", desc = "Highest level in the guild – alone at the top" },
+    { id = "dicechamp", name = "Dice King", desc = "Most deathroll wins in the guild" },
+    { id = "topcrafter", name = "Master Smith", desc = "Most completed orders in the guild" },
+    { id = "luckychild", name = "Fortune's Child", desc = "Most epic items in the guild" },
+    { id = "chick", name = "Oasis Chick", desc = "Newest guild member (last 30 days)" },
+    { id = "reaper", name = "Death Magnet", desc = "Most deaths in the guild in the last 30 days" },
+    { id = "voice", name = "Voice of the Guild", desc = "Most guild chat messages", shared = "chat", min = 100 },
+    { id = "heart", name = "Heart of Oasis", desc = "Most time grouped with guildmates", shared = "groupMin", min = 120 },
+    { id = "cuddleking", name = "Cuddle King", desc = "Most hugs and cheers for others", shared = "hugs", min = 20 },
+    { id = "nightking", name = "Night Crawler", desc = "Most nights online", shared = "nightDays", min = 3 },
+    { id = "saint", name = "Guild Saint", desc = "Most resurrections", shared = "rez", min = 5 },
+    { id = "globetrotter", name = "Globetrotter", desc = "Most zones visited", shared = "zones", min = 15 },
+    { id = "fishking", name = "Angler King", desc = "Most fish caught", shared = "fish", min = 50 },
+    { id = "jumpking", name = "Kangaroo", desc = "Most jumps in the guild", shared = "jumps", min = 2000 },
+    { id = "goldweek", ico = "golddigger", name = "Goldmaker of the week", desc = "Best trade balance of the last 7 days (shared voluntarily, Market page)" },
+    { id = "lootgoblin", ico = "looter", name = "Loot goblin", desc = "The most loot in the guild in the last 30 days. Shiny? Mine!" },
+    { id = "dicemonth", ico = "roller", name = "Dice King of the Month", desc = "Most Deathroll wins last month (season)" },
 }
 -- 0.5.607: viel mehr Abzeichen (witzig, kurios, legendaer) + deutlich hoehere Schwellen fuer reine Zaehler
-table.insert(Badges.CATS, #Badges.CATS, { key = "kurios", name = "Kurioses & Missgeschicke" })
-table.insert(Badges.CATS, #Badges.CATS, { key = "legende", name = "Fuer Legenden" })
+table.insert(Badges.CATS, #Badges.CATS, { key = "kurios", name = "Oddities & mishaps" })
+table.insert(Badges.CATS, #Badges.CATS, { key = "legende", name = "For legends" })
 for _, b in ipairs({
     -- Kurioses & Missgeschicke
-    { cat = "kurios", id = "ghostrun", ico = "graveyard", name = "Geisterlaeufer", desc = "Als Geist zur eigenen Leiche zurueckgelaufen. Der Weg ist das Ziel.", stat = "ghostRuns", tiers = { 15, 75, 300 } },
-    { cat = "kurios", id = "drowned", ico = "swimmer", name = "Seemannsgrab", desc = "Im Wasser gestorben. Luft ist ueberbewertet.", stat = "drowned", tiers = { 1, 5, 25 } },
-    { cat = "kurios", id = "messie", ico = "looter", name = "Messie", desc = "Taschen voll - schon wieder. Wegwerfen ist keine Option.", stat = "bagsFull", tiers = { 25, 150, 600 } },
-    { cat = "kurios", id = "toofar", ico = "explorer", name = "Zu weit weg", desc = "Ausser Reichweite. Noch ein Schritt. Noch einer.", stat = "outOfRange", tiers = { 100, 750, 3000 } },
-    { cat = "kurios", id = "wrongway", ico = "drama", name = "Falsch rum", desc = "Der Gegner stand nicht vor dir. Er stand hinter dir. Die ganze Zeit.", stat = "wrongFacing", tiers = { 50, 400, 2000 } },
-    { cat = "kurios", id = "emptytank", ico = "thirsty", name = "Leerer Tank", desc = "Nicht genug Mana, Wut oder Energie. Erst trinken, dann draufhauen.", stat = "noMana", tiers = { 100, 750, 3000 } },
-    { cat = "kurios", id = "jackpot", ico = "dice", name = "Volltreffer", desc = "Eine glatte 100 gewuerfelt (/wuerfeln 1-100)", stat = "roll100", tiers = { 1, 5, 20 } },
-    { cat = "kurios", id = "snakeeyes", ico = "unlucky", name = "Pechstraehne", desc = "Eine 1 gewuerfelt (/wuerfeln 1-100). Das Universum hasst dich.", stat = "roll1", tiers = { 1, 5, 20 } },
-    { cat = "kurios", id = "selftalk", ico = "whisper", name = "Selbstgespraech", desc = "Dir selbst etwas zugefluestert. Wer sonst hoert dir so gut zu?", stat = "selfWhisper", tiers = { 1, 10, 50 } },
-    { cat = "kurios", id = "rapidfire", ico = "chat", name = "Dauerfeuer", desc = "Fuenf Gildenchat-Nachrichten in 15 Sekunden. Tippen ist dein Cardio.", stat = "chatBursts", tiers = { 5, 40, 200 } },
-    { cat = "kurios", id = "closecall", ico = "survivor", name = "Haarscharf", desc = "Einen Kampf mit weniger als 10 % Leben ueberlebt. Puh.", stat = "closeCalls", tiers = { 5, 50, 250 } },
-    { cat = "kurios", id = "lostagain", ico = "explorer", name = "Orientierungslos", desc = "Die Weltkarte geoeffnet. Wo war nochmal Norden?", stat = "mapOpens", tiers = { 150, 1500, 7500 } },
-    { cat = "kurios", id = "paparazzi", ico = "influencer", name = "Paparazzi", desc = "Screenshots gemacht. Bitte laecheln!", stat = "screenshots", tiers = { 15, 150, 1000 } },
+    { cat = "kurios", id = "ghostrun", ico = "graveyard", name = "Ghost runner", desc = "Ran back to your own corpse as a ghost. It's about the journey.", stat = "ghostRuns", tiers = { 15, 75, 300 } },
+    { cat = "kurios", id = "drowned", ico = "swimmer", name = "Davy Jones", desc = "Died in the water. Air is overrated.", stat = "drowned", tiers = { 1, 5, 25 } },
+    { cat = "kurios", id = "messie", ico = "looter", name = "Hoarder", desc = "Bags full - again. Throwing stuff away is not an option.", stat = "bagsFull", tiers = { 25, 150, 600 } },
+    { cat = "kurios", id = "toofar", ico = "explorer", name = "Too far away", desc = "Out of range. One more step. And another.", stat = "outOfRange", tiers = { 100, 750, 3000 } },
+    { cat = "kurios", id = "wrongway", ico = "drama", name = "Wrong way round", desc = "The enemy was not in front of you. It was behind you. The whole time.", stat = "wrongFacing", tiers = { 50, 400, 2000 } },
+    { cat = "kurios", id = "emptytank", ico = "thirsty", name = "Running on empty", desc = "Not enough mana, rage or energy. Drink first, smash later.", stat = "noMana", tiers = { 100, 750, 3000 } },
+    { cat = "kurios", id = "jackpot", ico = "dice", name = "Jackpot", desc = "Rolled a clean 100 (/roll 1-100)", stat = "roll100", tiers = { 1, 5, 20 } },
+    { cat = "kurios", id = "snakeeyes", ico = "unlucky", name = "Snake eyes", desc = "Rolled a 1 (/roll 1-100). The universe hates you.", stat = "roll1", tiers = { 1, 5, 20 } },
+    { cat = "kurios", id = "selftalk", ico = "whisper", name = "Talking to myself", desc = "Whispered to yourself. Who else listens this well?", stat = "selfWhisper", tiers = { 1, 10, 50 } },
+    { cat = "kurios", id = "rapidfire", ico = "chat", name = "Rapid fire", desc = "Five guild chat messages in 15 seconds. Typing is your cardio.", stat = "chatBursts", tiers = { 5, 40, 200 } },
+    { cat = "kurios", id = "closecall", ico = "survivor", name = "Close call", desc = "Survived a fight with less than 10 % health. Phew.", stat = "closeCalls", tiers = { 5, 50, 250 } },
+    { cat = "kurios", id = "lostagain", ico = "explorer", name = "Lost again", desc = "Opened the world map. Where was north again?", stat = "mapOpens", tiers = { 150, 1500, 7500 } },
+    { cat = "kurios", id = "paparazzi", ico = "influencer", name = "Paparazzi", desc = "Took screenshots. Say cheese!", stat = "screenshots", tiers = { 15, 150, 1000 } },
     -- Alltag in der Welt
-    { cat = "welt", id = "banker", ico = "patron", name = "Bankier", desc = "Die Bank besucht. Mal kurz nachzaehlen.", stat = "bankVisits", tiers = { 30, 250, 1200 } },
-    { cat = "welt", id = "regular", ico = "merchant", name = "Stammkunde", desc = "Haendler besucht. Man kennt sich.", stat = "merchantVisits", tiers = { 60, 500, 2500 } },
-    { cat = "welt", id = "innsleep", ico = "innkeeper", name = "Gasthaus-Schlaefer", desc = "Im Gasthaus ausgeloggt - ausgeruht ist halb gelevelt", stat = "innLogouts", tiers = { 15, 100, 400 } },
-    { cat = "welt", id = "lounge", ico = "flyer", name = "Fluglounge", desc = "Minuten auf Flugrouten verbracht. Snacks nicht inklusive.", stat = "taxiMin", tiers = { 90, 900, 4500 } },
-    { cat = "handel", id = "dagobert", ico = "golddigger", name = "Dagobert", desc = "Hoechster Goldbestand je Charakter, zusammengezaehlt (in Gold). Baden im Geldspeicher.", stat = "goldMax", tiers = { 250, 2500, 15000 } },
+    { cat = "welt", id = "banker", ico = "patron", name = "Banker", desc = "Visited the bank. Just counting real quick.", stat = "bankVisits", tiers = { 30, 250, 1200 } },
+    { cat = "welt", id = "regular", ico = "merchant", name = "Regular", desc = "Visited merchants. They know you by now.", stat = "merchantVisits", tiers = { 60, 500, 2500 } },
+    { cat = "welt", id = "innsleep", ico = "innkeeper", name = "Inn sleeper", desc = "Logged out in an inn - rested is half levelled", stat = "innLogouts", tiers = { 15, 100, 400 } },
+    { cat = "welt", id = "lounge", ico = "flyer", name = "Flight lounge", desc = "Minutes spent on flight paths. Snacks not included.", stat = "taxiMin", tiers = { 90, 900, 4500 } },
+    { cat = "handel", id = "dagobert", ico = "golddigger", name = "Scrooge", desc = "Highest gold per character, added up (in gold). Swimming in the money bin.", stat = "goldMax", tiers = { 250, 2500, 15000 } },
     -- Fuer Legenden: lange Wege, echte Arbeit
-    { cat = "legende", id = "turbo", ico = "streak", name = "Turbo-Leveler", desc = "Ein Level in unter 30 Minuten Spielzeit geschafft", stat = "fastLevels", tiers = { 3, 12, 30 } },
-    { cat = "legende", id = "dungeonding", ico = "dungeonfan", name = "Dungeon-Ding", desc = "Mitten im Dungeon aufgestiegen", stat = "instanceDings", tiers = { 2, 8, 20 } },
-    { cat = "legende", id = "immortal", ico = "angel", name = "Unsterblich", desc = "Spielminuten am Stueck ohne einen einzigen Tod (beste Serie)", stat = "bestAlive", tiers = { 900, 4500, 18000 } },
-    { cat = "legende", id = "hundred", ico = "pack", name = "Hundertschaft", desc = "Verschiedene Gildenmitglieder, mit denen du in einer Gruppe warst", stat = "mates", tiers = { 10, 30, 75 } },
-    { cat = "legende", id = "nolifer", ico = "marathon", name = "Kein Privatleben", desc = "Stunden online (alle Charaktere). Draussen scheint uebrigens die Sonne.", stat = "playHours", tiers = { 250, 1000, 3000 } },
-    { cat = "legende", id = "fearless", ico = "bossfan", name = "Furchtlos", desc = "Bosse mit der Gilde gelegt, ohne dabei zu sterben", stat = "cleanBoss", tiers = { 10, 75, 300 } },
+    { cat = "legende", id = "turbo", ico = "streak", name = "Turbo leveler", desc = "Gained a level in under 30 minutes of playtime", stat = "fastLevels", tiers = { 3, 12, 30 } },
+    { cat = "legende", id = "dungeonding", ico = "dungeonfan", name = "Dungeon ding", desc = "Levelled up in the middle of a dungeon", stat = "instanceDings", tiers = { 2, 8, 20 } },
+    { cat = "legende", id = "immortal", ico = "angel", name = "Immortal", desc = "Minutes played in a row without a single death (best streak)", stat = "bestAlive", tiers = { 900, 4500, 18000 } },
+    { cat = "legende", id = "hundred", ico = "pack", name = "The hundred", desc = "Different guild members you have been in a group with", stat = "mates", tiers = { 10, 30, 75 } },
+    { cat = "legende", id = "nolifer", ico = "marathon", name = "No life", desc = "Hours online (all characters). The sun is shining outside, by the way.", stat = "playHours", tiers = { 250, 1000, 3000 } },
+    { cat = "legende", id = "fearless", ico = "bossfan", name = "Fearless", desc = "Bosses killed with the guild without dying", stat = "cleanBoss", tiers = { 10, 75, 300 } },
 }) do b.fixed = true Badges.LIST[#Badges.LIST + 1] = b end
 for _, b in ipairs({
-    { id = "ghostking", ico = "graveyard", name = "Geisterkoenig", desc = "Die meisten Geisterlaeufe der Gilde. Der Friedhof hat eine Bank mit deinem Namen.", shared = "ghostRuns", min = 30 },
-    { id = "courtphoto", ico = "influencer", name = "Hoffotograf", desc = "Die meisten Screenshots der Gilde", shared = "screenshots", min = 50 },
-    { id = "messieking", ico = "looter", name = "Messie-Koenig", desc = "Die meisten vollen Taschen der Gilde", shared = "bagsFull", min = 50 },
+    { id = "ghostking", ico = "graveyard", name = "Ghost king", desc = "Most ghost runs in the guild. The graveyard has a bench with your name on it.", shared = "ghostRuns", min = 30 },
+    { id = "courtphoto", ico = "influencer", name = "Court photographer", desc = "Most screenshots in the guild", shared = "screenshots", min = 50 },
+    { id = "messieking", ico = "looter", name = "Hoarder king", desc = "Most full bags in the guild", shared = "bagsFull", min = 50 },
 }) do Badges.UNIQUE[#Badges.UNIQUE + 1] = b end
 -- reine Zaehler deutlich schwerer: Bronze x2, Silber x3, Gold x4 (auf runde Werte). Begrenzte Werte bleiben.
 do
@@ -468,7 +468,7 @@ function Badges.UniqueHolders()
     h.topcrafter = best
     -- Kueken: juengster Beitritt der letzten 30 Tage
     local newest, newestT = nil, ns.now() - 30 * 86400
-    for _, e in ipairs(Store.List("chronicle", function(e) return e.kind == "guild" and (e.tk or ""):find("^tritt") end)) do
+    for _, e in ipairs(Store.List("chronicle", function(e) return e.kind == "guild" and ns.IsJoinTk(e.tk) end)) do
         if (e.ts or 0) > newestT then newest, newestT = e.who, e.ts end
     end
     h.chick = newest and (ns.Alts and ns.Alts.Main(newest) or newest) or nil
@@ -597,13 +597,13 @@ local checking
 -- auf Wunsch: Gold-Abzeichen und Gilden-Titel im Gildenchat feiern (hoechstens alle 2 Minuten)
 local lastAnnounce = 0
 -- Gilden-Optionen (Gildenleitung): Standard = bisheriges Verhalten
-ns.GuildOption({ page = "badges", key = "bdAnnc", default = true, label = "Abzeichen im Gildenchat feiern erlauben",
-    desc = "Aus: niemand schreibt bei Gold-Abzeichen und Gilden-Titeln eine Zeile in den Gildenchat, auch wenn es persoenlich eingeschaltet ist" })
-ns.GuildOption({ page = "badges", key = "bdGap", default = 2, min = 1, max = 30, step = 1, label = "Abstand der Abzeichen-Zeilen",
-    desc = "Hoechstens eine Abzeichen-Zeile pro Person in diesem Zeitraum (gegen Spam im Gildenchat)",
-    fmt = function(v) return (ns.L["%d Min"]):format(v) end })
-ns.GuildOption({ page = "badges", key = "bdChron", default = true, label = "Abzeichen in der Gildenchronik",
-    desc = "Aus: neue Abzeichen und Gilden-Titel werden nicht mehr in die Gildenchronik eingetragen" })
+ns.GuildOption({ page = "badges", key = "bdAnnc", default = true, label = "Allow badge shout-outs in guild chat",
+    desc = "Off: nobody posts a line in guild chat for gold badges and guild titles, even if enabled personally" })
+ns.GuildOption({ page = "badges", key = "bdGap", default = 2, min = 1, max = 30, step = 1, label = "Gap between badge lines",
+    desc = "At most one badge line per person in this time span (against guild chat spam)",
+    fmt = function(v) return (ns.L["%d min"]):format(v) end })
+ns.GuildOption({ page = "badges", key = "bdChron", default = true, label = "Badges in the guild chronicle",
+    desc = "Off: new badges and guild titles are no longer added to the guild chronicle" })
 local function chronOk() return ns.Chronicle and ns.db.settings.badgeChronicle ~= false and ns.GuildOpt("bdChron") ~= false end
 function Badges.Announce(id, tier)
     local st = ns.db and ns.db.settings
@@ -614,7 +614,7 @@ function Badges.Announce(id, tier)
     if not b then return end
     lastAnnounce = GetTime()
     local name = (Badges.Label(id, tier) or L[b.name]):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-    ns.OfferChat(L["Im Gildenchat zeigen?"], (L["hat ein Abzeichen erhalten: %s"]):format(name), "GUILD")
+    ns.OfferChat(L["Show in guild chat?"], (L["earned a badge: %s"]):format(name), "GUILD")
 end
 function Badges.Check()
     if checking or not ns.db then return end
@@ -629,10 +629,10 @@ function Badges.Check()
                 local b = Badges.byId[id]
                 if Badges.initialized then
                     ns.Sound.Next("badge")
-                    K.Toast(L["Neues Abzeichen"], Badges.Label(id, tier), Badges.Color(tier), function() ns.ShowPage("badges") end)
+                    K.Toast(L["New badge"], Badges.Label(id, tier), Badges.Color(tier), function() ns.ShowPage("badges") end)
                     if tier >= 3 then Badges.Announce(id, tier) end
                     if chronOk() then
-                        ns.Chronicle.Add("badge", ("badge-%s-%s-%d"):format(ns.short(ns.me()), id, tier), "hat ein Abzeichen erhalten:", { id, tier })
+                        ns.Chronicle.Add("badge", ("badge-%s-%s-%d"):format(ns.short(ns.me()), id, tier), "earned a badge:", { id, tier })
                     end
                 end
             end
@@ -647,10 +647,10 @@ function Badges.Check()
             seen[key] = true
             if Badges.initialized then
                 ns.Sound.Next("badge")
-                K.Toast(L["Gilden-Titel!"], L[Badges.byId[id].name], Badges.UNIQUE_COLOR, function() ns.ShowPage("badges") end)
+                K.Toast(L["Guild title!"], L[Badges.byId[id].name], Badges.UNIQUE_COLOR, function() ns.ShowPage("badges") end)
                 Badges.Announce(id, 4)
                 if chronOk() then
-                    ns.Chronicle.Add("badge", ("badge-%s-%s"):format(ns.short(ns.me()), id), "hat ein Abzeichen erhalten:", { id, 4 })
+                    ns.Chronicle.Add("badge", ("badge-%s-%s"):format(ns.short(ns.me()), id), "earned a badge:", { id, 4 })
                 end
             end
         end
@@ -743,7 +743,7 @@ local function tileTip(tile)
         end
         lines[#lines + 1] = " "
         lines[#lines + 1] = table.concat(t, "   ")
-        lines[#lines + 1] = L["Dein Stand: "] .. v
+        lines[#lines + 1] = L["Your progress: "] .. v
     end
     local hold = holdersOf(b.id)
     if #hold > 0 then
@@ -754,7 +754,7 @@ local function tileTip(tile)
             local c = Badges.Color(h.tier)
             t[#t + 1] = ("|cff%02x%02x%02x•|r "):format(c[1] * 255, c[2] * 255, c[3] * 255) .. ns.Radar.Colored(h.name)
         end
-        lines[#lines + 1] = L["In der Gilde: "] .. table.concat(t, ", ")
+        lines[#lines + 1] = L["In the guild: "] .. table.concat(t, ", ")
     end
     K.ShowTip(tile, lines)
 end
@@ -809,11 +809,11 @@ local function filterPills(parent, items, onChange)
 end
 
 ns.RegisterPage({
-    key = "badges", title = "Abzeichen", order = 7.8,
-    sub = "Abzeichen fuer alles, was ihr zusammen erlebt - Bronze, Silber, Gold und einmalige Gilden-Titel",
+    key = "badges", title = "Badge", order = 7.8,
+    sub = "Badges for everything you experience together – bronze, silver, gold and unique guild titles",
     build = function(p)
         local IGL = ns.Insta
-        local TABS = { { key = "mine", text = L["Meine Abzeichen"], icon = "badges" }, { key = "guild", text = L["Gilde"], icon = "groups" } }
+        local TABS = { { key = "mine", text = L["My badges"], icon = "badges" }, { key = "guild", text = L["Guild"], icon = "groups" } }
         local function onView(k) view = k ns.RefreshPage("badges") end
         if IGL and IGL.ProfileTabs then
             p.seg = IGL.ProfileTabs(p, TABS, onView)
@@ -823,8 +823,8 @@ ns.RegisterPage({
         end
         p.seg:SetPoint("TOPLEFT", 0, 0)
         p.show = filterPills(p, {
-            { key = "all", text = L["Alle"] }, { key = "have", text = L["Erreicht"] },
-            { key = "near", text = L["Fast geschafft"] }, { key = "open", text = L["Offen"] },
+            { key = "all", text = L["All"] }, { key = "have", text = L["Earned"] },
+            { key = "near", text = L["Almost there"] }, { key = "open", text = L["Open"] },
         }, function(k)
             showFilter = k
             p.scroll:SetVerticalScroll(0)
@@ -847,7 +847,7 @@ ns.RegisterPage({
         local LW = 330   -- Breite der linken Haelfte
         hero.lbl = K.Text(hero, 12, C.muted)
         hero.lbl:SetPoint("TOPLEFT", 20, -16)
-        hero.lbl:SetText(L["Deine Abzeichen"])
+        hero.lbl:SetText(L["Your badges"])
         hero.big = K.Title(hero, 30, C.text)
         hero.big:SetPoint("TOPLEFT", hero.lbl, "BOTTOMLEFT", 0, -4)
         hero.of = K.Text(hero, 12, C.muted)
@@ -871,7 +871,7 @@ ns.RegisterPage({
             d:SetPoint("TOPLEFT", hero.bar, "BOTTOMLEFT", x, -12)
             local t = K.Text(hero, 11, C.muted)
             t:SetPoint("LEFT", d, "RIGHT", 5, 0)
-            hero.tiers[i] = { t = t, name = i == 4 and L["Gilden-Titel"] or L[Badges.TIERS[i].name] }
+            hero.tiers[i] = { t = t, name = i == 4 and L["Guild Titles"] or L[Badges.TIERS[i].name] }
             x = x + (i == 4 and 0 or 74)
         end
         -- Trennlinie zwischen links und rechts
@@ -884,7 +884,7 @@ ns.RegisterPage({
         local NX = 20 + LW + 20
         hero.nextHead = K.Text(hero, 12, C.muted)
         hero.nextHead:SetPoint("TOPLEFT", NX, -16)
-        hero.nextHead:SetText(L["Als naechstes"])
+        hero.nextHead:SetText(L["Up next"])
         hero.next = {}
         for i = 1, 3 do
             local n = CreateFrame("Frame", nil, hero)
@@ -910,7 +910,7 @@ ns.RegisterPage({
         hero.none:SetPoint("TOPLEFT", NX, -36)
         hero.none:SetPoint("RIGHT", hero, "RIGHT", -20, 0)
         hero.none:SetWordWrap(true)
-        hero.none:SetText(L["Sammle Fortschritt, dann erscheinen hier die naechsten Abzeichen."])
+        hero.none:SetText(L["Make some progress and your next badges will show up here."])
         p.hero = hero
 
         -- scrollbares Raster
@@ -1064,7 +1064,7 @@ ns.RegisterPage({
                 table.sort(names)
                 for i = 1, math.min(20, #names) do lines[#lines + 1] = "|cffd8d8dc" .. names[i] .. "|r" end
                 if #it.hold > 20 then lines[#lines + 1] = "|cff888888+" .. (#it.hold - 20) .. "|r" end
-                if #it.hold == 0 then lines[#lines + 1] = "|cff666666" .. L["noch niemand"] .. "|r" end
+                if #it.hold == 0 then lines[#lines + 1] = "|cff666666" .. L["nobody yet"] .. "|r" end
                 K.ShowTip(self, lines)
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1080,7 +1080,7 @@ ns.RegisterPage({
             r.fill:SetWidth(math.max(1, w))
             r.fill:SetShown(show) r.glow:SetShown(show) r.halo:SetShown(show)
             local pct = math.floor(n / N * 100 + 0.5)
-            r.cols.who:SetText(n > 0 and ((L["%d von %d"]):format(n, N) .. "  |cffd8d8dc" .. pct .. " %|r") or ("|cff666666" .. L["noch niemand"] .. "|r"))
+            r.cols.who:SetText(n > 0 and ((L["%d of %d"]):format(n, N) .. "  |cffd8d8dc" .. pct .. " %|r") or ("|cff666666" .. L["nobody yet"] .. "|r"))
         end)
         p.list:SetPoint("TOPLEFT", 0, -46)
         p.list:SetPoint("BOTTOMRIGHT")
@@ -1101,7 +1101,7 @@ ns.RegisterPage({
             local near = false
             if b.unique then
                 tier = (uniq[b.id] == me or uniq[b.id] == ns.me()) and 4 or 0
-                t.tierTxt:SetText(tier == 4 and L["Gilden-Titel"] or (uniq[b.id] and (L["gehoert "] .. ns.displayName(uniq[b.id])) or L["noch frei"]))
+                t.tierTxt:SetText(tier == 4 and L["Guild Titles"] or (uniq[b.id] and (L["held by "] .. ns.displayName(uniq[b.id])) or L["still up for grabs"]))
                 t.bar:Hide()
                 progress = 0
             else
@@ -1164,7 +1164,7 @@ ns.RegisterPage({
             local h = p.hero
             local frac = #p.tiles > 0 and have / #p.tiles or 0
             h.big:SetText(have)
-            h.of:SetText((L["von %d Abzeichen"]):format(#p.tiles))
+            h.of:SetText((L["of %d badges"]):format(#p.tiles))
             h.bar:Set(frac)
             h.pct:SetText(math.floor(frac * 100 + 0.5) .. " %")
             for i = 1, 4 do h.tiers[i].t:SetText("|cffe6e6ea" .. cnt[i] .. "|r " .. h.tiers[i].name) end
@@ -1226,7 +1226,7 @@ ns.RegisterPage({
         for _, t in ipairs(p.tiles) do if not t.visible then t:Hide() end end
         p.grid:SetHeight(math.max(10, y))
         if p.UpdateBar then C_Timer.After(0, function() pcall(p.UpdateBar) end) end
-        p.summary:SetText((L["%d von %d Abzeichen"]):format(have, #p.tiles))
+        p.summary:SetText((L["%d of %d badges"]):format(have, #p.tiles))
         if view == "guild" then
             local rows = {}
             -- Grundmenge: Spieler (Mains) mit Oasis - nur sie haben Abzeichen-Daten
@@ -1389,7 +1389,7 @@ ns.On("CHAT_MSG_GUILD", function(msg, sender)
     if low:find("willkommen") or low:find("welcome") or low:find("^wb") or low:find("%swb") then
         -- wer ist in den letzten 15 Minuten beigetreten?
         for _, e in ipairs(Store.List("chronicle", function(e)
-            return e.kind == "guild" and (e.tk or ""):find("^tritt") and ns.now() - (e.ts or 0) < 900
+            return e.kind == "guild" and ns.IsJoinTk(e.tk) and ns.now() - (e.ts or 0) < 900
         end)) do
             if not greeted[e.who] and not ns.isMe(e.who) then
                 greeted[e.who] = true

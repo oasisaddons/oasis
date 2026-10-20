@@ -356,19 +356,19 @@ local function buildAsk()
     f.title:SetPoint("LEFT", f.av, "RIGHT", 10, 0)
     f.title:SetPoint("RIGHT", f, "RIGHT", -40, 0)
     f.title:SetWordWrap(false)
-    f.close = K.CloseButton(f, function() f.later() end, L["Schliessen"])
+    f.close = K.CloseButton(f, function() f.later() end, L["Close"])
     f.close:SetPoint("TOPRIGHT", -10, -10)
     f.sub = K.Text(f, 11, C.muted)
     f.sub:SetPoint("TOPLEFT", 18, -56)
     f.sub:SetPoint("RIGHT", -18, 0)
     f.sub:SetWordWrap(true)
     f.sub:SetJustifyH("LEFT")
-    f.sub:SetText(L["Oasis fasst deine Charaktere in der Gilde zu einem Spieler zusammen. Spaeter aenderbar unter Einstellungen > Profil & Sichern."])
+    f.sub:SetText(L["Oasis groups your characters in the guild into one player. You can change this later under Settings > Profile & Backup."])
 
     -- Auswahl "Twink von ..." (nur sichtbar nach Klick auf Twink, wenn es mehrere andere gibt)
     f.ofLabel = K.Text(f, 11, C.muted)
     f.ofLabel:SetPoint("TOPLEFT", 18, -104)
-    f.ofLabel:SetText(L["Twink von"])
+    f.ofLabel:SetText(L["Alt of"])
     f.of = K.Button(f, "", 200, 24, "ghost")
     f.of.isDropdown = true
     f.of:SetPoint("LEFT", f.ofLabel, "RIGHT", 10, 0)
@@ -379,7 +379,7 @@ local function buildAsk()
         end
         K.ShowMenu(self, items, nil, 200)
     end)
-    f.ok = K.Button(f, L["Speichern"], 100, 26, "primary", function()
+    f.ok = K.Button(f, L["Save"], 100, 26, "primary", function()
         if f.mode == "other" then
             local txt = (f.otherIn:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
             if txt == "" then
@@ -399,51 +399,51 @@ local function buildAsk()
                 if n == 1 then m = hit end
             end
             if not m or ns.isMe(m.name) or ns.db.chars[m.name] then
-                K.Toast(L["Nicht gefunden"], L["Bitte den Namen eines Gildenmitglieds eingeben (nicht einen eigenen Charakter)."], C.dim)
+                K.Toast(L["Not found"], L["Please enter the name of a guild member (not one of your own characters)."], C.dim)
                 return
             end
             ns.char.altRoleAsked = true
             Alts.SetOtherMain(m.name)
-            K.Toast(L["Anfrage geschickt"], (L["%s muss dich einmal bestaetigen - beim naechsten Einloggen mit Oasis kommt dort die Rueckfrage."]):format(ns.displayName(m.name)), C.mint)
+            K.Toast(L["Request sent"], (L["%s has to confirm you once - they will be asked the next time they log in with Oasis."]):format(ns.displayName(m.name)), C.mint)
             f:Hide()
             return
         end
         if f.pick then
             ns.char.altRoleAsked = true
             Alts.SetMain(f.pick)
-            K.Toast(L["Gespeichert"], (L["%s ist jetzt Twink von %s."]):format(ns.displayName(ns.me()), ns.displayName(f.pick)), C.mint)
+            K.Toast(L["Saved"], (L["%s is now an alt of %s."]):format(ns.displayName(ns.me()), ns.displayName(f.pick)), C.mint)
         end
         f:Hide()
     end)
     f.ok:SetPoint("BOTTOMRIGHT", -18, 16)
-    f.back = K.Button(f, L["Zurueck"], 90, 26, "ghost", function() f:SetMode("ask") end)
+    f.back = K.Button(f, L["Back"], 90, 26, "ghost", function() f:SetMode("ask") end)
     f.back:SetPoint("RIGHT", f.ok, "LEFT", -8, 0)
 
     f.main = K.Button(f, L["Main"], 110, 26, "primary", function()
         ns.char.altRoleAsked = true
         Alts.SetMain(ns.me())
-        K.Toast(L["Gespeichert"], (L["%s ist jetzt dein Main."]):format(ns.displayName(ns.me())), C.mint)
+        K.Toast(L["Saved"], (L["%s is now your main."]):format(ns.displayName(ns.me())), C.mint)
         f:Hide()
     end)
     f.main:SetPoint("BOTTOMLEFT", 18, 16)
-    f.twink = K.Button(f, L["Twink"], 110, 26, "ghost", function()
+    f.twink = K.Button(f, L["Alt"], 110, 26, "ghost", function()
         local o = others()
         if #o == 1 then
             ns.char.altRoleAsked = true
             Alts.SetMain(o[1])
-            K.Toast(L["Gespeichert"], (L["%s ist jetzt Twink von %s."]):format(ns.displayName(ns.me()), ns.displayName(o[1])), C.mint)
+            K.Toast(L["Saved"], (L["%s is now an alt of %s."]):format(ns.displayName(ns.me()), ns.displayName(o[1])), C.mint)
             f:Hide()
         else
             f:SetMode("pick")
         end
     end)
     f.twink:SetPoint("LEFT", f.main, "RIGHT", 8, 0)
-    f.laterBtn = K.Button(f, L["Spaeter"], 80, 22, "ghost", function() f.later() end)
+    f.laterBtn = K.Button(f, L["Later"], 80, 22, "ghost", function() f.later() end)
     f.laterBtn:SetPoint("BOTTOMRIGHT", -18, 18)
     -- Main liegt auf einem anderen WoW-Account: Namen eintragen, der Main bestaetigt
-    f.otherBtn = K.Button(f, L["Mein Main ist auf einem anderen Account"], 290, 22, "ghost", function() f:SetMode("other") end)
+    f.otherBtn = K.Button(f, L["My main is on a different account"], 290, 22, "ghost", function() f:SetMode("other") end)
     f.otherBtn:SetPoint("TOPLEFT", 18, -108)
-    f.otherIn = K.Input(f, 240, L["Name des Mains (Gildenmitglied)"])
+    f.otherIn = K.Input(f, 240, L["Name of the main (guild member)"])
     f.otherIn:SetPoint("TOPLEFT", 18, -108)
     if K.AttachNameSuggest then K.AttachNameSuggest(f.otherIn) end
     f.otherIn:Hide()
@@ -513,18 +513,18 @@ local function nextConfirm()
         f.sub:SetPoint("RIGHT", -18, 0)
         f.sub:SetWordWrap(true)
         f.sub:SetJustifyH("LEFT")
-        f.yes = K.Button(f, L["Ja, mein Twink"], 140, 26, "primary", function()
+        f.yes = K.Button(f, L["Yes, my alt"], 140, 26, "primary", function()
             local s = ns.db.settings
             s.extraAlts = s.extraAlts or {}
             s.extraAlts[f.who] = true
             if ns.Radar and ns.Radar.SendHello then ns.Radar.SendHello() end
             ns.Fire("ALTS")
-            K.Toast(L["Gespeichert"], (L["%s ist jetzt Twink von %s."]):format(ns.displayName(f.who), ns.displayName(Alts.MyMain())), C.mint)
+            K.Toast(L["Saved"], (L["%s is now an alt of %s."]):format(ns.displayName(f.who), ns.displayName(Alts.MyMain())), C.mint)
             f:Hide()
             ns.After(0.5, nextConfirm)
         end)
         f.yes:SetPoint("BOTTOMLEFT", 18, 16)
-        f.no = K.Button(f, L["Nein, kenne ich nicht"], 170, 26, "ghost", function()
+        f.no = K.Button(f, L["No, I don't know them"], 170, 26, "ghost", function()
             local s = ns.db.settings
             s.altDeclined = s.altDeclined or {}
             s.altDeclined[f.who] = true
@@ -536,8 +536,8 @@ local function nextConfirm()
         confirmWin = f
     end
     confirmWin.who = name
-    confirmWin.title:SetText((L["Ist %s dein Twink?"]):format(ns.Radar.Colored and ns.Radar.Colored(name) or ns.displayName(name)))
-    confirmWin.sub:SetText(L["Dieser Charakter liegt auf einem anderen WoW-Account und hat dich als Main eingetragen. Nur wenn du bestaetigst, zaehlt er in der Gilde als dein Twink."])
+    confirmWin.title:SetText((L["Is %s your alt?"]):format(ns.Radar.Colored and ns.Radar.Colored(name) or ns.displayName(name)))
+    confirmWin.sub:SetText(L["This character is on a different WoW account and named you as their main. They only count as your alt in the guild if you confirm."])
     confirmWin:Show()
     confirmWin:Raise()
 end
@@ -556,7 +556,7 @@ function Alts.ShowAsk()
     local GI = ns.GuildInfo
     local ok = cls and GI and GI.SetClassIcon and GI.SetClassIcon(ask.av, cls)
     ask.av:SetShown(ok and true or false)
-    ask.title:SetText((L["Ist %s dein Main oder ein Twink?"]):format(ns.colorName and ns.colorName(me, cls) or ns.displayName(me)))
+    ask.title:SetText((L["Is %s your main or an alt?"]):format(ns.colorName and ns.colorName(me, cls) or ns.displayName(me)))
     ask:SetMode("ask")
     ask:Show()
     ask:Raise()

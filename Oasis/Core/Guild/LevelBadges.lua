@@ -44,8 +44,8 @@ function LB.Celebrate(level)
     if not path then return end
     if not pop then build() end
     pop.badge:SetTexture(path)
-    pop.title:SetText((L["Stufe %d erreicht!"]):format(level))
-    pop.sub:SetText(level >= 60 and L["Willkommen im Endgame!"] or L["Neues Stufen-Abzeichen freigeschaltet"])
+    pop.title:SetText((L["Level %d reached!"]):format(level))
+    pop.sub:SetText(level >= 60 and L["Welcome to the endgame!"] or L["New level badge unlocked"])
     pop:SetAlpha(0)
     pop:Show()
     if ns.Sound and ns.Sound.Next then ns.Sound.Next("levelup") end

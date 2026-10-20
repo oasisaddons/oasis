@@ -106,33 +106,33 @@ LM.InMyGroup, LM.MayLead = inMyGroup, mayLead
 local MODES = { roll = true, points = true, council = true, gdkp = true }
 
 ns.GuildOption({ page = "raid", key = "lmMode", default = "roll", kind = "choice",
-    label = "Beute-Verteilung", desc = "Wuerfeln: Reihenfolge Bedarf > Zweitspec > Transmog, dann Wurf. Punkte: Prioritaet aus den Beutepunkten entscheidet. Beuterat: Offiziere stimmen ab, der Plundermeister vergibt.",
-    choices = { { key = "roll", text = "Wuerfeln" }, { key = "points", text = "Punkte" }, { key = "council", text = "Beuterat" }, { key = "gdkp", text = "GDKP (Gold-Gebote)" } } })
+    label = "Loot distribution", desc = "Rolling: order need > off-spec > transmog, then the roll. Points: priority from loot points decides. Loot council: officers vote, the master looter awards.",
+    choices = { { key = "roll", text = "Roll" }, { key = "points", text = "Points" }, { key = "council", text = "Loot council" }, { key = "gdkp", text = "GDKP (gold bids)" } } })
 ns.GuildOption({ page = "raid", key = "lmGMin", default = 10, min = 1, max = 1000, step = 1,
-    label = "GDKP: Mindestgebot", desc = "Erstes Gebot je Item in Gold.", fmt = function(v) return v .. " g" end })
+    label = "GDKP: minimum bid", desc = "First bid per item in gold.", fmt = function(v) return v .. " g" end })
 ns.GuildOption({ page = "raid", key = "lmGInc", default = 5, min = 1, max = 500, step = 1,
-    label = "GDKP: Erhoehung", desc = "Um so viel Gold muss jedes neue Gebot hoeher sein.", fmt = function(v) return v .. " g" end })
+    label = "GDKP: increment", desc = "Every new bid must be higher by this much gold.", fmt = function(v) return v .. " g" end })
 ns.GuildOption({ page = "raid", key = "lmGCut", default = 0, min = 0, max = 50, step = 1,
-    label = "GDKP: Anteil Gildenbank", desc = "So viel Prozent vom Topf gehen vor dem Aufteilen an die Gildenbank.", fmt = function(v) return v .. " %" end })
+    label = "GDKP: guild bank share", desc = "This percentage of the pot goes to the guild bank before the split.", fmt = function(v) return v .. " %" end })
 ns.GuildOption({ page = "raid", key = "lmTimer", default = 60, min = 20, max = 180, step = 10,
-    label = "Bedenkzeit", desc = "So lange hat jeder Zeit zu waehlen. Wer nichts waehlt, passt.",
+    label = "Time to decide", desc = "This is how long everyone has to choose. Whoever chooses nothing passes.",
     fmt = function(v) return v .. " s" end })
 ns.GuildOption({ page = "raid", key = "lmPlus", default = true,
-    label = "Plus-Eins", desc = "Wer an einem Abend schon ein Item mit Bedarf bekommen hat, rutscht bei Bedarf hinter alle ohne Item (gleicher Wurf-Rang)." })
+    label = "Plus one", desc = "Whoever already received an item on need that evening drops behind everyone without an item on need (same roll rank)." })
 ns.GuildOption({ page = "raid", key = "lmSR", default = true,
-    label = "Soft-Reserve zuerst", desc = "Wer ein Item fuer den Termin reserviert hat, kommt bei Bedarf vor allen anderen." })
+    label = "Soft reserve first", desc = "Whoever reserved an item for the event comes before everyone else on need." })
 ns.GuildOption({ page = "raid", key = "lmCouncil", default = 1, min = 0, max = 9, step = 1,
-    label = "Beuterat ab Rang", desc = "Diese Gildenraenge (0 = Gildenmeister) duerfen im Beuterat abstimmen.",
-    fmt = function(v) return (ns.L["bis Rang %d"]):format(v) end })
+    label = "Loot council from rank", desc = "These guild ranks (0 = guild master) may vote in the loot council.",
+    fmt = function(v) return (ns.L["up to rank %d"]):format(v) end })
 ns.GuildOption({ page = "raid", key = "lmMinQ", default = "3", kind = "choice",
-    label = "Ab Qualitaet", desc = "Items ab dieser Qualitaet kommen in die Verteilung.",
-    choices = { { key = "2", text = "Selten (gruen)" }, { key = "3", text = "Rar (blau)" }, { key = "4", text = "Episch" } } })
+    label = "From quality", desc = "Items of this quality and above go into distribution.",
+    choices = { { key = "2", text = "Uncommon (green)" }, { key = "3", text = "Rare (blue)" }, { key = "4", text = "Epic" } } })
 
 local CHOICES = {
-    { key = "ms", text = "Bedarf", short = "Bedarf", color = C.mint, order = 1 },
-    { key = "os", text = "Zweitspec", short = "Zweit", color = C.blue, order = 2 },
+    { key = "ms", text = "Need", short = "Need", color = C.mint, order = 1 },
+    { key = "os", text = "Off-spec", short = "Zweit", color = C.blue, order = 2 },
     { key = "tm", text = "Transmog", short = "Mog", color = C.amber, order = 3 },
-    { key = "pass", text = "Passen", short = "Passen", color = C.dim, order = 9 },
+    { key = "pass", text = "Pass", short = "Pass", color = C.dim, order = 9 },
 }
 local CH = {}
 for _, c in ipairs(CHOICES) do CH[c.key] = c end
@@ -245,11 +245,11 @@ function LM.Stats(name)
 end
 function LM.StatsTip(lines, name)
     local st = LM.Stats(name)
-    lines[#lines + 1] = (L["Beute: %d gesamt  ·  %d in 30 Tagen"]):format(st.total, st.d30)
-    lines[#lines + 1] = "|cff66db9e" .. (L["Bedarf %d"]):format(st.ms) .. "|r  |cff6199ff" .. (L["Zweitspec %d"]):format(st.os) .. "|r  |cffe8b44a" .. (L["Transmog %d"]):format(st.tm) .. "|r"
+    lines[#lines + 1] = (L["Loot: %d total  ·  %d in 30 days"]):format(st.total, st.d30)
+    lines[#lines + 1] = "|cff66db9e" .. (L["Need %d"]):format(st.ms) .. "|r  |cff6199ff" .. (L["Off-spec %d"]):format(st.os) .. "|r  |cffe8b44a" .. (L["Transmog %d"]):format(st.tm) .. "|r"
     for k, r in ipairs(st.items) do
         if k > 4 then break end
-        lines[#lines + 1] = "|cff888888" .. date(L["%d.%m."], r.ts or 0) .. "|r  " .. (r.item or "?")
+        lines[#lines + 1] = "|cff888888" .. date(L["%m/%d"], r.ts or 0) .. "|r  " .. (r.item or "?")
     end
     return lines
 end
@@ -293,7 +293,7 @@ function LM.Bid(i, amount)
     if not it or it.winner or s.closed then return end
     local min = LM.MinBid(it)
     amount = math.floor(tonumber(amount) or min)
-    if amount < min then ns.print((L["Mindestens %d Gold."]):format(min)) return end
+    if amount < min then ns.print((L["At least %d gold."]):format(min)) return end
     gotBid(ns.me(), i, amount)
     it.mine = "bid"
     Comm.Group("LMBID", s.sid, i, amount)
@@ -308,7 +308,7 @@ function LM.PostPayout()
     local ch = ns.groupChannel()
     if not ch then return end
     local sum, cut, n, each = LM.Pot()
-    ns.SendChat((L["[Oasis] GDKP-Topf: %d g, Gildenbank %d g, %d Spieler - je %d g"]):format(sum, cut, n, each), ch)
+    ns.SendChat((L["[Oasis] GDKP pot: %d g, guild bank %d g, %d players - %d g each"]):format(sum, cut, n, each), ch)
 end
 
 ------------------------------------------------------------------------
@@ -326,8 +326,8 @@ end
 -- items = { {link=, slot=}, ... }
 function LM.Start(items)
     if not items or #items == 0 then return end
-    if not ns.Group.IsInGroup() then ns.print(L["Du bist in keiner Gruppe."]) return end
-    if not ns.isGroupLead() and not LM.IsMasterLooter() then ns.print(L["Nur Plundermeister, Anfuehrer oder Assistenten koennen verteilen."]) return end
+    if not ns.Group.IsInGroup() then ns.print(L["You are not in a group."]) return end
+    if not ns.isGroupLead() and not LM.IsMasterLooter() then ns.print(L["Only master looter, leader or assistants can distribute."]) return end
     if LM.session and not LM.session.closed then LM.End() end
     local timer = tonumber(ns.GuildOpt("lmTimer")) or 60
     local s = newSession(tostring(math.random(100000, 999999)), ns.me(), LM.Mode(), timer)
@@ -341,7 +341,7 @@ function LM.Start(items)
     if ch then
         local links = {}
         for _, it in ipairs(items) do links[#links + 1] = it.link end
-        ns.SendChat((L["[Oasis] Verteilung (%d s): "]):format(timer) .. table.concat(links, " "):sub(1, 200), ns.Group.IsInRaid() and "RAID_WARNING" or ch)
+        ns.SendChat((L["[Oasis] Distribution (%d s): "]):format(timer) .. table.concat(links, " "):sub(1, 200), ns.Group.IsInRaid() and "RAID_WARNING" or ch)
     end
     LM.ShowRoll()
     LM.ShowMaster()
@@ -421,7 +421,7 @@ function LM.Choose(i, choice)
         if s.sim then
             -- Raid-Simulator: nur lokal wuerfeln, kein /roll im Chat
             simRoll = math.random(1, 100)
-            ns.print((L["Raid-Sim: du wuerfelst %d"]):format(simRoll))
+            ns.print((L["Raid sim: you roll %d"]):format(simRoll))
         else
             local roll = RandomRoll or (C_RandomRoll and C_RandomRoll.RandomRoll)
             if roll then pcall(roll, 1, 100) end
@@ -577,7 +577,7 @@ function LM.Award(i, name, why)
     if s.sim then
         -- Raid-Simulator: nichts uebergeben, keine Punkte/Plus-Eins buchen, Beute-Eintrag nur lokal (demo-sim-ID)
         Store.merge("loot", { id = "demo-sim-lm-" .. s.sid .. "-" .. i, sim = true, item = it.link, who = name, src = "Vergabe", choice = choice,
-            roll = r and r.roll or nil, gold = gold, why = why, zone = L["Raid-Sim"], mapID = 0, ts = ns.now(), u = ns.now(), by = ns.me(), quality = 4 })
+            roll = r and r.roll or nil, gold = gold, why = why, zone = L["Raid sim"], mapID = 0, ts = ns.now(), u = ns.now(), by = ns.me(), quality = 4 })
         ns.SendChat(L["[Oasis] "] .. it.link .. " > " .. ns.short(name) .. " (" .. (gold and (gold .. " g") or L[(CH[choice] or CH.ms).text]) .. ")", "RAID")
         local open = false
         for _, x in ipairs(s.items) do if not x.winner then open = true end end
@@ -622,7 +622,7 @@ Comm.On("LMAWARD", function(sender, _, sid, i, name, choice)
     if not name or not CH[choice or ""] then return end
     it.winner, it.wchoice = name, choice
     if choice == "ms" then plusTable()[mainOf(name)] = LM.Plus(name) + 1 end
-    if ns.isMe(name) then K.Toast(L["Du bekommst das Item!"], it.link, C.mint) end
+    if ns.isMe(name) then K.Toast(L["You get the item!"], it.link, C.mint) end
     LM.Refresh()
 end)
 -- alle offenen Items nach Rangfolge vergeben (Wuerfeln/Punkte)
@@ -643,7 +643,7 @@ ns.On("TRADE_SHOW", function()
     for k = #LM.toTrade, 1, -1 do
         local t = LM.toTrade[k]
         if ns.short(t.who) == ns.short(ns.fullName(who)) then
-            K.Toast(L["Noch zu uebergeben"], t.link, C.amber)
+            K.Toast(L["Still to hand over"], t.link, C.amber)
             table.remove(LM.toTrade, k)
         end
     end
@@ -753,7 +753,7 @@ end
 LM.TimeColor = timeColor
 local MODE_COL = { roll = C.blue, points = C.mint, council = C.amber, gdkp = C.amber }
 local function modeText(m)
-    local t = { roll = L["Wuerfeln"], points = L["Punkte"], council = L["Beuterat"], gdkp = L["GDKP"] }
+    local t = { roll = L["Roll"], points = L["Points"], council = L["Loot council"], gdkp = L["GDKP"] }
     return t[m] or tostring(m or "")
 end
 -- mein Platz in der Rangfolge eines Items (nur wer nicht gepasst hat), sonst nil
@@ -828,7 +828,7 @@ local function buildRollCard(f, i)
         b.cl:SetColorTexture(c.color[1], c.color[2], c.color[3], 0.9)
         b.key = c.key
         b:HookScript("OnEnter", function(self)
-            local tips = { ms = L["Fuer deine Hauptspezialisierung"], os = L["Fuer die Zweitspezialisierung"], tm = L["Nur fuers Aussehen"], pass = L["Kein Interesse"] }
+            local tips = { ms = L["For your main spec"], os = L["For your off-spec"], tm = L["Just for the looks"], pass = L["Not interested"] }
             K.ShowTip(self, { L[c.text], tips[c.key] or "" })
         end)
         b:HookScript("OnLeave", function() GameTooltip:Hide() end)
@@ -844,7 +844,7 @@ local function buildRollCard(f, i)
     r.bidIn = K.Input(r, 80, "")
     r.bidIn:SetNumeric(true)
     put(r.rects, "gdkp", "bidIn", r.bidIn, x0 + tw - 168, 50, 80, 26)
-    r.bidBtn = K.Button(r, L["Bieten"], 84, 26, "primary")
+    r.bidBtn = K.Button(r, L["Bid"], 84, 26, "primary")
     put(r.rects, "gdkp", "bidBtn", r.bidBtn, x0 + tw - 84, 50, 84, 26)
     f.rows[i] = r
     return r
@@ -856,7 +856,7 @@ function LM.ShowRoll()
     local f = LM.rollWin
     local fresh = false
     if not f then
-        f = window("OasisLootRoll", ROLL_W, 200, L["Oasis-Beute"])
+        f = window("OasisLootRoll", ROLL_W, 200, L["Oasis loot"])
         f:SetPoint("CENTER", 0, 180)
         f.modeChip = pill(f, 10)
         f.modeChip:SetPoint("LEFT", f.title, "RIGHT", 10, 0)
@@ -892,7 +892,7 @@ function LM.ShowRoll()
         end
         f.bar = track
         f.rows = {}
-        f.note = K.Input(f, ROLL_W - 24, L["Notiz an den Plundermeister (optional)"])
+        f.note = K.Input(f, ROLL_W - 24, L["Note to the master looter (optional)"])
         f:SetScript("OnUpdate", function(self, el)
             local ss = LM.session
             if not ss then return end
@@ -938,7 +938,7 @@ function LM.ShowRoll()
     f.note:SetText("")
     f:SetHeight(yN + 24 + 12)
     f.modeChip:Set(modeText(s.mode), MODE_COL[s.mode] or C.blue)
-    f.by:SetText((L["von %s"]):format(ns.displayName(s.leader or "")))
+    f.by:SetText((L["by %s"]):format(ns.displayName(s.leader or "")))
     LM.RefreshRoll()
     f:Show()
     if fresh then K.FadeIn(f, 0, 0) end
@@ -959,8 +959,8 @@ function LM.RefreshRoll()
                 local min, hi = LM.MinBid(it)
                 local hiBy
                 for n, b in pairs(it.bids) do if b == hi then hiBy = n end end
-                r.high:SetText(hi > 0 and (L["Hoechstgebot"] .. ": " .. (ns.isMe(hiBy) and "|cff66db9e" or "|cffe8b44a") .. hi .. " g|r  " .. ns.displayName(hiBy or ""))
-                    or ("|cff888888" .. (L["ab %d g"]):format(min) .. "|r"))
+                r.high:SetText(hi > 0 and (L["Highest bid"] .. ": " .. (ns.isMe(hiBy) and "|cff66db9e" or "|cffe8b44a") .. hi .. " g|r  " .. ns.displayName(hiBy or ""))
+                    or ("|cff888888" .. (L["from %d g"]):format(min) .. "|r"))
                 if not r.bidIn:HasFocus() then r.bidIn:SetText(tostring(min)) end
             end
             local id = itemID(it.link)
@@ -974,27 +974,27 @@ function LM.RefreshRoll()
             end
             if up then info[#info + 1] = up end
             if ns.Upgrade and ns.Upgrade.Glow then pcall(ns.Upgrade.Glow, r.icon, (pct and pct > 0 and not it.winner) and pct or nil, not animOn()) end
-            if #sr > 0 then info[#info + 1] = "|cffe8b44a" .. (L["%d reserviert"]):format(#sr) .. "|r" end
+            if #sr > 0 then info[#info + 1] = "|cffe8b44a" .. (L["%d reserved"]):format(#sr) .. "|r" end
             local e1 = equippedFor(it.link)
             if e1 ~= "" then
                 local n = C_Item.GetItemNameByID and C_Item.GetItemNameByID(tonumber(e1))
-                info[#info + 1] = "|cff888888" .. L["du traegst"] .. "|r " .. (n or ("#" .. e1))
+                info[#info + 1] = "|cff888888" .. L["you wear"] .. "|r " .. (n or ("#" .. e1))
             end
-            r.info:SetText(#info > 0 and table.concat(info, "  ·  ") or ("|cff666666" .. L["Kein Vergleich moeglich"] .. "|r"))
+            r.info:SetText(#info > 0 and table.concat(info, "  ·  ") or ("|cff666666" .. L["No comparison possible"] .. "|r"))
             local was = r.lastState
             if it.winner then
                 local me = ns.isMe(it.winner)
-                r.state:Set(me and (L["Gewonnen!"] .. "  " .. ns.displayName(it.winner)) or ((L["Vergeben an %s"]):format(ns.displayName(it.winner))), me and C.mint or C.dim)
+                r.state:Set(me and (L["Won!"] .. "  " .. ns.displayName(it.winner)) or ((L["Awarded to %s"]):format(ns.displayName(it.winner))), me and C.mint or C.dim)
                 r.state:Show()
                 r.lastState = "win" .. tostring(it.winner)
             elseif it.mine and not gd then
                 local c = CH[it.mine] or CH.pass
                 local rr = it.resp[mine]
                 local parts = { L[c.text] }
-                if rr and rr.roll then parts[#parts + 1] = (L["Wurf %d"]):format(rr.roll) end
+                if rr and rr.roll then parts[#parts + 1] = (L["Roll %d"]):format(rr.roll) end
                 if it.mine ~= "pass" then
                     local place, n = LM.MyPlace(it)
-                    if place then parts[#parts + 1] = (L["Platz %d von %d"]):format(place, n) end
+                    if place then parts[#parts + 1] = (L["rank %d of %d"]):format(place, n) end
                 end
                 r.state:Set(table.concat(parts, "  ·  "), c.color)
                 r.state:Show()
@@ -1020,14 +1020,14 @@ end
 local COLS = {
     { key = "pos", text = "#", w = 26, j = "CENTER", prio = 0 },
     { key = "name", text = "Name", w = 150, prio = 0 },
-    { key = "choice", text = "Wahl", w = 84, prio = 0 },
-    { key = "roll", text = "Wurf", w = 42, j = "CENTER", prio = 0 },
+    { key = "choice", text = "Choice", w = 84, prio = 0 },
+    { key = "roll", text = "Roll", w = 42, j = "CENTER", prio = 0 },
     { key = "prio", text = "+1 / Prio", w = 64, j = "CENTER", prio = 1 },
-    { key = "votes", text = "Stimmen", w = 80, j = "CENTER", prio = 1, council = true },
-    { key = "loot", text = "Beute 30T", w = 62, j = "CENTER", prio = 2 },
-    { key = "gear", text = "Getragen", w = 64, prio = 3 },
-    { key = "rank", text = "Rang", w = 84, prio = 4 },
-    { key = "note", text = "Notiz", w = 110, prio = 5, flex = true },
+    { key = "votes", text = "Votes", w = 80, j = "CENTER", prio = 1, council = true },
+    { key = "loot", text = "Loot 30d", w = 62, j = "CENTER", prio = 2 },
+    { key = "gear", text = "Equipped", w = 64, prio = 3 },
+    { key = "rank", text = "Rank", w = 84, prio = 4 },
+    { key = "note", text = "Note", w = 110, prio = 5, flex = true },
 }
 local GIVE_W, RAIL_W, MIN_W, MIN_H = 64, 64, 620, 380
 -- sichtbare Spalten fuer eine Listenbreite: { {key, x, w, j}, ... }
@@ -1053,7 +1053,7 @@ function LM.Columns(listW, council)
 end
 
 local function buildMaster()
-    local f = window("OasisLootMaster", 900, 460, L["Beute verteilen"])
+    local f = window("OasisLootMaster", 900, 460, L["Distribute loot"])
     f:SetPoint("CENTER", 0, -40)
     f:SetResizable(true)
     if f.SetResizeBounds then pcall(f.SetResizeBounds, f, MIN_W, MIN_H, 1400, 900) elseif f.SetMinResize then pcall(f.SetMinResize, f, MIN_W, MIN_H) end
@@ -1087,11 +1087,11 @@ local function buildMaster()
     f.sum = K.Text(f, 11, C.muted)
     f.sum:SetWordWrap(false)
     -- Fussleiste
-    f.awardAll = K.Button(f, L["Alle nach Regel vergeben"], 180, 24, "primary", function() LM.AwardAll() end)
-    f.toMe = K.Button(f, L["An mich"], 84, 24, "ghost", function() if f.sel then LM.Award(f.sel, ns.me(), "manual") end end)
-    f.endBtn = K.Button(f, L["Runde beenden"], 120, 24, "ghost", function() LM.End() end)
+    f.awardAll = K.Button(f, L["Award all by rules"], 180, 24, "primary", function() LM.AwardAll() end)
+    f.toMe = K.Button(f, L["For me"], 84, 24, "ghost", function() if f.sel then LM.Award(f.sel, ns.me(), "manual") end end)
+    f.endBtn = K.Button(f, L["End round"], 120, 24, "ghost", function() LM.End() end)
     f.awardAll.fw, f.toMe.fw, f.endBtn.fw = 180, 84, 120
-    f.newBtn = K.Button(f, L["Items aus Beutefenster"], 170, 24, "ghost", function() LM.StartFromLoot() end)
+    f.newBtn = K.Button(f, L["Items from loot window"], 170, 24, "ghost", function() LM.StartFromLoot() end)
     f.hint = K.Text(f, 10, C.dim)
     f.hint:SetWordWrap(false)
     -- GDKP-Topf: vier Kennzahlen + Auszahlung
@@ -1100,24 +1100,24 @@ local function buildMaster()
     f.potBox.edge:SetPoint("TOPLEFT") f.potBox.edge:SetPoint("BOTTOMLEFT") f.potBox.edge:SetWidth(3)
     f.potBox.edge:SetColorTexture(C.amber[1], C.amber[2], C.amber[3], 1)
     f.potStats = {}
-    for i, lab in ipairs({ "Topf", "Gildenbank", "Spieler", "je Spieler" }) do
+    for i, lab in ipairs({ "Pot", "Guild bank", "Player", "per player" }) do
         local v = K.Title(f.potBox, 15, i == 4 and C.amber or C.text)
         local l = K.Text(f.potBox, 9, C.dim)
         l:SetText(K.Upper(L[lab]))
         f.potStats[i] = { v = v, l = l }
     end
     f.pot = f.potStats[1].v
-    f.payout = K.Button(f.potBox, L["Auszahlung posten"], 140, 24, "ghost", function() LM.PostPayout() end)
+    f.payout = K.Button(f.potBox, L["Post payout"], 140, 24, "ghost", function() LM.PostPayout() end)
     f.potHit = CreateFrame("Frame", nil, f.potBox)
     f.potHit:SetPoint("TOPLEFT") f.potHit:SetPoint("BOTTOMRIGHT", -150, 0)
     f.potHit:EnableMouse(true)
     f.potHit:SetScript("OnEnter", function(self)
-        local lines = { L["GDKP-Topf (heute)"] }
+        local lines = { L["GDKP pot (today)"] }
         for k, sl in ipairs(gdkpPot().sales) do
             if k > 12 then break end
             lines[#lines + 1] = "|cffe8b44a" .. (sl.gold or 0) .. " g|r  " .. (sl.item or "?") .. "  " .. ns.displayName(sl.who or "")
         end
-        if #lines == 1 then lines[2] = "|cff888888" .. L["Noch nichts verkauft."] .. "|r" end
+        if #lines == 1 then lines[2] = "|cff888888" .. L["Nothing sold yet."] .. "|r" end
         K.ShowTip(self, lines)
     end)
     f.potHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1146,7 +1146,7 @@ local function buildMaster()
         r.vbar:SetHeight(3)
         r.vbar:SetColorTexture(C.mint[1], C.mint[2], C.mint[3], 0.8)
         r.vote = K.Button(r, "+", 24, 20, "ghost")
-        r.give = K.Button(r, L["Geben"], GIVE_W - 6, 22, "primary")
+        r.give = K.Button(r, L["Give"], GIVE_W - 6, 22, "primary")
         r.give:SetPoint("RIGHT", -4, 0)
         -- Beute-Statistik beim Drueberfahren
         r:SetScript("OnEnter", function(self)
@@ -1203,7 +1203,7 @@ local function buildMaster()
         r.cols.pos:SetText(pos and tostring(pos) or "-")
         local pc = pos and PC[pos] or C.dim
         r.cols.pos:SetTextColor(pc[1], pc[2], pc[3])
-        r.cols.name:SetText(ns.Radar.Colored(e.name) .. (e.sr and "  |cffe8b44a" .. L["SR"] .. "|r" or "") .. (ns.isMe(e.name) and "  |cff888888" .. L["(du)"] .. "|r" or ""))
+        r.cols.name:SetText(ns.Radar.Colored(e.name) .. (e.sr and "  |cffe8b44a" .. L["SR"] .. "|r" or "") .. (ns.isMe(e.name) and "  |cff888888" .. L["(you)"] .. "|r" or ""))
         local m = ns.Radar.byName[e.name]
         r.cols.rank:SetText("|cff999999" .. (m and m.rank or "") .. "|r")
         local c = CH[e.choice] or CH.pass
@@ -1238,7 +1238,7 @@ local function buildMaster()
         local voted = it and it.votes[e.name] and it.votes[e.name][ns.me()]
         local council = mode == "council"
         r.vote:SetShown(council and r.hasVotes and LM.IsCouncil() and not (it and it.winner) and e.choice ~= "pass" and true or false)
-        r.vote:SetLabel(voted and "|cff66db9e" .. L["Ja"] .. "|r" or "+")
+        r.vote:SetLabel(voted and "|cff66db9e" .. L["Yes"] .. "|r" or "+")
         r.vote:SetWidth(voted and 30 or 24)
         r.vote:SetScript("OnClick", function() LM.Vote(f2.sel, e.name) end)
         -- Stimmen-Balken (Anteil an der hoechsten Stimmenzahl)
@@ -1250,7 +1250,7 @@ local function buildMaster()
         if r.sel then r.sel:SetShown(it and it.winner == e.name or false) end
         if r.stripe and it and it.winner == e.name then r.stripe:Show() end
     end)
-    f.list.empty:SetText(L["Noch keine Antworten."])
+    f.list.empty:SetText(L["No answers yet."])
     -- Ziehgriff unten rechts
     f.grip = CreateFrame("Button", nil, f)
     f.grip:SetSize(16, 16)
@@ -1376,7 +1376,7 @@ function LM.Refresh()
     local f = LM.master
     if not f or not f:IsShown() then return end
     local s = LM.session
-    f.modeChip:Set(s and modeText(s.mode) or L["Keine laufende Runde"], s and (MODE_COL[s.mode] or C.blue) or C.dim)
+    f.modeChip:Set(s and modeText(s.mode) or L["No active round"], s and (MODE_COL[s.mode] or C.blue) or C.dim)
     f.modeChip:SetWidth(s and 84 or 140)
     local items = s and s.items or {}
     if f.sel > #items then f.sel = 1 end
@@ -1430,17 +1430,17 @@ function LM.Refresh()
         local sr = ns.SoftRes and ns.SoftRes.ForItem and ns.SoftRes.ForItem(itemID(it.link)) or {}
         local cnt = 0
         for _ in pairs(it.resp) do cnt = cnt + 1 end
-        local info = (L["%d Antworten"]):format(cnt)
+        local info = (L["%d responses"]):format(cnt)
         if #sr > 0 then
             local names = {}
             for _, w in ipairs(sr) do names[#names + 1] = ns.displayName(w) end
-            info = info .. "  ·  |cffe8b44a" .. L["reserviert"] .. ": " .. table.concat(names, ", ") .. "|r"
+            info = info .. "  ·  |cffe8b44a" .. L["reserved"] .. ": " .. table.concat(names, ", ") .. "|r"
         end
-        if it.winner then info = info .. "  ·  |cff66db9e" .. L["vergeben an"] .. " " .. ns.displayName(it.winner) .. "|r" end
+        if it.winner then info = info .. "  ·  |cff66db9e" .. L["awarded to"] .. " " .. ns.displayName(it.winner) .. "|r" end
         f.hinfo:SetText(info)
         local up
         if ns.Upgrade and ns.Upgrade.Text then local ok, t = pcall(ns.Upgrade.Text, it.link) if ok then up = t end end
-        f.hup:SetText(type(up) == "string" and (L["Fuer dich"] .. ": " .. up) or ("|cff666666" .. L["Fuer dich: kein Vergleich"] .. "|r"))
+        f.hup:SetText(type(up) == "string" and (L["For you"] .. ": " .. up) or ("|cff666666" .. L["For you: no comparison"] .. "|r"))
         if ns.Upgrade and ns.Upgrade.Badge then pcall(ns.Upgrade.Badge, f.head, it.link) end
         list = LM.Ranked(it)
         -- Zusammenfassung: wie viele je Wahl, wer fehlt noch
@@ -1454,17 +1454,17 @@ function LM.Refresh()
         local parts = {}
         if s.mode == "gdkp" then
             local min, hi = LM.MinBid(it)
-            parts[#parts + 1] = "|cffe8b44a" .. (L["%d Gebote"]):format(#list) .. "|r"
-            parts[#parts + 1] = hi > 0 and ((L["Hoechstgebot"] .. ": %d g"):format(hi)) or (L["ab %d g"]):format(min)
+            parts[#parts + 1] = "|cffe8b44a" .. (L["%d bids"]):format(#list) .. "|r"
+            parts[#parts + 1] = hi > 0 and ((L["Highest bid"] .. ": %d g"):format(hi)) or (L["from %d g"]):format(min)
         else
             for _, c in ipairs(CHOICES) do parts[#parts + 1] = K.hex(c.color) .. L[c.text] .. " " .. (cn[c.key] or 0) .. "|r" end
             local grp = ns.Group.Num and ns.Group.Num() or 0
-            if grp > cnt then parts[#parts + 1] = "|cff888888" .. (L["%d offen"]):format(grp - cnt) .. "|r" end
+            if grp > cnt then parts[#parts + 1] = "|cff888888" .. (L["%d pending"]):format(grp - cnt) .. "|r" end
         end
         f.sum:SetText(table.concat(parts, "   "))
     else
-        f.hname:SetText(L["Keine laufende Runde"])
-        f.hinfo:SetText(L["Beutefenster einer Leiche oeffnen und hier 'Items aus Beutefenster' klicken - oder /oa beute [Itemlink]."])
+        f.hname:SetText(L["No active round"])
+        f.hinfo:SetText(L["Open a corpse's loot window and click 'Items from loot window' here - or /oa beute [item link]."])
         f.hup:SetText("")
         f.sum:SetText("")
         f.headCard.edge:SetColorTexture(C.line[1], C.line[2], C.line[3], 1)
@@ -1476,11 +1476,11 @@ function LM.Refresh()
     f.endBtn:SetShown(lead or false)
     f.newBtn:SetShown(not s or s.closed or false)
     if s and not s.closed and s.mode == "council" and LM.IsCouncil() and not isLeader() then
-        f.hint:SetText(L["Du stimmst ab - der Plundermeister vergibt."])
+        f.hint:SetText(L["You vote - the master looter awards."])
     elseif s and not s.closed and not isLeader() then
-        f.hint:SetText((L["Verteilt von %s"]):format(ns.displayName(s.leader or "")))
+        f.hint:SetText((L["Distributed by %s"]):format(ns.displayName(s.leader or "")))
     elseif s and s.closed then
-        f.hint:SetText(L["Runde beendet."])
+        f.hint:SetText(L["Round finished."])
     else
         f.hint:SetText("")
     end
@@ -1508,7 +1508,7 @@ local function lootItems()
 end
 function LM.StartFromLoot()
     local items = lootItems()
-    if #items == 0 then ns.print(L["Kein passendes Item im Beutefenster."]) return end
+    if #items == 0 then ns.print(L["No matching item in the loot window."]) return end
     LM.Start(items)
 end
 local lootBtn
@@ -1522,7 +1522,7 @@ ns.On("LOOT_OPENED", function()
             lootBtn = K.Button(UIParent, "", 200, 26, "primary", function() LM.StartFromLoot() lootBtn:Hide() end)
             lootBtn:SetFrameStrata("DIALOG")
         end
-        lootBtn:SetLabel((L["Mit Oasis verteilen (%d)"]):format(#items))
+        lootBtn:SetLabel((L["Distribute with Oasis (%d)"]):format(#items))
         lootBtn:ClearAllPoints()
         if LootFrame and LootFrame:IsShown() then lootBtn:SetPoint("TOPLEFT", LootFrame, "TOPRIGHT", 6, 0) else lootBtn:SetPoint("CENTER", 220, 120) end
         lootBtn:Show()

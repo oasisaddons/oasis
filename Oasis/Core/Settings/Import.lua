@@ -45,7 +45,7 @@ function Import.Run(silent)
     local data = _G.OasisImport
     if type(data) ~= "table" or type(data.collections) ~= "table" then return 0 end
     if (tonumber(data.schema) or 0) > Import.SCHEMA then
-        if not silent then ns.print(L["Import von der Webseite: neueres Format - bitte Oasis aktualisieren."]) end
+        if not silent then ns.print(L["Website import: newer format - please update Oasis."]) end
         return 0
     end
     -- dieselbe Datei nicht mehrfach einlesen
@@ -81,10 +81,10 @@ function Import.Run(silent)
     ns.db.importStamp = stamp
     ns.db.importAt = ns.now()
     if n > 0 then
-        ns.print((L["Von der Gilden-Webseite uebernommen: %d Eintraege."]):format(n))
+        ns.print((L["Taken over from the guild website: %d entries."]):format(n))
         ns.Fire("SYNCED")
     elseif skipped > 0 and not silent then
-        ns.print(L["Import von der Webseite: nichts uebernommen (Termine/Aufstellungen nur fuer Offiziere, Anmeldungen nur die eigenen)."])
+        ns.print(L["Website import: nothing taken over (events/rosters only for officers, sign-ups only your own)."])
     end
     return n
 end

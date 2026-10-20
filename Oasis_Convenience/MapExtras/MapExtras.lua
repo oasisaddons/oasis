@@ -21,7 +21,7 @@ local function clean(s, max)
 end
 local function dur(sec)
     if ns.Rares and ns.Rares.dur then return ns.Rares.dur(sec) end
-    return (L["%d Min"]):format(math.max(1, math.ceil((sec or 0) / 60)))
+    return (L["%d min"]):format(math.max(1, math.ceil((sec or 0) / 60)))
 end
 X.clean = clean
 
@@ -106,9 +106,9 @@ end
 -- Marker und Notizen. Gilden-Marker liegen in der Sammlung "markers" (laufen ab), eigene Notizen nur lokal.
 ------------------------------------------------------------------------
 X.KINDS = {
-    meet = { name = "Treffpunkt", icon = ns.MEDIA .. "icons\\groups", tint = true, color = { 0.4, 0.86, 0.62 }, ttl = 3600 },
-    danger = { name = "Vorsicht", icon = ns.MEDIA .. "icons\\deaths", tint = true, color = { 0.92, 0.3, 0.32 }, ttl = 2 * 3600 },
-    note = { name = "Notiz", icon = "Interface\\Icons\\INV_Misc_Note_01", color = { 0.98, 0.82, 0.3 }, ttl = 7 * 86400 },
+    meet = { name = "Meeting point", icon = ns.MEDIA .. "icons\\groups", tint = true, color = { 0.4, 0.86, 0.62 }, ttl = 3600 },
+    danger = { name = "Caution", icon = ns.MEDIA .. "icons\\deaths", tint = true, color = { 0.92, 0.3, 0.32 }, ttl = 2 * 3600 },
+    note = { name = "Note", icon = "Interface\\Icons\\INV_Misc_Note_01", color = { 0.98, 0.82, 0.3 }, ttl = 7 * 86400 },
 }
 local function validMarker(m)
     return type(m) == "table" and X.KINDS[m.kind] and type(m.map) == "number" and type(m.x) == "number" and type(m.y) == "number"
@@ -158,17 +158,17 @@ local function markerTip(m)
     local tip = { K.hex(k.color) .. L[k.name] .. "|r" }
     if (m.text or "") ~= "" then tip[#tip + 1] = clean(m.text) end
     if m.private then
-        tip[#tip + 1] = "|cff888888" .. L["nur fuer dich sichtbar"] .. "|r"
+        tip[#tip + 1] = "|cff888888" .. L["only visible to you"] .. "|r"
     else
-        tip[#tip + 1] = "|cff888888" .. (L["von %s"]):format(ns.displayName(m.by or "?")) .. "  ·  " .. (L["noch %s"]):format(dur((m.exp or 0) - ns.now())) .. "|r"
+        tip[#tip + 1] = "|cff888888" .. (L["by %s"]):format(ns.displayName(m.by or "?")) .. "  ·  " .. (L["%s left"]):format(dur((m.exp or 0) - ns.now())) .. "|r"
     end
     return tip
 end
 local function markerMenu(self)
     local m = self.rec
     if not m then return end
-    local items = { { text = L["Dorthin fuehren"], fn = function() guideTo(m.map, m.x, m.y, markerLabel(m)) end } }
-    if X.CanRemove(m) then items[#items + 1] = { text = L["Marker entfernen"], fn = function() X.RemoveMarker(m) end } end
+    local items = { { text = L["Guide me there"], fn = function() guideTo(m.map, m.x, m.y, markerLabel(m)) end } }
+    if X.CanRemove(m) then items[#items + 1] = { text = L["Remove marker"], fn = function() X.RemoveMarker(m) end } end
     K.ShowMenu(self, items, markerLabel(m))
 end
 
@@ -214,7 +214,7 @@ function X.StartPlacing(kind, private)
             X.StopPlacing()
             if btn == "RightButton" or not (p and x and map) then return end
             if p.kind == "note" then
-                StaticPopup_Show("OASIS_MAP_NOTE", L["Text der Notiz (optional):"], nil,
+                StaticPopup_Show("OASIS_MAP_NOTE", L["Note text (optional):"], nil,
                     { fn = function(t) X.AddMarker(p.kind, map, x, y, t, p.private) end })
             else
                 X.AddMarker(p.kind, map, x, y, "", false)
@@ -233,7 +233,7 @@ function X.StartPlacing(kind, private)
     overlay:SetFrameStrata(w.canvas:GetFrameStrata())
     overlay:SetFrameLevel(w.canvas:GetFrameLevel() + 300)
     overlay:Show()
-    hint.t:SetText(K.hex(X.KINDS[kind].color) .. L[X.KINDS[kind].name] .. "|r   " .. L["Klick auf die Karte setzt den Marker  ·  Rechtsklick bricht ab"])
+    hint.t:SetText(K.hex(X.KINDS[kind].color) .. L[X.KINDS[kind].name] .. "|r   " .. L["Click the map to place the marker  ·  Right-click to cancel"])
     hint:SetWidth(hint.t:GetStringWidth() + 36)
     hint:ClearAllPoints()
     hint:SetPoint("TOP", WorldMapFrame, "TOP", 0, -76)
@@ -241,10 +241,10 @@ function X.StartPlacing(kind, private)
 end
 function X.MenuItems()
     return {
-        { text = L["Treffpunkt"], fn = function() X.StartPlacing("meet") end },
-        { text = L["Vorsicht"], fn = function() X.StartPlacing("danger") end },
-        { text = L["Notiz fuer die Gilde"], fn = function() X.StartPlacing("note") end },
-        { text = L["Notiz nur fuer mich"], fn = function() X.StartPlacing("note", true) end },
+        { text = L["Meeting point"], fn = function() X.StartPlacing("meet") end },
+        { text = L["Caution"], fn = function() X.StartPlacing("danger") end },
+        { text = L["Note for the guild"], fn = function() X.StartPlacing("note") end },
+        { text = L["Note just for me"], fn = function() X.StartPlacing("note", true) end },
     }
 end
 
@@ -519,8 +519,8 @@ local function drawDungeons(w)
             style(p, ns.MEDIA .. "icons\\dungeons", C.amber, true, d.lo and (d.lo .. "-" .. (d.hi or d.lo)) or "")
             local tip = { "|cffffd24a" .. name .. "|r" }
             if d.lo then
-                tip[#tip + 1] = (L["Stufe %d-%d"]):format(d.lo, d.hi or d.lo)
-                tip[#tip + 1] = "|cff888888" .. (L["%d Gildenmitglieder im Levelbereich"]):format(X.InRange(guildLevels(), d.lo, d.hi or d.lo)) .. "|r"
+                tip[#tip + 1] = (L["Level %d-%d"]):format(d.lo, d.hi or d.lo)
+                tip[#tip + 1] = "|cff888888" .. (L["%d guild members in level range"]):format(X.InRange(guildLevels(), d.lo, d.hi or d.lo)) .. "|r"
             end
             p.tip = tip
             p.click = function() guideTo(e.map, e.x, e.y, name) end
@@ -568,7 +568,7 @@ local function drawGivers(w)
         for _, q in ipairs(g.quests) do
             if not q.faction or q.faction == "Both" or not mine or q.faction == mine then
                 local title = C_QuestLog and C_QuestLog.GetTitleForQuestID and ns.safe(C_QuestLog.GetTitleForQuestID(q.id)) or q.name
-                tip[#tip + 1] = (title or q.name or "?") .. "  |cff888888" .. (q.dungeon or L["Dungeon-Quest"]) .. "|r"
+                tip[#tip + 1] = (title or q.name or "?") .. "  |cff888888" .. (q.dungeon or L["Dungeon quest"]) .. "|r"
             end
         end
         if #tip > 1 then
@@ -742,7 +742,7 @@ local function makeDgBtn()
         X.Redraw()
     end)
     dgBtn:SetScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Dungeon-Eingaenge"], on("mapDungeons") and L["Klick: ausblenden"] or L["Klick: einblenden"] })
+        K.ShowTip(self, { L["Dungeon entrances"], on("mapDungeons") and L["Click: hide"] or L["Click: show"] })
     end)
     dgBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     dgBtnPaint()
@@ -778,9 +778,9 @@ function X.SaveRecord(auto)
         ns.db.routes = ns.db.routes or {}
         table.insert(ns.db.routes, 1, { name = (L["Route %s"]):format(date("%d.%m. %H:%M")), ts = time(), pts = rec.pts, show = (not auto) or nil })
         while #ns.db.routes > 30 do table.remove(ns.db.routes) end
-        if not auto then K.Toast(L["Route gespeichert"], (L["%d Punkte - Rechtsklick auf den Knopf zeigt alle Routen"]):format(#rec.pts), C.mint) end
+        if not auto then K.Toast(L["Route saved"], (L["%d points - right-click the button to show all routes"]):format(#rec.pts), C.mint) end
     elseif not auto then
-        K.Toast(L["Route verworfen"], L["Zu kurz - lauf ein Stueck, waehrend die Aufnahme laeuft."], C.dim)
+        K.Toast(L["Route discarded"], L["Too short - walk a bit while recording."], C.dim)
     end
 end
 function X.ToggleRecord()
@@ -791,7 +791,7 @@ function X.ToggleRecord()
     else
         X.rec = { pts = {} }
         pcall(X.SampleTrails)
-        K.Toast(L["Route wird aufgenommen"], L["Lauf los - nochmal klicken speichert die Route."], C.accent)
+        K.Toast(L["Recording route"], L["Start walking - click again to save the route."], C.accent)
     end
     rtPaint()
     local w = world() if w then pcall(drawTrails, w) end
@@ -825,7 +825,7 @@ local function makeRtBtn()
             return
         end
         local items = {
-            { text = X.rec and L["Aufnahme speichern"] or L["Aufnahme starten"], fn = function() X.ToggleRecord() end },
+            { text = X.rec and L["Save recording"] or L["Start recording"], fn = function() X.ToggleRecord() end },
         }
         for i, r in ipairs(ns.db.routes or {}) do
             items[#items + 1] = { text = r.name or "?", checked = r.show and true or false, fn = function()
@@ -833,22 +833,22 @@ local function makeRtBtn()
                 local w = world() if w then pcall(drawTrails, w) end
             end }
         end
-        if #items == 0 then items[1] = { text = L["Noch keine Routen gespeichert"], disabled = true } end
+        if #items == 0 then items[1] = { text = L["No routes saved yet"], disabled = true } end
         if ns.db.routes and #ns.db.routes > 0 then
-            items[#items + 1] = { text = L["Alle ausblenden"], fn = function()
+            items[#items + 1] = { text = L["Hide all"], fn = function()
                 for _, r in ipairs(ns.db.routes) do r.show = nil end
                 local w = world() if w then pcall(drawTrails, w) end
             end }
-            items[#items + 1] = { text = "|cffff6060" .. L["Neueste Route loeschen"] .. "|r", fn = function()
+            items[#items + 1] = { text = "|cffff6060" .. L["Delete newest route"] .. "|r", fn = function()
                 table.remove(ns.db.routes, 1)
                 local w = world() if w then pcall(drawTrails, w) end
             end }
         end
-        K.ShowMenu(self, items, L["Meine Routen"], 200)
+        K.ShowMenu(self, items, L["My routes"], 200)
     end)
     rtBtn:SetScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Meine Routen"], (S().routesOff and L["Klick: Linien einblenden"] or L["Klick: Linien ausblenden"]), L["Rechtsklick: einzelne Routen, Aufnahme, Loeschen"],
-            X.rec and ("|cffff6060" .. L["Aufnahme laeuft"] .. "|r") or nil })
+        K.ShowTip(self, { L["My routes"], (S().routesOff and L["Click: show lines"] or L["Click: hide lines"]), L["Right-click: single routes, recording, delete"],
+            X.rec and ("|cffff6060" .. L["Recording"] .. "|r") or nil })
     end)
     rtBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     rtPaint()
@@ -919,7 +919,7 @@ ns.Listen("STORE", function(coll, rec, old)
         X.Redraw()
         if rec and not old and not rec.del and rec.kind == "meet" and not ns.demoLoading and on("mapMarkers")
             and not ns.isMe(rec.by) and ns.now() - (rec.ts or 0) < 120 and validMarker(rec) then
-            K.Toast(L["Neuer Treffpunkt"], ns.displayName(rec.by or "?") .. ((rec.text or "") ~= "" and (": " .. clean(rec.text, 60)) or ""), C.mint,
+            K.Toast(L["New meeting point"], ns.displayName(rec.by or "?") .. ((rec.text or "") ~= "" and (": " .. clean(rec.text, 60)) or ""), C.mint,
                 function() if ns.Map and ns.Map.ShowOnWorldMap then ns.Map.ShowOnWorldMap(rec.map) end end)
         end
     elseif coll == "deaths" then
@@ -958,28 +958,28 @@ function X.AskLayer(name)
     if askAt[name] and now - askAt[name] < 20 then return false end
     askAt[name] = now
     if Comm and Comm.Whisper then Comm.Whisper(name, "LAYERQ") end
-    ns.print((L["Anfrage an %s gesendet. Nimmt er an, wechselst du mit der Gruppe auf seinen Layer."]):format(ns.displayName(name)))
+    ns.print((L["Request sent to %s. If accepted, you switch to their layer with the group."]):format(ns.displayName(name)))
     return true
 end
 function X.LayerMenuItems()
     local M = ns.Map
     local items = {}
     if M and M.myLayer then
-        items[#items + 1] = { text = "|cffaaaaaa" .. (L["Dein Layer: %s"]):format(tostring(M.myLayer)) .. "|r", disabled = true }
+        items[#items + 1] = { text = "|cffaaaaaa" .. (L["Your layer: %s"]):format(tostring(M.myLayer)) .. "|r", disabled = true }
     else
-        items[#items + 1] = { text = "|cffe8b44a" .. L["Dein Layer ist noch unbekannt - visiere kurz einen NPC an."] .. "|r", disabled = true }
+        items[#items + 1] = { text = "|cffe8b44a" .. L["Your layer is still unknown - briefly target an NPC."] .. "|r", disabled = true }
     end
     local other = 0
     for _, e in ipairs(X.LayerList()) do
         local label = (L["Layer %s"]):format(e.layer) .. "  ·  " .. ns.displayName(e.name)
         if e.same then
-            items[#items + 1] = { text = "|cff888888" .. label .. "  (" .. L["gleicher Layer"] .. ")|r", disabled = true }
+            items[#items + 1] = { text = "|cff888888" .. label .. "  (" .. L["same layer"] .. ")|r", disabled = true }
         else
             other = other + 1
-            items[#items + 1] = { text = (L["Um Einladung bitten: %s"]):format(label), fn = function() X.AskLayer(e.name) end }
+            items[#items + 1] = { text = (L["Ask for an invite: %s"]):format(label), fn = function() X.AskLayer(e.name) end }
         end
     end
-    if other == 0 then items[#items + 1] = { text = L["Niemand aus der Gilde ist in diesem Gebiet auf einem anderen Layer."], disabled = true } end
+    if other == 0 then items[#items + 1] = { text = L["No guild member in this zone is on a different layer."], disabled = true } end
     return items
 end
 if Comm and Comm.On then
@@ -989,7 +989,7 @@ if Comm and Comm.On then
         local now = GetTime()
         if askedBy[sender] and now - askedBy[sender] < 30 then return end   -- hoechstens ein Hinweis je Absender in 30 s
         askedBy[sender] = now
-        K.Toast(L["Layer-Wechsel"], (L["%s moechte auf deinen Layer. Klick laedt in die Gruppe ein."]):format(ns.displayName(sender)), C.accent, function()
+        K.Toast(L["Layer switch"], (L["%s wants to join your layer. Click to invite to the group."]):format(ns.displayName(sender)), C.accent, function()
             if C_PartyInfo and C_PartyInfo.InviteUnit then pcall(C_PartyInfo.InviteUnit, ns.ChatName and ns.ChatName(sender) or sender) end
         end)
     end)

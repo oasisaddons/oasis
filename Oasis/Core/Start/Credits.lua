@@ -9,27 +9,27 @@ local K, C = ns.K, ns.K.C
 -- { head = Ueberschrift } oder { Name, Beschreibung }; Eigennamen bleiben unuebersetzt
 local ROWS = {
     { head = "Oasis" },
-    { "Lizenz", "GNU General Public License Version 2 (GPL-2.0). Oasis darf weitergegeben und veraendert werden, solange diese Lizenz erhalten bleibt." },
-    { "Eigene Arbeit", "Rang-Wappen, Profilrahmen, Stufen-Abzeichen, Wappen, Ziffern, Deathroll-Grafiken, Logos, Effekte und Designs stammen vom Oasis-Autor. Die Dashboard-Banner hat der Autor mit KI erstellt." },
+    { "License", "GNU General Public License version 2 (GPL-2.0). Oasis may be shared and modified as long as this license is kept." },
+    { "Own work", "Rank crests, profile frames, level badges, emblems, digits, Deathroll graphics, logos, effects and themes were made by the Oasis author. The dashboard banners were created by the author with AI." },
 
-    { head = "Grafik" },
-    { "game-icons.net", "Symbole und Abzeichen-Symbole von Lorc und Delapouite - CC BY 3.0" },
-    { "Twemoji", "Emojis, Copyright Twitter/X und Mitwirkende - CC BY 4.0, fuer Oasis verkleinert" },
-    { "flag-icons", "Flaggen von Panayiotis Lipiridis - MIT-Lizenz" },
-    { "ambientCG", "Hintergrund-Texturen der Designs - CC0 1.0" },
-    { "Midas", "Banner auf der Uebersicht: Midas, das Auktionshaus-Addon von Rebo aus der Gilde OASIS" },
+    { head = "Graphics" },
+    { "game-icons.net", "Icons and badge icons by Lorc and Delapouite – CC BY 3.0" },
+    { "Twemoji", "Emojis, copyright Twitter/X and contributors – CC BY 4.0, resized for Oasis" },
+    { "flag-icons", "Flags by Panayiotis Lipiridis – MIT license" },
+    { "ambientCG", "Background textures of the themes – CC0 1.0" },
+    { "Midas", "Banner on the overview: Midas, the auction house add-on by Rebo of the guild OASIS" },
 
-    { head = "Klang und Schrift" },
-    { "Kenney", "Klick-Toene aus \"Interface Sounds\" (kenney.nl) - CC0 1.0" },
-    { "Google Fonts", "Alle Schriften unter der SIL Open Font License 1.1" },
+    { head = "Sound and fonts" },
+    { "Kenney", "Click sounds from “Interface Sounds” (kenney.nl) – CC0 1.0" },
+    { "Google Fonts", "All fonts under the SIL Open Font License 1.1" },
 
-    { head = "Daten" },
-    { "AtlasLootClassic / Forever Atlas", "Boss-Positionen im Dungeon-Atlas und Drop-Chancen der Dungeon-Bosse - GPL-2.0. Autoren: Lag, Daviesh und weitere" },
-    { "SimpleDungeonMap", "Teile der Boss-Positionen, von Babilounet - MIT-Lizenz" },
-    { "foreverchanges.pro, wowforevertalents.com", "Quellen fuer Dungeons, Bosse, Beute und Quests" },
+    { head = "Data" },
+    { "AtlasLootClassic / Forever Atlas", "Boss positions in the dungeon atlas and drop chances of dungeon bosses – GPL-2.0. Authors: Lag, Daviesh and others" },
+    { "SimpleDungeonMap", "Parts of the boss positions, by Babilounet – MIT license" },
+    { "foreverchanges.pro, wowforevertalents.com", "Sources for dungeons, bosses, loot and quests" },
 
     { head = "Blizzard" },
-    { "World of Warcraft", "World of Warcraft und zugehoerige Namen, Wappen und Grafiken sind Marken von Blizzard Entertainment. Oasis ist ein Fan-Projekt und steht in keiner Verbindung zu Blizzard." },
+    { "World of Warcraft", "World of Warcraft and related names, crests and artwork are trademarks of Blizzard Entertainment. Oasis is a fan project and is not affiliated with Blizzard." },
 }
 ns.CreditRows = ROWS
 
@@ -78,7 +78,7 @@ function Credits.Build(f, x0, y0, width)
     foot:SetWidth(W)
     foot:SetWordWrap(true)
     foot:SetJustifyV("TOP")
-    foot:SetText(L["Die vollstaendigen Lizenztexte liegen im Oasis-Ordner: CREDITS.txt, LICENSE und LICENSE-MIT.txt."])
+    foot:SetText(L["The full license texts are in the Oasis folder: CREDITS.txt, LICENSE and LICENSE-MIT.txt."])
     below(foot, 30)
 end
 

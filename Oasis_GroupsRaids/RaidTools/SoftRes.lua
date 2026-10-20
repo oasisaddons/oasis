@@ -11,10 +11,10 @@ if ns.ICONS then ns.ICONS.softres = ns.MEDIA .. "icons\\wants" end
 
 -- Gilden-Optionen (Gildenleitung legt fest; Standard = bisheriges Verhalten)
 ns.GuildOption({ page = "softres", key = "srRank", default = 10, min = 1, max = 10, step = 1,
-    label = "Reservieren erlaubt", desc = "Bis zu welchem Gildenrang Mitglieder Items reservieren duerfen. 10 = alle.",
-    fmt = function(v) return (ns.L["bis Rang %d"]):format(v) end })
+    label = "Reserving allowed", desc = "Up to which guild rank members may reserve items. 10 = everyone.",
+    fmt = function(v) return (ns.L["up to rank %d"]):format(v) end })
 ns.GuildOption({ page = "softres", key = "srDays", default = 7, min = 1, max = 14, step = 1,
-    label = "Tooltip-Vorschau", desc = "Reservierungen aus Terminen der naechsten so vielen Tage stehen im Item-Tooltip.",
+    label = "Tooltip preview", desc = "Reservations from events within this many days are shown in the item tooltip.",
     fmt = function(v) return v .. " Tg" end })
 local function mayReserve()
     local v = tonumber(ns.GuildOpt("srRank")) or 10
@@ -33,7 +33,7 @@ function SR.Mine(evId) local r = Store.Get("sres", rid(evId, ns.me())) return r 
 function SR.Of(evId) return Store.List("sres", function(r) return r.ev == evId end) end
 function SR.Reserve(ev, itemID)
     if not ev or not itemID then return end
-    if not mayReserve() then ns.print(L["Reservieren ist bei euch nur fuer hoehere Gildenraenge freigegeben."]) return end
+    if not mayReserve() then ns.print(L["In your guild reserving is only enabled for higher guild ranks."]) return end
     Store.Put("sres", { id = rid(ev.id, ns.me()), ev = ev.id, item = itemID, who = mainOf(ns.me()), char = ns.me(), ts = ns.now() })
 end
 function SR.Clear(evId) Store.Delete("sres", rid(evId, ns.me())) end
@@ -117,7 +117,7 @@ local function onItem(tt)
     if #who == 0 then return end
     local names = {}
     for i, n in ipairs(who) do if i > 8 then names[#names + 1] = "+" .. (#who - 8) break end names[#names + 1] = ns.displayName(n) end
-    tt:AddLine("|cffe8b44a" .. L["Oasis-Reserviert"] .. ":|r " .. table.concat(names, ", "), 1, 1, 1, true)
+    tt:AddLine("|cffe8b44a" .. L["Oasis reserved"] .. ":|r " .. table.concat(names, ", "), 1, 1, 1, true)
 end
 if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tt)
@@ -140,40 +140,40 @@ end
 
 local page
 ns.RegisterPage({
-    key = "softres", title = "Reservierungen", order = 5.05,
-    sub = "Soft-Reserve: pro Raidtermin ein Item reservieren - alle sehen es im Tooltip",
+    key = "softres", title = "Reservations", order = 5.05,
+    sub = "Soft reserve: reserve one item per raid date - everyone sees it in the tooltip",
     build = function(p)
         page = p
         p.evBtns = {}
-        local back = K.Button(p, "< " .. L["Raids & Beute"], 150, 22, "ghost", function() ns.ShowPage("raid") end)
+        local back = K.Button(p, "< " .. L["Raids & loot"], 150, 22, "ghost", function() ns.ShowPage("raid") end)
         back:Hide()   -- 0.5.847: Reservierungen sind ein Reiter der Raids-Seite, der Zurueck-Knopf ist ueberfluessig
         back:SetPoint("TOPRIGHT", 0, 0)
-        local h = K.GameHead(p, L["Raidtermin"], C.amber)
+        local h = K.GameHead(p, L["Raid date"], C.amber)
         h:SetPoint("TOPLEFT", 0, 0)
         h:SetWidth(300)
         p.none = K.Text(p, 12, C.muted)
         p.none:SetPoint("TOPLEFT", 0, -30)
-        p.none:SetText(L["Keine anstehenden Termine. Sobald unter Termine einer steht, kannst du hier reservieren."])
+        p.none:SetText(L["No upcoming events. Once one is listed under Events you can reserve here."])
 
-        local h2 = K.GameHead(p, L["Deine Reservierung"], C.mint)
+        local h2 = K.GameHead(p, L["Your reservation"], C.mint)
         h2:SetPoint("TOPLEFT", 0, -78)
         h2:SetWidth(300)
         p.mine = K.Text(p, 13, C.text)
         p.mine:SetPoint("TOPLEFT", 0, -106)
-        p.link = K.Input(p, 320, L["Item per Shift-Klick einfuegen oder Item-ID"], nil)
+        p.link = K.Input(p, 320, L["Shift-click an item or enter an item ID"], nil)
         p.link:SetPoint("TOPLEFT", 0, -132)
         linkBox = p.link
-        p.res = K.Button(p, L["Reservieren"], 130, 24, "primary", function()
+        p.res = K.Button(p, L["Reserve"], 130, 24, "primary", function()
             local t = p.link:GetText() or ""
             local id = tonumber(t:match("item:(%d+)") or t:match("^%s*(%d+)%s*$"))
-            if not id then ns.print(L["Kein Item erkannt - Shift-Klick auf ein Item oder die Item-ID eingeben."]) return end
+            if not id then ns.print(L["No item recognized - shift-click an item or enter the item ID."]) return end
             SR.Reserve(p.ev, id)
             p.link:SetText("")
             p.link:ClearFocus()
             ns.RefreshPage("softres")
         end)
         p.res:SetPoint("LEFT", p.link, "RIGHT", 8, 0)
-        p.clr = K.Button(p, L["Aufheben"], 100, 24, "ghost", function() if p.ev then SR.Clear(p.ev.id) ns.RefreshPage("softres") end end)
+        p.clr = K.Button(p, L["Remove"], 100, 24, "ghost", function() if p.ev then SR.Clear(p.ev.id) ns.RefreshPage("softres") end end)
         p.clr:SetPoint("LEFT", p.res, "RIGHT", 8, 0)
 
         -- Import von softres.it (Leitung / Raidleiter)
@@ -188,7 +188,7 @@ ns.RegisterPage({
         ih:SetPoint("TOPLEFT", 14, -12)
         ih:SetPoint("RIGHT", p.imp, "RIGHT", -14, 0)
         ih:SetWordWrap(true)
-        ih:SetText(L["Auf softres.it beim Raid 'CSV' exportieren, kopieren und hier einfuegen (Strg+V). Die Reservierungen landen beim oben gewaehlten Termin."])
+        ih:SetText(L["On softres.it export the raid as 'CSV', copy and paste here (Ctrl+V). Reservations go to the event selected above."])
         p.impBox = CreateFrame("EditBox", nil, p.imp)
         p.impBox:SetMultiLine(true)
         p.impBox:SetAutoFocus(false)
@@ -205,20 +205,20 @@ ns.RegisterPage({
         p.impState:SetPoint("BOTTOMLEFT", 14, 18)
         p.impState:SetPoint("RIGHT", p.imp, "RIGHT", -240, 0)
         p.impState:SetWordWrap(false)
-        local go = K.Button(p.imp, L["Uebernehmen"], 120, 24, "primary", function()
+        local go = K.Button(p.imp, L["Apply"], 120, 24, "primary", function()
             if not p.ev then return end
             local n, unknown = SR.ImportCSV(p.ev, p.impBox:GetText() or "")
-            if n == 0 then p.impState:SetText("|cffff5a4a" .. L["Nichts erkannt - ist das der CSV-Export von softres.it?"] .. "|r") return end
-            p.impState:SetText("|cff66db9e" .. (L["%d Reservierungen uebernommen"]):format(n) .. "|r"
-                .. (#unknown > 0 and ("  |cffe8b44a" .. L["nicht in der Gilde"] .. ": " .. table.concat(unknown, ", ") .. "|r") or ""))
+            if n == 0 then p.impState:SetText("|cffff5a4a" .. L["Nothing recognized - is this the CSV export from softres.it?"] .. "|r") return end
+            p.impState:SetText("|cff66db9e" .. (L["%d reservations imported"]):format(n) .. "|r"
+                .. (#unknown > 0 and ("  |cffe8b44a" .. L["not in the guild"] .. ": " .. table.concat(unknown, ", ") .. "|r") or ""))
             p.impBox:SetText("")
             ns.RefreshPage("softres")
         end)
         go:SetPoint("BOTTOMRIGHT", -14, 12)
-        local cancel = K.Button(p.imp, L["Schliessen"], 100, 24, "ghost", function() p.imp:Hide() end)
+        local cancel = K.Button(p.imp, L["Close"], 100, 24, "ghost", function() p.imp:Hide() end)
         cancel:SetPoint("RIGHT", go, "LEFT", -8, 0)
 
-        local h3 = K.GameHead(p, L["Alle Reservierungen"], C.blue)
+        local h3 = K.GameHead(p, L["All reservations"], C.blue)
         h3:SetPoint("TOPLEFT", 0, -176)
         h3:SetWidth(300)
         p.count = K.Text(p, 11, C.dim, "RIGHT")
@@ -251,7 +251,7 @@ ns.RegisterPage({
         end)
         p.list:SetPoint("TOPLEFT", 0, -202)
         p.list:SetPoint("BOTTOMRIGHT", 0, 0)
-        p.list.empty:SetText(L["Noch nichts reserviert."])
+        p.list.empty:SetText(L["Nothing reserved yet."])
     end,
     refresh = function(p)
         local evs = ns.Raid and ns.Raid.Events and ns.Raid.Events() or {}
@@ -286,9 +286,9 @@ ns.RegisterPage({
         local mine = SR.Mine(p.ev.id)
         if mine then
             local _, link = GetItemInfo(mine.item)
-            p.mine:SetText((L["Reserviert: %s"]):format(link or ("Item " .. mine.item)))
+            p.mine:SetText((L["Reserved: %s"]):format(link or ("Item " .. mine.item)))
         else
-            p.mine:SetText("|cff888888" .. L["Noch nichts reserviert - ein Item pro Termin."] .. "|r")
+            p.mine:SetText("|cff888888" .. L["Nothing reserved yet - one item per date."] .. "|r")
         end
         local by = {}
         for _, r in ipairs(SR.Of(p.ev.id)) do
@@ -298,7 +298,7 @@ ns.RegisterPage({
         local out = {}
         for _, e in pairs(by) do out[#out + 1] = e end
         table.sort(out, function(a, b) if #a.who ~= #b.who then return #a.who > #b.who end return a.item < b.item end)
-        p.count:SetText((L["%d Items reserviert"]):format(#out))
+        p.count:SetText((L["%d items reserved"]):format(#out))
         p.list:SetData(out)
     end,
 })

@@ -75,7 +75,7 @@ local function fmtLeft(sec)
     sec = math.max(0, math.floor(sec or 0))
     if sec >= 86400 then return ("%d T %d Std"):format(math.floor(sec / 86400), math.floor(sec % 86400 / 3600)) end
     if sec >= 3600 then return ("%d:%02d Std"):format(math.floor(sec / 3600), math.floor(sec % 3600 / 60)) end
-    return ("%d Min"):format(math.ceil(sec / 60))
+    return ("%d min"):format(math.ceil(sec / 60))
 end
 local function itemCount(id)
     return (C_Item and C_Item.GetItemCount and C_Item.GetItemCount(id)) or (GetItemCount and GetItemCount(id)) or 0
@@ -146,9 +146,9 @@ ns.On("PLAYER_ENTERING_WORLD", function()
     table.insert(ns.db.instHour, { ts = time(), map = mapID, name = name, who = ns.me() })
     local n, nextFree = H2.InstanceStatus()
     local col = n >= 5 and C.red or (n >= 4 and (C.amber or C.red) or C.accent)
-    local txt = (L["%d von 5 Instanzen in dieser Stunde"]):format(n)
-    if n >= 5 then txt = txt .. " - " .. (L["naechste frei in %s"]):format(fmtLeft(nextFree)) end
-    K.Toast(L["Instanz-Zaehler"], txt, col)
+    local txt = (L["%d of 5 instances this hour"]):format(n)
+    if n >= 5 then txt = txt .. " - " .. (L["next free in %s"]):format(fmtLeft(nextFree)) end
+    K.Toast(L["Instance counter"], txt, col)
 end)
 ns.On("CHAT_MSG_SYSTEM", function(msg)
     if type(msg) ~= "string" or (issecretvalue and issecretvalue(msg)) then return end
@@ -164,7 +164,7 @@ ns.On("ZONE_CHANGED_NEW_AREA", function()
     if not on("cpInstances") then return end
     local n, nextFree = H2.InstanceStatus()
     if n >= 5 and not IsInInstance() then
-        K.Toast(L["Instanz-Zaehler"], (L["5 von 5 - die naechste Instanz geht erst in %s"]):format(fmtLeft(nextFree)), C.red)
+        K.Toast(L["Instance counter"], (L["5 of 5 - next instance only in %s"]):format(fmtLeft(nextFree)), C.red)
     end
 end)
 
@@ -208,13 +208,13 @@ ns.On("PLAYER_LEVEL_UP", function(lvl)
     ns.After(2, function()
         local due, cost = H2.TrainerDue(lvl)
         if not due then
-            if lvl % 2 == 0 then K.Toast(L["Neue Zauber?"], L["Besuch deinen Klassenlehrer - danach erinnert Oasis dich genau."], C.accent) end
+            if lvl % 2 == 0 then K.Toast(L["New spells?"], L["Visit your class trainer - Oasis will then remind you exactly."], C.accent) end
             return
         end
         if #due == 0 then return end
         local names = {}
         for i = 1, math.min(4, #due) do names[#names + 1] = due[i].n .. (due[i].r ~= "" and (" (" .. due[i].r .. ")") or "") end
-        K.Toast((L["Neue Zauber verfuegbar (%d)"]):format(#due), table.concat(names, ", ") .. (#due > 4 and " ..." or "") .. "  |  " .. money(cost), C.mint)
+        K.Toast((L["New spells available (%d)"]):format(#due), table.concat(names, ", ") .. (#due > 4 and " ..." or "") .. "  |  " .. money(cost), C.mint)
     end)
 end)
 
@@ -223,9 +223,9 @@ end)
 ------------------------------------------------------------------------
 -- Schluessel -> Zauber (alle Transmutationen teilen sich eine Abklingzeit)
 local PROFCD = {
-    { key = "transmute", label = "Transmutation", spells = { 17187, 11479, 11480, 17559, 17560, 17561, 17562, 17563, 17564, 17565, 17566, 25146 } },
-    { key = "mooncloth", label = "Mondstoff", spells = { 18560 } },
-    { key = "salt", label = "Salzstreuer", item = 15846 },
+    { key = "transmute", label = "Transmute", spells = { 17187, 11479, 11480, 17559, 17560, 17561, 17562, 17563, 17564, 17565, 17566, 25146 } },
+    { key = "mooncloth", label = "Mooncloth", spells = { 18560 } },
+    { key = "salt", label = "Salt Shaker", item = 15846 },
 }
 H2.PROFCD = PROFCD
 local function myProfCDs()
@@ -330,7 +330,7 @@ local function altLines(tt)
         if (b + k) > 0 then
             total = total + b + k
             local parts = {}
-            if b > 0 then parts[#parts + 1] = (L["Taschen %d"]):format(b) end
+            if b > 0 then parts[#parts + 1] = (L["Bags %d"]):format(b) end
             if k > 0 then parts[#parts + 1] = (L["Bank %d"]):format(k) end
             local cc = c.class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[c.class]
             lines[#lines + 1] = { (ns.displayName and ns.displayName(name) or ns.short(name)), table.concat(parts, ", "), cc }
@@ -341,7 +341,7 @@ local function altLines(tt)
         local cc = l[3]
         tt:AddDoubleLine(l[1], l[2], cc and cc.r or 0.8, cc and cc.g or 0.8, cc and cc.b or 0.8, 0.8, 0.8, 0.8)
     end
-    if #lines > 1 then tt:AddDoubleLine(L["Gesamt"], tostring(total), 0.6, 0.6, 0.6, 1, 1, 1) end
+    if #lines > 1 then tt:AddDoubleLine(L["Total"], tostring(total), 0.6, 0.6, 0.6, 1, 1, 1) end
     tt:Show()
 end
 if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
@@ -458,7 +458,7 @@ local function petCheck()
     local h = GetPetHappiness()
     if not h then return end
     if h < 3 and h ~= lastHappy then
-        K.Toast(L["Begleiter"], h == 1 and L["Dein Begleiter ist unzufrieden - fuettern!"] or L["Dein Begleiter hat Hunger."], h == 1 and C.red or (C.amber or C.red))
+        K.Toast(L["Pet"], h == 1 and L["Your pet is unhappy - feed it!"] or L["Your pet is hungry."], h == 1 and C.red or (C.amber or C.red))
     end
     lastHappy = h
 end
@@ -470,7 +470,7 @@ ns.On("MERCHANT_SHOW", function()
         local foods = GetPetFoodTypes and { GetPetFoodTypes() } or {}
         local h = GetPetHappiness and GetPetHappiness() or 3
         if h < 3 or #foods > 0 then
-            K.Toast(L["Begleiter-Futter?"], (L["Dein Begleiter frisst: %s"]):format(table.concat(foods, ", ")), C.accent)
+            K.Toast(L["Pet food?"], (L["Your pet eats: %s"]):format(table.concat(foods, ", ")), C.accent)
         end
     end)
 end)
@@ -518,7 +518,7 @@ ns.On("MERCHANT_SHOW", function()
                     end
                 end
             end
-            if #bought > 0 then ns.print(L["Nachgekauft: "] .. table.concat(bought, ", ")) end
+            if #bought > 0 then ns.print(L["Restocked: "] .. table.concat(bought, ", ")) end
         end)
     end)
 end)
@@ -543,7 +543,7 @@ local function rareCheck(unit)
     local pos = map and C_Map.GetPlayerMapPosition(map, "player")
     local x, y = 0, 0
     if pos then x, y = pos:GetXY() end
-    K.Toast(L["Seltener Gegner!"], (name or "?") .. "  |cff999999" .. zone .. (" (%.0f, %.0f)"):format(x * 100, y * 100) .. "|r", C.amber or C.accent, nil, "toast")
+    K.Toast(L["Rare nearby!"], (name or "?") .. "  |cff999999" .. zone .. (" (%.0f, %.0f)"):format(x * 100, y * 100) .. "|r", C.amber or C.accent, nil, "toast")
     if PlaySound and SOUNDKIT and SOUNDKIT.RAID_WARNING then PlaySound(SOUNDKIT.RAID_WARNING, "Master") end
     if on("cpRareShare") and IsInGuild() then Comm.Guild("RARE", name or "?", zone, ("%.1f"):format(x * 100), ("%.1f"):format(y * 100)) end
 end
@@ -555,7 +555,7 @@ Comm.On("RARE", function(sender, _, name, zone, x, y)
     -- je Absender hoechstens alle 30 s; Texte entschaerft, Koordinaten 0..100
     if not SEC.Rate("rare:" .. sender, 30) then return end
     x, y = SEC.Num(x, 0, 100), SEC.Num(y, 0, 100)
-    K.Toast(L["Seltener Gegner (Gilde)"], (L["%s sieht %s - %s (%s, %s)"]):format(ns.displayName and ns.displayName(sender) or ns.short(sender),
+    K.Toast(L["Rare (guild)"], (L["%s sees %s - %s (%s, %s)"]):format(ns.displayName and ns.displayName(sender) or ns.short(sender),
         SEC.Text(name or "?", 50), SEC.Text(zone or "", 50), x and ("%.1f"):format(x) or "?", y and ("%.1f"):format(y) or "?"), C.amber or C.accent)
 end)
 
@@ -593,7 +593,7 @@ local function setupFishing()
     if fishBtn or InCombatLockdown() then return end
     fishBtn = CreateFrame("Button", "OasisFishButton", UIParent, "SecureActionButtonTemplate")
     fishBtn:SetAttribute("type", "spell")
-    fishBtn:SetAttribute("spell", spellName(FISHING) or "Angeln")
+    fishBtn:SetAttribute("spell", spellName(FISHING) or "Fishing")
     fishBtn:RegisterForClicks("AnyUp", "AnyDown")
     fishBtn:SetSize(1, 1)
     fishBtn:SetPoint("TOPLEFT", -10, 10)
@@ -637,10 +637,10 @@ function H2.SaveSet(name)
     for _, s in ipairs(SET_SLOTS) do set[s] = GetInventoryItemLink("player", s) or false end
     char().sets = char().sets or {}
     char().sets[name] = set
-    ns.print((L["Set gespeichert: %s"]):format(name))
+    ns.print((L["Set saved: %s"]):format(name))
 end
 function H2.EquipSet(name)
-    if InCombatLockdown() then ns.print(L["Erst nach dem Kampf moeglich."]) return end
+    if InCombatLockdown() then ns.print(L["Only possible after combat."]) return end
     local set = char().sets and char().sets[name]
     if not set then return end
     local missing = 0
@@ -652,7 +652,7 @@ function H2.EquipSet(name)
             if not ok then missing = missing + 1 end
         end
     end
-    ns.print((L["Set angelegt: %s"]):format(name) .. (missing > 0 and ((L[" (%d Teile fehlen)"]):format(missing)) or ""))
+    ns.print((L["Set equipped: %s"]):format(name) .. (missing > 0 and ((L[" (%d items missing)"]):format(missing)) or ""))
 end
 function H2.DeleteSet(name) if char().sets then char().sets[name] = nil end end
 ns.slash.set = function(arg)
@@ -736,7 +736,7 @@ end
 local function fillChars(f)
     local y = 0
     local n, nextFree = H2.InstanceStatus()
-    y = row(f, y, "|cffffd24a" .. L["Instanzen diese Stunde"] .. "|r", n .. " / 5" .. (nextFree and ("  -  " .. (L["frei in %s"]):format(fmtLeft(nextFree))) or ""))
+    y = row(f, y, "|cffffd24a" .. L["Instances this hour"] .. "|r", n .. " / 5" .. (nextFree and ("  -  " .. (L["free in %s"]):format(fmtLeft(nextFree))) or ""))
     y = y - 6
     local total = 0
     local names = {}
@@ -754,13 +754,13 @@ local function fillChars(f)
         if #sub > 0 then y = row(f, y, "   |cff999999" .. table.concat(sub, "   ") .. "|r", "") end
     end
     y = y - 4
-    y = row(f, y, "|cffffd24a" .. L["Gold gesamt"] .. "|r", money(total))
+    y = row(f, y, "|cffffd24a" .. L["Total gold"] .. "|r", money(total))
     return y
 end
 local function fillCDs(f)
     local y = 0
     local list = H2.GuildProfCDs()
-    if #list == 0 then return row(f, y, L["Noch keine Abklingzeiten geteilt - wer Transmutation, Mondstoff oder einen Salzstreuer hat, erscheint hier."], "", C.dim) end
+    if #list == 0 then return row(f, y, L["No cooldowns shared yet - anyone with Transmute, Mooncloth or a Salt Shaker shows up here."], "", C.dim) end
     local label = {}
     for _, p in ipairs(PROFCD) do label[p.key] = L[p.label] end
     local lastKey
@@ -772,16 +772,16 @@ local function fillCDs(f)
         end
         local left = e.ready - time()
         y = row(f, y, "   " .. (ns.displayName and ns.displayName(e.who) or ns.short(e.who)),
-            left <= 0 and ("|cff66db9e" .. L["bereit"] .. "|r") or ("|cffaaaaaa" .. fmtLeft(left) .. "|r"))
+            left <= 0 and ("|cff66db9e" .. L["ready"] .. "|r") or ("|cffaaaaaa" .. fmtLeft(left) .. "|r"))
     end
     return y
 end
 local function fillFish(f)
     local y = 0
     local fs = ns.db.fishing
-    y = row(f, y, L["Doppelter Rechtsklick wirft die Angel aus (Angel muss angelegt sein)."], "", C.dim)
-    if not fs or fs.casts == 0 then return row(f, y, L["Noch nichts geangelt."], "", C.dim) end
-    y = row(f, y, "|cffffd24a" .. L["Faenge"] .. "|r", tostring(fs.casts))
+    y = row(f, y, L["Double right-click casts (fishing pole must be equipped)."], "", C.dim)
+    if not fs or fs.casts == 0 then return row(f, y, L["Nothing caught yet."], "", C.dim) end
+    y = row(f, y, "|cffffd24a" .. L["Catches"] .. "|r", tostring(fs.casts))
     local items = {}
     for id, n in pairs(fs.items) do items[#items + 1] = { id = id, n = n } end
     table.sort(items, function(a, b) return a.n > b.n end)
@@ -795,10 +795,10 @@ local function fillSets(f)
     local y = 0
     f.setBtns = f.setBtns or {}
     for _, b in ipairs(f.setBtns) do b:Hide() end
-    y = row(f, y, L["Aktuelle Ausruestung als Set speichern:"], "", C.dim)
+    y = row(f, y, L["Save current gear as a set:"], "", C.dim)
     if not f.setName then
-        f.setName = K.Input(f.body, 180, L["Name, z.B. Angeln"], function() end)
-        f.setSave = K.Button(f.body, L["Speichern"], 100, 24, "primary", function()
+        f.setName = K.Input(f.body, 180, L["Name, e.g. Fishing"], function() end)
+        f.setSave = K.Button(f.body, L["Save"], 100, 24, "primary", function()
             H2.SaveSet((f.setName:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", ""))
             f.setName:SetText("")
             H2.Overview("sets")
@@ -812,12 +812,12 @@ local function fillSets(f)
     local names = {}
     for n in pairs(char().sets or {}) do names[#names + 1] = n end
     table.sort(names)
-    if #names == 0 then return row(f, y, L["Noch keine Sets."], "", C.dim) end
+    if #names == 0 then return row(f, y, L["No sets yet."], "", C.dim) end
     for i, n in ipairs(names) do
         local b = f.setBtns[i]
         if not b then
             b = K.Button(f.body, "", 200, 24, "ghost")
-            b.del = K.Button(f.body, L["Loeschen"], 80, 24, "ghost")
+            b.del = K.Button(f.body, L["Put out"], 80, 24, "ghost")
             f.setBtns[i] = b
         end
         b:SetLabel(n)
@@ -830,7 +830,7 @@ local function fillSets(f)
         b:Show() b.del:Show()
         y = y - 28
     end
-    row(f, y - 4, L["Auch per Befehl: /oa set Name"], "", C.dim)
+    row(f, y - 4, L["Also via command: /oa set Name"], "", C.dim)
     return y
 end
 local FILL = { chars = fillChars, cds = fillCDs, sets = fillSets, fish = fillFish }
@@ -848,11 +848,11 @@ local function buildOverview()
     if K.ApplySkin then K.ApplySkin(f, "panel", { 0.04, 0.04, 0.05, 0.96 }) end
     local title = K.Title(f, 14, C.text)
     title:SetPoint("TOPLEFT", 16, -14)
-    title:SetText(L["Charaktere & Helfer"])
+    title:SetText(L["Characters & helpers"])
     local x = K.CloseButton(f, function() f:Hide() end)
     x:SetPoint("TOPRIGHT", -6, -6)
-    f.seg = K.Segments(f, { { key = "chars", text = L["Charaktere"] }, { key = "cds", text = L["Abklingzeiten"] },
-        { key = "sets", text = L["Sets"] }, { key = "fish", text = L["Angeln"] } }, function(k) H2.Overview(k) end, nil, { size = 12, pad = 16 })
+    f.seg = K.Segments(f, { { key = "chars", text = L["Characters"] }, { key = "cds", text = L["Cooldowns"] },
+        { key = "sets", text = L["Sets"] }, { key = "fish", text = L["Fishing"] } }, function(k) H2.Overview(k) end, nil, { size = 12, pad = 16 })
     f.seg:SetPoint("TOPLEFT", 12, -40)
     f.body = CreateFrame("Frame", nil, f)
     f.body:SetPoint("TOPLEFT", 16, -76)
@@ -880,22 +880,22 @@ ns.slash.cds = function() H2.Overview("cds") end
 
 -- fuer die Einstellungen (Reiter "Helfer")
 H2.OPTS = {
-    { "Instanzen & Lehrer", {
-        { "cpInstances", "Instanz-Zaehler (5 pro Stunde)", "Meldet beim Betreten, wie viele Instanzen du in der letzten Stunde hattest" },
-        { "cpTrainer", "Neue Zauber beim Lehrer", "Beim Levelaufstieg: was du jetzt lernen kannst und was es kostet" },
-        { "cpReagBuy", "Reagenzien und Munition nachkaufen", "Beim Haendler automatisch auffuellen (Munition bis 1000). Shift = aussetzen" },
-        { "cpPet", "Jaeger: Begleiter-Laune und Futter", "Warnt, wenn der Begleiter hungrig ist, Futter-Hinweis beim Haendler" },
+    { "Instances & trainer", {
+        { "cpInstances", "Instance counter (5 per hour)", "Tells you on entry how many instances you had in the last hour" },
+        { "cpTrainer", "New spells at the trainer", "On level up: what you can learn now and what it costs" },
+        { "cpReagBuy", "Restock reagents and ammo", "Auto-refill at vendors (ammo up to 1000). Shift = skip" },
+        { "cpPet", "Hunter: pet happiness and food", "Warns when your pet is hungry, food hint at vendors" },
     } },
-    { "Gilde & Gruppe", {
-        { "cpProfCD", "Berufs-Abklingzeiten mit der Gilde teilen", "Transmutation, Mondstoff, Salzstreuer - wer ist bereit? (Uebersicht)" },
-        { "cpQuestShare", "Quest-Fortschritt der Gruppe", "Im Tooltip von Mitspielern mit Oasis, Meldung wenn ein Ziel fertig ist" },
-        { "cpRare", "Rare-Warnung", "Ton + Hinweis bei seltenen Gegnern in der Naehe" },
-        { "cpRareShare", "Rares an die Gilde melden", "Andere mit Oasis sehen, wo du einen Rare gefunden hast" },
+    { "Guild & group", {
+        { "cpProfCD", "Share profession cooldowns with the guild", "Transmute, Mooncloth, Salt Shaker - who is ready? (overview)" },
+        { "cpQuestShare", "Group quest progress", "In the tooltip of group members with Oasis, notice when an objective is done" },
+        { "cpRare", "Rare alert", "Sound + notice for rare enemies nearby" },
+        { "cpRareShare", "Report rares to the guild", "Others with Oasis see where you found a rare" },
     } },
-    { "Charaktere & Ausruestung", {
-        { "cpAltItems", "Gegenstaende aller Charaktere im Tooltip", "Taschen und Bank deiner Twinks, Gold in der Uebersicht" },
-        { "cpFishing", "Angel-Helfer", "Doppelter Rechtsklick wirft aus, Fang-Statistik in der Uebersicht" },
-        { "cpRange", "Reichweite auf den Aktionsleisten", "Knopf wird rot, wenn das Ziel zu weit weg ist" },
+    { "Characters & gear", {
+        { "cpAltItems", "Items of all characters in the tooltip", "Bags and bank of your alts, gold in the overview" },
+        { "cpFishing", "Fishing helper", "Double right-click casts, catch statistics in the overview" },
+        { "cpRange", "Range on action bars", "Button turns red when the target is out of range" },
     } },
 }
 end)

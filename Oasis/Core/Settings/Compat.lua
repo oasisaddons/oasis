@@ -60,30 +60,30 @@ function CP.UserSet(key) local s = ns.db and ns.db.settings if s and s.compatSet
 
 -- Liste fuer Einstellungen > Status: welche Addons erkannt wurden und was Oasis deshalb tut
 CP.KNOWN = {
-    { "NaowhForever", "Naowh Forever", "BiS-Liste in die Gilden-Wunschliste, Journal und Gruppen-Betrachten oeffnen; Oasis-XP-Leiste, Bedrohung und Glimmer aus" },
-    { "RareScanner", "RareScanner", "Rare-Warnung kommt von RareScanner; Oasis meldet Sichtungen weiter an die Gilde" },
-    { "Baganator", "Baganator", "Taschen dort; Oasis zeigt nur, was die Gilde braucht" },
-    { "Syndicator", "Syndicator", "Twink-Bestaende im Tooltip dort" },
-    { "Bagnon", "Bagnon", "Taschen dort; Oasis zeigt nur, was die Gilde braucht" },
-    { "Altoholic", "Altoholic", "Twinks dort; Oasis zeigt nur, was die Gilde braucht" },
-    { "Pawn", "Pawn", "Verbesserungs-Pfeile von Pawn; Oasis-Upgrade-Boerse fuer handelbare Gildenausruestung bleibt" },
-    { "TomTom", "TomTom", "Oasis-Ziele (Mitglied, Treffpunkt, Fundort) zusaetzlich als TomTom-Wegpunkt" },
-    { "Auctionator", "Auctionator", "Marktwerte im Gilden-Markt, wenn Midas fehlt" },
-    { "Midas", "Midas", "Marktwerte im Gilden-Markt" },
-    { "ThreatClassic2", "ThreatClassic2", "Bedrohung dort; Oasis-Pull-Warnung bleibt" },
-    { "Details", "Details!", "Schadensanzeige dort; Oasis-Kampf-Rangliste der Gilde nutzt Blizzards Zahlen" },
-    { "DBM-Core", "Deadly Boss Mods", "Boss-Warnungen dort; Oasis-Taktik-Karte der Gilde ergaenzt" },
-    { "BigWigs", "BigWigs", "Boss-Warnungen dort; Oasis-Taktik-Karte der Gilde ergaenzt" },
-    { "Questie", "Questie", "Quests auf der Karte dort; Oasis markiert Gruppenquests und teilt Questitems" },
-    { "GatherMate2", "GatherMate2", "eigene Fundorte dort; Oasis teilt Fundorte mit der Gilde" },
-    { "HandyNotes", "HandyNotes", "Kartennotizen dort; Oasis-Marker sind fuer die Gilde" },
-    { "Chattynator", "Chattynator", "Chatfenster dort; Oasis-Gildenchat bleibt im Oasis-Fenster" },
-    { "Prat-3.0", "Prat", "Chatfenster dort; Oasis-Gildenchat bleibt im Oasis-Fenster" },
-    { "EllesmereUIChat", "EllesmereUI", "Chatfenster dort; Oasis-Gildenchat bleibt im Oasis-Fenster" },
-    { "Gargul", "Gargul", "Pluendern im Raid dort; Oasis-Reservierungen und Lootpunkte als Gildenablage" },
-    { "RCLootCouncil", "RCLootCouncil", "Pluendern im Raid dort; Oasis-Lootpunkte als Gildenablage" },
-    { "Guild_Roster_Manager", "Guild Roster Manager", "Eigene Historie dort; Oasis ergaenzt mit gildenweit geteilten Daten (Anwesenheit, Danke, Paten, Abstimmungen)" },
-    { "MRT", "Method Raid Tools", "Raid-Notizen dort; Oasis-Raidplanung und Anmeldungen ergaenzen" },
+    { "NaowhForever", "Naowh Forever", "BiS list into the guild wishlist, opens journal and group inspect; Oasis XP bar, threat and glimmer off" },
+    { "RareScanner", "RareScanner", "Rare alerts come from RareScanner; Oasis keeps sharing sightings with the guild" },
+    { "Baganator", "Baganator", "Bags there; Oasis only shows what the guild needs" },
+    { "Syndicator", "Syndicator", "Alt inventory in the tooltip there" },
+    { "Bagnon", "Bagnon", "Bags there; Oasis only shows what the guild needs" },
+    { "Altoholic", "Altoholic", "Alts there; Oasis only shows what the guild needs" },
+    { "Pawn", "Pawn", "Upgrade arrows from Pawn; the Oasis upgrade exchange for tradeable guild gear stays" },
+    { "TomTom", "TomTom", "Oasis targets (member, meeting point, node) also as TomTom waypoint" },
+    { "Auctionator", "Auctionator", "Market values in the guild market when Midas is missing" },
+    { "Midas", "Midas", "Market values in the guild market" },
+    { "ThreatClassic2", "ThreatClassic2", "Threat there; the Oasis pull warning stays" },
+    { "Details", "Details!", "Damage meter there; the Oasis guild combat ranking uses Blizzard's numbers" },
+    { "DBM-Core", "Deadly Boss Mods", "Boss warnings there; the Oasis guild tactics board complements them" },
+    { "BigWigs", "BigWigs", "Boss warnings there; the Oasis guild tactics board complements them" },
+    { "Questie", "Questie", "Quests on the map there; Oasis marks group quests and shares quest items" },
+    { "GatherMate2", "GatherMate2", "Your own nodes there; Oasis shares nodes with the guild" },
+    { "HandyNotes", "HandyNotes", "Map notes there; Oasis markers are for the guild" },
+    { "Chattynator", "Chattynator", "Chat window there; Oasis guild chat stays in the Oasis window" },
+    { "Prat-3.0", "Prat", "Chat window there; Oasis guild chat stays in the Oasis window" },
+    { "EllesmereUIChat", "EllesmereUI", "Chat window there; Oasis guild chat stays in the Oasis window" },
+    { "Gargul", "Gargul", "Raid looting there; Oasis reservations and loot points as the guild record" },
+    { "RCLootCouncil", "RCLootCouncil", "Raid looting there; Oasis loot points as the guild record" },
+    { "Guild_Roster_Manager", "Guild Roster Manager", "Own history there; Oasis adds guild-wide shared data (attendance, thanks, mentors, votes)" },
+    { "MRT", "Method Raid Tools", "Raid notes there; Oasis raid planning and sign-ups complement them" },
 }
 function CP.Detected()
     local out = {}
@@ -92,7 +92,7 @@ function CP.Detected()
 end
 ns.slash.addons = function()
     local d = CP.Detected()
-    if #d == 0 then ns.print(L["Keine bekannten Addons erkannt - Oasis macht alles selbst."]) return end
+    if #d == 0 then ns.print(L["No known addons found - Oasis does everything itself."]) return end
     for _, k in ipairs(d) do ns.print("|cffe8b44a" .. k[2] .. "|r: " .. L[k[3]]) end
 end
 
@@ -186,13 +186,13 @@ function N.CanGroupInspect() return type(rawget(_G, "NaowhForever_ToggleGroupIns
 function N.CanJournal() return type(rawget(_G, "NaowhForever_ToggleJournal")) == "function" end
 ns.slash.naowh = function(rest)
     rest = tostring(rest or ""):lower()
-    if not N.Has() then ns.print(L["Naowh Forever ist nicht geladen - Oasis laeuft eigenstaendig."]) return end
+    if not N.Has() then ns.print(L["Naowh Forever is not loaded - Oasis runs on its own."]) return end
     if rest:find("wunsch", 1, true) or rest:find("bis", 1, true) then
         local n = N.ImportWishes()
-        ns.print(n > 0 and (L["%d BiS-Teile aus Naowh in die Oasis-Wunschliste uebernommen."]):format(n) or L["Keine neuen BiS-Teile in Naowh gefunden."])
+        ns.print(n > 0 and (L["%d BiS items from Naowh added to the Oasis wishlist."]):format(n) or L["No new BiS items found in Naowh."])
         return
     end
-    ns.print(L["Naowh Forever erkannt - Oasis kuemmert sich um Gilde und Gruppe, Naowh um deinen Charakter."])
+    ns.print(L["Naowh Forever found - Oasis handles guild and group, Naowh your character."])
     local nw = #N.NewWishes()
-    if nw > 0 then ns.print((L["%d BiS-Teile aus Naowh stehen noch nicht in der Oasis-Wunschliste: /oa naowh bis"]):format(nw)) end
+    if nw > 0 then ns.print((L["%d BiS items from Naowh are not on the Oasis wishlist yet: /oa naowh bis"]):format(nw)) end
 end

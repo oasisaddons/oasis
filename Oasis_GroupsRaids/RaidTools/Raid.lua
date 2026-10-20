@@ -61,30 +61,30 @@ local Raid = {}
 ns.Raid = Raid
 
 -- Gilden-Optionen (Gildenleitung legt fest; Standard = bisheriges Verhalten)
-ns.GuildOption({ page = "raid", key = "rlead", default = "", kind = "names", label = "Schlachtzugsleiter",
-    desc = "Duerfen den Raidplaner bearbeiten, Termine immer anlegen und fremde Termine verwalten - unabhaengig vom Gildenrang" })
-ns.GuildOption({ page = "raid", key = "rassi", default = "", kind = "names", label = "Schlachtzugs-Assistenz",
-    desc = "Helfen im laufenden Raid: Ready-Check, Fehlende ansagen, Taktik-Karte zeichnen, Gruppen im Raidplaner sortieren. Keine Termine, keine Beute-Einstellungen, keine Taktiken dauerhaft aendern." })
+ns.GuildOption({ page = "raid", key = "rlead", default = "", kind = "names", label = "Raid leaders",
+    desc = "May edit the raid planner, always create events and manage others' events - regardless of guild rank" })
+ns.GuildOption({ page = "raid", key = "rassi", default = "", kind = "names", label = "Raid assistants",
+    desc = "Help during a running raid: ready check, call out missing players, draw on the tactics map, sort groups in the raid planner. No events, no loot settings, no permanent tactic edits." })
 local function rankFmt(v)
     v = tonumber(v) or 0
-    if v <= 0 then return ns.L["aus"] end
+    if v <= 0 then return ns.L["off"] end
     local names = ns.Admin and ns.Admin.RankNames and ns.Admin.RankNames() or {}
-    return (ns.L["bis Rang %d"]):format(v) .. (names[v - 1] and (": " .. names[v - 1]) or "")
+    return (ns.L["up to rank %d"]):format(v) .. (names[v - 1] and (": " .. names[v - 1]) or "")
 end
-ns.GuildOption({ page = "raid", key = "rleadRank", default = 0, min = 0, max = 10, step = 1, label = "Schlachtzugsleiter ab Gildenrang",
-    desc = "Automatisch Schlachtzugsleiter: alle Mitglieder bis zu diesem Gildenrang. 0 = aus (nur die Namensliste).", fmt = rankFmt })
-ns.GuildOption({ page = "raid", key = "rassiRank", default = 0, min = 0, max = 10, step = 1, label = "Schlachtzugs-Assistenz ab Gildenrang",
-    desc = "Automatisch Schlachtzugs-Assistenz: alle Mitglieder bis zu diesem Gildenrang. 0 = aus (nur die Namensliste).", fmt = rankFmt })
-ns.GuildOption({ page = "raid", key = "rStaffInfo", kind = "info", label = "Schlachtzugsleitung",
+ns.GuildOption({ page = "raid", key = "rleadRank", default = 0, min = 0, max = 10, step = 1, label = "Raid leaders from guild rank",
+    desc = "Automatic raid leaders: all members up to this guild rank. 0 = off (name list only).", fmt = rankFmt })
+ns.GuildOption({ page = "raid", key = "rassiRank", default = 0, min = 0, max = 10, step = 1, label = "Raid assistants from guild rank",
+    desc = "Automatic raid assistants: all members up to this guild rank. 0 = off (name list only).", fmt = rankFmt })
+ns.GuildOption({ page = "raid", key = "rStaffInfo", kind = "info", label = "Raid staff",
     text = function() return ns.Admin and ns.Admin.RaidStaffText and ns.Admin.RaidStaffText() or "" end })
 ns.GuildOption({ page = "raid", key = "rdEvRank", default = 10, min = 1, max = 10, step = 1,
-    label = "Termine anlegen", desc = "Bis zu welchem Gildenrang Mitglieder auf der Raid-Seite neue Termine anlegen duerfen. 10 = alle.",
-    fmt = function(v) return (ns.L["bis Rang %d"]):format(v) end })
+    label = "Create events", desc = "Up to which guild rank members may create new events on the raid page. 10 = everyone.",
+    fmt = function(v) return (ns.L["up to rank %d"]):format(v) end })
 ns.GuildOption({ page = "raid", key = "rdOffEd", default = true,
-    label = "Offiziere verwalten fremde Termine", desc = "Offiziere duerfen auch Termine anderer einladen und loeschen. Aus = nur der Ersteller (und die Gildenleitung)." })
+    label = "Officers manage others' events", desc = "Officers may also invite for and delete events created by others. Off = only the creator (and guild leadership)." })
 ns.GuildOption({ page = "raid", key = "rdRemMin", default = 15, min = 5, max = 60, step = 5,
-    label = "Erinnerung vor Termin", desc = "Wie viele Minuten vor Beginn alle Zusagen eine Erinnerung bekommen.",
-    fmt = function(v) return v .. " Min" end })
+    label = "Reminder before event", desc = "How many minutes before the start everyone who signed up gets a reminder.",
+    fmt = function(v) return v .. " min" end })
 local function rankAllowed(v)
     v = tonumber(v) or 10
     if v >= 10 then return true end
@@ -98,18 +98,18 @@ Raid.RankAllowed = rankAllowed
 
 local ROLES = {
     tank = { "Tank", C.blue },
-    heal = { "Heiler", C.mint },
-    dps = { "Schaden", C.pink },
+    heal = { "Healer", C.mint },
+    dps = { "Damage", C.pink },
 }
 local CHOICES = {
-    need = { "Bedarf", C.mint, 1 },
-    greed = { "Zweitspec", C.amber, 2 },
+    need = { "Need", C.mint, 1 },
+    greed = { "Off-spec", C.amber, 2 },
     mog = { "Transmog", C.violet, 3 },
-    pass = { "Passen", C.dim, 4 },
+    pass = { "Pass", C.dim, 4 },
 }
 ns.Relabel(function()
-    ROLES.tank[1], ROLES.heal[1], ROLES.dps[1] = L["Tank"], L["Heiler"], L["Schaden"]
-    CHOICES.need[1], CHOICES.greed[1], CHOICES.mog[1], CHOICES.pass[1] = L["Bedarf"], L["Zweitspec"], L["Transmog"], L["Passen"]
+    ROLES.tank[1], ROLES.heal[1], ROLES.dps[1] = L["Tank"], L["Healer"], L["Damage"]
+    CHOICES.need[1], CHOICES.greed[1], CHOICES.mog[1], CHOICES.pass[1] = L["Need"], L["Off-spec"], L["Transmog"], L["Pass"]
 end)
 
 ------------------------------------------------------------------------
@@ -140,14 +140,14 @@ Raid.ParseWhen = parseWhen
 Raid.KINDS = {
     { key = "raid", text = "Raid", icon = "raid", color = { 1, 0.3, 0.3 } },
     { key = "dungeon", text = "Dungeon", icon = "dungeons", color = { 0.38, 0.6, 1 } },
-    { key = "meet", text = "Treffen", icon = "camp", color = { 0.4, 0.86, 0.62 } },
+    { key = "meet", text = "Meetups", icon = "camp", color = { 0.4, 0.86, 0.62 } },
     { key = "pvp", text = "PvP", icon = "deathroll", color = { 0.98, 0.76, 0.34 } },
-    { key = "other", text = "Sonstiges", icon = "chronicle", color = { 0.7, 0.7, 0.75 } },
+    { key = "other", text = "Miscellaneous", icon = "chronicle", color = { 0.7, 0.7, 0.75 } },
     -- 0.6.469: Gilden-Events jenseits von Raids
-    { key = "fish", text = "Angelwettbewerb", icon = "map", color = { 0.36, 0.68, 0.98 } },
-    { key = "race", text = "Rennen", icon = "stats", color = { 0.98, 0.82, 0.3 } },
-    { key = "photo", text = "Fotoabend", icon = "camera", color = { 0.85, 0.55, 1 } },
-    { key = "dice", text = "Wuerfelturnier", icon = "deathroll", color = { 0.93, 0.3, 0.32 } },
+    { key = "fish", text = "Fishing contest", icon = "map", color = { 0.36, 0.68, 0.98 } },
+    { key = "race", text = "Race", icon = "stats", color = { 0.98, 0.82, 0.3 } },
+    { key = "photo", text = "Photo night", icon = "camera", color = { 0.85, 0.55, 1 } },
+    { key = "dice", text = "Dice tournament", icon = "deathroll", color = { 0.93, 0.3, 0.32 } },
 }
 Raid.KIND = {}
 for _, k in ipairs(Raid.KINDS) do Raid.KIND[k.key] = k end
@@ -161,7 +161,7 @@ function Raid.AddToCalendar(ev)
         if C_Calendar.CloseEvent then C_Calendar.CloseEvent() end
         C_Calendar.CreateGuildSignUpEvent()
         C_Calendar.EventSetTitle(ev.title or "Oasis")
-        C_Calendar.EventSetDescription(((ev.inst or "") ~= "" and (ev.inst .. "  ·  ") or "") .. L["Angelegt mit Oasis"])
+        C_Calendar.EventSetDescription(((ev.inst or "") ~= "" and (ev.inst .. "  ·  ") or "") .. L["Created with Oasis"])
         if Enum and Enum.CalendarEventType and C_Calendar.EventSetType then
             local T = Enum.CalendarEventType
             local byKind = { raid = T.Raid, dungeon = T.Dungeon, pvp = T.PvP, meet = T.Meeting, other = T.Other }
@@ -172,7 +172,7 @@ function Raid.AddToCalendar(ev)
         C_Calendar.EventSetTime(d.hour, d.min)
         C_Calendar.AddEvent()
     end)
-    if not ok then ns.err(L["WoW-Kalender"], e) end
+    if not ok then ns.err(L["WoW calendar"], e) end
     return ok
 end
 -- Kalendertermine, die nicht schon als Oasis-Termin existieren
@@ -216,7 +216,7 @@ ns.Listen("LOGIN", function()
                 local mine = Raid.MySignup(ev.id)
                 if (mine and mine.status == "yes") or ns.isMe(ev.by) then
                     ns.char.reminded[ev.id] = now
-                    K.Toast((L["%s beginnt gleich"]):format(ev.title or "?"), (L["in %d Min"]):format(math.ceil(left / 60)) .. ((ev.inst or "") ~= "" and ("  ·  " .. ev.inst) or ""),
+                    K.Toast((L["%s starts soon"]):format(ev.title or "?"), (L["in %d min"]):format(math.ceil(left / 60)) .. ((ev.inst or "") ~= "" and ("  ·  " .. ev.inst) or ""),
                         C.amber, function() ns.ShowPage("raid") end, "announce")
                 end
             end
@@ -271,13 +271,13 @@ function Raid.Invite(ev)
             end
         end
     end
-    ns.print((L["%d Einladungen verschickt.%s"]):format(n, (not IsInRaid() and yes > 4) and L[" Sobald die Gruppe steht: nochmal klicken (wird zum Schlachtzug)."] or ""))
+    ns.print((L["%d invites sent.%s"]):format(n, (not IsInRaid() and yes > 4) and L[" Once the party is full, click again (converts to raid)."] or ""))
 end
 
 ns.Listen("STORE", function(coll, rec, old)
     if coll == "events" and not old and not rec.del and rec.by ~= ns.me() and ns.db.settings.raidNewEventToast ~= false then
         ns.Sound.Next("event")
-        K.Toast(L["Neuer Termin: "] .. (rec.title or "?"), ns.fmtWhen(rec.ts) .. "  -  " .. (rec.inst or ""), C.blue,
+        K.Toast(L["New event: "] .. (rec.title or "?"), ns.fmtWhen(rec.ts) .. "  -  " .. (rec.inst or ""), C.blue,
             function() ns.ShowPage("raid") end)
     end
     if coll == "events" or coll == "signups" or coll == "loot" or coll == "sres" then ns.RefreshPage("raid") end
@@ -311,16 +311,16 @@ Raid.session = nil
 Raid.announce = true
 
 function Raid.StartSession(link)
-    if not link or not link:find("item:") then ns.print(L["Bitte einen Itemlink einfuegen (Shift-Klick auf das Item)."]) return end
+    if not link or not link:find("item:") then ns.print(L["Please paste an item link (shift-click the item)."]) return end
     local ch = ns.groupChannel()
-    if not ch then ns.print(L["Du bist in keiner Gruppe."]) return end
-    if not ns.isGroupLead() then ns.print(L["Nur Anfuehrer oder Assistenten koennen verteilen."]) return end
+    if not ch then ns.print(L["You are not in a group."]) return end
+    if not ns.isGroupLead() then ns.print(L["Only the leader or assistants can distribute loot."]) return end
     local sid = tostring(math.random(100000, 999999))
     Raid.session = { sid = sid, link = link, leader = ns.me(), responses = {}, t = ns.now() }
     Comm.Group("LOOTSTART", sid, link)
     if Raid.announce then
         local chn = ns.groupChannel()
-        if chn then ns.SendChat(L["[Oasis] Verteilung: "] .. link .. " - " .. L["Bedarf / Zweitspec / Passen im Oasis-Fenster"], chn) end
+        if chn then ns.SendChat(L["[Oasis] Loot: "] .. link .. " - " .. L["Need / Offspec / Pass in the Oasis window"], chn) end
     end
     Raid.ShowPopup(Raid.session)
     ns.ShowPage("raid")
@@ -413,7 +413,7 @@ Comm.On("LOOTAWARD", function(sender, _, sid, name)
     if not name then return end
     s.awarded = name
     if ns.isMe(name) and ns.db.settings.raidWinToast ~= false then
-        K.Toast(L["Du bekommst das Item!"], s.link, C.mint)
+        K.Toast(L["You get the item!"], s.link, C.mint)
     end
     if Raid.popup then Raid.popup:Hide() end
     ns.RefreshPage("raid")
@@ -504,7 +504,7 @@ function Raid.ShowPopup(s)
         Raid.popup = f
     end
     f.start = GetTime()
-    f.head:SetText(K.Upper((L["Beuteverteilung von %s"]):format(ns.displayName(s.leader))))
+    f.head:SetText(K.Upper((L["Loot distribution by %s"]):format(ns.displayName(s.leader))))
     f.name:SetText(s.link)
     f.iconBtn:SetItem(s.link)
     local qc = (LM and LM.QColor and LM.QColor(LM.Quality(s.link))) or C.accent
@@ -512,7 +512,7 @@ function Raid.ShowPopup(s)
     if not K.Gradient(f.glow, "VERTICAL", { qc[1], qc[2], qc[3], 0 }, { qc[1], qc[2], qc[3], 0.14 }) then f.glow:SetColorTexture(qc[1], qc[2], qc[3], 0.05) end
     local up
     if ns.Upgrade and ns.Upgrade.Text then local ok, t = pcall(ns.Upgrade.Text, s.link) if ok then up = t end end
-    f.up:SetText(up or ("|cff666666" .. L["Kein Vergleich moeglich"] .. "|r"))
+    f.up:SetText(up or ("|cff666666" .. L["No comparison possible"] .. "|r"))
     if ns.Upgrade and ns.Upgrade.Glow and ns.Upgrade.Compare then
         local ok, pct = pcall(ns.Upgrade.Compare, s.link)
         pcall(ns.Upgrade.Glow, f.iconBtn, ok and pct or nil, (ns.db and ns.db.settings and ns.db.settings.noAnim) and true or false)
@@ -521,10 +521,10 @@ function Raid.ShowPopup(s)
     local pts = ""
     if ns.Points then
         local me = ns.Points.Of(ns.me())
-        pts = "\n" .. (L["Deine Prioritaet %s (Platz %d)  ·  Bedarf kostet %d, Zweitspec %d"]):format(ns.Points.FmtPR(me.pr), me.rank,
+        pts = "\n" .. (L["Your priority %s (rank %d)  ·  need costs %d, off-spec %d"]):format(ns.Points.FmtPR(me.pr), me.rank,
             ns.Points.ItemCost(s.link, "need"), ns.Points.ItemCost(s.link, "greed"))
     end
-    f.eq:SetText(L["Angelegt: "] .. (e1 ~= "" and e1 or "-") .. (e2 ~= "" and ("  " .. e2) or "") .. pts)
+    f.eq:SetText(L["Equipped: "] .. (e1 ~= "" and e1 or "-") .. (e2 ~= "" and ("  " .. e2) or "") .. pts)
     ns.withItem(s.link, function(link, _, _, icon)
         f.name:SetText(link)
         f.iconBtn:SetItem(link)
@@ -672,7 +672,7 @@ local function applyTabs()
         ld.seg:Select(leadTab)
         for k, f in pairs(ld.tabs) do f:SetShown(k == leadTab) end
         for _, lk in pairs(ld.locks or {}) do lk:Update() end
-        if ld.badge then ld.badge:SetText(lead and L["nur fuer die Raidleitung sichtbar"] or L["Du hast diese Rechte nicht - du siehst nur."]) end
+        if ld.badge then ld.badge:SetText(lead and L["visible to raid leaders only"] or L["You don't have these rights - view only."]) end
     end
 end
 
@@ -721,14 +721,14 @@ end
 -- "heute 20:00", "morgen", "in 3 Tagen"
 local function countdown(ts)
     local d = (ts or 0) - ns.now()
-    if d <= 0 then return "|cff66db9e" .. L["laeuft gerade"] .. "|r" end
-    if d < 3600 then return "|cffe8b44a" .. (L["in %d Min"]):format(math.max(1, math.floor(d / 60))) .. "|r" end
+    if d <= 0 then return "|cff66db9e" .. L["in progress"] .. "|r" end
+    if d < 3600 then return "|cffe8b44a" .. (L["in %d min"]):format(math.max(1, math.floor(d / 60))) .. "|r" end
     local today = date("%Y%m%d", ns.now())
     local tomorrow = date("%Y%m%d", ns.now() + 86400)
     local day = date("%Y%m%d", ts)
-    if day == today then return "|cffe8b44a" .. L["heute"] .. "  ·  " .. (L["in %d Std"]):format(math.floor(d / 3600)) .. "|r" end
-    if day == tomorrow then return "|cffe8b44a" .. L["morgen"] .. "|r" end
-    return (L["in %d Tagen"]):format(math.max(2, math.floor(d / 86400 + 0.5)))
+    if day == today then return "|cffe8b44a" .. L["today"] .. "  ·  " .. (L["in %d h"]):format(math.floor(d / 3600)) .. "|r" end
+    if day == tomorrow then return "|cffe8b44a" .. L["tomorrow"] .. "|r" end
+    return (L["in %d days"]):format(math.max(2, math.floor(d / 86400 + 0.5)))
 end
 -- Wunschrolle fuer eine Zusage: bisherige Anmeldung, sonst Profilrolle, sonst Schaden
 local function myRole(ev)
@@ -993,21 +993,21 @@ end
 -- grosser Countdown: "2:04:13" (Tage:Std:Min) bzw. "04:13" (Std:Min)
 local function bigCountdown(ts)
     local d = (ts or 0) - ns.now()
-    if d <= 0 then return L["laeuft gerade"], "" end
+    if d <= 0 then return L["in progress"], "" end
     local days = math.floor(d / 86400)
     local h = math.floor((d % 86400) / 3600)
     local m = math.floor((d % 3600) / 60)
-    if days > 0 then return ("%d:%02d:%02d"):format(days, h, m), L["Tage : Std : Min"] end
-    return ("%02d:%02d"):format(h, m), L["Std : Min"]
+    if days > 0 then return ("%d:%02d:%02d"):format(days, h, m), L["Days : Hrs : Min"] end
+    return ("%02d:%02d"):format(h, m), L["Hrs : Min"]
 end
 
 ------------------------------------------------------------------------
 -- Termin-Karte (eine Zeile der Kartenliste)
 ------------------------------------------------------------------------
 local STATUS = {
-    { key = "yes", text = "Zusage", color = C.mint },
-    { key = "maybe", text = "Vielleicht", color = C.amber },
-    { key = "no", text = "Absage", color = C.red },
+    { key = "yes", text = "Accept", color = C.mint },
+    { key = "maybe", text = "Maybe", color = C.amber },
+    { key = "no", text = "Can't come", color = C.red },
 }
 local DET_BAN_H, DET_TILE_H = 96, 44   -- Detailansicht: Bannerhoehe, Kachelhoehe
 local CARD_H = 198   -- Hoehe der Vorschau-Karte im Formular; in der Liste waechst jede Karte mit ihrem Inhalt
@@ -1144,7 +1144,7 @@ local function drawGroupGrid(r, groups, ng, x0, yTop, avail, nameOf, nChip, extr
                 setDashed(c, false, cw)
                 c:SetAlpha(m.maybe and 0.5 or 1)
                 c.tip = { nameOf(m.name), ROLES[m.role] and ROLES[m.role][1] or m.role,
-                    m.maybe and ("|cffe8b44a" .. L["Vielleicht"] .. "|r") or ("|cff66db9e" .. L["Zusage"] .. "|r"),
+                    m.maybe and ("|cffe8b44a" .. L["Maybe"] .. "|r") or ("|cff66db9e" .. L["Accept"] .. "|r"),
                     "|cff888888" .. (L["G%d"]):format(g) .. "|r" }
                 if exTip then c.tip[#c.tip + 1] = exTip end
             else
@@ -1154,7 +1154,7 @@ local function drawGroupGrid(r, groups, ng, x0, yTop, avail, nameOf, nChip, extr
                 c.bar:Hide()
                 setDashed(c, true, cw)
                 c:SetAlpha(1)
-                c.tip = { (L["G%d"]):format(g), "|cff888888" .. L["frei"] .. "|r" }
+                c.tip = { (L["G%d"]):format(g), "|cff888888" .. L["open"] .. "|r" }
             end
             if not c.tipHooked then
                 c.tipHooked = true
@@ -1244,7 +1244,7 @@ local function createCard(l)
         prev = b
     end
     -- Zeile 2 rechts: Reservierung
-    r.srBtn = K.Button(r, L["Reservieren"], 92, 18, "ghost", function(self)
+    r.srBtn = K.Button(r, L["Reserve"], 92, 18, "ghost", function(self)
         local ev = self:GetParent().item
         if ev and ns.SoftRes and ns.SoftRes.Open then ns.SoftRes.Open(ev) end
     end)
@@ -1266,7 +1266,7 @@ local function createCard(l)
         b.glyph = K.Glyph(b, 13, ns.Profile and ns.Profile.RoleTexture(key) or nil, ns.Profile and ns.Profile.ROLE_COLORS[key] or C.text)
         b.glyph:SetPoint("CENTER")
         b.role = key
-        b:SetScript("OnEnter", function(self) K.ShowTip(self, { ROLES[key][1], L["Klick: als deine Rolle anmelden"] }) end)
+        b:SetScript("OnEnter", function(self) K.ShowTip(self, { ROLES[key][1], L["Click: sign up with this role"] }) end)
         b:SetScript("OnLeave", function(self) GameTooltip:Hide() K.SetBorderColor(self, self.onColor or C.line) end)
         if prevR then b:SetPoint("RIGHT", prevR, "LEFT", -3, 0) else b:SetPoint("TOPRIGHT", card, "TOPRIGHT", -8, -52) end
         r.roles[key] = b
@@ -1274,7 +1274,7 @@ local function createCard(l)
     end
     r.roleLbl = K.Text(r, 10, C.dim, "RIGHT")
     r.roleLbl:SetPoint("RIGHT", prevR, "LEFT", -6, 0)
-    r.roleLbl:SetText(L["Deine Rolle"])
+    r.roleLbl:SetText(L["Your role"])
 
     -- Zeile 1/2 links: Titel, Termin
     r.title = K.Title(card, 14, C.text)
@@ -1372,7 +1372,7 @@ local function updateCard(r, e)
     r.wday:SetText(K.Upper and K.Upper(ns.weekday(e.ts)) or ns.weekday(e.ts))
     r.wday:SetTextColor(kc[1], kc[2], kc[3])
     r.day:SetText(tonumber(date("%d", e.ts)))
-    r.mon:SetText(date(L["%d.%m."], e.ts))
+    r.mon:SetText(date(L["%m/%d"], e.ts))
     r.time:SetText(date("%H:%M", e.ts))
     r.title:SetText(e.title or "?")
     r.kind:SetTexture(ns.ICONS and ns.ICONS[k.icon] or nil)
@@ -1388,12 +1388,12 @@ local function updateCard(r, e)
         for i = nChip + 1, #r.chips do r.chips[i]:Hide() end
     end
     if isCal then
-        r.meta:SetText(countdown(e.ts) .. "  ·  |cff777777" .. L["WoW-Kalender"] .. "|r")
+        r.meta:SetText(countdown(e.ts) .. "  ·  |cff777777" .. L["WoW calendar"] .. "|r")
         r.counts:ClearAllPoints()
         r.counts:SetPoint("TOPLEFT", r.card, "TOPLEFT", CX, -56)
         r.counts:SetPoint("RIGHT", r.card, "RIGHT", -10, 0)
         r.counts:SetShown(true)
-        r.counts:SetText("|cff888888" .. L["Anmeldung ueber den WoW-Kalender"] .. "|r")
+        r.counts:SetText("|cff888888" .. L["Sign up via the WoW calendar"] .. "|r")
         r.sr:SetText("")
         r.sr:Hide()
         hideChips()
@@ -1433,11 +1433,11 @@ local function updateCard(r, e)
         blk.num:SetText((full and "|cff66db9e" or "|cffe8b44a") .. n .. "/" .. nd .. "|r")
         local tip = { ROLES[key][1] .. "  " .. n .. "/" .. nd }
         for j, nm in ipairs(names[key]) do if j <= 12 then tip[#tip + 1] = nm end end
-        if n == 0 then tip[#tip + 1] = "|cff888888" .. L["noch niemand"] .. "|r" end
-        if not full then tip[#tip + 1] = "|cffe8b44a" .. (L["noch %d gesucht"]):format(nd - n) .. "|r" end
+        if n == 0 then tip[#tip + 1] = "|cff888888" .. L["nobody yet"] .. "|r" end
+        if not full then tip[#tip + 1] = "|cffe8b44a" .. (L["%d more needed"]):format(nd - n) .. "|r" end
         blk.tip = tip
     end
-    r.counts:SetText((L["%d/%d Zusagen"]):format(yes, e.max or 5) .. (maybe > 0 and ("  ·  " .. (L["%d vielleicht"]):format(maybe)) or ""))
+    r.counts:SetText((L["%d/%d accepted"]):format(yes, e.max or 5) .. (maybe > 0 and ("  ·  " .. (L["%d maybe"]):format(maybe)) or ""))
     -- Gruppen bilden: Raidplan der Leitung, sonst automatisch (Tanks/Heiler auf die Gruppen verteilt)
     local size = e.max or 5
     local ng = math.max(1, math.min(8, math.ceil(size / 5)))
@@ -1512,9 +1512,9 @@ local function updateCard(r, e)
         local miss = math.max(0, (need[key] or 0) - have[key])
         if miss > 0 then
             if ng == 1 then
-                for _ = 1, miss do chip("free", "|cff666666" .. L["frei"] .. "|r", key) end
+                for _ = 1, miss do chip("free", "|cff666666" .. L["open"] .. "|r", key) end
             else
-                chip("free", "|cff777777" .. (L["%d frei"]):format(miss) .. "|r", key)
+                chip("free", "|cff777777" .. (L["%d open"]):format(miss) .. "|r", key)
             end
         end
     end
@@ -1548,15 +1548,15 @@ local function updateCard(r, e)
     local srText
     if sr then
         local _, link = itemInfo(sr.item)
-        srText = (L["Reserviert: %s"]):format(link or ("Item " .. sr.item))
-        r.srBtn:SetLabel(L["Aendern"])
-        r.srBtn.tip = { L["Reservierung"], srText }
+        srText = (L["Reserved: %s"]):format(link or ("Item " .. sr.item))
+        r.srBtn:SetLabel(L["Change"])
+        r.srBtn.tip = { L["Reservation"], srText }
     else
-        r.srBtn:SetLabel(L["Reservieren"])
-        r.srBtn.tip = { L["Reservierung"], "|cff888888" .. L["Noch nichts reserviert"] .. "|r" }
+        r.srBtn:SetLabel(L["Reserve"])
+        r.srBtn.tip = { L["Reservation"], "|cff888888" .. L["Nothing reserved yet"] .. "|r" }
     end
     local wl = Raid.WantedLoot(e)
-    if #wl > 0 then srText = (srText and (srText .. "  ·  ") or "") .. "|cffe8b44a" .. (L["%d Items von deiner Wunschliste"]):format(#wl) .. "|r" end
+    if #wl > 0 then srText = (srText and (srText .. "  ·  ") or "") .. "|cffe8b44a" .. (L["%d items from your wishlist"]):format(#wl) .. "|r" end
     if srText then
         r.sr:ClearAllPoints()
         r.sr:SetPoint("TOPLEFT", r.card, "TOPLEFT", CX, bottom - 5)
@@ -1656,7 +1656,7 @@ local function buildCardList(parent)
         if self.cur < max - 2 then
             ov:Show()
             if below > 0 then
-                more.t:SetText((below == 1 and L["1 weiterer Termin"] or (L["%d weitere Termine"]):format(below)) .. "  |cff888888v|r")
+                more.t:SetText((below == 1 and L["1 more event"] or (L["%d more events"]):format(below)) .. "  |cff888888v|r")
                 more:SetWidth(math.max(120, (more.t:GetStringWidth() or 100) + 20))
                 more:Show()
             else
@@ -1727,7 +1727,7 @@ local function buildCardList(parent)
             r.item, r.index = e, i
             r:Show()
             local ok, err = pcall(updateCard, r, e)
-            if not ok then ns.err(L["Liste"], err) end
+            if not ok then ns.err(L["List"], err) end
             local h = (r.wantH or 120) + 6
             r:SetHeight(h)
             r.top, r.bottom = y, y + h
@@ -1763,20 +1763,20 @@ end
 ------------------------------------------------------------------------
 -- Reiter "Termine": Kartenliste + Detailansicht
 ------------------------------------------------------------------------
-local RAID_FILTERS = { { key = "all", text = "Alle Raids" }, { key = "mine", text = "Meine Zusagen" } }
+local RAID_FILTERS = { { key = "all", text = "All raids" }, { key = "mine", text = "My sign-ups" } }
 local filterEvents   -- weiter unten (braucht upcoming)
 local function buildEvents(f)
     -- Kartenliste
     local cards = CreateFrame("Frame", nil, f)
     cards:SetAllPoints()
     f.cards = cards
-    f.head = K.GameHead(cards, L["Anstehende Termine"], C.accent)
+    f.head = K.GameHead(cards, L["Upcoming events"], C.accent)
     f.head:SetPoint("TOPLEFT", 0, -2)
     f.head:SetPoint("RIGHT", cards, "RIGHT", -280, 0)
     f.hint = K.Text(cards, 10, C.dim, "RIGHT")
     f.hint:SetPoint("TOPRIGHT", 0, -6)
     f.hint:SetWidth(160)
-    f.hint:SetText(L["Klick auf eine Karte: Details"])
+    f.hint:SetText(L["Click a card for details"])
     f.hint:Hide()
     -- Filter: Alle Raids | Meine Zusagen (Auswahl gemerkt)
     f.filt = CreateFrame("Frame", nil, cards)
@@ -1821,9 +1821,9 @@ local function buildEvents(f)
     local list = buildCardList(cards)
     list:SetPoint("TOPLEFT", 0, -28)
     list:SetPoint("BOTTOMRIGHT", 0, 0)
-    list.empty:SetText(L["Keine anstehenden Raids - die Raidleitung legt Termine an."])
+    list.empty:SetText(L["No upcoming raids - the raid leaders create events."])
     f.list = list
-    f.newBtn = K.Button(cards, L["Termin anlegen"], 140, 26, "primary", function() Raid.SetTab("new") end)
+    f.newBtn = K.Button(cards, L["Create event"], 140, 26, "primary", function() Raid.SetTab("new") end)
     f.newBtn:SetPoint("TOPRIGHT", cards, "TOPRIGHT", 0, 0)
     f.newBtn:Hide()
 
@@ -1847,7 +1847,7 @@ local function buildEvents(f)
     bn.hl:SetColorTexture(1, 1, 1, 0.04)
     bn.kicker = K.Text(bn, 10, C.amber)
     bn.kicker:SetPoint("TOPLEFT", 14, -10)
-    bn.kicker:SetText(K.Upper(L["Dein naechster Raid"]))
+    bn.kicker:SetText(K.Upper(L["Your next raid"]))
     bn.cd = K.Title(bn, 28, C.text)
     bn.cd:SetPoint("TOPLEFT", 14, -26)
     bn.cdSub = K.Text(bn, 10, C.dim)
@@ -1883,10 +1883,10 @@ local function buildEvents(f)
         local no = "|TInterface\\RaidFrame\\ReadyCheck-NotReady:13:13|t "
         local parts = {}
         if p.dura then
-            parts[#parts + 1] = (p.dura > 0.5 and ok or no) .. L["Ausruestung repariert"] .. " |cff888888(" .. math.floor(p.dura * 100 + 0.5) .. "%)|r"
+            parts[#parts + 1] = (p.dura > 0.5 and ok or no) .. L["Gear repaired"] .. " |cff888888(" .. math.floor(p.dura * 100 + 0.5) .. "%)|r"
         end
         local inGrp = ((ev.max or 5) > 5) and p.raid or (p.raid or p.group)
-        parts[#parts + 1] = (inGrp and ok or no) .. L["Gruppe/Raid beigetreten"]
+        parts[#parts + 1] = (inGrp and ok or no) .. L["Joined group/raid"]
         self.prep:SetText(table.concat(parts, "     "))
     end
     function bn:UpdateClock()
@@ -1913,9 +1913,9 @@ local function buildEvents(f)
 
     -- Raid-Interesse (solange kein Termin steht): Kopf-Kacheln, Rollen + Tage melden, Kader-Vorschau mit echten Leuten.
     -- Alles in einer Scrollflaeche, damit auf kleinen Fenstern nichts ueberlappt.
-    local DAYS = { "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So" }
+    local DAYS = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" }
     local RC = { tank = C.blue, heal = C.mint, dps = C.red }
-    local RNAME = { tank = "Tank", heal = "Heiler", dps = "Schaden" }
+    local RNAME = { tank = "Tank", heal = "Healer", dps = "Damage" }
     local function roleTex(r) return ns.MEDIA .. "icons\\role_" .. r end
     local function canEvents() return ns.Admin and ns.Admin.Can and ns.Admin.Can("raid.events") or false end
     local ipSc = CreateFrame("ScrollFrame", nil, cards)
@@ -1935,8 +1935,8 @@ local function buildEvents(f)
 
     -- 1) Kopf-Kacheln: Interessenten, Tanks, Heiler, Schaden
     ip.tiles = {}
-    for i, it in ipairs({ { "all", ns.MEDIA .. "icons\\raid", "Interessenten", C.accent },
-        { "tank", roleTex("tank"), "Tanks", C.blue }, { "heal", roleTex("heal"), "Heiler", C.mint }, { "dps", roleTex("dps"), "Schaden", C.red } }) do
+    for i, it in ipairs({ { "all", ns.MEDIA .. "icons\\raid", "Interested", C.accent },
+        { "tank", roleTex("tank"), "Tanks", C.blue }, { "heal", roleTex("heal"), "Healer", C.mint }, { "dps", roleTex("dps"), "Damage", C.red } }) do
         local t = famTile(ip, it[2], L[it[3]], it[4])
         t.key = it[1]
         ip.tiles[i] = t
@@ -1956,10 +1956,10 @@ local function buildEvents(f)
     pn.emb:SetPoint("TOPLEFT", 16, -14)
     pn.kick = K.Text(pn, 10, C.amber)
     pn.kick:SetPoint("TOPLEFT", 70, -12)
-    pn.kick:SetText(K.Upper(L["Raid-Interesse"]))
+    pn.kick:SetText(K.Upper(L["Raid interest"]))
     pn.title = K.Title(pn, 18, C.text)
     pn.title:SetPoint("TOPLEFT", 70, -25)
-    pn.title:SetText(L["Bei Raids dabei sein?"])
+    pn.title:SetText(L["Want to join raids?"])
     pn.state = K.Text(pn, 10, C.mint, "RIGHT")
     pn.state:SetPoint("TOPRIGHT", -14, -14)
     pn.state:SetWidth(220)
@@ -1968,11 +1968,11 @@ local function buildEvents(f)
     pn.sub:SetPoint("TOPLEFT", pn.title, "BOTTOMLEFT", 0, -3)
     pn.sub:SetPoint("RIGHT", pn, "RIGHT", -16, 0)
     pn.sub:SetWordWrap(false)
-    pn.sub:SetText(L["Noch kein Termin - melde dein Interesse, dann weiss die Raidleitung, wann es passt."])
+    pn.sub:SetText(L["No event yet - register your interest so the raid leader knows when it suits."])
     pn.rLab = K.Text(pn, 10, C.dim)
-    pn.rLab:SetText(K.Upper(L["Deine Rollen"]))
+    pn.rLab:SetText(K.Upper(L["Your roles"]))
     pn.dLab = K.Text(pn, 10, C.dim)
-    pn.dLab:SetText(K.Upper(L["Wann kannst du?"]))
+    pn.dLab:SetText(K.Upper(L["When can you?"]))
     -- grosse Rollen-Kacheln: Symbol + Name, aktive leuchtet in Rollenfarbe
     ip.roleBtns = {}
     for i, r in ipairs({ "tank", "heal", "dps" }) do
@@ -2008,7 +2008,7 @@ local function buildEvents(f)
             f:UpdateInterest()
             if ip.roleSel[r] then pulse(self, rc) end
         end)
-        b:SetScript("OnEnter", function(self) K.ShowTip(self, { L[RNAME[r]], L["Klick: Rolle an/aus"] }) end)
+        b:SetScript("OnEnter", function(self) K.ShowTip(self, { L[RNAME[r]], L["Click: role on/off"] }) end)
         b:SetScript("OnLeave", function() GameTooltip:Hide() end)
         ip.roleBtns[i] = b
     end
@@ -2049,40 +2049,40 @@ local function buildEvents(f)
             if ip.daySel[i] then pulse(self, C.accent) end
         end)
         b:SetScript("OnEnter", function(self)
-            local lines = { L[d], (L["%d koennen an diesem Tag"]):format(self.cnt or 0) }
+            local lines = { L[d], (L["%d can make this day"]):format(self.cnt or 0) }
             for _, nm in ipairs(self.names or {}) do lines[#lines + 1] = nm end
-            lines[#lines + 1] = "|cff888888" .. L["Klick: Tag an/aus"] .. "|r"
+            lines[#lines + 1] = "|cff888888" .. L["Click: toggle day"] .. "|r"
             K.ShowTip(self, lines)
         end)
         b:SetScript("OnLeave", function() GameTooltip:Hide() end)
         ip.dayBtns[i] = b
     end
     -- Hauptknopf + Leitungs-Knopf
-    ip.go = K.Button(pn, L["Interesse melden"], 190, 30, "primary", function(self)
+    ip.go = K.Button(pn, L["Register interest"], 190, 30, "primary", function(self)
         local mine = Store.Get("raidint", "ri-" .. ns.me())
         if mine and not mine.del and not ip.dirty then
             Store.Delete("raidint", "ri-" .. ns.me())
-            K.Toast(L["Raid-Interesse"], L["Zurueckgezogen."], C.dim)
-            ip.flash = { L["Zurueckgezogen."], C.dim }
+            K.Toast(L["Raid interest"], L["Withdrawn."], C.dim)
+            ip.flash = { L["Withdrawn."], C.dim }
         else
             local roles, days = "", ""
             for _, r in ipairs({ "tank", "heal", "dps" }) do if ip.roleSel[r] then roles = roles .. r:sub(1, 1) end end
             for i = 1, 7 do if ip.daySel[i] then days = days .. i end end
             if roles == "" then
-                ns.print(L["Waehle mindestens eine Rolle."])
+                ns.print(L["Pick at least one role."])
                 for _, b in ipairs(ip.roleBtns) do pulse(b, C.red) end
                 return
             end
             Store.Put("raidint", { id = "ri-" .. ns.me(), roles = roles, days = days })
-            K.Toast(L["Raid-Interesse"], L["Gemeldet - die Raidleitung sieht dich jetzt."], C.mint)
-            ip.flash = { L["Gemeldet!"], C.mint }
+            K.Toast(L["Raid interest"], L["Registered - the raid leader can see you now."], C.mint)
+            ip.flash = { L["Registered!"], C.mint }
         end
         ip.dirty = false
         pulse(self, ip.flash[2])
         ip.animNext = true
         ns.RefreshPage("raid")
     end)
-    ip.lead = K.Button(pn, L["Termin aus Interesse anlegen"], 210, 24, "ghost", function()
+    ip.lead = K.Button(pn, L["Create event from interest"], 210, 24, "ghost", function()
         if not canEvents() then return end
         local wd = ip.bestDay
         local n = ip.total or 0
@@ -2092,9 +2092,9 @@ local function buildEvents(f)
     ip.lead:HookScript("OnEnter", function(self)
         if self.locked then return end
         local wd = ip.bestDay
-        K.ShowTip(self, { L["Termin aus Interesse anlegen"],
-            wd and (L["Vorschlag: %s - %d Interessenten koennen da"]):format(L[DAYS[wd]], ip.dayCnt and ip.dayCnt[wd] or 0) or L["Noch keine Wunschtage gemeldet."],
-            "|cff888888" .. L["Oeffnet das Termin-Formular vorbelegt."] .. "|r" })
+        K.ShowTip(self, { L["Create event from interest"],
+            wd and (L["Suggestion: %s - %d interested can make it"]):format(L[DAYS[wd]], ip.dayCnt and ip.dayCnt[wd] or 0) or L["No preferred days reported yet."],
+            "|cff888888" .. L["Opens the event form pre-filled."] .. "|r" })
     end)
     ip.lead:HookScript("OnLeave", function() GameTooltip:Hide() end)
     K.LockButton(ip.lead, canEvents, ns.Admin and ns.Admin.Need and ns.Admin.Need("raid.events") or "raidlead")
@@ -2102,11 +2102,11 @@ local function buildEvents(f)
     ip.best:SetWordWrap(false)
 
     -- 3) Kader-Vorschau: Gruppen als Karten (Chip-Raster wie die Raid-Termin-Karten)
-    ip.kHead = K.GameHead(ip, L["So sieht ein Raid-Kader aus"], C.accent)
+    ip.kHead = K.GameHead(ip, L["This is what a raid roster looks like"], C.accent)
     ip.comp = K.Text(ip, 11, C.muted, "RIGHT")
     ip.comp:SetWordWrap(false)
     local function ri(r, sz) return "|T" .. roleTex(r) .. ":" .. (sz or 13) .. ":" .. (sz or 13) .. "|t" end
-    ip.comp:SetText(ri("tank") .. " 2 " .. L["Tanks"] .. "    " .. ri("heal") .. " 5 " .. L["Heiler"] .. "    " .. ri("dps") .. " 13 " .. L["Schaden"])
+    ip.comp:SetText(ri("tank") .. " 2 " .. L["Tanks"] .. "    " .. ri("heal") .. " 5 " .. L["Healer"] .. "    " .. ri("dps") .. " 13 " .. L["Damage"])
     -- feste Beispiel-Aufstellung (20er Raid): je Gruppe 5 Plaetze
     local LAYOUT = { { "tank", "heal", "dps", "dps", "dps" }, { "tank", "heal", "dps", "dps", "dps" },
         { "heal", "dps", "dps", "dps", "dps" }, { "heal", "heal", "dps", "dps", "dps" } }
@@ -2134,7 +2134,7 @@ local function buildEvents(f)
     ke.text = K.Text(ke, 12, C.muted, "CENTER")
     ke.text:SetPoint("TOP", ke.disc, "BOTTOM", 0, -12)
     ke.text:SetWordWrap(true)
-    ke.text:SetText(L["Wer Interesse meldet, erscheint hier auf einem passenden Platz. Steht ein Termin, meldest du dich direkt auf der Karte an."])
+    ke.text:SetText(L["Anyone who registers interest appears in a matching slot. Once there is an event, sign up directly on its card."])
     ke.roles = {}
     for i, r in ipairs({ { "tank", 2 }, { "heal", 5 }, { "dps", 13 } }) do
         local s = CreateFrame("Frame", nil, ke)
@@ -2146,14 +2146,14 @@ local function buildEvents(f)
         s.n:SetText(r[2])
         s.l = K.Text(s, 9, C.muted)
         s.l:SetPoint("LEFT", s.disc, "RIGHT", 8, -8)
-        s.l:SetText(K.Upper(L[r[1] == "tank" and "Tanks" or r[1] == "heal" and "Heiler" or "Schaden"]))
+        s.l:SetText(K.Upper(L[r[1] == "tank" and "Tanks" or r[1] == "heal" and "Healer" or "Damage"]))
         ke.roles[i] = s
     end
     ke:Hide()
     ip.kEmpty = ke
     ip.kHead:EnableMouse(true)
     ip.kHead:SetScript("OnEnter", function(self)
-        K.ShowTip(self, { L["So sieht ein Raid-Kader aus"], L["Wer Interesse meldet, erscheint hier auf einem passenden Platz. Steht ein Termin, meldest du dich direkt auf der Karte an."] })
+        K.ShowTip(self, { L["This is what a raid roster looks like"], L["Anyone who registers interest appears in a matching slot. Once there is an event, sign up directly on its card."] })
     end)
     ip.kHead:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
@@ -2170,13 +2170,13 @@ local function buildEvents(f)
     hb.ic:SetPoint("LEFT", 14, 0)
     hb.t = K.Title(hb, 16, C.text)
     hb.t:SetPoint("TOPLEFT", 60, -14)
-    hb.t:SetText(L["Raidplanung"])
+    hb.t:SetText(L["Raid planning"])
     hb.s = K.Text(hb, 11, C.muted)
     hb.s:SetPoint("TOPLEFT", hb.t, "BOTTOMLEFT", 0, -4)
     hb.s:SetPoint("RIGHT", hb, "RIGHT", -190, 0)
     hb.s:SetWordWrap(false)
-    hb.s:SetText(L["Hier findest du anstehende Raid-Termine und kannst dein Interesse anmelden."])
-    hb.new = K.Button(hb, L["Termin anlegen"], 160, 32, "primary", function()
+    hb.s:SetText(L["Upcoming raid dates - and where you sign up your interest."])
+    hb.new = K.Button(hb, L["Create event"], 160, 32, "primary", function()
         if not canEvents() then return end
         local n = ip.total or 0
         Raid.prefill = { kind = "raid", max = (n >= 12) and 20 or 10, wd = ip.bestDay }
@@ -2197,26 +2197,26 @@ local function buildEvents(f)
         if not K.Gradient(eb.shade, "VERTICAL", { 0, 0, 0, 0.5 }, { 0, 0, 0, 0.1 }) then eb.shade:Hide() end
         if K.RoundMask then pcall(K.RoundMask, eb.art, eb, 10) pcall(K.RoundMask, eb.shade, eb, 10) end
     end
-    eb.head = K.GameHead(eb, L["Anstehende Termine"], C.accent)
+    eb.head = K.GameHead(eb, L["Upcoming events"], C.accent)
     eb.head:SetPoint("TOPLEFT", 14, -12)
     eb.head:SetPoint("RIGHT", eb, "RIGHT", -14, 0)
     eb.disc = famDisc(eb, 44, ns.MEDIA .. "icons\\raid", C.amber)
     eb.disc:SetPoint("TOP", 0, -40)
     eb.t = K.Title(eb, 15, C.text, "CENTER")
     eb.t:SetPoint("TOP", eb.disc, "BOTTOM", 0, -14)
-    eb.t:SetText(L["Noch keine Termine"])
+    eb.t:SetText(L["No dates yet"])
     eb.s = K.Text(eb, 11, C.muted, "CENTER")
     eb.s:SetPoint("TOP", eb.t, "BOTTOM", 0, -6)
     eb.s:SetWidth(380)
     eb.s:SetWordWrap(true)
-    eb.s:SetText(L["Es sind aktuell keine Raid-Termine geplant. Melde dein Interesse an, damit die Raidleitung weiss, wann ein Termin fuer die Gilde passt."])
+    eb.s:SetText(L["No raid dates are planned right now. Sign up your interest so the raid lead knows when a date suits the guild."])
     ip.eb = eb
     local sb = box(ip)
     sb.ic = famDisc(sb, 30, ns.MEDIA .. "icons\\groups", C.accent)
     sb.ic:SetPoint("TOPLEFT", 12, -12)
     sb.t = K.Title(sb, 14, C.text)
     sb.t:SetPoint("TOPLEFT", 52, -12)
-    sb.t:SetText(L["Raid-Interesse"])
+    sb.t:SetText(L["Raid interest"])
     sb.n = K.Text(sb, 11, C.muted)
     sb.n:SetPoint("TOPLEFT", sb.t, "BOTTOMLEFT", 0, -3)
     sb.rows = {}
@@ -2241,7 +2241,7 @@ local function buildEvents(f)
         row:SetScript("OnEnter", function(self)
             local lines = { L[RNAME[r]] .. "  |cff888888" .. #(self.names or {}) .. "|r" }
             for _, nm in ipairs(self.names or {}) do lines[#lines + 1] = nm end
-            if #(self.names or {}) == 0 then lines[#lines + 1] = "|cff888888" .. L["Noch niemand gemeldet."] .. "|r" end
+            if #(self.names or {}) == 0 then lines[#lines + 1] = "|cff888888" .. L["Nobody signed up yet."] .. "|r" end
             K.ShowTip(self, lines)
         end)
         row:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -2249,9 +2249,9 @@ local function buildEvents(f)
     end
     sb:EnableMouse(true)
     sb:SetScript("OnEnter", function(self)
-        local lines = { L["Raid-Interesse"] }
+        local lines = { L["Raid interest"] }
         for _, x in ipairs(self.all or {}) do lines[#lines + 1] = x end
-        if #(self.all or {}) == 0 then lines[#lines + 1] = "|cff888888" .. L["Noch niemand gemeldet."] .. "|r" end
+        if #(self.all or {}) == 0 then lines[#lines + 1] = "|cff888888" .. L["Nobody signed up yet."] .. "|r" end
         K.ShowTip(self, lines)
     end)
     sb:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -2266,7 +2266,7 @@ local function buildEvents(f)
     mb.ic:SetPoint("TOPLEFT", 12, -12)
     mb.t = K.Title(mb, 14, C.text)
     mb.t:SetPoint("LEFT", mb.ic, "RIGHT", 10, 0)
-    mb.t:SetText(L["Deine Anmeldung"])
+    mb.t:SetText(L["Your sign-up"])
     mb.state = K.Text(mb, 12, C.text, "CENTER")
     mb.state:SetPoint("TOP", 0, -66)
     mb.s = K.Text(mb, 11, C.muted, "CENTER")
@@ -2404,7 +2404,7 @@ local function buildEvents(f)
             end, 0, function(m) return m.days ~= "" and m.days or nil, nil end)
             for k = n + 1, #gc.r.chips do gc.r.chips[k]:Hide() end
             local h = gc.r.chips[1]
-            h.t:SetText("|cffdddddd" .. K.Upper((L["Gruppe %d"]):format(g)) .. "|r  " .. (#members >= 5 and "|cff66db9e" or (#members > 0 and "|cffe8b44a" or "|cff666666")) .. #members .. "/5|r")
+            h.t:SetText("|cffdddddd" .. K.Upper((L["Group %d"]):format(g)) .. "|r  " .. (#members >= 5 and "|cff66db9e" or (#members > 0 and "|cffe8b44a" or "|cff666666")) .. #members .. "/5|r")
             h.bg:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.10)
             gc.top:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], #members > 0 and 0.9 or 0.35)
             -- freie Plaetze: Symbol der gesuchten Rolle blass, "frei"
@@ -2416,8 +2416,8 @@ local function buildEvents(f)
                 if m then
                     c.tip = { ns.colorName(m.name, ns.Radar and ns.Radar.ClassOf and ns.Radar.ClassOf(m.name)),
                         ri(m.role, 12) .. " " .. L[RNAME[m.role]],
-                        "|cff888888" .. L["Kann:"] .. "|r " .. (m.days ~= "" and m.days or L["Tage offen"]),
-                        "|cff888888" .. L["Raid-Interesse"] .. "|r" }
+                        "|cff888888" .. L["Can:"] .. "|r " .. (m.days ~= "" and m.days or L["days open"]),
+                        "|cff888888" .. L["Raid interest"] .. "|r" }
                 else
                     local fr = free[s - #members] or "dps"
                     local rc = RC[fr]
@@ -2429,8 +2429,8 @@ local function buildEvents(f)
                     c.t:ClearAllPoints()
                     c.t:SetPoint("LEFT", 17, 0)
                     c.t:SetPoint("RIGHT", -3, 0)
-                    c.t:SetText(K.hex({ rc[1] * 0.55 + 0.2, rc[2] * 0.55 + 0.2, rc[3] * 0.55 + 0.2 }) .. L[RNAME[fr]] .. "|r |cff555555" .. L["gesucht"] .. "|r")
-                    c.tip = { (L["Gruppe %d"]):format(g), ri(fr, 12) .. " " .. L[RNAME[fr]] .. " " .. L["gesucht"] }
+                    c.t:SetText(K.hex({ rc[1] * 0.55 + 0.2, rc[2] * 0.55 + 0.2, rc[3] * 0.55 + 0.2 }) .. L[RNAME[fr]] .. "|r |cff555555" .. L["wanted"] .. "|r")
+                    c.tip = { (L["Group %d"]):format(g), ri(fr, 12) .. " " .. L[RNAME[fr]] .. " " .. L["wanted"] }
                 end
             end
         end
@@ -2473,11 +2473,11 @@ local function buildEvents(f)
         -- Kacheln (nur bei geaenderten Zahlen bzw. beim Oeffnen hochzaehlen -> kein Flackern beim Nachladen)
         local vals = { all = #all, tank = rc.tank, heal = rc.heal, dps = rc.dps }
         -- Zahlen in die Kopfzeile: "RAID-INTERESSE  ·  3 Interessenten  ·  1 Tank  1 Heiler  1 Schaden"
-        pn.kick:SetText(K.Upper(L["Raid-Interesse"]) .. "   |cff888888" .. (L["%d Interessenten"]):format(#all) .. "|r"
-            .. (#all > 0 and ("   " .. K.hex(C.blue) .. (rc.tank or 0) .. " " .. L["Tank"] .. "|r   " .. K.hex(C.mint) .. (rc.heal or 0) .. " " .. L["Heiler"]
-                .. "|r   " .. K.hex(C.red) .. (rc.dps or 0) .. " " .. L["Schaden"] .. "|r") or "")
-            .. (mine and ("   |cff66db9e" .. L["du bist dabei"] .. "|r") or ""))
-        ip.sb.n:SetText((L["%d Interessenten"]):format(#all))
+        pn.kick:SetText(K.Upper(L["Raid interest"]) .. "   |cff888888" .. (L["%d interested"]):format(#all) .. "|r"
+            .. (#all > 0 and ("   " .. K.hex(C.blue) .. (rc.tank or 0) .. " " .. L["Tank"] .. "|r   " .. K.hex(C.mint) .. (rc.heal or 0) .. " " .. L["Healer"]
+                .. "|r   " .. K.hex(C.red) .. (rc.dps or 0) .. " " .. L["Damage"] .. "|r") or "")
+            .. (mine and ("   |cff66db9e" .. L["you are in"] .. "|r") or ""))
+        ip.sb.n:SetText((L["%d interested"]):format(#all))
         local byRole, allNames = { tank = {}, heal = {}, dps = {} }, {}
         for _, r in ipairs(all) do
             local nm = ns.colorName(r.by, ns.Radar and ns.Radar.ClassOf and ns.Radar.ClassOf(r.by))
@@ -2495,20 +2495,20 @@ local function buildEvents(f)
         if mine then
             local parts = {}
             for _, r in ipairs({ "tank", "heal", "dps" }) do if (mine.roles or ""):find(r:sub(1, 1), 1, true) then parts[#parts + 1] = L[RNAME[r]] end end
-            ip.mb.state:SetText("|TInterface\\RaidFrame\\ReadyCheck-Ready:14:14|t " .. L["Du bist gemeldet"])
+            ip.mb.state:SetText("|TInterface\\RaidFrame\\ReadyCheck-Ready:14:14|t " .. L["You are registered"])
             ip.mb.s:SetText(table.concat(parts, ", ") .. ((mine.days or "") ~= "" and ("\n" .. daysText(mine)) or ""))
         else
-            ip.mb.state:SetText(L["Noch nicht angemeldet."])
-            ip.mb.s:SetText(L["Waehle deine Rolle(n) und Wunschtage aus und melde dein Interesse, damit die Raidleitung planen kann."])
+            ip.mb.state:SetText(L["Not signed up yet."])
+            ip.mb.s:SetText(L["Pick your role(s) and preferred days and sign up so the raid lead can plan."])
         end
         K.UpdateLockButton(ip.hb.new)
         for _, t in ipairs(ip.tiles) do
             local v = vals[t.key]
-            local sub = (t.key == "all") and (mine and L["du bist dabei"] or "") or ""
+            local sub = (t.key == "all") and (mine and L["you are in"] or "") or ""
             local p = (t.key ~= "all" and #all > 0) and (v / #all) or nil
             t:Set(v, sub, p, anim or (t.last ~= nil and t.last ~= v and animOn()))
             t.last = v
-            t.tip = { L[t.key == "all" and "Interessenten" or RNAME[t.key]], (L["%d Interessenten"]):format(v) }
+            t.tip = { L[t.key == "all" and "Interested" or RNAME[t.key]], (L["%d interested"]):format(v) }
         end
         -- Rollen-Kacheln
         for _, b in ipairs(ip.roleBtns) do
@@ -2545,11 +2545,11 @@ local function buildEvents(f)
             b.star:SetShown(isBest)
         end
         -- Knopf + Status
-        if mine and not ip.dirty then ip.go:SetLabel("|TInterface\\RaidFrame\\ReadyCheck-NotReady:14:14|t  " .. L["Zurueckziehen"])
-        elseif mine then ip.go:SetLabel(L["Interesse aendern"])
-        else ip.go:SetLabel(L["Interesse melden"]) end
+        if mine and not ip.dirty then ip.go:SetLabel("|TInterface\\RaidFrame\\ReadyCheck-NotReady:14:14|t  " .. L["Withdraw"])
+        elseif mine then ip.go:SetLabel(L["Update interest"])
+        else ip.go:SetLabel(L["Register interest"]) end
         if mine then
-            pn.state:SetText("|TInterface\\RaidFrame\\ReadyCheck-Ready:12:12|t " .. (ip.dirty and L["Aenderung noch nicht gespeichert"] or L["Du bist gemeldet"]))
+            pn.state:SetText("|TInterface\\RaidFrame\\ReadyCheck-Ready:12:12|t " .. (ip.dirty and L["Change not saved yet"] or L["You are registered"]))
             pn.state:SetTextColor((ip.dirty and C.amber or C.mint)[1], (ip.dirty and C.amber or C.mint)[2], (ip.dirty and C.amber or C.mint)[3])
         else pn.state:SetText("") end
         if ip.flash then
@@ -2563,8 +2563,8 @@ local function buildEvents(f)
                 ns.After(2.5, function() if ipSc:IsShown() then f:UpdateInterest() end end)
             end
         end
-        ip.best:SetText(best and ((L["Bester Tag:"] .. "  |cffe8b44a" .. L[DAYS[best]] .. "|r  |cff888888(" .. (L["%d koennen"]):format(bestN) .. ")|r"))
-            or (#all > 0 and L["Noch keine Wunschtage - tippe an, wann du kannst."] or L["Noch niemand gemeldet - sei der Erste!"]))
+        ip.best:SetText(best and ((L["Best day:"] .. "  |cffe8b44a" .. L[DAYS[best]] .. "|r  |cff888888(" .. (L["%d can craft"]):format(bestN) .. ")|r"))
+            or (#all > 0 and L["No preferred days yet - tap when you can."] or L["Nobody registered yet - be the first!"]))
         K.UpdateLockButton(ip.lead)
         -- Kader fuellen: knappe Rollen zuerst, jede Person einmal (auf die festen Rollen-Plaetze)
         local used = {}
@@ -2600,7 +2600,7 @@ local function buildEvents(f)
     ipSc:HookScript("OnShow", function() ip.animNext = true end)
 
     -- Detail: Banner, Rollen-Kacheln, Rollen-Balken, Gruppen-Raster, Vielleicht/Absage-Chips, Fusszeile
-    f.back = K.Button(f, "< " .. L["Alle Termine"], 130, 22, "ghost", function()
+    f.back = K.Button(f, "< " .. L["All events"], 130, 22, "ghost", function()
         showDetail = false
         ns.RefreshPage("raid")
     end)
@@ -2676,7 +2676,7 @@ local function buildEvents(f)
     note.bar:SetColorTexture(C.amber[1], C.amber[2], C.amber[3], 0.9)
     note.lbl = K.Text(note, 9, C.amber)
     note.lbl:SetPoint("TOPLEFT", 9, -6)
-    note.lbl:SetText(K.Upper(L["Hinweis"]))
+    note.lbl:SetText(K.Upper(L["Note"]))
     note.t = K.Text(note, 11, C.text)
     note.t:SetPoint("TOPLEFT", 9, -19)
     note.t:SetPoint("BOTTOMRIGHT", -8, 5)
@@ -2729,7 +2729,7 @@ local function buildEvents(f)
         b:SetScript("OnEnter", function(self)
             K.SetBorderColor(self, rc)
             self.rdisc.halo:SetAlpha(0.7)
-            K.ShowTip(self, { ROLES[key][1], L["Klick: als deine Rolle anmelden"] })
+            K.ShowTip(self, { ROLES[key][1], L["Click: sign up with this role"] })
         end)
         b:SetScript("OnLeave", function(self)
             GameTooltip:Hide()
@@ -2740,11 +2740,11 @@ local function buildEvents(f)
         f.roleBtns[key] = b
         f.roleList[#f.roleList + 1] = b
     end
-    local maybe = K.Button(det, L["Vielleicht"], 84, 20, "ghost", function()
+    local maybe = K.Button(det, L["Maybe"], 84, 20, "ghost", function()
         local ev = Store.Get("events", selectedEv)
         if ev then signUp(ev, nil, "maybe") end
     end)
-    local no = K.Button(det, L["Absage"], 84, 20, "ghost", function()
+    local no = K.Button(det, L["Can't come"], 84, 20, "ghost", function()
         local ev = Store.Get("events", selectedEv)
         if ev then signUp(ev, nil, "no") end
     end)
@@ -2791,17 +2791,17 @@ local function buildEvents(f)
     f.dEmpty = K.Text(body, 11, C.dim)
 
     -- Fusszeile
-    f.invite = K.Button(det, L["Alle einladen"], 120, 26, "primary", function()
+    f.invite = K.Button(det, L["Invite all"], 120, 26, "primary", function()
         local ev = Store.Get("events", selectedEv)
         if ev then Raid.Invite(ev) end
     end)
-    f.del = K.Button(det, L["Termin loeschen"], 120, 26, "danger", function()
+    f.del = K.Button(det, L["Delete event"], 120, 26, "danger", function()
         if selectedEv then Store.Delete("events", selectedEv) selectedEv = nil showDetail = false end
     end)
-    f.calOpen = K.Button(det, L["Kalender oeffnen"], 140, 26, "ghost", function()
+    f.calOpen = K.Button(det, L["Open calendar"], 140, 26, "ghost", function()
         if ToggleCalendar then pcall(ToggleCalendar) elseif Calendar_Toggle then pcall(Calendar_Toggle) end
     end)
-    f.journal = K.Button(det, L["Dungeon-Journal"], 130, 26, "ghost")
+    f.journal = K.Button(det, L["Dungeon journal"], 130, 26, "ghost")
     -- Reservieren: Pillen-Hauptknopf mit rundem Beutel-Symbol, Akzentfarbe, Glow beim Ueberfahren
     local sr = CreateFrame("Button", nil, det)
     sr:SetSize(150, 32)
@@ -2850,12 +2850,12 @@ local function buildEvents(f)
     sr.label = K.Text(sr, 13, { 1, 1, 1, 1 }, "CENTER")
     sr.label:SetPoint("LEFT", sr.ring, "RIGHT", 4, 0)
     sr.label:SetPoint("RIGHT", -12, 0)
-    sr.label:SetText(L["Reservieren"])
+    sr.label:SetText(L["Reserve"])
     function sr:SetLabel(t) self.label:SetText(t) end
     sr:SetScript("OnEnter", function(self)
         self.glow:Shown(true)
         self.body:Color(C.accent, 1)
-        K.ShowTip(self, { L["Reservierung"], L["Klick: Item aus der Beute reservieren"] })
+        K.ShowTip(self, { L["Reservation"], L["Click: reserve an item from the loot"] })
     end)
     sr:SetScript("OnLeave", function(self)
         self.glow:Shown(false)
@@ -2886,7 +2886,7 @@ local function buildEvents(f)
     wr:SetHeight(24)
     wr.lbl = K.Text(wr, 10, C.amber)
     wr.lbl:SetPoint("LEFT", 0, 0)
-    wr.lbl:SetText(K.Upper(L["Fuer dich interessant"]))
+    wr.lbl:SetText(K.Upper(L["Interesting for you"]))
     wr.icons = {}
     wr:Hide()
     f.wantRow = wr
@@ -3055,8 +3055,8 @@ function Raid.LayoutDetailBody(f, w)
         end
         y = y - 24
     end
-    flow(L["Vielleicht"], f.mLbl, st.maybes, 0.8)
-    flow(L["Absage"], f.nLbl, st.nos, 0.6)
+    flow(L["Maybe"], f.mLbl, st.maybes, 0.8)
+    flow(L["Can't come"], f.nLbl, st.nos, 0.6)
     for i = fn + 1, #f.flowR.chips do f.flowR.chips[i]:Hide() end
     -- Hinweise (Sperre) und Wunsch-Beute
     f.other:ClearAllPoints()
@@ -3120,7 +3120,7 @@ local function refreshDetail(f, ev)
     ban.wday:SetText(K.Upper(ns.weekday(ev.ts)))
     ban.wday:SetTextColor(kc[1], kc[2], kc[3])
     ban.day:SetText(tonumber(date("%d", ev.ts)))
-    ban.mon:SetText(date(L["%d.%m."], ev.ts))
+    ban.mon:SetText(date(L["%m/%d"], ev.ts))
     ban.time:SetText(date("%H:%M", ev.ts))
     f.dTitle:SetText(ev.title or "?")
     -- reiner Kalendertermin: nur anzeigen, Anmeldung laeuft ueber den WoW-Kalender
@@ -3134,9 +3134,9 @@ local function refreshDetail(f, ev)
     f.note.t:SetText(ev.desc or "")
     if isCal then
         f.dCount:SetText(countdown(ev.ts))
-        f.dMeta:SetText(ns.fmtWhen(ev.ts) .. "  ·  " .. L["WoW-Kalender"])
+        f.dMeta:SetText(ns.fmtWhen(ev.ts) .. "  ·  " .. L["WoW calendar"])
         f.dMine:SetText("")
-        f.other:SetText(L["Dieser Termin steht im WoW-Kalender. Anmelden kannst du dich dort."])
+        f.other:SetText(L["This event is in the WoW calendar. Sign up there."])
         f.invite:Hide()
         f.del:Hide()
         f.journal:Hide()
@@ -3148,28 +3148,28 @@ local function refreshDetail(f, ev)
     end
     f.dCount:SetText(countdown(ev.ts))
     local meta = ns.fmtWhen(ev.ts) .. ((ev.inst or "") ~= "" and ev.inst ~= ev.title and ("  ·  " .. ev.inst) or "")
-        .. L["  -  von "] .. ns.Radar.Colored(ev.by)
+        .. L["  ·  by "] .. ns.Radar.Colored(ev.by)
     -- Dungeon aus dem Journal erkannt? Dann Stufenbereich + Journal-Knopf
     local dg = ns.Dungeons and (ns.Dungeons.Match(ev.inst) or ns.Dungeons.Match(ev.title))
     f.journal:SetShown(dg ~= nil)
     if dg then
-        f.journal:SetLabel(L["Dungeon ansehen"])
+        f.journal:SetLabel(L["View dungeon"])
         f.journal:SetScript("OnClick", function() if ns.Dungeons then ns.Dungeons.ShowDungeon(dg.key) end end)
-        meta = meta .. "  ·  " .. (L["Stufe %s"]):format(dg.level)
+        meta = meta .. "  ·  " .. (L["Level %s"]):format(dg.level)
     end
     f.dMeta:SetText(meta)
     -- Reservierung: Pille + Item-Symbol bzw. Stand
     local sr = ns.SoftRes and ns.SoftRes.Mine and ns.SoftRes.Mine(ev.id)
     if sr then
         local _, link = itemInfo(sr.item)
-        f.dSr:SetText((L["Reserviert: %s"]):format(link or ("Item " .. sr.item)))
-        f.srOpen:SetLabel(L["Aendern"])
+        f.dSr:SetText((L["Reserved: %s"]):format(link or ("Item " .. sr.item)))
+        f.srOpen:SetLabel(L["Change"])
         f.srItem.id = sr.item
         f.srItem.tex:SetTexture((C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(sr.item)) or 134400)
         f.srItem:SetShown(f.srOpen:IsShown())
     else
-        f.dSr:SetText("|cff666666" .. L["Noch nichts reserviert"] .. "|r")
-        f.srOpen:SetLabel(L["Reservieren"])
+        f.dSr:SetText("|cff666666" .. L["Nothing reserved yet"] .. "|r")
+        f.srOpen:SetLabel(L["Reserve"])
         f.srItem:Hide()
     end
     local mine = Raid.MySignup(ev.id)
@@ -3191,10 +3191,10 @@ local function refreshDetail(f, ev)
     K.SetBorderColor(f.signBtns[1], f.signBtns[1].onColor or C.line)
     K.SetBorderColor(f.signBtns[2], f.signBtns[2].onColor or C.line)
     if mine then
-        f.dMine:SetText(mine.status == "yes" and ("|cff66db9e" .. L["Du bist dabei als "] .. (ROLES[mine.role] and ROLES[mine.role][1] or "?") .. "|r")
-            or mine.status == "maybe" and ("|cffe8b44a" .. L["Du hast 'Vielleicht' gesagt"] .. "|r") or ("|cffff5a4a" .. L["Du hast abgesagt"] .. "|r"))
+        f.dMine:SetText(mine.status == "yes" and ("|cff66db9e" .. L["You're in as "] .. (ROLES[mine.role] and ROLES[mine.role][1] or "?") .. "|r")
+            or mine.status == "maybe" and ("|cffe8b44a" .. L["You said 'maybe'"] .. "|r") or ("|cffff5a4a" .. L["You declined"] .. "|r"))
     else
-        f.dMine:SetText("|cff888888" .. L["Noch nicht angemeldet - waehle unten deine Rolle"] .. "|r")
+        f.dMine:SetText("|cff888888" .. L["Not signed up yet - pick your role below"] .. "|r")
     end
     -- Anmeldungen sammeln
     local byRole = { tank = {}, heal = {}, dps = {} }
@@ -3203,7 +3203,7 @@ local function refreshDetail(f, ev)
         local lv, il = s.lvl, (s.ilvl or 0) > 0 and s.ilvl or nil
         if not lv and not il then return nil, nil end
         local short = (lv or "?") .. (il and ("/" .. il) or "")
-        local tip = "|cff888888" .. (L["Stufe %s"]):format(lv or "?") .. (il and ("  ·  " .. (L["Gegenstandsstufe %d"]):format(il)) or "") .. "|r"
+        local tip = "|cff888888" .. (L["Level %s"]):format(lv or "?") .. (il and ("  ·  " .. (L["Item level %d"]):format(il)) or "") .. "|r"
         return short, tip
     end
     for _, s in ipairs(Raid.Signups(ev.id)) do
@@ -3215,10 +3215,10 @@ local function refreshDetail(f, ev)
             roleOf[s.who] = rk
         elseif s.status == "maybe" then
             maybes[#maybes + 1] = { text = ns.colorName(s.who, s.class), role = rk, col = C.amber,
-                tip = { ns.colorName(s.who, s.class), ROLES[rk][1], "|cffe8b44a" .. L["Vielleicht"] .. "|r", tip } }
+                tip = { ns.colorName(s.who, s.class), ROLES[rk][1], "|cffe8b44a" .. L["Maybe"] .. "|r", tip } }
         else
             nos[#nos + 1] = { text = "|cff999999" .. ns.displayName(s.who) .. "|r", col = C.red,
-                tip = { ns.colorName(s.who, s.class), "|cffff5a4a" .. L["Absage"] .. "|r", tip } }
+                tip = { ns.colorName(s.who, s.class), "|cffff5a4a" .. L["Can't come"] .. "|r", tip } }
         end
     end
     local need = needFor(ev.max)
@@ -3230,9 +3230,9 @@ local function refreshDetail(f, ev)
         fillBar(col.bar, want > 0 and have / want or 1, fresh)
         local tip = { ROLES[key][1] .. "  " .. have .. "/" .. want }
         for j, nm in ipairs(byRole[key]) do if j <= 15 then tip[#tip + 1] = ns.colorName(nm, info[nm] and info[nm].class) end end
-        if not full then tip[#tip + 1] = "|cffe8b44a" .. (L["noch %d gesucht"]):format(want - have) .. "|r" end
+        if not full then tip[#tip + 1] = "|cffe8b44a" .. (L["%d more needed"]):format(want - have) .. "|r" end
         col.tip = tip
-        f.roleBtns[key].sub:SetText((full and "|cff66db9e" or "|cff999999") .. have .. "/" .. want .. "|r  " .. (full and L["voll"] or (L["noch %d gesucht"]):format(want - have)))
+        f.roleBtns[key].sub:SetText((full and "|cff66db9e" or "|cff999999") .. have .. "/" .. want .. "|r  " .. (full and L["full"] or (L["%d more needed"]):format(want - have)))
     end
     local ng = math.max(1, math.min(8, math.ceil((ev.max or 5) / 5)))
     local groups = groupsFor(ev.id, roleOf, ng)
@@ -3242,7 +3242,7 @@ local function refreshDetail(f, ev)
         extraOf = function(m)
             local x = info[m.name]
             if not x then return nil end
-            return x.short, x.tip and (x.tip .. "\n|cff666666" .. L["Stufe / Gegenstandsstufe beim Anmelden"] .. "|r")
+            return x.short, x.tip and (x.tip .. "\n|cff666666" .. L["Level / item level at sign-up"] .. "|r")
         end,
     }
     local lines = {}
@@ -3346,9 +3346,9 @@ local function refreshBanner(f)
     local parts = {}
     if (ev.inst or "") ~= "" then parts[#parts + 1] = ev.inst end
     local role = mine and ROLES[mine.role] and mine.role or "dps"
-    parts[#parts + 1] = (ns.Profile and (ns.Profile.RoleIcon(role, 13) .. " ") or "") .. L["Deine Rolle"] .. ": " .. K.hex(ROLES[role][2]) .. ROLES[role][1] .. "|r"
+    parts[#parts + 1] = (ns.Profile and (ns.Profile.RoleIcon(role, 13) .. " ") or "") .. L["Your role"] .. ": " .. K.hex(ROLES[role][2]) .. ROLES[role][1] .. "|r"
     local grp = myGroup(ev.id)
-    parts[#parts + 1] = grp and ((L["Gruppe %d"]):format(grp)) or ("|cff777777" .. L["noch keine Gruppe"] .. "|r")
+    parts[#parts + 1] = grp and ((L["Group %d"]):format(grp)) or ("|cff777777" .. L["no group yet"] .. "|r")
     bn.meta:SetText(table.concat(parts, "  ·  "))
     -- Zusagen + Klassen-Symbole
     local yes, classes = 0, {}
@@ -3359,7 +3359,7 @@ local function refreshBanner(f)
             classes[#classes + 1] = { cls = cls, who = s.who }
         end
     end
-    local fmt = function(v) return (L["%d Zusagen"]):format(math.floor(v + 0.5)) end
+    local fmt = function(v) return (L["%d sign-ups"]):format(math.floor(v + 0.5)) end
     if fresh and animOn() then K.CountUp(bn.cnt, yes, 0.8, fmt) else bn.cnt:SetText(fmt(yes)) end
     local icons = bn.classes.icons
     local maxN = math.max(0, math.floor(((bn:GetWidth() or 600) - 186 - 14 - (bn.cnt:GetStringWidth() or 70) - 10) / 16))
@@ -3421,7 +3421,7 @@ local function refreshEvents(f)
         f.filt:Update(cnt, fk)
         f.filt:SetShown(#evs > 0)
         f.list:SetData(shown)
-        f.list.empty:SetText(fk == "mine" and L["Du hast noch keinem Termin zugesagt."] or L["Keine anstehenden Raids - die Raidleitung legt Termine an."])
+        f.list.empty:SetText(fk == "mine" and L["You haven't signed up for any event yet."] or L["No upcoming raids - the raid leaders create events."])
         f.newBtn:SetShown(#evs == 0)
     K.LockButton(f.newBtn, canLead, "raidlead")
         if f.demo then f.demo:SetShown(#evs == 0) end
@@ -3456,8 +3456,8 @@ local DAY = 86400
 local TIMES = { "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00" }
 local SIZES = { 5, 10, 20, 40 }
 local REPEATS = { 1, 2, 4, 8 }
-local MONTHS = { "Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember" }
-local WDAYS = { "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So" }
+local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" }
+local WDAYS = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" }
 local FORM_LH, FORM_RH, FORM_LISTH = 286, 290, 250
 
 local function trim(s) return ((s or ""):gsub("^%s+", ""):gsub("%s+$", "")) end
@@ -3538,9 +3538,9 @@ local function buildForm(f)
     f.scroll, f.body = sc, body
 
     -- Live-Vorschau: dieselbe Karte, die die Mitglieder unter "Termine" sehen
-    f.pvHead = K.GameHead(body, L["Vorschau - so sehen es die Mitglieder"], C.violet)
+    f.pvHead = K.GameHead(body, L["Preview - what members will see"], C.violet)
     if f.pvHead.mark then f.pvHead.mark:Hide() end
-    f.pvHead.text:SetText(L["Vorschau - so sehen es die Mitglieder"])
+    f.pvHead.text:SetText(L["Preview - what members will see"])
     f.pvHead:SetPoint("TOPLEFT", 0, -2)
     f.pvHead:SetPoint("RIGHT", body, "RIGHT", 0, 0)
     local pvHost = CreateFrame("Frame", nil, body)
@@ -3563,7 +3563,7 @@ local function buildForm(f)
     f.qs:SetHeight(30)
     f.qs.lbl = K.Text(f.qs, 11, C.muted)
     f.qs.lbl:SetPoint("LEFT", 0, 0)
-    f.qs.lbl:SetText(L["Wie zuletzt:"])
+    f.qs.lbl:SetText(L["Like last time:"])
     f.qs.chips = {}
     function f.fillQuick()
         local seen, list = {}, {}
@@ -3586,7 +3586,7 @@ local function buildForm(f)
             if e and not b then
                 b = choiceChip(f.qs, "", 120, 24, function(self) f.applyQuick(self.ev) end)
                 b:HookScript("OnEnter", function(self) K.ShowTip(self, { self.ev.title or "?", (self.ev.inst or "") .. "  ·  " .. ns.weekday(self.ev.ts, true) .. " " .. date("%H:%M", self.ev.ts),
-                    "|cff888888" .. L["Klick: Art, Ziel, Uhrzeit, Groesse und Wochentag uebernehmen"] .. "|r" }) end)
+                    "|cff888888" .. L["Click: copy type, target, time, size and weekday"] .. "|r" }) end)
                 b:HookScript("OnLeave", function() GameTooltip:Hide() end)
                 f.qs.chips[i] = b
             end
@@ -3637,7 +3637,7 @@ local function buildForm(f)
     end
 
     -- Art
-    f.kindLbl = label(lc, L["Art"])
+    f.kindLbl = label(lc, L["Type"])
     f.kindChips = {}
     for i, k in ipairs(Raid.KINDS) do
         local b = choiceChip(lc, L[k.text], 70, 26, function(self)
@@ -3652,14 +3652,14 @@ local function buildForm(f)
     end
 
     -- Titel + Ziel (Freitext oder Auswahl aus der Dungeon-Datenbank)
-    f.titleLbl = label(lc, L["Titel"])
-    f.titleBox = K.Input(lc, 180, L["Titel, z.B. Todesminen"], function(t) st.title = t f.update() end)
-    f.instLbl = label(lc, L["Instanz / Ziel"])
-    f.instBox = K.Input(lc, 150, L["Instanz / Ziel"], function(t) st.inst = t f.update() end)
+    f.titleLbl = label(lc, L["Title"])
+    f.titleBox = K.Input(lc, 180, L["Title, e.g. Deadmines"], function(t) st.title = t f.update() end)
+    f.instLbl = label(lc, L["Instance / target"])
+    f.instBox = K.Input(lc, 150, L["Instance / target"], function(t) st.inst = t f.update() end)
     local function openPicker(anchor)
-        if not (ns.Dungeons and ns.Dungeons.List) then ns.print(L["Keine Dungeon-Daten gefunden."]) return end
+        if not (ns.Dungeons and ns.Dungeons.List) then ns.print(L["No dungeon data found."]) return end
         local ok, list = pcall(ns.Dungeons.List)
-        if not ok or type(list) ~= "table" then ns.print(L["Keine Dungeon-Daten gefunden."]) return end
+        if not ok or type(list) ~= "table" then ns.print(L["No dungeon data found."]) return end
         local items = {}
         for _, d in ipairs(list) do
             if not d.closed and d.name and #items < 35 then
@@ -3674,8 +3674,8 @@ local function buildForm(f)
                 }
             end
         end
-        if #items == 0 then ns.print(L["Keine Dungeon-Daten gefunden."]) return end
-        K.TilePicker(anchor, L["Ziel waehlen"], items, function(key)
+        if #items == 0 then ns.print(L["No dungeon data found."]) return end
+        K.TilePicker(anchor, L["Choose destination"], items, function(key)
             for _, it in ipairs(items) do
                 if it.key == key then
                     local d = it.d
@@ -3699,11 +3699,11 @@ local function buildForm(f)
         f.pick.glyph = K.Glyph(f.pick, 15, ns.ICONS.dungeons, C.text)
         f.pick.glyph:SetPoint("CENTER")
     end
-    f.pick:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Ziel waehlen"], L["Raids und Dungeons aus dem Dungeon-Journal"] }) end)
+    f.pick:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Choose destination"], L["Raids and dungeons from the dungeon journal"] }) end)
     f.pick:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- Uhrzeit: Schnellwahl + eigene Zeit
-    f.timeLbl = label(lc, L["Uhrzeit"])
+    f.timeLbl = label(lc, L["Time"])
     f.timeChips = {}
     for i, t in ipairs(TIMES) do
         local b = choiceChip(lc, t, 44, 24, function(self)
@@ -3721,10 +3721,10 @@ local function buildForm(f)
     end)
 
     -- Gruppengroesse + Wiederholung
-    f.sizeLbl = label(lc, L["Gruppengroesse"])
+    f.sizeLbl = label(lc, L["Group size"])
     f.sizeChips = {}
     for i, n in ipairs(SIZES) do
-        local b = choiceChip(lc, (L["%d Spieler"]):format(n), 60, 24, function(self)
+        local b = choiceChip(lc, (L["%d players"]):format(n), 60, 24, function(self)
             st.max = n
             pulse(self)
             f.update()
@@ -3732,10 +3732,10 @@ local function buildForm(f)
         b.n = n
         f.sizeChips[i] = b
     end
-    f.repLbl = label(lc, L["Wiederholen"])
+    f.repLbl = label(lc, L["Repeat"])
     f.repChips = {}
     for i, n in ipairs(REPEATS) do
-        local b = choiceChip(lc, n == 1 and L["Einmalig"] or (L["Alle %d Wochen"]):format(n), 60, 24, function(self)
+        local b = choiceChip(lc, n == 1 and L["Once"] or (L["Every %d weeks"]):format(n), 60, 24, function(self)
             st.weeks = n
             pulse(self)
             f.update()
@@ -3743,7 +3743,7 @@ local function buildForm(f)
         b.n = n
         f.repChips[i] = b
     end
-    f.calToggle = K.Toggle(lc, L["Auch im WoW-Kalender eintragen"], function() return Raid.toCalendar end, function(v) Raid.toCalendar = v end)
+    f.calToggle = K.Toggle(lc, L["Also add to the WoW calendar"], function() return Raid.toCalendar end, function(v) Raid.toCalendar = v end)
 
     -- Monatskalender
     f.prevM = K.Button(rc, "<", 26, 22, "ghost", function()
@@ -3795,16 +3795,16 @@ local function buildForm(f)
     end
     f.summary = K.Text(rc, 11, C.muted)
     f.summary:SetWordWrap(true)
-    f.create = K.Button(rc, L["Termin anlegen"], 200, 34, "primary", function(self)
-        if not rankAllowed(ns.GuildOpt("rdEvRank")) then ns.print(L["Termine anlegen darf bei euch nur die Gildenleitung bzw. hoehere Raenge."]) return end
+    f.create = K.Button(rc, L["Create event"], 200, 34, "primary", function(self)
+        if not rankAllowed(ns.GuildOpt("rdEvRank")) then ns.print(L["In your guild only leadership or higher ranks may create events."]) return end
         local ev, ts = f.buildEv()
-        if not ts then ns.print(L["Bitte einen Tag im Kalender waehlen."]) return end
-        if ts <= ns.now() then ns.print(L["Der Termin liegt in der Vergangenheit."]) return end
+        if not ts then ns.print(L["Please pick a day in the calendar."]) return end
+        if ts <= ns.now() then ns.print(L["That date is in the past."]) return end
         pulse(self, C.mint)
         local made = Raid.CreateEvent({ title = ev.title, inst = ev.inst, ts = ts, max = st.max, kind = st.kind }, Raid.toCalendar, st.weeks)
         if made[1] then selectedEv = made[1].id end
-        K.Toast(L["Termin angelegt"], (ev.title or "?") .. "  ·  " .. ns.fmtWhen(ts)
-            .. (#made > 1 and ("  ·  " .. (L["%d Termine"]):format(#made)) or ""), C.mint)
+        K.Toast(L["Event created"], (ev.title or "?") .. "  ·  " .. ns.fmtWhen(ts)
+            .. (#made > 1 and ("  ·  " .. (L["%d events"]):format(#made)) or ""), C.mint)
         f.titleBox:SetText("")
         f.instBox:SetText("")
         f.timeBox:SetText("")
@@ -3816,7 +3816,7 @@ local function buildForm(f)
     if fp then K.SetFontSafe(f.create.label, fp, 14, "") end
 
     -- Terminliste zum Verwalten (feste Hoehe, scrollt selbst)
-    local lh = K.GameHead(body, L["Anstehende Termine"], C.blue)
+    local lh = K.GameHead(body, L["Upcoming events"], C.blue)
     f.listHead = lh
     local list = K.List(body, 50, function(l)
         local r = K.Row(l)
@@ -3852,18 +3852,18 @@ local function buildForm(f)
         r.cols.title:SetText(e.title or "?")
         r.sel:SetShown(selectedEv == e.id)
         if e.cal then
-            r.cols.meta:SetText("|cff777777" .. L["WoW-Kalender"] .. "|r")
+            r.cols.meta:SetText("|cff777777" .. L["WoW calendar"] .. "|r")
             r.cols.cnt:SetText("")
             return
         end
-        r.cols.meta:SetText((e.inst or "") .. L["  |cff777777von "] .. ns.displayName(e.by) .. "|r")
+        r.cols.meta:SetText((e.inst or "") .. L["  |cff777777by "] .. ns.displayName(e.by) .. "|r")
         local yes = 0
         for _, s in ipairs(Raid.Signups(e.id)) do if s.status == "yes" then yes = yes + 1 end end
         r.cols.cnt:SetText(yes .. "/" .. (e.max or 5))
     end)
-    list.empty:SetText(L["Keine anstehenden Termine."])
+    list.empty:SetText(L["No upcoming events."])
     f.list = list
-    lh.text:SetText(L["Anstehende Termine"])
+    lh.text:SetText(L["Upcoming events"])
     if lh.mark then lh.mark:Hide() end
 
     -- Schritt-Koepfe: kleine Nummer + ruhiger Titel
@@ -3885,12 +3885,12 @@ local function buildForm(f)
         h.hint:SetPoint("LEFT", h.t, "RIGHT", 10, -1)
         return h
     end
-    f.step1 = stepHead(1, L["Aktivitaet"])
-    f.step2 = stepHead(2, L["Zeitpunkt"])
-    f.step3 = stepHead(3, L["Gruppe"])
-    f.step1.hint:SetText(L["Was fuer ein Termin soll es sein?"])
-    f.step2.hint:SetText(L["Wann findet der Termin statt?"])
-    f.step3.hint:SetText(L["Wie viele Spieler und wie oft?"])
+    f.step1 = stepHead(1, L["Activity"])
+    f.step2 = stepHead(2, L["Time"])
+    f.step3 = stepHead(3, L["Group"])
+    f.step1.hint:SetText(L["What kind of event is it?"])
+    f.step2.hint:SetText(L["When does it take place?"])
+    f.step3.hint:SetText(L["How many players and how often?"])
 
     -- rechts: so wird der Termin (ruhige Zusammenfassung) + Anlegen
     local sum = CreateFrame("Frame", nil, body)
@@ -3910,7 +3910,7 @@ local function buildForm(f)
     end
     sum.cap = K.Text(sum, 12, C.text)
     sum.cap:SetPoint("TOPLEFT", 16, -14)
-    sum.cap:SetText(L["Termin-Vorschau"])
+    sum.cap:SetText(L["Event preview"])
     sum.disc = CreateFrame("Frame", nil, sum)
     sum.disc:SetSize(76, 76)   -- 0.6.463: grosse Scheibe wie im Entwurf
     sum.disc:SetPoint("TOPLEFT", 18, -66)
@@ -4040,16 +4040,16 @@ local function buildForm(f)
         if not f.planHead then
             local ph = {}
             ph.t = K.Title(lc, 24, C.text)
-            ph.t:SetText(L["Neuen Termin planen"])
+            ph.t:SetText(L["Plan a new event"])
             ph.lock = CreateFrame("Frame", nil, lc)
             ph.lock:SetHeight(24)
             if ns.Insta and ns.Insta.Glass then pcall(ns.Insta.Glass, ph.lock, { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.1 }, 6) end
             ph.lock.t = K.Text(ph.lock, 10, C.muted)
             ph.lock.t:SetPoint("LEFT", 10, 0)
-            ph.lock.t:SetText("|TInterface\\PetBattles\\PetBattle-LockIcon:12:12|t  " .. L["Nur fuer die Raidleitung"])
+            ph.lock.t:SetText("|TInterface\\PetBattles\\PetBattle-LockIcon:12:12|t  " .. L["Raid leads only"])
             ph.lock:SetWidth((ph.lock.t:GetStringWidth() or 120) + 22)
             ph.steps = {}
-            local TXT = { { "Aktivitaet", "Art und Ziel des Termins" }, { "Zeitpunkt", "Datum und Uhrzeit" }, { "Gruppe", "Gruppengroesse und Wiederholung" } }
+            local TXT = { { "Activity", "Kind and target" }, { "Time", "Date and time" }, { "Group", "Group size and repeat" } }
             for k = 1, 3 do
                 local st2 = {}
                 st2.ring = lc:CreateTexture(nil, "ARTWORK")
@@ -4104,9 +4104,9 @@ local function buildForm(f)
         end
         y = y + 52 + math.floor((#f.kindChips - 1) / 5) * 46
         local tw = math.floor((CWD - 16 - 34) / 2)
-        f.instLbl:SetText(L["Instanz / Ziel"]) f.instLbl:Show()
+        f.instLbl:SetText(L["Instance / target"]) f.instLbl:Show()
         f.instLbl:ClearAllPoints() f.instLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", PX, -y)
-        f.titleLbl:SetText(L["Titel"] .. " |cff888888(" .. L["optional"] .. ")|r") f.titleLbl:Show()
+        f.titleLbl:SetText(L["Title"] .. " |cff888888(" .. L["optional"] .. ")|r") f.titleLbl:Show()
         f.titleLbl:ClearAllPoints() f.titleLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", PX + tw + 50, -y)
         y = y + 16
         f.instBox:ClearAllPoints() f.instBox:SetPoint("TOPLEFT", PX, -y) f.instBox:SetSize(tw, 30)
@@ -4147,7 +4147,7 @@ local function buildForm(f)
         local calH = 46 + 6 * (cellH + 4)
         vline("cal", PX + calW + 16, y, calH)
         local tx = PX + calW + 34
-        f.timeLbl:SetText(L["Uhrzeit"]) f.timeLbl:Show()
+        f.timeLbl:SetText(L["Time"]) f.timeLbl:Show()
         f.timeLbl:ClearAllPoints() f.timeLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", tx, -y)
         local tStep = math.floor((calH - 18 - 46) / 7)
         for i, b in ipairs(f.timeChips) do
@@ -4155,7 +4155,7 @@ local function buildForm(f)
             b:ClearAllPoints()
             b:SetPoint("TOPLEFT", lc, "TOPLEFT", tx, -y - 18 - (i - 1) * tStep)
         end
-        if not f.ownTimeLbl then f.ownTimeLbl = K.Text(lc, 10, C.dim) f.ownTimeLbl:SetText(L["Eigene Uhrzeit"]) end
+        if not f.ownTimeLbl then f.ownTimeLbl = K.Text(lc, 10, C.dim) f.ownTimeLbl:SetText(L["Custom time"]) end
         f.ownTimeLbl:ClearAllPoints()
         f.ownTimeLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", tx, -y - 18 - 7 * tStep)
         f.timeBox:ClearAllPoints()
@@ -4170,9 +4170,9 @@ local function buildForm(f)
         f.step3:ClearAllPoints() f.step3:SetPoint("TOPLEFT", PX, -y) f.step3:SetWidth(CWD)
         y = y + 32
         local half = math.floor((CWD - 33) / 2)
-        f.sizeLbl:SetText(L["Gruppengroesse"]) f.sizeLbl:Show()
+        f.sizeLbl:SetText(L["Group size"]) f.sizeLbl:Show()
         f.sizeLbl:ClearAllPoints() f.sizeLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", PX, -y)
-        f.repLbl:SetText(L["Wiederholung"]) f.repLbl:Show()
+        f.repLbl:SetText(L["Repeat"]) f.repLbl:Show()
         f.repLbl:ClearAllPoints() f.repLbl:SetPoint("TOPLEFT", lc, "TOPLEFT", PX + half + 33, -y)
         vline("grp", PX + half + 16, y, 50)
         y = y + 18
@@ -4219,7 +4219,7 @@ local function buildForm(f)
         f.upEmpty:ClearAllPoints()
         f.upEmpty:SetPoint("TOP", f.upBox, "TOP", 0, -64)
         f.upEmpty:SetShown(#(list.data or {}) == 0)
-        list.empty:SetText(L["Noch keine Termine."] .. "\n|cff999999" .. L["Sobald du einen Termin anlegst, wird er hier angezeigt."] .. "|r")
+        list.empty:SetText(L["No events yet."] .. "\n|cff999999" .. L["Once you create an event, it shows up here."] .. "|r")
         lh:ClearAllPoints()
         lh:SetPoint("TOPLEFT", body, "TOPLEFT", listX + 16, listTop - 12)
         lh:SetWidth(listW - 32)
@@ -4296,18 +4296,18 @@ local function buildForm(f)
         end
         -- Zusammenfassung + Knopf
         if not rankAllowed(ns.GuildOpt("rdEvRank")) then
-            f.summary:SetText("|cffff5a4a" .. L["Termine anlegen darf bei euch nur die Gildenleitung bzw. hoehere Raenge."] .. "|r")
+            f.summary:SetText("|cffff5a4a" .. L["In your guild only leadership or higher ranks may create events."] .. "|r")
         elseif not ts then
             f.summary:SetText("")
         elseif ts <= ns.now() then
-            f.summary:SetText("|cffff5a4a" .. L["Der Termin liegt in der Vergangenheit."] .. "|r")
+            f.summary:SetText("|cffff5a4a" .. L["That date is in the past."] .. "|r")
         else
             local same = {}
             for _, e in ipairs(upcoming()) do
                 if date("%Y%m%d", e.ts) == date("%Y%m%d", ts) then same[#same + 1] = (e.title or "?") .. " " .. date("%H:%M", e.ts) end
             end
-            f.summary:SetText((st.weeks > 1 and ("|cff888888" .. (L["%d Termine, jede Woche zur gleichen Zeit"]):format(st.weeks) .. "|r") or "")
-                .. (#same > 0 and ("\n|cffe8b44a" .. L["Am selben Tag schon: "] .. table.concat(same, ", ") .. "|r") or ""))
+            f.summary:SetText((st.weeks > 1 and ("|cff888888" .. (L["%d events, every week at the same time"]):format(st.weeks) .. "|r") or "")
+                .. (#same > 0 and ("\n|cffe8b44a" .. L["Same day already: "] .. table.concat(same, ", ") .. "|r") or ""))
         end
         f.create:SetAlpha((ts and ts > ns.now()) and 1 or 0.45)
         -- Zusammenfassung rechts
@@ -4319,22 +4319,22 @@ local function buildForm(f)
             sc2.disc.g:SetTexture(ns.ICONS and ns.ICONS[kk.icon] or nil)
             sc2.disc.g:SetVertexColor(kc2[1], kc2[2], kc2[3])
             sc2.title:SetText(ev.title or "?")
-            sc2.inst:SetText(trim(st.inst) ~= "" and trim(st.inst) or ("|cff666666" .. L["kein Ziel gewaehlt"] .. "|r"))
+            sc2.inst:SetText(trim(st.inst) ~= "" and trim(st.inst) or ("|cff666666" .. L["no target chosen"] .. "|r"))
             if ts then
                 sc2.date:SetText(ns.weekday(ts) .. ", " .. date("%d.%m.", ts))
-                sc2.time:SetText(date("%H:%M", ts) .. " " .. L["Uhr"] .. "  ·  " .. countdown(ts))
+                sc2.time:SetText(date("%H:%M", ts) .. " " .. L["o'clock"] .. "  ·  " .. countdown(ts))
             else
-                sc2.date:SetText("|cff666666" .. L["Tag waehlen"] .. "|r")
-                sc2.time:SetText((st.time or "") .. " " .. L["Uhr"])
+                sc2.date:SetText("|cff666666" .. L["Choose day"] .. "|r")
+                sc2.time:SetText((st.time or "") .. " " .. L["o'clock"])
             end
-            sc2.facts:SetText((L["%d Spieler"]):format(st.max) .. "  ·  " .. (st.weeks > 1 and (L["%d Wochen"]):format(st.weeks) or L["einmalig"]))
+            sc2.facts:SetText((L["%d players"]):format(st.max) .. "  ·  " .. (st.weeks > 1 and (L["%d weeks"]):format(st.weeks) or L["once"]))
             if sc2.rows then
-                sc2.rows[1]:SetText(ts and (ns.weekday(ts) .. ", " .. date("%d.", ts) .. " " .. L[MONTHS[tonumber(date("%m", ts))]] .. " " .. date("%Y", ts)) or ("|cff888888" .. L["Tag waehlen"] .. "|r"))
-                sc2.rows[2]:SetText((ts and date("%H:%M", ts) or (st.time or "")) .. " " .. L["Uhr"])
-                sc2.rows[3]:SetText((L["%d Spieler"]):format(st.max))
-                sc2.rows[4]:SetText(st.weeks > 1 and (L["Alle %d Wochen"]):format(st.weeks) or L["Einmalig"])
+                sc2.rows[1]:SetText(ts and (ns.weekday(ts) .. ", " .. date("%d.", ts) .. " " .. L[MONTHS[tonumber(date("%m", ts))]] .. " " .. date("%Y", ts)) or ("|cff888888" .. L["Choose day"] .. "|r"))
+                sc2.rows[2]:SetText((ts and date("%H:%M", ts) or (st.time or "")) .. " " .. L["o'clock"])
+                sc2.rows[3]:SetText((L["%d players"]):format(st.max))
+                sc2.rows[4]:SetText(st.weeks > 1 and (L["Every %d weeks"]):format(st.weeks) or L["Once"])
             end
-            sc2.pv.t:SetText((f.showPv and L["Vorschau ausblenden"] or L["Vorschau fuer die Mitglieder ansehen"]) .. "  >")
+            sc2.pv.t:SetText((f.showPv and L["Hide preview"] or L["Preview for members"]) .. "  >")
             sc2.facts:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
             if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(sc2, { 1, 1, 1, 0.035 }, (ts and ts > ns.now()) and { kc2[1], kc2[2], kc2[3], 0.45 } or { 1, 1, 1, 0.10 }, 14) end
         end
@@ -4546,13 +4546,13 @@ local function lootRow(parent)
         local c = ch and CHOICES[ch]
         local val
         if x.gold then val = "|cffe8b44a" .. x.gold .. " g|r"
-        elseif cost and cost > 0 then val = "|cffe06060-" .. math.floor(cost + 0.5) .. " " .. L["Beute"] .. "|r"
-        elseif x.roll then val = "|cff888888" .. L["Wurf"] .. "|r " .. x.roll end
+        elseif cost and cost > 0 then val = "|cffe06060-" .. math.floor(cost + 0.5) .. " " .. L["Loot"] .. "|r"
+        elseif x.roll then val = "|cff888888" .. L["Roll"] .. "|r " .. x.roll end
         local sub = {}
         if who then sub[#sub + 1] = ns.Radar.Colored(x.who) end
         local zone = ns.zoneName(x.mapID, x.zone)
         if zone and zone ~= "" then sub[#sub + 1] = zone end
-        if x.src == "Vergabe" then sub[#sub + 1] = "|cffff6040" .. L["Vergabe"] .. "|r" end
+        if x.src == "Vergabe" then sub[#sub + 1] = "|cffff6040" .. L["Awarded"] .. "|r" end
         self.hasPill = c ~= nil
         if c then self.pill:Set(c[1], c[2]) end
         if not self.wide then
@@ -4594,9 +4594,9 @@ end
 local function dayLabel(ts)
     ts = ts or 0
     local d = date("%Y%m%d", ts)
-    if d == date("%Y%m%d", ns.now()) then return L["Heute"] end
-    if d == date("%Y%m%d", ns.now() - 86400) then return L["Gestern"] end
-    local wd = ({ "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa" })[tonumber(date("%w", ts)) + 1]
+    if d == date("%Y%m%d", ns.now()) then return L["Today"] end
+    if d == date("%Y%m%d", ns.now() - 86400) then return L["Yesterday"] end
+    local wd = ({ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" })[tonumber(date("%w", ts)) + 1]
     return L[wd] .. " " .. date("%d.%m.", ts)
 end
 local MAX_ROWS = 120
@@ -4613,12 +4613,12 @@ local function buildLoot(f)
     if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(st, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.10 }, 14) end
     f.startCard = st
     st.title = K.Title(st, 16, C.text)
-    st.title:SetText(L["Item waehlen"])
+    st.title:SetText(L["Choose item"])
     st.title:SetWordWrap(false)
     st.sub = K.Text(st, 10, C.muted)
-    st.sub:SetText(L["Frisch gelootet anklicken oder ein Item per Shift-Klick einfuegen."])
+    st.sub:SetText(L["Click freshly looted or insert an item via Shift-click."])
     st.sub:SetWordWrap(false)
-    local input = K.Input(st, 390, L["Item mit Shift-Klick hier einfuegen ..."])
+    local input = K.Input(st, 390, L["Shift-click an item into this box …"])
     if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(input, { 1, 1, 1, 0.04 }, { 1, 1, 1, 0.10 }, 8) end
     f.input = input
     -- Schnellwahl: was in der letzten Stunde in der Gruppe gelootet wurde (ab Selten) - ein Klick startet
@@ -4626,7 +4626,7 @@ local function buildLoot(f)
     f.fresh:SetHeight(28)
     f.fresh.lbl = K.Text(f.fresh, 11, C.muted)
     f.fresh.lbl:SetPoint("LEFT", 0, 0)
-    f.fresh.lbl:SetText(L["Frisch gelootet:"])
+    f.fresh.lbl:SetText(L["Freshly looted:"])
     f.fresh.icons = {}
     function f.FillFresh()
         local cut = ns.now() - 3600
@@ -4644,7 +4644,7 @@ local function buildLoot(f)
                 local b = f.fresh.icons[n]
                 if not b then
                     b = itemButton(f.fresh, 24)
-                    b:HookScript("OnEnter", function(self) if self.link then K.ItemTip(self, self.link) GameTooltip:AddLine("|cff888888" .. L["Klick: Verteilung dafuer starten"] .. "|r") GameTooltip:Show() end end)
+                    b:HookScript("OnEnter", function(self) if self.link then K.ItemTip(self, self.link) GameTooltip:AddLine("|cff888888" .. L["Click: start distribution for it"] .. "|r") GameTooltip:Show() end end)
                     b:HookScript("OnLeave", function() GameTooltip:Hide() end)
                     b:SetScript("OnClick", function(self) if self.link then Raid.StartSession(self.link) end end)
                     f.fresh.icons[n] = b
@@ -4662,18 +4662,18 @@ local function buildLoot(f)
     hooksecurefunc("ChatEdit_InsertLink", function(link)
         if input:HasFocus() and link then input:SetText(link) end
     end)
-    f.start = K.Button(st, L["Starten"], 120, 26, "primary", function()
+    f.start = K.Button(st, L["Start"], 120, 26, "primary", function()
         Raid.StartSession(input:GetText())
         input:SetText("")
         input:ClearFocus()
     end)
     input.onEnter = function(t) if t ~= "" then f.start:Click() end end
-    f.ann = K.Toggle(st, L["Ergebnis im Gruppenchat ansagen"], function() return Raid.announce end, function(v) Raid.announce = v end)
-    f.lmBtn = K.Button(st, L["Beute-Fenster (ganze Leiche)"] .. "  >", 210, 24, "ghost", function()
+    f.ann = K.Toggle(st, L["Announce result in group chat"], function() return Raid.announce end, function(v) Raid.announce = v end)
+    f.lmBtn = K.Button(st, L["Loot window (whole corpse)"] .. "  >", 210, 24, "ghost", function()
         if ns.LootMaster and ns.LootMaster.ShowMaster then ns.LootMaster.ShowMaster() end
     end)
     f.lmBtn:HookScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Beute-Fenster (ganze Leiche)"], L["Alle Items einer Leiche auf einmal verteilen - mit Wuerfeln, Punkten, Beuterat oder GDKP."] })
+        K.ShowTip(self, { L["Loot window (whole corpse)"], L["Distribute all items of a corpse at once - by roll, points, loot council or GDKP."] })
     end)
     f.lmBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
@@ -4705,12 +4705,12 @@ local function buildLoot(f)
         c.key = key
         f.counts[i] = c
     end
-    f.head = K.GameHead(body, L["Antworten"], C.accent)
+    f.head = K.GameHead(body, L["Reply"], C.accent)
     -- Antwort-Zeilen (Rangfolge)
     f.rows = {}
     f.empty = emptyCard(body, ns.MEDIA .. "icons\\raid", C.accent)
-    f.empty.title:SetText(L["Keine laufende Verteilung"])
-    f.empty.text:SetText(L["1. Item links waehlen (frisch gelootet oder Shift-Klick)\n2. Starten - alle mit Oasis bekommen ein Wahlfenster\n3. Antworten erscheinen hier, Vergeben mit einem Klick"])
+    f.empty.title:SetText(L["No distribution running"])
+    f.empty.text:SetText(L["1. Pick an item on the left (freshly looted or Shift-click)\n2. Start - everyone with Oasis gets a choice window\n3. Answers appear here, assign with one click"])
     -- Kompatibilitaet: f.list.empty wie frueher
     f.list = { empty = f.empty.text, SetData = function() end }
     sc:SetScript("OnSizeChanged", function() if f.Layout then f:Layout() end end)
@@ -4742,7 +4742,7 @@ local function lootCandRow(f, i)
     end
     r.pr = K.Text(r, 12, C.text)
     r.pr:SetWordWrap(false)
-    r.award = K.Button(r, L["Vergeben"], 88, 24, "ghost")
+    r.award = K.Button(r, L["Award"], 88, 24, "ghost")
     r.cols = { name = r.name, ilvl = r.nsub, pr = r.pr }
     f.rows[i] = r
     return r
@@ -4866,13 +4866,13 @@ local function refreshLoot(f)
     end)
     -- Vorschlag: hoechste Prioritaet in der besten gewaehlten Stufe (nicht Passen)
     if rows[1] and rows[1].choice ~= "pass" and not s.awarded then rows[1].suggest = true end
-    local status = s.awarded and (L["|cff4df2b8Vergeben an "] .. ns.displayName(s.awarded) .. "|r") or L["laeuft"]
+    local status = s.awarded and (L["|cff4df2b8Awarded to "] .. ns.displayName(s.awarded) .. "|r") or L["running"]
     local worth = ns.Market and ns.Market.Text(ns.itemID(s.link) or 0)
-    f.sMeta:SetText((L["Leitung: %s  -  %d Antworten  -  %s"]):format(ns.displayName(s.leader), n, status)
-        .. (worth and ("  -  |cffe8b44a" .. L["Marktwert "] .. worth .. "|r") or ""))
+    f.sMeta:SetText((L["Led by %s  ·  %d answers  ·  %s"]):format(ns.displayName(s.leader), n, status)
+        .. (worth and ("  -  |cffe8b44a" .. L["Market value "] .. worth .. "|r") or ""))
     local up
     if ns.Upgrade and ns.Upgrade.Text then local ok, t = pcall(ns.Upgrade.Text, s.link) if ok then up = t end end
-    f.sUp:SetText(up and (L["Fuer dich"] .. ": " .. up) or ("|cff666666" .. L["Fuer dich: kein Vergleich"] .. "|r"))
+    f.sUp:SetText(up and (L["For you"] .. ": " .. up) or ("|cff666666" .. L["For you: no comparison"] .. "|r"))
     local cnt = { need = 0, greed = 0, mog = 0, pass = 0 }
     for _, x in ipairs(rows) do cnt[x.choice] = (cnt[x.choice] or 0) + 1 end
     for _, c in ipairs(f.counts) do c.n:SetText(cnt[c.key] or 0) end
@@ -4886,7 +4886,7 @@ local function refreshLoot(f)
         r.pos:SetText(pos and tostring(pos) or "-")
         local pc = pos and PC[pos] or C.dim
         r.pos:SetTextColor(pc[1], pc[2], pc[3])
-        r.name:SetText(ns.Radar.Colored(x.name) .. (x.suggest and ("  |cff66db9e" .. L["Vorschlag"] .. "|r") or ""))
+        r.name:SetText(ns.Radar.Colored(x.name) .. (x.suggest and ("  |cff66db9e" .. L["Suggestion"] .. "|r") or ""))
         local p = ns.db.members[x.name]
         r.nsub:SetText(p and (p.ilvl or 0) > 0 and (L["iLvl "] .. p.ilvl) or "")
         local ch = CHOICES[x.choice] or CHOICES.pass
@@ -4903,7 +4903,7 @@ local function refreshLoot(f)
                 local cost = ns.Points.ItemCost(s and s.link, x.choice)
                 parts[#parts + 1] = L["Prio "] .. ns.Points.FmtPR(x.pr) .. (cost > 0 and ("  |cff888888-" .. cost .. "|r") or "")
             end
-            if x.roll then parts[#parts + 1] = "|cff888888" .. L["Wurf"] .. "|r " .. x.roll end
+            if x.roll then parts[#parts + 1] = "|cff888888" .. L["Roll"] .. "|r " .. x.roll end
             r.pr:SetText(table.concat(parts, "  ·  "))
         else
             r.pr:SetText("")
@@ -4922,12 +4922,12 @@ end
 ------------------------------------------------------------------------
 local logView = "all"
 local function buildLog(f)
-    f.seg = K.Segments(f, { { key = "all", text = L["Verlauf"] }, { key = "award", text = L["Vergaben"] }, { key = "stats", text = L["Statistik"] } }, function(k)
+    f.seg = K.Segments(f, { { key = "all", text = L["Gradient"] }, { key = "award", text = L["Awards"] }, { key = "stats", text = L["Statistics"] } }, function(k)
         logView = k
         f.animNext = true
         ns.RefreshPage("raid") ns.RefreshPage("loot")
     end, 90, { size = 12, pad = 18 })
-    f.search = K.Input(f, 260, L["Suchen: Item, Name, Gebiet ..."], function(t) lootSearch = t ns.RefreshPage("raid") ns.RefreshPage("loot") end)
+    f.search = K.Input(f, 260, L["Search: item, name, zone …"], function(t) lootSearch = t ns.RefreshPage("raid") ns.RefreshPage("loot") end)
     f.count = K.Text(f, 10, C.dim, "RIGHT")
     f.count:SetWordWrap(false)
     local sc, body = scrollArea(f)
@@ -4935,21 +4935,21 @@ local function buildLog(f)
     f.rows, f.days = {}, {}
     f.more = K.Text(body, 11, C.dim, "CENTER")
     f.empty = emptyCard(body, ns.MEDIA .. "icons\\wants", C.amber)
-    f.empty.title:SetText(L["Noch keine Beute erfasst"])
+    f.empty.title:SetText(L["No loot recorded yet"])
     -- Statistik
     f.tiles = {}
-    for i, d in ipairs({ { "n", "Items", C.accent, "wants" }, { "d30", "Letzte 30 Tage", C.mint, "raid" },
-        { "who", "Empfaenger", C.blue, "social" }, { "epic", "Episch", C.amber, "badges" } }) do
+    for i, d in ipairs({ { "n", "Items", C.accent, "wants" }, { "d30", "Last 30 days", C.mint, "raid" },
+        { "who", "Recipients", C.blue, "social" }, { "epic", "Epic", C.amber, "badges" } }) do
         local t = famTile(body, ns.MEDIA .. "icons\\" .. d[4], L[d[2]], d[3])
         t.key = d[1]
         f.tiles[i] = t
         f.tiles[d[1]] = t
     end
-    f.sHead = K.GameHead(body, L["Wer hat was bekommen"], C.amber)
+    f.sHead = K.GameHead(body, L["Who got what"], C.amber)
     f.legend = K.Text(body, 10, C.muted, "RIGHT")
     f.legend:SetWordWrap(false)
-    f.legend:SetText(K.hex(CHOICES.need[2]) .. L["Bedarf"] .. "|r   " .. K.hex(CHOICES.greed[2]) .. L["Zweitspec"] .. "|r   "
-        .. K.hex(CHOICES.mog[2]) .. L["Transmog"] .. "|r   |cff8888aa" .. L["Eigene Beute"] .. "|r")
+    f.legend:SetText(K.hex(CHOICES.need[2]) .. L["Need"] .. "|r   " .. K.hex(CHOICES.greed[2]) .. L["Off-spec"] .. "|r   "
+        .. K.hex(CHOICES.mog[2]) .. L["Transmog"] .. "|r   |cff8888aa" .. L["Own loot"] .. "|r")
     f.sRows = {}
     f.animNext = true
     f:HookScript("OnShow", function() f.animNext = true end)
@@ -4988,7 +4988,7 @@ local function statRow(f, i)
         if not self.e then return end
         local lines = { ns.Radar.Colored(self.e.name) }
         if ns.LootMaster and ns.LootMaster.StatsTip then ns.LootMaster.StatsTip(lines, self.e.name)
-        else lines[#lines + 1] = (L["%d Items"]):format(self.e.total) end
+        else lines[#lines + 1] = (L["%d items"]):format(self.e.total) end
         K.ShowTip(self, lines)
     end)
     r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -5113,9 +5113,9 @@ local function refreshLog(f)
     for _, d in ipairs(f.days) do d:Hide() end
     for _, r in ipairs(f.sRows) do r:Hide() r.e = nil end
     f.empty:SetShown(#rows == 0)
-    f.empty.text:SetText(q ~= "" and L["Nichts gefunden - andere Suche probieren."]
-        or (logView == "award" and L["Noch keine Vergaben - sie erscheinen hier, sobald die Raidleitung Beute verteilt."])
-        or L["Noch keine Beute erfasst (ab Qualitaet 'Selten', einstellbar)."])
+    f.empty.text:SetText(q ~= "" and L["Nothing found - try another search."]
+        or (logView == "award" and L["No awards yet - they show up here once raid leadership distributes loot."])
+        or L["No loot logged yet (rare and above, adjustable)."])
     if logView == "stats" then
         -- je Spieler (Main + Twinks): Bedarf / Zweitspec / Transmog / eigene Beute
         local by, order = {}, {}
@@ -5137,7 +5137,7 @@ local function refreshLog(f)
         table.sort(order, function(a, b) if a.total ~= b.total then return a.total > b.total end return a.name < b.name end)
         f.statMax = order[1] and order[1].total or 1
         f.tiles.n:Set(#rows, nil, nil, anim)
-        f.tiles.d30:Set(n30, (L["von %d"]):format(#rows), #rows > 0 and n30 / #rows or nil, anim)
+        f.tiles.d30:Set(n30, (L["of %d"]):format(#rows), #rows > 0 and n30 / #rows or nil, anim)
         f.tiles.who:Set(#order, nil, nil, anim)
         f.tiles.epic:Set(nEpic, nil, #rows > 0 and nEpic / #rows or nil, anim)
         f.sHead:SetCount(#order > 0 and #order or nil)
@@ -5205,7 +5205,7 @@ local function refreshLog(f)
     end
     f.order = order
     f.more:SetShown(#rows > MAX_ROWS)
-    f.more:SetText((L["%d weitere - Suche grenzt ein"]):format(#rows - MAX_ROWS))
+    f.more:SetText((L["%d more - search to narrow down"]):format(#rows - MAX_ROWS))
     layoutLog(f)
 end
 
@@ -5220,14 +5220,14 @@ local function buildPoints(f)
     local sc, body = scrollArea(f)
     sc:SetPoint("TOPLEFT") sc:SetPoint("BOTTOMRIGHT")
     f.sc, f.body = sc, body
-    f.filter = K.Segments(body, { { key = "all", text = L["Alle"] }, { key = "raid", text = L["In meiner Gruppe"] } }, function(k)
+    f.filter = K.Segments(body, { { key = "all", text = L["All"] }, { key = "raid", text = L["In my group"] } }, function(k)
         ptsFilter = k
         ns.RefreshPage("raid") ns.RefreshPage("loot")
     end, 110)
     f.hdr = CreateFrame("Frame", nil, body)
     f.hdr:SetHeight(16)
     f.hcols = {}
-    for _, d in ipairs({ { "rank", "#", "CENTER" }, { "name", "Name" }, { "ep", "Einsatz", "RIGHT" }, { "gp", "Beute", "RIGHT" }, { "pr", "Prioritaet" }, { "items", "Items", "RIGHT" } }) do
+    for _, d in ipairs({ { "rank", "#", "CENTER" }, { "name", "Name" }, { "ep", "Effort", "RIGHT" }, { "gp", "Loot", "RIGHT" }, { "pr", "Priority" }, { "items", "Items", "RIGHT" } }) do
         local t = K.Text(f.hdr, 10, C.dim, d[3])
         t:SetText(L[d[2]])
         t:SetWordWrap(false)
@@ -5256,20 +5256,20 @@ local function buildPoints(f)
         f.pod[i] = c
     end
     f.empty = emptyCard(body, ns.MEDIA .. "icons\\stats", C.amber)
-    f.empty.title:SetText(L["Noch keine Punkte"])
-    f.emptyBtn = K.Button(f.empty, L["Punkte-Raid starten"] .. "  >", 170, 24, "ghost", function()
+    f.empty.title:SetText(L["No points yet"])
+    f.emptyBtn = K.Button(f.empty, L["Start points raid"] .. "  >", 170, 24, "ghost", function()
         ptsView = "lead"
         ns.RefreshPage("raidlead")
     end)
     f.emptyBtn:SetPoint("BOTTOMRIGHT", -12, 12)
-    f.empty.text:SetText(L["Sobald ein Offizier einen Punkte-Raid startet, bekommen alle, die dabei sind, Einsatz-Punkte. Rechts siehst du, wie es funktioniert."])
+    f.empty.text:SetText(L["Once an officer starts a points raid, everyone attending gets effort points. On the right you can see how it works."])
     f.list = { empty = f.empty.text, SetData = function() end }
 
     -- Seitenleiste: Info / Leitung / Regeln
     local side = CreateFrame("Frame", nil, body)
     if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(side, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.10 }, 14) end
     f.side = side
-    f.sideSeg = K.Segments(side, { { key = "info", text = L["So geht's"] }, { key = "lead", text = L["Leitung"] }, { key = "rules", text = L["Regeln"] } }, function(k)
+    f.sideSeg = K.Segments(side, { { key = "info", text = L["How it works"] }, { key = "lead", text = L["Leaders"] }, { key = "rules", text = L["Rules"] } }, function(k)
         ptsView = k
         ns.RefreshPage("raid") ns.RefreshPage("loot")
     end, 76)
@@ -5289,7 +5289,7 @@ local function buildPoints(f)
     f.infoText:SetJustifyV("TOP")
     f.infoText:Hide()
     f.rules3 = {}
-    local RDEF = { { "Einsatz", C.mint, "camp" }, { "Beute kostet", C.red, "wants" }, { "Prioritaet", C.amber, "stats" } }
+    local RDEF = { { "Effort", C.mint, "camp" }, { "Beute kostet", C.red, "wants" }, { "Priority", C.amber, "stats" } }
     for i, d in ipairs(RDEF) do
         local c = CreateFrame("Frame", nil, f.info)
         if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(c, { d[2][1], d[2][2], d[2][3], 0.05 }, { d[2][1], d[2][2], d[2][3], 0.25 }, 10) end
@@ -5318,10 +5318,10 @@ local function buildPoints(f)
     calc.ep, calc.gp = 100, 0
     calc.t = K.Title(calc, 12, C.text)
     calc.t:SetPoint("TOPLEFT", 10, -10)
-    calc.t:SetText(L["Rechner"])
+    calc.t:SetText(L["Calculator"])
     calc.h = K.Text(calc, 10, C.dim)
     calc.h:SetPoint("LEFT", calc.t, "RIGHT", 8, 0)
-    calc.h:SetText(L["Mausrad oder +/-"])
+    calc.h:SetText(L["Mouse wheel or +/-"])
     local function stepper(label, key, x)
         local w = CreateFrame("Frame", nil, calc)
         w:SetSize(118, 24)
@@ -5344,8 +5344,8 @@ local function buildPoints(f)
         w:SetScript("OnMouseWheel", function(_, d) set(d) end)
         calc[key .. "W"] = w
     end
-    stepper(L["Einsatz"], "ep", 10)
-    stepper(L["Beute"], "gp", 140)
+    stepper(L["Effort"], "ep", 10)
+    stepper(L["Loot"], "gp", 140)
     calc.res = K.Text(calc, 12, C.text)
     calc.res:SetPoint("BOTTOMLEFT", 10, 12)
     calc.res:SetPoint("RIGHT", calc, "RIGHT", -10, 0)
@@ -5360,7 +5360,7 @@ local function buildPoints(f)
         local st = P.Standings()
         local rank = 1
         for _, e in ipairs(st.list) do if e.pr > pr then rank = rank + 1 end end
-        self.res:SetText((L["Prioritaet %s"]):format(P.FmtPR(pr)) .. "  |cff888888·  " .. (L["waere Platz %d von %d"]):format(rank, math.max(#st.list, rank)) .. "|r")
+        self.res:SetText((L["Priority %s"]):format(P.FmtPR(pr)) .. "  |cff888888·  " .. (L["would be #%d of %d"]):format(rank, math.max(#st.list, rank)) .. "|r")
     end
 
     -- Leitung (Offiziere)
@@ -5378,11 +5378,11 @@ local function buildPoints(f)
     f.startBtn:SetPoint("RIGHT", f.lead, "RIGHT", 0, 0)
     f.bossBtn = K.Button(f.lead, "", 240, 24, "ghost", function()
         local cfg = P.Cfg()
-        P.Award(P.GroupNames(), cfg.boss, L["Boss (von Hand)"])
+        P.Award(P.GroupNames(), cfg.boss, L["Boss (manual)"])
     end)
     f.bossBtn:SetPoint("TOPLEFT", 0, -74)
     f.bossBtn:SetPoint("RIGHT", f.lead, "RIGHT", 0, 0)
-    local bl = K.Label(f.lead, L["Ersatzbank (bekommt auch Einsatz)"])
+    local bl = K.Label(f.lead, L["Bench (also gets effort)"])
     bl:SetPoint("TOPLEFT", 0, -110)
     f.benchBox = K.Input(f.lead, 170, L["Name ..."])
     f.benchBox:SetPoint("TOPLEFT", 0, -126)
@@ -5395,17 +5395,17 @@ local function buildPoints(f)
     f.benchList:SetPoint("TOPLEFT", 0, -154)
     f.benchList:SetPoint("RIGHT", f.lead, "RIGHT", 0, 0)
     f.benchList:SetWordWrap(true)
-    local al = K.Label(f.lead, L["Korrektur (z.B. +20 fuer Vorbereitung)"])
+    local al = K.Label(f.lead, L["Correction (e.g. +20 for preparation)"])
     al:SetPoint("TOPLEFT", 0, -196)
     f.adjName = K.Input(f.lead, 110, L["Name"])
     f.adjName:SetPoint("TOPLEFT", 0, -212)
-    f.adjEP = K.Input(f.lead, 50, L["Einsatz"])
+    f.adjEP = K.Input(f.lead, 50, L["Effort"])
     f.adjEP:SetPoint("LEFT", f.adjName, "RIGHT", 4, 0)
-    f.adjGP = K.Input(f.lead, 50, L["Beute"])
+    f.adjGP = K.Input(f.lead, 50, L["Loot"])
     f.adjGP:SetPoint("LEFT", f.adjEP, "RIGHT", 4, 0)
-    f.adjReason = K.Input(f.lead, 170, L["Grund ..."])
+    f.adjReason = K.Input(f.lead, 170, L["Reason ..."])
     f.adjReason:SetPoint("TOPLEFT", 0, -240)
-    f.adjBtn = K.Button(f.lead, L["Buchen"], 60, 24, "ghost", function()
+    f.adjBtn = K.Button(f.lead, L["Book"], 60, 24, "ghost", function()
         local n = f.adjName:GetText()
         local ep, gp = tonumber(f.adjEP:GetText()) or 0, tonumber(f.adjGP:GetText()) or 0
         if n == "" or (ep == 0 and gp == 0) then return end
@@ -5424,9 +5424,9 @@ local function buildPoints(f)
     f.rules:SetPoint("BOTTOMRIGHT", -12, 12)
     f.ruleBoxes = {}
     local defs = {
-        { "onTime", L["Puenktlich da"] }, { "boss", L["Je Boss"] }, { "finish", L["Bis zum Ende"] },
-        { "epic", L["Episches Item"] }, { "rare", L["Seltenes Item"] }, { "decay", L["Verfall pro Woche (%)"] },
-        { "rank", L["Punkte vergeben bis Rang (0 = Gildenmeister)"] },
+        { "onTime", L["On time"] }, { "boss", L["Per boss"] }, { "finish", L["Until the end"] },
+        { "epic", L["Epic item"] }, { "rare", L["Rare item"] }, { "decay", L["Decay per week (%)"] },
+        { "rank", L["Award points up to rank (0 = guild master)"] },
     }
     for i, d in ipairs(defs) do
         local t = K.Text(f.rules, 11, C.text)
@@ -5440,14 +5440,14 @@ local function buildPoints(f)
         b.key = d[1]
         f.ruleBoxes[i] = b
     end
-    f.saveRules = K.Button(f.rules, L["Regeln speichern"], 240, 26, "primary", function()
+    f.saveRules = K.Button(f.rules, L["Save rules"], 240, 26, "primary", function()
         local ch = {}
         for _, b in ipairs(f.ruleBoxes) do
             local v = tonumber(b:GetText())
             if v then ch[b.key] = v end
         end
         P.SetCfg(ch)
-        K.Toast(L["Regeln gespeichert"], L["Gilt ab sofort fuer die ganze Gilde."], C.mint)
+        K.Toast(L["Rules saved"], L["Applies to the whole guild right away."], C.mint)
     end)
     f.saveRules:SetPoint("TOPLEFT", 0, -208)
     f.saveRules:SetPoint("RIGHT", f.rules, "RIGHT", 0, 0)
@@ -5455,7 +5455,7 @@ local function buildPoints(f)
     f.rulesNote:SetPoint("TOPLEFT", 0, -242)
     f.rulesNote:SetPoint("RIGHT", f.rules, "RIGHT", 0, 0)
     f.rulesNote:SetWordWrap(true)
-    f.rulesNote:SetText(L["Waffen kosten das 1,5-fache, Zweitspec ein Viertel, Transmog nichts."])
+    f.rulesNote:SetText(L["Weapons cost 1.5x, off-spec a quarter, transmog nothing."])
     f.animNext = true
     f:HookScript("OnShow", function() f.animNext = true end)
     sc:SetScript("OnSizeChanged", function() if f.Layout then f:Layout() end end)
@@ -5488,13 +5488,13 @@ local function pointsRow(f, i)
         local e = self.item
         local P = ns.Points
         if not e or not P then return end
-        local lines = { ns.Radar.Colored(e.name), (L["Einsatz %d  ·  Beute %d  ·  Prioritaet %s"]):format(e.ep, e.gp, P.FmtPR(e.pr)), " " }
+        local lines = { ns.Radar.Colored(e.name), (L["Effort %d  ·  loot %d  ·  priority %s"]):format(e.ep, e.gp, P.FmtPR(e.pr)), " " }
         for k = #e.log, math.max(1, #e.log - 9), -1 do
             local x = e.log[k]
             if x.kind == "gp" then
                 lines[#lines + 1] = "|cffff7a5c-" .. (x.amount or 0) .. "|r  " .. (x.item or "?") .. "  |cff666666" .. ns.ago(x.ts) .. "|r"
             elseif x.kind == "adj" then
-                lines[#lines + 1] = "|cffe8b44a" .. L["Korrektur"] .. "|r  " .. (x.reason or "") .. "  |cff666666" .. ns.ago(x.ts) .. "|r"
+                lines[#lines + 1] = "|cffe8b44a" .. L["Correction"] .. "|r  " .. (x.reason or "") .. "  |cff666666" .. ns.ago(x.ts) .. "|r"
             else
                 lines[#lines + 1] = "|cff66db9e+" .. (x.amount or 0) .. "|r  " .. (x.reason or "") .. "  |cff666666" .. ns.ago(x.ts) .. "|r"
             end
@@ -5628,7 +5628,7 @@ local function refreshPoints(f)
         c:SetShown(#list >= 3)
         if e then
             c.name:SetText(ns.Radar.Colored(e.name))
-            c.pr:SetText((L["Prioritaet %s"]):format(P.FmtPR(e.pr)) .. "  ·  " .. (L["%d Items"]):format(e.items or 0))
+            c.pr:SetText((L["Priority %s"]):format(P.FmtPR(e.pr)) .. "  ·  " .. (L["%d items"]):format(e.items or 0))
             c.row = f.prow[i]
         end
     end
@@ -5649,48 +5649,48 @@ local function refreshPoints(f)
     f.info:SetShown(ptsView == "info")
     f.lead:SetShown(ptsView == "lead")
     f.leadNo:SetShown(false)
-    if not f.leadLock then f.leadLock = K.Lock(f.lead, { who = "officer", text = L["Punkte vergeben duerfen nur Offiziere."], check = function() return P.CanManage() end }) end
+    if not f.leadLock then f.leadLock = K.Lock(f.lead, { who = "officer", text = L["Only officers can award points."], check = function() return P.CanManage() end }) end
     f.leadLock:Update()
     f.rules:SetShown(ptsView == "rules")
 
     local me = P.Of(ns.me())
-    f.me:SetText((L["Deine Prioritaet: %s"]):format(P.FmtPR(me.pr)) .. "  |cff888888" .. (L["Platz %d von %d"]):format(me.rank, math.max(#st.list, me.rank)) .. "|r\n|cffa3a3a8"
-        .. (L["Einsatz %d  ·  Beute %d  ·  %d Raids  ·  %d Items"]):format(me.ep, me.gp, me.raids, me.items) .. "|r")
+    f.me:SetText((L["Your priority: %s"]):format(P.FmtPR(me.pr)) .. "  |cff888888" .. (L["rank %d of %d"]):format(me.rank, math.max(#st.list, me.rank)) .. "|r\n|cffa3a3a8"
+        .. (L["Effort %d  ·  loot %d  ·  %d raids  ·  %d items"]):format(me.ep, me.gp, me.raids, me.items) .. "|r")
     if f.rules3 then
-        f.rules3[1].b:SetText((L["+%d beim Start da  ·  +%d je Boss  ·  +%d bis zum Ende. Ersatzbank bekommt das auch."]):format(cfg.onTime, cfg.boss, cfg.finish))
-        f.rules3[2].b:SetText((L["Episch %d, Selten %d, Waffen x1,5. Zweitspec ein Viertel, Transmog gratis."]):format(cfg.epic, cfg.rare))
-        f.rules3[3].b:SetText((L["Einsatz / (Beute + %d). Hoechste bekommt bei Bedarf das Item. Jede Woche -%d %%."]):format(cfg.base, cfg.decay))
+        f.rules3[1].b:SetText((L["+%d present at start  ·  +%d per boss  ·  +%d until the end. Bench gets it too."]):format(cfg.onTime, cfg.boss, cfg.finish))
+        f.rules3[2].b:SetText((L["Epic %d, Rare %d, weapons x1.5. Off-spec a quarter, transmog free."]):format(cfg.epic, cfg.rare))
+        f.rules3[3].b:SetText((L["Effort / (loot + %d). Highest gets the item on need. -%d %% each week."]):format(cfg.base, cfg.decay))
         if f.calc then f.calc:Update() end
     end
     f.infoText:SetText(table.concat({
-        "|cffe6e6e6" .. L["So wird fair verteilt:"] .. "|r",
-        (L["+%d Einsatz, wenn du beim Start da bist"]):format(cfg.onTime),
-        (L["+%d Einsatz je Boss, den der Raid legt"]):format(cfg.boss),
-        (L["+%d Einsatz, wenn du bis zum Ende bleibst"]):format(cfg.finish),
-        L["Ersatzbank bekommt dieselben Punkte."],
+        "|cffe6e6e6" .. L["How fair distribution works:"] .. "|r",
+        (L["+%d effort if you're there at the start"]):format(cfg.onTime),
+        (L["+%d effort per boss the raid kills"]):format(cfg.boss),
+        (L["+%d effort if you stay until the end"]):format(cfg.finish),
+        L["The bench gets the same points."],
         " ",
-        (L["Beute kostet: Episch %d, Selten %d, Waffen x1,5."]):format(cfg.epic, cfg.rare),
-        L["Zweitspec kostet ein Viertel, Transmog ist gratis."],
+        (L["Loot costs: epic %d, rare %d, weapons x1.5."]):format(cfg.epic, cfg.rare),
+        L["Off-spec costs a quarter, transmog is free."],
         " ",
-        "|cffe6e6e6" .. L["Prioritaet = Einsatz / (Beute + %d)"]:format(cfg.base) .. "|r",
-        L["Bei 'Bedarf' bekommt das Item, wer die hoechste Prioritaet hat. Gleichstand: Wuerfeln."],
-        (L["Jede Woche verfallen %d %% - so koennen Neue aufholen."]):format(cfg.decay),
+        "|cffe6e6e6" .. L["Priority = effort / (loot + %d)"]:format(cfg.base) .. "|r",
+        L["On 'Need', the highest priority gets the item. Tie: roll."],
+        (L["%d %% decays every week – so newcomers can catch up."]):format(cfg.decay),
     }, "\n"))
 
     local r = P.Active()
     if r then
-        f.leadState:SetText((L["Raid laeuft: %s"]):format(r.title ~= "" and r.title or "?") .. "\n|cff888888" .. (L["seit %s  ·  %d Bosse"]):format(ns.ago(r.t), r.bosses or 0) .. "|r")
-        f.startBtn:SetLabel((L["Raid beenden (+%d fuer alle)"]):format(cfg.finish))
+        f.leadState:SetText((L["Raid running: %s"]):format(r.title ~= "" and r.title or "?") .. "\n|cff888888" .. (L["since %s  ·  %d bosses"]):format(ns.ago(r.t), r.bosses or 0) .. "|r")
+        f.startBtn:SetLabel((L["End raid (+%d for everyone)"]):format(cfg.finish))
     else
-        f.leadState:SetText("|cff888888" .. L["Kein Raid aktiv. Starte ihn, wenn alle da sind - Bosse werden dann automatisch gezaehlt."] .. "|r")
-        f.startBtn:SetLabel((L["Raid starten (+%d Puenktlich)"]):format(cfg.onTime))
+        f.leadState:SetText("|cff888888" .. L["No raid active. Start it once everyone is there – bosses are then counted automatically."] .. "|r")
+        f.startBtn:SetLabel((L["Start raid (+%d on time)"]):format(cfg.onTime))
     end
-    f.bossBtn:SetLabel((L["Boss-Punkte von Hand (+%d)"]):format(cfg.boss))
+    f.bossBtn:SetLabel((L["Manual boss points (+%d)"]):format(cfg.boss))
     f.bossBtn:SetShown(r ~= nil)
     local b = {}
     for n in pairs(P.bench) do b[#b + 1] = ns.Radar.Colored(n) end
-    f.benchList:SetText(#b > 0 and table.concat(b, ", ") or "|cff666666" .. L["niemand"] .. "|r")
-    f.leadNo:SetText(L["Punkte vergeben duerfen nur Offiziere."] .. "\n\n" .. L["Frag einen Offizier, wenn Punkte fehlen - jede Buchung ist nachvollziehbar (Maus ueber einen Namen)."])
+    f.benchList:SetText(#b > 0 and table.concat(b, ", ") or "|cff666666" .. L["nobody"] .. "|r")
+    f.leadNo:SetText(L["Only officers can award points."] .. "\n\n" .. L["Ask an officer if points are missing – every entry is traceable (hover a name)."])
     for _, bx in ipairs(f.ruleBoxes) do
         if not bx:HasFocus() then bx:SetText(cfg[bx.key]) end
         bx:EnableMouse(P.CanManage())
@@ -5719,11 +5719,11 @@ local function buildMine(f)
     f.sc, f.body = sc, body
     f.tiles = {}
     local defs = {
-        { "pr", "Prioritaet", C.accent, "raid" },
-        { "rank", "Platz", C.amber, "stats" },
-        { "ep", "Einsatz", C.mint, "badges" },
-        { "gp", "Beute", C.red, "wants" },
-        { "att", "Teilnahme", C.blue, "camp" },
+        { "pr", "Priority", C.accent, "raid" },
+        { "rank", "Rank", C.amber, "stats" },
+        { "ep", "Effort", C.mint, "badges" },
+        { "gp", "Loot", C.red, "wants" },
+        { "att", "Attendance", C.blue, "camp" },
     }
     for i, d in ipairs(defs) do
         local t = famTile(body, ns.MEDIA .. "icons\\" .. d[4], L[d[2]], d[3])
@@ -5737,19 +5737,19 @@ local function buildMine(f)
     f.note:SetWordWrap(true)
     f.note:SetJustifyV("TOP")
     -- Reservierungen
-    f.srHead = K.GameHead(body, L["Meine Reservierungen"], C.amber)
-    f.srAll = K.Button(body, L["Reservierungen"] .. "  >", 140, 20, "ghost", function() ns.ShowPage("softres") end)
+    f.srHead = K.GameHead(body, L["My reservations"], C.amber)
+    f.srAll = K.Button(body, L["Reservations"] .. "  >", 140, 20, "ghost", function() ns.ShowPage("softres") end)
     f.srCards = {}
     f.srEmpty = K.Text(body, 11, C.dim)
     f.srEmpty:SetWordWrap(true)
-    f.srEmpty:SetText(L["Keine Reservierung fuer kommende Termine - im Termin auf 'Reservieren' klicken."])
+    f.srEmpty:SetText(L["No reservation for upcoming events - click 'Reserve' in an event."])
     -- eigene Beute
-    f.head = K.GameHead(body, L["Deine Beute"], C.amber)
+    f.head = K.GameHead(body, L["Your loot"], C.amber)
     f.rows = {}
     f.more = K.Button(body, "", 220, 22, "ghost", function() Raid.SetTab("log") end)
     f.empty = emptyCard(body, ns.MEDIA .. "icons\\wants", C.amber)
-    f.empty.title:SetText(L["Noch keine eigene Beute"])
-    f.empty.text:SetText(L["Noch keine eigene Beute erfasst (ab Qualitaet 'Selten', einstellbar)."])
+    f.empty.title:SetText(L["No own loot yet"])
+    f.empty.text:SetText(L["No loot of yours recorded yet (from 'Rare' quality, adjustable)."])
     -- Kompatibilitaet
     f.list = { empty = f.empty.text, SetData = function() end }
     function f.layout() if f.Layout then f:Layout() end end
@@ -5773,7 +5773,7 @@ local function srCard(f, i)
     c.hit:SetFrameLevel((c:GetFrameLevel() or 1) + 1)
     c.icon:SetFrameLevel((c:GetFrameLevel() or 1) + 3)
     c.hit:SetScript("OnClick", function() if c.ev and ns.SoftRes and ns.SoftRes.Open then ns.SoftRes.Open(c.ev) end end)
-    c.hit:SetScript("OnEnter", function(self) K.ShowTip(self, { c.ev and c.ev.title or "", "|cff888888" .. L["Klick: Reservierung aendern"] .. "|r" }) end)
+    c.hit:SetScript("OnEnter", function(self) K.ShowTip(self, { c.ev and c.ev.title or "", "|cff888888" .. L["Click: change reservation"] .. "|r" }) end)
     c.hit:SetScript("OnLeave", function() GameTooltip:Hide() end)
     f.srCards[i] = c
     return c
@@ -5782,7 +5782,7 @@ end
 -- 0.6.460: eigene Beute aus allen Gebieten fuer das Profil (Abenteuer > Beute)
 function Raid.ShowMyLoot(host)
     if not host.lootList then
-        host.head = K.GameHead(host, L["Deine Beute"], C.amber)
+        host.head = K.GameHead(host, L["Your loot"], C.amber)
         host.head:SetPoint("TOPLEFT", 0, -2)
         host.head:SetPoint("RIGHT", host, "RIGHT", 0, 0)
         host.lootList = K.List(host, 44, function(l)
@@ -5813,7 +5813,7 @@ function Raid.ShowMyLoot(host)
         host.lootList:SetPoint("BOTTOMRIGHT", 0, 0)
         host.lootEmpty = K.Text(host, 12, C.dim, "CENTER")
         host.lootEmpty:SetPoint("TOP", 0, -80)
-        host.lootEmpty:SetText(L["Noch keine eigene Beute erfasst (ab Qualitaet 'Selten', einstellbar)."])
+        host.lootEmpty:SetText(L["No loot of yours recorded yet (from 'Rare' quality, adjustable)."])
     end
     local rows = Store.List("loot", function(x) return isMine(x.who) and x.item end)
     table.sort(rows, function(a, b) return (a.ts or a.u or 0) > (b.ts or b.u or 0) end)
@@ -5895,9 +5895,9 @@ local function refreshMine(f)
     f.animNext = false
     for _, t in ipairs(f.tiles) do t:SetShown(P ~= nil or t == f.tiles.att) end
     local yes, total, planned = Raid.Attendance(30)
-    f.tiles.att:Set(yes, (L["von %d"]):format(total), total > 0 and (yes / total) or nil, anim)
-    f.tiles.att.tip = { L["Teilnahme (30 Tage)"], (L["Zugesagt: %d von %d Terminen"]):format(yes, total),
-        (L["In der Aufstellung: %d"]):format(planned) }
+    f.tiles.att:Set(yes, (L["of %d"]):format(total), total > 0 and (yes / total) or nil, anim)
+    f.tiles.att.tip = { L["Attendance (30 days)"], (L["Signed up: %d of %d events"]):format(yes, total),
+        (L["In the lineup: %d"]):format(planned) }
     if P then
         local st = P.Standings()
         local me = P.Of(ns.me())
@@ -5906,19 +5906,19 @@ local function refreshMine(f)
         local maxPR = 0
         for _, e in ipairs(st.list) do if e.pr > maxPR then maxPR = e.pr end end
         f.tiles.pr:Set(P.FmtPR(me.pr), nil, maxPR > 0 and (me.pr / maxPR) or nil, anim)
-        f.tiles.rank:Set(active and me.rank or "-", active and ((L["von %d"]):format(total)) or "", active and total > 0 and (1 - (me.rank - 1) / total) or nil, anim)
-        f.tiles.ep:Set(math.floor(me.ep + 0.5), (L["%d Raids"]):format(me.raids or 0), nil, anim)
-        f.tiles.gp:Set(math.floor(me.gp + 0.5), (L["%d Items"]):format(me.items or 0), nil, anim)
-        f.tiles.pr.tip = { L["Prioritaet"], L["Prioritaet = Einsatz / (Beute + %d)"]:format(P.Cfg().base) }
-        f.tiles.rank.tip = { L["Platz in der Prio-Liste"], L["Bei 'Bedarf' bekommt das Item, wer die hoechste Prioritaet hat. Gleichstand: Wuerfeln."] }
+        f.tiles.rank:Set(active and me.rank or "-", active and ((L["of %d"]):format(total)) or "", active and total > 0 and (1 - (me.rank - 1) / total) or nil, anim)
+        f.tiles.ep:Set(math.floor(me.ep + 0.5), (L["%d raids"]):format(me.raids or 0), nil, anim)
+        f.tiles.gp:Set(math.floor(me.gp + 0.5), (L["%d items"]):format(me.items or 0), nil, anim)
+        f.tiles.pr.tip = { L["Priority"], L["Priority = effort / (loot + %d)"]:format(P.Cfg().base) }
+        f.tiles.rank.tip = { L["Rank in the priority list"], L["On 'Need', the highest priority gets the item. Tie: roll."] }
     end
     for _, t in ipairs(f.tiles) do t:SetShown(active) end
     if not P then
-        f.note:SetText(L["Beute-Punkte sind nicht aktiv."])
+        f.note:SetText(L["Loot points are not active."])
     elseif not active then
-        f.note:SetText("|cff888888" .. L["Die Gilde vergibt noch keine Beute-Punkte - deine Werte erscheinen, sobald die Raidleitung einen Raid startet."] .. "|r")
+        f.note:SetText("|cff888888" .. L["Your guild doesn't award loot points yet - your values appear once the raid leaders start a raid."] .. "|r")
     else
-        f.note:SetText("|cff888888" .. L["Wer oft dabei ist und wenig bekommen hat, ist bei 'Bedarf' zuerst dran. Jede Woche verfaellt ein Teil der Punkte."] .. "|r")
+        f.note:SetText("|cff888888" .. L["Whoever shows up often and has received little gets first pick on 'Need'. Part of the points decays every week."] .. "|r")
     end
     -- eigene Reservierungen fuer kommende Termine
     for _, c in ipairs(f.srCards) do c:Hide() end
@@ -5980,7 +5980,7 @@ local function refreshMine(f)
     end
     f.head:SetCount(#rows > 0 and #rows or nil)
     f.more:SetShown(#rows > MINE_MAX)
-    f.more:SetLabel((L["%d weitere im Beute-Log"]):format(#rows - MINE_MAX) .. "  >")
+    f.more:SetLabel((L["%d more in the loot log"]):format(#rows - MINE_MAX) .. "  >")
     f.empty:SetShown(#rows == 0)
     layoutMine(f)
 end
@@ -5989,8 +5989,8 @@ end
 -- Reiter "Raidleitung": Unter-Reiter fuer Leitung / Schlachtzugsleiter / Assistenten
 ------------------------------------------------------------------------
 local function buildLead(f)
-    f.seg = K.Segments(f, { { key = "new", text = L["Neuer Termin"] }, { key = "loot", text = L["Verteilung"] },
-        { key = "plan", text = L["Aufstellung"] }, { key = "points", text = L["Punkte"] } },
+    f.seg = K.Segments(f, { { key = "new", text = L["New event"] }, { key = "loot", text = L["Distribution"] },
+        { key = "plan", text = L["Roster"] }, { key = "points", text = L["Points"] } },
         function(k) leadTab = k applyTabs() ns.RefreshPage("raidlead") end, 90, { size = 12, pad = 18 })
     f.seg:SetPoint("TOPLEFT", 0, 0)
     f.line = f:CreateTexture(nil, "ARTWORK")
@@ -6001,7 +6001,7 @@ local function buildLead(f)
     f.badge = K.Text(f, 10, C.amber, "RIGHT")
     f.badge:SetPoint("TOPRIGHT", 0, -6)
     f.badge:SetWordWrap(false)
-    f.badge:SetText(L["nur fuer die Raidleitung sichtbar"])
+    f.badge:SetText(L["visible to raid leaders only"])
     f.tabs = {}
     for key, builder in pairs({ new = buildForm, loot = buildLoot, points = buildPoints, plan = ns.RaidPlanner.Build }) do
         local sf = CreateFrame("Frame", nil, f)
@@ -6037,7 +6037,7 @@ function Raid.SeedLootDemo()
         { "|cff0070dd|Hitem:6340::::::::|h[Fenrus' Hide]|h|r", nil, 3, 20, nil },
     }
     for k, d in ipairs(MY) do
-        put2("loot", { id = "demo-myloot" .. k, item = d[1], who = ns.me(), src = d[2] and "Vergabe" or "Beute", choice = d[2], roll = d[2] and (40 + k * 13) or nil,
+        put2("loot", { id = "demo-myloot" .. k, item = d[1], who = ns.me(), src = d[2] and "Vergabe" or "Loot", choice = d[2], roll = d[2] and (40 + k * 13) or nil,
             zone = d[2] and "Barrow Deeps" or "Burg Schattenfang", mapID = 0, ts = now - d[4] * 86400 + k * 900, quality = d[3] })
     end
     -- Reservierung fuer den naechsten Demo-Raid
@@ -6064,20 +6064,20 @@ end)
 
 ns.RegisterPage({
     key = "raid", title = "Raids", order = 5,
-    sub = "Termine, Anmeldung und Raidleitung",
+    sub = "Events, sign-ups and raid leading",
     build = function(p)
         pageRef = p
-        p.seg = K.Segments(p, { { key = "events", text = L["Termine"] } }, function(k) Raid.SetTab(k) end, 100)
+        p.seg = K.Segments(p, { { key = "events", text = L["Events"] } }, function(k) Raid.SetTab(k) end, 100)
         p.seg:SetPoint("TOPLEFT", 0, 0)
         p.seg:Hide()
         for _, b in ipairs(p.seg.buttons) do if b.key == "lead" then p.leadSegBtn = b end end
         if p.leadSegBtn then
-            p.leadSegBtn.label:SetText("|cffe8b44a" .. L["Raidleitung"] .. "|r")
+            p.leadSegBtn.label:SetText("|cffe8b44a" .. L["Raid leaders"] .. "|r")
         end
-        p.srBtn = K.Button(p, L["Reservierungen"] .. "  >", 150, 22, "ghost", function() ns.ShowPage("softres") end)
+        p.srBtn = K.Button(p, L["Reservations"] .. "  >", 150, 22, "ghost", function() ns.ShowPage("softres") end)
         p.srBtn:SetPoint("TOPRIGHT", 0, 0)
         p.srBtn:Hide()
-        p.buffBtn = K.Button(p, L["Buff-Monitor"] .. "  >", 140, 22, "ghost", function() ns.ShowPage("buffs") end)
+        p.buffBtn = K.Button(p, L["Buff monitor"] .. "  >", 140, 22, "ghost", function() ns.ShowPage("buffs") end)
         p.buffBtn:SetPoint("RIGHT", p.srBtn, "LEFT", -6, 0)
         p.buffBtn:Hide()
         p.tabs = {}
@@ -6106,8 +6106,8 @@ ns.RegisterPage({
 ------------------------------------------------------------------------
 if ns.ICONS then ns.ICONS.raidlead = ns.MEDIA .. "icons\\admin" end
 ns.RegisterPage({
-    key = "raidlead", title = "Raidleitung", order = 5.01,
-    sub = "Termine anlegen, Beute verteilen, Aufstellung und Punkte",
+    key = "raidlead", title = "Raid leaders", order = 5.01,
+    sub = "Create events, distribute loot, line-up and points",
     build = function(p)
         leadRef = CreateFrame("Frame", nil, p)
         leadRef:SetAllPoints()
@@ -6151,10 +6151,10 @@ end
 ------------------------------------------------------------------------
 if ns.ICONS then ns.ICONS.loot = ns.MEDIA .. "icons\\wants" end
 ns.RegisterPage({
-    key = "loot", title = "Beute", order = 5.02,
-    sub = "Faire Beute: wer oft dabei ist und wenig bekommen hat, ist zuerst dran",
+    key = "loot", title = "Loot", order = 5.02,
+    sub = "Fair loot: whoever attends often and has received little goes first",
     build = function(p)
-        p.seg = K.Segments(p, { { key = "mine", text = L["Meine Beute"] }, { key = "log", text = L["Beute-Log"] } },
+        p.seg = K.Segments(p, { { key = "mine", text = L["My loot"] }, { key = "log", text = L["Loot log"] } },
             function(k) lootTab = k ns.RefreshPage("loot") end, 100)
         p.seg:SetPoint("TOPLEFT", 0, 0)
         p.tabs = {}
@@ -6188,7 +6188,7 @@ do
         K.Border(helper, C.line)
         helper.head = K.Text(helper, 10, C.amber)
         helper.head:SetPoint("TOPLEFT", 10, -8)
-        helper.head:SetText(K.Upper(L["Oasis-Verteilung"]))
+        helper.head:SetText(K.Upper(L["Oasis loot"]))
         helper.rows = {}
     end
     local function show()
@@ -6214,7 +6214,7 @@ do
                 r.t:SetPoint("LEFT", 0, 0)
                 r.t:SetPoint("RIGHT", -84, 0)
                 r.t:SetWordWrap(false)
-                r.b = K.Button(r, L["Verteilen"], 78, 20, "primary")
+                r.b = K.Button(r, L["Distribute"], 78, 20, "primary")
                 r.b:SetPoint("RIGHT", 0, 0)
                 helper.rows[i] = r
             end

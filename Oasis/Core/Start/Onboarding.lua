@@ -51,19 +51,19 @@ local function navOf(key)
     return d and d.nav and d.nav:IsVisible() and d.nav or nil
 end
 local STEPS = {
-    { title = "Willkommen bei Oasis", text = "Die Zentrale eurer Gilde. In 30 Sekunden kennst du dich aus - hier ist das Wichtigste.",
+    { title = "Welcome to Oasis", text = "Your guild's hub. In 30 seconds you will know your way around - here is what matters.",
       target = function() return mainF() end },
-    { title = "Die Navigation", text = "Alle Bereiche, nach Themen gruppiert: Gilde, Zusammen spielen, Raid, Handel, Spass. Ein Klick auf eine Ueberschrift klappt die Gruppe zu.",
+    { title = "The navigation", text = "All areas, grouped by topic: guild, playing together, raid, trade, fun. Click a heading to collapse its group.",
       target = function() local m = mainF() return m and m.side end },
-    { title = "Gemeinsam questen", text = "Zeigt sofort, wer aus der Gilde dieselben Quests hat und gerade online ist - ein Klick laedt ihn ein.",
+    { title = "Quest together", text = "Shows at a glance who in the guild has the same quests and is online right now - one click invites them.",
       target = function() return navOf("social") or navOf("groups") or (mainF() and mainF().side) end, page = "social" },
-    { title = "Hier passiert alles", text = "Der Inhalt des gewaehlten Bereichs. Die Uebersicht zeigt, wer online ist, was ansteht und was es Neues gibt.",
+    { title = "This is where it happens", text = "The content of the selected area. The overview shows who is online, what is coming up and what is new.",
       target = function() local m = mainF() return m and m.content end, page = "home" },
-    { title = "Einstellungen und Sprache", text = "Zahnrad = Einstellungen (Aussehen, Toene, Hinweise). Daneben Sprache und - fuer die Gildenleitung - die Krone.",
+    { title = "Settings and language", text = "Gear = settings (look, sounds, notifications). Next to it the language and - for guild leadership - the crown.",
       target = function() local m = mainF() return m and m.gear end, pad = 40 },
-    { title = "Immer griffbereit", text = "Der Minimap-Knopf oder /oa oeffnet Oasis. Mit dem Strich oben rechts wird das Fenster zu einer schmalen Leiste.",
+    { title = "Always at hand", text = "The minimap button or /oa opens Oasis. The dash at the top right turns the window into a slim bar.",
       target = function() return _G.OasisMinimapButton end, pad = 6 },
-    { title = "Viel Spass mit Oasis!", text = "Das war's schon. Den Rundgang findest du jederzeit wieder unter Einstellungen > Status oder mit /oa rundgang.",
+    { title = "Have fun with Oasis!", text = "That's it. You can find the tour again any time under Settings > Status or with /oa rundgang.",
       choice = true },
 }
 OB.STEPS = STEPS
@@ -112,13 +112,13 @@ local function build()
     b.text:SetWidth(292)
     b.text:SetWordWrap(true)
     b.text:SetJustifyV("TOP")
-    b.skip = K.Button(b, L["Ueberspringen"], 100, 24, "ghost", function() OB.Finish(nil) end)
+    b.skip = K.Button(b, L["Skip"], 100, 24, "ghost", function() OB.Finish(nil) end)
     b.skip:SetPoint("BOTTOMLEFT", 12, 12)
-    b.back = K.Button(b, L["Zurueck"], 74, 24, "ghost", function() OB.Step(ov.i - 1) end)
+    b.back = K.Button(b, L["Back"], 74, 24, "ghost", function() OB.Step(ov.i - 1) end)
     b.back:SetPoint("BOTTOMRIGHT", -94, 12)
-    b.next = K.Button(b, L["Weiter"], 76, 24, "primary", function() OB.Step(ov.i + 1) end)
+    b.next = K.Button(b, L["Resume"], 76, 24, "primary", function() OB.Step(ov.i + 1) end)
     b.next:SetPoint("BOTTOMRIGHT", -12, 12)
-    b.simple = K.Button(b, L["Los geht's"], 140, 28, "primary", function() OB.Finish("all") end)
+    b.simple = K.Button(b, L["Let's go"], 140, 28, "primary", function() OB.Finish("all") end)
     b.simple:SetPoint("BOTTOMRIGHT", -12, 12)
     b.all = b.simple
     b.dots = {}

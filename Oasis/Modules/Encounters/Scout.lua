@@ -80,9 +80,9 @@ end)
 -- Ausruestung beim Betrachten merken
 ------------------------------------------------------------------------
 local SLOTS = { 1, 2, 3, 15, 5, 9, 10, 6, 7, 8, 11, 12, 13, 14, 16, 17, 18 }
-local SLOT_NAME = { [1] = "Kopf", [2] = "Hals", [3] = "Schultern", [15] = "Ruecken", [5] = "Brust", [9] = "Handgelenke",
-    [10] = "Haende", [6] = "Taille", [7] = "Beine", [8] = "Fuesse", [11] = "Ring", [12] = "Ring", [13] = "Schmuck",
-    [14] = "Schmuck", [16] = "Waffenhand", [17] = "Nebenhand", [18] = "Distanz" }
+local SLOT_NAME = { [1] = "Head", [2] = "Neck", [3] = "Shoulders", [15] = "Back", [5] = "Chest", [9] = "Wrists",
+    [10] = "Hands", [6] = "Waist", [7] = "Legs", [8] = "Feet", [11] = "Ring", [12] = "Ring", [13] = "Trinkets",
+    [14] = "Trinkets", [16] = "Main hand", [17] = "Off hand", [18] = "Ranged" }
 S.SLOTS, S.SLOT_NAME = SLOTS, SLOT_NAME
 local function ilvlOf(link)
     if not link then return nil end
@@ -192,7 +192,7 @@ local function buildGear()
     f.il:SetPoint("TOPRIGHT", -44, -14)
     f.ilLbl = K.Text(f, 9, C.dim, "RIGHT")
     f.ilLbl:SetPoint("TOPRIGHT", f.il, "BOTTOMRIGHT", 0, -2)
-    f.ilLbl:SetText(K.Upper(L["Gegenstandsstufe"]))
+    f.ilLbl:SetText(K.Upper(L["Item level"]))
     local x = K.CloseButton(f, function() f:Hide() end)
     x:SetPoint("TOPRIGHT", -10, -10)
     f.rows = {}
@@ -264,12 +264,12 @@ function S.ShowGear(full)
         else
             r.icon:SetTexture("Interface\\PaperDoll\\UI-Backpack-EmptySlot")
             r.icon:SetDesaturated(true)
-            r.name:SetText("|cff555555" .. L["leer"] .. "|r")
+            r.name:SetText("|cff555555" .. L["empty"] .. "|r")
             r.meta:SetText(L[SLOT_NAME[r.slot]])
         end
     end
-    f.foot:SetText(e and ((L["Betrachtet %s"]):format(ns.ago(e.t)) .. "  ·  " .. L["Shift-Klick: Gegenstand in den Chat"])
-        or L["Noch keine Ausruestung bekannt - Spieler in der Naehe anvisieren und betrachten (Oasis betrachtet Mitspieler in der Gruppe automatisch)."])
+    f.foot:SetText(e and ((L["Inspected %s"]):format(ns.ago(e.t)) .. "  ·  " .. L["Shift-click: link item in chat"])
+        or L["No gear known yet - target and inspect a nearby player (Oasis inspects group members automatically)."])
     f:Show()
     f:Raise()
 end
@@ -285,7 +285,7 @@ ns.slash.ausruestung = function(arg)
     arg = tostring(arg or ""):gsub("^%s+", ""):gsub("%s+$", "")
     if arg == "" then
         if ns.safe(UnitExists("target")) and ns.safe(UnitIsPlayer("target")) then S.InspectAndShow("target") return end
-        ns.print(L["Spieler anvisieren oder /oa ausruestung Name"])
+        ns.print(L["Target a player or /oa ausruestung Name"])
         return
     end
     for k in pairs(gdb()) do if ns.short(k):lower() == arg:lower() then S.ShowGear(k) return end end
@@ -301,7 +301,7 @@ function S.Suggest(name, note)
     local s = sdb()[name] or {}
     Store.Put(COLL, { id = "sc:" .. name, target = name, by = ns.me(), class = a.class or s.c, lvl = a.lvl or s.l,
         cnt = a.count, note = note and tostring(note):sub(1, 120) or nil, t = ns.now() })
-    K.Toast(L["Vorgeschlagen"], (L["%s steht jetzt auf der Anwerbe-Liste der Gilde."]):format(ns.displayName(name)), C.mint)
+    K.Toast(L["Suggested"], (L["%s is now on the guild's recruiting list."]):format(ns.displayName(name)), C.mint)
 end
 function S.Suggested(name) local r = Store.Get(COLL, "sc:" .. name) return r and not r.del and r or nil end
 function S.Candidates()
@@ -359,7 +359,7 @@ ns.Listen("LOGIN", installAuth)
 ns.Listen("STORE", function(coll, rec, old)
     if coll ~= COLL then return end
     if rec and not old and not rec.del and not ns.isMe(rec.by) and ns.isOfficer and ns.isOfficer() and ns.db.settings.scoutHint ~= false then
-        K.Toast(L["Anwerbe-Vorschlag"], (L["%s schlaegt %s vor"]):format(ns.displayName(rec.by or "?"), ns.displayName(rec.target or "?")), C.accent,
+        K.Toast(L["Recruiting suggestion"], (L["%s suggests %s"]):format(ns.displayName(rec.by or "?"), ns.displayName(rec.target or "?")), C.accent,
             function() S.view = "recruit" ns.ShowPage("scout") end)
     end
     ns.RefreshPage("scout")
@@ -431,10 +431,10 @@ end
 
 if ns.ICONS then ns.ICONS.scout = ns.ICONS.allies or ns.ICONS.social or ns.ICONS.groups end
 ns.RegisterPage({
-    key = "scout", title = "Anwerben & Realm", order = 2.86,
-    sub = "Spieler ohne Gilde aus deinen Gruppen, Vorschlaege der Gilde und wer auf dem Realm unterwegs ist",
+    key = "scout", title = "Recruiting & realm", order = 2.86,
+    sub = "Guildless players from your groups, guild suggestions and who is out on the realm",
     build = function(p)
-        p.seg = K.Segments(p, { { key = "recruit", text = L["Anwerben"] }, { key = "stats", text = L["Realm-Statistik"] } },
+        p.seg = K.Segments(p, { { key = "recruit", text = L["Recruiting"] }, { key = "stats", text = L["Realm statistics"] } },
             function(k) S.view = k ns.RefreshPage("scout") end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
         -- Anwerben
@@ -444,7 +444,7 @@ ns.RegisterPage({
         p.rec.info:SetPoint("TOPLEFT", 0, 0) p.rec.info:SetPoint("RIGHT", 0, 0)
         p.rec.info:SetJustifyH("LEFT")
         p.rec.info:SetWordWrap(true)
-        p.rec.info:SetText(L["Gut bewertete, aktive Spieler ohne Gilde aus deinen Gruppen (Spielerbuch) und Vorschlaege aus der Gilde. 'Vorschlagen' setzt jemanden auf die gemeinsame Liste fuer die Gildenleitung."])
+        p.rec.info:SetText(L["Well-rated, active guildless players from your groups (player book) and suggestions from the guild. 'Suggest' puts someone on the shared list for the guild leadership."])
         p.list = K.List(p.rec, 40, function(l)
             local r = K.Row(l)
             r.cls = r:CreateTexture(nil, "ARTWORK")
@@ -462,13 +462,13 @@ ns.RegisterPage({
             r.tag:SetPoint("LEFT", 270, 6)
             r.tag:SetWidth(200)
             r.tag:SetWordWrap(false)
-            r.inv = K.Button(r, L["Gilde"], 56, 22, "primary")
+            r.inv = K.Button(r, L["Guild"], 56, 22, "primary")
             r.inv:SetPoint("RIGHT", -10, 0)
-            r.wsp = K.Button(r, L["Fluestern"], 70, 22, "ghost")
+            r.wsp = K.Button(r, L["Whisper"], 70, 22, "ghost")
             r.wsp:SetPoint("RIGHT", r.inv, "LEFT", -6, 0)
-            r.sug = K.Button(r, L["Vorschlagen"], 92, 22, "ghost")
+            r.sug = K.Button(r, L["Suggest"], 92, 22, "ghost")
             r.sug:SetPoint("RIGHT", r.wsp, "LEFT", -6, 0)
-            r.gear = K.Button(r, L["Ausruestung"], 88, 22, "ghost")
+            r.gear = K.Button(r, L["Gear"], 88, 22, "ghost")
             r.gear:SetPoint("RIGHT", r.sug, "LEFT", -6, 0)
             r:RegisterForClicks("AnyUp")
             r:SetScript("OnClick", function(self, btn)
@@ -477,11 +477,11 @@ ns.RegisterPage({
                 if btn == "RightButton" then
                     local mine = it.sug and (ns.isMe(it.by) or (ns.isOfficer and ns.isOfficer()))
                     K.ShowMenu(self, {
-                        { text = L["Anfluestern"], fn = function() ns.Whisper(it.name) end },
-                        { text = L["In die Gruppe einladen"], fn = function() ns.InviteName(it.name) end },
-                        { text = L["Ausruestung ansehen"], fn = function() S.ShowGear(it.name) end },
-                        { text = L["Talente ansehen"], fn = function() if ns.Talents then ns.Talents.Show(it.name) end end },
-                        { text = L["Vorschlag entfernen"], disabled = not mine, fn = function() Store.Delete(COLL, "sc:" .. it.name) end },
+                        { text = L["Whisper"], fn = function() ns.Whisper(it.name) end },
+                        { text = L["Invite to group"], fn = function() ns.InviteName(it.name) end },
+                        { text = L["View gear"], fn = function() S.ShowGear(it.name) end },
+                        { text = L["View talents"], fn = function() if ns.Talents then ns.Talents.Show(it.name) end end },
+                        { text = L["Remove suggestion"], disabled = not mine, fn = function() Store.Delete(COLL, "sc:" .. it.name) end },
                     }, ns.colorName(it.name, it.class))
                 end
             end)
@@ -491,15 +491,15 @@ ns.RegisterPage({
             if tc then r.cls:SetTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes") r.cls:SetTexCoord(unpack(tc)) r.cls:Show() else r.cls:Hide() end
             r.name:SetText(ns.colorName(it.name, it.class) .. "  |cff8a8a90" .. (it.lvl or "?") .. "|r")
             local m = {}
-            m[#m + 1] = (L["%dx zusammen gespielt"]):format(it.cnt or 0)
+            m[#m + 1] = (L["played together %dx"]):format(it.cnt or 0)
             if (it.t or 0) > 0 then m[#m + 1] = ns.ago(it.t) end
             local g = gdb()[it.name]
-            if g and g.il then m[#m + 1] = (L["Stufe %d"]):format(g.il) end
+            if g and g.il then m[#m + 1] = (L["Level %d"]):format(g.il) end
             if (it.up or 0) + (it.down or 0) > 0 then m[#m + 1] = ("|cff66db9e+%d|r / |cffff5a5a-%d|r"):format(it.up or 0, it.down or 0) end
-            if it.guild == nil then m[#m + 1] = "|cff8a8a90" .. L["Gilde unbekannt"] .. "|r" end
+            if it.guild == nil then m[#m + 1] = "|cff8a8a90" .. L["guild unknown"] .. "|r" end
             r.meta:SetText(table.concat(m, "  ·  "))
-            r.tag:SetText(it.sug and ((L["vorgeschlagen von %s"]):format(ns.displayName(it.by or "?")) .. ((it.note and it.note ~= "") and (": " .. it.note) or ""))
-                or (it.fav and L["dein Favorit"] or ""))
+            r.tag:SetText(it.sug and ((L["suggested by %s"]):format(ns.displayName(it.by or "?")) .. ((it.note and it.note ~= "") and (": " .. it.note) or ""))
+                or (it.fav and L["your favourite"] or ""))
             local canGuild = CanGuildInvite and CanGuildInvite()
             r.inv:SetShown(canGuild and true or false)
             r.inv:SetScript("OnClick", function() if ns.Social and ns.Social.InviteGuild then ns.Social.InviteGuild(it.name) elseif C_GuildInfo and C_GuildInfo.Invite then pcall(C_GuildInfo.Invite, it.name) end end)
@@ -515,7 +515,7 @@ ns.RegisterPage({
         end)
         p.list:SetPoint("TOPLEFT", p.rec, "TOPLEFT", 0, -40)
         p.list:SetPoint("BOTTOMRIGHT")
-        p.list.empty:SetText(L["Noch keine Kandidaten. Spiel mit Leuten ausserhalb der Gilde - wer ohne Gilde ist und gut bewertet wird, landet hier."])
+        p.list.empty:SetText(L["No candidates yet. Play with people outside the guild - guildless, well-rated players end up here."])
         -- Statistik
         p.st = CreateFrame("Frame", nil, p)
         p.st:SetPoint("TOPLEFT", 0, -34) p.st:SetPoint("BOTTOMRIGHT")
@@ -529,9 +529,9 @@ ns.RegisterPage({
             h:SetText(K.Upper(txt))
             return h
         end
-        head(L["Klassen"], 0, -34)
-        head(L["Levelstufen"], 0, -284)
-        p.st.gh = head(L["Haeufigste Gilden"], 440, -34)
+        head(L["Classes"], 0, -34)
+        head(L["Levels"], 0, -284)
+        p.st.gh = head(L["Most common guilds"], 440, -34)
         p.st.cls = bars(p.st, #CLASSES)
         for i, r in ipairs(p.st.cls) do r:SetPoint("TOPLEFT", 0, -52 - (i - 1) * 24) r:SetWidth(400) end
         p.st.lvl = bars(p.st, 7)
@@ -543,7 +543,7 @@ ns.RegisterPage({
         p.st.note:SetPoint("RIGHT", 0, 0)
         p.st.note:SetJustifyH("LEFT")
         p.st.note:SetWordWrap(true)
-        p.st.note:SetText(L["Gezaehlt werden Spieler, die du in den letzten 30 Tagen anvisiert, mit der Maus beruehrt oder in der Gruppe hattest (ohne Gildenmitglieder). Jeder Spieler zaehlt einmal. Mehr Oasis-Nutzer unterwegs = genauere Zahlen fuer die eigene Sicht."])
+        p.st.note:SetText(L["Counts players you targeted, moused over or grouped with in the last 30 days (guild members excluded). Each player counts once."])
     end,
     refresh = function(p)
         p.seg:Select(S.view)
@@ -554,7 +554,7 @@ ns.RegisterPage({
             return
         end
         local st = S.Stats(30)
-        p.st.sum:SetText((L["%d Spieler in 30 Tagen gesehen  ·  %d auf Level 60  ·  %d ohne Gilde"]):format(st.total, st.max60, st.noGuild))
+        p.st.sum:SetText((L["%d players seen in 30 days  ·  %d at level 60  ·  %d without guild"]):format(st.total, st.max60, st.noGuild))
         local maxC = 0
         for _, c in ipairs(CLASSES) do maxC = math.max(maxC, st.byClass[c] or 0) end
         for i, c in ipairs(CLASSES) do

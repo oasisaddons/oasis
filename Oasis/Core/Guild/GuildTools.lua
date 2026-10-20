@@ -14,14 +14,14 @@ end
 function GT.Invite(name)
     name = (name or ""):gsub("^%s+", ""):gsub("%s+$", "")
     if name == "" then return end
-    if not GT.CanInvite() then ns.print(L["Du darfst niemanden in die Gilde einladen."]) return end
+    if not GT.CanInvite() then ns.print(L["You are not allowed to invite players to the guild."]) return end
     if C_GuildInfo and C_GuildInfo.Invite then pcall(C_GuildInfo.Invite, name) elseif GuildInvite then pcall(GuildInvite, name) end
-    ns.print((L["Gildeneinladung an %s geschickt."]):format(name))
+    ns.print((L["Guild invite sent to %s."]):format(name))
 end
 
 -- NIE "StaticPopupDialogs = ..." zuweisen (siehe GuildInfo.lua)
 StaticPopupDialogs["OASIS_GUILD_INVITE"] = {
-    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Abbrechen", hasEditBox = true, maxLetters = 64,
+    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 64,
     OnShow = function(self)
         local eb = self.editBox or self.EditBox
         if not eb then return end
@@ -35,12 +35,12 @@ StaticPopupDialogs["OASIS_GUILD_INVITE"] = {
     timeout = 0, whileDead = true, hideOnEscape = true,
 }
 function GT.AskInvite()
-    if not GT.CanInvite() then ns.print(L["Du darfst niemanden in die Gilde einladen."]) return end
-    StaticPopup_Show("OASIS_GUILD_INVITE", L["Name des Spielers (Ziel wird vorgeschlagen):"])
+    if not GT.CanInvite() then ns.print(L["You are not allowed to invite players to the guild."]) return end
+    StaticPopup_Show("OASIS_GUILD_INVITE", L["Player name (your target is suggested):"])
 end
 
 function GT.OpenBlizzard()
-    if InCombatLockdown and InCombatLockdown() then ns.print(L["Im Kampf nicht moeglich - gleich nochmal."]) return end
+    if InCombatLockdown and InCombatLockdown() then ns.print(L["Not possible in combat - try again shortly."]) return end
     if ns.HideMain and ns.MainShown and ns.MainShown() then ns.HideMain() end
     if ToggleGuildFrame then ToggleGuildFrame()
     elseif ToggleCommunitiesFrame then ToggleCommunitiesFrame()

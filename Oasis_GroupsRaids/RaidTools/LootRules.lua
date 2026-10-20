@@ -12,14 +12,14 @@ local LR = {}
 ns.LootRules = LR
 
 LR.KINDS = {
-    { key = "q0", text = "Graue Items" },
-    { key = "q1", text = "Weisse Items" },
-    { key = "q2", text = "Gruene Items" },
-    { key = "q3", text = "Blaue Items" },
-    { key = "trade", text = "Handwerkswaren" },
-    { key = "recipe", text = "Rezepte" },
-    { key = "quest", text = "Questgegenstaende" },
-    { key = "name", text = "Name enthaelt ..." },
+    { key = "q0", text = "Grey items" },
+    { key = "q1", text = "White items" },
+    { key = "q2", text = "Green items" },
+    { key = "q3", text = "Blue items" },
+    { key = "trade", text = "Trade goods" },
+    { key = "recipe", text = "Recipes" },
+    { key = "quest", text = "Quest items" },
+    { key = "name", text = "Name contains ..." },
 }
 local KIND = {}
 for _, k in ipairs(LR.KINDS) do KIND[k.key] = k end
@@ -81,7 +81,7 @@ function LR.Apply()
                 table.insert(LR.log, 1, { link = link, who = who, ts = ns.now() })
                 if #LR.log > 30 then table.remove(LR.log) end
             else
-                ns.print((L["Pluender-Regel: %s konnte nicht an %s gehen (nicht in der Gruppe/zu weit weg?)."]):format(link or "?", ns.short(who)))
+                ns.print((L["Loot rule: %s could not go to %s (not in group / too far away?)."]):format(link or "?", ns.short(who)))
             end
         end
     end
@@ -95,14 +95,14 @@ ns.On("LOOT_OPENED", function() ns.After(0.05, function() pcall(LR.Apply) end) e
 local QCOL = { q0 = { 0.62, 0.62, 0.62 }, q1 = { 0.92, 0.92, 0.92 }, q2 = { 0.12, 1, 0 }, q3 = { 0.1, 0.5, 0.95 } }
 local KIND_GLYPH = { q0 = "wants", q1 = "wants", q2 = "wants", q3 = "wants", trade = "crafting", recipe = "chronicle", quest = "checklist", name = "pin" }
 local KIND_DESC = {
-    q0 = "alle grauen Gegenstaende (Plunder)", q1 = "alle weissen Gegenstaende", q2 = "alle gruenen Gegenstaende", q3 = "alle blauen Gegenstaende",
-    trade = "Stoffe, Erze, Kraeuter, Leder ...", recipe = "Rezepte, Plaene, Formeln", quest = "Gegenstaende fuer Quests", name = "jeder Gegenstand, dessen Name das enthaelt",
+    q0 = "all grey items (junk)", q1 = "all white items", q2 = "all green items", q3 = "all blue items",
+    trade = "Cloth, ore, herbs, leather ...", recipe = "Recipes, plans, formulas", quest = "Items for quests", name = "every item whose name contains this",
 }
 local TEMPLATES = {
-    { kind = "trade", to = nil, text = "Handwerkswaren -> Bankchar", bank = true },
-    { kind = "q0", to = "", text = "Graue Items -> ich" },
-    { kind = "recipe", to = "", text = "Rezepte -> ich" },
-    { kind = "quest", to = "", text = "Questgegenstaende -> ich" },
+    { kind = "trade", to = nil, text = "Trade goods -> bank alt", bank = true },
+    { kind = "q0", to = "", text = "Grey items -> me" },
+    { kind = "recipe", to = "", text = "Recipes -> me" },
+    { kind = "quest", to = "", text = "Quest items -> me" },
 }
 local DEMO_RULES = {
     { kind = "trade", to = "Bankfach", demo = true },
@@ -125,13 +125,13 @@ local function shownRules()
 end
 local function isMeTo(to) return not to or to == "" or to:lower() == "ich" or to:lower() == "me" end
 local function targetText(to)
-    if isMeTo(to) then return "|cff66db9e" .. L["ich"] .. "|r" end
+    if isMeTo(to) then return "|cff66db9e" .. L["me"] .. "|r" end
     if ns.Radar and ns.Radar.Colored and ns.Radar.byName and ns.Radar.byName[ns.fullName(to)] then return ns.Radar.Colored(ns.fullName(to)) end
     return ns.displayName(to)
 end
 local function whatText(e)
     local t = L[(KIND[e.kind] or {}).text or "?"]
-    if e.kind == "name" then t = L["Name enthaelt"] .. " |cffe8b44a\"" .. (e.value or "") .. "\"|r" end
+    if e.kind == "name" then t = L["Name contains"] .. " |cffe8b44a\"" .. (e.value or "") .. "\"|r" end
     return t
 end
 local function trim(s) return ((s or ""):gsub("^%s+", ""):gsub("%s+$", "")) end
@@ -139,7 +139,7 @@ local function addRule(f, kind, value, to)
     local rules = LR.Rules()
     for _, r in ipairs(rules) do
         if r.kind == kind and (r.value or "") == (value or "") then
-            K.Toast(L["Pluender-Regeln"], L["Diese Regel gibt es schon."], C.amber)
+            K.Toast(L["Loot rules"], L["This rule already exists."], C.amber)
             return false
         end
     end
@@ -205,7 +205,7 @@ local function attachSuggest(eb)
     local function update(self)
         local q = (self:GetText() or ""):lower()
         local list = {}
-        if q == "" or (L["ich"]):lower():find(q, 1, true) == 1 then list[1] = { short = L["ich"], me = true } end
+        if q == "" or (L["me"]):lower():find(q, 1, true) == 1 then list[1] = { short = L["me"], me = true } end
         local src = { grp = 1, on = 2, off = 3 }
         local cand = candidates()
         table.sort(cand, function(a, b)
@@ -222,8 +222,8 @@ local function attachSuggest(eb)
             r:SetShown(c ~= nil)
             if c then
                 r.name = c.me and "" or c.short
-                r.t:SetText(c.me and ("|cff66db9e" .. L["ich"] .. "|r") or (c.class and ns.colorName(c.name, c.class) or c.short))
-                r.s:SetText(c.me and L["du selbst"] or c.src == "grp" and L["Gruppe"] or c.src == "on" and L["Gilde online"] or L["Gilde"])
+                r.t:SetText(c.me and ("|cff66db9e" .. L["me"] .. "|r") or (c.class and ns.colorName(c.name, c.class) or c.short))
+                r.s:SetText(c.me and L["yourself"] or c.src == "grp" and L["Group"] or c.src == "on" and L["Guild online"] or L["Guild"])
             end
         end
         box.first = list[1].me and "" or list[1].short
@@ -251,8 +251,8 @@ function LR.Build(f)
     f.intro = line(f, 11, C.muted)
     f.intro:SetPoint("TOPLEFT", 0, -2)
     f.intro:SetPoint("RIGHT", f, "RIGHT", 0, 0)
-    f.intro:SetText(L["Passende Beute geht beim Pluendern automatisch an die eingetragene Person - die oberste passende Regel gilt."])
-    f.on = K.Toggle(f, L["Regeln aktiv"], function() return LR.On() end, function(v) S().lootRulesOn = v refreshAll() end)
+    f.intro:SetText(L["Matching loot goes to the chosen player automatically when you loot - the topmost matching rule wins."])
+    f.on = K.Toggle(f, L["Rules active"], function() return LR.On() end, function(v) S().lootRulesOn = v refreshAll() end)
     f.on:SetPoint("TOPLEFT", 0, -22)
     f.on:SetWidth(140)
     f.ml = line(f, 11, C.muted)
@@ -286,22 +286,22 @@ function LR.Build(f)
         end
         K.ShowMenu(self, list, nil, 170)
     end)
-    f.val = K.Input(f, 100, L["z.B. Leinen"])
+    f.val = K.Input(f, 100, L["e.g. Linen"])
     f.val:SetPoint("LEFT", f.kindBtn, "RIGHT", 6, 0)
     f.val:Hide()
     f.goes = K.Text(f, 12, C.muted)
-    f.goes:SetText(L["geht an"])
-    f.to = K.Input(f, 150, L["Name (leer = ich)"])
+    f.goes:SetText(L["goes to"])
+    f.to = K.Input(f, 150, L["Name (empty = me)"])
     f.toSuggest = attachSuggest(f.to)
-    f.add = K.Button(f, L["Hinzufuegen"], 100, 24, "ghost", function()
+    f.add = K.Button(f, L["Add"], 100, 24, "ghost", function()
         if f.kind == "name" and trim(f.val:GetText()) == "" then
-            K.Toast(L["Pluender-Regeln"], L["Bitte einen Namensteil eintragen, z.B. Leinen."], C.amber)
+            K.Toast(L["Loot rules"], L["Please enter part of a name, e.g. Linen."], C.amber)
             f.val:SetFocus()
             return
         end
         if addRule(f, f.kind, trim(f.val:GetText()), f.to:GetText()) then
             f.val:SetText("") f.to:SetText("")
-            f.to.ph:SetText(L["Name (leer = ich)"])
+            f.to.ph:SetText(L["Name (empty = me)"])
         end
     end)
     f.to.onEnter = function() f.add:Click() end
@@ -321,7 +321,7 @@ function LR.Build(f)
         if t.bank then
             setKind(t.kind)
             f.to:SetText("")
-            f.to.ph:SetText(L["Name des Bankchars"])
+            f.to.ph:SetText(L["Name of the bank alt"])
             f.to:SetFocus()
         else
             addRule(f, t.kind, nil, t.to)
@@ -333,7 +333,7 @@ function LR.Build(f)
         for _, t in ipairs(TEMPLATES) do list[#list + 1] = { text = L[t.text], fn = function() applyTemplate(t) end } end
         K.ShowMenu(owner, list, nil, 190)
     end
-    f.tpl = K.Button(f, L["Vorlagen"] .. "  v", 96, 24, "ghost", function(self) tplMenu(self) end)
+    f.tpl = K.Button(f, L["Templates"] .. "  v", 96, 24, "ghost", function(self) tplMenu(self) end)
     f.tpl.isDropdown = true
     f.tpl:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, -60)
 
@@ -342,7 +342,7 @@ function LR.Build(f)
     f.listHead:SetPoint("TOPLEFT", 0, -98)
     f.listHead:SetPoint("RIGHT", f, "RIGHT", 0, 0)
     -- gemeinsames Feld zum Aendern des Ziels (Klick auf den Namen)
-    f.edit = K.Input(f, 170, L["Name (leer = ich)"])
+    f.edit = K.Input(f, 170, L["Name (empty = me)"])
     f.edit:SetFrameStrata("DIALOG")
     f.edit:Hide()
     f.editSuggest = attachSuggest(f.edit)
@@ -392,11 +392,11 @@ function LR.Build(f)
         r.to.hl:SetPoint("BOTTOMLEFT", 0, 1) r.to.hl:SetPoint("BOTTOMRIGHT", 0, 1)
         r.to.hl:SetHeight(1)
         r.to.hl:SetColorTexture(C.blue[1], C.blue[2], C.blue[3], 0.8)
-        r.up = K.IconButton(r, "^", 18, nil, L["nach oben"])
+        r.up = K.IconButton(r, "^", 18, nil, L["move up"])
         r.up:SetPoint("RIGHT", -62, 0)
-        r.down = K.IconButton(r, "v", 18, nil, L["nach unten"])
+        r.down = K.IconButton(r, "v", 18, nil, L["move down"])
         r.down:SetPoint("RIGHT", -40, 0)
-        r.del = K.IconButton(r, "x", 16, nil, L["Loeschen"])
+        r.del = K.IconButton(r, "x", 16, nil, L["Put out"])
         r.del:SetPoint("RIGHT", -12, 0)
         r.demo = K.Text(r, 10, C.amber, "RIGHT")
         r.demo:SetPoint("RIGHT", -12, 0)
@@ -405,8 +405,8 @@ function LR.Build(f)
             local e = r.item
             if not e then return end
             K.ShowTip(self, { whatText(e) .. "  ->  " .. targetText(e.to), L[KIND_DESC[e.kind] or ""],
-                e.demo and ("|cfffac257" .. L["Beispiel-Regel (Demo) - leg eine eigene an, dann verschwinden die Beispiele."] .. "|r")
-                or ("|cff888888" .. L["Klick auf den Namen zum Aendern."] .. "|r") })
+                e.demo and ("|cfffac257" .. L["Example rule (demo) - add your own and the examples disappear."] .. "|r")
+                or ("|cff888888" .. L["Click the name to change it."] .. "|r") })
         end
         r:SetScript("OnEnter", tip)
         r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -495,18 +495,18 @@ function LR.Build(f)
     f.log.none = line(f.log, 11, C.dim)
     f.log.none:SetPoint("TOPLEFT", 4, -26)
     f.log.none:SetPoint("RIGHT", f.log, "RIGHT", 0, 0)
-    f.log.none:SetText(L["Noch nichts verteilt. Sobald eine Regel greift, steht es hier."])
+    f.log.none:SetText(L["Nothing handed out yet. As soon as a rule matches it shows up here."])
 end
 
 function LR.Refresh(f)
     f.on:Refresh()
     local isML = IsInGroup() and ns.LootMaster and ns.LootMaster.IsMasterLooter and ns.LootMaster.IsMasterLooter()
     if not LR.On() then
-        f.ml:SetText("|cff888888" .. L["Aus - nichts wird automatisch verteilt."] .. "|r")
+        f.ml:SetText("|cff888888" .. L["Off - nothing is handed out automatically."] .. "|r")
     elseif isML then
-        f.ml:SetText("|cff66db9e" .. L["Aktiv - du bist Pluendermeister"] .. "|r")
+        f.ml:SetText("|cff66db9e" .. L["Active - you are master looter"] .. "|r")
     else
-        f.ml:SetText("|cfffac257" .. L["Greift nur, wenn du Pluendermeister bist"] .. "|r")
+        f.ml:SetText("|cfffac257" .. L["Only works while you are master looter"] .. "|r")
     end
     -- Verlauf (oben berechnet, weil er die Listenhoehe bestimmt)
     local log = LR.log
@@ -525,7 +525,7 @@ function LR.Refresh(f)
         f.list:SetPoint("TOPLEFT", 0, -114)
         f.list:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, logH + 6)
     end
-    f.log.head.t:SetText(L["Zuletzt automatisch verteilt"] .. "  |cff666666" .. #log .. (f.logOpen and "  ^" or "  v") .. "|r" ..
+    f.log.head.t:SetText(L["Recently handed out"] .. "  |cff666666" .. #log .. (f.logOpen and "  ^" or "  v") .. "|r" ..
         (demoLog and ("   |cfffac257" .. L["Demo"] .. "|r") or ""))
     for i, e in ipairs(f.log.rows) do
         local d = f.logOpen and log[i]
@@ -540,11 +540,11 @@ function LR.Refresh(f)
 
     local rules = shownRules()
     f.list:SetData(rules)
-    f.listHead:SetText(L["Deine Regeln"] .. "  |cff888888" .. #LR.Rules() .. "|r" ..
-        (#rules > 1 and ("   |cff666666" .. L["oben gilt zuerst"] .. "|r") or ""))
+    f.listHead:SetText(L["Your rules"] .. "  |cff888888" .. #LR.Rules() .. "|r" ..
+        (#rules > 1 and ("   |cff666666" .. L["top wins"] .. "|r") or ""))
     f.list:SetAlpha(LR.On() and 1 or 0.55)
     if #rules == 0 then
-        f.empty:Set(L["Noch keine Regeln"], L["Vorlagen"], function(self)
+        f.empty:Set(L["No rules yet"], L["Templates"], function(self)
             local list = {}
             for i, t in ipairs(TEMPLATES) do list[#list + 1] = { text = L[t.text], fn = function() f.ApplyTemplate(i) end } end
             K.ShowMenu(self, list, nil, 190)

@@ -81,17 +81,17 @@ local COLORS = {
     { 0.35, 0.65, 1.00 },   -- 4 blau
     { 1.00, 1.00, 1.00 },   -- 5 weiss
 }
-local COLOR_NAMES = { "Rot", "Gelb", "Gruen", "Blau", "Weiss" }
+local COLOR_NAMES = { "Red", "Yellow", "Green", "Blue", "White" }
 local ROLE_TEX = { T = ICON .. "role_tank", H = ICON .. "role_heal", D = ICON .. "role_dps" }
 local ROLE_COL = { T = { 0.40, 0.62, 1.00 }, H = { 0.40, 0.90, 0.55 }, D = { 0.95, 0.35, 0.35 } }
-local ROLE_NAME = { T = "Tank", H = "Heiler", D = "Schaden" }
+local ROLE_NAME = { T = "Tank", H = "Healer", D = "Damage" }
 local MAX_ENC = 6000          -- groesster Plan in Zeichen (ca. 25 Nachrichten)
 local MAX_UNDO = 30
 local ALPH = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/"
 
 -- Karten zur Auswahl (Raids zuerst); map = uiMapID (Retail-Kartenkatalog), legacy = Worldmap-Kacheln
 local RAIDS = {
-    { key = "m248", name = "Onyxias Hort", map = 248, legacy = { folder = "OnyxiasLair", floors = { 1 } } },
+    { key = "m248", name = "Onyxia's Lair", map = 248, legacy = { folder = "OnyxiasLair", floors = { 1 } } },
     { key = "m329", name = "Hyjal", map = 329 },
     { key = "barrow", name = "Barrow Deeps" },   -- TODO uiMapID unbekannt: wird im Raid automatisch erkannt
 }
@@ -356,7 +356,7 @@ function RB.BoardInfo(key)
             if cfg then info.legacy = { cfg = cfg, floor = cfg.floors[1] } info.dkey = dk end
         end
         info.floors = floorsOf(mid)
-        info.title = info.title or ("Karte " .. mid)
+        info.title = info.title or ("Map " .. mid)
         return info
     end
     local dk, fl = key:match("^d([%w_]+):(%d+)$")
@@ -469,7 +469,7 @@ function RB.SendNow(force)
     if not canSend() or not RB.board then return false end
     local p = curPlan()
     local enc = RB.Encode(p)
-    if #enc > MAX_ENC then ns.print(L["Taktik-Karte: Plan zu gross zum Senden - bitte Zeichnungen reduzieren."]) return false end
+    if #enc > MAX_ENC then ns.print(L["Tactics map: plan too large to send – please reduce drawings."]) return false end
     ns.Comm.Group("RBSET", RB.board, RB.plan, tostring(p.rev or 0), enc)
     return true
 end
@@ -484,7 +484,7 @@ end
 function RB.Add(it)
     if not RB.board then return nil end
     local p = curPlan()
-    if #RB.Encode(p) > MAX_ENC then ns.print(L["Taktik-Karte: Plan ist voll."]) return nil end
+    if #RB.Encode(p) > MAX_ENC then ns.print(L["Tactics map: plan is full."]) return nil end
     pushUndo()
     p.nid = (p.nid or 0) + 1
     it.id = p.nid
@@ -582,7 +582,7 @@ local function onSet(sender, _, board, plan, rev, enc)
     elseif GetTime() - lastToast > 30 then
         lastToast = GetTime()
         local bi = RB.BoardInfo(board)
-        K.Toast(L["Neue Aufstellung vom Raidleiter"], (bi and bi.title or board) .. " - " .. L["Plan"] .. " " .. plan .. " (" .. ns.displayName(sender) .. ")",
+        K.Toast(L["New positions from the raid leader"], (bi and bi.title or board) .. " - " .. L["Plan"] .. " " .. plan .. " (" .. ns.displayName(sender) .. ")",
             C.amber, function() ns.ShowPage("raidboard") end)
     end
 end
@@ -682,9 +682,9 @@ local function markerFrame(host, i)
     m:SetScript("OnEnter", function(self)
         local it = self.item
         if not it then return end
-        local t = it.k == "p" and ns.displayName(it.n) or it.k == "l" and it.s or it.k == "m" and (ROLE_NAME[it.t] and L[ROLE_NAME[it.t]] or (L["Zielsymbol"] .. " " .. it.t)) or ""
+        local t = it.k == "p" and ns.displayName(it.n) or it.k == "l" and it.s or it.k == "m" and (ROLE_NAME[it.t] and L[ROLE_NAME[it.t]] or (L["Raid marker"] .. " " .. it.t)) or ""
         local lines = { t }
-        if RB.CanEdit() then lines[2] = L["Ziehen = verschieben, Rechtsklick = loeschen"] end
+        if RB.CanEdit() then lines[2] = L["Drag = move, right-click = delete"] end
         K.ShowTip(self, lines)
     end)
     m:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1075,25 +1075,25 @@ local function paletteButton(parent, tex, tip, place, col)
 end
 
 ns.RegisterPage({
-    key = "raidboard", title = "Taktik-Karte", order = 2.765,
-    sub = "Karte der Instanz mit Aufstellung - der Raidleiter zeichnet, alle sehen mit",
+    key = "raidboard", title = "Tactics map", order = 2.765,
+    sub = "Instance map with positions – the raid leader draws, everyone sees it",
     build = function(p)
         page = p
         -- Kopfzeile
         p.mapBtn = K.Button(p, "", 230, 24, "ghost", function(self)
-            local items = { { text = L["Automatisch (aktueller Ort)"], checked = RB.auto, fn = function() RB.auto = true ns.RefreshPage("raidboard") end } }
+            local items = { { text = L["Automatic (current location)"], checked = RB.auto, fn = function() RB.auto = true ns.RefreshPage("raidboard") end } }
             for _, e in ipairs(RB.Catalog()) do
                 items[#items + 1] = { text = (e.raid and "|cffffc85a" or "") .. e.text .. (e.raid and "|r" or ""), checked = RB.board == e.key and not RB.auto,
                     fn = function() setBoard(e.key, true) end }
             end
-            K.ShowMenu(self, items, L["Karte"], 230)
+            K.ShowMenu(self, items, L["Map"], 230)
         end)
         p.mapBtn:SetPoint("TOPLEFT", 0, 0)
         p.mapBtn.label:ClearAllPoints()
         p.mapBtn.label:SetPoint("LEFT", 10, 0)
         p.mapBtn.label:SetPoint("RIGHT", -10, 0)
         p.mapBtn.label:SetJustifyH("LEFT")
-        p.floorBtn = K.Button(p, L["Ebene"], 120, 24, "ghost", function(self)
+        p.floorBtn = K.Button(p, L["Level"], 120, 24, "ghost", function(self)
             local info = p.view.info
             if not info or not info.floors then return end
             local items = {}
@@ -1101,7 +1101,7 @@ ns.RegisterPage({
                 local key = f.key or ("m" .. f.map)
                 items[#items + 1] = { text = f.name or key, checked = key == RB.board, fn = function() setBoard(key, true) end }
             end
-            K.ShowMenu(self, items, L["Ebene"], 160)
+            K.ShowMenu(self, items, L["Level"], 160)
         end)
         p.floorBtn:SetPoint("LEFT", p.mapBtn, "RIGHT", 6, 0)
         local segs = {}
@@ -1112,7 +1112,7 @@ ns.RegisterPage({
             ns.RefreshPage("raidboard")
         end, 60)
         p.seg:SetPoint("TOPRIGHT", -96, 0)
-        p.reset = K.Button(p, L["Ansicht"], 90, 24, "ghost", function() RB.ResetView() end)
+        p.reset = K.Button(p, L["Reset view"], 90, 24, "ghost", function() RB.ResetView() end)
         p.reset:SetPoint("TOPRIGHT", 0, 0)
         -- Werkzeugleiste links
         p.bar = CreateFrame("Frame", nil, p)
@@ -1122,11 +1122,11 @@ ns.RegisterPage({
         p.bar:SetWidth(66)
         p.toolBtns = {}
         local defs = {
-            { "move", "Interface\\CURSOR\\Point", { L["Verschieben"], L["Karte ziehen, Marker verschieben"] } },
-            { "draw", ICON .. "brush", { L["Zeichnen"], L["Mit gedrueckter linker Maustaste malen"] } },
-            { "arrow", "Interface\\MINIMAP\\ROTATING-MINIMAPGUIDEARROW", { L["Pfeil"], L["Vom Start zum Ziel ziehen"] } },
-            { "label", nil, { L["Text"], L["Text unten eingeben, dann auf die Karte klicken"] }, "Aa" },
-            { "erase", ICON .. "eraser", { L["Radierer"], L["Klicken oder mit gedrueckter Maustaste ueber Linien, Pfeile und Marker wischen"] } },
+            { "move", "Interface\\CURSOR\\Point", { L["Move"], L["Drag the map, move markers"] } },
+            { "draw", ICON .. "brush", { L["Draw"], L["Hold the left mouse button to draw"] } },
+            { "arrow", "Interface\\MINIMAP\\ROTATING-MINIMAPGUIDEARROW", { L["Arrow"], L["Drag from start to end"] } },
+            { "label", nil, { L["Text"], L["Enter text below, then click on the map"] }, "Aa" },
+            { "erase", ICON .. "eraser", { L["Eraser"], L["Click or hold the mouse button and swipe over lines, arrows and markers"] } },
         }
         local btns = {}
         for _, d in ipairs(defs) do
@@ -1135,18 +1135,18 @@ ns.RegisterPage({
             btns[#btns + 1] = b
         end
         for _, r in ipairs({ "T", "H", "D" }) do
-            btns[#btns + 1] = paletteButton(p.bar, ROLE_TEX[r], { L[ROLE_NAME[r]], L["Klicken oder auf die Karte ziehen"] }, { k = "m", t = r }, ROLE_COL[r])
+            btns[#btns + 1] = paletteButton(p.bar, ROLE_TEX[r], { L[ROLE_NAME[r]], L["Click or drag onto the map"] }, { k = "m", t = r }, ROLE_COL[r])
         end
         for i = 1, 8 do
-            btns[#btns + 1] = paletteButton(p.bar, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_" .. i, { L["Zielsymbol"] .. " " .. i, L["Klicken oder auf die Karte ziehen"] }, { k = "m", t = tostring(i) })
+            btns[#btns + 1] = paletteButton(p.bar, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_" .. i, { L["Raid marker"] .. " " .. i, L["Click or drag onto the map"] }, { k = "m", t = tostring(i) })
         end
-        local pb = toolButton(p.bar, ICON .. "profile", { L["Spieler"], L["Spieler aus der Gruppe waehlen, dann auf die Karte klicken"] }, "place", "P")
+        local pb = toolButton(p.bar, ICON .. "profile", { L["Player"], L["Pick a group member, then click on the map"] }, "place", "P")
         pb:SetScript("OnClick", function(self)
             local items = {}
             for _, m in ipairs(RB.Members()) do
                 items[#items + 1] = { text = ns.Radar and ns.Radar.Colored and ns.Radar.Colored(m.n) or ns.displayName(m.n), fn = function() RB.SetTool("place", { k = "p", n = m.n, c = m.c, t = "P" }) end }
             end
-            K.ShowMenu(self, items, L["Spieler"], 160)
+            K.ShowMenu(self, items, L["Player"], 160)
         end)
         btns[#btns + 1] = pb
         for i, b in ipairs(btns) do
@@ -1168,12 +1168,12 @@ ns.RegisterPage({
             sw:SetScript("OnLeave", function() GameTooltip:Hide() end)
             p.swatches[i] = sw
         end
-        p.undoBtn = K.Button(p.bar, L["Rueckgaengig"], 64, 22, "ghost", function() RB.Undo() end)
+        p.undoBtn = K.Button(p.bar, L["Undo"], 64, 22, "ghost", function() RB.Undo() end)
         p.undoBtn:SetPoint("TOPLEFT", 0, y - 18)
-        p.clearBtn = K.Button(p.bar, L["Leeren"], 64, 22, "danger", function() RB.Clear() end)
+        p.clearBtn = K.Button(p.bar, L["Clear"], 64, 22, "danger", function() RB.Clear() end)
         p.clearBtn:SetPoint("TOPLEFT", 0, y - 44)
-        p.sendBtn = K.Button(p.bar, L["Senden"], 64, 22, "primary", function()
-            if RB.SendNow() then K.Toast(L["Taktik-Karte"], L["Aufstellung an die Gruppe gesendet"], C.mint) end
+        p.sendBtn = K.Button(p.bar, L["Send"], 64, 22, "primary", function()
+            if RB.SendNow() then K.Toast(L["Tactics map"], L["Positions sent to the group"], C.mint) end
         end)
         p.sendBtn:SetPoint("TOPLEFT", 0, y - 70)
         -- Kartenansicht
@@ -1201,7 +1201,7 @@ ns.RegisterPage({
         end
         view.noArt = K.Text(view, 11, C.dim, "CENTER")
         view.noArt:SetPoint("BOTTOM", 0, 8)
-        view.noArt:SetText(L["Keine Kartengrafik fuer diese Instanz - Plan auf Raster"])
+        view.noArt:SetText(L["No map art for this instance – plan on a grid"])
         view:SetScript("OnMouseWheel", function(_, delta)
             local nx, ny, lx, ly = RB.CursorPos()
             RB.Zoom(delta, lx, ly, nx, ny)
@@ -1216,12 +1216,12 @@ ns.RegisterPage({
         p.ghost.ic:SetAllPoints()
         p.ghost:Hide()
         -- Fusszeile
-        p.labelInput = K.Input(p, 160, L["Text fuer Beschriftung"])
+        p.labelInput = K.Input(p, 160, L["Label text"])
         p.labelInput:SetPoint("BOTTOMLEFT", 74, -2)
         p.status = K.Text(p, 11, C.muted)
         p.status:SetPoint("BOTTOMRIGHT", 0, 4)
         p.status:SetJustifyH("RIGHT")
-        p.follow = K.Toggle and K.Toggle(p, L["Leiter folgen"], function() return RB.follow end, function(v) RB.follow = v end) or nil
+        p.follow = K.Toggle and K.Toggle(p, L["Follow leader"], function() return RB.follow end, function(v) RB.follow = v end) or nil
         if p.follow then p.follow:SetPoint("BOTTOMLEFT", 244, 0) p.follow:SetWidth(130) end
         -- nur sichtbar: Positionen sekuendlich auffrischen
         p:SetScript("OnUpdate", function(self, el)
@@ -1273,11 +1273,11 @@ ns.RegisterPage({
         RB.Layout()
         local plan = RB.Plan()
         local st = {}
-        if plan and plan.by and not ns.isMe(plan.by) then st[#st + 1] = (L["von %s"]):format(ns.displayName(plan.by)) end
-        if RB.posLocked then st[#st + 1] = L["Positionen in Instanzen gesperrt - nur Plan"]
-        elseif (RB.dotsShown or 0) > 0 then st[#st + 1] = (L["%d Positionen"]):format(RB.dotsShown) end
-        if not edit then st[#st + 1] = L["Nur ansehen - zeichnen darf der Raidleiter"] end
-        st[#st + 1] = L["Mausrad = Zoom, rechte Maustaste = verschieben"]
+        if plan and plan.by and not ns.isMe(plan.by) then st[#st + 1] = (L["by %s"]):format(ns.displayName(plan.by)) end
+        if RB.posLocked then st[#st + 1] = L["Positions are locked in instances – plan only"]
+        elseif (RB.dotsShown or 0) > 0 then st[#st + 1] = (L["%d positions"]):format(RB.dotsShown) end
+        if not edit then st[#st + 1] = L["View only – the raid leader draws"] end
+        st[#st + 1] = L["Mouse wheel = zoom, right mouse button = pan"]
         p.status:SetText(table.concat(st, "  |cff555555-|r  "))
     end,
 })

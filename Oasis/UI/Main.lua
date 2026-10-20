@@ -131,7 +131,7 @@ function ns.RefreshPage(key, force)
             refreshCost[k] = dt
             if ns.prof then ns.prof.add(def.refresh, "Seite " .. tostring(k), dt) end
         end
-        if not ok then ns.err(L["Seite"] .. " " .. k, e) end
+        if not ok then ns.err(L["Page"] .. " " .. k, e) end
         -- 0.6.448: auf allen Seiten schwarze Box-Rahmen (neu entstandene Boxen nach jedem Aufbau)
         local fr = def.frame
         if k ~= "home" and ns.K and ns.K.DarkFramesIn and ns.Debounce then ns.Debounce("darkFrames", 0.1, function() pcall(ns.K.DarkFramesIn, fr) end) end
@@ -239,7 +239,7 @@ function ns.BadgeTip(key)
         if t then return t end
     end
     local raw = ns._badges and ns._badges[key]
-    if raw and tostring(raw) ~= "" then return (L["Neuigkeiten: %s"]):format(tostring(raw)) end
+    if raw and tostring(raw) ~= "" then return (L["New: %s"]):format(tostring(raw)) end
 end
 local function glowTick(b, t, el)
     local c = C.accent
@@ -357,8 +357,8 @@ local HUBS = {
     board = { "board", "goals" },
 }
 -- Name des Navigationspunkts bzw. des ersten Reiters, wenn er vom Seitentitel abweichen soll
-local HUB_NAV = { tactics = "Raid-Vorbereitung", trade = "Markt & Wuensche" }
-local HUB_TAB = { dev = "Werkzeuge", board = "Schwarzes Brett", raid = "Termine", tactics = "Taktiken", raidprep = "Abend-Check", buffs = "Buffs", loot = "Beute", lockouts = "IDs", lootrules = "Regeln" }
+local HUB_NAV = { tactics = "Raid prep", trade = "Market & wishes" }
+local HUB_TAB = { dev = "Tools", board = "Notice board", raid = "Events", tactics = "Tactics", raidprep = "Raid night check", buffs = "Buffs", loot = "Loot", lockouts = "Lockouts", lootrules = "Rules" }
 function ns.HubNavTitle(key) return HUB_NAV[key] end
 ns.PAGE_HUBS = HUBS
 local HUB_OF = {}
@@ -458,7 +458,7 @@ local function showPage(key)
         end
         def.frame = p
         local ok, e = pcall(def.build, p)
-        if not ok then ns.err(L["Aufbau"] .. " " .. key, e) end
+        if not ok then ns.err(L["Setup"] .. " " .. key, e) end
     end
     local tt = def.headTitle or def.title   -- 0.6.327: eigener Kopf-Titel moeglich (Profil -> "Charakterprofil")
     main.title:SetText((K.Skin and K.Skin("upperTitle")) and K.Upper(L[tt]) or L[tt])
@@ -907,7 +907,7 @@ local function buildMain()
             e:SetScript("OnEnter", function(self)
                 fadeTo(self, 1)
                 self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3])
-                K.ShowTip(self, { L["Ausblenden"], L["Unter Entdecken jederzeit wieder einschalten"] })
+                K.ShowTip(self, { L["Hide"], L["Turn it back on any time under Discover"] })
             end)
             e:SetScript("OnLeave", function(self)
                 self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3])
@@ -949,7 +949,7 @@ local function buildMain()
             st:SetScript("OnEnter", function(self)
                 fadeTo(self, 1)
                 if not self.fav then self.icon:SetVertexColor(1, 0.82, 0.3) end
-                K.ShowTip(self, { self.fav and L["Aus Favoriten entfernen"] or L["Zu Favoriten"], L["Favoriten stehen ganz oben in der Navigation"] })
+                K.ShowTip(self, { self.fav and L["Remove from favourites"] or L["Add to favourites"], L["Favourites appear at the top of the navigation"] })
             end)
             st:SetScript("OnLeave", function() b:UpdateStar() GameTooltip:Hide() end)
             st:SetScript("OnClick", function()
@@ -981,7 +981,7 @@ local function buildMain()
                 mu:SetScript("OnEnter", function(self)
                     fadeTo(self, 1)
                     if not self.on then self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3]) end
-                    K.ShowTip(self, { self.on and L["Stummschaltung aufheben"] or L["Stummschalten"], L["Stumm: Neuigkeiten dieses Reiters erscheinen nicht am Minimap-Knopf und in der Topbar"] })
+                    K.ShowTip(self, { self.on and L["Unmute"] or L["Mute"], L["Muted: news from this tab do not show on the minimap button or the top bar"] })
                 end)
                 mu:SetScript("OnLeave", function() b:UpdateMute() GameTooltip:Hide() end)
                 mu:SetScript("OnClick", function()
@@ -1002,7 +1002,7 @@ local function buildMain()
     main.side = side
     -- 0.6.528: Suche ueber dem Dashboard - filtert die Navigation; Enter oeffnet den ersten Treffer,
     -- sonst ein passendes Gildenmitglied (Profil). Esc leert die Suche.
-    main.navSearch = K.Input(side, SIDEBAR - 30, L["Suchen ..."], function(t)
+    main.navSearch = K.Input(side, SIDEBAR - 30, L["Search ..."], function(t)
         local q = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
         if q == (main.navQuery or "") then return end
         main.navQuery = q
@@ -1022,10 +1022,10 @@ local function buildMain()
                 return
             end
         end
-        ns.print((L["Nichts gefunden fuer \"%s\"."]):format(q))
+        ns.print((L["Nothing found for \"%s\"."]):format(q))
     end)
     main.navSearch:HookScript("OnEscapePressed", function(self) self:SetText("") self:ClearFocus() end)
-    main.navSearch:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Suchen"], L["Seiten finden - Enter oeffnet den ersten Treffer, sonst ein Gildenmitglied mit dem Namen."] }) end)
+    main.navSearch:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Search"], L["Find pages - Enter opens the first match, otherwise a guild member with that name."] }) end)
     main.navSearch:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- Fusszeile der Seitenleiste
@@ -1043,7 +1043,7 @@ local function buildMain()
     fg:SetPoint("BOTTOMRIGHT", -14, 10)
     fg.icon = K.Glyph(fg, 18, ns.MEDIA .. "icons\\settings", C.muted)
     fg.icon:SetPoint("CENTER")
-    fg:SetScript("OnEnter", function(self) self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3]) K.ShowTip(self, { L["Einstellungen"] }) end)
+    fg:SetScript("OnEnter", function(self) self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3]) K.ShowTip(self, { L["Settings"] }) end)
     fg:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
     fg:SetScript("OnClick", function() if ns.ShowPage then ns.ShowPage("settings") end end)
     main.footGear = fg
@@ -1082,9 +1082,9 @@ local function buildMain()
     -- X: je nach Einstellungen > Topbar einklappen (Leiste auf) oder einfach schliessen
     local close = K.CloseButton(head, function() if ns.Collapse then ns.Collapse() else main:Hide() end end, function()
         local m = ns.TopbarMode and ns.TopbarMode() or "collapse"
-        if m == "off" then return L["Schliessen (/oasis oeffnet wieder)"] end
-        if m == "always" then return L["Schliessen (die Topbar bleibt)"] end
-        return L["Einklappen (an der Leiste: ganz schliessen)"]
+        if m == "off" then return L["Close (/oasis opens again)"] end
+        if m == "always" then return L["Close (the top bar stays)"] end
+        return L["Collapse (close fully from the bar)"]
     end, true)
     close:SetPoint("RIGHT", -12, 0)   -- 0.6.328: mittig - rechte Leiste auf einer Linie mit dem Titel
     local function hover(b, round)
@@ -1125,7 +1125,7 @@ local function buildMain()
     mini.line:SetColorTexture(C.muted[1], C.muted[2], C.muted[3], 1)
     mini:SetScript("OnEnter", function(self)
         self.line:SetColorTexture(C.text[1], C.text[2], C.text[3], 1)
-        K.ShowTip(self, L["Einklappen (Oasis-Leiste)"])
+        K.ShowTip(self, L["Collapse (Oasis bar)"])
     end)
     mini:SetScript("OnLeave", function(self)
         self.line:SetColorTexture(C.muted[1], C.muted[2], C.muted[3], 1)
@@ -1144,7 +1144,7 @@ local function buildMain()
     gear.icon:SetPoint("CENTER")
     gear:SetScript("OnEnter", function(self)
         self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3])
-        K.ShowTip(self, L["Einstellungen"])
+        K.ShowTip(self, L["Settings"])
     end)
     gear:SetScript("OnClick", function() showPage("settings") end)
     main.gear = gear
@@ -1155,9 +1155,9 @@ local function buildMain()
     crown:SetScript("OnEnter", function(self)
         self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3])
         if ns.PageVisible("admin") then
-            K.ShowTip(self, { L["Gildenleitung"], L["Module, Rechte und Durchsagen fuer die ganze Gilde"] })
+            K.ShowTip(self, { L["Guild leadership"], L["Modules, rights and announcements for the whole guild"] })
         else
-            K.ShowTip(self, { L["Gildenleitung"], L["Nur fuer Gildenmeister und Offiziere."], "|cffe8b44a" .. L["Klick: zum Ausprobieren nur bei dir freischalten (Testmodus)"] .. "|r" })
+            K.ShowTip(self, { L["Guild leadership"], L["Only for the Guild Master and officers."], "|cffe8b44a" .. L["Click: unlock just for you to try it (test mode)"] .. "|r" })
         end
     end)
     crown:SetScript("OnClick", function()
@@ -1201,7 +1201,7 @@ local function buildMain()
         self.langName = l.name
     end
     lang:SetScript("OnClick", function(self) ns.ShowLanguageMenu(self) end)
-    lang:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Sprache"] .. (self.langName and (": " .. self.langName) or ""), L["Klick: Sprache von Oasis wechseln"] }) end)
+    lang:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Language"] .. (self.langName and (": " .. self.langName) or ""), L["Click: change Oasis language"] }) end)
     lang:SetScript("OnLeave", function() GameTooltip:Hide() end)
     lang:Update()
     main.lang = lang
@@ -1268,8 +1268,8 @@ local function buildMain()
         local busy = ns.Comm.syncing and GetTime() - ns.Comm.syncing < 12
         local c = busy and C.accent or (age and age < 1800 and C.mint) or (age and age < 86400 and C.muted) or C.amber
         sync.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3])
-        local idle = (age and ns.ago(last)) or (ns.Comm.noAnswer and L["niemand online"]) or L["noch nie"]
-        sync:Set(c, busy and L["gleicht ab ..."] or idle, busy and C.accent or C.text)
+        local idle = (age and ns.ago(last)) or (ns.Comm.noAnswer and L["nobody online"]) or L["never"]
+        sync:Set(c, busy and L["syncing ..."] or idle, busy and C.accent or C.text)
         return busy
     end
     local angle = 0
@@ -1293,11 +1293,11 @@ local function buildMain()
     sync:SetScript("OnEnter", function(self)
         -- 0.5.543: schlank - Technik-Diagnose nur noch mit gedrueckter Shift-Taste
         local last = ns.db.meta.lastSync or 0
-        local lines = { L["Abgleich mit der Gilde"] }
-        lines[#lines + 1] = (last > 0 and ("|cff66db9e" .. ns.ago(last) .. "|r") or L["noch nie"])
+        local lines = { L["Sync with the guild"] }
+        lines[#lines + 1] = (last > 0 and ("|cff66db9e" .. ns.ago(last) .. "|r") or L["never"])
             .. (ns.db.meta.lastSyncFrom and ("  ·  " .. ns.Radar.Colored(ns.db.meta.lastSyncFrom)) or "")
-        lines[#lines + 1] = (L["%d mit Oasis gerade online"]):format(math.max(0, (ns.Radar.withAddon or 1) - 1))
-        lines[#lines + 1] = "|cff777777" .. L["Klick: jetzt komplett abgleichen"] .. "|r"
+        lines[#lines + 1] = (L["%d with Oasis online right now"]):format(math.max(0, (ns.Radar.withAddon or 1) - 1))
+        lines[#lines + 1] = "|cff777777" .. L["Click: full sync now"] .. "|r"
         if IsShiftKeyDown() then
             lines[#lines + 1] = " "
             for _, l in ipairs(ns.Comm.Diag()) do lines[#lines + 1] = "|cff888888" .. l .. "|r" end
@@ -1331,14 +1331,14 @@ local function buildMain()
     ah:SetScript("OnClick", function() showPage("trade") end)
     ah:SetScript("OnEnter", function(self)
         local ts, who = ns.Trade and ns.Trade.LatestScan()
-        local lines = { L["Auktionshaus-Preise"] }
+        local lines = { L["Auction House prices"] }
         if ts then
-            lines[#lines + 1] = (L["Stand: %s, gescannt von %s"]):format(ns.ago(ts), ns.Radar.Colored(who))
+            lines[#lines + 1] = (L["As of %s, scanned by %s"]):format(ns.ago(ts), ns.Radar.Colored(who))
         else
-            lines[#lines + 1] = L["Noch kein Scan in der Gilde."]
+            lines[#lines + 1] = L["No scan in the guild yet."]
         end
-        lines[#lines + 1] = "|cff777777" .. L["Einer scannt im AH mit Midas, alle bekommen die Preise."] .. "|r"
-        lines[#lines + 1] = "|cff777777" .. L["Klick: Markt oeffnen"] .. "|r"
+        lines[#lines + 1] = "|cff777777" .. L["One person scans the AH with Midas, everyone gets the prices."] .. "|r"
+        lines[#lines + 1] = "|cff777777" .. L["Click: open Market"] .. "|r"
         K.ShowTip(self, lines)
     end)
     ah:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1356,7 +1356,7 @@ local function buildMain()
         if not on and not ns.IsDev() then self:Hide() return end
         self:Show()
         if on then
-            self:Set(C.amber, L["Demo an"], C.amber)
+            self:Set(C.amber, L["Demo on"], C.amber)
         else
             self:Set(C.dim, L["Demo"], C.muted)
         end
@@ -1369,9 +1369,9 @@ local function buildMain()
     end)
     demo:SetScript("OnEnter", function(self)
         local on = ns.Demo and ns.Demo.IsActive()
-        K.ShowTip(self, { L["Demo-Daten"] .. ": " .. (on and L["an"] or L["aus"]),
-            L["Fuellt Oasis mit Beispiel-Mitgliedern, Terminen, Chronik, Umfragen usw. Bleibt nur bei dir und wird nie an die Gilde gesendet."],
-            "|cff777777" .. L["Klick: an / aus"] .. "|r" })
+        K.ShowTip(self, { L["Demo data"] .. ": " .. (on and L["on"] or L["off"]),
+            L["Fills Oasis with sample members, events, chronicle, polls etc. Stays on your client only and is never sent to the guild."],
+            "|cff777777" .. L["Click: on / off"] .. "|r" })
     end)
     demo:SetScript("OnLeave", function() GameTooltip:Hide() end)
     main.demo = demo
@@ -1386,12 +1386,12 @@ local function buildMain()
         self:Show()
         local n = 0
         for _, s in ipairs((ns.Groups.Slots and ns.Groups.Slots(g)) or {}) do if s.who then n = n + 1 end end
-        self:Set(C.mint, L["Suche"] .. " " .. n .. "/5", C.mint)
+        self:Set(C.mint, L["Search"] .. " " .. n .. "/5", C.mint)
     end
     lfg:SetScript("OnClick", function() showPage("groups") end)
     lfg:SetScript("OnEnter", function(self)
         local g = ns.Groups and ns.Groups.Mine and ns.Groups.Mine()
-        K.ShowTip(self, { L["Gruppensuche laeuft"], g and g.title or "", "|cff777777" .. L["Klick: Gruppen oeffnen"] .. "|r" })
+        K.ShowTip(self, { L["Group search active"], g and g.title or "", "|cff777777" .. L["Click: open groups"] .. "|r" })
     end)
     lfg:SetScript("OnLeave", function() GameTooltip:Hide() end)
     -- eigener Takt (OnUpdate eines versteckten Chips laeuft nicht)
@@ -1488,13 +1488,13 @@ end
 -- Gruppen der Navigation (einklappbar, Zustand wird gemerkt)
 local NAV_GROUPS = {
     { key = "top", text = "", pages = { "home" }, nohead = true },   -- Dashboard: ganz oben, ohne Gruppen-Ueberschrift
-    { key = "me", text = "Ich", pages = { "life", "insta", "bags", "badges", "legacy", "rank" } },
-    { key = "guild", text = "Gilde", pages = { "chat", "radar", "fight", "chronicle", "polls", "community", "pasture", "board", "goals", "bank", "deaths" } },
-    { key = "play", text = "Zusammen spielen", pages = { "groups", "social", "questitems", "allies", "scout", "dungeons", "camp" } },
+    { key = "me", text = "Me", pages = { "life", "insta", "bags", "badges", "legacy", "rank" } },
+    { key = "guild", text = "Guild", pages = { "chat", "radar", "fight", "chronicle", "polls", "community", "pasture", "board", "goals", "bank", "deaths" } },
+    { key = "play", text = "Play together", pages = { "groups", "social", "questitems", "allies", "scout", "dungeons", "camp" } },
     { key = "raid", text = "Raid", pages = { "raid", "raidlead", "loot", "buffs", "tactics" } },
-    { key = "trade", text = "Handel", pages = { "crafting", "trade", "wants" } },
-    { key = "fun", text = "Spass", pages = { "deathroll" } },
-    { key = "dev", text = "Entwickler", pages = { "dev", "bugs" } },   -- nur im Entwicklermodus sichtbar
+    { key = "trade", text = "Trade", pages = { "crafting", "trade", "wants" } },
+    { key = "fun", text = "Fun", pages = { "deathroll" } },
+    { key = "dev", text = "Developer", pages = { "dev", "bugs" } },   -- nur im Entwicklermodus sichtbar
 }
 ns.NAV_GROUPS = NAV_GROUPS
 local function navHead(g)
@@ -1550,19 +1550,19 @@ function ns.NavMenu(owner, def)
         return ("|T%s:14:14:0:0:64:64:0:64:0:64:%d:%d:%d|t  "):format(path, math.floor((r or 0.75) * 255), math.floor((g or 0.75) * 255), math.floor((b or 0.8) * 255))
     end
     local items = {
-        { text = ic(fav and "star_on" or "star_off", 1, 0.82, 0.3) .. (fav and L["Aus Favoriten entfernen"] or L["Zu Favoriten"]), fn = function() ns.NavSetFav(def.key, not fav) end },
-        { text = ic(ICONS[def.key] or "home") .. L["Oeffnen"], fn = function() showPage(def.key) end },
+        { text = ic(fav and "star_on" or "star_off", 1, 0.82, 0.3) .. (fav and L["Remove from favourites"] or L["Add to favourites"]), fn = function() ns.NavSetFav(def.key, not fav) end },
+        { text = ic(ICONS[def.key] or "home") .. L["Open"], fn = function() showPage(def.key) end },
     }
     -- Ausblenden (nicht fuer Kernseiten, die immer sichtbar bleiben)
     if not (ns.Discover and (ns.Discover.LOCKED or ns.Discover.CORE)[def.key]) then
-        items[#items + 1] = { text = ic("eye_off") .. L["Ausblenden"], fn = function()
+        items[#items + 1] = { text = ic("eye_off") .. L["Hide"], fn = function()
             if ns.Discover and ns.Discover.Set then ns.Discover.Set(def.key, false) end
             if current == def.key then showPage("home") end
         end }
     end
     local g = owner.navGroup
     if g and g ~= "fav" and ns.db.settings.navOrder and ns.db.settings.navOrder[g] then
-        items[#items + 1] = { text = ic("sync") .. L["Reihenfolge zuruecksetzen"], fn = function() ns.db.settings.navOrder[g] = nil ns.LayoutNav() end }
+        items[#items + 1] = { text = ic("sync") .. L["Reset order"], fn = function() ns.db.settings.navOrder[g] = nil ns.LayoutNav() end }
     end
     K.ShowMenu(owner, items, L[def.title], 180)
 end
@@ -1676,12 +1676,12 @@ function ns.LayoutNav()
                 local d = pages[k]
                 if d and d.nav and ns.PageVisible(k) then favItems[#favItems + 1] = d end
             end
-            groups[#groups + 1] = { g = { key = "fav", text = "Favoriten" }, items = ordered("fav", favItems) }
+            groups[#groups + 1] = { g = { key = "fav", text = "Favourites" }, items = ordered("fav", favItems) }
         end
     end
     local rest = {}
     for _, d in ipairs(pageOrder) do if d.nav and not inGroup[d.key] and not isFav[d.key] and ns.PageVisible(d.key) then rest[#rest + 1] = d end end
-    if #rest > 0 then groups[#groups + 1] = { g = { key = "more", text = "Weitere" }, items = ordered("more", rest) } end
+    if #rest > 0 then groups[#groups + 1] = { g = { key = "more", text = "More" }, items = ordered("more", rest) } end
     -- 0.6.528: Suche - nur passende Seiten, alle Gruppen aufgeklappt
     main.navFirst = nil
     local q = main.navQuery or ""
@@ -1861,7 +1861,7 @@ local function flagTag(l) return "|T" .. M .. "flags\\" .. l.flag .. ":12:16:0:0
 local langMenu
 function ns.ShowLanguageMenu(owner)
     if InCombatLockdown and InCombatLockdown() then
-        ns.print(L["Im Kampf nicht moeglich - gleich nochmal."])
+        ns.print(L["Not possible in combat - try again shortly."])
         return
     end
     local m = langMenu
@@ -1926,7 +1926,7 @@ function ns.ShowLanguageMenu(owner)
         r:SetAttribute("type", (not on) and "macro" or nil)
         r:SetAttribute("macrotext", (not on) and "/reload" or nil)
         K.SetFontSafe(r.text, K.fontByKey[l.cjk or "ptsans"].path, 12, "", K.FONT)
-        local label = flagTag(l) .. (r.key == "auto" and (L["Wie das Spiel"] .. "  |cff777777(" .. l.name .. ")|r") or l.name)
+        local label = flagTag(l) .. (r.key == "auto" and (L["Like the game"] .. "  |cff777777(" .. l.name .. ")|r") or l.name)
         r.text:SetText(label)
         local c = on and C.text or C.muted
         r.text:SetTextColor(c[1], c[2], c[3])
@@ -1965,11 +1965,11 @@ function ns.SetLanguage(key, reload)
     -- 0.5.564: Grundsprache wurde beim Start verworfen (Speicher) -> Wechsel nach /reload
     if ns.LangNeedsReload and ns.LangNeedsReload(want) then
         local l = ns.langByKey[want]
-        K.Toast(l and l.name or want, L["Diese Sprache gilt nach dem naechsten /reload - hier klicken zum Neuladen."], C.accent, function() ReloadUI() end)
+        K.Toast(l and l.name or want, L["This language applies after the next /reload - click here to reload."], C.accent, function() ReloadUI() end)
         return
     end
     if ns.EnsureLang and not ns.EnsureLang(want) then
-        K.Toast(L["Sprache fehlt"], L["Das Sprachpaket ist nicht installiert - bitte alle Ordner aus der Oasis-ZIP nach AddOns kopieren."], C.red or C.accent)
+        K.Toast(L["Language missing"], L["The language pack is not installed - please copy all folders from the Oasis ZIP into AddOns."], C.red or C.accent)
         return
     end
     ns.lang = want
@@ -1978,7 +1978,7 @@ function ns.SetLanguage(key, reload)
     K.ApplyUserFonts()
     ns.RebuildMain()
     local l = ns.langByKey[ns.lang]
-    K.Toast(l and l.name or ns.lang, L["Oasis-Texte umgestellt. Ein /reload stellt auch die restlichen Stellen um."], C.accent)
+    K.Toast(l and l.name or ns.lang, L["Oasis texts switched. A /reload updates the remaining spots too."], C.accent)
 end
 -- Hauptfenster verwerfen und mit den aktuellen Texten neu aufbauen
 function ns.RebuildMain()
@@ -2162,7 +2162,7 @@ ns.Listen("LOGIN", function()
             for _, x in ipairs(list) do lines[#lines + 1] = K.hex(C.accent) .. x.n .. "|r  " .. x.text end
             lines[#lines + 1] = " "
         end
-        lines[#lines + 1] = "|cff888888" .. L["Linksklick: oeffnen"] .. "  ·  " .. L["Rechtsklick: Einstellungen"] .. "|r"
+        lines[#lines + 1] = "|cff888888" .. L["Left-click: open"] .. "  ·  " .. L["Right-click: settings"] .. "|r"
         K.ShowTip(self, lines, "ANCHOR_LEFT")
     end)
     mm:SetScript("OnLeave", function() GameTooltip:Hide() end)

@@ -9,9 +9,9 @@ local O = ns.Officer
 if ns.ICONS then ns.ICONS.officer = ns.MEDIA .. "icons\\rights" end
 
 local TABS = {
-    { key = "inactive", text = "Inaktive" }, { key = "recruits", text = "Bewerber" }, { key = "ads", text = "Werbung" },
-    { key = "gear", text = "Ausruestung" }, { key = "attend", text = "Anwesenheit" }, { key = "audit", text = "Protokoll" },
-    { key = "bans", text = "Bannliste" }, { key = "sndmute", text = "Sound-Sperre" }, { key = "export", text = "Export" }, { key = "crest", text = "Wappen" },
+    { key = "inactive", text = "Inactive" }, { key = "recruits", text = "Applicants" }, { key = "ads", text = "Recruiting" },
+    { key = "gear", text = "Gear" }, { key = "attend", text = "Attendance" }, { key = "audit", text = "Log" },
+    { key = "bans", text = "Ban list" }, { key = "sndmute", text = "Sound mute" }, { key = "export", text = "Export" }, { key = "crest", text = "Crest" },
 }
 local page
 local function S() return ns.db.settings end
@@ -24,10 +24,10 @@ local function cname(name, class)
 end
 local function fmtAgo(sec)
     local d = math.floor(sec / 86400)
-    if d >= 1 then return (L["vor %d Tagen"]):format(d) end
+    if d >= 1 then return (L["%d days ago"]):format(d) end
     local h = math.floor(sec / 3600)
-    if h >= 1 then return (L["vor %d Std"]):format(h) end
-    return L["gerade eben"]
+    if h >= 1 then return (L["%dh ago"]):format(h) end
+    return L["just now"]
 end
 -- Chatzeile mit Befehl vorbefuellen (Enter druecken = du entscheidest)
 local function prefill(text)
@@ -69,12 +69,12 @@ local BUILD, REFRESH = {}, {}
 BUILD.inactive = function(f)
     local hint = K.Text(f, 11, C.muted)
     hint:SetPoint("TOPLEFT", 0, 0)
-    hint:SetText(L["Offline seit mindestens"])
+    hint:SetText(L["Offline for at least"])
     f.days = input(f, 50, "30", function(t) local n = tonumber(t) if n then S().inactiveDays = math.max(1, n) O.Refresh() end end)
     f.days:SetPoint("LEFT", hint, "RIGHT", 8, 0)
     local t2 = K.Text(f, 11, C.muted)
     t2:SetPoint("LEFT", f.days, "RIGHT", 8, 0)
-    t2:SetText(L["Tagen"])
+    t2:SetText(L["days"])
     f.sum = K.Text(f, 11, C.dim, "RIGHT")
     f.sum:SetPoint("TOPRIGHT", 0, -2)
     -- mehrere auf einmal entfernen: ankreuzen, dann je Klick einer (WoW erlaubt Entfernen nur per Klick)
@@ -85,19 +85,19 @@ BUILD.inactive = function(f)
         if #q == 0 then return end
         if not self.armed or GetTime() - self.armed > 8 then
             self.armed = GetTime()
-            self:SetLabel("|cffff5a4a" .. (L["Wirklich %d entfernen? Nochmal klicken"]):format(#q) .. "|r")
+            self:SetLabel("|cffff5a4a" .. (L["Really remove %d? Click again"]):format(#q) .. "|r")
             return
         end
         self.armed = GetTime()
         local name = q[1]
         local ok = pcall(GuildUninvite, ns.ChatName(name))
-        if ok then f.sel[name] = nil ns.print((L["%s aus der Gilde entfernt."]):format(ns.displayName(name)))
-        else ns.print(L["Entfernen hat nicht geklappt - fehlt dir das Recht?"]) end
+        if ok then f.sel[name] = nil ns.print((L["%s removed from the guild."]):format(ns.displayName(name)))
+        else ns.print(L["Removal failed - missing permission?"]) end
         ns.After(1, function() if ns.Radar.RequestRoster then ns.Radar.RequestRoster() end O.Refresh() end)
         O.Refresh()
     end, C.red)
     f.kickSel:SetPoint("RIGHT", f.sum, "LEFT", -12, 0)
-    f.allSel = smallBtn(f, L["Alle markieren"], 110, function()
+    f.allSel = smallBtn(f, L["Select all"], 110, function()
         local any = false
         for _ in pairs(f.sel) do any = true break end
         f.sel = {}
@@ -105,14 +105,14 @@ BUILD.inactive = function(f)
         O.Refresh()
     end)
     f.allSel:SetPoint("RIGHT", f.kickSel, "LEFT", -8, 0)
-    heads(f, -34, { { "Name", 34 }, { "Rang", 200 }, { "Lvl", 320 }, { "Offline", 360 }, { "Vorschlag", 500 } })
+    heads(f, -34, { { "Name", 34 }, { "Rank", 200 }, { "Lvl", 320 }, { "Offline", 360 }, { "Suggestion", 500 } })
     f.list = makeList(f, -50, 28, {
         { "name", 34, 160 }, { "rank", 200, 110, 12, C.muted }, { "lvl", 320, 30, 12, C.muted }, { "off", 360, 130, 12, C.red }, { "tip", 500, 200, 11, C.amber },
     }, function(r, m)
         r.cols.name:SetText(cname(m.name, m.class))
         r.cols.rank:SetText(m.rank or "")
         r.cols.lvl:SetText(m.level or "")
-        r.cols.off:SetText((L["%d Tage"]):format(math.floor(m.offDays or 0)))
+        r.cols.off:SetText((L["%d days"]):format(math.floor(m.offDays or 0)))
         r.cols.tip:SetText(m.tip or "")
         r.dem.name, r.kick.name = m.name, m.name
         r.chk.name = m.name
@@ -131,15 +131,15 @@ BUILD.inactive = function(f)
             if fr then fr.sel[self.name] = (not fr.sel[self.name]) or nil end
             O.Refresh()
         end)
-        r.dem = smallBtn(r, L["Degradieren"], 90, function(self) prefill("/gdemote " .. ns.ChatName(self.name)) end)
+        r.dem = smallBtn(r, L["Demote"], 90, function(self) prefill("/gdemote " .. ns.ChatName(self.name)) end)
         r.dem:SetPoint("RIGHT", -100, 0)
-        r.kick = smallBtn(r, L["Entfernen"], 84, function(self) prefill("/gremove " .. ns.ChatName(self.name)) end, C.red)
+        r.kick = smallBtn(r, L["Remove"], 84, function(self) prefill("/gremove " .. ns.ChatName(self.name)) end, C.red)
         r.kick:SetPoint("RIGHT", -10, 0)
     end)
-    f.list.empty:SetText(L["Niemand ist so lange offline."])
+    f.list.empty:SetText(L["Nobody has been offline that long."])
     local foot = K.Text(f, 10, C.dim)
     foot:SetPoint("BOTTOMLEFT", 0, -16)
-    foot:SetText(L["Die Knoepfe schreiben den Befehl in die Chatzeile - erst mit Enter wird er ausgefuehrt."])
+    foot:SetText(L["The buttons put the command into the chat line - it only runs when you press Enter."])
 end
 REFRESH.inactive = function(f)
     local thr = S().inactiveDays or 30
@@ -156,15 +156,15 @@ REFRESH.inactive = function(f)
         if not m.online and (m.offDays or 0) >= thr then
             local mn = ns.Alts and ns.Alts.Main(m.name) or m.name
             local e = { name = m.name, class = m.class, rank = m.rank, level = m.level, offDays = m.offDays }
-            if (mainActive[mn] or 999) < thr then e.tip = L["Twink - Spieler ist aktiv"]
-            elseif m.offDays >= thr * 4 then e.tip = L["lange weg: entfernen?"]
-            elseif m.offDays >= thr * 2 then e.tip = L["degradieren?"]
-            else e.tip = L["beobachten"] end
+            if (mainActive[mn] or 999) < thr then e.tip = L["Alt - player is active"]
+            elseif m.offDays >= thr * 4 then e.tip = L["gone long: remove?"]
+            elseif m.offDays >= thr * 2 then e.tip = L["demote?"]
+            else e.tip = L["watch"] end
             out[#out + 1] = e
         end
     end
     table.sort(out, function(a, b) return (a.offDays or 0) > (b.offDays or 0) end)
-    f.sum:SetText((L["%d inaktiv"]):format(#out))
+    f.sum:SetText((L["%d inactive"]):format(#out))
     f.rows = out
     local n = 0
     local still = {}
@@ -172,9 +172,9 @@ REFRESH.inactive = function(f)
     f.sel = still
     if not (f.kickSel.armed and GetTime() - f.kickSel.armed < 8) or n == 0 then
         f.kickSel.armed = nil
-        f.kickSel:SetLabel(n > 0 and ((L["Markierte entfernen (%d)"]):format(n)) or L["Markierte entfernen"])
+        f.kickSel:SetLabel(n > 0 and ((L["Remove marked (%d)"]):format(n)) or L["Remove marked"])
     else
-        f.kickSel:SetLabel("|cffff5a4a" .. (L["Naechsten entfernen (%d uebrig)"]):format(n) .. "|r")
+        f.kickSel:SetLabel("|cffff5a4a" .. (L["Remove next (%d left)"]):format(n) .. "|r")
     end
     f.kickSel:SetEnabledState(n > 0)
     f.list:SetData(out)
@@ -187,9 +187,9 @@ BUILD.recruits = function(f)
     f.name = input(f, 180, L["Name"], nil)
     f.name:SetPoint("TOPLEFT", 0, 0)
     if K.AttachNameSuggest then pcall(K.AttachNameSuggest, f.name) end
-    f.note = input(f, 300, L["Notiz (Klasse, Kontakt, Eindruck ...)"], nil)
+    f.note = input(f, 300, L["Note (class, contact, impression ...)"], nil)
     f.note:SetPoint("LEFT", f.name, "RIGHT", 8, 0)
-    local add = K.Button(f, L["Hinzufuegen"], 110, 24, "primary", function()
+    local add = K.Button(f, L["Add"], 110, 24, "primary", function()
         local n = f.name:GetText():gsub("^%s+", ""):gsub("%s+$", "")
         if n == "" then return end
         O.SaveRecruit({ name = n, note = f.note:GetText(), st = "app" })
@@ -199,10 +199,10 @@ BUILD.recruits = function(f)
     add:SetPoint("LEFT", f.note, "RIGHT", 8, 0)
     local tl = K.Text(f, 11, C.muted)
     tl:SetPoint("LEFT", add, "RIGHT", 18, 0)
-    tl:SetText(L["Probezeit (Tage)"])
+    tl:SetText(L["Trial (days)"])
     f.trial = input(f, 44, "14", function(t) local n = tonumber(t) if n then S().trialDays = math.max(1, n) end end)
     f.trial:SetPoint("LEFT", tl, "RIGHT", 6, 0)
-    heads(f, -36, { { "Name", 10 }, { "Status", 170 }, { "Pate", 290 }, { "Probezeit", 420 }, { "Notiz", 540 } })
+    heads(f, -36, { { "Name", 10 }, { "Status", 170 }, { "Mentor", 290 }, { "Trial", 420 }, { "Note", 540 } })
     f.list = makeList(f, -52, 30, {
         { "name", 10, 150 }, { "pate", 290, 120, 12, C.muted }, { "trial", 420, 110, 12 }, { "note", 540, 260, 11, C.muted },
     }, function(r, rec)
@@ -216,7 +216,7 @@ BUILD.recruits = function(f)
         r.cols.pate:SetText(rec.pate and ns.displayName(rec.pate) or "|cff555555-|r")
         local left = O.TrialLeft(rec)
         if left then
-            r.cols.trial:SetText(left > 0 and ("|cffe8b44a" .. (L["noch %d Tage"]):format(math.ceil(left / 86400)) .. "|r") or ("|cffff5a4a" .. L["vorbei - entscheiden!"] .. "|r"))
+            r.cols.trial:SetText(left > 0 and ("|cffe8b44a" .. (L["%d days left"]):format(math.ceil(left / 86400)) .. "|r") or ("|cffff5a4a" .. L["over - decide!"] .. "|r"))
         else
             r.cols.trial:SetText("")
         end
@@ -234,7 +234,7 @@ BUILD.recruits = function(f)
             O.Refresh()
         end)
         r.st:SetPoint("LEFT", 170, 0)
-        r.pateBtn = smallBtn(r, L["Ich bin Pate"], 96, function(self)
+        r.pateBtn = smallBtn(r, L["I'm the mentor"], 96, function(self)
             local rec = self:GetParent().rec
             if not rec then return end
             local c = {}
@@ -247,10 +247,10 @@ BUILD.recruits = function(f)
         r.del = K.CloseButton(r, function(self)
             local rec = r.rec
             if rec then ns.Store.Delete("recruits", rec.id) O.Refresh() end
-        end, L["Loeschen"])
+        end, L["Put out"])
         r.del:SetPoint("RIGHT", -6, 0)
     end)
-    f.list.empty:SetText(L["Noch keine Bewerber. Name oben eintragen - Klick auf den Status schaltet weiter."])
+    f.list.empty:SetText(L["No applicants yet. Enter a name above - click the status to advance it."])
 end
 REFRESH.recruits = function(f)
     if not f.trial:HasFocus() then f.trial:SetText(tostring(S().trialDays or 14)) end
@@ -294,18 +294,18 @@ local function ownGuild(s)
     return (s:gsub("<Oasis>", function() return "<" .. tostring(g) .. ">" end))
 end
 BUILD.ads = function(f)
-    local h1 = K.GameHead(f, L["Gildenwerbung posten"], C.amber)
+    local h1 = K.GameHead(f, L["Post guild ad"], C.amber)
     h1:SetPoint("TOPLEFT", 0, 0)
     h1:SetWidth(300)
-    f.ad = multiBox(f, 420, 56, function() return S().recruitAd or ownGuild(L["<Oasis> sucht nette Leute zum Leveln, Questen und für Dungeons! Mit eigener Gildenzentrale. /w mich bei Interesse :)"]) end,
+    f.ad = multiBox(f, 420, 56, function() return S().recruitAd or ownGuild(L["<Oasis> is looking for nice people to level, quest and run dungeons with! With our own guild hub. /w me if interested :)"]) end,
         function(t) S().recruitAd = t end)
     f.ad:SetPoint("TOPLEFT", 0, -26)
     f.chanBtns = {}
-    f.post = K.Button(f, L["Posten"], 150, 24, "primary", function()
+    f.post = K.Button(f, L["Mail"], 150, 24, "primary", function()
         if GetTime() - lastAd < AD_CD then return end
         local ch = S().recruitChan
         local id = ch and GetChannelName(ch)
-        if not id or id == 0 then ns.print(L["Kanal waehlen (oben) - du musst ihm beigetreten sein."]) return end
+        if not id or id == 0 then ns.print(L["Pick a channel (above) - you must have joined it."]) return end
         local msg = (f.ad.eb:GetText() or ""):gsub("\n", " ")
         if msg == "" then return end
         SendChatMessage(msg, "CHANNEL", nil, id)
@@ -314,9 +314,9 @@ BUILD.ads = function(f)
     f.post:SetPoint("TOPLEFT", 430, -26)
     f.chanLbl = K.Text(f, 10, C.dim)
     f.chanLbl:SetPoint("TOPLEFT", 0, -88)
-    f.chanLbl:SetText(K.Upper(L["Kanal"]))
+    f.chanLbl:SetText(K.Upper(L["Channel"]))
 
-    local h2 = K.GameHead(f, L["Spieler ohne Gilde finden"], C.blue)
+    local h2 = K.GameHead(f, L["Find players without a guild"], C.blue)
     h2:SetPoint("TOPLEFT", 0, -130)
     h2:SetWidth(300)
     local lv = K.Text(f, 11, C.muted)
@@ -326,7 +326,7 @@ BUILD.ads = function(f)
     f.lo:SetPoint("LEFT", lv, "RIGHT", 8, 0)
     f.hi = input(f, 40, "60", nil)
     f.hi:SetPoint("LEFT", f.lo, "RIGHT", 6, 0)
-    f.who = K.Button(f, L["Suchen"], 130, 24, "primary", function()
+    f.who = K.Button(f, L["Search"], 130, 24, "primary", function()
         if GetTime() - lastWho < WHO_CD then return end
         local lo, hi = tonumber(f.lo:GetText()) or 10, tonumber(f.hi:GetText()) or 60
         lastWho = GetTime()
@@ -339,10 +339,10 @@ BUILD.ads = function(f)
     f.who:SetPoint("LEFT", f.hi, "RIGHT", 10, 0)
     f.wtl = K.Text(f, 11, C.muted)
     f.wtl:SetPoint("LEFT", f.who, "RIGHT", 18, 0)
-    f.wtl:SetText(L["Text zum Anschreiben"])
-    f.wmsg = input(f, 300, ownGuild(L["Hi! Wir sind <Oasis> - Lust auf eine Gilde? :)"]), function(t) S().recruitWhisper = t end)
+    f.wtl:SetText(L["Whisper text"])
+    f.wmsg = input(f, 300, ownGuild(L["Hi! We're <Oasis> - fancy a guild? :)"]), function(t) S().recruitWhisper = t end)
     f.wmsg:SetPoint("LEFT", f.wtl, "RIGHT", 8, 0)
-    heads(f, -192, { { "Name", 10 }, { "Lvl", 200 }, { "Klasse", 240 }, { "Gebiet", 360 } })
+    heads(f, -192, { { "Name", 10 }, { "Lvl", 200 }, { "Class", 240 }, { "Zone", 360 } })
     f.list = makeList(f, -208, 28, {
         { "name", 10, 180 }, { "lvl", 200, 34, 12, C.muted }, { "cls", 240, 110, 12, C.muted }, { "zone", 360, 200, 12, C.muted },
     }, function(r, w)
@@ -352,16 +352,16 @@ BUILD.ads = function(f)
         r.cols.cls:SetText(w.cls or "")
         r.cols.zone:SetText(w.zone or "")
         local done = ns.db.recruitContacted and ns.db.recruitContacted[w.name]
-        r.msg.label:SetText(done and L["angeschrieben"] or L["Anschreiben"])
+        r.msg.label:SetText(done and L["contacted"] or L["Whisper"])
         r.msg:SetEnabled(not done)
     end, function(r)
-        r.msg = smallBtn(r, L["Anschreiben"], 110, function(self)
+        r.msg = smallBtn(r, L["Whisper"], 110, function(self)
             local w = self:GetParent().w
             if not w then return end
             local now = GetTime()
-            if now - (f.lastWhisper or 0) < WHISPER_CD then ns.print((L["Bitte noch %d s warten (Schutz vor Spam)."]):format(math.ceil(WHISPER_CD - (now - (f.lastWhisper or 0))))) return end
-            if whispersLastHour() >= WHISPER_MAX then ns.print(L["Maximal 10 Nachrichten pro Stunde (Schutz vor Spam)."]) return end
-            local msg = (S().recruitWhisper and S().recruitWhisper ~= "") and S().recruitWhisper or ownGuild(L["Hi! Wir sind <Oasis> - Lust auf eine Gilde? :)"])
+            if now - (f.lastWhisper or 0) < WHISPER_CD then ns.print((L["Please wait %d s (spam protection)."]):format(math.ceil(WHISPER_CD - (now - (f.lastWhisper or 0))))) return end
+            if whispersLastHour() >= WHISPER_MAX then ns.print(L["At most 10 messages per hour (spam protection)."]) return end
+            local msg = (S().recruitWhisper and S().recruitWhisper ~= "") and S().recruitWhisper or ownGuild(L["Hi! We're <Oasis> - fancy a guild? :)"])
             SendChatMessage(msg, "WHISPER", nil, w.name)
             f.lastWhisper = now
             whispers[#whispers + 1] = now
@@ -371,17 +371,17 @@ BUILD.ads = function(f)
         end)
         r.msg:SetPoint("RIGHT", -10, 0)
     end)
-    f.list.empty:SetText(L["Noch keine Suche. Level eingeben und \"Suchen\" klicken - Spieler mit Gilde werden ausgeblendet."])
+    f.list.empty:SetText(L["No search yet. Enter levels and click \"Search\" - players with a guild are hidden."])
     f.results = {}
     f:SetScript("OnUpdate", function(self, el)
         self.t = (self.t or 0) + el
         if self.t < 0.5 then return end
         self.t = 0
         local adLeft = AD_CD - (GetTime() - lastAd)
-        self.post.label:SetText(adLeft > 0 and (L["Posten"] .. "  " .. ("%d:%02d"):format(math.floor(adLeft / 60), adLeft % 60)) or L["Posten"])
+        self.post.label:SetText(adLeft > 0 and (L["Mail"] .. "  " .. ("%d:%02d"):format(math.floor(adLeft / 60), adLeft % 60)) or L["Mail"])
         self.post:SetEnabled(adLeft <= 0)
         local whoLeft = WHO_CD - (GetTime() - lastWho)
-        self.who.label:SetText(whoLeft > 0 and (L["Suchen"] .. "  " .. math.ceil(whoLeft) .. " s") or L["Suchen"])
+        self.who.label:SetText(whoLeft > 0 and (L["Search"] .. "  " .. math.ceil(whoLeft) .. " s") or L["Search"])
         self.who:SetEnabled(whoLeft <= 0)
     end)
 end
@@ -437,7 +437,7 @@ ns.On("CHAT_MSG_WHISPER", function(msg, sender)
     if not msg:lower():find(kw:lower(), 1, true) then return end
     if not (CanGuildInvite and CanGuildInvite()) then return end
     if ns.Radar and ns.Radar.byName and rawget(ns.Radar.byName, ns.fullName(sender)) then return end
-    K.Toast((L["%s moechte in die Gilde"]):format(ns.displayName(sender)), L["Klick: in die Gilde einladen"], C.mint, function()
+    K.Toast((L["%s wants to join the guild"]):format(ns.displayName(sender)), L["Click: invite to the guild"], C.mint, function()
         if C_GuildInfo and C_GuildInfo.Invite then C_GuildInfo.Invite(sender) elseif GuildInvite then GuildInvite(sender) end
     end)
 end)
@@ -448,23 +448,23 @@ end)
 BUILD.gear = function(f)
     local t = K.Text(f, 11, C.muted)
     t:SetPoint("TOPLEFT", 0, 0)
-    t:SetText(L["Ab Level"])
+    t:SetText(L["From level"])
     f.min = input(f, 40, "60", function(v) local n = tonumber(v) if n then S().gearMinLvl = n O.Refresh() end end)
     f.min:SetPoint("LEFT", t, "RIGHT", 8, 0)
     local n = K.Text(f, 10, C.dim)
     n:SetPoint("LEFT", f.min, "RIGHT", 12, 0)
-    n:SetText(L["Jeder Oasis-Nutzer meldet seine Ausruestung selbst - kein Betrachten noetig."])
-    heads(f, -34, { { "Name", 10 }, { "Lvl", 190 }, { "Stufe", 230 }, { "Fehlt", 290 }, { "Optional", 620 } })
+    n:SetText(L["Every Oasis user reports their own gear - no inspecting needed."])
+    heads(f, -34, { { "Name", 10 }, { "Lvl", 190 }, { "Item level", 230 }, { "Missing", 290 }, { "Optional", 620 } })
     f.list = makeList(f, -50, 28, {
         { "name", 10, 170 }, { "lvl", 190, 34, 12, C.muted }, { "ilvl", 230, 50, 12, C.muted }, { "miss", 290, 320, 11, C.red }, { "opt", 620, 200, 11, C.dim },
     }, function(r, e)
         r.cols.name:SetText(cname(e.name, e.class))
         r.cols.lvl:SetText(e.level or "")
         r.cols.ilvl:SetText(e.ilvl or "")
-        r.cols.miss:SetText(#e.miss > 0 and table.concat(e.miss, ", ") or "|cff66db9e" .. L["alles verzaubert"] .. "|r")
+        r.cols.miss:SetText(#e.miss > 0 and table.concat(e.miss, ", ") or "|cff66db9e" .. L["all enchanted"] .. "|r")
         r.cols.opt:SetText(table.concat(e.opt, ", "))
     end)
-    f.list.empty:SetText(L["Noch keine Daten - Ausruestung kommt mit dem naechsten Abgleich der Oasis-Nutzer."])
+    f.list.empty:SetText(L["No data yet - gear arrives with the next Oasis sync."])
 end
 REFRESH.gear = function(f)
     local minL = S().gearMinLvl or 60
@@ -490,7 +490,7 @@ BUILD.attend = function(f)
     f.info = K.Text(f, 11, C.muted)
     f.info:SetPoint("TOPLEFT", 0, 0)
     f.info:SetPoint("RIGHT", f, "RIGHT", 0, 0)
-    heads(f, -30, { { "Spieler", 10 }, { "Quote", 220 }, { "Raidtage", 420 } })
+    heads(f, -30, { { "Player", 10 }, { "Rate", 220 }, { "Raid days", 420 } })
     f.list = makeList(f, -46, 28, {
         { "name", 10, 200 }, { "pct", 380, 40, 12, C.text, "RIGHT" }, { "days", 420, 120, 12, C.muted },
     }, function(r, e)
@@ -509,12 +509,12 @@ BUILD.attend = function(f)
         r.bar:SetHeight(6)
         r.bar:SetPoint("LEFT", r.track, "LEFT")
     end)
-    f.list.empty:SetText(L["Noch keine Raidtage erfasst. Der Raidleiter (mit Oasis) schreibt sie bei jedem Boss-Kill automatisch mit."])
+    f.list.empty:SetText(L["No raid days recorded yet. The raid leader (with Oasis) records them automatically on every boss kill."])
 end
 REFRESH.attend = function(f)
 
     local recs = ns.Store.List("attend", function(r) return (r.ts or 0) >= ns.now() - 28 * 86400 end)
-    f.info:SetText((L["Letzte 4 Wochen: %d Raidtage erfasst. Gezaehlt wird der Main (Twinks zaehlen mit)."]):format(#recs))
+    f.info:SetText((L["Last 4 weeks: %d raid days recorded. Counted per main (alts count too)."]):format(#recs))
     local seen, out = {}, {}
     for _, r in ipairs(recs) do
         for n in (r.n or ""):gmatch("[^,]+") do
@@ -536,13 +536,13 @@ local KIND_COL = { promote = C.mint, demote = C.amber, kick = C.red, join = C.bl
 BUILD.audit = function(f)
     local n = K.Text(f, 10, C.dim)
     n:SetPoint("TOPLEFT", 0, 0)
-    n:SetText(L["Befoerderungen, Degradierungen, Kicks, Beitritte und Austritte - von allen Oasis-Nutzern gesammelt (180 Tage)."])
+    n:SetText(L["Promotions, demotions, kicks, joins and leaves - collected by all Oasis users (180 days)."])
     f.list = makeList(f, -24, 26, { { "when", 10, 150, 11, C.dim }, { "text", 170, 600, 12 } }, function(r, e)
-        r.cols.when:SetText(date(L["%d.%m. %H:%M"], e.ts or 0))
+        r.cols.when:SetText(date(L["%m/%d %H:%M"], e.ts or 0))
         local c = KIND_COL[e.kind] or C.text
         r.cols.text:SetText(K.hex(c) .. O.AuditText(e) .. "|r")
     end)
-    f.list.empty:SetText(L["Noch keine Eintraege."])
+    f.list.empty:SetText(L["No entries yet."])
 end
 REFRESH.audit = function(f) f.list:SetData(O.Audit()) end
 
@@ -552,9 +552,9 @@ REFRESH.audit = function(f) f.list:SetData(O.Audit()) end
 BUILD.bans = function(f)
     f.name = input(f, 180, L["Name"], nil)
     f.name:SetPoint("TOPLEFT", 0, 0)
-    f.reason = input(f, 340, L["Grund"], nil)
+    f.reason = input(f, 340, L["Reason"], nil)
     f.reason:SetPoint("LEFT", f.name, "RIGHT", 8, 0)
-    local b = K.Button(f, L["Auf die Bannliste"], 150, 24, "danger", function()
+    local b = K.Button(f, L["Add to ban list"], 150, 24, "danger", function()
         local n = f.name:GetText():gsub("^%s+", ""):gsub("%s+$", "")
         if n == "" then return end
         O.Ban(n, f.reason:GetText())
@@ -564,17 +564,17 @@ BUILD.bans = function(f)
     b:SetPoint("LEFT", f.reason, "RIGHT", 8, 0)
     local n = K.Text(f, 10, C.dim)
     n:SetPoint("TOPLEFT", 0, -32)
-    n:SetText(L["Alle Oasis-Nutzer bekommen eine Warnung, wenn ein Gebannter in ihrer Gruppe ist, sie einlaedt oder handeln will - und sehen es im Tooltip."])
+    n:SetText(L["All Oasis users get a warning when a banned player is in their group, invites them or wants to trade - and see it in the tooltip."])
     f.list = makeList(f, -56, 28, { { "name", 10, 180 }, { "reason", 200, 400, 12, C.muted }, { "by", 610, 160, 11, C.dim } }, function(r, e)
         r.e = e
         r.cols.name:SetText("|cffff5a4a" .. (e.name or "?") .. "|r")
         r.cols.reason:SetText(e.reason or "")
-        r.cols.by:SetText((e.by and ns.displayName(e.by) or "") .. "  " .. date(L["%d.%m."], e.ts or 0))
+        r.cols.by:SetText((e.by and ns.displayName(e.by) or "") .. "  " .. date(L["%m/%d"], e.ts or 0))
     end, function(r)
-        r.un = smallBtn(r, L["Aufheben"], 90, function(self) local e = self:GetParent().e if e then O.Unban(e.name) O.Refresh() end end)
+        r.un = smallBtn(r, L["Remove"], 90, function(self) local e = self:GetParent().e if e then O.Unban(e.name) O.Refresh() end end)
         r.un:SetPoint("RIGHT", -10, 0)
     end)
-    f.list.empty:SetText(L["Die Bannliste ist leer."])
+    f.list.empty:SetText(L["The ban list is empty."])
 end
 REFRESH.bans = function(f)
     local l = ns.Store.List("bans")
@@ -588,7 +588,7 @@ end
 BUILD.sndmute = function(f)
     f.name = input(f, 180, L["Name"], nil)
     f.name:SetPoint("TOPLEFT", 0, 0)
-    f.reason = input(f, 340, L["Grund"], nil)
+    f.reason = input(f, 340, L["Reason"], nil)
     f.reason:SetPoint("LEFT", f.name, "RIGHT", 8, 0)
     local function add(n)
         n = tostring(n or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -602,10 +602,10 @@ BUILD.sndmute = function(f)
         f.name:SetText("") f.reason:SetText("")
         O.Refresh()
     end
-    local b = K.Button(f, L["Sounds sperren"], 130, 24, "danger", function() add(f.name:GetText()) end)
+    local b = K.Button(f, L["Mute sounds"], 130, 24, "danger", function() add(f.name:GetText()) end)
     b:SetPoint("LEFT", f.reason, "RIGHT", 8, 0)
     -- aus der Gildenliste waehlen (wer gerade online ist)
-    local pick = K.Button(f, L["Mitglied waehlen"], 130, 24, "ghost", function(self)
+    local pick = K.Button(f, L["Pick member"], 130, 24, "ghost", function(self)
         local items = {}
         for _, m in ipairs(ns.Radar and ns.Radar.roster or {}) do
             if m.online and not ns.isMe(m.name) and not O.SoundMuteOf(m.name) then
@@ -614,7 +614,7 @@ BUILD.sndmute = function(f)
             end
         end
         table.sort(items, function(a, c) return a.text < c.text end)
-        if #items == 0 then items[1] = { text = L["Niemand online"], disabled = true } end
+        if #items == 0 then items[1] = { text = L["Nobody online"], disabled = true } end
         K.ShowMenu(self, items)
     end)
     pick:SetPoint("LEFT", b, "RIGHT", 6, 0)
@@ -622,17 +622,17 @@ BUILD.sndmute = function(f)
     n:SetPoint("TOPLEFT", 0, -32)
     n:SetPoint("RIGHT", 0, 0)
     n:SetJustifyH("LEFT")
-    n:SetText(L["Gesperrte koennen keine Soundeffekte mehr senden, und bei allen anderen bleiben ihre Sounds stumm. Gilt auch fuer ihre Twinks."])
+    n:SetText(L["Muted members can no longer send sound effects, and their sounds stay silent for everyone else. Also applies to their alts."])
     f.list = makeList(f, -56, 28, { { "name", 10, 180 }, { "reason", 200, 400, 12, C.muted }, { "by", 610, 160, 11, C.dim } }, function(r, e)
         r.e = e
         r.cols.name:SetText("|cffe8b44a" .. (e.name or "?") .. "|r")
         r.cols.reason:SetText(e.reason or "")
-        r.cols.by:SetText((e.by and ns.displayName(e.by) or "") .. "  " .. date(L["%d.%m."], e.ts or 0))
+        r.cols.by:SetText((e.by and ns.displayName(e.by) or "") .. "  " .. date(L["%m/%d"], e.ts or 0))
     end, function(r)
-        r.un = smallBtn(r, L["Aufheben"], 90, function(self) local e = self:GetParent().e if e then O.SoundUnmute(e.name) O.Refresh() end end)
+        r.un = smallBtn(r, L["Remove"], 90, function(self) local e = self:GetParent().e if e then O.SoundUnmute(e.name) O.Refresh() end end)
         r.un:SetPoint("RIGHT", -10, 0)
     end)
-    f.list.empty:SetText(L["Niemand ist fuer Soundeffekte gesperrt."])
+    f.list.empty:SetText(L["Nobody is muted for sound effects."])
 end
 REFRESH.sndmute = function(f)
     local l = ns.Store.List("sndmute")
@@ -672,7 +672,7 @@ O.JSON = json
 local function discordText(snap)
     local on, total = 0, #snap.roster
     for _, m in ipairs(snap.roster) do if m.online then on = on + 1 end end
-    local lines = { ("**%s** – %s"):format(snap.guild or "Gilde", date("%d.%m.%Y %H:%M", snap.ts)), ("Mitglieder: %d  ·  online: %d"):format(total, on), "" }
+    local lines = { ("**%s** – %s"):format(snap.guild or "Guild", date("%d.%m.%Y %H:%M", snap.ts)), ("Mitglieder: %d  ·  online: %d"):format(total, on), "" }
     local top = {}
     for _, m in ipairs(snap.roster) do top[#top + 1] = m end
     table.sort(top, function(a, b) return (a.level or 0) > (b.level or 0) end)
@@ -689,13 +689,13 @@ BUILD.export = function(f)
     info:SetPoint("TOPLEFT", 0, 0)
     info:SetPoint("RIGHT", f, "RIGHT", 0, 0)
     info:SetWordWrap(true)
-    info:SetText(L["Automatisch: Oasis legt alle 10 Minuten und beim Ausloggen einen Schnappschuss in den Gespeicherten Variablen ab (WTF/Account/<Konto>/SavedVariables/Oasis.lua). Das Programm Tools/oasis_export.py liest die Datei, macht JSON daraus und kann es an eure Weboberflaeche schicken. Addons haben keinen Internetzugriff - das ist der sichere Weg."])
+    info:SetText(L["Automatic: every 10 minutes and on logout Oasis stores a snapshot in the saved variables (WTF/Account/<account>/SavedVariables/Oasis.lua). The program Tools/oasis_export.py reads the file, turns it into JSON and can send it to your web page. Addons have no internet access - this is the safe way."])
     f.mode = "json"
     f.seg = K.Segments(f, { { key = "json", text = "JSON" }, { key = "discord", text = "Discord" } }, function(k) f.mode = k O.Refresh() end)
     f.seg:SetPoint("TOPLEFT", 0, -50)
-    local snap = K.Button(f, L["Schnappschuss jetzt"], 170, 24, "primary", function() O.Snapshot() f.dirty = true O.Refresh() end)
+    local snap = K.Button(f, L["Snapshot now"], 170, 24, "primary", function() O.Snapshot() f.dirty = true O.Refresh() end)
     snap:SetPoint("TOPLEFT", 200, -50)
-    local rl = K.Button(f, L["Speichern (/reload)"], 170, 24, "ghost", function() O.Snapshot() ReloadUI() end)
+    local rl = K.Button(f, L["Save (/reload)"], 170, 24, "ghost", function() O.Snapshot() ReloadUI() end)
     rl:SetPoint("LEFT", snap, "RIGHT", 8, 0)
     f.stamp = K.Text(f, 10, C.dim)
     f.stamp:SetPoint("LEFT", rl, "RIGHT", 12, 0)
@@ -719,13 +719,13 @@ BUILD.export = function(f)
     f.eb = eb
     local hint = K.Text(f, 10, C.dim)
     hint:SetPoint("BOTTOMLEFT", 0, -16)
-    hint:SetText(L["Ins Feld klicken, Strg+C zum Kopieren."])
+    hint:SetText(L["Click into the field, Ctrl+C to copy."])
 end
 REFRESH.export = function(f)
     f.seg:Select(f.mode)
     local snap = ns.db.export or O.Snapshot()
     if not snap then return end
-    f.stamp:SetText((L["Stand: %s"]):format(date("%d.%m. %H:%M", snap.ts or 0)))
+    f.stamp:SetText((L["As of: %s"]):format(date("%d.%m. %H:%M", snap.ts or 0)))
     f.text = f.mode == "discord" and discordText(snap) or json(snap)
     if not f.eb:HasFocus() then f.eb:SetText(f.text) end
 end
@@ -747,7 +747,7 @@ end
 BUILD.crest = function(f)
     local n = K.Text(f, 11, C.muted)
     n:SetPoint("TOPLEFT", 0, 0)
-    n:SetText(L["Wappen der Gilde - erscheint im Oasis-Fenster und auf der Profilleiste aller Mitglieder."])
+    n:SetText(L["Guild crest - shown in the Oasis window and on every member's profile bar."])
     f.prev = CreateFrame("Frame", nil, f)
     f.prev:SetSize(96, 96)
     f.prev:SetPoint("TOPLEFT", 0, -30)
@@ -785,16 +785,16 @@ BUILD.crest = function(f)
         b:SetScript("OnClick", function(self) f.selCol = self.hex O.Refresh() end)
         f.cols[i] = b
     end
-    local save = K.Button(f, L["Wappen speichern"], 160, 24, "primary", function()
+    local save = K.Button(f, L["Save crest"], 160, 24, "primary", function()
         if not ns.Admin then return end
         local cfg = {}
         for k, v in pairs(ns.Admin.Cfg()) do cfg[k] = v end
         cfg.crest, cfg.crestc = f.selIcon or "", f.selCol or ""
-        if ns.Admin.Save(cfg) then ns.print(L["Wappen gespeichert - die Gilde sieht es nach dem Abgleich."]) end
+        if ns.Admin.Save(cfg) then ns.print(L["Crest saved - the guild sees it after the next sync."]) end
         if ns.Rewards and ns.Rewards.UpdateCrest then ns.Rewards.UpdateCrest() end
     end)
     save:SetPoint("TOPLEFT", 120, -170)
-    local clear = K.Button(f, L["Kein Wappen"], 120, 24, "ghost", function() f.selIcon = "" O.Refresh() end)
+    local clear = K.Button(f, L["No crest"], 120, 24, "ghost", function() f.selIcon = "" O.Refresh() end)
     clear:SetPoint("LEFT", save, "RIGHT", 8, 0)
 end
 REFRESH.crest = function(f)
@@ -832,8 +832,8 @@ local function setTab(key)
 end
 
 ns.RegisterPage({
-    key = "officer", title = "Gildenpflege", order = 9.1, topbar = true, parent = "admin",
-    sub = "Inaktive, Bewerber, Werbung, Ausruestung, Anwesenheit, Protokoll, Bannliste, Export und Wappen",
+    key = "officer", title = "Guild care", order = 9.1, topbar = true, parent = "admin",
+    sub = "Inactive, applicants, recruiting, gear, attendance, log, ban list, export and crest",
     visible = function() return true end,   -- fuer alle sichtbar, ohne Rechte gesperrt (Admin.lua lockPage)
     build = function(p)
         page = p
@@ -845,7 +845,7 @@ ns.RegisterPage({
         local line = K.Divider(p)
         line:SetPoint("TOPLEFT", 0, -28)
         line:SetPoint("TOPRIGHT", 0, -28)
-        local back = K.Button(p, "< " .. L["Gildenleitung"], 150, 22, "ghost", function() ns.ShowPage("admin") end)
+        local back = K.Button(p, "< " .. L["Guild leadership"], 150, 22, "ghost", function() ns.ShowPage("admin") end)
         back:SetPoint("TOPRIGHT", 0, 0)
         local tab = S().officerTab
         setTab(BUILD[tab or ""] and tab or "inactive")
@@ -865,7 +865,7 @@ ns.RegisterPage({
 ------------------------------------------------------------------------
 local TEXT = {}
 for _, t in ipairs(TABS) do TEXT[t.key] = t.text end
-TEXT.lootlog = "Beute-Log"
+TEXT.lootlog = "Loot log"
 -- fuer Erweiterungen (GuildHistory.lua)
 O.BUILD, O.REFRESH, O.TEXT, O.KIND_COL = BUILD, REFRESH, TEXT, KIND_COL
 O.makeList = makeList

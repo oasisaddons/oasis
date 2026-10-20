@@ -10,18 +10,18 @@ ns.Keybinds = KB
 
 -- Reihenfolge = Anzeige; page = Seite direkt oeffnen (nochmal druecken schliesst)
 KB.ACTIONS = {
-    { cmd = "OASIS_TOGGLE", text = "Oasis oeffnen / schliessen", icon = "home" },
-    { cmd = "OASIS_TOPBAR", text = "Topbar ein / aus", icon = "brush" },
-    { cmd = "OASIS_SETTINGS", text = "Einstellungen", icon = "settings", page = "settings" },
-    { cmd = "OASIS_EMOJI", text = "Emoji-Auswahl", icon = "smile" },
+    { cmd = "OASIS_TOGGLE", text = "Open / close Oasis", icon = "home" },
+    { cmd = "OASIS_TOPBAR", text = "Toggle topbar", icon = "brush" },
+    { cmd = "OASIS_SETTINGS", text = "Settings", icon = "settings", page = "settings" },
+    { cmd = "OASIS_EMOJI", text = "Emoji picker", icon = "smile" },
     { cmd = "OASIS_HOME", text = "Dashboard", icon = "home", page = "home" },
-    { cmd = "OASIS_MEMBERS", text = "Mitglieder", icon = "social", page = "radar" },
+    { cmd = "OASIS_MEMBERS", text = "Members", icon = "social", page = "radar" },
     { cmd = "OASIS_CHAT", text = "Chat", icon = "announce", page = "chat" },
-    { cmd = "OASIS_GROUPS", text = "Gruppen", icon = "groups", page = "groups" },
+    { cmd = "OASIS_GROUPS", text = "Groups", icon = "groups", page = "groups" },
     { cmd = "OASIS_RAID", text = "Raids", icon = "raid", page = "raid" },
-    { cmd = "OASIS_PROFILE", text = "Profil", icon = "profile", page = "insta" },
-    { cmd = "OASIS_BLIZZGUILD", text = "Blizzard-Gildenfenster", icon = "social" },
-    { cmd = "OASIS_INVITE", text = "Spieler in die Gilde einladen", icon = "social" },
+    { cmd = "OASIS_PROFILE", text = "Profile", icon = "profile", page = "insta" },
+    { cmd = "OASIS_BLIZZGUILD", text = "Blizzard guild window", icon = "social" },
+    { cmd = "OASIS_INVITE", text = "Invite player to guild", icon = "social" },
 }
 -- Namen fuer WoWs Tastaturbelegung (erst wenn alle Texte geladen sind - LocaleData481 steht in der toc dahinter)
 local function names() for _, a in ipairs(KB.ACTIONS) do _G["BINDING_NAME_" .. a.cmd] = L[a.text] end end
@@ -62,18 +62,18 @@ local function combo(key)
     return s .. key
 end
 local function keyText(k)
-    if not k then return "|cff666666" .. L["nicht belegt"] .. "|r" end
+    if not k then return "|cff666666" .. L["not bound"] .. "|r" end
     return (GetBindingText and GetBindingText(k)) or k
 end
 function KB.Set(cmd, key)
-    if InCombatLockdown() then K.Toast(L["Tastenkuerzel"], L["Im Kampf nicht moeglich - gleich nochmal."], C.amber or C.accent) return false end
+    if InCombatLockdown() then K.Toast(L["Shortcuts"], L["Not possible in combat - try again shortly."], C.amber or C.accent) return false end
     local old = { GetBindingKey(cmd) }
     for _, k in ipairs(old) do SetBinding(k) end
     if key then
         local prev = GetBindingAction(key)
         if prev and prev ~= "" and prev ~= cmd then
             local name = _G["BINDING_NAME_" .. prev] or prev
-            K.Toast(L["Tastenkuerzel"], (L["%s war belegt mit: %s - jetzt Oasis."]):format(keyText(key), name), C.accent)
+            K.Toast(L["Shortcuts"], (L["%s was bound to: %s - now Oasis."]):format(keyText(key), name), C.accent)
         end
         SetBinding(key, cmd)
     end
@@ -100,15 +100,15 @@ local function keyButton(parent, a)
         -- 0.6.496: Gildenfenster-Taste zaehlt als Belegung fuer "Oasis oeffnen / schliessen"
         if not k and a.cmd == "OASIS_TOGGLE" and ns.db and ns.db.settings.guildKeyOasis == true then
             local gk = GetBindingKey("TOGGLEGUILDTAB") or "J"
-            self:SetLabel(capture == self and ("|cffffd27a" .. L["Taste druecken ..."] .. "|r") or (keyText(gk) .. " |cff888888(" .. L["Gildenfenster"] .. ")|r"))
+            self:SetLabel(capture == self and ("|cffffd27a" .. L["Press a key ..."] .. "|r") or (keyText(gk) .. " |cff888888(" .. L["guild window"] .. ")|r"))
             return
         end
-        self:SetLabel(capture == self and ("|cffffd27a" .. L["Taste druecken ..."] .. "|r") or keyText(k))
+        self:SetLabel(capture == self and ("|cffffd27a" .. L["Press a key ..."] .. "|r") or keyText(k))
     end
     b:SetScript("OnClick", function(self, btn)
         if btn == "RightButton" then stopCapture() KB.Set(a.cmd, nil) self:Update() return end
         if capture == self then stopCapture() return end
-        if InCombatLockdown() then K.Toast(L["Tastenkuerzel"], L["Im Kampf nicht moeglich - gleich nochmal."], C.accent) return end
+        if InCombatLockdown() then K.Toast(L["Shortcuts"], L["Not possible in combat - try again shortly."], C.accent) return end
         stopCapture()
         capture = self
         self:EnableKeyboard(true)
@@ -122,7 +122,7 @@ local function keyButton(parent, a)
         end)
         self:Update()
     end)
-    b:HookScript("OnEnter", function(self) K.ShowTip(self, { L[a.text], L["Klick: neue Taste festlegen  ·  Rechtsklick: entfernen  ·  Esc: abbrechen"] }) end)
+    b:HookScript("OnEnter", function(self) K.ShowTip(self, { L[a.text], L["Click: set new key  ·  Right-click: remove  ·  Esc: cancel"] }) end)
     b:HookScript("OnLeave", function() GameTooltip:Hide() end)
     b:HookScript("OnHide", function(self) if capture == self then stopCapture() end end)
     return b
@@ -217,18 +217,18 @@ local function build(f)
         end
     end
     local nWin, nPages = 4, #KB.ACTIONS - 4
-    local left = card(f, 0, 0, W, 58 + nWin * ROWH, "settings", L["Fenster"])
+    local left = card(f, 0, 0, W, 58 + nWin * ROWH, "settings", L["Window"])
     fill(left, 1, 4)
-    local right = card(f, W + GAP, 0, W, 58 + nPages * ROWH, "home", L["Seiten direkt oeffnen"])
+    local right = card(f, W + GAP, 0, W, 58 + nPages * ROWH, "home", L["Open pages directly"])
     fill(right, 5, #KB.ACTIONS)
     -- Esc + Hinweis
-    local esc = card(f, 0, -(58 + nWin * ROWH) - GAP, W, 170, "eye_off", L["Esc-Taste"],
-        L["Esc schliesst das Oasis-Fenster (im Kampf nicht - dort gehoert Esc dem Spiel)."])
-    f.escFocus = K.Toggle(esc, L["Esc nur, wenn ich zuletzt in Oasis geklickt habe"], function() return ns.db.settings.escFocusOnly and true or false end,
+    local esc = card(f, 0, -(58 + nWin * ROWH) - GAP, W, 170, "eye_off", L["Esc key"],
+        L["Esc closes the Oasis window (not in combat - there Esc belongs to the game)."])
+    f.escFocus = K.Toggle(esc, L["Esc only if I last clicked into Oasis"], function() return ns.db.settings.escFocusOnly and true or false end,
         function(v) ns.db.settings.escFocusOnly = v and true or nil if ns.EscUpdate then ns.EscUpdate() end end)
     f.escFocus:SetWidth(W - 32)
     f.escFocus:SetPoint("TOPLEFT", 16, -72)
-    f.guildKey = K.Toggle(esc, L["Gildenfenster-Taste (J) oeffnet Oasis"], function() return ns.db.settings.guildKeyOasis == true end,
+    f.guildKey = K.Toggle(esc, L["Guild window key (J) opens Oasis"], function() return ns.db.settings.guildKeyOasis == true end,
         function(v) ns.db.settings.guildKeyOasis = v and true or nil KB.ApplyGuildKey() end)
     f.guildKey:SetWidth(W - 32)
     f.guildKey:SetPoint("TOPLEFT", 16, -108)
@@ -238,11 +238,11 @@ local function build(f)
     help:SetWidth(W - 8)
     help:SetJustifyH("LEFT")
     help:SetWordWrap(true)
-    help:SetText(L["Knopf anklicken, dann die Taste druecken (mit Shift/Strg/Alt moeglich). Rechtsklick entfernt die Belegung, Esc bricht ab. Die Kuerzel stehen auch in WoWs Tastaturbelegung unter AddOns > Oasis."])
+    help:SetText(L["Click a button, then press the key (Shift/Ctrl/Alt allowed). Right-click removes the binding, Esc cancels. The shortcuts are also in WoW's key bindings under AddOns > Oasis."])
 end
 local function refresh(f)
     for _, b in ipairs(f.btns or {}) do b:Update() end
     if f.escFocus then f.escFocus:Refresh() end
     if f.guildKey then f.guildKey:Refresh() end
 end
-if ns.AddSettingsTab then ns.AddSettingsTab("keys", "Tastenkuerzel", build, refresh) end
+if ns.AddSettingsTab then ns.AddSettingsTab("keys", "Shortcuts", build, refresh) end

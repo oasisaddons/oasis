@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.571"
+ns.version = "0.6.572"
 ns.versionDate = "20.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -63,7 +63,7 @@ function ns.err(where, msg)
     local key = tostring(where) .. tostring(msg)
     if errSeen[key] then return end
     errSeen[key] = true
-    print(L["|cffff5060[Oasis-Fehler]|r "] .. tostring(where) .. ": " .. tostring(msg))
+    print(L["|cffff5060[Oasis error]|r "] .. tostring(where) .. ": " .. tostring(msg))
 end
 
 ------------------------------------------------------------------------
@@ -71,7 +71,7 @@ end
 ------------------------------------------------------------------------
 -- Beim Laden liefert WoW teils "Unbekannt"/"Unknown" statt des echten Namens -> nie merken
 local function validName(n)
-    return type(n) == "string" and n ~= "" and n ~= UNKNOWNOBJECT and n ~= UNKNOWN and n ~= "Unknown" and n ~= "Unbekannt"
+    return type(n) == "string" and n ~= "" and n ~= UNKNOWNOBJECT and n ~= UNKNOWN and n ~= "Unknown" and n ~= "Unknown"
 end
 ns.validName = validName
 
@@ -204,7 +204,7 @@ end
 -- WoWs eigene Funktion setzt den kompletten Namen als Ziel
 function ns.Whisper(name, text)
     if not name then return end
-    if ns.inCombat() then ns.print(L["Im Kampf nicht moeglich - gleich nochmal."]) return end
+    if ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return end
     local n = ns.ChatName(name)
     if ChatFrame_SendTell then
         ns.Trace("ChatFrame_SendTell")
@@ -232,15 +232,15 @@ function ns.ago(ts)
     if not ts then return "-" end
     local d = ns.now() - ts
     if d < 0 then d = 0 end
-    if d < 60 then return L["gerade eben"] end
-    if d < 3600 then return (L["vor %d Min"]):format(d / 60) end
-    if d < 86400 then return (L["vor %d Std"]):format(d / 3600) end
-    if d < 86400 * 14 then return (L["vor %d Tg"]):format(d / 86400) end
-    return date(ns.L["%d.%m.%y"], ts)
+    if d < 60 then return L["just now"] end
+    if d < 3600 then return (L["%d min ago"]):format(d / 60) end
+    if d < 86400 then return (L["%dh ago"]):format(d / 3600) end
+    if d < 86400 * 14 then return (L["%d d ago"]):format(d / 86400) end
+    return date(ns.L["%m/%d/%y"], ts)
 end
-function ns.fmtDate(ts) return ts and date(ns.L["%d.%m. %H:%M"], ts) or "-" end
+function ns.fmtDate(ts) return ts and date(ns.L["%m/%d %H:%M"], ts) or "-" end
 -- date() liefert Wochentage immer englisch -> selbst uebersetzen
-local WEEKDAYS = { "Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag" }
+local WEEKDAYS = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" }
 function ns.weekday(ts, short)
     local w = ns.L[WEEKDAYS[tonumber(date("%w", ts)) + 1]]
     if not short then return w end
@@ -253,7 +253,7 @@ function ns.weekday(ts, short)
     end
     return table.concat(chars, "", 1, math.min(2, #chars))
 end
-function ns.fmtWhen(ts) return ns.weekday(ts) .. ", " .. date(ns.L["%d.%m. um %H:%M"], ts) end
+function ns.fmtWhen(ts) return ns.weekday(ts) .. ", " .. date(ns.L["%m/%d at %H:%M"], ts) end
 -- Gebietsname in der eigenen Sprache (aus der Karten-ID), sonst gespeicherter Text
 function ns.zoneName(mapID, fallback)
     if mapID and mapID ~= 0 and C_Map and C_Map.GetMapInfo then
@@ -361,6 +361,8 @@ end
 -- stehen). ModuleLoader.LoadAll fuehrt beim Start nur die eingeschalteten aus; danach nimmt ns.ModuleFile nichts mehr an.
 ns.moduleFiles = {}
 ns.moduleOrder = {}   -- 0.6.285: Reihenfolge der toc (Module, die auf anderen aufbauen, laden danach)
+-- chronicle entry "joined the guild" (German template from Oasis before 0.6.572 or English)
+function ns.IsJoinTk(tk) return type(tk) == "string" and (tk:find("^tritt") or tk:find("^joined the guild")) and true or false end
 function ns.ModuleFile(key, fn)
     local files = ns.moduleFiles
     if not files then return end
@@ -467,7 +469,7 @@ function ns.OfferChat(title, msg, channel, target, color)
     -- "Klick: senden" in eine eigene Zeile (ueberlagerte sonst den Text)
     if #preview > 160 then preview = ns.Utf8Cut(preview, 157) .. "..." end
     -- 0.6.410: Nachricht gedaempft in Anfuehrungszeichen, "Klick: senden" als eigener Hinweis unten rechts
-    K.toastHint = "|cffe8b44a" .. L["Klick: senden"] .. "|r"
+    K.toastHint = "|cffe8b44a" .. L["Click: send"] .. "|r"
     K.Toast(title, "|cffa8a8ae\226\128\158" .. preview .. "\226\128\156|r", color or K.C.accent,
         function() ns.SendChat(msg, channel, target) end)
     K.toastHint = nil   -- falls der Hinweis stumm war und nicht gezeigt wurde
@@ -475,7 +477,7 @@ end
 -- Chat-Eingabe oeffnen ("/w Name ") - im Kampf nicht: das beruehrt die Blizzard-Eingabezeile
 function ns.OpenChat(text)
     if ns.inCombat() then
-        ns.print(L["Im Kampf nicht moeglich - gleich nochmal."])
+        ns.print(L["Not possible in combat - try again shortly."])
         return
     end
     ns.Trace("ChatFrame_OpenChat")
@@ -644,7 +646,7 @@ function ns.On(event, fn)
         local ok
         if PLAYER_UNIT_EVENTS[event] and evFrame.RegisterUnitEvent then ok = pcall(evFrame.RegisterUnitEvent, evFrame, event, PLAYER_UNIT_EVENTS[event])
         else ok = pcall(evFrame.RegisterEvent, evFrame, event) end
-        if not ok then ns.debug(L["Event nicht verfuegbar: "] .. event) end
+        if not ok then ns.debug(L["Event not available: "] .. event) end
     end
     list[#list + 1] = fn
     if not ns.handlerSrc then ns.handlerSrc = setmetatable({}, { __mode = "k" }) end
@@ -1001,7 +1003,7 @@ local function start()
     end
     ns.loggedIn = true
     ns.Fire("LOGIN")
-    ns.print((L["v%s geladen - |cffffffff/oasis|r oeffnet die Zentrale."]):format("|cffffc98a" .. ns.version .. "|r"))
+    ns.print((L["v%s loaded – |cffffffff/oasis|r opens the hub."]):format("|cffffc98a" .. ns.version .. "|r"))
     return true
 end
 ns.On("PLAYER_LOGIN", function()
@@ -1021,7 +1023,7 @@ ns.slash = {}
 ns.slash.einsteiger = function()
     if not ns.db then return end
     ns.ApplyBeginner(ns.db.settings)
-    ns.print(ns.L["Einsteiger-Einstellungen gesetzt: ruhigere Hinweise, weniger Seiten. Seiten wieder einblenden unter Einstellungen > Bereiche. Bitte /reload."])
+    ns.print(ns.L["Beginner settings applied: calmer notices, fewer pages. Show pages again under Settings > Areas. Please /reload."])
 end
 ns.slash.leistung = function(a) if ns.prof then ns.PerfStop() else ns.PerfStart(tonumber(a) or 60) end end
 ns.slash.perf = ns.slash.leistung
@@ -1040,7 +1042,7 @@ SlashCmdList.OASIS = function(msg)
     local cmd, rest = msg:match("^%s*(%S*)%s*(.-)%s*$")
     cmd = (cmd or ""):lower()
     if not ns.loggedIn then
-        ns.print(L["Oasis laedt noch - gleich nochmal versuchen."])
+        ns.print(L["Oasis is still loading – try again in a moment."])
         return
     end
     if cmd == "" then
@@ -1052,7 +1054,7 @@ SlashCmdList.OASIS = function(msg)
     if fn then
         fn(rest)
     else
-        ns.print(L["Befehle: /oa, /oa vergabe <Itemlink>, /oa lagerfeuer [Notiz], /oa sync, /oa debug"])
+        ns.print(L["Commands: /oa, /oa award <item link>, /oa campfire [note], /oa deathroll <name> [start], /oa sync"])
     end
 end
 ns.slash.debug = function()
@@ -1205,6 +1207,6 @@ function ns.InviteName(name)
     if C_PartyInfo and C_PartyInfo.InviteUnit then ok = pcall(C_PartyInfo.InviteUnit, n) end
     if not ok and InviteUnit then ok = pcall(InviteUnit, n) end
     if not ok and n ~= ns.short(name) and C_PartyInfo and C_PartyInfo.InviteUnit then ok = pcall(C_PartyInfo.InviteUnit, ns.short(name)) end
-    ns.print(ok and (L["Einladung an %s geschickt."]):format(ns.short(name)) or (L["Einladen von %s hat nicht geklappt."]):format(ns.short(name)))
+    ns.print(ok and (L["Invite sent to %s."]):format(ns.short(name)) or (L["Inviting %s failed."]):format(ns.short(name)))
     return ok
 end

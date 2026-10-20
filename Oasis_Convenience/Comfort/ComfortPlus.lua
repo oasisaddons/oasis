@@ -18,9 +18,9 @@ local function money(c)
 end
 local function fmtTime(sec)
     sec = math.max(0, math.floor(sec or 0))
-    if sec >= 3600 then return ("%d:%02d " .. L["Std"]):format(math.floor(sec / 3600), math.floor(sec % 3600 / 60)) end
-    if sec >= 60 then return ("%d " .. L["Min"]):format(math.floor(sec / 60 + 0.5)) end
-    return ("%d " .. L["Sek"]):format(sec)
+    if sec >= 3600 then return ("%d:%02d " .. L["h"]):format(math.floor(sec / 3600), math.floor(sec % 3600 / 60)) end
+    if sec >= 60 then return ("%d " .. L["min"]):format(math.floor(sec / 60 + 0.5)) end
+    return ("%d " .. L["s"]):format(sec)
 end
 local function itemInfo(link)
     local get = (C_Item and C_Item.GetItemInfo) or GetItemInfo
@@ -85,13 +85,13 @@ local function xpBox()
     if K.SetFontSafe then K.SetFontSafe(f.text, K.FONT, 11, "OUTLINE", K.FONT) else f.text:SetFont(K.FONT, 11, "OUTLINE") end
     f.text:SetPoint("CENTER")
     f:SetScript("OnEnter", function(self)
-        local t = { L["Erfahrung"] }
+        local t = { L["Experience"] }
         local cur, max = UnitXP("player") or 0, UnitXPMax("player") or 1
         t[#t + 1] = ("%s / %s  (%d %%)"):format(BreakUpLargeNumbers and BreakUpLargeNumbers(cur) or cur, BreakUpLargeNumbers and BreakUpLargeNumbers(max) or max, math.floor(cur / math.max(1, max) * 100))
         local rest = GetXPExhaustion and GetXPExhaustion() or 0
-        if rest and rest > 0 then t[#t + 1] = "|cff6aa8ff" .. L["Ruhebonus"] .. ": " .. (BreakUpLargeNumbers and BreakUpLargeNumbers(rest) or rest) .. "|r" end
-        if xp.start then t[#t + 1] = (L["Diese Sitzung: %d EP in %s"]):format(xp.gained, fmtTime(GetTime() - xp.start)) end
-        t[#t + 1] = "|cff888888" .. L["Shift + Ziehen: verschieben"] .. "|r"
+        if rest and rest > 0 then t[#t + 1] = "|cff6aa8ff" .. L["Rested"] .. ": " .. (BreakUpLargeNumbers and BreakUpLargeNumbers(rest) or rest) .. "|r" end
+        if xp.start then t[#t + 1] = (L["This session: %d XP in %s"]):format(xp.gained, fmtTime(GetTime() - xp.start)) end
+        t[#t + 1] = "|cff888888" .. L["Shift + drag: move"] .. "|r"
         K.ShowTip(self, t)
     end)
     f:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -117,18 +117,18 @@ function CP.UpdateXP()
     local parts = {}
     local rate = CP.XPRate()
     if rate then
-        parts[#parts + 1] = (L["%s EP/Std"]):format(BreakUpLargeNumbers and BreakUpLargeNumbers(math.floor(rate)) or math.floor(rate))
+        parts[#parts + 1] = (L["%s XP/h"]):format(BreakUpLargeNumbers and BreakUpLargeNumbers(math.floor(rate)) or math.floor(rate))
         local eta = (max - cur) / rate * 3600
         parts[#parts + 1] = (L["Level %d in %s"]):format(lvl + 1, fmtTime(eta))
         -- optional: Meilenstein (10, 20, ...) bald erreicht -> einmal an die Gilde
         if on("cpXPShare") and (lvl + 1) % 10 == 0 and eta < 45 * 60 and not xp.shared[lvl + 1] and IsInGuild and IsInGuild() then
             xp.shared[lvl + 1] = true
-            ns.OfferChat(L["Im Gildenchat zeigen?"], (L["[Oasis] Noch ~%d Min bis Level %d!"]):format(math.max(1, math.floor(eta / 60 + 0.5)), lvl + 1), "GUILD")
+            ns.OfferChat(L["Show in guild chat?"], (L["[Oasis] ~%d min to level %d!"]):format(math.max(1, math.floor(eta / 60 + 0.5)), lvl + 1), "GUILD")
         end
     else
         parts[#parts + 1] = (L["Level %d: %d %%"]):format(lvl, math.floor(cur / math.max(1, max) * 100))
     end
-    if rest and rest > 0 then parts[#parts + 1] = "|cff6aa8ff" .. (L["Ruhebonus %d %%"]):format(math.floor(rest / math.max(1, max) * 100)) .. "|r" end
+    if rest and rest > 0 then parts[#parts + 1] = "|cff6aa8ff" .. (L["Rested %d %%"]):format(math.floor(rest / math.max(1, max) * 100)) .. "|r" end
     f.text:SetText(table.concat(parts, "  |cff666666·|r  "))
     f:SetWidth(math.max(120, f.text:GetStringWidth() + 16))
     f:Show()
@@ -231,7 +231,7 @@ local function disenchantLines(tt, link, quality, lvl)
     if not res then return end
     -- Abstand, Ueberschrift, dann je Material: Symbol, Name in Seltenheitsfarbe, Menge grau, Chance rechts
     tt:AddLine(" ")
-    tt:AddLine(L["Entzaubern ergibt"], 0.62, 0.55, 0.95)
+    tt:AddLine(L["Disenchants into"], 0.62, 0.55, 0.95)
     local QC = { [1] = { 1, 1, 1 }, [2] = { 0.12, 1, 0 }, [3] = { 0, 0.55, 1 }, [4] = { 0.78, 0.35, 1 } }
     for _, r in ipairs(res) do
         local nm, _, q = (C_Item and C_Item.GetItemInfo or GetItemInfo)(r[1])
@@ -249,7 +249,7 @@ ns.slash = ns.slash or {}
 ns.slash.entzaubern = function()
     local get = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
     local n, firstSlot = 0, nil
-    ns.print("|cff9d8cf2" .. L["Entzaubern ergibt"] .. "|r  (cpTooltip=" .. tostring(S().cpTooltip) .. ", cpDisenchant=" .. tostring(S().cpDisenchant) .. ")")
+    ns.print("|cff9d8cf2" .. L["Disenchants into"] .. "|r  (cpTooltip=" .. tostring(S().cpTooltip) .. ", cpDisenchant=" .. tostring(S().cpDisenchant) .. ")")
     for slot = 1, 19 do
         local link = GetInventoryItemLink and ns.safe(GetInventoryItemLink("player", slot))
         if link then
@@ -265,7 +265,7 @@ ns.slash.entzaubern = function()
                     local nm = (C_Item and C_Item.GetItemInfo or GetItemInfo)(r[1])
                     parts[#parts + 1] = (nm or r[2]) .. " x" .. r[3] .. " (" .. r[4] .. " %)"
                 end
-                ns.print("  " .. link .. " |cff888888" .. L["Stufe"] .. " " .. tostring(lvl) .. "|r: " .. table.concat(parts, ", "))
+                ns.print("  " .. link .. " |cff888888" .. L["Item level"] .. " " .. tostring(lvl) .. "|r: " .. table.concat(parts, ", "))
             end
         end
     end
@@ -294,13 +294,13 @@ local function itemLines(tt)
     if sell and sell > 0 and not (MerchantFrame and MerchantFrame:IsShown()) then
         local n = stackOf(tt)
         if n and n > 1 then
-            tt:AddDoubleLine(L["Haendlerpreis"], money(sell * n) .. " |cff888888(" .. n .. "x " .. money(sell) .. ")|r", 0.85, 0.85, 0.85, 1, 1, 1)
+            tt:AddDoubleLine(L["Vendor price"], money(sell * n) .. " |cff888888(" .. n .. "x " .. money(sell) .. ")|r", 0.85, 0.85, 0.85, 1, 1, 1)
         else
-            tt:AddDoubleLine(L["Haendlerpreis"], money(sell), 0.85, 0.85, 0.85, 1, 1, 1)
+            tt:AddDoubleLine(L["Vendor price"], money(sell), 0.85, 0.85, 0.85, 1, 1, 1)
         end
     end
     local right = {}
-    if lvl and lvl > 1 then right[#right + 1] = L["Stufe"] .. " " .. lvl end
+    if lvl and lvl > 1 then right[#right + 1] = L["Item level"] .. " " .. lvl end
     if id then right[#right + 1] = "ID " .. id end
     if #right > 0 then tt:AddLine("|cff777777" .. table.concat(right, "  ·  ") .. "|r") end
     pcall(disenchantLines, tt, link, quality, lvl)
@@ -328,12 +328,12 @@ local function unitLines(tt, unit)
                 local rx = ns.Rank.Verified(full)
                 if rx then
                     local rl = ns.Rank.LevelFor(rx)
-                    tt:AddDoubleLine(L["Oasis-Rang"], rl .. "  " .. (ns.Rank.Title(rl) or ""), 0.85, 0.85, 0.85, 1, 0.82, 0.29)
+                    tt:AddDoubleLine(L["Oasis rank"], rl .. "  " .. (ns.Rank.Title(rl) or ""), 0.85, 0.85, 0.85, 1, 0.82, 0.29)
                 end
             end
             if ns.Alts and ns.Alts.IsAlt and ns.Alts.IsAlt(full) then
                 local main = ns.Alts.Main(full)
-                tt:AddDoubleLine(L["Twink von"], ns.displayName and ns.displayName(main) or main, 0.85, 0.85, 0.85, 1, 1, 1)
+                tt:AddDoubleLine(L["Alt of"], ns.displayName and ns.displayName(main) or main, 0.85, 0.85, 0.85, 1, 1, 1)
             end
             local pr = profIcons(p.profs)
             if pr ~= "" then tt:AddLine("|cff999999" .. pr .. "|r", nil, nil, nil, true) end
@@ -345,7 +345,7 @@ local function unitLines(tt, unit)
             local mine = CP.MyItemLevel()
             local diff = mine and (e.ilvl - mine) or 0
             local dc = diff > 0 and "|cff66db9e+" or (diff < 0 and "|cffff6a5a" or "|cff888888±")
-            tt:AddDoubleLine(L["Gegenstandsstufe"], ("%.1f  %s%.1f|r"):format(e.ilvl, dc, math.abs(diff)), 0.85, 0.85, 0.85, 1, 1, 1)
+            tt:AddDoubleLine(L["Item level"], ("%.1f  %s%.1f|r"):format(e.ilvl, dc, math.abs(diff)), 0.85, 0.85, 0.85, 1, 1, 1)
         end
     end
     tt:Show()
@@ -398,7 +398,7 @@ local function mailStep()
             end
             if hasItem then
                 if freeSlots() < 1 then
-                    ns.print(L["Taschen voll - Post bleibt im Briefkasten."])
+                    ns.print(L["Bags full - mail stays in the mailbox."])
                     break
                 end
                 for a = 1, ATTACHMENTS_MAX_RECEIVE or 16 do
@@ -415,15 +415,15 @@ local function mailStep()
     end
     local r = mailRun
     mailRun = nil
-    if CP.mailBtn then CP.mailBtn:SetLabel(L["Alles oeffnen"]) end
-    ns.print((L["Post geoeffnet: %s, %d Gegenstaende"]):format(money(r.gold), r.items))
+    if CP.mailBtn then CP.mailBtn:SetLabel(L["Open all"]) end
+    ns.print((L["Mail opened: %s, %d items"]):format(money(r.gold), r.items))
 end
 local function mailButton()
     if CP.mailBtn or not InboxFrame then return end
-    local b = K.Button(InboxFrame, L["Alles oeffnen"], 120, 24, "primary", function(self)
-        if mailRun then mailRun = nil self:SetLabel(L["Alles oeffnen"]) return end
+    local b = K.Button(InboxFrame, L["Open all"], 120, 24, "primary", function(self)
+        if mailRun then mailRun = nil self:SetLabel(L["Open all"]) return end
         mailRun = { idx = 999, gold = 0, items = 0 }
-        self:SetLabel(L["Stopp"])
+        self:SetLabel(L["Stop"])
         mailStep()
     end)
     b:SetPoint("TOP", InboxFrame, "TOP", 0, -40)
@@ -444,14 +444,14 @@ ns.On("MAIL_CLOSED", function() mailRun = nil end)
 ------------------------------------------------------------------------
 -- je Klasse: { Item-ID oder "ammo", Warnschwelle, Name-Schluessel }
 local REAG = {
-    HUNTER = { { "ammo", 200, "Munition" } },
-    WARLOCK = { { 6265, 3, "Seelensplitter" } },
-    MAGE = { { 17020, 5, "Arkanes Pulver" }, { 17031, 3, "Rune der Teleportation" }, { 17032, 2, "Rune der Portale" } },
-    PRIEST = { { 17028, 5, "Heilige Kerze" }, { 17029, 5, "Geweihte Kerze" } },
-    ROGUE = { { 5140, 5, "Blitzstrahlpulver" } },
+    HUNTER = { { "ammo", 200, "Ammo" } },
+    WARLOCK = { { 6265, 3, "Soul Shard" } },
+    MAGE = { { 17020, 5, "Arcane Powder" }, { 17031, 3, "Rune of Teleportation" }, { 17032, 2, "Rune of Portals" } },
+    PRIEST = { { 17028, 5, "Holy Candle" }, { 17029, 5, "Sacred Candle" } },
+    ROGUE = { { 5140, 5, "Flash Powder" } },
     SHAMAN = { { 17030, 2, "Ankh" } },
-    PALADIN = { { 21177, 5, "Symbol der Koenige" }, { 17033, 2, "Symbol der Goettlichkeit" } },
-    DRUID = { { 17034, 3, "Ahornsamenkorn" }, { 17026, 3, "Wilder Dornwurz" } },
+    PALADIN = { { 21177, 5, "Symbol of Kings" }, { 17033, 2, "Symbol of Divinity" } },
+    DRUID = { { 17034, 3, "Maple Seed" }, { 17026, 3, "Wild Thornroot" } },
 }
 local reagLow = {}
 local function reagCount(r)
@@ -482,7 +482,7 @@ local function reagCheck()
     for _, r in ipairs(CP.Reagents()) do
         if r.n < r.min and not reagLow[r.key] then
             reagLow[r.key] = true
-            K.Toast(L["Fast leer"], (L["%s: nur noch %d"]):format(r.name, r.n), C.amber or C.red)
+            K.Toast(L["Running low"], (L["%s: only %d left"]):format(r.name, r.n), C.amber or C.red)
         elseif r.n >= r.min then
             reagLow[r.key] = nil
         end
@@ -499,7 +499,7 @@ ns.On("MERCHANT_SHOW", function()
     pcall(function()
         local low = {}
         for _, r in ipairs(CP.Reagents()) do if r.n < r.min * 3 then low[#low + 1] = r.name .. " " .. r.n end end
-        if #low > 0 then K.Toast(L["Nachkaufen?"], table.concat(low, ", "), C.amber or C.accent) end
+        if #low > 0 then K.Toast(L["Restock?"], table.concat(low, ", "), C.amber or C.accent) end
     end)
 end)
 
@@ -532,7 +532,7 @@ if TaxiNodeOnButtonEnter then
     hooksecurefunc("TaxiNodeOnButtonEnter", function(btn)
         if not on("cpFlight") or not btn or not btn.GetID then return end
         local t = CP.FlightTime(currentNode(), nodeName(btn:GetID()))
-        if t then GameTooltip:AddLine("|cffaaaaaa" .. L["Flugzeit"] .. ": " .. fmtTime(t) .. "|r") GameTooltip:Show() end
+        if t then GameTooltip:AddLine("|cffaaaaaa" .. L["Flight time"] .. ": " .. fmtTime(t) .. "|r") GameTooltip:Show() end
     end)
 end
 local function flightBar()
@@ -550,18 +550,18 @@ local function flightBar()
     f.text:SetPoint("CENTER")
     -- 0.6.488: Flug unterbrechen - landet am naechsten Flugpunkt (nur wenn das Spiel die Funktion kennt)
     if TaxiRequestEarlyLanding then
-        f.land = K.Button(f, L["Landen"], 64, 20, "ghost", function(self)
+        f.land = K.Button(f, L["Land"], 64, 20, "ghost", function(self)
             local ok = pcall(TaxiRequestEarlyLanding)
             if ok then
-                self:SetLabel(L["landet ..."])
+                self:SetLabel(L["landing ..."])
                 self:Disable()
-                K.Toast(L["Flug unterbrochen"], L["Du landest am naechsten Flugpunkt."], C.accent)
+                K.Toast(L["Flight interrupted"], L["You will land at the next flight point."], C.accent)
             end
         end)
         f.land:SetPoint("LEFT", f, "RIGHT", 4, 0)
-        f.land:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Flug unterbrechen"], L["Landet am naechsten Flugpunkt auf der Strecke."] }) end)
+        f.land:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Interrupt flight"], L["Lands at the next flight point on the route."] }) end)
         f.land:HookScript("OnLeave", function() GameTooltip:Hide() end)
-        f:HookScript("OnShow", function(self) self.land:SetLabel(L["Landen"]) self.land:Enable() end)
+        f:HookScript("OnShow", function(self) self.land:SetLabel(L["Land"]) self.land:Enable() end)
     end
     f:SetScript("OnUpdate", function(self, el)
         self.acc = (self.acc or 0) + el
@@ -577,7 +577,7 @@ local function flightBar()
             self.text:SetText((flight.to or "") .. "  " .. fmtTime(math.max(0, total - dt)))
         else
             self.bar:SetWidth(1)
-            self.text:SetText((flight.to or "") .. "  |cff999999" .. L["lernt Strecke"] .. " " .. fmtTime(dt) .. "|r")
+            self.text:SetText((flight.to or "") .. "  |cff999999" .. L["learning route"] .. " " .. fmtTime(dt) .. "|r")
         end
     end)
     f:Hide()
@@ -702,12 +702,12 @@ local function copyBox(text)
         if not K.Window then K.Fill(f, C.bg or { 0.05, 0.05, 0.06, 0.95 }) K.Border(f, C.line) end
         f.title = K.Text(f, 12, C.text)
         f.title:SetPoint("TOPLEFT", 14, -12)
-        f.title:SetText(L["Link kopieren (Strg+C)"])
+        f.title:SetText(L["Copy link (Ctrl+C)"])
         f.input = K.Input(f, 392, "", function() end)
         f.input:SetPoint("TOPLEFT", 14, -38)
         f.input:SetScript("OnEscapePressed", function() f:Hide() end)
         f.input:SetScript("OnEnterPressed", function() f:Hide() end)
-        local x = K.Button(f, L["Schliessen"], 90, 22, "ghost", function() f:Hide() end)
+        local x = K.Button(f, L["Close"], 90, 22, "ghost", function() f:Hide() end)
         x:SetPoint("BOTTOMRIGHT", -12, 8)
         CP.copy = f
     end
@@ -786,7 +786,7 @@ ns.On("INSPECT_READY", function(guid)
             end
             local mine = CP.MyItemLevel() or 0
             local d = l - mine
-            CP.inspText:SetText(("%s %.1f  |cff%s(%s%.1f)|r"):format(L["Stufe"], l, d >= 0 and "66db9e" or "ff6a5a", d >= 0 and "+" or "-", math.abs(d)))
+            CP.inspText:SetText(("%s %.1f  |cff%s(%s%.1f)|r"):format(L["Item level"], l, d >= 0 and "66db9e" or "ff6a5a", d >= 0 and "+" or "-", math.abs(d)))
             CP.inspText:Show()
         end
     end)
@@ -968,7 +968,7 @@ local function offerTracking()
     b:SetAttribute("type", "spell")
     b:SetAttribute("spell", name)
     b.icon:SetTexture(icon)
-    b.text:SetText((L["Klick: %s wieder an"]):format(name))
+    b.text:SetText((L["Click: %s back on"]):format(name))
     b:Show()
     -- nach einer Minute von selbst weg
     ns.After(60, function() if CP.trackBtn and CP.trackBtn:IsShown() and not InCombatLockdown() then CP.trackBtn:Hide() end end)
@@ -987,20 +987,20 @@ ns.On("PLAYER_ALIVE", function() ns.After(1.5, function() pcall(offerTracking) e
 -- Einstellungen: eigener Reiter "Helfer"
 ------------------------------------------------------------------------
 local OPTS = {
-    { "Unterwegs", {
-        { "cpXP", "Erfahrung pro Stunde und Zeit bis zum Level", "Mit Ruhebonus. Leiste unten, Shift + Ziehen verschiebt sie.", CP.UpdateXP },
-        { "cpXPShare", "Bald-Level-10er der Gilde melden", "Einmal \"Noch ~40 Min bis Level 30\" in den Gildenchat" },
-        { "cpReagents", "Munition, Reagenzien und Seelensplitter", "Warnt, wenn es knapp wird, und erinnert beim Haendler", reagCheck },
-        { "cpFlight", "Flugzeit anzeigen", "Restzeit beim Fliegen - Oasis lernt jede Strecke beim ersten Flug" },
-        { "cpTracking", "Suche nach dem Tod wieder an", "Kraeuter-, Erz- oder Wildtiersuche: nach der Wiederbelebung erscheint ein Knopf - ein Klick schaltet sie wieder ein" },
+    { "On the road", {
+        { "cpXP", "XP per hour and time to level", "Incl. rested XP. Bar at the bottom, Shift + drag to move.", CP.UpdateXP },
+        { "cpXPShare", "Tell the guild about upcoming level milestones", "Once \"~40 min to level 30\" in guild chat" },
+        { "cpReagents", "Ammo, reagents and soul shards", "Warns when running low and reminds you at vendors", reagCheck },
+        { "cpFlight", "Show flight time", "Time left while flying - Oasis learns each route on the first flight" },
+        { "cpTracking", "Re-enable tracking after death", "Herb, mineral or beast tracking: after resurrecting a button appears - one click turns it back on" },
     } },
-    { "Tooltip, Post & Chat", {
-        { "cpTooltip", "Tooltip: Haendlerpreis, Stufe und ID", "Preis auch fuer den ganzen Stapel" },
-        { "cpDisenchant", "Tooltip: Entzaubern ergibt ...", "Zeigt bei gruenen, blauen und epischen Teilen, welche Materialien beim Entzaubern herauskommen koennen" },
-        { "cpTooltipGuild", "Tooltip: Gildeninfos", "Oasis-Rang, Twink von ... und Berufe bei Gildenmitgliedern" },
-        { "cpInspect", "Gegenstandsstufe beim Betrachten", "Im Betrachten-Fenster und danach im Tooltip, mit Vergleich zu dir" },
-        { "cpMail", "Post: Knopf \"Alles oeffnen\"", "Holt Gold und Gegenstaende aus allen Briefen (keine Nachnahme)" },
-        { "cpChatLinks", "Chat: Links kopieren, Klassenfarben", "Links anklicken = Kopierfenster. Uhrzeit im Chat: Blizzards Chat-Einstellung (Zeitstempel).", CP.ApplyChat },
+    { "Tooltip, mail & chat", {
+        { "cpTooltip", "Tooltip: vendor price, item level and ID", "Price for the whole stack too" },
+        { "cpDisenchant", "Tooltip: disenchants into ...", "Shows which materials green, blue and epic items can disenchant into" },
+        { "cpTooltipGuild", "Tooltip: guild info", "Oasis rank, alt of ... and professions for guild members" },
+        { "cpInspect", "Item level when inspecting", "In the inspect window and afterwards in the tooltip, compared to you" },
+        { "cpMail", "Mail: \"Open all\" button", "Takes gold and items from all mails (no COD)" },
+        { "cpChatLinks", "Chat: copy links, class colours", "Click links = copy window. Chat time: Blizzard's chat setting (timestamps).", CP.ApplyChat },
     } },
 }
 local function build(f)
@@ -1035,11 +1035,11 @@ local function build(f)
     end)
     sf:SetScript("OnSizeChanged", function() updBar() end)
     -- Knopf zur Uebersicht
-    local ovb = K.Button(body, L["Charaktere & Helfer - Uebersicht"], 260, 26, "primary", function()
+    local ovb = K.Button(body, L["Characters & helpers - overview"], 260, 26, "primary", function()
         if ns.Helpers2 then ns.Helpers2.Overview() end
     end)
     ovb:SetPoint("TOPLEFT", 0, 0)
-    if H.note then H.note(body, L["Gold, Ruhestein, Instanz-IDs, Gilden-Abklingzeiten, Sets und Angel-Statistik (/oa chars)"], 272, -6, 480) end
+    if H.note then H.note(body, L["Gold, hearthstone, instance IDs, guild cooldowns, sets and fishing stats (/oa chars)"], 272, -6, 480) end
     -- Gruppen: links und rechts abwechselnd, jede Spalte stapelt fuer sich
     local groups = {}
     for _, g in ipairs(OPTS) do groups[#groups + 1] = g end
@@ -1059,9 +1059,9 @@ local function build(f)
         colY[c] = y - h - 12
     end
     local bottom = math.min(colY[1], colY[2])
-    if H.note then H.note(body, L["Weltkarte aufdecken findest du unter der Weltkarte und unter Bereiche > Karte."], 0, bottom - 6, 760) end
+    if H.note then H.note(body, L["Reveal world map is below the world map and under Areas > Map."], 0, bottom - 6, 760) end
     body:SetHeight(-bottom + 40)
     ns.After(0.1, updBar)
 end
-if ns.AddSettingsTab then ns.AddSettingsTab("helpers", "Gilden-Helfer", build) end   -- 0.6.530: steht unter Gilde & Organisation
+if ns.AddSettingsTab then ns.AddSettingsTab("helpers", "Guild helpers", build) end   -- 0.6.530: steht unter Gilde & Organisation
 end)

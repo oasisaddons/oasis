@@ -50,31 +50,31 @@ local function build(f)
     f.state = K.Text(f, 12, C.text)
     f.state:SetPoint("TOPLEFT", 4, -2) f.state:SetPoint("RIGHT", -360, 0)
     f.state:SetJustifyH("LEFT") f.state:SetWordWrap(true) f.state:SetSpacing(4)
-    f.pub = K.Button(f, L["Speichern & freigeben"], 170, 24, "primary", function()
+    f.pub = K.Button(f, L["Save & release"], 170, 24, "primary", function()
         if MP.Publish(draft) then
             draft = { em = {}, so = {} }
-            K.Toast(L["Gildenpaket"], L["Freigegeben: Version, Inhalt und Rangsperren gelten jetzt fuer die ganze Gilde."], C.mint)
+            K.Toast(L["Guild pack"], L["Released: version, content and rank locks now apply to the whole guild."], C.mint)
         end
         ns.RefreshPage("admin")
     end)
     f.pub:SetPoint("TOPRIGHT", 0, 0)
-    f.ann = K.Button(f, L["Im Gildenchat ankuendigen"], 180, 24, "ghost", function()
+    f.ann = K.Button(f, L["Announce in guild chat"], 180, 24, "ghost", function()
         local m = MP.Mine()
         if not m then return end
-        ns.OfferChat(L["Gildenpaket"], (L["Neues Gildenpaket v%d mit %d Emojis und %d Sounds! ZIP in den AddOns-Ordner entpacken, WoW neu starten. Bauen: oasisaddon.com"]):format(m.v, m.emojis, m.sounds), "GUILD")
+        ns.OfferChat(L["Guild pack"], (L["New guild pack v%d with %d emojis and %d sounds! Unpack the ZIP into the AddOns folder, restart WoW. Build: oasisaddon.com"]):format(m.v, m.emojis, m.sounds), "GUILD")
     end)
     f.ann:SetPoint("TOPRIGHT", f.pub, "BOTTOMRIGHT", 0, -6)
-    f.link = K.Button(f, L["Link zur Bau-Seite"], 150, 24, "ghost", MP.ShowUrl)
+    f.link = K.Button(f, L["Link to the builder"], 150, 24, "ghost", MP.ShowUrl)
     f.link:SetPoint("RIGHT", f.ann, "LEFT", -6, 0)
     -- Filter + Sammelaktionen
-    f.seg = K.Segments(f, { { key = "all", text = L["Alle"] }, { key = "emoji", text = L["Emojis"] }, { key = "sound", text = L["Sounds"] }, { key = "lead", text = L["Nur Leitung"] }, { key = "off", text = L["Ausgeschaltet"] } },
+    f.seg = K.Segments(f, { { key = "all", text = L["All"] }, { key = "emoji", text = L["Emojis"] }, { key = "sound", text = L["Sounds"] }, { key = "lead", text = L["Leaders only"] }, { key = "off", text = L["Switched off"] } },
         function(k) filter = k ns.RefreshPage("admin") end, nil, { size = 12, pad = 16 })
     f.seg:SetPoint("TOPLEFT", 0, -78)
-    f.free = K.Button(f, L["Alle auf frei"], 110, 22, "ghost", function()
+    f.free = K.Button(f, L["All free"], 110, 22, "ghost", function()
         for _, r in ipairs(rows()) do setLvl(r, 2) end
     end)
     f.free:SetPoint("TOPRIGHT", 0, -78)
-    f.reset = K.Button(f, L["Werte aus den Dateien"], 160, 22, "ghost", function() draft = { em = {}, so = {} } ns.RefreshPage("admin") end)
+    f.reset = K.Button(f, L["Values from the files"], 160, 22, "ghost", function() draft = { em = {}, so = {} } ns.RefreshPage("admin") end)
     f.reset:SetPoint("RIGHT", f.free, "LEFT", -6, 0)
     -- Liste
     f.list = K.List(f, 34, function(l)
@@ -106,11 +106,11 @@ local function build(f)
         else
             r.code:SetText(it.text or it.key)
         end
-        r.kindT:SetText(isSound and L["Sound"] or ((it.frames and it.frames > 1) and L["Emoji, animiert"] or L["Emoji"]))
+        r.kindT:SetText(isSound and L["Sound"] or ((it.frames and it.frames > 1) and L["Emoji, animated"] or L["Emoji"]))
         local off, lead = it.lvl == 0, it.lvl == 200
-        r.lvlT:SetText(off and "|cff777777-|r" or (lead and ("|cffe8b44a" .. L["Leitung"] .. "|r")) or ((not it.lvl or it.lvl <= 2) and L["frei"] or ((L["ab %d"]):format(it.lvl))))
-        r.onoff:SetLabel(off and L["Einschalten"] or L["Ausschalten"])
-        r.lead:SetLabel(lead and L["Fuer alle"] or L["Nur Leitung"])
+        r.lvlT:SetText(off and "|cff777777-|r" or (lead and ("|cffe8b44a" .. L["Leaders"] .. "|r")) or ((not it.lvl or it.lvl <= 2) and L["open"] or ((L["from %d"]):format(it.lvl))))
+        r.onoff:SetLabel(off and L["Switch on"] or L["Switch off"])
+        r.lead:SetLabel(lead and L["For everyone"] or L["Leaders only"])
         local ed = canEdit()
         r.minus:SetShown(ed and not off and not lead) r.plus:SetShown(ed and not off and not lead) r.onoff:SetShown(ed) r.lead:SetShown(ed and not off)
         r.code:SetAlpha(off and 0.45 or 1) r.icon:SetAlpha(off and 0.35 or 1)
@@ -121,7 +121,7 @@ local function build(f)
     f.who = CreateFrame("Frame", nil, f)
     f.who:SetPoint("TOPLEFT", f.list, "TOPRIGHT", 12, 0) f.who:SetPoint("BOTTOMRIGHT", 0, 0)
     K.Fill(f.who, { 1, 1, 1, 0.03 })
-    f.whoT = K.Title(f.who, 13, C.text) f.whoT:SetPoint("TOPLEFT", 10, -10) f.whoT:SetText(L["Wer hat es?"])
+    f.whoT = K.Title(f.who, 13, C.text) f.whoT:SetPoint("TOPLEFT", 10, -10) f.whoT:SetText(L["Who has it?"])
     f.whoN = K.Text(f.who, 12, C.text) f.whoN:SetPoint("TOPLEFT", 10, -32) f.whoN:SetPoint("RIGHT", -10, 0) f.whoN:SetJustifyH("LEFT")
     f.whoL = K.Text(f.who, 11, C.muted) f.whoL:SetPoint("TOPLEFT", 10, -56) f.whoL:SetPoint("RIGHT", -10, 0)
     f.whoL:SetJustifyH("LEFT") f.whoL:SetJustifyV("TOP") f.whoL:SetWordWrap(true) f.whoL:SetSpacing(3)
@@ -129,16 +129,16 @@ end
 local function refresh(f)
     local m, o = MP.Mine(), MP.Official()
     local lines = {}
-    lines[#lines + 1] = m and ((L["Installiert: Gildenpaket %s, Version %d (%s) - %d Emojis, %d Sounds"]):format(m.guild, m.v, m.made, m.emojis, m.sounds))
-        or ("|cffe8b44a" .. L["Kein Gildenpaket installiert - erst bauen (Link zur Bau-Seite), entpacken, WoW neu starten."] .. "|r")
+    lines[#lines + 1] = m and ((L["Installed: guild pack %s, version %d (%s) - %d emojis, %d sounds"]):format(m.guild, m.v, m.made, m.emojis, m.sounds))
+        or ("|cffe8b44a" .. L["No guild pack installed - build it first (link to the builder), unpack it, restart WoW."] .. "|r")
     if o then
         local same = m and m.v == o.v and MP.Fingerprint() == o.fp
-        lines[#lines + 1] = (same and "|cff66db9e" or "|cffe8b44a") .. (L["Offiziell freigegeben: Version %d (von %s, %s)"]):format(o.v, ns.short(o.by or "?"), o.made or "") .. "|r"
+        lines[#lines + 1] = (same and "|cff66db9e" or "|cffe8b44a") .. (L["Officially released: version %d (by %s, %s)"]):format(o.v, ns.short(o.by or "?"), o.made or "") .. "|r"
     else
-        lines[#lines + 1] = "|cff888888" .. L["Die Gildenleitung hat noch kein Paket freigegeben."] .. "|r"
+        lines[#lines + 1] = "|cff888888" .. L["The guild leadership hasn't released a pack yet."] .. "|r"
     end
-    if changed() then lines[#lines + 1] = "|cffe8b44a" .. L["Ungespeicherte Aenderungen - mit Speichern & freigeben uebernehmen."] .. "|r" end
-    if not canEdit() then lines[#lines + 1] = "|cff888888" .. L["Aendern darf nur, wer Gildeneinstellungen bearbeiten darf."] .. "|r" end
+    if changed() then lines[#lines + 1] = "|cffe8b44a" .. L["Unsaved changes - apply them with Save & release."] .. "|r" end
+    if not canEdit() then lines[#lines + 1] = "|cff888888" .. L["Only ranks that may edit guild settings can change this."] .. "|r" end
     f.state:SetText(table.concat(lines, "\n"))
     f.pub:SetShown(canEdit() and m ~= nil)
     f.ann:SetShown(m ~= nil)
@@ -146,14 +146,14 @@ local function refresh(f)
     f.seg:Select(filter)
     local list = m and rows() or {}
     f.list:SetData(list)
-    f.list.empty:SetText(m and (#list == 0 and L["Nichts in dieser Auswahl."] or "") or L["Noch kein Paket installiert."])
+    f.list.empty:SetText(m and (#list == 0 and L["Nothing in this selection."] or "") or L["No pack installed yet."])
     -- wer hat es
     local hs, ok, miss = MP.Holders(), 0, {}
     for _, h in ipairs(hs) do if h.ok then ok = ok + 1 else miss[#miss + 1] = ns.short(h.name) .. (h.v and (" |cff666666v" .. h.v .. "|r") or "") end end
-    f.whoN:SetText(o and ((L["%d von %d aktiven Mitgliedern haben das freigegebene Paket"]):format(ok, #hs)) or L["Erst freigeben - dann sieht man hier, wer es hat."])
-    f.whoL:SetText(#miss > 0 and (L["Fehlt bei:"] .. "\n" .. table.concat(miss, "\n", 1, math.min(#miss, 30)) .. (#miss > 30 and ("\n+" .. (#miss - 30)) or "")) or "")
+    f.whoN:SetText(o and ((L["%d of %d active members have the released pack"]):format(ok, #hs)) or L["Release it first - then you can see here who has it."])
+    f.whoL:SetText(#miss > 0 and (L["Missing for:"] .. "\n" .. table.concat(miss, "\n", 1, math.min(#miss, 30)) .. (#miss > 30 and ("\n+" .. (#miss - 30)) or "")) or "")
 end
 if ns.Admin and ns.Admin.AddTab then
-    ns.Admin.AddTab("media", "Emojis & Sounds", build, refresh,
-        "Eigene Emojis und Sounds der Gilde: Rang je Eintrag, ein- und ausschalten, freigeben, sehen wer das Paket hat.", 6)
+    ns.Admin.AddTab("media", "Emojis & sounds", build, refresh,
+        "The guild's custom emojis and sounds: rank per entry, switch on and off, release, see who has the pack.", 6)
 end

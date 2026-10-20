@@ -78,7 +78,7 @@ function Admin.RankNames()
     local out = {}
     local n = GuildControlGetNumRanks and GuildControlGetNumRanks() or 0
     for i = 1, n do out[i - 1] = GuildControlGetRankName(i) or ("#" .. i) end
-    if n == 0 then out[0] = L["Gildenmeister"] out[1] = L["Offizier"] end
+    if n == 0 then out[0] = L["Guild Master"] out[1] = L["Officer"] end
     return out, math.max(n, 2)
 end
 
@@ -235,10 +235,10 @@ function Admin.RaidStaffText()
         if r == "lead" then lead[#lead + 1] = ns.displayName(m.name) elseif r == "assist" then assist[#assist + 1] = ns.displayName(m.name) end
     end
     table.sort(lead) table.sort(assist)
-    local none = "|cff777777" .. L["niemand"] .. "|r"
-    return L["Schlachtzugsleiter"] .. ": " .. (#lead > 0 and table.concat(lead, ", ") or none) .. "\n"
-        .. L["Schlachtzugs-Assistenz"] .. ": " .. (#assist > 0 and table.concat(assist, ", ") or none) .. "\n|cff888888"
-        .. L["Gildenleitung und Offiziere haben alle Schlachtzugsleiter-Rechte. Im laufenden Raid zaehlen Raidleiter und Assistenten fuer die Dauer des Raids."] .. "|r"
+    local none = "|cff777777" .. L["nobody"] .. "|r"
+    return L["Raid leaders"] .. ": " .. (#lead > 0 and table.concat(lead, ", ") or none) .. "\n"
+        .. L["Raid assistants"] .. ": " .. (#assist > 0 and table.concat(assist, ", ") or none) .. "\n|cff888888"
+        .. L["Guild leadership and officers have all raid leader rights. In a running raid, the raid leader and assistants count for the duration of the raid."] .. "|r"
 end
 function Admin.IsGM()
     if IsGuildLeader and IsGuildLeader() then return true end
@@ -255,9 +255,9 @@ for k, v in pairs({ events = "raidlead", raidplan = "raidassist", tactics = "rai
     notices = "lead", guildcfg = "lead", formers = "officer", audit = "officer", notes = "officer", bans = "officer", sndmute = "officer", recruits = "officer" }) do
     if Admin.FEATURES[k] == nil then Admin.FEATURES[k] = v end
 end
-ns.GuildOption({ page = "officer", key = "offRank", default = 2, min = 1, max = 10, step = 1, label = "Offiziere bis Gildenrang (Ersatz)",
-    desc = "Nur falls WoW die Rang-Rechte nicht liefert: bis zu welchem Gildenrang andere als Offizier gelten (fuer die Pruefung empfangener Daten).",
-    fmt = function(v) return (ns.L["bis Rang %d"]):format(tonumber(v) or 0) end })
+ns.GuildOption({ page = "officer", key = "offRank", default = 2, min = 1, max = 10, step = 1, label = "Officers up to guild rank (fallback)",
+    desc = "Only if WoW does not provide the rank permissions: up to which guild rank others count as officers (for checking received data).",
+    fmt = function(v) return (ns.L["up to rank %d"]):format(tonumber(v) or 0) end })
 -- Namen vergleichen: "Vorname Nachname-Realm" (Gildenliste) == "Vorname-Realm" (Nachrichten)
 local function nameKey(n) return n and ns.NameKey(n) end
 function Admin.SameName(a, b) return ns.SameName(a, b) end
@@ -321,7 +321,7 @@ function Admin.RoleOf(name)
         if r == "dev" then r = Admin.CanManage() and "lead" or "officer" end
         return r, "ich selbst"
     end
-    if not IsInGuild() then return blizzRaidRole(name) or "member", "keine Gilde" end
+    if not IsInGuild() then return blizzRaidRole(name) or "member", "no guild" end
     if not rosterKnown() then return nil, "Gildenliste noch nicht geladen" end
     local ri = rankOf(name)
     if ri ~= nil and ri < 99 then
@@ -337,7 +337,7 @@ function Admin.RoleOf(name)
     end
     local b = blizzRaidRole(name)
     if b then return b, "nicht in der Gilde, im Raid (Blizzard)" end
-    return "member", "nicht in der Gildenliste"
+    return "member", "not in the guild list"
 end
 function Admin.MayAuthor(name, feature)
     local role = Admin.RoleOf(name)
@@ -694,9 +694,9 @@ end
 --   soft   = Akzentfarbe -> dieselbe Farbe heller        fire  = Akzentfarbe -> warme Nachbarfarbe (Rot -> Gelb)
 --   lead   = Anfang in Akzentfarbe, dann Textfarbe       plain = Textfarbe      accent = ganz in Akzentfarbe
 Admin.LOGO_STYLES = {
-    { key = "soft", text = "Weicher Verlauf" }, { key = "fire", text = "Warmer Verlauf" },
-    { key = "lead", text = "Nur der Anfang farbig" }, { key = "plain", text = "Hell ohne Farbe" },
-    { key = "accent", text = "Ganz in Akzentfarbe" },
+    { key = "soft", text = "Soft gradient" }, { key = "fire", text = "Warm gradient" },
+    { key = "lead", text = "Only the start in colour" }, { key = "plain", text = "Light, no colour" },
+    { key = "accent", text = "All in accent colour" },
 }
 function Admin.LogoStyle()
     local st = ns.db and ns.db.settings and ns.db.settings.logoStyle
@@ -793,7 +793,7 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
                 if m.online then on = on + 1 end
             end
             -- Zahlen in Textfarbe, Worte gedimmt, Mittelpunkt statt Bindestrich (gilt fuer jede Sprache)
-            local s = n > 0 and (L["%d online - %d Mitglieder"]):format(on, n) or ""
+            local s = n > 0 and (L["%d online - %d members"]):format(on, n) or ""
             s = s:gsub(" %- ", "  \194\183  "):gsub("%d+", function(d) return K.hex(C.text) .. d .. "|r" end)
             f.sub:SetText(s)
         end
@@ -938,7 +938,7 @@ function ns.GuildLogo(parent, w, h, withLine, fixedCfg)
         self:EnableMouse(true)
         self:SetScript("OnMouseUp", function(s) Admin.ShowLogoStudio(s) end)
         self:SetScript("OnEnter", function(s)
-            K.ShowTip(s, { Admin.BrandText(), L["Klick: Stil und Schrift waehlen"] })
+            K.ShowTip(s, { Admin.BrandText(), L["Click: choose style and font"] })
         end)
         self:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end
@@ -978,12 +978,12 @@ function Admin.ShowLogoFontMenu(owner)
             Admin.ApplyBrand(true)
         end }
     end
-    items[#items + 1] = { text = L["Buchstaben gesperrt"], checked = s.logoTrack ~= false, fn = function()
+    items[#items + 1] = { text = L["Wide letter spacing"], checked = s.logoTrack ~= false, fn = function()
         if s.logoTrack == false then s.logoTrack = nil else s.logoTrack = false end
         Admin.ApplyBrand(true)
     end }
-    items[#items + 1] = { text = L["Schrift"], header = true }
-    items[#items + 1] = { text = L["Standardschrift"], checked = not cur, fn = function()
+    items[#items + 1] = { text = L["Font"], header = true }
+    items[#items + 1] = { text = L["Default font"], checked = not cur, fn = function()
         s.logoFont = nil
         Admin.SetLogoMode(nil)
     end }
@@ -994,10 +994,10 @@ function Admin.ShowLogoFontMenu(owner)
         end }
     end
     -- Schriftzug, Untertitel und Farbe stellt die Gildenleitung fuer alle ein
-    items[#items + 1] = { text = "|cff888888" .. L["Logo-Einstellungen ..."] .. "|r", fn = function()
+    items[#items + 1] = { text = "|cff888888" .. L["Logo settings ..."] .. "|r", fn = function()
         if ns.OpenSettingsTab then ns.OpenSettingsTab("look") end
     end }
-    K.ShowMenu(owner, items, L["Logo-Stil - nur fuer dich"], 200)
+    K.ShowMenu(owner, items, L["Logo style - only for you"], 200)
 end
 
 -- Aenderungen verteilen: Logos, Navigation, Akzentfarbe
@@ -1058,7 +1058,7 @@ local function announce(rec)
     if not trust then return end
     ns.db.seenNotices[rec.id] = ns.now()
     if ns.isMe(rec.by) or ns.now() - (rec.ts or 0) > 3 * 86400 then return end
-    local title = (rec.title or "") ~= "" and rec.title or L["Durchsage"]
+    local title = (rec.title or "") ~= "" and rec.title or L["Announcement"]
     K.Toast((rec.imp and "! " or "") .. title, ((rec.text or "") ~= "" and (rec.text .. "  ") or "") .. "|cff888888- " .. ns.displayName(rec.by) .. "|r",
         rec.imp and C.red or C.accent, function() ns.ShowPage("home") end, rec.imp and "alert" or "announce")
 end
@@ -1124,26 +1124,26 @@ end
 local TABS = {
     -- 0.5.781: neu sortiert und in Klartext - erst der Alltag (Start, Mitglieder, Durchsagen, Termine), dann Raid/Chat, Einrichten zuletzt
     { key = "start", text = "Start" },
-    { key = "overview", text = "Mitglieder" },
-    { key = "members", text = "Gildenpflege" },
-    { key = "notices", text = "Durchsagen" },
-    { key = "events", text = "Termine" },
+    { key = "overview", text = "Members" },
+    { key = "members", text = "Guild care" },
+    { key = "notices", text = "Announcements" },
+    { key = "events", text = "Events" },
     { key = "raidtools", text = "Raid" },
-    { key = "ochat", text = "Offizierschat" },   -- nur sichtbar mit Offizierschat-Recht
-    { key = "modules", text = "Bereiche" },
-    { key = "rights", text = "Rechte" },
-    { key = "tools", text = "Protokoll" },
+    { key = "ochat", text = "Officer chat" },   -- nur sichtbar mit Offizierschat-Recht
+    { key = "modules", text = "Sections" },
+    { key = "rights", text = "Permissions" },
+    { key = "tools", text = "Log" },
 }
 
 -- 0.6.537: Reiter zu 6 Bereichen zusammengefasst (vorher 14 nebeneinander, zu viel fuer Laien und zu breit).
 -- Ein Bereich mit mehreren Teilen bekommt darunter eine zweite, kleine Reiterzeile. Unbekannte Reiter (von Modulen) bleiben eigene Bereiche.
 local GROUPS = {
-    { key = "g_today", text = "Heute", kids = { "today", "start" } },
-    { key = "g_members", text = "Mitglieder", kids = { "overview", "members" }, sub = { overview = "Liste", members = "Gildenpflege" } },
-    { key = "g_news", text = "Ankuendigen", kids = { "notices", "events", "media" } },
+    { key = "g_today", text = "Today", kids = { "today", "start" } },
+    { key = "g_members", text = "Members", kids = { "overview", "members" }, sub = { overview = "List", members = "Guild care" } },
+    { key = "g_news", text = "Announce", kids = { "notices", "events", "media" } },
     { key = "g_raid", text = "Raid", kids = { "raidtools" } },
-    { key = "g_off", text = "Offiziere", kids = { "ochat", "decide" }, sub = { decide = "Abstimmen" } },
-    { key = "g_set", text = "Einstellungen", kids = { "modules", "rights", "tools" } },
+    { key = "g_off", text = "Officers", kids = { "ochat", "decide" }, sub = { decide = "Vote" } },
+    { key = "g_set", text = "Settings", kids = { "modules", "rights", "tools" } },
 }
 local GROUP_OF = {}
 for _, g in ipairs(GROUPS) do for _, k in ipairs(g.kids) do GROUP_OF[k] = g end end
@@ -1191,11 +1191,11 @@ end
 
 -- gemeinsame Leiste unten: Aenderungen speichern / verwerfen
 -- lesbare Namen der Gilden-Einstellungen (fuer "was ist geaendert")
-local KEYNAMES = { off = "Module", logo = "Logo", ltext = "Schriftzug", lfont = "Logo-Schrift", lcol = "Logo-Farbe",
-    lsize = "Logo-Groesse", xp2 = "XP-Wochenende", crest = "Gildenwappen", crestc = "Wappen-Farbe", xp2s = "XP-Wochenende (Start)",
-    vis = "Sichtbarkeit der Module", nob = "Neuigkeiten-Zahlen", lup = "Grossbuchstaben", lsub = "Untertitel",
-    acc = "Gildenfarbe", rank = "Gildenleitung ab Rang", inv = "Mitglieder ohne Oasis anschreiben", dlink = "Discord-Link",
-    crown = "Krone fuer alle" }
+local KEYNAMES = { off = "Modules", logo = "Logo", ltext = "Wordmark", lfont = "Logo font", lcol = "Logo colour",
+    lsize = "Logo size", xp2 = "XP weekend", crest = "Guild crest", crestc = "Crest colour", xp2s = "XP weekend (start)",
+    vis = "Module visibility", nob = "News counters", lup = "Upper case", lsub = "Subtitle",
+    acc = "Guild colour", rank = "Leadership from rank", inv = "Message members without Oasis", dlink = "Discord link",
+    crown = "Crown for everyone" }
 local function changedKeys()
     local out = {}
     if not draft then return out end
@@ -1235,7 +1235,7 @@ local function buildSaveBar(p)
     bar:SetScript("OnEnter", function(self)
         local ch = changedKeys()
         if #ch == 0 then return end
-        local lines = { L["Noch nicht fuer die Gilde uebernommen:"] }
+        local lines = { L["Not yet applied for the guild:"] }
         for _, n in ipairs(ch) do lines[#lines + 1] = "|cffffc24d-|r " .. n end
         K.ShowTip(self, lines, "ANCHOR_TOP")
     end)
@@ -1248,25 +1248,25 @@ local function buildSaveBar(p)
     -- Seite verlassen mit offenen Aenderungen: kurz erinnern
     p:HookScript("OnHide", function()
         if dirty() and not ns.rebuilding then
-            K.Toast(L["Gildenleitung"], L["Ungespeicherte Aenderungen - noch nicht fuer die Gilde uebernommen."], C.amber,
+            K.Toast(L["Guild leadership"], L["Unsaved changes - not yet applied for the guild."], C.amber,
                 function() ns.ShowPage("admin") end)
         end
     end)
-    bar.save = K.Button(bar, L["Fuer die Gilde uebernehmen"], 210, 26, "primary", function()
+    bar.save = K.Button(bar, L["Apply for the guild"], 210, 26, "primary", function()
         if Admin.Save(draft) then
             draft = copyCfg(draft)
             if Admin.TestMode() then
                 -- andere pruefen den echten Gildenrang: aus dem Testmodus uebernimmt die Gilde nichts
-                K.Toast(L["Nur bei dir gespeichert"], L["Testmodus: die anderen uebernehmen Aenderungen nur von echten Offizieren / dem Gildenmeister."], C.amber)
+                K.Toast(L["Saved only for you"], L["Test mode: others only accept changes from real officers / the guild master."], C.amber)
             else
-                K.Toast(L["Gespeichert"], L["Gilt ab sofort fuer alle mit Oasis."], C.mint)
+                K.Toast(L["Saved"], L["Applies to everyone with Oasis right away."], C.mint)
             end
             Admin.ApplyBrand(true)
         end
         ns.RefreshPage("admin")
     end)
     bar.save:SetPoint("RIGHT", -6, -2)
-    bar.reset = K.Button(bar, L["Verwerfen"], 100, 26, "ghost", function()
+    bar.reset = K.Button(bar, L["Discard"], 100, 26, "ghost", function()
         draft = copyCfg(Admin.Cfg())
         page.rebuildDraftViews()
         ns.RefreshPage("admin")
@@ -1278,7 +1278,7 @@ local function buildSaveBar(p)
         self.save:SetEnabledState(d)
         self.reset:SetEnabledState(d)
         local n = #changedKeys()
-        self.save:SetLabel(d and (L["Fuer die Gilde uebernehmen"] .. "  (" .. n .. ")") or L["Fuer die Gilde uebernehmen"])
+        self.save:SetLabel(d and (L["Apply for the guild"] .. "  (" .. n .. ")") or L["Apply for the guild"])
         local dc = d and C.amber or (Admin.TestMode() and C.amber or C.mint)
         self.dot:SetVertexColor(dc[1], dc[2], dc[3])
         self.dot:SetAlpha(1)
@@ -1286,14 +1286,14 @@ local function buildSaveBar(p)
         self.bg:SetColorTexture(C.amber[1], C.amber[2], C.amber[3], d and 0.10 or 0)
         local cur = Admin.Cfg()
         if d then
-            self.state:SetText(K.hex(C.amber) .. ((n == 1) and L["1 ungespeicherte Aenderung"] or (L["%d ungespeicherte Aenderungen"]):format(n)) .. "|r  |cff999999"
-                .. L["- erst nach dem Uebernehmen sieht die Gilde sie"] .. "|r")
+            self.state:SetText(K.hex(C.amber) .. ((n == 1) and L["1 unsaved change"] or (L["%d unsaved changes"]):format(n)) .. "|r  |cff999999"
+                .. L["- the guild only sees them after applying"] .. "|r")
         elseif Admin.TestMode() then
-            self.state:SetText(K.hex(C.amber) .. L["Testmodus: Aenderungen gelten nur bei dir, nicht fuer die Gilde."] .. "|r")
+            self.state:SetText(K.hex(C.amber) .. L["Test mode: changes apply only for you, not for the guild."] .. "|r")
         elseif cur.by then
-            self.state:SetText((L["Zuletzt geaendert von %s, %s"]):format(ns.displayName(cur.by), ns.ago(cur.u)))
+            self.state:SetText((L["Last changed by %s, %s"]):format(ns.displayName(cur.by), ns.ago(cur.u)))
         else
-            self.state:SetText(L["Noch Standard-Einstellungen."])
+            self.state:SetText(L["Still default settings."])
         end
     end
     return bar
@@ -1304,12 +1304,12 @@ end
 ------------------------------------------------------------------------
 -- Spalten der Mitgliederliste als Anteil der Breite: passt sich an, zu Langes wird mit "..." gekuerzt
 local OV_COLS = {
-    { key = "rank", text = "Rang", w = 0.13 },
+    { key = "rank", text = "Rank", w = 0.13 },
     { key = "name", text = "Name", w = 0.21 },
     { key = "lvl", text = "Lvl", w = 0.05, justify = "CENTER" },
-    { key = "note", text = "Notiz", w = 0.26 },
+    { key = "note", text = "Note", w = 0.26 },
     { key = "ver", text = "Oasis", w = 0.13 },
-    { key = "seen", text = "Zuletzt online", w = 0.19 },   -- Rest der Breite: Karten-Symbol
+    { key = "seen", text = "Last online", w = 0.19 },   -- Rest der Breite: Karten-Symbol
 }
 local OV_X0 = 44   -- Platz fuer Online-Punkt + Oasis-Rang-Emblem
 local function layoutCols(frame, cols, width)
@@ -1328,10 +1328,10 @@ end
 local function buildOverview(f)
     -- Kacheln wie auf der Uebersicht: Symbol, Zahl (zaehlt hoch), Balken
     local TILES = {
-        { ns.ICONS.radar, "Mitglieder", C.blue },
-        { ns.ICONS.home, "Mit Oasis", C.accent },
-        { ns.ICONS.deaths or ns.ICONS.radar, "Inaktiv", C.amber },
-        { ns.ICONS.badges or ns.ICONS.radar, "Neu", C.mint },
+        { ns.ICONS.radar, "Members", C.blue },
+        { ns.ICONS.home, "With Oasis", C.accent },
+        { ns.ICONS.deaths or ns.ICONS.radar, "Inactive", C.amber },
+        { ns.ICONS.badges or ns.ICONS.radar, "New", C.mint },
     }
     local CLICK = { [1] = "online", [2] = "without", [3] = "inactive", [4] = "new" }
     f.cards = {}
@@ -1359,13 +1359,13 @@ local function buildOverview(f)
 
     f.filter = "all"
     f.seg = K.Segments(f, {
-        { key = "all", text = L["Alle"] }, { key = "online", text = L["Online"] }, { key = "inactive", text = L["Inaktiv"] },
-        { key = "new", text = L["Neu"] }, { key = "without", text = L["Ohne Oasis"] },
-        { key = "old", text = L["Altes Oasis"] }, { key = "lead", text = L["Leitung"] },
+        { key = "all", text = L["All"] }, { key = "online", text = L["Online"] }, { key = "inactive", text = L["Inactive"] },
+        { key = "new", text = L["New"] }, { key = "without", text = L["Without Oasis"] },
+        { key = "old", text = L["Old Oasis"] }, { key = "lead", text = L["Leaders"] },
     }, function(k) f.filter = k ns.RefreshPage("admin") end, nil, { size = 12, pad = 14 })
     f.seg:SetPoint("TOPLEFT", 0, -80)
     -- Suche ueber Name und Notizen
-    f.search = K.Input(f, 150, L["Name oder Notiz ..."], function(t) f.q = (t or ""):lower() ns.RefreshPage("admin") end)
+    f.search = K.Input(f, 150, L["Name or note ..."], function(t) f.q = (t or ""):lower() ns.RefreshPage("admin") end)
     f.search:SetPoint("TOPRIGHT", 0, -78)
     -- Twinks ausblenden: nur Mains zeigen (gemerkt; Twinks = Charaktere, die einem anderen Main zugeordnet sind)
     f.altBtn = K.Button(f, "", 110, 22, "ghost", function()
@@ -1374,10 +1374,10 @@ local function buildOverview(f)
         ns.RefreshPage("admin")
     end)
     f.altBtn:SetPoint("RIGHT", f.search, "LEFT", -8, 0)
-    f.altBtn:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Twinks ausblenden"], L["Zeigt nur Mains. Twinks sind Charaktere, die einem anderen Main zugeordnet sind."] }) end)
+    f.altBtn:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Hide alts"], L["Shows mains only. Alts are characters assigned to another main."] }) end)
     f.altBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     -- alle in der aktuellen Ansicht markieren (z.B. alle Inaktiven auf einmal auf einen Rang setzen)
-    f.selAll = K.Button(f, L["Alle markieren"], 110, 22, "ghost", function()
+    f.selAll = K.Button(f, L["Select all"], 110, 22, "ghost", function()
         for _, it in ipairs(f.lastOut or {}) do if not ns.isMe(it.m.name) then f.selected[it.m.name] = true end end
         ns.RefreshPage("admin")
     end)
@@ -1416,7 +1416,7 @@ local function buildOverview(f)
         end)
         b:SetScript("OnEnter", function(self)
             fs:SetTextColor(C.text[1], C.text[2], C.text[3])
-            K.ShowTip(self, { L[c.text], "|cff888888" .. L["Klick: danach sortieren"] .. "|r" })
+            K.ShowTip(self, { L[c.text], "|cff888888" .. L["Click: sort by this"] .. "|r" })
         end)
         b:SetScript("OnLeave", function() updateHead() GameTooltip:Hide() end)
     end
@@ -1442,16 +1442,16 @@ local function buildOverview(f)
             local m = self.item and self.item.m
             if not m then return end
             local lines = { ns.colorName(m.name, m.class) .. "  |cff999999" .. (m.rank or "") .. "|r" }
-            if (m.note or "") ~= "" then lines[#lines + 1] = "|cffaaaaaa" .. L["Notiz"] .. ":|r " .. m.note end
+            if (m.note or "") ~= "" then lines[#lines + 1] = "|cffaaaaaa" .. L["Note"] .. ":|r " .. m.note end
             local canO = ns.Members and ns.Members.CanSeeOfficerNote and ns.Members.CanSeeOfficerNote()
-            if canO and (m.onote or "") ~= "" then lines[#lines + 1] = "|cffff7a5c" .. L["Offiziersnotiz"] .. ":|r " .. m.onote end
+            if canO and (m.onote or "") ~= "" then lines[#lines + 1] = "|cffff7a5c" .. L["Officer note"] .. ":|r " .. m.onote end
             local main = ns.Alts and ns.Alts.Main and ns.Alts.Main(m.name)
-            if main and main ~= m.name then lines[#lines + 1] = "|cffaaaaaa" .. L["Twink von"] .. "|r " .. ns.displayName(main) end
+            if main and main ~= m.name then lines[#lines + 1] = "|cffaaaaaa" .. L["Alt of"] .. "|r " .. ns.displayName(main) end
             local j = ns.Welcome and ns.Welcome.JoinedAt and ns.Welcome.JoinedAt(m.name)
-            if j then lines[#lines + 1] = "|cffaaaaaa" .. L["Beigetreten"] .. ":|r " .. date("%d.%m.%Y", j) end
+            if j then lines[#lines + 1] = "|cffaaaaaa" .. L["Joined"] .. ":|r " .. date("%d.%m.%Y", j) end
             local g = ns.Members and ns.Members.LevelGain and ns.Members.LevelGain(m.name, 7, m.level)
-            if g and g > 0 then lines[#lines + 1] = "|cff66db9e+" .. g .. "|r " .. L["Level in 7 Tagen"] end
-            lines[#lines + 1] = "|cff777777" .. L["Klick: Profil  ·  Rechtsklick: Rang  ·  Strg-Klick: markieren"] .. "|r"
+            if g and g > 0 then lines[#lines + 1] = "|cff66db9e+" .. g .. "|r " .. L["levels in 7 days"] end
+            lines[#lines + 1] = "|cff777777" .. L["Click: profile  ·  Right-click: rank  ·  Ctrl-click: select"] .. "|r"
             K.ShowTip(self, lines)
         end)
         r:HookScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1464,7 +1464,7 @@ local function buildOverview(f)
             if m and ns.GuildRanks then ns.GuildRanks.MemberMenu(r.act, m) end
         end)
         r.act:SetPoint("RIGHT", -4, 0)
-        r.act:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Aktionen"], L["Rang aendern, befoerdern, zurueckstufen und mehr"] }) end)
+        r.act:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Actions"], L["Change rank, promote, demote and more"] }) end)
         r.act:HookScript("OnLeave", function() GameTooltip:Hide() end)
         r.map = CreateFrame("Button", nil, r)
         r.map:SetSize(18, 18)
@@ -1475,7 +1475,7 @@ local function buildOverview(f)
             self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
             local m = r.item and r.item.m
             local exact = m and ns.Map and ns.Map.PosOf and ns.Map.PosOf(m.name, m.aname)
-            K.ShowTip(self, { L["Auf der Karte zeigen"], exact and L["Genaue Position (teilt Oasis)"] or ((m and m.zone ~= "" and m.zone or "?") .. "  |cff888888(" .. L["nur Gebiet"] .. ")|r") })
+            K.ShowTip(self, { L["Show on map"], exact and L["Exact position (shared via Oasis)"] or ((m and m.zone ~= "" and m.zone or "?") .. "  |cff888888(" .. L["zone only"] .. ")|r") })
         end)
         r.map:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
         r.map:SetScript("OnClick", function()
@@ -1514,7 +1514,7 @@ local function buildOverview(f)
         -- Notiz: Twink-Hinweis, oeffentliche Notiz, Kennzeichen fuer Offiziersnotiz
         local parts = {}
         local main = ns.Alts and ns.Alts.Main and ns.Alts.Main(m.name)
-        if main and main ~= m.name then parts[#parts + 1] = "|cff8fb3ff" .. L["Twink"] .. ":|r " .. ns.displayName(main) end
+        if main and main ~= m.name then parts[#parts + 1] = "|cff8fb3ff" .. L["Alt"] .. ":|r " .. ns.displayName(main) end
         if (m.note or "") ~= "" then parts[#parts + 1] = m.note end
         local canO = ns.Members and ns.Members.CanSeeOfficerNote and ns.Members.CanSeeOfficerNote()
         local oTag = (canO and (m.onote or "") ~= "") and "|cffff7a5cO|r  " or ""
@@ -1522,18 +1522,18 @@ local function buildOverview(f)
         r:SetAlpha(m.online and 1 or 0.55)
         r.map:SetShown(m.online and ns.Map ~= nil and not ns.isMe(m.name))
         if it.v then
-            r.cols.ver:SetText((it.old and (K.hex(C.amber) .. it.v .. "  " .. L["alt"]) or (K.hex(C.mint) .. it.v)) .. "|r")
+            r.cols.ver:SetText((it.old and (K.hex(C.amber) .. it.v .. "  " .. L["old"]) or (K.hex(C.mint) .. it.v)) .. "|r")
         else
             -- kein Oasis: rotes X
             r.cols.ver:SetText("|TInterface\\RaidFrame\\ReadyCheck-NotReady:14:14|t")
         end
         -- Zuletzt: online = Gebiet, offline = wann zuletzt da (aus der Gildenliste)
         if ns.isMe(m.name) then
-            r.cols.seen:SetText(L["das bist du"])
+            r.cols.seen:SetText(L["that's you"])
         elseif m.online then
             r.cols.seen:SetText("|cff66db9e" .. L["online"] .. "|r" .. ((m.zone or "") ~= "" and ("  ·  " .. m.zone) or ""))
         elseif m.offDays then
-            r.cols.seen:SetText(m.offDays < 1 and L["heute"] or (L["vor %d Tg"]):format(m.offDays))
+            r.cols.seen:SetText(m.offDays < 1 and L["today"] or (L["%d d ago"]):format(m.offDays))
         else
             r.cols.seen:SetText(it.seen and ns.ago(it.seen) or "|cff555555-|r")
         end
@@ -1546,19 +1546,19 @@ local function buildOverview(f)
         local names, n = Admin.RankNames()
         local sel = {}
         for name in pairs(f.selected) do sel[#sel + 1] = name end
-        local items = { { text = (L["%d markiert - Rang setzen"]):format(#sel), header = true } }
+        local items = { { text = (L["%d selected - set rank"]):format(#sel), header = true } }
         for i = 1, n - 1 do
             items[#items + 1] = { text = (i + 1) .. ".  " .. (names[i] or "?"), fn = function()
-                GR.Confirm((L["%d Mitglieder auf Rang \"%s\" setzen?"]):format(#sel, names[i] or "?"), function()
+                GR.Confirm((L["Set %d members to rank \"%s\"?"]):format(#sel, names[i] or "?"), function()
                     GR.SetRankMany(sel, i, function(cnt)
-                        K.Toast(L["Raenge gesetzt"], (L["%d Mitglieder -> %s"]):format(cnt, names[i] or "?"), C.mint)
+                        K.Toast(L["Ranks set"], (L["%d members -> %s"]):format(cnt, names[i] or "?"), C.mint)
                     end)
                     f.selected = {}
                     ns.RefreshPage("admin")
                 end)
             end }
         end
-        items[#items + 1] = { text = L["Auswahl aufheben"], fn = function() f.selected = {} ns.RefreshPage("admin") end }
+        items[#items + 1] = { text = L["Clear selection"], fn = function() f.selected = {} ns.RefreshPage("admin") end }
         K.ShowMenu(self, items, nil, 240)
     end)
     f.bulk.isDropdown = true
@@ -1568,7 +1568,7 @@ local function buildOverview(f)
     f.selHint:SetPoint("TOPRIGHT", 0, -108)
     f.list:SetPoint("TOPLEFT", 0, -158)
     f.list:SetPoint("BOTTOMRIGHT", 0, 0)
-    f.list.empty:SetText(L["Keine Mitglieder in dieser Ansicht."])
+    f.list.empty:SetText(L["No members in this view."])
 
     local function layout()
         local w = f:GetWidth() or 750
@@ -1585,12 +1585,12 @@ local function refreshOverview(f)
     local nsel = 0
     for _ in pairs(f.selected) do nsel = nsel + 1 end
     f.bulk:SetShown(nsel > 0)
-    f.bulk:SetLabel((L["%d markiert: Rang setzen"]):format(nsel))
+    f.bulk:SetLabel((L["%d selected: set rank"]):format(nsel))
     f.selHint:SetShown(nsel == 0)
-    f.selHint:SetText(L["Knopf ... rechts: Rang aendern  ·  Strg-Klick: mehrere markieren"])
+    f.selHint:SetText(L["Button ... on the right: change rank  ·  Ctrl-click: select several"])
     f.xpTag:SetShown(false)
     local until2 = ns.Rewards and ns.Rewards.DoubleUntil()
-    f.xpTag:SetText(until2 and ("2x XP  ·  " .. (L["noch %d h"]):format(math.ceil((until2 - ns.now()) / 3600))) or "")
+    f.xpTag:SetText(until2 and ("2x XP  ·  " .. (L["%d h left"]):format(math.ceil((until2 - ns.now()) / 3600))) or "")
     local rows, st = Admin.Usage()
     local anim = f.fresh
     f.fresh = false
@@ -1598,14 +1598,14 @@ local function refreshOverview(f)
     f.cards[1]:Set(st.total, (L["%d online"]):format(st.online), nil, anim)
     -- Mit Oasis: Anzahl gross, daneben Anteil + wie viele davon gerade online; veraltete nur als Hinweis
     local sub = math.floor(share * 100 + 0.5) .. " %"
-    if st.old > 0 then sub = sub .. "  ·  " .. K.hex(C.amber) .. (L["%d veraltet"]):format(st.old) .. "|r" end
+    if st.old > 0 then sub = sub .. "  ·  " .. K.hex(C.amber) .. (L["%d outdated"]):format(st.old) .. "|r" end
     f.cards[2]:Set(st.oasis, sub, share, anim)
-    local tip = { L["Mit Oasis"], (L["%d von %d Mitgliedern (letzte 14 Tage)"]):format(st.oasis, st.total),
-        (L["Gerade online: %d mit Oasis von %d"]):format(st.onlineOasis, st.online) }
+    local tip = { L["With Oasis"], (L["%d of %d members (last 14 days)"]):format(st.oasis, st.total),
+        (L["Online now: %d with Oasis of %d"]):format(st.onlineOasis, st.online) }
     if st.old > 0 then
-        tip[#tip + 1] = K.hex(C.amber) .. (L["%d mit alter Version - neueste: v%s"]):format(st.old, st.newest or ns.version) .. "|r"
+        tip[#tip + 1] = K.hex(C.amber) .. (L["%d on an old version - newest: v%s"]):format(st.old, st.newest or ns.version) .. "|r"
     end
-    tip[#tip + 1] = "|cff888888" .. L["Klick: zeigt alle ohne Oasis"] .. "|r"
+    tip[#tip + 1] = "|cff888888" .. L["Click: show everyone without Oasis"] .. "|r"
     f.cards[2].tip = tip
     local inactDays = ns.db.settings.inactiveDays or 30
     local function isInactive(m) return not m.online and (m.offDays or 0) >= inactDays end
@@ -1615,11 +1615,11 @@ local function refreshOverview(f)
         if isInactive(it.m) then nIn = nIn + 1 end
         if isNew(it.m) then nNew = nNew + 1 end
     end
-    f.cards[3]:Set(nIn, (L["ab %d Tagen offline"]):format(inactDays), st.total > 0 and nIn / st.total or 0, anim)
-    f.cards[3].tip = { L["Inaktiv"], (L["Seit mindestens %d Tagen nicht online. Die Grenze stellst du unter Einstellungen > Bereiche > Mitglieder ein."]):format(inactDays),
-        "|cff888888" .. L["Klick: nur diese zeigen"] .. "|r" }
-    f.cards[4]:Set(nNew, L["neu in der Gilde"], st.total > 0 and nNew / st.total or 0, anim)
-    f.cards[4].tip = { L["Neu"], L["Kuerzlich beigetreten - ein guter Moment fuer ein Hallo."], "|cff888888" .. L["Klick: nur diese zeigen"] .. "|r" }
+    f.cards[3]:Set(nIn, (L["offline %d+ days"]):format(inactDays), st.total > 0 and nIn / st.total or 0, anim)
+    f.cards[3].tip = { L["Inactive"], (L["Not online for at least %d days. Set the limit under Settings > Sections > Members."]):format(inactDays),
+        "|cff888888" .. L["Click: show only these"] .. "|r" }
+    f.cards[4]:Set(nNew, L["new in the guild"], st.total > 0 and nNew / st.total or 0, anim)
+    f.cards[4].tip = { L["New"], L["Recently joined - a good moment to say hello."], "|cff888888" .. L["Click: show only these"] .. "|r" }
     local lead = Admin.LeaderRank()
     local q = f.q or ""
     local out = {}
@@ -1640,7 +1640,7 @@ local function refreshOverview(f)
         if ok then out[#out + 1] = it end
     end
     if f.altBtn then
-        f.altBtn:SetLabel(hideAlts and ("|cff66db9e" .. L["Twinks: aus"] .. "|r" .. (nAlts > 0 and (" |cff888888" .. nAlts .. "|r") or "")) or L["Twinks: an"])
+        f.altBtn:SetLabel(hideAlts and ("|cff66db9e" .. L["Alts: off"] .. "|r" .. (nAlts > 0 and (" |cff888888" .. nAlts .. "|r") or "")) or L["Alts: on"])
     end
     f.lastOut = out
     f.selAll:SetShown(nsel == 0 and f.filter ~= "all" and #out > 0)
@@ -1728,7 +1728,7 @@ local CROSS = "|TInterface\\RaidFrame\\ReadyCheck-NotReady:14:14|t"
 ------------------------------------------------------------------------
 local function buildModules(f)
     -- kompakt: je Modul eine Zeile (Schalter, Symbol, Name); Beschreibung als Tooltip
-    local intro = label(f, L["Einstellungen je Modul fuer die ganze Gilde - Ausblenden macht jeder selbst in seinen Einstellungen."], 0, 0)
+    local intro = label(f, L["Per-module settings for the whole guild - hiding sections is done by everyone in their own settings."], 0, 0)
     intro:SetPoint("RIGHT", f, "RIGHT", -24, 0)
     intro:SetWordWrap(false)
     local info = CreateFrame("Frame", nil, f)
@@ -1739,8 +1739,8 @@ local function buildModules(f)
     info.t:SetText("?")
     info:EnableMouse(true)
     info:SetScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Module"], L["Klick auf ein Modul: wer es sieht (ab Rang) und ob Neuigkeiten-Zahlen erscheinen."],
-            L["Bereiche ausblenden kann jedes Mitglied selbst unter Einstellungen."], "|cff888888" .. L["Aenderungen gelten erst nach dem Speichern unten."] .. "|r" })
+        K.ShowTip(self, { L["Modules"], L["Click a module: who sees it (from rank) and whether news counters appear."],
+            L["Every member can hide sections themselves under Settings."], "|cff888888" .. L["Changes only apply after saving below."] .. "|r" })
     end)
     info:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
@@ -1771,7 +1771,7 @@ local function buildModules(f)
     for _, def in ipairs(ns.Pages()) do
         if not seen[def.key] and usable(def) and not def.topbar then rest[#rest + 1] = def end
     end
-    if #rest > 0 then groups[#groups + 1] = { text = "Weitere", items = rest } end
+    if #rest > 0 then groups[#groups + 1] = { text = "More", items = rest } end
     local ROW = 28
     -- scrollbarer Bereich: mit vielen Modulen (Raid hat ~13 Unterseiten) lief die Liste sonst aus dem Fenster
     local sf = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
@@ -1811,7 +1811,7 @@ local function buildModules(f)
             t.gear.icon:SetPoint("CENTER")
             t.gear:SetScript("OnEnter", function(self)
                 self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
-                K.ShowTip(self, { L[def.title], L["Klick: Einstellungen dieses Moduls"] })
+                K.ShowTip(self, { L[def.title], L["Click: settings for this module"] })
             end)
             t.gear:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
             t.gear:SetScript("OnClick", function() f:OpenModule(def) end)
@@ -1871,7 +1871,7 @@ local function buildModules(f)
     mp:EnableMouse(true)
     mp:Hide()
     f.mp = mp
-    mp.back = K.Button(mp, "<  " .. L["Zurueck"], 100, 24, "ghost", function() mp:Hide() end)
+    mp.back = K.Button(mp, "<  " .. L["Back"], 100, 24, "ghost", function() mp:Hide() end)
     mp.back:SetPoint("TOPRIGHT", -12, -8)
     mp.desc = K.Text(mp, 12, C.muted)
     mp.desc:SetPoint("TOPLEFT", 14, -44)
@@ -1879,23 +1879,23 @@ local function buildModules(f)
     mp.desc:SetWordWrap(true)
     mp.visLbl = K.Text(mp, 13, C.text)
     mp.visLbl:SetPoint("TOPLEFT", 14, -90)
-    mp.visLbl:SetText(L["Sichtbar fuer"])
+    mp.visLbl:SetText(L["Visible to"])
     mp.visDesc = K.Text(mp, 11, C.muted)
     mp.visDesc:SetPoint("TOPLEFT", mp.visLbl, "BOTTOMLEFT", 0, -3)
-    mp.visDesc:SetText(L["Wer den Bereich in der Navigation sieht (die Gildenleitung sieht immer alles)"])
+    mp.visDesc:SetText(L["Who sees this section in the navigation (leadership always sees everything)"])
     mp.vis = K.Button(mp, "", 240, 26, "ghost", function(self)
         local names, n = Admin.RankNames()
         local cur = visMap(draft)[mp.def.key]
-        local items = { { text = L["Alle Raenge"], checked = cur == nil, fn = function() setVis(draft, mp.def.key, nil) ns.RefreshPage("admin") end } }
+        local items = { { text = L["All ranks"], checked = cur == nil, fn = function() setVis(draft, mp.def.key, nil) ns.RefreshPage("admin") end } }
         for i = 0, n - 1 do
-            items[#items + 1] = { text = (L["bis Rang %d: %s"]):format(i + 1, names[i] or "?"), checked = cur == i,
+            items[#items + 1] = { text = (L["up to rank %d: %s"]):format(i + 1, names[i] or "?"), checked = cur == i,
                 fn = function() setVis(draft, mp.def.key, i) ns.RefreshPage("admin") end }
         end
         K.ShowMenu(self, items, nil, 240)
     end)
     mp.vis.isDropdown = true
     mp.vis:SetPoint("TOPLEFT", 14, -128)
-    mp.badge = K.Toggle(mp, L["Neuigkeiten-Zahlen in der Navigation"], function()
+    mp.badge = K.Toggle(mp, L["News counters in the navigation"], function()
         return mp.def and not nobSet(draft)[mp.def.key]
     end, function(v)
         local t = nobSet(draft)
@@ -1905,13 +1905,13 @@ local function buildModules(f)
         table.sort(keys)
         draft.nob = table.concat(keys, ",")
         ns.RefreshPage("admin")
-    end, L["Zeigt z.B. neue Nachrichten oder Auftraege als Zahl neben dem Namen"])
+    end, L["Shows e.g. new messages or orders as a number next to the name"])
     mp.badge:SetWidth(420)
     mp.badge:SetPoint("TOPLEFT", 14, -176)
     -- Gilden-Optionen des Moduls (von den Modulen angemeldet): scrollbar unter den Grund-Einstellungen
     mp.optHead = K.Text(mp, 11, C.amber)
     mp.optHead:SetPoint("TOPLEFT", 14, -222)
-    mp.optHead:SetText(K.Upper(L["Fuer die ganze Gilde"]))
+    mp.optHead:SetText(K.Upper(L["For the whole guild"]))
     mp.optLine = K.Divider(mp)
     mp.optLine:SetPoint("TOPLEFT", 14, -238)
     mp.optLine:SetPoint("RIGHT", mp, "RIGHT", -14, 0)
@@ -1952,7 +1952,7 @@ local function buildModules(f)
                 t:SetPoint("TOPLEFT", 0, y)
                 t:SetPoint("RIGHT", self.ochild, "RIGHT", 0, 0)
                 if d.desc then
-                    t:HookScript("OnEnter", function(s) K.ShowTip(s, { L[d.label], L[d.desc], locked and ("|cffffc24d" .. L["Nur der Gildenmeister kann das aendern."] .. "|r") or nil }) end)
+                    t:HookScript("OnEnter", function(s) K.ShowTip(s, { L[d.label], L[d.desc], locked and ("|cffffc24d" .. L["Only the guild master can change this."] .. "|r") or nil }) end)
                     t:HookScript("OnLeave", function() GameTooltip:Hide() end)
                 end
                 t:SetAlpha(locked and 0.5 or 1)
@@ -2055,7 +2055,7 @@ local function buildModules(f)
                         local dn = ns.displayName(m.name):lower()
                         if ns.SameName(m.name, q) then found = m.name break end
                     end
-                    if not found then K.Toast(L[d.label], L["Kein Gildenmitglied mit diesem Namen."], C.amber) return end
+                    if not found then K.Toast(L[d.label], L["No guild member with that name."], C.amber) return end
                     local t = list()
                     for _, n in ipairs(t) do if n == found then inp:SetText("") return end end
                     t[#t + 1] = found
@@ -2115,13 +2115,13 @@ local function buildModules(f)
     end
     mp.more = K.Text(mp, 11, C.dim)
     mp.more:SetPoint("BOTTOMLEFT", 14, 14)
-    mp.more:SetText(L["Aenderungen gelten fuer alle, sobald du unten fuer die Gilde speicherst."])
+    mp.more:SetText(L["Changes apply to everyone once you save for the guild below."])
     -- Einstellungs-Karte liegt ueber der (scrollbaren) Liste: Liste solange ausblenden
     mp:HookScript("OnShow", function() if f.modScroll then f.modScroll:Hide() end end)
     mp:HookScript("OnHide", function() if f.modScroll then f.modScroll:Show() end end)
     function f:OpenModule(def)
         mp.def = def
-        mp.title:SetText(K.Upper(L[def.title]) .. "  |cff888888- " .. K.Upper(L["Einstellungen"]) .. "|r")
+        mp.title:SetText(K.Upper(L[def.title]) .. "  |cff888888- " .. K.Upper(L["Settings"]) .. "|r")
         mp.icon:SetTexture(ns.ICONS[def.key])
         mp.desc:SetText(def.sub and L[def.sub] or "")
         mp:BuildOptions(def.key)
@@ -2136,8 +2136,8 @@ local function refreshModules(f)
         t:Refresh()
         local k = t.def.key
         local parts = {}
-        if vm[k] then parts[#parts + 1] = (L["ab Rang %d"]):format(vm[k] + 1) end
-        if nb[k] then parts[#parts + 1] = L["ohne Zahlen"] end
+        if vm[k] then parts[#parts + 1] = (L["from rank %d"]):format(vm[k] + 1) end
+        if nb[k] then parts[#parts + 1] = L["no counters"] end
         local nopt = 0
         for _, d in ipairs(ns.GuildOpts or {}) do if d.page == k then nopt = nopt + 1 end end
         t.gear.icon:SetVertexColor((nopt > 0 and C.text or C.muted)[1], (nopt > 0 and C.text or C.muted)[2], (nopt > 0 and C.text or C.muted)[3])
@@ -2148,7 +2148,7 @@ local function refreshModules(f)
         mp.badge:Refresh()
         mp:RefreshOptions()
         local r = vm[mp.def.key]
-        mp.vis:SetLabel(r and (L["bis Rang %d: %s"]):format(r + 1, names[r] or "?") or L["Alle Raenge"])
+        mp.vis:SetLabel(r and (L["up to rank %d: %s"]):format(r + 1, names[r] or "?") or L["All ranks"])
     end
 end
 
@@ -2159,19 +2159,19 @@ local function rankMenu(owner, current, onPick)
     local names, n = Admin.RankNames()
     local items = {}
     for i = 0, n - 1 do
-        items[#items + 1] = { text = (L["bis Rang %d: %s"]):format(i + 1, names[i] or "?"), checked = current == i, fn = function() onPick(i) end }
+        items[#items + 1] = { text = (L["up to rank %d: %s"]):format(i + 1, names[i] or "?"), checked = current == i, fn = function() onPick(i) end }
     end
     K.ShowMenu(owner, items, nil, 240)
 end
 local function buildRights(f)
     -- Karte 1: wer sieht die Gildenleitung
-    f.cA = card(f, ns.ICONS.admin, L["Zugriff auf die Gildenleitung"], C.accent)
-    helpTip(f.cA, { L["Zugriff auf die Gildenleitung"], L["Alle ab dem gewaehlten Rang sehen diese Zentrale und duerfen Module, Durchsagen und Events fuer die Gilde aendern."],
-        "|cff888888" .. L["Die Grenze legt nur der Gildenmeister fest. Rang 1 = Gildenmeister."] .. "|r" })
+    f.cA = card(f, ns.ICONS.admin, L["Access to guild leadership"], C.accent)
+    helpTip(f.cA, { L["Access to guild leadership"], L["Everyone from the chosen rank up sees this hub and may change modules, announcements and events for the guild."],
+        "|cff888888" .. L["Only the guild master sets the limit. Rank 1 = guild master."] .. "|r" })
     f.cA.desc = K.Text(f.cA, 11, C.muted)
     f.cA.desc:SetPoint("TOPLEFT", 14, -40)
     f.cA.desc:SetPoint("RIGHT", f.cA, "RIGHT", -14, 0)
-    f.cA.desc:SetText(L["Module, Durchsagen, Events"])
+    f.cA.desc:SetText(L["Modules, announcements, events"])
     f.rank = K.Button(f.cA, "", 210, 26, "ghost", function(self)
         if not Admin.IsGM() then return end
         rankMenu(self, tonumber(draft.rank) or 1, function(i) draft.rank = i ns.RefreshPage("admin") end)
@@ -2182,12 +2182,12 @@ local function buildRights(f)
     f.cA.count:SetPoint("LEFT", f.rank, "RIGHT", 12, 0)
 
     -- Karte 2: Beute-Punkte
-    f.cB = card(f, ns.ICONS.raid, L["Beute-Punkte vergeben"], C.amber)
-    helpTip(f.cB, { L["Beute-Punkte vergeben"], L["Wer im Raid Punkte (Einsatz/Beute) buchen darf."], "|cff888888" .. L["Wird sofort gespeichert."] .. "|r" })
+    f.cB = card(f, ns.ICONS.raid, L["Award loot points"], C.amber)
+    helpTip(f.cB, { L["Award loot points"], L["Who may book points (effort/loot) in raid."], "|cff888888" .. L["Saved immediately."] .. "|r" })
     f.cB.desc = K.Text(f.cB, 11, C.muted)
     f.cB.desc:SetPoint("TOPLEFT", 14, -40)
     f.cB.desc:SetPoint("RIGHT", f.cB, "RIGHT", -14, 0)
-    f.cB.desc:SetText(L["Einsatz- und Beutepunkte im Raid buchen"])
+    f.cB.desc:SetText(L["Book attendance and loot points in raids"])
     f.prank = K.Button(f.cB, "", 210, 26, "ghost", function(self)
         if not (ns.Points and ns.Points.CanManage()) then return end
         rankMenu(self, ns.Points.Cfg().rank, function(i) ns.Points.SetCfg({ rank = i }) ns.RefreshPage("admin") end)
@@ -2198,10 +2198,10 @@ local function buildRights(f)
     f.cB.count:SetPoint("LEFT", f.prank, "RIGHT", 12, 0)
 
     -- Karte 3: Krone & Testmodus (Vorbereitung: spaeter Zugang nur nach Rang)
-    f.cC = card(f, ns.ICONS.admin, L["Krone & Testmodus"], C.blue)
-    helpTip(f.cC, { L["Krone & Testmodus"], L["Wer die Krone oben sieht. Ohne Rechte ist sie grau und oeffnet nur eine Vorschau."],
-        "|cff888888" .. L["Gilt erst nach 'Fuer die Gilde uebernehmen'."] .. "|r" })
-    f.crown = K.Toggle(f.cC, L["Krone nur fuer die Gildenleitung zeigen"], function() return draft and draft.crown == "lead" end,
+    f.cC = card(f, ns.ICONS.admin, L["Crown & test mode"], C.blue)
+    helpTip(f.cC, { L["Crown & test mode"], L["Who sees the crown at the top. Without rights it is grey and only opens a preview."],
+        "|cff888888" .. L["Takes effect after 'Apply for the guild'."] .. "|r" })
+    f.crown = K.Toggle(f.cC, L["Show the crown only to guild leadership"], function() return draft and draft.crown == "lead" end,
         function(v) if draft then draft.crown = v and "lead" or "all" end ns.RefreshPage("admin") end)
     f.crown:SetPoint("TOPLEFT", 14, -40)
     f.crown:SetPoint("RIGHT", f.cC, "RIGHT", -14, 0)
@@ -2214,7 +2214,7 @@ local function buildRights(f)
     f.cC.Show = function() end
 
     -- rechts: Rang-Leiter (Klick setzt die Grenze, nur Gildenmeister)
-    f.ladderHead = K.GameHead(f, L["Rang-Leiter"], C.accent)
+    f.ladderHead = K.GameHead(f, L["Rank ladder"], C.accent)
     f.ladder = {}
     for i = 1, 10 do
         local r = CreateFrame("Button", nil, f)
@@ -2244,7 +2244,7 @@ local function buildRights(f)
         r.gear.icon:SetPoint("CENTER")
         r.gear:SetScript("OnEnter", function(self)
             self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
-            K.ShowTip(self, { L["Rang bearbeiten"], L["Umbenennen, Rechte, Loeschen - gilt sofort in WoW"] })
+            K.ShowTip(self, { L["Edit rank"], L["Rename, permissions, delete - applies in WoW immediately"] })
         end)
         r.gear:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
         r.gear:SetScript("OnClick", function(self)
@@ -2253,23 +2253,23 @@ local function buildRights(f)
             local names, n = Admin.RankNames()
             local cnt = GR.CountIn(ri)
             local items = {
-                { text = (L["Rang %d: %s"]):format(ri + 1, names[ri] or "?"), header = true },
-                { text = L["Umbenennen ..."], fn = function()
-                    GR.AskName((L["Neuer Name fuer Rang %d:"]):format(ri + 1), names[ri], function(t) GR.Rename(ri, t) end)
+                { text = (L["Rank %d: %s"]):format(ri + 1, names[ri] or "?"), header = true },
+                { text = L["Rename ..."], fn = function()
+                    GR.AskName((L["New name for rank %d:"]):format(ri + 1), names[ri], function(t) GR.Rename(ri, t) end)
                 end },
-                { text = L["Rechte"], header = true },
+                { text = L["Permissions"], header = true },
             }
             for _, fl in ipairs(GR.RankFlags(ri)) do
                 items[#items + 1] = { text = fl.label, checked = fl.on, disabled = ri == 0,
                     fn = function() GR.SetRankFlag(ri, fl.i, not fl.on) end }
             end
-            items[#items + 1] = { text = "|cffe64040" .. L["Rang loeschen"] .. "|r",
+            items[#items + 1] = { text = "|cffe64040" .. L["Delete rank"] .. "|r",
                 disabled = ri == 0 or ri ~= n - 1 or cnt > 0 or n <= 2,
                 fn = function()
-                    GR.Confirm((L["Rang \"%s\" wirklich loeschen?"]):format(names[ri] or "?"), function() GR.DeleteRank(ri) end)
+                    GR.Confirm((L["Really delete rank \"%s\"?"]):format(names[ri] or "?"), function() GR.DeleteRank(ri) end)
                 end }
             if ri ~= n - 1 or cnt > 0 then
-                items[#items + 1] = { text = "|cff888888" .. L["Loeschen geht nur beim untersten, leeren Rang (Vorgabe von WoW)."] .. "|r", disabled = true }
+                items[#items + 1] = { text = "|cff888888" .. L["Only the lowest, empty rank can be deleted (WoW rule)."] .. "|r", disabled = true }
             end
             K.ShowMenu(self, items, nil, 260)
         end)
@@ -2278,24 +2278,24 @@ local function buildRights(f)
         end)
         r:SetScript("OnEnter", function(self)
             if not self.rank then return end
-            K.ShowTip(self, { (L["Rang %d: %s"]):format(self.rank + 1, self.rname or "?"),
-                self.inside and (K.hex(C.mint) .. L["sieht die Gildenleitung"] .. "|r") or (K.hex(C.dim) .. L["kein Zugriff"] .. "|r"),
-                Admin.IsGM() and ("|cff888888" .. L["Klick: Grenze hierhin setzen"] .. "|r") or nil })
+            K.ShowTip(self, { (L["Rank %d: %s"]):format(self.rank + 1, self.rname or "?"),
+                self.inside and (K.hex(C.mint) .. L["sees guild leadership"] .. "|r") or (K.hex(C.dim) .. L["no access"] .. "|r"),
+                Admin.IsGM() and ("|cff888888" .. L["Click: set the limit here"] .. "|r") or nil })
         end)
         r:SetScript("OnLeave", function() GameTooltip:Hide() end)
         f.ladder[i] = r
     end
 
-    f.addRank = K.Button(f, "+  " .. L["Neuer Rang"], 140, 22, "ghost", function()
+    f.addRank = K.Button(f, "+  " .. L["New rank"], 140, 22, "ghost", function()
         local GR = ns.GuildRanks
         if not GR then return end
-        GR.AskName(L["Name fuer den neuen Rang:"], "", function(t) GR.AddRank(t) end)
+        GR.AskName(L["Name for the new rank:"], "", function(t) GR.AddRank(t) end)
     end)
     f.addRank:SetScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Neuer Rang"], L["Wird unten angehaengt - gilt sofort in WoW."], "|cff888888" .. L["Nur der Gildenmeister, hoechstens 10 Raenge."] .. "|r" })
+        K.ShowTip(self, { L["New rank"], L["Added at the bottom - applies in WoW immediately."], "|cff888888" .. L["Guild master only, at most 10 ranks."] .. "|r" })
     end)
     f.addRank:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    f.whoHead = K.GameHead(f, L["Haben Zugriff"], C.mint)
+    f.whoHead = K.GameHead(f, L["Have access"], C.mint)
     f.who = K.List(f, 24, function(l)
         local r = K.Row(l)
         r.dot = r:CreateTexture(nil, "ARTWORK")
@@ -2318,7 +2318,7 @@ local function buildRights(f)
         r.cols.rank:SetText(m.rank or "")
         r:SetAlpha(m.online and 1 or 0.6)
     end)
-    f.who.empty:SetText(L["Gildenliste noch nicht geladen."])
+    f.who.empty:SetText(L["Guild roster not loaded yet."])
 
     function f:Layout(nRanks)
         local w = self:GetWidth() or 750
@@ -2363,8 +2363,8 @@ local function refreshRights(f)
     if f.crown then
         f.crown:Refresh()
         f.crown:SetAlpha(Admin.IsGM() and 1 or 0.5)
-        f.cC.test:SetText(Admin.TestMode() and (K.hex(C.amber) .. L["Testmodus ist bei dir an: du siehst die Leitung wie ein Gildenmeister. Nur auf deinem PC - aus mit /oa testleitung."] .. "|r")
-            or L["Testmodus aus. Zum Ausprobieren ohne Rang: /oa testleitung"])
+        f.cC.test:SetText(Admin.TestMode() and (K.hex(C.amber) .. L["Test mode is on for you: you see leadership like a guild master. Only on your PC - turn off with /oa testleitung."] .. "|r")
+            or L["Test mode off. To try it without the rank: /oa testleitung"])
     end
     f.nRanks = math.min(n, #f.ladder)
     f:Layout(f.nRanks)
@@ -2379,13 +2379,13 @@ local function refreshRights(f)
         if ri <= r then inA = inA + 1 out[#out + 1] = m end
         if ri <= pr then inB = inB + 1 end
     end
-    f.rank:SetLabel((L["bis Rang %d: %s"]):format(r + 1, names[r] or "?"))
+    f.rank:SetLabel((L["up to rank %d: %s"]):format(r + 1, names[r] or "?"))
     f.rank:SetEnabledState(Admin.IsGM())
-    f.cA.count:SetText(K.hex(C.accent) .. inA .. "|r " .. L["Mitglieder"])
+    f.cA.count:SetText(K.hex(C.accent) .. inA .. "|r " .. L["Members"])
     if ns.Points then
-        f.prank:SetLabel((L["bis Rang %d: %s"]):format(pr + 1, names[pr] or "?"))
+        f.prank:SetLabel((L["up to rank %d: %s"]):format(pr + 1, names[pr] or "?"))
         f.prank:SetEnabledState(ns.Points.CanManage())
-        f.cB.count:SetText(K.hex(C.amber) .. inB .. "|r " .. L["Mitglieder"])
+        f.cB.count:SetText(K.hex(C.amber) .. inB .. "|r " .. L["Members"])
     end
     for i, row in ipairs(f.ladder) do
         local ri = i - 1
@@ -2396,7 +2396,7 @@ local function refreshRights(f)
             row.num:SetText(ri + 1)
             row.name:SetText(names[ri] or "?")
             row.name:SetTextColor((inside and C.text or C.muted)[1], (inside and C.text or C.muted)[2], (inside and C.text or C.muted)[3])
-            row.count:SetText((L["%d Mitgl."]):format(counts[ri] or 0))
+            row.count:SetText((L["%d mem."]):format(counts[ri] or 0))
             row.gear:SetShown(ns.GuildRanks and ns.GuildRanks.CanEditRanks() or false)
             local c = inside and C.accent or C.line
             row.bar:SetColorTexture(c[1], c[2], c[3], 1)
@@ -2421,18 +2421,18 @@ end
 ------------------------------------------------------------------------
 local function buildNotices(f)
     -- Karte: neue Durchsage
-    local c1 = card(f, ns.MEDIA .. "icons\\announce", L["Neue Durchsage"], C.accent)
-    helpTip(c1, { L["Neue Durchsage"], L["Alle mit Oasis bekommen einen Hinweis mit Sound."], L["Die neueste Durchsage steht 3 Tage oben auf der Uebersicht."] })
+    local c1 = card(f, ns.MEDIA .. "icons\\announce", L["New announcement"], C.accent)
+    helpTip(c1, { L["New announcement"], L["Everyone with Oasis gets a notice with sound."], L["The latest announcement stays on top of the overview for 3 days."] })
     f.c1 = c1
-    fieldLabel(c1, L["1. Ueberschrift"], 14, -40)
-    f.title = K.Input(c1, 300, L["Ueberschrift - z.B. Raid heute verschoben"])
+    fieldLabel(c1, L["1. Headline"], 14, -40)
+    f.title = K.Input(c1, 300, L["Headline - e.g. raid postponed today"])
     f.title:SetPoint("TOPLEFT", 14, -54)
     f.title:SetPoint("RIGHT", c1, "RIGHT", -14, 0)
     f.title:SetMaxLetters(60)
-    fieldLabel(c1, L["2. Nachricht"], 14, -88)
+    fieldLabel(c1, L["2. Message"], 14, -88)
     f.count = K.Text(c1, 10, C.dim, "RIGHT")
     f.count:SetPoint("TOPRIGHT", -14, -88)
-    f.text = K.Input(c1, 300, L["Worum geht's? (max. 200 Zeichen)"])
+    f.text = K.Input(c1, 300, L["What's it about? (max. 200 characters)"])
     f.text:SetPoint("TOPLEFT", 14, -102)
     f.text:SetPoint("RIGHT", c1, "RIGHT", -14, 0)
     f.text:SetMaxLetters(200)
@@ -2445,43 +2445,43 @@ local function buildNotices(f)
     f.text:HookScript("OnTextChanged", updCount)
     updCount()
     f.imp, f.chat = false, false
-    f.impT = K.Toggle(c1, L["Wichtig"], function() return f.imp end, function(v) f.imp = v end)
+    f.impT = K.Toggle(c1, L["Important"], function() return f.imp end, function(v) f.imp = v end)
     f.impT:SetSize(140, 22)
     f.impT:SetPoint("TOPLEFT", 14, -138)
-    hoverTip(f.impT, { L["Wichtig"], L["Alarm-Sound, bleibt doppelt so lange stehen"] })
-    f.chatT = K.Toggle(c1, L["Auch im Gildenchat"], function() return f.chat end, function(v) f.chat = v end)
+    hoverTip(f.impT, { L["Important"], L["Alarm sound, stays twice as long"] })
+    f.chatT = K.Toggle(c1, L["Also in guild chat"], function() return f.chat end, function(v) f.chat = v end)
     f.chatT:SetSize(180, 22)
     f.chatT:SetPoint("LEFT", f.impT, "RIGHT", 16, 0)
-    hoverTip(f.chatT, { L["Auch im Gildenchat"], L["Erreicht auch Mitglieder ohne Oasis"] })
-    f.send = K.Button(c1, L["Durchsage senden"], 160, 26, "primary", function()
+    hoverTip(f.chatT, { L["Also in guild chat"], L["Also reaches members without Oasis"] })
+    f.send = K.Button(c1, L["Send announcement"], 160, 26, "primary", function()
         if Admin.SendNotice(f.title:GetText(), f.text:GetText(), f.imp, f.chat) then
             f.title:SetText("")
             f.text:SetText("")
             f.imp = false
             f.impT:Refresh()
-            K.Toast(L["Durchsage gesendet"], L["Alle mit Oasis bekommen sie jetzt oder beim naechsten Einloggen."], C.mint)
+            K.Toast(L["Announcement sent"], L["Everyone with Oasis gets it now or at their next login."], C.mint)
             ns.RefreshPage("admin")
         end
     end)
     f.send:SetPoint("BOTTOMLEFT", 14, 14)
-    f.test = K.Button(c1, L["Vorschau"], 90, 26, "ghost", function()
+    f.test = K.Button(c1, L["Preview"], 90, 26, "ghost", function()
         local t = f.title:GetText()
-        K.Toast((f.imp and "! " or "") .. (t ~= "" and t or L["Durchsage"]), f.text:GetText() .. "  |cff888888- " .. ns.displayName(ns.me()) .. "|r",
+        K.Toast((f.imp and "! " or "") .. (t ~= "" and t or L["Announcement"]), f.text:GetText() .. "  |cff888888- " .. ns.displayName(ns.me()) .. "|r",
             f.imp and C.red or C.accent, nil, f.imp and "alert" or "announce")
     end)
     f.test:SetPoint("LEFT", f.send, "RIGHT", 8, 0)
 
     -- Karte: Oasis bekannt machen
-    local c2 = card(f, ns.ICONS.social, L["Oasis bekannt machen"], C.mint)
-    helpTip(c2, { L["Oasis bekannt machen"], L["Hinweis im Gildenchat oder einmalig per Fluestern an alle ohne Oasis."],
-        "|cff888888" .. L["Beim Fluestern schreibt nur eine Leitung, jedes Mitglied bekommt es nur einmal."] .. "|r" })
+    local c2 = card(f, ns.ICONS.social, L["Spread the word"], C.mint)
+    helpTip(c2, { L["Spread the word"], L["Notice in guild chat or a one-time whisper to everyone without Oasis."],
+        "|cff888888" .. L["For whispers only one leader sends, each member gets it only once."] .. "|r" })
     f.c2 = c2
-    f.hint = K.Button(c2, L["Im Gildenchat hinweisen"], 180, 26, "ghost", function()
+    f.hint = K.Button(c2, L["Mention in guild chat"], 180, 26, "ghost", function()
         ns.SendChat(Admin.InviteText(true), "GUILD")
-        K.Toast(L["Gesendet"], L["Hinweis steht im Gildenchat."], C.mint)
+        K.Toast(L["Sent"], L["Notice posted in guild chat."], C.mint)
     end)
     f.hint:SetPoint("TOPLEFT", 14, -42)
-    f.invT = K.Toggle(c2, L["Ohne Oasis anfluestern"], function() return Admin.Cfg().inv and true or false end, function(v)
+    f.invT = K.Toggle(c2, L["Whisper those without Oasis"], function() return Admin.Cfg().inv and true or false end, function(v)
         local cfg = copyCfg(Admin.Cfg())
         cfg.inv = v and true or false
         if Admin.Save(cfg) then draft.inv = cfg.inv end
@@ -2489,8 +2489,8 @@ local function buildNotices(f)
     end)
     f.invT:SetSize(200, 22)
     f.invT:SetPoint("LEFT", f.hint, "RIGHT", 16, 0)
-    hoverTip(f.invT, { L["Mitglieder ohne Oasis anfluestern"], L["Einmal pro Mitglied, wenn es 3 Min. online ist - nur eine Leitung schreibt"] })
-    f.link = K.Input(c2, 300, L["Discord-Link - z.B. discord.gg/deinegilde (Enter speichert)"])
+    hoverTip(f.invT, { L["Whisper members without Oasis"], L["Once per member after 3 min online - only one officer sends it"] })
+    f.link = K.Input(c2, 300, L["Discord link - e.g. discord.gg/yourguild (Enter saves)"])
     f.link:SetPoint("TOPLEFT", 14, -78)
     f.link:SetPoint("RIGHT", c2, "RIGHT", -14, 0)
     f.link:SetMaxLetters(80)
@@ -2499,13 +2499,13 @@ local function buildNotices(f)
         cfg.dlink = (self:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
         if Admin.Save(cfg) then draft.dlink = cfg.dlink end
         self:ClearFocus()
-        K.Toast(L["Gespeichert"], L["Der Link gilt fuer alle Leitungen."], C.mint)
+        K.Toast(L["Saved"], L["The link applies to all officers."], C.mint)
     end)
     f.invInfo = K.Text(c2, 11, C.muted)
     f.invInfo:SetPoint("BOTTOMLEFT", 14, 12)
 
     -- rechts: bisherige Durchsagen
-    f.listHead = K.GameHead(f, L["Bisherige Durchsagen"], C.accent)
+    f.listHead = K.GameHead(f, L["Previous announcements"], C.accent)
     f.list = K.List(f, 50, function(l)
         local r = K.Row(l)
         r.bar = r:CreateTexture(nil, "ARTWORK")
@@ -2523,18 +2523,18 @@ local function buildNotices(f)
         r.del = K.IconButton(r, "x", 16, function(self)
             local it = self:GetParent().item
             if it then Store.Delete("notices", it.id) ns.RefreshPage("admin") ns.RefreshPage("home") end
-        end, L["Durchsage loeschen"])
+        end, L["Delete announcement"])
         r.del:SetPoint("TOPRIGHT", -6, -6)
         return r
     end, function(r, n)
         local c = n.imp and C.red or C.accent
         r.bar:SetColorTexture(c[1], c[2], c[3], 1)
-        r.title:SetText((n.imp and (K.hex(C.red) .. "! |r") or "") .. ((n.title or "") ~= "" and n.title or L["Durchsage"]))
+        r.title:SetText((n.imp and (K.hex(C.red) .. "! |r") or "") .. ((n.title or "") ~= "" and n.title or L["Announcement"]))
         r.body:SetText(n.text or "")
         r.meta:SetText(ns.displayName(n.by) .. "  ·  " .. ns.ago(n.ts))
         r.del:SetShown(ns.isMe(n.by) or Admin.IsGM())
     end)
-    f.list.empty:SetText(L["Noch keine Durchsagen. Schreib links die erste - Ueberschrift, Nachricht, senden."])
+    f.list.empty:SetText(L["No announcements yet. Write the first one on the left - headline, message, send."])
 
     local function layout()
         local w = f:GetWidth() or 750
@@ -2566,8 +2566,8 @@ local function refreshNotices(f)
     local n = 0
     for _ in pairs(Store.coll("invites")) do n = n + 1 end
     local on = Admin.Cfg().inv
-    f.invInfo:SetText((on and (K.hex(C.mint) .. L["Fluestern an"] .. "|r") or (K.hex(C.dim) .. L["Fluestern aus"] .. "|r"))
-        .. "  ·  " .. (L["Bisher angeschrieben: %d"]):format(n))
+    f.invInfo:SetText((on and (K.hex(C.mint) .. L["Whisper on"] .. "|r") or (K.hex(C.dim) .. L["Whisper off"] .. "|r"))
+        .. "  ·  " .. (L["Whispered so far: %d"]):format(n))
 end
 
 ------------------------------------------------------------------------
@@ -2578,9 +2578,9 @@ local function buildEvents(f)
     local R = ns.Raid
     if not R then return end   -- 0.6.275: Raid-Modul aus -> keine Event-Karte
     -- Karte: neues Event
-    local c1 = card(f, ns.ICONS.raid, L["Neues Event"], C.accent)
-    helpTip(c1, { L["Neues Event"], L["Wird mit der ganzen Gilde geteilt - alle mit Oasis koennen zusagen."],
-        L["Mit Kalender-Schalter landet es auch im WoW-Gildenkalender (sehen alle, auch ohne Oasis)."] })
+    local c1 = card(f, ns.ICONS.raid, L["New event"], C.accent)
+    helpTip(c1, { L["New event"], L["Shared with the whole guild - everyone with Oasis can sign up."],
+        L["With the calendar switch it also goes into the WoW guild calendar (visible to everyone, even without Oasis)."] })
     f.c1 = c1
     f.kind = "raid"
     local kinds = {}
@@ -2588,14 +2588,14 @@ local function buildEvents(f)
     f.kindSeg = K.Segments(c1, kinds, function(k) f.kind = k end)
     f.kindSeg:SetPoint("TOPLEFT", 10, -36)
     f.kindSeg:Select("raid")
-    fieldLabel(c1, L["Was?"], 14, -66)
-    f.evTitle = K.Input(c1, 200, L["Titel - z.B. Molten Core"])
+    fieldLabel(c1, L["What?"], 14, -66)
+    f.evTitle = K.Input(c1, 200, L["Title - e.g. Molten Core"])
     f.evTitle:SetPoint("TOPLEFT", 14, -80)
     f.evTitle:SetPoint("RIGHT", c1, "RIGHT", -14, 0)
-    fieldLabel(c1, L["Tag"], 14, -112)
-    fieldLabel(c1, L["Uhrzeit"], 90, -112)
-    fieldLabel(c1, L["Plaetze"], 156, -112)
-    f.evDate = K.Input(c1, 70, L["TT.MM."])
+    fieldLabel(c1, L["Day"], 14, -112)
+    fieldLabel(c1, L["Time"], 90, -112)
+    fieldLabel(c1, L["Slots"], 156, -112)
+    f.evDate = K.Input(c1, 70, L["MM/DD"])
     f.evDate:SetPoint("TOPLEFT", 14, -126)
     f.evTime = K.Input(c1, 60, L["HH:MM"])
     f.evTime:SetPoint("LEFT", f.evDate, "RIGHT", 6, 0)
@@ -2603,67 +2603,67 @@ local function buildEvents(f)
     f.evMax:SetPoint("LEFT", f.evTime, "RIGHT", 6, 0)
     f.evMax:SetNumeric(true)
     f.evMax:SetMaxLetters(2)
-    hoverTip(f.evMax, { L["Max"], L["Plaetze (5 = Dungeon, 10/20/40 = Raid)"] })
+    hoverTip(f.evMax, { L["Max"], L["Slots (5 = dungeon, 10/20/40 = raid)"] })
     f.weekly = false
-    f.weekT = K.Toggle(c1, L["4 Wochen"], function() return f.weekly end, function(v) f.weekly = v end)
+    f.weekT = K.Toggle(c1, L["4 weeks"], function() return f.weekly end, function(v) f.weekly = v end)
     f.weekT:SetSize(110, 22)
     f.weekT:SetPoint("LEFT", f.evMax, "RIGHT", 12, 0)
-    hoverTip(f.weekT, { L["Woechentlich wiederholen"], L["Legt das Event 4 Wochen lang jede Woche zur selben Zeit an."] })
-    f.calT = K.Toggle(c1, L["In WoW-Kalender"], function() return R.toCalendar end, function(v) R.toCalendar = v end)
+    hoverTip(f.weekT, { L["Repeat weekly"], L["Creates the event every week at the same time for 4 weeks."] })
+    f.calT = K.Toggle(c1, L["In WoW calendar"], function() return R.toCalendar end, function(v) R.toCalendar = v end)
     f.calT:SetSize(160, 22)
     f.calT:SetPoint("TOPLEFT", 14, -162)
-    hoverTip(f.calT, { L["In WoW-Kalender"], L["Traegt das Event als Gildentermin im WoW-Kalender ein (braucht Kalender-Rechte in der Gilde)."] })
-    f.create = K.Button(c1, L["Event anlegen"], 130, 26, "primary", function()
+    hoverTip(f.calT, { L["In WoW calendar"], L["Adds the event as a guild event to the WoW calendar (needs calendar rights in the guild)."] })
+    f.create = K.Button(c1, L["Create event"], 130, 26, "primary", function()
         local ts = R.ParseWhen(f.evDate:GetText(), f.evTime:GetText())
         local title = (f.evTitle:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
-        if not ts or title == "" then ns.print(L["Titel, Datum (TT.MM.) und Uhrzeit (HH:MM) angeben."]) return end
+        if not ts or title == "" then ns.print(L["Enter a title, date (MM/DD) and time (HH:MM)."]) return end
         local kind = f.kind
         local mx = tonumber(f.evMax:GetText()) or (kind == "raid" and 40 or kind == "dungeon" and 5 or 0)
         local made = R.CreateEvent({ title = title, ts = ts, max = mx, kind = kind }, R.toCalendar, f.weekly and 4 or 1)
         f.evTitle:SetText("") f.evDate:SetText("") f.evTime:SetText("") f.evMax:SetText("")
-        K.Toast(L["Event angelegt"], title .. "  ·  " .. ns.fmtWhen(ts) .. (#made > 1 and ("  ·  " .. (L["%d Termine"]):format(#made)) or ""), C.mint)
+        K.Toast(L["Event created"], title .. "  ·  " .. ns.fmtWhen(ts) .. (#made > 1 and ("  ·  " .. (L["%d events"]):format(#made)) or ""), C.mint)
         ns.RefreshPage("admin")
     end)
     f.create:SetPoint("BOTTOMRIGHT", -14, 14)
 
     -- Karte: Double XP (sofort oder geplant)
-    local c2 = card(f, ns.ICONS.rank, L["XP-Wochenende"], C.amber)
-    helpTip(c2, { L["XP-Wochenende"], L["Doppelte Oasis-XP fuer alle in der Gilde. Alle mit Oasis bekommen eine Durchsage."],
-        L["Ohne Datum startet es sofort, mit Datum + Uhrzeit wird es geplant."] })
+    local c2 = card(f, ns.ICONS.rank, L["XP weekend"], C.amber)
+    helpTip(c2, { L["XP weekend"], L["Double Oasis XP for the whole guild - start any time. Everyone with Oasis gets an announcement."],
+        L["Without a date it starts right away, with date + time it gets scheduled."] })
     f.c2 = c2
     f.x2state = K.Title(c2, 13, C.dim)
     f.x2state:SetPoint("TOPLEFT", 14, -40)
     f.x2state:SetPoint("RIGHT", c2, "RIGHT", -14, 0)
     f.x2hours = 48
     f.x2slider = K.Slider(c2, 200, 6, 96, 6, function() return f.x2hours end, function(v) f.x2hours = v end,
-        function(v) return (L["%d Std"]):format(v) end)
+        function(v) return (L["%d h"]):format(v) end)
     f.x2slider:SetPoint("TOPLEFT", 14, -72)
     f.x2slider:SetPoint("RIGHT", c2, "RIGHT", -14, 0)
-    fieldLabel(c2, L["Start (leer = sofort)"], 14, -104)
-    f.x2date = K.Input(c2, 70, L["TT.MM."])
+    fieldLabel(c2, L["Start (empty = now)"], 14, -104)
+    f.x2date = K.Input(c2, 70, L["MM/DD"])
     f.x2date:SetPoint("TOPLEFT", 14, -118)
     f.x2time = K.Input(c2, 60, L["HH:MM"])
     f.x2time:SetPoint("LEFT", f.x2date, "RIGHT", 6, 0)
-    hoverTip(f.x2date, { L["Planen"], L["Leer lassen = sofort starten"] })
-    f.x2go = K.Button(c2, L["Starten"], 130, 26, "primary", function()
+    hoverTip(f.x2date, { L["Schedule"], L["Leave empty = start now"] })
+    f.x2go = K.Button(c2, L["Start"], 130, 26, "primary", function()
         local at
         if (f.x2date:GetText() or "") ~= "" then
             at = R.ParseWhen(f.x2date:GetText(), f.x2time:GetText() ~= "" and f.x2time:GetText() or "18:00")
-            if not at then ns.print(L["Datum als TT.MM. und Uhrzeit als HH:MM angeben."]) return end
+            if not at then ns.print(L["Enter the date as DD.MM. and the time as HH:MM."]) return end
         end
         ns.Rewards.StartDouble(f.x2hours, at)
         f.x2date:SetText("") f.x2time:SetText("")
         ns.RefreshPage("admin")
     end)
     f.x2go:SetPoint("BOTTOMRIGHT", -14, 14)
-    f.x2stop = K.Button(c2, L["Beenden"], 110, 26, "danger", function()
+    f.x2stop = K.Button(c2, L["Close"], 110, 26, "danger", function()
         ns.Rewards.StartDouble(0)
         ns.RefreshPage("admin")
     end)
     f.x2stop:SetPoint("RIGHT", f.x2go, "LEFT", -8, 0)
 
     -- kommende Events
-    f.listHead = K.GameHead(f, L["Kommende Events"], C.mint)
+    f.listHead = K.GameHead(f, L["Upcoming events"], C.mint)
     f.list = K.List(f, 44, function(l)
         local r = K.Row(l)
         r.bar = r:CreateTexture(nil, "ARTWORK")
@@ -2689,7 +2689,7 @@ local function buildEvents(f)
         r.del = K.IconButton(r, "x", 16, function(self)
             local it = self:GetParent().item
             if it and not it.cal then Store.Delete("events", it.id) ns.RefreshPage("admin") ns.RefreshPage("raid") end
-        end, L["Event loeschen"])
+        end, L["Delete event"])
         r.del:SetPoint("RIGHT", -8, 0)
         r:SetScript("OnClick", function() ns.ShowPage("raid") end)
         return r
@@ -2702,7 +2702,7 @@ local function buildEvents(f)
         r.day:SetText(date("%d", ev.ts))
         r.mon:SetText(K.Upper(ns.weekday(ev.ts, true)) .. " " .. date("%m.", ev.ts))
         r.title:SetText(ev.title or "?")
-        local meta = date("%H:%M", ev.ts) .. "  ·  " .. (ev.cal and L["nur im WoW-Kalender"] or L[k.text])
+        local meta = date("%H:%M", ev.ts) .. "  ·  " .. (ev.cal and L["WoW calendar only"] or L[k.text])
         if (ev.inst or "") ~= "" then meta = meta .. "  ·  " .. ev.inst end
         r.meta:SetText(meta)
         if ev.cal then
@@ -2720,7 +2720,7 @@ local function buildEvents(f)
         end
         r.del:SetShown(not ev.cal and (ns.isMe(ev.by) or Admin.IsGM()))
     end)
-    f.list.empty:SetText(L["Noch kein Termin geplant. Oben links: Was, Tag, Uhrzeit - dann 'Event anlegen'."])
+    f.list.empty:SetText(L["No event planned yet. Top left: what, day, time - then 'Create event'."])
 
     local function layout()
         local w = f:GetWidth() or 750
@@ -2753,14 +2753,14 @@ local function refreshEvents(f)
     local until2 = RW and RW.DoubleUntil()
     local ps, pe = RW and RW.DoublePlanned()
     if until2 then
-        f.x2state:SetText(K.hex(C.amber) .. L["Laeuft"] .. "|r  ·  " .. (L["noch %d h"]):format(math.ceil((until2 - ns.now()) / 3600)) .. "  ·  " .. (L["bis %s"]):format(ns.fmtDate(until2)))
+        f.x2state:SetText(K.hex(C.amber) .. L["Running"] .. "|r  ·  " .. (L["%d h left"]):format(math.ceil((until2 - ns.now()) / 3600)) .. "  ·  " .. (L["until %s"]):format(ns.fmtDate(until2)))
     elseif ps then
-        f.x2state:SetText(K.hex(C.blue) .. L["Geplant"] .. "|r  ·  " .. ns.fmtWhen(ps) .. "  ·  " .. math.floor((pe - ps) / 3600 + 0.5) .. " h")
+        f.x2state:SetText(K.hex(C.blue) .. L["Scheduled"] .. "|r  ·  " .. ns.fmtWhen(ps) .. "  ·  " .. math.floor((pe - ps) / 3600 + 0.5) .. " h")
     else
-        f.x2state:SetText(K.hex(C.dim) .. L["Gerade kein XP-Wochenende."] .. "|r")
+        f.x2state:SetText(K.hex(C.dim) .. L["No Double XP right now."] .. "|r")
     end
     f.x2stop:SetShown(until2 ~= nil or ps ~= nil)
-    f.x2go:SetLabel(ps and L["Neu planen"] or L["Starten"])
+    f.x2go:SetLabel(ps and L["Reschedule"] or L["Start"])
     f.x2slider:Refresh()
     -- Liste: Oasis-Events + reine Kalendertermine
     local list = {}
@@ -2808,12 +2808,12 @@ local function ochatLine(e)
 end
 
 local function buildOfficerChat(f)
-    f.head = K.GameHead(f, L["Offizierschat"], C.accent)
+    f.head = K.GameHead(f, L["Officer chat"], C.accent)
     f.head:SetPoint("TOPLEFT", 0, -8)
     f.head:SetWidth(240)
     f.hint = K.Text(f, 11, C.dim, "RIGHT")
     f.hint:SetPoint("TOPRIGHT", 0, -14)
-    f.hint:SetText(L["Nur Offiziere und Gildenleitung sehen diesen Kanal (/o)."])
+    f.hint:SetText(L["Only officers and guild management see this channel (/o)."])
 
     f.box = K.Panel(f, C.panel)
     f.box:SetPoint("TOPLEFT", 0, -40)
@@ -2842,12 +2842,12 @@ local function buildOfficerChat(f)
         if t == "" then return end
         if ns.SendChat(t:sub(1, 255), "OFFICER") then f.input:SetText("") end
     end
-    f.input = K.Input(f, 400, L["Nachricht an die Offiziere ..."])
+    f.input = K.Input(f, 400, L["Message to the officers ..."])
     f.input:SetPoint("BOTTOMLEFT", 0, 6)
     f.input:SetPoint("RIGHT", f, "RIGHT", -110, 0)
     f.input:SetMaxLetters(255)
     f.input.onEnter = send
-    f.sendBtn = K.Button(f, L["Senden"], 100, 24, "primary", send)
+    f.sendBtn = K.Button(f, L["Send"], 100, 24, "primary", send)
     f.sendBtn:SetPoint("BOTTOMRIGHT", 0, 6)
 end
 local function refreshOfficerChat(f)
@@ -2860,8 +2860,8 @@ local function refreshOfficerChat(f)
         for _, e in ipairs(lines) do f.smf:AddMessage(ochatLine(e)) end
     end
     f.empty:SetShown(not ok or #lines == 0)
-    f.empty:SetText(not ok and L["Dein Rang darf den Offizierschat nicht lesen. Das Recht vergibt der Gildenmeister im Blizzard-Gildenfenster."]
-        or L["Noch keine Nachrichten im Offizierschat. Alles, was ab jetzt im Kanal /o geschrieben wird, steht hier."])
+    f.empty:SetText(not ok and L["Your rank can't read officer chat. The guild master grants this in the Blizzard guild window."]
+        or L["No messages in officer chat yet. Everything written in /o from now on shows up here."])
     f.input:SetShown(ok)
     f.sendBtn:SetShown(ok)
 end
@@ -2887,14 +2887,14 @@ function Admin.UpdateOchatTab()
     for _, s in pairs(page.subs or {}) do
         for _, b in ipairs(s.buttons) do
             if b.key == "ochat" then
-                b.label:SetText(L["Offizierschat"] .. badge)
+                b.label:SetText(L["Officer chat"] .. badge)
                 b:SetShown(canOfficerChat() or Admin.TestMode())
                 if s.Fit then s:Fit(page:GetWidth()) end
             end
         end
     end
     for _, b in ipairs(page.seg.buttons) do
-        if b.key == "g_off" then b.label:SetText(L["Offiziere"] .. badge) end
+        if b.key == "g_off" then b.label:SetText(L["Officers"] .. badge) end
     end
     if page.seg.Fit then page.seg:Fit(page:GetWidth()) end
 end
@@ -2919,33 +2919,33 @@ end
 -- 0.5.781: Startseite der Gildenleitung fuer Einsteiger - "Was moechtest du tun?" mit grossen Aufgaben-Karten (Klick springt in den
 -- passenden Reiter). Dazu eine Zeile Klartext unter den Reitern, die erklaert, was man im gewaehlten Reiter tun kann.
 local HELP = {
-    start = "Waehle unten, was du tun moechtest - Oasis bringt dich an die richtige Stelle.",
-    overview = "Alle Mitglieder mit Rang, Stufe und Oasis-Version. Rechtsklick auf eine Zeile: Rang aendern.",
-    members = "Gildenpflege: Inaktive finden, Befoerderungen, Verlauf, Ehemalige, Bewerber, Bannliste und Sound-Sperren.",
-    notices = "Schreibe eine Durchsage: alle mit Oasis bekommen einen Hinweis mit Ton.",
-    events = "Lege Termine und Gildenevents an - sie erscheinen bei allen im Dashboard.",
-    raidtools = "Raid: wer war dabei und wie gut ist die Ausruestung der Gilde.",
-    ochat = "Der Offizierskanal (/o) mit Verlauf - nur fuer Raenge mit Offizierschat-Recht.",
-    modules = "Lege fest, welche Bereiche von Oasis die Gilde sieht und ab welchem Rang. Danach unten speichern.",
-    rights = "Lege fest, welcher Rang was darf (Durchsagen, Termine, Bank ...). Danach unten speichern.",
-    tools = "Protokoll der Leitung, Auffaelligkeiten und Export der Gildendaten.",
+    start = "Pick below what you want to do - Oasis takes you to the right place.",
+    overview = "All members with rank, level and Oasis version. Right-click a row: change rank.",
+    members = "Guild care: find inactive members, promotions, history, former members, applicants, ban list and sound mutes.",
+    notices = "Write an announcement: everyone with Oasis gets a notice with sound.",
+    events = "Create dates and guild events - they show up on everyone's dashboard.",
+    raidtools = "Raid: who attended and how good the guild's gear is.",
+    ochat = "The officer channel (/o) with history - only for ranks with officer chat permission.",
+    modules = "Decide which Oasis areas the guild sees and from which rank. Then save below.",
+    rights = "Decide which rank may do what (announcements, events, bank ...). Then save below.",
+    tools = "Leadership log, anomalies and export of guild data.",
 }
 local START_CARDS = {
-    { tab = "notices", icon = "announce", title = "Durchsage schreiben", desc = "Eine Nachricht an alle mit Oasis - mit Hinweis und Ton." },
-    { tab = "events", icon = "polls", title = "Termin anlegen", desc = "Raid, Gildenabend oder Event eintragen, sichtbar fuer alle." },
-    { tab = "overview", icon = "radar", title = "Mitglieder ansehen", desc = "Wer ist in der Gilde, welcher Rang, wer hat altes Oasis." },
-    { tab = "members", sub = "inactive", icon = "deaths", title = "Inaktive finden", desc = "Wer war lange nicht online - aufraeumen mit einem Klick." },
-    { tab = "members", sub = "promo", icon = "badges", title = "Befoerdern", desc = "Vorschlaege, wer einen hoeheren Rang verdient hat." },
-    { tab = "raidtools", icon = "raid", title = "Raid auswerten", desc = "Anwesenheit und Ausruestung der Gilde im Blick." },
-    { tab = "modules", icon = "modules", title = "Bereiche freigeben", desc = "Welche Seiten sieht die Gilde - und ab welchem Rang." },
-    { tab = "rights", icon = "rights", title = "Rechte vergeben", desc = "Welcher Rang darf Durchsagen, Termine, Bank und mehr." },
-    { tab = "tools", icon = "stats", title = "Protokoll & Export", desc = "Was die Leitung geaendert hat, Auffaelligkeiten, Daten sichern." },
+    { tab = "notices", icon = "announce", title = "Write an announcement", desc = "A message to everyone with Oasis - with notice and sound." },
+    { tab = "events", icon = "polls", title = "Create event", desc = "Add a raid, guild night or event, visible to everyone." },
+    { tab = "overview", icon = "radar", title = "View members", desc = "Who is in the guild, which rank, who has an old Oasis." },
+    { tab = "members", sub = "inactive", icon = "deaths", title = "Find inactive members", desc = "Who has been offline for long - clean up with one click." },
+    { tab = "members", sub = "promo", icon = "badges", title = "Promote", desc = "Suggestions for who has earned a higher rank." },
+    { tab = "raidtools", icon = "raid", title = "Review raids", desc = "Keep an eye on attendance and guild gear." },
+    { tab = "modules", icon = "modules", title = "Enable areas", desc = "Which pages the guild sees - and from which rank." },
+    { tab = "rights", icon = "rights", title = "Assign permissions", desc = "Which rank may use announcements, events, bank and more." },
+    { tab = "tools", icon = "stats", title = "Log & export", desc = "What leadership changed, anomalies, back up data." },
 }
 local function buildStart(f)
     f.cards = {}
     f.hello = K.Title(f, 18, C.text)
     f.hello:SetPoint("TOPLEFT", 4, -6)
-    f.hello:SetText(L["Was moechtest du tun?"])
+    f.hello:SetText(L["What would you like to do?"])
     f.sum = K.Text(f, 12, C.muted)
     f.sum:SetPoint("TOPLEFT", f.hello, "BOTTOMLEFT", 0, -6)
     local G = ns.Insta and ns.Insta.Glass
@@ -3035,7 +3035,7 @@ local function refreshStart(f)
         local p = ns.db.members[m.name]
         if type(p) == "table" and p.v and ns.Radar.VerNum(p.v) < mine then old = old + 1 end
     end
-    f.sum:SetText((L["%d Mitglieder  -  %d online  -  %d mit aelterem Oasis"]):format(n, on, old))
+    f.sum:SetText((L["%d members  -  %d online  -  %d with older Oasis"]):format(n, on, old))
 end
 BUILD.start = buildStart
 REFRESH.start = refreshStart
@@ -3059,7 +3059,7 @@ function Admin.SetTab(key)
         fr:SetPoint("BOTTOMRIGHT", 0, DRAFT_TABS[key] and 40 or 0)
         page.tabs[key] = fr
         local ok, e = pcall(BUILD[key], fr)
-        if not ok then ns.err(L["Aufbau"] .. " admin/" .. key, e) end
+        if not ok then ns.err(L["Setup"] .. " admin/" .. key, e) end
     end
     -- Erklaerzeile in Klartext + weiches Einblenden des Reiters
     if page.help then page.help:SetText(HELP[key] and L[HELP[key]] or "") end
@@ -3073,8 +3073,8 @@ function Admin.SetTab(key)
 end
 
 ns.RegisterPage({
-    key = "admin", title = "Gildenleitung", order = 9, topbar = true,
-    sub = "Zentrale fuer Gildenmeister und Offiziere - gilt fuer die ganze Gilde",
+    key = "admin", title = "Guild leadership", order = 9, topbar = true,
+    sub = "Hub for the Guild Master and officers – applies to the whole guild",
     visible = function() return true end,   -- fuer alle sichtbar, ohne Rechte gesperrt (siehe lockPage)
     build = function(p)
         page = p
@@ -3160,12 +3160,12 @@ ns.RegisterPage({
         local fr = p.tabs[p.tab]
         if fr and REFRESH[p.tab] then
             local ok, e = pcall(REFRESH[p.tab], fr)
-            if not ok then ns.err(L["Seite"] .. " admin/" .. p.tab, e) end
+            if not ok then ns.err(L["Page"] .. " admin/" .. p.tab, e) end
         end
         if p.saveBar:IsShown() then p.saveBar:Update() end
         Admin.UpdateOchatTab()
         p.testTag:SetShown(false)   -- Testmodus steht in Rechte > Krone & Testmodus
-        p.testTag:SetLabel(L["TESTMODUS - nur bei dir (aus)"])
+        p.testTag:SetLabel(L["TEST MODE – only you (off)"])
     end,
 })
 
@@ -3173,24 +3173,24 @@ ns.slash.leitung = function()
     if Admin.CanManage() then
         ns.ShowPage("admin")
     elseif not IsInGuild() then
-        ns.print(L["Du bist in keiner Gilde."])
+        ns.print(L["You are not in a guild."])
     else
         local names = Admin.RankNames()
         local lr = Admin.LeaderRank()
-        ns.print((L["Die Gildenleitung sehen nur Raenge bis %d (%s). Dein Rang: %d."]):format(lr + 1, names[lr] or "?", (myRankIndex() or 98) + 1))
+        ns.print((L["Guild Leadership is visible to ranks up to %d (%s). Your rank: %d."]):format(lr + 1, names[lr] or "?", (myRankIndex() or 98) + 1))
     end
 end
 ns.slash.admin = ns.slash.leitung
 ns.slash.testleitung = function()
-    if not ns.IsDev() then ns.print(L["Nur fuer Gildenmeister und Offiziere."]) return end
+    if not ns.IsDev() then ns.print(L["Only for the Guild Master and officers."]) return end
     ns.db.settings.adminTest = not Admin.TestMode()
     memo = nil
     Admin.ApplyBrand(true)
     if Admin.TestMode() then
-        ns.print(K.hex(C.amber) .. L["Testmodus AN: du wirst nur auf deinem PC wie der Gildenmeister behandelt. Fuer die Gilde gespeicherte Aenderungen sehen die anderen NICHT. Ausschalten: /oa testleitung"] .. "|r")
+        ns.print(K.hex(C.amber) .. L["Test mode ON: only on your PC you are treated as Guild Master. Others do NOT see changes you save for the guild. Turn off: /oa testleitung"] .. "|r")
         ns.ShowPage("admin")
     else
-        ns.print(L["Testmodus AUS - wieder dein echter Gildenrang."])
+        ns.print(L["Test mode OFF – back to your real guild rank."])
     end
 end
 
@@ -3201,10 +3201,10 @@ end
 ------------------------------------------------------------------------
 function Admin.InviteText(forGuild)
     local link = Admin.Cfg().dlink or ""
-    local base = forGuild and L["[Oasis] Wir nutzen das Gilden-Addon Oasis (Gruppen, Handwerk, Termine, Gildenbank ...)."]
-        or L["Hi! Wir nutzen in der Gilde das Addon Oasis (Gruppen, Handwerk, Termine, Gildenbank ...)."]
+    local base = forGuild and L["[Oasis] We use the guild addon Oasis (groups, crafting, events, guild bank ...)."]
+        or L["Hi! Our guild uses the addon Oasis (groups, crafting, events, guild bank ...)."]
     if link ~= "" then return base .. " " .. (L["Download: %s"]):format(link) end
-    return base .. " " .. L["Den Download findest du im Discord der Gilde."]
+    return base .. " " .. L["You can find the download in the guild's Discord."]
 end
 local onlineSince = {}
 local function hasOasis(name)
@@ -3227,7 +3227,7 @@ local function checkInvites()
                 -- 0.5.650: nicht mehr automatisch fluestern (war echte Chatnachricht: beendete AFK und lief ins Leere,
                 -- wenn der Spieler inzwischen offline war) -> Hinweis, ein Klick sendet
                 if ns.OfferChat then
-                    ns.OfferChat((L["Oasis-Hinweis an %s"]):format(ns.short(m.name)), Admin.InviteText(false), "WHISPER", Comm.WhisperName(m.name))
+                    ns.OfferChat((L["Oasis tip for %s"]):format(ns.short(m.name)), Admin.InviteText(false), "WHISPER", Comm.WhisperName(m.name))
                 end
                 ns.debug("Oasis-Hinweis angeboten:", m.name)
                 return   -- hoechstens einer pro Durchlauf
@@ -3270,7 +3270,7 @@ end
 GR.MyRank = myRank
 
 local function blocked()
-    if ns.inCombat() then ns.print(L["Im Kampf nicht moeglich - gleich nochmal."]) return true end
+    if ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return true end
     if not IsInGuild() then return true end
     return false
 end
@@ -3283,7 +3283,7 @@ end
 -- Bestaetigung
 ------------------------------------------------------------------------
 StaticPopupDialogs.OASIS_CONFIRM = {
-    text = "%s", button1 = YES or "Ja", button2 = NO or "Nein",
+    text = "%s", button1 = YES or "Yes", button2 = NO or "No",
     timeout = 0, whileDead = true, hideOnEscape = true, showAlert = true,
     OnAccept = function(self, data) if data and data.fn then data.fn() end end,
 }
@@ -3291,7 +3291,7 @@ function GR.Confirm(text, fn)
     StaticPopup_Show("OASIS_CONFIRM", text, nil, { fn = fn })
 end
 StaticPopupDialogs.OASIS_RANKNAME = {
-    text = "%s", button1 = OKAY or "OK", button2 = CANCEL or "Abbrechen",
+    text = "%s", button1 = OKAY or "OK", button2 = CANCEL or "Cancel",
     hasEditBox = true, maxLetters = 15, timeout = 0, whileDead = true, hideOnEscape = true,
     OnShow = function(self, data)
         local eb = self.editBox or self.EditBox
@@ -3327,10 +3327,10 @@ GR.IndexOf = indexOf
 function GR.SetRank(name, rankIndex)
     if blocked() then return false end
     local i, cur = indexOf(name)
-    if not i then ns.print(L["Mitglied nicht in der Gildenliste gefunden."]) return false end
+    if not i then ns.print(L["Member not found in the guild roster."]) return false end
     local mine = myRank()
     if rankIndex <= (mine or 0) and not GR.IsLeader() then
-        ns.print(L["Du kannst niemanden auf deinen eigenen oder einen hoeheren Rang setzen."])
+        ns.print(L["You can't set anyone to your own or a higher rank."])
         return false
     end
     ns.Trace("SetGuildMemberRank " .. rankIndex)
@@ -3342,7 +3342,7 @@ function GR.SetRank(name, rankIndex)
     elseif cur and rankIndex > cur and (C_GuildInfo and C_GuildInfo.Demote or GuildDemote) then
         ok, e = pcall(C_GuildInfo and C_GuildInfo.Demote or GuildDemote, ns.short(name))
     end
-    if ok == false then ns.err(L["Rang setzen"], e) end
+    if ok == false then ns.err(L["Set rank"], e) end
     refresh()
     return ok ~= false
 end
@@ -3377,20 +3377,20 @@ function GR.MemberMenu(owner, m)
     local mine = myRank() or 99
     local items = { { text = short .. "  |cff888888" .. (names[cur] or "?") .. "|r", header = true } }
     if ns.Leadership and ns.isOfficer() then
-        items[#items + 1] = { text = L["Akte oeffnen"], fn = function() ns.Leadership.ShowDossier(m.name) end }   -- 0.6.526
+        items[#items + 1] = { text = L["Open file"], fn = function() ns.Leadership.ShowDossier(m.name) end }   -- 0.6.526
     end
-    items[#items + 1] = { text = "▲  " .. L["Befoerdern"], disabled = not canP or cur <= 0 or (cur - 1 <= mine and not GR.IsLeader()),
-        fn = function() GR.Confirm((L["%s befoerdern auf \"%s\"?"]):format(short, names[cur - 1] or "?"), function() GR.Promote(m.name) end) end }
-    items[#items + 1] = { text = "▼  " .. L["Zurueckstufen"], disabled = not canD or cur >= n - 1 or (cur <= mine and not GR.IsLeader()),
-        fn = function() GR.Confirm((L["%s zurueckstufen auf \"%s\"?"]):format(short, names[cur + 1] or "?"), function() GR.Demote(m.name) end) end }
-    items[#items + 1] = { text = L["Rang setzen"], header = true }
+    items[#items + 1] = { text = "▲  " .. L["Promote"], disabled = not canP or cur <= 0 or (cur - 1 <= mine and not GR.IsLeader()),
+        fn = function() GR.Confirm((L["Promote %s to \"%s\"?"]):format(short, names[cur - 1] or "?"), function() GR.Promote(m.name) end) end }
+    items[#items + 1] = { text = "▼  " .. L["Demote"], disabled = not canD or cur >= n - 1 or (cur <= mine and not GR.IsLeader()),
+        fn = function() GR.Confirm((L["Demote %s to \"%s\"?"]):format(short, names[cur + 1] or "?"), function() GR.Demote(m.name) end) end }
+    items[#items + 1] = { text = L["Set rank"], header = true }
     for i = 1, n - 1 do
         local allowed = (i > mine or GR.IsLeader()) and ((i < cur and canP) or (i > cur and canD))
         items[#items + 1] = { text = (i + 1) .. ".  " .. (names[i] or "?"), checked = i == cur, disabled = not allowed or i == cur,
-            fn = function() GR.Confirm((L["%s auf Rang \"%s\" setzen?"]):format(short, names[i] or "?"), function() GR.SetRank(m.name, i) end) end }
+            fn = function() GR.Confirm((L["Set %s to rank \"%s\"?"]):format(short, names[i] or "?"), function() GR.SetRank(m.name, i) end) end }
     end
     if not canP and not canD then
-        items[#items + 1] = { text = "|cff888888" .. L["Dein Gildenrang darf keine Raenge vergeben."] .. "|r", disabled = true }
+        items[#items + 1] = { text = "|cff888888" .. L["Your guild rank may not change ranks."] .. "|r", disabled = true }
     end
     K.ShowMenu(owner, items, nil, 220)
 end
@@ -3418,7 +3418,7 @@ function GR.SetRankFlag(rankIndex, flag, on)
         GuildControlSetRankFlag(flag, on and true or false)
         if GuildControlSaveRank then GuildControlSaveRank(names[rankIndex] or GuildControlGetRankName(rankIndex + 1)) end
     end)
-    if not ok then ns.err(L["Rang-Rechte"], e) end
+    if not ok then ns.err(L["Rank permissions"], e) end
     refresh()
 end
 function GR.Rename(rankIndex, newName)
@@ -3427,20 +3427,20 @@ function GR.Rename(rankIndex, newName)
         GuildControlSetRank(rankIndex + 1)
         GuildControlSaveRank(newName)
     end)
-    if not ok then ns.err(L["Rang umbenennen"], e) end
+    if not ok then ns.err(L["Rename rank"], e) end
     refresh()
 end
 function GR.AddRank(name)
     if blocked() or not GR.CanEditRanks() then return end
-    if rankCount() >= 10 then ns.print(L["WoW erlaubt hoechstens 10 Raenge."]) return end
+    if rankCount() >= 10 then ns.print(L["WoW allows at most 10 ranks."]) return end
     local ok, e = pcall(GuildControlAddRank, name)
-    if not ok then ns.err(L["Rang anlegen"], e) end
+    if not ok then ns.err(L["Create rank"], e) end
     refresh()
 end
 function GR.DeleteRank(rankIndex)
     if blocked() or not GR.CanEditRanks() then return end
     local ok, e = pcall(GuildControlDelRank, rankIndex + 1)
-    if not ok then ns.err(L["Rang loeschen"], e) end
+    if not ok then ns.err(L["Delete rank"], e) end
     refresh()
 end
 -- Mitglieder je Rang (aus der Gildenliste)
@@ -3582,10 +3582,10 @@ function Admin.ShowLogoStudio(owner)
         if ns.EscClose then ns.EscClose(f) end
         local title = K.Title(f, 15, C.text)
         title:SetPoint("TOPLEFT", PAD, -16)
-        title:SetText(L["Logo gestalten"])
+        title:SetText(L["Design your logo"])
         local hint = K.Text(f, 11, C.dim)
         hint:SetPoint("TOPLEFT", PAD, -37)
-        hint:SetText(L["Gilt nur fuer dich - andere sehen ihr eigenes Logo."])
+        hint:SetText(L["Only applies to you - others see their own logo."])
         local close = K.CloseButton(f, function() f:Hide() end)
         close:SetPoint("TOPRIGHT", -8, -8)
 
@@ -3606,7 +3606,7 @@ function Admin.ShowLogoStudio(owner)
         f.pv = pv
 
         -- Stil: fuenf Kacheln, jede zeigt den Namensanfang in ihrem Stil
-        local head1 = K.Header(f, L["Stil"])
+        local head1 = K.Header(f, L["Style"])
         head1:SetPoint("TOPLEFT", PAD, -180)
         head1:SetWidth(W - PAD * 2)
         f.tiles = {}
@@ -3651,7 +3651,7 @@ function Admin.ShowLogoStudio(owner)
             end)
             f.tiles[i] = b
         end
-        f.track = K.Toggle(f, L["Buchstaben gesperrt"], function() return s.logoTrack ~= false end, function(v)
+        f.track = K.Toggle(f, L["Wide letter spacing"], function() return s.logoTrack ~= false end, function(v)
             if v then s.logoTrack = nil else s.logoTrack = false end
             Admin.RefreshLogos()
             f:Paint(true)
@@ -3660,7 +3660,7 @@ function Admin.ShowLogoStudio(owner)
         f.track:SetWidth(300)
 
         -- Schrift: zwei Spalten, jede Zeile zeigt den Namen in ihrer Schrift
-        local head2 = K.Header(f, L["Schrift"])
+        local head2 = K.Header(f, L["Font"])
         head2:SetPoint("TOPLEFT", PAD, -316)
         head2:SetWidth(W - PAD * 2)
         local sc = CreateFrame("ScrollFrame", nil, f)
@@ -3669,7 +3669,7 @@ function Admin.ShowLogoStudio(owner)
         local inner = CreateFrame("Frame", nil, sc)
         sc:SetScrollChild(inner)
         local CW, RH = math.floor((W - PAD * 2 - 8) / 2), 30
-        local list = { { key = "default", text = L["Standardschrift"] } }
+        local list = { { key = "default", text = L["Default font"] } }
         for _, ft in ipairs(K.PickFonts()) do list[#list + 1] = { key = ft.key, text = ft.text } end
         inner:SetSize(W - PAD * 2, math.ceil(#list / 2) * RH)
         sc:EnableMouseWheel(true)
@@ -3715,14 +3715,14 @@ function Admin.ShowLogoStudio(owner)
             f.fonts[i] = b
         end
 
-        local reset = K.Button(f, L["Zuruecksetzen"], 130, 24, "ghost", function()
+        local reset = K.Button(f, L["Reset"], 130, 24, "ghost", function()
             s.logoStyle, s.logoTrack, s.logoFont = nil, nil, nil
             Admin.RefreshLogos()
             if f.track.Refresh then pcall(f.track.Refresh, f.track) end
             f:Paint(true)
         end)
         reset:SetPoint("BOTTOMLEFT", PAD, 16)
-        local more = K.Button(f, L["Logo-Einstellungen ..."], 180, 24, "ghost", function()
+        local more = K.Button(f, L["Logo settings ..."], 180, 24, "ghost", function()
             f:Hide()
             if ns.OpenSettingsTab then ns.OpenSettingsTab("look") end
         end)

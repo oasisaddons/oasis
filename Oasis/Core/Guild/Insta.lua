@@ -19,27 +19,27 @@ local function S() return ns.db.settings end
 -- Posen und Hintergruende
 ------------------------------------------------------------------------
 IG.POSES = {
-    { id = 0, name = "Stehen" }, { id = 64, name = "Winken" }, { id = 65, name = "Jubeln" }, { id = 66, name = "Tanzen" },
-    { id = 67, name = "Lachen" }, { id = 63, name = "Verbeugen" }, { id = 113, name = "Salutieren" }, { id = 71, name = "Bruellen" },
-    { id = 79, name = "Muskeln" }, { id = 77, name = "Applaus" }, { id = 81, name = "Zeigen" }, { id = 72, name = "Knien" },
-    { id = 69, name = "Sitzen" }, { id = 68, name = "Schlafen" }, { id = 73, name = "Kuss" }, { id = 75, name = "Huhn" },
+    { id = 0, name = "Stand" }, { id = 64, name = "Wave" }, { id = 65, name = "Cheer" }, { id = 66, name = "Dance" },
+    { id = 67, name = "Laugh" }, { id = 63, name = "Bow" }, { id = 113, name = "Salute" }, { id = 71, name = "Roar" },
+    { id = 79, name = "Flex" }, { id = 77, name = "Applaud" }, { id = 81, name = "Point" }, { id = 72, name = "Kneel" },
+    { id = 69, name = "Sit" }, { id = 68, name = "Sleep" }, { id = 73, name = "Kiss" }, { id = 75, name = "Chicken" },
 }
 -- Hintergruende: oben/unten-Farbe + Lichtschein; "reward" = Belohnung des Oasis-Rangs
 IG.BGS = {
-    { key = "oase", name = "Oase", top = { 0.05, 0.28, 0.30 }, bot = { 0.02, 0.08, 0.08 }, glow = { 0.3, 1, 0.8 } },
-    { key = "wueste", name = "Wueste", top = { 0.55, 0.32, 0.12 }, bot = { 0.15, 0.07, 0.02 }, glow = { 1, 0.75, 0.35 } },
-    { key = "nacht", name = "Nacht", top = { 0.06, 0.07, 0.22 }, bot = { 0.01, 0.01, 0.05 }, glow = { 0.5, 0.55, 1 } },
-    { key = "wald", name = "Wald", top = { 0.08, 0.26, 0.10 }, bot = { 0.02, 0.06, 0.02 }, glow = { 0.5, 1, 0.4 } },
-    { key = "abend", name = "Sonnenuntergang", top = { 0.75, 0.30, 0.20 }, bot = { 0.18, 0.04, 0.12 }, glow = { 1, 0.55, 0.3 }, reward = true },
-    { key = "gewitter", name = "Gewitter", top = { 0.18, 0.20, 0.30 }, bot = { 0.03, 0.03, 0.06 }, glow = { 0.7, 0.8, 1 }, reward = true, flash = true },
-    { key = "polar", name = "Polarlicht", top = { 0.05, 0.35, 0.30 }, bot = { 0.02, 0.03, 0.12 }, glow = { 0.4, 1, 0.7 }, reward = true, shift = true },
-    { key = "vulkan", name = "Vulkan", top = { 0.45, 0.06, 0.02 }, bot = { 0.06, 0.01, 0.01 }, glow = { 1, 0.35, 0.1 }, reward = true, flicker = true },
-    { key = "sterne", name = "Sternennacht", top = { 0.03, 0.03, 0.12 }, bot = { 0, 0, 0.02 }, glow = { 0.8, 0.8, 1 }, reward = true, stars = true },
-    { key = "tiefsee", name = "Tiefsee", top = { 0.02, 0.20, 0.35 }, bot = { 0, 0.03, 0.08 }, glow = { 0.3, 0.7, 1 }, reward = true },
-    { key = "kristall", name = "Kristallhoehle", top = { 0.30, 0.20, 0.45 }, bot = { 0.05, 0.03, 0.10 }, glow = { 0.85, 0.6, 1 }, reward = true },
-    { key = "gold", name = "Goldstaub", top = { 0.45, 0.35, 0.08 }, bot = { 0.10, 0.07, 0.01 }, glow = { 1, 0.85, 0.3 }, reward = true, stars = true },
-    { key = "astral", name = "Astralebene", top = { 0.25, 0.10, 0.40 }, bot = { 0.02, 0.01, 0.08 }, glow = { 0.9, 0.5, 1 }, reward = true, shift = true, stars = true },
-    { key = "legende", name = "Legende", top = { 0.55, 0.20, 0.05 }, bot = { 0.10, 0.02, 0.05 }, glow = { 1, 0.6, 0.2 }, reward = true, shift = true, stars = true },
+    { key = "oase", name = "Oasis", top = { 0.05, 0.28, 0.30 }, bot = { 0.02, 0.08, 0.08 }, glow = { 0.3, 1, 0.8 } },
+    { key = "wueste", name = "Desert", top = { 0.55, 0.32, 0.12 }, bot = { 0.15, 0.07, 0.02 }, glow = { 1, 0.75, 0.35 } },
+    { key = "nacht", name = "Night", top = { 0.06, 0.07, 0.22 }, bot = { 0.01, 0.01, 0.05 }, glow = { 0.5, 0.55, 1 } },
+    { key = "wald", name = "Forest", top = { 0.08, 0.26, 0.10 }, bot = { 0.02, 0.06, 0.02 }, glow = { 0.5, 1, 0.4 } },
+    { key = "abend", name = "Sunset", top = { 0.75, 0.30, 0.20 }, bot = { 0.18, 0.04, 0.12 }, glow = { 1, 0.55, 0.3 }, reward = true },
+    { key = "gewitter", name = "Thunderstorm", top = { 0.18, 0.20, 0.30 }, bot = { 0.03, 0.03, 0.06 }, glow = { 0.7, 0.8, 1 }, reward = true, flash = true },
+    { key = "polar", name = "Aurora", top = { 0.05, 0.35, 0.30 }, bot = { 0.02, 0.03, 0.12 }, glow = { 0.4, 1, 0.7 }, reward = true, shift = true },
+    { key = "vulkan", name = "Volcano", top = { 0.45, 0.06, 0.02 }, bot = { 0.06, 0.01, 0.01 }, glow = { 1, 0.35, 0.1 }, reward = true, flicker = true },
+    { key = "sterne", name = "Starry Night", top = { 0.03, 0.03, 0.12 }, bot = { 0, 0, 0.02 }, glow = { 0.8, 0.8, 1 }, reward = true, stars = true },
+    { key = "tiefsee", name = "Deep Sea", top = { 0.02, 0.20, 0.35 }, bot = { 0, 0.03, 0.08 }, glow = { 0.3, 0.7, 1 }, reward = true },
+    { key = "kristall", name = "Crystal Cave", top = { 0.30, 0.20, 0.45 }, bot = { 0.05, 0.03, 0.10 }, glow = { 0.85, 0.6, 1 }, reward = true },
+    { key = "gold", name = "Gold Dust", top = { 0.45, 0.35, 0.08 }, bot = { 0.10, 0.07, 0.01 }, glow = { 1, 0.85, 0.3 }, reward = true, stars = true },
+    { key = "astral", name = "Astral Plane", top = { 0.25, 0.10, 0.40 }, bot = { 0.02, 0.01, 0.08 }, glow = { 0.9, 0.5, 1 }, reward = true, shift = true, stars = true },
+    { key = "legende", name = "Legend", top = { 0.55, 0.20, 0.05 }, bot = { 0.10, 0.02, 0.05 }, glow = { 1, 0.6, 0.2 }, reward = true, shift = true, stars = true },
 }
 IG.bgByKey = {}
 for _, b in ipairs(IG.BGS) do IG.bgByKey[b.key] = b end
@@ -137,7 +137,7 @@ end
 function IG.Delete(post)
     if not post then return end
     if not (ns.isMe(post.by) or same(post.by, me())) then
-        ns.print(L["Nur eigene Posts lassen sich loeschen."] .. " (" .. tostring(post.by) .. ")")
+        ns.print(L["You can only delete your own posts."] .. " (" .. tostring(post.by) .. ")")
         return
     end
     local before = #IG.PostsBy(me())
@@ -154,8 +154,8 @@ function IG.Delete(post)
     end
     for _, l in ipairs(IG.Likes(post)) do if ns.isMe(l.by) then Store.Delete("likes", l.id) end end
     local after = #IG.PostsBy(me())
-    ns.print((L["Post geloescht - du hast jetzt %d Posts (vorher %d)."]):format(after, before))
-    K.Toast(L["Post geloescht"], post.cap ~= "" and post.cap or "", C.muted)
+    ns.print((L["Post deleted - you now have %d posts (before %d)."]):format(after, before))
+    K.Toast(L["Post deleted"], post.cap ~= "" and post.cap or "", C.muted)
     ns.RefreshPage("insta")
 end
 -- Loeschen mit kleiner Abfrage: "Post loeschen?" [Loeschen] [Abbrechen]
@@ -171,20 +171,20 @@ function IG.ArmDelete(btn, post, after)
         K.Border(f, C.red)
         f.title = K.Title(f, 13, C.text, "CENTER")
         f.title:SetPoint("TOP", 0, -14)
-        f.title:SetText(L["Post loeschen?"])
+        f.title:SetText(L["Delete post?"])
         f.sub = K.Text(f, 11, C.muted, "CENTER")
         f.sub:SetPoint("TOP", f.title, "BOTTOM", 0, -4)
         f.sub:SetWidth(220)
         f.sub:SetWordWrap(false)
-        f.yes = K.Button(f, L["Loeschen"], 100, 26, "danger", function()
+        f.yes = K.Button(f, L["Put out"], 100, 26, "danger", function()
             local p, cb = f.post, f.after
             f:Hide()
             local ok, e = pcall(IG.Delete, p)
-            if not ok then ns.err(L["Post loeschen"], e) end
+            if not ok then ns.err(L["Delete post"], e) end
             if cb then pcall(cb) end
         end)
         f.yes:SetPoint("BOTTOMLEFT", 14, 12)
-        f.no = K.Button(f, L["Abbrechen"], 100, 26, "ghost", function() f:Hide() end)
+        f.no = K.Button(f, L["Cancel"], 100, 26, "ghost", function() f:Hide() end)
         f.no:SetPoint("BOTTOMRIGHT", -14, 12)
         ns.EscClose("OasisInstaConfirm")
         f:Hide()
@@ -223,7 +223,7 @@ function IG.Publish(d)
     Store.Put("posts", rec)
     if ns.Badges then ns.Badges.Add("instaPosts", 1) end
     if ns.Sound then ns.Sound.PlayChoice("erfolg") end
-    K.Toast(L["Gepostet!"], rec.cap ~= "" and rec.cap or L["Dein Schnappschuss ist jetzt in deinem Profil."], C.pink, function() IG.ShowProfile(me()) end)
+    K.Toast(L["Posted!"], rec.cap ~= "" and rec.cap or L["Your snapshot is now on your profile."], C.pink, function() IG.ShowProfile(me()) end)
     ns.RefreshPage("insta")
     return rec
 end
@@ -358,10 +358,10 @@ local function buildComposer()
     K.Fill(f, C.bg)
     K.Border(f, C.line)
     ns.EscClose("OasisInstaComposer")
-    local head = K.GameHead(f, L["Neuer Schnappschuss"], C.pink)
+    local head = K.GameHead(f, L["New snapshot"], C.pink)
     head:SetPoint("TOPLEFT", 16, -14)
     head:SetWidth(300)
-    local close = K.CloseButton(f, function() f:Hide() end, L["Schliessen (Esc)"])
+    local close = K.CloseButton(f, function() f:Hide() end, L["Close (Esc)"])
     close:SetPoint("TOPRIGHT", -10, -10)
     f.shot = K.Text(f, 10, C.mint, "RIGHT")
     f.shot:SetPoint("TOPRIGHT", -44, -18)
@@ -384,7 +384,7 @@ local function buildComposer()
     end)
     local hint = K.Text(f, 10, C.dim, "CENTER")
     hint:SetPoint("TOP", f.scene, "BOTTOM", 0, -6)
-    hint:SetText(L["Im Bild ziehen = drehen"])
+    hint:SetText(L["Drag in the image = rotate"])
 
     local X = 284
     local function label(t, y) local l = K.Text(f, 10, C.muted) l:SetPoint("TOPLEFT", X, y) l:SetText(K.Upper(t)) return l end
@@ -403,7 +403,7 @@ local function buildComposer()
         b.id = pz.id
         f.poseBtns[i] = b
     end
-    label(L["Hintergrund"], -176)
+    label(L["Background"], -176)
     f.bgBtns = {}
     for i, bg in ipairs(IG.BGS) do
         local b = CreateFrame("Button", nil, f)
@@ -421,7 +421,7 @@ local function buildComposer()
             local lines = { L[bg.name] }
             if not IG.BgUnlocked(bg.key) then
                 local r = ns.Rewards and ns.Rewards.byKey["bg:" .. bg.key]
-                lines[#lines + 1] = "|cffffd24a" .. (L["Ab Oasis-Rang %d"]):format(r and r.lvl or 0) .. "|r"
+                lines[#lines + 1] = "|cffffd24a" .. (L["From Oasis rank %d"]):format(r and r.lvl or 0) .. "|r"
             end
             K.ShowTip(self, lines)
         end)
@@ -431,8 +431,8 @@ local function buildComposer()
     label(L["Zoom"], -258)
     f.zoom = K.Slider(f, 300, 0, 100, 5, function() return math.floor(f.d.zoom * 100 + 0.5) end, function(v) f.d.zoom = v / 100 f:Update() end, function(v) return v .. " %" end)
     f.zoom:SetPoint("TOPLEFT", X, -272)
-    label(L["Bildunterschrift"], -306)
-    f.cap = K.Input(f, 280, L["Was ist hier los? ... (Emojis gehen auch)"])
+    label(L["Caption"], -306)
+    f.cap = K.Input(f, 280, L["What's going on here? ... (emojis work too)"])
     f.cap:SetPoint("TOPLEFT", X, -322)
     f.cap:SetMaxLetters(140)
     f.emo = CreateFrame("Button", nil, f)
@@ -444,15 +444,15 @@ local function buildComposer()
     f.emo:SetScript("OnClick", function(self) if ns.Emoji then ns.Emoji.target = f.cap ns.Emoji.TogglePicker(self) end end)
     f.where = K.Text(f, 11, C.muted)
     f.where:SetPoint("TOPLEFT", X, -356)
-    f.post = K.Button(f, L["Posten"], 140, 30, "primary", function()
+    f.post = K.Button(f, L["Mail"], 140, 30, "primary", function()
         f.d.cap = f.cap:GetText() or ""
         local ok, e = pcall(IG.Publish, f.d)
-        if not ok then ns.err(L["Posten"], e) return end
+        if not ok then ns.err(L["Mail"], e) return end
         f:Hide()
         pcall(IG.ShowProfile, me())
     end)
     f.post:SetPoint("BOTTOMRIGHT", -16, 16)
-    f.cancel = K.Button(f, L["Abbrechen"], 100, 30, "ghost", function() f:Hide() end)
+    f.cancel = K.Button(f, L["Cancel"], 100, 30, "ghost", function() f:Hide() end)
     f.cancel:SetPoint("RIGHT", f.post, "LEFT", -8, 0)
     function f:Update()
         for _, b in ipairs(self.poseBtns) do
@@ -477,23 +477,23 @@ function IG.OpenComposer(shotTaken)
     if not composer then
         local ok, res = pcall(buildComposer)
         if not ok then
-            ns.err(L["Schnappschuss-Editor"], res)
+            ns.err(L["Snapshot editor"], res)
             return
         end
         composer = res
     end
     local ok, e = pcall(function()
         composer.cap:SetText("")
-        composer.shot:SetText(shotTaken and ("✓ " .. L["Screenshot gespeichert"]) or "")
+        composer.shot:SetText(shotTaken and ("✓ " .. L["Screenshot saved"]) or "")
         composer:Show()
         composer:Raise()
     end)
-    if not ok then ns.err(L["Schnappschuss-Editor"], e) end
+    if not ok then ns.err(L["Snapshot editor"], e) end
 end
 -- Kamera: kurz alle Oasis-Fenster ausblenden, echten Screenshot machen, dann den Editor oeffnen
 function IG.Snap()
     if IG.SOON then
-        K.Toast(L["Oasigram"], L["Kommt bald - wir arbeiten dran!"], C.pink, function() ns.ShowPage("insta") end)
+        K.Toast(L["Oasigram"], L["Coming soon - we're working on it!"], C.pink, function() ns.ShowPage("insta") end)
         return
     end
     local main = ns.MainShown and ns.MainShown()
@@ -529,14 +529,14 @@ ns.Listen("STORE", function(coll, rec)
     if ns.db.instaSeen[rec.id] then return end
     local text
     if coll == "likes" and rec.owner and ns.isMe(rec.owner) then
-        text = (L["%s gefaellt dein Post"]):format(ns.displayName(rec.by))
+        text = (L["%s likes your post"]):format(ns.displayName(rec.by))
         if ns.Badges then ns.Badges.Add("instaLiked", 1) end
     elseif coll == "comments" and rec.owner and ns.isMe(rec.owner) then
-        text = (L["%s hat kommentiert: %s"]):format(ns.displayName(rec.by), rec.text or "")
+        text = (L["%s commented: %s"]):format(ns.displayName(rec.by), rec.text or "")
     elseif coll == "follows" and rec.target and ns.isMe(rec.target) then
-        text = (L["%s folgt dir jetzt"]):format(ns.displayName(rec.by))
+        text = (L["%s is now following you"]):format(ns.displayName(rec.by))
     elseif coll == "posts" and IG.IFollow(rec.by) then
-        text = (L["%s hat etwas gepostet"]):format(ns.displayName(rec.by))
+        text = (L["%s posted something"]):format(ns.displayName(rec.by))
     end
     if not text then return end
     ns.db.instaSeen[rec.id] = true
@@ -726,7 +726,7 @@ function IG.StatTip(owner, lines)
     for _, x in ipairs({ f.cmpL, f.cmpR, f.track, f.fill, f.mark }) do x:SetShown(showCmp and true or false) end
     if showCmp then
         f.cmpL:ClearAllPoints() f.cmpL:SetPoint("TOPLEFT", 16, y)
-        f.cmpL:SetText(L["Du"] .. "  |cffffffff" .. (value or "") .. "|r")
+        f.cmpL:SetText(L["You"] .. "  |cffffffff" .. (value or "") .. "|r")
         f.cmpR:ClearAllPoints() f.cmpR:SetPoint("TOPRIGHT", -16, y)
         f.cmpR:SetText(typical[1] .. "  |cffffffff" .. typical[2] .. "|r")
         y = y - 16
@@ -743,7 +743,7 @@ function IG.StatTip(owner, lines)
     f.secT:SetShown(#parts > 0)
     if #parts > 0 then
         f.secT:ClearAllPoints() f.secT:SetPoint("TOPLEFT", 16, y)
-        f.secT:SetText(L["Setzt sich zusammen aus"])
+        f.secT:SetText(L["Made up of"])
         y = y - 16
     end
     for i, pt in ipairs(parts) do
@@ -903,8 +903,8 @@ function IG.ProfileTabs(parent, items, onChange)
     return f
 end
 ns.RegisterPage({
-    key = "insta", title = "Profil", headTitle = "Charakterprofil", order = 0.6,
-    sub = "Dein Charakter: Reise, Erfolge, Abenteuer und Ziele",
+    key = "insta", title = "Profile", headTitle = "Character profile", order = 0.6,
+    sub = "Your character: journey, achievements, adventures and goals",
     build = function(p)
         p:SetScript("OnShow", function(self) self.fresh = true end)
         p.fresh = true
@@ -921,16 +921,16 @@ ns.RegisterPage({
         soon.HEAD_H, soon.NAV_Y, soon.SUB_Y, soon.TOP, soon.TOP_SUB = 150, -160, -206, -208, -238   -- 0.6.410: Reiter 36 hoch
         -- Profil + "Mein Weg" zusammengefuehrt (07.10.): sechs Bereiche oben, darunter je Bereich Unterreiter
         local MAIN = {
-            { key = "vals", text = L["Werte"], icon = "stats", subs = { "stats" } },
-            { key = "over", text = L["Tagebuch"], icon = "chronicle", subs = { "year", "daily" } },
-            { key = "success", text = L["Erfolge"], icon = "badges", subs = { "records", "rank" } },
-            { key = "adv", text = L["Abenteuer"], icon = "map", subs = { "journey", "dungeons", "mates", "deaths", "gold", "loot" } },   -- 0.6.460: eigene Beute   -- Reise gehoert jetzt zu Abenteuer
-            { key = "plan", text = L["Aufgaben"], icon = "checklist", subs = { "weekly", "todo" } },   -- Ziele entfernt
-            { key = "skills", text = L["Koennen"], icon = "star_on", subs = ns.Weapons and { "prof", "skills2", "weapons" } or { "prof" } },   -- 0.6.569: Fertigkeiten/Waffen nur mit Waffenlehrer (Oasis Convenience)
+            { key = "vals", text = L["Stats"], icon = "stats", subs = { "stats" } },
+            { key = "over", text = L["Diary"], icon = "chronicle", subs = { "year", "daily" } },
+            { key = "success", text = L["Achievements"], icon = "badges", subs = { "records", "rank" } },
+            { key = "adv", text = L["Adventure"], icon = "map", subs = { "journey", "dungeons", "mates", "deaths", "gold", "loot" } },   -- 0.6.460: eigene Beute   -- Reise gehoert jetzt zu Abenteuer
+            { key = "plan", text = L["Tasks"], icon = "checklist", subs = { "weekly", "todo" } },   -- Ziele entfernt
+            { key = "skills", text = L["Skills"], icon = "star_on", subs = ns.Weapons and { "prof", "skills2", "weapons" } or { "prof" } },   -- 0.6.569: Fertigkeiten/Waffen nur mit Waffenlehrer (Oasis Convenience)
         }
-        local SUBTEXT = { year = "Jahrbuch", daily = "Tagesziel", journey = "Reise", records = "Rekorde", stats = "Statistik",
-            rank = "Rang & Belohnungen", dungeons = "Dungeons", mates = "Mitspieler", deaths = "Tode", gold = "Gold", loot = "Beute",
-            goals = "Ziele", todo = "Was tun?", prof = "Berufe & Ruf", weekly = "Wochenaufgaben", skills2 = "Fertigkeiten", weapons = "Waffen" }
+        local SUBTEXT = { year = "Yearbook", daily = "Daily goal", journey = "Journey", records = "Records", stats = "Statistics",
+            rank = "Rank & rewards", dungeons = "Dungeons", mates = "Players", deaths = "Deaths", gold = "Gold", loot = "Loot",
+            goals = "Goals", todo = "What to do?", prof = "Professions & Rep", weekly = "Weekly tasks", skills2 = "Skills", weapons = "Weapons" }
         -- Ansichten aus "Mein Weg" (Life.lua) - werden im Profil eingebettet
         local LIFE = { year = true, journey = true, records = true, dungeons = true, mates = true, deaths = true, gold = true, goals = true, todo = true }
         local MAIN_OF, MAIN_BY = {}, {}
@@ -986,11 +986,11 @@ ns.RegisterPage({
             d.rings:SetPoint("LEFT", 26, 0)
             d.head = K.Title(d.panel, 16, C.text)
             d.head:SetPoint("TOPLEFT", 200, -24)
-            d.head:SetText(L["Dein Tagesziel"])
+            d.head:SetText(L["Your daily goal"])
             d.pct = K.Title(d.panel, 16, C.muted, "RIGHT")
             d.pct:SetPoint("TOPRIGHT", -24, -24)
             d.rows = {}
-            local LBL = { "Schritte", "XP heute", "Wochenaufgaben" }
+            local LBL = { "Steps", "XP today", "Weekly tasks" }
             for i = 1, 3 do
                 local r = {}
                 local y = -60 - (i - 1) * 34
@@ -1013,7 +1013,7 @@ ns.RegisterPage({
             end
             d.msg = K.Text(d, 11, C.dim)
             d.msg:SetPoint("TOPLEFT", d.panel, "BOTTOMLEFT", 4, -10)
-            d.msg:SetText(L["Schritte laufen nur zu Fuss (kein Reittier, kein Flug)."])
+            d.msg:SetText(L["Steps only count on foot (no mount, no flight)."])
             local fmt = BreakUpLargeNumbers or tostring
             function d:Update(anim)
                 local G = ns.GuildInfo and ns.GuildInfo.DailyGoal
@@ -1024,7 +1024,7 @@ ns.RegisterPage({
                 if anim or self.sig ~= sig then self.sig = sig self.rings:Set({ g.r1, g.r2, g.r3 }, anim and not (ns.db and ns.db.settings.noAnim)) end
                 local vals = {
                     fmt(g.steps) .. " |cff6b6b70/ " .. fmt(g.stepGoal) .. "|r",
-                    g.xpGoal > 0 and (fmt(g.xp) .. " |cff6b6b70/ " .. fmt(g.xpGoal) .. "|r") or ("|cff888888" .. L["Hoechststufe"] .. "|r"),
+                    g.xpGoal > 0 and (fmt(g.xp) .. " |cff6b6b70/ " .. fmt(g.xpGoal) .. "|r") or ("|cff888888" .. L["max level"] .. "|r"),
                     g.tasks .. " |cff6b6b70/ " .. g.taskN .. "|r",
                 }
                 for i, r in ipairs(self.rows) do
@@ -1034,7 +1034,7 @@ ns.RegisterPage({
                     if w > 2 then r.fill:SetWidth(math.max(1, w * math.min(1, ratio))) end
                 end
                 self.pct:SetText(math.floor((g.r1 + g.r2 + g.r3) / 3 * 100) .. " %")
-                self.msg:SetText(g.full and ("|cff66db9e" .. L["Tagesziel geschafft - stark!"] .. "|r") or L["Schritte laufen nur zu Fuss (kein Reittier, kein Flug)."])
+                self.msg:SetText(g.full and ("|cff66db9e" .. L["Daily goal done - great!"] .. "|r") or L["Steps only count on foot (no mount, no flight)."])
             end
             d.acc = 0
             d:SetScript("OnUpdate", function(self, el)
@@ -1085,7 +1085,7 @@ ns.RegisterPage({
                 elseif not self.lootHost.off then
                     self.lootHost.off = K.Text(self.lootHost, 12, C.dim, "CENTER")
                     self.lootHost.off:SetPoint("TOP", 0, -80)
-                    self.lootHost.off:SetText(L["Das Modul Raidwerkzeuge ist aus."])
+                    self.lootHost.off:SetText(L["The raid tools module is off."])
                 end
             end
             if self.StyleHosts then ns.After(0.05, function() pcall(self.StyleHosts, self) end) ns.After(0.6, function() pcall(self.StyleHosts, self) end) end
@@ -1133,7 +1133,7 @@ ns.RegisterPage({
         hc:SetPoint("TOPLEFT", 0, -38)
         hc:SetPoint("TOPRIGHT", 0, -38)
         hc:SetHeight(112)
-        hc.cardBtn = K.Button(soon, L["Visitenkarte bearbeiten"], 160, 22, "ghost", function() if ns.Card then ns.Card.Edit() end end)
+        hc.cardBtn = K.Button(soon, L["Edit business card"], 160, 22, "ghost", function() if ns.Card then ns.Card.Edit() end end)
         hc.cardBtn:SetPoint("TOPRIGHT", soon, "TOPRIGHT", 0, -206)
         hc.cardBtn:Hide()   -- Visitenkarte jetzt per Klick auf die Charakterkarte (Portrait/Name)
         hc.glow = hc:CreateTexture(nil, "BORDER")
@@ -1149,7 +1149,7 @@ ns.RegisterPage({
         hc.editHit:SetWidth(170)
         hc.editHit:SetFrameLevel(hc:GetFrameLevel() + 20)
         hc.editHit:SetScript("OnClick", function() if ns.Card then ns.Card.Edit() end end)
-        hc.editHit:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Visitenkarte"], L["Klick: Titel, Status, Lieblings-Emojis und Vitrine bearbeiten"] }) end)
+        hc.editHit:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Business card"], L["Click: edit title, status, favourite emojis and showcase"] }) end)
         hc.editHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
         soon.av:SetPoint("CENTER", hc, "LEFT", 58, 0)
         soon.face = soon.av:CreateTexture(nil, "ARTWORK", nil, 3)
@@ -1176,7 +1176,7 @@ ns.RegisterPage({
         soon.xpText:SetPoint("TOPLEFT", soon.xpTrack, "BOTTOMLEFT", 0, -4)
         -- Kacheln rechts
         soon.tiles = {}
-        local TILES = { { ICON .. "badges", "Abzeichen", C.amber }, { ICON .. "badges", "Oasis-XP", C.accent }, { ICON .. "badges\\chat", "Gildenchat", C.mint } }
+        local TILES = { { ICON .. "badges", "Badge", C.amber }, { ICON .. "badges", "Oasis XP", C.accent }, { ICON .. "badges\\chat", "Guild chat", C.mint } }
         for i, d in ipairs(TILES) do
             local t = K.HudTile(hc, d[1], L[d[2]], d[3])
             t:SetSize(150, 66)
@@ -1437,7 +1437,7 @@ ns.RegisterPage({
             local maxLvl = (GetMaxPlayerLevel and GetMaxPlayerLevel()) or 60
             local w = self.wTrack:GetWidth() or 200
             if lvl >= maxLvl then
-                self.wxp:SetText(plain((L2["Level %d"]):format(lvl)) .. "  |cff888888" .. L2["Hoechststufe"] .. "|r")
+                self.wxp:SetText(plain((L2["Level %d"]):format(lvl)) .. "  |cff888888" .. L2["max level"] .. "|r")
                 self.wxpR:SetText("")
                 self.wFill:SetWidth(w) self.wRest:SetWidth(1)
                 return
@@ -1452,12 +1452,12 @@ ns.RegisterPage({
             if sess and sess.t0 and GetTime() - sess.t0 > 120 and sess.xp > 0 then
                 local rate = sess.xp / (GetTime() - sess.t0) * 3600
                 local m = math.floor((max - cur) / rate * 60)
-                tempo = "  |cff66db9e" .. (L2["%s XP/Std"]):format(fmtN(math.floor(rate))) .. "  ·  " ..
-                    (L2["naechstes Level in ca. %s"]):format(m < 60 and (m .. " " .. L2["Min"]) or ("%d:%02d %s"):format(math.floor(m / 60), m % 60, L2["Std"])) .. "|r"
+                tempo = "  |cff66db9e" .. (L2["%s XP/hr"]):format(fmtN(math.floor(rate))) .. "  ·  " ..
+                    (L2["next level in about %s"]):format(m < 60 and (m .. " " .. L2["min"]) or ("%d:%02d %s"):format(math.floor(m / 60), m % 60, L2["h"])) .. "|r"
             end
             self.wxp:SetText(plain((L2["Level %d"]):format(lvl)) .. "  |cff888888> " .. (lvl + 1) .. "|r" .. tempo)
             self.wxpR:SetText(fmtN(cur) .. " / " .. fmtN(max) .. " XP  ·  " .. math.floor(pct * 100) .. " %" ..
-                ((rest or 0) > 0 and ("  |cff6199ff+" .. fmtN(rest) .. " " .. L2["Ruhe"] .. "|r") or ""))
+                ((rest or 0) > 0 and ("  |cff6199ff+" .. fmtN(rest) .. " " .. L2["rested"] .. "|r") or ""))
         end
         soon.rank:SetPoint("RIGHT", soon.tiles[1], "LEFT", -70, 0)
         K.SetFontSafe(soon.rank, K.FONT_HEAD, 12, "", K.FONT)
@@ -1506,7 +1506,7 @@ ns.RegisterPage({
             f.value:SetWordWrap(false)
             return f
         end
-        soon.chipR = chip(hc, L["Naechste Belohnung"], C.amber)
+        soon.chipR = chip(hc, L["Next reward"], C.amber)
         soon.chipR.icon:SetTexture(ns.MEDIA .. "icons\\badges")
         soon.chipR.icon:SetVertexColor(C.amber[1], C.amber[2], C.amber[3])
         -- Tooltip: was genau die naechste Belohnung ist (bei Emojis: alle Emojis, die frei werden) + die danach
@@ -1522,7 +1522,7 @@ ns.RegisterPage({
             if not x then return end
             GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
             GameTooltip:SetText(L[x.name], 1, 0.82, 0.3)
-            GameTooltip:AddLine((L["ab Rang %d"]):format(x.lvl) .. "  ·  " .. (L["noch %d Raenge"]):format(x.lvl - lvl), 0.6, 0.6, 0.6)
+            GameTooltip:AddLine((L["from rank %d"]):format(x.lvl) .. "  ·  " .. (L["%d ranks to go"]):format(x.lvl - lvl), 0.6, 0.6, 0.6)
             if x.desc then GameTooltip:AddLine(L[x.desc], 0.9, 0.9, 0.9, true) end
             if x.kind == "emoji" and RW.EmojiLevel and ns.Emoji then
                 local codes = {}
@@ -1535,7 +1535,7 @@ ns.RegisterPage({
                 end
                 if #codes > 0 then
                     GameTooltip:AddLine(" ")
-                    GameTooltip:AddLine((L["%d neue Emojis:"]):format(#codes), 0.91, 0.71, 0.29)
+                    GameTooltip:AddLine((L["%d new emojis:"]):format(#codes), 0.91, 0.71, 0.29)
                     local line = {}
                     for i, c in ipairs(codes) do
                         local ok, img = pcall(ns.Emoji.Render, c)
@@ -1546,17 +1546,17 @@ ns.RegisterPage({
             elseif x.kind == "theme" and x.hex then
                 GameTooltip:AddLine("|cff" .. x.hex .. "|||||||||||||||||||||||||||||||||r", 1, 1, 1)
             elseif x.kind == "dice" and x.color then
-                GameTooltip:AddLine(("|cff%02x%02x%02x"):format(x.color[1] * 255, x.color[2] * 255, x.color[3] * 255) .. L["Wuerfelfarbe"] .. "|r")
+                GameTooltip:AddLine(("|cff%02x%02x%02x"):format(x.color[1] * 255, x.color[2] * 255, x.color[3] * 255) .. L["Dice colour"] .. "|r")
             end
             if #nexts > 1 then
                 GameTooltip:AddLine(" ")
-                GameTooltip:AddLine(L["Danach:"], 0.6, 0.6, 0.6)
-                for i = 2, #nexts do GameTooltip:AddDoubleLine("  " .. L[nexts[i].name], (L["Rang %d"]):format(nexts[i].lvl), 0.85, 0.85, 0.85, 0.5, 0.5, 0.5) end
+                GameTooltip:AddLine(L["After that:"], 0.6, 0.6, 0.6)
+                for i = 2, #nexts do GameTooltip:AddDoubleLine("  " .. L[nexts[i].name], (L["Rank %d"]):format(nexts[i].lvl), 0.85, 0.85, 0.85, 0.5, 0.5, 0.5) end
             end
             GameTooltip:Show()
         end)
         soon.chipR:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        soon.chipF = chip(hc, L["Naechster Rahmen"], C.accent)
+        soon.chipF = chip(hc, L["Next frame"], C.accent)
         local function layoutGame()
             local W = hc:GetWidth() or 750
             if W < 100 then W = 750 end
@@ -1597,7 +1597,7 @@ ns.RegisterPage({
         vit.hl:SetColorTexture(1, 1, 1, 0.04)
         vit.lbl = K.Text(vit, 10, C.muted)
         vit.lbl:SetPoint("TOPLEFT", 4, -2)
-        vit.lbl:SetText(plain(L["Abzeichen"]))
+        vit.lbl:SetText(plain(L["Badge"]))
         vit.num = K.Title(vit, 22, C.text)
         vit.num:SetPoint("TOPLEFT", vit.lbl, "BOTTOMLEFT", 0, -4)
         vit.of = K.Text(vit, 12, C.dim)
@@ -1651,7 +1651,7 @@ ns.RegisterPage({
         vit.fill:SetColorTexture(1, 0.8, 0.25, 1)
         vit:SetScript("OnClick", function() ns.ShowPage("badges") end)
         vit:SetScript("OnEnter", function(self)
-            K.ShowTip(self, { L["Abzeichen"], self.tip or "", "|cff888888" .. L["Klick: alle Abzeichen"] .. "|r" })
+            K.ShowTip(self, { L["Badge"], self.tip or "", "|cff888888" .. L["Click: all badges"] .. "|r" })
         end)
         vit:SetScript("OnLeave", function() GameTooltip:Hide() end)
         soon.vit = vit
@@ -1714,10 +1714,10 @@ ns.RegisterPage({
                 self.roleChips:SetPoint("TOPRIGHT", view, "TOPRIGHT", 0, -1)
                 self.roleLbl = K.Text(view, 10, C.dim, "RIGHT")
                 self.roleLbl:SetPoint("RIGHT", self.roleChips, "LEFT", -10, 0)
-                self.roleLbl:SetText(plain(L["Gruppenrolle"]))
+                self.roleLbl:SetText(plain(L["Group role"]))
                 self.roleChips.onLock = function(locked)
                     -- kurz halten, sonst ueberlappt es die Spezialisierung links; Hinweis im Tooltip
-                    self.roleLbl:SetText(plain(locked and L["Wunschrolle"] or L["Gruppenrolle"]))
+                    self.roleLbl:SetText(plain(locked and L["Preferred role"] or L["Group role"]))
                 end
                 self.roleChips:Refresh()
                 ns.Listen("ROLES_CHANGED", function() if soon.roleChips then soon.roleChips:Refresh() end end)
@@ -1729,7 +1729,7 @@ ns.RegisterPage({
         cs:SetPoint("BOTTOMLEFT")
         cs:SetPoint("BOTTOMLEFT")
         cs:SetPoint("RIGHT", view, "RIGHT", -290, 0)
-        cs.head = K.GameHead(cs, L["Charakterwerte"], C.mint)
+        cs.head = K.GameHead(cs, L["Character stats"], C.mint)
         cs.head:SetPoint("TOPLEFT", 12, -12)
         cs.head:SetPoint("RIGHT", -12, 0)
         cs.rows = {}
@@ -1759,7 +1759,7 @@ ns.RegisterPage({
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
             r:HookScript("OnEnter", function(self)
-                if self.toggle then K.ShowTip(self, { L["Weitere Werte"], L["Klick: auf- oder zuklappen"] }) end
+                if self.toggle then K.ShowTip(self, { L["More stats"], L["Click: expand or collapse"] }) end
             end)
             r:SetScript("OnMouseUp", function(self)
                 if self.toggle then soon.showAll = not soon.showAll soon:FillStats() end
@@ -1772,7 +1772,7 @@ ns.RegisterPage({
         local pr = K.Panel(view, C.panel)
         pr:SetPoint("TOPLEFT", cs, "TOPRIGHT", 12, 0)
         pr:SetPoint("BOTTOMRIGHT")
-        pr.head = K.GameHead(pr, L["Stat-Prioritaet"], C.amber)
+        pr.head = K.GameHead(pr, L["Stat priority"], C.amber)
         pr.head:SetPoint("TOPLEFT", 12, -12)
         pr.head:SetPoint("RIGHT", -12, 0)
         pr.rows = {}
@@ -1805,7 +1805,7 @@ ns.RegisterPage({
         pr.tipIcon:SetPoint("TOPLEFT", 12, -10)
         pr.tipHead = K.Text(pr.tipBox, 11, C.amber)
         pr.tipHead:SetPoint("LEFT", pr.tipIcon, "RIGHT", 10, 0)
-        pr.tipHead:SetText(plain(L["So spielst du es"]))
+        pr.tipHead:SetText(plain(L["How to play it"]))
         pr.tip = K.Text(pr.tipBox, 12, C.text)
         pr.tip:SetPoint("TOPLEFT", pr.tipIcon, "BOTTOMRIGHT", 10, -6)
         pr.tip:SetPoint("RIGHT", pr.tipBox, "RIGHT", -10, 0)
@@ -1822,7 +1822,7 @@ ns.RegisterPage({
         function pr.tipBox:Target() return self.open and ((pr.tip:GetStringHeight() or 30) + 44) or 42 end
         function pr.tipBox:Animate()
             local goal = self:Target()
-            pr.tipArrow:SetText(plain(self.open and L["zuklappen"] or L["aufklappen"]) .. (self.open and "  |cffe8b44a-|r" or "  |cffe8b44a+|r"))
+            pr.tipArrow:SetText(plain(self.open and L["collapse"] or L["expand"]) .. (self.open and "  |cffe8b44a-|r" or "  |cffe8b44a+|r"))
             -- zugeklappt: Text ausblenden (keine angeschnittene Zeile), aufgeklappt: einblenden
             if self.open then pr.tip:Show() end
             self:SetScript("OnUpdate", function(f, el)
@@ -1850,7 +1850,7 @@ ns.RegisterPage({
         rp:ClearAllPoints()
         rp:SetPoint("TOPLEFT", soon.rankHost, "TOPLEFT", 381, -1)   -- vorlaeufig, richtig gesetzt in placeCounters
         rp:SetPoint("BOTTOMRIGHT", soon.rankHost, "BOTTOMRIGHT")
-        rp.head = K.GameHead(rp, L["Zaehler & Abzeichen"], C.amber)
+        rp.head = K.GameHead(rp, L["Counters & badges"], C.amber)
         rp.head:SetPoint("TOPLEFT", 12, -12)
         rp.head:SetPoint("RIGHT", -12, 0)
         local function layoutRight() do return end
@@ -1919,12 +1919,12 @@ ns.RegisterPage({
         }
         local ARMOR_K = { MAGE = 12, PRIEST = 12, WARLOCK = 12, ROGUE = 20, DRUID = 20, HUNTER = 30, SHAMAN = 30, WARRIOR = 42, PALADIN = 42 }
         local QUALITY = {   -- ab Faktor -> Farbe, Name
-            { 2.0, { 1.00, 0.50, 0.00 }, "Legendaer" },
-            { 1.6, { 0.64, 0.21, 0.93 }, "Episch" },
-            { 1.25, { 0.00, 0.44, 0.87 }, "Selten" },
-            { 1.0, { 0.12, 1.00, 0.00 }, "Gut" },
-            { 0.8, nil, "Durchschnitt" },
-            { 0, { 0.62, 0.62, 0.62 }, "Unter Durchschnitt" },
+            { 2.0, { 1.00, 0.50, 0.00 }, "Legendary" },
+            { 1.6, { 0.64, 0.21, 0.93 }, "Epic" },
+            { 1.25, { 0.00, 0.44, 0.87 }, "Rare" },
+            { 1.0, { 0.12, 1.00, 0.00 }, "Good" },
+            { 0.8, nil, "Average" },
+            { 0, { 0.62, 0.62, 0.62 }, "Below average" },
         }
         function soon.Quality(ratio)
             for _, q in ipairs(QUALITY) do if ratio >= q[1] then return q end end
@@ -1941,19 +1941,19 @@ ns.RegisterPage({
         }
         -- Rollen je Klasse: Auswahl ueber den Charakterwerten (wird gemerkt)
         local OPTIONS = {
-            SHAMAN = { { "enh", "Verstaerkung", "melee", "SHAMAN_hybrid", "Interface\\Icons\\Spell_Nature_LightningShield" }, { "ele", "Elementar", "caster", "SHAMAN_caster", "Interface\\Icons\\Spell_Nature_Lightning" }, { "resto", "Heiler", "healer", "SHAMAN_healer", "Interface\\Icons\\Spell_Nature_HealingWaveGreater" } },
-            PALADIN = { { "ret", "Vergeltung", "melee", "PALADIN_hybrid", "Interface\\Icons\\Spell_Holy_AuraOfLight" }, { "prot", "Tank", "tank", "PALADIN_tank", "Interface\\Icons\\Spell_Holy_DevotionAura" }, { "holy", "Heiler", "healer", "PALADIN_healer", "Interface\\Icons\\Spell_Holy_HolyBolt" } },
-            DRUID = { { "cat", "Katze", "melee", "DRUID_hybrid", "Interface\\Icons\\Ability_Druid_CatForm" }, { "bear", "Baer (Tank)", "tank", "DRUID_tank", "Interface\\Icons\\Ability_Racial_BearForm" }, { "bal", "Gleichgewicht", "caster", "DRUID_caster", "Interface\\Icons\\Spell_Nature_StarFall" }, { "resto", "Heiler", "healer", "DRUID_healer", "Interface\\Icons\\Spell_Nature_HealingTouch" } },
-            WARRIOR = { { "dps", "Schaden", "melee", "WARRIOR_melee", "Interface\\Icons\\Ability_Warrior_SavageBlow" }, { "tank", "Tank", "tank", "WARRIOR_tank", "Interface\\Icons\\Ability_Warrior_DefensiveStance" } },
-            PRIEST = { { "holy", "Heiler", "healer", "PRIEST_healer", "Interface\\Icons\\Spell_Holy_GreaterHeal" }, { "shadow", "Schatten", "caster", "PRIEST_caster", "Interface\\Icons\\Spell_Shadow_ShadowWordPain" } },
-            MAGE = { { "dps", "Schaden", "caster", "MAGE", "Interface\\Icons\\Spell_Frost_FrostBolt02" } },
-            WARLOCK = { { "dps", "Schaden", "caster", "WARLOCK", "Interface\\Icons\\Spell_Shadow_DeathCoil" } },
-            ROGUE = { { "dps", "Schaden", "melee", "ROGUE", "Interface\\Icons\\Ability_BackStab" } },
-            HUNTER = { { "dps", "Schaden", "hunter", "HUNTER", "Interface\\Icons\\Ability_Marksmanship" } },
+            SHAMAN = { { "enh", "Enhancement", "melee", "SHAMAN_hybrid", "Interface\\Icons\\Spell_Nature_LightningShield" }, { "ele", "Elemental", "caster", "SHAMAN_caster", "Interface\\Icons\\Spell_Nature_Lightning" }, { "resto", "Healer", "healer", "SHAMAN_healer", "Interface\\Icons\\Spell_Nature_HealingWaveGreater" } },
+            PALADIN = { { "ret", "Retribution", "melee", "PALADIN_hybrid", "Interface\\Icons\\Spell_Holy_AuraOfLight" }, { "prot", "Tank", "tank", "PALADIN_tank", "Interface\\Icons\\Spell_Holy_DevotionAura" }, { "holy", "Healer", "healer", "PALADIN_healer", "Interface\\Icons\\Spell_Holy_HolyBolt" } },
+            DRUID = { { "cat", "Cat", "melee", "DRUID_hybrid", "Interface\\Icons\\Ability_Druid_CatForm" }, { "bear", "Bear (tank)", "tank", "DRUID_tank", "Interface\\Icons\\Ability_Racial_BearForm" }, { "bal", "Balance", "caster", "DRUID_caster", "Interface\\Icons\\Spell_Nature_StarFall" }, { "resto", "Healer", "healer", "DRUID_healer", "Interface\\Icons\\Spell_Nature_HealingTouch" } },
+            WARRIOR = { { "dps", "Damage", "melee", "WARRIOR_melee", "Interface\\Icons\\Ability_Warrior_SavageBlow" }, { "tank", "Tank", "tank", "WARRIOR_tank", "Interface\\Icons\\Ability_Warrior_DefensiveStance" } },
+            PRIEST = { { "holy", "Healer", "healer", "PRIEST_healer", "Interface\\Icons\\Spell_Holy_GreaterHeal" }, { "shadow", "Shadow", "caster", "PRIEST_caster", "Interface\\Icons\\Spell_Shadow_ShadowWordPain" } },
+            MAGE = { { "dps", "Damage", "caster", "MAGE", "Interface\\Icons\\Spell_Frost_FrostBolt02" } },
+            WARLOCK = { { "dps", "Damage", "caster", "WARLOCK", "Interface\\Icons\\Spell_Shadow_DeathCoil" } },
+            ROGUE = { { "dps", "Damage", "melee", "ROGUE", "Interface\\Icons\\Ability_BackStab" } },
+            HUNTER = { { "dps", "Damage", "hunter", "HUNTER", "Interface\\Icons\\Ability_Marksmanship" } },
         }
         function soon:Options()
             local _, cls = UnitClass("player")
-            return OPTIONS[ns.safe(cls) or ""] or { { "dps", "Schaden", "melee", "" } }
+            return OPTIONS[ns.safe(cls) or ""] or { { "dps", "Damage", "melee", "" } }
         end
         function soon:CurrentOption()
             local opts = self:Options()
@@ -1974,24 +1974,24 @@ ns.RegisterPage({
         -- Stat-Prioritaeten je Klasse/Rolle nach WoW Classic (Treffer: Nahkampf/Jaeger +9 %, Zauber +16 % gegen Bosse;
         -- Verteidigung 440 = kritsicher ab Level 60; Staerke = 2 AP bei Krieger/Paladin/Schamane/Druide)
         local PRIO = {
-            MAGE = { { "sp" }, { "shit" }, { "stat4" }, { "scrit" }, { "stat5" }, tip = "Werte: Zauberschaden, dann Zaubertreffer bis +16 % (Raid-Bosse), Intelligenz, Zauber-Krit;Waffe: Stab mit Zauberschaden, dazu ein Zauberstab fuer Restmana;Rotation: Frostblitz bzw. Feuerball spammen, Hervorrufung bei leerem Mana;Leveln: Intelligenz und Willenskraft = weniger Pausen, in Gruppen Schaf (Mond) setzen" },
-            WARLOCK = { { "sp" }, { "shit" }, { "stat3" }, { "stat4" }, { "scrit" }, tip = "Werte: Zauberschaden, Zaubertreffer bis +16 % (Raid), Ausdauer, Intelligenz;Waffe: Stab oder Dolch + Nebenhand mit Zauberschaden, Zauberstab fuer Restmana;Rotation: Verderbnis + Fluch, dann Schattenblitz; Aderlass statt Trinken;Tipp: Ausdauer lohnt sich doppelt (Aderlass, Leerwandler/Seelenverbindung)" },
-            ROGUE = { { "hit" }, { "stat2" }, { "ap" }, { "crit" }, { "stat1" }, { "stat3" }, tip = "Werte: Treffer bis +9 %, Beweglichkeit (1 AP, ca. 29 = 1 % Krit), AP, Krit;Waffe: Kampf = schnelle Nebenhand, langsame Haupthand (Finsterer Stoss); Dolche fuer Meucheln;Rotation: Combopunkte aufbauen, Zerhaecksler oben halten, dann Ausweiden;Tipp: mit zwei Waffen verfehlen normale Schlaege oefter - Treffer ist am wichtigsten" },
-            HUNTER = { { "hit" }, { "stat2" }, { "ap" }, { "crit" }, { "stat4" }, { "stat3" }, tip = "Werte: Treffer bis +9 %, Beweglichkeit (2 Distanz-AP, ca. 53 = 1 % Krit), AP, Intelligenz;Waffe: langsame Distanzwaffe (hoher Schaden pro Schuss), Nahkampfwaffe mit Werten;Rotation: Mal des Jaegers, Automatischer Schuss, Zielschuss/Mehrfachschuss dazwischen;Tipp: Begleiter fuettern und gluecklich halten, Eisfalle (Quadrat) als Kontrolle" },
-            WARRIOR_melee = { { "hit" }, { "stat1" }, { "crit" }, { "stat2" }, { "ap" }, { "stat3" }, tip = "Werte: Treffer bis +9 %, Staerke (1 Punkt = 2 AP), Krit (ca. 20 Beweglichkeit = 1 %);Waffe: langsamer Zweihaender (Toedlicher Stoss, Heldenhafter Stoss wirken pro Schlag);Rotation: Wut aufbauen, Toedlicher Stoss / Blutdurst, Wirbelwind, ueberschuessige Wut in Heldenhaften Stoss;Tipp: Kampfrausch-Ruf vor dem Kampf, Hinrichten unter 20 % Leben" },
-            WARRIOR_tank = { { "def" }, { "stat3" }, { "armor" }, { "hit" }, { "dodge" }, { "stat2" }, { "parry" }, tip = "Werte: Verteidigung (440 = auf 60 kritsicher gegen Bosse), Ausdauer, Ruestung, Schildblock;Waffe: Einhandwaffe + Schild, schnelle Waffe = mehr Wut;Rotation: Schildschlag/Rachsucht, Ruestung zerreissen auf das Ziel, Heldenhafter Stoss bei viel Wut;Tipp: Treffer hilft, damit Spott und Faehigkeiten nicht verfehlen" },
-            PALADIN_tank = { { "def" }, { "stat3" }, { "armor" }, { "sp" }, { "block" }, tip = "Werte: Verteidigung, Ausdauer, Ruestung, dann Zauberschaden fuer mehr Bedrohung;Waffe: Einhandwaffe (gern mit Zauberschaden) + Schild;Rotation: Zorn der Gerechtigkeit an, Weihe fuer Gruppen, Heiliger Schild oben halten;Tipp: Mana ist knapp - Siegel der Weisheit oder Intelligenz mitnehmen" },
-            PALADIN_healer = { { "heal" }, { "stat4" }, { "scrit" }, { "mp5" }, { "stat3" }, tip = "Werte: +Heilung, Intelligenz, Zauber-Krit (Erleuchtung gibt Mana zurueck), Mana-Reg.;Waffe: Einhandwaffe + Nebenhand/Schild mit Heilung;Heilen: Lichtblitz fuer kleinen Schaden, Heiliges Licht (niedriger Rang) fuer grosse Treffer;Tipp: Segen verteilen, Gottesschutz wenn du gezogen wirst" },
-            PALADIN_hybrid = { { "stat1" }, { "crit" }, { "hit" }, { "stat2" }, { "stat4" }, { "stat3" }, tip = "Werte: Staerke (1 Punkt = 2 AP), Krit, Treffer bis +9 %;Waffe: langsamer Zweihaender - Siegel und Richturteil wirken pro Schlag;Rotation: Siegel der Rechtschaffenheit/des Befehls, Richturteil, Siegel neu setzen;Tipp: Weihe nur mit genug Mana, Segen der Macht fuer dich" },
-            SHAMAN_healer = { { "heal" }, { "mp5" }, { "stat4" }, { "scrit" }, { "stat3" }, tip = "Werte: +Heilung, Mana-Reg. (MP5), Intelligenz - Willenskraft bringt wenig;Waffe: Einhandwaffe + Schild mit Heilung;Heilen: Kettenheilung fuer Gruppen, Welle der Heilung (niedriger Rang) fuer den Tank;Tipp: Manaquelle-Totem stellen, Erdschild auf den Tank" },
-            SHAMAN_hybrid = { { "stat1" }, { "crit" }, { "hit" }, { "stat2" }, { "ap" }, { "stat4" }, tip = "Werte: Staerke (1 Punkt = 2 AP), Krit (loest Schlaghagel aus = schneller schlagen), Treffer bis +9 %;Waffe: langsame Zweihandwaffe - Windzorn trifft pro Schlag, also je langsamer desto mehr Schaden;Rotation: Windzorn-Waffe, Sturmschlag, Erdschock;Tipp: Totem der Staerke der Erde und Windzorn-Totem fuer die Gruppe" },
-            SHAMAN_caster = { { "sp" }, { "scrit" }, { "stat4" }, { "mp5" }, { "shit" }, tip = "Werte: Zauberschaden, Zauber-Krit (Elementarfokus spart Mana), Intelligenz, Mana-Reg.;Waffe: Einhandwaffe + Schild/Nebenhand mit Zauberschaden;Rotation: Blitzschlag spammen, Kettenblitz bei Gruppen, Flammenschock;Tipp: Zaubertreffer bis +16 % im Raid, Manaquelle-Totem gegen leeres Mana" },
-            DRUID_healer = { { "heal" }, { "stat4" }, { "stat5" }, { "mp5" }, { "stat3" }, tip = "Werte: +Heilung, Intelligenz, Willenskraft, Mana-Reg.;Waffe: Stab oder Einhandwaffe + Nebenhand mit Heilung;Heilen: Verjuengung und Nachwachsen vorab, Heilende Beruehrung fuer grosse Treffer;Tipp: Anregen fuer Mana, Wiedergeburt fuer gefallene Heiler" },
-            DRUID_tank = { { "armor" }, { "stat3" }, { "stat2" }, { "def" }, { "stat1" }, { "hit" }, tip = "Werte: Ruestung (Baerengestalt vervielfacht sie), Ausdauer, Beweglichkeit (Ausweichen + Ruestung);Waffe: egal fuer den Schaden - nur die Werte zaehlen (Stab/Stangenwaffe mit Ausdauer);Rotation: Zermalmen, Prankenhieb fuer Gruppen, Demoralisierendes Gebruell;Tipp: Staerke fuer mehr Bedrohung, Wutanfall zum Start" },
-            DRUID_hybrid = { { "stat1" }, { "stat2" }, { "crit" }, { "hit" }, { "stat3" }, tip = "Werte: Staerke (1 Punkt = 2 AP), Beweglichkeit (AP + Krit), Krit, Treffer bis +9 %;Waffe: egal fuer den Schaden - nur die Werte zaehlen;Rotation: Krallenhieb/Schreddern fuer Combopunkte, dann Wilder Biss;Tipp: Machtwandel (Gestalt neu) fuer Energie, aus dem Schleichen anspringen" },
-            DRUID_caster = { { "sp" }, { "scrit" }, { "stat4" }, { "shit" }, { "mp5" }, tip = "Werte: Zauberschaden, Zauber-Krit, Intelligenz, Zaubertreffer bis +16 % im Raid;Waffe: Stab oder Einhandwaffe + Nebenhand mit Zauberschaden;Rotation: Mondfeuer + Insektenschwarm, dann Zorn oder Sternenfeuer;Tipp: Anregen fuer dich selbst, wenn das Mana knapp wird" },
-            PRIEST_healer = { { "heal" }, { "stat5" }, { "stat4" }, { "mp5" }, { "stat3" }, tip = "Werte: +Heilung, Willenskraft (Meditation: Regeneration auch beim Zaubern), Intelligenz, Mana-Reg.;Waffe: Stab oder Einhandwaffe + Nebenhand mit Heilung, Zauberstab;Heilen: Erneuerung und Machtwort: Schild vorab, Grosse Heilung (niedriger Rang) fuer den Tank;Tipp: Gebet der Heilung fuer die Gruppe, Verblassen bei Aggro" },
-            PRIEST_caster = { { "sp" }, { "shit" }, { "stat4" }, { "stat5" }, { "stat3" }, tip = "Werte: Zauberschaden, Zaubertreffer bis +16 % (Raid), Willenskraft fuer Mana;Waffe: Stab oder Einhandwaffe + Nebenhand mit Zauberschaden;Rotation: Schattenwort: Schmerz, Gedankenschlag, Gedankenschinden;Tipp: Schattengestalt dauerhaft an, Vampirumarmung heilt die Gruppe" },
+            MAGE = { { "sp" }, { "shit" }, { "stat4" }, { "scrit" }, { "stat5" }, tip = "Stats: spell damage, then spell hit up to +16 % (raid bosses), intellect, spell crit;Weapon: staff with spell damage, plus a wand for leftover mana;Rotation: spam Frostbolt or Fireball, Evocation when out of mana;Leveling: intellect and spirit = less downtime, sheep (moon) in groups" },
+            WARLOCK = { { "sp" }, { "shit" }, { "stat3" }, { "stat4" }, { "scrit" }, tip = "Stats: spell damage, spell hit up to +16 % (raid), stamina, intellect;Weapon: staff or dagger + off-hand with spell damage, wand for leftover mana;Rotation: Corruption + curse, then Shadow Bolt; Life Tap instead of drinking;Tip: stamina pays off twice (Life Tap, Voidwalker/Soul Link)" },
+            ROGUE = { { "hit" }, { "stat2" }, { "ap" }, { "crit" }, { "stat1" }, { "stat3" }, tip = "Stats: hit up to +9 %, agility (1 AP, ~29 = 1 % crit), AP, crit;Weapon: Combat = fast off-hand, slow main hand (Sinister Strike); daggers for Backstab;Rotation: build combo points, keep Slice and Dice up, then Eviscerate;Tip: dual wielding misses white hits more often - hit matters most" },
+            HUNTER = { { "hit" }, { "stat2" }, { "ap" }, { "crit" }, { "stat4" }, { "stat3" }, tip = "Stats: hit up to +9 %, agility (2 ranged AP, ~53 = 1 % crit), AP, intellect;Weapon: slow ranged weapon (big damage per shot), melee weapon for stats;Rotation: Hunter's Mark, Auto Shot, Aimed Shot/Multi-Shot in between;Tip: feed your pet and keep it happy, Freezing Trap (square) for control" },
+            WARRIOR_melee = { { "hit" }, { "stat1" }, { "crit" }, { "stat2" }, { "ap" }, { "stat3" }, tip = "Stats: hit up to +9 %, strength (1 point = 2 AP), crit (~20 agility = 1 %);Weapon: slow two-hander (Mortal Strike, Heroic Strike scale per swing);Rotation: build rage, Mortal Strike / Bloodthirst, Whirlwind, spare rage into Heroic Strike;Tip: Battle Shout before the pull, Execute below 20 % health" },
+            WARRIOR_tank = { { "def" }, { "stat3" }, { "armor" }, { "hit" }, { "dodge" }, { "stat2" }, { "parry" }, tip = "Stats: defense (440 = crit immune vs bosses at 60), stamina, armor, block;Weapon: one-hander + shield, fast weapon = more rage;Rotation: Shield Slam/Revenge, Sunder Armor on the target, Heroic Strike with high rage;Tip: hit helps so Taunt and abilities don't miss" },
+            PALADIN_tank = { { "def" }, { "stat3" }, { "armor" }, { "sp" }, { "block" }, tip = "Stats: defense, stamina, armor, then spell damage for more threat;Weapon: one-hander (ideally spell damage) + shield;Rotation: Righteous Fury on, Consecration for packs, keep Holy Shield up;Tip: mana is tight - use Seal of Wisdom or some intellect" },
+            PALADIN_healer = { { "heal" }, { "stat4" }, { "scrit" }, { "mp5" }, { "stat3" }, tip = "Stats: +healing, intellect, spell crit (Illumination refunds mana), mp5;Weapon: one-hander + off-hand/shield with healing;Healing: Flash of Light for small damage, Holy Light (low rank) for big hits;Tip: hand out blessings, Divine Protection when you pull aggro" },
+            PALADIN_hybrid = { { "stat1" }, { "crit" }, { "hit" }, { "stat2" }, { "stat4" }, { "stat3" }, tip = "Stats: strength (1 point = 2 AP), crit, hit up to +9 %;Weapon: slow two-hander - seals and Judgement scale per swing;Rotation: Seal of Righteousness/Command, Judgement, reapply seal;Tip: Consecration only with enough mana, Blessing of Might on yourself" },
+            SHAMAN_healer = { { "heal" }, { "mp5" }, { "stat4" }, { "scrit" }, { "stat3" }, tip = "Stats: +healing, mp5, intellect - spirit does little;Weapon: one-hander + shield with healing;Healing: Chain Heal for groups, Healing Wave (low rank) for the tank;Tip: drop Mana Spring Totem, Earth Shield on the tank" },
+            SHAMAN_hybrid = { { "stat1" }, { "crit" }, { "hit" }, { "stat2" }, { "ap" }, { "stat4" }, tip = "Stats: strength (1 point = 2 AP), crit (procs Flurry = faster swings), hit up to +9 %;Weapon: slow two-hander - Windfury procs per swing, so slower = more damage;Rotation: Windfury Weapon, Stormstrike, Earth Shock;Tip: Strength of Earth and Windfury Totem for the group" },
+            SHAMAN_caster = { { "sp" }, { "scrit" }, { "stat4" }, { "mp5" }, { "shit" }, tip = "Stats: spell damage, spell crit (Elemental Focus saves mana), intellect, mp5;Weapon: one-hander + shield/off-hand with spell damage;Rotation: spam Lightning Bolt, Chain Lightning on packs, Flame Shock;Tip: spell hit up to +16 % in raids, Mana Spring Totem against oom" },
+            DRUID_healer = { { "heal" }, { "stat4" }, { "stat5" }, { "mp5" }, { "stat3" }, tip = "Stats: +healing, intellect, spirit, mp5;Weapon: staff or one-hander + off-hand with healing;Healing: Rejuvenation and Regrowth ahead, Healing Touch for big hits;Tip: Innervate for mana, Rebirth for fallen healers" },
+            DRUID_tank = { { "armor" }, { "stat3" }, { "stat2" }, { "def" }, { "stat1" }, { "hit" }, tip = "Stats: armor (bear form multiplies it), stamina, agility (dodge + armor);Weapon: damage doesn't matter - only the stats (staff/polearm with stamina);Rotation: Maul, Swipe for packs, Demoralizing Roar;Tip: strength for more threat, Enrage to start" },
+            DRUID_hybrid = { { "stat1" }, { "stat2" }, { "crit" }, { "hit" }, { "stat3" }, tip = "Stats: strength (1 point = 2 AP), agility (AP + crit), crit, hit up to +9 %;Weapon: damage doesn't matter - only the stats;Rotation: Claw/Shred for combo points, then Ferocious Bite;Tip: powershift (recast form) for energy, open from stealth" },
+            DRUID_caster = { { "sp" }, { "scrit" }, { "stat4" }, { "shit" }, { "mp5" }, tip = "Stats: spell damage, spell crit, intellect, spell hit up to +16 % in raids;Weapon: staff or one-hander + off-hand with spell damage;Rotation: Moonfire + Insect Swarm, then Wrath or Starfire;Tip: Innervate yourself when mana runs low" },
+            PRIEST_healer = { { "heal" }, { "stat5" }, { "stat4" }, { "mp5" }, { "stat3" }, tip = "Stats: +healing, spirit (Meditation: regen while casting), intellect, mp5;Weapon: staff or one-hander + off-hand with healing, wand;Healing: Renew and Power Word: Shield ahead, Greater Heal (low rank) for the tank;Tip: Prayer of Healing for the group, Fade on aggro" },
+            PRIEST_caster = { { "sp" }, { "shit" }, { "stat4" }, { "stat5" }, { "stat3" }, tip = "Stats: spell damage, spell hit up to +16 % (raid), spirit for mana;Weapon: staff or one-hander + off-hand with spell damage;Rotation: Shadow Word: Pain, Mind Blast, Mind Flay;Tip: stay in Shadowform, Vampiric Embrace heals the group" },
         }
         function soon:Prio()
             local o = self:CurrentOption()
@@ -2036,9 +2036,9 @@ ns.RegisterPage({
         local function gearLines(lines, G, P, key, label)
             local g = G[key] or 0
             if g ~= 0 then
-                lines[#lines + 1] = (label or L["Ausruestung"]) .. ":  |cff66db9e+" .. fmt(g) .. "|r"
+                lines[#lines + 1] = (label or L["Gear"]) .. ":  |cff66db9e+" .. fmt(g) .. "|r"
                 for i, x in ipairs(P[key] or {}) do
-                    if i > 4 then lines[#lines + 1] = "   |cff777777" .. (L["+ %d weitere"]):format(#P[key] - 4) .. "|r" break end
+                    if i > 4 then lines[#lines + 1] = "   |cff777777" .. (L["+ %d more"]):format(#P[key] - 4) .. "|r" break end
                     lines[#lines + 1] = "   " .. x.link .. "  |cff888888+" .. fmt(x.v) .. "|r"
                 end
             end
@@ -2059,25 +2059,25 @@ ns.RegisterPage({
             local _, sta = UnitStat("player", 3)
             sta = num(sta) or 0
             local fromSta = sta > 20 and (20 + (sta - 20) * 10) or sta
-            soon.detail = { (L["aus Ausdauer (%d)"]):format(sta) .. ":  +" .. fmt(fromSta), L["Grundwert (Klasse, Level)"] .. ":  " .. fmt((hp or 0) - fromSta),
-                "|cff888888" .. L["Die ersten 20 Ausdauer geben je 1, jeder weitere Punkt 10 Gesundheit."] .. "|r" }
+            soon.detail = { (L["from stamina (%d)"]):format(sta) .. ":  +" .. fmt(fromSta), L["Base (class, level)"] .. ":  " .. fmt((hp or 0) - fromSta),
+                "|cff888888" .. L["The first 20 stamina give 1 health each, every further point 10."] .. "|r" }
             K_("hp")
-            add(HEALTH or L["Gesundheit"], fmt(hp), hp, 20 + 16 * lvl + 0.7 * lvl * lvl)
+            add(HEALTH or L["Health"], fmt(hp), hp, 20 + 16 * lvl + 0.7 * lvl * lvl)
             local pmax = num(UnitPowerMax("player"))
             if pmax and pmax > 0 then
                 local _, token = UnitPowerType("player")
                 K_("power")
-                add(_G[token or ""] or L["Kraft"], fmt(pmax))
+                add(_G[token or ""] or L["Attack Power"], fmt(pmax))
             end
             local G, P = gearStats()
             local raceName = ns.safe((UnitRace("player"))) or ""
             for i = 1, 5 do
                 local base0, stat, posB, negB = UnitStat("player", i)
                 base0, posB, negB = num(base0) or 0, num(posB) or 0, num(negB) or 0
-                local d = { (L["Grundwert (%s, Klasse, Level)"]):format(raceName) .. ":  " .. fmt(base0) }
+                local d = { (L["Base (%s, class, level)"]):format(raceName) .. ":  " .. fmt(base0) }
                 local g = gearLines(d, G, P, "stat" .. i)
-                if posB - g > 0 then d[#d + 1] = L["Buffs & Talente"] .. ":  |cff6199ff+" .. fmt(posB - g) .. "|r" end
-                if negB < 0 then d[#d + 1] = L["Abzuege"] .. ":  |cffe64040" .. fmt(negB) .. "|r" end
+                if posB - g > 0 then d[#d + 1] = L["Buffs & talents"] .. ":  |cff6199ff+" .. fmt(posB - g) .. "|r" end
+                if negB < 0 then d[#d + 1] = L["Penalties"] .. ":  |cffe64040" .. fmt(negB) .. "|r" end
                 soon.detail = d
                 local main = MAIN[cls] and MAIN[cls][i]
                 K_("stat" .. i)
@@ -2089,29 +2089,29 @@ ns.RegisterPage({
                 local g = gearLines(d, G, P, "armor")
                 local _, agi = UnitStat("player", 2)
                 agi = num(agi) or 0
-                d[#d + 1] = (L["aus Beweglichkeit (%d x 2)"]):format(agi) .. ":  +" .. fmt(agi * 2)
+                d[#d + 1] = (L["from agility (%d x 2)"]):format(agi) .. ":  +" .. fmt(agi * 2)
                 local rest = (num(armor) or 0) - g - agi * 2
-                if rest > 0 then d[#d + 1] = L["Buffs, Talente, Gestalt"] .. ":  |cff6199ff+" .. fmt(rest) .. "|r" end
+                if rest > 0 then d[#d + 1] = L["Buffs, talents, form"] .. ":  |cff6199ff+" .. fmt(rest) .. "|r" end
                 soon.detail = d
             end
             K_("armor")
-            add(ARMOR or L["Ruestung"], fmt(num(armor)), num(armor), (ARMOR_K[cls] or 20) * lvl)
+            add(ARMOR or L["Armour"], fmt(num(armor)), num(armor), (ARMOR_K[cls] or 20) * lvl)
             local base, pos, neg = UnitAttackPower("player")
             do
-                local d = { L["Grundwert (aus Staerke/Beweglichkeit/Level)"] .. ":  " .. fmt(num(base) or 0) }
+                local d = { L["Base (from strength/agility/level)"] .. ":  " .. fmt(num(base) or 0) }
                 gearLines(d, G, P, "ap")
-                if (num(pos) or 0) - (G.ap or 0) > 0 then d[#d + 1] = L["Buffs & Talente"] .. ":  |cff6199ff+" .. fmt((num(pos) or 0) - (G.ap or 0)) .. "|r" end
-                if (num(neg) or 0) < 0 then d[#d + 1] = L["Abzuege"] .. ":  |cffe64040" .. fmt(num(neg)) .. "|r" end
+                if (num(pos) or 0) - (G.ap or 0) > 0 then d[#d + 1] = L["Buffs & talents"] .. ":  |cff6199ff+" .. fmt((num(pos) or 0) - (G.ap or 0)) .. "|r" end
+                if (num(neg) or 0) < 0 then d[#d + 1] = L["Penalties"] .. ":  |cffe64040" .. fmt(num(neg)) .. "|r" end
                 soon.detail = d
             end
             K_("ap")
-            if num(base) then add(ATTACK_POWER_TOOLTIP or L["Angriffskraft"], fmt(num(base) + (num(pos) or 0) + (num(neg) or 0))) end
+            if num(base) then add(ATTACK_POWER_TOOLTIP or L["Attack power"], fmt(num(base) + (num(pos) or 0) + (num(neg) or 0))) end
             local lo, hi = UnitDamage("player")
             K_("dmg")
-            if num(lo) and num(hi) then add(L["Waffenschaden"], fmt(num(lo)) .. " - " .. fmt(num(hi))) end
+            if num(lo) and num(hi) then add(L["Weapon damage"], fmt(num(lo)) .. " - " .. fmt(num(hi))) end
             local speed = UnitAttackSpeed and num((UnitAttackSpeed("player")))
             K_("speed")
-            if speed then add(L["Angriffstempo"], ("%.2f s"):format(speed)) end
+            if speed then add(L["Attack speed"], ("%.2f s"):format(speed)) end
             K_("crit")
             if GetCritChance then
                 local c = num(GetCritChance())
@@ -2120,13 +2120,13 @@ ns.RegisterPage({
                     agi = num(agi) or 0
                     local per = ({ ROGUE = 29, HUNTER = 53, WARRIOR = 20, PALADIN = 20, SHAMAN = 20, DRUID = 20 })[cls] or 20
                     local fromAgi = agi / per
-                    soon.detail = { (L["aus Beweglichkeit: ca. %.1f %% (%d Bew. = 1 %%)"]):format(fromAgi, per),
-                        (L["Grundwert, Talente, Ausruestung: ca. %.1f %%"]):format(math.max(0, c - fromAgi)) }
-                    add(L["Kritische Treffer"], ("%.1f %%"):format(c), c, 6)
+                    soon.detail = { (L["from agility: about %.1f %% (%d agi = 1 %%)"]):format(fromAgi, per),
+                        (L["Base, talents, gear: about %.1f %%"]):format(math.max(0, c - fromAgi)) }
+                    add(L["Critical strike"], ("%.1f %%"):format(c), c, 6)
                 end
             end
             K_("scrit")
-            if GetSpellCritChance then local c = num(GetSpellCritChance(2)) if c and c > 0 then add(L["Zauber-Krit"], ("%.1f %%"):format(c)) end end
+            if GetSpellCritChance then local c = num(GetSpellCritChance(2)) if c and c > 0 then add(L["Spell crit"], ("%.1f %%"):format(c)) end end
             -- Zauber: Schaden (beste Schule), Heilung, Mana-Regeneration, Treffer
             if GetSpellBonusDamage then
                 local best = 0
@@ -2135,9 +2135,9 @@ ns.RegisterPage({
                 if best > 0 then
                     local d = {}
                     local g = gearLines(d, G, P, "sp")
-                    if best - g > 0 then d[#d + 1] = L["Buffs & Talente"] .. ":  |cff6199ff+" .. fmt(best - g) .. "|r" end
+                    if best - g > 0 then d[#d + 1] = L["Buffs & talents"] .. ":  |cff6199ff+" .. fmt(best - g) .. "|r" end
                     soon.detail = d
-                    add(L["Zauberschaden"], fmt(best))
+                    add(L["Spell damage"], fmt(best))
                 end
             end
             K_("heal")
@@ -2146,16 +2146,16 @@ ns.RegisterPage({
                 if v and v > 0 then
                     local d = {}
                     local g = gearLines(d, G, P, "heal")
-                    if v - g > 0 then d[#d + 1] = L["Buffs & Talente"] .. ":  |cff6199ff+" .. fmt(v - g) .. "|r" end
+                    if v - g > 0 then d[#d + 1] = L["Buffs & talents"] .. ":  |cff6199ff+" .. fmt(v - g) .. "|r" end
                     soon.detail = d
-                    add(L["Heilung"], fmt(v))
+                    add(L["Healing"], fmt(v))
                 end
             end
             if GetManaRegen and pmax and pmax > 0 then
                 local base, casting = GetManaRegen()
                 base, casting = num(base), num(casting)
                 K_("mp5")
-                if base then add(L["Mana-Reg. (5 s)"], fmt(base * 5) .. (casting and ("  |cff888888/ " .. fmt(casting * 5) .. "|r") or "")) end
+                if base then add(L["Mana regen (5 s)"], fmt(base * 5) .. (casting and ("  |cff888888/ " .. fmt(casting * 5) .. "|r") or "")) end
             end
             -- Treffer: WoW-Wert, sonst aus den Texten der angelegten Teile ("Trefferchance um 1%")
             local gearHit, gearSpell, hitParts = 0, 0, {}
@@ -2183,27 +2183,27 @@ ns.RegisterPage({
                 local v = GetHitModifier and num(GetHitModifier()) or 0
                 if (v or 0) <= 0 and gearHit > 0 then v = gearHit end
                 if #hitParts > 0 then soon.detail = hitParts end
-                add(L["Trefferchance"], ("+%.1f %%"):format(v or 0))
+                add(L["Hit chance"], ("+%.1f %%"):format(v or 0))
             end
             K_("shit")
             do
                 local v = GetSpellHitModifier and num(GetSpellHitModifier()) or 0
                 if (v or 0) <= 0 and gearSpell > 0 then v = gearSpell end
-                add(L["Zaubertreffer"], ("+%.1f %%"):format(v or 0))
+                add(L["Spell hit"], ("+%.1f %%"):format(v or 0))
             end
             K_("dodge")
-            if GetDodgeChance then local c = num(GetDodgeChance()) if c then add(L["Ausweichen"], ("%.1f %%"):format(c)) end end
+            if GetDodgeChance then local c = num(GetDodgeChance()) if c then add(L["Dodge"], ("%.1f %%"):format(c)) end end
             K_("parry")
-            if GetParryChance then local c = num(GetParryChance()) if c and c > 0 then add(L["Parieren"], ("%.1f %%"):format(c)) end end
+            if GetParryChance then local c = num(GetParryChance()) if c and c > 0 then add(L["Parry"], ("%.1f %%"):format(c)) end end
             K_("block")
-            if GetBlockChance then local c = num(GetBlockChance()) if c and c > 0 then add(L["Blocken"], ("%.1f %%"):format(c)) end end
+            if GetBlockChance then local c = num(GetBlockChance()) if c and c > 0 then add(L["Block"], ("%.1f %%"):format(c)) end end
             local _, avg = GetAverageItemLevel()
             -- Verteidigung (Tank) und Widerstaende
             K_("def")
             if UnitDefense then
                 local b, m = UnitDefense("player")
                 b, m = num(b), num(m)
-                if b then add(DEFENSE or L["Verteidigung"], fmt(b + (m or 0))) end
+                if b then add(DEFENSE or L["Defense"], fmt(b + (m or 0))) end
             end
             K_("res")
             if UnitResistance then
@@ -2218,15 +2218,15 @@ ns.RegisterPage({
                     if total then
                         local d = {}
                         local g = gearLines(d, G, P, "res" .. school)
-                        if total - g > 0 then d[#d + 1] = L["Volk, Buffs, Talente"] .. ":  |cff6199ff+" .. fmt(total - g) .. "|r" end
+                        if total - g > 0 then d[#d + 1] = L["Race, buffs, talents"] .. ":  |cff6199ff+" .. fmt(total - g) .. "|r" end
                         soon.detail = d
                         K_("res" .. school)
-                        add(tex .. (L["%s-Widerstand"]):format(name), fmt(total))
+                        add(tex .. (L["%s resistance"]):format(name), fmt(total))
                     end
                 end
             end
             K_("ilvl")
-            if num(avg) and num(avg) > 0 then add(L["Gegenstandsstufe"], ("%.1f"):format(num(avg)), num(avg), math.max(5, lvl * 0.9)) end
+            if num(avg) and num(avg) > 0 then add(L["Item level"], ("%.1f"):format(num(avg)), num(avg), math.max(5, lvl * 0.9)) end
             return out
         end
 
@@ -2248,8 +2248,8 @@ ns.RegisterPage({
             end
             -- Leiste oben: links Gegenstandsstufe, rechts die Widerstaende als farbige Kacheln
             local SCHOOL = {
-                res2 = { 1, 0.45, 0.2, "Feuer" }, res3 = { 0.35, 0.85, 0.35, "Natur" }, res4 = { 0.4, 0.75, 1, "Frost" },
-                res5 = { 0.7, 0.4, 1, "Schatten" }, res6 = { 0.95, 0.6, 1, "Arkan" },
+                res2 = { 1, 0.45, 0.2, "Fires" }, res3 = { 0.35, 0.85, 0.35, "Nature" }, res4 = { 0.4, 0.75, 1, "Frost" },
+                res5 = { 0.7, 0.4, 1, "Shadow" }, res6 = { 0.95, 0.6, 1, "Arcane" },
             }
             if not self.cs.resBar then
                 local rb = CreateFrame("Frame", nil, self.cs)
@@ -2283,10 +2283,10 @@ ns.RegisterPage({
                 local v = tonumber(ilvlX[2]) or 0
                 local goal = tonumber(ilvlX[4]) or math.max(5, lvl * 0.9)
                 local col = v >= goal and C.mint or (v >= goal * 0.85 and C.amber or C.red)
-                il.lbl:SetText(plain(L["Gegenstandsstufe"]))
+                il.lbl:SetText(plain(L["Item level"]))
                 il.val:SetText(K.hex(col) .. ilvlX[2] .. "|r")
                 il.bar:SetColorTexture(col[1], col[2], col[3], 1)
-                il.info = { L["Gegenstandsstufe"] .. ":  " .. ilvlX[2], ("|cff888888" .. L["gut fuer Level %d: ab %.0f"] .. "|r"):format(lvl, goal) }
+                il.info = { L["Item level"] .. ":  " .. ilvlX[2], ("|cff888888" .. L["good for level %d: %.0f+"] .. "|r"):format(lvl, goal) }
                 il:Show()
             else
                 il:Hide()
@@ -2336,14 +2336,14 @@ ns.RegisterPage({
                     self.cs.ilvlTxt = K.Text(self.cs, 11, C.muted, "RIGHT")
                     self.cs.ilvlTxt:SetPoint("TOPRIGHT", self.cs, "TOPRIGHT", -14, -15)
                 end
-                self.cs.ilvlTxt:SetText(ilvlX and (plain(L["Gegenstandsstufe"]) .. "   " .. (il.val:GetText() or "")) or "")
+                self.cs.ilvlTxt:SetText(ilvlX and (plain(L["Item level"]) .. "   " .. (il.val:GetText() or "")) or "")
             end
-            self.cs.head.text:SetText(plain(L["Charakterwerte"]) .. "  |cff888888· " .. L["fuer"] .. " " .. roleName .. "|r")
+            self.cs.head.text:SetText(plain(L["Character stats"]) .. "  |cff888888· " .. L["for"] .. " " .. roleName .. "|r")
             local view = {}
             for _, x in ipairs(top) do view[#view + 1] = x end
             if #rest > 0 then
-                view[#view + 1] = { toggle = true, plain(L["Weitere Werte"]) .. "  |cff666666" .. #rest .. "|r",
-                    "|cff888888" .. (self.showAll and L["ausblenden"] or L["einblenden"]) .. "|r" }
+                view[#view + 1] = { toggle = true, plain(L["More stats"]) .. "  |cff666666" .. #rest .. "|r",
+                    "|cff888888" .. (self.showAll and L["hide"] or L["show"]) .. "|r" }
                 if self.showAll then for _, x in ipairs(rest) do view[#view + 1] = x end end
             end
             st = view
@@ -2440,14 +2440,14 @@ ns.RegisterPage({
                     end
                     local info = { x[1] .. ":  " .. x[2] }
                     if x.detail and #x.detail > 0 then
-                        info[#info + 1] = "|cffe8b44a" .. L["Setzt sich zusammen aus:"] .. "|r"
+                        info[#info + 1] = "|cffe8b44a" .. L["Made up of:"] .. "|r"
                         for _, dl in ipairs(x.detail) do info[#info + 1] = dl end
                     end
                     if q then
                         info[#info + 1] = " "
-                        info[#info + 1] = (L["Einordnung: %s"]):format(K.hex(c or C.text) .. L[q[3]] .. "|r")
-                        info[#info + 1] = (L["Ueblich auf Level %d: ca. %s"]):format(lvl, fmt(x[4]))
-                        info[#info + 1] = "|cff888888" .. L["Oasis-Schaetzung: Grundwerte der Klasse + typische Ausruestung fuer dein Level."] .. "|r"
+                        info[#info + 1] = (L["Rating: %s"]):format(K.hex(c or C.text) .. L[q[3]] .. "|r")
+                        info[#info + 1] = (L["Typical at level %d: about %s"]):format(lvl, fmt(x[4]))
+                        info[#info + 1] = "|cff888888" .. L["Oasis estimate: class base stats + typical gear for your level."] .. "|r"
                     end
                     if not r.goal then
                         r.goal = r:CreateTexture(nil, "OVERLAY")
@@ -2492,7 +2492,7 @@ ns.RegisterPage({
                     end
                     if avg then
                         info[#info + 1] = " "
-                        info[#info + 1] = "|cff6199ff" .. (L["Gilde (deine Klasse, Level +-3): Schnitt %s aus %d"]):format(avg < 100 and ("%.1f"):format(avg) or fmt(avg), an) .. "|r"
+                        info[#info + 1] = "|cff6199ff" .. (L["Guild (your class, level +-3): average %s from %d"]):format(avg < 100 and ("%.1f"):format(avg) or fmt(avg), an) .. "|r"
                     end
                     r.info = (#info > 1) and info or nil
                     r:Show()
@@ -2512,10 +2512,10 @@ ns.RegisterPage({
             local byKey = {}
             for _, x in ipairs(st or self.lastStats or {}) do if x.key then byKey[x.key] = x end end
             local _, roleName = self:Role()
-            self.pr.head.text:SetText(plain(L["Stat-Prioritaet"]) .. "  |cff888888· " .. roleName .. "|r")
-            local LABEL = { sp = L["Zauberschaden"], shit = L["Zaubertreffer"], hit = L["Trefferchance"], crit = L["Kritische Treffer"],
-                scrit = L["Zauber-Krit"], heal = L["Heilung"], mp5 = L["Mana-Reg. (5 s)"], ap = ATTACK_POWER_TOOLTIP or L["Angriffskraft"],
-                armor = ARMOR or L["Ruestung"], def = DEFENSE or L["Verteidigung"], dodge = L["Ausweichen"], parry = L["Parieren"], block = L["Blocken"] }
+            self.pr.head.text:SetText(plain(L["Stat priority"]) .. "  |cff888888· " .. roleName .. "|r")
+            local LABEL = { sp = L["Spell damage"], shit = L["Spell hit"], hit = L["Hit chance"], crit = L["Critical strike"],
+                scrit = L["Spell crit"], heal = L["Healing"], mp5 = L["Mana regen (5 s)"], ap = ATTACK_POWER_TOOLTIP or L["Attack power"],
+                armor = ARMOR or L["Armour"], def = DEFENSE or L["Defense"], dodge = L["Dodge"], parry = L["Parry"], block = L["Block"] }
             for i, r in ipairs(self.pr.rows) do
                 local e = pl and pl[i]
                 if e then
@@ -2572,12 +2572,12 @@ ns.RegisterPage({
             if r then
                 local key = r.frame.name .. (K.RingTier and K.RingTier(r.level) or "")
                 if self.av.styleName ~= key then self.av:SetStyle(r.frame, r.level) self.av.styleName = key if self.AvatarFx then self:AvatarFx(r.level) end end
-                self.rank:SetText((L["Rang %d"]):format(r.level) .. "  ·  " .. r.title)
+                self.rank:SetText((L["Rank %d"]):format(r.level) .. "  ·  " .. r.title)
                 self.FitBar()
                 self.xpFill:SetWidth(math.max(1, (self.xpW or 260) * math.min(1, r.into / math.max(1, r.need))))
-                self.xpText:SetText((L["%d / %d XP bis zum naechsten Rang"]):format(r.into, r.need))
+                self.xpText:SetText((L["%d / %d XP to the next rank"]):format(r.into, r.need))
                 self.pct:SetText(math.floor(r.into / math.max(1, r.need) * 100) .. " %")
-                self.rank:SetText(plain((L["Rang %d"]):format(r.level)) .. "  |cffe8b44a" .. r.title .. "|r")
+                self.rank:SetText(plain((L["Rank %d"]):format(r.level)) .. "  |cffe8b44a" .. r.title .. "|r")
                 self.emb:SetRank(r.level)
                 -- 0.5.588: gemalter Rahmen zeigt die Rangzahl selbst im Sechseck -> Wappen nur ohne ihn
                 self.emb:SetShown(not (self.av.art and self.av.art:IsShown()))
@@ -2587,14 +2587,14 @@ ns.RegisterPage({
                 if nf then
                     local at = idx * 10
                     self.chipF.icon:SetTexture(ns.MEDIA .. "emblems\\tier" .. (idx + 1))
-                    self.chipF.value:SetText(K.hex(nf.color) .. L[nf.name] .. "|r  |cff888888(" .. (L["Rang %d"]):format(at) .. ")|r")
+                    self.chipF.value:SetText(K.hex(nf.color) .. L[nf.name] .. "|r  |cff888888(" .. (L["Rank %d"]):format(at) .. ")|r")
                     local c = nf.color
                     self.chipF.bg:SetColorTexture(c[1] * 0.12, c[2] * 0.12, c[3] * 0.12, 1)
                     K.SetBorderColor(self.chipF, { c[1] * 0.5, c[2] * 0.5, c[3] * 0.5, 1 })
                     self.chipF.edge:SetColorTexture(c[1], c[2], c[3], 1)
                 else
                     self.chipF.icon:SetTexture(ns.MEDIA .. "emblems\\tier" .. idx)
-                    self.chipF.value:SetText("|cffe8b44a" .. L["Hoechster Rahmen erreicht"] .. "|r")
+                    self.chipF.value:SetText("|cffe8b44a" .. L["Highest frame reached"] .. "|r")
                 end
                 -- naechste Belohnung / naechster Rahmen: Text der Rang-Seite (einmal aufbauen, versteckt)
                 local def = ns.PageDef("rank")
@@ -2666,9 +2666,9 @@ ns.RegisterPage({
                     ic.tip = nil
                 end
             end
-            vit.tip = (L["%d Bronze, %d Silber, %d Gold"]):format(byTier[1], byTier[2], byTier[3])
+            vit.tip = (L["%d bronze, %d silver, %d gold"]):format(byTier[1], byTier[2], byTier[3])
             self.tiles[2]:Set(r and r.xp or 0, nil, nil, fresh)
-            self.tiles[3]:Set(chat, L["Nachrichten"], nil, fresh)
+            self.tiles[3]:Set(chat, L["Messages"], nil, fresh)
             -- Liste
             local rows = {}
             for _, cat in ipairs(B and B.CATS or {}) do
@@ -2802,7 +2802,7 @@ ns.RegisterPage({
             soon.cardHint = K.Text(hc, 11, C.dim)
             soon.cardHint:SetPoint("TOPLEFT", soon.clsPill, "BOTTOMLEFT", 2, -14)
             soon.cardHint:SetWidth(X2 - X1 - 16)
-            soon.cardHint:SetText(L["Klick: Visitenkarte bearbeiten"])
+            soon.cardHint:SetText(L["Click: edit your card"])
             -- Leisten: oben Level (Klassenfarbe), unten Oasis-Rang (Akzentfarbe), beide schmal und rund
             soon.wxp:ClearAllPoints()
             soon.wxp:SetPoint("TOPLEFT", hc, "TOPLEFT", X2, -22)
@@ -2853,7 +2853,7 @@ ns.RegisterPage({
             cr.icon:SetPoint("LEFT", 12, 0)
             cr.label:ClearAllPoints()
             cr.label:SetPoint("TOPLEFT", 44, -11)
-            cr.label:SetText(L["Naechste Belohnung"])
+            cr.label:SetText(L["Next reward"])
             cr.label:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
             cr.value:ClearAllPoints()
             cr.value:SetPoint("BOTTOMLEFT", 44, 10)
@@ -2871,7 +2871,7 @@ ns.RegisterPage({
             IG.Glass(vit, { 0.06, 0.06, 0.07, 0.85 }, { 1, 1, 1, 0.12 }, 8)
             vit.lbl:ClearAllPoints()
             vit.lbl:SetPoint("TOPLEFT", 12, -10)
-            vit.lbl:SetText(L["Abzeichen"])
+            vit.lbl:SetText(L["Badge"])
             vit.num:ClearAllPoints()
             vit.num:SetPoint("TOPLEFT", vit.lbl, "BOTTOMLEFT", 0, -4)
             K.SetFontSafe(vit.num, K.FONT_HEAD, 18, "", K.FONT)
@@ -3234,7 +3234,7 @@ ns.RegisterPage({
                     local g, unit = goalOf(k)
                     goals[i] = g
                     r:EnableMouse(true)
-                    r.goalTip = g and { r.name:GetText() or "", (L["Ziel fuer Level %d: %s"]):format(lvl, (unit == "%") and (("%.1f %%"):format(g)) or tostring(math.floor(g + 0.5))) } or nil
+                    r.goalTip = g and { r.name:GetText() or "", (L["Target for level %d: %s"]):format(lvl, (unit == "%") and (("%.1f %%"):format(g)) or tostring(math.floor(g + 0.5))) } or nil
                     if not r.goalHooked then
                         r.goalHooked = true
                         r:SetScript("OnEnter", function(self) if self.goalTip then K.ShowTip(self, self.goalTip) end end)
@@ -3335,9 +3335,9 @@ ns.RegisterPage({
             tiles:SetHeight(ROW)
             soon.statTiles = tiles   -- soon.tiles ist schon belegt (Abzeichen-Kacheln)
             local DEF = {
-                { key = "hp", label = "Gesundheit", icon = "heart", col = { 0.95, 0.3, 0.32 } },
-                { key = "ap", label = "Angriffskraft", icon = "role_dps", col = { 0.95, 0.72, 0.38 } },
-                { key = "crit", label = "Kritische Treffer", icon = "star_on", col = { 0.55, 0.45, 0.95 } },
+                { key = "hp", label = "Health", icon = "heart", col = { 0.95, 0.3, 0.32 } },
+                { key = "ap", label = "Attack power", icon = "role_dps", col = { 0.95, 0.72, 0.38 } },
+                { key = "crit", label = "Critical strike", icon = "star_on", col = { 0.55, 0.45, 0.95 } },
             }
             tiles.t = {}
             for i, d in ipairs(DEF) do
@@ -3407,8 +3407,8 @@ ns.RegisterPage({
                     if w > 2 then t.fill:SetWidth(math.max(1, w * math.max(0, math.min(1, q)))) end
                     local goalTxt = v[4] and (("%.1f %%"):format(v[3]):gsub("%.", ",")) or tostring(math.floor(v[3] + 0.5))
                     t.tip = { L[t.def.label] .. ":  " .. v[1],
-                        (L["Balken: %d %% vom Richtwert fuer Level %d (%s)"]):format(math.floor(math.min(9.99, q) * 100 + 0.5), lvl, goalTxt),
-                        "|cff888888" .. L["Voll = Richtwert erreicht. Grobe Oasis-Schaetzung, kein Spielwert."] .. "|r" }
+                        (L["Bar: %d %% of the guide value for level %d (%s)"]):format(math.floor(math.min(9.99, q) * 100 + 0.5), lvl, goalTxt),
+                        "|cff888888" .. L["Full = guide value reached. Rough Oasis estimate, not a game value."] .. "|r" }
                     if not t.tipHooked then
                         t.tipHooked = true
                         t:EnableMouse(true)
@@ -3425,9 +3425,9 @@ ns.RegisterPage({
             IG.Glass(rb, IG.GLASS_FILL, IG.GLASS_LINE, 10)
             rb.l1 = K.Text(rb, 11, C.muted)
             rb.l1:SetPoint("TOPLEFT", 12, -6)
-            rb.l1:SetText(L["Spezialisierung"])
+            rb.l1:SetText(L["Specialization"])
             rb.l2 = K.Text(rb, 11, C.muted)
-            rb.l2:SetText(L["Wunschrolle"])
+            rb.l2:SetText(L["Preferred role"])
             soon.roleBox = rb
             local ensure2 = soon.EnsureRoleSeg
             function soon:EnsureRoleSeg()
@@ -3587,7 +3587,7 @@ ns.RegisterPage({
             soon.cardPen:SetPoint("TOPLEFT", soon.clsPill, "BOTTOMLEFT", 0, -14)
             soon.cardHint:ClearAllPoints()
             soon.cardHint:SetPoint("LEFT", soon.cardPen, "RIGHT", 6, 0)
-            soon.cardHint:SetText(L["Visitenkarte bearbeiten"])
+            soon.cardHint:SetText(L["Edit business card"])
             -- 0.6.340: Hinweis entfaellt (Klick auf Portraet/Name oeffnet die Visitenkarte weiterhin)
             soon.cardHint:Hide() soon.cardHint.Show = function() end
             soon.cardPen:Hide()
@@ -3760,7 +3760,7 @@ ns.RegisterPage({
         p.title:SetWidth(230)
         -- Zahlen: Posts / Follower / Folgt
         p.stats = {}
-        for i, lab in ipairs({ "Posts", "Follower", "Folgt" }) do
+        for i, lab in ipairs({ "Posts", "Follower", "Coming soon" }) do
             local s = CreateFrame("Button", nil, left)
             s:SetSize(74, 40)
             s:SetPoint("TOP", (i - 2) * 78, -160)
@@ -3779,7 +3779,7 @@ ns.RegisterPage({
         p.bio:SetPoint("TOP", 0, -230)
         p.bio:SetWidth(220)
         p.bio:SetWordWrap(true)
-        p.bioEdit = K.Input(left, 220, L["Kurz ueber dich ..."])
+        p.bioEdit = K.Input(left, 220, L["A little about you ..."])
         p.bioEdit:SetPoint("TOP", 0, -228)
         p.bioEdit:SetMaxLetters(90)
         p.bioEdit:Hide()
@@ -3800,16 +3800,16 @@ ns.RegisterPage({
             p.bioEdit:Show()
             p.bioEdit:SetFocus()
         end)
-        p.bioBtn:SetScript("OnEnter", function(self) if not view.who or ns.isMe(view.who) then K.ShowTip(self, L["Klick: Bio bearbeiten"]) end end)
+        p.bioBtn:SetScript("OnEnter", function(self) if not view.who or ns.isMe(view.who) then K.ShowTip(self, L["Click: edit bio"]) end end)
         p.bioBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
         p.action = K.Button(left, "", 200, 30, "primary", function()
             if not view.who or ns.isMe(view.who) then IG.Snap() else IG.ToggleFollow(view.who) end
         end)
         p.action:SetPoint("TOP", 0, -292)
-        p.back = K.Button(left, L["Zu meinem Profil"], 200, 24, "ghost", function() IG.ShowProfile(me()) end)
+        p.back = K.Button(left, L["Go to my profile"], 200, 24, "ghost", function() IG.ShowProfile(me()) end)
         p.back:SetPoint("TOP", p.action, "BOTTOM", 0, -6)
         -- beliebte Profile
-        local ph = K.GameHead(left, L["Beliebt in der Gilde"], C.pink)
+        local ph = K.GameHead(left, L["Popular in the guild"], C.pink)
         ph:SetPoint("TOPLEFT", 12, -364)
         ph:SetPoint("RIGHT", -12, 0)
         p.pop = {}
@@ -3833,7 +3833,7 @@ ns.RegisterPage({
         right:SetPoint("BOTTOMRIGHT")
         p.right = right
         p.seg = K.Segments(right, {
-            { key = "posts", text = L["Posts"] }, { key = "feed", text = L["Feed"] }, { key = "all", text = L["Entdecken"] },
+            { key = "posts", text = L["Posts"] }, { key = "feed", text = L["Feed"] }, { key = "all", text = L["Discover"] },
         }, function(k) view.tab = k view.page = 1 view.detail = nil ns.RefreshPage("insta") end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
         p.pager = K.Text(right, 11, C.muted, "RIGHT")
@@ -3872,7 +3872,7 @@ ns.RegisterPage({
             t.del.x:SetPoint("CENTER", 0, 1)
             t.del.x:SetText("x")
             t.del:SetScript("OnClick", function(self) if t.post then IG.ArmDelete(self, t.post) end end)
-            t.del:SetScript("OnEnter", function(self) K.ShowTip(self, L["Post loeschen"]) end)
+            t.del:SetScript("OnEnter", function(self) K.ShowTip(self, L["Delete post"]) end)
             t.del:SetScript("OnLeave", function() GameTooltip:Hide() end)
             t.del:Hide()
             p.tiles[i] = t
@@ -3903,7 +3903,7 @@ ns.RegisterPage({
         d.scene = IG.Scene(d, 240, 330)
         d.scene:SetPoint("TOPLEFT", 10, -10)
         K.Border(d.scene, C.line)
-        d.close = K.CloseButton(d, function() view.detail = nil ns.RefreshPage("insta") end, L["Schliessen (Esc)"])
+        d.close = K.CloseButton(d, function() view.detail = nil ns.RefreshPage("insta") end, L["Close (Esc)"])
         d.close:SetPoint("TOPRIGHT", -8, -8)
         local DX = 262
         d.who = K.Title(d, 14, C.text)
@@ -3935,11 +3935,11 @@ ns.RegisterPage({
         d.likesBtn:SetAllPoints(d.likes)
         d.likesBtn:SetScript("OnEnter", function(self) if self.tip then K.ShowTip(self, self.tip) end end)
         d.likesBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        d.del = K.Button(d, L["Loeschen"], 80, 22, "danger", function(self)
+        d.del = K.Button(d, L["Put out"], 80, 22, "danger", function(self)
             if d.post then IG.ArmDelete(d.del, d.post, function() view.detail = nil ns.RefreshPage("insta") end) end
         end)
         d.del:SetPoint("TOPRIGHT", -40, -108)
-        local ch = K.GameHead(d, L["Kommentare"], C.pink)
+        local ch = K.GameHead(d, L["Comments"], C.pink)
         ch:SetPoint("TOPLEFT", DX, -148)
         ch:SetPoint("RIGHT", -14, 0)
         d.ch = ch
@@ -3951,7 +3951,7 @@ ns.RegisterPage({
             c:SetWordWrap(false)
             d.comments[i] = c
         end
-        d.input = K.Input(d, 200, L["Kommentieren ..."])
+        d.input = K.Input(d, 200, L["Add a comment ..."])
         d.input:SetPoint("BOTTOMLEFT", DX, 12)
         d.input:SetPoint("RIGHT", -14, 0)
         d.input:SetMaxLetters(120)
@@ -4006,7 +4006,7 @@ ns.RegisterPage({
         end
         if p.face.SetMask and not p.masked then p.masked = pcall(p.face.SetMask, p.face, MASK) end K.MaskSafe(p.face)
         p.name:SetText(ns.colorName(who, cls))
-        p.title:SetText(lvl and ((L["Rang %d"]):format(lvl) .. "  ·  " .. ns.Rank.Title(lvl) .. (verified and "" or ("  |cffe69a4a(" .. L["ungeprueft"] .. ")|r"))) or L["ohne Oasis-Rang"])
+        p.title:SetText(lvl and ((L["Rank %d"]):format(lvl) .. "  ·  " .. ns.Rank.Title(lvl) .. (verified and "" or ("  |cffe69a4a(" .. L["unverified"] .. ")|r"))) or L["no Oasis rank"])
         local posts = IG.PostsBy(who)
         local fol, fing = IG.Followers(who), IG.Following(who)
         local vals = { #posts, #fol, #fing }
@@ -4015,15 +4015,15 @@ ns.RegisterPage({
             if fresh then K.CountUp(s.n, vals[i], 0.7) else s.n:SetText(vals[i]) end
             local names = {}
             for _, n in ipairs(tips[i] or {}) do names[#names + 1] = ns.displayName(n) end
-            s.tip = (#names > 0) and { L[({ "Posts", "Follower", "Folgt" })[i]], table.concat(names, ", ") } or nil
+            s.tip = (#names > 0) and { L[({ "Posts", "Follower", "Coming soon" })[i]], table.concat(names, ", ") } or nil
         end
-        p.likes:SetText("|T" .. ICON .. "heart:12:12:0:0:64:64:0:64:0:64:255:127:168|t  " .. (L["%d Likes insgesamt"]):format(IG.LikesReceived(who)))
+        p.likes:SetText("|T" .. ICON .. "heart:12:12:0:0:64:64:0:64:0:64:255:127:168|t  " .. (L["%d Likes in total"]):format(IG.LikesReceived(who)))
         local bio = mine and (S().instaBio or "") or (ns.db.members[who] and ns.db.members[who].bio or "")
-        p.bio:SetText(bio ~= "" and bio or ("|cff666666" .. (mine and L["Klick: Bio schreiben"] or L["Noch keine Bio."]) .. "|r"))
+        p.bio:SetText(bio ~= "" and bio or ("|cff666666" .. (mine and L["Click: write bio"] or L["No bio yet."]) .. "|r"))
         if mine then
-            p.action:SetLabel("|T" .. ICON .. "camera:14:14|t  " .. L["Neuer Schnappschuss"])
+            p.action:SetLabel("|T" .. ICON .. "camera:14:14|t  " .. L["New snapshot"])
         else
-            p.action:SetLabel(IG.IFollow(who) and L["Entfolgen"] or ("+ " .. L["Folgen"]))
+            p.action:SetLabel(IG.IFollow(who) and L["Unfollow"] or ("+ " .. L["Follows"]))
         end
         p.back:SetShown(not mine)
         -- beliebt: meiste Follower
@@ -4038,7 +4038,7 @@ ns.RegisterPage({
             if t then
                 r.who = t.who
                 r.name:SetText(ns.Radar.Colored(t.who))
-                r.val:SetText((L["%d Follower"]):format(t.n))
+                r.val:SetText((L["%d Followers"]):format(t.n))
                 r:Show()
             else
                 r:Hide()
@@ -4069,9 +4069,9 @@ ns.RegisterPage({
             end
         end
         p.empty:SetShown(#list == 0)
-        p.empty:SetText(view.tab == "feed" and L["Noch nichts im Feed. Folge Leuten aus der Gilde - ihre Posts landen dann hier."]
-            or (mine and view.tab == "posts" and L["Noch keine Posts. Klick auf 'Neuer Schnappschuss' oder auf die Kamera in der Oasis-Leiste!"]
-            or L["Hier gibt es noch nichts zu sehen."]))
+        p.empty:SetText(view.tab == "feed" and L["Nothing in your feed yet. Follow people from the guild - their posts will show up here."]
+            or (mine and view.tab == "posts" and L["No posts yet. Click 'New snapshot' or the camera in the Oasis bar!"]
+            or L["Nothing to see here yet."]))
         -- Detail
         local dp = view.detail and Store.Get("posts", view.detail)
         local d = p.detail
@@ -4087,7 +4087,7 @@ ns.RegisterPage({
             d.likes:SetText((L["%d Likes"]):format(#likes))
             local names = {}
             for _, l in ipairs(likes) do names[#names + 1] = ns.displayName(l.by) end
-            d.likesBtn.tip = #names > 0 and { L["Gefaellt:"], table.concat(names, ", ") } or nil
+            d.likesBtn.tip = #names > 0 and { L["Liked by:"], table.concat(names, ", ") } or nil
             d.del:SetShown(ns.isMe(dp.by))
             local cm = IG.Comments(dp)
             d.ch:SetCount(#cm > 0 and #cm or nil)
@@ -4187,7 +4187,7 @@ local function updateGear()
         local avg = n > 0 and sum / n or 0
         local lvl = ns.safe(UnitLevel("player")) or 1
         local c = avg >= lvl * 0.9 and C.mint or (avg >= lvl * 0.7 and C.amber or C.red)
-        gearBar.t:SetText(("|cff888888Oasis|r   " .. L["Gegenstandsstufe"] .. ": " .. K.hex(c) .. "%.1f|r   |cff888888" .. L["schwaechstes Teil: %s"] .. "|r"):format(avg, weakLvl and tostring(weakLvl) or "-"))
+        gearBar.t:SetText(("|cff888888Oasis|r   " .. L["Item level"] .. ": " .. K.hex(c) .. "%.1f|r   |cff888888" .. L["weakest piece: %s"] .. "|r"):format(avg, weakLvl and tostring(weakLvl) or "-"))
         gearBar:SetWidth(math.max(320, (gearBar.t:GetStringWidth() or 200) + 140))
     end
 end
@@ -4201,12 +4201,12 @@ local function setupCharFrame()
     K.Border(gearBar, C.line)
     gearBar.t = K.Text(gearBar, 11, C.text)
     gearBar.t:SetPoint("LEFT", 10, 0)
-    gearBar.btn = K.Button(gearBar, L["Upgrades finden"], 110, 18, "primary", function()
+    gearBar.btn = K.Button(gearBar, L["Find upgrades"], 110, 18, "primary", function()
         if ns.Upgrades then ns.Upgrades.Toggle(gearBar) end
     end)
     gearBar.btn:SetPoint("RIGHT", -4, 0)
     gearBar.btn:SetScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Upgrades finden"], L["Zeigt Beute aus Dungeons deines Levelbereichs, die besser ist als dein angelegtes Teil."] })
+        K.ShowTip(self, { L["Find upgrades"], L["Shows dungeon loot in your level range that beats your equipped item."] })
     end)
     gearBar.btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     gearBar:SetScript("OnSizeChanged", nil)
@@ -4354,9 +4354,9 @@ do
     end
 
     local SLOTS = {
-        { "Head", "Kopf" }, { "Neck", "Hals" }, { "Shoulder", "Schultern" }, { "Back", "Ruecken" }, { "Chest", "Brust" },
-        { "Wrist", "Handgelenke" }, { "Hands", "Haende" }, { "Waist", "Taille" }, { "Legs", "Beine" }, { "Feet", "Fuesse" },
-        { "Finger", "Ringe" }, { "Trinket", "Schmuck" }, { "MainHand", "Waffenhand" }, { "SecondaryHand", "Nebenhand" }, { "Ranged", "Distanz" },
+        { "Head", "Head" }, { "Neck", "Neck" }, { "Shoulder", "Shoulders" }, { "Back", "Back" }, { "Chest", "Chest" },
+        { "Wrist", "Wrists" }, { "Hands", "Hands" }, { "Waist", "Waist" }, { "Legs", "Legs" }, { "Feet", "Feet" },
+        { "Finger", "Rings" }, { "Trinket", "Trinkets" }, { "MainHand", "Main hand" }, { "SecondaryHand", "Off hand" }, { "Ranged", "Ranged" },
     }
     local f
     local function build()
@@ -4367,9 +4367,9 @@ do
         f:EnableMouse(true)
         K.Fill(f, { 0.04, 0.04, 0.05, 0.97 })
         K.Border(f, C.line)
-        local hd = K.GameHead(f, L["Beste Upgrades je Platz"], C.amber)
+        local hd = K.GameHead(f, L["Best upgrades per slot"], C.amber)
         hd:SetPoint("TOPLEFT", 12, -10) hd:SetPoint("RIGHT", -36, 0)
-        local close = K.CloseButton(f, function() f:Hide() end, L["Schliessen (Esc)"])
+        local close = K.CloseButton(f, function() f:Hide() end, L["Close (Esc)"])
         close:SetPoint("TOPRIGHT", -6, -6)
         -- 0.6.193: Plaetze mit Upgrade als zweizeilige Karte (Symbol mit Qualitaetsrahmen, Name, darunter Fundort
         -- Dungeon · Boss in Gold, rechts Gewinn als Plakette); leere Plaetze als schmale gedimmte Zeile. Hoehe passt sich an.
@@ -4416,7 +4416,7 @@ do
             r.src:SetWordWrap(false)
             r.empty = K.Text(r, 10, { 0.4, 0.4, 0.42 })
             r.empty:SetPoint("LEFT", 80, 0)
-            r.empty:SetText(L["kein besseres Teil"])
+            r.empty:SetText(L["no better item"])
             r.key = sl[1]
             r:SetScript("OnEnter", function(self)
                 if not self.item then return end
@@ -4424,9 +4424,9 @@ do
                 pcall(GameTooltip.SetHyperlink, GameTooltip, self.item.link)
                 GameTooltip:AddLine(" ")
                 GameTooltip:AddLine(self.item.src, 0.9, 0.72, 0.38)
-                if self.item.lo then GameTooltip:AddLine((L["Dungeon fuer Level %d-%d"]):format(self.item.lo, self.item.hi or self.item.lo), 0.6, 0.6, 0.6) end
-                GameTooltip:AddLine((L["+%d Punkte fuer deine Spezialisierung"]):format(self.item.gain), 0.4, 0.86, 0.62)
-                GameTooltip:AddLine(L["Shift-Klick: verlinken"], 0.5, 0.5, 0.5)
+                if self.item.lo then GameTooltip:AddLine((L["Dungeon for level %d-%d"]):format(self.item.lo, self.item.hi or self.item.lo), 0.6, 0.6, 0.6) end
+                GameTooltip:AddLine((L["+%d points for your spec"]):format(self.item.gain), 0.4, 0.86, 0.62)
+                GameTooltip:AddLine(L["Shift-click: link"], 0.5, 0.5, 0.5)
                 GameTooltip:Show()
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -4486,7 +4486,7 @@ do
             self.shown = self.shown + (self.goal - self.shown) * math.min(1, el * 8)
             self.fill:SetWidth(math.max(1, 220 * self.shown))
             self.dots = ((self.dots or 0) + el * 3) % 4
-            self.t:SetText(L["Durchsuche Dungeon-Beute"] .. string.rep(".", math.floor(self.dots)))
+            self.t:SetText(L["Searching dungeon loot"] .. string.rep(".", math.floor(self.dots)))
         end)
         ld:Hide()
         f.load = ld
@@ -4503,7 +4503,7 @@ do
         local loading = (pending > 0 and waited < 8) or waited < 0.6
         if f.load then
             f.load.goal = stats.total > 0 and ((stats.total - pending) / stats.total) or 1
-            f.load.sub:SetText((L["%d von %d Gegenstaenden geladen"]):format(stats.total - pending, stats.total))
+            f.load.sub:SetText((L["%d of %d items loaded"]):format(stats.total - pending, stats.total))
             f.load:SetShown(loading)
         end
         local best = {}
@@ -4545,14 +4545,14 @@ do
             if hs and hs.Role then local ok, _, rn = pcall(hs.Role, hs) if ok and rn then roleName = rn end end
         end
         local lv = UnitLevel("player") or 1
-        f.footRole:SetText(K.Upper(L["Bewertet fuer"]) .. "  |cffffffff" .. (roleName or L["deine Klasse"]) .. "|r")
-        f.footCount:SetText(loading and ("|cff888888" .. L["Lade Gegenstaende ..."] .. "|r") or (L["%d Upgrades"]):format(n))
+        f.footRole:SetText(K.Upper(L["Rated for"]) .. "  |cffffffff" .. (roleName or L["your class"]) .. "|r")
+        f.footCount:SetText(loading and ("|cff888888" .. L["Loading items ..."] .. "|r") or (L["%d upgrades"]):format(n))
         if loading then
-            f.foot:SetText((L["Aus Dungeons fuer Level %d-%d  ·  nur was du tragen kannst"]):format(math.max(1, lv - 4), lv + 4))
+            f.foot:SetText((L["From dungeons for level %d-%d  ·  only what you can wear"]):format(math.max(1, lv - 4), lv + 4))
         elseif n == 0 and stats.nextLvl then
-            f.foot:SetText("|cffe8b44a" .. (L["Nichts Besseres fuer deine Stufe - die naechsten Teile gibt es ab Stufe %d."]):format(stats.nextLvl) .. "|r")
+            f.foot:SetText("|cffe8b44a" .. (L["Nothing better for your level - the next pieces are available from level %d."]):format(stats.nextLvl) .. "|r")
         else
-            f.foot:SetText((L["%d Gegenstaende aus %d Dungeons geprueft (Level %d-%d)  ·  nur was du tragen kannst"]):format(stats.total, stats.dungeons, math.max(1, lv - 4), lv + 4))
+            f.foot:SetText((L["%d items from %d dungeons checked (level %d-%d)  ·  only what you can wear"]):format(stats.total, stats.dungeons, math.max(1, lv - 4), lv + 4))
         end
         if loading then ns.After(pending > 0 and 0.5 or 0.2, U.Refresh) end
     end
@@ -4576,8 +4576,8 @@ do
     local PR = {}
     ns.ProfRep = PR
     -- Classic-Ausbildungsstufen: Maximalstufe, Name, benoetigtes Level
-    local TIERS = { { 75, "Lehrling", 1 }, { 150, "Geselle", 10 }, { 225, "Experte", 20 }, { 300, "Fachmann", 35 } }
-    local STAND = { "Hasserfuellt", "Feindselig", "Unfreundlich", "Neutral", "Freundlich", "Wohlwollend", "Respektvoll", "Ehrfuerchtig" }
+    local TIERS = { { 75, "Apprentice", 1 }, { 150, "Journeyman", 10 }, { 225, "Expert", 20 }, { 300, "Artisan", 35 } }
+    local STAND = { "Hated", "Hostile", "Unfriendly", "Neutral", "Friendly", "Honored", "Revered", "Exalted" }
     local SCOL = { { 0.8, 0.13, 0.13 }, { 0.8, 0.3, 0.13 }, { 0.75, 0.4, 0.15 }, { 0.9, 0.8, 0.2 },
         { 0, 0.6, 0.1 }, { 0, 0.7, 0.3 }, { 0, 0.7, 0.6 }, { 0, 0.8, 0.8 } }
 
@@ -4655,7 +4655,7 @@ do
     function PR.Build(h)
         local left = K.Panel(h, C.panel)
         left:SetPoint("TOPLEFT") left:SetPoint("BOTTOMLEFT") left:SetPoint("RIGHT", h, "CENTER", -6, 0)
-        local hd = K.GameHead(left, L["Berufe"], C.amber)
+        local hd = K.GameHead(left, L["Professions"], C.amber)
         hd:SetPoint("TOPLEFT", 12, -12) hd:SetPoint("RIGHT", -12, 0)
         h.profRows = {}
         for i = 1, 6 do
@@ -4690,11 +4690,11 @@ do
         end
         h.profEmpty = K.Text(left, 11, C.dim)
         h.profEmpty:SetPoint("TOPLEFT", 14, -44)
-        h.profEmpty:SetText(L["Noch keine Berufe gelernt."])
+        h.profEmpty:SetText(L["No professions learned yet."])
 
         local right = K.Panel(h, C.panel)
         right:SetPoint("TOPLEFT", left, "TOPRIGHT", 10, 0) right:SetPoint("BOTTOMRIGHT")
-        local hr = K.GameHead(right, L["Ruf"], C.accent)
+        local hr = K.GameHead(right, L["Reputation"], C.accent)
         hr:SetPoint("TOPLEFT", 12, -12) hr:SetPoint("RIGHT", -12, 0)
         h.repList = K.List(right, 42, function(l)
             local r = CreateFrame("Frame", nil, l)
@@ -4719,7 +4719,7 @@ do
         end)
         h.repList:SetPoint("TOPLEFT", 18, -42)
         h.repList:SetPoint("BOTTOMRIGHT", -8, 10)
-        h.repList.empty:SetText(L["Noch keine Fraktionen entdeckt."])
+        h.repList.empty:SetText(L["No factions discovered yet."])
     end
 
     function PR.Show(h)
@@ -4743,16 +4743,16 @@ do
                     local nextT
                     for _, t in ipairs(TIERS) do if t[1] > max then nextT = t break end end
                     if nextT then
-                        hint = lvl >= nextT[3] and ("|cffe8b44a" .. (L["Bald am Limit - beim Lehrer %s lernen"]):format(L[nextT[2]]) .. "|r")
-                            or (L["Limit erreicht - %s ab Level %d"]):format(L[nextT[2]], nextT[3])
+                        hint = lvl >= nextT[3] and ("|cffe8b44a" .. (L["Near the cap - learn %s at a trainer"]):format(L[nextT[2]]) .. "|r")
+                            or (L["Cap reached - %s from level %d"]):format(L[nextT[2]], nextT[3])
                     end
                 end
                 local cnt, best, bestN = guildFor(x.name)
-                local g = cnt > 0 and (L["Gilde: %d weitere, bester %s (%d)"]):format(cnt, ns.displayName(bestN), best) or L["Niemand sonst in der Gilde"]
+                local g = cnt > 0 and (L["Guild: %d others, best %s (%d)"]):format(cnt, ns.displayName(bestN), best) or L["Nobody else in the guild"]
                 r.hint:SetText(hint and (hint .. "  |cff666666-|r  " .. g) or g)
-                local tip = { x.name, (L["Stufe %d von %d"]):format(rank, max),
-                    cnt > 0 and (L["%d Gildenmitglieder haben diesen Beruf"]):format(cnt) or L["Niemand sonst in der Gilde"] }
-                if cnt > 0 and rank > best then tip[#tip + 1] = "|cff66db9e" .. L["Du bist der beste in der Gilde!"] .. "|r" end
+                local tip = { x.name, (L["Skill %d of %d"]):format(rank, max),
+                    cnt > 0 and (L["%d guild members have this profession"]):format(cnt) or L["Nobody else in the guild"] }
+                if cnt > 0 and rank > best then tip[#tip + 1] = "|cff66db9e" .. L["You are the best in the guild!"] .. "|r" end
                 r.tip = tip
             end
         end
@@ -4769,7 +4769,7 @@ do
     local L, K, C = ns.L, ns.K, ns.K.C
     local CH = {}
     ns.Chron = CH
-    local DAYS = { "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So" }
+    local DAYS = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" }
 
     local function dayKey(ts) return date("%Y-%m-%d", ts) end
     -- Spielzeit mitzaehlen: jede Minute +60 s auf den heutigen Tag
@@ -4798,14 +4798,14 @@ do
         for _, x in ipairs(list) do
             local r = tonumber(x.rank) or 0
             for _, step in ipairs({ 75, 150, 225, 300 }) do
-                if r >= step then CH.Add("prof:" .. x.name .. ":" .. step, { "%s: Stufe %d erreicht", x.name, step }, "Interface\\Icons\\Trade_BlackSmithing") end
+                if r >= step then CH.Add("prof:" .. x.name .. ":" .. step, { "%s: reached skill %d", x.name, step }, "Interface\\Icons\\Trade_BlackSmithing") end
             end
         end
     end
     ns.On("PLAYER_ENTERING_WORLD", function()
         if CH.ticker then return end
         CH.ticker = C_Timer.NewTicker(60, tick)
-        CH.Add("oasis", { "Mit Oasis unterwegs" }, "Interface\\Icons\\INV_Misc_Gem_Pearl_04")
+        CH.Add("oasis", { "Started using Oasis" }, "Interface\\Icons\\INV_Misc_Gem_Pearl_04")
         C_Timer.After(10, function() pcall(checkProfs) end)
     end)
     ns.On("SKILL_LINES_CHANGED", function() pcall(checkProfs) end)
@@ -4838,7 +4838,7 @@ do
             end
             if before < 10000 * CH.STRIDE and c.walk[k] >= 10000 * CH.STRIDE and ns.Badges then
                 ns.Badges.Add("stepGoal", 1)
-                K.Toast(L["Tagesziel erreicht!"], L["10.000 Schritte heute"], C.mint)
+                K.Toast(L["Daily goal reached!"], L["10,000 steps today"], C.mint)
             end
             local h = CH.liveH
             if h and h.mini and h.mini[1] and h:IsVisible() then pcall(CH.UpdateWalk, h) end
@@ -4863,9 +4863,9 @@ do
             for i = 0, wd do if (play[dayKey(now - i * 86400)] or 0) > 0 then days = days + 1 end end
             local R = h.ringCol
             local function hx(c2, s) return ("|cff%02x%02x%02x%s|r"):format(c2[1] * 255, c2[2] * 255, c2[3] * 255, s) end
-            h.ringTxt[1]:SetText(hx(R[1], steps(today) .. "/10.000") .. " |cff888888" .. K.Upper(L["Schritte heute"]) .. "  " .. ("%.1f"):format(today / 1000) .. " km|r")
-            h.ringTxt[2]:SetText(hx(R[2], steps(wk) .. "/70.000") .. " |cff888888" .. K.Upper(L["Schritte Woche"]) .. "  " .. ("%.1f"):format(wk / 1000) .. " km|r")
-            h.ringTxt[3]:SetText(hx(R[3], days .. "/7") .. " |cff888888" .. K.Upper(L["Aktive Tage"]) .. "|r")
+            h.ringTxt[1]:SetText(hx(R[1], steps(today) .. "/10.000") .. " |cff888888" .. K.Upper(L["Steps today"]) .. "  " .. ("%.1f"):format(today / 1000) .. " km|r")
+            h.ringTxt[2]:SetText(hx(R[2], steps(wk) .. "/70.000") .. " |cff888888" .. K.Upper(L["Steps this week"]) .. "  " .. ("%.1f"):format(wk / 1000) .. " km|r")
+            h.ringTxt[3]:SetText(hx(R[3], days .. "/7") .. " |cff888888" .. K.Upper(L["Active days"]) .. "|r")
             local first = not h.ringsShown
             h.ringsShown = true
             h.rings:Set({ sT / 10000, sW / 70000, days / 7 }, first)
@@ -4878,19 +4878,19 @@ do
         return ("%d:%02d h"):format(math.floor(m / 60), m % 60)
     end
 
-    local MONTHS = { "Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember" }
+    local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" }
     -- eigene Symbole je Art (nur Oasis-Texturen bzw. bewaehrte)
     local KIND = {
         level = { ns.MEDIA .. "icons\\badges\\quester", C.amber, "Level" },
         level10 = { ns.MEDIA .. "icons\\badges\\first10", C.amber, "Level" },
-        prof = { ns.MEDIA .. "icons\\crafting", C.blue, "Beruf" },
+        prof = { ns.MEDIA .. "icons\\crafting", C.blue, "Profession" },
         oasis = { ns.MEDIA .. "logo64", C.accent, "Oasis" },
-        badge = { ns.MEDIA .. "icons\\badges", C.violet or C.blue, "Abzeichen" },
+        badge = { ns.MEDIA .. "icons\\badges", C.violet or C.blue, "Badge" },
         boss = { ns.MEDIA .. "icons\\dungeons", C.red, "Boss" },
-        loot = { ns.MEDIA .. "icons\\raid", C.mint, "Beute" },
+        loot = { ns.MEDIA .. "icons\\raid", C.mint, "Loot" },
         legacy = { ns.MEDIA .. "icons\\legacy", C.amber, "Legacy" },
         dr = { ns.MEDIA .. "icons\\deathroll", C.pink, "Deathroll" },
-        other = { ns.MEDIA .. "icons\\chronicle", C.muted, "Ereignis" },
+        other = { ns.MEDIA .. "icons\\chronicle", C.muted, "Event" },
     }
     local function tile(parent, label, color)
         local t = CreateFrame("Frame", nil, parent)
@@ -4912,7 +4912,7 @@ do
     function CH.Build(h)
         local left = K.Panel(h, C.panel)
         left:SetPoint("TOPLEFT") left:SetPoint("BOTTOMLEFT") left:SetWidth(370)
-        local hd = K.GameHead(left, L["Deine Woche"], C.accent)
+        local hd = K.GameHead(left, L["Your week"], C.accent)
         hd:SetPoint("TOPLEFT", 12, -12) hd:SetPoint("RIGHT", -12, 0)
         h.range = K.Text(left, 10, C.dim, "RIGHT")
         h.range:SetPoint("TOPRIGHT", -12, -15)
@@ -4923,7 +4923,7 @@ do
         h.sumL = K.Text(left, 10, C.dim)
         h.sumL:SetPoint("TOPLEFT", 12, -68)
         -- Kennzahlen
-        h.tiles = { tile(left, "Schnitt pro Tag", C.blue), tile(left, "Bester Tag", C.amber), tile(left, "Serie", C.mint) }
+        h.tiles = { tile(left, "Avg per day", C.blue), tile(left, "Best day", C.amber), tile(left, "Streak", C.mint) }
         for i, t in ipairs(h.tiles) do
             t:SetPoint("TOPLEFT", 12 + (i - 1) * 117, -88)
             t:SetWidth(111)
@@ -4970,7 +4970,7 @@ do
         -- letzte 4 Wochen
         local h4 = K.Text(left, 10, C.dim)
         h4:SetPoint("TOPLEFT", 12, chartTop - chartH - 30)
-        h4:SetText(K.Upper(L["Letzte 4 Wochen"]))
+        h4:SetText(K.Upper(L["Last 4 weeks"]))
         h.weeks = {}
         for i = 1, 4 do
             local w = CreateFrame("Frame", nil, left)
@@ -4991,7 +4991,7 @@ do
         -- feste Reihenfolge von oben (nicht vom unteren Rand aus, sonst ueberlappt es bei kleinem Fenster)
         local wy = chartTop - chartH - 80
         h.walkHead:SetPoint("TOPLEFT", 12, wy)
-        h.walkHead:SetText(K.Upper(L["Zu Fuss unterwegs"]))
+        h.walkHead:SetText(K.Upper(L["On foot"]))
         h.walk = K.Title(left, 13, C.text)
         h.walk:SetPoint("TOPLEFT", 12, wy - 15)
         h.walk:SetPoint("RIGHT", -12, 0)
@@ -5027,13 +5027,13 @@ do
             return m
         end
         h.mini = {}
-        h.mini[3] = mini(left, 12, wy + 4, 170, C.amber, "Aktive Tage")
-        h.mini[4] = mini(left, 188, wy + 4, 170, C.accent, "Level-Ups diese Woche")
+        h.mini[3] = mini(left, 12, wy + 4, 170, C.amber, "Active days")
+        h.mini[4] = mini(left, 188, wy + 4, 170, C.accent, "Level-ups this week")
 
         -- rechts: Zeitleiste mit Monaten
         local right = K.Panel(h, C.panel)
         right:SetPoint("TOPLEFT", left, "TOPRIGHT", 10, 0) right:SetPoint("BOTTOMRIGHT")
-        local hw = K.GameHead(right, L["Zu Fuss unterwegs"], C.mint)
+        local hw = K.GameHead(right, L["On foot"], C.mint)
         hw:SetPoint("TOPLEFT", 12, -12) hw:SetPoint("RIGHT", -12, 0)
         -- Smartwatch-Ringe: aussen Schritte heute (10.000), Mitte Schritte Woche (70.000), innen aktive Tage (7)
         h.walkBox = CreateFrame("Frame", nil, right)
@@ -5050,12 +5050,12 @@ do
             h.ringTxt[i] = fs
         end
         -- alte Kacheln bleiben als unsichtbare Platzhalter (Werte-Code schreibt weiter hinein)
-        h.mini[1] = mini(h.walkBox, 0, 0, 10, C.mint, "Schritte heute") h.mini[1]:Hide()
-        h.mini[2] = mini(h.walkBox, 0, 0, 10, C.blue, "Schritte Woche") h.mini[2]:Hide()
+        h.mini[1] = mini(h.walkBox, 0, 0, 10, C.mint, "Steps today") h.mini[1]:Hide()
+        h.mini[2] = mini(h.walkBox, 0, 0, 10, C.blue, "Steps this week") h.mini[2]:Hide()
         -- Meilensteine: kleiner, ruhiger
         local hr = K.Text(right, 10, C.dim)
         hr:SetPoint("TOPLEFT", 12, -126)
-        hr:SetText(K.Upper(L["Meilensteine"]))
+        hr:SetText(K.Upper(L["Milestones"]))
         h.count = K.Text(right, 10, C.dim, "RIGHT")
         h.count:SetPoint("TOPRIGHT", -12, -126)
         local sepM = right:CreateTexture(nil, "ARTWORK")
@@ -5108,7 +5108,7 @@ do
         end)
         h.list:SetPoint("TOPLEFT", 12, -138)
         h.list:SetPoint("BOTTOMRIGHT", -8, 10)
-        h.list.empty:SetText(L["Noch keine Meilensteine. Level auf, lern Berufe - hier entsteht deine Geschichte."])
+        h.list.empty:SetText(L["No milestones yet. Level up, learn professions - your story starts here."])
     end
 
     function CH.Show(h)
@@ -5138,18 +5138,18 @@ do
         h.sum:SetText(fmtH(total))
         local diff = total - last
         if last > 0 then
-            h.delta:SetText((diff >= 0 and "|cff66db9e+" or "|cffe64040-") .. fmtH(math.abs(diff)) .. "|r  |cff777777" .. L["zur Vorwoche"] .. "|r")
+            h.delta:SetText((diff >= 0 and "|cff66db9e+" or "|cffe64040-") .. fmtH(math.abs(diff)) .. "|r  |cff777777" .. L["vs last week"] .. "|r")
         else
             h.delta:SetText("")
         end
-        h.sumL:SetText(L["gespielt diese Woche (mit Oasis gemessen)"])
+        h.sumL:SetText(L["played this week (tracked by Oasis)"])
         -- Serie: Tage am Stueck bis heute (oder gestern)
         local streak, d = 0, 0
         if (play[dayKey(now)] or 0) == 0 then d = 1 end
         while (play[dayKey(now - d * 86400)] or 0) > 0 and streak < 60 do streak = streak + 1 d = d + 1 end
         h.tiles[1].v:SetText(days > 0 and fmtH(total / days) or "-")
         h.tiles[2].v:SetText(bestD and (L[DAYS[bestD]] .. " |cff888888" .. fmtH(best) .. "|r") or "-")
-        h.tiles[3].v:SetText(streak > 0 and ((L["%d Tage"]):format(streak)) or "-")
+        h.tiles[3].v:SetText(streak > 0 and ((L["%d days"]):format(streak)) or "-")
         -- Balken + Schnittlinie
         local avg = days > 0 and total / days or 0
         for i, b in ipairs(h.bars) do
@@ -5164,7 +5164,7 @@ do
             b.day:SetTextColor(dc[1], dc[2], dc[3])
             b.today:SetShown(i - 1 == wd)
             b.val:SetText(x.v > 0 and fmtH(x.v) or "")
-            b.tip = { (ns.weekday and ns.weekday(x.ts) or "") .. date("  %d.%m.%Y", x.ts), x.future and L["noch nicht"] or fmtH(x.v) }
+            b.tip = { (ns.weekday and ns.weekday(x.ts) or "") .. date("  %d.%m.%Y", x.ts), x.future and L["not yet"] or fmtH(x.v) }
         end
         if avg > 0 then
             local y = (h.chartH - 2) * avg / maxV
@@ -5173,7 +5173,7 @@ do
             h.avg:SetPoint("BOTTOMRIGHT", h.bars[7], "BOTTOMRIGHT", 6, y)
             h.avgL:ClearAllPoints()
             h.avgL:SetPoint("LEFT", h.avg, "RIGHT", 6, 0)
-            h.avgL:SetText(L["Schnitt"] .. "\n" .. fmtH(avg))
+            h.avgL:SetText(L["Avg"] .. "\n" .. fmtH(avg))
             h.avg:Show() h.avgL:Show()
         else
             h.avg:Hide() h.avgL:Hide()
@@ -5183,7 +5183,7 @@ do
         for i = 1, 4 do wk[i] = weekTotal(i - 1) if wk[i] > wmax then wmax = wk[i] end end
         for i, w in ipairs(h.weeks) do
             w.v:SetText(wk[i] > 0 and fmtH(wk[i]) or "-")
-            w.l:SetText(i == 1 and L["diese"] or (L["vor %d"]):format(i - 1))
+            w.l:SetText(i == 1 and L["this"] or (L["%d ago"]):format(i - 1))
             local col = i == 1 and C.accent or C.muted
             w.fill:SetColorTexture(col[1], col[2], col[3], 0.9)
             w.fill:SetWidth(math.max(1, 80 * wk[i] / wmax))
@@ -5192,7 +5192,7 @@ do
         local weekStart = now - wd * 86400 - (tonumber(date("%H", now)) * 3600 + tonumber(date("%M", now)) * 60)
         local lv = 0
         for _, ts in pairs(c.milestones or {}) do if tonumber(ts) and tonumber(ts) >= weekStart then lv = lv + 1 end end
-        h.stats:SetText((L["Aktive Tage: %d von 7"]):format(days) .. "    ·    " .. (L["Level-Ups diese Woche: %d"]):format(lv))
+        h.stats:SetText((L["Active days: %d of 7"]):format(days) .. "    ·    " .. (L["Level-ups this week: %d"]):format(lv))
         if h.mini and h.mini[3] then
             h.mini[3].v:SetText(days .. " |cff888888/ 7|r")
             h.mini[4].v:SetText(tostring(lv))
@@ -5205,15 +5205,15 @@ do
         local function steps(m) local n = math.floor(m / CH.STRIDE) return BreakUpLargeNumbers and BreakUpLargeNumbers(n) or tostring(n) end
         CH.liveH = h
         if h.mini and h.mini[1] then CH.UpdateWalk(h) end
-        h.walk:SetText((L["Heute %s Schritte"]):format(steps(today)) .. "  |cff888888(" .. ("%.1f"):format(today / 1000) .. " km)|r     "
-            .. (L["Woche %s Schritte"]):format(steps(wk)) .. "  |cff888888(" .. ("%.1f"):format(wk / 1000) .. " km)|r")
+        h.walk:SetText((L["Today %s steps"]):format(steps(today)) .. "  |cff888888(" .. ("%.1f"):format(today / 1000) .. " km)|r     "
+            .. (L["Week %s steps"]):format(steps(wk)) .. "  |cff888888(" .. ("%.1f"):format(wk / 1000) .. " km)|r")
 
         -- Zeitleiste: Level, Berufe, Oasis + eigene Chronik-Eintraege (Abzeichen, Bosse, Beute, Legacy, Deathroll)
         local items = {}
         for lvl, ts in pairs(c.milestones or {}) do
             local n = tonumber(lvl)
             if n and tonumber(ts) then
-                items[#items + 1] = { ts = tonumber(ts), text = (L["Level %d erreicht"]):format(n), kind = (n % 10 == 0) and "level10" or "level" }
+                items[#items + 1] = { ts = tonumber(ts), text = (L["Reached level %d"]):format(n), kind = (n % 10 == 0) and "level10" or "level" }
             end
         end
         for key, m in pairs(c.chron or {}) do
@@ -5245,7 +5245,7 @@ do
             end
             out[#out + 1] = x
         end
-        h.count:SetText(#items > 0 and (L["%d Eintraege"]):format(#items) or "")
+        h.count:SetText(#items > 0 and (L["%d entries"]):format(#items) or "")
         h.list:SetData(out)
     end
 end
@@ -5375,9 +5375,9 @@ do
         K.Fill(f, C.bg)
         K.Border(f, C.line)
         ns.EscClose("OasisCardEdit")
-        local hd = K.GameHead(f, L["Visitenkarte"], C.accent)
+        local hd = K.GameHead(f, L["Business card"], C.accent)
         hd:SetPoint("TOPLEFT", 14, -14) hd:SetPoint("RIGHT", -40, 0)
-        local close = K.CloseButton(f, function() f:Hide() end, L["Schliessen (Esc)"])
+        local close = K.CloseButton(f, function() f:Hide() end, L["Close (Esc)"])
         close:SetPoint("TOPRIGHT", -8, -8)
         local function field(label, y, maxL, ph)
             local l = K.Text(f, 11, C.muted)
@@ -5388,16 +5388,16 @@ do
             e:SetMaxLetters(maxL)
             return e
         end
-        f.t = field(L["Titel"], -44, 24, L["z.B. Der Unaufhaltsame"])
-        f.s = field(L["Status"], -94, 60, L["z.B. Suche Gruppe fuer Uldaman"])
-        f.e = field(L["Lieblings-Emojis"], -144, 40, L["z.B. :) <3 xD"])
+        f.t = field(L["Title"], -44, 24, L["e.g. The Unstoppable"])
+        f.s = field(L["Status"], -94, 60, L["e.g. Looking for Uldaman group"])
+        f.e = field(L["Favourite emojis"], -144, 40, L["e.g. :) <3 xD"])
         if ns.Emoji and ns.Emoji.AttachHotkey then ns.Emoji.AttachHotkey(f.e, function() return f.e end) end
         local bl = K.Text(f, 11, C.muted)
         bl:SetPoint("TOPLEFT", 16, -196)
-        bl:SetText(L["Vitrine: bis zu 3 Abzeichen neben deinem Namen (anklicken)"])
+        bl:SetText(L["Showcase: up to 3 badges next to your name (click)"])
         f.badges = {}
         f.sel = {}
-        local save = K.Button(f, L["Speichern"], 110, 26, "primary", function()
+        local save = K.Button(f, L["Save"], 110, 26, "primary", function()
             local m = mine()
             m.t, m.s, m.e = f.t:GetText(), f.s:GetText(), f.e:GetText()
             local sb = {}
@@ -5522,8 +5522,8 @@ do
     ns.Listen("LOGIN", function() ns.After(2, xpTick) end)
     local function fmtTime(sec)
         local m = math.floor(sec / 60)
-        if m < 60 then return m .. " " .. L["Min"] end
-        return ("%d:%02d %s"):format(math.floor(m / 60), m % 60, L["Std"])
+        if m < 60 then return m .. " " .. L["min"] end
+        return ("%d:%02d %s"):format(math.floor(m / 60), m % 60, L["h"])
     end
 
     -- Verbrauchsgueter je Rolle (Classic-Item-IDs); angezeigt wird das beste, das man schon benutzen kann
@@ -5578,19 +5578,19 @@ do
         local f = CreateFrame("Frame", nil, cs)
         soon.ins = f
         -- 1) Treffer-Ziel
-        f.h1 = section(f, L["Treffer-Ziel"], C.red, 0)
+        f.h1 = section(f, L["Hit target"], C.red, 0)
         f.hitBar = bar(f, -24)
         f.hitTxt = K.Text(f, 11, C.muted)
         f.hitTxt:SetPoint("TOPLEFT", 0, -34)
         -- 2) Level-Tempo
-        f.h2 = section(f, L["Level-Tempo"], C.mint, -58)
+        f.h2 = section(f, L["Levelling pace"], C.mint, -58)
         f.tempo = K.Text(f, 11, C.text)
         f.tempo:SetPoint("TOPLEFT", 0, -80)
         f.tempo:SetPoint("RIGHT", f, "RIGHT", 0, 0)
         f.tempo:SetJustifyH("LEFT")
         f.tempo:SetSpacing(3)
         -- 3) Upgrade-Tipp
-        f.h3 = section(f, L["Upgrade-Tipp"], C.amber, -124)
+        f.h3 = section(f, L["Upgrade tip"], C.amber, -124)
         f.up = CreateFrame("Button", nil, f)
         f.up:SetPoint("TOPLEFT", 0, -146)
         f.up:SetPoint("RIGHT", f, "RIGHT", 0, 0)
@@ -5614,7 +5614,7 @@ do
             if self.link and IsModifiedClick("CHATLINK") then ChatEdit_InsertLink(self.link) end
         end)
         -- 4) Verbrauchsgueter
-        f.h4 = section(f, L["Verbrauchsgueter"], C.blue, 0)
+        f.h4 = section(f, L["Consumables"], C.blue, 0)
         f.h2:Hide() f.tempo:Hide()
         f.h1:Hide() f.hitBar:Hide() f.hitTxt:Hide()
         f.cons = {}
@@ -5646,8 +5646,8 @@ do
                 if not self.link then return end
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 pcall(GameTooltip.SetHyperlink, GameTooltip, self.link)
-                if (self.n or 0) > 0 then GameTooltip:AddLine((L["%d in der Gilde koennen es herstellen"]):format(self.n), 0.4, 0.86, 0.62) end
-                GameTooltip:AddLine(L["Klick: in der Handwerks-Boerse suchen"], 0.5, 0.5, 0.5)
+                if (self.n or 0) > 0 then GameTooltip:AddLine((L["%d in the guild can craft it"]):format(self.n), 0.4, 0.86, 0.62) end
+                GameTooltip:AddLine(L["Click: search in the crafting exchange"], 0.5, 0.5, 0.5)
                 GameTooltip:Show()
             end)
             b:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -5709,11 +5709,11 @@ do
         local c = raw >= goal and C.mint or (raw >= goal / 2 and C.amber or C.red)
         if roleKey == "healer" then
             f.hitBar.fill:SetWidth(1) f.hitBar.fill:SetColorTexture(0, 0, 0, 0)
-            f.hitTxt:SetText("|cff777777" .. L["fuer Heiler nicht noetig"] .. "|r")
+            f.hitTxt:SetText("|cff777777" .. L["not needed for healers"] .. "|r")
         else
             f.hitBar.fill:SetColorTexture(c[1], c[2], c[3], 1)
             f.hitBar.fill:SetWidth(math.max(1, (f.hitBar:GetWidth() or 200) * math.min(1, raw / goal)))
-            f.hitTxt:SetText((L["%.1f %% von %d %%"]):format(raw, goal) .. (raw >= goal and ("  |cff66db9e" .. L["Erreicht!"] .. "|r") or ""))
+            f.hitTxt:SetText((L["%.1f %% of %d %%"]):format(raw, goal) .. (raw >= goal and ("  |cff66db9e" .. L["Reached!"] .. "|r") or ""))
         end
 
         -- 2) Level-Tempo
@@ -5723,12 +5723,12 @@ do
         local el = sess.t0 and (GetTime() - sess.t0) or 0
         if el > 120 and sess.xp > 0 then
             local rate = sess.xp / el * 3600
-            lines[#lines + 1] = (L["%s XP/Std"]):format(BreakUpLargeNumbers and BreakUpLargeNumbers(math.floor(rate)) or math.floor(rate))
-            lines[#lines + 1] = (L["naechstes Level in ca. %s"]):format(fmtTime((max - cur) / rate * 3600))
+            lines[#lines + 1] = (L["%s XP/hr"]):format(BreakUpLargeNumbers and BreakUpLargeNumbers(math.floor(rate)) or math.floor(rate))
+            lines[#lines + 1] = (L["next level in about %s"]):format(fmtTime((max - cur) / rate * 3600))
         else
-            lines[#lines + 1] = "|cff777777" .. L["noch zu wenig Daten"] .. "|r"
+            lines[#lines + 1] = "|cff777777" .. L["not enough data yet"] .. "|r"
         end
-        if rest and rest > 0 then lines[#lines + 1] = "|cff6199ff" .. (L["Ruhebonus: %s XP"]):format(BreakUpLargeNumbers and BreakUpLargeNumbers(rest) or rest) .. "|r" end
+        if rest and rest > 0 then lines[#lines + 1] = "|cff6199ff" .. (L["Rested: %s XP"]):format(BreakUpLargeNumbers and BreakUpLargeNumbers(rest) or rest) .. "|r" end
         f.tempo:SetText(table.concat(lines, "\n"))
 
         -- 3) Upgrade-Tipp: jetzt im Charakterfenster ("Upgrades finden")
@@ -5742,7 +5742,7 @@ do
         else
             f.up.link = nil
             f.up.icon:SetTexture(nil)
-            f.up.name:SetText("|cff777777" .. L["Alles angelegt ist gut fuer dein Level."] .. "|r")
+            f.up.name:SetText("|cff777777" .. L["Everything you wear is fine for your level."] .. "|r")
             f.up.sub:SetText("")
         end
 
@@ -5760,7 +5760,7 @@ do
                 -- Link ohne eckige Klammern anzeigen (spart Platz), Klick/Tooltip nutzen weiter den echten Link
                 b.name:SetText((tostring(best.link or ""):gsub("|h%[(.-)%]|h", "|h%1|h")))
                 b.n = craftersOf(best.id)
-                b.who:SetText(b.n > 0 and (b.n .. " " .. L["Gilde"]) or "")
+                b.who:SetText(b.n > 0 and (b.n .. " " .. L["Guild"]) or "")
                 b.name:SetPoint("RIGHT", b, "RIGHT", b.n > 0 and -((b.who:GetStringWidth() or 40) + 18) or -8, 0)
                 b:Show()
             else

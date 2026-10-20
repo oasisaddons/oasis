@@ -16,8 +16,8 @@ local function mainOf(n) return ns.Alts and ns.Alts.Main(n) or n end
 -- Format: "slot=itemID:enchantID,..." nur fuer verzauberbare Plaetze
 ------------------------------------------------------------------------
 O.ENCH_SLOTS = {
-    { 5, "Brust" }, { 9, "Handgelenke" }, { 10, "Haende" }, { 8, "Fuesse" }, { 15, "Ruecken" },
-    { 16, "Waffenhand" }, { 17, "Nebenhand" }, { 1, "Kopf", optional = true }, { 7, "Beine", optional = true },
+    { 5, "Chest" }, { 9, "Wrists" }, { 10, "Hands" }, { 8, "Feet" }, { 15, "Back" },
+    { 16, "Main hand" }, { 17, "Off hand" }, { 1, "Head", optional = true }, { 7, "Legs", optional = true },
 }
 function O.GearString()
     local parts = {}
@@ -141,11 +141,11 @@ function O.Audit()
     return list
 end
 function O.AuditText(r)
-    if r.kind == "promote" then return (L["%s befoerdert %s zu %s"]):format(r.a, r.b, r.r)
-    elseif r.kind == "demote" then return (L["%s degradiert %s zu %s"]):format(r.a, r.b, r.r)
-    elseif r.kind == "kick" then return (L["%s wurde von %s entfernt"]):format(r.a, r.b)
-    elseif r.kind == "join" then return (L["%s ist beigetreten"]):format(r.a)
-    elseif r.kind == "leave" then return (L["%s hat die Gilde verlassen"]):format(r.a)
+    if r.kind == "promote" then return (L["%s promoted %s to %s"]):format(r.a, r.b, r.r)
+    elseif r.kind == "demote" then return (L["%s demoted %s to %s"]):format(r.a, r.b, r.r)
+    elseif r.kind == "kick" then return (L["%s was removed by %s"]):format(r.a, r.b)
+    elseif r.kind == "join" then return (L["%s joined"]):format(r.a)
+    elseif r.kind == "leave" then return (L["%s left the guild"]):format(r.a)
     end
     return r.kind or "?"
 end
@@ -202,7 +202,7 @@ local function warn(name, where)
     if not b or warned[banKey(name) .. where] then return end
     warned[banKey(name) .. where] = true
     if ns.Sound then ns.Sound.Play("toast") end
-    K.Toast((L["Achtung: %s steht auf der Bannliste"]):format(ns.displayName(name)), (b.reason ~= "" and b.reason or L["kein Grund angegeben"]) .. "  ·  " .. where, C.red)
+    K.Toast((L["Warning: %s is on the ban list"]):format(ns.displayName(name)), (b.reason ~= "" and b.reason or L["no reason given"]) .. "  ·  " .. where, C.red)
 end
 ns.On("GROUP_ROSTER_UPDATE", function()
     local raid = IsInRaid()
@@ -210,16 +210,16 @@ ns.On("GROUP_ROSTER_UPDATE", function()
         local u = raid and ("raid" .. i) or ("party" .. i)
         if UnitExists(u) and not UnitIsUnit(u, "player") then
             local n = ns.safe(ns.UnitName(u))
-            if n then warn(n, L["in deiner Gruppe"]) end
+            if n then warn(n, L["in your group"]) end
         end
     end
 end)
-ns.On("PARTY_INVITE_REQUEST", function(name) name = ns.safe(name) if name then warn(name, L["laedt dich ein"]) end end)
-ns.On("TRADE_SHOW", function() local n = ns.safe(ns.UnitName("NPC")) if n then warn(n, L["Handel"]) end end)
+ns.On("PARTY_INVITE_REQUEST", function(name) name = ns.safe(name) if name then warn(name, L["invites you"]) end end)
+ns.On("TRADE_SHOW", function() local n = ns.safe(ns.UnitName("NPC")) if n then warn(n, L["Trade"]) end end)
 local function banLine(tt, unit)
     if not unit or not UnitIsPlayer(unit) then return end
     local b = O.BanOf(ns.safe(ns.UnitName(unit)))
-    if b then tt:AddLine("|cffff5a4a" .. L["Oasis-Bannliste"] .. ":|r " .. (b.reason ~= "" and b.reason or L["kein Grund angegeben"]), 1, 0.35, 0.3, true) end
+    if b then tt:AddLine("|cffff5a4a" .. L["Oasis ban list"] .. ":|r " .. (b.reason ~= "" and b.reason or L["no reason given"]), 1, 0.35, 0.3, true) end
 end
 -- neue Clients: TooltipDataProcessor; alte: OnTooltipSetUnit (nur wenn es das Skript gibt)
 if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
@@ -235,7 +235,7 @@ end
 ------------------------------------------------------------------------
 -- Bewerber und Probezeit
 ------------------------------------------------------------------------
-O.STATUS = { { "app", "Bewerber", C.blue }, { "trial", "Probezeit", C.amber }, { "member", "Aufgenommen", C.mint }, { "no", "Abgelehnt", C.red } }
+O.STATUS = { { "app", "Applicants", C.blue }, { "trial", "Trial", C.amber }, { "member", "Accepted", C.mint }, { "no", "Declined", C.red } }
 function O.Recruits()
     local list = Store.List("recruits")
     local order = { app = 1, trial = 2, member = 3, no = 4 }
@@ -329,9 +329,9 @@ local function trialCheck()
             local key = r.id .. "@" .. day
             if not ns.db.trialReminded[key] and (left <= 0 or left <= 2 * 86400) then
                 ns.db.trialReminded[key] = true
-                local title = left <= 0 and (L["Probezeit vorbei: %s"]):format(r.name or "?") or (L["Probezeit endet bald: %s"]):format(r.name or "?")
-                local sub = left <= 0 and L["Jetzt entscheiden: aufnehmen oder nicht"] or (L["noch %d Tage"]):format(math.ceil(left / 86400))
-                K.Toast(title, sub .. ((r.pate and r.pate ~= "") and ("  ·  " .. L["Pate"] .. ": " .. ns.displayName(r.pate)) or ""), C.amber, function()
+                local title = left <= 0 and (L["Trial over: %s"]):format(r.name or "?") or (L["Trial ends soon: %s"]):format(r.name or "?")
+                local sub = left <= 0 and L["Decide now: accept or not"] or (L["%d days left"]):format(math.ceil(left / 86400))
+                K.Toast(title, sub .. ((r.pate and r.pate ~= "") and ("  ·  " .. L["Mentor"] .. ": " .. ns.displayName(r.pate)) or ""), C.amber, function()
                     ns.db.settings.officerTab = "recruits"
                     if ns.Admin and ns.Admin.OpenOfficer then ns.Admin.OpenOfficer("members", "recruits") else ns.ShowPage("admin") end
                 end)

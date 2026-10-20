@@ -50,17 +50,17 @@ end
 
 -- Blizzard-Schluessel -> Kurzname, Anzeige-Reihenfolge, Anzeigename
 local STATS = {
-    { "DAMAGE_PER_SECOND", "dps", "Waffen-DPS" },
-    { "STRENGTH", "str", "Staerke" }, { "AGILITY", "agi", "Beweglichkeit" }, { "STAMINA", "sta", "Ausdauer" },
-    { "INTELLECT", "int", "Intelligenz" }, { "SPIRIT", "spi", "Willenskraft" },
-    { "RANGED_ATTACK_POWER", "rap", "Distanz-Angriffskraft" }, { "ATTACK_POWER", "ap", "Angriffskraft" },
-    { "SPELL_HEALING", "heal", "Heilung" }, { "HEALING", "heal", "Heilung" },
-    { "SPELL_DAMAGE", "sp", "Zauberschaden" }, { "SPELL_POWER", "sp", "Zauberschaden" },
-    { "SPELL_CRIT", "scrit", "Zauberkrit" }, { "SPELL_HIT", "shit", "Zaubertreffer" },
-    { "CRIT", "crit", "Krit" }, { "HIT", "hit", "Trefferchance" },
-    { "MANA_REGENERATION", "mp5", "Mana alle 5 Sek." }, { "POWER_REGEN0", "mp5", "Mana alle 5 Sek." },
-    { "DEFENSE", "def", "Verteidigung" }, { "DODGE", "dodge", "Ausweichen" }, { "PARRY", "parry", "Parieren" },
-    { "BLOCK", "block", "Blocken" }, { "RESISTANCE0", "armor", "Ruestung" },
+    { "DAMAGE_PER_SECOND", "dps", "Weapon DPS" },
+    { "STRENGTH", "str", "Strength" }, { "AGILITY", "agi", "Agility" }, { "STAMINA", "sta", "Stamina" },
+    { "INTELLECT", "int", "Intellect" }, { "SPIRIT", "spi", "Spirit" },
+    { "RANGED_ATTACK_POWER", "rap", "Ranged attack power" }, { "ATTACK_POWER", "ap", "Attack power" },
+    { "SPELL_HEALING", "heal", "Healing" }, { "HEALING", "heal", "Healing" },
+    { "SPELL_DAMAGE", "sp", "Spell damage" }, { "SPELL_POWER", "sp", "Spell damage" },
+    { "SPELL_CRIT", "scrit", "Spell crit" }, { "SPELL_HIT", "shit", "Spell hit" },
+    { "CRIT", "crit", "Crit" }, { "HIT", "hit", "Hit chance" },
+    { "MANA_REGENERATION", "mp5", "Mana per 5 sec" }, { "POWER_REGEN0", "mp5", "Mana per 5 sec" },
+    { "DEFENSE", "def", "Defense" }, { "DODGE", "dodge", "Dodge" }, { "PARRY", "parry", "Parry" },
+    { "BLOCK", "block", "Block" }, { "RESISTANCE0", "armor", "Armour" },
 }
 local ORDER, NAMES = {}, {}
 for i, s in ipairs(STATS) do
@@ -70,8 +70,8 @@ end
 -- Wertungen ("_RATING", neuere Clients): Name im Klartext ("Kritischer Trefferwert"), fuer die
 -- Auswirkung in Prozent umgerechnet
 local RATED = {}
-local RATING_NAMES = { crit = "Kritischer Trefferwert", hit = "Trefferwertung", scrit = "Zauberkrit-Wertung", shit = "Zaubertreffer-Wertung",
-    dodge = "Ausweichwertung", parry = "Parierwertung", block = "Blockwertung", def = "Verteidigungswertung" }
+local RATING_NAMES = { crit = "Critical strike rating", hit = "Hit rating", scrit = "Spell crit rating", shit = "Spell hit rating",
+    dodge = "Dodge rating", parry = "Parry rating", block = "Block rating", def = "Defense rating" }
 function IC.StatName(k)
     if RATED[k] and RATING_NAMES[k] then return L[RATING_NAMES[k]] end
     return L[NAMES[k] or k]
@@ -143,28 +143,28 @@ local function effects(d, role, cls)
     local rap = (d.rap or 0) + (d.ap or 0) + (cls == "HUNTER" and (d.agi or 0) * 2 or 0)
     if role == "ranged" then
         local dps = (d.dps or 0) + rap / 14
-        if math.abs(dps) > 0.01 then e[#e + 1] = { "Schaden pro Sekunde", dps, true } end
-        if rap ~= 0 then e[#e + 1] = { "Distanz-Angriffskraft", rap } end
+        if math.abs(dps) > 0.01 then e[#e + 1] = { "Damage per second", dps, true } end
+        if rap ~= 0 then e[#e + 1] = { "Ranged attack power", rap } end
     elseif role == "melee" or role == "agile" or role == "tank" then
         local dps = (d.dps or 0) + ap / 14
-        if math.abs(dps) > 0.01 then e[#e + 1] = { "Schaden pro Sekunde", dps, role ~= "tank" } end
-        if ap ~= 0 then e[#e + 1] = { "Angriffskraft", ap } end
+        if math.abs(dps) > 0.01 then e[#e + 1] = { "Damage per second", dps, role ~= "tank" } end
+        if ap ~= 0 then e[#e + 1] = { "Attack power", ap } end
     elseif role == "caster" then
-        if (d.sp or 0) ~= 0 then e[#e + 1] = { "Zauberschaden", d.sp, true } end
+        if (d.sp or 0) ~= 0 then e[#e + 1] = { "Spell damage", d.sp, true } end
     elseif role == "healer" then
         local h = (d.heal or 0) + (d.sp or 0)
-        if h ~= 0 then e[#e + 1] = { "Heilung", h, true } end
+        if h ~= 0 then e[#e + 1] = { "Healing", h, true } end
     end
-    if (d.sta or 0) ~= 0 then e[#e + 1] = { "Leben", d.sta * 10, role == "tank" } end
+    if (d.sta or 0) ~= 0 then e[#e + 1] = { "Health", d.sta * 10, role == "tank" } end
     if (d.int or 0) ~= 0 and cls ~= "WARRIOR" and cls ~= "ROGUE" then e[#e + 1] = { "Mana", d.int * 15 } end
     -- Krit/Treffer als Prozent (Wertung umgerechnet) - damit sichtbar ist, woher ein "Besser" kommt
     local rpp = (ns.Upgrade and ns.Upgrade.RatingPerPct and ns.Upgrade.RatingPerPct()) or 14
     local function pctOf(k) local v = d[k] or 0 if RATED[k] then v = v / rpp end return v end
     local critK, hitK = (role == "caster" or role == "healer") and "scrit" or "crit", (role == "caster") and "shit" or "hit"
-    if role ~= "healer" and math.abs(pctOf(hitK)) > 0.005 then e[#e + 1] = { "Trefferchance", pctOf(hitK), false, " %" } end
-    if math.abs(pctOf(critK)) > 0.005 then e[#e + 1] = { "Kritische Trefferchance", pctOf(critK), false, " %" } end
+    if role ~= "healer" and math.abs(pctOf(hitK)) > 0.005 then e[#e + 1] = { "Hit chance", pctOf(hitK), false, " %" } end
+    if math.abs(pctOf(critK)) > 0.005 then e[#e + 1] = { "Critical strike chance", pctOf(critK), false, " %" } end
     local armor = (d.armor or 0) + (d.agi or 0) * 2
-    if armor ~= 0 then e[#e + 1] = { "Ruestung", armor } end
+    if armor ~= 0 then e[#e + 1] = { "Armour", armor } end
     return e
 end
 
@@ -177,19 +177,19 @@ function IC.Blocked(link)
     lvl = tonumber(lvl) or 1
     -- 0.5.942: lernbar, aber noch nicht gelernt (rote Zeile im Tooltip)
     if UP and UP.CanWearFor and UP.CanWearFor(link, cls, lvl) and UP.Unlearned and UP.Unlearned(link) then
-        return L["Noch nicht gelernt - diese Waffen- oder Ruestungsart kannst du noch nicht anlegen"]
+        return L["Not learned yet - you cannot equip this weapon or armor type yet"]
     end
     if UP and UP.CanWearFor and not UP.CanWearFor(link, cls, lvl) then
         local _, _, classID, subID = instant(link)
         if classID == 4 and (subID == 3 or subID == 4) and lvl < 40 and HEAVY[cls] then
-            return (L[subID == 3 and "Schwere Ruestung erst ab Stufe 40" or "Platte erst ab Stufe 40"])
+            return (L[subID == 3 and "Mail only from level 40" or "Plate only from level 40"])
         end
-        return L["Fuer deine Klasse nicht tragbar"]
+        return L["Your class can't wear this"]
     end
     if C_Item and C_Item.GetItemInfo then
         local ok, _, _, _, _, req = pcall(C_Item.GetItemInfo, link)
         req = ok and tonumber(req)
-        if req and req > lvl then return (L["Benoetigt Stufe %d"]):format(req) end
+        if req and req > lvl then return (L["Requires level %d"]):format(req) end
     end
     return nil
 end
@@ -326,14 +326,14 @@ function IC.Build(link)
     if useless and pct == nil then
         local nPlus, nMinus = 0, 0
         for _, v in pairs(diff) do if v > 0 then nPlus = nPlus + 1 elseif v < 0 then nMinus = nMinus + 1 end end
-        rawDir = (nPlus > 0 and nMinus == 0 and "BESSER") or (nMinus > 0 and nPlus == 0 and "SCHLECHTER") or (nPlus == 0 and nMinus == 0 and "GLEICHWERTIG") or "VOR- & NACHTEILE"
+        rawDir = (nPlus > 0 and nMinus == 0 and "BESSER") or (nMinus > 0 and nPlus == 0 and "SCHLECHTER") or (nPlus == 0 and nMinus == 0 and "GLEICHWERTIG") or "PROS & CONS"
     end
     local tone = blocked and C.muted or (rawDir and ((rawDir == "BESSER" and C.mint) or (rawDir == "SCHLECHTER" and C.red) or C.blue))
         or ((pct == nil or side) and C.blue or (up and C.mint or C.red))
-    local verdict = blocked and "NICHT TRAGBAR" or rawDir or (pct == nil and "VOR- & NACHTEILE")
+    local verdict = blocked and "CAN'T EQUIP" or rawDir or (pct == nil and "PROS & CONS")
         or (pct == 0 and "GLEICHWERTIG") or (side and "SEITWAERTS") or (up and "BESSER" or "SCHLECHTER")
-    local LABEL = { ["NICHT TRAGBAR"] = "Nicht tragbar", ["UNPASSEND"] = "Unpassend", ["VOR- & NACHTEILE"] = "Vor- und Nachteile",
-        ["GLEICHWERTIG"] = "Gleichwertig", ["SEITWAERTS"] = "Seitwaerts", ["BESSER"] = "Besser", ["SCHLECHTER"] = "Schlechter" }
+    local LABEL = { ["CAN'T EQUIP"] = "Can't equip", ["UNPASSEND"] = "Not for you", ["PROS & CONS"] = "Pros and cons",
+        ["GLEICHWERTIG"] = "Equal", ["SEITWAERTS"] = "Sidegrade", ["BESSER"] = "Better", ["SCHLECHTER"] = "Worse" }
     local verdictText = L[LABEL[verdict]]
     -- Kopf (Urteil + Prozent) als eigener, kraeftiger getoenter Bereich mit Trennlinie; darunter laeuft die Farbe weich aus.
     -- gruen = besser, rot = schlechter, blau = neutral
@@ -379,7 +379,7 @@ function IC.Build(link)
     pill:Show()
     local pctText
     -- Teile ohne Rollenwerte: Prozent aus den rohen Werten (Summe neu gegen Summe jetzt), damit oben immer eine Zahl steht
-    local showPct, capText = pct, L["Rollenwertung"]
+    local showPct, capText = pct, L["Role score"]
     if rawDir == "BESSER" or rawDir == "SCHLECHTER" then
         local sn, sc = 0, 0
         for _, v in pairs(new) do sn = sn + v end
@@ -387,7 +387,7 @@ function IC.Build(link)
         local base = math.max(sn, sc)
         if base > 0 then
             showPct = math.floor((sn - sc) / base * 100 + (sn >= sc and 0.5 or -0.5))
-            capText = L["Rohwerte"]
+            capText = L["Raw stats"]
         end
     end
     if showPct and showPct ~= 0 then
@@ -398,18 +398,18 @@ function IC.Build(link)
         caption:SetText(capText)
     end
     local y = -58
-    local oldName = old[1] and old[1]:match("%[(.-)%]") or L["leerer Platz"]
+    local oldName = old[1] and old[1]:match("%[(.-)%]") or L["empty slot"]
     local subText
     if blocked then
-        subText = blocked .. "  ·  " .. L["Werte nur zur Info"]
+        subText = blocked .. "  ·  " .. L["stats for info only"]
     elseif useless then
-        subText = L["statt"] .. " " .. oldName
+        subText = L["replaces"] .. " " .. oldName
     else
         local p, m = plusMinus(diff, function(k) return IC.StatName(k) end)
         if pct == nil and #p > 0 and #m > 0 then
-            subText = L["Mehr"] .. " " .. table.concat(p, ", ") .. "  ·  " .. L["weniger"] .. " " .. table.concat(m, ", ")
+            subText = L["More"] .. " " .. table.concat(p, ", ") .. "  ·  " .. L["less"] .. " " .. table.concat(m, ", ")
         else
-            subText = L["statt"] .. " " .. oldName
+            subText = L["replaces"] .. " " .. oldName
         end
     end
     if not P.oldIcon then
@@ -422,12 +422,12 @@ function IC.Build(link)
     end
     local oldID = old[1] and tonumber(tostring(old[1]):match("item:(%d+)"))
     local oldIcon = oldID and C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(oldID)
-    local plainOld = subText == (L["statt"] .. " " .. oldName)
+    local plainOld = subText == (L["replaces"] .. " " .. oldName)
     P.oldIcon:SetShown(plainOld and oldIcon ~= nil)
     P.oldEdge:SetShown(plainOld and oldIcon ~= nil)
     if plainOld and oldIcon then
         -- "statt" klein, darunter Symbol + Name in der Farbe der Seltenheit
-        local lab = txt(10, C.dim) lab:SetPoint("TOPLEFT", 14, y) lab:SetText(L["statt"])
+        local lab = txt(10, C.dim) lab:SetPoint("TOPLEFT", 14, y) lab:SetText(L["replaces"])
         y = y - 14
         P.oldIcon:ClearAllPoints()
         P.oldIcon:SetPoint("TOPLEFT", 15, y - 1)
@@ -445,7 +445,7 @@ function IC.Build(link)
         y = y - math.max(14, sub:GetStringHeight() or 14) - 6
     end
     if roleName and not blocked then
-        local rl = txt(10, C.dim) rl:SetPoint("TOPLEFT", 14, y) rl:SetText((L["Bewertet fuer %s"]):format(roleName) .. (useless and ("  ·  " .. L["bringt dieser Rolle keine Werte"]) or ""))
+        local rl = txt(10, C.dim) rl:SetPoint("TOPLEFT", 14, y) rl:SetText((L["Rated for %s"]):format(roleName) .. (useless and ("  ·  " .. L["no stats for this role"]) or ""))
         y = y - 18
     end
     y = y - 8
@@ -454,7 +454,7 @@ function IC.Build(link)
     local eff = effects(diff, role, cls)
     if #eff > 0 then
         divider(y) y = y - 8
-        local h = txt(11, C.muted) h:SetPoint("TOPLEFT", 14, y) h:SetText(L["Auswirkung"])
+        local h = txt(11, C.muted) h:SetPoint("TOPLEFT", 14, y) h:SetText(L["Effect"])
         y = y - 21
         for _, e in ipairs(eff) do
             local big = e[3]
@@ -472,9 +472,9 @@ function IC.Build(link)
     local list = IC.CompareRows(keys, cur, new, details)
     if #list > 0 then
         divider(y) y = y - 8
-        local h1 = txt(11, C.muted) h1:SetPoint("TOPLEFT", 14, y) h1:SetText(L["Werte"])
-        local h2 = txt(10, C.dim, "RIGHT") h2:SetPoint("TOPRIGHT", P, "TOPRIGHT", COL_NOW, y) h2:SetText(L["Jetzt"])
-        local h3 = txt(10, C.dim, "RIGHT") h3:SetPoint("TOPRIGHT", P, "TOPRIGHT", COL_NEW, y) h3:SetText(L["Neu"])
+        local h1 = txt(11, C.muted) h1:SetPoint("TOPLEFT", 14, y) h1:SetText(L["Stats"])
+        local h2 = txt(10, C.dim, "RIGHT") h2:SetPoint("TOPRIGHT", P, "TOPRIGHT", COL_NOW, y) h2:SetText(L["Now"])
+        local h3 = txt(10, C.dim, "RIGHT") h3:SetPoint("TOPRIGHT", P, "TOPRIGHT", COL_NEW, y) h3:SetText(L["New"])
         local h4 = txt(10, C.dim, "RIGHT") h4:SetPoint("TOPRIGHT", P, "TOPRIGHT", COL_DIFF, y) h4:SetText("±")
         y = y - 22
         for i, k in ipairs(list) do
@@ -493,7 +493,7 @@ function IC.Build(link)
 
     if #list == 0 then
         local same = txt(11, C.dim)
-        same:SetPoint("TOPLEFT", 14, y) same:SetText(L["Keine veraenderten Grundwerte."])
+        same:SetPoint("TOPLEFT", 14, y) same:SetText(L["No changes to base stats."])
         y = y - 20
     end
     y = y - 8
@@ -501,13 +501,13 @@ function IC.Build(link)
     if details then
         local note = txt(10, C.muted)
         note:SetPoint("TOPLEFT", 14, y) note:SetWidth(W - 28) note:SetWordWrap(true)
-        note:SetText(L["Die Prozentzahl vergleicht die Item-Wertung fuer deine Rolle, nicht deinen gesamten Schaden. Auswirkungen sind Schaetzwerte."])
+        note:SetText(L["The percentage compares the item's score for your role, not your total damage. Effects are estimates."])
         y = y - math.max(14, note:GetStringHeight() or 14) - 10
     end
     local hint = txt(10, C.dim)
     hint:SetPoint("TOPLEFT", 14, y) hint:SetWidth(W - 28) hint:SetWordWrap(true)
-    hint:SetText(details and L["Alt loslassen: kompakter Vergleich. Shift: Blizzard-Vergleich."]
-        or L["Alt halten: alle Werte und Bewertung. Shift: Blizzard-Vergleich."])
+    hint:SetText(details and L["Release Alt: compact view. Shift: Blizzard comparison."]
+        or L["Hold Alt: all stats and scoring details. Shift: Blizzard comparison."])
     y = y - math.max(14, hint:GetStringHeight() or 14) - 4
 
     P:SetSize(W, -y + 10)
@@ -706,8 +706,8 @@ end)
 ------------------------------------------------------------------------
 -- Einstellung: Reiter "Helfer" > "Charaktere & Ausruestung" (an ComfortPlus2-Liste anhaengen, nichts ersetzen)
 ------------------------------------------------------------------------
-local OPT = { "itemCompare", "Vergleichsfenster unter dem Item-Tooltip",
-    "Zeigt Besser / Schlechter / Nicht tragbar mit Auswirkung (DPS, Leben, Ruestung) und Werte-Tabelle. Blizzards Vergleich erscheint dann nur mit Shift. Ist nesUI mit eigenem Vergleich geladen, zeigt Oasis nichts (sonst doppelt) - dort mit /nes vergleich abschalten.",
+local OPT = { "itemCompare", "Comparison window under item tooltips",
+    "Shows better / worse / can't equip with effect (DPS, health, armor) and a stats table. Blizzard's comparison then only appears with Shift. If nesUI with its own comparison is loaded, Oasis shows nothing (otherwise doubled) - turn it off there with /nes vergleich.",
     function(v) if not v then P:Hide() end end }
 local function addOption()
     local H2 = ns.Helpers2
@@ -716,9 +716,9 @@ local function addOption()
         for _, o in ipairs(grp[2] or {}) do if o[1] == OPT[1] then return true end end
     end
     local target
-    for _, grp in ipairs(H2.OPTS) do if grp[1] == "Charaktere & Ausruestung" then target = grp end end
+    for _, grp in ipairs(H2.OPTS) do if grp[1] == "Characters & gear" then target = grp end end
     if target then table.insert(target[2], OPT)
-    else table.insert(H2.OPTS, { "Charaktere & Ausruestung", { OPT } }) end
+    else table.insert(H2.OPTS, { "Characters & gear", { OPT } }) end
     return true
 end
 if not addOption() and ns.Listen then ns.Listen("DB_READY", addOption) end

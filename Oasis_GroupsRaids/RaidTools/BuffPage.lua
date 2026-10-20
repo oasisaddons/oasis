@@ -9,7 +9,7 @@ local K, C = ns.K, ns.K.C
 if ns.ICONS then ns.ICONS.buffs = ns.MEDIA .. "icons\\badges\\buffer" end
 
 local RH, NAMEW, CNTW = 28, 150, 46
-local CLASSNAME = { PRIEST = "Priester", MAGE = "Magier", DRUID = "Druide", PALADIN = "Paladin", SHAMAN = "Schamane" }
+local CLASSNAME = { PRIEST = "Priest", MAGE = "Mage", DRUID = "Druid", PALADIN = "Paladin", SHAMAN = "Shaman" }
 local CIRCLES = "Interface\\TargetingFrame\\UI-Classes-Circles"
 local SOON = 120
 local GLINE = { 1, 1, 1, 0.10 }
@@ -83,14 +83,14 @@ local function tile(parent, label, col)
 end
 
 ns.RegisterPage({
-    key = "buffs", title = "Buff-Monitor", order = 2.75,
-    sub = "Wer in Gruppe oder Raid welche Buffs hat - und wer das Fehlende geben kann",
+    key = "buffs", title = "Buff monitor", order = 2.75,
+    sub = "Who has which buffs in the group or raid - and who can provide what is missing",
     build = function(p)
         local BM = ns.BuffMonitor
         p.tiles = {
-            tile(p, L["Abdeckung"], C.mint),
-            tile(p, L["Fehlende Buffs"], C.amber),
-            tile(p, L["Laufen bald ab"], C.blue),
+            tile(p, L["Coverage"], C.mint),
+            tile(p, L["Missing buffs"], C.amber),
+            tile(p, L["Expiring soon"], C.blue),
         }
         p:HookScript("OnSizeChanged", function(self, w)
             local tw = math.floor(((w or 750) - 20) / 3)
@@ -103,15 +103,15 @@ ns.RegisterPage({
         end)
 
         -- Filter links, Aktionen rechts
-        p.seg = K.Segments(p, { { key = "all", text = L["Alle"] }, { key = "missing", text = L["Nur fehlende"] }, { key = "mine", text = L["Meine Buffs"] } },
+        p.seg = K.Segments(p, { { key = "all", text = L["All"] }, { key = "missing", text = L["Missing only"] }, { key = "mine", text = L["My buffs"] } },
             function(k) view = k off = 0 p.fresh = true ns.RefreshPage("buffs") end, nil, { size = 12, pad = 16 })
         p.seg:SetPoint("TOPLEFT", 0, -74)
-        p.floatBtn = K.Button(p, L["Schwebendes Fenster"], 150, 24, "ghost", function() if BM then BM.Toggle() end ns.RefreshPage("buffs") end)
+        p.floatBtn = K.Button(p, L["Floating window"], 150, 24, "ghost", function() if BM then BM.Toggle() end ns.RefreshPage("buffs") end)
         p.floatBtn:SetPoint("TOPRIGHT", 0, -74)
-        p.postBtn = K.Button(p, L["Fehlende melden"], 130, 24, "ghost", function() if BM then BM.Post() end end)
+        p.postBtn = K.Button(p, L["Report missing"], 130, 24, "ghost", function() if BM then BM.Post() end end)
         p.postBtn:SetPoint("RIGHT", p.floatBtn, "LEFT", -8, 0)
         for _, b in ipairs({ p.floatBtn, p.postBtn }) do b.label:SetFont(K.FONT, 11, "") end
-        p.postBtn:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Fehlende melden"], L["Schreibt die fehlenden Buffs in den Gruppen- bzw. Raidchat."] }) end)
+        p.postBtn:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Report missing"], L["Posts the missing buffs in party or raid chat."] }) end)
         p.postBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
         -- Tabelle
@@ -128,7 +128,7 @@ ns.RegisterPage({
         tab.sum:SetPoint("LEFT", tab.title, "RIGHT", 10, -1)
         tab.legend = K.Text(tab, 10, C.dim, "RIGHT")
         tab.legend:SetPoint("TOPRIGHT", -16, -16)
-        tab.legend:SetText("|cffe8b44a■|r " .. L["kannst du geben"] .. "     |cff6aa0ff●|r " .. L["laeuft bald ab"] .. "     " .. L["Klick auf ein leeres Feld: Verteiler fragen"])
+        tab.legend:SetText("|cffe8b44a■|r " .. L["you can give"] .. "     |cff6aa0ff●|r " .. L["expiring soon"] .. "     " .. L["Click an empty slot: ask distributor"])
         tab.heads, tab.rows, tab.info = {}, {}, {}
         tab.note = K.Text(tab, 12, C.muted, "CENTER")
         tab.note:SetPoint("TOP", 0, -48)
@@ -148,7 +148,7 @@ ns.RegisterPage({
         p.todo:EnableMouse(true)
         p.todo:SetScript("OnEnter", function(self) if self.tip then K.ShowTip(self, self.tip) end end)
         p.todo:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        p.auto = K.Toggle(p, L["Beim Gruppenbeitritt automatisch einblenden"],
+        p.auto = K.Toggle(p, L["Show automatically when joining a group"],
             function() return ns.db.settings.buffAuto end,
             function(v) ns.db.settings.buffAuto = v end)
         p.auto:SetPoint("BOTTOMRIGHT", 0, 2)
@@ -166,31 +166,31 @@ ns.RegisterPage({
         local nMiss = total - done
         local pc = pct >= 1 and C.mint or (pct >= 0.7 and C.amber or C.red)
         p.tiles[1]:Set(inGroup and (math.floor(pct * 100) .. " %") or "–", inGroup and (done .. " / " .. total) or nil, inGroup and pct or nil, inGroup and pc or C.dim)
-        p.tiles[2]:Set(inGroup and nMiss or "–", inGroup and ((L["bei %d Spielern"]):format(math.max(0, (info.players or 0) - (info.complete or 0)))) or nil, nil,
+        p.tiles[2]:Set(inGroup and nMiss or "–", inGroup and ((L["at %d players"]):format(math.max(0, (info.players or 0) - (info.complete or 0)))) or nil, nil,
             (inGroup and nMiss > 0) and C.amber or C.dim)
-        p.tiles[3]:Set(inGroup and (info.soon or 0) or "–", inGroup and L["unter 2 Min"] or nil, nil, (inGroup and (info.soon or 0) > 0) and C.blue or C.dim)
+        p.tiles[3]:Set(inGroup and (info.soon or 0) or "–", inGroup and L["under 2 min"] or nil, nil, (inGroup and (info.soon or 0) > 0) and C.blue or C.dim)
         -- ohne Gruppe standen dort drei Striche: Kacheln nur zeigen, wenn es Werte gibt
         for _, t in ipairs(p.tiles) do t:SetShown(inGroup) end
         p.seg:Select(view)
         p.postBtn:SetEnabled(inGroup and nMiss > 0)
         p.auto:Refresh()
         local shown = _G.OasisBuffMonitor and _G.OasisBuffMonitor:IsShown()
-        p.floatBtn.label:SetText(shown and L["Fenster aus"] or L["Schwebendes Fenster"])
+        p.floatBtn.label:SetText(shown and L["Window off"] or L["Floating window"])
 
         for _, h in ipairs(tab.heads) do h:Hide() end
         for _, r in ipairs(tab.rows) do r:Hide() end
         for _, x in ipairs(tab.info) do x:Hide() end
         tab.more:Hide()
-        tab.title:SetText((IsInRaid and IsInRaid()) and L["Schlachtzug"] or L["Gruppe"])
-        tab.sum:SetText(inGroup and #cols > 0 and ((L["%d Spieler"]):format(#list)) or "")
+        tab.title:SetText((IsInRaid and IsInRaid()) and L["Raid"] or L["Group"])
+        tab.sum:SetText(inGroup and #cols > 0 and ((L["%d players"]):format(#list)) or "")
         tab.legend:SetShown(inGroup and #cols > 0)
 
         -- ohne Gruppe: welche Klasse verteilt welchen Buff
         if not inGroup or #cols == 0 then
             p.todo.t:SetText("")
             p.todo.tip = nil
-            tab.note:SetText(not inGroup and L["Du bist in keiner Gruppe. Sobald du in einer Gruppe oder einem Raid bist, siehst du hier, wem welcher Buff fehlt und wer ihn geben kann."]
-                or L["Keine Klasse in der Gruppe, die diese Buffs verteilt."])
+            tab.note:SetText(not inGroup and L["You are not in a group. Once you're in a group or raid, you'll see here who's missing which buff and who can give it."]
+                or L["No class in the group that gives these buffs."])
             tab.note:Show()
             BM.Prep()
             local W = tab:GetWidth() or 700
@@ -223,7 +223,7 @@ ns.RegisterPage({
                 x.t:SetText(b.label or b.short)
                 if b.cons then
                     x.c:Hide()
-                    x.w:SetText(L["Verbrauchsgut"])
+                    x.w:SetText(L["consumable"])
                     x.w:ClearAllPoints() x.w:SetPoint("RIGHT", -10, 0)
                 else
                     classIcon(x.c, b.cls)
@@ -295,9 +295,9 @@ ns.RegisterPage({
             h.name:SetText(L[b.short] or b.short)
             local m = missing[b.key] or 0
             local all = active > 0 and m >= active
-            if b.soft then h.n:SetText("|cff777777" .. L["Hinweis"] .. "|r")
+            if b.soft then h.n:SetText("|cff777777" .. L["Note"] .. "|r")
             elseif m == 0 then h.n:SetText("|cff66db9e" .. L["ok"] .. "|r")
-            else h.n:SetText((all and "|cffff5a4a" or "|cffe8b44a") .. (L["fehlt %d"]):format(m) .. "|r") end
+            else h.n:SetText((all and "|cffff5a4a" or "|cffe8b44a") .. (L["missing %d"]):format(m) .. "|r") end
             -- Verteiler (Klasse) unter dem Kopf; Verbrauchsgut ohne
             local provs = info.providers and info.providers[b.key] or {}
             for k, t in ipairs(h.prov) do
@@ -315,10 +315,10 @@ ns.RegisterPage({
             local pn = {}
             for _, nm in ipairs(provs) do pn[#pn + 1] = ns.displayName(nm) end
             h.tip = { b.label or b.short,
-                m > 0 and ((L["fehlt bei %d"]):format(m) .. ": " .. table.concat(who, ", ")) or L["alle haben ihn"],
-                b.cons and ("|cff888888" .. L["Verbrauchsgut - jeder selbst"] .. "|r")
-                    or (#pn > 0 and ("|cff888888" .. L["Geben kann: "] .. "|r" .. table.concat(pn, ", ")) or ("|cff888888" .. L["Niemand in der Gruppe kann ihn geben"] .. "|r")),
-                my[b.key] and ("|cffe8b44a" .. L["Du kannst ihn geben"] .. "|r") or nil }
+                m > 0 and ((L["missing on %d"]):format(m) .. ": " .. table.concat(who, ", ")) or L["everyone has it"],
+                b.cons and ("|cff888888" .. L["Consumable - everyone brings own"] .. "|r")
+                    or (#pn > 0 and ("|cff888888" .. L["Can give: "] .. "|r" .. table.concat(pn, ", ")) or ("|cff888888" .. L["Nobody in the group can give it"] .. "|r")),
+                my[b.key] and ("|cffe8b44a" .. L["You can give it"] .. "|r") or nil }
             h:Show()
         end
 
@@ -355,7 +355,7 @@ ns.RegisterPage({
             r:SetPoint("TOPLEFT", tab, "TOPLEFT", 10, top - (i - 1) * RH)
             r:SetPoint("RIGHT", tab, "RIGHT", -10, 0)
             classIcon(r.ci, m.class)
-            local tag = m.away and ("  |cff777777" .. L["offline"] .. "|r") or (m.dead and ("  |cff777777" .. L["tot"] .. "|r") or "")
+            local tag = m.away and ("  |cff777777" .. L["offline"] .. "|r") or (m.dead and ("  |cff777777" .. L["dead"] .. "|r") or "")
             r.name:SetText(clsHex(m.class) .. ns.displayName(m.name) .. "|r" .. tag)
             r:SetAlpha((m.away or m.dead) and 0.45 or 1)
             for _, c in pairs(r.cells) do c:Hide() end
@@ -396,7 +396,7 @@ ns.RegisterPage({
                     c.icon:SetDesaturated(false)
                     c.icon:SetAlpha(b.soft and 0.6 or 1)
                     glass(c, 5, 0.04)
-                    c.tip = { b.label or b.short, left and left > 0 and ((L["noch %d Min"]):format(math.ceil(left / 60))) or L["aktiv"] }
+                    c.tip = { b.label or b.short, left and left > 0 and ((L["%d min left"]):format(math.ceil(left / 60))) or L["active"] }
                 else
                     -- fehlt: leeres Feld; deins = Bernstein-Rand, fehlt allen = roter Rand
                     c.icon:Hide()
@@ -407,20 +407,20 @@ ns.RegisterPage({
                     local provs = info.providers and info.providers[b.key] or {}
                     local giver
                     for _, nm in ipairs(provs) do if not ns.isMe(nm) then giver = nm break end end
-                    local tip = { (b.label or b.short) .. "  |cff888888" .. L["fehlt"] .. "|r" }
+                    local tip = { (b.label or b.short) .. "  |cff888888" .. L["missing"] .. "|r" }
                     if my[b.key] then
-                        tip[#tip + 1] = "|cffe8b44a" .. L["Du kannst ihn geben"] .. "|r"
+                        tip[#tip + 1] = "|cffe8b44a" .. L["You can give it"] .. "|r"
                     elseif b.cons then
-                        tip[#tip + 1] = "|cff888888" .. L["Verbrauchsgut - jeder selbst"] .. "|r"
+                        tip[#tip + 1] = "|cff888888" .. L["Consumable - everyone brings own"] .. "|r"
                         if not ns.isMe(m.name) and not m.away then
-                            tip[#tip + 1] = "|cff888888" .. L["Klick: freundlich erinnern"] .. "|r"
-                            c.act = function() ns.Whisper(m.name, (L["Kleiner Hinweis: dir fehlt noch %s."]):format(b.label or b.short)) end
+                            tip[#tip + 1] = "|cff888888" .. L["Click: send a friendly reminder"] .. "|r"
+                            c.act = function() ns.Whisper(m.name, (L["Quick reminder: you're still missing %s."]):format(b.label or b.short)) end
                         end
                     elseif giver then
-                        tip[#tip + 1] = "|cff888888" .. (L["Klick: %s fragen"]):format(ns.displayName(giver)) .. "|r"
-                        c.act = function() ns.Whisper(giver, (L["Kannst du %s %s geben? Danke!"]):format(ns.displayName(m.name), b.label or b.short)) end
+                        tip[#tip + 1] = "|cff888888" .. (L["Click: ask %s"]):format(ns.displayName(giver)) .. "|r"
+                        c.act = function() ns.Whisper(giver, (L["Can you give %s %s? Thanks!"]):format(ns.displayName(m.name), b.label or b.short)) end
                     else
-                        tip[#tip + 1] = "|cff888888" .. L["Niemand in der Gruppe kann ihn geben"] .. "|r"
+                        tip[#tip + 1] = "|cff888888" .. L["Nobody in the group can give it"] .. "|r"
                     end
                     c.tip = tip
                 end
@@ -433,11 +433,11 @@ ns.RegisterPage({
         if #vrows > maxRows then
             tab.more:ClearAllPoints()
             tab.more:SetPoint("BOTTOM", tab, "BOTTOM", 0, 4)
-            tab.more:SetText((L["%d-%d von %d  ·  Mausrad scrollt"]):format(off + 1, math.min(#vrows, off + maxRows), #vrows))
+            tab.more:SetText((L["%d-%d of %d  ·  mouse wheel scrolls"]):format(off + 1, math.min(#vrows, off + maxRows), #vrows))
             tab.more:Show()
         end
         if #vrows == 0 then
-            tab.note:SetText(view == "mine" and L["Deine Buffs sind bei allen drauf."] or L["Allen fehlt nichts - bereit fuer den Pull."])
+            tab.note:SetText(view == "mine" and L["Everyone has your buffs."] or L["Nobody is missing anything - ready for the pull."])
             tab.note:ClearAllPoints()
             tab.note:SetPoint("TOP", 0, -130)
             tab.note:Show()
@@ -447,7 +447,7 @@ ns.RegisterPage({
         end
 
         -- unten: was du tun kannst
-        local todo, tip = {}, { L["Was du tun kannst"] }
+        local todo, tip = {}, { L["What you can do"] }
         local provides = false
         for _, b in ipairs(cols) do
             if my[b.key] then
@@ -455,19 +455,19 @@ ns.RegisterPage({
                 if (missing[b.key] or 0) > 0 then
                     local who = {}
                     for _, r in ipairs(list) do if not r.has[b.key] and not r.away and not r.dead then who[#who + 1] = ns.displayName(r.name) end end
-                    todo[#todo + 1] = "|cffe8b44a" .. (b.label or b.short) .. "|r " .. (L["bei %d"]):format(#who)
+                    todo[#todo + 1] = "|cffe8b44a" .. (b.label or b.short) .. "|r " .. (L["at %d"]):format(#who)
                     tip[#tip + 1] = "|cffe8b44a" .. (b.label or b.short) .. ":|r " .. table.concat(who, ", ")
                 end
             end
         end
         if #todo > 0 then
-            p.todo.t:SetText(L["Du kannst geben:"] .. "  " .. table.concat(todo, "   ·   "))
+            p.todo.t:SetText(L["You can give:"] .. "  " .. table.concat(todo, "   ·   "))
             p.todo.tip = tip
         elseif provides then
-            p.todo.t:SetText("|cff66db9e" .. L["Deine Buffs sind bei allen drauf."] .. "|r")
+            p.todo.t:SetText("|cff66db9e" .. L["Everyone has your buffs."] .. "|r")
             p.todo.tip = nil
         else
-            p.todo.t:SetText("|cff888888" .. L["Du verteilst in dieser Gruppe keine Buffs."] .. "|r")
+            p.todo.t:SetText("|cff888888" .. L["You don't provide any buffs in this group."] .. "|r")
             p.todo.tip = nil
         end
         p.fresh = nil

@@ -19,7 +19,7 @@ local SIM_PREFIX = "demo-sim-"
 Sim.PREFIX = SIM_PREFIX
 
 local INST = {
-    onyxia = { key = "onyxia", name = "Onyxias Hort", mapID = 248, board = "m248", bosses = { "Onyxia" } },
+    onyxia = { key = "onyxia", name = "Onyxia's Lair", mapID = 248, board = "m248", bosses = { "Onyxia" } },
     hyjal = { key = "hyjal", name = "Hyjal", mapID = 329, board = "m329", bosses = { "Rage Winterchill", "Anetheron", "Kaz'rogal", "Azgalor", "Archimonde" } },
     barrow = { key = "barrow", name = "Barrow Deeps", board = "barrow", bosses = { "Grabwächter Moradin", "Die Knochenhexe", "Varrok der Verschlinger" } },
 }
@@ -47,7 +47,7 @@ local COMP = { [10] = { 2, 3 }, [20] = { 3, 5 }, [40] = { 4, 10 } }
 local EXTRA = { "Throkk", "Ulgra", "Mazrok", "Kezzik", "Rasha", "Gorvash", "Tazluk", "Shenna", "Borgun", "Vashka", "Draknor", "Zulgai",
     "Mog'ra", "Trezza", "Hurak", "Oshma", "Kaldor", "Nyxa", "Rokhan", "Grizza", "Ulthar", "Feyka", "Sornak", "Bazrah", "Kruuk", "Lashi",
     "Torvek", "Ixira", "Gundar", "Muzga", "Rekka", "Thal'zo", "Varga", "Okrim", "Selun", "Durza", "Kragg", "Yazmi", "Bolgar", "Hesha" }
-local SLOTS = { "Umhang", "Brust", "Waffe", "Stiefel", "Armschienen", "Handschuhe" }
+local SLOTS = { "Cloak", "Chest", "Weapon", "Boots", "Bracers", "Gloves" }
 
 local S = nil          -- laufende Simulation (nur im Speicher)
 local fightN = 0
@@ -56,7 +56,7 @@ local function rnd(a, b) return math.random(a, b) end
 local function chance(p) return math.random() < p end
 local function now() return GetTime() end
 local function console(what, msg)
-    ns.print("|cff8a8a90[" .. L["Raid-Sim"] .. "]|r " .. tostring(what) .. (msg and (": " .. tostring(msg)) or ""))
+    ns.print("|cff8a8a90[" .. L["Raid sim"] .. "]|r " .. tostring(what) .. (msg and (": " .. tostring(msg)) or ""))
 end
 
 function Sim.Active() return S ~= nil and ns.IsDev() end
@@ -367,7 +367,7 @@ function Sim.ReadyAnswer(m)
 end
 
 function Sim.Start(size, instKey)
-    if not ns.IsDev() then ns.print(L["Den Raid-Simulator gibt es nur in der Entwicklerversion."]) return false end
+    if not ns.IsDev() then ns.print(L["The raid simulator is only available in the developer version."]) return false end
     size = tonumber(size) or 20
     if not COMP[size] then size = 20 end
     instKey = INST_ALIAS[tostring(instKey or ""):lower()] or "onyxia"
@@ -381,7 +381,7 @@ function Sim.Start(size, instKey)
     if ns.RaidCheck then ns.RaidCheck.demoReady = nil ns.RaidCheck.ready = {} ns.RaidCheck.readyEnd = nil end
     if ns.BuffMonitor and ns.BuffMonitor.Toggle then pcall(ns.BuffMonitor.Toggle, true) end
     refresh()
-    ns.print((L["Raid-Simulator: %d Spieler in %s (nur bei dir, nichts geht an die Gilde). Beenden: /oa raidsim aus"]):format(size, L[S.inst.name]))
+    ns.print((L["Raid simulator: %d players in %s (only for you, nothing is sent to the guild). Stop: /oa raidsim aus"]):format(size, L[S.inst.name]))
     return true
 end
 
@@ -398,7 +398,7 @@ function Sim.Stop(quiet)
     if ns.RaidBoard then ns.RaidBoard.simFor = nil end
     if not was.bmWas and ns.BuffMonitor and ns.BuffMonitor.Toggle then pcall(ns.BuffMonitor.Toggle, false) end
     refresh()
-    if not quiet then ns.print((L["Raid-Simulator beendet (%d Eintraege entfernt)."]):format(n)) end
+    if not quiet then ns.print((L["Raid simulator stopped (%d entries removed)."]):format(n)) end
 end
 
 -- alle Sim-Datensaetze entfernen (auch Reste nach /reload)
@@ -467,7 +467,7 @@ function Sim.Fight(forceOk)
     if not ok then
         for _, m in ipairs(S.list) do m.dura = math.max(0, m.dura - 10) end
     end
-    ns.print((L["Raid-Sim: %s - %s nach %s, %d Tote"]):format(boss, ok and L["Besiegt"] or L["Wipe"],
+    ns.print((L["Raid sim: %s - %s after %s, %d deaths"]):format(boss, ok and L["Kill"] or L["Wipe"],
         ("%d:%02d"):format(math.floor(dur / 60), dur % 60), math.min(nDead, #order)))
     if ok then
         S.bossIdx = math.min(#inst.bosses, S.bossIdx + 1)
@@ -525,18 +525,18 @@ function Sim.Menu(owner)
     local K = ns.K
     if not (K and K.ShowMenu) then return end
     local items = {
-        { text = L["Raid-Sim: 10 Barrow Deeps"], fn = function() Sim.Start(10, "barrow") end },
-        { text = L["Raid-Sim: 20 Hyjal"], fn = function() Sim.Start(20, "hyjal") end },
-        { text = L["Raid-Sim: 20 Onyxia"], fn = function() Sim.Start(20, "onyxia") end },
-        { text = L["Raid-Sim: 40 Onyxia"], fn = function() Sim.Start(40, "onyxia") end },
+        { text = L["Raid sim: 10 Barrow Deeps"], fn = function() Sim.Start(10, "barrow") end },
+        { text = L["Raid sim: 20 Hyjal"], fn = function() Sim.Start(20, "hyjal") end },
+        { text = L["Raid sim: 20 Onyxia"], fn = function() Sim.Start(20, "onyxia") end },
+        { text = L["Raid sim: 40 Onyxia"], fn = function() Sim.Start(40, "onyxia") end },
     }
     if Sim.Active() then
-        items[#items + 1] = { text = L["Ready-Check simulieren"], fn = Sim.ReadyCheck }
-        items[#items + 1] = { text = L["Bosskampf jetzt"], fn = function() Sim.Fight() end }
-        items[#items + 1] = { text = L["Beute-Runde"], fn = Sim.LootRound }
-        items[#items + 1] = { text = L["Raid-Simulator aus"], fn = function() Sim.Stop() end }
+        items[#items + 1] = { text = L["Simulate ready check"], fn = Sim.ReadyCheck }
+        items[#items + 1] = { text = L["Boss fight now"], fn = function() Sim.Fight() end }
+        items[#items + 1] = { text = L["Loot round"], fn = Sim.LootRound }
+        items[#items + 1] = { text = L["Raid simulator off"], fn = function() Sim.Stop() end }
     end
-    K.ShowMenu(owner, items, L["Raid-Simulator"])
+    K.ShowMenu(owner, items, L["Raid simulator"])
 end
 
 ns.slash.raidsim = function(rest)
@@ -548,10 +548,10 @@ ns.slash.raidsim = function(rest)
         else cmd = w end
     end
     if cmd == "aus" or cmd == "off" or cmd == "stop" or cmd == "weg" then
-        if S then Sim.Stop() else ns.print(L["Raid-Simulator laeuft nicht."]) end
+        if S then Sim.Stop() else ns.print(L["Raid simulator is not running."]) end
         return
     end
-    if not ns.IsDev() then ns.print(L["Den Raid-Simulator gibt es nur in der Entwicklerversion."]) return end
+    if not ns.IsDev() then ns.print(L["The raid simulator is only available in the developer version."]) return end
     if cmd == "kampf" or cmd == "fight" then if Sim.Active() then Sim.Fight() end return end
     if cmd == "beute" or cmd == "loot" then if Sim.Active() then Sim.LootRound() end return end
     if cmd == "bereit" or cmd == "ready" then Sim.ReadyCheck() return end
@@ -570,7 +570,7 @@ local function hookChip()
     end)
     chip:HookScript("OnEnter", function()
         if not ns.IsDev() or not GameTooltip or not GameTooltip.AddLine then return end
-        GameTooltip:AddLine("|cff777777" .. L["Rechtsklick: Raid-Simulator"] .. (Sim.Active() and (" (" .. L["an"] .. ")") or "") .. "|r")
+        GameTooltip:AddLine("|cff777777" .. L["Right-click: raid simulator"] .. (Sim.Active() and (" (" .. L["on"] .. ")") or "") .. "|r")
         GameTooltip:Show()
     end)
 end

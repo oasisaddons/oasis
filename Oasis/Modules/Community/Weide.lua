@@ -17,30 +17,30 @@ local MEADOW_TOP, MEADOW_BOTTOM = 0.34, 0.82   -- 0.6.562: weiter in die Tiefe  
 
 -- Skins: Licht-Farbe auf dem Schafmodell. lvl = ab Oasis-Rang
 Weide.SKINS = {
-    { key = "white", text = "Weiss", lvl = 1, amb = { 1, 1, 1 }, ai = 0.8, dif = { 1, 0.95, 0.9 }, di = 0.9 },
-    { key = "cream", text = "Creme", lvl = 10, amb = { 1, 0.9, 0.7 }, ai = 0.8, dif = { 1, 0.85, 0.6 }, di = 0.9 },
-    { key = "grey", text = "Grau", lvl = 20, amb = { 0.55, 0.55, 0.58 }, ai = 0.7, dif = { 0.6, 0.6, 0.62 }, di = 0.7 },
-    { key = "pink", text = "Rosa", lvl = 30, amb = { 1, 0.6, 0.78 }, ai = 0.85, dif = { 1, 0.55, 0.75 }, di = 0.9 },
-    { key = "blue", text = "Himmelblau", lvl = 40, amb = { 0.5, 0.72, 1 }, ai = 0.85, dif = { 0.5, 0.7, 1 }, di = 0.9 },
-    { key = "black", text = "Schwarzes Schaf", lvl = 50, amb = { 0.12, 0.11, 0.13 }, ai = 0.6, dif = { 0.22, 0.2, 0.24 }, di = 0.5 },
-    { key = "green", text = "Moosgruen", lvl = 60, amb = { 0.5, 0.95, 0.45 }, ai = 0.85, dif = { 0.45, 0.9, 0.4 }, di = 0.9 },
+    { key = "white", text = "White", lvl = 1, amb = { 1, 1, 1 }, ai = 0.8, dif = { 1, 0.95, 0.9 }, di = 0.9 },
+    { key = "cream", text = "Cream", lvl = 10, amb = { 1, 0.9, 0.7 }, ai = 0.8, dif = { 1, 0.85, 0.6 }, di = 0.9 },
+    { key = "grey", text = "Grey", lvl = 20, amb = { 0.55, 0.55, 0.58 }, ai = 0.7, dif = { 0.6, 0.6, 0.62 }, di = 0.7 },
+    { key = "pink", text = "Pink", lvl = 30, amb = { 1, 0.6, 0.78 }, ai = 0.85, dif = { 1, 0.55, 0.75 }, di = 0.9 },
+    { key = "blue", text = "Sky blue", lvl = 40, amb = { 0.5, 0.72, 1 }, ai = 0.85, dif = { 0.5, 0.7, 1 }, di = 0.9 },
+    { key = "black", text = "Black sheep", lvl = 50, amb = { 0.12, 0.11, 0.13 }, ai = 0.6, dif = { 0.22, 0.2, 0.24 }, di = 0.5 },
+    { key = "green", text = "Moss green", lvl = 60, amb = { 0.5, 0.95, 0.45 }, ai = 0.85, dif = { 0.45, 0.9, 0.4 }, di = 0.9 },
     { key = "gold", text = "Gold", lvl = 70, amb = { 1, 0.8, 0.3 }, ai = 0.9, dif = { 1, 0.75, 0.25 }, di = 1 },
-    { key = "violet", text = "Lila", lvl = 80, amb = { 0.7, 0.45, 1 }, ai = 0.85, dif = { 0.65, 0.4, 1 }, di = 0.9 },
-    { key = "rainbow", text = "Regenbogen", lvl = 100, rainbow = true },
+    { key = "violet", text = "Purple", lvl = 80, amb = { 0.7, 0.45, 1 }, ai = 0.85, dif = { 0.65, 0.4, 1 }, di = 0.9 },
+    { key = "rainbow", text = "Rainbow", lvl = 100, rainbow = true },
 }
 local BY = {}
 for _, s in ipairs(Weide.SKINS) do BY[s.key] = s end
 -- 0.6.540: Verkleidungen - andere Tiere ab hoeheren Raengen (Kreatur-IDs aus der Spielwelt; laedt eine nicht, bleibt es ein Schaf)
 Weide.FORMS = {
-    { key = "sheep", text = "Schaf", lvl = 1 },
-    { key = "rabbit", text = "Hase", lvl = 15, npc = 721 },
-    { key = "chicken", text = "Huhn", lvl = 25, npc = 620 },
-    { key = "toad", text = "Kroete", lvl = 35, npc = 1420 },
-    { key = "squirrel", text = "Eichhoernchen", lvl = 45, npc = 1412 },
-    { key = "prairie", text = "Praeriehund", lvl = 55, npc = 2620 },
-    { key = "fawn", text = "Rehkitz", lvl = 65, npc = 890 },
-    { key = "cow", text = "Kuh", lvl = 75, npc = 2442 },
-    { key = "deer", text = "Hirsch", lvl = 90, npc = 883 },
+    { key = "sheep", text = "Sheep", lvl = 1 },
+    { key = "rabbit", text = "Rabbit", lvl = 15, npc = 721 },
+    { key = "chicken", text = "Chicken", lvl = 25, npc = 620 },
+    { key = "toad", text = "Toad", lvl = 35, npc = 1420 },
+    { key = "squirrel", text = "Squirrel", lvl = 45, npc = 1412 },
+    { key = "prairie", text = "Prairie dog", lvl = 55, npc = 2620 },
+    { key = "fawn", text = "Fawn", lvl = 65, npc = 890 },
+    { key = "cow", text = "Cow", lvl = 75, npc = 2442 },
+    { key = "deer", text = "Stag", lvl = 90, npc = 883 },
 }
 local FBY = {}
 for _, f in ipairs(Weide.FORMS) do FBY[f.key] = f end
@@ -84,9 +84,9 @@ end
 
 -- 0.6.540 Gildotchi: drei Beduerfnisse, jedes faellt von 100 auf 0 in "span" Sekunden nach der letzten Pflege
 Weide.NEEDS = {
-    { key = "f", text = "Satt", act = "Fuettern", span = 24 * 3600, cd = 3 * 3600, say = "Hunger!" },
-    { key = "j", text = "Gluecklich", act = "Streicheln", span = 12 * 3600, cd = 1 * 3600, say = "Streichel mich!" },
-    { key = "c", text = "Gepflegt", act = "Buersten", span = 48 * 3600, cd = 8 * 3600, say = "Ich bin ganz zerzaust!" },
+    { key = "f", text = "Fed", act = "Feed", span = 24 * 3600, cd = 3 * 3600, say = "Hungry!" },
+    { key = "j", text = "Happy", act = "Pet", span = 12 * 3600, cd = 1 * 3600, say = "Pet me!" },
+    { key = "c", text = "Groomed", act = "Brush", span = 48 * 3600, cd = 8 * 3600, say = "I am all scruffy!" },
 }
 local function careRec(name)
     if ns.isMe(name) then ns.db.settings.gildotchi = ns.db.settings.gildotchi or {} return ns.db.settings.gildotchi end
@@ -129,10 +129,10 @@ function Weide.Streak(name)
     return 0
 end
 Weide.EXTRAS = {
-    { n = 3, text = "Glitzern" },
-    { n = 7, text = "Stern am Namen" },
-    { n = 14, text = "Goldener Name" },
-    { n = 30, text = "Krone" },
+    { n = 3, text = "Sparkle" },
+    { n = 7, text = "Star by the name" },
+    { n = 14, text = "Golden name" },
+    { n = 30, text = "Crown" },
 }
 function Weide.Needs(name)
     local r, out, sum = careRec(name), {}, 0
@@ -148,8 +148,8 @@ function Weide.Needs(name)
     return out
 end
 function Weide.MoodText(m)
-    if m >= 75 then return "Gluecklich", C.mint elseif m >= 45 then return "Zufrieden", C.text
-    elseif m >= 20 then return "Quengelig", C.amber or C.accent else return "Traurig", C.accent end
+    if m >= 75 then return "Happy", C.mint elseif m >= 45 then return "Content", C.text
+    elseif m >= 20 then return "Grumpy", C.amber or C.accent else return "Sad", C.accent end
 end
 function Weide.Report()
     if not IsInGuild() then return end
@@ -161,7 +161,7 @@ local report = function() Weide.Report() end
 local function fmtLeft(sec)
     sec = math.max(0, math.floor(sec))
     if sec >= 3600 then return ("%d Std. %d Min."):format(math.floor(sec / 3600), math.floor(sec % 3600 / 60)) end
-    return ("%d Min."):format(math.max(1, math.ceil(sec / 60)))
+    return ("%d min"):format(math.max(1, math.ceil(sec / 60)))
 end
 -- Pflegen: true oder false + Restzeit in Sekunden
 function Weide.Care(key)
@@ -191,7 +191,7 @@ function Weide.FeedOther(name)
     Store.Put("gfeed", { id = id, target = ns.NameKey(name), by = ns.me(), ts = ns.now() })
     local f = Weide.FormOf(name, (ns.Rank and ns.Rank.Of and ns.Rank.Of(name)) or 1)
     if ns.Chronicle and ns.Chronicle.Add then
-        pcall(ns.Chronicle.Add, "guild", "gfc-" .. id, "hat %s gefuettert", { (L["%ss %s"]):format(ns.short(name), L[f.text]) })
+        pcall(ns.Chronicle.Add, "guild", "gfc-" .. id, "fed %s", { (L["%s's %s"]):format(ns.short(name), L[f.text]) })
     end
     return true
 end
@@ -292,14 +292,14 @@ local function newSheep(field)
         if not self.who then return end
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine(ns.short(self.who.name), 1, 1, 1)
-        GameTooltip:AddLine((L["Oasis-Rang %d"]):format(self.who.lvl), C.accent2[1], C.accent2[2], C.accent2[3])
-        GameTooltip:AddLine(L[self.form and self.form.text or "Schaf"] .. " - " .. L[self.skin and self.skin.text or "Weiss"], 0.8, 0.8, 0.8)
+        GameTooltip:AddLine((L["Oasis rank %d"]):format(self.who.lvl), C.accent2[1], C.accent2[2], C.accent2[3])
+        GameTooltip:AddLine(L[self.form and self.form.text or "Sheep"] .. " - " .. L[self.skin and self.skin.text or "White"], 0.8, 0.8, 0.8)
         local nd = Weide.Needs(self.who.name)
         local mt, mc = Weide.MoodText(nd.mood)
-        GameTooltip:AddLine(L["Laune"] .. ": " .. L[mt], mc[1], mc[2], mc[3])
+        GameTooltip:AddLine(L["Mood"] .. ": " .. L[mt], mc[1], mc[2], mc[3])
         local st = Weide.Streak(self.who.name)
-        if st >= 2 then GameTooltip:AddLine((L["%d Tage am Stueck gepflegt"]):format(st), 1, 0.82, 0.3) end
-        if not ns.isMe(self.who.name) then GameTooltip:AddLine(L["Klick: fuettern (einmal am Tag)"], 0.6, 0.8, 1) end
+        if st >= 2 then GameTooltip:AddLine((L["Cared for %d days in a row"]):format(st), 1, 0.82, 0.3) end
+        if not ns.isMe(self.who.name) then GameTooltip:AddLine(L["Click: feed (once a day)"], 0.6, 0.8, 1) end
         GameTooltip:Show()
     end)
     m:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -307,11 +307,11 @@ local function newSheep(field)
         if not self.who or ns.isMe(self.who.name) then return end
         local ok = Weide.FeedOther(self.who.name)
         if ok then
-            K.Toast(L["Guildotchi"], (L["Du hast %s gefuettert."]):format(ns.short(self.who.name)), C.mint)
-            self.say:SetText(L["Maeh! Danke!"]) self.say:Show() self.sayBg:Show() self.sayLeft = 3
+            K.Toast(L["Guildotchi"], (L["You fed %s."]):format(ns.short(self.who.name)), C.mint)
+            self.say:SetText(L["Baa! Thanks!"]) self.say:Show() self.sayBg:Show() self.sayLeft = 3
             ns.RefreshPage("pasture", true)
         else
-            K.Toast(L["Guildotchi"], L["Heute schon gefuettert - morgen wieder."], C.amber or C.accent)
+            K.Toast(L["Guildotchi"], L["Already fed today - again tomorrow."], C.amber or C.accent)
         end
     end)
     -- Glitzern (Pflege-Serie ab 3 Tagen)
@@ -407,7 +407,7 @@ end
 local LIST_W = 190   -- 0.6.546: schmaler, mehr Platz fuer die Wiese
 ns.RegisterPage({
     key = "pasture", title = "Guildotchi", order = 7.64,
-    sub = "Jedes Mitglied mit Oasis hat ein Tier auf der Weide - fuettern, streicheln, buersten. Hoehere Raenge schalten neue Tiere und Farben frei.",
+    sub = "Every guild member with Oasis has an animal on the pasture - feed, pet and brush it. Higher ranks unlock new animals and colours.",
     build = function(p)
         -- Wiese
         local field = CreateFrame("Frame", nil, p)
@@ -533,7 +533,7 @@ ns.RegisterPage({
                         du.phase, du.t = "roll", 0
                         pcall(du.a.SetFacing, du.a, -1.5708) du.a.face = -1.5708   -- schauen sich an
                         pcall(du.b.SetFacing, du.b, 1.5708) du.b.face = 1.5708
-                        say(du.a, L["Todeswuerfeln?"], 1.6)
+                        say(du.a, L["Death roll?"], 1.6)
                     end
                 elseif du.phase == "roll" and du.t > 1.8 then
                     du.t = 0
@@ -547,8 +547,8 @@ ns.RegisterPage({
                         du.turn = du.turn == du.a and du.b or du.a
                     end
                 elseif du.phase == "end" and du.t > 1.8 then
-                    say(du.loser, L["Verloren!"], 2.5)
-                    say(du.winner, L["Gewonnen!"], 2.5)
+                    say(du.loser, L["Lost!"], 2.5)
+                    say(du.winner, L["Won!"], 2.5)
                     du.phase, du.t = "done", 0
                 elseif du.phase == "done" and du.t > 2.5 then
                     du.a.duel, du.b.duel = nil, nil
@@ -610,7 +610,7 @@ ns.RegisterPage({
                         if s.sayLeft <= 0 then s.sayLeft = nil s.say:Hide() s.sayBg:Hide() end
                     elseif (s.sayIn or 10) <= 0 and not s.duel then
                         s.sayIn = 15 + math.random() * 25
-                        s.say:SetText(s.wish or L["Maeh!"])
+                        s.say:SetText(s.wish or L["Baa!"])
                         s.say:Show() s.sayBg:Show() s.sayLeft = 3
                         if self:IsVisible() and (not s.form or s.form.key == "sheep") then Weide.Maeh() end
                     end
@@ -661,7 +661,7 @@ ns.RegisterPage({
         bar:SetPoint("RIGHT", field, "RIGHT", 0, 0)
         bar:SetHeight(26)
         p.bar = bar
-        bar.btn = K.Button(bar, L["Aussehen aendern"], 150, 24, "primary", function()
+        bar.btn = K.Button(bar, L["Change look"], 150, 24, "primary", function()
             p.pick:SetShown(not p.pick:IsShown())
             if p.pick:IsShown() then p.pick:Update() end
         end)
@@ -669,11 +669,11 @@ ns.RegisterPage({
         bar.cur = K.Text(bar, 11, C.muted)
         bar.cur:SetPoint("LEFT", bar.btn, "RIGHT", 12, 0)
         -- 0.6.545: als AFK-Bildschirm (Vollbild, sobald du AFK bist)
-        bar.afk = K.Toggle(bar, L["Als AFK-Bildschirm"], function() return ns.db.settings.gotchiAfk == true end,
+        bar.afk = K.Toggle(bar, L["As AFK screen"], function() return ns.db.settings.gotchiAfk == true end,
             function(v) ns.db.settings.gotchiAfk = v and true or nil end)
         bar.afk:SetWidth(190)
         bar.afk:SetPoint("RIGHT", bar, "RIGHT", 0, -2)
-        bar.snd = K.Toggle(bar, L["Maeh-Geraeusche"], function() return ns.db.settings.gotchiSound ~= false end,
+        bar.snd = K.Toggle(bar, L["Baa sounds"], function() return ns.db.settings.gotchiSound ~= false end,
             function(v) if v then ns.db.settings.gotchiSound = nil else ns.db.settings.gotchiSound = false end end)
         bar.snd:SetWidth(170)
         bar.snd:SetPoint("RIGHT", bar.afk, "LEFT", -12, 0)
@@ -690,13 +690,13 @@ ns.RegisterPage({
         K.Fill(pick, { 0.03, 0.04, 0.06, 0.92 })
         K.Border(pick, C.line)
         p.pick = pick
-        pick.close = K.Button(pick, L["Fertig"], 80, 22, "ghost", function() pick:Hide() end)
+        pick.close = K.Button(pick, L["Done"], 80, 22, "ghost", function() pick:Hide() end)
         pick.close:SetPoint("TOPRIGHT", -10, -8)
         pick.h1 = K.Text(pick, 12, C.text)
         pick.h1:SetPoint("TOPLEFT", 14, -12)
-        pick.h1:SetText(L["Dein Tier"])
+        pick.h1:SetText(L["Your animal"])
         pick.h2 = K.Text(pick, 12, C.text)
-        pick.h2:SetText(L["Farbe"])
+        pick.h2:SetText(L["Colour"])
         local TILE = 74
         local function tile(kind, def)
             local t = CreateFrame("Button", nil, pick)
@@ -729,7 +729,7 @@ ns.RegisterPage({
                 local d = self.def
                 local ok2 = (self.kind == "form") and Weide.SetMyForm(d.key) or (self.kind == "skin" and Weide.SetMySkin(d.key))
                 if not ok2 then
-                    K.Toast(L["Guildotchi"], (L["%s gibt es ab Oasis-Rang %d."]):format(L[d.text], d.lvl), C.amber or C.accent)
+                    K.Toast(L["Guildotchi"], (L["%s unlocks at Oasis rank %d."]):format(L[d.text], d.lvl), C.amber or C.accent)
                 end
                 ns.RefreshPage("pasture", true)
                 pick:Update()
@@ -760,7 +760,7 @@ ns.RegisterPage({
                         t.m:SetAlpha(open and 1 or 0.35)
                     end
                     t.label:SetText(L[d.text])
-                    t.lock:SetText(open and "" or ((L["ab %d"]):format(d.lvl)))
+                    t.lock:SetText(open and "" or ((L["from %d"]):format(d.lvl)))
                     t.sel:SetShown((t.kind == "form" and d == curF) or (t.kind == "skin" and d == curS))
                 end
                 return y0 - math.ceil(#list / per) * (TILE + 24)
@@ -782,16 +782,16 @@ ns.RegisterPage({
         -- Mein Gildotchi: Laune, drei Balken, drei Knoepfe
         side.me = K.Text(side, 13, C.text)
         side.me:SetPoint("TOPLEFT", 12, -10)
-        side.me:SetText(L["Mein Guildotchi"])
+        side.me:SetText(L["My Guildotchi"])
         side.mood = K.Text(side, 11, C.muted)
         side.mood:SetPoint("TOPLEFT", side.me, "BOTTOMLEFT", 0, -3)
         side.mood:SetPoint("RIGHT", side, "RIGHT", -8, 0)
         side.mood:SetJustifyH("LEFT")
         side.mood:SetWordWrap(false)
         -- 0.6.548: ausgebuext -> Zurueckholen
-        side.recall = K.Button(side, L["Zurueckholen"], 100, 20, "primary", function()
+        side.recall = K.Button(side, L["Bring back"], 100, 20, "primary", function()
             Weide.Recall()
-            K.Toast(L["Guildotchi"], L["Dein Tier ist wieder auf der Weide."], C.mint)
+            K.Toast(L["Guildotchi"], L["Your animal is back on the pasture."], C.mint)
             ns.RefreshPage("pasture", true)
         end)
         side.recall:SetPoint("TOPRIGHT", side, "TOPRIGHT", -10, -8)
@@ -807,9 +807,9 @@ ns.RegisterPage({
             r.btn = K.Button(side, L[n.act], 76, 20, "ghost", function()
                 local ok, left = Weide.Care(n.key)
                 if ok then
-                    K.Toast(L["Gildotchi"], L["Maeh! Danke!"], C.mint)
+                    K.Toast(L["Gildotchi"], L["Baa! Thanks!"], C.mint)
                 else
-                    K.Toast(L["Gildotchi"], (L["Wieder in %s."]):format(fmtLeft(left)), C.amber or C.accent)
+                    K.Toast(L["Gildotchi"], (L["Again in %s."]):format(fmtLeft(left)), C.amber or C.accent)
                 end
                 ns.RefreshPage("pasture", true)
             end)
@@ -819,7 +819,7 @@ ns.RegisterPage({
         end
         side.h = K.Text(side, 13, C.text)
         side.h:SetPoint("TOPLEFT", 12, -178)
-        side.h:SetText(L["Rangliste der Herde"])
+        side.h:SetText(L["Flock leaderboard"])
         side.sum = K.Text(side, 11, C.muted)
         side.sum:SetPoint("TOPLEFT", side.h, "BOTTOMLEFT", 0, -3)
         side.rows = {}
@@ -893,7 +893,7 @@ ns.RegisterPage({
             local s = field.sheep[i]
             s:Hide() s.who = nil s.name:Hide() s.say:Hide() s.sayBg:Hide()
         end
-        field.empty:SetText(#flock == 0 and L["Noch keine Schafe auf der Weide."] or "")
+        field.empty:SetText(#flock == 0 and L["No sheep on the pasture yet."] or "")
 
         -- aktuelles Aussehen
         local mine = myRank()
@@ -907,8 +907,8 @@ ns.RegisterPage({
         local st = Weide.Streak(ns.me())
         local nextX
         for _, x in ipairs(Weide.EXTRAS) do if st < x.n then nextX = x break end end
-        side.mood:SetText(L["Laune"] .. ": " .. K.hex(mc) .. L[mt] .. "|r   " .. (L["Serie: %d Tage"]):format(st)
-            .. (nextX and ("  |cff8a8a8a(" .. (L["%s ab %d"]):format(L[nextX.text], nextX.n) .. ")|r") or ""))
+        side.mood:SetText(L["Mood"] .. ": " .. K.hex(mc) .. L[mt] .. "|r   " .. (L["Streak: %d days"]):format(st)
+            .. (nextX and ("  |cff8a8a8a(" .. (L["%s from %d"]):format(L[nextX.text], nextX.n) .. ")|r") or ""))
         side.recall:SetShown(Weide.IsAway(ns.me()))
         local g = ns.db.settings.gildotchi or {}
         for _, r in ipairs(side.need) do
@@ -921,14 +921,14 @@ ns.RegisterPage({
         -- Rangliste
         local on = 0
         for _, f in ipairs(flock) do if f.online then on = on + 1 end end
-        side.sum:SetText((L["%d Schafe, %d gerade online"]):format(#flock, on))
+        side.sum:SetText((L["%d sheep, %d online now"]):format(#flock, on))
         for i, r in ipairs(side.rows) do
             local f = all[i]
             r:SetShown(f ~= nil)
             if f then
                 r.pos:SetText(i .. ".")
-                r.n:SetText(ns.short(f.name) .. (ns.isMe(f.name) and ("  |cff9a9a9a" .. L["(du)"] .. "|r") or "")
-                    .. (f.away and ("  |cffe8a040" .. L["ausgebuext"] .. "|r") or ""))
+                r.n:SetText(ns.short(f.name) .. (ns.isMe(f.name) and ("  |cff9a9a9a" .. L["(you)"] .. "|r") or "")
+                    .. (f.away and ("  |cffe8a040" .. L["ran away"] .. "|r") or ""))
                 r.l:SetText(f.lvl)
                 local sk = Weide.SkinOf(f.name, f.lvl)
                 local c = sk.amb or { 1, 0.4, 0.4 }
@@ -958,7 +958,7 @@ function Weide.ShowSaver(force)
         local inner = CreateFrame("Frame", nil, saver)
         inner:SetAllPoints()
         local ok, e = pcall(def.build, inner)
-        if not ok then ns.err(L["Aufbau"] .. " Guildotchi AFK", e) saver:Hide() saver = nil return end
+        if not ok then ns.err(L["Setup"] .. " Guildotchi AFK", e) saver:Hide() saver = nil return end
         inner.field:ClearAllPoints()
         inner.field:SetAllPoints(saver)
         for _, k in ipairs({ "bar", "side", "pick", "frameArt" }) do if inner[k] then inner[k]:Hide() end end
@@ -971,7 +971,7 @@ function Weide.ShowSaver(force)
         saver.hint = K.Text(saver, 13, C.text, "CENTER")
         saver.hint:SetPoint("BOTTOM", 0, 24)
         saver.hint:SetAlpha(0.7)
-        saver.hint:SetText(L["Du bist AFK - Klick oder Taste schliesst den Bildschirm."])
+        saver.hint:SetText(L["You are AFK - click or press a key to close this screen."])
         saver:SetScript("OnMouseDown", function(self) self:Hide() end)
         saver:SetScript("OnKeyDown", function(self)
             if self.SetPropagateKeyboardInput and not InCombatLockdown() then pcall(self.SetPropagateKeyboardInput, self, true) end

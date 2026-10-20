@@ -21,7 +21,7 @@ end
 -- Gildennachricht im Spiel bearbeiten (nur mit Recht CanEditMOTD)
 -- NIE "StaticPopupDialogs = ..." zuweisen: das verseucht Blizzards Dialogliste -> Esc/Ausloggen blockiert (0.5.478)
 StaticPopupDialogs["OASIS_EDIT_MOTD"] = {
-    text = "%s", button1 = OKAY or "OK", button2 = CANCEL or "Abbrechen", hasEditBox = true, maxLetters = 128,
+    text = "%s", button1 = OKAY or "OK", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 128,
     OnShow = function(self) local eb = self.editBox or self.EditBox if eb then eb:SetText(Info.MOTD()) eb:HighlightText() end end,
     OnAccept = function(self)
         local eb = self.editBox or self.EditBox
@@ -34,7 +34,7 @@ StaticPopupDialogs["OASIS_EDIT_MOTD"] = {
 }
 function Info.EditMOTD()
     if not (CanEditMOTD and ns.safe(CanEditMOTD())) then return end
-    StaticPopup_Show("OASIS_EDIT_MOTD", L["Gildennachricht bearbeiten"])
+    StaticPopup_Show("OASIS_EDIT_MOTD", L["Edit guild message"])
 end
 function Info.Text()
     if ns.inCombat() then return cachedInfoText end
@@ -61,9 +61,9 @@ local NT = {
     encounter = NEWS_DUNGEON_ENCOUNTER or 6, legendary = NEWS_LEGENDARY_LOOTED or 9,
 }
 local NEWS_TEXT = {
-    [NT.looted] = "hat erbeutet:", [NT.legendary] = "hat erbeutet:", [NT.crafted] = "hat hergestellt:",
-    [NT.purchased] = "hat gekauft:", [NT.guildAch] = "Gildenerfolg errungen:", [NT.playerAch] = "hat den Erfolg errungen:",
-    [NT.encounter] = "hat besiegt:",
+    [NT.looted] = "looted:", [NT.legendary] = "looted:", [NT.crafted] = "crafted:",
+    [NT.purchased] = "bought:", [NT.guildAch] = "earned a guild achievement:", [NT.playerAch] = "earned the achievement:",
+    [NT.encounter] = "defeated:",
 }
 function Info.News()
     local out = {}
@@ -143,17 +143,17 @@ local function suggestions()
     local lvl = ns.safe(UnitLevel("player")) or 0
     if ns.Crafting and (ns.Crafting.badge or 0) > 0 then
         out[#out + 1] = { icon = ns.ICONS.crafting, page = "crafting",
-            text = (L["%d Handwerks-Auftraege warten auf dich"]):format(ns.Crafting.badge) }
+            text = (L["%d crafting orders are waiting for you"]):format(ns.Crafting.badge) }
     end
     if ns.Polls then
         local n = 0
         for _, p in ipairs(ns.Polls.All()) do if ns.Polls.IsOpen(p) and not next(ns.Polls.MyPick(p)) then n = n + 1 end end
-        if n > 0 then out[#out + 1] = { icon = ns.ICONS.polls, page = "polls", text = (L["%d Umfragen warten auf deine Stimme"]):format(n) } end
+        if n > 0 then out[#out + 1] = { icon = ns.ICONS.polls, page = "polls", text = (L["%d polls are waiting for your vote"]):format(n) } end
     end
     if ns.Dungeons then
         for _, d in ipairs(ns.Dungeons and ns.Dungeons.List() or {}) do
             if not d.closed and d.lo and lvl >= d.lo - 1 and lvl <= (d.hi or d.lo) then
-                out[#out + 1] = { icon = ns.ICONS.dungeons, text = (L["Passender Dungeon: %s (%s)"]):format(d.name, d.level),
+                out[#out + 1] = { icon = ns.ICONS.dungeons, text = (L["Dungeon for you: %s (%s)"]):format(d.name, d.level),
                     fn = function() ns.Dungeons.ShowDungeon(d.key) end }
                 break
             end
@@ -163,12 +163,12 @@ local function suggestions()
         local p = ns.Social.Partners()
         local on = 0
         for _, e in ipairs(p) do if #e.online > 0 then on = on + 1 end end
-        if on > 0 then out[#out + 1] = { icon = ns.ICONS.social, page = "social", text = (L["%d deiner Quests hat gerade auch jemand aus der Gilde"]):format(on) } end
+        if on > 0 then out[#out + 1] = { icon = ns.ICONS.social, page = "social", text = (L["%d of your quests are shared by a guildmate right now"]):format(on) } end
     end
     if ns.Wants then
         local n = 0
         for _, w in ipairs(ns.Store.List("wants")) do if not ns.isMe(w.who) and ns.Wants.Count(w.itemID) > 0 then n = n + 1 end end
-        if n > 0 then out[#out + 1] = { icon = ns.ICONS.wants, page = "wants", text = (L["Du hast %d Items, die jemand sucht"]):format(n) } end
+        if n > 0 then out[#out + 1] = { icon = ns.ICONS.wants, page = "wants", text = (L["You have %d items someone is looking for"]):format(n) } end
     end
     if ns.Badges then
         local mine, s = ns.Badges.Mine(true)
@@ -184,13 +184,13 @@ local function suggestions()
         end
         if best then
             out[#out + 1] = { icon = ns.ICONS.badges, page = "badges",
-                text = (L["Fast geschafft: %s (%d/%d)"]):format(ns.Badges.Label(best.b.id, best.tier), best.v, best.need) }
+                text = (L["Almost there: %s (%d/%d)"]):format(ns.Badges.Label(best.b.id, best.tier), best.v, best.need) }
         end
     end
     if ns.isOfficer() then
         local ina = #Info.Inactive()
         if ina > 0 then out[#out + 1] = { icon = ns.ICONS.radar, fn = function() ns.ShowPage("radar") ns.Radar.SetFilter("inactive") end,
-            text = (L["%d Mitglieder seit %d+ Tagen inaktiv"]):format(ina, ns.db.settings.inactiveDays or 30) } end
+            text = (L["%d members inactive for %d+ days"]):format(ina, ns.db.settings.inactiveDays or 30) } end
     end
     return out
 end
@@ -231,9 +231,9 @@ local function upcoming()
     local ps = RW and RW.DoublePlanned and RW.DoublePlanned()
     if until2 then
         out[#out + 1] = { icon = ns.ICONS.rank, color = C.amber, page = "rank",
-            text = "|cffffd24a" .. L["Double XP laeuft"] .. "|r  |cff888888· " .. (L["noch %d h"]):format(math.ceil((until2 - ns.now()) / 3600)) .. "|r" }
+            text = "|cffffd24a" .. L["Double XP running"] .. "|r  |cff888888· " .. (L["%d h left"]):format(math.ceil((until2 - ns.now()) / 3600)) .. "|r" }
     elseif ps then
-        out[#out + 1] = { ts = ps, icon = ns.ICONS.rank, color = C.amber, page = "rank", text = "|cffffd24a" .. L["Double XP"] .. "|r  |cff888888" .. L["geplant"] .. "|r" }
+        out[#out + 1] = { ts = ps, icon = ns.ICONS.rank, color = C.amber, page = "rank", text = "|cffffd24a" .. L["Double XP"] .. "|r  |cff888888" .. L["planned"] .. "|r" }
     end
     if ns.Members and ns.Members.Birthday and ns.Radar then
         for d = 0, 7 do
@@ -241,7 +241,7 @@ local function upcoming()
             for _, m in ipairs(ns.Radar.roster) do
                 if ns.Members.Birthday(m.name) == day then
                     out[#out + 1] = { icon = ns.ICONS.social, color = C.pink, page = "radar",
-                        text = (d == 0 and ("|cffff78b4" .. L["Heute Geburtstag:"] .. "|r ") or ("|cff888888" .. ns.weekday(ns.now() + d * 86400, true) .. " " .. day .. "|r  " .. L["Geburtstag:"] .. " ")) .. ns.Radar.Colored(m.name) }
+                        text = (d == 0 and ("|cffff78b4" .. L["Birthday today:"] .. "|r ") or ("|cff888888" .. ns.weekday(ns.now() + d * 86400, true) .. " " .. day .. "|r  " .. L["Birthday:"] .. " ")) .. ns.Radar.Colored(m.name) }
                 end
             end
         end
@@ -255,7 +255,7 @@ local function upcoming()
             if free.heal then fr[#fr + 1] = "|cff66db9eH|r" end
             if free.dps then fr[#fr + 1] = "|cffff7a5aD|r" end
             out[#out + 1] = { icon = ns.ICONS.groups, color = C.mint, page = "groups", lfg = g,
-                text = ns.Radar.Colored(g.who) .. " " .. L["sucht:"] .. " " .. (g.title or "?") .. (#fr > 0 and ("  |cff888888" .. L["frei:"] .. "|r " .. table.concat(fr, " ")) or "") }
+                text = ns.Radar.Colored(g.who) .. " " .. L["needs:"] .. " " .. (g.title or "?") .. (#fr > 0 and ("  |cff888888" .. L["free:"] .. "|r " .. table.concat(fr, " ")) or "") }
         end
     end
     return out
@@ -264,9 +264,9 @@ end
 -- Restzeit kurz: "2T 4h" / "3h 05m" / "12m" / "jetzt"
 local function countdown(sec)
     sec = math.floor(sec or 0)
-    if sec <= 0 then return L["jetzt"] end
+    if sec <= 0 then return L["now"] end
     local d, h, m = math.floor(sec / 86400), math.floor(sec % 86400 / 3600), math.floor(sec % 3600 / 60)
-    if d > 0 then return (L["%dT %dh"]):format(d, h) end
+    if d > 0 then return (L["%dd %dh"]):format(d, h) end
     if h > 0 then return (L["%dh %02dm"]):format(h, m) end
     return (L["%dm"]):format(math.max(1, m))
 end
@@ -288,9 +288,9 @@ local function chatUnread()
 end
 local function greeting()
     local h = tonumber(date("%H")) or 12
-    if h < 5 then return L["Gute Nacht"] elseif h < 11 then return L["Guten Morgen"]
-    elseif h < 18 then return L["Guten Tag"] elseif h < 23 then return L["Guten Abend"] end
-    return L["Gute Nacht"]
+    if h < 5 then return L["Good night"] elseif h < 11 then return L["Good morning"]
+    elseif h < 18 then return L["Good afternoon"] elseif h < 23 then return L["Good evening"] end
+    return L["Good night"]
 end
 
 ------------------------------------------------------------------------
@@ -314,8 +314,8 @@ local BG = {
 local ORDER_HORDE = { "oasis", "kalimdor", "lordaeron", "east", "ogri", "oldkal", "oldeast" }
 local ORDER_ALLY = { "oasisally", "east", "lordaeron", "kalimdor", "oldeast", "oldkal", "ogri" }
 local BG_NAMES = {
-    { "auto", "Automatisch (nach Fraktion)" }, { "oasis", "Oasis (Horde)" }, { "oasisally", "Oasis (Allianz)" }, { "kalimdor", "Kalimdor" }, { "east", "Oestliche Koenigreiche" },
-    { "lordaeron", "Ruinen von Lordaeron" }, { "ogri", "Orgrimmar (klassisch)" }, { "none", "Nur Farbverlauf" },
+    { "auto", "Automatic (by faction)" }, { "oasis", "Oasis (Horde)" }, { "oasisally", "Oasis (Allianz)" }, { "kalimdor", "Kalimdor" }, { "east", "Eastern Kingdoms" },
+    { "lordaeron", "Ruins of Lordaeron" }, { "ogri", "Orgrimmar (classic)" }, { "none", "Gradient only" },
 }
 
 local function S() return ns.db and ns.db.settings or {} end
@@ -377,7 +377,7 @@ ns.Probes.dashboard = function()
     for _, k in ipairs(ORDER_HORDE) do
         local id = GetFileIDFromPath and select(2, pcall(GetFileIDFromPath, BG[k][1]))
         local ok, r = pcall(t.SetTexture, t, BG[k][1])
-        ns.print(("  %s: FileID=%s  SetTexture=%s"):format(k, tostring(id), ok and tostring(r) or "Fehler"))
+        ns.print(("  %s: FileID=%s  SetTexture=%s"):format(k, tostring(id), ok and tostring(r) or "Bug"))
     end
     t:Hide()
     local okM, mdl = pcall(CreateFrame, "PlayerModel", nil, UIParent)
@@ -439,16 +439,16 @@ local function memberMenu(owner, m)
     if not m then return end
     local items = {}
     if not ns.isMe(m.name) then
-        items[#items + 1] = { text = L["Fluestern"], fn = function() ns.Whisper(m.name) end }
-        items[#items + 1] = { text = L["In Gruppe einladen"], fn = function()
+        items[#items + 1] = { text = L["Whisper"], fn = function() ns.Whisper(m.name) end }
+        items[#items + 1] = { text = L["Invite to group"], fn = function()
             local n = ns.ChatName and ns.ChatName(m.name) or ns.short(m.name)
             if C_PartyInfo and C_PartyInfo.InviteUnit then pcall(C_PartyInfo.InviteUnit, n)
             elseif InviteUnit then pcall(InviteUnit, n) end
         end }
     end
-    if ns.Profile and ns.Profile.Show then items[#items + 1] = { text = L["Profil ansehen"], fn = function() ns.Profile.Show(m.name) end } end
-    if ns.Talents then items[#items + 1] = { text = L["Talente ansehen"], fn = function() ns.Talents.Show(m.name) end } end
-    if ns.Map and ns.Map.ShowMember then items[#items + 1] = { text = L["Auf der Karte zeigen"], fn = function() ns.Map.ShowMember(m.name, m.zone, m.aname) end } end
+    if ns.Profile and ns.Profile.Show then items[#items + 1] = { text = L["View profile"], fn = function() ns.Profile.Show(m.name) end } end
+    if ns.Talents then items[#items + 1] = { text = L["View talents"], fn = function() ns.Talents.Show(m.name) end } end
+    if ns.Map and ns.Map.ShowMember then items[#items + 1] = { text = L["Show on map"], fn = function() ns.Map.ShowMember(m.name, m.zone, m.aname) end } end
     K.ShowMenu(owner, items, ns.displayName(m.name), 150)
 end
 
@@ -535,7 +535,7 @@ local function memberCell(parent)
         self.glow:SetAlpha(0.55)
         local m = self.member
         if self.more then
-            K.ShowTip(self, { (L["%d weitere online"]):format(self.more), L["Klick: alle Mitglieder"] })
+            K.ShowTip(self, { (L["%d more online"]):format(self.more), L["Click: all members"] })
             return
         end
         if not m then return end
@@ -543,9 +543,9 @@ local function memberCell(parent)
             (L["Level %d"]):format(m.level or 0) .. "  " .. (m.className or (m.class and LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[m.class]) or "") }
         if (m.zone or "") ~= "" then lines[#lines + 1] = "|cffa3a3a8" .. m.zone .. "|r" end
         local r = ns.Rank and ns.Rank.Of(m.name)
-        if r then lines[#lines + 1] = "|cffffd24a" .. (L["Oasis-Rang %d"]):format(type(r) == "table" and (r.level or 0) or r) .. "|r" end
-        if self.lfgOn then lines[#lines + 1] = "|cff66db9e" .. L["sucht Gruppe"] .. "|r" end
-        lines[#lines + 1] = "|cff666666" .. L["Klick: Fluestern, Profil, Karte ...  ·  Rechtsklick: alle Aktionen"] .. "|r"
+        if r then lines[#lines + 1] = "|cffffd24a" .. (L["Oasis rank %d"]):format(type(r) == "table" and (r.level or 0) or r) .. "|r" end
+        if self.lfgOn then lines[#lines + 1] = "|cff66db9e" .. L["looking for group"] .. "|r" end
+        lines[#lines + 1] = "|cff666666" .. L["Click: whisper, profile, map …  ·  Right-click: all actions"] .. "|r"
         K.ShowTip(self, lines)
     end)
     c:SetScript("OnLeave", function(self) self.glow:SetAlpha(0) GameTooltip:Hide() end)
@@ -632,7 +632,7 @@ local function memberCell(parent)
         self.letter:SetTextColor(C.text[1], C.text[2], C.text[3])
         self.letter:Show()
         self.lvlBg:Hide() self.lvl:Hide() self.lfg:Hide()
-        self.name:SetText(L["mehr"])
+        self.name:SetText(L["more"])
         self.name:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
         self.name:SetShown(self.mode > 26)
         self:Show()
@@ -775,11 +775,11 @@ local function heroModel(parent)
     mdl:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
     mdl:SetScript("OnEnter", function(self)
         if self.who then
-            K.ShowTip(self, { L["Held der Woche"], ns.Radar.Colored and ns.Radar.Colored(self.who) or ns.displayName(self.who), self.why or "",
-                "|cff888888" .. L["Klick: Profil  ·  Ziehen zum Drehen"] .. "|r" })
+            K.ShowTip(self, { L["Hero of the week"], ns.Radar.Colored and ns.Radar.Colored(self.who) or ns.displayName(self.who), self.why or "",
+                "|cff888888" .. L["Click: profile  ·  drag to rotate"] .. "|r" })
             return
         end
-        K.ShowTip(self, { ns.displayName(ns.me()), "|cff888888" .. L["Ziehen zum Drehen"] .. "|r" })
+        K.ShowTip(self, { ns.displayName(ns.me()), "|cff888888" .. L["Drag to rotate"] .. "|r" })
     end)
     mdl:SetScript("OnLeave", function() GameTooltip:Hide() end)
     return mdl
@@ -841,8 +841,8 @@ end
 
 -- Held der Woche: Punkte aus der Chronik der letzten 7 Tage (bei allen gleich), Gleichstand -> Name
 local HERO_PTS = { level = 3, boss = 5, loot = 2, badge = 4, rank = 2, legacy = 4, duel = 1 }
-local HERO_TXT = { { "level", "%d Level-Ups", "1 Level-Up" }, { "boss", "%d Bosse", "1 Boss" }, { "badge", "%d Abzeichen" }, { "loot", "%d Beute" },
-    { "legacy", "%d Legacy-Challenges", "1 Legacy-Challenge" }, { "rank", "%d Rang-Aufstiege", "1 Rang-Aufstieg" }, { "duel", "%d Todeswuerfeln" } }
+local HERO_TXT = { { "level", "%d level-ups", "1 level-up" }, { "boss", "%d bosses", "1 boss" }, { "badge", "%d badges" }, { "loot", "%d loot" },
+    { "legacy", "%d legacy challenges", "1 legacy challenge" }, { "rank", "%d rank-ups", "1 rank-up" }, { "duel", "%d deathrolls" } }
 function Info.HeroScores()
     local since, sc, list = ns.now() - 7 * 86400, {}, {}
     for _, e in ipairs(Store.List("chronicle")) do
@@ -886,7 +886,7 @@ function Info.Hero()
     if not best then return nil end
     local lvl = best.orl
     if not lvl and ns.Rank and ns.Rank.LevelFor then lvl = select(1, ns.Rank.LevelFor(best.xp)) end
-    return { name = best.name, score = 0, n = {}, reason = (L["Oasis-Rang %d"]):format(lvl or 0), byRank = true }
+    return { name = best.name, score = 0, n = {}, reason = (L["Oasis rank %d"]):format(lvl or 0), byRank = true }
 end
 -- Pechvogel der Woche: meiste Tode der letzten 7 Tage (Gegenstueck zum Helden)
 -- exclude: diesen Namen ueberspringen (0.6.317: ist der Held auch der mit den meisten Toden, kommt der naechste)
@@ -905,7 +905,7 @@ function Info.Unlucky(exclude)
     if not best then return nil end
     local kn, kc = nil, 0
     for k, c in pairs(best.killers) do if c > kc then kn, kc = k, c end end
-    best.reason = (best.n == 1 and L["1 Tod"] or (L["%d Tode"]):format(best.n)) .. (kn and ("  ·  " .. (L["meist durch %s"]):format(kn)) or "")
+    best.reason = (best.n == 1 and L["1 death"] or (L["%d deaths"]):format(best.n)) .. (kn and ("  ·  " .. (L["mostly by %s"]):format(kn)) or "")
     return best
 end
 -- Einheit zum Namen (Gruppe/Ziel), damit das echte Modell samt Ausruestung erscheint
@@ -954,9 +954,9 @@ Info.Region = region
 function Info.CountdownTarget()
     local now = ns.now()
     local rel = RELEASE_UTC[region()] or RELEASE_UTC.eu
-    if now < rel then return rel, L["WoW Forever Start"], nil end
+    if now < rel then return rel, L["Launch"], nil end
     local ev, isRaid = nextRaid()
-    if ev and isRaid and (ev.ts or 0) > now then return ev.ts, ev.title or L["Naechster Raid"], ev end
+    if ev and isRaid and (ev.ts or 0) > now then return ev.ts, ev.title or L["Next raid"], ev end
 end
 -- Gilden-Bereitschaft: Stufe 60, Onyxia freigeschaltet (Lockouts), Raid-Vorbereitung gruen (RaidPrep)
 function Info.Readiness()
@@ -991,10 +991,10 @@ end
 -- Begruessung mit Kontext seit dem letzten Besuch
 local function awayText(sec)
     local d = math.floor(sec / 86400)
-    if d >= 2 then return (L["%d Tage"]):format(d) elseif d == 1 then return L["1 Tag"] end
+    if d >= 2 then return (L["%d days"]):format(d) elseif d == 1 then return L["1 day"] end
     local h = math.floor(sec / 3600)
-    if h >= 2 then return (L["%d Stunden"]):format(h) elseif h == 1 then return L["1 Stunde"] end
-    return (L["%d Minuten"]):format(math.max(1, math.floor(sec / 60)))
+    if h >= 2 then return (L["%d hours"]):format(h) elseif h == 1 then return L["1 hour"] end
+    return (L["%d minutes"]):format(math.max(1, math.floor(sec / 60)))
 end
 function Info.WelcomeText(last)
     local now = ns.now()
@@ -1010,12 +1010,12 @@ function Info.WelcomeText(last)
     end
     if demoOn() and chat == 0 then chat = 14 end   -- Demo: Beispielwert, der Demo-Chat wird nicht mitgeschrieben
     local parts = {}
-    if lv > 0 then parts[#parts + 1] = lv == 1 and L["1 Level-Up in der Gilde"] or (L["%d Level-Ups in der Gilde"]):format(lv) end
-    if evn > 0 then parts[#parts + 1] = evn == 1 and L["1 neuer Termin"] or (L["%d neue Termine"]):format(evn) end
-    if chat > 0 then parts[#parts + 1] = chat == 1 and L["1 Chat-Nachricht"] or (L["%d Chat-Nachrichten"]):format(chat) end
-    local s = (L["Du warst %s weg."]):format(awayText(now - last))
-    if #parts > 0 then return s .. " " .. L["Seitdem:"] .. " " .. table.concat(parts, ", ") end
-    return s .. " " .. L["Seitdem war es ruhig in der Gilde."]
+    if lv > 0 then parts[#parts + 1] = lv == 1 and L["1 level-up in the guild"] or (L["%d level-ups in the guild"]):format(lv) end
+    if evn > 0 then parts[#parts + 1] = evn == 1 and L["1 new event"] or (L["%d new events"]):format(evn) end
+    if chat > 0 then parts[#parts + 1] = chat == 1 and L["1 chat message"] or (L["%d chat messages"]):format(chat) end
+    local s = (L["You were away for %s."]):format(awayText(now - last))
+    if #parts > 0 then return s .. " " .. L["Since then:"] .. " " .. table.concat(parts, ", ") end
+    return s .. " " .. L["It has been quiet in the guild since."]
 end
 
 -- Gilden-Puls: heute je halbe Stunde hoechstens gleichzeitig online (eigener Mitschnitt alle 5 min)
@@ -1126,8 +1126,8 @@ function Info.Records()
             end
         end
     end
-    out[#out + 1] = { icon = ns.ICONS.deathroll, color = C.red, page = "deathroll", title = L["Laengste Todeswuerfel-Serie"],
-        who = best and best.name, value = best and (L["%d Siege in Folge"]):format(best.best) }
+    out[#out + 1] = { icon = ns.ICONS.deathroll, color = C.red, page = "deathroll", title = L["Longest deathroll streak"],
+        who = best and best.name, value = best and (L["%d wins in a row"]):format(best.best) }
     local c = ns.char or {}
     local bd, bm
     if type(c.walk) == "table" then
@@ -1135,8 +1135,8 @@ function Info.Records()
     end
     if demoOn() and not bm then bd, bm = date("%Y-%m-%d", ns.now() - 3 * 86400), 23850 * STRIDE end
     local okMe, me = pcall(ns.me)
-    out[#out + 1] = { icon = ns.ICONS.map, color = C.mint, title = L["Meiste Schritte an einem Tag"],
-        who = bm and okMe and me or nil, value = bm and ((L["%s Schritte"]):format(fmtNum(bm / STRIDE)) .. "  |cff888888" .. tostring(bd):sub(9, 10) .. "." .. tostring(bd):sub(6, 7) .. ".|r") }
+    out[#out + 1] = { icon = ns.ICONS.map, color = C.mint, title = L["Most steps in a day"],
+        who = bm and okMe and me or nil, value = bm and ((L["%s steps"]):format(fmtNum(bm / STRIDE)) .. "  |cff888888" .. tostring(bd):sub(9, 10) .. "." .. tostring(bd):sub(6, 7) .. ".|r") }
     local fast
     for _, e in ipairs(Store.List("chronicle")) do
         if e.kind == "boss" and e.a2 then
@@ -1147,7 +1147,7 @@ function Info.Records()
             end
         end
     end
-    out[#out + 1] = { icon = ns.ICONS.raid, color = C.amber, page = "chronicle", title = L["Schnellster Boss-Kill"],
+    out[#out + 1] = { icon = ns.ICONS.raid, color = C.amber, page = "chronicle", title = L["Fastest boss kill"],
         who = fast and fast.who, value = fast and ((fast.boss or "?") .. "  |cffffd24a" .. fast.txt .. "|r") }
     local top
     local function consider(name, lvl)
@@ -1162,13 +1162,13 @@ function Info.Records()
             consider(name, ok and lvl or pr.orl)
         end
     end
-    out[#out + 1] = { icon = ns.ICONS.badges, color = C.violet or C.accent, page = "rank", title = L["Hoechster Oasis-Rang"],
-        who = top and top.name, value = top and (L["Oasis-Rang %d"]):format(top.lvl) }
+    out[#out + 1] = { icon = ns.ICONS.badges, color = C.violet or C.accent, page = "rank", title = L["Highest Oasis rank"],
+        who = top and top.name, value = top and (L["Oasis rank %d"]):format(top.lvl) }
     return out
 end
 
 -- Gildenkarte: Kontinent + Position je Mitglied
-local CONT = { [1414] = "Kalimdor", [1415] = "Oestliche Koenigreiche" }
+local CONT = { [1414] = "Kalimdor", [1415] = "Eastern Kingdoms" }
 local CONT_BY_INST = { [1] = 1414, [0] = 1415 }
 local function contOf(mapID)
     local id, guard = mapID, 0
@@ -1236,7 +1236,7 @@ end
 
 ns.RegisterPage({
     key = "home", title = "Dashboard", order = 0.5,
-    sub = "Alles Wichtige der Gilde auf einen Blick",
+    sub = "Everything important in your guild at a glance",
     build = function(p)
         p.fresh = true
         p.cells = {}
@@ -1524,7 +1524,7 @@ ns.RegisterPage({
         end
 
         -- Gildeninfo klein oben rechts unter der Uhr (nur wenn hinterlegt)
-        ban.info = K.Button(tf, L["Gildeninfo"], 66, 16, "ghost")
+        ban.info = K.Button(tf, L["Guild info"], 66, 16, "ghost")
         -- 0.6.176: Info-Symbol rechts im Knopf
         ban.info:SetWidth(82)
         ban.info.ico = ban.info:CreateTexture(nil, "OVERLAY")
@@ -1535,7 +1535,7 @@ ns.RegisterPage({
         ban.info:SetFrameLevel(stage:GetFrameLevel() + 3)
         ban.info:SetScript("OnEnter", function(self)
             local t = Info.Text()
-            K.ShowTip(self, { L["Gildeninfo"], t ~= "" and t or L["Keine Gildeninfo hinterlegt."] })
+            K.ShowTip(self, { L["Guild info"], t ~= "" and t or L["No guild info set."] })
         end)
         ban.info:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
@@ -1577,7 +1577,7 @@ ns.RegisterPage({
         hport.letter = K.Title(hport, 26, C.text, "CENTER")
         hport.letter:SetPoint("CENTER")
         hport:SetScript("OnClick", function(self) if self.who and ns.Profile and ns.Profile.Show then ns.Profile.Show(self.who) end end)
-        hport:SetScript("OnEnter", function(self) if self.who then K.ShowTip(self, { L["Held der Woche"], ns.Radar.Colored(self.who), self.why or "", "|cff888888" .. L["Klick: Profil"] .. "|r" }) end end)
+        hport:SetScript("OnEnter", function(self) if self.who then K.ShowTip(self, { L["Hero of the week"], ns.Radar.Colored(self.who), self.why or "", "|cff888888" .. L["Click: profile"] .. "|r" }) end end)
         hport:SetScript("OnLeave", function() GameTooltip:Hide() end)
         hport:Hide()
         ban.heroPort = hport
@@ -1610,7 +1610,7 @@ ns.RegisterPage({
         end
         plate.kick = K.Text(plate, 9, GOLDC, "CENTER")
         plate.kick:SetPoint("TOP", 0, -6)
-        plate.kick:SetText(L["Held der Woche"])
+        plate.kick:SetText(L["Hero of the week"])
         plate.name = K.Title(plate, 14, C.text, "CENTER")
         plate.name:SetPoint("TOP", 0, -17)
         plate.name:SetWidth(180) plate.name:SetWordWrap(false)
@@ -1622,8 +1622,8 @@ ns.RegisterPage({
         plate:SetScript("OnEnter", function(self)
             local h = ban.heroData
             if not h then return end
-            K.ShowTip(self, { L["Held der Woche"], ns.Radar.Colored(h.name), h.reason or "",
-                "|cff888888" .. L["Aktivstes Mitglied der letzten 7 Tage (Level-Ups, Bosse, Beute, Abzeichen)"] .. "|r", "|cff666666" .. L["Klick: Profil"] .. "|r" })
+            K.ShowTip(self, { L["Hero of the week"], ns.Radar.Colored(h.name), h.reason or "",
+                "|cff888888" .. L["Most active member of the last 7 days (level-ups, bosses, loot, badges)"] .. "|r", "|cff666666" .. L["Click: profile"] .. "|r" })
         end)
         plate:SetScript("OnLeave", function() GameTooltip:Hide() end)
         plate:Hide()
@@ -1658,7 +1658,7 @@ ns.RegisterPage({
         tk:SetScript("OnUpdate", function(self, el)
             if self.place then self.place(math.min(el, 0.1)) end
         end)
-        tk:SetScript("OnEnter", function(self) self.paused = true K.ShowTip(self, { L["Live aus der Gilde"], "|cff888888" .. L["Angehalten - Klick: Chronik"] .. "|r" }) end)
+        tk:SetScript("OnEnter", function(self) self.paused = true K.ShowTip(self, { L["Live from the guild"], "|cff888888" .. L["Paused - click: chronicle"] .. "|r" }) end)
         tk:SetScript("OnLeave", function(self) self.paused = false GameTooltip:Hide() end)
         tk:SetScript("OnClick", function() ns.ShowPage("chronicle") end)
         tk:Hide()
@@ -1685,10 +1685,10 @@ ns.RegisterPage({
         ----------------------------------------------------------------
         p.tiles = {}
         local defs = {
-            { ns.ICONS.radar, "Online jetzt", C.mint, "radar" },
-            { ns.ICONS.social or ns.ICONS.radar, "Mitglieder", C.blue, "radar" },
-            { ns.ICONS.raid, "Naechster Termin", C.accent, "raid" },
-            { ns.MEDIA .. "icons\\announce", "Gildennachricht", C.amber, "radar", 2 },   -- doppelt breit
+            { ns.ICONS.radar, "Online now", C.mint, "radar" },
+            { ns.ICONS.social or ns.ICONS.radar, "Members", C.blue, "radar" },
+            { ns.ICONS.raid, "Next event", C.accent, "raid" },
+            { ns.MEDIA .. "icons\\announce", "Guild message", C.amber, "radar", 2 },   -- doppelt breit
         }
         for i, d in ipairs(defs) do
             local t
@@ -1775,7 +1775,7 @@ ns.RegisterPage({
         ----------------------------------------------------------------
         -- Spalte 1: Wer ist online
         ----------------------------------------------------------------
-        local online = box(p, L["Wer ist online"], C.mint)
+        local online = box(p, L["Who's online"], C.mint)
         online.head:Live(true)
         -- 0.6.177: Hintergrundbild (naechtliche Oase mit eigenem Zierrahmen, Gildenmodul) - gestreckt auf die Box,
         -- die eigene Kante der Box tritt zurueck, damit es keinen Doppelrahmen gibt
@@ -1915,9 +1915,9 @@ ns.RegisterPage({
         end
         local KINDS = {
             -- art: Bild im Gildenmodul, w/h = Bildteil, th = Texturhoehe (0.6.313: Held mit eigenem Bild hero_bg)
-            hero = { kick = "Held der Woche", col = { 1, 0.82, 0.42 }, badge = "Interface\\GroupFrame\\UI-Group-LeaderIcon",
+            hero = { kick = "Hero of the week", col = { 1, 0.82, 0.42 }, badge = "Interface\\GroupFrame\\UI-Group-LeaderIcon",
                      art = "hero_bg", w = ART_W, h = ART_H, th = 512 },
-            unl = { kick = "Pechvogel der Woche", col = { 0.55, 0.7, 1 }, badge = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull",
+            unl = { kick = "Unlucky one of the week", col = { 0.55, 0.7, 1 }, badge = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull",
                     art = "unlucky_bg", w = ART_W, h = ART_H, th = 512 },
         }
         function sp:Fill(f, it)
@@ -2042,20 +2042,20 @@ ns.RegisterPage({
         sp:SetScript("OnEnter", function(self)
             local it = self.list and self.list[self.idx]
             if not it then return end
-            local hint = it.kind == "hero" and L["Aktivstes Mitglied der letzten 7 Tage (Level-Ups, Bosse, Beute, Abzeichen)"] or L["Die meisten Tode der letzten 7 Tage"]
-            K.ShowTip(self, { L[KINDS[it.kind].kick], ns.Radar.Colored(it.name), it.reason or "", "|cff888888" .. hint .. "|r", "|cff666666" .. L["Klick: Profil"] .. "|r" })
+            local hint = it.kind == "hero" and L["Most active member of the last 7 days (level-ups, bosses, loot, badges)"] or L["Most deaths in the last 7 days"]
+            K.ShowTip(self, { L[KINDS[it.kind].kick], ns.Radar.Colored(it.name), it.reason or "", "|cff888888" .. hint .. "|r", "|cff666666" .. L["Click: profile"] .. "|r" })
         end)
         sp:SetScript("OnLeave", function() GameTooltip:Hide() end)
         sp:Hide()
         online.spot = sp
-        online.empty = emptyState(online, ns.ICONS.radar, C.mint, L["Gerade niemand online."],
-            { { "Gildenchat", "chat" }, { "Mitglieder", "radar" } })
+        online.empty = emptyState(online, ns.ICONS.radar, C.mint, L["Nobody online right now."],
+            { { "Guild chat", "chat" }, { "Members", "radar" } })
         p.online = online
 
         ----------------------------------------------------------------
         -- Spalte 2: Was gerade passiert (+ Wochenaufgaben)
         ----------------------------------------------------------------
-        local feed = box(p, L["Was gerade passiert"], C.violet or C.accent)
+        local feed = box(p, L["What's happening"], C.violet or C.accent)
         feed.head:Live(true)
         -- 0.6.180: Zeilen wie in der Vorlage - Zeit links, Symbol, Text, Pfeil rechts, feine Trennlinie
         feed.list = K.List(feed, 40, function(l)   -- 0.6.181: 40 statt 34, ruhiger
@@ -2125,13 +2125,13 @@ ns.RegisterPage({
             if p.fresh and animOn() then K.FadeIn(r, 0.5 + (idx or 1) * 0.06) end
         end)
         feed.list.empty:SetText("")
-        feed.empty = emptyState(feed, ns.ICONS.chronicle or ns.ICONS.home, C.violet or C.accent, L["Noch nichts passiert - zieht los und schreibt Geschichte!"],
-            { { "Gruppe suchen", "groups" }, { "Gildenchat", "chat" } })
+        feed.empty = emptyState(feed, ns.ICONS.chronicle or ns.ICONS.home, C.violet or C.accent, L["Nothing happened yet - go out and make history!"],
+            { { "Find group", "groups" }, { "Guild chat", "chat" } })
 
         ----------------------------------------------------------------
         -- Gilden-Highlight (unten links): Wochenaufgaben der Gilde
         ----------------------------------------------------------------
-        local hl = box(p, L["Gilden-Highlight"], C.amber)
+        local hl = box(p, L["Guild highlight"], C.amber)
         p.hl = hl
         hl.glow = hl:CreateTexture(nil, "BORDER")
         hl.glow:SetAllPoints()
@@ -2140,8 +2140,8 @@ ns.RegisterPage({
         hl.week = K.Text(hl, 10, C.muted, "RIGHT")
         hl.week:SetPoint("TOPRIGHT", -12, -15)
         hl.week:SetWordWrap(false)
-        hl.empty = emptyState(hl, ns.ICONS.rank or ns.ICONS.badges, C.amber, L["Diese Woche ist noch alles offen - wer macht den Anfang?"],
-            { { "Termin anlegen", "raid" }, { "Gruppe suchen", "groups" } })
+        hl.empty = emptyState(hl, ns.ICONS.rank or ns.ICONS.badges, C.amber, L["This week is still wide open - who goes first?"],
+            { { "Create event", "raid" }, { "Find group", "groups" } })
         local wk = CreateFrame("Button", nil, hl)
         wk:SetPoint("TOPLEFT", 12, -34)
         wk:SetPoint("BOTTOMRIGHT", -12, 8)
@@ -2251,7 +2251,7 @@ ns.RegisterPage({
                 end
             end
         end
-        tabChips(feed, { { "feed", "Live" }, { "map", "Karte" }, { "pulse", "Puls" } }, function(k) p:SetFeedTab(k) end)
+        tabChips(feed, { { "feed", "Live" }, { "map", "Map" }, { "pulse", "Pulse" } }, function(k) p:SetFeedTab(k) end)
 
         -- Gildenkarte (Kontinent mit den meisten Mitgliedern, Punkte in Klassenfarbe)
         local mapF = CreateFrame("Frame", nil, feed)
@@ -2278,7 +2278,7 @@ ns.RegisterPage({
         mapF.none = K.Text(mapF, 11, C.muted, "CENTER")
         mapF.none:SetPoint("LEFT", 14, 0) mapF.none:SetPoint("RIGHT", -14, 0)
         mapF.none:SetWordWrap(true)
-        mapF.none:SetText(L["Noch keine Positionen - die Karte fuellt sich, sobald Mitglieder mit Oasis unterwegs sind."])
+        mapF.none:SetText(L["No positions yet - the map fills up once members with Oasis are out and about."])
         mapF:Hide()
         feed.mapF = mapF
 
@@ -2324,9 +2324,9 @@ ns.RegisterPage({
         pulseF:SetScript("OnEnter", function(self)
             local d = self.data
             if not d then return end
-            K.ShowTip(self, { L["Gilden-Puls"], d.peak and (L["Stosszeit %s Uhr"]):format(d.peak) or "",
-                (L["Heute bis zu %d gleichzeitig online"]):format(d.dayMax or 0),
-                "|cff888888" .. L["Hell: heute  ·  Schatten: typischer Tag (Spielzeit-Statistik)"] .. "|r" })
+            K.ShowTip(self, { L["Guild pulse"], d.peak and (L["Peak time %s"]):format(d.peak) or "",
+                (L["Today up to %d online at once"]):format(d.dayMax or 0),
+                "|cff888888" .. L["Bright: today  ·  shadow: typical day (playtime stats)"] .. "|r" })
         end)
         pulseF:SetScript("OnLeave", function() GameTooltip:Hide() end)
         pulseF:Hide()
@@ -2340,7 +2340,7 @@ ns.RegisterPage({
         hl.order = { "motd", "count", "tasks" }
         hl.heads = {}
         hl.avail = { tasks = true }
-        tabChips(hl, { { "motd", "Nachricht" }, { "count", "Countdown" }, { "tasks", "Aufgaben" } },
+        tabChips(hl, { { "motd", "Message" }, { "count", "Countdown" }, { "tasks", "Tasks" } },
             function(k) hl.rotT = -45 p:SetHlTab(k) end)
         -- Ueberschrift darf nicht unter die Reiter laufen: Breite bis vor den linken Reiter, sonst gekuerzt;
         -- Zaehler rechts neben dem Titel entfaellt hier (steht in der Karte selbst)
@@ -2391,13 +2391,13 @@ ns.RegisterPage({
         -- Texte
         mo.kicker = K.Text(mo.box, 10, { RED[1] * 0.9 + 0.1, RED[2] * 0.6 + 0.3, RED[3] * 0.6 + 0.3 })
         mo.kicker:SetPoint("TOPLEFT", mo.tile, "TOPRIGHT", 12, 1)
-        mo.kicker:SetText(L["Nachricht der Gildenleitung"])
+        mo.kicker:SetText(L["Message from the guild leaders"])
         mo.new = K.Text(mo.box, 9, { 1, 1, 1 })
         mo.new:SetPoint("LEFT", mo.kicker, "RIGHT", 8, 0)
         mo.new.bg = mo.box:CreateTexture(nil, "ARTWORK")
         mo.new.bg:SetPoint("TOPLEFT", mo.new, "TOPLEFT", -4, 2) mo.new.bg:SetPoint("BOTTOMRIGHT", mo.new, "BOTTOMRIGHT", 4, -2)
         mo.new.bg:SetColorTexture(RED[1], RED[2], RED[3], 0.9)
-        mo.new:SetText(L["NEU"])
+        mo.new:SetText(L["NEW"])
         mo.text = K.Text(mo.box, 13, C.text)
         mo.text:SetPoint("TOPLEFT", mo.kicker, "BOTTOMLEFT", 0, -3)
         mo.text:SetJustifyH("LEFT")
@@ -2405,7 +2405,7 @@ ns.RegisterPage({
         if mo.text.SetMaxLines then mo.text:SetMaxLines(2) end
         -- Knoepfe rechts
         -- nur wer die Gildennachricht aendern darf, sieht "Bearbeiten" (Klick auf die Box = Gildenchat)
-        mo.edit = K.Button(mo.box, L["Bearbeiten"], 92, 22, "ghost", function() Info.EditMOTD() end)
+        mo.edit = K.Button(mo.box, L["Edit"], 92, 22, "ghost", function() Info.EditMOTD() end)
         mo.edit:SetPoint("RIGHT", -12, 0)
         mo.text:SetPoint("RIGHT", mo.edit, "LEFT", -12, 0)
         function mo:Layout()
@@ -2444,7 +2444,7 @@ ns.RegisterPage({
         mo:SetScript("OnClick", function() ns.ShowPage("chat") end)
         mo:SetScript("OnEnter", function(self)
             K.SkinLine(self.box, { RED[1], RED[2], RED[3], 0.9 })
-            if self.full then K.ShowTip(self, { L["Gildennachricht"], self.full, "|cff888888" .. L["Klick: Gildenchat"] .. "|r" }) end
+            if self.full then K.ShowTip(self, { L["Guild message"], self.full, "|cff888888" .. L["Click: guild chat"] .. "|r" }) end
         end)
         mo:SetScript("OnLeave", function(self)
             K.SkinLine(self.box, { RED[1], RED[2], RED[3], 0.45 })
@@ -2457,7 +2457,7 @@ ns.RegisterPage({
         cd:SetScript("OnClick", function() ns.ShowPage("raid") end)
         cd.groups = {}
         do local sk = K.Skin and K.Skin("panel") cd.round = sk and sk.fill == "round_fill" or false end
-        local LBL = { "Tage", "Std", "Min", "Sek" }
+        local LBL = { "days", "h", "min", "s" }
         local gx = 0
         for i = 1, 4 do
             local g = CreateFrame("Frame", nil, cd)
@@ -2573,7 +2573,7 @@ ns.RegisterPage({
             self.when:Hide()
         end
         cd:SetScript("OnEnter", function(self)
-            if self.whenText then K.ShowTip(self, { self.title or L["Raid-Countdown"], self.whenText }) end
+            if self.whenText then K.ShowTip(self, { self.title or L["Raid countdown"], self.whenText }) end
         end)
         cd:SetScript("OnLeave", function() GameTooltip:Hide() end)
         cd.done = K.Text(cd, 12, C.amber)
@@ -2652,8 +2652,8 @@ ns.RegisterPage({
         goal.msg:SetWordWrap(false)
         goal:SetScript("OnClick", function() if goal.data and goal.data.full then p:Fireworks() end end)
         goal:SetScript("OnEnter", function(self)
-            K.ShowTip(self, { L["Dein Tagesziel"], L["Aussen: 10.000 Schritte  ·  Mitte: halbe Stufe XP  ·  Innen: Wochenaufgaben"],
-                self.data and self.data.full and ("|cff66db9e" .. L["Klick: nochmal Feuerwerk"] .. "|r") or nil })
+            K.ShowTip(self, { L["Your daily goal"], L["Outer: 10,000 steps  ·  middle: half a level of XP  ·  inner: weekly tasks"],
+                self.data and self.data.full and ("|cff66db9e" .. L["Click: fireworks again"] .. "|r") or nil })
         end)
         goal:SetScript("OnLeave", function() GameTooltip:Hide() end)
         -- Feuerwerk ueber der ganzen Karte
@@ -2728,7 +2728,7 @@ ns.RegisterPage({
         ----------------------------------------------------------------
         -- Spalte 3: Als Naechstes (Durchsagen, Termine, Fuer dich)
         ----------------------------------------------------------------
-        local nextBox = box(p, L["Als Naechstes"], C.amber)
+        local nextBox = box(p, L["Coming up"], C.amber)
         -- 0.6.180: jeder Eintrag als Karte - dunkle Flaeche, goldene Kante links, gerahmtes Symbol, Pfeil rechts,
         -- bei "(x/y)" im Text ein Fortschrittsbalken mit Prozent
         nextBox.list = K.List(nextBox, 60, function(l)   -- 0.6.181: hoehere Karten mit Abstand
@@ -2800,8 +2800,8 @@ ns.RegisterPage({
             if a.ev and ns.Raid then
                 local mine = ns.Raid.MySignup(a.ev.id)
                 local st = mine and mine.status
-                r.b2:SetLabel(st == "yes" and ("|cff66db9e" .. L["Dabei"] .. "|r") or L["Zusagen"])
-                r.b1:SetLabel(st == "no" and ("|cffe64040" .. L["Abgesagt"] .. "|r") or L["Absagen"])
+                r.b2:SetLabel(st == "yes" and ("|cff66db9e" .. L["In"] .. "|r") or L["Sign up"])
+                r.b1:SetLabel(st == "no" and ("|cffe64040" .. L["Declined"] .. "|r") or L["Decline"])
                 r.b2:SetScript("OnClick", function() ns.Raid.SignUp(a.ev, nil, "yes") ns.RefreshPage("home") end)
                 r.b1:SetScript("OnClick", function() ns.Raid.SignUp(a.ev, nil, "no") ns.RefreshPage("home") end)
                 r.b1:SetWidth(50)
@@ -2810,7 +2810,7 @@ ns.RegisterPage({
             elseif a.lfg and ns.Groups and not ns.isMe(a.lfg.who) then
                 local g = a.lfg
                 local asked = ns.Groups.joined and ns.Groups.joined[g.id]
-                r.b1:SetLabel(asked and ("|cff888888" .. L["Gefragt"] .. "|r") or L["Beitreten"])
+                r.b1:SetLabel(asked and ("|cff888888" .. L["Asked"] .. "|r") or L["Join"])
                 r.b1:SetScript("OnClick", function(self)
                     if asked then return end
                     local free = ns.Groups.FreeRoles(g)
@@ -2818,12 +2818,12 @@ ns.RegisterPage({
                     local items = {}
                     for _, rk in ipairs({ "tank", "heal", "dps" }) do
                         if free[rk] and roles[rk] then
-                            items[#items + 1] = { text = L[rk == "tank" and "Tank" or rk == "heal" and "Heiler" or "Schaden"], fn = function() ns.Groups.Join(g, rk) ns.RefreshPage("home") end }
+                            items[#items + 1] = { text = L[rk == "tank" and "Tank" or rk == "heal" and "Healer" or "Damage"], fn = function() ns.Groups.Join(g, rk) ns.RefreshPage("home") end }
                         end
                     end
                     if #items == 0 then ns.ShowPage("groups") return end
                     if #items == 1 then items[1].fn() return end
-                    K.ShowMenu(self, items, L["Als ..."], 120)
+                    K.ShowMenu(self, items, L["As ..."], 120)
                 end)
                 r.b1:SetWidth(64)
                 r.b1:Show()
@@ -2869,8 +2869,8 @@ ns.RegisterPage({
         nextBox.list:SetPoint("TOPLEFT", 6, -44)
         nextBox.list:SetPoint("BOTTOMRIGHT", -6, 8)
         nextBox.list.empty:SetText("")
-        nextBox.empty = emptyState(nextBox, ns.ICONS.raid, C.amber, L["Nichts geplant - wie waer's mit einem Termin?"],
-            { { "Termin anlegen", "raid" }, { "Gruppe suchen", "groups" } })
+        nextBox.empty = emptyState(nextBox, ns.ICONS.raid, C.amber, L["Nothing planned - how about an event?"],
+            { { "Create event", "raid" }, { "Find group", "groups" } })
         p.nextBox = nextBox
         -- 0.6.182: Hintergrundbilder mit eigenem Zierrahmen (Gildenmodul): links dunkle Oase, rechts Lager mit Fackeln.
         -- Dann keine Oasis-Kante/Flaeche und kein Zierrahmen (sonst doppelt); ohne Gildenmodul wie bisher (0.6.180)
@@ -2928,7 +2928,7 @@ ns.RegisterPage({
         ad:SetScript("OnEnter", function(self)
             self.hl:Show()
             adZoom(1)
-            K.ShowTip(self, { L["Midas - AH-Marktanalyse von Rebo"], "|cff888888" .. L["Klick: Midas oeffnen"] .. "|r" })
+            K.ShowTip(self, { L["Midas - AH market analysis by Rebo"], "|cff888888" .. L["Click: open Midas"] .. "|r" })
         end)
         ad:SetScript("OnLeave", function(self)
             self.hl:Hide()
@@ -2947,9 +2947,9 @@ ns.RegisterPage({
             if not ok and type(cmd) == "function" then ok = pcall(cmd, "") end
             if not ok then
                 if K.Toast then
-                    K.Toast(L["Midas"], L["Midas ist nicht installiert - im Gilden-Discord oder auf CurseForge herunterladen."], C.amber)
+                    K.Toast(L["Midas"], L["Midas is not installed - download it from the guild Discord or CurseForge."], C.amber)
                 else
-                    ns.print(L["Midas ist nicht installiert - im Gilden-Discord oder auf CurseForge herunterladen."])
+                    ns.print(L["Midas is not installed - download it from the guild Discord or CurseForge."])
                 end
             end
         end)
@@ -3327,7 +3327,7 @@ ns.RegisterPage({
         end
         function p:UpdateClock()
             local b = self.ban
-            b.clock:SetText(ns.weekday(ns.now()) .. ", " .. date(L["%d.%m. %H:%M"], ns.now()))
+            b.clock:SetText(ns.weekday(ns.now()) .. ", " .. date(L["%m/%d %H:%M"], ns.now()))
             local t3 = self.tiles[3]
             if t3 and t3.ev then t3.value:SetText(countdown((t3.ev.ts or 0) - ns.now())) end
             self:UpdateCountdown()
@@ -3628,7 +3628,7 @@ ns.RegisterPage({
             f.empty:SetShown(key == "feed" and f.isEmpty == true)
             f.mapF:SetShown(key == "map")
             f.pulseF:SetShown(key == "pulse")
-            f.head.text:SetText(K.Upper(L[key == "map" and "Gildenkarte" or key == "pulse" and "Gilden-Puls" or "Was gerade passiert"]))
+            f.head.text:SetText(K.Upper(L[key == "map" and "Guild map" or key == "pulse" and "Guild pulse" or "What's happening"]))
             if key == "map" then self:UpdateMap() elseif key == "pulse" then self:UpdatePulse(changed) end
             if changed and animOn() and key ~= "feed" then K.FadeIn(key == "map" and f.mapF or f.pulseF, 0) end
         end
@@ -3687,7 +3687,7 @@ ns.RegisterPage({
                     end)
                     pn:SetScript("OnEnter", function(self)
                         for _, t in ipairs(self.tiles) do t:SetVertexColor(0.95, 0.95, 1) end
-                        K.ShowTip(self, { L[CONT[self.cont]], (L["%d hier"]):format(self.n or 0), "|cff888888" .. L["Auf der Weltkarte zeigen"] .. "|r" })
+                        K.ShowTip(self, { L[CONT[self.cont]], (L["%d here"]):format(self.n or 0), "|cff888888" .. L["Show on world map"] .. "|r" })
                     end)
                     pn:SetScript("OnLeave", function(self)
                         for _, t in ipairs(self.tiles) do t:SetVertexColor(0.78, 0.78, 0.82) end
@@ -3739,7 +3739,7 @@ ns.RegisterPage({
                             d.dot:SetPoint("CENTER")
                             d:SetScript("OnEnter", function(self)
                                 local m = ns.Radar.byName and ns.Radar.byName[self.who]
-                                K.ShowTip(self, { ns.Radar.Colored(self.who), m and (m.zone or "") or "", "|cff888888" .. L["Klick: auf der Weltkarte zeigen"] .. "|r" })
+                                K.ShowTip(self, { ns.Radar.Colored(self.who), m and (m.zone or "") or "", "|cff888888" .. L["Click: show on world map"] .. "|r" })
                             end)
                             d:SetScript("OnLeave", function() GameTooltip:Hide() end)
                             d:SetScript("OnClick", function(self)
@@ -3772,8 +3772,8 @@ ns.RegisterPage({
             local pf = self.feed.pulseF
             local d = Info.Pulse()
             pf.data = d
-            pf.peak:SetText(d.peak and ("|cffffd24a" .. (L["Stosszeit %s Uhr"]):format(d.peak) .. "|r") or L["Noch zu wenig Daten fuer eine Stosszeit"])
-            pf.sub:SetText((L["Heute bis zu %d gleichzeitig online  ·  jetzt %d"]):format(d.dayMax, d.now))
+            pf.peak:SetText(d.peak and ("|cffffd24a" .. (L["Peak time %s"]):format(d.peak) .. "|r") or L["Not enough data for a peak time yet"])
+            pf.sub:SetText((L["Today up to %d online at once  ·  now %d"]):format(d.dayMax, d.now))
             local cw, ch = pf.chart:GetWidth() or 250, pf.chart:GetHeight() or 80
             if cw < 40 then cw = 250 end
             if ch < 20 then ch = 80 end
@@ -3840,7 +3840,7 @@ ns.RegisterPage({
             hl.rec:SetShown(key == "rec")
             if key == "rec" then self:RecPage(0) end
             local hd = hl.heads[key] or {}
-            hl.head.text:SetText(K.Upper(hd[1] or L["Gilden-Highlight"]) .. (hd[3] or ""))
+            hl.head.text:SetText(K.Upper(hd[1] or L["Guild highlight"]) .. (hd[3] or ""))
             hl.head:SetCount((not hl.narrow) and hd[2] or nil)
             if changed then
                 if key == "count" then self:AnimReadiness() end
@@ -3867,7 +3867,7 @@ ns.RegisterPage({
             if not cd.target or now >= cd.target or now - (cd.checked or 0) > 30 then
                 cd.checked = now
                 cd.target, cd.title, cd.ev = Info.CountdownTarget()
-                cd.whenText = (cd.target and not cd.ev) and (L["Start"] .. ": " .. date("%d.%m.%Y, %H:%M", cd.target) .. " " .. L["Uhr (deine Ortszeit)"]) or nil
+                cd.whenText = (cd.target and not cd.ev) and (L["Start"] .. ": " .. date("%d.%m.%Y, %H:%M", cd.target) .. " " .. L["(your local time)"]) or nil
                 cd.bars:SetShown(cd.ev ~= nil and cd.bars:IsShown())
                 cd:Center(cd.ev == nil)
                 local on = cd.target ~= nil and S().dashCountdown ~= false
@@ -3875,7 +3875,7 @@ ns.RegisterPage({
                     hl.avail.count = on
                     if not on and hl.tab == "count" then self:SetHlTab("tasks") else self:SetHlTab(hl.tab or "count") end
                 end
-                hl.heads.count = { cd.title or L["Raid-Countdown"], cd.target and date("%d.%m.%Y %H:%M", cd.target) or nil,
+                hl.heads.count = { cd.title or L["Raid countdown"], cd.target and date("%d.%m.%Y %H:%M", cd.target) or nil,
                     -- Glas: Startzeit dezent hinter dem Titel (statt eigener Zeile in der Karte)
                     (cd.round and cd.target) and ("   |cff8c8c94" .. date("%d.%m. %H:%M", cd.target) .. "|r") or nil }   -- Ortszeit des Spielers
                 if hl.tab == "count" then
@@ -3901,9 +3901,9 @@ ns.RegisterPage({
         function p:SetReadiness(r)
             local rows = self.hl.cd.rows
             local defs = {
-                { L["Stufe 60"], r.lvl60, math.max(1, r.total), C.amber, true },
-                { L["Onyxia freigeschaltet"], r.unlocked, math.max(1, r.lvl60), C.violet or C.accent, r.unlocked ~= nil },
-                { L["Raid-Vorbereitung gruen"], r.prepG, math.max(1, r.prepN or 1), C.mint, r.prepG ~= nil },
+                { L["Level 60"], r.lvl60, math.max(1, r.total), C.amber, true },
+                { L["Onyxia attuned"], r.unlocked, math.max(1, r.lvl60), C.violet or C.accent, r.unlocked ~= nil },
+                { L["Raid prep green"], r.prepG, math.max(1, r.prepN or 1), C.mint, r.prepG ~= nil },
             }
             local i = 0
             for _, d in ipairs(defs) do
@@ -3956,18 +3956,18 @@ ns.RegisterPage({
             end
             local function col(c, s) return ("|cff%02x%02x%02x%s|r"):format(c[1] * 255, c[2] * 255, c[3] * 255, s) end
             local R = goal.rcol
-            goal.lines[1]:SetText(L["Schritte"])
+            goal.lines[1]:SetText(L["Steps"])
             goal.vals[1]:SetText(fmtNum(g.steps) .. " |cff6b6b70/ " .. fmtNum(g.stepGoal) .. "|r")
             -- zu Pferd/Flug zaehlt nicht: Hinweis, statt still bei 0 zu bleiben
             local mounted = (IsMounted and IsMounted()) or (UnitOnTaxi and UnitOnTaxi("player"))
-            goal.lines[2]:SetText(L["XP heute"])
-            goal.vals[2]:SetText(g.xpGoal > 0 and (fmtNum(g.xp) .. " |cff6b6b70/ " .. fmtNum(g.xpGoal) .. "|r") or ("|cff888888" .. L["Hoechststufe"] .. "|r"))
-            goal.lines[3]:SetText(L["Wochenaufgaben"])
+            goal.lines[2]:SetText(L["XP today"])
+            goal.vals[2]:SetText(g.xpGoal > 0 and (fmtNum(g.xp) .. " |cff6b6b70/ " .. fmtNum(g.xpGoal) .. "|r") or ("|cff888888" .. L["max level"] .. "|r"))
+            goal.lines[3]:SetText(L["Weekly tasks"])
             goal.vals[3]:SetText(g.tasks .. " |cff6b6b70/ " .. g.taskN .. "|r")
-            goal.msg:SetText(g.full and ("|cff66db9e" .. L["Tagesziel geschafft - stark!"] .. "|r")
-                or (mounted and ("|cffe8b44a" .. L["Schritte laufen nur zu Fuss (kein Reittier, kein Flug)."] .. "|r"))
-                or L["Schritte laufen nur zu Fuss (kein Reittier, kein Flug)."])
-            self.hl.heads.goal = { L["Dein Tagesziel"], (math.floor((g.r1 + g.r2 + g.r3) / 3 * 100)) .. " %" }
+            goal.msg:SetText(g.full and ("|cff66db9e" .. L["Daily goal done - great!"] .. "|r")
+                or (mounted and ("|cffe8b44a" .. L["Steps only count on foot (no mount, no flight)."] .. "|r"))
+                or L["Steps only count on foot (no mount, no flight)."])
+            self.hl.heads.goal = { L["Your daily goal"], (math.floor((g.r1 + g.r2 + g.r3) / 3 * 100)) .. " %" }
             -- Feuerwerk: einmal am Tag (Demo: einmal je Sitzung), sobald alle drei Ringe voll sind
             if g.full and goal:IsShown() then
                 local c = ns.char or ns.db
@@ -4030,9 +4030,9 @@ ns.RegisterPage({
                     c.icon:SetTexture(r.icon or ns.ICONS.badges)
                     c.icon:SetVertexColor(r.color[1], r.color[2], r.color[3])
                     c.t:SetText(r.title)
-                    c.v:SetText(r.who and (ns.Radar.Colored(r.who) .. "  |cffd8d8dc" .. (r.value or "") .. "|r") or ("|cff666666" .. L["noch kein Rekord"] .. "|r"))
+                    c.v:SetText(r.who and (ns.Radar.Colored(r.who) .. "  |cffd8d8dc" .. (r.value or "") .. "|r") or ("|cff666666" .. L["no record yet"] .. "|r"))
                     c.page = r.page
-                    c.tip = { r.title, r.who and (ns.displayName(r.who) .. "  -  " .. (r.value or "")) or L["noch kein Rekord"] }
+                    c.tip = { r.title, r.who and (ns.displayName(r.who) .. "  -  " .. (r.value or "")) or L["no record yet"] }
                 end
             end
         end
@@ -4110,7 +4110,7 @@ ns.RegisterPage({
         end
         if seen then ns.db.dashSeen = ns.now() end
         if ban.wel and ban.wel.active then
-            ban.greet:SetText(L["Willkommen zurueck"] .. ", " .. myCol)
+            ban.greet:SetText(L["Welcome back"] .. ", " .. myCol)
         else
             ban.greet:SetText(ban.greetNormal)
         end
@@ -4121,13 +4121,13 @@ ns.RegisterPage({
         local parts = { (L["%d online"]):format(nOn) }
         if ev then
             local left = (ev.ts or 0) - ns.now()
-            local fmt = isRaid and L["naechster Raid in %s"] or L["naechster Termin in %s"]
-            parts[#parts + 1] = left > 0 and fmt:format(countdown(left)) or ((ev.title or "?") .. " " .. L["laeuft"])
+            local fmt = isRaid and L["next raid in %s"] or L["next event in %s"]
+            parts[#parts + 1] = left > 0 and fmt:format(countdown(left)) or ((ev.title or "?") .. " " .. L["running"])
         else
-            parts[#parts + 1] = L["kein Termin geplant"]
+            parts[#parts + 1] = L["no event planned"]
         end
         local unread = chatUnread()
-        if unread > 0 then parts[#parts + 1] = (L["%d neue im Gildenchat"]):format(unread) end
+        if unread > 0 then parts[#parts + 1] = (L["%d new in guild chat"]):format(unread) end
         ban.line2:SetText(table.concat(parts, "  |cff888888·|r  "))
 
         -- Durchsage (3 Tage) vor Nachricht des Tages -> stehen jetzt in der Kachel "Gildennachricht",
@@ -4141,7 +4141,7 @@ ns.RegisterPage({
         if ns.GuildView and not ns.GuildView() then
             local lv = ns.safe(UnitLevel("player")) or 0
             local zn = ns.safe(GetRealZoneText()) or ""
-            ban.line2:SetText((L["Level %d"]):format(lv) .. (zn ~= "" and ("  |cff888888·|r  " .. zn) or "") .. "  |cff888888·|r  " .. L["ohne Gilde unterwegs"])
+            ban.line2:SetText((L["Level %d"]):format(lv) .. (zn ~= "" and ("  |cff888888·|r  " .. zn) or "") .. "  |cff888888·|r  " .. L["travelling without a guild"])
         end
 
         -- Held der Woche
@@ -4169,7 +4169,7 @@ ns.RegisterPage({
         -- Live-Ticker: Held + letzte Ereignisse der Chronik
         local tlist = {}
         if hero then
-            tlist[#tlist + 1] = "|cffffd24a" .. L["Held der Woche:"] .. "|r " .. ns.Radar.Colored(hero.name) .. "  |cffa3a3a8" .. (hero.reason or "") .. "|r"
+            tlist[#tlist + 1] = "|cffffd24a" .. L["Hero of the week:"] .. "|r " .. ns.Radar.Colored(hero.name) .. "  |cffa3a3a8" .. (hero.reason or "") .. "|r"
         end
         do
             local chr = ns.Store.List("chronicle")
@@ -4206,22 +4206,22 @@ ns.RegisterPage({
         local t = p.tiles
         local total = math.max(R.total or 0, nOn)
         t[1]:Set(nOn, "/ " .. total, total > 0 and nOn / total or 0, doAnim)
-        t[1].tip = { L["Online jetzt"], L["Klick: Mitgliederliste"] }
+        t[1].tip = { L["Online now"], L["Click: member list"] }
         local ina = #Info.Inactive()
         t[2]:Set(R.total or 0, nil, nil, doAnim)
-        t[2].tip = { L["Mitglieder"], (L["%d seit %d+ Tagen inaktiv"]):format(ina, ns.db.settings.inactiveDays or 30) }
+        t[2].tip = { L["Members"], (L["%d inactive for %d+ days"]):format(ina, ns.db.settings.inactiveDays or 30) }
         local t3 = t[3]
         if ev then
             t3.ev = ev
             t3.page = "raid"
             t3:Set(countdown((ev.ts or 0) - ns.now()), ev.title or "?", nil, false)
-            t3.tip = { ev.title or "?", ns.fmtWhen and ns.fmtWhen(ev.ts) or "", "|cff888888" .. L["Klick: Termine"] .. "|r" }
+            t3.tip = { ev.title or "?", ns.fmtWhen and ns.fmtWhen(ev.ts) or "", "|cff888888" .. L["Click: events"] .. "|r" }
         else
             t3.ev = nil
             local lfg = ns.Groups and #ns.Groups.Active() or 0
             t3.page = lfg > 0 and "groups" or "raid"
-            t3:Set(lfg > 0 and lfg or "–", lfg > 0 and (lfg == 1 and L["Gruppe sucht"] or L["Gruppen suchen"]) or L["nichts geplant"], nil, doAnim and lfg > 0)
-            t3.tip = { L["Naechster Termin"], L["Nichts geplant - wie waer's mit einem Termin?"] }
+            t3:Set(lfg > 0 and lfg or "–", lfg > 0 and (lfg == 1 and L["group looking"] or L["groups looking"]) or L["nothing planned"], nil, doAnim and lfg > 0)
+            t3.tip = { L["Next event"], L["Nothing planned - how about an event?"] }
         end
         local t4 = t[4]
         t4:Set("", nil, nil, false)
@@ -4231,20 +4231,20 @@ ns.RegisterPage({
             local body = (tt ~= "" and (tt .. ((note.text or "") ~= "" and "  |cffa3a3a8" or "")) or "") .. (note.text or "") .. (tt ~= "" and "|r" or "")
             t4.msg:SetText(body)
             t4.msg:SetTextColor(C.text[1], C.text[2], C.text[3])
-            t4.label:SetText(K.Upper((L["Durchsage von %s  ·  %s"]):format(ns.displayName(note.by), ns.ago(note.ts))))
-            t4.tip = { tt ~= "" and tt or L["Durchsage"], note.text or "", "|cff888888" .. ns.displayName(note.by) .. ", " .. ns.ago(note.ts) .. "|r" }
+            t4.label:SetText(K.Upper((L["Announcement from %s  ·  %s"]):format(ns.displayName(note.by), ns.ago(note.ts))))
+            t4.tip = { tt ~= "" and tt or L["Announcement"], note.text or "", "|cff888888" .. ns.displayName(note.by) .. ", " .. ns.ago(note.ts) .. "|r" }
             t4.page = "radar"
         elseif motdText ~= "" then
             t4.msg:SetText(motdText)
             t4.msg:SetTextColor(C.text[1], C.text[2], C.text[3])
-            t4.label:SetText(K.Upper(L["Gildennachricht"]))
-            t4.tip = { L["Gildennachricht"], motdText, "|cff888888" .. L["Klick: Mitglieder-Uebersicht"] .. "|r" }
+            t4.label:SetText(K.Upper(L["Guild message"]))
+            t4.tip = { L["Guild message"], motdText, "|cff888888" .. L["Click: member overview"] .. "|r" }
             t4.page = "radar"
         else
-            t4.msg:SetText(L["Keine Gildennachricht"])
+            t4.msg:SetText(L["No guild message"])
             t4.msg:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
-            t4.label:SetText(K.Upper(L["Gildennachricht"]))
-            t4.tip = { L["Gildennachricht"], L["Keine Gildennachricht"] }
+            t4.label:SetText(K.Upper(L["Guild message"]))
+            t4.tip = { L["Guild message"], L["No guild message"] }
             t4.page = "radar"
         end
         for _, tile in ipairs(t) do tile.track:SetShown(tile.bar:IsShown()) end
@@ -4283,7 +4283,7 @@ ns.RegisterPage({
         end
         for _, c in pairs(rankOf) do
             if (c.merged or 1) > 1 then
-                c.mergedText = (L["ist %d Oasis-Raenge aufgestiegen (jetzt Rang %s)"]):format(c.merged, tostring(c.a1 or "?"))
+                c.mergedText = (L["climbed %d Oasis ranks (now rank %s)"]):format(c.merged, tostring(c.a1 or "?"))
             end
         end
         p.pulseTex = nil
@@ -4316,7 +4316,7 @@ ns.RegisterPage({
                     local done = tk.done or (tk.have or 0) >= (tk.need or 1)
                     if done then doneN = doneN + 1 end
                     r.t:SetText(done and ("|cff8a8a90" .. tk.text .. "|r") or tk.text)
-                    r.n:SetText(done and ("|cff66db9e" .. L["geschafft"] .. "|r") or ((tk.have or 0) .. " / " .. (tk.need or 0)))
+                    r.n:SetText(done and ("|cff66db9e" .. L["done"] .. "|r") or ((tk.have or 0) .. " / " .. (tk.need or 0)))
                     r.full, r.state = tk.text, r.n:GetText()
                     local c = done and C.mint or C.amber
                     r.dot:SetVertexColor(c[1], c[2], c[3])
@@ -4336,9 +4336,9 @@ ns.RegisterPage({
                 end
             end
             local left = ns.Rewards.WeekLeft and ns.Rewards.WeekLeft() or 0
-            wk.head:SetText(K.Upper(L["Wochenaufgaben der Gilde"]) .. "  |cff888888" .. doneN .. "/" .. math.max(3, #tasks) .. "|r")
-            wk.left:SetText((L["noch %d Tg %d Std"]):format(math.floor(left / 86400), math.floor(left % 86400 / 3600)))
-            p.hl.heads.tasks = { L["Wochenaufgaben"], doneN .. "/" .. math.max(3, #tasks) .. "  |cff888888· " .. (wk.left:GetText() or "") .. "|r" }
+            wk.head:SetText(K.Upper(L["Guild weekly tasks"]) .. "  |cff888888" .. doneN .. "/" .. math.max(3, #tasks) .. "|r")
+            wk.left:SetText((L["%d d %d h left"]):format(math.floor(left / 86400), math.floor(left % 86400 / 3600)))
+            p.hl.heads.tasks = { L["Weekly tasks"], doneN .. "/" .. math.max(3, #tasks) .. "  |cff888888· " .. (wk.left:GetText() or "") .. "|r" }
             local week = date("%Y-%W")
             local all, some = 0, 0
             for name, pr in pairs(ns.db.members or {}) do
@@ -4352,15 +4352,15 @@ ns.RegisterPage({
             end
             if doneN >= 3 then all = all + 1 elseif doneN > 0 then some = some + 1 end
             local weekParts = {}
-            if bosses > 0 then weekParts[#weekParts + 1] = (L["%d Bosse"]):format(bosses) end
-            if levels > 0 then weekParts[#weekParts + 1] = (L["%d Level-Ups"]):format(levels) end
-            if loot > 0 then weekParts[#weekParts + 1] = (L["%d Beute"]):format(loot) end
-            wk.tip = { L["Wochenaufgaben der Gilde"], (L["Gilde: %d haben alle geschafft, %d sind dabei"]):format(all, some),
-                #weekParts > 0 and (L["Diese Woche:"] .. " " .. table.concat(weekParts, " · ")) or nil,
-                "|cff666666" .. L["Klick: Rang & Belohnungen"] .. "|r" }
+            if bosses > 0 then weekParts[#weekParts + 1] = (L["%d bosses"]):format(bosses) end
+            if levels > 0 then weekParts[#weekParts + 1] = (L["%d level-ups"]):format(levels) end
+            if loot > 0 then weekParts[#weekParts + 1] = (L["%d loot"]):format(loot) end
+            wk.tip = { L["Guild weekly tasks"], (L["Guild: %d finished all, %d in progress"]):format(all, some),
+                #weekParts > 0 and (L["This week:"] .. " " .. table.concat(weekParts, " · ")) or nil,
+                "|cff666666" .. L["Click: rank & rewards"] .. "|r" }
         end
         p.hl.hasTasks = hasTasks
-        if not hasTasks then p.hl.heads.tasks = { L["Gilden-Highlight"], nil } end
+        if not hasTasks then p.hl.heads.tasks = { L["Guild highlight"], nil } end
 
         -- Raid-Countdown (Bereitschaft), Tagesziel, Rekorde, Puls
         if ns.db.settings.dashCountdown ~= false then
@@ -4371,7 +4371,7 @@ ns.RegisterPage({
         p:UpdateCountdown()
         p:UpdateGoal(false)
         p:UpdateRecords()
-        p.hl.heads.rec = { L["Gilden-Rekorde"], nil }
+        p.hl.heads.rec = { L["Guild records"], nil }
         pcall(Info.SamplePulse)
         if p.feed.tab == "pulse" then p:UpdatePulse(false) end
         -- Gildennachricht in die Karte; beim Oeffnen des Dashboards immer zuerst zeigen
@@ -4380,7 +4380,7 @@ ns.RegisterPage({
             local has = (motdText or "") ~= ""
             hl.avail.motd = has
             hl.mo:SetMessage(has and motdText or nil)
-            hl.heads.motd = { L["Gildennachricht"], nil }
+            hl.heads.motd = { L["Guild message"], nil }
             if fresh and has then hl.tab = nil hl.rotT = -10 end
         end
         p:SetHlTab(p.hl.tab or (p.hl.avail.motd and "motd") or "count")
@@ -4391,8 +4391,8 @@ ns.RegisterPage({
         ----------------------------------------------------------------
         local items = {}
         if note and motdText ~= "" then
-            items[#items + 1] = { icon = ns.MEDIA .. "icons\\announce", color = C.accent, text = L["Nachricht des Tages:"] .. " |cffd8d8dc" .. motdText .. "|r",
-                tip = { L["Nachricht des Tages"], motdText } }
+            items[#items + 1] = { icon = ns.MEDIA .. "icons\\announce", color = C.accent, text = L["Message of the day:"] .. " |cffd8d8dc" .. motdText .. "|r",
+                tip = { L["Message of the day"], motdText } }
         end
         if ns.Admin and ns.Admin.Notices then
             local ok, list = pcall(ns.Admin.Notices)
@@ -4478,10 +4478,10 @@ local function addSettings()
             ns.RefreshPage("home")
         end
         for _, d in ipairs({
-            { "dashHero", "Held der Woche im Banner", "Aktivstes Mitglied der Woche als zweite Figur neben deinem Charakter" },
-            { "dashCountdown", "Raid-Countdown", "Laufende Uhr bis zum Raid-Start mit Gilden-Bereitschaft" },
-            { "dashTicker", "Live-Ticker im Banner", "Laufband mit den letzten Ereignissen am unteren Bannerrand" },
-            { "dashWelcome", "Begruessung mit Rueckblick", "Einmal je Sitzung: was seit deinem letzten Besuch passiert ist" },
+            { "dashHero", "Hero of the week in the banner", "Most active member of the week as a second figure next to your character" },
+            { "dashCountdown", "Raid countdown", "Running clock until raid launch with guild readiness" },
+            { "dashTicker", "Live ticker in the banner", "Scrolling band with the latest events at the bottom of the banner" },
+            { "dashWelcome", "Welcome with recap", "Once per session: what happened since your last visit" },
         }) do
             local tg = K.Toggle(det, L[d[2]], function() return S()[d[1]] ~= false end,
                 function(v) if v then S()[d[1]] = nil else S()[d[1]] = false end relayout() end, L[d[3]])
@@ -4490,33 +4490,33 @@ local function addSettings()
             if det.t then det.t[#det.t + 1] = tg end
             y = y - 50
         end
-        local t = K.Toggle(det, L["Banner ruhig stellen"], function() return S().dashStill == true end,
+        local t = K.Toggle(det, L["Calm banner"], function() return S().dashStill == true end,
             function(v) S().dashStill = v and true or nil end,
-            L["Kein Zoomen, keine Glut und kein Glanz im Dashboard-Banner"])
+            L["No zoom, embers or shine in the dashboard banner"])
         t:SetPoint("TOPLEFT", 14, y)
         t:SetWidth(600)
         if det.t then det.t[#det.t + 1] = t end
         y = y - 50
-        local t2 = K.Toggle(det, L["Midas-Werbebanner ausblenden"], function() return not adWanted() end,
+        local t2 = K.Toggle(det, L["Hide Midas banner"], function() return not adWanted() end,
             function(v)
                 S().hideMidasAd = v and true or false
                 local def = ns.PageDef("home")
                 if def and def.frame and def.frame.Layout then def.frame:Layout() end
             end,
-            L["Banner des AH-Addons Midas unten im Dashboard"])
+            L["Banner for the AH addon Midas at the bottom of the dashboard"])
         t2:SetPoint("TOPLEFT", 14, y)
         t2:SetWidth(600)
         if det.t then det.t[#det.t + 1] = t2 end
         y = y - 50
         local lbl = K.Text(det, 12, C.text)
         lbl:SetPoint("TOPLEFT", 14, y)
-        lbl:SetText(L["Banner-Bild"])
+        lbl:SetText(L["Banner image"])
         local b = K.Button(det, "", 240, 24, "ghost")
         b:SetPoint("TOPLEFT", 164, y + 5)
         local function label()
             local cur = S().dashBg or "auto"
             for _, e in ipairs(BG_NAMES) do if e[1] == cur then return L[e[2]] end end
-            return L["Automatisch (nach Fraktion)"]
+            return L["Automatic (by faction)"]
         end
         b:SetLabel(label())
         b:SetScript("OnClick", function(self)
@@ -4529,7 +4529,7 @@ local function addSettings()
                     if def and def.frame and def.frame.ApplyBackground then def.frame:ApplyBackground() end
                 end }
             end
-            K.ShowMenu(self, items, L["Banner-Bild"], 220)
+            K.ShowMenu(self, items, L["Banner image"], 220)
         end)
         return y - 40
     end)

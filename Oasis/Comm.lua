@@ -92,11 +92,11 @@ local function lockState()
     local a, b
     if C_ChatInfo.InChatMessagingLockdown then
         local ok, r = pcall(C_ChatInfo.InChatMessagingLockdown)
-        a = ok and tostring(r) or "Fehler"
+        a = ok and tostring(r) or "Bug"
     end
     if C_ChatInfo.AreOutgoingAddonChatMessagesRestricted then
         local ok, r = pcall(C_ChatInfo.AreOutgoingAddonChatMessagesRestricted)
-        b = ok and tostring(r) or "Fehler"
+        b = ok and tostring(r) or "Bug"
     end
     return a or "-", b or "-"
 end
@@ -203,7 +203,7 @@ function Comm.SendEx(opts, msgType, ...)
     for i = 1, n do fields[#fields + 1] = esc((select(i, ...))) end
     local raw = table.concat(fields, "^")
     if #raw > LIMITS.message then
-        ns.err("Comm", L["Nachricht zu gross - nicht gesendet."])
+        ns.err("Comm", L["Message too large; not sent."])
         return false
     end
     local payload = zip(raw)
@@ -1382,7 +1382,7 @@ end
 
 ns.slash.sync = function()
     Comm.RequestSync(true)
-    ns.print(L["Vollstaendiger Abgleich angefordert."])
+    ns.print(L["Full sync requested."])
 end
 
 -- "schon gesehen"-Listen aufraeumen: Eintraege, deren Datensatz es nicht mehr gibt, oder die sehr alt sind

@@ -15,7 +15,7 @@ local win
 local function done(text)
     S().startVersion = ns.version
     if win then win:Hide() end
-    if text then K.Toast(L["Oasis ist bereit"], text, C.mint) end
+    if text then K.Toast(L["Oasis is ready"], text, C.mint) end
 end
 local function relayout()
     if ns.LayoutNav then pcall(ns.LayoutNav) end
@@ -103,69 +103,69 @@ local function build()
     f.title:SetPoint("TOPLEFT", f.logo, "TOPRIGHT", 12, -1)
     f.sub = K.Text(f, 12, C.muted)
     f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -5)
-    f.sub:SetText(L["Wie moechtest du starten? Du kannst alles spaeter in den Einstellungen aendern."])
-    local close = K.CloseButton(f, function() f:Hide() end, L["Wie bisher"])
+    f.sub:SetText(L["How do you want to start? You can change everything later in the settings."])
+    local close = K.CloseButton(f, function() f:Hide() end, L["Keep as is"])
     close:SetPoint("TOPRIGHT", -8, -8)
 
     -- Hauptweg: Wie bisher (gross, Akzentfarbe) - alles andere klein darunter
     local W3 = (600 - 36 - 16) / 3
     local y = -74
-    local c1 = card(f, 564, 84, "checklist", L["Wie bisher"],
-        L["Deine Einstellungen, Spielhilfen und Bereiche bleiben genau so. Neues kommt nur dazu."], C.accent,
-        function() done(L["Alles wie bisher."]) end, "primary")
+    local c1 = card(f, 564, 84, "checklist", L["Keep as is"],
+        L["Your settings, game aids and areas stay exactly the same. New things are only added."], C.accent,
+        function() done(L["Everything as before."]) end, "primary")
     c1:SetPoint("TOPLEFT", 18, y)
     c1.rec = K.Text(c1, 11, { 1, 1, 1 })
     c1.rec:SetPoint("TOPRIGHT", -16, -18)
-    c1.rec:SetText(L["Empfohlen"])
+    c1.rec:SetText(L["Recommended"])
     c1.rec:SetAlpha(0.75)
 
     local h0 = K.Text(f, 11, C.dim)
     h0:SetPoint("TOPLEFT", 20, y - 104)
-    h0:SetText(K.Upper and K.Upper(L["Oder Bereiche neu waehlen"]) or L["Oder Bereiche neu waehlen"])
+    h0:SetText(K.Upper and K.Upper(L["Or choose areas again"]) or L["Or choose areas again"])
     local W2 = (564 - 8) / 2
-    local c2 = card(f, W2, 50, "modules", L["Alles an"], L["Alle Bereiche im Menue einschalten."], C.accent,
-        function() U.AllOn() done(L["Alle Bereiche sind eingeschaltet."]) end, "quiet")
+    local c2 = card(f, W2, 50, "modules", L["Everything on"], L["Turn on all areas in the menu."], C.accent,
+        function() U.AllOn() done(L["All areas are turned on."]) end, "quiet")
     c2:SetPoint("TOPLEFT", 18, y - 122)
-    local c3 = card(f, W2, 50, "home", L["Nur das Noetigste"], L["Chat, Mitglieder, Gruppen, Raids, Handwerk."], C.blue,
-        function() U.Minimal() done(L["Nur die wichtigsten Bereiche sind an."]) end, "quiet")
+    local c3 = card(f, W2, 50, "home", L["Essentials only"], L["Chat, members, groups, raids, crafting."], C.blue,
+        function() U.Minimal() done(L["Only the most important areas are on."]) end, "quiet")
     c3:SetPoint("LEFT", c2, "RIGHT", 8, 0)
 
     local h = K.Text(f, 11, C.dim)
     h:SetPoint("TOPLEFT", 20, y - 190)
-    h:SetText(K.Upper and K.Upper(L["Oder nach Schwerpunkt"]) or L["Oder nach Schwerpunkt"])
+    h:SetText(K.Upper and K.Upper(L["Or by focus"]) or L["Or by focus"])
     local list = (ns.Discover and ns.Discover.INTERESTS) or {}
     for i, it in ipairs(list) do
         local col, row = (i - 1) % 3, math.floor((i - 1) / 3)
         local c = card(f, W3, 50, it.icon or "home", L[it.text], L[it.sub], it.color or C.accent,
-            function() U.Focus(it.key) done((L["Schwerpunkt: %s"]):format(L[it.text])) end, "quiet")
+            function() U.Focus(it.key) done((L["Focus: %s"]):format(L[it.text])) end, "quiet")
         c:SetPoint("TOPLEFT", 18 + col * (W3 + 8), y - 208 - row * 58)
     end
     local note = K.Text(f, 10, C.dim)
     note:SetPoint("TOPLEFT", 20, y - 208 - 2 * 58 - 2)
-    note:SetText(L["Einstellungen und Spielhilfen bleiben bei jeder Wahl erhalten."])
+    note:SetText(L["Settings and game aids are kept whatever you choose."])
     -- mehrere Schwerpunkte: das bekannte Interessen-Fenster
-    f.multi = K.Button(f, L["Mehrere Schwerpunkte waehlen ..."], 200, 24, "ghost", function()
+    f.multi = K.Button(f, L["Choose several focuses ..."], 200, 24, "ghost", function()
         done(nil)
         if ns.Discover and ns.Discover.ShowPicker then ns.Discover.ShowPicker() end
     end)
     f.multi:SetPoint("BOTTOMLEFT", 18, 52)
     -- eigenes gespeichertes Profil
-    f.preset = K.Button(f, L["Eigenes Profil laden ..."], 180, 24, "ghost", function(self)
+    f.preset = K.Button(f, L["Load own profile ..."], 180, 24, "ghost", function(self)
         local items = {}
         for name in pairs(ns.db.presets or {}) do
             items[#items + 1] = { text = name, icon = ns.MEDIA .. "icons\\profile", fn = function()
                 if ns.SettingsIO and ns.SettingsIO.LoadPreset and ns.SettingsIO.LoadPreset(name) then
-                    done((L["Profil geladen: %s"]):format(name))
+                    done((L["Profile loaded: %s"]):format(name))
                 end
             end }
         end
         table.sort(items, function(a, b) return a.text < b.text end)
-        K.ShowMenu(self, items, L["Gespeicherte Profile"])
+        K.ShowMenu(self, items, L["Saved profiles"])
     end)
     f.preset.isDropdown = true
     f.preset:SetPoint("LEFT", f.multi, "RIGHT", 8, 0)
     -- nicht mehr fragen
-    f.never = K.Toggle(f, L["Bei neuen Versionen nicht mehr fragen"], function() return S().updateAsk == false end,
+    f.never = K.Toggle(f, L["Don't ask again on new versions"], function() return S().updateAsk == false end,
         function(v) if v then S().updateAsk = false else S().updateAsk = nil end end)   -- 0.6.125: liess sich nicht ausschalten
     f.never:SetPoint("BOTTOMLEFT", 14, 16)
     f.never:SetWidth(320)

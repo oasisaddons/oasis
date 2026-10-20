@@ -91,7 +91,7 @@ function Map.LayerLine(p)
     if not (p and p.layer) then return nil end
     local t = (L["Layer %s"]):format(tostring(p.layer))
     if Map.myLayer then
-        t = t .. (p.layer == Map.myLayer and ("  |cff66db9e" .. L["(wie du)"] .. "|r") or ("  |cffe8b44a" .. L["(anderer Layer)"] .. "|r"))
+        t = t .. (p.layer == Map.myLayer and ("  |cff66db9e" .. L["(same as you)"] .. "|r") or ("  |cffe8b44a" .. L["(different layer)"] .. "|r"))
     end
     return "|cffaaaaaa" .. t .. "|r"
 end
@@ -100,10 +100,10 @@ function Map.SameLayer(name)
     if not (p and p.layer and Map.myLayer) then return nil end
     return p.layer == Map.myLayer
 end
-ns.GuildOption({ page = "map", key = "mpShare", default = true, label = "Positionen teilen erlaubt",
-    desc = "Aus: niemand sendet seine Position an die Gilde (Gildenkarte und Minimap-Punkte bleiben leer)" })
-ns.GuildOption({ page = "map", key = "mpMinInt", default = 3, min = 2, max = 60, step = 1, label = "Position hoechstens alle",
-    desc = "Kleinster Abstand zwischen zwei Positionsmeldungen (gegen Last im Addon-Kanal)",
+ns.GuildOption({ page = "map", key = "mpShare", default = true, label = "Position sharing allowed",
+    desc = "Off: nobody sends their position to the guild (guild map and minimap dots stay empty)" })
+ns.GuildOption({ page = "map", key = "mpMinInt", default = 3, min = 2, max = 60, step = 1, label = "Position at most every",
+    desc = "Minimum gap between two position updates (reduces addon channel load)",
     fmt = function(v) return (ns.L["%d s"]):format(v) end })
 local function sendPos()
     if not IsInGuild() then return end
@@ -264,7 +264,7 @@ Map.translate = translate
 function Map.MapName(mapID)
     if cache[mapID] == nil then
         local info = C_Map.GetMapInfo(mapID)
-        cache[mapID] = info and info.name or (L["Karte "] .. mapID)
+        cache[mapID] = info and info.name or (L["Map "] .. mapID)
     end
     return cache[mapID]
 end
@@ -276,7 +276,7 @@ function Map.ShowOnWorldMap(mapID)
     if ns.inCombat and ns.inCombat() then
         if not Map.combatHintAt or GetTime() - Map.combatHintAt > 15 then
             Map.combatHintAt = GetTime()
-            ns.print(L["Im Kampf oeffnet Oasis die Karte nicht - das Ziel ist gesetzt, oeffne die Karte nach dem Kampf."])
+            ns.print(L["Oasis does not open the map in combat - the waypoint is set, open the map after the fight."])
         end
         return
     end
@@ -327,7 +327,7 @@ function Map.ShowMember(name, zone, alias)
     local id = mapIDForZone(zone)
     if id then
         Map.ShowOnWorldMap(id)
-        K.Toast(ns.displayName(name), L["Genaue Position unbekannt - zeige das Gebiet."] .. "  (" .. zone .. ")", C.muted)
+        K.Toast(ns.displayName(name), L["Exact position unknown - showing the zone."] .. "  (" .. zone .. ")", C.muted)
         return true
     end
     return false
@@ -714,7 +714,7 @@ function Map.UpdateWorldPins()
             pin.logo:Hide()
             pin.mono:Hide()
             local lay = Map.SameLayer(e.name)
-            local layTxt = lay == true and ("\n|cff66db9e" .. L["gleicher Layer"] .. "|r") or (lay == false and ("\n|cffd9786b" .. L["anderer Layer"] .. "|r") or "")
+            local layTxt = lay == true and ("\n|cff66db9e" .. L["same layer"] .. "|r") or (lay == false and ("\n|cffd9786b" .. L["other layer"] .. "|r") or "")
             -- Name weiss, nur beim Drueberfahren ueber den Punkt (Gruppenmitglieder ohne eigenen Punkt: immer)
             pin.label:SetText(ns.db.settings.mapNames and (ns.displayName(e.name) .. layTxt) or "")
             pin.hoverLabel = not inGroup
@@ -756,10 +756,10 @@ function Map.UpdateWorldPins()
                 pin.dot:SetTexture(ns.MEDIA .. "diamond")
                 pin.dot:SetVertexColor(C.pink[1], C.pink[2], C.pink[3])
                 pin.ring:SetVertexColor(C.amber[1], C.amber[2], C.amber[3])
-                pin.label:SetText(L["Lagerfeuer"] .. "  " .. math.max(0, math.ceil(((f.exp or 0) - ns.now()) / 60)) .. L[" Min"])   -- 0.5.936: Restlaufzeit
-                pin.tip = { L["|cffff3fbfLagerfeuer|r von "] .. ns.Radar.Colored(f.by) }
+                pin.label:SetText(L["Campfire"] .. "  " .. math.max(0, math.ceil(((f.exp or 0) - ns.now()) / 60)) .. L[" min"])   -- 0.5.936: Restlaufzeit
+                pin.tip = { L["|cffff3fbfCampfire|r by "] .. ns.Radar.Colored(f.by) }
                 if (f.note or "") ~= "" then pin.tip[#pin.tip + 1] = f.note end
-                pin.tip[#pin.tip + 1] = L["noch "] .. math.max(0, math.ceil(((f.exp or 0) - ns.now()) / 60)) .. L[" Min"]
+                pin.tip[#pin.tip + 1] = L[""] .. math.max(0, math.ceil(((f.exp or 0) - ns.now()) / 60)) .. L[" min"]
                 place(pin, x, y)
             end
         end
@@ -791,7 +791,7 @@ function Map.UpdateWorldPins()
             pin.ring:SetVertexColor(C.amber[1], C.amber[2], C.amber[3])
             -- Ziel ist ein Mitglied: dessen Punkt beschriftet schon den Namen -> keine zweite Beschriftung
             pin.label:SetText(tg.member and "" or (tg.label or ""))
-            pin.tip = { "|cffffd24a" .. (tg.label or "") .. "|r", tg.sub or "", L["|cff777777Ziel verschwindet, wenn du dort bist|r"] }
+            pin.tip = { "|cffffd24a" .. (tg.label or "") .. "|r", tg.sub or "", L["|cff777777Disappears once you get there|r"] }
             place(pin, x, y)
             pin:SetAlpha(1)
             -- ueber allem (auch ueber Blizzards Quest-Symbolen) und die ersten Sekunden rot pulsieren
@@ -851,7 +851,7 @@ function Map.SetTarget(t)
     Map.ShowOnWorldMap(t.mapID)
     Map.UpdateWorldPins()
     if Map.UpdateMinimap then Map.UpdateMinimap() end
-    K.Toast(L["Ziel gesetzt"], (t.label or "") .. ((t.sub or "") ~= "" and ("  ·  " .. t.sub) or ""), C.amber, function() Map.ClearTarget() end)
+    K.Toast(L["Target set"], (t.label or "") .. ((t.sub or "") ~= "" and ("  ·  " .. t.sub) or ""), C.amber, function() Map.ClearTarget() end)
     if ns.Compat and ns.Compat.TomTomTarget then pcall(ns.Compat.TomTomTarget, t) end   -- 0.6.525: auch als TomTom-Wegpunkt
 end
 function Map.ClearTarget()
@@ -868,7 +868,7 @@ local function setupWorldMap()
     -- (unsicheren) Provider liefen Blizzards Pins verseucht -> im Kampf "Blocked: Button:SetPassThroughButtons()".
     -- Nachgelagerte Hooks laufen getrennt und verseuchen Blizzards Ablauf nicht.
     provider = true
-    local function upd() local ok, e = pcall(Map.UpdateWorldPins) if not ok then ns.err("Weltkarte", e) end end
+    local function upd() local ok, e = pcall(Map.UpdateWorldPins) if not ok then ns.err("World map", e) end end
     if WorldMapFrame.OnMapChanged then hooksecurefunc(WorldMapFrame, "OnMapChanged", upd) end
     if WorldMapFrame.OnCanvasScaleChanged then hooksecurefunc(WorldMapFrame, "OnCanvasScaleChanged", upd) end
     if WorldMapFrame.RefreshAllDataProviders then hooksecurefunc(WorldMapFrame, "RefreshAllDataProviders", upd) end
@@ -899,12 +899,12 @@ function Map.ShowMapBar()
         b.boxes, b.seps = {}, {}
         -- { Schalter, Text, danach, Gruppe, Tooltip }  (Heatmap, Position teilen und Minimap-Punkte stehen nur noch in den Einstellungen)
         local defs = {
-            { "mapNames", "Namen", function() Map.UpdateWorldPins() end, 1, "Namen neben den Punkten der Gildenmitglieder" },
-            { "mapLevels", "Levelbereiche", function() Map.UpdateWorldPins() end, 2, "Stufenbereich der Gebiete auf der Karte" },
-            { "mapDeaths", "Todesorte", function() Map.UpdateWorldPins() end, 2, "Wo Gildenmitglieder gestorben sind" },
-            { "mapReveal", "Aufdecken", function() if ns.ComfortPlus then ns.ComfortPlus.ApplyReveal() end end, 2, "Noch unentdeckte Gebiete auf der Karte zeigen" },
-            { "mapGather", "Sammelpunkte", function() ns.db.settings.gatherWorldOff = not ns.db.settings.mapGather Map.UpdateWorldPins() if ns.Gather then pcall(ns.Gather.DrawWorld) end end, 3, "Bekannte Fundorte von Kraeutern, Erzen und Kisten" },
-            { "gatherRoute", "Sammelroute", function() if ns.Gather and ns.Gather.Refresh then ns.Gather.Refresh() end end, 3, "Verbindet die Fundorte des Gebiets zu einer Rundstrecke" },
+            { "mapNames", "Names", function() Map.UpdateWorldPins() end, 1, "Names next to guild member dots" },
+            { "mapLevels", "Level ranges", function() Map.UpdateWorldPins() end, 2, "Level range of zones on the map" },
+            { "mapDeaths", "Death spots", function() Map.UpdateWorldPins() end, 2, "Where guild members died" },
+            { "mapReveal", "Reveal", function() if ns.ComfortPlus then ns.ComfortPlus.ApplyReveal() end end, 2, "Show undiscovered areas on the map" },
+            { "mapGather", "Gather nodes", function() ns.db.settings.gatherWorldOff = not ns.db.settings.mapGather Map.UpdateWorldPins() if ns.Gather then pcall(ns.Gather.DrawWorld) end end, 3, "Known spots for herbs, ore and chests" },
+            { "gatherRoute", "Gathering route", function() if ns.Gather and ns.Gather.Refresh then ns.Gather.Refresh() end end, 3, "Connects the zone's spots into a loop" },
         }
         local SW_W, SW_H, KNOB = 22, 12, 8
         -- 0.6.569: Aufdecken und Sammelpunkte stecken in Oasis Convenience - ohne das Teil-Addon keine Schalter
@@ -940,7 +940,7 @@ function Map.ShowMapBar()
             end
             t:SetScript("OnEnter", function(self)
                 if not self.on then self.lbl:SetTextColor(C.muted[1], C.muted[2], C.muted[3]) end
-                K.ShowTip(self, { L[self.title] .. "  " .. (self.on and ("|cff66db9e" .. L["an"] .. "|r") or ("|cff888888" .. L["aus"] .. "|r")), L[self.tip] })
+                K.ShowTip(self, { L[self.title] .. "  " .. (self.on and ("|cff66db9e" .. L["on"] .. "|r") or ("|cff888888" .. L["off"] .. "|r")), L[self.tip] })
             end)
             t:SetScript("OnLeave", function(self) self:Update() GameTooltip:Hide() end)
             t:SetScript("OnClick", function(self)
@@ -992,14 +992,14 @@ function Map.ShowMapBar()
             g:SetScript("OnClick", onClick)
             return g
         end
-        b.gear = action("Einstellungen", "settings", function() if ns.OpenAreaSettings then ns.OpenAreaSettings("map") end end,
-            function() return { L["Karten-Einstellungen"], L["Groesse, Deckkraft und mehr fuer alle Symbole auf Karte und Minimap"] } end)
+        b.gear = action("Settings", "settings", function() if ns.OpenAreaSettings then ns.OpenAreaSettings("map") end end,
+            function() return { L["Map settings"], L["Size, opacity and more for all icons on the map and minimap"] } end)
         b.marker = action("Marker", "pin", function(self)
-            if ns.MapExtras and ns.MapExtras.MenuItems then K.ShowMenu(self, ns.MapExtras.MenuItems(), L["Marker setzen"]) end
-        end, function() return { L["Marker setzen"], L["Treffpunkt, Vorsicht oder Notiz: Art waehlen, dann auf die Karte klicken"] } end)
+            if ns.MapExtras and ns.MapExtras.MenuItems then K.ShowMenu(self, ns.MapExtras.MenuItems(), L["Place marker"]) end
+        end, function() return { L["Place marker"], L["Meeting point, caution or note: pick a kind, then click the map"] } end)
         b.layer = action("Layer", "map", function(self)
-            if ns.MapExtras and ns.MapExtras.LayerMenuItems then K.ShowMenu(self, ns.MapExtras.LayerMenuItems(), L["Layer wechseln"]) end
-        end, function() return { L["Layer wechseln"] } end)
+            if ns.MapExtras and ns.MapExtras.LayerMenuItems then K.ShowMenu(self, ns.MapExtras.LayerMenuItems(), L["Switch layer"]) end
+        end, function() return { L["Switch layer"] } end)
         b.asep = b:CreateTexture(nil, "ARTWORK")
         b.asep:SetColorTexture(1, 1, 1, 0.10)
         b.asep:SetSize(1, 14)
@@ -1113,11 +1113,11 @@ end
 local function pinTip(p)
     if p.kind == "m" then
         local m = ns.Radar.byName[p.who]
-        return { ns.Radar.Colored(p.who) .. (m and (L["  |cffaaaaaaLevel "] .. m.level .. "|r") or ""), p.dist .. L[" m entfernt"], L["|cffff1200Oasis|r"] }
+        return { ns.Radar.Colored(p.who) .. (m and (L["  |cffaaaaaaLevel "] .. m.level .. "|r") or ""), p.dist .. L[" yd away"], L["|cffff1200Oasis|r"] }
     elseif p.kind == "f" then
-        return { L["|cffff3fbfLagerfeuer|r von "] .. ns.Radar.Colored(p.who), p.dist .. L[" m entfernt"] }
+        return { L["|cffff3fbfCampfire|r by "] .. ns.Radar.Colored(p.who), p.dist .. L[" yd away"] }
     elseif p.kind == "t" then
-        return { "|cffffd24a" .. (p.label or "") .. "|r", p.dist .. L[" m entfernt"] }
+        return { "|cffffd24a" .. (p.label or "") .. "|r", p.dist .. L[" yd away"] }
     end
 end
 Map.PinTip = pinTip
@@ -1232,7 +1232,7 @@ function Map.UpdateMinimap()
                     end
                     p.ring:SetVertexColor(C.amber[1], C.amber[2], C.amber[3])
                     if dist < 12 then
-                        K.Toast(L["Ziel erreicht"], tg.label or "", C.mint)
+                        K.Toast(L["Target reached"], tg.label or "", C.mint)
                         Map.target = nil
                     end
                 end
@@ -1273,12 +1273,12 @@ end
 
 local function rowMenu(self, e)
     K.ShowMenu(self, {
-        { text = L["Auf der Weltkarte zeigen"], func = function() Map.ShowOnWorldMap(e.p.mapID) end },
-        { text = L["Als Ziel setzen (Pfeil auf der Minimap)"], func = function()
+        { text = L["Show on world map"], func = function() Map.ShowOnWorldMap(e.p.mapID) end },
+        { text = L["Set as target (minimap arrow)"], func = function()
             Map.SetTarget({ mapID = e.p.mapID, x = e.p.x, y = e.p.y, label = ns.displayName(e.name), member = e.name })
         end },
-        { text = L["Anfluestern"], func = function() whisper(e.name) end },
-        { text = L["In Gruppe einladen"], func = function() invite(e.name) end },
+        { text = L["Whisper"], func = function() whisper(e.name) end },
+        { text = L["Invite to group"], func = function() invite(e.name) end },
     }, ns.displayName(e.name))
 end
 
@@ -1327,13 +1327,13 @@ local function buildRows()
 end
 
 ns.RegisterPage({
-    key = "map", title = "Karte & Radar", order = 7, parent = "settings",
-    sub = "Wo ist die Gilde? Wer ist in deiner Naehe - mit Entfernung, Richtung und Punkten auf Welt- und Minimap",
+    key = "map", title = "Map & radar", order = 7, parent = "settings",
+    sub = "Where is the guild? Who is near you – with distance, direction and dots on world map and minimap",
     build = function(p)
         -- Kennzahlen
         p.cards = {}
-        local TD = { { ns.ICONS.map, "Teilen ihre Position", C.accent }, { ns.ICONS.radar, "In deinem Gebiet", C.mint },
-            { ns.ICONS.social, "In deiner Naehe (500 m)", C.amber } }
+        local TD = { { ns.ICONS.map, "Sharing position", C.accent }, { ns.ICONS.radar, "In your zone", C.mint },
+            { ns.ICONS.social, "Near you (500 m)", C.amber } }
         for i, d in ipairs(TD) do
             local c = K.HudTile(p, d[1], L[d[2]], d[3])
             c:SetHeight(62)
@@ -1351,13 +1351,13 @@ ns.RegisterPage({
         layoutCards(p:GetWidth())
         p:HookScript("OnShow", function(self) self.fresh = true end)
         p.fresh = true
-        local open = K.Button(p, L["Weltkarte oeffnen"], 140, 26, "primary", function()
+        local open = K.Button(p, L["Open world map"], 140, 26, "primary", function()
             Map.ShowOnWorldMap(C_Map.GetBestMapForUnit("player"))
         end)
         open:SetPoint("TOPRIGHT", 0, 0)
 
         local SIDE = 250
-        p.search = K.Input(p, 200, L["Name oder Gebiet suchen ..."], function(t) search = (t or ""):lower() ns.RefreshPage("map") end)
+        p.search = K.Input(p, 200, L["Search name or zone ..."], function(t) search = (t or ""):lower() ns.RefreshPage("map") end)
         p.search:SetPoint("TOPLEFT", 0, -66)
 
         local list = K.List(p, 34, function(l)
@@ -1403,9 +1403,9 @@ ns.RegisterPage({
                 if not e or e.header then return end
                 local lines = { ns.Radar.Colored(e.name), Map.MapName(e.p.mapID) .. ("  |cff888888%.1f, %.1f|r"):format(e.p.x * 100, e.p.y * 100) }
                 lines[#lines + 1] = Map.LayerLine(e.p)
-                if e.dist then lines[#lines + 1] = L["Entfernung: "] .. fmtDist(e.dist) end
+                if e.dist then lines[#lines + 1] = L["Distance: "] .. fmtDist(e.dist) end
                 lines[#lines + 1] = " "
-                lines[#lines + 1] = "|cff888888" .. L["Klick: Weltkarte  ·  Rechtsklick: Ziel, Fluestern, Einladen"] .. "|r"
+                lines[#lines + 1] = "|cff888888" .. L["Click: world map  ·  Right-click: target, whisper, invite"] .. "|r"
                 K.ShowTip(self, lines)
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1419,14 +1419,14 @@ ns.RegisterPage({
             if head then
                 r.stripe:SetColorTexture(1, 1, 1, 0.05)
                 r.hTwist:SetText(e.closed and "+" or "-")
-                r.hTitle:SetText(e.g.name .. (e.g.mine and ("  |cffff1200" .. L["dein Gebiet"] .. "|r") or ""))
+                r.hTitle:SetText(e.g.name .. (e.g.mine and ("  |cffff1200" .. L["your zone"] .. "|r") or ""))
                 local lo, hi = 99, 0
                 for _, x in ipairs(e.g.list) do
                     local m = ns.Radar.byName[x.name]
                     local lv = m and m.level or 0
                     if lv > 0 then lo, hi = math.min(lo, lv), math.max(hi, lv) end
                 end
-                r.hInfo:SetText(#e.g.list .. "  " .. (hi > 0 and ("|cff666666" .. L["Stufe"] .. " " .. (lo == hi and lo or (lo .. "-" .. hi)) .. "|r") or ""))
+                r.hInfo:SetText(#e.g.list .. "  " .. (hi > 0 and ("|cff666666" .. L["Item level"] .. " " .. (lo == hi and lo or (lo .. "-" .. hi)) .. "|r") or ""))
                 return
             end
             r.stripe:SetColorTexture(1, 1, 1, 0.022)
@@ -1456,11 +1456,11 @@ ns.RegisterPage({
         end)
         list:SetPoint("TOPLEFT", 0, -98)
         list:SetPoint("BOTTOMRIGHT", -(SIDE + 12), 0)
-        list.empty:SetText(L["Gerade teilt niemand seine Position.\nWer Oasis hat und 'Meine Position teilen' anlaesst, erscheint hier."])
+        list.empty:SetText(L["Nobody is sharing their position.\nAnyone with Oasis and 'Share my position' on shows up here."])
         p.list = list
 
         -- Gebiete
-        local zp = panel(p, L["Gebiete"])
+        local zp = panel(p, L["Zones"])
         zp:SetPoint("TOPRIGHT", 0, -66)
         zp:SetPoint("BOTTOMRIGHT", 0, 146)
         zp:SetWidth(SIDE)
@@ -1481,40 +1481,40 @@ ns.RegisterPage({
         end)
         p.zones:SetPoint("TOPLEFT", 4, -32)
         p.zones:SetPoint("BOTTOMRIGHT", -4, 6)
-        p.zones.empty:SetText(L["Noch keine Positionen."])
+        p.zones.empty:SetText(L["No positions yet."])
 
         -- Einstellungen
-        local sp = panel(p, L["Einstellungen"])
+        local sp = panel(p, L["Settings"])
         sp:SetPoint("BOTTOMRIGHT", 0, 0)
         sp:SetSize(SIDE, 164)
-        local share = K.Toggle(sp, L["Meine Position teilen"], function() return ns.db.settings.shareMap end, function(v)
+        local share = K.Toggle(sp, L["Share my position"], function() return ns.db.settings.shareMap end, function(v)
             ns.db.settings.shareMap = v
             lastKey = nil
             sendPos()
-        end, L["Nur Gilde mit Oasis, nie in Instanzen"])
+        end, L["Guild with Oasis only, never in instances"])
         share:SetPoint("TOPLEFT", 12, -32)
         share:SetWidth(SIDE - 24)
-        local names = K.Toggle(sp, L["Namen auf der Weltkarte"], function() return ns.db.settings.mapNames end, function(v)
+        local names = K.Toggle(sp, L["Names on the world map"], function() return ns.db.settings.mapNames end, function(v)
             ns.db.settings.mapNames = v
             Map.UpdateWorldPins()
         end)
         names:SetPoint("TOPLEFT", 12, -74)
         names:SetWidth(SIDE - 24)
-        local dots = K.Toggle(sp, L["Punkte auf der Minimap"], function() return ns.db.settings.minimapDots end, function(v)
+        local dots = K.Toggle(sp, L["Dots on the minimap"], function() return ns.db.settings.minimapDots end, function(v)
             ns.db.settings.minimapDots = v
             Map.UpdateMinimap()
         end)
         dots:SetPoint("TOPLEFT", 12, -102)
         dots:SetWidth(SIDE - 24)
-        local heat = K.Toggle(sp, L["Heatmap auf der Weltkarte"], function() return ns.db.settings.mapHeat end, function(v)
+        local heat = K.Toggle(sp, L["Heatmap on the world map"], function() return ns.db.settings.mapHeat end, function(v)
             ns.db.settings.mapHeat = v
             Map.UpdateWorldPins()
         end)
         heat:SetPoint("TOPLEFT", 12, -130)
         heat:SetWidth(SIDE - 24)
         heat:HookScript("OnEnter", function(self)
-            K.ShowTip(self, { L["Heatmap"], L["Wo sich die Gilde aufhaelt - aus deiner Position und allen geteilten Gilden-Positionen, jede Minute."],
-                L["Hauptstaedte zaehlen weniger. Aeltere Werte verblassen langsam."] })
+            K.ShowTip(self, { L["Heatmap"], L["Where the guild spends time - from your position and all shared guild positions, every minute."],
+                L["Capitals count less. Older values fade slowly."] })
         end)
         heat:HookScript("OnLeave", function() GameTooltip:Hide() end)
     end,

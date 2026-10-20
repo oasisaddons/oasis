@@ -42,7 +42,7 @@ Emoji.LIST = {
     { "zombie", ":zombie:" }, { "troll", ":troll:" }, { "pirate", ":pirate:" },
 }
 -- Kategorien fuer die Auswahl: Standard, Gilde (eigene, auch animiert), Raid-Symbole
-Emoji.CATS = { { key = "std", name = "Standard", items = Emoji.LIST } }
+Emoji.CATS = { { key = "std", name = "Default", items = Emoji.LIST } }
 -- eigene Gilden-Emojis (CustomEmojis + ImportEmojis.bat) liegen im Gildenmodul Oasis_Guild und kommen ueber Emoji.AddCats dazu
 local RAID = {}
 for i = 1, 8 do RAID[i] = { "raid" .. i, "{rt" .. i .. "}", raid = true } end
@@ -177,7 +177,7 @@ function Emoji.ShowLinkTip(owner, link)
             if l then l:SetText(tex(self.e, 64) .. "   |cffffffff" .. (self.e[2] or "") .. "|r") end
         end)
     end
-    if #codes > 0 then GameTooltip:AddLine(L["auch:"] .. " " .. table.concat(codes, "  "), 0.6, 0.6, 0.65) end
+    if #codes > 0 then GameTooltip:AddLine(L["also:"] .. " " .. table.concat(codes, "  "), 0.6, 0.6, 0.65) end
     GameTooltip:Show()
     return true
 end
@@ -281,7 +281,7 @@ end
 local function showChatWatch()
     local report = ns.db and ns.db.chatWatchReport
     if report and ns.WhisperLog and ns.WhisperLog.Copy then
-        ns.WhisperLog.Copy(L["Chat-Diagnose"], report)
+        ns.WhisperLog.Copy(L["Chat diagnostics"], report)
     end
 end
 ns.slash.chatwatch = function(arg)
@@ -300,7 +300,7 @@ ns.slash.chatwatch = function(arg)
     end
     sample(0)
     if ns.K and ns.K.Toast then
-        ns.K.Toast(L["Chat-Diagnose"], L["Messung laeuft 30 Sekunden. Danach oeffnet sich der Bericht zum Kopieren."], nil, nil, "none")
+        ns.K.Toast(L["Chat diagnostics"], L["Recording for 30 seconds. The report will then open for copying."], nil, nil, "none")
     end
     local n = 0
     chatWatchTimer = C_Timer.NewTicker(1, function()
@@ -896,7 +896,7 @@ function Emoji.QuickCodes(n)
     for _, e in ipairs(cnt) do add(e[1]) end
     return out
 end
-Emoji.RECENT = { key = "recent", name = "Zuletzt", items = {} }
+Emoji.RECENT = { key = "recent", name = "Last seen", items = {} }
 function Emoji.RefreshRecent()
     local items = {}
     for _, code in ipairs(ns.db and ns.db.settings.emojiRecent or {}) do
@@ -1004,7 +1004,7 @@ end
 -- Reiter "Oasis": alle Emojis, die man mit dem Oasis-Rang freischaltet, sortiert nach Rang
 Emoji.OASIS = { key = "oasis", name = "Oasis", items = {}, custom = true }
 ns.GuildOption({ page = "chat", key = "emLock", default = true,   -- 0.6.417: Standard an label = "Besondere Emojis erst ab Oasis-Rang",
-    desc = "Aus: alle animierten Gilden-Emojis sind fuer jeden sofort benutzbar" })
+    desc = "Off: all animated guild emojis can be used by everyone right away" })
 local function refreshOasisCat()
     local out, seen = {}, {}
     local RW = ns.Rewards
@@ -1024,7 +1024,7 @@ local function refreshOasisCat()
 end
 -- Favoriten (0.5.590): Rechtsklick auf ein Emoji; eigener Reiter ganz vorne, Reihenfolge = wann gemerkt
 local FAV_MAX = 60
-Emoji.FAV = { key = "fav", name = "Favoriten", items = {} }
+Emoji.FAV = { key = "fav", name = "Favourites", items = {} }
 local function favList() if not ns.db then return {} end ns.db.settings.emojiFav = ns.db.settings.emojiFav or {} return ns.db.settings.emojiFav end
 function Emoji.IsFav(code)
     for _, c in ipairs(favList()) do if c == code then return true end end
@@ -1044,9 +1044,9 @@ function Emoji.RefreshFav()
     Emoji.FAV.items = items
 end
 -- Haeufig (eigene Nutzung), Beliebt (Gildenchat), Kombos (mehrere Emojis auf einen Klick) - 0.5.592
-Emoji.OFTEN = { key = "often", name = "Haeufig", items = {} }
-Emoji.POPULAR = { key = "popular", name = "Beliebt", items = {} }
-Emoji.COMBOS = { key = "combos", name = "Kombos", items = {} }
+Emoji.OFTEN = { key = "often", name = "Frequent", items = {} }
+Emoji.POPULAR = { key = "popular", name = "Popular", items = {} }
+Emoji.COMBOS = { key = "combos", name = "Combos", items = {} }
 local COMBO_MAX, COMBO_LEN = 24, 8
 local function comboList() if not ns.db then return {} end ns.db.settings.emojiCombos = ns.db.settings.emojiCombos or {} return ns.db.settings.emojiCombos end
 function Emoji.AddCombo(codes)
@@ -1157,12 +1157,12 @@ local function buildPicker()
     gear.icon:SetPoint("CENTER")
     gear:SetScript("OnEnter", function(self)
         self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3])
-        K.ShowTip(self, { L["Darstellung"], L["Groesse, Transparenz, Verhalten"] })
+        K.ShowTip(self, { L["Appearance"], L["Size, transparency, behaviour"] })
     end)
     gear:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
     gear:SetScript("OnClick", function() Emoji.ShowPickerOptions() end)
     -- Suche ueber alle Reiter (Kurzcode), Enter = erstes Emoji einfuegen
-    f.search = K.Input(f, 150, L["Suchen ..."], function(t)
+    f.search = K.Input(f, 150, L["Search ..."], function(t)
         f.q = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
         f:ShowCat(f.cat or "std", true)
     end)
@@ -1347,7 +1347,7 @@ local function buildPicker()
             -- Kombo: Rechtsklick loescht sie
             if btn == "RightButton" and e and e.combo then
                 Emoji.RemoveCombo(e.comboIdx)
-                K.Toast(L["Emojis"], L["Kombo geloescht."], C.dim)
+                K.Toast(L["Emojis"], L["Combo deleted."], C.dim)
                 f:ShowCat("combos", true)
                 return
             end
@@ -1434,7 +1434,7 @@ local function buildPicker()
         self.foot:SetPoint("BOTTOMLEFT", 40, 11)
         local codes = {}
         for j = 2, #e do codes[#codes + 1] = e[j] end
-        self.foot:SetText("|cffffffff" .. table.concat(codes, "   ") .. "|r   |cff666666" .. L["Rechtsklick: Favorit  ·  Shift+Klick: Kombo"] .. "|r")
+        self.foot:SetText("|cffffffff" .. table.concat(codes, "   ") .. "|r   |cff666666" .. L["Right-click: favourite  ·  Shift-click: combo"] .. "|r")
     end
 
     -- Kombo-Baukasten: Shift+Klick sammelt Emojis, dann einfuegen oder als Kombo merken
@@ -1449,7 +1449,7 @@ local function buildPicker()
     if K.RoundMask then K.RoundMask(f.cb.bg, f.cb.bg, 8) end
     f.cb.lbl = K.Text(f.cb, 11, C.muted)
     f.cb.lbl:SetPoint("LEFT", 8, 0)
-    f.cb.lbl:SetText(L["Kombo:"])
+    f.cb.lbl:SetText(L["Combo:"])
     f.cb.icons = {}
     for i = 1, COMBO_LEN do
         local t = f.cb:CreateTexture(nil, "ARTWORK")
@@ -1459,19 +1459,19 @@ local function buildPicker()
     end
     f.cb.clear = K.Button(f.cb, "x", 24, 20, "ghost", function() f.combo = {} f:PaintCombo() end)
     f.cb.clear:SetPoint("RIGHT", -4, 0)
-    f.cb.save = K.Button(f.cb, L["Merken"], 70, 20, "ghost", function()
+    f.cb.save = K.Button(f.cb, L["Save"], 70, 20, "ghost", function()
         if Emoji.AddCombo(f.combo) then
-            K.Toast(L["Emojis"], L["Kombo gemerkt - Reiter Kombos."], C.mint)
+            K.Toast(L["Emojis"], L["Combo saved - see the Combos tab."], C.mint)
             f.combo = {}
             f.needTabs = true
             f:PaintCombo()
             if f.cat == "combos" then f:ShowCat("combos", true) end
         else
-            K.Toast(L["Emojis"], L["Eine Kombo braucht mindestens 2 Emojis."], C.dim)
+            K.Toast(L["Emojis"], L["A combo needs at least 2 emojis."], C.dim)
         end
     end)
     f.cb.save:SetPoint("RIGHT", f.cb.clear, "LEFT", -4, 0)
-    f.cb.ins = K.Button(f.cb, L["Einfuegen"], 80, 20, "primary", function()
+    f.cb.ins = K.Button(f.cb, L["Insert"], 80, 20, "primary", function()
         if #f.combo == 0 then return end
         local codes = f.combo
         f.combo = {}
@@ -1493,7 +1493,7 @@ local function buildPicker()
         if was ~= (n > 0) then self:Layout() end
     end
     function f:ComboAdd(code, cell)
-        if #self.combo >= COMBO_LEN then K.Toast(L["Emojis"], (L["Hoechstens %d Emojis je Kombo."]):format(COMBO_LEN), C.dim) return end
+        if #self.combo >= COMBO_LEN then K.Toast(L["Emojis"], (L["At most %d emojis per combo."]):format(COMBO_LEN), C.dim) return end
         self.combo[#self.combo + 1] = code
         self:PaintCombo()
         -- kleines Hochhuepfen des neuen Bildes in der Leiste
@@ -1539,8 +1539,8 @@ local function buildPicker()
         self:ShowCat("fav", true)
     end
     -- Ziel waehlen wie im Sound-Fenster: Gilde / Gruppe / Raid / letzter Fluesterpartner (in Chatfarben)
-    local CHS = { { "GUILD", "Gilde", "/g ", { 0.25, 1, 0.25 } }, { "PARTY", "Gruppe", "/p ", { 0.67, 0.67, 1 } },
-        { "RAID", "Raid", "/ra ", { 1, 0.5, 0 } }, { "WHISPER", "Fluestern", nil, { 1, 0.5, 1 } } }
+    local CHS = { { "GUILD", "Guild", "/g ", { 0.25, 1, 0.25 } }, { "PARTY", "Group", "/p ", { 0.67, 0.67, 1 } },
+        { "RAID", "Raid", "/ra ", { 1, 0.5, 0 } }, { "WHISPER", "Whisper", nil, { 1, 0.5, 1 } } }
     f.chans = {}
     for i, d in ipairs(CHS) do
         local b = K.Button(f, L[d[2]], 74, 20, "ghost", function()
@@ -1548,7 +1548,7 @@ local function buildPicker()
             local pre = d[3]
             if d[1] == "WHISPER" then
                 local who = (lt.pre and lt.pre:match("^/w (.-) $")) or (ChatEdit_GetLastTellTarget and ns.safe(ChatEdit_GetLastTellTarget()))
-                if not who or who == "" then ns.print(L["Noch niemand angefluestert."]) return end
+                if not who or who == "" then ns.print(L["You have not whispered anyone yet."]) return end
                 pre = "/w " .. who .. " "
             end
             Emoji.lastTarget = { pre = pre, text = lt.text or "", eb = lt.eb, t = GetTime(), ct = d[1] }
@@ -1737,7 +1737,7 @@ local function buildPicker()
                 b.code = e[2]
                 local codes = {}
                 for j = 2, #e do codes[#codes + 1] = e[j] end
-                b.tip = { e[2], (#codes > 1 and (table.concat(codes, "   ") .. "\n") or "") .. L["Klick: einfuegen"] }
+                b.tip = { e[2], (#codes > 1 and (table.concat(codes, "   ") .. "\n") or "") .. L["Click: insert"] }
                 -- besondere Emojis: erst ab einem Oasis-Rang
                 local need = ns.Rewards and ns.Rewards.EmojiLevel(e)
                 local locked = need and ns.Rank and ns.Rank.Mine().level < need and not (ns.UnlockAll and ns.UnlockAll())
@@ -1746,7 +1746,7 @@ local function buildPicker()
                 local mayOwn = ownCode and ns.MediaPack and ns.MediaPack.MayUse("emoji", ownCode, nil)
                 if mayOwn ~= nil then
                     locked = not mayOwn
-                    if need == ns.MediaPack.LEAD then need = L["Leitung"] elseif need == ns.MediaPack.OFF then need = L["aus"] end
+                    if need == ns.MediaPack.LEAD then need = L["Leaders"] elseif need == ns.MediaPack.OFF then need = L["off"] end
                 end
                 b.icon:SetDesaturated(locked and true or false)
                 b.icon:SetAlpha(locked and 0.35 or 1)
@@ -1756,14 +1756,14 @@ local function buildPicker()
                 b.lockTxt:SetText(need or "")
                 if locked then
                     b.code = nil
-                    b.tip = { e[2], "|cffffd24a" .. (L["Ab Oasis-Rang %d"]):format(need) .. "|r" }
+                    b.tip = { e[2], "|cffffd24a" .. (L["From Oasis rank %d"]):format(need) .. "|r" }
                 end
                 -- Kombo: alle Codes auf einen Klick
                 if e.combo then
                     b.code = table.concat(e.combo, " ")
                     b.favCode = nil
                     b.star:Hide()
-                    b.tip = { L["Kombo"], table.concat(e.combo, "  "), "|cff888888" .. L["Klick: alles einfuegen  ·  Rechtsklick: loeschen"] .. "|r" }
+                    b.tip = { L["Combo"], table.concat(e.combo, "  "), "|cff888888" .. L["Click: insert all  ·  Right-click: delete"] .. "|r" }
                     b.icon:SetDesaturated(false) b.icon:SetAlpha(1)
                     b.lockBg:Hide() b.lockTxt:Hide() b.lockIcon:Hide()
                 end
@@ -1778,17 +1778,17 @@ local function buildPicker()
             end
         end
         if q ~= "" then
-            self.footDefault = (#items > 0) and (L["%d Treffer"]):format(#items) .. "  ·  " .. L["Enter: erstes einfuegen"] or L["Nichts gefunden."]
+            self.footDefault = (#items > 0) and (L["%d matches"]):format(#items) .. "  ·  " .. L["Enter: insert first"] or L["Nothing found."]
         elseif cat.key == "fav" and #items == 0 then
-            self.footDefault = L["Rechtsklick auf ein Emoji = Favorit"]
+            self.footDefault = L["Right-click an emoji = favourite"]
         elseif cat.key == "fav" then
-            self.footDefault = L["Favoriten per Ziehen umsortieren  ·  Pfeiltasten + Enter im Suchfeld"]
+            self.footDefault = L["Drag to reorder favourites  ·  Arrow keys + Enter in the search field"]
         elseif cat.key == "combos" then
-            self.footDefault = L["Shift+Klick auf Emojis legt sie in den Kombo-Baukasten"]
+            self.footDefault = L["Shift-click emojis to put them into the combo builder"]
         elseif cat.key == "popular" then
-            self.footDefault = L["Was in den letzten Tagen im Gildenchat am meisten benutzt wurde"]
+            self.footDefault = L["What was used most in guild chat over the last days"]
         else
-            self.footDefault = cat.raid and L["Raid-Symbole - sieht jeder, auch ohne Oasis"] or L["sehen alle mit Oasis - ohne Oasis steht dort der Code"]
+            self.footDefault = cat.raid and L["Raid markers – everyone sees them, even without Oasis"] or L["everyone with Oasis sees them – without Oasis the code is shown"]
         end
         self:Preview(nil)
         -- leere Favoriten: Hinweis mitten im Raster
@@ -1801,8 +1801,8 @@ local function buildPicker()
         local none = #items == 0
         self.emptyTxt:SetShown(none)
         if none then
-            self.emptyTxt:SetText(q ~= "" and L["Nichts gefunden."] or (cat.key == "fav" and L["Noch keine Favoriten.\nRechtsklick auf ein Emoji merkt es hier."])
-                or (cat.key == "combos" and L["Noch keine Kombos.\nShift+Klick auf mehrere Emojis, dann Merken."]) or "")
+            self.emptyTxt:SetText(q ~= "" and L["Nothing found."] or (cat.key == "fav" and L["No favourites yet.\nRight-click an emoji to keep it here."])
+                or (cat.key == "combos" and L["No combos yet.\nShift-click several emojis, then Save."]) or "")
         end
         self:Layout()
     end
@@ -1839,7 +1839,7 @@ local function buildOptions(pk)
     end
     local t = K.Title(o, 12, C.text)
     t:SetPoint("TOPLEFT", 12, -10)
-    t:SetText(L["Darstellung"])
+    t:SetText(L["Appearance"])
     local x = K.CloseButton(o, function() o:Hide() end)
     x:SetPoint("TOPRIGHT", -4, -4)
     local y = -38
@@ -1858,39 +1858,39 @@ local function buildOptions(pk)
         y = y - 34
         return sl
     end
-    head(L["Hintergrund"])
+    head(L["Background"])
     o.alpha = slider(0.3, 1, 0.05, "emojiAlpha", 0.8, function(v) return math.floor(v * 100 + 0.5) .. " %" end,
         function() if picker then picker:ApplyAlpha() end end)
-    head(L["Groesse in der Auswahl"])
+    head(L["Size in the picker"])
     o.pick = slider(28, 56, 2, "emojiPickSize", 38, function(v) return v .. " px" end, nil,
         function() if picker then picker:Layout() end end)
-    head(L["Fenstergroesse"])
-    o.w = slider(220, 1200, 10, "emojiW", 14 * 38 + 20, function(v) return (L["Breite %d"]):format(v) end, nil,
+    head(L["Window size"])
+    o.w = slider(220, 1200, 10, "emojiW", 14 * 38 + 20, function(v) return (L["Width %d"]):format(v) end, nil,
         function() if picker then picker:Layout() end end)
-    o.h = slider(170, 900, 10, "emojiH", 330, function(v) return (L["Hoehe %d"]):format(v) end, nil,
+    o.h = slider(170, 900, 10, "emojiH", 330, function(v) return (L["Height %d"]):format(v) end, nil,
         function() if picker then picker:Layout() end end)
-    head(L["Groesse im Chat"])
+    head(L["Size in chat"])
     o.chat = slider(0, 36, 2, "emojiChatSize", 0, function(v) return v == 0 and L["Auto"] or (v .. " px") end)
-    o.close = K.Toggle(o, L["Nach Auswahl schliessen"], function() return st.emojiClose and true or false end,
+    o.close = K.Toggle(o, L["Close after picking"], function() return st.emojiClose and true or false end,
         function(v) st.emojiClose = v and true or false end)
     o.close:SetWidth(226)
     o.close:SetPoint("TOPLEFT", 12, y - 4)
     -- Nachricht abgeschickt: Auswahl zu (an) oder offen lassen (aus)
-    o.sendClose = K.Toggle(o, L["Nach dem Senden schliessen"], function() return st.emojiCloseOnSend ~= false end,
+    o.sendClose = K.Toggle(o, L["Close after sending"], function() return st.emojiCloseOnSend ~= false end,
         function(v) st.emojiCloseOnSend = v and true or false end)
     o.sendClose:SetWidth(226)
     o.sendClose:SetPoint("TOPLEFT", 12, y - 32)
     o:SetHeight(462)
-    o.clearFav = K.Button(o, L["Favoriten leeren"], 226, 24, "ghost", function()
+    o.clearFav = K.Button(o, L["Clear favourites"], 226, 24, "ghost", function()
         st.emojiFav = {}
         if picker and picker:IsShown() then picker:ShowCat(picker.cat or "std", true) end
-        K.Toast(L["Emojis"], L["Favoriten geleert."], C.mint)
+        K.Toast(L["Emojis"], L["Favourites cleared."], C.mint)
     end)
     o.clearFav:SetPoint("BOTTOMLEFT", 12, 42)
-    o.clear = K.Button(o, L["Zuletzt benutzte leeren"], 226, 24, "ghost", function()
+    o.clear = K.Button(o, L["Clear recently used"], 226, 24, "ghost", function()
         st.emojiRecent = {}
         if picker then picker.needRebuild = true end
-        K.Toast(L["Emojis"], L["Zuletzt benutzte geleert."], C.mint)
+        K.Toast(L["Emojis"], L["Recently used cleared."], C.mint)
     end)
     o.clear:SetPoint("BOTTOMLEFT", 12, 12)
     function o:Refresh()
@@ -1964,7 +1964,7 @@ ns.slash.emojiversatz = function(rest)
     end
     local own = tonumber(ns.db.settings.emojiXScale)
     ns.print(("Emoji-Versatz %.2f  (%s)  - kleiner = weiter links. Aendern: /oa emojiversatz 1.05 | /oa emojiversatz auto"):format(
-        Emoji.XScale(), own and "eigene Einstellung" or "Standard"))
+        Emoji.XScale(), own and "eigene Einstellung" or "Default"))
 end
 ns.slash.emojitest = function()
     local out = {}
@@ -2126,7 +2126,7 @@ local function attach(eb)
     b:SetScript("OnEnter", function(self)
         Emoji.RememberTarget(eb)
         self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
-        K.ShowTip(self, { L["Emojis"], L["Klick: Auswahl oeffnen"], "|cff888888" .. L["Im Chat: Alt+Leertaste"] .. "|r" })
+        K.ShowTip(self, { L["Emojis"], L["Click: open picker"], "|cff888888" .. L["In chat: Alt+Space"] .. "|r" })
     end)
     b:SetScript("OnLeave", function(self)
         self.icon:SetVertexColor(0.6, 0.6, 0.62)
@@ -2163,7 +2163,7 @@ local function attach(eb)
     sb.icon:SetVertexColor(0.6, 0.6, 0.62)
     sb:SetScript("OnEnter", function(self)
         self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
-        K.ShowTip(self, { L["Sound schicken"], L["Alle mit Oasis hoeren ihn - hoechstens alle 30 Sekunden."] })
+        K.ShowTip(self, { L["Send sound"], L["Everyone with Oasis hears it - at most every 30 seconds."] })
     end)
     sb:SetScript("OnLeave", function(self) self.icon:SetVertexColor(0.6, 0.6, 0.62) GameTooltip:Hide() end)
     -- wie beim Emoji-Knopf: Ziel + angefangenen Text merken, BEVOR WoW die Eingabe beim Klick schliesst
@@ -2220,7 +2220,7 @@ function Emoji.Preview(eb)
     local first = math.max(1, #icons - 11)
     local list = {}
     for i = first, #icons do list[#list + 1] = icons[i] end
-    f.t:SetText("|cff888888" .. L["Emoji erkannt"] .. "|r   " .. table.concat(list, " "))
+    f.t:SetText("|cff888888" .. L["Emoji recognised"] .. "|r   " .. table.concat(list, " "))
     f:SetWidth(math.min(math.max(140, (f.t:GetStringWidth() or 120) + 20), math.max(200, eb:GetWidth() or 300)))
     f:SetFrameStrata("TOOLTIP")
     f.hideAt = GetTime() + 2.5

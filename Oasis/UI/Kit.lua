@@ -873,14 +873,14 @@ function K.Dropdown(parent, w, label, items, getValue, onPick)
     b.arrow:SetPoint("RIGHT", -8, 0)
     b.arrow:SetText("v")
     function b:Update()
-        local v, text = getValue(), L["Alle"]
+        local v, text = getValue(), L["All"]
         for _, it in ipairs(items()) do if it.key == v then text = it.text end end
         self.label:SetText((v ~= nil and K.hex(C.accent) or "|cffa3a3a8") .. label .. ":|r " .. text)
         K.SetBorderColor(self, v ~= nil and C.accent2 or C.line)
     end
     b:SetScript("OnClick", function(self)
         local cur = getValue()
-        local list = { { text = L["Alle"], checked = cur == nil, fn = function() onPick(nil) self:Update() end } }
+        local list = { { text = L["All"], checked = cur == nil, fn = function() onPick(nil) self:Update() end } }
         for _, it in ipairs(items()) do
             list[#list + 1] = { text = it.text, checked = it.key == cur, fn = function() onPick(it.key) self:Update() end }
         end
@@ -1369,7 +1369,7 @@ end
 -- getRaw (optional): gespeicherter Wert, der bei "Abbrechen" zurueckkommt (z.B. "" = wie die Gilde);
 -- liefert getRaw eine FUNKTION, wird diese beim Abbrechen aufgerufen (stellt z.B. mehrere Einstellungen her)
 function K.ColorPickButton(parent, getHex, onChange, label, getRaw)
-    local b = K.Button(parent, label or L["Farbwaehler ..."], 120, 24, "ghost", function(_, btn)
+    local b = K.Button(parent, label or L["Color picker …"], 120, 24, "ghost", function(_, btn)
         if btn == "RightButton" then return end   -- Rechtsklick = eigene Sonderfunktion (z.B. zuruecksetzen)
         local raw
         if getRaw then raw = getRaw() else raw = getHex() end
@@ -1552,14 +1552,14 @@ function K.LeadTag(parent, small)
     f.ic:SetPoint("LEFT", 4, 0)
     f.t = K.Text(f, 9, C.amber)
     f.t:SetPoint("LEFT", f.ic, "RIGHT", 3, 0)
-    f.t:SetText(small and "" or K.Upper(L["Schlachtzugsleiter"]))
+    f.t:SetText(small and "" or K.Upper(L["Raid leaders"]))
     f:SetWidth(small and 19 or (f.t:GetStringWidth() + 24))
     f:EnableMouse(true)
     f:SetScript("OnEnter", function(self)
         local ok = ns.Admin and ns.Admin.IsRaidLead and ns.Admin.IsRaidLead()
-        K.ShowTip(self, { L["Nur fuer den Schlachtzugsleiter"],
-            L["Schlachtzugsleiter und Raid-Assistenten benennt die Gildenleitung (Krone > Module > Raids & Beute). Im laufenden Raid zaehlen auch Raidleiter und Assistenten."],
-            ok and ("|cff66db9e" .. L["Du hast diese Rechte."] .. "|r") or ("|cffe8b44a" .. L["Du hast diese Rechte nicht - du siehst nur."] .. "|r") })
+        K.ShowTip(self, { L["Raid leader only"],
+            L["Raid leaders and assistants are set by the guild leadership (crown > modules > Raids & Loot). In a running raid the raid leader and assistants count too."],
+            ok and ("|cff66db9e" .. L["You have these rights."] .. "|r") or ("|cffe8b44a" .. L["You don't have these rights - view only."] .. "|r") })
     end)
     f:SetScript("OnLeave", function() GameTooltip:Hide() end)
     return f
@@ -1576,12 +1576,12 @@ local locks = setmetatable({}, { __mode = "k" })
 local lockBtns = setmetatable({}, { __mode = "k" })
 -- fertige Gruende (Titel, Unterzeile)
 K.LOCK_WHO = {
-    raidlead = { "Nur fuer Schlachtzugsleiter" },
-    raidassist = { "Nur fuer Schlachtzugsleiter & Assistenz" },
-    officer = { "Nur fuer Offiziere" },
-    lead = { "Nur fuer die Gildenleitung" },
-    grouplead = { "Nur fuer Anfuehrer und Assistenten" },
-    rank = { "Dein Gildenrang darf das nicht" },
+    raidlead = { "Raid leaders only" },
+    raidassist = { "Raid leaders & raid assistants only" },
+    officer = { "Officers only" },
+    lead = { "Guild leadership and officers only" },
+    grouplead = { "Group leader and assistants only" },
+    rank = { "Your guild rank can't do this" },
 }
 local function lockAllowed(check)
     -- Entwickler sehen gesperrte Seiten nur im Testmodus offen (sonst Sperre wie bei allen: der Entwickler-
@@ -1593,7 +1593,7 @@ local function lockAllowed(check)
 end
 local function lockTexts(who, text, sub)
     local d = who and K.LOCK_WHO[who]
-    return text or (d and L[d[1]]) or L["Nur fuer die Gildenleitung"], sub or (d and d[2] and L[d[2]]) or nil
+    return text or (d and L[d[1]]) or L["Guild leadership and officers only"], sub or (d and d[2] and L[d[2]]) or nil
 end
 -- K.Lock(frame, { check = fn -> darf?, who = "raidlead"|"officer"|"lead"|..., text = , sub = , compact = true,
 --                 top = px (Sperre erst ab hier, Kopf/Reiter darueber bleiben scharf), keep = { frames, die sichtbar bleiben } })
@@ -1972,7 +1972,7 @@ function K.List(parent, rowH, createRow, updateRow)
                         local t1 = ns.prof and debugprofilestop()
                         local ok, e = pcall(updateRow, r, item, idx)
                         if t1 and ns.prof then ns.prof.add(updateRow, "Listenzeile neu", debugprofilestop() - t1) end
-                        if not ok then ns.err(L["Liste"], e) end
+                        if not ok then ns.err(L["List"], e) end
                     else
                         r.item, r.index = nil, nil
                         r:Hide()
@@ -1999,7 +1999,7 @@ function K.List(parent, rowH, createRow, updateRow)
                 if row.stripe then row.stripe:SetShown(idx % 2 == 0) end
                 row:Show()
                 local ok, e = pcall(updateRow, row, item, idx)
-                if not ok then ns.err(L["Liste"], e) end
+                if not ok then ns.err(L["List"], e) end
             else
                 row.item = nil
                 row:Hide()
@@ -2236,9 +2236,9 @@ function K.ToastMover(onDone)
             if mover.onDone then mover.onDone() end
         end
         -- Uebernehmen / Abbrechen direkt unter dem Beispiel-Hinweis (wandern beim Ziehen mit)
-        mover.ok = K.Button(mover, L["Uebernehmen"], 120, 24, "primary", function() close(true) end)
+        mover.ok = K.Button(mover, L["Apply"], 120, 24, "primary", function() close(true) end)
         mover.ok:SetPoint("TOPRIGHT", mover, "BOTTOMRIGHT", 0, -6)
-        mover.cancel = K.Button(mover, L["Abbrechen"], 100, 24, "ghost", function() close(false) end)
+        mover.cancel = K.Button(mover, L["Cancel"], 100, 24, "ghost", function() close(false) end)
         mover.cancel:SetPoint("RIGHT", mover.ok, "LEFT", -6, 0)
         -- Esc = Abbrechen
         ns.EscClose("OasisToastMover")
@@ -2248,8 +2248,8 @@ function K.ToastMover(onDone)
     end
     mover.onDone = onDone
     mover.prevPos = ns.db.settings.toastPos
-    mover.title:SetText(L["Hinweis-Position"])
-    mover.text:SetText(L["Mit der Maus an die gewuenschte Stelle ziehen"])
+    mover.title:SetText(L["Notification position"])
+    mover.text:SetText(L["Drag it to the spot you want"])
     local s = (ns.db and ns.db.settings.toastScale) or 1
     mover:SetScale(s)
     local a = anchorFrame()
@@ -2337,9 +2337,9 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
             if t.age < t.expire then t.expire = t.age + 3 end
             local e = ns.Sound and ns.Sound.eventByKey and ns.Sound.eventByKey[t.event]
             if t.byTitle then e = nil end
-            K.ShowTip(self, { t.byTitle and L["Diesen Hinweis nicht mehr zeigen"] or L["Diese Hinweise ausschalten"],
+            K.ShowTip(self, { t.byTitle and L["Do not show this notification again"] or L["Turn off these notifications"],
                 "|cff888888" .. (e and L[e.text] or t.byTitle or "") .. "|r",
-                "|cff666666" .. L["Wieder an: Einstellungen > Hinweise & Klang"] .. "|r" })
+                "|cff666666" .. L["Turn back on: Settings > Notifications & sound"] .. "|r" })
         end)
         t.mute:SetScript("OnLeave", function(self) self.ic:SetVertexColor(0.5, 0.5, 0.53) GameTooltip:Hide() end)
         t.mute:SetScript("OnClick", function()
@@ -2348,7 +2348,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
             if t.byTitle then
                 ns.db.settings.toastMuted = ns.db.settings.toastMuted or {}
                 ns.db.settings.toastMuted[t.byTitle] = true
-                ns.print((L["Hinweise \"%s\" ausgeschaltet - wieder an unter Einstellungen > Hinweise & Klang."]):format(t.byTitle))
+                ns.print((L["Notifications \"%s\" turned off - turn back on in Settings > Notifications & sound."]):format(t.byTitle))
                 GameTooltip:Hide()
                 t.expire = 0
                 ns.RefreshPage("settings")
@@ -2357,7 +2357,7 @@ function K.Toast(title, text, color, onClick, sound, validUntil)
             ns.db.settings.toastOff = ns.db.settings.toastOff or {}
             ns.db.settings.toastOff[ev] = true
             local e = ns.Sound and ns.Sound.eventByKey and ns.Sound.eventByKey[ev]
-            ns.print((L["Hinweise \"%s\" ausgeschaltet - wieder an unter Einstellungen > Hinweise & Klang."]):format(e and L[e.text] or ev))
+            ns.print((L["Notifications \"%s\" turned off - turn back on in Settings > Notifications & sound."]):format(e and L[e.text] or ev))
             GameTooltip:Hide()
             t.expire = 0
             ns.RefreshPage("settings")
@@ -2775,9 +2775,9 @@ function K.RankEmblem(parent, size)
     f:SetScript("OnEnter", function(self)
         if not self.level or not ns.Rank then return end
         local st = ns.Rank.FRAMES[ns.Rank.FrameIndex(self.level)]
-        K.ShowTip(self, { (L["Oasis-Rang %d"]):format(self.level) .. "  ·  " .. ns.Rank.Title(self.level),
+        K.ShowTip(self, { (L["Oasis rank %d"]):format(self.level) .. "  ·  " .. ns.Rank.Title(self.level),
             K.hex(st.color) .. L[st.name] .. "|r",
-            "|cff888888" .. L["Der Oasis-Rang ist der Gilden-Rang von Oasis - er steigt durch Zusammenspielen, Helfen, Handwerk, Termine und Abzeichen."] .. "|r" })
+            "|cff888888" .. L["The Oasis rank is Oasis's guild rank - it rises by playing together, helping, crafting, events and badges."] .. "|r" })
     end)
     f:SetScript("OnLeave", function() GameTooltip:Hide() end)
     f:SetScript("OnMouseUp", function(self, btn)
@@ -3208,28 +3208,28 @@ end
 local PAL_KEYS = { "bg", "side", "panel", "raised", "field", "line", "text", "muted", "dim", "hover" }
 K.THEMES = {
     -- Glas 2026: halbtransparente, leicht blaeuliche Flaechen, weiche Lichtkugeln im Hintergrund, runde Ecken, Inter
-    { key = "glass", sideGlow = 0.06, orbs = true, particles = true, name = "Standard", desc = "Glasflaechen, ruhiges Licht, runde Ecken - das Oasis-Design", accent = "", font = "inter",
+    { key = "glass", sideGlow = 0.06, orbs = true, particles = true, name = "Default", desc = "Glasflaechen, ruhiges Licht, runde Ecken - das Oasis-Design", accent = "", font = "inter",
       bg = { 0.045, 0.050, 0.072, 0.93 }, side = { 0.030, 0.034, 0.050, 0.95 }, panel = { 0.115, 0.125, 0.170, 0.62 }, raised = { 0.150, 0.162, 0.215, 0.72 },
       field = { 0.025, 0.028, 0.045, 0.80 }, line = { 0.300, 0.320, 0.420, 0.45 }, text = { 0.960, 0.965, 0.990, 1 }, muted = { 0.660, 0.690, 0.780, 1 },
       dim = { 0.450, 0.480, 0.570, 1 }, hover = { 0.190, 0.205, 0.270, 0.80 },
       grad = { top = { 0.080, 0.088, 0.130 }, bottom = { 0.025, 0.028, 0.042 } }, gradDef = 1 },
-    { key = "future", sideGlow = 0.14, tex = "future", texAlpha = 0.85, name = "Future", desc = "Nachtblau mit Neon-Tuerkis, Verlauf ins Violette", accent = "00d4ff", font = "teko",
+    { key = "future", sideGlow = 0.14, tex = "future", texAlpha = 0.85, name = "Future", desc = "Night blue with neon cyan, fading into violet", accent = "00d4ff", font = "teko",
       bg = { 0.020, 0.030, 0.070, 0.97 }, side = { 0.015, 0.020, 0.050, 1 }, panel = { 0.040, 0.060, 0.120, 1 }, raised = { 0.060, 0.090, 0.170, 1 },
       field = { 0.015, 0.025, 0.060, 1 }, line = { 0.100, 0.260, 0.380, 1 }, text = { 0.880, 0.960, 1.000, 1 }, muted = { 0.550, 0.700, 0.800, 1 },
       dim = { 0.330, 0.450, 0.550, 1 }, hover = { 0.070, 0.120, 0.200, 1 },
       grad = { top = { 0.030, 0.060, 0.130 }, bottom = { 0.070, 0.020, 0.110 } }, gradDef = 1 },
-    { key = "fantasy", sideGlow = 0.1, tex = "fantasy", texAlpha = 0.75, name = "Fantasy", desc = "Warmes Leder, Bronze und Gold", accent = "e0a040", font = "marcellus",
+    { key = "fantasy", sideGlow = 0.1, tex = "fantasy", texAlpha = 0.75, name = "Fantasy", desc = "Warm leather, bronze and gold", accent = "e0a040", font = "marcellus",
       bg = { 0.075, 0.055, 0.040, 0.97 }, side = { 0.055, 0.040, 0.028, 1 }, panel = { 0.110, 0.085, 0.060, 1 }, raised = { 0.150, 0.115, 0.080, 1 },
       field = { 0.050, 0.035, 0.025, 1 }, line = { 0.360, 0.270, 0.160, 1 }, text = { 0.960, 0.910, 0.800, 1 }, muted = { 0.740, 0.660, 0.520, 1 },
       dim = { 0.500, 0.430, 0.330, 1 }, hover = { 0.170, 0.130, 0.090, 1 },
       grad = { top = { 0.110, 0.080, 0.055 }, bottom = { 0.035, 0.025, 0.018 } }, gradDef = 1, frame = { 0.55, 0.40, 0.20 } },
-    { key = "kawaii", sideGlow = 0.14, tex = "kawaii", texAlpha = 1, name = "Kawaii", desc = "Pastellrosa mit Punkten, Herzchen und Schleifen", accent = "ff6fae", font = "ptsansbold",
+    { key = "kawaii", sideGlow = 0.14, tex = "kawaii", texAlpha = 1, name = "Kawaii", desc = "Pastel pink with dots, hearts and bows", accent = "ff6fae", font = "ptsansbold",
       bg = { 0.200, 0.080, 0.140, 0.97 }, side = { 0.150, 0.050, 0.100, 1 }, panel = { 0.270, 0.110, 0.190, 1 }, raised = { 0.330, 0.140, 0.240, 1 },
       field = { 0.140, 0.050, 0.100, 1 }, line = { 0.750, 0.420, 0.580, 1 }, text = { 1.000, 0.950, 0.980, 1 }, muted = { 0.950, 0.750, 0.860, 1 },
       dim = { 0.720, 0.500, 0.620, 1 }, hover = { 0.400, 0.170, 0.290, 1 },
       grad = { top = { 0.320, 0.130, 0.230 }, bottom = { 0.130, 0.045, 0.110 } }, gradDef = 1 },
     -- Discord: flaches Grau in drei Stufen (Leiste dunkel, Mitte heller), Blurple als Akzent, keine Grafik
-    { key = "discord", sideGlow = 0, name = "Discord", desc = "Flaches Grau wie Discord, Blurple als Akzent", accent = "5865f2", font = "ptsans",
+    { key = "discord", sideGlow = 0, name = "Discord", desc = "Flat grey like Discord, blurple accent", accent = "5865f2", font = "ptsans",
       bg = { 0.192, 0.200, 0.220, 0.98 }, side = { 0.118, 0.122, 0.133, 1 }, panel = { 0.169, 0.176, 0.192, 1 }, raised = { 0.220, 0.227, 0.251, 1 },
       field = { 0.118, 0.122, 0.133, 1 }, line = { 0.247, 0.255, 0.278, 1 }, text = { 0.859, 0.871, 0.882, 1 }, muted = { 0.710, 0.729, 0.757, 1 },
       dim = { 0.502, 0.518, 0.557, 1 }, hover = { 0.208, 0.216, 0.235, 1 },
@@ -3251,24 +3251,24 @@ local function mix(a, b, t) return { a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[
 
 -- Zwei-Farben-Design: eine dunkle Grundfarbe + eine Akzentfarbe, alles andere wird daraus abgeleitet
 K.DUO_PRESETS = {
-    { name = "Nachtrot", base = "15171d", acc = "ff4d6d" }, { name = "Ozean", base = "0b1622", acc = "1fb6ff" },
-    { name = "Wald", base = "0f1712", acc = "52c47e" }, { name = "Lavendel", base = "16121f", acc = "b38bff" },
-    { name = "Sonnenuntergang", base = "1b1210", acc = "ff8a3d" }, { name = "Gletscher", base = "12181e", acc = "9fd8ff" },
-    { name = "Gold", base = "15130d", acc = "e8b44a" }, { name = "Kirschbluete", base = "1b1218", acc = "ff7eb6" },
-    { name = "Toxic", base = "101410", acc = "a8ff3c" }, { name = "Mitternacht", base = "0c0d14", acc = "6f7dff" },
+    { name = "Night red", base = "15171d", acc = "ff4d6d" }, { name = "Ocean", base = "0b1622", acc = "1fb6ff" },
+    { name = "Forest", base = "0f1712", acc = "52c47e" }, { name = "Lavender", base = "16121f", acc = "b38bff" },
+    { name = "Sunset", base = "1b1210", acc = "ff8a3d" }, { name = "Glacier", base = "12181e", acc = "9fd8ff" },
+    { name = "Gold", base = "15130d", acc = "e8b44a" }, { name = "Cherry blossom", base = "1b1218", acc = "ff7eb6" },
+    { name = "Toxic", base = "101410", acc = "a8ff3c" }, { name = "Midnight", base = "0c0d14", acc = "6f7dff" },
     -- verrueckte Kombis: kraeftige, farbige Grundtoene
-    { name = "Galaxie", base = "2a0f3d", acc = "39ff88" }, { name = "Retro", base = "0f1f4d", acc = "ff8c1a" },
-    { name = "Weinrot", base = "3a0d1f", acc = "ffcc33" }, { name = "Lagune", base = "0b3838", acc = "ff6f61" },
-    { name = "Synthwave", base = "3d0d33", acc = "22e5ff" }, { name = "Dschungel", base = "123320", acc = "ff3d9a" },
+    { name = "Galaxy", base = "2a0f3d", acc = "39ff88" }, { name = "Retro", base = "0f1f4d", acc = "ff8c1a" },
+    { name = "Burgundy", base = "3a0d1f", acc = "ffcc33" }, { name = "Lagoon", base = "0b3838", acc = "ff6f61" },
+    { name = "Synthwave", base = "3d0d33", acc = "22e5ff" }, { name = "Jungle", base = "123320", acc = "ff3d9a" },
     -- weitere Kombis
-    { name = "Horde", base = "1a0c0a", acc = "ff1200" }, { name = "Allianz", base = "0a1124", acc = "3d7bff" },
-    { name = "Feuer", base = "1c0e08", acc = "ffb000" }, { name = "Eis", base = "0d1a24", acc = "6fe7ff" },
-    { name = "Gift", base = "141a0c", acc = "c6ff00" }, { name = "Schatten", base = "121014", acc = "9a7dff" },
+    { name = "Horde", base = "1a0c0a", acc = "ff1200" }, { name = "Alliance", base = "0a1124", acc = "3d7bff" },
+    { name = "Fires", base = "1c0e08", acc = "ffb000" }, { name = "Eis", base = "0d1a24", acc = "6fe7ff" },
+    { name = "Gift", base = "141a0c", acc = "c6ff00" }, { name = "Shadow", base = "121014", acc = "9a7dff" },
     { name = "Rosegold", base = "1d1416", acc = "f2a28c" }, { name = "Smaragd", base = "08201a", acc = "1ee3a0" },
     { name = "Kupfer", base = "18110c", acc = "e07b39" }, { name = "Bernstein", base = "1a150a", acc = "ffcf4d" },
     { name = "Petrol", base = "0a1d22", acc = "00c2c7" }, { name = "Magenta", base = "1e0a1c", acc = "ff2bd6" },
     { name = "Mondlicht", base = "10131c", acc = "dfe6ff" }, { name = "Lava", base = "220a06", acc = "ff5a1f" },
-    { name = "Arkan", base = "160c26", acc = "d26bff" }, { name = "Nordlicht", base = "071a1a", acc = "7dffb2" },
+    { name = "Arcane", base = "160c26", acc = "d26bff" }, { name = "Nordlicht", base = "071a1a", acc = "7dffb2" },
     { name = "Blutmond", base = "1a0610", acc = "ff3355" },
 }
 local duoCache
@@ -3282,7 +3282,7 @@ function K.DuoTheme(baseHex, accHex, sideHex)
     local function mx(x, y, t) return { x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t, x[3] + (y[3] - x[3]) * t, 1 } end
     local function sc(c, f) return { c[1] * f, c[2] * f, c[3] * f, 1 } end
     local th = {
-        key = "duo", name = "Zwei Farben", desc = "Deine Grundfarbe + Akzentfarbe", accent = accHex, sideGlow = 0.05,
+        key = "duo", name = "Two colours", desc = "Your base colour + accent", accent = accHex, sideGlow = 0.05,
         bg = { b[1], b[2], b[3], 0.97 }, side = (sideHex and sideHex ~= "" and K.FromHex(sideHex) and { K.FromHex(sideHex)[1], K.FromHex(sideHex)[2], K.FromHex(sideHex)[3], 1 }) or sc(b, 0.72), panel = mx(lit(b, 0.035), a, 0.025), raised = mx(lit(b, 0.075), a, 0.035),
         field = sc(b, 0.6), line = mx(lit(b, 0.10), a, 0.16), text = mx({ 0.95, 0.95, 0.95 }, a, 0.04),
         muted = mx({ 0.66, 0.66, 0.68 }, a, 0.10), dim = mx({ 0.43, 0.43, 0.45 }, a, 0.10), hover = mx(lit(b, 0.09), a, 0.05),

@@ -17,7 +17,7 @@ ns.RaidCheck = RC
 if ns.ICONS then ns.ICONS.raidcheck = ns.MEDIA .. "icons\\checklist" end
 
 ns.GuildOption({ page = "raidcheck", key = "rcTactTip", default = true,
-    label = "Taktik beim Anvisieren", desc = "Zielt jemand einen Boss an, zu dem es eine Taktik gibt, erscheint ein kurzer Hinweis (ausserhalb des Kampfes)." })
+    label = "Tactic on target", desc = "When someone targets a boss that has a tactic, a short notice appears (out of combat)." })
 
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local EMBER = ns.MEDIA .. "ember"
@@ -543,19 +543,19 @@ end
 -- Beispielgruppe (Demo): Name, Klasse, Rolle, bereit, fehlende Verzauberungen, fehlende Buffs, Haltbarkeit, Zustand
 local DEMO = {
     { "Grukthar", "WARRIOR", "TANK", true, {}, {}, 94 },
-    { "Drogbar", "WARRIOR", "TANK", true, { "Umhang" }, {}, 61 },
+    { "Drogbar", "WARRIOR", "TANK", true, { "Cloak" }, {}, 61 },
     { "Tavira", "PRIEST", "HEALER", true, {}, {}, 88 },
     { "Nakira", "DRUID", "HEALER", true, {}, { "Seelenstaerke" }, 100 },
     { "Wolkenruf", "SHAMAN", "HEALER", "wait", {}, {}, 77 },
     { "Heilfix", "PRIEST", "HEALER", true, {}, {}, 92 },
-    { "Hoknar", "ROGUE", "DAMAGER", true, { "Waffe" }, {}, 64 },
-    { "Zul'mira", "MAGE", "DAMAGER", false, {}, { "Essen" }, 18 },
+    { "Hoknar", "ROGUE", "DAMAGER", true, { "Weapon" }, {}, 64 },
+    { "Zul'mira", "MAGE", "DAMAGER", false, {}, { "Food" }, 18 },
     { "Mokrash", "HUNTER", "DAMAGER", true, {}, {}, 83 },
-    { "Yenzi", "WARLOCK", "DAMAGER", true, {}, { "Flaeschchen" }, 71 },
+    { "Yenzi", "WARLOCK", "DAMAGER", true, {}, { "Flasks" }, 71 },
     { "Funkenbart", "MAGE", "DAMAGER", true, {}, {}, 99 },
-    { "Brumm", "WARRIOR", "DAMAGER", true, { "Brust", "Stiefel" }, {}, 55 },
+    { "Brumm", "WARRIOR", "DAMAGER", true, { "Chest", "Boots" }, {}, 55 },
     { "Krallix", "DRUID", "DAMAGER", true, {}, {}, 90 },
-    { "Donnerhuf", "SHAMAN", "DAMAGER", "afk", {}, { "Essen" }, 80, "far" },
+    { "Donnerhuf", "SHAMAN", "DAMAGER", "afk", {}, { "Food" }, 80, "far" },
     { "Schattenzahn", "ROGUE", "DAMAGER", true, {}, {}, 86 },
     { "Gorlak", "HUNTER", "DAMAGER", true, {}, {}, 74 },
     { "Rasselbein", "WARLOCK", "DAMAGER", true, {}, {}, 97 },
@@ -633,7 +633,7 @@ local function simReadyCheck()
         RC.readyDone, RC.readyEnd = true, nil
         ns.RCRefresh()
     end)
-    ns.print(L["Raid-Sim: Ready-Check gestartet."])
+    ns.print(L["Raid sim: ready check started."])
     ns.RCRefresh()
 end
 function RC.DemoReadyCheck()
@@ -708,12 +708,12 @@ end
 local function problems(r)
     local p = {}
     if r.off then p[#p + 1] = L["offline"] end
-    if r.dead then p[#p + 1] = L["tot"] end
-    if r.far then p[#p + 1] = L["weit weg"] end
-    if r.ready == false then p[#p + 1] = L["nicht bereit"] elseif r.ready == "afk" then p[#p + 1] = L["keine Antwort"] end
-    if r.ench and #r.ench > 0 then p[#p + 1] = L["Verzauberung"] .. ": " .. table.concat(r.ench, ", ") end
+    if r.dead then p[#p + 1] = L["dead"] end
+    if r.far then p[#p + 1] = L["far away"] end
+    if r.ready == false then p[#p + 1] = L["not ready"] elseif r.ready == "afk" then p[#p + 1] = L["no answer"] end
+    if r.ench and #r.ench > 0 then p[#p + 1] = L["Enchant"] .. ": " .. table.concat(r.ench, ", ") end
     if r.buffs and #r.buffs > 0 then p[#p + 1] = L["Buffs"] .. ": " .. table.concat(r.buffs, ", ") end
-    if r.dura and r.dura < 30 then p[#p + 1] = (L["Haltbarkeit %d%%"]):format(r.dura) end
+    if r.dura and r.dura < 30 then p[#p + 1] = (L["Durability %d%%"]):format(r.dura) end
     return p
 end
 RC.Problems = problems
@@ -726,70 +726,70 @@ function RC.Report()
     end
     if not ch then
         -- allein/Demo: nur lokal zeigen, nichts senden
-        ns.print(#lines == 0 and L["[Oasis] Raid-Check: alles bereit!"] or L["[Oasis] Raid-Check - offen:"])
+        ns.print(#lines == 0 and L["[Oasis] Raid check: all ready!"] or L["[Oasis] Raid check - open:"])
         for i, l in ipairs(lines) do if i <= 8 then ns.print("  " .. l) end end
-        if not demoOn() then ns.print(L["Du bist in keiner Gruppe."]) end
+        if not demoOn() then ns.print(L["You are not in a group."]) end
         return
     end
-    if #lines == 0 then ns.SendChat(L["[Oasis] Raid-Check: alles bereit!"], ch) return end
+    if #lines == 0 then ns.SendChat(L["[Oasis] Raid check: all ready!"], ch) return end
     -- 0.5.617: ohne Namen (niemand wird oeffentlich vorgefuehrt) - Namen nur mit Einstellung rcChatNames
     if not ns.db.settings.rcChatNames then
-        ns.SendChat((L["[Oasis] Raid-Check: bei %d Spielern ist noch etwas offen - bitte kurz pruefen (Buffs, Bereitschaft, Haltbarkeit)."]):format(#lines), ch)
+        ns.SendChat((L["[Oasis] Raid check: %d players still have something open - please check (buffs, ready, durability)."]):format(#lines), ch)
         return
     end
-    ns.SendChat(L["[Oasis] Raid-Check - offen:"], ch)
+    ns.SendChat(L["[Oasis] Raid check - open:"], ch)
     for i, l in ipairs(lines) do
-        if i > 8 then ns.SendChat((L["... und %d weitere"]):format(#lines - 8), ch) break end
+        if i > 8 then ns.SendChat((L["... and %d more"]):format(#lines - 8), ch) break end
         ns.SendChat(l:sub(1, 250), ch)
     end
 end
 
 -- Kriterien je Spieler -> Ampel ("ok"/"warn"/"bad"/"wait"/"none") + Tooltip-Zeilen
 local CRIT = {
-    { key = "ready", label = "Bereit", icon = "checklist" },
-    { key = "ench", label = "Verzaub.", icon = "crafting" },
+    { key = "ready", label = "Ready", icon = "checklist" },
+    { key = "ench", label = "Enchants", icon = "crafting" },
     { key = "buffs", label = "Buffs", icon = "heart" },
-    { key = "here", label = "Da", icon = "radar" },
-    { key = "dura", label = "Haltbar", icon = "settings" },
+    { key = "here", label = "Here", icon = "radar" },
+    { key = "dura", label = "Durab.", icon = "settings" },
 }
 local OKH, WARNH, BADH, DIMH = "|cff66db9e", "|cfffac257", "|cffe64047", "|cff888888"
 local function crit(r, key)
     local who = ns.displayName(r.name)
     if key == "ready" then
         local v = r.ready
-        if v == true then return "ok", { who, OKH .. L["hat auf Bereit geklickt"] .. "|r" } end
-        if v == false then return "bad", { who, BADH .. L["hat auf Nicht bereit geklickt"] .. "|r" } end
-        if v == "afk" then return "bad", { who, BADH .. L["keine Antwort auf den Ready-Check (AFK?)"] .. "|r" } end
-        if v == "wait" then return "wait", { who, DIMH .. L["wartet auf Antwort ..."] .. "|r" } end
-        return "none", { who, DIMH .. L["Noch kein Ready-Check gelaufen."] .. "|r" }
+        if v == true then return "ok", { who, OKH .. L["clicked Ready"] .. "|r" } end
+        if v == false then return "bad", { who, BADH .. L["clicked Not ready"] .. "|r" } end
+        if v == "afk" then return "bad", { who, BADH .. L["no answer to the ready check (AFK?)"] .. "|r" } end
+        if v == "wait" then return "wait", { who, DIMH .. L["waiting for answer ..."] .. "|r" } end
+        return "none", { who, DIMH .. L["No ready check yet."] .. "|r" }
     elseif key == "ench" then
-        if r.ench == nil then return "none", { who, DIMH .. L["Unbekannt - ohne Oasis oder Profil noch nicht geteilt."] .. "|r" } end
+        if r.ench == nil then return "none", { who, DIMH .. L["Unknown - no Oasis or profile not shared yet."] .. "|r" } end
         if #r.ench > 0 then
-            local t = { who, WARNH .. L["Verzauberung fehlt:"] .. "|r" }
+            local t = { who, WARNH .. L["Enchant missing:"] .. "|r" }
             for _, e in ipairs(r.ench) do t[#t + 1] = "  " .. e end
             return #r.ench >= 2 and "bad" or "warn", t
         end
-        return "ok", { who, OKH .. L["Alle Verzauberungen da."] .. "|r" }
+        return "ok", { who, OKH .. L["All enchants present."] .. "|r" }
     elseif key == "buffs" then
-        if r.buffs == nil then return "none", { who, DIMH .. L["Buff-Monitor nicht verfuegbar."] .. "|r" } end
+        if r.buffs == nil then return "none", { who, DIMH .. L["Buff monitor not available."] .. "|r" } end
         if #r.buffs > 0 then
-            local t = { who, WARNH .. L["Buffs fehlen:"] .. "|r" }
+            local t = { who, WARNH .. L["Buffs missing:"] .. "|r" }
             for _, e in ipairs(r.buffs) do t[#t + 1] = "  " .. e end
             return "warn", t
         end
-        return "ok", { who, OKH .. L["Alle Buffs da."] .. "|r" }
+        return "ok", { who, OKH .. L["All buffs present."] .. "|r" }
     elseif key == "here" then
         if r.off then return "bad", { who, BADH .. L["offline"] .. "|r" } end
-        if r.dead then return "bad", { who, BADH .. L["tot"] .. "|r" } end
-        if r.ready == "afk" then return "warn", { who, WARNH .. L["reagiert nicht (AFK?)"] .. "|r" } end
-        if r.far then return "warn", { who, WARNH .. L["weit weg"] .. (r.zone and (": " .. r.zone) or "") .. "|r" } end
-        return "ok", { who, OKH .. L["in der Naehe"] .. "|r" }
+        if r.dead then return "bad", { who, BADH .. L["dead"] .. "|r" } end
+        if r.ready == "afk" then return "warn", { who, WARNH .. L["not responding (AFK?)"] .. "|r" } end
+        if r.far then return "warn", { who, WARNH .. L["far away"] .. (r.zone and (": " .. r.zone) or "") .. "|r" } end
+        return "ok", { who, OKH .. L["nearby"] .. "|r" }
     elseif key == "dura" then
         local d = r.dura
-        if not d then return "none", { who, DIMH .. L["Haltbarkeit unbekannt (Stand aus der Raid-Vorbereitung fehlt)."] .. "|r" } end
-        if d < 30 then return "bad", { who, BADH .. (L["Haltbarkeit %d%%"]):format(d) .. " - " .. L["reparieren!"] .. "|r" } end
-        if d < 70 then return "warn", { who, WARNH .. (L["Haltbarkeit %d%%"]):format(d) .. "|r" } end
-        return "ok", { who, OKH .. (L["Haltbarkeit %d%%"]):format(d) .. "|r" }
+        if not d then return "none", { who, DIMH .. L["Durability unknown (no raid preparation status)."] .. "|r" } end
+        if d < 30 then return "bad", { who, BADH .. (L["Durability %d%%"]):format(d) .. " - " .. L["repair!"] .. "|r" } end
+        if d < 70 then return "warn", { who, WARNH .. (L["Durability %d%%"]):format(d) .. "|r" } end
+        return "ok", { who, OKH .. (L["Durability %d%%"]):format(d) .. "|r" }
     end
     return "none", nil
 end
@@ -809,32 +809,32 @@ local FILTER = {
 local function tkey(boss) return "tac-" .. (boss or ""):lower():gsub("[^%w]", "") end
 -- Beispiel-Taktiken (Demo, nur Anzeige - Speichern legt eine echte an)
 local DEMO_TAC = {
-    { boss = "Onyxia", inst = "Onyxias Hort", text = "Alle: Nie vor oder hinter Onyxia stehen (Atem/Schwanz).\nPhase 2 ab 65%: Feuerbaellen ausweichen, Welpen sofort umhauen.\nPhase 3 ab 40%: Furcht - Totem der Erdung und Furchtschutz bereit.\nTank: Onyxia mit dem Ruecken zur Wand, Kopf weg vom Raid.\nTank: Phase 3 sofort Aggro zurueckholen.\nHeiler: Tank hat Vorrang, in Phase 2 verteilt stehen.\nDD: Erst nach 3 Rueckenangriffen des Tanks voll loslegen.\nDD: Phase 2: Welpen vor Onyxia." },
-    { boss = "Rage Winterchill", inst = "Hyjal", text = "Alle: Tod und Verfall sofort verlassen.\nTank: Mitte halten, bei Frostnova nicht bewegen.\nHeiler: Eisblock-Ziel schnell hochheilen.\nDD: Fernkampf weit verteilt (Eispfeil-Kette)." },
-    { boss = "Anetheron", inst = "Hyjal", text = "Alle: Schwarm-Ziel: rauslaufen.\nTank: Infernal-Tank abseits.\nHeiler: Schlaf entfernen, wo moeglich.\nDD: Infernals ignorieren, alles auf den Boss." },
+    { boss = "Onyxia", inst = "Onyxias Hort", text = "All: Never stand in front of or behind Onyxia (breath/tail).\nPhase 2 from 65%: dodge fireballs, kill whelps at once.\nPhase 3 from 40%: fear - grounding totem and fear ward ready.\nTank: Onyxia with her back to the wall, head away from the raid.\nTank: phase 3 take aggro back at once.\nHealer: tank first, spread out in phase 2.\nDPS: go full only after 3 sunders from the tank.\nDPS: phase 2: whelps before Onyxia." },
+    { boss = "Rage Winterchill", inst = "Hyjal", text = "All: leave Death and Decay at once.\nTank: hold the middle, don't move during frost nova.\nHealer: heal the ice block target fast.\nDPS: ranged spread wide (icebolt chain)." },
+    { boss = "Anetheron", inst = "Hyjal", text = "All: swarm target: run out.\nTank: infernal tank off to the side.\nHealer: remove sleep where possible.\nDPS: ignore infernals, everything on the boss." },
 }
 -- Taktik-Bibliothek: fertige Kurz-Taktiken der Classic-Raids. Jeder sieht sie (nur lesen),
 -- die Raidleitung uebernimmt sie mit einem Klick als Gilden-Taktik und passt sie an.
 local LIB = {
-    { inst = "Onyxias Hort", boss = "Onyxia", text = "Alle: Nie vor oder hinter Onyxia stehen (Atem und Schwanzfeger).\nAlle: Phase 2 (65%): Feuerbaellen ausweichen, nicht in die Hoehlen-Eingaenge.\nAlle: Phase 3 (40%): Furcht - Furchtschutz/Erdungstotem bereit, Lava-Risse meiden.\nTank: Onyxia seitlich an der Wand, Kopf weg vom Raid.\nTank: Phase 2: Welpen einsammeln. Phase 3: Aggro sofort zurueck.\nHeiler: Tank hat Vorrang, in Phase 2 verteilt stehen.\nDD: 3 Angriffe des Tanks abwarten. Phase 2: Welpen zuerst." },
-    { inst = "Geschmolzener Kern", boss = "Lucifron", text = "Alle: Fluch des Lucifron und Drohende Verdammnis sofort entfernen (Magier/Druiden, Priester/Paladine).\nTank: Die beiden Wachen getrennt tanken - Gedankenkontrolle!\nHeiler: Verteilt stehen, gedankenkontrollierte Spieler bannen.\nDD: Erst die Wachen, dann Lucifron." },
-    { inst = "Geschmolzener Kern", boss = "Magmadar", text = "Alle: Panik - Furchtschutz/Erdungstotem, Jaeger: Einlullender Schuss bei Raserei.\nAlle: Aus dem Lavafeuer am Boden raus.\nTank: Magmadar mit dem Ruecken zum Raid.\nDD: Fernkampf hinten verteilt." },
-    { inst = "Geschmolzener Kern", boss = "Gehennas", text = "Alle: Fluch des Gehennas (weniger Heilung) sofort entfernen.\nAlle: Aus dem Feuerregen raus.\nTank: Die zwei Flammenwichtel getrennt tanken.\nDD: Wichtel zuerst, dann Gehennas." },
-    { inst = "Geschmolzener Kern", boss = "Garr", text = "Alle: Die 8 Feuerwichtel nicht in der Naehe des Raids sterben lassen (Explosion).\nTank: Jeder Wichtel-Tank zieht seinen Wichtel weg, Hexer verbannen.\nHeiler: Bannen, Wichtel-Tanks im Blick.\nDD: Garr zuerst, Wichtel nur gezielt." },
-    { inst = "Geschmolzener Kern", boss = "Baron Geddon", text = "Alle: Lebende Bombe: SOFORT raus aus dem Raid laufen!\nAlle: Inferno - weg vom Boss, Mana-Ausloeschung bannen.\nTank: Mitte halten, bei Inferno kurz raus.\nDD: Nahkampf bei Inferno zurueck." },
-    { inst = "Geschmolzener Kern", boss = "Shazzrah", text = "Alle: Teleportiert sich - wer Aggro hat, nicht wegrennen.\nAlle: Fluch des Shazzrah entfernen, Arkane Explosion: Nahkampf auf Abstand.\nTank: Nach jedem Blinzeln sofort wieder ran.\nHeiler: Bannen (Deaktivieren-Magie)." },
-    { inst = "Geschmolzener Kern", boss = "Sulfuronherold", text = "Alle: Erst die 4 Priester, sie heilen sich gegenseitig.\nTank: Herold und Priester getrennt.\nDD: Unterbrechen! Dunkle Besserung der Priester stoppen." },
-    { inst = "Geschmolzener Kern", boss = "Golemagg der Verbrenner", text = "Alle: Die beiden Kernhunde weg vom Boss tanken, nicht toeten.\nTank: Golemagg-Tank wechseln, wenn Magmasplitter zu hoch stapeln.\nDD: Nur auf Golemagg." },
-    { inst = "Geschmolzener Kern", boss = "Majordomus Exekutus", text = "Alle: Magiereflexion/Schadensschild der Wachen beachten - dann Schaden stoppen.\nTank: Jeder Tank eine Wache, Magier schafen die Elitewachen.\nDD: Heiler-Wachen (Flamewaker Healer) zuerst." },
-    { inst = "Geschmolzener Kern", boss = "Ragnaros", text = "Alle: Feuerschutz! Wrath of Ragnaros wirft den Nahkampf weg - danach wieder ran.\nAlle: Phase der Soehne (nach 3 Min oder bei Untertauchen): alle Soehne der Flamme toeten.\nTank: Zweiter Tank bereit, wenn der erste weggeworfen wird.\nHeiler: Verteilt, Fernkampf nicht zu nah (Lavaplatscher).\nDD: Nahkampf: Mana unter Kontrolle, Fernkampf auf Abstand." },
-    { inst = "Pechschwingenhort", boss = "Feuerkralle der Ungezaehmte", text = "Alle: Phase 1: Eier zerstoeren (Gedankenkontrolle der Kugel), Adds abfangen.\nAlle: Nach allen Eiern: Boss im Raum - Feuerball-Nova.\nTank: Adds an den Treppen sammeln.\nDD: Magier und Drachkin zuerst." },
-    { inst = "Pechschwingenhort", boss = "Vaelastrasz der Verdorbene", text = "Alle: Brennendes Adrenalin: SOFORT aus dem Raid laufen (du stirbst gleich).\nAlle: Volle Ressourcen am Anfang - alles raushauen.\nTank: Tank-Reihenfolge festlegen (Adrenalin auf dem Tank).\nDD: Nicht vor oder hinter den Drachen." },
-    { inst = "Pechschwingenhort", boss = "Brutlord Dreschbringer", text = "Alle: Stoss zurueck - an die Wand stellen.\nTank: Zwei Tanks, Aggro wird durch Niederschlagen geteilt.\nDD: Mortalschlag auf Tank: Heiler vorbereiten." },
-    { inst = "Pechschwingenhort", boss = "Feuerschwinge", text = "Alle: Flammenpuffer stapelt - Fernkampf hinter Saeulen zum Abbauen.\nTank: Zwei Tanks hinter Saeulen, Flugelschlag wirft zurueck.\nDD: Onyxiaschuppenumhang Pflicht." },
-    { inst = "Pechschwingenhort", boss = "Schattenschwinge", text = "Alle: Schatten der Schattenschwinge heilt den Boss - Tank mit Debuff tauscht.\nTank: Zwei Tanks wechseln bei Schatten.\nDD: Onyxiaschuppenumhang Pflicht." },
-    { inst = "Pechschwingenhort", boss = "Flammenmaul", text = "Alle: Raserei - Jaeger: Einlullender Schuss.\nTank: Zwei Tanks, Flugelschlag beachten.\nDD: Onyxiaschuppenumhang Pflicht." },
-    { inst = "Pechschwingenhort", boss = "Chromaggus", text = "Alle: Zwei der fuenf Atem-Arten je Woche - Atem verlaesst man hinter der Ecke.\nAlle: Hourglass Sand fuer Bronze-Affliktion.\nTank: Am Tor tanken, Raid hinter der Ecke.\nDD: Bei Raserei Einlullender Schuss." },
-    { inst = "Pechschwingenhort", boss = "Nefarian", text = "Alle: Phase 1: Drachkin aus beiden Seiten, Klassenrufe beachten.\nAlle: Phase 3 (20%): Skelette wieder auferstanden - erneut toeten.\nTank: Nefarian an der Wand, Furcht - Furchtschutz.\nHeiler: Klassenruf fuer Priester: Heilung schadet - aufpassen.\nDD: Jaeger/Krieger: Klassenrufe beachten (Waffen weg, Haltung)." },
+    { inst = "Onyxias Hort", boss = "Onyxia", text = "All: Never stand in front of or behind Onyxia (breath and tail sweep).\nAll: Phase 2 (65%): dodge fireballs, stay out of the cave entrances.\nAll: Phase 3 (40%): fear - Fear Ward/Tremor Totem ready, avoid the lava cracks.\nTank: Onyxia sideways at the wall, head away from the raid.\nTank: Phase 2: pick up the whelps. Phase 3: get aggro back at once.\nHealer: Tank has priority, spread out in phase 2.\nDD: Wait for 3 attacks of the tank. Phase 2: whelps first." },
+    { inst = "Geschmolzener Kern", boss = "Lucifron", text = "All: Remove Lucifron's Curse and Impending Doom at once (mages/druids, priests/paladins).\nTank: Tank the two guards apart - mind control!\nHealer: Spread out, dispel mind-controlled players.\nDD: Guards first, then Lucifron." },
+    { inst = "Geschmolzener Kern", boss = "Magmadar", text = "All: Panic - Fear Ward/Tremor Totem, hunters: Tranquilizing Shot on Frenzy.\nAll: Get out of the lava fire on the ground.\nTank: Magmadar with his back to the raid.\nDD: Ranged spread out at the back." },
+    { inst = "Geschmolzener Kern", boss = "Gehennas", text = "All: Remove Gehennas' Curse (reduced healing) at once.\nAll: Get out of the Rain of Fire.\nTank: Tank the two Flamewakers apart.\nDD: Flamewakers first, then Gehennas." },
+    { inst = "Geschmolzener Kern", boss = "Garr", text = "All: Do not let the 8 Firesworn die near the raid (explosion).\nTank: Each add tank pulls their Firesworn away, warlocks banish.\nHealer: Dispel, keep an eye on the add tanks.\nDD: Garr first, adds only when called." },
+    { inst = "Geschmolzener Kern", boss = "Baron Geddon", text = "All: Living Bomb: run out of the raid AT ONCE!\nAll: Inferno - away from the boss, dispel Ignite Mana.\nTank: Hold the middle, step out briefly on Inferno.\nDD: Melee back off on Inferno." },
+    { inst = "Geschmolzener Kern", boss = "Shazzrah", text = "All: He teleports - whoever has aggro, do not run away.\nAll: Remove Shazzrah's Curse, Arcane Explosion: melee keep your distance.\nTank: Get back on him right after every blink.\nHealer: Dispel (Deaden Magic)." },
+    { inst = "Geschmolzener Kern", boss = "Sulfuronherold", text = "All: The 4 priests first, they heal each other.\nTank: Keep Sulfuron and the priests apart.\nDD: Interrupt! Stop the priests' Dark Mending." },
+    { inst = "Geschmolzener Kern", boss = "Golemagg der Verbrenner", text = "All: Tank the two Core Ragers away from the boss, do not kill them.\nTank: Swap the Golemagg tank when Magma Splash stacks too high.\nDD: Only on Golemagg." },
+    { inst = "Geschmolzener Kern", boss = "Majordomus Exekutus", text = "All: Watch the guards' magic reflection/damage shield - stop damage then.\nTank: One guard per tank, mages sheep the elite guards.\nDD: Healer guards (Flamewaker Healer) first." },
+    { inst = "Geschmolzener Kern", boss = "Ragnaros", text = "All: Fire protection! Wrath of Ragnaros knocks melee back - then get back in.\nAll: Sons phase (after 3 min or when he submerges): kill all Sons of Flame.\nTank: Second tank ready when the first is knocked away.\nHealer: Spread out, ranged not too close (Lava Burst).\nDD: Melee: keep mana under control, ranged keep your distance." },
+    { inst = "Pechschwingenhort", boss = "Feuerkralle der Ungezaehmte", text = "All: Phase 1: destroy the eggs (mind control via the orb), pick up the adds.\nAll: After all eggs: boss in the room - Fire Nova.\nTank: Gather the adds at the stairs.\nDD: Mages and dragonkin first." },
+    { inst = "Pechschwingenhort", boss = "Vaelastrasz der Verdorbene", text = "All: Burning Adrenaline: run out of the raid AT ONCE (you are about to die).\nAll: Full resources at the start - use everything.\nTank: Set a tank order (Adrenaline on the tank).\nDD: Not in front of or behind the dragon." },
+    { inst = "Pechschwingenhort", boss = "Brutlord Dreschbringer", text = "All: Knockback - stand against the wall.\nTank: Two tanks, aggro is split by Knock Away.\nDD: Mortal Strike on the tank: healers be prepared." },
+    { inst = "Pechschwingenhort", boss = "Feuerschwinge", text = "All: Flame Buffet stacks - ranged behind pillars to let it drop.\nTank: Two tanks behind pillars, Wing Buffet knocks back.\nDD: Onyxia Scale Cloak required." },
+    { inst = "Pechschwingenhort", boss = "Schattenschwinge", text = "All: Shadow of Ebonroc heals the boss - the tank with the debuff swaps.\nTank: Two tanks swap on Shadow.\nDD: Onyxia Scale Cloak required." },
+    { inst = "Pechschwingenhort", boss = "Flammenmaul", text = "All: Frenzy - hunters: Tranquilizing Shot.\nTank: Two tanks, watch Wing Buffet.\nDD: Onyxia Scale Cloak required." },
+    { inst = "Pechschwingenhort", boss = "Chromaggus", text = "All: Two of the five breath types per week - avoid the breath behind the corner.\nAll: Hourglass Sand for the Bronze affliction.\nTank: Tank at the gate, raid behind the corner.\nDD: Tranquilizing Shot on Frenzy." },
+    { inst = "Pechschwingenhort", boss = "Nefarian", text = "All: Phase 1: dragonkin from both sides, watch the class calls.\nAll: Phase 3 (20%): the skeletons rise again - kill them again.\nTank: Nefarian at the wall, fear - Fear Ward.\nHealer: Class call for priests: healing hurts - be careful.\nDD: Hunters/warriors: watch the class calls (weapons gone, stance)." },
 }
 local function libTactics()
     local out = {}
@@ -897,10 +897,10 @@ function RC.SaveTactic(boss, inst, text)
 end
 -- Abschnitte: "Tank:", "Heiler:", "DD:", "Alle:" beginnen einen Abschnitt (auch "[Tank]")
 local SECT = {
-    { key = "all", text = "Fuer alle", color = C.violet, icon = "raid" },
+    { key = "all", text = "For everyone", color = C.violet, icon = "raid" },
     { key = "tank", text = "Tanks", color = C.blue, icon = "role_tank" },
-    { key = "heal", text = "Heiler", color = C.mint, icon = "role_heal" },
-    { key = "dd", text = "Schaden (DD)", color = C.red, icon = "role_dps" },
+    { key = "heal", text = "Healer", color = C.mint, icon = "role_heal" },
+    { key = "dd", text = "Damage (DPS)", color = C.red, icon = "role_dps" },
 }
 RC.SECT = SECT
 local SECT_WORD = { alle = "all", all = "all", allgemein = "all", raid = "all", tank = "tank", tanks = "tank", heiler = "heal", heal = "heal",
@@ -953,7 +953,7 @@ ns.On("PLAYER_TARGET_CHANGED", function()
     if not r or shown[r.id] and GetTime() - shown[r.id] < 600 then return end
     shown[r.id] = GetTime()
     local first = (r.text or ""):match("[^\n]+") or ""
-    K.Toast((L["Taktik: %s"]):format(r.boss), first, C.amber, function()
+    K.Toast((L["Tactic: %s"]):format(r.boss), first, C.amber, function()
         RC.sel = r.id
         ns.ShowPage("tactics")
         ns.RCRefresh()
@@ -966,11 +966,11 @@ end)
 local ROLE_ICON = { TANK = "role_tank", HEALER = "role_heal", DAMAGER = "role_dps" }
 local ROLE_COL = { TANK = C.blue, HEALER = C.mint, DAMAGER = C.red }
 local TILE_DEF = {
-    { "ready", "checklist", "Bereit", C.mint, "Hat beim Ready-Check auf Bereit geklickt.", "Bereit" },
-    { "ench", "crafting", "Verzauberung fehlt", C.amber, "Spieler mit fehlenden Verzauberungen (aus dem geteilten Profil).", "Verzauberung" },
-    { "buffs", "heart", "Buffs fehlen", C.pink, "Spieler, denen Buffs fehlen (Buff-Monitor).", "Buffs" },
-    { "away", "radar", "Abwesend / AFK", C.red, "Offline, tot, weit weg oder keine Antwort auf den Ready-Check.", "Abwesend" },
-    { "dura", "settings", "Haltbarkeit niedrig", C.blue, "Ausruestung unter 70 % (Stand aus der Raid-Vorbereitung).", "Haltbarkeit" },
+    { "ready", "checklist", "Ready", C.mint, "Clicked Ready in the ready check.", "Ready" },
+    { "ench", "crafting", "Enchant missing", C.amber, "Players with missing enchants (from the shared profile).", "Enchant" },
+    { "buffs", "heart", "Buffs missing", C.pink, "Players missing buffs (buff monitor).", "Buffs" },
+    { "away", "radar", "Away / AFK", C.red, "Offline, dead, far away or no answer to the ready check.", "Away" },
+    { "dura", "settings", "Low durability", C.blue, "Gear below 70 % (from raid preparation).", "Durability" },
 }
 local TILE_SUB = { ench = "fehlt", buffs = "fehlen", away = "weg", dura = "niedrig" }
 local LIGHT_W = 58
@@ -1008,11 +1008,11 @@ local function buildCheck(p, ck)
             ns.RCRefresh()
         end)
         t.key = d[1]
-        t.tip = { L[d[3]], L[d[5]], "|cff888888" .. L["Klick: nur diese zeigen / Filter aufheben"] .. "|r" }
+        t.tip = { L[d[3]], L[d[5]], "|cff888888" .. L["Click: show only these / clear filter"] .. "|r" }
         ck.tiles[i] = t
     end
     -- Knoepfe
-    ck.rcBtn = K.Button(ck, L["Ready-Check starten"], 160, 26, "primary", function()
+    ck.rcBtn = K.Button(ck, L["Start ready check"], 160, 26, "primary", function()
         if simOn() then
             RC.DemoReadyCheck()
         elseif ns.Group.IsInGroup() then
@@ -1022,11 +1022,11 @@ local function buildCheck(p, ck)
         end
     end)
     ck.rcBtn:HookScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Ready-Check starten"], simOn() and L["Raid-Sim: spielt einen Ready-Check mit dem simulierten Raid durch."]
-            or (ns.Group.IsInGroup() and L["Fragt alle in der Gruppe: Bereit?"] or L["Demo: spielt einen Ready-Check mit der Beispielgruppe durch."]) })
+        K.ShowTip(self, { L["Start ready check"], simOn() and L["Raid sim: plays a ready check with the simulated raid."]
+            or (ns.Group.IsInGroup() and L["Asks everyone in the group: ready?"] or L["Demo: plays a ready check with the sample group."]) })
     end)
     ck.rcBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    ck.report = K.Button(ck, L["Fehlende ansagen"], 140, 26, "ghost", function() RC.Report() end)
+    ck.report = K.Button(ck, L["Announce missing"], 140, 26, "ghost", function() RC.Report() end)
     if K.LeadTag then ck.rcLead = K.LeadTag(ck, true) ck.rcLead:SetPoint("BOTTOMRIGHT", ck.rcBtn, "TOPRIGHT", 0, 2) end
     ck.report:SetPoint("LEFT", ck.rcBtn, "RIGHT", 8, 0)
     ck.filterTxt = K.Text(ck, 11, C.muted)
@@ -1039,7 +1039,7 @@ local function buildCheck(p, ck)
     ck.head:SetHeight(18)
     local hn = K.Text(ck.head, 10, C.dim)
     hn:SetPoint("LEFT", 52, 0)
-    hn:SetText(L["Teilnehmer"])
+    hn:SetText(L["Roster"])
     ck.head.count = K.Text(ck.head, 10, C.muted)
     ck.head.count:SetPoint("LEFT", hn, "RIGHT", 6, 0)
     for i, c in ipairs(CRIT) do
@@ -1087,7 +1087,7 @@ local function buildCheck(p, ck)
         U.ClassIcon(r.cls, e.class)
         r.cols.name:SetText(ns.Radar and ns.Radar.Colored and ns.Radar.Colored(e.name) or ns.colorName(e.name, e.class))
         local pr = problems(e)
-        r.prob:SetText(#pr > 0 and ("|cfffac257" .. table.concat(pr, "  ·  ") .. "|r") or ("|cff66db9e" .. L["alles in Ordnung"] .. "|r"))
+        r.prob:SetText(#pr > 0 and ("|cfffac257" .. table.concat(pr, "  ·  ") .. "|r") or ("|cff66db9e" .. L["all good"] .. "|r"))
         for i, c in ipairs(CRIT) do
             local sev, tip = crit(e, c.key)
             local lt = r.lights[i]
@@ -1131,27 +1131,27 @@ local function refreshCheck(p)
     local running = RC.readyEnd and GetTime() < RC.readyEnd and waiting > 0
     -- Ring
     if n == 0 then
-        ck.ring:Set(0, 1, C.dim, "-", L["niemand da"])
+        ck.ring:Set(0, 1, C.dim, "-", L["nobody here"])
         ck.ringCard:Hide()
-        ck.rTitle:SetText(L["Keine Gruppe"])
-        ck.rSub:SetText(L["Sobald du in einer Gruppe bist, siehst du hier, ob alle bereit sind."])
+        ck.rTitle:SetText(L["No group"])
+        ck.rSub:SetText(L["Once you are in a group you can see here whether everyone is ready."])
     elseif RC.readyAt or rows[1].demo then
         local all = ready == n
-        ck.ring:Set(ready, n, all and C.mint or running and C.blue or C.amber, ready .. "/" .. n, L["bereit"])
+        ck.ring:Set(ready, n, all and C.mint or running and C.blue or C.amber, ready .. "/" .. n, L["ready"])
         if running then
-            ck.rTitle:SetText(L["Ready-Check laeuft ..."])
-            ck.rSub:SetText((L["%d Antworten fehlen noch."]):format(waiting))
+            ck.rTitle:SetText(L["Ready check running ..."])
+            ck.rSub:SetText((L["%d answers still missing."]):format(waiting))
         elseif all then
-            ck.rTitle:SetText("|cff66db9e" .. L["Alle bereit!"] .. "|r")
-            ck.rSub:SetText(L["Los geht's - viel Erfolg beim Pull."])
+            ck.rTitle:SetText("|cff66db9e" .. L["Everyone ready!"] .. "|r")
+            ck.rSub:SetText(L["Let's go - good luck on the pull."])
         else
-            ck.rTitle:SetText((L["%d nicht bereit"]):format(n - ready))
-            ck.rSub:SetText(RC.readyAt and ((L["Letzter Ready-Check %s"]):format(ns.ago(RC.readyAt))) or L["Beispielgruppe (Demo)"])
+            ck.rTitle:SetText((L["%d not ready"]):format(n - ready))
+            ck.rSub:SetText(RC.readyAt and ((L["Last ready check %s"]):format(ns.ago(RC.readyAt))) or L["Example group (demo)"])
         end
     else
-        ck.ring:Set(nok, n, nok == n and C.mint or C.amber, nok .. "/" .. n, L["ohne Probleme"])
-        ck.rTitle:SetText(L["Noch kein Ready-Check"])
-        ck.rSub:SetText(L["Der Ring zeigt, wer ohne offene Punkte ist."])
+        ck.ring:Set(nok, n, nok == n and C.mint or C.amber, nok .. "/" .. n, L["without issues"])
+        ck.rTitle:SetText(L["No ready check yet"])
+        ck.rSub:SetText(L["The ring shows who has nothing open."])
     end
     ck.ringCard:SetShown(n > 0)
     ck.ringCard:SetColor(n > 0 and (ready == n and C.mint or running and C.blue or C.amber) or C.dim)
@@ -1170,7 +1170,7 @@ local function refreshCheck(p)
             t:Set(ready, "/ " .. n, n > 0 and ready / n or 0, ready == n and n > 0 and C.mint or C.text)
         else
             local v = cnt[k]
-            t:Set(v, v > 0 and L[TILE_SUB[k] or "Spieler"] or L["ok"], nil, v > 0 and t.color or C.mint)
+            t:Set(v, v > 0 and L[TILE_SUB[k] or "Player"] or L["ok"], nil, v > 0 and t.color or C.mint)
         end
         t:SetSel(p.filter == k)
         t:SetShown(n > 0)
@@ -1194,21 +1194,21 @@ local function refreshCheck(p)
         list = {}
         for _, r in ipairs(rows) do if FILTER[p.filter](r) then list[#list + 1] = r end end
         for _, d in ipairs(TILE_DEF) do
-            if d[1] == p.filter then ck.filterTxt:SetText((L["Filter: %s"]):format(L[d[3]]) .. "  |cff888888(" .. L["Kachel erneut klicken"] .. ")|r") end
+            if d[1] == p.filter then ck.filterTxt:SetText((L["Filter: %s"]):format(L[d[3]]) .. "  |cff888888(" .. L["click the tile again"] .. ")|r") end
         end
     else
-        ck.filterTxt:SetText(n > 0 and ("|cff888888" .. L["Tipp: Ampel anklicken fuer Details"] .. "|r") or "")
+        ck.filterTxt:SetText(n > 0 and ("|cff888888" .. L["Tip: click a light for details"] .. "|r") or "")
     end
     ck.head.count:SetText(n > 0 and (#list .. (#list ~= n and (" / " .. n) or "")) or "")
     ck.head:SetShown(n > 0)
     ck.list:SetData(list)
     if n == 0 then
-        ck.empty:Set(L["Du bist in keiner Gruppe. Sobald du in einer Gruppe oder einem Raid bist, steht hier alles fuer den Pull."],
-            L["Beispiel ansehen"], function() if ns.Demo and ns.Demo.Load then ns.Demo.Load() ns.RCRefresh() end end)
+        ck.empty:Set(L["You are not in a group. Once you are in a group or raid, everything for the pull shows up here."],
+            L["Show example"], function() if ns.Demo and ns.Demo.Load then ns.Demo.Load() ns.RCRefresh() end end)
         ck.empty.btn:SetShown(ns.Demo and ns.Demo.Load and ns.IsDev() and not demoOn() and true or false)
         ck.empty:Show()
     elseif #list == 0 then
-        ck.empty:Set(L["Niemand in diesem Filter - sehr gut!"], L["Filter aufheben"], function() p.filter = nil ns.RCRefresh() end)
+        ck.empty:Set(L["Nobody in this filter - great!"], L["Clear filter"], function() p.filter = nil ns.RCRefresh() end)
         ck.empty:Show()
     else
         ck.empty:Hide()
@@ -1236,7 +1236,7 @@ local function buildTactics(p, tc)
     tc.side:SetPoint("BOTTOMLEFT", 0, 36)
     tc.side:SetWidth(236)
     U.Glass(tc.side, 14, 0.025)
-    tc.search = K.Input(tc.side, 212, L["Boss oder Instanz suchen ..."], function(t)
+    tc.search = K.Input(tc.side, 212, L["Search boss or instance ..."], function(t)
         tacSearch = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
         ns.RefreshPage("tactics")
     end)
@@ -1311,8 +1311,8 @@ local function buildTactics(p, tc)
     end)
     tc.list:SetPoint("TOPLEFT", tc.side, "TOPLEFT", 4, -44)
     tc.list:SetPoint("BOTTOMRIGHT", tc.side, "BOTTOMRIGHT", -4, 6)
-    tc.list.empty:SetText(L["Nichts gefunden."])
-    tc.new = K.Button(tc, "+ " .. L["Neue Taktik"], 236, 26, "ghost", function()
+    tc.list.empty:SetText(L["Nothing found."])
+    tc.new = K.Button(tc, "+ " .. L["New tactic"], 236, 26, "ghost", function()
         RC.sel, p.tcEdit = "new", true
         tc.shownId = nil
         ns.RCRefresh()
@@ -1330,33 +1330,33 @@ local function buildTactics(p, tc)
     cd.inst = K.Text(cd, 11, C.muted)
     cd.inst:SetPoint("TOPLEFT", cd.title, "BOTTOMLEFT", 0, -4)
     cd.inst:SetPoint("RIGHT", cd, "RIGHT", -280, 0)
-    cd.post = K.Button(cd, L["Im Raidchat posten"], 140, 24, "ghost", function()
+    cd.post = K.Button(cd, L["Post in raid chat"], 140, 24, "ghost", function()
         local r = tacticById(RC.sel)
-        if r and ns.Group.IsInGroup() then RC.PostTactic(r) K.Toast(L["Taktik gepostet"], r.boss, C.mint) end
+        if r and ns.Group.IsInGroup() then RC.PostTactic(r) K.Toast(L["Tactic posted"], r.boss, C.mint) end
     end)
     cd.post:SetPoint("TOPRIGHT", -14, -14)
     -- Vorlage aus der Bibliothek als Gilden-Taktik uebernehmen
-    cd.take = K.Button(cd, L["Uebernehmen"], 110, 24, "ghost", function()
+    cd.take = K.Button(cd, L["Apply"], 110, 24, "ghost", function()
         local r = tacticById(RC.sel)
         if not (r and r.tpl and RC.CanEdit()) then return end
         RC.SaveTactic(r.boss, r.inst, r.text)
         RC.sel = tkey(r.boss)
-        K.Toast(L["Taktik uebernommen"], r.boss, C.mint)
+        K.Toast(L["Tactic applied"], r.boss, C.mint)
         ns.RCRefresh()
     end)
     cd.take:SetPoint("RIGHT", cd.post, "LEFT", -6, 0)
-    cd.take:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Uebernehmen"], L["Als Taktik der Gilde speichern - danach anpassbar und fuer alle sichtbar."] }) end)
+    cd.take:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Apply"], L["Save as guild tactic - editable afterwards and visible to all."] }) end)
     cd.take:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- Ansicht: alles oder nur, was meine Rolle angeht
-    cd.role = K.Segments(cd, { { key = "all", text = L["Alles"] }, { key = "mine", text = L["Meine Rolle"] } },
+    cd.role = K.Segments(cd, { { key = "all", text = L["All"] }, { key = "mine", text = L["My role"] } },
         function(k) tacRole = k ns.RefreshPage("tactics") end, nil, { size = 11, pad = 14 })
     cd.role:SetPoint("TOPRIGHT", -14, -44)
-    cd.post:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Im Raidchat posten"], L["Gekuerzt: je Abschnitt eine Zeile."], not ns.Group.IsInGroup() and ("|cfffac257" .. L["Nur in einer Gruppe."] .. "|r") or nil }) end)
+    cd.post:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Post in raid chat"], L["Shortened: one line per section."], not ns.Group.IsInGroup() and ("|cfffac257" .. L["Only in a group."] .. "|r") or nil }) end)
     cd.post:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    cd.edit = K.Button(cd, L["Bearbeiten"], 96, 24, "ghost", function() p.tcEdit = true tc.shownId = nil ns.RCRefresh() U.Reveal(tc.ed) end)
+    cd.edit = K.Button(cd, L["Edit"], 96, 24, "ghost", function() p.tcEdit = true tc.shownId = nil ns.RCRefresh() U.Reveal(tc.ed) end)
     if K.LeadTag then cd.leadTag = K.LeadTag(cd, true) cd.leadTag:SetPoint("RIGHT", cd.edit, "LEFT", -6, 0) end
     cd.edit:SetPoint("RIGHT", cd.post, "LEFT", -6, 0)
-    cd.del = K.Button(cd, L["Loeschen"], 80, 24, "danger", function()
+    cd.del = K.Button(cd, L["Put out"], 80, 24, "danger", function()
         local r = tacticById(RC.sel)
         if r and not r.demo then Store.Delete("tactics", r.id) RC.sel = nil ns.RCRefresh() end
     end)
@@ -1388,16 +1388,16 @@ local function buildTactics(p, tc)
         b.post:SetPoint("TOPRIGHT", -8, -6)
         b.post.t = K.Text(b.post, 10, C.dim, "RIGHT")
         b.post.t:SetPoint("RIGHT", 0, 0)
-        b.post.t:SetText(L["posten"] .. "  >")
+        b.post.t:SetText(L["post"] .. "  >")
         b.post:SetScript("OnEnter", function(self)
             self.t:SetTextColor(C.text[1], C.text[2], C.text[3])
-            K.ShowTip(self, { L["Nur diesen Abschnitt posten"], not ns.Group.IsInGroup() and ("|cfffac257" .. L["Nur in einer Gruppe."] .. "|r") or nil })
+            K.ShowTip(self, { L["Post only this section"], not ns.Group.IsInGroup() and ("|cfffac257" .. L["Only in a group."] .. "|r") or nil })
         end)
         b.post:SetScript("OnLeave", function(self) self.t:SetTextColor(C.dim[1], C.dim[2], C.dim[3]) GameTooltip:Hide() end)
         b.post:SetScript("OnClick", function(self)
             if not ns.Group.IsInGroup() then return end
             postSection(tacticById(RC.sel), self.sec)
-            K.Toast(L["Abschnitt gepostet"], self.sec and L[self.sec.def.text] or "", C.mint)
+            K.Toast(L["Section posted"], self.sec and L[self.sec.def.text] or "", C.mint)
         end)
         b.lines = {}
         cd.blocks[i] = b
@@ -1418,7 +1418,7 @@ local function buildTactics(p, tc)
             b.head:SetText(L[s.def.text])
             b.post.sec = s
             local mine = tacRole == "mine" and s.key ~= "all"
-            b.head:SetText(L[s.def.text] .. (mine and ("  |cffe8b44a" .. L["deine Rolle"] .. "|r") or ""))
+            b.head:SetText(L[s.def.text] .. (mine and ("  |cffe8b44a" .. L["your role"] .. "|r") or ""))
             b.head:SetTextColor(c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5, c[3] * 0.5 + 0.5)
             local ly = 32
             for j, line in ipairs(s.lines) do
@@ -1454,20 +1454,20 @@ local function buildTactics(p, tc)
     end
     cd.noText = K.Text(cd, 12, C.dim, "CENTER")
     cd.noText:SetPoint("CENTER", cd.view, "CENTER", 0, 0)
-    cd.noText:SetText(L["Diese Taktik ist noch leer."])
+    cd.noText:SetText(L["This tactic is still empty."])
     -- Bearbeiten
     local ed = CreateFrame("Frame", nil, cd)
     ed:SetPoint("TOPLEFT", 14, -12)
     ed:SetPoint("BOTTOMRIGHT", -14, 10)
     tc.ed = ed
-    tc.boss = K.Input(ed, 220, L["Boss (genau wie im Spiel)"])
+    tc.boss = K.Input(ed, 220, L["Boss (exactly as in game)"])
     tc.boss:SetPoint("TOPLEFT", 0, 0)
-    tc.inst = K.Input(ed, 170, L["Instanz"])
+    tc.inst = K.Input(ed, 170, L["Instance"])
     tc.inst:SetPoint("LEFT", tc.boss, "RIGHT", 8, 0)
     ed.quick = {}
     local qx = 0
     for i, s in ipairs(SECT) do
-        local word = ({ all = "Alle", tank = "Tank", heal = "Heiler", dd = "DD" })[s.key]
+        local word = ({ all = "All", tank = "Tank", heal = "Healer", dd = "DD" })[s.key]
         local b = K.Button(ed, "+ " .. L[word], 70, 22, "ghost", function()
             local t = tc.text:GetText() or ""
             if t ~= "" and not t:find("\n$") then t = t .. "\n" end
@@ -1483,7 +1483,7 @@ local function buildTactics(p, tc)
     ed.hint = K.Text(ed, 10, C.dim)
     ed.hint:SetPoint("LEFT", ed.quick[#ed.quick], "RIGHT", 10, 0)
     ed.hint:SetPoint("RIGHT", ed, "RIGHT", 0, 0)
-    ed.hint:SetText(L["Zeilen mit Tank:, Heiler:, DD: oder Alle: beginnen einen Abschnitt."])
+    ed.hint:SetText(L["Lines starting with Tank:, Healer:, DPS: or All: begin a section."])
     tc.text = CreateFrame("EditBox", nil, ed)
     tc.text:SetMultiLine(true)
     tc.text:SetAutoFocus(false)
@@ -1500,17 +1500,17 @@ local function buildTactics(p, tc)
     click:SetPoint("TOPLEFT", tc.text, -6, 6) click:SetPoint("BOTTOMRIGHT", tc.text, 6, -6)
     click:SetFrameLevel(math.max(1, (tc.text:GetFrameLevel() or 2) - 1))
     click:SetScript("OnClick", function() tc.text:SetFocus() end)
-    tc.save = K.Button(ed, L["Speichern"], 100, 24, "primary", function()
+    tc.save = K.Button(ed, L["Save"], 100, 24, "primary", function()
         local boss = trim(tc.boss:GetText())
-        if boss == "" then K.Toast(L["Boss-Taktiken"], L["Bitte einen Bossnamen eintragen."], C.amber) return end
+        if boss == "" then K.Toast(L["Boss tactics"], L["Please enter a boss name."], C.amber) return end
         RC.SaveTactic(boss, tc.inst:GetText(), tc.text:GetText())
         RC.sel, p.tcEdit = tkey(boss), false
-        K.Toast(L["Taktik gespeichert"], boss, C.mint)
+        K.Toast(L["Tactic saved"], boss, C.mint)
         ns.RCRefresh()
         U.Reveal(tc.card)
     end)
     tc.save:SetPoint("BOTTOMRIGHT", 0, 0)
-    tc.cancel = K.Button(ed, L["Abbrechen"], 96, 24, "ghost", function()
+    tc.cancel = K.Button(ed, L["Cancel"], 96, 24, "ghost", function()
         p.tcEdit = false
         if RC.sel == "new" then RC.sel = nil end
         tc.shownId = nil
@@ -1521,7 +1521,7 @@ local function buildTactics(p, tc)
     ed.count:SetPoint("BOTTOMLEFT", 0, 6)
     tc.text:SetScript("OnTextChanged", function(self)
         local n = #RC.ParseTactic(self:GetText())
-        ed.count:SetText((L["%d Abschnitte"]):format(n))
+        ed.count:SetText((L["%d sections"]):format(n))
     end)
     tc.empty = U.Empty(tc, "raid", C.amber)
     tc.empty:SetPoint("TOP", tc.card, "TOP", 0, -60)
@@ -1536,8 +1536,8 @@ local function refreshTactics(p)
         local hit = tacSearch == "" or tostring(r.boss or ""):lower():find(tacSearch, 1, true) or tostring(r.inst or ""):lower():find(tacSearch, 1, true)
         if not hit then r = nil end
         if r then
-        local inst = (r.inst or "") ~= "" and r.inst or L["Ohne Instanz"]
-        if r.tpl then inst = L["Bibliothek"] .. " · " .. inst end
+        local inst = (r.inst or "") ~= "" and r.inst or L["No instance"]
+        if r.tpl then inst = L["Library"] .. " · " .. inst end
         if inst ~= last then hdr = { hdr = inst, n = 0 } data[#data + 1] = hdr last = inst end
         hdr.n = hdr.n + 1
         data[#data + 1] = r
@@ -1554,8 +1554,8 @@ local function refreshTactics(p)
     tc.list:SetData(data)
     if not r and RC.sel ~= "new" then
         tc.card:Hide()
-        tc.empty:Set(L["Noch keine Taktiken. Die Raidleitung kann je Boss eine kurze Taktik anlegen - alle sehen sie hier und bekommen sie beim Anvisieren angezeigt."],
-            edit and L["Erste Taktik anlegen"] or nil, function() RC.sel, p.tcEdit = "new", true tc.shownId = nil ns.RCRefresh() end)
+        tc.empty:Set(L["No tactics yet. Raid leaders can add a short tactic per boss - everyone sees it here and gets it when targeting the boss."],
+            edit and L["Add first tactic"] or nil, function() RC.sel, p.tcEdit = "new", true tc.shownId = nil ns.RCRefresh() end)
         tc.empty:Show()
         return
     end
@@ -1598,10 +1598,10 @@ local function refreshTactics(p)
     end
     tc.shownId = nil
     cd.title:SetText(r.boss or "?")
-    local meta = (r.inst or "") ~= "" and r.inst or L["Ohne Instanz"]
-    if r.tpl then meta = meta .. "  ·  |cff8fa8ff" .. L["aus der Oasis-Bibliothek"] .. "|r"
-    elseif r.demo then meta = meta .. "  ·  |cfffac257" .. L["Beispiel (Demo)"] .. "|r"
-    elseif r.ts then meta = meta .. "  ·  " .. (L["geaendert %s"]):format(ns.ago(r.ts)) end
+    local meta = (r.inst or "") ~= "" and r.inst or L["No instance"]
+    if r.tpl then meta = meta .. "  ·  |cff8fa8ff" .. L["from the Oasis library"] .. "|r"
+    elseif r.demo then meta = meta .. "  ·  |cfffac257" .. L["Example (demo)"] .. "|r"
+    elseif r.ts then meta = meta .. "  ·  " .. (L["changed %s"]):format(ns.ago(r.ts)) end
     cd.inst:SetText(meta)
     local secs = RC.ParseTactic(r.text)
     if tacRole == "mine" then
@@ -1629,8 +1629,8 @@ local function area(p)
     return f
 end
 ns.RegisterPage({
-    key = "raidcheck", title = "Raid-Check", order = 2.76,
-    sub = "Bereit fuer den Pull? Bereitschaft, Verzauberungen und Buffs je Spieler",
+    key = "raidcheck", title = "Raid check", order = 2.76,
+    sub = "Ready for the pull? Readiness, enchants and buffs per player",
     build = function(p)
         p.view = "check"
         p.ck = area(p)
@@ -1644,8 +1644,8 @@ ns.RegisterPage({
     refresh = function(p) refreshCheck(p) end,
 })
 ns.RegisterPage({
-    key = "tactics", title = "Boss-Taktiken", order = 2.763,
-    sub = "Kurze Taktik je Boss, nach Rollen - mit einem Klick in den Raidchat",
+    key = "tactics", title = "Boss tactics", order = 2.763,
+    sub = "Short tactic per boss, by role - into raid chat with one click",
     build = function(p)
         p.view = "tac"
         p.tc = area(p)
@@ -1654,8 +1654,8 @@ ns.RegisterPage({
     refresh = function(p) refreshTactics(p) end,
 })
 ns.RegisterPage({
-    key = "lootrules", title = "Pluender-Regeln", order = 2.766,
-    sub = "Beute automatisch verteilen, wenn du Pluendermeister bist",
+    key = "lootrules", title = "Loot rules", order = 2.766,
+    sub = "Distribute loot automatically when you are master looter",
     build = function(p)
         p.view = "rules"
         p.ru = area(p)

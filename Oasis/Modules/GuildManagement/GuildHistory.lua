@@ -68,10 +68,10 @@ local GH = {}
 ns.GuildHistory = GH
 
 ns.GuildOption({ page = "radar", key = "ghPromo", default = 30, min = 0, max = 180, step = 5,
-    label = "Befoerderung vorschlagen nach", desc = "Aktive Mitglieder unterhalb der Offiziersraenge erscheinen nach so vielen Tagen im selben Rang in der Liste 'Befoerderung'. 0 = aus.",
-    fmt = function(v) return v == 0 and ns.L["aus"] or (v .. " " .. ns.L["Tage"]) end })
+    label = "Suggest promotion after", desc = "Active members below the officer ranks appear in the 'Promotion' list after this many days in the same rank. 0 = off.",
+    fmt = function(v) return v == 0 and ns.L["off"] or (v .. " " .. ns.L["days"]) end })
 ns.GuildOption({ page = "radar", key = "ghReturn", default = true,
-    label = "Rueckkehrer melden", desc = "Kommt ein ehemaliges Mitglied zurueck, bekommt die Gildenleitung einen Hinweis mit dem frueheren Rang und Austrittsdatum." })
+    label = "Report returning members", desc = "When a former member comes back, guild leadership gets a notice with their former rank and leave date." })
 
 local DAY = 86400
 local function key(name) return ns.NameKey(name) end
@@ -101,11 +101,11 @@ end
 -- Text fuer die neuen Arten (scan-Eintraege) ergaenzen
 local baseText = O.AuditText
 function O.AuditText(r)
-    if r.kind == "rankup" then return (L["%s ist jetzt %s (vorher %s)"]):format(r.a, r.r, r.b)
-    elseif r.kind == "rankdown" then return (L["%s ist jetzt %s (vorher %s)"]):format(r.a, r.r, r.b)
-    elseif r.kind == "gone" then return (L["%s ist nicht mehr in der Gilde"]):format(r.a)
-    elseif r.kind == "note" then return (L["Notiz von %s: %s"]):format(r.a, r.r ~= "" and r.r or L["(geloescht)"])
-    elseif r.kind == "rejoin" then return (L["%s ist zurueck (war %s, ging am %s)"]):format(r.a, r.b, r.r)
+    if r.kind == "rankup" then return (L["%s is now %s (was %s)"]):format(r.a, r.r, r.b)
+    elseif r.kind == "rankdown" then return (L["%s is now %s (was %s)"]):format(r.a, r.r, r.b)
+    elseif r.kind == "gone" then return (L["%s is no longer in the guild"]):format(r.a)
+    elseif r.kind == "note" then return (L["Note from %s: %s"]):format(r.a, r.r ~= "" and r.r or L["(deleted)"])
+    elseif r.kind == "rejoin" then return (L["%s is back (was %s, left on %s)"]):format(r.a, r.b, r.r)
     end
     return baseText(r)
 end
@@ -150,10 +150,10 @@ local function compare()
             if not first then
                 local fm = GH.Former(m.name)
                 if fm then
-                    put("rejoin", m.name, { b = fm.rank or "?", r = date(L["%d.%m.%Y"], fm.left or 0) })
+                    put("rejoin", m.name, { b = fm.rank or "?", r = date(L["%m/%d/%Y"], fm.left or 0) })
                     if ns.GuildOpt("ghReturn") ~= false and isLead() then
-                        K.Toast((L["%s ist zurueck"]):format(ns.displayName(m.name)),
-                            (L["War %s, Level %d, ging am %s"]):format(fm.rank or "?", fm.lvl or 0, date(L["%d.%m.%Y"], fm.left or 0)), C.blue)
+                        K.Toast((L["%s is back"]):format(ns.displayName(m.name)),
+                            (L["Was %s, level %d, left on %s"]):format(fm.rank or "?", fm.lvl or 0, date(L["%m/%d/%Y"], fm.left or 0)), C.blue)
                     end
                     local c = {} for kk, v in pairs(fm) do c[kk] = v end
                     c.back = (c.back or 0) + 1
@@ -317,7 +317,7 @@ end)
 local function ago(t)
     if not t then return "|cff666666?|r" end
     local d = math.floor((ns.now() - t) / DAY)
-    return d <= 0 and L["heute"] or (L["%d Tage"]):format(d)
+    return d <= 0 and L["today"] or (L["%d days"]):format(d)
 end
 local function head(f, x, y, text, w, j)
     local t = K.Text(f, 10, C.dim, j or "LEFT")
@@ -331,10 +331,10 @@ end
 O.BUILD.history = function(f)
     local n = K.Text(f, 10, C.dim)
     n:SetPoint("TOPLEFT", 0, 0)
-    n:SetText(L["Beitritte, Rangwechsel und Notizen je Mitglied - aus Systemmeldungen und dem Abgleich der Gildenliste (auch wenn niemand online war)."])
-    f.search = K.Input(f, 200, L["Name suchen"], function() O.Refresh() end)
+    n:SetText(L["Joins, rank changes and notes per member - from system messages and roster sync (even when nobody was online)."])
+    f.search = K.Input(f, 200, L["Search name"], function() O.Refresh() end)
     f.search:SetPoint("TOPLEFT", 0, -20)
-    head(f, 10, -54, "Name") head(f, 170, -54, "Rang") head(f, 270, -54, "im Rang") head(f, 340, -54, "dabei seit")
+    head(f, 10, -54, "Name") head(f, 170, -54, "Rank") head(f, 270, -54, "at rank") head(f, 340, -54, "member since")
     f.list = K.List(f, 24, function(l)
         local r = K.Row(l)
         r:Col("name", 10, 155, 12) r:Col("rank", 170, 95, 11, C.muted) r:Col("inrank", 270, 65, 11) r:Col("since", 340, 70, 11, C.muted)
@@ -347,7 +347,7 @@ O.BUILD.history = function(f)
         r.cols.rank:SetText(m.rank or "")
         r.cols.inrank:SetText(ago(GH.RankSince(m.name)))
         local j = GH.JoinedAt(m.name)
-        r.cols.since:SetText(j and date(L["%d.%m.%y"], j) or "|cff666666?|r")
+        r.cols.since:SetText(j and date(L["%m/%d/%y"], j) or "|cff666666?|r")
         local nt = GH.CanNotes() and GH.Note(m.name)
         r.noteIc:SetShown(nt and nt.t ~= "" or false)
         r.sel:SetShown(f.sel == m.name)
@@ -370,17 +370,17 @@ O.BUILD.history = function(f)
         r:Col("when", 8, 90, 11, C.dim) r:Col("text", 100, 300, 12)
         return r
     end, function(r, e)
-        r.cols.when:SetText(date(L["%d.%m.%y"], e.ts or 0))
+        r.cols.when:SetText(date(L["%m/%d/%y"], e.ts or 0))
         local c = O.KIND_COL and O.KIND_COL[e.kind] or C.text
-        r.cols.text:SetText(K.hex(c) .. O.AuditText(e) .. "|r" .. (e.src == "scan" and "  |cff555555(" .. L["Abgleich"] .. ")|r" or ""))
+        r.cols.text:SetText(K.hex(c) .. O.AuditText(e) .. "|r" .. (e.src == "scan" and "  |cff555555(" .. L["Sync"] .. ")|r" or ""))
     end)
     f.tl:SetPoint("TOPLEFT", 6, -76)
     f.tl:SetPoint("BOTTOMRIGHT", -6, 118)
-    f.tl.empty:SetText(L["Noch nichts aufgezeichnet."])
+    f.tl.empty:SetText(L["Nothing recorded yet."])
     -- eigene Notiz (nur Offiziere)
     f.noteHead = K.Text(f.card, 10, C.dim)
     f.noteHead:SetPoint("BOTTOMLEFT", 14, 96)
-    f.noteHead:SetText(K.Upper(L["Notiz der Gildenleitung"]))
+    f.noteHead:SetText(K.Upper(L["Guild management note"]))
     f.noteBy = K.Text(f.card, 10, C.dim, "RIGHT")
     f.noteBy:SetPoint("BOTTOMRIGHT", -14, 96)
     f.note = CreateFrame("EditBox", nil, f.card)
@@ -395,13 +395,13 @@ O.BUILD.history = function(f)
     local nbg = f.card:CreateTexture(nil, "BACKGROUND", nil, 2)
     nbg:SetPoint("TOPLEFT", f.note, -6, 4) nbg:SetPoint("BOTTOMRIGHT", f.note, 6, -4)
     nbg:SetColorTexture(C.field[1], C.field[2], C.field[3], 1)
-    f.noteSave = K.Button(f.card, L["Speichern"], 96, 24, "primary", function()
+    f.noteSave = K.Button(f.card, L["Save"], 96, 24, "primary", function()
         if f.sel then GH.SetNote(f.sel, f.note:GetText()) f.note:ClearFocus() O.Refresh() end
     end)
     f.noteSave:SetPoint("BOTTOMRIGHT", -12, 12)
     f.noteLock = K.Text(f.card, 11, C.dim)
     f.noteLock:SetPoint("BOTTOMLEFT", 14, 40)
-    f.noteLock:SetText(L["Notizen sehen und schreiben nur Offiziere."])
+    f.noteLock:SetText(L["Only officers can see and write notes."])
 end
 O.REFRESH.history = function(f)
     local q = (f.search:GetText() or ""):lower()
@@ -422,15 +422,15 @@ O.REFRESH.history = function(f)
     local parts = {}
     if m then parts[#parts + 1] = (m.rank or "") .. "  ·  " .. (L["Level %d"]):format(m.level or 0) end
     local j = GH.JoinedAt(name)
-    parts[#parts + 1] = L["dabei seit"] .. " " .. (j and date(L["%d.%m.%Y"], j) or L["vor Oasis"])
-    parts[#parts + 1] = L["im Rang"] .. " " .. ago(GH.RankSince(name))
+    parts[#parts + 1] = L["member since"] .. " " .. (j and date(L["%m/%d/%Y"], j) or L["before Oasis"])
+    parts[#parts + 1] = L["at rank"] .. " " .. ago(GH.RankSince(name))
     local fm = GH.Former(name)
-    if fm then parts[#parts + 1] = "|cff6199ff" .. (L["war schon einmal da (bis %s)"]):format(date(L["%d.%m.%Y"], fm.left or 0)) .. "|r" end
+    if fm then parts[#parts + 1] = "|cff6199ff" .. (L["was here before (until %s)"]):format(date(L["%m/%d/%Y"], fm.left or 0)) .. "|r" end
     local alts = ns.Alts and ns.Alts.CharsOf and ns.Alts.CharsOf(ns.Alts.Main(name)) or {}
     if #alts > 1 then
         local t = {}
         for _, a in ipairs(alts) do if a ~= name then t[#t + 1] = ns.displayName(a) end end
-        if #t > 0 then parts[#parts + 1] = L["Twinks"] .. ": " .. table.concat(t, ", ") end
+        if #t > 0 then parts[#parts + 1] = L["Alts"] .. ": " .. table.concat(t, ", ") end
     end
     f.sub:SetText(table.concat(parts, "   ·   "))
     f.tl:SetData(GH.Timeline(name))
@@ -442,7 +442,7 @@ O.REFRESH.history = function(f)
             f.noteFor = name .. ":" .. tostring(n and n.u)
             f.note:SetText(n and n.t or "")
         end
-        f.noteBy:SetText(n and n.u and ((L["%s, %s"]):format(ns.displayName(n.by or "?"), date(L["%d.%m.%y"], n.u))) or "")
+        f.noteBy:SetText(n and n.u and ((L["%s, %s"]):format(ns.displayName(n.by or "?"), date(L["%m/%d/%y"], n.u))) or "")
     end
 end
 
@@ -450,9 +450,9 @@ end
 O.BUILD.formers = function(f)
     local n = K.Text(f, 10, C.dim)
     n:SetPoint("TOPLEFT", 0, 0)
-    n:SetText(L["Wer die Gilde verlassen hat oder entfernt wurde. Kommt jemand zurueck, meldet Oasis das der Gildenleitung."])
-    head(f, 10, -24, "Name") head(f, 170, -24, "Rang") head(f, 270, -24, "Level") head(f, 320, -24, "gegangen")
-    head(f, 410, -24, "wie") head(f, 520, -24, "Notiz")
+    n:SetText(L["Who left the guild or was removed. If someone returns, Oasis notifies guild management."])
+    head(f, 10, -24, "Name") head(f, 170, -24, "Rank") head(f, 270, -24, "Level") head(f, 320, -24, "gegangen")
+    head(f, 410, -24, "wie") head(f, 520, -24, "Note")
     f.list = K.List(f, 24, function(l)
         local r = K.Row(l)
         r:Col("name", 10, 155, 12) r:Col("rank", 170, 95, 11, C.muted) r:Col("lvl", 270, 45, 11)
@@ -461,11 +461,11 @@ O.BUILD.formers = function(f)
             local e = self.item
             if not e then return end
             local lines = { ns.colorName(e.name or "?", e.cls) }
-            if e.main then lines[#lines + 1] = L["Twink von"] .. " " .. e.main end
-            if e.joined then lines[#lines + 1] = L["dabei seit"] .. " " .. date(L["%d.%m.%Y"], e.joined) end
-            if e.back then lines[#lines + 1] = (L["schon %dx zurueckgekommen"]):format(e.back) end
+            if e.main then lines[#lines + 1] = L["Alt of"] .. " " .. e.main end
+            if e.joined then lines[#lines + 1] = L["member since"] .. " " .. date(L["%m/%d/%Y"], e.joined) end
+            if e.back then lines[#lines + 1] = (L["returned %dx already"]):format(e.back) end
             local ban = O.BanOf and O.BanOf(e.name)
-            if ban then lines[#lines + 1] = "|cffff5a4a" .. L["Oasis-Bannliste"] .. "|r" end
+            if ban then lines[#lines + 1] = "|cffff5a4a" .. L["Oasis ban list"] .. "|r" end
             K.ShowTip(self, lines)
         end)
         r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -474,15 +474,15 @@ O.BUILD.formers = function(f)
         r.cols.name:SetText(ns.colorName(e.name or "?", e.cls))
         r.cols.rank:SetText(e.rank or "")
         r.cols.lvl:SetText(e.lvl or "")
-        r.cols.left:SetText(date(L["%d.%m.%y"], e.left or 0))
-        local how = e.how == "kick" and ("|cffe64047" .. L["entfernt"] .. (e.by and e.by ~= "" and (" (" .. e.by .. ")") or "") .. "|r")
-            or e.how == "leave" and L["selbst gegangen"] or "|cff888888" .. L["unbekannt"] .. "|r"
+        r.cols.left:SetText(date(L["%m/%d/%y"], e.left or 0))
+        local how = e.how == "kick" and ("|cffe64047" .. L["removed"] .. (e.by and e.by ~= "" and (" (" .. e.by .. ")") or "") .. "|r")
+            or e.how == "leave" and L["left voluntarily"] or "|cff888888" .. L["unknown"] .. "|r"
         r.cols.how:SetText(how)
         r.cols.note:SetText(e.note or "")
     end)
     f.list:SetPoint("TOPLEFT", 0, -40)
     f.list:SetPoint("BOTTOMRIGHT", 0, 0)
-    f.list.empty:SetText(L["Noch niemand gegangen, seit Oasis mitschreibt."])
+    f.list.empty:SetText(L["Nobody has left since Oasis started recording."])
 end
 O.REFRESH.formers = function(f) f.list:SetData(GH.Formers()) end
 
@@ -490,27 +490,27 @@ O.REFRESH.formers = function(f) f.list:SetData(GH.Formers()) end
 O.BUILD.promo = function(f)
     f.hint = K.Text(f, 10, C.dim)
     f.hint:SetPoint("TOPLEFT", 0, 0)
-    head(f, 10, -24, "Name") head(f, 170, -24, "Rang") head(f, 270, -24, "im Rang") head(f, 350, -24, "Level")
-    head(f, 410, -24, "Anwesenheit")
+    head(f, 10, -24, "Name") head(f, 170, -24, "Rank") head(f, 270, -24, "at rank") head(f, 350, -24, "Level")
+    head(f, 410, -24, "Attendance")
     f.list = K.List(f, 26, function(l)
         local r = K.Row(l)
         r:Col("name", 10, 155, 12) r:Col("rank", 170, 95, 11, C.muted) r:Col("days", 270, 75, 11, C.amber)
         r:Col("lvl", 350, 55, 11) r:Col("att", 410, 90, 11, C.muted)
-        r.up = K.Button(r, L["Befoerdern"], 96, 20, "primary")
+        r.up = K.Button(r, L["Promote"], 96, 20, "primary")
         r.up:SetPoint("RIGHT", -6, 0)
         return r
     end, function(r, e)
         local m = e.m
         r.cols.name:SetText(ns.Radar.Colored(m.name))
         r.cols.rank:SetText(m.rank or "")
-        r.cols.days:SetText((L["%d Tage"]):format(e.days))
+        r.cols.days:SetText((L["%d days"]):format(e.days))
         r.cols.lvl:SetText(m.level or "")
         local rate = O.Attendance and O.Attendance(m.name)
         r.cols.att:SetText(rate and (math.floor(rate * 100) .. " %") or "|cff555555-|r")
         r.up:SetShown(GuildPromote ~= nil)
         r.up:SetScript("OnClick", function()
             local ok = pcall(GuildPromote, ns.ChatName and ns.ChatName(m.name) or ns.short(m.name))
-            if not ok then ns.print(L["Befoerdern hat nicht geklappt - fehlt dir das Recht?"]) end
+            if not ok then ns.print(L["Promotion failed - missing permission?"]) end
             ns.After(1, function() if ns.Radar.RequestRoster then ns.Radar.RequestRoster() end end)
         end)
     end)
@@ -519,10 +519,10 @@ O.BUILD.promo = function(f)
 end
 O.REFRESH.promo = function(f)
     local days = tonumber(ns.GuildOpt("ghPromo")) or 30
-    f.hint:SetText(days > 0 and (L["Aktive Mitglieder (letzte 7 Tage online), die seit mindestens %d Tagen im selben Rang sind. Zeitraum: Gildenleitung > Module > Mitglieder."]):format(days)
-        or L["Ausgeschaltet - in der Gildenleitung unter Module > Mitglieder einen Zeitraum einstellen."])
+    f.hint:SetText(days > 0 and (L["Active members (online in the last 7 days) who have held the same rank for at least %d days. Period: Guild Management > Modules > Members."]):format(days)
+        or L["Disabled - set a period in Guild Management under Modules > Members."])
     f.list:SetData(GH.PromoDue())
-    f.list.empty:SetText(L["Gerade ist niemand faellig."])
+    f.list.empty:SetText(L["Nobody is due right now."])
 end
-O.TEXT.history, O.TEXT.formers, O.TEXT.promo = "Verlauf", "Ehemalige", "Befoerderung"
+O.TEXT.history, O.TEXT.formers, O.TEXT.promo = "Gradient", "Former members", "Befoerderung"
 end)

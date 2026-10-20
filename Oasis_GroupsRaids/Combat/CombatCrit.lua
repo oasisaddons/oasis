@@ -24,8 +24,8 @@ function CB.CheckCritSource(report)
     ns.db.cbCritDiag = ns.db.cbCritDiag or {}
     ns.db.cbCritDiag.mode, ns.db.cbCritDiag.t = mode, ns.now()
     if report then
-        ns.print(mode == "live" and ns.L["Live-Kampflog verfuegbar. Neue eigene Crits werden erfasst."]
-            or ns.L["Live-Kampflog gesperrt. /combatlog aktivieren und danach die Logdatei importieren."])
+        ns.print(mode == "live" and ns.L["Live combat log available. Your new critical hits are recorded."]
+            or ns.L["Live combat log blocked. Enable /combatlog, then import the log file."])
         if mode ~= "live" then
             pcall(CB.TakeCritFile)
         end
@@ -80,17 +80,17 @@ ns.On("PLAYER_ENTERING_WORLD", function() readFailed = nil CB.CheckCritSource() 
 ns.On("ADDON_RESTRICTION_STATE_CHANGED", function() readFailed = nil CB.CheckCritSource() end)
 -- Kurzer, kopierbarer Importcode aus ImportCrits.py, ausschliesslich fuer den eigenen Namen.
 ns.slash.critimport = function(text)
-    if ns.inCombat() then ns.print(ns.L["Im Kampf nicht moeglich - gleich nochmal."]) return end
+    if ns.inCombat() then ns.print(ns.L["Not possible in combat - try again shortly."]) return end
     local name, damage, dsid, heal, hsid = (text or ""):match("^OAC1:([^:]+):(%d+),(%d+):(%d+),(%d+)$")
-    if not name or #name > 300 then ns.print(ns.L["Ungueltiger Crit-Importcode."]) return end
+    if not name or #name > 300 then ns.print(ns.L["Invalid critical hit import code."]) return end
     name = name:gsub("%%(%x%x)", function(h) return string.char(tonumber(h, 16)) end)
-    if not ns.SameName(name, ns.me()) then ns.print(ns.L["Crit-Import gehoert zu einem anderen Charakter."]) return end
+    if not ns.SameName(name, ns.me()) then ns.print(ns.L["Critical hit import belongs to another character."]) return end
     damage, dsid, heal, hsid = tonumber(damage), tonumber(dsid), tonumber(heal), tonumber(hsid)
     if not damage or not heal or damage >= 1e12 or heal >= 1e12
-        or not dsid or not hsid or dsid >= 1e12 or hsid >= 1e12 then ns.print(ns.L["Ungueltiger Crit-Importcode."]) return end
+        or not dsid or not hsid or dsid >= 1e12 or hsid >= 1e12 then ns.print(ns.L["Invalid critical hit import code."]) return end
     CB.RecordCrit("mh", damage, dsid, "logfile")
     CB.RecordCrit("mhh", heal, hsid, "logfile")
-    ns.print(ns.L["Bestaetigte Crit-Rekorde aus der Logdatei importiert."])
+    ns.print(ns.L["Confirmed critical hit records imported from the log file."])
     ns.RefreshPage("fight", true)
 end
 
@@ -114,7 +114,7 @@ function CB.TakeCritFile()
         end
     end
     if n > 0 then
-        ns.print(ns.L["Crit-Rekorde aus den Kampflog-Dateien uebernommen."])
+        ns.print(ns.L["Critical hit records imported from the combat log files."])
         if ns.RefreshPage then ns.RefreshPage("fight", true) end
     end
     return n
@@ -147,7 +147,7 @@ do
         if triedAt and GetTime() - triedAt < 0.5 and ns.db then
             ns.db.settings.cbAutoLog = false
             triedAt = nil
-            ns.print(ns.L["Der Client erlaubt Oasis nicht, das Kampflog einzuschalten - bitte selbst /combatlog eingeben."])
+            ns.print(ns.L["The client does not let Oasis enable combat logging - please type /combatlog yourself."])
         end
     end)
     ns.Listen("LOGIN", function() ns.After(8, function() pcall(autoLog) end) end)
@@ -159,7 +159,7 @@ do
         local s = ns.db.settings
         s.cbAutoLog = not wanted()
         if s.cbAutoLog then pcall(autoLog) elseif LoggingCombat then pcall(LoggingCombat, false) end
-        ns.print(s.cbAutoLog and ns.L["Kampflog-Datei: wird automatisch mitgeschrieben."] or ns.L["Kampflog-Datei: Automatik aus."])
+        ns.print(s.cbAutoLog and ns.L["Combat log file: written automatically."] or ns.L["Combat log file: automatic logging off."])
     end
 end
 
@@ -197,7 +197,7 @@ do
             local fn = {}
             for k, v in pairs(DM) do if type(v) == "function" then fn[#fn + 1] = k end end
             table.sort(fn)
-            out[#out + 1] = "Funktionen: " .. table.concat(fn, ", ")
+            out[#out + 1] = "Functions: " .. table.concat(fn, ", ")
             for _, en in ipairs({ "DamageMeterType", "DamageMeterSessionType" }) do
                 local e, parts = Enum and Enum[en], {}
                 for k, v in pairs(type(e) == "table" and e or {}) do parts[#parts + 1] = k .. "=" .. tostring(v) end
@@ -275,7 +275,7 @@ do
             -- alles mit Treffer/Heilung/Schaden/kritisch merken, den Rest nur zaehlen
             if low:find("hit", 1, true) or low:find("treffer", 1, true) or low:find("heal", 1, true) or low:find("heil", 1, true)
                 or low:find("crit", 1, true) or low:find("krit", 1, true) or low:find("damage", 1, true) or low:find("schaden", 1, true) then
-                out[#out + 1] = ("%d %s = %s"):format(aid, nm, okS and show(rawV) or "Fehler")
+                out[#out + 1] = ("%d %s = %s"):format(aid, nm, okS and show(rawV) or "Bug")
             end
         end
         line(193) line(189) line(197)

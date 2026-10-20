@@ -69,7 +69,7 @@ local SEEN, KILLS = "rare_seen", "rare_kills"
 local GROUP = "rares"
 local KEEP = { [SEEN] = 30 * 86400, [KILLS] = 120 * 86400 }
 local SKULL = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull"
-local CLS_TAG = { worldboss = "Weltboss", rareelite = "Rare-Elite", rare = "Rare", elite = "Elite" }
+local CLS_TAG = { worldboss = "World boss", rareelite = "Rare elite", rare = "Rare", elite = "Elite" }
 local CLS_COLOR = { worldboss = "|cffff5060", rareelite = "|cffe8b44a", rare = "|cffc8c8ff", elite = "|cffff8a3d" }
 local FRESH = 300            -- so lange gilt eine Sichtung als "frisch" (Hinweis)
 local ALIVE_FOR = 20 * 60    -- so lange zeigen wir "lebt" nach der letzten Sichtung
@@ -119,7 +119,7 @@ local function installProbe()
         local keys = {}
         for k in pairs(ns.probes) do keys[#keys + 1] = k end
         table.sort(keys)
-        ns.print(L["Probe-Themen: "] .. table.concat(keys, ", "))
+        ns.print(L["Probe topics: "] .. table.concat(keys, ", "))
     end
     ns._probeDispatch = dispatch
     ns.slash.probe = dispatch
@@ -268,7 +268,7 @@ end
 
 -- Fraktionsanfuehrer/Stadt-NPCs: WoW stuft sie als "worldboss" ein, sind aber keine Weltbosse (0.5.535)
 local NOT_BOSS = {}
-for _, n in ipairs({ "Thrall", "Vol'jin", "Cairne Bluthuf", "Cairne Bloodhoof", "Sylvanas Windlaeufer", "Sylvanas Windläufer",
+for _, n in ipairs({ "Thrall", "Vol'jin", "Cairne Bloodhoof", "Cairne Bloodhoof", "Sylvanas Windlaeufer", "Sylvanas Windläufer",
     "Sylvanas Windrunner", "Lor'themar Theron", "Magni Bronzebart", "Magni Bronzebeard", "Bolvar Fordragon", "Tyrande Wisperwind",
     "Tyrande Whisperwind", "Hochkoenig Mekkadrill", "Hochkönig Mekkadrill", "High Tinker Mekkatorque", "Koenig Varian Wrynn",
     "König Varian Wrynn", "King Varian Wrynn", "Prophet Velen", "Lady Katrana Prestor", "Rexxar", "Baine Bluthuf", "Baine Bloodhoof",
@@ -366,24 +366,24 @@ end
 
 local function dur(sec)
     sec = math.max(0, sec or 0)
-    if sec >= 86400 then return (L["%d Tg %d Std"]):format(sec / 86400, (sec % 86400) / 3600) end
-    if sec >= 3600 then return (L["%d Std %d Min"]):format(sec / 3600, (sec % 3600) / 60) end
-    return (L["%d Min"]):format(math.max(1, math.ceil(sec / 60)))
+    if sec >= 86400 then return (L["%dd %dh"]):format(sec / 86400, (sec % 86400) / 3600) end
+    if sec >= 3600 then return (L["%dh %dm"]):format(sec / 3600, (sec % 3600) / 60) end
+    return (L["%d min"]):format(math.max(1, math.ceil(sec / 60)))
 end
 Rares.dur = dur
 
 -- Text fuer "naechstes Erscheinen"; zweiter Wert: sortierbare Zeit (nil = unbekannt)
 function Rares.NextText(rec)
     local now = ns.now()
-    if rec.st == "a" and now - (rec.ts or 0) < ALIVE_FOR then return "|cff66db9e" .. L["lebt gerade"] .. "|r", now end
+    if rec.st == "a" and now - (rec.ts or 0) < ALIVE_FOR then return "|cff66db9e" .. L["alive now"] .. "|r", now end
     local r = Rares.Respawn(rec._key or keyOf(rec.npc, rec.name))
     local last = r.last or rec.dts
-    if not last then return "|cff777777" .. L["noch kein Tod bekannt"] .. "|r", nil end
-    if not r.min then return "|cff777777" .. (L["%d Tod, Abstand unbekannt"]):format(r.kills) .. "|r", nil end
+    if not last then return "|cff777777" .. L["no kill known yet"] .. "|r", nil end
+    if not r.min then return "|cff777777" .. (L["%d kill(s), interval unknown"]):format(r.kills) .. "|r", nil end
     local from, to = last + r.min, last + r.median
     if now < from then return (L["in %s - %s"]):format(dur(from - now), dur(to - now)), from end
-    if now < to then return "|cffe8b44a" .. (L["jetzt moeglich (bis ~%s)"]):format(dur(to - now)) .. "|r", now end
-    return "|cffff8a3d" .. (L["ueberfaellig seit %s"]):format(dur(now - to)) .. "|r", to
+    if now < to then return "|cffe8b44a" .. (L["possible now (until ~%s)"]):format(dur(to - now)) .. "|r", now end
+    return "|cffff8a3d" .. (L["overdue for %s"]):format(dur(now - to)) .. "|r", to
 end
 
 ------------------------------------------------------------------------
@@ -519,7 +519,7 @@ ns.Listen("STORE", function(coll, rec, old)
     local key = keyOf(rec.npc, rec.name)
     if now - (state.toastAt[key] or 0) < 900 or now - state.toastAll < 45 then return end
     state.toastAt[key], state.toastAll = now, now
-    K.Toast(L["Seltener Gegner in deinem Gebiet"], (rec.name or "?") .. "  " .. clsText(rec.cls) .. "  ·  " .. (L["gesehen von %s"]):format(ns.displayName(rec.by)),
+    K.Toast(L["Rare enemy in your zone"], (rec.name or "?") .. "  " .. clsText(rec.cls) .. "  ·  " .. (L["spotted by %s"]):format(ns.displayName(rec.by)),
         C.amber, function() Rares.ShowOnMap(rec) end)
 end)
 
@@ -549,8 +549,8 @@ end
 local function pinTip(r)
     local next = Rares.NextText(r)
     return { (r.name or "?") .. "  " .. clsText(r.cls),
-        (r.st == "d" and ("|cffe64047" .. L["getoetet"] .. "|r") or ("|cff66db9e" .. L["gesehen"] .. "|r")) .. " " .. ns.ago(r.ts) .. "  ·  " .. ns.displayName(r.by or "?"),
-        L["Naechstes Erscheinen"] .. ": " .. next }
+        (r.st == "d" and ("|cffe64047" .. L["killed"] .. "|r") or ("|cff66db9e" .. L["seen"] .. "|r")) .. " " .. ns.ago(r.ts) .. "  ·  " .. ns.displayName(r.by or "?"),
+        L["Next spawn"] .. ": " .. next }
 end
 function Rares.DrawWorld()
     for i = 1, wUsed do wPool[i]:Hide() end
@@ -571,7 +571,7 @@ function Rares.DrawWorld()
         p.icon:SetAlpha(alive and 1 or 0.55)
         p.tip = pinTip(r)
         if opt("rareClock") then
-            p.lbl:SetText(alive and ("|cff66db9e" .. L["lebt gerade"] .. "|r") or ("|cffc8c8c8" .. ns.ago(r.ts) .. "|r"))
+            p.lbl:SetText(alive and ("|cff66db9e" .. L["alive now"] .. "|r") or ("|cffc8c8c8" .. ns.ago(r.ts) .. "|r"))
         else
             p.lbl:SetText("")
         end
@@ -589,12 +589,12 @@ end
 ------------------------------------------------------------------------
 local DEMO = {
     -- npc, Name, Klasse, mapID, x, y, Gebiet, Finder, gesehen vor (Min), Zustand, Tode vor (Std)
-    { 990501, "Grimmfell der Alte", "rare", 1413, 0.42, 0.33, "Brachland", "Hoknar", 3, "a", { 30, 22, 13.5, 6 } },
-    { 990502, "Sturmschwinge", "rareelite", 1413, 0.61, 0.52, "Brachland", "Tavira", 95, "d", { 1.6, 9.1, 17.0 } },
-    { 990503, "Krallenmutter Ishka", "rare", 1411, 0.38, 0.22, "Durotar", "Grukthar", 420, "d", { 7, 15, 26, 33 } },
-    { 990504, "Der Steinfresser", "rareelite", 1442, 0.55, 0.71, "Steinkrallengebirge", "Mokrash", 1500, "a", {} },
-    { 990505, "Nachtpranke", "rare", 1440, 0.71, 0.47, "Eschental", "Nakira", 50, "d", { 0.8, 4.9, 9.0, 13.2, 17.5 } },
-    { 990506, "Azurfluegel", "worldboss", 1447, 0.52, 0.81, "Azshara", "Zul'mira", 2880, "d", { 48 } },
+    { 990501, "Grimfur the Elder", "rare", 1413, 0.42, 0.33, "The Barrens", "Hoknar", 3, "a", { 30, 22, 13.5, 6 } },
+    { 990502, "Stormwing", "rareelite", 1413, 0.61, 0.52, "The Barrens", "Tavira", 95, "d", { 1.6, 9.1, 17.0 } },
+    { 990503, "Clawmother Ishka", "rare", 1411, 0.38, 0.22, "Durotar", "Grukthar", 420, "d", { 7, 15, 26, 33 } },
+    { 990504, "The Stone Eater", "rareelite", 1442, 0.55, 0.71, "Stonetalon Mountains", "Mokrash", 1500, "a", {} },
+    { 990505, "Nightpaw", "rare", 1440, 0.71, 0.47, "Ashenvale", "Nakira", 50, "d", { 0.8, 4.9, 9.0, 13.2, 17.5 } },
+    { 990506, "Azurewing", "worldboss", 1447, 0.52, 0.81, "Azshara", "Zul'mira", 2880, "d", { 48 } },
 }
 function Rares.SeedDemo()
     local now = ns.now()
@@ -674,13 +674,13 @@ end
 if ns.AddPageSettings then
     ns.AddPageSettings("rares", function(det, y)
         local items = {
-            { "Sichtungen mit der Gilde teilen", "rareShare", "Ort, Zeit und ob der Gegner lebt oder tot ist" },
-            { "Hinweis bei frischer Sichtung im eigenen Gebiet", "rareToast", "Hoechstens alle 45 Sekunden, je Gegner alle 15 Minuten" },
-            { "Auf dem Flug nichts erkennen oder melden", "rareFlyQuiet", "Auf dem Flugmeister-Flug kannst du ohnehin nicht anhalten" },
-            { "Totenkoepfe auf der Weltkarte", "rarePins", "Sichtungen der letzten 7 Tage" },
-            { "Zeit neben dem Totenkopf anzeigen", "rareClock", "Zeigt auf der Weltkarte, wann der Gegner zuletzt gesehen wurde" },
-            { "Seltene Gegner auf der Minimap", "rareMini", "Sichtungen der letzten 7 Tage in deiner Naehe" },
-            { "Auch normale Elites erfassen", "rareElites", "Nur in der offenen Welt; kann viele Eintraege erzeugen", true },
+            { "Share sightings with the guild", "rareShare", "Location, time and whether the enemy is alive or dead" },
+            { "Notify on fresh sightings in my zone", "rareToast", "At most every 45 seconds, every 15 minutes per enemy" },
+            { "Detect and report nothing while on a flight path", "rareFlyQuiet", "You cannot stop on a flight path anyway" },
+            { "Skulls on the world map", "rarePins", "Sightings of the last 7 days" },
+            { "Show time next to the skull", "rareClock", "Shows on the world map when the enemy was last seen" },
+            { "Rare enemies on the minimap", "rareMini", "Sightings from the last 7 days near you" },
+            { "Also record regular elites", "rareElites", "Open world only; can create many entries", true },
         }
         for _, it in ipairs(items) do
             local key, offDefault = it[2], it[4]
@@ -716,7 +716,7 @@ local function rowsFor(list)
     for _, r in ipairs(list) do
         if r._zone ~= last then
             last = r._zone
-            out[#out + 1] = { header = true, text = r._zone ~= "" and r._zone or L["Unbekanntes Gebiet"] }
+            out[#out + 1] = { header = true, text = r._zone ~= "" and r._zone or L["Unknown zone"] }
         end
         out[#out + 1] = r
     end
@@ -724,23 +724,23 @@ local function rowsFor(list)
 end
 
 ns.RegisterPage({
-    key = "rares", title = "Seltene Gegner", order = 4.6,
-    sub = "Rares und Weltbosse: wer hat sie wo gesehen, wann kommen sie wieder",
+    key = "rares", title = "Rare Enemies", order = 4.6,
+    sub = "Rares and world bosses: who saw them where, when do they return",
     build = function(p)
-        p.seg = K.Segments(p, { { key = "recent", text = L["Letzte 24 Std"] }, { key = "all", text = L["Alle bekannten"] },
-            { key = "kills", text = L["Tode"] } }, function(k) view = k ns.RefreshPage("rares") end)
+        p.seg = K.Segments(p, { { key = "recent", text = L["Last 24 h"] }, { key = "all", text = L["All known"] },
+            { key = "kills", text = L["Deaths"] } }, function(k) view = k ns.RefreshPage("rares") end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
-        p.zoneBtn = K.Button(p, L["Nur mein Gebiet"], 130, 24, "ghost", function()
+        p.zoneBtn = K.Button(p, L["Only my zone"], 130, 24, "ghost", function()
             onlyZone = not onlyZone
             ns.RefreshPage("rares")
         end)
         p.zoneBtn:SetPoint("TOPRIGHT", 0, 0)
-        p.search = K.Input(p, 150, L["Suchen ..."], function(t) search = (t or ""):lower() ns.RefreshPage("rares") end)
+        p.search = K.Input(p, 150, L["Search ..."], function(t) search = (t or ""):lower() ns.RefreshPage("rares") end)
         p.search:SetPoint("RIGHT", p.zoneBtn, "LEFT", -8, 0)
 
         p.cards = {}
-        local TD = { { ns.ICONS.rares, "Leben gerade", C.mint }, { ns.ICONS.map or ns.ICONS.rares, "Sichtungen 24 Std", C.amber },
-            { ns.ICONS.deaths or ns.ICONS.rares, "Tode 24 Std", C.red }, { ns.ICONS.badges or ns.ICONS.rares, "Bekannte Gegner", C.blue } }
+        local TD = { { ns.ICONS.rares, "Alive now", C.mint }, { ns.ICONS.map or ns.ICONS.rares, "Sightings 24 h", C.amber },
+            { ns.ICONS.deaths or ns.ICONS.rares, "Kills 24 h", C.red }, { ns.ICONS.badges or ns.ICONS.rares, "Known enemies", C.blue } }
         for i, d in ipairs(TD) do
             local c = K.HudTile(p, d[1], L[d[2]], d[3])
             c:SetHeight(62)
@@ -789,7 +789,7 @@ ns.RegisterPage({
             r.cols.next:SetWidth(250)
             r.head = K.Title(r, 12, C.amber)
             r.head:SetPoint("LEFT", 10, -4)
-            r.map = K.Button(r, L["Karte"], 62, 22, "ghost")
+            r.map = K.Button(r, L["Map"], 62, 22, "ghost")
             r.map:SetPoint("RIGHT", -10, 0)
             r.map.label:SetFont(K.FONT, 11, "")
             r:SetScript("OnEnter", function(self)
@@ -798,11 +798,11 @@ ns.RegisterPage({
                 local lines = pinTip(e)
                 local rs = Rares.Respawn(e._key)
                 if rs.min then
-                    lines[#lines + 1] = (L["Abstand zwischen Toden: kuerzester %s, Mitte %s (%d Werte)"]):format(dur(rs.min), dur(rs.median), rs.samples)
+                    lines[#lines + 1] = (L["Time between kills: shortest %s, median %s (%d samples)"]):format(dur(rs.min), dur(rs.median), rs.samples)
                 end
                 if (e.x or 0) > 0 then lines[#lines + 1] = ("|cff888888%s  %.1f, %.1f|r"):format(e._zone, e.x / 100, e.y / 100) end
                 lines[#lines + 1] = " "
-                lines[#lines + 1] = L["Klick: auf der Karte zeigen"]
+                lines[#lines + 1] = L["Click: show on map"]
                 K.ShowTip(self, lines)
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -819,8 +819,8 @@ ns.RegisterPage({
                 r.icon:SetDesaturated(true)
                 r.cols.name:SetText((e.name or "?"))
                 r.cols.meta:SetText(ns.fmtDate(e.ts) .. "  ·  " .. ns.Radar.Colored(e.by or "?"))
-                r.cols.state:SetText("|cffe64047" .. L["getoetet"] .. "|r " .. ns.ago(e.ts))
-                r.cols.next:SetText(e._gap and ((L["Abstand zum vorigen: %s"]):format(dur(e._gap))) or "")
+                r.cols.state:SetText("|cffe64047" .. L["killed"] .. "|r " .. ns.ago(e.ts))
+                r.cols.next:SetText(e._gap and ((L["Since previous kill: %s"]):format(dur(e._gap))) or "")
                 r.map:Hide()
                 return
             end
@@ -828,7 +828,7 @@ ns.RegisterPage({
             r.icon:SetDesaturated(not alive)
             r.cols.name:SetText((e.name or "?") .. "  " .. clsText(e.cls))
             r.cols.meta:SetText(((e.x or 0) > 0 and ("%.1f, %.1f  ·  "):format(e.x / 100, e.y / 100) or "") .. ns.Radar.Colored(e.by or "?"))
-            r.cols.state:SetText((e.st == "d" and ("|cffe64047" .. L["getoetet"] .. "|r ") or ("|cff66db9e" .. L["gesehen"] .. "|r ")) .. ns.ago(e.ts))
+            r.cols.state:SetText((e.st == "d" and ("|cffe64047" .. L["killed"] .. "|r ") or ("|cff66db9e" .. L["seen"] .. "|r ")) .. ns.ago(e.ts))
             r.cols.next:SetText(Rares.NextText(e))
             r.map:SetScript("OnClick", function() Rares.ShowOnMap(e) end)
         end)
@@ -836,12 +836,12 @@ ns.RegisterPage({
         p.list:SetPoint("BOTTOMRIGHT", 0, 20)
         p.foot = K.Text(p, 10, C.dim)
         p.foot:SetPoint("BOTTOMLEFT", 0, 3)
-        p.foot:SetText(L["Erfasst automatisch: Totenkopf auf der Minimap, Namensplaketten, dein Ziel.  Diagnose: /oa probe rares"])
+        p.foot:SetText(L["Recorded automatically: minimap skull, nameplates, your target.  Diagnostics: /oa probe rares"])
     end,
 
     refresh = function(p)
         p.seg:Select(view)
-        p.zoneBtn.label:SetText(onlyZone and ("|cff66db9e" .. L["Nur mein Gebiet"] .. "|r") or L["Nur mein Gebiet"])
+        p.zoneBtn.label:SetText(onlyZone and ("|cff66db9e" .. L["Only my zone"] .. "|r") or L["Only my zone"])
         local now = ns.now()
         local myMap = myPos()
         local all = Rares.List()
@@ -886,7 +886,7 @@ ns.RegisterPage({
             end
             table.sort(list, function(a, b) return (a.ts or 0) > (b.ts or 0) end)
             p.list:SetData(list)
-            p.list.empty:SetText(L["Noch kein Tod eines seltenen Gegners erfasst."])
+            p.list.empty:SetText(L["No rare kill recorded yet."])
             return
         end
         local list = {}
@@ -895,10 +895,10 @@ ns.RegisterPage({
         end
         p.list:SetData(rowsFor(list))
         if C_VignetteInfo == nil and not UnitClassification then
-            p.list.empty:SetText(L["Dieser Client meldet keine seltenen Gegner (Schnittstelle fehlt). /oa probe rares zeigt Details."])
+            p.list.empty:SetText(L["This client does not report rare enemies (API missing). /oa probe rares shows details."])
         else
-            p.list.empty:SetText(view == "all" and L["Noch keine Sichtung. Sobald jemand mit Oasis einen seltenen Gegner sieht, steht er hier."]
-                or L["In den letzten 24 Stunden hat niemand einen seltenen Gegner gesehen."])
+            p.list.empty:SetText(view == "all" and L["No sightings yet. As soon as someone with Oasis spots a rare enemy, it shows up here."]
+                or L["Nobody has seen a rare enemy in the last 24 hours."])
         end
     end,
 })

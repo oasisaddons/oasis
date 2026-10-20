@@ -480,7 +480,7 @@ local function restoreHistory()
         if saved and not skip and type(saved.l) == "table" and saved.n == tabName(f) then
             busy = true
             pcall(function()
-                f:AddMessage("|cff666666- - - " .. (L["Chat vom %s"]):format(date("%d.%m. %H:%M", h.ts)) .. " - - -|r")
+                f:AddMessage("|cff666666- - - " .. (L["Chat from %s"]):format(date("%d.%m. %H:%M", h.ts)) .. " - - -|r")
                 for _, l in ipairs(saved.l) do
                     if type(l.t) == "string" then
                         -- 0.6.103: steht schon eine Uhrzeit vorn (Blizzard-Zeitstempel), keine zweite davor
@@ -536,7 +536,7 @@ local function checkAlert(event, args, plain, s)
     if #hits > 100 then table.remove(hits, 1) end
     if GetTime() - toastAt >= 4 and ns.K and ns.K.Toast then
         toastAt = GetTime()
-        pcall(ns.K.Toast, (L["Chat-Alarm: %s"]):format(word), plain, nil, function() if GC.OpenViewer then GC.OpenViewer("alerts") end end,
+        pcall(ns.K.Toast, (L["Chat alert: %s"]):format(word), plain, nil, function() if GC.OpenViewer then GC.OpenViewer("alerts") end end,
             s.gcAlertSound and "toast" or "none")
     end
     if GC.viewer and GC.viewer:IsShown() and GC.viewer.mode == "alerts" then GC.viewer:Refresh() end
@@ -687,7 +687,7 @@ end
 -- Zeitstempel: Blizzards eigene Einstellung (CVar), Oasis merkt sich den vorherigen Wert
 ------------------------------------------------------------------------
 GC.STAMPS = {
-    { key = "none", text = "Aus", fmt = "none" },
+    { key = "none", text = "Off", fmt = "none" },
     { key = "hm", text = "14:05", fmt = "[%H:%M] " },
     { key = "hms", text = "14:05:09", fmt = "[%H:%M:%S] " },
     { key = "12", text = "02:05 PM", fmt = "[%I:%M %p] " },
@@ -745,7 +745,7 @@ function GC.SelectInPlace(frame)
         sel.bg:SetColorTexture(0.03, 0.03, 0.04, 0.92)
         sel.hint = sel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         sel.hint:SetPoint("BOTTOMLEFT", sel, "TOPLEFT", 2, 3)
-        sel.hint:SetText(L["Text mit der Maus markieren - Strg+C kopiert, Esc schliesst"])
+        sel.hint:SetText(L["Select text with the mouse - Ctrl+C copies, Esc closes"])
         sel.sc = CreateFrame("ScrollFrame", nil, sel)
         sel.sc:SetAllPoints()
         sel.eb = CreateFrame("EditBox", nil, sel.sc)
@@ -1049,7 +1049,7 @@ local function liveFinish()
         eb:SetScript("OnEditFocusLost", function() if not live.menu then for _, t in ipairs(live.hl) do t:Hide() end if live.tip then live.tip:Hide() end end end)
         eb:SetScript("OnKeyUp", function(_, key)
             if key == "C" and IsControlKeyDown() and live.tip then
-                live.tip:SetText(L["Kopiert"])
+                live.tip:SetText(L["Copied"])
                 C_Timer.After(0.8, liveClear)
             end
         end)
@@ -1066,7 +1066,7 @@ local function liveFinish()
     else
         live.tip:SetPoint("BOTTOMLEFT", live.frame, "TOPLEFT", 0, 3)
     end
-    live.tip:SetText(L["Strg+C kopiert - Rechtsklick: mehr - Esc hebt auf"])
+    live.tip:SetText(L["Ctrl+C copies - right-click: more - Esc cancels"])
     live.tip:Show()
 end
 local function liveStart(cf)
@@ -1144,21 +1144,21 @@ local function liveMenu()
         live.menu = nil
         if live.eb then live.eb:SetFocus() live.eb:HighlightText() end
         liveDraw()
-        if live.tip then live.tip:SetText(L["Jetzt Strg+C druecken"]) live.tip:Show() end
+        if live.tip then live.tip:SetText(L["Now press Ctrl+C"]) live.tip:Show() end
     end
     local items = {
-        { text = L["Kopieren (Strg+C)"], fn = refocus },
-        { text = L["In die Chatzeile einfuegen"], fn = function()
+        { text = L["Copy (Ctrl+C)"], fn = refocus },
+        { text = L["Insert into chat line"], fn = function()
             live.menu = nil
             local one = text:gsub("\n", " ")
             liveClear()
             local open = ChatFrame_OpenChat or (ChatFrameUtil and ChatFrameUtil.OpenChat)
             if open then open(one) end
         end },
-        { text = L["Im Markierfeld oeffnen"], fn = function() live.menu = nil local f = live.frame liveClear() GC.SelectInPlace(f) end },
-        { text = L["Markierung aufheben"], fn = function() live.menu = nil liveClear() end },
+        { text = L["Open in selection box"], fn = function() live.menu = nil local f = live.frame liveClear() GC.SelectInPlace(f) end },
+        { text = L["Clear selection"], fn = function() live.menu = nil liveClear() end },
     }
-    if ns.K and ns.K.ShowMenu then ns.K.ShowMenu(live.anchor, items, L["Markierter Text"]) end
+    if ns.K and ns.K.ShowMenu then ns.K.ShowMenu(live.anchor, items, L["Selected text"]) end
     return true
 end
 GC.LiveStart, GC.LiveClear, GC.LiveMenu = liveStart, liveClear, liveMenu
@@ -1182,7 +1182,7 @@ function GC.HookSelect()
                     if G().gcAltSelect ~= false then GC.SelectInPlace(self) end
                 elseif not IsShiftKeyDown() and not IsControlKeyDown() then
                     local ok, e = pcall(liveStart, self)
-                    if not ok then ns.err("Spielchat", e) end
+                    if not ok then ns.err("Game chat", e) end
                 end
             end)
         end
@@ -1208,8 +1208,8 @@ function GC.ApplyCopyButton()
             self:SetAlpha(1)
             if ns.K and ns.K.ShowTip then
                 local foreign = ns.ForeignChat and ns.ForeignChat()
-                local lines = { L["Chat kopieren"], foreign and L["Linksklick: Kopierfenster oeffnen"] or L["Linksklick: direkt im Chat markieren, Strg+C kopiert"], L["Rechtsklick: Suchfenster"] }
-                if not foreign then lines[#lines + 1] = L["Auch Alt + Klick ins Chatfenster startet das Markieren"] end
+                local lines = { L["Copy chat"], foreign and L["Left click: open copy window"] or L["Left-click: select right in the chat, Ctrl+C copies"], L["Right-click: search window"] }
+                if not foreign then lines[#lines + 1] = L["Alt + click into the chat window also starts selecting"] end
                 ns.K.ShowTip(self, lines)
             end
         end)
@@ -1237,7 +1237,7 @@ function GC.Copy(frame)
     local source = ns.Emoji and ns.Emoji.EuiWindow and ns.Emoji.EuiWindow(frame)
     local out = {}
     for _, line in ipairs(frameLines(source or frame)) do out[#out + 1] = line.t end
-    if ns.WhisperLog then ns.WhisperLog.Copy(L["Chat kopieren"], table.concat(out, "\n")) end   -- Fluestern-Modul kann aus sein
+    if ns.WhisperLog then ns.WhisperLog.Copy(L["Copy chat"], table.concat(out, "\n")) end   -- Fluestern-Modul kann aus sein
 end
 
 function GC.ApplyAll()
@@ -1255,9 +1255,9 @@ end
 function GC.ListAdd(key, value)
     local list = G()[key]
     value = tostring(value or ""):gsub("[%c|]", ""):gsub("^%s+", ""):gsub("%s+$", ""):lower()
-    if value == "" or #value > MAX_ENTRY then return false, L["Leer oder zu lang (hoechstens 100 Zeichen)."] end
-    for _, v in ipairs(list) do if v == value then return false, L["Steht schon in der Liste."] end end
-    if #list >= MAX_LIST then return false, L["Die Liste ist voll (hoechstens 50 Eintraege)."] end
+    if value == "" or #value > MAX_ENTRY then return false, L["Empty or too long (100 characters at most)."] end
+    for _, v in ipairs(list) do if v == value then return false, L["Already on the list."] end end
+    if #list >= MAX_LIST then return false, L["The list is full (50 entries at most)."] end
     list[#list + 1] = value
     table.sort(list)
     return true
@@ -1273,17 +1273,17 @@ end
 ns.slash.chatmute = function(rest)
     local channel, name = (rest or ""):match("^%s*(.-)%s*;%s*(.-)%s*$")
     if not channel or channel == "" or name == "" then
-        ns.print(L["So geht es: /oa chatmute Kanal; Spielername"])
+        ns.print(L["Usage: /oa chatmute channel; player name"])
         return
     end
     local key = GC.MuteKey(channel, name)
     if GC.ListRemove("gcMutes", key) then
-        ns.print((L["%s ist in %s nicht mehr stumm."]):format(name, channel))
+        ns.print((L["%s is no longer muted in %s."]):format(name, channel))
     else
         local ok, why = GC.ListAdd("gcMutes", key)
         if ok then
             G().gcFilter = true
-            ns.print((L["%s ist in %s stummgeschaltet."]):format(name, channel))
+            ns.print((L["%s is muted in %s."]):format(name, channel))
         else
             ns.print(why)
         end
@@ -1303,10 +1303,10 @@ ns.slash.chatalarm = function(rest)
     end
     local w = rest:lower()
     if GC.ListRemove("gcWords", w) then
-        ns.print((L["Alarm entfernt: %s"]):format(rest))
+        ns.print((L["Alert removed: %s"]):format(rest))
     else
         local ok, why = GC.ListAdd("gcWords", w)
-        ns.print(ok and (L["Alarm gesetzt: %s"]):format(rest) or why)
+        ns.print(ok and (L["Alert set: %s"]):format(rest) or why)
     end
 end
 

@@ -16,55 +16,55 @@ local function myLevel() return ns.Rank and ns.Rank.Mine().level or 1 end
 -- alle 2 Raenge eine Belohnung (50 Stueck)
 local function E(n) return "Besondere Emojis " .. n end
 RW.LIST = {
-    { lvl = 2, kind = "bg", key = "abend", name = "Hintergrund: Sonnenuntergang", desc = "Neuer Hintergrund fuer deine Oasigram-Posts" },
-    { lvl = 4, kind = "dice", key = "gold", name = "Goldene Wuerfel", desc = "Deathroll-Wuerfel in Gold", color = { 1, 0.82, 0.3 } },
-    { lvl = 8, kind = "emoji", key = "emoji8", name = E("I"), desc = "Die ersten animierten Gilden-Emojis" },
-    { lvl = 10, kind = "sound", key = "wow_levelup", name = "Fanfare: Stufenaufstieg", desc = "Neuer Klang beim Rangaufstieg" },
-    { lvl = 12, kind = "theme", key = "smaragd", name = "Design: Smaragd-Oase", desc = "Gruene Akzentfarbe fuer ganz Oasis", hex = "3fdc8a" },
-    { lvl = 14, kind = "bg", key = "gewitter", name = "Hintergrund: Gewitter", desc = "Mit Blitzen - fuer deine Oasigram-Posts" },
-    { lvl = 16, kind = "emoji", key = "emoji16", name = E("II"), desc = "Weitere animierte Gilden-Emojis" },
-    { lvl = 18, kind = "dice", key = "fire", name = "Feuerwuerfel", desc = "Deathroll-Wuerfel in Flammenfarbe", color = { 1, 0.45, 0.15 } },
-    { lvl = 20, kind = "sound", key = "wow_mission", name = "Fanfare: Triumph", desc = "Neuer Klang beim Rangaufstieg" },
-    { lvl = 22, kind = "bg", key = "polar", name = "Hintergrund: Polarlicht", desc = "Schimmerndes Nordlicht fuer deine Posts" },
-    { lvl = 24, kind = "theme", key = "sunset", name = "Design: Sonnenuntergang", desc = "Orange Akzentfarbe fuer ganz Oasis", hex = "ff7a3d" },
-    { lvl = 26, kind = "emoji", key = "emoji26", name = E("III"), desc = "Weitere animierte Gilden-Emojis" },
-    { lvl = 28, kind = "dice", key = "frost", name = "Frostwuerfel", desc = "Deathroll-Wuerfel in Eisblau", color = { 0.55, 0.8, 1 } },
-    { lvl = 30, kind = "chat", key = "chatgem", name = "Rang-Juwel im Gildenchat", desc = "Vor deinem Namen leuchtet dein Rang-Juwel" },
-    { lvl = 32, kind = "bg", key = "vulkan", name = "Hintergrund: Vulkan", desc = "Flackernde Glut fuer deine Posts" },
-    { lvl = 34, kind = "sound", key = "horn", name = "Fanfare: Kriegshorn", desc = "Neuer Klang beim Rangaufstieg" },
-    { lvl = 36, kind = "emoji", key = "emoji36", name = E("IV"), desc = "Weitere animierte Gilden-Emojis" },
-    { lvl = 38, kind = "dice", key = "poison", name = "Giftwuerfel", desc = "Deathroll-Wuerfel in Giftgruen", color = { 0.5, 1, 0.4 } },
-    { lvl = 40, kind = "theme", key = "gold", name = "Design: Gold", desc = "Goldene Akzentfarbe fuer ganz Oasis", hex = "ffc83d" },
-    { lvl = 42, kind = "bg", key = "sterne", name = "Hintergrund: Sternennacht", desc = "Funkelnde Sterne fuer deine Posts" },
-    { lvl = 44, kind = "sound", key = "trommel", name = "Fanfare: Kriegstrommel", desc = "Neuer Klang beim Rangaufstieg" },
-    { lvl = 46, kind = "theme", key = "ozean", name = "Design: Ozean", desc = "Tiefblaue Akzentfarbe fuer ganz Oasis", hex = "3aa0ff" },
-    { lvl = 48, kind = "emoji", key = "emoji48", name = E("V"), desc = "Weitere animierte Gilden-Emojis" },
-    { lvl = 50, kind = "dice", key = "arcane", name = "Arkanwuerfel", desc = "Deathroll-Wuerfel in Arkanviolett", color = { 0.8, 0.5, 1 } },
-    { lvl = 52, kind = "bg", key = "tiefsee", name = "Hintergrund: Tiefsee", desc = "Blaue Tiefe fuer deine Posts" },
-    { lvl = 54, kind = "sound", key = "glocke", name = "Fanfare: Glocke", desc = "Neuer Klang beim Rangaufstieg" },
-    { lvl = 56, kind = "theme", key = "rose", name = "Design: Rosengarten", desc = "Rosa Akzentfarbe fuer ganz Oasis", hex = "ff6fb1" },
-    { lvl = 58, kind = "dice", key = "blood", name = "Blutwuerfel", desc = "Deathroll-Wuerfel in Blutrot", color = { 0.8, 0.08, 0.12 } },
-    { lvl = 60, kind = "theme", key = "night", name = "Design: Nachtwueste", desc = "Nachtblaue Akzentfarbe fuer ganz Oasis", hex = "6f63ff" },
-    { lvl = 62, kind = "emoji", key = "emoji62", name = E("VI"), desc = "Weitere animierte Gilden-Emojis" },
-    { lvl = 64, kind = "bg", key = "kristall", name = "Hintergrund: Kristallhoehle", desc = "Violettes Kristalllicht fuer deine Posts" },
-    { lvl = 66, kind = "sound", key = "wow_quest", name = "Fanfare: Quest geschafft", desc = "Neuer Klang beim Rangaufstieg" },
-    { lvl = 68, kind = "dice", key = "nature", name = "Naturwuerfel", desc = "Deathroll-Wuerfel in Blattgruen", color = { 0.55, 0.85, 0.25 } },
-    { lvl = 70, kind = "chat", key = "chatshine", name = "Schimmernder Name", desc = "Dein Name glaenzt im Gildenchat in deiner Rahmenfarbe" },
-    { lvl = 72, kind = "bg", key = "gold", name = "Hintergrund: Goldstaub", desc = "Glitzernder Goldstaub fuer deine Posts" },
-    { lvl = 74, kind = "dice", key = "shadow", name = "Schattenwuerfel", desc = "Deathroll-Wuerfel aus Schatten", color = { 0.5, 0.35, 0.7 } },
-    { lvl = 76, kind = "emoji", key = "emoji76", name = E("VII"), desc = "Weitere animierte Gilden-Emojis" },
-    { lvl = 78, kind = "theme", key = "lava", name = "Design: Lava", desc = "Gluehend rote Akzentfarbe fuer ganz Oasis", hex = "ff3d1f" },
-    { lvl = 80, kind = "theme", key = "diamond", name = "Design: Diamant", desc = "Eisklare Akzentfarbe fuer ganz Oasis", hex = "8fe6ff" },
-    { lvl = 82, kind = "sound", key = "wow_ready", name = "Fanfare: Bereitschaft", desc = "Neuer Klang beim Rangaufstieg" },
-    { lvl = 84, kind = "bg", key = "astral", name = "Hintergrund: Astralebene", desc = "Schillernde Astralebene fuer deine Posts" },
-    { lvl = 86, kind = "dice", key = "holy", name = "Heilige Wuerfel", desc = "Deathroll-Wuerfel aus Licht", color = { 1, 0.95, 0.7 } },
-    { lvl = 88, kind = "theme", key = "jade", name = "Design: Jade", desc = "Jadegruene Akzentfarbe fuer ganz Oasis", hex = "2fd1b0" },
-    { lvl = 90, kind = "dice", key = "void", name = "Leerenwuerfel", desc = "Deathroll-Wuerfel aus der Leere", color = { 0.4, 0.25, 0.95 } },
-    { lvl = 92, kind = "emoji", key = "emoji92", name = E("VIII"), desc = "Die seltensten Gilden-Emojis" },
-    { lvl = 94, kind = "theme", key = "silber", name = "Design: Mondsilber", desc = "Silberne Akzentfarbe fuer ganz Oasis", hex = "c9d4e8" },
-    { lvl = 96, kind = "bg", key = "legende", name = "Hintergrund: Legende", desc = "Der Hintergrund der Legenden" },
-    { lvl = 98, kind = "sound", key = "erfolg", name = "Fanfare: Oasis-Triumph", desc = "Neuer Klang beim Rangaufstieg" },
-    { lvl = 100, kind = "theme", key = "heart", name = "Design: Herz der Oasis", desc = "Die Farbe der Legenden", hex = "ff4f8a" },
+    { lvl = 2, kind = "bg", key = "abend", name = "Background: Sunset", desc = "New background for your Oasigram posts" },
+    { lvl = 4, kind = "dice", key = "gold", name = "Golden dice", desc = "Deathroll dice in gold", color = { 1, 0.82, 0.3 } },
+    { lvl = 8, kind = "emoji", key = "emoji8", name = E("I"), desc = "The first animated guild emojis" },
+    { lvl = 10, kind = "sound", key = "wow_levelup", name = "Fanfare: Level up", desc = "New sound on rank-up" },
+    { lvl = 12, kind = "theme", key = "smaragd", name = "Design: Emerald Oasis", desc = "Green accent color for all of Oasis", hex = "3fdc8a" },
+    { lvl = 14, kind = "bg", key = "gewitter", name = "Background: Thunderstorm", desc = "With lightning - for your Oasigram posts" },
+    { lvl = 16, kind = "emoji", key = "emoji16", name = E("II"), desc = "More animated guild emojis" },
+    { lvl = 18, kind = "dice", key = "fire", name = "Fire dice", desc = "Deathroll dice in flame colors", color = { 1, 0.45, 0.15 } },
+    { lvl = 20, kind = "sound", key = "wow_mission", name = "Fanfare: Triumph", desc = "New sound on rank-up" },
+    { lvl = 22, kind = "bg", key = "polar", name = "Background: Aurora", desc = "Shimmering northern lights for your posts" },
+    { lvl = 24, kind = "theme", key = "sunset", name = "Design: Sunset", desc = "Orange accent color for all of Oasis", hex = "ff7a3d" },
+    { lvl = 26, kind = "emoji", key = "emoji26", name = E("III"), desc = "More animated guild emojis" },
+    { lvl = 28, kind = "dice", key = "frost", name = "Frost dice", desc = "Deathroll dice in ice blue", color = { 0.55, 0.8, 1 } },
+    { lvl = 30, kind = "chat", key = "chatgem", name = "Rank gem in guild chat", desc = "Your rank jewel glows in front of your name" },
+    { lvl = 32, kind = "bg", key = "vulkan", name = "Background: Volcano", desc = "Flickering embers for your posts" },
+    { lvl = 34, kind = "sound", key = "horn", name = "Fanfare: War horn", desc = "New sound on rank-up" },
+    { lvl = 36, kind = "emoji", key = "emoji36", name = E("IV"), desc = "More animated guild emojis" },
+    { lvl = 38, kind = "dice", key = "poison", name = "Poison dice", desc = "Deathroll dice in toxic green", color = { 0.5, 1, 0.4 } },
+    { lvl = 40, kind = "theme", key = "gold", name = "Design: Gold", desc = "Golden accent color for all of Oasis", hex = "ffc83d" },
+    { lvl = 42, kind = "bg", key = "sterne", name = "Background: Starry Night", desc = "Twinkling stars for your posts" },
+    { lvl = 44, kind = "sound", key = "trommel", name = "Fanfare: War drum", desc = "New sound on rank-up" },
+    { lvl = 46, kind = "theme", key = "ozean", name = "Design: Ocean", desc = "Deep blue accent color for all of Oasis", hex = "3aa0ff" },
+    { lvl = 48, kind = "emoji", key = "emoji48", name = E("V"), desc = "More animated guild emojis" },
+    { lvl = 50, kind = "dice", key = "arcane", name = "Arcane dice", desc = "Deathroll dice in arcane violet", color = { 0.8, 0.5, 1 } },
+    { lvl = 52, kind = "bg", key = "tiefsee", name = "Background: Deep Sea", desc = "Blue depths for your posts" },
+    { lvl = 54, kind = "sound", key = "glocke", name = "Fanfare: Bell", desc = "New sound on rank-up" },
+    { lvl = 56, kind = "theme", key = "rose", name = "Design: Rose Garden", desc = "Pink accent color for all of Oasis", hex = "ff6fb1" },
+    { lvl = 58, kind = "dice", key = "blood", name = "Blood Dice", desc = "Deathroll dice in blood red", color = { 0.8, 0.08, 0.12 } },
+    { lvl = 60, kind = "theme", key = "night", name = "Design: Night Desert", desc = "Midnight blue accent color for all of Oasis", hex = "6f63ff" },
+    { lvl = 62, kind = "emoji", key = "emoji62", name = E("VI"), desc = "More animated guild emojis" },
+    { lvl = 64, kind = "bg", key = "kristall", name = "Background: Crystal Cave", desc = "Violet crystal light for your posts" },
+    { lvl = 66, kind = "sound", key = "wow_quest", name = "Fanfare: Quest Complete", desc = "New sound on rank-up" },
+    { lvl = 68, kind = "dice", key = "nature", name = "Nature Dice", desc = "Deathroll dice in leaf green", color = { 0.55, 0.85, 0.25 } },
+    { lvl = 70, kind = "chat", key = "chatshine", name = "Shimmering name", desc = "Your name shines in guild chat in your frame color" },
+    { lvl = 72, kind = "bg", key = "gold", name = "Background: Gold Dust", desc = "Glittering gold dust for your posts" },
+    { lvl = 74, kind = "dice", key = "shadow", name = "Shadow dice", desc = "Deathroll dice made of shadow", color = { 0.5, 0.35, 0.7 } },
+    { lvl = 76, kind = "emoji", key = "emoji76", name = E("VII"), desc = "More animated guild emojis" },
+    { lvl = 78, kind = "theme", key = "lava", name = "Design: Lava", desc = "Glowing red accent color for all of Oasis", hex = "ff3d1f" },
+    { lvl = 80, kind = "theme", key = "diamond", name = "Design: Diamond", desc = "Ice-clear accent color for all of Oasis", hex = "8fe6ff" },
+    { lvl = 82, kind = "sound", key = "wow_ready", name = "Fanfare: Ready Check", desc = "New sound on rank-up" },
+    { lvl = 84, kind = "bg", key = "astral", name = "Background: Astral Plane", desc = "A shimmering astral plane for your posts" },
+    { lvl = 86, kind = "dice", key = "holy", name = "Holy Dice", desc = "Deathroll dice made of Light", color = { 1, 0.95, 0.7 } },
+    { lvl = 88, kind = "theme", key = "jade", name = "Design: Jade", desc = "Jade green accent color for all of Oasis", hex = "2fd1b0" },
+    { lvl = 90, kind = "dice", key = "void", name = "Void Dice", desc = "Deathroll dice from the Void", color = { 0.4, 0.25, 0.95 } },
+    { lvl = 92, kind = "emoji", key = "emoji92", name = E("VIII"), desc = "The rarest guild emojis" },
+    { lvl = 94, kind = "theme", key = "silber", name = "Design: Moonsilver", desc = "Silver accent color for all of Oasis", hex = "c9d4e8" },
+    { lvl = 96, kind = "bg", key = "legende", name = "Background: Legend", desc = "The backdrop of legends" },
+    { lvl = 98, kind = "sound", key = "erfolg", name = "Fanfare: Oasis Triumph", desc = "New sound on rank-up" },
+    { lvl = 100, kind = "theme", key = "heart", name = "Design: Heart of Oasis", desc = "The color of legends", hex = "ff4f8a" },
 }
 RW.byKey = {}
 for _, r in ipairs(RW.LIST) do RW.byKey[r.kind .. ":" .. r.key] = r end
@@ -73,7 +73,7 @@ function RW.Unlocked(kind, key, level)
     return r ~= nil and (level or myLevel()) >= r.lvl
 end
 local KIND_ICON = { brachland = "chat", emoji = "chat", dice = "deathroll", sound = "settings", theme = "home", chat = "chat", bg = "insta" }
-local KIND_NAME = { brachland = "Spass", emoji = "Emojis", dice = "Wuerfel", sound = "Fanfare", theme = "Design", chat = "Gildenchat", bg = "Oasigram" }
+local KIND_NAME = { brachland = "Fun", emoji = "Emojis", dice = "Dice", sound = "Fanfare", theme = "Theme", chat = "Guild chat", bg = "Oasigram" }
 
 -- Ausruesten (nur freigeschaltet)
 function RW.Equip(r)
@@ -119,8 +119,8 @@ end
 -- Gildenchat: Rang-Juwel ab 30, schimmernder Name ab 70 (fuer alle mit Rang, auch andere)
 ------------------------------------------------------------------------
 local MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
-ns.GuildOption({ page = "insta", key = "rwGem", default = true, label = "Rang-Juwel im Gildenchat",
-    desc = "Zeigt ab Oasis-Rang 30 ein Juwel und ab Rang 70 einen schimmernden Namen im Oasis-Gildenchat" })
+ns.GuildOption({ page = "insta", key = "rwGem", default = true, label = "Rank gem in guild chat",
+    desc = "Shows a gem from Oasis rank 30 and a shimmering name from rank 70 in the Oasis guild chat" })
 function RW.ChatName(name, plain)
     if ns.GuildOpt("rwGem") == false then return nil end
     local lvl = ns.Rank and ns.Rank.Of(name)
@@ -180,7 +180,7 @@ end
 function RW.GiveXP(n, reason)
     ns.db.rankBonus = (ns.db.rankBonus or 0) + n
     if ns.Rank then
-        ns.Rank.Float(("+%d %s"):format(n, L["Oasis-XP"]) .. (reason and ("  |cffffffff" .. reason .. "|r") or ""))
+        ns.Rank.Float(("+%d %s"):format(n, L["Oasis XP"]) .. (reason and ("  |cffffffff" .. reason .. "|r") or ""))
         ns.After(0.5, function() ns.Rank.Update(false, true) end)
     end
 end
@@ -203,22 +203,22 @@ end
 -- Wochenaufgaben: 3 pro Woche, fuer die ganze Gilde gleich
 ------------------------------------------------------------------------
 RW.POOL = {
-    { stat = "groupMin", need = 60, text = "60 Minuten mit Gildenmitgliedern in einer Gruppe" },
-    { stat = "crafted", need = 1, text = "Einen Auftrag fuer jemanden herstellen" },
-    { stat = "signups", need = 1, text = "Einem Gildentermin zusagen" },
-    { stat = "drPlays", need = 3, text = "Deathroll gegen 3 verschiedene Leute spielen" },
-    { stat = "questsGroup", need = 5, text = "5 Quests zusammen mit der Gilde abgeben" },
-    { stat = "joined", need = 1, text = "Einer Gruppe der Gilde beitreten" },
-    { stat = "lfgStarted", need = 1, text = "Eine Gruppensuche starten, bei der ein Gildenmitglied beitritt" },
-    { stat = "hugs", need = 5, text = "5 verschiedene Gildenmitglieder umarmen oder bejubeln" },
-    { stat = "chat", need = 20, text = "20 Nachrichten im Gildenchat" },
-    { stat = "bossCrew", need = 1, text = "Einen Boss mit der Gilde legen" },
-    { stat = "daysOnline", need = 3, text = "An 3 Tagen online sein" },
-    { stat = "gz", need = 3, text = "3 verschiedenen Leuten gratulieren" },
-    { stat = "dungeonRuns", need = 1, text = "Einen Dungeon-Boss mit 3+ Gildenmitgliedern legen" },
-    { stat = "rez", need = 1, text = "Ein Gildenmitglied wiederbeleben" },
-    { stat = "helped", need = 1, text = "Jemandem ein gesuchtes Item geben" },
-    { stat = "trades", need = 2, text = "Mit 2 verschiedenen Gildenmitgliedern handeln" },
+    { stat = "groupMin", need = 60, text = "60 minutes in a group with guild members" },
+    { stat = "crafted", need = 1, text = "Craft an order for someone" },
+    { stat = "signups", need = 1, text = "Accept a guild event" },
+    { stat = "drPlays", need = 3, text = "Play deathroll against 3 different people" },
+    { stat = "questsGroup", need = 5, text = "Turn in 5 quests together with the guild" },
+    { stat = "joined", need = 1, text = "Join a guild group" },
+    { stat = "lfgStarted", need = 1, text = "Start a group search a guild member joins" },
+    { stat = "hugs", need = 5, text = "Hug or cheer 5 different guild members" },
+    { stat = "chat", need = 20, text = "20 messages in guild chat" },
+    { stat = "bossCrew", need = 1, text = "Defeat a boss with the guild" },
+    { stat = "daysOnline", need = 3, text = "Be online on 3 days" },
+    { stat = "gz", need = 3, text = "Congratulate 3 different people" },
+    { stat = "dungeonRuns", need = 1, text = "Kill a dungeon boss with 3+ guild members" },
+    { stat = "rez", need = 1, text = "Resurrect a guild member" },
+    { stat = "helped", need = 1, text = "Give someone an item they need" },
+    { stat = "trades", need = 2, text = "Trade with 2 different guild members" },
 }
 local TASK_XP, ALL_XP = 150, 200
 local function weekKey() return date("%Y-%W") end
@@ -286,16 +286,16 @@ function RW.CheckTasks()
         if t.have >= t.need and not W.done[t.idx] then
             W.done[t.idx] = true
             if ns.Sound then ns.Sound.Next("badge") end
-            K.Toast(L["Wochenaufgabe geschafft!"], t.text .. "  |cffffd24a+" .. TASK_XP .. " XP|r", C.amber, function() ns.ShowPage("rank") end)
-            RW.GiveXP(TASK_XP, L["Wochenaufgabe"])
+            K.Toast(L["Weekly task done!"], t.text .. "  |cffffd24a+" .. TASK_XP .. " XP|r", C.amber, function() ns.ShowPage("rank") end)
+            RW.GiveXP(TASK_XP, L["Weekly goal"])
         end
         if not W.done[t.idx] then all = false end
     end
     if all and not W.allDone then
         W.allDone = true
         ns.After(2, function()
-            K.Toast(L["Alle Wochenaufgaben geschafft!"], "|cffffd24a+" .. ALL_XP .. " XP " .. L["Bonus"] .. "|r", C.amber)
-            RW.GiveXP(ALL_XP, L["Wochenbonus"])
+            K.Toast(L["All weekly tasks done!"], "|cffffd24a+" .. ALL_XP .. " XP " .. L["Bonus"] .. "|r", C.amber)
+            RW.GiveXP(ALL_XP, L["Weekly bonus"])
         end)
     end
 end
@@ -417,12 +417,12 @@ function RW.AttachBar(main, sidebar)
     function b:Update(animate)
         local r = ns.Rank and ns.Rank.Mine()
         if not r then self:Hide() return end
-        self.lbl:SetText((L["Rang %d"]):format(r.level))
+        self.lbl:SetText((L["Rank %d"]):format(r.level))
         if self.badge then self.badge:SetRank(r.level) self.badge:Show() end
         self.title:SetText(r.title or "")
         self.text:SetText(r.need and ((r.into or 0) .. " / " .. r.need .. " XP") or ((r.xp or r.into or 0) .. " XP"))   -- 0.6.563: hoechster Rang hat kein "need"
         local until2 = RW.DoubleUntil()
-        self.x2:SetText(until2 and ("2x XP  ·  " .. L["XP-Wochenende"]) or "")
+        self.x2:SetText(until2 and ("2x XP  ·  " .. L["XP weekend"]) or "")
         local w = innerW()
         local pct = math.min(1, r.into / math.max(1, r.need))
         local from = (self.pct or 0) * w
@@ -438,9 +438,9 @@ function RW.AttachBar(main, sidebar)
     b:SetScript("OnEnter", function(self)
         local r = ns.Rank and ns.Rank.Mine()
         if not r then return end
-        local lines = { (L["Oasis-Rang %d"]):format(r.level) .. "  -  " .. r.title, (L["%d / %d XP bis zum naechsten Rang"]):format(r.into, r.need) }
-        if RW.DoubleUntil() then lines[#lines + 1] = "|cffffd24a" .. L["XP-Wochenende: doppelte Oasis-XP!"] .. "|r" end
-        lines[#lines + 1] = "|cff888888" .. L["Klick: Rang, Belohnungen und Wochenaufgaben"] .. "|r"
+        local lines = { (L["Oasis rank %d"]):format(r.level) .. "  -  " .. r.title, (L["%d / %d XP to the next rank"]):format(r.into, r.need) }
+        if RW.DoubleUntil() then lines[#lines + 1] = "|cffffd24a" .. L["Double XP: double Oasis XP!"] .. "|r" end
+        lines[#lines + 1] = "|cff888888" .. L["Click: rank, rewards and weekly tasks"] .. "|r"
         K.ShowTip(self, lines)
     end)
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -586,7 +586,7 @@ function RW.AttachCard(main)
         local r = ns.Rank and ns.Rank.Mine()
         if r then
             self.rf:SetStyle(r.frame, r.level)
-            self.rankLabel:SetText(K.Upper((L["Rang %d"]):format(r.level)) .. "  |cffe8b44a" .. r.title .. "|r")
+            self.rankLabel:SetText(K.Upper((L["Rank %d"]):format(r.level)) .. "  |cffe8b44a" .. r.title .. "|r")
             self.rankXP:SetText(r.into .. " / " .. r.need .. " XP")
             self.rankBar:Set(r.into / math.max(1, r.need), animate)
         end
@@ -603,21 +603,21 @@ function RW.AttachCard(main)
             self.lvlPct:SetText(("%s / %s XP  |cff888888·|r  %d %%"):format(BreakUpLargeNumbers and BreakUpLargeNumbers(cur) or cur, BreakUpLargeNumbers and BreakUpLargeNumbers(max) or max, math.floor(pct * 100)))
             self.lvlBar:Set(pct, animate)
         else
-            self.lvlLabel:SetText(K.Upper((L["Level %d"]):format(lvl)) .. "  |cffe8b44a" .. L["Hoechststufe"] .. "|r")
+            self.lvlLabel:SetText(K.Upper((L["Level %d"]):format(lvl)) .. "  |cffe8b44a" .. L["max level"] .. "|r")
             self.lvlPct:SetText("")
             self.lvlBar:Set(1, animate)
         end
         local until2 = RW.DoubleUntil()
-        self.x2:SetText(until2 and ("2x XP  ·  " .. (L["noch %d h"]):format(math.ceil((until2 - ns.now()) / 3600))) or "")
+        self.x2:SetText(until2 and ("2x XP  ·  " .. (L["%d h left"]):format(math.ceil((until2 - ns.now()) / 3600))) or "")
     end
     c:SetScript("OnShow", function(self) self:Update() end)
     c:SetScript("OnEnter", function(self)
         local r = ns.Rank and ns.Rank.Mine()
         if not r then return end
-        local lines = { (L["Oasis-Rang %d"]):format(r.level) .. "  -  " .. r.title, (L["%d / %d XP bis zum naechsten Rang"]):format(r.into, r.need),
-            L["Rahmen:"] .. " " .. K.hex(r.frame.color) .. L[r.frame.name] .. "|r" }
-        if RW.DoubleUntil() then lines[#lines + 1] = "|cffffd24a" .. L["XP-Wochenende: doppelte Oasis-XP!"] .. "|r" end
-        lines[#lines + 1] = "|cff888888" .. L["Klick: Rang, Belohnungen und Wochenaufgaben"] .. "|r"
+        local lines = { (L["Oasis rank %d"]):format(r.level) .. "  -  " .. r.title, (L["%d / %d XP to the next rank"]):format(r.into, r.need),
+            L["Frame:"] .. " " .. K.hex(r.frame.color) .. L[r.frame.name] .. "|r" }
+        if RW.DoubleUntil() then lines[#lines + 1] = "|cffffd24a" .. L["Double XP: double Oasis XP!"] .. "|r" end
+        lines[#lines + 1] = "|cff888888" .. L["Click: rank, rewards and weekly tasks"] .. "|r"
         K.ShowTip(self, lines, "ANCHOR_TOP")
     end)
     c:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -650,10 +650,10 @@ function RW.AttachCard(main)
         if closed then
             tab:SetPoint("TOP", main, "BOTTOM", 0, 1)
             tab.line:SetPoint("BOTTOMLEFT", 1, 1) tab.line:SetPoint("BOTTOMRIGHT", -1, 1)
-            tab.t:SetText(K.Upper(L["Profil anzeigen"]) .. "  |cffe8b44av|r")
+            tab.t:SetText(K.Upper(L["Show profile"]) .. "  |cffe8b44av|r")
         else
             tab:SetPoint("TOP", c, "BOTTOM", 0, 1)
-            tab.t:SetText(K.Upper(L["einklappen"]) .. "  |cffe8b44a^|r")
+            tab.t:SetText(K.Upper(L["collapse"]) .. "  |cffe8b44a^|r")
         end
     end
     tab:SetScript("OnClick", function()
@@ -687,9 +687,9 @@ function RW.StartDouble(hours, startAt)
     ns.Admin.Save(cfg)
     if hours and hours > 0 then
         if cfg.xp2s > 0 then
-            ns.Admin.SendNotice(L["XP-Wochenende!"], (L["Doppelte Oasis-XP ab %s fuer %d Stunden!"]):format(ns.fmtWhen(from), hours), true, false)
+            ns.Admin.SendNotice(L["Double XP!"], (L["Double Oasis XP from %s for %d hours!"]):format(ns.fmtWhen(from), hours), true, false)
         else
-            ns.Admin.SendNotice(L["XP-Wochenende!"], (L["Doppelte Oasis-XP fuer %d Stunden - viel Spass!"]):format(hours), true, false)
+            ns.Admin.SendNotice(L["Double XP!"], (L["Double Oasis XP for %d hours - have fun!"]):format(hours), true, false)
         end
     end
     ns.RefreshPage("admin")
@@ -714,14 +714,14 @@ local function panel(parent, title, color)
 end
 
 ns.RegisterPage({
-    key = "rank", title = "Oasis-Rang", order = 7.85,
+    key = "rank", title = "Oasis rank", order = 7.85,
     visible = function() return false end,   -- steckt jetzt als Reiter im Profil
-    sub = "Dein Rang in der Gilde - Belohnungen, Rahmen und Wochenaufgaben",
+    sub = "Your rank in the guild - rewards, frames and weekly tasks",
     build = function(p)
         p:SetScript("OnShow", function(self) self.fresh = true end)
         p.fresh = true
         -- Rangkarte
-        local card = panel(p, L["Dein Rang"], C.amber)
+        local card = panel(p, L["Your rank"], C.amber)
         card:SetPoint("TOPLEFT", 0, 0)
         card:SetSize(370, 200)
         card.frame = K.RankFrame(card, 72, "circle")
@@ -759,7 +759,7 @@ ns.RegisterPage({
         p.card = card
 
         -- Wochenaufgaben
-        local week = panel(p, L["Wochenaufgaben"], C.mint)
+        local week = panel(p, L["Weekly tasks"], C.mint)
         week:SetPoint("TOPLEFT", 0, -210)
         week:SetPoint("BOTTOMLEFT")
         week:SetWidth(370)
@@ -803,7 +803,7 @@ ns.RegisterPage({
         p.week = week
 
         -- Belohnungen
-        local rw = panel(p, L["Belohnungen"], C.accent)
+        local rw = panel(p, L["Rewards"], C.accent)
         rw:SetPoint("TOPLEFT", 381, 0)
         rw:SetPoint("BOTTOMRIGHT")
         rw.list = K.List(rw, 40, function(l)
@@ -816,7 +816,7 @@ ns.RegisterPage({
             r.lvl.top:SetPoint("TOPLEFT") r.lvl.top:SetPoint("TOPRIGHT") r.lvl.top:SetHeight(2)
             r.lvl.a = K.Text(r.lvl, 8, C.dim, "CENTER")
             r.lvl.a:SetPoint("TOP", 0, -4)
-            r.lvl.a:SetText(K.Upper(L["Rang"]))
+            r.lvl.a:SetText(K.Upper(L["Rank"]))
             r.lvl.n = K.Title(r.lvl, 12, C.text, "CENTER")
             r.lvl.n:SetPoint("BOTTOM", 0, 3)
             r.icon = K.Glyph(r, 16, nil)
@@ -852,16 +852,16 @@ ns.RegisterPage({
             r.icon:SetVertexColor(ic[1], ic[2], ic[3])
             r.name:SetText(open and L[x.name] or ("|cff777777" .. L[x.name] .. "|r"))
             local soon = x.kind == "bg" and ns.Insta and ns.Insta.SOON
-            r.desc:SetText("|cff888888" .. L[KIND_NAME[x.kind]] .. "  ·  |r" .. L[x.desc] .. (soon and ("  |cffff7fa8(" .. L["kommt bald"] .. ")|r") or ""))
+            r.desc:SetText("|cff888888" .. L[KIND_NAME[x.kind]] .. "  ·  |r" .. L[x.desc] .. (soon and ("  |cffff7fa8(" .. L["coming soon"] .. ")|r") or ""))
             local equip = x.kind == "theme" or x.kind == "sound" or x.kind == "dice"
             if not open then
-                r.state:SetText("|cff666666" .. L["gesperrt"] .. "|r")
+                r.state:SetText("|cff666666" .. L["locked"] .. "|r")
             elseif equip and RW.IsEquipped(x) then
-                r.state:SetText("|cff66db9e" .. L["AKTIV"] .. "|r")
+                r.state:SetText("|cff66db9e" .. L["ACTIVE"] .. "|r")
             elseif equip then
-                r.state:SetText("|cffffd24a" .. L["Anlegen"] .. "|r")
+                r.state:SetText("|cffffd24a" .. L["Create"] .. "|r")
             else
-                r.state:SetText("|cff66db9e" .. L["frei"] .. "|r")
+                r.state:SetText("|cff66db9e" .. L["open"] .. "|r")
             end
             r:SetAlpha(open and 1 or 0.7)
             if p.fresh then K.FadeIn(r, math.min(0.8, (idx or 1) * 0.03)) end
@@ -885,7 +885,7 @@ ns.RegisterPage({
         c.num:SetText(r.level)
         c.num:SetTextColor(st.color[1], st.color[2], st.color[3])
         c.title:SetText(r.title)
-        c.frameName:SetText(K.hex(st.color) .. L[st.name] .. "|r  ·  " .. (L["Oasis-Rang %d"]):format(r.level))
+        c.frameName:SetText(K.hex(st.color) .. L[st.name] .. "|r  ·  " .. (L["Oasis rank %d"]):format(r.level))
         local w = (c.track:GetWidth() or 0) > 10 and c.track:GetWidth() or 220
         local pct = math.min(1, r.into / math.max(1, r.need))
         if fresh then
@@ -894,20 +894,20 @@ ns.RegisterPage({
         else
             c.fill:SetWidth(math.max(1, w * pct))
         end
-        c.xp:SetText((L["%d / %d XP bis zum naechsten Rang"]):format(r.into, r.need))
-        c.total:SetText((L["%d XP gesamt"]):format(r.xp))
+        c.xp:SetText((L["%d / %d XP to the next rank"]):format(r.into, r.need))
+        c.total:SetText((L["%d XP total"]):format(r.xp))
         -- naechste Belohnung + naechster Rahmen
         local nextR
         for _, x in ipairs(RW.LIST) do if x.lvl > r.level then nextR = x break end end
         local nextF = r.level < 100 and ns.Rank.Frame(math.min(100, (math.floor(r.level / 10) + 1) * 10)) or nil
         local lines = {}
-        if nextR then lines[#lines + 1] = (L["Naechste Belohnung: %s (Rang %d)"]):format(L[nextR.name], nextR.lvl) end
-        if nextF and nextF ~= st then lines[#lines + 1] = (L["Naechster Rahmen: %s (Rang %d)"]):format(K.hex(nextF.color) .. L[nextF.name] .. "|r", math.min(100, (math.floor(r.level / 10) + 1) * 10)) end
+        if nextR then lines[#lines + 1] = (L["Next reward: %s (rank %d)"]):format(L[nextR.name], nextR.lvl) end
+        if nextF and nextF ~= st then lines[#lines + 1] = (L["Next frame: %s (rank %d)"]):format(K.hex(nextF.color) .. L[nextF.name] .. "|r", math.min(100, (math.floor(r.level / 10) + 1) * 10)) end
         c.next:SetText(table.concat(lines, "\n"))
         -- Wochenaufgaben
         local tasks = RW.Tasks()
         local left = RW.WeekLeft()
-        p.week.left:SetText((L["noch %d Tg %d Std"]):format(math.floor(left / 86400), math.floor(left % 86400 / 3600)))
+        p.week.left:SetText((L["%d d %d h left"]):format(math.floor(left / 86400), math.floor(left % 86400 / 3600)))
         local nDone = 0
         for i, row in ipairs(p.week.rows) do
             local t = tasks[i]
@@ -932,9 +932,9 @@ ns.RegisterPage({
             end
         end
         p.week.head:SetCount(nDone .. "/3")
-        p.week.bonus:SetText((L["Alle drei geschafft: +%d XP Bonus"]):format(ALL_XP) .. (nDone == 3 and "  |cff66db9e✓|r" or ""))
+        p.week.bonus:SetText((L["All three done: +%d XP bonus"]):format(ALL_XP) .. (nDone == 3 and "  |cff66db9e✓|r" or ""))
         local until2 = RW.DoubleUntil()
-        p.week.x2:SetText(until2 and ("|cffffd24a" .. L["XP-Wochenende: doppelte Oasis-XP!"] .. "|r  " .. (L["noch %d Std"]):format(math.ceil((until2 - ns.now()) / 3600))) or "")
+        p.week.x2:SetText(until2 and ("|cffffd24a" .. L["Double XP: double Oasis XP!"] .. "|r  " .. (L["%d h left"]):format(math.ceil((until2 - ns.now()) / 3600))) or "")
         p.rw.list:SetData(RW.LIST)
         p.rw.head:SetCount(r.level >= 1 and (function() local n = 0 for _, x in ipairs(RW.LIST) do if r.level >= x.lvl then n = n + 1 end end return n .. "/" .. #RW.LIST end)() or nil)
         if fresh then K.FadeIn(p.card, 0) K.FadeIn(p.week, 0.1) end

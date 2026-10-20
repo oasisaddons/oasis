@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.571
+## Version: 0.6.572
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -23,57 +23,7 @@ Locales\KO.lua
 Locales\TW.lua
 Locales\JA.lua
 Locales\PL.lua
-Locales\Base\LocaleData.lua
-Locales\Base\LocaleData2.lua
-Locales\Base\LocaleData3.lua
-Locales\Base\LocaleData4.lua
-Locales\Base\LocaleData5.lua
-Locales\Base\LocaleData6.lua
-Locales\Base\LocaleData7.lua
-Locales\Base\LocaleData8.lua
-Locales\Base\LocaleData9.lua
-Locales\Base\LocaleData10.lua
-Locales\Base\LocaleData11.lua
-Locales\Base\LocaleData12.lua
-Locales\Base\LocaleData13.lua
-Locales\Base\LocaleData14.lua
-Locales\Base\LocaleData15.lua
-Locales\Base\LocaleData16.lua
-Locales\Base\LocaleData17.lua
-Locales\Base\LocaleDataCamp.lua
-Locales\Base\LocaleDataLegacy.lua
-Locales\Base\LocaleDataZones.lua
-Locales\Base\LocaleDataAdmin.lua
-Locales\Base\LocaleDataRaidBoard.lua
-Locales\Base\LocaleDataLockouts.lua
-Locales\Base\LocaleDataGearMatch.lua
-Locales\Base\LocaleDataDiscord.lua
-Locales\Base\LocaleDataRares.lua
-Locales\Base\LocaleDataPlanner.lua
-Locales\Base\LocaleDataRaidPrep.lua
-Locales\Base\LocaleDataQuestItems.lua
-Locales\Base\LocaleDataProfil.lua
-Locales\Base\LocaleDataDashboard.lua
-Locales\Base\LocaleDataChat2.lua
-Locales\Base\LocaleDataGroups2.lua
-Locales\Base\LocaleDataDungeon2.lua
-Locales\Base\LocaleDataBuffs.lua
-Locales\Base\LocaleDataRaidCheck2.lua
-Locales\Base\LocaleDataRaid2.lua
-Locales\Base\LocaleDataRaidSim.lua
-Locales\Base\LocaleDataRaid3.lua
-Locales\Base\LocaleDataNew.lua
-Locales\Base\LocaleDataMarket2.lua
-Locales\Base\LocaleDataLock.lua
-Locales\Base\LocaleDataCompare.lua
-Locales\Base\LocaleDataWants2.lua
-Locales\Base\LocaleDataCrafting2.lua
-Locales\Base\LocaleDataLife.lua
-Locales\Base\LocaleDataBugs.lua
-Locales\Base\LocaleDataChat3.lua
-Locales\Base\LocaleDataProfil2.lua
-Locales\Base\LocaleDataBadges2.lua
-Locales\Base\LocaleDataAlts2.lua
+Locales\Base\German.lua
 Core.lua
 SyncRules.lua
 Comm.lua
@@ -155,7 +105,6 @@ Core\Diagnostics\MeterProbe.lua
 CritImport.lua
 Core\Start\UpdateStart.lua
 Core\Start\WhatsNew.lua
-Locales\Base\LocaleData481.lua
 Modules\Deathroll\Deathroll.lua
 Modules\Legacy\Legacy.lua
 Modules\QuestItems\QuestItems.lua

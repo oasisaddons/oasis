@@ -221,22 +221,22 @@ end
 Camp.MyPosition = ns.MyMapPosition
 
 ns.GuildOption({ page = "camp", key = "cpTime", default = 15, min = 5, max = 60, step = 5,
-    label = "Dauer eines Lagerfeuers", desc = "So lange bleibt ein gemeldetes Lagerfeuer fuer die Gilde auf der Karte.",
-    fmt = function(v) return v .. " Min" end })
+    label = "Campfire duration", desc = "How long a reported campfire stays on the map for the guild.",
+    fmt = function(v) return v .. " min" end })
 local function fireTime() return (tonumber(ns.GuildOpt("cpTime")) or FIRE_TIME / 60) * 60 end
 
 function Camp.Signal(note)
-    if ns.inInstance() then ns.print(L["In Instanzen gibt es keine Kartenposition."]) return end
+    if ns.inInstance() then ns.print(L["There is no map position inside instances."]) return end
     local mapID, x, y = Camp.MyPosition()
-    if not mapID then ns.print(L["Position nicht verfuegbar."]) return end
+    if not mapID then ns.print(L["Position not available."]) return end
     Store.Put("campfires", {
         id = "fire-" .. ns.short(ns.me()), mapID = mapID, x = math.floor(x * 10000), y = math.floor(y * 10000),
         zone = ns.safe(GetRealZoneText()) or "", sub = ns.safe(GetSubZoneText()) or "",
         note = note or "", exp = ns.now() + fireTime(), start = ns.now(),
     })
     local mins = math.floor(fireTime() / 60)
-    local msg = (mins == 15) and L["Die Gilde sieht dein Feuer 15 Minuten auf der Karte."] or (L["Die Gilde sieht dein Feuer %d Minuten auf der Karte."]):format(mins)
-    if ns.db.settings.campOwnToast ~= false then K.Toast(L["Lagerfeuer gemeldet"], msg, C.pink) end
+    local msg = (mins == 15) and L["The guild sees your fire on the map for 15 minutes."] or (L["The guild sees your fire on the map for %d minutes."]):format(mins)
+    if ns.db.settings.campOwnToast ~= false then K.Toast(L["Campfire reported"], msg, C.pink) end
     if ns.Badges then ns.Badges.Add("campfires", 1) end
 end
 ns.slash.lagerfeuer = function(rest) Camp.Signal(rest) end
@@ -272,7 +272,7 @@ local function autoSignal(why)
     if not autoOn() or ns.inInstance() or ns.now() - lastAuto < 120 then return end
     if fireNearby() then return end
     lastAuto = ns.now()
-    pcall(Camp.Signal, why == "spell" and "" or L["automatisch erkannt"])
+    pcall(Camp.Signal, why == "spell" and "" or L["auto-detected"])
 end
 ns.On("UNIT_SPELLCAST_SUCCEEDED", function(unit, _, spellID)
     if unit ~= "player" or not autoOn() then return end
@@ -335,7 +335,7 @@ ns.Listen("STORE", function(coll, rec, old)
         and not (old and (old.exp or 0) > ns.now())
         and not (ns.db.settings.campZoneOnly and rec.mapID ~= (C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player"))) then
         ns.Sound.Next("camp")
-        K.Toast(L["Lagerfeuer von "] .. ns.displayName(rec.by), ns.zoneName(rec.mapID, rec.zone) .. ((rec.note or "") ~= "" and (" - " .. rec.note) or ""), C.pink,
+        K.Toast(L["Campfire by "] .. ns.displayName(rec.by), ns.zoneName(rec.mapID, rec.zone) .. ((rec.note or "") ~= "" and (" - " .. rec.note) or ""), C.pink,
             function() if ns.Map then ns.Map.ShowOnWorldMap(rec.mapID) end end)
     end
     if coll == "campfires" or coll == "campCatalog" then ns.RefreshPage("camp") end
@@ -346,28 +346,28 @@ end)
 ------------------------------------------------------------------------
 local DEMO_BUFFS = {
     -- id, Name, Symbol, Rezept, Beruf, Wirkung, Hersteller, aktiv bei (Name = Restminuten, 0 = ohne Ablauf)
-    { 990101, "Deftiger Lagerfeuer-Eintopf", "Interface\\Icons\\INV_Misc_Food_65", "Lagerfeuer-Eintopf", 185, "+12 Ausdauer und +6 Willenskraft, 30 Min", "Hoknar,Nakira,Mokrash", { Grukthar = 22, Hoknar = 25, Tavira = 11, ["Zul'mira"] = 25 } },
-    { 990102, "Geschaerfte Klingen", "Interface\\Icons\\INV_Stone_02", "Schleifstein am Feuer", 164, "+8 Waffenschaden fuer Nahkaempfer, 30 Min", "Grukthar,Drogbar", { Grukthar = 18, Mokrash = 18 } },
-    { 990103, "Waermende Decken", "Interface\\Icons\\INV_Fabric_Wool_03", "Lagerdecke", 197, "Ausgeruht sammelt sich 50 % schneller", "Zul'mira,Tavira", { Tavira = 0 } },
-    { 990104, "Kraeuterdampf", "Interface\\Icons\\INV_Misc_Herb_07", "Kraeuteraufguss", 171, "+5 % Heilung erhalten, 20 Min", "Hoknar", {} },
-    { 990105, "Gegerbte Polster", "Interface\\Icons\\INV_Misc_LeatherScrap_03", "Polsterlager", 165, "+60 Ruestung, 30 Min", "Mokrash", { ["Zul'mira"] = 9 } },
-    { 990106, "Funkenschutz", "Interface\\Icons\\INV_Gizmo_02", "Funkenschirm", 202, "+15 Feuerwiderstand, 30 Min", "", {} },
-    { 990107, "Runenglut", "Interface\\Icons\\INV_Enchant_ShardGlimmeringSmall", "Glutrune", 333, "+4 Intelligenz und +4 Willenskraft, 30 Min", "Tavira,Zul'mira", { Tavira = 27, Hoknar = 4 } },
+    { 990101, "Hearty Campfire Stew", "Interface\\Icons\\INV_Misc_Food_65", "Campfire Stew", 185, "+12 Stamina and +6 Spirit, 30 min", "Hoknar,Nakira,Mokrash", { Grukthar = 22, Hoknar = 25, Tavira = 11, ["Zul'mira"] = 25 } },
+    { 990102, "Sharpened Blades", "Interface\\Icons\\INV_Stone_02", "Fireside Whetstone", 164, "+8 weapon damage for melee, 30 min", "Grukthar,Drogbar", { Grukthar = 18, Mokrash = 18 } },
+    { 990103, "Warming Blankets", "Interface\\Icons\\INV_Fabric_Wool_03", "Camp Blanket", 197, "Rested XP builds 50% faster", "Zul'mira,Tavira", { Tavira = 0 } },
+    { 990104, "Herbal Steam", "Interface\\Icons\\INV_Misc_Herb_07", "Herbal Infusion", 171, "+5% healing received, 20 min", "Hoknar", {} },
+    { 990105, "Tanned Padding", "Interface\\Icons\\INV_Misc_LeatherScrap_03", "Padded Bedroll", 165, "+60 armor, 30 min", "Mokrash", { ["Zul'mira"] = 9 } },
+    { 990106, "Spark Guard", "Interface\\Icons\\INV_Gizmo_02", "Spark Screen", 202, "+15 fire resistance, 30 min", "", {} },
+    { 990107, "Rune Ember", "Interface\\Icons\\INV_Enchant_ShardGlimmeringSmall", "Ember Rune", 333, "+4 Intellect and +4 Spirit, 30 min", "Tavira,Zul'mira", { Tavira = 27, Hoknar = 4 } },
 }
 local DEMO_FIRES = {
     -- Wer, mapID, x, y, Gebiet, Unterzone, Notiz, Rest (s), seit (s)
-    { "Hoknar", 1413, 0.516, 0.297, "Brachland", "Das Wegekreuz", "Eintopf + Kraeuterdampf, kommt vorbei", 640, 260 },
-    { "Tavira", 1441, 0.463, 0.512, "Tausend Nadeln", "Freiwindposten", "Runenglut fuer Caster", 380, 520 },
-    { "Grukthar", 1411, 0.522, 0.431, "Durotar", "Klingenhuegel", "Schmiede-Pause, Klingen schaerfen", 820, 80 },
-    { "Mokrash", 1442, 0.451, 0.595, "Steinkrallengebirge", "Sonnenfels", "", -900, 1800 },
-    { "Nakira", 1454, 0.545, 0.683, "Orgrimmar", "Tal der Ehre", "Kochabend", -2100, 3000 },
+    { "Hoknar", 1413, 0.516, 0.297, "The Barrens", "The Crossroads", "Stew + herbal steam, come by", 640, 260 },
+    { "Tavira", 1441, 0.463, 0.512, "Tausend Nadeln", "Freewind Post", "Rune Ember for casters", 380, 520 },
+    { "Grukthar", 1411, 0.522, 0.431, "Durotar", "Razor Hill", "Smithing break, sharpening blades", 820, 80 },
+    { "Mokrash", 1442, 0.451, 0.595, "Stonetalon Mountains", "Sun Rock Retreat", "", -900, 1800 },
+    { "Nakira", 1454, 0.545, 0.683, "Orgrimmar", "Valley of Honor", "Cooking night", -2100, 3000 },
 }
 local DEMO_SPOTS = {
-    { 1413, 0.516, 0.297, "Brachland", "Das Wegekreuz" }, { 1413, 0.622, 0.371, "Brachland", "Ratschet" },
-    { 1411, 0.522, 0.431, "Durotar", "Klingenhuegel" }, { 1440, 0.735, 0.604, "Eschental", "Splintertreeposten" },
-    { 1441, 0.463, 0.512, "Tausend Nadeln", "Freiwindposten" }, { 1424, 0.620, 0.200, "Vorgebirge des Huegellands", "Tarrens Muehle" },
+    { 1413, 0.516, 0.297, "The Barrens", "The Crossroads" }, { 1413, 0.622, 0.371, "The Barrens", "Ratchet" },
+    { 1411, 0.522, 0.431, "Durotar", "Razor Hill" }, { 1440, 0.735, 0.604, "Ashenvale", "Splintertree Post" },
+    { 1441, 0.463, 0.512, "Tausend Nadeln", "Freewind Post" }, { 1424, 0.620, 0.200, "Vorgebirge des Huegellands", "Tarren Mill" },
 }
-local DEMO_NOTES = { "Kochen + Schmieden, kommt vorbei", "Eintopf fuer alle", "kurze Pause vor dem Dungeon", "Runenglut, wer mag?", "", "Treffpunkt fuer die Gruppe" }
+local DEMO_NOTES = { "Cooking + smithing, come by", "Stew for everyone", "short break before the dungeon", "Rune Ember, anyone?", "", "Meeting point for the group" }
 
 local function demoPut(coll, rec)
     rec.demo = true
@@ -419,11 +419,11 @@ local view, catFilter, catSearch, selected = "home", "all", "", nil
 local recipeBox
 
 local function remaining(exp)
-    if not exp or exp == 0 then return L["ohne Ablauf"] end
+    if not exp or exp == 0 then return L["no expiry"] end
     local d = exp - ns.now()
-    if d <= 0 then return L["abgelaufen"] end
-    if d >= 3600 then return (L["%d Std"]):format(d / 3600) end
-    return (L["%d Min"]):format(math.ceil(d / 60))
+    if d <= 0 then return L["expired"] end
+    if d >= 3600 then return (L["%d h"]):format(d / 3600) end
+    return (L["%d min"]):format(math.ceil(d / 60))
 end
 
 local function panel(parent, title)
@@ -457,18 +457,18 @@ local function fireRow(l, withButtons)
     r.cols.rem:SetPoint("TOPRIGHT", -78, -7)
     r.bar = K.Bar(r, 60, 3)
     r.bar:SetPoint("TOPRIGHT", r.cols.rem, "BOTTOMRIGHT", 0, -4)
-    r.map = K.Button(r, L["Karte"], 62, 22, "ghost")
+    r.map = K.Button(r, L["Map"], 62, 22, "ghost")
     r.map:SetPoint("RIGHT", -8, 0)
     r.map.label:SetFont(K.FONT, 11, "")
     r:SetScript("OnEnter", function(self)
         local f = self.item
         if not f then return end
         local lines = { ns.zoneName(f.mapID, f.zone) .. ((f.sub or "") ~= "" and (" - " .. f.sub) or ""),
-            L["Angezuendet von "] .. ns.Radar.Colored(f.by) }
+            L["Lit by "] .. ns.Radar.Colored(f.by) }
         if (f.note or "") ~= "" then lines[#lines + 1] = "|cffc8c8c8" .. f.note .. "|r" end
         if f.x and f.y then lines[#lines + 1] = ("|cff888888%.1f, %.1f|r"):format(f.x / 100, f.y / 100) end
         lines[#lines + 1] = " "
-        lines[#lines + 1] = L["Rechtsklick: anfluestern"]
+        lines[#lines + 1] = L["Right-click: whisper"]
         K.ShowTip(self, lines)
     end)
     r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -485,12 +485,12 @@ local function fireUpdate(r, f)
     r.cols.zone:SetText(ns.zoneName(f.mapID, f.zone) .. ((f.sub or "") ~= "" and (" |cff777777- " .. f.sub .. "|r") or ""))
     r.cols.meta:SetText(ns.Radar.Colored(f.by) .. ((f.note or "") ~= "" and ("  |cff999999" .. f.note .. "|r") or ""))
     if live then
-        r.cols.rem:SetText((L["noch %s"]):format(remaining(f.exp)))
+        r.cols.rem:SetText((L["%s left"]):format(remaining(f.exp)))
         r.cols.rem:SetTextColor(unpack(C.pink))
         r.bar:Show()
         r.bar:Set((f.exp - now) / FIRE_TIME)
     else
-        r.cols.rem:SetText((L["erloschen %s"]):format(ns.ago(f.exp)))
+        r.cols.rem:SetText((L["burnt out %s"]):format(ns.ago(f.exp)))
         r.cols.rem:SetTextColor(unpack(C.dim))
         r.bar:Hide()
     end
@@ -520,13 +520,13 @@ local function selectBuff(p, e)
 end
 
 ns.RegisterPage({
-    key = "camp", title = "Lagerfeuer", order = 3,
-    sub = "Camping-Buffs koordinieren: wer baut was, wer hat was aktiv, wo brennt gerade ein Feuer",
+    key = "camp", title = "Campfire", order = 3,
+    sub = "Coordinate camping buffs: who makes what, who has what active, where a fire is burning",
     build = function(p)
-        p.seg = K.Segments(p, { { key = "home", text = L["Uebersicht"] }, { key = "catalog", text = L["Buff-Katalog"] },
-            { key = "fires", text = L["Feuer"] } }, function(k) view = k ns.RefreshPage("camp") end)
+        p.seg = K.Segments(p, { { key = "home", text = L["Overview"] }, { key = "catalog", text = L["Buff catalog"] },
+            { key = "fires", text = L["Fires"] } }, function(k) view = k ns.RefreshPage("camp") end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
-        p.lightTop = K.Button(p, L["Hier brennt ein Lagerfeuer"], 190, 24, "primary", function() Camp.Signal("") end)
+        p.lightTop = K.Button(p, L["Campfire is burning here"], 190, 24, "primary", function() Camp.Signal("") end)
         p.lightTop:SetPoint("TOPRIGHT", 0, 0)
 
         ----------------------------------------------------------------
@@ -537,8 +537,8 @@ ns.RegisterPage({
         p.home:SetPoint("BOTTOMRIGHT")
         p.cards = {}
         -- Kacheln wie auf den anderen Seiten (Zahl zaehlt hoch, farbige Kante)
-        local TD = { { ns.ICONS.camp, "Feuer brennen", C.red }, { ns.ICONS.crafting, "Buffs im Katalog", C.amber },
-            { ns.ICONS.social, "Aktive Buffs (Gilde)", C.mint }, { ns.ICONS.badges, "Deine Katalog-Buffs", C.blue } }
+        local TD = { { ns.ICONS.camp, "Fires burning", C.red }, { ns.ICONS.crafting, "Buffs in catalog", C.amber },
+            { ns.ICONS.social, "Active buffs (guild)", C.mint }, { ns.ICONS.badges, "Your catalog buffs", C.blue } }
         for i, d in ipairs(TD) do
             local c = K.HudTile(p.home, d[1], L[d[2]], d[3])
             c:SetHeight(62)
@@ -559,16 +559,16 @@ ns.RegisterPage({
         p.fresh = true
 
         -- brennt gerade
-        local fp = panel(p.home, L["Brennt gerade"])
+        local fp = panel(p.home, L["Burning now"])
         fp:SetPoint("TOPLEFT", 0, 0)
         fp:SetSize(370, 200)
         p.homeFires = K.List(fp, 42, function(l) return fireRow(l) end, fireUpdate)
         p.homeFires:SetPoint("TOPLEFT", 4, -32)
         p.homeFires:SetPoint("BOTTOMRIGHT", -4, 6)
-        p.homeFires.empty:SetText(L["Gerade kein Lagerfeuer gemeldet.\nZuende selbst eins an - die Gilde bekommt Bescheid."])
+        p.homeFires.empty:SetText(L["No campfire reported right now.\nLight one yourself – the guild gets notified."])
 
         -- Lagerfeuer anzuenden
-        local lp = panel(p.home, L["Lagerfeuer anzuenden"])
+        local lp = panel(p.home, L["Light a campfire"])
         lp:SetPoint("TOPLEFT", 380, 0)
         lp:SetPoint("TOPRIGHT", 0, 0)
         lp:SetHeight(200)
@@ -576,11 +576,11 @@ ns.RegisterPage({
         hint:SetPoint("TOPLEFT", 12, -34)
         hint:SetPoint("RIGHT", lp, "RIGHT", -12, 0)
         hint:SetWordWrap(true)
-        hint:SetText(L["Sitzt du an einem Feuer? Melde es - die Gilde sieht es 15 Minuten auf Karte und Minimap."])
-        p.note = K.Input(lp, 300, L["Notiz, z.B. 'Kochen + Schmieden, kommt vorbei' ..."])
+        hint:SetText(L["Sitting at a fire? Report it – the guild sees it on map and minimap for 15 minutes."])
+        p.note = K.Input(lp, 300, L["Note, e.g. \"Cooking + smithing, come by\" …"])
         p.note:SetPoint("TOPLEFT", 12, -72)
         p.note:SetPoint("RIGHT", lp, "RIGHT", -12, 0)
-        p.light = K.Button(lp, L["Hier brennt ein Lagerfeuer"], 300, 28, "primary", function()
+        p.light = K.Button(lp, L["Campfire is burning here"], 300, 28, "primary", function()
             Camp.Signal(p.note:GetText())
             p.note:SetText("")
         end)
@@ -593,14 +593,14 @@ ns.RegisterPage({
         p.mineBar = K.Bar(lp, 200, 4)
         p.mineBar:SetPoint("TOPLEFT", 12, -168)
         p.mineBar:SetPoint("RIGHT", lp, "RIGHT", -110, 0)
-        p.douse = K.Button(lp, L["Loeschen"], 86, 24, "ghost", function() Camp.Extinguish() end)
+        p.douse = K.Button(lp, L["Put out"], 86, 24, "ghost", function() Camp.Extinguish() end)
         p.douse:SetPoint("TOPRIGHT", -12, -144)
         local sl = K.Text(lp, 10, C.dim)
         sl:SetPoint("BOTTOMLEFT", 12, 10)
-        sl:SetText(L["Schneller: /oa lagerfeuer <Notiz>"])
+        sl:SetText(L["Faster: /oa lagerfeuer <note>"])
 
         -- gerade aktiv in der Gilde
-        local ap = panel(p.home, L["Gerade aktiv in der Gilde"])
+        local ap = panel(p.home, L["Active in the guild"])
         ap:SetPoint("TOPLEFT", 0, -210)
         ap:SetPoint("BOTTOMLEFT")
         ap:SetWidth(370)
@@ -617,14 +617,14 @@ ns.RegisterPage({
         end, function(r, e)
             r.icon:SetTexture(buffIcon(e))
             r.cols.name:SetText(profIcon(e._prof, 12) .. " " .. Camp.BuffName(e))
-            r.cols.who:SetText(e._n > 0 and ((L["%d aktiv"]):format(e._n)) or "|cff555555-|r")
+            r.cols.who:SetText(e._n > 0 and ((L["%d active"]):format(e._n)) or "|cff555555-|r")
         end)
         p.topBuffs:SetPoint("TOPLEFT", 4, -32)
         p.topBuffs:SetPoint("BOTTOMRIGHT", -4, 6)
-        p.topBuffs.empty:SetText(L["Der Katalog ist noch leer."])
+        p.topBuffs.empty:SetText(L["The catalog is still empty."])
 
         -- deine Buffs
-        local bp = panel(p.home, L["Deine Buffs gerade"])
+        local bp = panel(p.home, L["Your buffs right now"])
         bp:SetPoint("TOPLEFT", 380, -210)
         bp:SetPoint("BOTTOMRIGHT")
         -- zwei gleich breite Spalten, egal wie breit das Fenster ist
@@ -644,7 +644,7 @@ ns.RegisterPage({
         end
         p.home:HookScript("OnSizeChanged", function(_, w) layoutHome(w) end)
         layoutHome()
-        recipeBox = K.Input(bp, 200, L["Rezept dazu (optional) ..."])
+        recipeBox = K.Input(bp, 200, L["Recipe for it (optional) …"])
         recipeBox:SetPoint("TOPRIGHT", -10, -6)
         recipeBox:SetWidth(170)
         p.myBuffs = K.List(bp, 28, function(l)
@@ -655,13 +655,13 @@ ns.RegisterPage({
             r:Col("rem", 0, 60, 11, C.muted, "RIGHT")
             r.cols.rem:ClearAllPoints()
             r.cols.rem:SetPoint("RIGHT", -104, 0)
-            r.add = K.Button(r, L["+ Katalog"], 90, 20, "ghost")
+            r.add = K.Button(r, L["+ Catalog"], 90, 20, "ghost")
             r.add:SetPoint("RIGHT", -6, 0)
-            r.add:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Zum Gilden-Katalog hinzufuegen"] }) end)
+            r.add:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Add to guild catalog"] }) end)
             r.add:SetScript("OnLeave", function() GameTooltip:Hide() end)
             r.inCat = K.Text(r, 10, C.mint, "RIGHT")
             r.inCat:SetPoint("RIGHT", -10, 0)
-            r.inCat:SetText(L["im Katalog"])
+            r.inCat:SetText(L["in catalog"])
             return r
         end, function(r, b)
             r.icon:SetTexture(b.icon or 134400)
@@ -677,7 +677,7 @@ ns.RegisterPage({
         end)
         p.myBuffs:SetPoint("TOPLEFT", 4, -32)
         p.myBuffs:SetPoint("BOTTOMRIGHT", -4, 6)
-        p.myBuffs.empty:SetText(L["Keine Buffs (oder gerade im Kampf).\nGruen = schon im Katalog, '+' = hinzufuegen."])
+        p.myBuffs.empty:SetText(L["No buffs (or in combat).\nGreen = already in catalog, \"+\" = add."])
 
         ----------------------------------------------------------------
         -- Buff-Katalog
@@ -685,13 +685,13 @@ ns.RegisterPage({
         p.cat = CreateFrame("Frame", nil, p)
         p.cat:SetPoint("TOPLEFT", 0, -40)
         p.cat:SetPoint("BOTTOMRIGHT")
-        p.catSeg = K.Segments(p.cat, { { key = "all", text = L["Alle"] }, { key = "active", text = L["Aktiv"] },
-            { key = "makers", text = L["Mit Hersteller"] }, { key = "none", text = L["Ohne Hersteller"] } }, function(k)
+        p.catSeg = K.Segments(p.cat, { { key = "all", text = L["All"] }, { key = "active", text = L["Active"] },
+            { key = "makers", text = L["With crafter"] }, { key = "none", text = L["No crafter"] } }, function(k)
             catFilter = k
             ns.RefreshPage("camp")
         end)
         p.catSeg:SetPoint("TOPLEFT", 0, 0)
-        p.catSearch = K.Input(p.cat, 150, L["Suchen ..."], function(t) catSearch = (t or ""):lower() ns.RefreshPage("camp") end)
+        p.catSearch = K.Input(p.cat, 150, L["Search ..."], function(t) catSearch = (t or ""):lower() ns.RefreshPage("camp") end)
         p.catSearch:SetPoint("TOPLEFT", 270, 0)
         p.catSearch:SetWidth(130)
         p.catList = K.List(p.cat, 46, function(l)
@@ -708,7 +708,7 @@ ns.RegisterPage({
             r.cols.active:SetPoint("RIGHT", -12, 4)
             r.cols.al = K.Text(r, 9, C.dim, "RIGHT")
             r.cols.al:SetPoint("TOPRIGHT", r.cols.active, "BOTTOMRIGHT", 0, -1)
-            r.cols.al:SetText(L["AKTIV"])
+            r.cols.al:SetText(L["ACTIVE"])
             r.sel = r:CreateTexture(nil, "OVERLAY")
             r.sel:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
             r.sel:SetPoint("TOPLEFT")
@@ -721,8 +721,8 @@ ns.RegisterPage({
             r.cols.name:SetText(profIcon(e._prof, 13) .. " " .. Camp.BuffName(e))
             local on = onlineCount(e._makers)
             local rec = (e.recipe or "") ~= "" and ("|cffc8c8c8" .. e.recipe .. "|r  ·  ") or ""
-            r.cols.makers:SetText(rec .. (#e._makers > 0 and (L["%d koennen bauen"]):format(#e._makers) .. (on > 0 and (" |cff66db9e(" .. (L["%d online"]):format(on) .. ")|r") or "")
-                or L["|cff666666Hersteller unbekannt|r"]))
+            r.cols.makers:SetText(rec .. (#e._makers > 0 and (L["%d can make it"]):format(#e._makers) .. (on > 0 and (" |cff66db9e(" .. (L["%d online"]):format(on) .. ")|r") or "")
+                or L["|cff666666Crafter unknown|r"]))
             r.cols.active:SetText(e._n)
             r.cols.active:SetTextColor(unpack(e._n > 0 and C.mint or C.dim))
             r.sel:SetShown(e.id == selected)
@@ -730,7 +730,7 @@ ns.RegisterPage({
         p.catList:SetPoint("TOPLEFT", 0, -34)
         p.catList:SetPoint("BOTTOMLEFT")
         p.catList:SetWidth(400)
-        p.catList.empty:SetText(L["Noch leer. Setz dich an ein Lagerfeuer und fuege\nden Buff in der Uebersicht ueber '+' zum Katalog hinzu."])
+        p.catList.empty:SetText(L["Empty so far. Sit at a campfire and add\nthe buff in the overview with \"+\"."])
 
         -- Detailkarte
         local d = K.Panel(p.cat, C.panel)
@@ -749,46 +749,46 @@ ns.RegisterPage({
         p.dDesc:SetPoint("TOPLEFT", 14, -66)
         p.dDesc:SetPoint("RIGHT", d, "RIGHT", -12, 0)
         p.dDesc:SetWordWrap(true)
-        local ah = K.Label(d, L["Aktiv bei"])
+        local ah = K.Label(d, L["Active on"])
         ah:SetPoint("TOPLEFT", 14, -98)
         p.dHolders = K.Text(d, 12, C.text)
         p.dHolders:SetPoint("TOPLEFT", 14, -116)
         p.dHolders:SetPoint("RIGHT", d, "RIGHT", -12, 0)
         p.dHolders:SetWordWrap(true)
         p.dHolders:SetJustifyV("TOP")
-        p.dMakerHead = K.Label(d, L["Kann bauen"])
+        p.dMakerHead = K.Label(d, L["Can make it"])
         p.dMakerHead:SetPoint("TOPLEFT", 14, -186)
         p.dMakers = K.Text(d, 12, C.text)
         p.dMakers:SetPoint("TOPLEFT", 14, -204)
         p.dMakers:SetPoint("RIGHT", d, "RIGHT", -12, 0)
         p.dMakers:SetWordWrap(true)
         p.dMakers:SetJustifyV("TOP")
-        p.dAsk = K.Button(d, L["Im Gildenchat fragen"], 160, 26, "primary", function()
+        p.dAsk = K.Button(d, L["Ask in guild chat"], 160, 26, "primary", function()
             local e = p.dItem
-            if e then ns.OpenChat("/g " .. (L["Wer hat gerade %s am Lagerfeuer? Ich komme vorbei!"]):format(Camp.BuffName(e))) end
+            if e then ns.OpenChat("/g " .. (L["Who has %s at a campfire right now? I'll come by!"]):format(Camp.BuffName(e))) end
         end)
         p.dAsk:SetPoint("BOTTOMLEFT", 14, 14)
-        p.dWhisper = K.Button(d, L["Hersteller anfluestern"], 150, 26, "ghost", function()
+        p.dWhisper = K.Button(d, L["Whisper crafter"], 150, 26, "ghost", function()
             local e = p.dItem
             if e and e._makers[1] then whisper(e._makers[1]) end
         end)
         p.dWhisper:SetPoint("LEFT", p.dAsk, "RIGHT", 8, 0)
         p.dDel = K.IconButton(d, "x", 18, function()
             if p.dItem then Store.Delete("campCatalog", p.dItem.id) selected = nil end
-        end, L["Aus dem Katalog entfernen"])
+        end, L["Remove from catalog"])
         p.dDel:SetPoint("TOPRIGHT", -8, -8)
         p.dEmpty = K.Text(d, 12, C.dim, "CENTER")
         p.dEmpty:SetPoint("CENTER")
         p.dEmpty:SetWidth(260)
         p.dEmpty:SetWordWrap(true)
-        p.dEmpty:SetText(L["Links einen Buff waehlen."])
+        p.dEmpty:SetText(L["Pick a buff on the left."])
 
         ----------------------------------------------------------------
         -- Feuer (aktiv + letzte Stunde)
         ----------------------------------------------------------------
         p.fires = K.List(p, 44, function(l)
             local r = fireRow(l)
-            r.wh = K.Button(r, L["Anfluestern"], 86, 22, "ghost")
+            r.wh = K.Button(r, L["Whisper"], 86, 22, "ghost")
             r.wh:SetPoint("RIGHT", r.map, "LEFT", -6, 0)
             r.wh.label:SetFont(K.FONT, 11, "")
             r.cols.rem:ClearAllPoints()
@@ -803,10 +803,10 @@ ns.RegisterPage({
         end)
         p.fires:SetPoint("TOPLEFT", 0, -40)
         p.fires:SetPoint("BOTTOMRIGHT", 0, 22)
-        p.fires.empty:SetText(L["In der letzten Stunde hat niemand ein Lagerfeuer gemeldet."])
+        p.fires.empty:SetText(L["Nobody reported a campfire in the last hour."])
         p.firesFoot = K.Text(p, 10, C.dim)
         p.firesFoot:SetPoint("BOTTOMLEFT", 0, 4)
-        p.firesFoot:SetText(L["Feuer brennen 15 Minuten; erloschene bleiben eine Stunde sichtbar.  Rechtsklick: anfluestern"])
+        p.firesFoot:SetText(L["Fires burn for 15 minutes; burnt-out ones stay visible for an hour.  Right-click: whisper"])
     end,
 
     refresh = function(p)
@@ -832,7 +832,7 @@ ns.RegisterPage({
             local fr = p.fresh
             p.cards[1]:Set(#fires, nil, nil, fr)
             p.cards[2]:Set(#cat, nil, nil, fr)
-            p.cards[3]:Set(nh, nh > 0 and ("· " .. L["Spieler"]) or nil, nil, fr)
+            p.cards[3]:Set(nh, nh > 0 and ("· " .. L["Player"]) or nil, nil, fr)
             p.cards[4]:Set(mine, "/ " .. #cat, #cat > 0 and mine / #cat or nil, fr)
             if fr then
                 for i, pn in ipairs(p.homePanels or {}) do pn.oasisFadedAt = nil K.FadeIn(pn, (i - 1) * 0.07) end
@@ -848,10 +848,10 @@ ns.RegisterPage({
             end)
             p.myBuffs:SetData(buffs)
             if myFire then
-                p.mine:SetText(L["Dein Feuer brennt: "] .. ns.zoneName(myFire.mapID, myFire.zone) .. "  |cffff7838" .. (L["noch %s"]):format(remaining(myFire.exp)) .. "|r")
+                p.mine:SetText(L["Your fire is burning: "] .. ns.zoneName(myFire.mapID, myFire.zone) .. "  |cffff7838" .. (L["%s left"]):format(remaining(myFire.exp)) .. "|r")
                 p.mineBar:Set((myFire.exp - ns.now()) / FIRE_TIME)
             else
-                p.mine:SetText("|cff777777" .. L["Du hast gerade kein Feuer gemeldet."] .. "|r")
+                p.mine:SetText("|cff777777" .. L["You have no fire reported right now."] .. "|r")
             end
             p.mineBar:SetShown(myFire ~= nil)
             p.douse:SetShown(myFire ~= nil)
@@ -887,24 +887,24 @@ ns.RegisterPage({
         p.dTitle:SetText(Camp.BuffName(sel))
         local sub = {}
         if sel._prof then sub[#sub + 1] = profIcon(sel._prof, 12) end
-        if (sel.recipe or "") ~= "" then sub[#sub + 1] = L["Rezept: "] .. sel.recipe end
-        sub[#sub + 1] = (L["eingetragen von %s"]):format(ns.displayName(sel.by or "?"))
+        if (sel.recipe or "") ~= "" then sub[#sub + 1] = L["Recipe: "] .. sel.recipe end
+        sub[#sub + 1] = (L["added by %s"]):format(ns.displayName(sel.by or "?"))
         p.dSub:SetText(table.concat(sub, "  "))
-        p.dDesc:SetText((sel.desc or "") ~= "" and sel.desc or ("|cff777777" .. L["Keine Beschreibung - fahr mit der Maus ueber den Buff im Spiel."] .. "|r"))
+        p.dDesc:SetText((sel.desc or "") ~= "" and sel.desc or ("|cff777777" .. L["No description – hover the buff in game."] .. "|r"))
         local hs = Camp.ActiveHolders(sel.spell)
         local t = {}
         for i, h in ipairs(hs) do
             if i > 8 then t[#t + 1] = "|cff888888+" .. (#hs - 8) .. "|r" break end
             t[#t + 1] = ns.Radar.Colored(h.name) .. " |cff888888" .. remaining(h.exp) .. "|r"
         end
-        p.dHolders:SetText(#t > 0 and table.concat(t, "\n") or ("|cff777777" .. L["Gerade bei niemandem aktiv."] .. "|r"))
+        p.dHolders:SetText(#t > 0 and table.concat(t, "\n") or ("|cff777777" .. L["Not active on anyone right now."] .. "|r"))
         local mk = {}
         for i, m in ipairs(sel._makers) do
             if i > 8 then mk[#mk + 1] = "|cff888888+" .. (#sel._makers - 8) .. "|r" break end
             local on = ns.Radar.IsOnline and ns.Radar.IsOnline(m)
             mk[#mk + 1] = (on and "|cff66db9e●|r " or "|cff555555●|r ") .. ns.Radar.Colored(m)
         end
-        p.dMakers:SetText(#mk > 0 and table.concat(mk, "   ") or ("|cff777777" .. L["Noch niemand bekannt. Wer das Rezept hat, teilt es automatisch beim Oeffnen des Berufsfensters."] .. "|r"))
+        p.dMakers:SetText(#mk > 0 and table.concat(mk, "   ") or ("|cff777777" .. L["Nobody known yet. Whoever has the recipe shares it automatically when opening the profession window."] .. "|r"))
         p.dWhisper:SetShown(#sel._makers > 0)
     end,
 })

@@ -20,16 +20,16 @@ local SPELLS = {
     [1804] = "lock",
 }
 GM.KINDS = {
-    herb = { name = "Kraeuter", icon = "Interface\\Icons\\INV_Misc_Flower_02", color = { 0.4, 0.86, 0.45 } },
-    ore = { name = "Erz", icon = "Interface\\Icons\\INV_Ore_Copper_01", color = { 0.85, 0.65, 0.35 } },
-    treasure = { name = "Schaetze", icon = "Interface\\Icons\\INV_Box_01", color = { 0.98, 0.82, 0.3 } },
-    fish = { name = "Angelstellen", icon = "Interface\\Icons\\Trade_Fishing", color = { 0.36, 0.68, 0.98 } },
-    lock = { name = "Schlosskisten", icon = "Interface\\Icons\\INV_Misc_Key_03", color = { 0.78, 0.6, 0.95 } },
+    herb = { name = "Herbs", icon = "Interface\\Icons\\INV_Misc_Flower_02", color = { 0.4, 0.86, 0.45 } },
+    ore = { name = "Ore", icon = "Interface\\Icons\\INV_Ore_Copper_01", color = { 0.85, 0.65, 0.35 } },
+    treasure = { name = "Treasures", icon = "Interface\\Icons\\INV_Box_01", color = { 0.98, 0.82, 0.3 } },
+    fish = { name = "Fishing spots", icon = "Interface\\Icons\\Trade_Fishing", color = { 0.36, 0.68, 0.98 } },
+    lock = { name = "Locked chests", icon = "Interface\\Icons\\INV_Misc_Key_03", color = { 0.78, 0.6, 0.95 } },
     -- 0.5.936: besuchte Orte (MapExtras traegt sie ein). poi = nur Weltkarte, keine Route, kein Verblassen
-    vendor = { name = "Haendler", icon = "Interface\\Icons\\INV_Misc_Bag_10", color = { 0.8, 0.8, 0.82 }, poi = true },
-    repair = { name = "Reparatur", icon = "Interface\\Icons\\Trade_BlackSmithing", color = { 0.8, 0.8, 0.82 }, poi = true },
-    mail = { name = "Briefkaesten", icon = "Interface\\Icons\\INV_Letter_15", color = { 0.8, 0.8, 0.82 }, poi = true },
-    flight = { name = "Flugpunkte", icon = "Interface\\Icons\\Ability_Mount_Wyvern_01", color = { 0.8, 0.8, 0.82 }, poi = true },
+    vendor = { name = "Vendors", icon = "Interface\\Icons\\INV_Misc_Bag_10", color = { 0.8, 0.8, 0.82 }, poi = true },
+    repair = { name = "Repair", icon = "Interface\\Icons\\Trade_BlackSmithing", color = { 0.8, 0.8, 0.82 }, poi = true },
+    mail = { name = "Mailboxes", icon = "Interface\\Icons\\INV_Letter_15", color = { 0.8, 0.8, 0.82 }, poi = true },
+    flight = { name = "Flight points", icon = "Interface\\Icons\\Ability_Mount_Wyvern_01", color = { 0.8, 0.8, 0.82 }, poi = true },
 }
 local NEAR = 0.006   -- Kartenanteil: naeher = gleicher Fundort
 
@@ -142,7 +142,7 @@ function GM.Nodes(map)
     return byMap[map] or {}
 end
 function GM.Record(kind, name, px, py)
-    if ns.inInstance() then return "Instanz" end
+    if ns.inInstance() then return "Instance" end
     if ns.db.settings.shareNodes == false then return "Sammelorte teilen ist aus" end
     local map, x, y = myPos()
     if not map then return "keine Kartenposition" end
@@ -268,9 +268,9 @@ local function wPin(canvas)
 end
 local function tipOf(r)
     local k = GM.KINDS[r.kind]
-    return { K.hex(k.color) .. ((r.name ~= "" and r.name) or L[k.name]) .. "|r" .. (harvested(r, ns.now()) and ("  |cff999999" .. L["gerade abgeerntet"] .. "|r") or ""),
-        (L["%dx gefunden"]):format(r.n or 1) .. "  ·  " .. L["zuletzt"] .. " " .. ns.ago(r.ts),
-        "|cff888888" .. L["eingetragen von"] .. " " .. ns.displayName(r.by or "?") .. "|r" }
+    return { K.hex(k.color) .. ((r.name ~= "" and r.name) or L[k.name]) .. "|r" .. (harvested(r, ns.now()) and ("  |cff999999" .. L["just harvested"] .. "|r") or ""),
+        (L["Found %dx"]):format(r.n or 1) .. "  ·  " .. L["last"] .. " " .. ns.ago(r.ts),
+        "|cff888888" .. L["added by"] .. " " .. ns.displayName(r.by or "?") .. "|r" }
 end
 -- 0.6.431: Kontinent-/Weltkarte - Fundorte der Gebiete darunter umgerechnet (C_Map.GetMapRectOnMap)
 function GM.NodesOn(mapID)
@@ -345,7 +345,7 @@ function GM.DrawWorld()
         end
         p.cnt:SetText(g.n > 1 and tostring(g.n) or "")
         if g.n > 1 then
-            p.tip = { (L[k.name] or k.name or "") .. "  |cff888888x" .. g.n .. "|r", L["Mehrere Fundorte nah beieinander - hineinzoomen zeigt sie einzeln."] }
+            p.tip = { (L[k.name] or k.name or "") .. "  |cff888888x" .. g.n .. "|r", L["Several nodes close together - zoom in to see them one by one."] }
         else
             p.tip = tipOf(r)
         end
@@ -616,8 +616,8 @@ local function fromMinimapTooltip()
                         hoverSeen[key] = true
                         local ok, res = pcall(GM.Record, kind, n, x, y)
                         -- 0.6.489: kurze Rueckmeldung, damit man sieht, dass es klappt
-                        if ok and res == "neu gespeichert" then ns.print((L["Fundort uebernommen: %s"]):format(n))
-                        elseif ok and res == "schon bekannt" then ns.print((L["Fundort schon bekannt: %s"]):format(n)) end
+                        if ok and res == "neu gespeichert" then ns.print((L["Gathering spot added: %s"]):format(n))
+                        elseif ok and res == "schon bekannt" then ns.print((L["Node already known: %s"]):format(n)) end
                     end
                 end
             end
@@ -781,9 +781,9 @@ function GM.RouteArrow(map, mx, my, w, h, radius, half, facing, sinF, cosF)
         arrow:SetScript("OnEnter", function(self)
             local r = self.rec
             local k = r and GM.KINDS[r.kind]
-            K.ShowTip(self, { L["Naechster Fundort der Route"] .. (self.pos or ""),
+            K.ShowTip(self, { L["Next node on the route"] .. (self.pos or ""),
                 k and (K.hex(k.color) .. ((r.name ~= "" and r.name) or L[k.name]) .. "|r") or "",
-                "|cff888888" .. L["Linksklick: ueberspringen  ·  Rechtsklick: zurueck"] .. "|r" })
+                "|cff888888" .. L["Left-click: skip  ·  Right-click: back"] .. "|r" })
         end)
         arrow:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end

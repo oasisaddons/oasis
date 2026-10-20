@@ -174,7 +174,7 @@ ns.Listen("LOGIN", function()
     local fixed = false
     for _, e in ipairs(log()) do
         for _, k in ipairs({ "from", "to" }) do
-            if type(e[k]) == "string" and e[k]:find("|K", 1, true) then e[k] = L["Battle.net (alt)"] fixed = true end
+            if type(e[k]) == "string" and e[k]:find("|K", 1, true) then e[k] = L["Battle.net (old)"] fixed = true end
         end
     end
     if ns.char.bnChars then
@@ -196,7 +196,7 @@ ns.On("PLAYER_FLAGS_CHANGED", function(unit)
         local n = missed()
         if n > 0 then
             if ns.Sound then ns.Sound.Play("toast") end
-            K.Toast((L["%d Fluesternachrichten verpasst"]):format(n), L["Klick: anzeigen"], C.pink, function() WL.Show() end)
+            K.Toast((L["%d whispers missed"]):format(n), L["Click: show"], C.pink, function() WL.Show() end)
         end
         for _, e in ipairs(log()) do e.afk = nil end
     end
@@ -222,10 +222,10 @@ local function build()
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
     K.Fill(f, { 0.04, 0.04, 0.05, 0.97 })
     K.Border(f, C.line)
-    f.head = K.GameHead(f, L["Fluester-Verlauf"], C.pink)
+    f.head = K.GameHead(f, L["Whisper history"], C.pink)
     f.head:SetPoint("TOPLEFT", 12, -10)
     f.head:SetWidth(260)
-    local x = K.CloseButton(f, function() f:Hide() end, L["Schliessen (Esc)"])
+    local x = K.CloseButton(f, function() f:Hide() end, L["Close (Esc)"])
     x:SetPoint("TOPRIGHT", -6, -6)
     f.sub = K.Text(f, 10, C.dim)
     f.sub:SetPoint("TOPLEFT", 12, -34)
@@ -253,9 +253,9 @@ local function build()
             local e = self.e
             if not e then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:AddLine((e.from and L["von"] or L["gesendet an"]) .. " " .. ns.displayName(e.from or e.to or "?"), 1, 1, 1)
+            GameTooltip:AddLine((e.from and L["from"] or L["sent to"]) .. " " .. ns.displayName(e.from or e.to or "?"), 1, 1, 1)
             GameTooltip:AddLine(e.msg, 0.85, 0.85, 0.85, true)
-            if not e.bn then GameTooltip:AddLine(L["Klick: antworten"], 0.4, 0.86, 0.62) end
+            if not e.bn then GameTooltip:AddLine(L["Click: reply"], 0.4, 0.86, 0.62) end
             GameTooltip:Show()
         end)
         r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -264,23 +264,23 @@ local function build()
         r.e = e
         local inc = e.from ~= nil
         local name = ns.displayName(e.from or e.to or "?")
-        r.who:SetText((inc and "" or "|cff888888" .. L["gesendet an"] .. "|r ") .. (inc and ("|cfff08ac8" .. name .. "|r") or name) .. (e.new and ("  |cffff5a4a" .. L["neu"] .. "|r") or ""))
-        r.when:SetText(date(L["%d.%m. %H:%M"], e.t or 0))
+        r.who:SetText((inc and "" or "|cff888888" .. L["sent to"] .. "|r ") .. (inc and ("|cfff08ac8" .. name .. "|r") or name) .. (e.new and ("  |cffff5a4a" .. L["new"] .. "|r") or ""))
+        r.when:SetText(date(L["%m/%d %H:%M"], e.t or 0))
         r.msg:SetText(e.msg or "")
         local c = e.new and C.red or (inc and C.pink or C.line)
         r.bar:SetColorTexture(c[1], c[2], c[3], inc and 0.9 or 0.4)
     end)
     f.list:SetPoint("TOPLEFT", 8, -54)
     f.list:SetPoint("BOTTOMRIGHT", -8, 42)
-    f.list.empty:SetText(L["Noch keine Fluesternachrichten."])
-    f.read = K.Button(f, L["Alle gelesen"], 120, 24, "ghost", function()
+    f.list.empty:SetText(L["No whispers yet."])
+    f.read = K.Button(f, L["Mark all read"], 120, 24, "ghost", function()
         for _, e in ipairs(log()) do e.new = nil end
         WL.Refresh()
     end)
     f.read:SetPoint("BOTTOMLEFT", 10, 10)
     f.only = K.Button(f, "", 150, 24, "ghost", function() WL.onlyNew = not WL.onlyNew WL.Refresh() end)
     f.only:SetPoint("LEFT", f.read, "RIGHT", 8, 0)
-    f.clear = K.Button(f, L["Verlauf leeren"], 120, 24, "danger", function() ns.db.whispersAll = {} WL.Refresh() end)
+    f.clear = K.Button(f, L["Clear history"], 120, 24, "danger", function() ns.db.whispersAll = {} WL.Refresh() end)
     f.clear:SetPoint("BOTTOMRIGHT", -10, 10)
     ns.EscClose("OasisWhisperLog")
     WL.frame = f
@@ -295,8 +295,8 @@ function WL.Refresh()
         if not WL.onlyNew or e.new then out[#out + 1] = e end
     end
     local n = WL.Unread()
-    f.sub:SetText((L["%d gespeichert"]):format(#l) .. (n > 0 and ("  ·  |cffff5a4a" .. (L["%d neu"]):format(n) .. "|r") or ""))
-    f.only.label:SetText(WL.onlyNew and L["Alle anzeigen"] or L["Nur neue"])
+    f.sub:SetText((L["%d saved"]):format(#l) .. (n > 0 and ("  ·  |cffff5a4a" .. (L["%d new"]):format(n) .. "|r") or ""))
+    f.only.label:SetText(WL.onlyNew and L["Show all"] or L["Only new"])
     f.list:SetData(out)
 end
 function WL.Show()
@@ -380,9 +380,9 @@ local function initial(name)
 end
 local function dayLabel(t)
     local d, today = date("%Y%m%d", t), date("%Y%m%d")
-    if d == today then return L["Heute"] end
-    if d == date("%Y%m%d", time() - 86400) then return L["Gestern"] end
-    return date(L["%d.%m.%Y"], t)
+    if d == today then return L["Today"] end
+    if d == date("%Y%m%d", time() - 86400) then return L["Yesterday"] end
+    return date(L["%m/%d/%Y"], t)
 end
 local function render(msg)
     msg = msg or ""
@@ -453,7 +453,7 @@ local function popup()
     f.head = K.GameHead(f, "", C.pink)
     f.head:SetPoint("TOPLEFT", 12, -10)
     f.head:SetPoint("RIGHT", f, "RIGHT", -40, 0)
-    local x = K.CloseButton(f, function() f:Hide() end, L["Schliessen (Esc)"])
+    local x = K.CloseButton(f, function() f:Hide() end, L["Close (Esc)"])
     x:SetPoint("TOPRIGHT", -6, -6)
     f.text = K.Text(f, 11, C.muted)
     f.text:SetPoint("TOPLEFT", 14, -38)
@@ -497,7 +497,7 @@ local function popup()
         if fn then fn(v) end
     end)
     f.ok:SetPoint("BOTTOMRIGHT", -14, 12)
-    f.cancel = K.Button(f, L["Abbrechen"], 100, 26, "ghost", function() f:Hide() end)
+    f.cancel = K.Button(f, L["Cancel"], 100, 26, "ghost", function() f:Hide() end)
     f.cancel:SetPoint("RIGHT", f.ok, "LEFT", -8, 0)
     f.hint = K.Text(f, 10, C.dim)
     f.hint:SetPoint("BOTTOMLEFT", 14, 20)
@@ -514,15 +514,15 @@ local function placePopup(f)
 end
 function WL.Copy(title, text)
     local f = popup()
-    f.head.text:SetText(K.Upper(title or L["Kopieren"]))
+    f.head.text:SetText(K.Upper(title or L["Copy"]))
     f:SetSize(480, 340)
-    f.text:SetText(L["Markiert - mit Strg+C kopieren."])
+    f.text:SetText(L["Selected - copy with Ctrl+C."])
     f.input:Hide()
     if f.suggest and f.suggest.Hide then f.suggest:Hide() end
     f.copySF:Show()
     f.ok:Hide()
     f.cancel:Show()
-    f.cancel.label:SetText(L["Schliessen"])
+    f.cancel.label:SetText(L["Close"])
     f.hint:SetText("")
     f.copyText = text or ""
     f.copy:SetText(f.copyText)
@@ -544,7 +544,7 @@ function WL.Prompt(title, text, initialText, onOk, okLabel, hint)
     f.ok:Show()
     f.ok.label:SetText(okLabel or L["OK"])
     f.cancel:Show()
-    f.cancel.label:SetText(L["Abbrechen"])
+    f.cancel.label:SetText(L["Cancel"])
     f.hint:SetText(hint or "")
     f.onOk = onOk
     placePopup(f)
@@ -562,7 +562,7 @@ function WL.Confirm(title, text, onOk, okLabel)
     f.ok:Show()
     f.ok.label:SetText(okLabel or L["OK"])
     f.cancel:Show()
-    f.cancel.label:SetText(L["Abbrechen"])
+    f.cancel.label:SetText(L["Cancel"])
     f.hint:SetText("")
     f.onOk = function() if onOk then onOk() end end
     placePopup(f)
@@ -588,42 +588,42 @@ function WL.AddFriend(name)
     local n = ns.ChatName(name)
     if C_FriendList and C_FriendList.AddFriend then pcall(C_FriendList.AddFriend, n)
     elseif AddFriend then pcall(AddFriend, n)
-    else ns.print(L["Freundesliste ist hier nicht verfuegbar."]) end
+    else ns.print(L["Friends list is not available here."]) end
 end
 function WL.ShowOnMap(name)
     local m = member(name)
     if not m or not ns.Map or not ns.Map.ShowMember then return end
     local ok, shown = pcall(ns.Map.ShowMember, m.name, m.zone)
-    if not ok or not shown then ns.print(L["Position unbekannt."]) end
+    if not ok or not shown then ns.print(L["Position unknown."]) end
 end
 function WL.Export(name)
     local lines = {}
     for _, e in ipairs(log()) do
         if partnerOf(e) == name then
-            local who = e.from and ns.displayName(e.from) or L["Du"]
+            local who = e.from and ns.displayName(e.from) or L["You"]
             lines[#lines + 1] = date("[%d.%m.%Y %H:%M] ", e.t or 0) .. who .. ": " .. plain(e.msg)
         end
     end
-    WL.Copy((L["Verlauf mit %s"]):format(ns.displayName(name)), table.concat(lines, "\n"))
+    WL.Copy((L["History with %s"]):format(ns.displayName(name)), table.concat(lines, "\n"))
 end
 function WL.DeleteThread(name)
-    WL.Confirm(L["Gespraech loeschen"], (L["Den ganzen Verlauf mit %s loeschen? Gemerkte Nachrichten gehen mit."]):format(ns.displayName(name)), function()
+    WL.Confirm(L["Delete conversation"], (L["Delete the whole history with %s? Saved messages are deleted too."]):format(ns.displayName(name)), function()
         local l = log()
         for i = #l, 1, -1 do if partnerOf(l[i]) == name then table.remove(l, i) end end
         metaAll()[name] = nil
         if WL.privSel == name then WL.privSel = nil end
         refreshAll()
-    end, L["Loeschen"])
+    end, L["Put out"])
 end
 function WL.EditNote(name)
     local m = meta(name, true)
-    WL.Prompt(L["Notiz zur Person"], (L["Nur fuer dich sichtbar - steht im Kopf des Gespraechs mit %s."]):format(ns.displayName(name)), m.note or "", function(v)
+    WL.Prompt(L["Note about this person"], (L["Only visible to you - shown in the header of the chat with %s."]):format(ns.displayName(name)), m.note or "", function(v)
         m.note = v ~= "" and v or nil
         refreshAll()
-    end, L["Speichern"])
+    end, L["Save"])
 end
 function WL.NewChat()
-    WL.Prompt(L["Neues Gespraech"], L["Name eingeben - Gildenmitglieder werden vorgeschlagen."], "", function(v)
+    WL.Prompt(L["New chat"], L["Enter a name - guild members are suggested."], "", function(v)
         if not v or v == "" then return end
         local m = member(v)
         local name = (m and m.name) or v
@@ -636,7 +636,7 @@ function WL.NewChat()
         WL.query = nil
         refreshAll()
         if WL.priv and WL.priv.input and WL.priv.input:IsShown() then WL.priv.input:SetFocus() end
-    end, L["Starten"])
+    end, L["Start"])
 end
 function WL.SetSelected(name)
     WL.privSel, WL.noAuto = name, nil
@@ -711,30 +711,30 @@ function WL.ThreadMenu(owner, name)
     for _, e in ipairs(log()) do if partnerOf(e) == name and e.bn then bn = true break end end
     local mem = member(name)
     local items = {
-        { text = m.pin and L["Losloesen"] or L["Anheften"], fn = function() local mm = meta(name, true) mm.pin = (not mm.pin) or nil refreshAll() end },
-        { text = m.mute and L["Stummschaltung aufheben"] or L["Stummschalten"], fn = function()
+        { text = m.pin and L["Unpin"] or L["Pin"], fn = function() local mm = meta(name, true) mm.pin = (not mm.pin) or nil refreshAll() end },
+        { text = m.mute and L["Unmute"] or L["Mute"], fn = function()
             local mm = meta(name, true)
             mm.mute = (not mm.mute) or nil
             if mm.mute then for _, e in ipairs(log()) do if partnerOf(e) == name then e.new = nil end end mm.unread = nil end
             refreshAll()
         end },
-        { text = L["Als ungelesen markieren"], fn = function()
+        { text = L["Mark as unread"], fn = function()
             meta(name, true).unread = true
             if WL.privSel == name then WL.privSel, WL.noAuto = nil, true end
             refreshAll()
         end },
     }
     if not bn then
-        items[#items + 1] = { text = L["Einladen"], fn = function() WL.Invite(name) end }
-        items[#items + 1] = { text = L["Freund hinzufuegen"], disabled = not (C_FriendList and C_FriendList.AddFriend) and not AddFriend, fn = function() WL.AddFriend(name) end }
-        if ns.Profile and ns.Profile.Show then items[#items + 1] = { text = L["Profil ansehen"], fn = function() ns.Profile.Show(name) end } end
-        if ns.Talents then items[#items + 1] = { text = L["Talente ansehen"], fn = function() ns.Talents.Show(name) end } end
-        items[#items + 1] = { text = L["Auf Karte zeigen"], disabled = not (mem and ns.Map and ns.Map.ShowMember), fn = function() WL.ShowOnMap(name) end }
+        items[#items + 1] = { text = L["Invite"], fn = function() WL.Invite(name) end }
+        items[#items + 1] = { text = L["Add friend"], disabled = not (C_FriendList and C_FriendList.AddFriend) and not AddFriend, fn = function() WL.AddFriend(name) end }
+        if ns.Profile and ns.Profile.Show then items[#items + 1] = { text = L["View profile"], fn = function() ns.Profile.Show(name) end } end
+        if ns.Talents then items[#items + 1] = { text = L["View talents"], fn = function() ns.Talents.Show(name) end } end
+        items[#items + 1] = { text = L["Show on map"], disabled = not (mem and ns.Map and ns.Map.ShowMember), fn = function() WL.ShowOnMap(name) end }
     end
-    items[#items + 1] = { text = m.note and L["Notiz bearbeiten"] or L["Notiz zur Person"], fn = function() WL.EditNote(name) end }
-    items[#items + 1] = { text = L["Verlauf exportieren"], fn = function() WL.Export(name) end }
-    items[#items + 1] = { text = L["Zuordnen zu ..."], fn = function() WL.AssignMenu(owner, name, bn) end }
-    items[#items + 1] = { text = "|cffff5a4a" .. L["Gespraech loeschen"] .. "|r", fn = function() WL.DeleteThread(name) end }
+    items[#items + 1] = { text = m.note and L["Edit note"] or L["Note about this person"], fn = function() WL.EditNote(name) end }
+    items[#items + 1] = { text = L["Export history"], fn = function() WL.Export(name) end }
+    items[#items + 1] = { text = L["Assign to ..."], fn = function() WL.AssignMenu(owner, name, bn) end }
+    items[#items + 1] = { text = "|cffff5a4a" .. L["Delete conversation"] .. "|r", fn = function() WL.DeleteThread(name) end }
     K.ShowMenu(owner, items, ns.displayName(name), 200)
 end
 -- Gespraech einer Person zuordnen (z.B. "Battle.net (alt)" -> "Anna Berg"): alle Nachrichten wandern hinueber.
@@ -745,13 +745,13 @@ function WL.Assign(from, to)
         if e.from == from then e.from = to e.viaBN = e.bn or e.viaBN e.bn = nil end
         if e.to == from then e.to = to e.viaBN = e.bn or e.viaBN e.bn = nil end
     end
-    if from ~= L["Battle.net"] and from ~= L["Battle.net (alt)"] then
+    if from ~= L["Battle.net"] and from ~= L["Battle.net (old)"] then
         ns.char.bnAlias = ns.char.bnAlias or {}
         ns.char.bnAlias[from] = to
     end
     if WL.privSel == from then WL.privSel = to end
     refreshAll()
-    K.Toast(L["Zugeordnet"], (L["Verlauf von %s steht jetzt bei %s."]):format(from, ns.displayName(to)), C.mint)
+    K.Toast(L["Assigned"], (L["History of %s is now with %s."]):format(from, ns.displayName(to)), C.mint)
 end
 function WL.AssignMenu(owner, name, bn)
     local seen, items = { [name] = true }, {}
@@ -764,29 +764,29 @@ function WL.AssignMenu(owner, name, bn)
             if #items >= 12 then break end
         end
     end
-    items[#items + 1] = { text = L["Name eingeben ..."], fn = function()
-        WL.Prompt(L["Zuordnen zu ..."], L["Charaktername der Person (z.B. Anna Berg)"], "", function(v)
+    items[#items + 1] = { text = L["Enter name ..."], fn = function()
+        WL.Prompt(L["Assign to ..."], L["Character name of the person (e.g. Anna Berg)"], "", function(v)
             v = tostring(v or ""):gsub("^%s+", ""):gsub("%s+$", "")
             if v ~= "" then WL.Assign(name, (ns.fullName and ns.fullName(v)) or v) end
         end)
     end }
-    K.ShowMenu(owner, items, L["Zuordnen zu ..."], 200)
+    K.ShowMenu(owner, items, L["Assign to ..."], 200)
 end
 -- Kontextmenue: Nachricht
 function WL.MsgMenu(owner, e)
     if not e then return end
     local items = {}
     for _, em in ipairs(REACTS) do
-        items[#items + 1] = { text = emo(em) .. "  " .. (e.rMe == em and ("|cff66db9e" .. L["(deine Reaktion)"] .. "|r") or L["Reagieren"]), checked = e.rMe == em,
+        items[#items + 1] = { text = emo(em) .. "  " .. (e.rMe == em and ("|cff66db9e" .. L["(your reaction)"] .. "|r") or L["React"]), checked = e.rMe == em,
             fn = function() WL.React(e, em) end }
     end
-    items[#items + 1] = { text = L["Kopieren"], fn = function() WL.Copy(L["Nachricht kopieren"], plain(e.msg)) end }
+    items[#items + 1] = { text = L["Copy"], fn = function() WL.Copy(L["Copy message"], plain(e.msg)) end }
     if not e.bn then
-        items[#items + 1] = { text = L["Antworten / Zitieren"], fn = function() WL.Quote(e) end }
+        items[#items + 1] = { text = L["Reply / quote"], fn = function() WL.Quote(e) end }
     end
-    items[#items + 1] = { text = e.star and L["Nicht mehr merken"] or L["Nachricht merken"], fn = function() WL.ToggleStar(e) end }
-    items[#items + 1] = { text = "|cffff5a4a" .. L["Loeschen (nur bei dir)"] .. "|r", fn = function() WL.DeleteMsg(e) end }
-    K.ShowMenu(owner, items, (e.from and ns.displayName(e.from) or L["Du"]) .. "  |cff777777" .. date("%d.%m. %H:%M", e.t or 0) .. "|r", 190)
+    items[#items + 1] = { text = e.star and L["Unsave"] or L["Save message"], fn = function() WL.ToggleStar(e) end }
+    items[#items + 1] = { text = "|cffff5a4a" .. L["Delete (only for you)"] .. "|r", fn = function() WL.DeleteMsg(e) end }
+    K.ShowMenu(owner, items, (e.from and ns.displayName(e.from) or L["You"]) .. "  |cff777777" .. date("%d.%m. %H:%M", e.t or 0) .. "|r", 190)
 end
 
 -- Gildenchat: gemerkte Nachrichten (aus GuildChat.MsgMenu)
@@ -812,9 +812,9 @@ end
 ------------------------------------------------------------------------
 -- Ansicht
 ------------------------------------------------------------------------
-local FILTERS = { { key = "all", text = "Alle" }, { key = "unread", text = "Ungelesen" }, { key = "pin", text = "Angeheftet" }, { key = "star", text = "Gemerkt" } }
+local FILTERS = { { key = "all", text = "All" }, { key = "unread", text = "Unread" }, { key = "pin", text = "Pinned" }, { key = "star", text = "Saved" } }
 ns.Relabel(function()
-    FILTERS[1].text, FILTERS[2].text, FILTERS[3].text, FILTERS[4].text = L["Alle"], L["Ungelesen"], L["Angeheftet"], L["Gemerkt"]
+    FILTERS[1].text, FILTERS[2].text, FILTERS[3].text, FILTERS[4].text = L["All"], L["Unread"], L["Pinned"], L["Saved"]
 end)
 local function lowerFind(hay, q) return q and q ~= "" and plain(hay or ""):lower():find(q, 1, true) end
 -- Treffer hervorheben (nur in reinem Text ohne Codes, sonst unveraendert)
@@ -850,17 +850,17 @@ local function statusOf(name, bn)
     local fi = friendInfo(name)
     local online = (m and m.online) or (fi and fi.connected)
     local parts = {}
-    parts[1] = online and ("|cff66db9e" .. L["online"] .. "|r") or ("|cff777777" .. ((m or fi) and L["offline"] or L["offline oder nicht in der Gilde"]) .. "|r")
+    parts[1] = online and ("|cff66db9e" .. L["online"] .. "|r") or ("|cff777777" .. ((m or fi) and L["offline"] or L["offline or not in the guild"]) .. "|r")
     local cls = (m and m.class) or nil
     local clsName = cls and LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[cls] or (fi and fi.className)
     local lvl = (m and tonumber(m.level) and m.level > 0 and m.level) or (fi and fi.level)
     if clsName or lvl then
         local hex = cls and ns.classHex and ns.classHex(cls)
-        parts[#parts + 1] = (hex and ("|c" .. hex) or "|cffcccccc") .. ((lvl and (L["Stufe"] .. " " .. lvl .. " ") or "") .. (clsName or "")) .. "|r"
+        parts[#parts + 1] = (hex and ("|c" .. hex) or "|cffcccccc") .. ((lvl and (L["Item level"] .. " " .. lvl .. " ") or "") .. (clsName or "")) .. "|r"
     end
     local zone = (m and m.zone ~= "" and m.zone) or (fi and fi.area)
     if online and zone then parts[#parts + 1] = "|cff9aa3a8" .. zone .. "|r" end
-    if not m and fi then parts[#parts + 1] = "|cff8fb8ff" .. L["Freund"] .. "|r" end
+    if not m and fi then parts[#parts + 1] = "|cff8fb8ff" .. L["Friend"] .. "|r" end
     return table.concat(parts, "  |cff555555·|r  ")
 end
 local function isOnline(name)
@@ -1022,12 +1022,12 @@ local function headStatus(name, bn)
     local lvl = (m and tonumber(m.level) and m.level > 0 and m.level) or (fi and fi.level)
     if clsName or lvl then
         local hex = cls and ns.classHex and ns.classHex(cls)
-        parts[#parts + 1] = (hex and ("|c" .. hex) or "|cffcccccc") .. ((lvl and (L["Stufe"] .. " " .. lvl .. " ") or "") .. (clsName or "")) .. "|r"
+        parts[#parts + 1] = (hex and ("|c" .. hex) or "|cffcccccc") .. ((lvl and (L["Item level"] .. " " .. lvl .. " ") or "") .. (clsName or "")) .. "|r"
     end
     local zone = (m and m.zone ~= "" and m.zone) or (fi and fi.area)
     if online and zone then parts[#parts + 1] = "|cff9aa3a8" .. zone .. "|r" end
-    if not m and fi then parts[#parts + 1] = "|cff8fb8ff" .. L["Freund"] .. "|r" end
-    if not m and not fi then parts[#parts + 1] = "|cff777777" .. L["nicht in der Gilde"] .. "|r" end
+    if not m and fi then parts[#parts + 1] = "|cff8fb8ff" .. L["Friend"] .. "|r" end
+    if not m and not fi then parts[#parts + 1] = "|cff777777" .. L["not in the guild"] .. "|r" end
     return afk and "afk" or (online and "on" or "off"), table.concat(parts, "  |cff555555·|r  ")
 end
 -- runder Symbol-Knopf (Kopf): Kreis, Symbol oder Zeichen, Tooltip
@@ -1079,21 +1079,21 @@ function WL.BuildPrivate(parent)
     lp:SetWidth(LEFT)
     if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(lp, nil, nil, 12) end   -- Glaskarte wie im Gildenchat
     -- 0.6.285: ruhiger Kopf - Suche, daneben zwei kleine Knoepfe (+ neues Gespraech, ... mehr); darunter Text-Reiter
-    f.newBtn = roundBtn(lp, 26, nil, "+", { L["Neues Gespraech"] }, function() WL.NewChat() end)
-    f.moreList = roundBtn(lp, 26, nil, "...", { L["Mehr"] }, function(self)
+    f.newBtn = roundBtn(lp, 26, nil, "+", { L["New chat"] }, function() WL.NewChat() end)
+    f.moreList = roundBtn(lp, 26, nil, "...", { L["More"] }, function(self)
         K.ShowMenu(self, {
-            { text = L["Alle gelesen"], fn = function()
+            { text = L["Mark all read"], fn = function()
                 for _, e in ipairs(log()) do e.new = nil end
                 for _, m in pairs(metaAll()) do m.unread = nil end
                 refreshAll()
             end },
-            { text = L["Neues Gespraech"], fn = function() WL.NewChat() end },
-        }, L["Privat"], 170)
+            { text = L["New chat"], fn = function() WL.NewChat() end },
+        }, L["Private"], 170)
     end)
     f.moreList.isDropdown = true
     f.moreList:SetPoint("TOPRIGHT", -10, -10)
     f.newBtn:SetPoint("RIGHT", f.moreList, "LEFT", -6, 0)
-    f.search = K.Input(lp, LEFT - 86, L["Suchen ..."], function(t)
+    f.search = K.Input(lp, LEFT - 86, L["Search ..."], function(t)
         f.searchGen = (f.searchGen or 0) + 1
         local g = f.searchGen
         ns.After(0.25, function()
@@ -1208,17 +1208,17 @@ function WL.BuildPrivate(parent)
             if not it then return end
             local lines = { ns.displayName(it.main or it.name or "?") }
             if it.hit then
-                lines[#lines + 1] = date(L["%d.%m.%Y %H:%M"], it.hit.t or 0)
-                lines[#lines + 1] = it.guild and L["Klick: zum Gildenchat"] or L["Klick: zur Nachricht springen"]
+                lines[#lines + 1] = date(L["%m/%d/%Y %H:%M"], it.hit.t or 0)
+                lines[#lines + 1] = it.guild and L["Click: go to guild chat"] or L["Click: jump to message"]
             else
                 if it.chars and #it.chars > 1 then
                     local t = {}
                     for _, th in ipairs(it.chars) do t[#t + 1] = WL.Label(th.name) end
-                    lines[#lines + 1] = "|cff888888" .. L["Charaktere"] .. ":|r " .. table.concat(t, ", ")
+                    lines[#lines + 1] = "|cff888888" .. L["Characters"] .. ":|r " .. table.concat(t, ", ")
                 end
                 local m = meta(it.name)
-                if m and m.note then lines[#lines + 1] = "|cffe8b44a" .. L["Notiz"] .. ":|r " .. m.note end
-                lines[#lines + 1] = "|cff888888" .. L["Rechtsklick: mehr"] .. "|r"
+                if m and m.note then lines[#lines + 1] = "|cffe8b44a" .. L["Note"] .. ":|r " .. m.note end
+                lines[#lines + 1] = "|cff888888" .. L["Right-click: more"] .. "|r"
             end
             K.ShowTip(self, lines)
         end)
@@ -1243,10 +1243,10 @@ function WL.BuildPrivate(parent)
         if it.hit then
             -- Treffer / gemerkte Nachricht
             local e = it.hit
-            r.name:SetText(WL.Label(it.name or "?") .. (it.guild and ("  |cff888888" .. L["Gildenchat"] .. "|r") or ""))
+            r.name:SetText(WL.Label(it.name or "?") .. (it.guild and ("  |cff888888" .. L["Guild chat"] .. "|r") or ""))
             local txt = plain(e.msg or e.m)
-            r.prev:SetText(((e.to and ("|cff888888" .. L["Du"] .. ":|r ")) or "") .. (e.star and "|cffe8b44a*|r " or "") .. mark(txt, WL.query))
-            r.when:SetText(date(L["%d.%m."], e.t or 0))
+            r.prev:SetText(((e.to and ("|cff888888" .. L["You"] .. ":|r ")) or "") .. (e.star and "|cffe8b44a*|r " or "") .. mark(txt, WL.query))
+            r.when:SetText(date(L["%m/%d"], e.t or 0))
             r.pill:Hide() r.badge:SetText("") r.flags:SetText("")
             r.when:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
             r.sel:SetShown(false)
@@ -1255,20 +1255,20 @@ function WL.BuildPrivate(parent)
         end
         -- Name der Person (Main); mehrere Charaktere: dezente Zahl dahinter
         local many = it.chars and #it.chars > 1
-        r.name:SetText(WL.Label(it.main or name) .. (many and ("  |cff666666" .. #it.chars .. " " .. L["Chars"] .. "|r") or ""))
+        r.name:SetText(WL.Label(it.main or name) .. (many and ("  |cff666666" .. #it.chars .. " " .. L["chars"] .. "|r") or ""))
         local last = it.last or {}
         if it.fresh then
-            r.prev:SetText("|cff888888" .. L["Neues Gespraech"] .. "|r")
+            r.prev:SetText("|cff888888" .. L["New chat"] .. "|r")
         else
             local m = meta(it.name)
             local draft = m and m.draft and m.draft ~= "" and S().wlDrafts ~= false and WL.privSel ~= it.name
             -- kam die letzte Nachricht von einem Twink, steht sein Name davor
-            local who = (last.to and (L["Du"] .. ": ")) or ((many and it.name ~= it.main) and (WL.Label(it.name) .. ": ")) or ""
-            r.prev:SetText(draft and ("|cffff7a7a" .. L["Entwurf"] .. ":|r " .. m.draft) or ((who ~= "" and ("|cff888888" .. who .. "|r") or "") .. render(last.msg or "")))
+            local who = (last.to and (L["You"] .. ": ")) or ((many and it.name ~= it.main) and (WL.Label(it.name) .. ": ")) or ""
+            r.prev:SetText(draft and ("|cffff7a7a" .. L["Draft"] .. ":|r " .. m.draft) or ((who ~= "" and ("|cff888888" .. who .. "|r") or "") .. render(last.msg or "")))
         end
         local shownTime = last.t or 0
         local today = date("%Y%m%d", shownTime) == date("%Y%m%d")
-        r.when:SetText(today and date("%H:%M", shownTime) or date(L["%d.%m."], shownTime))
+        r.when:SetText(today and date("%H:%M", shownTime) or date(L["%m/%d"], shownTime))
         local num = it.unread or 0
         local un = num > 0 or it.manual
         r.pill:SetShown(un and true or false)
@@ -1278,7 +1278,7 @@ function WL.BuildPrivate(parent)
         r.badge:SetTextColor(1, 1, 1)
         r.when:SetTextColor(unpack(un and C.accent or C.dim))
         if not un then r.name:SetTextColor(0.86, 0.86, 0.88) end
-        r.flags:SetText(un and "" or (((it.pin and ("|T" .. ns.MEDIA .. "icons\\pin:12:12|t") or "")) .. (it.mute and " |cff777777" .. L["stumm"] .. "|r" or "")))
+        r.flags:SetText(un and "" or (((it.pin and ("|T" .. ns.MEDIA .. "icons\\pin:12:12|t") or "")) .. (it.mute and " |cff777777" .. L["muted"] .. "|r" or "")))
         r.sel:SetShown(false)
         r.selBox:SetShown(WL.PersonOf({ it }, WL.privSel) ~= nil)
     end)
@@ -1320,12 +1320,12 @@ function WL.BuildPrivate(parent)
     hd.line:SetColorTexture(1, 1, 1, 0.06)
     f.hav = makeAvatar(hd, 38, 11)
     f.hav:SetPoint("LEFT", 12, 0)
-    f.more = roundBtn(hd, 28, nil, "...", { L["Mehr"] }, function(self) if WL.privSel then WL.ThreadMenu(self, WL.privSel) end end)
+    f.more = roundBtn(hd, 28, nil, "...", { L["More"] }, function(self) if WL.privSel then WL.ThreadMenu(self, WL.privSel) end end)
     f.more:SetPoint("RIGHT", -12, 0)
     f.more.isDropdown = true
-    f.profile = roundBtn(hd, 28, ns.MEDIA .. "icons\\profile", nil, { L["Profil"] }, function() if WL.privSel and ns.Profile then ns.Profile.Show(WL.privSel) end end)
+    f.profile = roundBtn(hd, 28, ns.MEDIA .. "icons\\profile", nil, { L["Profile"] }, function() if WL.privSel and ns.Profile then ns.Profile.Show(WL.privSel) end end)
     f.profile:SetPoint("RIGHT", f.more, "LEFT", -6, 0)
-    f.invite = roundBtn(hd, 28, ns.MEDIA .. "icons\\groups", nil, { L["Einladen"] }, function() WL.Invite(WL.privSel) end)
+    f.invite = roundBtn(hd, 28, ns.MEDIA .. "icons\\groups", nil, { L["Invite"] }, function() WL.Invite(WL.privSel) end)
     f.invite:SetPoint("RIGHT", f.profile, "LEFT", -6, 0)
     f.hname = K.Title(hd, 15, C.text)
     f.hname:SetPoint("TOPLEFT", 62, -10)
@@ -1344,7 +1344,7 @@ function WL.BuildPrivate(parent)
     f.hto:SetPoint("LEFT", f.hpill, "RIGHT", 8, 0)
     f.hto.t = K.Text(f.hto, 10, C.muted)
     f.hto.t:SetPoint("LEFT", 0, 0)
-    f.hto:SetScript("OnEnter", function(self) self.t:SetTextColor(C.text[1], C.text[2], C.text[3]) K.ShowTip(self, { L["Schreiben an"], "|cff888888" .. L["Klick: anderen Charakter waehlen"] .. "|r" }) end)
+    f.hto:SetScript("OnEnter", function(self) self.t:SetTextColor(C.text[1], C.text[2], C.text[3]) K.ShowTip(self, { L["Write to"], "|cff888888" .. L["Click: choose another character"] .. "|r" }) end)
     f.hto:SetScript("OnLeave", function(self) self.t:SetTextColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
     f.hto:SetScript("OnClick", function(self)
         local p = f.person
@@ -1355,7 +1355,7 @@ function WL.BuildPrivate(parent)
             items[#items + 1] = { text = WL.Label(n) .. (isOnline(n) and ("  |cff66db9e" .. L["online"] .. "|r") or ""), checked = n == WL.privSel,
                 fn = function() WL.SetSelected(n) end }
         end
-        K.ShowMenu(self, items, L["Schreiben an"], 200)
+        K.ShowMenu(self, items, L["Write to"], 200)
     end)
     f.hto.isDropdown = true
     f.hto:Hide()
@@ -1368,7 +1368,7 @@ function WL.BuildPrivate(parent)
         if not n then return end
         local m = meta(n)
         local lines = { ns.displayName(n), statusOf(n, f.selBN) }
-        if m and m.note then lines[#lines + 1] = "|cffe8b44a" .. L["Notiz"] .. ":|r " .. m.note end
+        if m and m.note then lines[#lines + 1] = "|cffe8b44a" .. L["Note"] .. ":|r " .. m.note end
         K.ShowTip(self, lines)
     end)
     hd:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1457,7 +1457,7 @@ function WL.BuildPrivate(parent)
     re.text:SetPoint("TOP", re.icon, "BOTTOM", 0, -10)
     re.text:SetWidth(300)
     re.text:SetWordWrap(true)
-    re.btn = K.Button(re, L["Neues Gespraech"], 150, 26, "primary", function() WL.NewChat() end)
+    re.btn = K.Button(re, L["New chat"], 150, 26, "primary", function() WL.NewChat() end)
     re.btn:SetPoint("TOP", re.text, "BOTTOM", 0, -12)
     re:Hide()
     f.rempty = re
@@ -1525,9 +1525,9 @@ function WL.BuildPrivate(parent)
             local e = self.e
             if not e then return end
             GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
-            GameTooltip:AddLine(date(L["%A, %d.%m.%Y %H:%M:%S"], e.t or 0), 1, 1, 1)
-            if e.star then GameTooltip:AddLine(L["Gemerkt"], 0.91, 0.71, 0.29) end
-            GameTooltip:AddLine(L["Rechtsklick: Kopieren, Zitieren, Reagieren, Merken"], 0.6, 0.6, 0.6)
+            GameTooltip:AddLine(date(L["%A, %m/%d/%Y %H:%M:%S"], e.t or 0), 1, 1, 1)
+            if e.star then GameTooltip:AddLine(L["Saved"], 0.91, 0.71, 0.29) end
+            GameTooltip:AddLine(L["Right-click: copy, quote, react, save"], 0.6, 0.6, 0.6)
             GameTooltip:Show()
         end)
         b:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1617,7 +1617,7 @@ function WL.BuildPrivate(parent)
                 nsep = nsep + 1
                 local s = sep(nsep)
                 s.p.box:SetColor(1, 1, 1, 0)
-                placeSep(s, (L["ueber %s"]):format(WL.Label(who or "?")), C.dim[1], C.dim[2], C.dim[3], 1, 1, 1, 0)
+                placeSep(s, (L["via %s"]):format(WL.Label(who or "?")), C.dim[1], C.dim[2], C.dim[3], 1, 1, 1, 0)
                 y = y - 24
             end
             lastWho = who
@@ -1626,7 +1626,7 @@ function WL.BuildPrivate(parent)
                 nsep = nsep + 1
                 local s = sep(nsep)
                 s.p.box:SetColor(1, 0.62, 0.55, 0.08)
-                placeSep(s, L["Neue Nachrichten"], 1, 0.62, 0.55, 1, 0.45, 0.38, 0.35)
+                placeSep(s, L["New messages"], 1, 0.62, 0.55, 1, 0.45, 0.38, 0.35)
                 if not opts.jump then jumpY = -y - 10 end
                 y = y - 30
             end
@@ -1760,7 +1760,7 @@ function WL.BuildPrivate(parent)
     qb.t:SetPoint("LEFT", 18, 0)
     qb.t:SetPoint("RIGHT", -34, 0)
     qb.t:SetWordWrap(false)
-    qb.x = K.CloseButton(qb, function() f.quote = nil f:UpdateQuote() end, L["Zitat entfernen"])
+    qb.x = K.CloseButton(qb, function() f.quote = nil f:UpdateQuote() end, L["Remove quote"])
     qb.x:SetPoint("RIGHT", -6, 0)
     qb:Hide()
     f.qb = qb
@@ -1768,7 +1768,7 @@ function WL.BuildPrivate(parent)
         local _, body = splitQuote(e.msg)
         local t = plain(body)
         if #t > 60 then t = t:sub(1, 58) .. ".." end
-        return (e.from and ns.displayName(e.from) or L["Du"]) .. ": " .. t
+        return (e.from and ns.displayName(e.from) or L["You"]) .. ": " .. t
     end
     f.quoteText = quoteText
 
@@ -1815,7 +1815,7 @@ function WL.BuildPrivate(parent)
     f.snd.icon:SetVertexColor(0.6, 0.6, 0.62)
     f.snd:SetScript("OnEnter", function(self)
         self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
-        K.ShowTip(self, { L["Sound schicken"], L["Nur diese Person hoert ihn (wenn sie Oasis hat)."] })
+        K.ShowTip(self, { L["Send sound"], L["Only this person hears it (if they have Oasis)."] })
     end)
     f.snd:SetScript("OnLeave", function(self) self.icon:SetVertexColor(0.6, 0.6, 0.62) GameTooltip:Hide() end)
     if ns.Sound and ns.Sound.AttachCooldown then pcall(ns.Sound.AttachCooldown, f.snd) end
@@ -1829,7 +1829,7 @@ function WL.BuildPrivate(parent)
             if f.input:IsShown() then f.input:SetFocus() end
         end, "send")
     end)
-    f.input = K.Input(pill, 300, L["Nachricht schreiben ..."], nil)
+    f.input = K.Input(pill, 300, L["Type a message ..."], nil)
     f.input:SetFrameLevel(pill.inner:GetFrameLevel() + 2)
     if ns.EmojiComplete and ns.EmojiComplete.Attach then pcall(ns.EmojiComplete.Attach, f.input) end
     -- Feld ohne eigenen Kasten (die Leiste ist der Kasten)
@@ -1872,7 +1872,7 @@ function WL.BuildPrivate(parent)
         self.glow:SetShown(false)   -- kein Schein (ruhiges Design)
     end
     function sb:SetActive(on) self.active = on and true or false self:Paint() end
-    sb:SetScript("OnEnter", function(self) self.hover = true self:Paint() K.ShowTip(self, { L["Senden"], "|cff888888" .. L["Enter"] .. "|r" }) end)
+    sb:SetScript("OnEnter", function(self) self.hover = true self:Paint() K.ShowTip(self, { L["Send"], "|cff888888" .. L["Enter"] .. "|r" }) end)
     sb:SetScript("OnLeave", function(self) self.hover = nil self:Paint() GameTooltip:Hide() end)
     sb:SetScript("OnClick", function(self) if self.active then f:Send() end end)
     sb:SetActive(false)
@@ -1899,7 +1899,7 @@ function WL.BuildPrivate(parent)
     function f:UpdateQuote()
         local q = self.quote
         qb:SetShown(q ~= nil and self.input:IsShown())
-        if q then qb.t:SetText(K.hex(C.accent) .. L["Antwort auf"] .. "|r  " .. render(quoteText(q))) end
+        if q then qb.t:SetText(K.hex(C.accent) .. L["Reply to"] .. "|r  " .. render(quoteText(q))) end
         sf:SetPoint("BOTTOMRIGHT", -1, (q and self.input:IsShown()) and 86 or 52)
         self:UpdateCounter()
     end
@@ -1909,7 +1909,7 @@ function WL.BuildPrivate(parent)
         local msg = prefix() .. t
         if #msg > 255 then msg = msg:sub(1, 255) end
         local ok = pcall(SendChatMessage, msg, "WHISPER", nil, ns.ChatName(WL.privSel))
-        if not ok then ns.print(L["Senden fehlgeschlagen."]) return end
+        if not ok then ns.print(L["Sending failed."]) return end
         -- fuer Pfeil hoch: zuletzt Gesendetes
         WL.sent = WL.sent or {}
         table.insert(WL.sent, 1, t)
@@ -1980,7 +1980,7 @@ function WL.UpdateHead()
     -- 0.6.285: Kopf zeigt die Person (Main), der Ziel-Charakter steht im Knopf "an <Charakter>"
     local p = name and WL.PersonOf(WL.People(WL.Threads()), name)
     f.person = p
-    f.hname:SetText(name and WL.Label((p and p.main) or name) or L["Privat"])
+    f.hname:SetText(name and WL.Label((p and p.main) or name) or L["Private"])
     local cls = name and classOf(name, f.selBN)
     if cls then f.hname:SetTextColor(ns.classColor(cls)) else f.hname:SetTextColor(C.text[1], C.text[2], C.text[3]) end
     f.hav:SetShown(name ~= nil)
@@ -2000,13 +2000,13 @@ function WL.UpdateHead()
     f.hpill.box:SetColor(pc[1][1], pc[1][2], pc[1][3], 0.16)
     f.hpill:SetWidth(math.max(30, (f.hpill.t:GetStringWidth() or 30) + 14))
     local m = name and meta(name)
-    if m and m.note then st = st .. (st ~= "" and "  |cff555555·|r  " or "") .. "|cffe8b44a" .. L["Notiz"] .. ":|r |cffbbbbbb" .. m.note .. "|r" end
+    if m and m.note then st = st .. (st ~= "" and "  |cff555555·|r  " or "") .. "|cffe8b44a" .. L["Note"] .. ":|r |cffbbbbbb" .. m.note .. "|r" end
     f.hstate:SetText(st)
     local multi = p ~= nil and #p.chars > 1
     f.hto:SetShown(multi)
     f.hstate:ClearAllPoints()
     if multi then
-        f.hto.t:SetText((L["an %s"]):format(WL.Label(name)) .. " |cff777777v|r")
+        f.hto.t:SetText((L["to %s"]):format(WL.Label(name)) .. " |cff777777v|r")
         f.hto:SetWidth((f.hto.t:GetStringWidth() or 60) + 4)
         f.hstate:SetPoint("LEFT", f.hto, "RIGHT", 10, 0)
     else
@@ -2150,11 +2150,11 @@ function WL.RefreshPrivate()
     local empty = #list == 0
     f.lempty:SetShown(empty)
     if empty then
-        f.lempty.text:SetText(WL.query and L["Keine Treffer."]
-            or (WL.filter == "star" and L["Noch nichts gemerkt - Rechtsklick auf eine Nachricht: Nachricht merken."])
-            or (WL.filter == "pin" and L["Nichts angeheftet - Rechtsklick auf ein Gespraech: Anheften."])
-            or (WL.filter == "unread" and L["Alles gelesen."])
-            or L["Noch keine Fluesternachrichten."])
+        f.lempty.text:SetText(WL.query and L["No matches."]
+            or (WL.filter == "star" and L["Nothing saved yet - right-click a message: Save message."])
+            or (WL.filter == "pin" and L["Nothing pinned - right-click a conversation: Pin."])
+            or (WL.filter == "unread" and L["All read."])
+            or L["No whispers yet."])
     end
     f.selBN = cur and cur.bn
     WL.UpdateHead()
@@ -2178,7 +2178,7 @@ function WL.RefreshPrivate()
     -- rechter Leerzustand
     f.rempty:SetShown(cur == nil)
     if cur == nil then
-        f.rempty.text:SetText(#threads == 0 and L["Noch keine Fluesternachrichten. Schreib jemandem aus der Gilde!"] or L["Links eine Unterhaltung waehlen."])
+        f.rempty.text:SetText(#threads == 0 and L["No whispers yet. Write to someone from the guild!"] or L["Pick a conversation on the left."])
     end
     f.lastMsgs = msgs
     -- Verlauf nur neu aufbauen, wenn sich etwas geaendert hat (kein Zucken)
@@ -2225,7 +2225,7 @@ function WL.BuildSettings(det, y)
     y = y - 10
     local h = K.Text(det, 12, C.amber)
     h:SetPoint("TOPLEFT", 14, y)
-    h:SetText(L["Privatnachrichten"])
+    h:SetText(L["Private messages"])
     y = y - 26
     local function tg(label, key, def, desc)
         local t = K.Toggle(det, L[label], function() local v = S()[key] if v == nil then return def end return v and true or false end,
@@ -2236,10 +2236,10 @@ function WL.BuildSettings(det, y)
         y = y - (desc and 40 or 30)
         return t
     end
-    tg("Entwuerfe je Gespraech merken", "wlDrafts", true, "Angefangener Text bleibt beim Wechsel des Gespraechs stehen")
+    tg("Remember drafts per conversation", "wlDrafts", true, "Unsent text stays when you switch conversations")
     local lbl = K.Text(det, 11, C.muted)
     lbl:SetPoint("TOPLEFT", 14, y - 2)
-    lbl:SetText(L["Gespeicherte Fluesternachrichten"])
+    lbl:SetText(L["Stored whispers"])
     if K.Slider then
         local sl = K.Slider(det, 180, 150, 1000, 50, function() return maxKeep() end, function(v) S().wlKeep = v end,
             function(v) return tostring(v) end)

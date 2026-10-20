@@ -140,17 +140,17 @@ if O and O.BUILD and O.makeList then
         n:SetPoint("TOPLEFT", 0, 0)
         n:SetPoint("RIGHT", -10, 0)
         n:SetWordWrap(true)
-        n:SetText(L["Wer Daten schickt, die bei anderen abgelehnt werden (keine Rechte, gefaelschter Urheber, ausgedachte Eintraege). Ein unveraendertes Oasis tut das praktisch nie - ein Hinweis, kein Beweis."])
+        n:SetText(L["Who sends data that others reject (no permission, forged author, made-up entries). An unmodified Oasis practically never does this - a hint, not proof."])
         f.list = O.makeList(f, -34, 26, { { "who", 10, 160, 12 }, { "cnt", 175, 90, 11, C.text }, { "rep", 270, 110, 11, C.muted }, { "why", 385, 420, 10, C.dim } }, function(r, e)
             r.cols.who:SetText((ns.colorName and ns.colorName(e.name)) or ns.short(e.name))
-            r.cols.cnt:SetText((e.ignored and "|cffff4040" or "") .. (L["%d abgelehnt"]):format(e.n) .. (e.ignored and "|r" or ""))
-            r.cols.rep:SetText((L["%d Offiziere"]):format(e.reporters))
+            r.cols.cnt:SetText((e.ignored and "|cffff4040" or "") .. (L["%d declined"]):format(e.n) .. (e.ignored and "|r" or ""))
+            r.cols.rep:SetText((L["%d officers"]):format(e.reporters))
             local parts = {}
             for w, c in pairs(e.why or {}) do parts[#parts + 1] = w .. " x" .. c end
             table.sort(parts)
-            r.cols.why:SetText(date(L["%d.%m. %H:%M"], e.last or 0) .. "  " .. table.concat(parts, ", "))
+            r.cols.why:SetText(date(L["%m/%d %H:%M"], e.last or 0) .. "  " .. table.concat(parts, ", "))
         end)
-        f.list.empty:SetText(L["Keine Auffaelligkeiten."])
+        f.list.empty:SetText(L["Nothing unusual."])
     end
     O.REFRESH.suspect = function(f) f.list:SetData(SP.List()) end
 end

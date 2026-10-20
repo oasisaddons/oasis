@@ -63,9 +63,9 @@ local SKULL = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull"
 
 -- Gilden-Optionen (Gildenleitung): welche Tode zaehlen, wie lange Sterbeorte auf der Karte bleiben
 ns.GuildOption({ page = "deaths", key = "deInst", default = true,
-    label = "Tode in Dungeons und Raids zaehlen", desc = "Tode in Instanzen werden erfasst und zaehlen in der Rangliste. Aus: nur Tode in der offenen Welt." })
+    label = "Count deaths in dungeons and raids", desc = "Deaths in instances are recorded and count in the ranking. Off: open-world deaths only." })
 ns.GuildOption({ page = "deaths", key = "deDays", default = 14, min = 1, max = 60, step = 1,
-    label = "Sterbeorte auf der Karte", desc = "So lange bleiben die Totenkoepfe auf der Weltkarte sichtbar.",
+    label = "Death spots on the map", desc = "How long the skulls stay visible on the world map.",
     fmt = function(v) return v .. " Tg" end })
 
 ------------------------------------------------------------------------
@@ -210,7 +210,7 @@ ns.Listen("STORE", function(coll, rec, old)
         -- hat die Person einen eigenen Todes-Sound, spielt der statt des gewaehlten Tod-Sounds
         local pr = ns.db.members and ns.db.members[rec.who]
         if ns.Sound and ns.Sound.Force then ns.Sound.Force("death", type(pr) == "table" and pr.ds or nil, "death") end
-        K.Toast((L["%s ist gestorben"]):format(ns.displayName(rec.who)),
+        K.Toast((L["%s died"]):format(ns.displayName(rec.who)),
             where .. ((rec.killer or "") ~= "" and ns.db.settings.deathKiller ~= false and ("  ·  " .. SEC.Text(rec.killer, 60)) or ""), C.red, function() ns.ShowPage("deaths") end, "death", (tonumber(rec.ts) or 0) + 30)
         if ns.Sound then ns.Sound.forced = nil end   -- nicht gespielt (Hinweis aus/zurueckgehalten): nicht fuer den naechsten Tod aufheben
     end
@@ -237,12 +237,12 @@ local function mainOf(n) return ns.Alts and ns.Alts.Main(n) or n end
 local function ownerHint(name)
     local main = mainOf(name)
     if main and main ~= name and not ns.SameName(main, name) then
-        return "  |cff888888(" .. (L["Twink von %s"]):format(ns.displayName(main)) .. ")|r"
+        return "  |cff888888(" .. (L["Alt of %s"]):format(ns.displayName(main)) .. ")|r"
     end
     local R = ns.Radar
     if R and R.byName and not rawget(R.byName, ns.ResolveName(name) or name) then
         local realm = tostring(name):match("%-(.+)$")
-        return "  |cff888888(" .. (realm and (L["nicht in der Gildenliste"] .. ", " .. realm) or L["nicht in der Gildenliste"]) .. ")|r"
+        return "  |cff888888(" .. (realm and (L["not in the guild list"] .. ", " .. realm) or L["not in the guild list"]) .. ")|r"
     end
     return ""
 end
@@ -340,10 +340,10 @@ local function buildMap(p)
             -- nur das Bild vergroessern, nicht den Knopf (sonst Enter/Leave-Schleife = Zucken)
             self.skull:SetSize(self.s + 4, self.s + 4)
             self.back:SetSize(self.s + 8, self.s + 8)
-            local t = { (#self.list == 1 and L["1 Tod hier"] or (L["%d Tode hier"]):format(#self.list)) }
+            local t = { (#self.list == 1 and L["1 death here"] or (L["%d deaths here"]):format(#self.list)) }
             for j = 1, math.min(6, #self.list) do t[#t + 1] = deathLine(self.list[j]) end
-            if #self.list > 6 then t[#t + 1] = "|cff888888" .. (L["und %d weitere"]):format(#self.list - 6) .. "|r" end
-            t[#t + 1] = "|cff888888" .. L["Klick: auf der Weltkarte zeigen"] .. "|r"
+            if #self.list > 6 then t[#t + 1] = "|cff888888" .. (L["and %d more"]):format(#self.list - 6) .. "|r" end
+            t[#t + 1] = "|cff888888" .. L["Click: show on world map"] .. "|r"
             K.ShowTip(self, t)
         end)
         b:SetScript("OnLeave", function(self) self.skull:SetSize(self.s, self.s) self.back:SetSize(self.s + 4, self.s + 4) GameTooltip:Hide() end)
@@ -395,28 +395,28 @@ local function buildMap(p)
                 b:SetFrameLevel(pn.art:GetFrameLevel() + (hot and 20 or 2) + math.min(n, 10))
                 b:Show()
             end
-            pn.count:SetText(total == 1 and L["1 Tod"] or (L["%d Tode"]):format(total))
+            pn.count:SetText(total == 1 and L["1 death"] or (L["%d deaths"]):format(total))
         end
         for _, d in ipairs(list) do if d.inst then hidden = hidden + 1 end end
-        self.note:SetText(hidden > 0 and (L["%d Tode in Dungeons sind nicht auf der Karte."]):format(hidden) or "")
+        self.note:SetText(hidden > 0 and (L["%d deaths in dungeons are not on the map."]):format(hidden) or "")
     end
     return m
 end
 
 ns.RegisterPage({
-    key = "deaths", title = "Friedhof", order = 7.55,
-    sub = "Wer stirbt am oeftesten, woran und wo - die Todes-Rangliste der Gilde",
+    key = "deaths", title = "Graveyard", order = 7.55,
+    sub = "Who dies the most, to what and where – the guild's death ranking",
     build = function(p)
-        p.cTotal = K.StatCard(p, L["Tode gesamt"])
+        p.cTotal = K.StatCard(p, L["Total deaths"])
         p.cTotal:SetPoint("TOPLEFT", 0, 0)
-        p.cWeek = K.StatCard(p, L["Diese Woche"])
+        p.cWeek = K.StatCard(p, L["This week"])
         p.cWeek:SetPoint("TOPLEFT", 160, 0)
-        p.cZone = K.StatCard(p, L["Toedlichstes Gebiet"])
+        p.cZone = K.StatCard(p, L["Deadliest zone"])
         p.cZone:SetPoint("TOPLEFT", 320, 0)
         p.cZone:SetWidth(250)
         p.cZone.value:SetWidth(226)
         p.cZone.value:SetFont(K.FONT_HEAD, 14, "")
-        p.cKiller = K.StatCard(p, L["Gefaehrlichster Gegner"])
+        p.cKiller = K.StatCard(p, L["Deadliest enemy"])
         p.cKiller:SetPoint("TOPLEFT", 580, 0)
         p.cKiller:SetPoint("RIGHT", p, "RIGHT", 0, 0)
         p.cKiller.value:SetPoint("RIGHT", -12, 0)
@@ -431,7 +431,7 @@ ns.RegisterPage({
         p.kpi:SetHeight(56)
         if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(p.kpi, nil, nil, 12) end
         p.kpi.cols = {}
-        local KL = { L["Tode gesamt"], L["Diese Woche"], L["Toedlichstes Gebiet"], L["Gefaehrlichster Gegner"] }
+        local KL = { L["Total deaths"], L["This week"], L["Deadliest zone"], L["Deadliest enemy"] }
         local KX = { 0, 0.16, 0.32, 0.66 }   -- Anteile der Breite (Gebiet/Gegner brauchen mehr Platz)
         for i = 1, 4 do
             local c = {}
@@ -457,13 +457,13 @@ ns.RegisterPage({
         p.sum = K.Text(p, 11, C.muted)   -- bleibt fuer Altbestand, wird nicht mehr gezeigt
         p.sum:Hide()
 
-        p.seg = K.Segments(p, { { key = "rank", text = L["Rangliste"] }, { key = "recent", text = L["Letzte Tode"] }, { key = "map", text = L["Todeskarte"] } }, function(k)
+        p.seg = K.Segments(p, { { key = "rank", text = L["Ranking"] }, { key = "recent", text = L["Recent deaths"] }, { key = "map", text = L["Death map"] } }, function(k)
             view = k
             p.animNext = true
             ns.RefreshPage("deaths")
         end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
-        p.span = K.Segments(p, { { key = "all", text = L["Gesamt"] }, { key = "30", text = L["30 Tage"] }, { key = "7", text = L["7 Tage"] } }, function(k)
+        p.span = K.Segments(p, { { key = "all", text = L["Total"] }, { key = "30", text = L["30 days"] }, { key = "7", text = L["7 days"] } }, function(k)
             span = k
             p.animNext = true
             ns.RefreshPage("deaths")
@@ -479,7 +479,7 @@ ns.RegisterPage({
         p.focus.x:SetText("×")
         p.focus.x:SetPoint("LEFT", p.focus.text, "RIGHT", 6, 0)
         p.focus:SetScript("OnClick", function() focus = nil flash = nil ns.RefreshPage("deaths") end)
-        p.focus:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Filter aufheben"] }) end)
+        p.focus:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Clear filter"] }) end)
         p.focus:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
         p:HookScript("OnShow", function() p.animNext = true end)
@@ -533,7 +533,7 @@ ns.RegisterPage({
             r.cols.n:SetPoint("TOPRIGHT", -14, -7)
             r.nl = K.Text(r, 9, C.dim, "RIGHT")
             r.nl:SetPoint("BOTTOMRIGHT", -14, 8)
-            r.nl:SetText(K.Upper and K.Upper(L["Tode"]) or L["Tode"])
+            r.nl:SetText(K.Upper and K.Upper(L["Deaths"]) or L["Deaths"])
             r:HookScript("OnEnter", function(self)
                 local s = self.item
                 if not s then return end
@@ -545,7 +545,7 @@ ns.RegisterPage({
                         if n <= 5 then t[#t + 1] = deathLine(d) end
                     end
                 end
-                t[#t + 1] = "|cff888888" .. L["Klick: Tode auf der Karte zeigen"] .. "|r"
+                t[#t + 1] = "|cff888888" .. L["Click: show deaths on map"] .. "|r"
                 K.ShowTip(self, t)
             end)
             r:HookScript("OnLeave", function() GameTooltip:Hide() end)
@@ -605,7 +605,7 @@ ns.RegisterPage({
         end)
         p.rank:SetPoint("TOPLEFT", 0, -104)
         p.rank:SetPoint("BOTTOMRIGHT")
-        p.rank.empty:SetText(L["Noch niemand gestorben. Respekt!"])
+        p.rank.empty:SetText(L["Nobody has died yet. Respect!"])
 
         p.recent = K.List(p, 38, function(l)
             local r = K.Row(l)
@@ -625,7 +625,7 @@ ns.RegisterPage({
             r.cols.when:SetPoint("RIGHT", -10, 0)
             r:HookScript("OnEnter", function(self)
                 if not self.item then return end
-                K.ShowTip(self, { deathLine(self.item), "|cff888888" .. (self.item.inst and L["Im Dungeon - nicht auf der Karte"] or L["Klick: auf der Todeskarte zeigen"]) .. "|r" })
+                K.ShowTip(self, { deathLine(self.item), "|cff888888" .. (self.item.inst and L["In a dungeon - not on the map"] or L["Click: show on death map"]) .. "|r" })
             end)
             r:HookScript("OnLeave", function() GameTooltip:Hide() end)
             r:SetScript("OnClick", function(self)
@@ -652,7 +652,7 @@ ns.RegisterPage({
         end)
         p.recent:SetPoint("TOPLEFT", 0, -104)
         p.recent:SetPoint("BOTTOMRIGHT")
-        p.recent.empty:SetText(L["Noch niemand gestorben. Respekt!"])
+        p.recent.empty:SetText(L["Nobody has died yet. Respect!"])
 
         p.map = buildMap(p)
         p.map:SetPoint("TOPLEFT", 0, -104)
@@ -675,9 +675,9 @@ ns.RegisterPage({
         local kn, kc = top(k)
         p.cZone:Set(zn and (zn .. "  |cff888888" .. zc .. "x|r") or "–")
         do
-            local t = { "|cffffffff" .. #list .. "|r " .. L["Tode"], "|cffffffff" .. week .. "|r " .. L["diese Woche"] }
-            if zn then t[#t + 1] = L["Toedlichstes Gebiet"] .. ": |cffffffff" .. zn .. "|r " .. zc .. "x" end
-            if kn then t[#t + 1] = L["Gefaehrlichster Gegner"] .. ": |cffd9786b" .. SEC.Text(kn, 40) .. "|r " .. kc .. "x" end
+            local t = { "|cffffffff" .. #list .. "|r " .. L["Deaths"], "|cffffffff" .. week .. "|r " .. L["this week"] }
+            if zn then t[#t + 1] = L["Deadliest zone"] .. ": |cffffffff" .. zn .. "|r " .. zc .. "x" end
+            if kn then t[#t + 1] = L["Deadliest enemy"] .. ": |cffd9786b" .. SEC.Text(kn, 40) .. "|r " .. kc .. "x" end
             p.sum:SetText(table.concat(t, "   ·   "))
             local kc_ = p.kpi.cols
             kc_[1].v:SetText(#list)
@@ -689,7 +689,7 @@ ns.RegisterPage({
 
         p.focus:SetShown(focus ~= nil)
         if focus then
-            p.focus.text:SetText((L["Nur %s"]):format(ns.Radar.Colored(focus)) .. ownerHint(focus))
+            p.focus.text:SetText((L["Only %s"]):format(ns.Radar.Colored(focus)) .. ownerHint(focus))
             p.focus:SetWidth((p.focus.text:GetStringWidth() or 60) + 20)
         end
         p.seg:Select(view)

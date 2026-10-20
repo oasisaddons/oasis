@@ -57,12 +57,12 @@ function KD.Absences(who)
 end
 function KD.Absent(dayText, why)
     local d, m = tostring(dayText or ""):match("^(%d+)%.(%d+)")
-    if not d then ns.print(L["Datum als TT.MM angeben, z. B. 24.10"]) return end
+    if not d then ns.print(L["Enter the date as DD.MM, e.g. 24.10"]) return end
     local y = tonumber(date("%Y"))
     if tonumber(m) < tonumber(date("%m")) then y = y + 1 end
     local iso = ("%04d-%02d-%02d"):format(y, tonumber(m), tonumber(d))
     Store.Put("absent", { id = "ab-" .. ns.NameKey(ns.me()) .. "-" .. iso, who = ns.me(), d = iso, why = tostring(why or ""):sub(1, 60), by = ns.me(), ts = ns.now() })
-    K.Toast(L["Abgemeldet"], (L["Fuer den %s - die Raidleitung sieht es im Kader."]):format(d .. "." .. m), C.mint)
+    K.Toast(L["Signed off"], (L["For %s - raid leaders see it in the roster."]):format(d .. "." .. m), C.mint)
 end
 -- Hinweis an die Raidleitung, wenn sich jemand aus einem Stamm abmeldet
 do
@@ -71,7 +71,7 @@ do
         for _, t in ipairs(KD.Teams()) do
             for _, n in ipairs(split(t.stamm)) do
                 if ns.SameName(n, rec.who) then
-                    K.Toast(L["Abmeldung im Kader"], (L["%s fehlt am %s (%s)"]):format(short(rec.who), rec.d or "?", t.name or ""), C.amber)
+                    K.Toast(L["Roster absence"], (L["%s is absent on %s (%s)"]):format(short(rec.who), rec.d or "?", t.name or ""), C.amber)
                     return
                 end
             end
@@ -98,10 +98,10 @@ local function glass(f, a) local G = ns.Insta and ns.Insta.Glass if not (G and p
 local function memberMenu(owner, team, who)
     if not canEdit() then return end
     K.ShowMenu(owner, {
-        { text = L["In den Stamm"], fn = function() KD.Set(team, who, "stamm") ns.RefreshPage("kader") end },
-        { text = L["In den Ersatz"], fn = function() KD.Set(team, who, "ersatz") ns.RefreshPage("kader") end },
-        { text = L["Aus dem Team nehmen"], fn = function() KD.Set(team, who, nil) ns.RefreshPage("kader") end },
-        { text = L["Akte oeffnen"], disabled = not ns.Leadership, fn = function() if ns.Leadership then ns.Leadership.ShowDossier(who) end end },
+        { text = L["To the core"], fn = function() KD.Set(team, who, "stamm") ns.RefreshPage("kader") end },
+        { text = L["To the bench"], fn = function() KD.Set(team, who, "ersatz") ns.RefreshPage("kader") end },
+        { text = L["Remove from team"], fn = function() KD.Set(team, who, nil) ns.RefreshPage("kader") end },
+        { text = L["Open file"], disabled = not ns.Leadership, fn = function() if ns.Leadership then ns.Leadership.ShowDossier(who) end end },
     }, short(who))
 end
 local function personLine(parent, i)
@@ -138,8 +138,8 @@ local function fillCard(c, team)
             local m = ns.Radar and ns.Radar.byName and ns.Radar.byName[ns.fullName(n)]
             local cr, cg, cb = ns.classColor(m and m.class)
             local ab = KD.Absences(n)[1]
-            b.t:SetText(short(n) .. (ab and ("  |cffff6a5a" .. (L["fehlt %s"]):format(ab.d:sub(9, 10) .. "." .. ab.d:sub(6, 7)) .. "|r") or "")
-                .. ((nextB and ns.SameName(nextB, n)) and ("  |cff66db9e" .. L["an der Reihe"] .. "|r") or ""))
+            b.t:SetText(short(n) .. (ab and ("  |cffff6a5a" .. (L["absent %s"]):format(ab.d:sub(9, 10) .. "." .. ab.d:sub(6, 7)) .. "|r") or "")
+                .. ((nextB and ns.SameName(nextB, n)) and ("  |cff66db9e" .. L["next up"] .. "|r") or ""))
             b.t:SetTextColor(cr or 1, cg or 1, cb or 1)
             local q = att(n)
             b.r:SetText(q and (math.floor(q * 100 + 0.5) .. "%") or "-")
@@ -149,8 +149,8 @@ local function fillCard(c, team)
         end
         y = y - 8
     end
-    section(L["Stamm"], split(team.stamm))
-    section(L["Ersatz"], split(team.ersatz), true)
+    section(L["Core"], split(team.stamm))
+    section(L["Bench"], split(team.ersatz), true)
     c.add:SetShown(canEdit())
     c.del:SetShown(canEdit())
     c:SetHeight(math.max(140, -y + 44))
@@ -162,7 +162,7 @@ local function card(p, idx)
     glass(c, 0.035)
     c.title = K.Title(c, 15, C.text) c.title:SetPoint("TOPLEFT", 14, -12)
     c.day = K.Text(c, 11, C.muted) c.day:SetPoint("TOPLEFT", c.title, "BOTTOMLEFT", 0, -3)
-    c.add = K.Input(c, 150, L["Name hinzufuegen"])
+    c.add = K.Input(c, 150, L["Add name"])
     c.add:SetPoint("BOTTOMLEFT", 14, 10)
     c.add:SetScript("OnEnterPressed", function(self)
         local n = self:GetText()
@@ -170,13 +170,13 @@ local function card(p, idx)
         self:ClearFocus()
     end)
     if K.AttachNameSuggest then pcall(K.AttachNameSuggest, c.add) end
-    c.del = K.Button(c, L["Team loeschen"], 100, 20, "ghost", function() if c.team then KD.Delete(c.team) ns.RefreshPage("kader") end end)
+    c.del = K.Button(c, L["Delete team"], 100, 20, "ghost", function() if c.team then KD.Delete(c.team) ns.RefreshPage("kader") end end)
     c.del:SetPoint("BOTTOMRIGHT", -10, 10)
     cards[idx] = c
     return c
 end
 StaticPopupDialogs["OASIS_KADER_NEW"] = {
-    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Abbrechen", hasEditBox = true, maxLetters = 60,
+    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 60,
     OnAccept = function(self) local eb = self.editBox or self.EditBox local t = eb and eb:GetText() or ""
         local name, day = t:match("^(.-)%s*%-%s*(.+)$")
         KD.NewTeam(name or t, day or "") ns.RefreshPage("kader") end,
@@ -185,7 +185,7 @@ StaticPopupDialogs["OASIS_KADER_NEW"] = {
     timeout = 0, whileDead = true, hideOnEscape = true,
 }
 StaticPopupDialogs["OASIS_KADER_ABSENT"] = {
-    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Abbrechen", hasEditBox = true, maxLetters = 70,
+    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 70,
     OnAccept = function(self) local eb = self.editBox or self.EditBox local t = eb and eb:GetText() or ""
         local d, why = t:match("^%s*(%d+%.%d+)%.?%s*(.*)$")
         KD.Absent(d or t, why) ns.RefreshPage("kader") end,
@@ -194,26 +194,26 @@ StaticPopupDialogs["OASIS_KADER_ABSENT"] = {
     timeout = 0, whileDead = true, hideOnEscape = true,
 }
 ns.RegisterPage({
-    key = "kader", title = "Raid-Kader", order = 2.78,
-    sub = "Feste Raid-Teams: Stamm, Ersatz, Anwesenheit und wer als Naechstes dran ist",
+    key = "kader", title = "Raid roster", order = 2.78,
+    sub = "Fixed raid teams: core, bench, attendance and who is next up",
     build = function(p)
-        p.new = K.Button(p, L["Neues Team"], 130, 24, nil, function() StaticPopup_Show("OASIS_KADER_NEW", L["Name und Raidtag, z. B. 'Team Mitte - Mi + So 20 Uhr'"]) end)
+        p.new = K.Button(p, L["New team"], 130, 24, nil, function() StaticPopup_Show("OASIS_KADER_NEW", L["Name and raid day, e.g. 'Team Middle - Wed + Sun 8 pm'"]) end)
         p.new:SetPoint("TOPLEFT", 0, 0)
-        p.abs = K.Button(p, L["Ich fehle am ..."], 140, 24, "ghost", function() StaticPopup_Show("OASIS_KADER_ABSENT", L["Datum (TT.MM) und Grund, z. B. '24.10 Spaetschicht'"]) end)
+        p.abs = K.Button(p, L["I'm absent on ..."], 140, 24, "ghost", function() StaticPopup_Show("OASIS_KADER_ABSENT", L["Date (DD.MM) and reason, e.g. '24.10 late shift'"]) end)
         p.abs:SetPoint("LEFT", p.new, "RIGHT", 8, 0)
         p.mine = K.Text(p, 11, C.muted) p.mine:SetPoint("LEFT", p.abs, "RIGHT", 12, 0) p.mine:SetPoint("RIGHT", p, "RIGHT", -4, 0) p.mine:SetWordWrap(false)
         p.body = CreateFrame("Frame", nil, p)
         p.body:SetPoint("TOPLEFT", 0, -36)
         p.body:SetPoint("BOTTOMRIGHT", 0, 0)
         p.empty = K.Text(p.body, 13, C.dim, "CENTER") p.empty:SetPoint("TOP", 0, -80)
-        p.empty:SetText(L["Noch keine Teams. Die Raidleitung legt sie mit 'Neues Team' an."])
+        p.empty:SetText(L["No teams yet. Raid leaders create them with 'New team'."])
     end,
     refresh = function(p)
         p.new:SetShown(canEdit())
         local mine = KD.Absences(ns.me())
         local md = {}
         for _, a in ipairs(mine) do md[#md + 1] = a.d:sub(9, 10) .. "." .. a.d:sub(6, 7) end
-        p.mine:SetText(#md > 0 and ((L["Du hast dich abgemeldet: %s"]):format(table.concat(md, ", "))) or "")
+        p.mine:SetText(#md > 0 and ((L["You signed off: %s"]):format(table.concat(md, ", "))) or "")
         for _, c in ipairs(cards) do c:Hide() end
         local teams = KD.Teams()
         p.empty:SetShown(#teams == 0)
@@ -242,6 +242,6 @@ for _, g in ipairs(ns.NAV_GROUPS or {}) do
     end
 end
 ns.slash.kader = function() if ns.Expand then ns.Expand("kader") else ns.ShowPage("kader") end end
-ns.slash.fehle = function(arg) local d, why = tostring(arg or ""):match("^%s*(%d+%.%d+)%.?%s*(.*)$") if d then KD.Absent(d, why) else StaticPopup_Show("OASIS_KADER_ABSENT", L["Datum (TT.MM) und Grund, z. B. '24.10 Spaetschicht'"]) end end
+ns.slash.fehle = function(arg) local d, why = tostring(arg or ""):match("^%s*(%d+%.%d+)%.?%s*(.*)$") if d then KD.Absent(d, why) else StaticPopup_Show("OASIS_KADER_ABSENT", L["Date (DD.MM) and reason, e.g. '24.10 late shift'"]) end end
 
 end)

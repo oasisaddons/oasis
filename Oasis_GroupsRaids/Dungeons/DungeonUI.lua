@@ -247,9 +247,9 @@ local function questOrder(quests)
 end
 -- Zustand einer Quest als kurzes Wort mit Farbe (Liste und Zaehlzeile)
 local QUEST_STATE = {
-    open = { "Fehlt", "ff7fa6", { 1, 0.42, 0.62 } },
-    log = { "Aktiv", "ffd24a", { 1, 0.80, 0.25 } },
-    done = { "Erledigt", "66db9e", { 0.35, 0.85, 0.60 } },
+    open = { "Missing", "ff7fa6", { 1, 0.42, 0.62 } },
+    log = { "Active", "ffd24a", { 1, 0.80, 0.25 } },
+    done = { "Done", "66db9e", { 0.35, 0.85, 0.60 } },
 }
 
 -- Forever Atlas installiert? (nur dann duerfen wir dessen eigene Kartenbilder verwenden)
@@ -331,8 +331,8 @@ local function legacyPins(host, list, floor, toXY, hidden)
                 local ok, lines = pcall(D.BossTipLines, bp[1])
                 for _, ln in ipairs(ok and lines or {}) do pin.tip[#pin.tip + 1] = ln end
             end
-            if host.rough then pin.tip[#pin.tip + 1] = "|cffe8b44a" .. L["Position nur ungefaehr"] .. "|r" end
-            pin.tip[#pin.tip + 1] = "|cff66db9e" .. L["Klick: Boss und Beute zeigen"] .. "|r"
+            if host.rough then pin.tip[#pin.tip + 1] = "|cffe8b44a" .. L["Position only approximate"] .. "|r" end
+            pin.tip[#pin.tip + 1] = "|cff66db9e" .. L["Click: show boss and loot"] .. "|r"
             pin:SetAlpha(host.rough and 0.6 or 1)
             -- auf Bildern mit eingezeichneten Bossen: unsichtbare Klickflaeche
             pin.ring:SetShown(not hidden) pin.dot:SetShown(not hidden) pin.num:SetShown(not hidden) pin.lbl:SetShown(not hidden)
@@ -527,18 +527,18 @@ local function markers(id)
         if w.itemID == id and w.who and not ns.isMe(w.who) then seek[#seek + 1] = w.who end
     end
     if #seek > 0 then
-        t[#t + 1] = "|cffffc24d" .. (L["gesucht: %s"]):format(ns.displayName(seek[1])) .. (#seek > 1 and (" +" .. (#seek - 1)) or "") .. "|r"
+        t[#t + 1] = "|cffffc24d" .. (L["wanted: %s"]):format(ns.displayName(seek[1])) .. (#seek > 1 and (" +" .. (#seek - 1)) or "") .. "|r"
     end
     -- wer aus der Gilde es schon erbeutet hat (neuester Eintrag im Beute-Log)
     local got
     for _, x in ipairs(Store.List("loot")) do
         if x.itemID == id and x.who and (not got or (x.ts or 0) > (got.ts or 0)) then got = x end
     end
-    if got then t[#t + 1] = "|cffb48cff" .. (L["erbeutet: %s"]):format(ns.displayName(got.who)) .. "|r" end
+    if got then t[#t + 1] = "|cffb48cff" .. (L["looted: %s"]):format(ns.displayName(got.who)) .. "|r" end
     local bank = ns.GuildBank and ns.GuildBank.Count(id) or 0
     if bank > 0 then t[#t + 1] = "|cff9b8cff" .. L["Bank: "] .. bank .. "|r" end
     local ok, have = pcall(C_Item.GetItemCount, id, true)
-    if ok and (ns.safe(have) or 0) > 0 then t[#t + 1] = "|cff66db9e" .. L["hast du"] .. "|r" end
+    if ok and (ns.safe(have) or 0) > 0 then t[#t + 1] = "|cff66db9e" .. L["you have it"] .. "|r" end
     return table.concat(t, "  ")
 end
 
@@ -618,7 +618,7 @@ function D.BossTipLines(bossName)
     local boss
     for _, bo in ipairs(ok and bosses or {}) do if bo.name == bossName then boss = bo break end end
     if not boss or not boss.loot or #boss.loot == 0 then return {} end
-    local out = { " ", "|cff888888" .. L["Beute"] .. ":|r" }
+    local out = { " ", "|cff888888" .. L["Loot"] .. ":|r" }
     for i, it in ipairs(boss.loot) do
         if i > 8 then out[#out + 1] = "|cff777777+" .. (#boss.loot - 8) .. "|r" break end
         local info = itemInfo(it)
@@ -639,16 +639,16 @@ local function lootMenu(owner, id)
     local dname = d and d.name or ""
     local label = info.link or info.name
     local items = {}
-    items[#items + 1] = { text = L["Auf meine Wunschliste"], disabled = not (ns.Wants and ns.Wants.Add), fn = function()
+    items[#items + 1] = { text = L["Add to my wishlist"], disabled = not (ns.Wants and ns.Wants.Add), fn = function()
         local rec = ns.Wants.Add(label, 1, dname)
-        if rec then ns.print((L["Auf die Wunschliste gesetzt: %s"]):format(label)) end
+        if rec then ns.print((L["Added to wishlist: %s"]):format(label)) end
         ns.RefreshPage("dungeons")
     end }
-    items[#items + 1] = { text = L["Im Gildenchat fragen ..."], disabled = not (IsInGuild and IsInGuild()), fn = function()
-        local txt = "/g " .. (L["Wer geht mit nach %s? Ich suche %s"]):format(dname, label)
+    items[#items + 1] = { text = L["Ask in guild chat ..."], disabled = not (IsInGuild and IsInGuild()), fn = function()
+        local txt = "/g " .. (L["Anyone up for %s? I'm looking for %s"]):format(dname, label)
         if ChatFrame_OpenChat then ChatFrame_OpenChat(txt) end
     end }
-    items[#items + 1] = { text = L["Im Chat verlinken"], disabled = info.link == nil, fn = function()
+    items[#items + 1] = { text = L["Link in chat"], disabled = info.link == nil, fn = function()
         if info.link and ChatEdit_InsertLink and not ChatEdit_InsertLink(info.link) and ChatFrame_OpenChat then ChatFrame_OpenChat(info.link) end
     end }
     K.ShowMenu(owner, items, info.name, 210)
@@ -690,13 +690,13 @@ local function lootRow(l)
         local m = markOf(id)
         if m.up then
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine("|cff66db9e" .. (L["Besser als dein angelegtes Teil (+%d%%)"]):format(math.min(m.pct, 999)) .. "|r")
+            GameTooltip:AddLine("|cff66db9e" .. (L["Better than your equipped item (+%d%%)"]):format(math.min(m.pct, 999)) .. "|r")
             local against = ns.Upgrade.Against and ns.Upgrade.Against(id)
-            GameTooltip:AddLine("|cff888888" .. L["Statt:"] .. "|r " .. (against or ("|cff888888" .. L["leerer Platz"] .. "|r")))
+            GameTooltip:AddLine("|cff888888" .. L["Replaces:"] .. "|r " .. (against or ("|cff888888" .. L["empty slot"] .. "|r")))
         elseif m.fit == 2 then
-            GameTooltip:AddLine("|cff66db9e" .. L["fuer dich"] .. "|r")
+            GameTooltip:AddLine("|cff66db9e" .. L["for you"] .. "|r")
         end
-        GameTooltip:AddLine("|cff777777" .. L["Shift-Klick: verlinken  ·  Rechtsklick: Menue"] .. "|r")
+        GameTooltip:AddLine("|cff777777" .. L["Shift-click: link  ·  Right-click: menu"] .. "|r")
         GameTooltip:Show()
     end)
     r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -724,7 +724,7 @@ local function lootUpdate(r, e)
         r.pct:SetText("+" .. math.min(m.pct, 999) .. "%")
     else
         r.pct:SetText("")
-        if m.fit == 2 and s.dgForYou ~= false then table.insert(sub, 1, "|cff66db9e" .. L["fuer dich"] .. "|r") end
+        if m.fit == 2 and s.dgForYou ~= false then table.insert(sub, 1, "|cff66db9e" .. L["for you"] .. "|r") end
     end
     r.upBg:SetShown(m.up)
     if ns.Upgrade and ns.Upgrade.Glow then pcall(ns.Upgrade.Glow, r.iconHost, m.up and m.pct or nil) end
@@ -736,7 +736,7 @@ local function lootUpdate(r, e)
     r.drop:SetText(odds and (L["Drop %s %%"]):format(odds >= 10 and math.floor(odds + 0.5) or (math.floor(odds * 10 + 0.5) / 10)) or "")
     if e.versus and m.up and ns.Upgrade and ns.Upgrade.Against then
         local ok, against = pcall(ns.Upgrade.Against, info.id)
-        sub[#sub + 1] = "|cff888888" .. L["Statt:"] .. "|r " .. ((ok and against) or ("|cff888888" .. L["leerer Platz"] .. "|r"))
+        sub[#sub + 1] = "|cff888888" .. L["Replaces:"] .. "|r " .. ((ok and against) or ("|cff888888" .. L["empty slot"] .. "|r"))
     end
     r.cols.sub:SetText(table.concat(sub, "  ·  "))
 end
@@ -907,7 +907,7 @@ local function fits(d)
     local lvl = ns.safe(UnitLevel("player")) or 0
     return d.lo and lvl >= d.lo - 2 and lvl <= (d.hi or d.lo) + 1
 end
-local SORTS = { { "level", "Stufe" }, { "name", "Name" }, { "ups", "Upgrades zuerst" }, { "online", "Online zuerst" } }
+local SORTS = { { "level", "Item level" }, { "name", "Name" }, { "ups", "Upgrades first" }, { "online", "Online first" } }
 local function homeList()
     local out = {}
     local q = S.homeSearch or ""
@@ -1008,14 +1008,14 @@ function D.FillTactic(bt, d, b)
     tac.cls:SetShown(e ~= nil)
     tac.note:SetShown(e ~= nil)
     if not e then
-        tac.text:SetText("|cff888888" .. L["Fuer diesen Boss gibt es noch keine Taktik."] .. "|r")
+        tac.text:SetText("|cff888888" .. L["No tactics for this boss yet."] .. "|r")
         return
     end
     tac.text:SetText(table.concat({ e.s, " ",
         "|cff6aa8ff" .. L["Tank"] .. "|r   " .. (e.tank or ""), " ",
-        "|cff66db9e" .. L["Heiler"] .. "|r   " .. (e.heal or ""), " ",
-        "|cffff8a7a" .. L["Schaden"] .. "|r   " .. (e.dps or "") }, "\n"))
-    tac.note:SetText(e.forever and L["Aus Guides zur Forever-Beta - kann sich noch aendern."] or L["Stand Classic - in WoW Forever kann ein Boss abweichen."])
+        "|cff66db9e" .. L["Healer"] .. "|r   " .. (e.heal or ""), " ",
+        "|cffff8a7a" .. L["Damage"] .. "|r   " .. (e.dps or "") }, "\n"))
+    tac.note:SetText(e.forever and L["From guides for the Forever beta - may still change."] or L["Based on Classic - a boss may differ in WoW Forever."])
     local cls = S.tacClass or ns.safe(select(2, UnitClass("player"))) or "WARRIOR"
     for i, cb in ipairs(tac.btn) do
         cb.cls = T.CLASSES[i]
@@ -1023,7 +1023,7 @@ function D.FillTactic(bt, d, b)
         cb:SetAlpha(cb.cls == cls and 1 or 0.4)
     end
     local name = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[cls]) or cls
-    tac.label:SetText(K.Upper((L["Tipps fuer %s"]):format(name)))
+    tac.label:SetText(K.Upper((L["Tips for %s"]):format(name)))
     local lines, special = T.ClassLines(e, cls)
     for i, l in ipairs(lines) do
         lines[i] = (i <= special and "|cffffd24a•|r " or "|cff777777•|r |cffa3a3a8") .. l .. (i <= special and "" or "|r")
@@ -1040,7 +1040,7 @@ function D.FillMoreUps(bt, bosses, cur, nRows)
                 local pc = it[1] and not seen[it[1]] and upPct(it[1])
                 if pc and pc > 0 then
                     seen[it[1]] = true
-                    list[#list + 1] = { it = it, boss = bi, bname = b.trash and L["Trash-Gegner"] or b.name, pct = pc, n = #list }
+                    list[#list + 1] = { it = it, boss = bi, bname = b.trash and L["Trash mobs"] or b.name, pct = pc, n = #list }
                 end
             end
         end
@@ -1171,16 +1171,16 @@ local function cardEnter(c, quiet)
     if (c.hz or 0) < 1 then cardHover(c, true) end
     local d, i = c.d, c.info
     if quiet or not d or not i then return end
-    local tip = { d.name, "|cff888888" .. ((d.level ~= "" and (L["Stufe %s"]):format(d.level) or "") .. ((d.location or "") ~= "" and ("  ·  " .. d.location) or "")) .. "|r" }
-    if i.ups > 0 then tip[#tip + 1] = "|cff66db9e" .. (L["%d Verbesserungen fuer dich in der Beute"]):format(i.ups) .. "|r" end
-    if i.q > 0 then tip[#tip + 1] = "|cffffd24a" .. (L["%d Quests fuer diesen Dungeon in deinem Log"]):format(i.q) .. "|r" end
+    local tip = { d.name, "|cff888888" .. ((d.level ~= "" and (L["Level %s"]):format(d.level) or "") .. ((d.location or "") ~= "" and ("  ·  " .. d.location) or "")) .. "|r" }
+    if i.ups > 0 then tip[#tip + 1] = "|cff66db9e" .. (L["%d upgrades for you in the loot"]):format(i.ups) .. "|r" end
+    if i.q > 0 then tip[#tip + 1] = "|cffffd24a" .. (L["%d quests for this dungeon in your log"]):format(i.q) .. "|r" end
     if #i.on > 0 then
         local names = {}
         for k = 1, math.min(6, #i.on) do names[#names + 1] = ns.Radar.Colored(i.on[k].name) end
-        tip[#tip + 1] = (L["Online im Stufenbereich: %s"]):format(table.concat(names, ", ") .. (#i.on > 6 and " ..." or ""))
+        tip[#tip + 1] = (L["Online in level range: %s"]):format(table.concat(names, ", ") .. (#i.on > 6 and " ..." or ""))
     end
-    if d.closed then tip[#tip + 1] = "|cffd9786b" .. L["noch geschlossen"] .. "|r" end
-    tip[#tip + 1] = "|cff777777" .. L["Klick: Dungeon oeffnen"] .. "|r"
+    if d.closed then tip[#tip + 1] = "|cffd9786b" .. L["not open yet"] .. "|r" end
+    tip[#tip + 1] = "|cff777777" .. L["Click: open dungeon"] .. "|r"
     K.ShowTip(c, tip)
 end
 local function cardLeave(c)
@@ -1304,9 +1304,9 @@ local function buildCard(parent)
             local m = markOf(self.id)
             if m.up then
                 GameTooltip:AddLine(" ")
-                GameTooltip:AddLine("|cff66db9e" .. (L["Besser als dein angelegtes Teil (+%d%%)"]):format(math.min(m.pct, 999)) .. "|r")
+                GameTooltip:AddLine("|cff66db9e" .. (L["Better than your equipped item (+%d%%)"]):format(math.min(m.pct, 999)) .. "|r")
             end
-            GameTooltip:AddLine("|cff777777" .. L["Klick: zum Boss mit diesem Teil"] .. "|r")
+            GameTooltip:AddLine("|cff777777" .. L["Click: go to the boss that drops this"] .. "|r")
             GameTooltip:Show()
         end)
         b:SetScript("OnLeave", function()
@@ -1377,11 +1377,11 @@ local function fillCard(c, d)
     for _, dot in ipairs(c.dots) do dot:Hide() end
     c.onl:SetText("")
     local parts = {}
-    if #info.on > 0 then parts[#parts + 1] = "|cff66db9e" .. (#info.on == 1 and L["1 aus der Gilde passt"] or (L["%d aus der Gilde passen"]):format(#info.on)) .. "|r" end
-    if info.q > 0 then parts[#parts + 1] = "|cffffd24a" .. (info.q == 1 and L["1 Quest"] or (L["%d Quests"]):format(info.q)) .. "|r" end
-    if info.ups > 0 then parts[#parts + 1] = "|cff7fe0a0" .. (info.ups == 1 and L["1 Upgrade"] or (L["%d Upgrades"]):format(info.ups)) .. "|r" end
+    if #info.on > 0 then parts[#parts + 1] = "|cff66db9e" .. (#info.on == 1 and L["1 guildmate fits"] or (L["%d guildmates fit"]):format(#info.on)) .. "|r" end
+    if info.q > 0 then parts[#parts + 1] = "|cffffd24a" .. (info.q == 1 and L["1 quest"] or (L["%d quests"]):format(info.q)) .. "|r" end
+    if info.ups > 0 then parts[#parts + 1] = "|cff7fe0a0" .. (info.ups == 1 and L["1 upgrade"] or (L["%d upgrades"]):format(info.ups)) .. "|r" end
     c.meta:SetPoint("RIGHT", c, "RIGHT", -10, 0)
-    if d.closed then c.meta:SetText("|cffd9786b" .. L["noch geschlossen"] .. "|r")
+    if d.closed then c.meta:SetText("|cffd9786b" .. L["not open yet"] .. "|r")
     elseif #parts > 0 then c.meta:SetText(table.concat(parts, "  |cff666666·|r  "))
     else c.meta:SetText("|cff888888" .. (d.location or "") .. "|r") end
     c:SetAlpha(d.closed and 0.6 or 1)
@@ -1479,24 +1479,24 @@ local function mcBuild(mt)
     bar.bg:SetColorTexture(0, 0, 0, 0.75)
     bar.text = K.Text(bar, 11, C.muted)
     bar.text:SetPoint("LEFT", 8, 0)
-    bar.cal = K.Button(bar, L["Kalibrieren"], 96, 20, "ghost", function()
+    bar.cal = K.Button(bar, L["Calibrate"], 96, 20, "ghost", function()
         if S.cal then S.cal = nil else S.cal = { key = mt.calKey, samples = {} } end
         MC.Draw(mt)
     end)
-    bar.save = K.Button(bar, L["Speichern"], 80, 20, "primary", function()
+    bar.save = K.Button(bar, L["Save"], 80, 20, "primary", function()
         local c = S.cal
         local res = c and MC.Solve(c.samples)
         if res then
             MC.Save(c.key, res, c.map)
             S.cal = nil
-            ns.print(L["Kalibrierung gespeichert."])
+            ns.print(L["Calibration saved."])
         end
         MC.Draw(mt)
     end)
-    bar.share = K.Button(bar, L["Mit Gilde teilen"], 110, 20, "ghost", function()
-        if MC.Share(mt.calKey) then ns.print(L["Kalibrierung an die Gilde geschickt."]) end
+    bar.share = K.Button(bar, L["Share with guild"], 110, 20, "ghost", function()
+        if MC.Share(mt.calKey) then ns.print(L["Calibration sent to the guild."]) end
     end)
-    bar.share:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Mit Gilde teilen"], L["Schickt nur die Umrechnungswerte. Wer noch keine eigene Kalibrierung hat, uebernimmt sie."] }) end)
+    bar.share:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Share with guild"], L["Sends only the conversion values. Members without their own calibration adopt them."] }) end)
     bar.share:SetScript("OnLeave", function() GameTooltip:Hide() end)
     P.bar = bar
     -- Klick auf die Karte im Kalibriermodus: hier stehe ich
@@ -1510,7 +1510,7 @@ local function mcBuild(mt)
         local map = C_Map and C_Map.GetBestMapForUnit and ns.safe(C_Map.GetBestMapForUnit("player"))
         if c.map then map = c.map end
         local x, y = mapPos(map, "player")
-        if not x then ns.print(L["Hier liefert das Spiel keine Kartenposition."]) return end
+        if not x then ns.print(L["The game provides no map position here."]) return end
         local cx, cy = GetCursorPosition()
         local sc = self:GetEffectiveScale() or 1
         local px = (cx / sc - (self:GetLeft() or 0) - r[1]) / r[3]
@@ -1566,7 +1566,7 @@ function MC.Draw(mt)
     if c and c.key ~= key then S.cal = nil c = nil end
     bar.save:Hide()
     bar.share:Hide()
-    bar.cal:SetLabel(c and L["Abbrechen"] or L["Kalibrieren"])
+    bar.cal:SetLabel(c and L["Cancel"] or L["Calibrate"])
     local function layout()
         local x = math.floor((bar.text:GetStringWidth() or 100) + 16)
         for _, b in ipairs({ bar.cal, bar.save, bar.share }) do
@@ -1582,7 +1582,7 @@ function MC.Draw(mt)
     if ns.InstancePos then ns.InstancePos.HideOn(P) end
     if inInst and not c then
         local txt = ns.InstancePos and ns.InstancePos.DrawOn(mt.canvas, P, key, false)
-        bar.text:SetText("|cffe8b44a" .. (txt or L["Positionen in Instanzen von WoW gesperrt"]) .. "|r")
+        bar.text:SetText("|cffe8b44a" .. (txt or L["Positions are blocked by WoW inside instances"]) .. "|r")
         bar.cal:Hide()
         layout()
         return
@@ -1591,8 +1591,8 @@ function MC.Draw(mt)
     if c then
         local n = #c.samples
         local res = MC.Solve(c.samples)
-        local t = (L["Kalibrieren: stell dich an eine markante Stelle und klick genau dort auf die Karte (%d Punkte)"]):format(n)
-        if res then t = t .. "  ·  " .. (L["Abweichung ca. %d%%"]):format(math.floor(res.err * 100 + 0.5)) end
+        local t = (L["Calibrate: stand at a distinct spot and click exactly there on the map (%d points)"]):format(n)
+        if res then t = t .. "  ·  " .. (L["Deviation approx. %d%%"]):format(math.floor(res.err * 100 + 0.5)) end
         bar.text:SetText(t)
         bar.save:SetShown(res ~= nil)
         layout()
@@ -1600,7 +1600,7 @@ function MC.Draw(mt)
     end
     local cal = key and MC.Get(key)
     if not cal or not r then
-        bar.text:SetText(L["Noch nicht kalibriert - Kalibrieren?"])
+        bar.text:SetText(L["Not calibrated yet - calibrate?"])
         layout()
         return
     end
@@ -1629,7 +1629,7 @@ function MC.Draw(mt)
     if x then
         local _, cls = UnitClass("player")
         local cr, cg, cb = ns.classColor(cls)
-        meShown = place(x, y, cr or 1, cg or 1, cb or 1, L["Du"], true)
+        meShown = place(x, y, cr or 1, cg or 1, cb or 1, L["You"], true)
     end
     local raid = IsInRaid and IsInRaid()
     local num = raid and 40 or 4
@@ -1649,8 +1649,8 @@ function MC.Draw(mt)
             end
         end
     end
-    local t = meShown and ((L["Du und %d aus der Gruppe auf der Karte"]):format(mates)) or L["Du bist gerade nicht auf dieser Karte"]
-    if cal.from then t = t .. "  |cff777777(" .. (L["Kalibrierung von %s"]):format(ns.displayName(cal.from)) .. ")|r" end
+    local t = meShown and ((L["You and %d group members on the map"]):format(mates)) or L["You are not on this map right now"]
+    if cal.from then t = t .. "  |cff777777(" .. (L["calibration by %s"]):format(ns.displayName(cal.from)) .. ")|r" end
     bar.text:SetText(t)
     layout()
 end
@@ -1670,14 +1670,14 @@ end
 ------------------------------------------------------------------------
 -- Seite
 ------------------------------------------------------------------------
-local ARMOR_KIND = { [1] = "Stoff", [2] = "Leder", [3] = "Kette", [4] = "Platte" }
+local ARMOR_KIND = { [1] = "Cloth", [2] = "Leather", [3] = "Mail", [4] = "Plate" }
 local function kindOf(id)
     local ok, _, _, _, _, _, classID, sub = pcall(C_Item.GetItemInfoInstant, id)
-    if not ok then return "Sonstiges" end
+    if not ok then return "Miscellaneous" end
     if classID == 4 and ARMOR_KIND[sub] then return ARMOR_KIND[sub] end
-    if classID == 4 and sub == 6 then return "Schild" end
-    if classID == 2 then return "Waffe" end
-    return "Sonstiges"
+    if classID == 4 and sub == 6 then return "Shield" end
+    if classID == 2 then return "Weapon" end
+    return "Miscellaneous"
 end
 local function menuButton(parent, w, getLabel, getItems, title)
     local b = K.Button(parent, "", w, 24, "ghost")
@@ -1712,9 +1712,9 @@ local function personMenu(owner, name)
     if not name then return end
     local me = ns.isMe(name)
     K.ShowMenu(owner, {
-        { text = L["Fluestern"], disabled = me, fn = function() ns.Whisper(name) end },
-        { text = L["In Gruppe einladen"], disabled = me, fn = function() ns.InviteName(name) end },
-        { text = L["Profil ansehen"], disabled = not (ns.Profile and ns.Profile.Show), fn = function() ns.Profile.Show(name) end },
+        { text = L["Whisper"], disabled = me, fn = function() ns.Whisper(name) end },
+        { text = L["Invite to group"], disabled = me, fn = function() ns.InviteName(name) end },
+        { text = L["View profile"], disabled = not (ns.Profile and ns.Profile.Show), fn = function() ns.Profile.Show(name) end },
     }, ns.displayName(name), 180)
 end
 local function classOf(name)
@@ -1892,19 +1892,19 @@ end
 
 ns.RegisterPage({
     key = "dungeons", title = "Dungeons", order = 4.5,
-    sub = "Welche Dungeons passen gerade, wer hat die Quests dabei, was sucht die Gilde daraus",
+    sub = "Which dungeons fit right now, who has the quests, what the guild wants from them",
     build = function(p)
         -- ===== Startseite =====
         local home = CreateFrame("Frame", nil, p)
         home:SetAllPoints()
         p.home = home
         -- eine Bedienzeile: zwei Reiter, Suche, ein Filter-Menue (Sortierung, Upgrades, geoeffnet, Gebiet)
-        home.seg = slideTabs(home, { { key = "mine", text = L["Fuer mich"] }, { key = "all", text = L["Alle"] } },
+        home.seg = slideTabs(home, { { key = "mine", text = L["For me"] }, { key = "all", text = L["All"] } },
             function(k) S.filter = k S.homeOffset = 0 S.stagger = true ns.RefreshPage("dungeons") end)
         home.seg:SetPoint("TOPLEFT", 0, 0)
         home.count = K.Text(home, 11, C.dim, "RIGHT")
         home.count:SetPoint("TOPRIGHT", 0, -10)
-        home.search = K.Input(home, 190, L["Dungeon suchen ..."], function(t)
+        home.search = K.Input(home, 190, L["Search dungeon ..."], function(t)
             S.homeSearch = (t or ""):lower()
             S.homeOffset = 0
             ns.RefreshPage("dungeons")
@@ -1918,30 +1918,30 @@ ns.RegisterPage({
                 if z ~= "" and not seen[z] then seen[z] = true zs[#zs + 1] = z end
             end
             table.sort(zs)
-            local items = { { text = L["Alle Gebiete"], checked = S.homeZone == nil, fn = function() S.homeZone = nil go() end } }
+            local items = { { text = L["All zones"], checked = S.homeZone == nil, fn = function() S.homeZone = nil go() end } }
             for _, z in ipairs(zs) do
                 items[#items + 1] = { text = z, checked = S.homeZone == z, fn = function() S.homeZone = z go() end }
             end
-            K.ShowMenu(home.filter, items, L["Gebiet"], 200)
+            K.ShowMenu(home.filter, items, L["Zone"], 200)
         end
         home.filter = menuButton(home, 120, function()
             local n = (S.homeZone and 1 or 0) + (S.upOnly and 1 or 0) + (S.openOnly and 1 or 0)
-            return L["Filter"] .. (n > 0 and ("  " .. K.hex(C.accent) .. n .. "|r") or "")
+            return L["filter"] .. (n > 0 and ("  " .. K.hex(C.accent) .. n .. "|r") or "")
         end, function()
-            local items = { { text = L["Sortieren"], header = true } }
+            local items = { { text = L["Sort"], header = true } }
             for _, so in ipairs(SORTS) do
                 items[#items + 1] = { text = L[so[2]], checked = S.sort == so[1], fn = function() S.sort = so[1] go() end }
             end
-            items[#items + 1] = { text = L["Anzeigen"], header = true }
+            items[#items + 1] = { text = L["Show"], header = true }
             if upOn() then
-                items[#items + 1] = { text = L["Nur mit Upgrades"], checked = S.upOnly, fn = function() S.upOnly = not S.upOnly go() end }
+                items[#items + 1] = { text = L["Only with upgrades"], checked = S.upOnly, fn = function() S.upOnly = not S.upOnly go() end }
             end
             if S.filter == "all" then
-                items[#items + 1] = { text = L["Nur geoeffnete"], checked = S.openOnly, fn = function() S.openOnly = not S.openOnly go() end }
+                items[#items + 1] = { text = L["Open only"], checked = S.openOnly, fn = function() S.openOnly = not S.openOnly go() end }
             end
-            items[#items + 1] = { text = L["Gebiet"] .. ": " .. (S.homeZone or L["Alle"]) .. " ...", fn = zoneMenu }
+            items[#items + 1] = { text = L["Zone"] .. ": " .. (S.homeZone or L["All"]) .. " ...", fn = zoneMenu }
             if S.homeZone or S.upOnly or S.openOnly or S.sort ~= "level" then
-                items[#items + 1] = { text = L["Filter zuruecksetzen"], fn = function() S.homeZone, S.upOnly, S.openOnly, S.sort = nil, false, false, "level" go() end }
+                items[#items + 1] = { text = L["Reset filters"], fn = function() S.homeZone, S.upOnly, S.openOnly, S.sort = nil, false, false, "level" go() end }
             end
             return items
         end)
@@ -1957,7 +1957,7 @@ ns.RegisterPage({
         if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(home.gbar, nil, nil, 12) end
         home.gbar.lbl = K.Text(home.gbar, 11, C.muted)
         home.gbar.lbl:SetPoint("LEFT", 14, 0)
-        home.gbar.lbl:SetText(L["Jetzt mit der Gilde:"])
+        home.gbar.lbl:SetText(L["Now with the guild:"])
         home.gbar.chips = {}
         for i = 1, 4 do
             local b = CreateFrame("Button", nil, home.gbar)
@@ -1969,13 +1969,13 @@ ns.RegisterPage({
             b:SetScript("OnClick", function(self) if self.key then openDungeon(self.key) end end)
             b:SetScript("OnEnter", function(self)
                 if not self.names then return end
-                K.ShowTip(self, { self.title or "", self.names, "|cff888888" .. L["Klick: Gilde & Gruppe - Gruppe suchen, alle einladen"] .. "|r" })
+                K.ShowTip(self, { self.title or "", self.names, "|cff888888" .. L["Click: guild & group – find group, invite all"] .. "|r" })
             end)
             b:SetScript("OnLeave", function() GameTooltip:Hide() end)
             home.gbar.chips[i] = b
         end
         home.gbar.none = K.Text(home.gbar, 11, C.dim)
-        home.gbar.none:SetText(L["gerade niemand passend online"])
+        home.gbar.none:SetText(L["nobody fitting online right now"])
         function home.gbar:Update()
             local cand = {}
             for _, d in ipairs(D.List()) do
@@ -2072,7 +2072,7 @@ ns.RegisterPage({
         dv.bannerLine:SetPoint("BOTTOMLEFT") dv.bannerLine:SetPoint("BOTTOMRIGHT")
         dv.bannerLine:SetHeight(2)
         K.Border(banner, C.line)
-        dv.back = K.Button(banner, "‹  " .. L["Alle Dungeons"], 124, 22, "ghost", function()
+        dv.back = K.Button(banner, "‹  " .. L["All dungeons"], 124, 22, "ghost", function()
             S.view = "home"
             S.fadeIn = "home"
             ns.RefreshPage("dungeons")
@@ -2084,7 +2084,7 @@ ns.RegisterPage({
         dv.meta:SetPoint("BOTTOMLEFT", 16, 18)
         -- Kennzahlen oben rechts
         dv.kpis = {}
-        local KP = { { "bosses", "Bosse", C.accent }, { "ups", "Upgrades", GREEN }, { "quests", "Quests", { 1, 0.82, 0.3 } }, { "guild", "Gilde dabei", C.mint } }
+        local KP = { { "bosses", "Bosses", C.accent }, { "ups", "Upgrades", GREEN }, { "quests", "Quests", { 1, 0.82, 0.3 } }, { "guild", "Guild around", C.mint } }
         for i, kd in ipairs(KP) do
             local k = CreateFrame("Button", nil, banner)
             k:SetSize(80, 38)
@@ -2112,7 +2112,7 @@ ns.RegisterPage({
             k:SetScript("OnLeave", function() GameTooltip:Hide() end)
             dv.kpis[kd[1]] = k
         end
-        dv.lfg = K.Button(banner, L["Gruppe suchen"], 120, 24, "primary", function()
+        dv.lfg = K.Button(banner, L["Find group"], 120, 24, "primary", function()
             local d = D.Get(S.dungeon)
             if d and ns.Groups then
                 ns.Groups.Start(d.name, nil, true)
@@ -2120,7 +2120,7 @@ ns.RegisterPage({
             end
         end)
         dv.lfg:SetPoint("BOTTOMRIGHT", -12, 12)
-        dv.event = K.Button(banner, L["Als Termin planen"], 130, 24, "ghost", function()
+        dv.event = K.Button(banner, L["Plan as event"], 130, 24, "ghost", function()
             local d = D.Get(S.dungeon)
             if d and ns.Raid then
                 ns.Raid.prefill = { title = d.name, inst = d.name .. (d.level ~= "" and (" (" .. d.level .. ")") or "") }
@@ -2129,7 +2129,7 @@ ns.RegisterPage({
             end
         end)
         dv.event:SetPoint("RIGHT", dv.lfg, "LEFT", -6, 0)
-        dv.journal = K.Button(banner, L["Dungeon-Journal"], 120, 24, "ghost", function()
+        dv.journal = K.Button(banner, L["Dungeon journal"], 120, 24, "ghost", function()
             -- FojjiCore geladen: dessen Journal beim gewaehlten Boss oeffnen (Karten, Routen, Drop-Chancen liegen dort)
             if ns.Fojji and ns.Fojji.Dungeon(S.dungeon) then
                 local d = D.Get(S.dungeon)
@@ -2142,7 +2142,7 @@ ns.RegisterPage({
         end)
         dv.journal:SetScript("OnEnter", function(self)
             if ns.Fojji and ns.Fojji.Dungeon(S.dungeon) then
-                K.ShowTip(self, { "FojjiCore", L["Oeffnet diesen Dungeon im Journal von FojjiCore: Karten, Routen, Drop-Chancen."] })
+                K.ShowTip(self, { "FojjiCore", L["Opens this dungeon in the FojjiCore journal: maps, routes, drop chances."] })
             end
         end)
         dv.journal:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -2163,8 +2163,8 @@ ns.RegisterPage({
 
         -- drei Reiter statt fuenf; die Ansicht innerhalb eines Reiters schaltet der kleine Schalter rechts
         -- 0.6.303: Gemeinschaft zuerst - "Gilde & Gruppe" ist der erste Reiter und oeffnet sich standardmaessig
-        dv.seg = slideTabs(dv, { { key = "guild", text = L["Gilde & Gruppe"] }, { key = "g1", text = L["Bosse & Beute"] },
-            { key = "g2", text = L["Quests"] }, { key = "map", text = L["Karte"] } }, function(k)
+        dv.seg = slideTabs(dv, { { key = "guild", text = L["Guild & group"] }, { key = "g1", text = L["Bosses & loot"] },
+            { key = "g2", text = L["Quests"] }, { key = "map", text = L["Map"] } }, function(k)
             S.tab = (k == "guild" or k == "map") and k or S.sub[k]
             S.tabFade = true
             ns.RefreshPage("dungeons")
@@ -2172,7 +2172,7 @@ ns.RegisterPage({
         dv.seg:SetPoint("TOPLEFT", 0, -132)
         dv.subs = {}
         for g, items in pairs({
-            g1 = { { key = "bosses", text = L["Nach Boss"] }, { key = "loot", text = L["Gesamte Beute"] } },
+            g1 = { { key = "bosses", text = L["By boss"] }, { key = "loot", text = L["All loot"] } },
         }) do
             local sw = K.Segments(dv, items, function(k)
                 S.tab, S.sub[g] = k, k
@@ -2239,11 +2239,11 @@ ns.RegisterPage({
                 if b.rare then r.skull:SetVertexColor(1, 0.82, 0.3) else r.skull:SetVertexColor(1, 1, 1) end
             end
             r.num:SetText((b.trash or b.object) and "" or tostring(i))
-            r.cols.name:SetText(b.trash and L["Trash-Gegner"] or b.name)
+            r.cols.name:SetText(b.trash and L["Trash mobs"] or b.name)
             local sub = {}
-            if b.level then sub[#sub + 1] = (L["Stufe %s"]):format(b.level) end
-            if b.rare then sub[#sub + 1] = "|cffffd24a" .. L["selten"] .. "|r" end
-            sub[#sub + 1] = (L["%d Items"]):format(#(b.loot or {}))
+            if b.level then sub[#sub + 1] = (L["Level %s"]):format(b.level) end
+            if b.rare then sub[#sub + 1] = "|cffffd24a" .. L["rare"] .. "|r" end
+            sub[#sub + 1] = (L["%d items"]):format(#(b.loot or {}))
             r.cols.sub:SetText(table.concat(sub, "  ·  "))
             local nu = 0
             for _, it in ipairs(b.loot or {}) do local pc = upPct(it[1]) if pc and pc > 0 then nu = nu + 1 end end
@@ -2252,7 +2252,7 @@ ns.RegisterPage({
             r.card:SetColorTexture(1, 1, 1, selOn and 0.07 or 0.025)
             r.cols.name:SetTextColor(selOn and 1 or C.text[1], selOn and 1 or C.text[2], selOn and 1 or C.text[3])
         end)
-        bt.list.empty:SetText(L["Keine Bosse bekannt."])
+        bt.list.empty:SetText(L["No bosses known."])
         -- Auswahlbalken gleitet zum gewaehlten Boss (nur solange die Liste nicht scrollt)
         bt.selBar = bt.list:CreateTexture(nil, "OVERLAY")
         bt.selBar:SetWidth(2)
@@ -2377,7 +2377,7 @@ ns.RegisterPage({
         bt.modelHint = K.Text(stage, 10, C.dim, "CENTER")
         bt.modelHint:SetPoint("BOTTOMLEFT", 6, 7)
         bt.modelHint:SetPoint("BOTTOMRIGHT", -6, 7)
-        bt.modelHint:SetText(L["Ziehen: drehen  ·  Mausrad: zoomen  ·  Doppelklick: zurueck"])
+        bt.modelHint:SetText(L["Drag: rotate  ·  Wheel: zoom  ·  Double-click: reset"])
         bt.modelHint:SetAlpha(0.45)
         bt.bossIdx = K.Text(stage, 10, C.dim)
         bt.bossIdx:SetPoint("TOPLEFT", 10, -8)
@@ -2397,7 +2397,7 @@ ns.RegisterPage({
             a:SetAlpha(0.3)
             a:SetScript("OnEnter", function(self)
                 self:SetAlpha(1)
-                K.ShowTip(self, { dir < 0 and L["Voriger Boss"] or L["Naechster Boss"] })
+                K.ShowTip(self, { dir < 0 and L["Previous boss"] or L["Next boss"] })
             end)
             a:SetScript("OnLeave", function(self) self:SetAlpha(0.3) GameTooltip:Hide() end)
             a:SetScript("OnClick", function()
@@ -2423,7 +2423,7 @@ ns.RegisterPage({
         bt.noModel.text:SetPoint("TOP", bt.noModel.disc, "BOTTOM", 0, -8)
         bt.noModel.text:SetWidth(160)
         bt.noModel.text:SetWordWrap(true)
-        bt.noModel.text:SetText(L["Kein 3D-Modell fuer diesen Boss"])
+        bt.noModel.text:SetText(L["No 3D model for this boss"])
         bt.noModel:Hide()
 
         local right = K.Panel(bt, { 0.045, 0.045, 0.06, 0.94 })
@@ -2439,7 +2439,7 @@ ns.RegisterPage({
         bt.bossSep:SetPoint("TOPRIGHT", -12, -52)
         bt.bossSep:SetHeight(1)
         -- Beute oder Taktik zum gewaehlten Boss
-        bt.view = K.Segments(right, { { key = "loot", text = L["Beute"] }, { key = "tac", text = L["Taktik"] } }, function(k)
+        bt.view = K.Segments(right, { { key = "loot", text = L["Loot"] }, { key = "tac", text = L["Tactics"] } }, function(k)
             S.bossView, S.bossAnim = k, true
             ns.RefreshPage("dungeons")
         end, nil, { size = 12, pad = 18 })
@@ -2459,7 +2459,7 @@ ns.RegisterPage({
         bt.more.line:SetColorTexture(1, 1, 1, 0.07)
         bt.more.label = K.Text(bt.more, 10, C.dim)
         bt.more.label:SetPoint("TOPLEFT", 4, 0)
-        bt.more.label:SetText(K.Upper(L["Weitere Upgrades in diesem Dungeon"]))
+        bt.more.label:SetText(K.Upper(L["More upgrades in this dungeon"]))
         bt.more.row = {}
         for i = 1, 4 do
             local mr = CreateFrame("Button", nil, bt.more)
@@ -2483,7 +2483,7 @@ ns.RegisterPage({
                 if not self.id then return end
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 pcall(GameTooltip.SetItemByID, GameTooltip, self.id)
-                GameTooltip:AddLine("|cff777777" .. L["Klick: zum Boss mit diesem Teil"] .. "|r")
+                GameTooltip:AddLine("|cff777777" .. L["Click: go to the boss that drops this"] .. "|r")
                 GameTooltip:Show()
             end)
             mr:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -2535,11 +2535,11 @@ ns.RegisterPage({
         tac.note = K.Text(tac, 10, C.dim)
         tac.note:SetPoint("BOTTOMLEFT")
         tac.note:SetPoint("RIGHT")
-        tac.note:SetText(L["Stand Classic - in WoW Forever kann ein Boss abweichen."])
-        bt.loot.empty:SetText(L["Keine Beute bekannt."])
+        tac.note:SetText(L["Based on Classic - a boss may differ in WoW Forever."])
+        bt.loot.empty:SetText(L["No known loot."])
         -- 0.6.308: Modell standardmaessig aus - die Buehne nahm ein Drittel der Breite und war meist leer
         bt.modelHidden = not (ns.db and ns.db.settings.dgModel)
-        bt.modelToggle = K.Button(right, L["3D-Modell"], 100, 22, "ghost", function()
+        bt.modelToggle = K.Button(right, L["3D model"], 100, 22, "ghost", function()
             bt.modelHidden = not bt.modelHidden
             if ns.db then ns.db.settings.dgModel = not bt.modelHidden end
             bt:Layout()
@@ -2574,37 +2574,37 @@ ns.RegisterPage({
         local lt = CreateFrame("Frame", nil, body)
         lt:SetAllPoints()
         dv.lootTab = lt
-        lt.search = K.Input(lt, 190, L["Item suchen ..."], function(t) S.lootSearch = (t or ""):lower() ns.RefreshPage("dungeons") end)
+        lt.search = K.Input(lt, 190, L["Search item …"], function(t) S.lootSearch = (t or ""):lower() ns.RefreshPage("dungeons") end)
         lt.search:SetPoint("TOPLEFT")
-        lt.up = chip(lt, L["Nur Upgrades"], function() S.lootUp = not S.lootUp ns.RefreshPage("dungeons") end)
+        lt.up = chip(lt, L["Upgrades only"], function() S.lootUp = not S.lootUp ns.RefreshPage("dungeons") end)
         lt.up:SetPoint("LEFT", lt.search, "RIGHT", 8, 0)
         lt.kind = menuButton(lt, 150, function()
-            return "|cffa3a3a8" .. L["Art"] .. ":|r " .. (S.lootKind and L[S.lootKind] or L["Alle"])
+            return "|cffa3a3a8" .. L["Type"] .. ":|r " .. (S.lootKind and L[S.lootKind] or L["All"])
         end, function()
-            local items = { { text = L["Alle"], checked = S.lootKind == nil, fn = function() S.lootKind = nil ns.RefreshPage("dungeons") end } }
-            for _, k in ipairs({ "Stoff", "Leder", "Kette", "Platte", "Schild", "Waffe", "Sonstiges" }) do
+            local items = { { text = L["All"], checked = S.lootKind == nil, fn = function() S.lootKind = nil ns.RefreshPage("dungeons") end } }
+            for _, k in ipairs({ "Cloth", "Leather", "Mail", "Plate", "Shield", "Weapon", "Miscellaneous" }) do
                 items[#items + 1] = { text = L[k], checked = S.lootKind == k, fn = function() S.lootKind = k ns.RefreshPage("dungeons") end }
             end
             return items
-        end, L["Ruestungsart"])
+        end, L["Armor type"])
         lt.kind:SetPoint("LEFT", lt.up, "RIGHT", 8, 0)
         lt.slot = menuButton(lt, 160, function()
-            return "|cffa3a3a8" .. L["Platz"] .. ":|r " .. (S.lootSlot or L["Alle"])
+            return "|cffa3a3a8" .. L["Rank"] .. ":|r " .. (S.lootSlot or L["All"])
         end, function()
-            local items = { { text = L["Alle"], checked = S.lootSlot == nil, fn = function() S.lootSlot = nil ns.RefreshPage("dungeons") end } }
+            local items = { { text = L["All"], checked = S.lootSlot == nil, fn = function() S.lootSlot = nil ns.RefreshPage("dungeons") end } }
             for _, s in ipairs(lt.slots or {}) do
                 items[#items + 1] = { text = s, checked = S.lootSlot == s, fn = function() S.lootSlot = s ns.RefreshPage("dungeons") end }
             end
             return items
-        end, L["Platz"])
+        end, L["Rank"])
         lt.slot:SetPoint("LEFT", lt.kind, "RIGHT", 8, 0)
         lt.hint = K.Text(lt, 10, C.dim, "RIGHT")
         lt.hint:SetPoint("TOPRIGHT", 0, -7)
-        lt.hint:SetText(L["Shift-Klick: verlinken  ·  Rechtsklick: Menue"])
+        lt.hint:SetText(L["Shift-click: link  ·  Right-click: menu"])
         lt.list = K.List(lt, 44, lootRow, lootUpdate)
         lt.list:SetPoint("TOPLEFT", 0, -34)
         lt.list:SetPoint("BOTTOMRIGHT")
-        lt.list.empty:SetText(L["Keine Beute bekannt."])
+        lt.list.empty:SetText(L["No known loot."])
         lt:SetScript("OnSizeChanged", function(self, w)
             w = w or self:GetWidth() or 750
             local used = 190 + 8 + (lt.up:GetWidth() or 100) + 8 + 150 + 8 + 160
@@ -2648,8 +2648,8 @@ ns.RegisterPage({
                 if not q then return end
                 local ns_ = {}
                 for _, n in ipairs(q.holders or {}) do if not ns.isMe(n) and #ns_ < 8 then ns_[#ns_ + 1] = ns.Radar.Colored(n) end end
-                K.ShowTip(self, { q.name, q.level and (L["Stufe %s"]):format(q.level) or nil,
-                    #ns_ > 0 and (L["In der Gilde dabei"] .. ": " .. table.concat(ns_, ", ")) or nil })
+                K.ShowTip(self, { q.name, q.level and (L["Level %s"]):format(q.level) or nil,
+                    #ns_ > 0 and (L["Guild members on it"] .. ": " .. table.concat(ns_, ", ")) or nil })
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
             r:SetScript("OnClick", function(self)
@@ -2677,7 +2677,7 @@ ns.RegisterPage({
             K.SetBorderColor(r.badge, lc, 0.55)
             local others = 0
             for _, n in ipairs(q.holders or {}) do if not ns.isMe(n) then others = others + 1 end end
-            r.cols.who:SetText(others > 0 and (L["%d aus der Gilde"]):format(others) or "")
+            r.cols.who:SetText(others > 0 and (L["%d from the guild"]):format(others) or "")
             r.cols.where:SetText(q.whereShort or "")
             r.sel:SetShown(S.quest == q.id)
             r:SetAlpha(q.state == "done" and 0.55 or 1)
@@ -2690,7 +2690,7 @@ ns.RegisterPage({
         qt.list:SetPoint("TOPLEFT", 0, -24)
         qt.list:SetPoint("BOTTOMLEFT")
         qt.list:SetWidth(300)
-        qt.list.empty:SetText(L["Noch keine bekannt - sobald jemand mit Oasis eine Quest fuer diesen Dungeon hat, steht sie hier."])
+        qt.list.empty:SetText(L["None known yet – as soon as someone with Oasis has a quest for this dungeon, it shows up here."])
 
         local qd = K.Panel(qt, C.panel)
         qd:SetPoint("TOPLEFT", 312, 0)
@@ -2703,7 +2703,7 @@ ns.RegisterPage({
         qd.title:SetPoint("TOPLEFT", 44, -15)
         qd.title:SetPoint("RIGHT", qd, "RIGHT", -92, 0)
         qd.title:SetWordWrap(true)
-        qd.share = K.Button(qd, L["Teilen"], 70, 22, "ghost", function()
+        qd.share = K.Button(qd, L["Share"], 70, 22, "ghost", function()
             local id = S.quest
             local okI, idx = pcall(function() return C_QuestLog and C_QuestLog.GetLogIndexForQuestID and C_QuestLog.GetLogIndexForQuestID(id) end)
             if not (okI and idx) then return end
@@ -2712,10 +2712,10 @@ ns.RegisterPage({
             if QuestLogPushQuest then pcall(QuestLogPushQuest, idx) end
         end)
         qd.share:SetPoint("TOPRIGHT", -12, -12)
-        qd.share:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Quest an die Gruppe teilen"], L["Nur in einer Gruppe und mit der Quest im Log."] }) end)
+        qd.share:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Share quest with group"], L["Only in a group and with the quest in your log."] }) end)
         qd.share:SetScript("OnLeave", function() GameTooltip:Hide() end)
         -- Wer aus der Gilde hat die Quest: Klassenkreise (Klick: Fluestern, Einladen, Profil)
-        qd.whoLabel = K.Label(qd, L["In der Gilde dabei"])
+        qd.whoLabel = K.Label(qd, L["Guild members on it"])
         qd.who = {}
         for i = 1, 6 do
             local b = CreateFrame("Button", nil, qd)
@@ -2724,7 +2724,7 @@ ns.RegisterPage({
             b.disc:SetPoint("CENTER")
             b:RegisterForClicks("AnyUp")
             b:SetScript("OnClick", function(self) personMenu(self, self.name) end)
-            b:SetScript("OnEnter", function(self) K.ShowTip(self, { ns.Radar.Colored(self.name or ""), "|cff888888" .. L["Klick: Fluestern, Einladen, Profil"] .. "|r" }) end)
+            b:SetScript("OnEnter", function(self) K.ShowTip(self, { ns.Radar.Colored(self.name or ""), "|cff888888" .. L["Click: whisper, invite, profile"] .. "|r" }) end)
             b:SetScript("OnLeave", function() GameTooltip:Hide() end)
             b:Hide()
             qd.who[i] = b
@@ -2783,7 +2783,7 @@ ns.RegisterPage({
         mh.none = K.Text(mh, 11, C.dim, "CENTER")
         mh.none:SetPoint("CENTER")
         mh.none:SetWidth(220)
-        mh.none:SetText(L["Fuer diese Quest ist kein Ort bekannt."])
+        mh.none:SetText(L["No location known for this quest."])
         mh.pins = {}
         for i = 1, 2 do
             local pin = CreateFrame("Button", nil, mh)
@@ -2808,7 +2808,7 @@ ns.RegisterPage({
             pin:Hide()
             mh.pins[i] = pin
         end
-        qd.rewLabel = K.Label(qd, L["Belohnungen"])
+        qd.rewLabel = K.Label(qd, L["Rewards"])
         qd.rewLabel:SetPoint("BOTTOMLEFT", 14, 86)
         qd.rewards = {}
         for i = 1, 6 do
@@ -2834,22 +2834,22 @@ ns.RegisterPage({
             end)
             qd.rewards[i] = b
         end
-        qd.map = K.Button(qd, L["Auf Karte zeigen"], 140, 26, "primary")
+        qd.map = K.Button(qd, L["Show on map"], 140, 26, "primary")
         qd.map:SetPoint("BOTTOMLEFT", 14, 12)
-        qd.turnin = K.Button(qd, L["Abgabe zeigen"], 120, 26, "ghost")
+        qd.turnin = K.Button(qd, L["Show turn-in"], 120, 26, "ghost")
         qd.turnin:SetPoint("LEFT", qd.map, "RIGHT", 6, 0)
-        qd.clear = K.Button(qd, L["Ziel entfernen"], 110, 26, "ghost", function()
+        qd.clear = K.Button(qd, L["Clear target"], 110, 26, "ghost", function()
             if ns.Map then ns.Map.ClearTarget() end
             ns.RefreshPage("dungeons")
         end)
         qd.clear:SetPoint("LEFT", qd.turnin, "RIGHT", 6, 0)
         -- zur Karte des Dungeons mit den Boss-Standorten (Reiter Karte)
-        qd.dmap = K.Button(qd, L["Dungeonkarte"], 120, 26, "ghost", function()
+        qd.dmap = K.Button(qd, L["Dungeon map"], 120, 26, "ghost", function()
             S.tab, S.tabFade = "map", true   -- 0.6.307: Karte ist eigener Reiter
             ns.RefreshPage("dungeons")
         end)
         qd.dmap:SetPoint("BOTTOMRIGHT", -14, 12)
-        qd.dmap:HookScript("OnEnter",function(self) K.ShowTip(self, { L["Dungeonkarte"], L["Karte des Dungeons mit den Standorten der Bosse"] }) end)
+        qd.dmap:HookScript("OnEnter",function(self) K.ShowTip(self, { L["Dungeon map"], L["Map of the dungeon with the boss locations"] }) end)
         qd.dmap:HookScript("OnLeave",function() GameTooltip:Hide() end)
 
         -- Reiter Karte: Kartengrafik aus dem Client, Ebenen umschaltbar
@@ -2875,7 +2875,7 @@ ns.RegisterPage({
         -- Kennzahl-Kopfzeile
         gt.stats = {}
         local prevStat
-        for _, sd in ipairs({ { "on", "online", MINT }, { "loot", "Beute (7 Tage)", EPIC }, { "want", "gesucht", GOLD } }) do
+        for _, sd in ipairs({ { "on", "online", MINT }, { "loot", "loot (7 days)", EPIC }, { "want", "gesucht", GOLD } }) do
             local s = K.Panel(gt, C.raised)
             s:SetSize(110, 26)
             s.bar = s:CreateTexture(nil, "ARTWORK")
@@ -2894,34 +2894,34 @@ ns.RegisterPage({
             prevStat = s
             gt.stats[sd[1]] = s
         end
-        gt.lfg = K.Button(gt, L["Gruppe suchen"], 112, 24, "primary", function() dv.lfg:Click() end)
+        gt.lfg = K.Button(gt, L["Find group"], 112, 24, "primary", function() dv.lfg:Click() end)
         gt.lfg:SetPoint("TOPRIGHT", 0, -2)
-        gt.invite = K.Button(gt, L["Alle einladen"], 104, 24, "ghost", function()
+        gt.invite = K.Button(gt, L["Invite all"], 104, 24, "ghost", function()
             local n = 0
             for _, m in ipairs(gt.range or {}) do
                 if n >= 4 then break end
                 n = n + 1
                 ns.InviteName(m.name)
             end
-            if n == 0 then ns.print(L["Keiner zum Einladen online."]) end
+            if n == 0 then ns.print(L["Nobody online to invite."]) end
         end)
         gt.invite:SetPoint("RIGHT", gt.lfg, "LEFT", -6, 0)
-        gt.invite:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Alle einladen"], (L["Laedt bis zu %d Mitglieder aus dem Stufenbereich in deine Gruppe ein."]):format(4) }) end)
+        gt.invite:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Invite all"], (L["Invites up to %d members in the level range to your group."]):format(4) }) end)
         gt.invite:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
         -- 0.6.304: Leiste "Wer will mit?" - eintragen mit Rolle, Eingetragene mit Klasse/Rolle/online, Gruppe bilden
         local ROLES = { "tank", "heal", "dps" }
-        local RN = { tank = "Tank", heal = "Heiler", dps = "Schaden" }
+        local RN = { tank = "Tank", heal = "Healer", dps = "Damage" }
         local jb = CreateFrame("Frame", nil, gt)
         jb:SetHeight(84)
         if ns.Insta and ns.Insta.Glass then ns.Insta.Glass(jb, nil, nil, 12) end
         gt.join = jb
         jb.title = K.Title(jb, 13, C.text)
         jb.title:SetPoint("TOPLEFT", 14, -10)
-        jb.title:SetText(L["Wer will mit?"])
+        jb.title:SetText(L["Who wants to join?"])
         jb.sub = K.Text(jb, 10, C.dim)
         jb.sub:SetPoint("LEFT", jb.title, "RIGHT", 8, 0)
-        jb.sub:SetText(L["4 Std. sichtbar fuer die Gilde"])
+        jb.sub:SetText(L["visible to the guild for 4 h"])
         local function myRole() return (ns.db.settings.dgJoinRole and RN[ns.db.settings.dgJoinRole]) and ns.db.settings.dgJoinRole or "dps" end
         jb.roles = {}
         for i, k in ipairs(ROLES) do
@@ -2938,28 +2938,28 @@ ns.RegisterPage({
                 if D.MyJoin(S.dungeon) then D.Join(S.dungeon, k) end
                 jb:Update()
             end)
-            b:SetScript("OnEnter", function(self) K.ShowTip(self, { L[RN[k]], L["Mit dieser Rolle eintragen"] }) end)
+            b:SetScript("OnEnter", function(self) K.ShowTip(self, { L[RN[k]], L["Sign up with this role"] }) end)
             b:SetScript("OnLeave", function() GameTooltip:Hide() end)
             jb.roles[k] = b
         end
-        jb.toggle = K.Button(jb, L["Ich will mit"], 108, 24, "primary", function()
+        jb.toggle = K.Button(jb, L["I want to join"], 108, 24, "primary", function()
             if D.MyJoin(S.dungeon) then D.Leave(S.dungeon) else D.Join(S.dungeon, myRole()) end
             jb:Update()
         end)
         jb.toggle:SetPoint("LEFT", jb.roles.dps, "RIGHT", 10, 0)
-        jb.ask = K.Button(jb, L["Im Gildenchat fragen"], 140, 24, "ghost", function()
+        jb.ask = K.Button(jb, L["Ask in guild chat"], 140, 24, "ghost", function()
             local d = D.Get(S.dungeon)
             if d and ns.OfferChat then
-                ns.OfferChat(L["Im Gildenchat fragen"], (L["Wer kommt mit in %s? Ich bin %s dabei - eintragen in Oasis > Dungeons"]):format(d.name, L[RN[myRole()]]), "GUILD")
+                ns.OfferChat(L["Ask in guild chat"], (L["Who joins %s? I'm in as %s – sign up in Oasis > Dungeons"]):format(d.name, L[RN[myRole()]]), "GUILD")
             end
         end)
         jb.ask:SetPoint("LEFT", jb.toggle, "RIGHT", 6, 0)
-        jb.form = K.Button(jb, L["Gruppe bilden"], 112, 24, "primary", function()
+        jb.form = K.Button(jb, L["Form group"], 112, 24, "primary", function()
             local n = D.FormGroup(S.dungeon)
-            ns.print(n > 0 and (L["%d Eingetragene eingeladen."]):format(n) or L["Gerade niemand Eingetragenes online."])
+            ns.print(n > 0 and (L["Invited %d signed-up players."]):format(n) or L["Nobody signed up is online right now."])
         end)
         jb.form:SetPoint("TOPRIGHT", -12, -10)
-        jb.form:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Gruppe bilden"], L["Laedt online Eingetragene ein - erst je ein Tank und Heiler, dann Schaden (hoechstens 4)."] }) end)
+        jb.form:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Form group"], L["Invites signed-up players who are online – one tank and healer first, then damage (up to 4)."] }) end)
         jb.form:SetScript("OnLeave", function() GameTooltip:Hide() end)
         -- Eingetragene: Klassenkreis mit Rollen-Symbol, Name, gedimmt wenn offline
         jb.people = {}
@@ -2979,13 +2979,13 @@ ns.RegisterPage({
             f:SetScript("OnEnter", function(self)
                 if not self.who then return end
                 K.ShowTip(self, { ns.Radar.Colored(self.who), L[RN[self.r or "dps"]] .. "  ·  " .. (self.on and L["online"] or L["offline"]),
-                    (L["eingetragen %s"]):format(ns.ago(self.ts or 0)), "|cff888888" .. L["Klick: Fluestern, Einladen, Profil"] .. "|r" })
+                    (L["signed up %s"]):format(ns.ago(self.ts or 0)), "|cff888888" .. L["Click: whisper, invite, profile"] .. "|r" })
             end)
             f:SetScript("OnLeave", function() GameTooltip:Hide() end)
             jb.people[i] = f
         end
         jb.none = K.Text(jb, 11, C.dim)
-        jb.none:SetText(L["Noch niemand eingetragen - sei die oder der Erste."])
+        jb.none:SetText(L["Nobody signed up yet – be the first."])
         function jb:Update()
             local key = S.dungeon
             if not key then return end
@@ -2997,7 +2997,7 @@ ns.RegisterPage({
                 b.icon:SetVertexColor(on and c[1] or c[1] * 0.45, on and c[2] or c[2] * 0.45, on and c[3] or c[3] * 0.45)
                 b:SetAlpha(on and 1 or 0.7)
             end
-            self.toggle:SetLabel(mine and L["Austragen"] or L["Ich will mit"])
+            self.toggle:SetLabel(mine and L["Leave"] or L["I want to join"])
             local list = D.JoinList(key)
             local W = self:GetWidth() or 700
             if W < 100 then W = 700 end
@@ -3031,11 +3031,11 @@ ns.RegisterPage({
             for _, r in ipairs(list) do if not ns.isMe(r.who) and joinOnline(r.who) then onlineOthers = onlineOthers + 1 end end
             self.form:SetEnabled(onlineOthers > 0)
             self.form:SetAlpha(onlineOthers > 0 and 1 or 0.5)
-            self.sub:SetText(#list > shown and ((L["%d eingetragen"]):format(#list) .. "  ·  ") .. L["4 Std. sichtbar fuer die Gilde"] or L["4 Std. sichtbar fuer die Gilde"])
+            self.sub:SetText(#list > shown and ((L["%d signed up"]):format(#list) .. "  ·  ") .. L["visible to the guild for 4 h"] or L["visible to the guild for 4 h"])
         end
 
         -- (1) Online im Stufenbereich
-        gt.on = colCard(gt, L["Online im Stufenbereich"], MINT, 44, function(l)
+        gt.on = colCard(gt, L["Online in level range"], MINT, 44, function(l)
             local r = K.Row(l)
             r.disc = classDisc(r, 28)
             r.disc:SetPoint("LEFT", 6, 0)
@@ -3053,8 +3053,8 @@ ns.RegisterPage({
                 local m = self.item
                 if not m then return end
                 local cls = (LOCALIZED_CLASS_NAMES_MALE and m.class and LOCALIZED_CLASS_NAMES_MALE[m.class]) or ""
-                K.ShowTip(self, { ns.colorName(m.name, m.class), (L["Stufe %d"]):format(m.level or 0) .. (cls ~= "" and ("  ·  " .. cls) or ""),
-                    m.zone ~= "" and m.zone or nil, "|cff888888" .. L["Klick: Fluestern, Einladen, Profil"] .. "|r" })
+                K.ShowTip(self, { ns.colorName(m.name, m.class), (L["Level %d"]):format(m.level or 0) .. (cls ~= "" and ("  ·  " .. cls) or ""),
+                    m.zone ~= "" and m.zone or nil, "|cff888888" .. L["Click: whisper, invite, profile"] .. "|r" })
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
             return r
@@ -3070,16 +3070,16 @@ ns.RegisterPage({
             local sub = {}
             local stt = m.status
             if stt == 1 or (type(stt) == "string" and stt:find("AFK")) then sub[#sub + 1] = "|cffffd24a" .. L["AFK"] .. "|r"
-            elseif stt == 2 or (type(stt) == "string" and stt:find("DND")) then sub[#sub + 1] = "|cffd9786b" .. L["DNB"] .. "|r" end
+            elseif stt == 2 or (type(stt) == "string" and stt:find("DND")) then sub[#sub + 1] = "|cffd9786b" .. L["DND"] .. "|r" end
             local here = (m.zone or "") ~= "" and m.zone == (ns.safe(GetRealZoneText()) or "")
-            if (m.zone or "") ~= "" then sub[#sub + 1] = here and ("|cff66db9e" .. m.zone .. "  ·  " .. L["hier"] .. "|r") or m.zone end
+            if (m.zone or "") ~= "" then sub[#sub + 1] = here and ("|cff66db9e" .. m.zone .. "  ·  " .. L["here"] .. "|r") or m.zone end
             r.cols.sub:SetText(table.concat(sub, "  ·  "))
         end)
         gt.on.empty.icon:SetTexture("Interface\\FriendsFrame\\UI-Toast-FriendOnlineIcon")
         -- (2) Zuletzt erbeutet: Zeitleiste
         local function lootLink(e) return e and e.item end
         local function lootID(e) return e and (e.itemID or ns.itemID(e.item or "")) end
-        gt.loot = colCard(gt, L["Zuletzt erbeutet"], EPIC, 46, function(l)
+        gt.loot = colCard(gt, L["Recently looted"], EPIC, 46, function(l)
             local r = K.Row(l)
             r.stripe:SetAlpha(0)
             r.line = r:CreateTexture(nil, "BACKGROUND", nil, 3)
@@ -3105,8 +3105,8 @@ ns.RegisterPage({
                 local link, id = lootLink(e), lootID(e)
                 if not (link and pcall(GameTooltip.SetHyperlink, GameTooltip, link)) and id then pcall(GameTooltip.SetItemByID, GameTooltip, id) end
                 local m = id and markOf(id)
-                if m and m.up then GameTooltip:AddLine("|cff66db9e" .. (L["Besser als dein angelegtes Teil (+%d%%)"]):format(math.min(m.pct, 999)) .. "|r") end
-                GameTooltip:AddLine("|cff777777" .. L["Shift-Klick: verlinken  ·  Rechtsklick: Menue"] .. "|r")
+                if m and m.up then GameTooltip:AddLine("|cff66db9e" .. (L["Better than your equipped item (+%d%%)"]):format(math.min(m.pct, 999)) .. "|r") end
+                GameTooltip:AddLine("|cff777777" .. L["Shift-click: link  ·  Right-click: menu"] .. "|r")
                 GameTooltip:Show()
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -3138,7 +3138,7 @@ ns.RegisterPage({
         end)
         gt.loot.empty.icon:SetTexture("Interface\\Icons\\INV_Misc_Bag_10")
         -- (3) Gesucht aus diesem Dungeon
-        gt.want = colCard(gt, L["Gesucht aus diesem Dungeon"], GOLD, 50, function(l)
+        gt.want = colCard(gt, L["Wanted from this dungeon"], GOLD, 50, function(l)
             local r = K.Row(l)
             r.iconHost = CreateFrame("Frame", nil, r)
             r.iconHost:SetSize(30, 30)
@@ -3153,11 +3153,11 @@ ns.RegisterPage({
             r.cols.sub = K.Text(r, 10, C.muted)
             r.cols.sub:SetPoint("BOTTOMLEFT", 44, 9)
             r.cols.sub:SetPoint("RIGHT", r, "RIGHT", -74, 0)
-            r.have = K.Button(r, L["Ich hab's"], 62, 22, "ghost", function(b)
+            r.have = K.Button(r, L["I have it"], 62, 22, "ghost", function(b)
                 local w = b:GetParent().item
                 if not w then return end
                 local info = itemInfo({ w.itemID, w.name })
-                ns.Whisper(w.who, (L["Ich habe %s - brauchst du das noch?"]):format(w.link or info.link or info.name))
+                ns.Whisper(w.who, (L["I have %s - do you still need it?"]):format(w.link or info.link or info.name))
             end)
             r.have:SetPoint("RIGHT", -6, 0)
             r:RegisterForClicks("AnyUp")
@@ -3167,7 +3167,7 @@ ns.RegisterPage({
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 pcall(GameTooltip.SetItemByID, GameTooltip, w.itemID)
                 if w.note and w.note ~= "" then GameTooltip:AddLine("|cffffd24a" .. w.note .. "|r", 1, 1, 1, true) end
-                GameTooltip:AddLine("|cff777777" .. L["Shift-Klick: verlinken  ·  Rechtsklick: Menue"] .. "|r")
+                GameTooltip:AddLine("|cff777777" .. L["Shift-click: link  ·  Right-click: menu"] .. "|r")
                 GameTooltip:Show()
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -3187,7 +3187,7 @@ ns.RegisterPage({
             r.cols.name:SetText("|c" .. info.color .. info.name .. "|r" .. ((w.qty or 1) > 1 and ("  |cff888888x" .. w.qty .. "|r") or ""))
             local mine = ns.isMe(w.who or "")
             local src = D.Source(w.itemID)
-            r.cols.sub:SetText((mine and ("|cff66db9e" .. L["dein Wunsch"] .. "|r") or (L["sucht: %s"]):format(ns.Radar.Colored(w.who or "?")))
+            r.cols.sub:SetText((mine and ("|cff66db9e" .. L["your wish"] .. "|r") or (L["wanted by %s"]):format(ns.Radar.Colored(w.who or "?")))
                 .. ((src and src.boss) and ("  ·  |cff888888" .. src.boss .. "|r") or ""))
             r.have:SetShown(not mine)
         end)
@@ -3197,7 +3197,7 @@ ns.RegisterPage({
         gt.hint:SetHeight(20)
         gt.hint.t = K.Text(gt.hint, 11, C.dim)
         gt.hint.t:SetPoint("LEFT", 0, 0)
-        gt.hint.t:SetText(L["Noch keine Gildenbeute und keine Wuensche aus diesem Dungeon."] .. "  |cffe8b44a" .. L["Beute ansehen"] .. " >|r")
+        gt.hint.t:SetText(L["No guild loot and no wishes from this dungeon yet."] .. "  |cffe8b44a" .. L["View loot"] .. " >|r")
         gt.hint:SetWidth(520)
         gt.hint:SetScript("OnClick", function() S.tab, S.tabFade = "loot", true ns.RefreshPage("dungeons") end)
         gt.hint:Hide()
@@ -3290,7 +3290,7 @@ ns.RegisterPage({
                     c:Hide()
                 end
             end
-            home.count:SetText((L["%d Dungeons"]):format(#list) .. (rowsTotal > rows and ("  ·  " .. L["Mausrad: mehr"]) or ""))
+            home.count:SetText((L["%d dungeons"]):format(#list) .. (rowsTotal > rows and ("  ·  " .. L["mouse wheel: more"]) or ""))
             home.empty:SetShown(#list == 0)
             if #list == 0 then
                 local filtered = (S.homeSearch ~= "") or S.homeZone or S.upOnly
@@ -3300,11 +3300,11 @@ ns.RegisterPage({
                     ns.RefreshPage("dungeons")
                 end
                 if filtered then
-                    home.empty:Set(L["Keine Dungeons zu diesen Filtern."], L["Filter zuruecksetzen"], reset,
-                        S.filter ~= "all" and L["Alle zeigen"] or nil, function() S.filter = "all" reset() end)
+                    home.empty:Set(L["No dungeons match these filters."], L["Reset filters"], reset,
+                        S.filter ~= "all" and L["Show all"] or nil, function() S.filter = "all" reset() end)
                 else
-                    home.empty:Set(L["Gerade passt kein offener Dungeon zu deiner Stufe."], L["Alle offenen zeigen"],
-                        function() S.filter = "open" ns.RefreshPage("dungeons") end, L["Alle"], function() S.filter = "all" ns.RefreshPage("dungeons") end)
+                    home.empty:Set(L["No open dungeon fits your level right now."], L["Show all open"],
+                        function() S.filter = "open" ns.RefreshPage("dungeons") end, L["All"], function() S.filter = "all" ns.RefreshPage("dungeons") end)
                 end
             end
             do
@@ -3332,27 +3332,27 @@ ns.RegisterPage({
         local nBoss = 0
         for _, b in ipairs(bosses) do if not b.trash and not b.object then nBoss = nBoss + 1 end end
         local meta = {}
-        if d.level ~= "" then meta[#meta + 1] = (L["Stufe %s"]):format(d.level) end
+        if d.level ~= "" then meta[#meta + 1] = (L["Level %s"]):format(d.level) end
         if (d.location or "") ~= "" then meta[#meta + 1] = d.location end
-        if d.closed then meta[#meta + 1] = "|cffd9786b" .. L["noch geschlossen"] .. "|r" end
+        if d.closed then meta[#meta + 1] = "|cffd9786b" .. L["not open yet"] .. "|r" end
         dv.meta:SetText(table.concat(meta, "  ·  "))
         local fj = ns.Fojji and ns.Fojji.Dungeon(d.key) ~= nil
         dv.journal:SetShown(fj or D.CanOpenJournal(d))
-        dv.journal:SetLabel(fj and L["In FojjiCore oeffnen"] or L["Dungeon-Journal"])
+        dv.journal:SetLabel(fj and L["Open in FojjiCore"] or L["Dungeon journal"])
         dv.journal:SetWidth(fj and 150 or 120)
         -- Kennzahlen
         local nUps = dungeonUps(d)
         local qLog, qAll = questCount(d)
         local inRange = othersInRange(d)
         dv.kpis.bosses.value:SetText(nBoss)
-        dv.kpis.bosses.tip = { L["Bosse"], "|cff888888" .. L["Klick: Bosse zeigen"] .. "|r" }
+        dv.kpis.bosses.tip = { L["Bosses"], "|cff888888" .. L["Click: show bosses"] .. "|r" }
         dv.kpis.ups.value:SetText(upOn() and nUps or "-")
         dv.kpis.ups.value:SetTextColor(nUps > 0 and GREEN[1] or C.text[1], nUps > 0 and GREEN[2] or C.text[2], nUps > 0 and GREEN[3] or C.text[3])
-        dv.kpis.ups.tip = { L["Upgrades"], upOn() and L["Beute, die besser ist als deine angelegte Ausruestung"] or L["Hervorheben ist in den Einstellungen aus"], "|cff888888" .. L["Klick: nur Upgrades zeigen"] .. "|r" }
+        dv.kpis.ups.tip = { L["Upgrades"], upOn() and L["Loot that beats your equipped gear"] or L["Highlighting is turned off in the settings"], "|cff888888" .. L["Click: show upgrades only"] .. "|r" }
         dv.kpis.quests.value:SetText(qAll > 0 and (qLog .. "/" .. qAll) or "0")
-        dv.kpis.quests.tip = { L["Quests"], (L["%d in deinem Log, %d bekannt"]):format(qLog, qAll) }
+        dv.kpis.quests.tip = { L["Quests"], (L["%d in your log, %d known"]):format(qLog, qAll) }
         dv.kpis.guild.value:SetText(#inRange)
-        dv.kpis.guild.tip = { L["Gilde dabei"], L["Online im Stufenbereich"] }
+        dv.kpis.guild.tip = { L["Guild around"], L["Online in level range"] }
         dv.seg:SetCounts({ g1 = nUps > 0 and nUps or nil, g2 = qAll > 0 and qAll or nil })
         local grp = S.group[S.tab] or "g1"
         if S.sub[grp] then S.sub[grp] = S.tab end
@@ -3376,7 +3376,7 @@ ns.RegisterPage({
                 for _, b in ipairs(mt.floors) do b:Hide() end
                 if S.lmapFor ~= d.key then S.lmapFor, S.lfloor = d.key, (lcfg.floors or { 1 })[1] end
                 local fls = lcfg.floors or { 1 }
-                local function flName(i) return lcfg.floorNames and L[lcfg.floorNames[i]] or ((L["Ebene %d"]):format(i)) end
+                local function flName(i) return lcfg.floorNames and L[lcfg.floorNames[i]] or ((L["Level %d"]):format(i)) end
                 if not mt.floorDrop then
                     mt.floorDrop = K.Button(mt, "", 260, 24, "ghost")
                     mt.floorDrop.label:ClearAllPoints()
@@ -3390,7 +3390,7 @@ ns.RegisterPage({
                 end
                 local curIdx = 1
                 for i, fl in ipairs(fls) do if fl == S.lfloor then curIdx = i end end
-                mt.floorDrop:SetLabel("|cffa3a3a8" .. L["Ebene"] .. ":|r " .. flName(curIdx) .. "  |cff666666(" .. curIdx .. "/" .. #fls .. ")|r")
+                mt.floorDrop:SetLabel("|cffa3a3a8" .. L["Level"] .. ":|r " .. flName(curIdx) .. "  |cff666666(" .. curIdx .. "/" .. #fls .. ")|r")
                 mt.floorDrop:SetScript("OnClick", function(self)
                     local items = {}
                     for i, fl in ipairs(fls) do
@@ -3426,7 +3426,7 @@ ns.RegisterPage({
                 mt.credit:SetPoint("RIGHT", -6, 0)
                 mt.creditFrame = cf
             end
-            mt.credit:SetText(lok and L["Karten: WoW-Client  ·  Boss-Positionen: Forever Atlas (GPL) / SimpleDungeonMap (MIT)"] or "")
+            mt.credit:SetText(lok and L["Maps: WoW client  ·  Boss positions: Forever Atlas (GPL) / SimpleDungeonMap (MIT)"] or "")
             mt.creditFrame:SetShown(lok and true or false)
             mt.creditFrame:SetWidth((mt.credit:GetStringWidth() or 300) + 12)
         end
@@ -3488,7 +3488,7 @@ ns.RegisterPage({
                         pin:SetPoint("CENTER", mt.canvas, "TOPLEFT", R.x + bp.x * R.w, -(R.y + bp.y * R.h))
                         pin.num:SetText(idx)
                         pin.lbl:SetText(bp.boss)
-                        pin.tip = { bp.boss, "|cff888888" .. L["Boss-Standort laut Spieldaten"] .. "|r" }
+                        pin.tip = { bp.boss, "|cff888888" .. L["Boss location from game data"] .. "|r" }
                         pin:Show()
                     end
                 end
@@ -3501,7 +3501,7 @@ ns.RegisterPage({
                     traced = ns.DungeonTrace.Draw(mt.canvas, data)
                     mt.traceInfo = mt.traceInfo or K.Text(mt, 10, C.dim)
                     mt.traceInfo:SetPoint("BOTTOMLEFT", 12, 10)
-                    mt.traceInfo:SetText(traced and (L["Von Oasis-Spielern erkundet: %d Punkte, %d Spieler, %d Bosse"]):format(data.n, data.players, (function() local c = 0 for _ in pairs(data.bosses) do c = c + 1 end return c end)()) or "")
+                    mt.traceInfo:SetText(traced and (L["Explored by Oasis players: %d points, %d players, %d bosses"]):format(data.n, data.players, (function() local c = 0 for _ in pairs(data.bosses) do c = c + 1 end return c end)()) or "")
                     mt.traceInfo:SetShown(traced)
                 else
                     ns.DungeonTrace.Draw(mt.canvas, nil)
@@ -3517,7 +3517,7 @@ ns.RegisterPage({
                 mt.link:SetScript("OnTextChanged", function(self, user) if user and self.url then self:SetText(self.url) self:HighlightText() end end)
                 mt.linkHint = K.Text(mt, 10, C.dim, "CENTER")
                 mt.linkHint:SetPoint("BOTTOM", mt.link, "TOP", 0, 6)
-                mt.linkHint:SetText(L["Karte online ansehen: Link anklicken, Strg+C, im Browser einfuegen"])
+                mt.linkHint:SetText(L["View the map online: click the link, Ctrl+C, paste into your browser"])
             end
             local slug = tostring(d.nameEN or d.name or ""):lower():gsub("'", ""):gsub("[^%w]+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
             mt.link.url = "https://foreverchanges.pro/map/" .. slug
@@ -3531,21 +3531,21 @@ ns.RegisterPage({
                     if not loaded and C_AddOns and C_AddOns.LoadAddOn then pcall(C_AddOns.LoadAddOn, "Atlas") end
                     if type(_G.Atlas_Toggle) == "function" then pcall(_G.Atlas_Toggle)
                     elseif _G.AtlasFrame then _G.AtlasFrame:SetShown(not _G.AtlasFrame:IsShown())
-                    else ns.print(L["Atlas ist nicht installiert: in der CurseForge-App \"Atlas\" und \"Atlas Classic WoW\" installieren, dann WoW neu starten."]) end
+                    else ns.print(L["Atlas is not installed: install \"Atlas\" and \"Atlas Classic WoW\" in the CurseForge app, then restart WoW."]) end
                 end)
                 mt.atlas:SetPoint("BOTTOM", mt.linkHint, "TOP", 0, 10)
             end
             local hasAtlas = (C_AddOns and C_AddOns.GetAddOnInfo and select(2, pcall(C_AddOns.GetAddOnInfo, "Atlas"))) and true or false
             local atlasName = C_AddOns and C_AddOns.GetAddOnInfo and select(2, pcall(C_AddOns.GetAddOnInfo, "Atlas"))
             hasAtlas = type(atlasName) == "string" and atlasName ~= ""
-            mt.atlas:SetLabel(hasAtlas and L["Karte in Atlas oeffnen"] or L["Atlas installieren fuer Karten"])
+            mt.atlas:SetLabel(hasAtlas and L["Open map in Atlas"] or L["Install Atlas for maps"])
             mt.atlas:SetScript("OnEnter", function(self)
-                K.ShowTip(self, hasAtlas and { L["Atlas"], L["Oeffnet die Atlas-Karten (Dungeon dort auswaehlen)."] }
-                    or { L["Atlas fehlt"], L["WoW Classic hat keine Dungeon-Karten. Das kostenlose Addon Atlas bringt sie mit:"], L["CurseForge-App: \"Atlas\" und \"Atlas Classic WoW\" installieren, WoW neu starten."] })
+                K.ShowTip(self, hasAtlas and { L["Atlas"], L["Opens the Atlas maps (pick the dungeon there)."] }
+                    or { L["Atlas missing"], L["WoW Classic has no dungeon maps. The free addon Atlas provides them:"], L["CurseForge app: install \"Atlas\" and \"Atlas Classic WoW\", restart WoW."] })
             end)
             mt.atlas:SetScript("OnLeave", function() GameTooltip:Hide() end)
             mt.atlas:SetShown(not ok)
-            mt.empty:SetText(L["Fuer diesen Dungeon hat der Client keine Karte. Oasis zeichnet sie selbst, sobald Oasis-Spieler den Dungeon ablaufen - je mehr Leute, desto genauer."])
+            mt.empty:SetText(L["The client has no map for this dungeon. Oasis draws one itself as Oasis players walk through it - the more people, the better."])
         end
         if S.tab == "map" then
             local lcfg = ns.DungeonMapsData and ns.DungeonMapsData[d.dbKey or d.key]
@@ -3583,14 +3583,14 @@ ns.RegisterPage({
             bt.bossSep:SetColorTexture(t[1], t[2], t[3], 0.35)
             bt.bossIdx:SetText(#bosses > 0 and K.Upper((L["Boss %d / %d"]):format(math.min(S.boss or 1, #bosses), #bosses)) or "")
             if b then
-                bt.bossName:SetText(b.trash and L["Trash-Gegner"] or b.name)
+                bt.bossName:SetText(b.trash and L["Trash mobs"] or b.name)
                 local bm = {}
-                if b.level then bm[#bm + 1] = (L["Stufe %s"]):format(b.level) end
-                if b.rare then bm[#bm + 1] = "|cffffd24a" .. L["selten"] .. "|r" end
-                bm[#bm + 1] = (L["%d Items"]):format(#(b.loot or {}))
+                if b.level then bm[#bm + 1] = (L["Level %s"]):format(b.level) end
+                if b.rare then bm[#bm + 1] = "|cffffd24a" .. L["rare"] .. "|r" end
+                bm[#bm + 1] = (L["%d items"]):format(#(b.loot or {}))
                 local nu = 0
                 for _, it in ipairs(b.loot or {}) do local pc = upPct(it[1]) if pc and pc > 0 then nu = nu + 1 end end
-                if nu > 0 then bm[#bm + 1] = "|cff66db9e" .. (L["%d Upgrades fuer dich"]):format(nu) .. "|r" end
+                if nu > 0 then bm[#bm + 1] = "|cff66db9e" .. (L["%d upgrades for you"]):format(nu) .. "|r" end
                 bt.bossMeta:SetText(table.concat(bm, "  ·  "))
                 local raw = d.data and d.data.bosses and d.data.bosses[S.boss]
                 local npc = b.npc or (raw and raw.npc) or (ns.DungeonNpc and (ns.DungeonNpc[b.nameEN or ""] or ns.DungeonNpc[raw and raw.name or ""] or ns.DungeonNpc[b.name or ""]))
@@ -3618,7 +3618,7 @@ ns.RegisterPage({
                                 else
                                     m:Hide()
                                     bt.noModel.icon:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Skull")
-                                    bt.noModel.text:SetText(L["Modell nicht geladen - Boss-Symbol statt falscher Figur"])
+                                    bt.noModel.text:SetText(L["Model not loaded - showing boss icon instead of a wrong figure"])
                                     bt.noModel:Show()
                                 end
                             end
@@ -3631,7 +3631,7 @@ ns.RegisterPage({
                 else
                     m.want = nil
                     m:Hide()
-                    bt.noModel.text:SetText((b.trash or b.object) and "" or L["Kein 3D-Modell fuer diesen Boss"])
+                    bt.noModel.text:SetText((b.trash or b.object) and "" or L["No 3D model for this boss"])
                     bt.noModel.icon:SetTexture(b.trash and "Interface\\Icons\\INV_Misc_Bag_10" or b.object and "Interface\\Icons\\INV_Box_01" or "Interface\\TargetingFrame\\UI-TargetingFrame-Skull")
                     bt.noModel:Show()
                 end
@@ -3679,7 +3679,7 @@ ns.RegisterPage({
                     if ok and S.lootSlot and info.slot ~= S.lootSlot then ok = false end
                     if ok and S.lootKind and kindOf(info.id) ~= S.lootKind then ok = false end
                     if ok and S.lootUp then local pc = upPct(info.id) ok = pc ~= nil and pc > 0 end
-                    if ok then rows[#rows + 1] = { it = it, boss = b.trash and L["Trash-Gegner"] or b.name } end
+                    if ok then rows[#rows + 1] = { it = it, boss = b.trash and L["Trash mobs"] or b.name } end
                 end
             end
             table.sort(slots)
@@ -3689,7 +3689,7 @@ ns.RegisterPage({
             lt.up:SetShown(upOn())
             lt.kind:Update()
             lt.slot:Update()
-            lt.list.empty:SetText((S.lootUp or S.lootSlot or S.lootKind or S.lootSearch ~= "") and L["Nichts passt zu diesen Filtern."] or L["Keine Beute bekannt."])
+            lt.list.empty:SetText((S.lootUp or S.lootSlot or S.lootKind or S.lootSearch ~= "") and L["Nothing matches these filters."] or L["No known loot."])
             lt.list:SetData(rows)
         elseif S.tab == "quests" then
             local qt = dv.questTab
@@ -3723,25 +3723,25 @@ ns.RegisterPage({
                 or q.state == "log" and "Interface\\GossipFrame\\ActiveQuestIcon" or "Interface\\GossipFrame\\AvailableQuestIcon")
             qd.title:SetText(q.name)
             local meta = {}
-            if q.level then meta[#meta + 1] = (L["Stufe %s"]):format(q.level) end
-            if q.min then meta[#meta + 1] = (L["ab %s"]):format(q.min) end
-            if q.faction and q.faction ~= "Both" then meta[#meta + 1] = q.faction == "Alliance" and L["Allianz"] or L["Horde"] end
-            meta[#meta + 1] = q.state == "done" and ("|cff66db9e" .. L["schon erledigt"] .. "|r")
-                or q.state == "log" and ("|cffffd24a" .. L["in deinem Questlog"] .. "|r") or L["noch nicht angenommen"]
+            if q.level then meta[#meta + 1] = (L["Level %s"]):format(q.level) end
+            if q.min then meta[#meta + 1] = (L["from %s"]):format(q.min) end
+            if q.faction and q.faction ~= "Both" then meta[#meta + 1] = q.faction == "Alliance" and L["Alliance"] or L["Horde"] end
+            meta[#meta + 1] = q.state == "done" and ("|cff66db9e" .. L["already done"] .. "|r")
+                or q.state == "log" and ("|cffffd24a" .. L["in your quest log"] .. "|r") or L["not picked up yet"]
             qd.meta:SetText(table.concat(meta, "  ·  "))
 
             local lines = {}
             local loc = q.loc
-            lines[#lines + 1] = "|cffece6ff" .. L["Wo bekommst du sie?"] .. "|r"
-            lines[#lines + 1] = loc.start and loc.start.long or ("|cff777777" .. L["unbekannt"] .. "|r")
+            lines[#lines + 1] = "|cffece6ff" .. L["Where do you get it?"] .. "|r"
+            lines[#lines + 1] = loc.start and loc.start.long or ("|cff777777" .. L["unknown"] .. "|r")
             if loc.finish then
                 lines[#lines + 1] = " "
-                lines[#lines + 1] = "|cffece6ff" .. L["Abgabe"] .. "|r"
+                lines[#lines + 1] = "|cffece6ff" .. L["Turn in"] .. "|r"
                 lines[#lines + 1] = loc.finish.long
             end
             if loc.prereq and #loc.prereq > 0 then
                 lines[#lines + 1] = " "
-                lines[#lines + 1] = "|cffece6ff" .. L["Vorher erledigen"] .. "|r"
+                lines[#lines + 1] = "|cffece6ff" .. L["Do these first"] .. "|r"
                 for _, p in ipairs(loc.prereq) do
                     lines[#lines + 1] = (p.done and "|TInterface\\RaidFrame\\ReadyCheck-Ready:12:12|t " or "|cff777777•|r ") .. p.name
                 end
@@ -3824,7 +3824,7 @@ ns.RegisterPage({
                         pin:ClearAllPoints()
                         pin:SetPoint("CENTER", mh, "TOPLEFT", r.x + tg.x * r.w, -(r.y + tg.y * r.h))
                         pin.target = tg
-                        pin.tip = { (i == 1 and L["Quest-Start"] or L["Abgabe"]) .. ": " .. (tg.label or ""), tg.sub or "", "|cff888888" .. L["Klick: als Ziel auf der Karte"] .. "|r" }
+                        pin.tip = { (i == 1 and L["Quest start"] or L["Turn in"]) .. ": " .. (tg.label or ""), tg.sub or "", "|cff888888" .. L["Click: set as map target"] .. "|r" }
                         pin:Show()
                     end
                 end
@@ -3832,7 +3832,7 @@ ns.RegisterPage({
             drawQuestMap()
             if mh:GetWidth() < 50 then C_Timer.After(0, drawQuestMap) end
             qd.map:SetEnabledState(s ~= nil and (s.target ~= nil or s.zoneMap ~= nil))
-            qd.map:SetLabel((s and s.target) and L["Auf Karte zeigen"] or L["Gebiet auf Karte"])
+            qd.map:SetLabel((s and s.target) and L["Show on map"] or L["Show zone on map"])
             qd.map:SetScript("OnClick", function()
                 if not ns.Map or not s then return end
                 if s.target then ns.Map.SetTarget(s.target) elseif s.zoneMap then ns.Map.ShowOnWorldMap(s.zoneMap) end
@@ -3857,7 +3857,7 @@ ns.RegisterPage({
             gt.on.list:SetData(range)
             gt.on.empty:SetShown(#range == 0)
             if #range == 0 then
-                gt.on.empty:Set(L["Gerade ist niemand aus der Gilde im Stufenbereich online."], L["Gruppe suchen"], function() dv.lfg:Click() end)
+                gt.on.empty:Set(L["Nobody from the guild in the level range is online right now."], L["Find group"], function() dv.lfg:Click() end)
             end
             local shownGot = {}
             for i = 1, math.min(20, #got) do shownGot[i] = got[i] end
@@ -3865,15 +3865,15 @@ ns.RegisterPage({
             gt.loot.list:SetData(shownGot)
             gt.loot.empty:SetShown(#got == 0)
             if #got == 0 then
-                gt.loot.empty:Set(L["Noch keine Beute aus diesem Dungeon im Gilden-Log."], L["Beute ansehen"], function()
+                gt.loot.empty:Set(L["No loot from this dungeon in the guild log yet."], L["View loot"], function()
                     S.tab, S.tabFade = "loot", true ns.RefreshPage("dungeons") end)
             end
             gt.want.count:SetText(#wanted > 0 and tostring(#wanted) or "")
             gt.want.list:SetData(wanted)
             gt.want.empty:SetShown(#wanted == 0)
             if #wanted == 0 then
-                gt.want.empty:Set(L["Die Gilde sucht gerade nichts aus diesem Dungeon."], L["Auf Wunschliste setzen"], function()
-                    ns.print(L["Rechtsklick auf einen Gegenstand: Auf meine Wunschliste"])
+                gt.want.empty:Set(L["The guild isn't looking for anything from this dungeon."], L["Add to wishlist"], function()
+                    ns.print(L["Right-click an item: Add to my wishlist"])
                     S.tab, S.tabFade = "loot", true ns.RefreshPage("dungeons") end)
             end
         end
@@ -3937,32 +3937,32 @@ local function buildOverlay()
     o.title = K.Title(o, 15, C.text)
     o.title:SetPoint("TOPLEFT", 14, -12)
     o.floors = {}
-    o.back = K.Button(o, L["Weltkarte"], 100, 22, "ghost", function() wmUser = "world" o:Hide() if o.toggle then o.toggle:Show() end end)
+    o.back = K.Button(o, L["World map"], 100, 22, "ghost", function() wmUser = "world" o:Hide() if o.toggle then o.toggle:Show() end end)
     o.back:SetPoint("TOPRIGHT", -12, -9)
     -- kleiner Knopf, um von der Weltkarte zurueck zur Dungeonkarte zu kommen
     local t
-    t = K.Button(host, L["Dungeonkarte"], 110, 22, "primary", function() wmUser = nil o:Show() t:Hide() end)
+    t = K.Button(host, L["Dungeon map"], 110, 22, "primary", function() wmUser = nil o:Show() t:Hide() end)
     t:SetPoint("TOPRIGHT", host, "TOPRIGHT", -12, -9)
     t:SetFrameLevel(host:GetFrameLevel() + 210)
     t:Hide()
     o.toggle = t
     o:SetScript("OnSizeChanged", function(self) if self.d then self:Draw() end end)
     -- Position festlegen: Klick auf die Stelle, an der du gerade stehst (2x an verschiedenen Orten genuegt)
-    o.cal = K.Button(o, L["Hier bin ich ..."], 120, 22, "ghost", function()
+    o.cal = K.Button(o, L["I am here ..."], 120, 22, "ghost", function()
         o.calMode = not o.calMode
-        o.cal:SetLabel(o.calMode and L["Jetzt auf deinen Ort klicken"] or L["Hier bin ich ..."])
+        o.cal:SetLabel(o.calMode and L["Now click your spot"] or L["I am here ..."])
     end)
     o.cal:SetWidth(190)
     o.cal:SetPoint("RIGHT", o.back, "LEFT", -6, 0)
     o.cal:Hide()   -- Einmessen per Klick entfernt (nur noch automatisch beim Pluendern von Bossen)
-    o.cal:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Position auf der Karte"], L["Die Dungeonkarten haben keine Koordinaten. Klick hier, dann auf die Stelle der Karte, an der du gerade stehst. An zwei weit entfernten Stellen gemacht, zeigt Oasis dich und deine Gruppe auf der Karte - fuer die ganze Gilde."] }) end)
+    o.cal:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Position on the map"], L["Dungeon maps have no coordinates. Click here, then on the spot where you stand. Done at two distant spots, Oasis shows you and your group on the map - for the whole guild."] }) end)
     o.cal:SetScript("OnLeave", function() GameTooltip:Hide() end)
     o.canvas:EnableMouse(true)
     o.canvas:SetScript("OnMouseUp", function(self, btn)
         if btn == "RightButton" and ns.InstancePos then ns.InstancePos.ClickSet(self, o.calKey) return end
         if not o.calMode or btn ~= "LeftButton" then return end
         o.calMode = false
-        o.cal:SetLabel(L["Hier bin ich ..."])
+        o.cal:SetLabel(L["I am here ..."])
         local r = self.lrect
         if not r then return end
         local cx, cy = GetCursorPosition()
@@ -3999,7 +3999,7 @@ local function buildOverlay()
                     b = K.Button(self, "", 90, 20, "ghost")
                     self.floors[i] = b
                 end
-                local name = (md.floorNames and md.floorNames[i]) or (L["Ebene %d"]):format(i)
+                local name = (md.floorNames and md.floorNames[i]) or (L["Level %d"]):format(i)
                 b:SetLabel(name)
                 b:SetWidth(math.max(70, (b.label:GetStringWidth() or 60) + 18))
                 b:ClearAllPoints()
@@ -4084,7 +4084,7 @@ end
 function DP.AddSample(key, px, py)
     if not key or not px or px < 0 or px > 1 or py < 0 or py > 1 then return end
     local wx, wy = myWorld()
-    if not wx then ns.print(L["Hier liefert das Spiel keine Position."]) return end
+    if not wx then ns.print(L["The game gives no position here."]) return end
     local rec = Store.Get("mapcal", "cal:" .. key)
     local samples = {}
     if rec and not rec.del and type(rec.s) == "string" then
@@ -4098,8 +4098,8 @@ function DP.AddSample(key, px, py)
     for _, sm in ipairs(samples) do parts[#parts + 1] = ("%.1f,%.1f,%.4f,%.4f;"):format(sm[1], sm[2], sm[3], sm[4]) end
     Store.Put("mapcal", { id = "cal:" .. key, s = table.concat(parts) })
     DP.cache = nil
-    ns.print(#samples >= 2 and L["Bezugspunkt gespeichert - deine Position wird jetzt angezeigt."]
-        or L["Bezugspunkt gespeichert - noch einen an einer weit entfernten Stelle setzen."])
+    ns.print(#samples >= 2 and L["Reference point saved - your position is shown now."]
+        or L["Reference point saved - set another one far away."])
 end
 -- lineare Umrechnung je Achse (kleinste Quadrate): Karte = a * Welt + b; pruefen, welche Weltachse passt
 local function fit(xs, ys)
@@ -4281,7 +4281,7 @@ function DP.DrawDots(o)
         local px, py = toMap(tr, wx, wy)
         local _, cls = UnitClass("player")
         local cr, cg, cb = ns.classColor(cls)
-        dot(px, py, cr or 1, cg or 1, cb or 1, L["Du"], true)
+        dot(px, py, cr or 1, cg or 1, cb or 1, L["You"], true)
     end
     local now = GetTime()
     for name, p in pairs(DP.party) do
@@ -4335,7 +4335,7 @@ end)
 -- Test: was liefert das Spiel hier an Positionsdaten? (/oasis kartentest oder Knopf "Test" auf der Dungeonkarte)
 function DP.Test()
     local function v(x) if x == nil then return "nil" end if ns.safe(x) == nil then return "|cffff5a4a(geheim)|r" end return tostring(x) end
-    ns.print("|cffe8b44a" .. L["Karten-Test"] .. "|r")
+    ns.print("|cffe8b44a" .. L["Map test"] .. "|r")
     local inInst, kind = IsInInstance()
     local name, _, _, _, _, _, _, instID = GetInstanceInfo()
     ns.print("  Instanz: " .. v(inInst) .. " / " .. v(kind) .. "  " .. v(name) .. "  ID " .. v(instID))
@@ -4399,12 +4399,12 @@ local function dgSettings(det, y)
     end
     local lbl = K.Text(det, 12, C.muted)
     lbl:SetPoint("TOPLEFT", 14, y - 6)
-    lbl:SetText(L["Start-Filter"])
+    lbl:SetText(L["Start filter"])
     det.dgFilter = K.Segments(det, {
-        { key = "auto", text = L["Automatisch"] },
-        { key = "mine", text = L["Fuer mich"] },
-        { key = "open", text = L["Alle offenen"] },
-        { key = "all", text = L["Alle"] },
+        { key = "auto", text = L["Automatic"] },
+        { key = "mine", text = L["For me"] },
+        { key = "open", text = L["All open"] },
+        { key = "all", text = L["All"] },
     }, function(k)
         ns.db.settings.dgFilter = (k ~= "auto") and k or nil
         if D.ResetFilter then D.ResetFilter() end
@@ -4417,17 +4417,17 @@ local function dgSettings(det, y)
     local n1 = K.Text(det, 11, C.dim)
     n1:SetPoint("TOPLEFT", 14, y)
     n1:SetWidth(600)
-    n1:SetText(L["Automatisch: passende Dungeons fuer dein Level, sonst alle offenen."])
+    n1:SetText(L["Automatic: dungeons fitting your level, otherwise all open ones."])
     y = y - 34
     local h = K.Text(det, 12, C.muted)
     h:SetPoint("TOPLEFT", 14, y)
-    h:SetText("|cffe8b44a" .. L["Beute-Liste"] .. "|r")
+    h:SetText("|cffe8b44a" .. L["Loot list"] .. "|r")
     y = y - 28
-    tg("Upgrades in der Beute hervorheben", "dgUpgradeGlow", "Gegenstaende, die besser sind als deine angelegte Ausruestung, leuchten gruen (mit +%) - auch als Zaehler auf den Dungeon-Karten", refreshDg)
-    tg("Passende Beute als fuer dich markieren", "dgForYou", "Gruener Hinweis bei Gegenstaenden mit Werten fuer deine Klasse", refreshDg)
-    tg("Unpassende Beute abdunkeln", "dgDimUnfit", "Ruestung und Waffen, die deine Klasse nicht tragen kann, werden blasser", refreshDg)
-    tg("Gesucht, Gildenbank und Besitz anzeigen", "dgMarkers", "Zusatz unter jedem Gegenstand: wer ihn sucht, wie viele in der Gildenbank liegen, ob du ihn hast", refreshDg)
-    tg("Beute im Hintergrund vorladen", "dgPreload", "Nach dem Einloggen werden alle Dungeon-Beutelisten nach und nach gelesen (fuer Tooltips) - wirkt ab dem naechsten Login")
+    tg("Highlight upgrades in the loot", "dgUpgradeGlow", "Items better than your equipped gear glow green (with +%) - also counted on the dungeon cards", refreshDg)
+    tg("Mark fitting loot as for you", "dgForYou", "Green tag on items with stats for your class", refreshDg)
+    tg("Dim unusable loot", "dgDimUnfit", "Armor and weapons your class cannot use are faded", refreshDg)
+    tg("Show wanted, guild bank and owned", "dgMarkers", "Extra line under each item: who wants it, how many are in the guild bank, whether you own it", refreshDg)
+    tg("Preload loot in the background", "dgPreload", "After login all dungeon loot lists are read bit by bit (for tooltips) - takes effect on next login")
     return y - 10
 end
 ns.Listen("LOGIN", function()

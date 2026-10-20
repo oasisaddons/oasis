@@ -83,24 +83,24 @@ local REWARDS = { 15, 25, 40, 55 }
 -- Challenge-Katalog
 ------------------------------------------------------------------------
 local CATS = {
-    { key = "class", name = "Klassen", icon = "Interface\\Icons\\Achievement_Level_60" },
-    { key = "prof", name = "Berufe", icon = "Interface\\Icons\\Trade_BlackSmithing" },
+    { key = "class", name = "Classes", icon = "Interface\\Icons\\Achievement_Level_60" },
+    { key = "prof", name = "Professions", icon = "Interface\\Icons\\Trade_BlackSmithing" },
     { key = "dungeon", name = "Dungeons", icon = "Interface\\Icons\\INV_Misc_Lantern_01" },
-    { key = "raid", name = "Schlachtzuege", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01" },
+    { key = "raid", name = "Raids", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01" },
     { key = "pvp", name = "PvP", icon = "Interface\\Icons\\INV_BannerPVP_02" },
-    { key = "adv", name = "Abenteuer", icon = "Interface\\Icons\\INV_Misc_Map_01" },
+    { key = "adv", name = "Adventure", icon = "Interface\\Icons\\INV_Misc_Map_01" },
 }
 Legacy.CATS = CATS
 local CAT_BY = {}
 for _, c in ipairs(CATS) do CAT_BY[c.key] = c end
 
 local CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
-local CLASS_DE = { WARRIOR = "Krieger", PALADIN = "Paladin", HUNTER = "Jaeger", ROGUE = "Schurke", PRIEST = "Priester",
-    SHAMAN = "Schamane", MAGE = "Magier", WARLOCK = "Hexenmeister", DRUID = "Druide" }
-local CLASS_TIERS = { { 25, "Novize" }, { 45, "Erfahren" }, { 60, "Meister" } }
-local PROFS = { { 171, "Alchemie" }, { 164, "Schmiedekunst" }, { 333, "Verzauberkunst" }, { 202, "Ingenieurskunst" },
-    { 165, "Lederverarbeitung" }, { 197, "Schneiderei" } }
-local PROF_TIERS = { { 150, "Geselle" }, { 225, "Experte" }, { 300, "Fachmann" } }
+local CLASS_DE = { WARRIOR = "Warrior", PALADIN = "Paladin", HUNTER = "Hunter", ROGUE = "Rogue", PRIEST = "Priest",
+    SHAMAN = "Shaman", MAGE = "Mage", WARLOCK = "Warlock", DRUID = "Druid" }
+local CLASS_TIERS = { { 25, "Novice" }, { 45, "Experienced" }, { 60, "Master" } }
+local PROFS = { { 171, "Alchemy" }, { 164, "Blacksmithing" }, { 333, "Enchanting" }, { 202, "Engineering" },
+    { 165, "Leatherworking" }, { 197, "Tailoring" } }
+local PROF_TIERS = { { 150, "Journeyman" }, { 225, "Expert" }, { 300, "Artisan" } }
 -- Ehrfuerchtig: Horde- und Allianz-Fraktion je Schlachtfeld
 local REPS = { av = { 729, 730 }, ab = { 510, 509 }, wsg = { 889, 890 } }
 
@@ -133,24 +133,24 @@ local function build()
             add({ id = "p:" .. pf[1] .. ":" .. t[1], cat = "prof", auto = true, prof = pf[1], profName = pf[2], skill = t[1], tier = t[2] })
         end
     end
-    add({ id = "d:1", cat = "dungeon", name = "Novizen-Hoehlenforscher", req = "Alle Dungeons der Stufe 15-25 abschliessen", lo = 15, hi = 25 })
-    add({ id = "d:2", cat = "dungeon", name = "Erfahrener Hoehlenforscher", req = "Alle Dungeons der Stufe 26-45 abschliessen", lo = 26, hi = 45 })
-    add({ id = "d:3", cat = "dungeon", name = "Meister-Hoehlenforscher", req = "Alle Dungeons der Stufe 46-60 abschliessen", lo = 46, hi = 60 })
-    add({ id = "r:ony", cat = "raid", name = "Eroberer des Horts", req = "Onyxia besiegen" })
-    add({ id = "r:deeps", cat = "raid", name = "Eroberer der Tiefen", req = "Alle 8 Bosse der Barrow Deeps besiegen" })
-    add({ id = "r:hyjal", cat = "raid", name = "Eroberer der Wildnis", req = "Alle 13 Bosse am Hyjalgipfel besiegen" })
+    add({ id = "d:1", cat = "dungeon", name = "Novice Spelunker", req = "Complete all level 15–25 dungeons", lo = 15, hi = 25 })
+    add({ id = "d:2", cat = "dungeon", name = "Experienced Spelunker", req = "Complete all level 26–45 dungeons", lo = 26, hi = 45 })
+    add({ id = "d:3", cat = "dungeon", name = "Master Spelunker", req = "Complete all level 46–60 dungeons", lo = 46, hi = 60 })
+    add({ id = "r:ony", cat = "raid", name = "Conqueror of the Lair", req = "Defeat Onyxia" })
+    add({ id = "r:deeps", cat = "raid", name = "Conqueror of the Deeps", req = "Defeat all 8 bosses of the Barrow Deeps" })
+    add({ id = "r:hyjal", cat = "raid", name = "Conqueror of the Wilds", req = "Defeat all 13 bosses of Hyjal Summit" })
     for _, r in ipairs({ 3, 7, 10, 13, 14 }) do
-        add({ id = "pr:" .. r, cat = "pvp", name = (L["PvP-Rang %d"]):format(r), req = (L["Ehrenrang %d erreichen"]):format(r), rank = r })
+        add({ id = "pr:" .. r, cat = "pvp", name = (L["PvP Rank %d"]):format(r), req = (L["Reach honor rank %d"]):format(r), rank = r })
     end
-    add({ id = "pe:av", cat = "pvp", name = "Ehrfuerchtig: Alteractal", req = "Ehrfuerchtig beim Alteractal-Ruf (Frostwolf / Sturmlanzen)", rep = "av" })
-    add({ id = "pe:ab", cat = "pvp", name = "Ehrfuerchtig: Arathibecken", req = "Ehrfuerchtig beim Arathibecken-Ruf (Entweihten / Liga von Arathor)", rep = "ab" })
-    add({ id = "pe:wsg", cat = "pvp", name = "Ehrfuerchtig: Kriegshymnenschlucht", req = "Ehrfuerchtig beim Kriegshymnen-Ruf (Vorhut / Silberschwingen)", rep = "wsg" })
-    add({ id = "pe:dsi", cat = "pvp", name = "Ehrfuerchtig: Dunkelspeerinseln", req = "Ehrfuerchtig beim Ruf des Schlachtfelds Dunkelspeerinseln" })
+    add({ id = "pe:av", cat = "pvp", name = "Exalted: Alterac Valley", req = "Exalted with the Alterac Valley faction (Frostwolf / Stormpike)", rep = "av" })
+    add({ id = "pe:ab", cat = "pvp", name = "Exalted: Arathi Basin", req = "Exalted with the Arathi Basin faction (Defilers / League of Arathor)", rep = "ab" })
+    add({ id = "pe:wsg", cat = "pvp", name = "Exalted: Warsong Gulch", req = "Exalted with the Warsong faction (Outriders / Silverwing)", rep = "wsg" })
+    add({ id = "pe:dsi", cat = "pvp", name = "Exalted: Darkspear Islands", req = "Exalted with the Darkspear Islands battleground faction" })
     for _, w in ipairs({ 4, 7, 10 }) do
-        add({ id = "pf:" .. w, cat = "pvp", name = (L["Ehrenfeld: Woche %d"]):format(w), req = (L["Woche %d der Ehrenfeld-Saison abschliessen"]):format(w) })
+        add({ id = "pf:" .. w, cat = "pvp", name = (L["Field of Honor: Week %d"]):format(w), req = (L["Complete week %d of the Field of Honor season"]):format(w) })
     end
-    add({ id = "a:explorer", cat = "adv", name = "Entdecker", req = "Die ganze Weltkarte mit einem Charakter erkunden" })
-    add({ id = "a:valthalak", cat = "adv", name = "Lord Valthalak zur Ruhe gebettet", req = "Questreihe von 'Ein ernstes Angebot' bis 'Das Beste kommt zum Schluss'" })
+    add({ id = "a:explorer", cat = "adv", name = "Explorer", req = "Explore the entire world map on one character" })
+    add({ id = "a:valthalak", cat = "adv", name = "Lord Valthalak Laid to Rest", req = "Quest chain from \"An Earnest Proposition\" to \"Saving the Best for Last\"" })
 end
 build()
 
@@ -160,8 +160,8 @@ function Legacy.Name(e)
     return L[e.name]
 end
 function Legacy.Req(e)
-    if e.cat == "class" then return (L["Einen %s auf Stufe %d bringen"]):format(className(e.class), e.lvl) end
-    if e.cat == "prof" then return (L["%s auf %d bringen"]):format(profName(e.prof, e.profName), e.skill) end
+    if e.cat == "class" then return (L["Get a %s to level %d"]):format(className(e.class), e.lvl) end
+    if e.cat == "prof" then return (L["Raise %s to %d"]):format(profName(e.prof, e.profName), e.skill) end
     return L[e.req]
 end
 function Legacy.Icon(e)
@@ -486,22 +486,22 @@ end)
 ------------------------------------------------------------------------
 -- Gilden-Optionen (Gildenleitung): Mitstreiter-Suche an die Gilde erlauben, Mindestabstand gegen Spam
 ns.GuildOption({ page = "legacy", key = "lgLfg", default = true,
-    label = "Mitstreiter-Suche an die Gilde", desc = "Spieler duerfen fuer eine Legacy-Challenge Mitstreiter in der Gilde suchen (Hinweis bei allen)." })
+    label = "Partner search to the guild", desc = "Players may look for partners in the guild for a Legacy challenge (notice for everyone)." })
 ns.GuildOption({ page = "legacy", key = "lgCd", default = 0, min = 0, max = 30, step = 1,
-    label = "Mindestabstand zwischen Suchen", desc = "So viele Minuten muss ein Spieler warten, bevor er die naechste Suche sendet (0 = keine Grenze).",
-    fmt = function(v) return v == 0 and L["aus"] or (v .. " Min") end })
+    label = "Minimum gap between searches", desc = "Minutes a player must wait before sending the next search (0 = no limit).",
+    fmt = function(v) return v == 0 and L["off"] or (v .. " min") end })
 local lastSearch = 0
 function Legacy.Search(e, note)
-    if ns.GuildOpt("lgLfg") == false then ns.print(L["Die Gildenleitung hat die Mitstreiter-Suche abgeschaltet."]) return end
+    if ns.GuildOpt("lgLfg") == false then ns.print(L["The guild leadership has disabled the partner search."]) return end
     local cd = (tonumber(ns.GuildOpt("lgCd")) or 0) * 60
     if cd > 0 and GetTime() - lastSearch < cd then
-        ns.print((L["Naechste Suche erst in %d Min moeglich."]):format(math.ceil((cd - (GetTime() - lastSearch)) / 60)))
+        ns.print((L["Next search possible in %d min."]):format(math.ceil((cd - (GetTime() - lastSearch)) / 60)))
         return
     end
     lastSearch = GetTime()
     Comm.Guild("LFG", e.id, Legacy.Name(e), note or "")
     Legacy.searches[ns.me()] = { name = ns.me(), id = e.id, activity = Legacy.Name(e), note = note or "", t = ns.now() }
-    K.Toast(L["Suche gesendet"], Legacy.Name(e), C.violet)
+    K.Toast(L["Search sent"], Legacy.Name(e), C.violet)
     ns.RefreshPage("legacy")
 end
 Comm.On("LFG", function(sender, _, id, name, note)
@@ -515,7 +515,7 @@ Comm.On("LFG", function(sender, _, id, name, note)
     Legacy.searches[sender] = { name = sender, id = id, activity = name, note = note, t = ns.now() }
     if not ((Legacy.Mine())[id]) or ns.db.settings.legacyLfgDone then
         ns.Sound.Next("group")
-        K.Toast(ns.displayName(sender) .. L[" sucht Mitstreiter"], (name or "?") .. ((note or "") ~= "" and (" - " .. note) or ""), C.violet,
+        K.Toast(ns.displayName(sender) .. L[" is looking for help"], (name or "?") .. ((note or "") ~= "" and (" - " .. note) or ""), C.violet,
             function() ns.Whisper(sender) end)
     end
     ns.RefreshPage("legacy")
@@ -533,32 +533,32 @@ end
 -- Perk-Planer (21 Perks in 3 Baeumen, max. 16 Punkte je Charakter)
 ------------------------------------------------------------------------
 local TREES = {
-    { key = "adv", name = "Abenteuer", perks = {
-        { "wellrested", "Gut ausgeruht", 5, 0, nil, "Erholungs-EP bauen sich 20 % schneller auf, Obergrenze +20 %." },
-        { "thrill", "Nervenkitzel", 5, 0, nil, "Nicht-triviale Kills stellen 1-5 % max. Leben/Mana ueber 10 s wieder her (nicht in Dungeons, Raids, PvP)." },
-        { "quickdead", "Die Schnellen und die Toten", 2, 0, nil, "Als Geist 10 % schneller; nach der Wiederbelebung 2 Min. kostenlose Zauber." },
-        { "alert", "Hellwach", 2, 5, nil, "Getarnte Ziele 1-2 Stufen hoeher entdecken (nicht auf Schlachtfeldern)." },
-        { "talented", "Talentiert", 5, 5, "wellrested", "Talentpunkte ab Stufe 5-9 statt 10 (hoechstens 51)." },
-        { "fieldguide", "Feldhandbuch", 3, 5, nil, "Abklingzeit der Lager-Funktion 8-25 % kuerzer." },
-        { "fieldmed", "Feldmedizin", 2, 5, nil, "'Kuerzlich verbunden' 5-10 s kuerzer (nicht in Dungeons, Raids, PvP)." },
-        { "flier", "Vielflieger", 1, 10, "fieldguide", "Flugrouten 50 % billiger, Flugtiere 20 % schneller." },
+    { key = "adv", name = "Adventure", perks = {
+        { "wellrested", "Well Rested", 5, 0, nil, "Rested XP builds up 20% faster, cap +20%." },
+        { "thrill", "Thrill of Adventure", 5, 0, nil, "Non-trivial kills restore 1–5% max health/mana over 10 s (not in dungeons, raids, PvP)." },
+        { "quickdead", "The Quick and the Dead", 2, 0, nil, "10% faster while dead; free casts for 2 min after resurrection." },
+        { "alert", "High Alert", 2, 5, nil, "Detect stealthed targets 1–2 levels higher (not in battlegrounds)." },
+        { "talented", "Talented", 5, 5, "wellrested", "Gain talent points from level 5–9 instead of 10 (max 51)." },
+        { "fieldguide", "Field Guide", 3, 5, nil, "Camping cooldown 8–25% shorter." },
+        { "fieldmed", "Field Medicine", 2, 5, nil, "Recently Bandaged 5–10 s shorter (not in dungeons, raids, PvP)." },
+        { "flier", "Frequent Flier", 1, 10, "fieldguide", "Flight paths 50% cheaper, flights 20% faster." },
     } },
-    { key = "prof", name = "Berufe", perks = {
-        { "overtime", "Ueberstunden", 5, 0, nil, "Chance auf Fertigkeitsaufstieg +4-20 %." },
-        { "harvest", "Reiche Ernte", 5, 0, nil, "20-100 % mehr seltene Materialien beim Sammeln." },
-        { "chef", "Meisterkoch", 5, 5, nil, "Kochrezepte: 10-50 % Chance auf ein Extra-Ergebnis." },
-        { "barter", "Feilschen", 2, 5, nil, "Alle Haendlerwaren 5-10 % billiger." },
-        { "bonus", "Leistungsbonus", 3, 5, "harvest", "Versorgungskisten: 15 % Chance auf doppelte Haendlergunst." },
-        { "lure", "Koedermeister", 2, 5, nil, "Mit aktivem Koeder 25-50 % Chance auf einen Extra-Fisch." },
-        { "study", "Hingebungsvolles Studium", 1, 10, "barter", "Niedrigster Beruf +1 - oder 2-4 Elementaressenzen, wenn alle maximal." },
+    { key = "prof", name = "Professions", perks = {
+        { "overtime", "Working Overtime", 5, 0, nil, "Skill-up chance +4–20%." },
+        { "harvest", "Bountiful Harvest", 5, 0, nil, "20–100% more scarce materials when gathering." },
+        { "chef", "Master Chef", 5, 5, nil, "Cooking: 10–50% chance for an extra result." },
+        { "barter", "Bartering", 2, 5, nil, "All vendor items 5–10% cheaper." },
+        { "bonus", "Performance Bonus", 3, 5, "harvest", "Supply crates: 15% chance for double Merchant's Favor." },
+        { "lure", "Luremaster", 2, 5, nil, "With a lure active, 25–50% chance for an extra fish." },
+        { "study", "Dedicated Study", 1, 10, "barter", "Lowest tradeskill +1 – or 2–4 Elemental Essences if all are maxed." },
     } },
-    { key = "res", name = "Einfallsreichtum", perks = {
-        { "gourmand", "Feinschmecker", 3, 0, nil, "Essens-Buffs halten 33-100 % laenger." },
-        { "reinforce", "Verstaerkt", 5, 0, nil, "8-40 % weniger Haltbarkeitsverlust beim Tod." },
-        { "honor", "Fuer die Ehre", 5, 5, nil, "2-10 % mehr Ehrenpunkte." },
-        { "permanence", "Bestaendigkeit", 2, 5, "gourmand", "Gruppen-/Schlachtzugs-Buffs und Lager-Boni halten 50-100 % laenger." },
-        { "diplomat", "Diplomat", 5, 5, nil, "Rufgewinn +2-10 %." },
-        { "reagent", "Reagenzien-Oekonomie", 1, 10, "quickdead", "Klassenfaehigkeiten brauchen keine Haendler-Reagenzien; Lager-Stufe 1 kostenlos." },
+    { key = "res", name = "Resourcefulness", perks = {
+        { "gourmand", "Gourmand", 3, 0, nil, "Food buffs last 33–100% longer." },
+        { "reinforce", "Reinforce", 5, 0, nil, "8–40% less durability loss on death." },
+        { "honor", "For Great Honor", 5, 5, nil, "2–10% more honor points." },
+        { "permanence", "Permanence", 2, 5, "gourmand", "Party/raid buffs and camp benefits last 50–100% longer." },
+        { "diplomat", "Diplomat", 5, 5, nil, "Reputation gains +2–10%." },
+        { "reagent", "Reagent Economy", 1, 10, "quickdead", "Class abilities need no vendor reagents; camping tier 1 free." },
     } },
 }
 Legacy.TREES = TREES
@@ -592,8 +592,8 @@ function Legacy.PlanSpent(tree)
 end
 function Legacy.PerkAvailable(key)
     local pk = PERK[key]
-    if Legacy.PlanSpent(pk.tree) - (plan()[key] or 0) < pk.gate then return false, (L["braucht %d Punkte im Baum"]):format(pk.gate) end
-    if pk.req and (plan()[pk.req] or 0) < 1 then return false, (L["braucht %s"]):format(L[PERK[pk.req].name]) end
+    if Legacy.PlanSpent(pk.tree) - (plan()[key] or 0) < pk.gate then return false, (L["needs %d points in tree"]):format(pk.gate) end
+    if pk.req and (plan()[pk.req] or 0) < 1 then return false, (L["needs %s"]):format(L[PERK[pk.req].name]) end
     return true
 end
 function Legacy.PerkChange(key, delta)
@@ -646,9 +646,9 @@ function Legacy.SeedDemo()
         local n = ns.fullName(who)
         Legacy.searches[n] = { name = n, id = id, activity = Legacy.Name(Legacy.byId[id]), note = note, t = ns.now() - ago, demo = true }
     end
-    s("Tavira", "r:deeps", L["Heute 20 Uhr, Treffpunkt Orgrimmar"], 300)
-    s("Mokrash", "d:2", L["Mir fehlen noch Uldaman und Zul'Farrak"], 900)
-    s("Nakira", "pe:ab", L["Arathibecken-Ruf farmen, wer kommt mit?"], 1500)
+    s("Tavira", "r:deeps", L["Tonight 8 pm, meet in Orgrimmar"], 300)
+    s("Mokrash", "d:2", L["I still need Uldaman and Zul'Farrak"], 900)
+    s("Nakira", "pe:ab", L["Farming Arathi Basin rep, who's in?"], 1500)
     dirty()
     ns.RefreshPage("legacy")
 end
@@ -672,8 +672,8 @@ local CAT_COLOR = { class = C.amber, prof = C.mint, dungeon = C.blue, raid = C.a
 local TREE_COLOR = { adv = C.mint, prof = C.amber, res = C.blue }
 local MEDAL = { { 1, 0.80, 0.25 }, { 0.80, 0.82, 0.88 }, { 0.85, 0.54, 0.30 } }
 -- wohin ein Knopf in den Details fuehrt (nur wenn die Seite existiert und sichtbar ist)
-local GOTO = { dungeon = { "groups", "Gruppe finden" }, raid = { "raid", "Raid-Termine" }, pvp = { "groups", "Gruppe finden" },
-    adv = { "map", "Zur Karte" } }
+local GOTO = { dungeon = { "groups", "Find a group" }, raid = { "raid", "Raid dates" }, pvp = { "groups", "Find a group" },
+    adv = { "map", "To the map" } }
 
 local function animOn() return not (ns.db and ns.db.settings and ns.db.settings.noAnim) end
 local function catColor(key) return CAT_COLOR[key] or C.accent end
@@ -761,7 +761,7 @@ local function names(list, max)
         t[#t + 1] = (ns.Radar.IsOnline(n) and ns.Radar.Colored(n)) or ("|cff777777" .. ns.displayName(n) .. "|r")
     end
     if #list > (max or 12) then t[#t + 1] = "|cff888888+" .. (#list - (max or 12)) .. "|r" end
-    return #t > 0 and table.concat(t, ", ") or L["|cff666666niemand|r"]
+    return #t > 0 and table.concat(t, ", ") or L["|cff666666nobody|r"]
 end
 
 local function guildRanking()
@@ -832,10 +832,10 @@ end
 local function stepText(e, x)
     if x and x.cur and x.max then
         local left = math.max(0, x.max - x.cur)
-        if e.cat == "class" then return (L["%s: noch %d Stufen bis %d"]):format(ns.displayName(x.who or ns.me()), left, x.max) end
-        if e.cat == "prof" then return (L["%s: noch %d Punkte bis %d"]):format(ns.displayName(x.who or ns.me()), left, x.max) end
+        if e.cat == "class" then return (L["%s: %d more levels to %d"]):format(ns.displayName(x.who or ns.me()), left, x.max) end
+        if e.cat == "prof" then return (L["%s: %d more points to %d"]):format(ns.displayName(x.who or ns.me()), left, x.max) end
     end
-    if x and x.text then return L["Fortschritt: "] .. x.text end
+    if x and x.text then return L["Progress: "] .. x.text end
     return Legacy.Req(e)
 end
 
@@ -1211,24 +1211,24 @@ end
 
 ns.RegisterPage({
     key = "legacy", title = "Legacy", order = 4,
-    sub = "Legacy-Challenges der Gilde: wer hat was, wer braucht noch was - und gemeinsam erledigen",
+    sub = "The guild's Legacy challenges: who has what, who still needs what – and do them together",
     build = function(p)
         p.fresh = true
         p:HookScript("OnShow", function(self) self.fresh = true end)
         p.tabs = makeTabs(p, {
-            { key = "home", text = L["Uebersicht"], icon = "legacy" },
+            { key = "home", text = L["Overview"], icon = "legacy" },
             { key = "list", text = L["Challenges"], icon = "checklist" },
-            { key = "perks", text = L["Perk-Planer"], icon = "stats" },
-            { key = "guild", text = L["Gilde"], icon = "groups" },
+            { key = "perks", text = L["Perk planner"], icon = "stats" },
+            { key = "guild", text = L["Guild"], icon = "groups" },
         }, function(k)
             if view ~= k then view = k p.fresh = true end
             ns.RefreshPage("legacy")
         end)
         p.tabs:SetPoint("TOPLEFT", 0, 0)
         p.tabs:SetPoint("RIGHT", p, "RIGHT", -140, 0)
-        local open = K.Button(p, L["Legacy-Fenster"], 130, hasGlass() and 34 or 44, "ghost", function()
+        local open = K.Button(p, L["Legacy window"], 130, hasGlass() and 34 or 44, "ghost", function()
             if not Legacy.OpenBlizzard() then
-                ns.print(L["Blizzards Legacy-Fenster wurde in diesem Client nicht gefunden - oeffne es bitte ueber das Spielmenue."])
+                ns.print(L["Blizzard's legacy window was not found in this client - please open it from the game menu."])
                 if Legacy.lastTried and #Legacy.lastTried > 0 then ns.print("  |cff888888" .. table.concat(Legacy.lastTried, ", ", 1, math.min(8, #Legacy.lastTried)) .. "|r") end
             end
             ns.After(1, Legacy.Scan)
@@ -1236,7 +1236,7 @@ ns.RegisterPage({
         open:SetPoint("TOPRIGHT", 0, 0)
         calmBtn(open)
         open.label:SetFont(K.FONT, 12, "")
-        open:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Legacy-Fenster"], L["Oeffnet Blizzards eigenes Legacy-Fenster und liest danach deinen Stand neu ein."] }) end)
+        open:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Legacy window"], L["Opens Blizzard's own Legacy window and re-reads your progress afterwards."] }) end)
         open:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
         local function content()
@@ -1254,10 +1254,10 @@ ns.RegisterPage({
         p.home = home
         p.tiles = {}
         local tdefs = {
-            { ICON .. "legacy", "Deine Legacy-Punkte", C.accent, function() goView(p, "list") end },
-            { ICON .. "stats", "Einsetzbar je Charakter", C.amber, function() goView(p, "perks") end },
-            { ICON .. "badges", "Naechste Sammelbelohnung", C.mint, function() goView(p, "list") end },
-            { ICON .. "groups", "Gilde gesamt", C.blue, function() goView(p, "guild") end },
+            { ICON .. "legacy", "Your Legacy points", C.accent, function() goView(p, "list") end },
+            { ICON .. "stats", "Spendable per character", C.amber, function() goView(p, "perks") end },
+            { ICON .. "badges", "Next collection reward", C.mint, function() goView(p, "list") end },
+            { ICON .. "groups", "Guild total", C.blue, function() goView(p, "guild") end },
         }
         for i, d in ipairs(tdefs) do
             local t = hudTile(home, d[1], L[d[2]], d[3], d[4])
@@ -1271,9 +1271,9 @@ ns.RegisterPage({
             p.tiles[i] = t
         end
 
-        p.catHead = gameHead(home, L["Deine Kategorien"], C.amber)
+        p.catHead = gameHead(home, L["Your categories"], C.amber)
         p.catHint = K.Text(home, 11, C.dim, "RIGHT")
-        p.catHint:SetText(L["Klick zeigt die Challenges"])
+        p.catHint:SetText(L["Click shows the challenges"])
         p.catCards = {}
         for i, c in ipairs(CATS) do
             local col = catColor(c.key)
@@ -1305,14 +1305,14 @@ ns.RegisterPage({
             b:SetScript("OnClick", function(self) openCategory(p, self.key, self.complete) end)
             b:HookScript("OnEnter", function(self)
                 if hasGlass() then glass(self, nil, { col[1], col[2], col[3], 0.40 }) else K.SetBorderColor(self, col) end
-                local lines = { K.hex(col) .. L[c.name] .. "|r", (L["%d von %d geschafft"]):format(self.nHave or 0, self.nTot or 0) }
+                local lines = { K.hex(col) .. L[c.name] .. "|r", (L["%d of %d done"]):format(self.nHave or 0, self.nTot or 0) }
                 if self.open and #self.open > 0 then
                     lines[#lines + 1] = " "
-                    lines[#lines + 1] = "|cff888888" .. L["Als Naechstes offen:"] .. "|r"
+                    lines[#lines + 1] = "|cff888888" .. L["Open next:"] .. "|r"
                     for j = 1, math.min(4, #self.open) do lines[#lines + 1] = "· " .. self.open[j] end
                 end
                 lines[#lines + 1] = " "
-                lines[#lines + 1] = "|cff666666" .. L["Klick: Challenges dieser Kategorie"] .. "|r"
+                lines[#lines + 1] = "|cff666666" .. L["Click: challenges in this category"] .. "|r"
                 K.ShowTip(self, lines)
             end)
             b:HookScript("OnLeave", function(self) if hasGlass() then glass(self, nil, nil) else K.SetBorderColor(self, C.line) end GameTooltip:Hide() end)
@@ -1320,7 +1320,7 @@ ns.RegisterPage({
         end
 
         -- Naechste Schritte
-        local np = box(home, L["Naechste Schritte"], C.amber)
+        local np = box(home, L["Next steps"], C.amber)
         p.nextBox = np
         p.nextList = K.List(np, 46, function(l)
             local r = K.Row(l)
@@ -1350,7 +1350,7 @@ ns.RegisterPage({
             r:SetScript("OnEnter", function(self)
                 local x = self.item
                 if not x then return end
-                K.ShowTip(self, { Legacy.Name(x.e), "|cffc8c8c8" .. Legacy.Req(x.e) .. "|r", " ", "|cff666666" .. L["Klick: Details"] .. "|r" })
+                K.ShowTip(self, { Legacy.Name(x.e), "|cffc8c8c8" .. Legacy.Req(x.e) .. "|r", " ", "|cff666666" .. L["Click: details"] .. "|r" })
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
             return r
@@ -1361,36 +1361,36 @@ ns.RegisterPage({
             setIcon(r.icon, e)
             r.cols.name:SetText(Legacy.Name(e))
             if x.kind == "search" then
-                r.cols.step:SetText(K.hex(C.violet) .. (L["%s sucht Mitstreiter"]):format(ns.displayName(x.s.name)) .. "|r"
+                r.cols.step:SetText(K.hex(C.violet) .. (L["%s is looking for companions"]):format(ns.displayName(x.s.name)) .. "|r"
                     .. ((x.s.note or "") ~= "" and ("  |cff999999" .. x.s.note .. "|r") or ""))
             elseif x.kind == "prog" then
                 r.cols.step:SetText(stepText(e, x.x))
             else
-                r.cols.step:SetText(x.need > 0 and (L["%d aus der Gilde brauchen es auch"]):format(x.need) or Legacy.Req(e))
+                r.cols.step:SetText(x.need > 0 and (L["%d guildies need it too"]):format(x.need) or Legacy.Req(e))
             end
             r.bar:SetShown(x.f ~= nil)
             if x.f then fillBar(r.bar, x.f, p.animRows, 0.15 + idx * 0.05) end
-            r.reward:SetText(p.rewardNext and ("+1 · " .. L["Belohnung!"]) or L["+1 Punkt"])
+            r.reward:SetText(p.rewardNext and ("+1 · " .. L["Reward!"]) or L["+1 point"])
             r.reward:SetTextColor(unpack(p.rewardNext and C.amber or C.dim))
             if x.kind == "search" then
-                r.btn:SetLabel(L["Anfluestern"])
+                r.btn:SetLabel(L["Whisper"])
                 r.btn:SetScript("OnClick", function() ns.Whisper(x.s.name) end)
             elseif e.auto then
-                r.btn:SetLabel(L["Ansehen"])
+                r.btn:SetLabel(L["View"])
                 r.btn:SetScript("OnClick", function() openChallenge(p, e.id) end)
             else
-                r.btn:SetLabel(L["Mitstreiter"])
+                r.btn:SetLabel(L["Companions"])
                 r.btn:SetScript("OnClick", function() Legacy.Search(e) end)
             end
         end)
         p.nextList:SetPoint("TOPLEFT", 4, -34)
         p.nextList:SetPoint("BOTTOMRIGHT", -4, 6)
         p.nextList.empty:SetText("")
-        p.nextEmpty = emptyState(np, ICON .. "legacy", C.mint, L["Alles erledigt - stark! Hilf jetzt anderen in der Gilde."],
-            { { "Gilde ansehen", function() goView(p, "guild") end } })
+        p.nextEmpty = emptyState(np, ICON .. "legacy", C.mint, L["All done – great! Now help others in the guild."],
+            { { "View guild", function() goView(p, "guild") end } })
 
         -- Rangliste
-        local rp = box(home, L["Rangliste der Gilde"], C.blue)
+        local rp = box(home, L["Guild ranking"], C.blue)
         p.rankBox = rp
         p.rankList = K.List(rp, 30, function(l)
             local r = K.Row(l)
@@ -1410,7 +1410,7 @@ ns.RegisterPage({
                 local x = self.item
                 if not x then return end
                 local _, total = catCounts({})
-                local lines = { ns.Radar.Colored(x.main) .. "  |cff888888#" .. x.rank .. "|r", (L["%d von %d Legacy-Punkten"]):format(x.n, #Legacy.list), " " }
+                local lines = { ns.Radar.Colored(x.main) .. "  |cff888888#" .. x.rank .. "|r", (L["%d of %d Legacy points"]):format(x.n, #Legacy.list), " " }
                 for _, c in ipairs(CATS) do
                     local h, t = x.have[c.key] or 0, total[c.key] or 0
                     lines[#lines + 1] = K.hex(catColor(c.key)) .. L[c.name] .. "|r  " .. h .. "/" .. t
@@ -1420,10 +1420,10 @@ ns.RegisterPage({
                     local ahead = 0
                     for id in pairs(x.done) do if Legacy.byId[id] and not mine[id] then ahead = ahead + 1 end end
                     lines[#lines + 1] = " "
-                    lines[#lines + 1] = ahead > 0 and (K.hex(C.mint) .. (L["Kann dir bei %d Challenges helfen"]):format(ahead) .. "|r") or "|cff888888" .. L["Hat nichts, was dir fehlt"] .. "|r"
+                    lines[#lines + 1] = ahead > 0 and (K.hex(C.mint) .. (L["Can help you with %d challenges"]):format(ahead) .. "|r") or "|cff888888" .. L["Has nothing you are missing"] .. "|r"
                 end
-                lines[#lines + 1] = (L["%d Charaktere"]):format(#x.chars)
-                lines[#lines + 1] = "|cff666666" .. L["Klick: Profil"] .. "|r"
+                lines[#lines + 1] = (L["%d characters"]):format(#x.chars)
+                lines[#lines + 1] = "|cff666666" .. L["Click: profile"] .. "|r"
                 K.ShowTip(self, lines)
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1431,7 +1431,7 @@ ns.RegisterPage({
         end, function(r, x, idx)
             r:SetMedal(x.rank)
             setPort(r, x.main)
-            r.cols.who:SetText(ns.Radar.Colored(x.main) .. (x.me and (" |cff888888(" .. L["du"] .. ")|r") or ""))
+            r.cols.who:SetText(ns.Radar.Colored(x.main) .. (x.me and (" |cff888888(" .. L["you"] .. ")|r") or ""))
             local top = p.rankTop or 1
             barColor(r.bar, x.me and C.mint or (MEDAL[x.rank] or C.accent2))
             fillBar(r.bar, x.n / math.max(1, top), p.animRows, 0.1 + idx * 0.06)
@@ -1440,10 +1440,10 @@ ns.RegisterPage({
         end)
         p.rankList:SetPoint("TOPLEFT", 4, -34)
         p.rankList:SetPoint("BOTTOMRIGHT", -4, 6)
-        p.rankList.empty:SetText(L["Noch keine Daten aus der Gilde."])
+        p.rankList.empty:SetText(L["No guild data yet."])
 
         -- Mitstreiter gesucht
-        local sp = box(home, L["Mitstreiter gesucht"], C.violet)
+        local sp = box(home, L["Looking for companions"], C.violet)
         p.searchBox = sp
         p.searchList = K.List(sp, 36, function(l)
             local r = K.Row(l)
@@ -1455,7 +1455,7 @@ ns.RegisterPage({
             r.cols.meta = K.Text(r, 11, C.muted)
             r.cols.meta:SetPoint("BOTTOMLEFT", 42, 4)
             r.cols.meta:SetPoint("RIGHT", r, "RIGHT", -96, 0)
-            r.wh = calmBtn(K.Button(r, L["Anfluestern"], 84, 22, "ghost"))
+            r.wh = calmBtn(K.Button(r, L["Whisper"], 84, 22, "ghost"))
             r.wh:SetPoint("RIGHT", -6, 0)
             r.wh.label:SetFont(K.FONT, 11, "")
             r:SetScript("OnClick", function(self) if self.item and Legacy.byId[self.item.id] then openChallenge(p, self.item.id) end end)
@@ -1466,19 +1466,19 @@ ns.RegisterPage({
             r.cols.what:SetText(s.activity or "?")
             r.cols.meta:SetText(ns.Radar.Colored(s.name) .. "  |cff777777" .. ns.ago(s.t) .. "|r" .. ((s.note or "") ~= "" and ("  |cff999999" .. s.note .. "|r") or ""))
             local me = ns.isMe(s.name)
-            r.wh:SetLabel(me and L["Deine Suche"] or L["Anfluestern"])
+            r.wh:SetLabel(me and L["Your search"] or L["Whisper"])
             r.wh:SetEnabledState(not me)
             r.wh:SetScript("OnClick", function() ns.Whisper(s.name) end)
         end)
         p.searchList:SetPoint("TOPLEFT", 4, -34)
         p.searchList:SetPoint("BOTTOMRIGHT", -4, 6)
         p.searchList.empty:SetText("")
-        p.searchEmpty = emptyState(sp, ICON .. "groups", C.violet, L["Gerade sucht niemand Mitstreiter. Starte selbst eine Suche!"],
-            { { "Challenge waehlen", function()
+        p.searchEmpty = emptyState(sp, ICON .. "groups", C.violet, L["Nobody is looking for companions right now. Start a search yourself!"],
+            { { "Pick a challenge", function()
                 stateFilter = "open" p.stateSeg:Select("open")
                 forMe = true if p.meChip then p.meChip:Refresh() end
                 goView(p, "list")
-            end }, { "Gemeinsam angehen", function() goView(p, "guild") end } })
+            end }, { "Tackle together", function() goView(p, "guild") end } })
 
         function home:Layout()
             local w, h = self:GetWidth() or 0, self:GetHeight() or 0
@@ -1520,24 +1520,24 @@ ns.RegisterPage({
         ----------------------------------------------------------------
         local list = content()
         p.list = list
-        local citems = { { key = "all", text = L["Alle"] } }
+        local citems = { { key = "all", text = L["All"] } }
         for _, c in ipairs(CATS) do citems[#citems + 1] = { key = c.key, text = L[c.name] } end
         p.catSeg = K.Segments(list, citems, function(k) catFilter = k selected = nil ns.RefreshPage("legacy") end)
         p.catSeg:SetPoint("TOPLEFT", 0, 0)
         pillSegs(p.catSeg)
         p.catSeg:Select(catFilter)
-        p.stateSeg = K.Segments(list, { { key = "open", text = L["Offen"] }, { key = "done", text = L["Erledigt"] }, { key = "all", text = L["Alle"] } }, function(k)
+        p.stateSeg = K.Segments(list, { { key = "open", text = L["Open"] }, { key = "done", text = L["Done"] }, { key = "all", text = L["All"] } }, function(k)
             stateFilter = k
             ns.RefreshPage("legacy")
         end)
         p.stateSeg:SetPoint("TOPLEFT", 0, -32)
         pillSegs(p.stateSeg)
         p.stateSeg:Select(stateFilter)
-        p.meChip = K.Chip(list, L["Fuer mich"], C.mint, function() return forMe end, function(v) forMe = v ns.RefreshPage("legacy") end, 92)
+        p.meChip = K.Chip(list, L["For me"], C.mint, function() return forMe end, function(v) forMe = v ns.RefreshPage("legacy") end, 92)
         p.meChip:SetPoint("LEFT", p.stateSeg, "RIGHT", 10, 0)
-        p.meChip:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Fuer mich"], L["Nur offene Challenges, die zu deinen Charakteren passen (Klassen, Berufe) - plus alle Dungeons, Raids, PvP und Abenteuer."] }) end)
+        p.meChip:HookScript("OnEnter", function(self) K.ShowTip(self, { L["For me"], L["Only open challenges that fit your characters (classes, professions) – plus all dungeons, raids, PvP and adventure."] }) end)
         p.meChip:HookScript("OnLeave", function() GameTooltip:Hide() end)
-        p.searchBoxIn = K.Input(list, 150, L["Suchen ..."], function(t) search = (t or ""):lower() ns.RefreshPage("legacy") end)
+        p.searchBoxIn = K.Input(list, 150, L["Search ..."], function(t) search = (t or ""):lower() ns.RefreshPage("legacy") end)
         p.searchBoxIn:SetPoint("LEFT", p.meChip, "RIGHT", 10, 0)
         p.hits = K.Text(list, 11, C.dim)
         p.hits:SetPoint("LEFT", p.searchBoxIn, "RIGHT", 10, 0)
@@ -1571,8 +1571,8 @@ ns.RegisterPage({
                 local x = self.item
                 if not x then return end
                 local lines = { Legacy.Name(x.e), "|cffc8c8c8" .. Legacy.Req(x.e) .. "|r", " ",
-                    (L["%d aus der Gilde haben es, %d brauchen es"]):format(x.have, x.total - x.have) }
-                if x.lfg then lines[#lines + 1] = K.hex(C.violet) .. (L["%s sucht Mitstreiter"]):format(ns.displayName(x.lfg.name)) .. "|r" end
+                    (L["%d in the guild have it, %d need it"]):format(x.have, x.total - x.have) }
+                if x.lfg then lines[#lines + 1] = K.hex(C.violet) .. (L["%s is looking for companions"]):format(ns.displayName(x.lfg.name)) .. "|r" end
                 K.ShowTip(self, lines)
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1588,20 +1588,20 @@ ns.RegisterPage({
             local label = Legacy.Name(e)
             r.cols.name:SetText(x.done and ("|cffb8b8b8" .. label .. "|r") or label)
             if x.done then
-                r.cols.sub:SetText(K.hex(C.mint) .. L["Geschafft"] .. "|r" .. (type(x.done) == "string" and ("  |cff777777" .. (L["mit %s"]):format(ns.displayName(x.done)) .. "|r") or ""))
+                r.cols.sub:SetText(K.hex(C.mint) .. L["Done"] .. "|r" .. (type(x.done) == "string" and ("  |cff777777" .. (L["with %s"]):format(ns.displayName(x.done)) .. "|r") or ""))
             elseif x.prog then
                 r.cols.sub:SetText(K.hex(C.amber) .. stepText(e, x.prog) .. "|r")
             else
                 r.cols.sub:SetText(Legacy.Req(e))
             end
             r.bar:Set(x.total > 0 and x.have / x.total or 0)
-            r.cols.cnt:SetText((L["%d/%d Gilde"]):format(x.have, x.total))
+            r.cols.cnt:SetText((L["%d/%d guild"]):format(x.have, x.total))
             r.lfg:SetShown(x.lfg ~= nil)
             r.sel:SetShown(selected == e.id)
         end)
         p.cl:SetPoint("TOPLEFT", 0, -66)
         p.cl:SetPoint("BOTTOMLEFT")
-        p.cl.empty:SetText(L["Keine Challenge passt zum Filter."])
+        p.cl.empty:SetText(L["No challenge matches the filter."])
 
         -- Details
         local d = K.Panel(list, C.panel)
@@ -1639,11 +1639,11 @@ ns.RegisterPage({
         p.dBar:SetPoint("TOPLEFT", p.dStatus, "BOTTOMLEFT", 0, -6)
         p.dBar:SetPoint("RIGHT", d, "RIGHT", -14, 0)
         barColor(p.dBar, C.amber)
-        p.dMark = K.Button(dc, L["Als erledigt markieren"], 160, 22, "ghost", function()
+        p.dMark = K.Button(dc, L["Mark as done"], 160, 22, "ghost", function()
             if selected then
                 local on = not Legacy.IsManual(selected)
                 Legacy.SetManual(selected, on)
-                if on then K.Toast(L["Abgehakt"], Legacy.Name(Legacy.byId[selected]), C.mint) end
+                if on then K.Toast(L["Checked off"], Legacy.Name(Legacy.byId[selected]), C.mint) end
             end
         end)
         p.dMark:SetPoint("TOPLEFT", p.dBar, "BOTTOMLEFT", 0, -10)
@@ -1657,10 +1657,10 @@ ns.RegisterPage({
         p.dBody:SetPoint("BOTTOM", d, "BOTTOM", 0, 84)
         p.dBody:SetWordWrap(true)
         p.dBody:SetJustifyV("TOP")
-        p.dNote = K.Input(dc, 240, L["Notiz zur Suche (Zeit, Treffpunkt) ..."])
+        p.dNote = K.Input(dc, 240, L["Note for the search (time, meeting point) ..."])
         p.dNote:SetPoint("BOTTOMLEFT", 14, 46)
         p.dNote:SetPoint("RIGHT", d, "RIGHT", -14, 0)
-        p.dBtn = K.Button(dc, L["Mitstreiter suchen"], 240, 26, "primary", function()
+        p.dBtn = K.Button(dc, L["Find partners"], 240, 26, "primary", function()
             local e = selected and Legacy.byId[selected]
             if e then
                 Legacy.Search(e, p.dNote:GetText())
@@ -1670,8 +1670,8 @@ ns.RegisterPage({
         p.dBtn:SetPoint("BOTTOMLEFT", 14, 12)
         calmBtn(p.dBtn, true)
         p.dBtn:SetPoint("RIGHT", d, "RIGHT", -14, 0)
-        p.dEmpty = emptyState(d, ICON .. "checklist", C.amber, L["Keine Challenge gewaehlt - Filter lockern oder eine Zeile anklicken."],
-            { { "Filter zuruecksetzen", function()
+        p.dEmpty = emptyState(d, ICON .. "checklist", C.amber, L["No challenge selected – loosen the filters or click a row."],
+            { { "Reset filters", function()
                 catFilter, stateFilter, search, forMe = "all", "all", "", false
                 p.catSeg:Select("all") p.stateSeg:Select("all") p.searchBoxIn:SetText("") p.meChip:Refresh()
                 ns.RefreshPage("legacy")
@@ -1710,7 +1710,7 @@ ns.RegisterPage({
         p.pVal:SetPoint("TOPLEFT", 14, -9)
         p.pLab = K.Text(bud, 11, C.muted)
         p.pLab:SetPoint("BOTTOMLEFT", 14, 9)
-        p.pLab:SetText(L["Punkte verplant"])
+        p.pLab:SetText(L["Points planned"])
         p.segs = {}
         for i = 1, MAX_SPEND do
             local s = bud:CreateTexture(nil, "ARTWORK")
@@ -1720,7 +1720,7 @@ ns.RegisterPage({
         end
         p.pLegend = K.Text(bud, 10, C.dim)
         p.pWarn = K.Text(bud, 11, C.amber, "RIGHT")
-        p.pReset = K.Button(bud, L["Plan leeren"], 96, 22, "ghost", function()
+        p.pReset = K.Button(bud, L["Clear plan"], 96, 22, "ghost", function()
             ns.db.settings.legacyPlan = {}
             ns.RefreshPage("legacy")
         end)
@@ -1746,7 +1746,7 @@ ns.RegisterPage({
             p.pWarn:SetPoint("BOTTOMRIGHT", -12, 9)
             p.pWarn:SetPoint("LEFT", self, "LEFT", x0 + 250, 0)
         end)
-        p.pLegend:SetText(K.hex(C.accent) .. L["geplant"] .. "|r   |cff555555·|r   " .. K.hex(C.amber) .. L["fehlt noch"] .. "|r   |cff555555·|r   |cff4c8a68" .. L["frei"] .. "|r")
+        p.pLegend:SetText(K.hex(C.accent) .. L["planned"] .. "|r   |cff555555·|r   " .. K.hex(C.amber) .. L["missing"] .. "|r   |cff555555·|r   |cff4c8a68" .. L["open"] .. "|r")
 
         local function perkClick(key, delta, tile)
             local pk = PERK[key]
@@ -1825,11 +1825,11 @@ ns.RegisterPage({
                 r.minus:SetPoint("RIGHT", -(28 + pk[3] * 9), 0)
                 r:SetScript("OnEnter", function(self)
                     local x = PERK[self.key]
-                    local lines = { K.hex(tc) .. L[x.name] .. "|r", (L["Stufen: %d"]):format(x.max), " ", "|cffc8c8c8" .. L[x.desc] .. "|r" }
-                    if x.gate > 0 then lines[#lines + 1] = " " lines[#lines + 1] = (L["braucht %d Punkte im Baum"]):format(x.gate) end
-                    if x.req then lines[#lines + 1] = (L["braucht %s"]):format(L[PERK[x.req].name]) end
+                    local lines = { K.hex(tc) .. L[x.name] .. "|r", (L["Ranks: %d"]):format(x.max), " ", "|cffc8c8c8" .. L[x.desc] .. "|r" }
+                    if x.gate > 0 then lines[#lines + 1] = " " lines[#lines + 1] = (L["needs %d points in tree"]):format(x.gate) end
+                    if x.req then lines[#lines + 1] = (L["needs %s"]):format(L[PERK[x.req].name]) end
                     lines[#lines + 1] = " "
-                    lines[#lines + 1] = "|cff666666" .. L["Klick: +1  ·  Shift-Klick: -1"] .. "|r"
+                    lines[#lines + 1] = "|cff666666" .. L["Click: +1  ·  Shift-click: -1"] .. "|r"
                     K.ShowTip(self, lines)
                 end)
                 r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1856,9 +1856,9 @@ ns.RegisterPage({
         p.guild = guild
         p.gTiles = {}
         local gdefs = {
-            { ICON .. "groups", "Spieler mit Legacy", C.blue },
-            { ICON .. "stats", "Gilden-Schnitt", C.amber },
-            { ICON .. "legacy", "Dein Platz", C.accent },
+            { ICON .. "groups", "Players with Legacy", C.blue },
+            { ICON .. "stats", "Guild average", C.amber },
+            { ICON .. "legacy", "Your rank", C.accent },
         }
         for i, dd in ipairs(gdefs) do
             local t = hudTile(guild, dd[1], L[dd[2]], dd[3])
@@ -1866,7 +1866,7 @@ ns.RegisterPage({
             dress(t, dd[3])
             p.gTiles[i] = t
         end
-        local gt = box(guild, L["Wer ist wie weit"], C.blue)
+        local gt = box(guild, L["Who is how far"], C.blue)
         p.gTable = gt
         p.gHead = {}
         for i, c in ipairs(CATS) do
@@ -1911,7 +1911,7 @@ ns.RegisterPage({
                     local lvl = charInfo(c)
                     t[#t + 1] = ns.Radar.Colored(c) .. (lvl > 0 and ("  |cff888888" .. lvl .. "|r") or "")
                 end
-                local lines = { ns.displayName(x.main) .. " - " .. (L["%d Legacy-Punkte"]):format(x.n) }
+                local lines = { ns.displayName(x.main) .. " - " .. (L["%d Legacy points"]):format(x.n) }
                 if not x.me then
                     local mine = Legacy.Mine()
                     local give, take = {}, 0
@@ -1920,16 +1920,16 @@ ns.RegisterPage({
                     table.sort(give)
                     lines[#lines + 1] = " "
                     if #give > 0 then
-                        lines[#lines + 1] = K.hex(C.mint) .. L["Hat, was dir fehlt:"] .. "|r"
+                        lines[#lines + 1] = K.hex(C.mint) .. L["Has what you are missing:"] .. "|r"
                         for j = 1, math.min(5, #give) do lines[#lines + 1] = "· " .. give[j] end
                         if #give > 5 then lines[#lines + 1] = "|cff888888+" .. (#give - 5) .. "|r" end
                     end
-                    if take > 0 then lines[#lines + 1] = K.hex(C.amber) .. (L["Du hast %d, die ihm/ihr fehlen"]):format(take) .. "|r" end
+                    if take > 0 then lines[#lines + 1] = K.hex(C.amber) .. (L["You have %d they are missing"]):format(take) .. "|r" end
                 end
                 lines[#lines + 1] = " "
-                lines[#lines + 1] = L["Charaktere:"]
+                lines[#lines + 1] = L["Characters:"]
                 lines[#lines + 1] = table.concat(t, "\n")
-                lines[#lines + 1] = "|cff666666" .. L["Klick: Profil"] .. "|r"
+                lines[#lines + 1] = "|cff666666" .. L["Click: profile"] .. "|r"
                 K.ShowTip(self, lines)
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1957,9 +1957,9 @@ ns.RegisterPage({
         end)
         p.gl:SetPoint("TOPLEFT", 4, -50)
         p.gl:SetPoint("BOTTOMRIGHT", -4, 6)
-        p.gl.empty:SetText(L["Noch keine Daten aus der Gilde."])
+        p.gl.empty:SetText(L["No guild data yet."])
 
-        local gs = box(guild, L["Gemeinsam angehen"], C.mint)
+        local gs = box(guild, L["Tackle together"], C.mint)
         p.gSug = gs
         p.sugList = K.List(gs, 48, function(l)
             local r = K.Row(l)
@@ -1981,18 +1981,18 @@ ns.RegisterPage({
             local e = x.e
             setIcon(r.icon, e)
             r.cols.name:SetText(Legacy.Name(e))
-            r.cols.meta:SetText(K.hex(C.amber) .. (L["%d brauchen es"]):format(x.need) .. "|r  |cff777777·|r  " .. K.hex(C.mint) .. (L["%d haben es"]):format(x.have) .. "|r")
+            r.cols.meta:SetText(K.hex(C.amber) .. (L["%d need it"]):format(x.need) .. "|r  |cff777777·|r  " .. K.hex(C.mint) .. (L["%d have it"]):format(x.have) .. "|r")
             if x.mine then
-                r.btn:SetLabel(L["Helfen"])
-                r.btn:SetScript("OnClick", function() Legacy.Search(e, L["Ich helfe mit - wer braucht es noch?"]) end)
+                r.btn:SetLabel(L["Help"])
+                r.btn:SetScript("OnClick", function() Legacy.Search(e, L["I'll help – who still needs it?"]) end)
             else
-                r.btn:SetLabel(L["Suchen"])
+                r.btn:SetLabel(L["Search"])
                 r.btn:SetScript("OnClick", function() Legacy.Search(e) end)
             end
         end)
         p.sugList:SetPoint("TOPLEFT", 4, -34)
         p.sugList:SetPoint("BOTTOMRIGHT", -4, 6)
-        p.sugList.empty:SetText(L["Gerade gibt es nichts gemeinsam zu tun."])
+        p.sugList.empty:SetText(L["Nothing to tackle together right now."])
 
         function guild:Layout()
             local w, h = self:GetWidth() or 0, self:GetHeight() or 0
@@ -2063,23 +2063,23 @@ ns.RegisterPage({
             local t = p.tiles
             t[1]:Set(mine, "/ " .. nl, mine / nl, anim)
             t[1].ring:SetProgress(mine / nl, anim, 0.1)
-            t[1].tip = { L["Deine Legacy-Punkte"], (L["%d von %d Challenges geschafft (ganzer Account)"]):format(mine, nl), "|cff666666" .. L["Klick: alle Challenges"] .. "|r" }
+            t[1].tip = { L["Your Legacy points"], (L["%d of %d challenges done (whole account)"]):format(mine, nl), "|cff666666" .. L["Click: all challenges"] .. "|r" }
             local have0 = math.max(mine, ns.LegacyGrant())
             t[2]:Set(math.min(have0, MAX_SPEND), "/ " .. MAX_SPEND, math.min(have0, MAX_SPEND) / MAX_SPEND, anim)
-            t[2].tip = { L["Einsetzbar je Charakter"], (L["Jeder Charakter kann bis zu %d Punkte in Perks stecken."]):format(MAX_SPEND), "|cff666666" .. L["Klick: Perk-Planer"] .. "|r" }
+            t[2].tip = { L["Spendable per character"], (L["Each character can spend up to %d points on perks."]):format(MAX_SPEND), "|cff666666" .. L["Click: perk planner"] .. "|r" }
             if nr then
-                t[3]:Set(nr - mine, (L["noch bis %d"]):format(nr), (mine - pr) / math.max(1, nr - pr), anim)
+                t[3]:Set(nr - mine, (L["left until %d"]):format(nr), (mine - pr) / math.max(1, nr - pr), anim)
                 t[3].ring:SetProgress((mine - pr) / math.max(1, nr - pr), anim, 0.2)
-                t[3].tip = { L["Naechste Sammelbelohnung"], (L["Bei %d Punkten gibt es die naechste Belohnung - dir fehlen noch %d."]):format(nr, nr - mine) }
+                t[3].tip = { L["Next collection reward"], (L["The next reward comes at %d points – you need %d more."]):format(nr, nr - mine) }
             else
-                t[3]:Set(L["alle"], L["erhalten"], 1, anim)
+                t[3]:Set(L["everyone"], L["earned"], 1, anim)
                 t[3].ring:SetProgress(1, anim, 0.2)
-                t[3].tip = { L["Naechste Sammelbelohnung"], L["Alle Sammelbelohnungen erhalten."] }
+                t[3].tip = { L["Next collection reward"], L["All collection rewards earned."] }
             end
-            t[4]:Set(sum, (L["%d Spieler"]):format(#rank), nil, anim)
-            t[4].tip = { L["Gilde gesamt"], (L["%d Legacy-Punkte bei %d Spielern"]):format(sum, #rank) }
-            if myRank then t[4].tip[#t[4].tip + 1] = (L["Du bist auf Platz %d"]):format(myRank) end
-            t[4].tip[#t[4].tip + 1] = "|cff666666" .. L["Klick: Gilde"] .. "|r"
+            t[4]:Set(sum, (L["%d players"]):format(#rank), nil, anim)
+            t[4].tip = { L["Guild total"], (L["%d Legacy points across %d players"]):format(sum, #rank) }
+            if myRank then t[4].tip[#t[4].tip + 1] = (L["You are rank %d"]):format(myRank) end
+            t[4].tip[#t[4].tip + 1] = "|cff666666" .. L["Click: guild"] .. "|r"
             if fresh then
                 for i, tile in ipairs(t) do rise(tile, (i - 1) * 0.06) sweep(tile, 0.5 + i * 0.12) end
             end
@@ -2141,12 +2141,12 @@ ns.RegisterPage({
             end
             p.lastSpent = spent
             if spent > have then
-                p.pWarn:SetText(K.hex(C.amber) .. (L["Plan ueber Budget: noch %d Punkte sammeln"]):format(spent - have) .. "|r")
+                p.pWarn:SetText(K.hex(C.amber) .. (L["Plan over budget: collect %d more points"]):format(spent - have) .. "|r")
             elseif spent >= MAX_SPEND then
-                p.pWarn:SetText(K.hex(C.mint) .. L["Alle 16 Punkte verplant"] .. "|r")
+                p.pWarn:SetText(K.hex(C.mint) .. L["All 16 points planned"] .. "|r")
             else
-                p.pWarn:SetText("|cff888888" .. (L["Du hast %d Legacy-Punkte"]):format(have) .. (granted > mine and (" (" .. L["Beta-Geschenk"] .. ")") or "")
-                    .. "  ·  " .. (L["noch %d frei"]):format(MAX_SPEND - spent) .. "  ·  " .. L["Respec ab 1 Punkt, stuendlich 1 guenstiger"] .. "|r")
+                p.pWarn:SetText("|cff888888" .. (L["You have %d Legacy points"]):format(have) .. (granted > mine and (" (" .. L["beta gift"] .. ")") or "")
+                    .. "  ·  " .. (L["%d still free"]):format(MAX_SPEND - spent) .. "  ·  " .. L["respec from 1 point, 1 cheaper every hour"] .. "|r")
             end
             local pl = plan()
             for ti, t in ipairs(TREES) do
@@ -2154,7 +2154,7 @@ ns.RegisterPage({
                 local ts = Legacy.PlanSpent(t.key)
                 local tmax = 0
                 for _, pk in ipairs(t.perks) do tmax = tmax + pk[3] end
-                tp.head:SetCount((L["%d Punkte"]):format(ts))
+                tp.head:SetCount((L["%d points"]):format(ts))
                 tp.spentBar:Set(ts / math.max(1, MAX_SPEND))
                 local tc = TREE_COLOR[t.key] or C.accent
                 for ri, r in ipairs(tp.rows) do
@@ -2166,7 +2166,7 @@ ns.RegisterPage({
                     end
                     r.name:SetTextColor(unpack((ok or rk > 0) and C.text or C.dim))
                     if r.ic then r.ic:SetDesaturated(not (ok or rk > 0)) end
-                    r.info:SetText(ok and (pk.gate > 0 and ("|cff666666" .. (L["ab %d Punkten"]):format(pk.gate) .. "|r") or ("|cff666666" .. (L["Stufen: %d"]):format(pk.max) .. "|r")) or ("|cffa05050" .. why .. "|r"))
+                    r.info:SetText(ok and (pk.gate > 0 and ("|cff666666" .. (L["from %d points"]):format(pk.gate) .. "|r") or ("|cff666666" .. (L["Ranks: %d"]):format(pk.max) .. "|r")) or ("|cffa05050" .. why .. "|r"))
                     if hasGlass() then
                         glass(r, rk > 0 and { tc[1], tc[2], tc[3], 0.10 } or { 1, 1, 1, 0.03 }, rk > 0 and { tc[1], tc[2], tc[3], 0.35 } or { 1, 1, 1, 0.07 })
                     else
@@ -2199,10 +2199,10 @@ ns.RegisterPage({
             for _, x in ipairs(rank) do sum = sum + x.n if x.me then myRank = x.rank end if x.n > 0 then active = active + 1 end end
             local anim = fresh and animOn()
             local g = p.gTiles
-            g[1]:Set(active, (L["von %d"]):format(#rank), #rank > 0 and active / #rank or 0, anim)
+            g[1]:Set(active, (L["of %d"]):format(#rank), #rank > 0 and active / #rank or 0, anim)
             local avg = #rank > 0 and math.floor(sum / #rank * 10 + 0.5) / 10 or 0
-            g[2]:Set(avg, L["Punkte je Spieler"], avg / nl, false)
-            g[3]:Set(myRank or "–", myRank and (L["von %d"]):format(#rank) or "", myRank and (#rank - myRank + 1) / math.max(1, #rank) or nil, anim and myRank ~= nil)
+            g[2]:Set(avg, L["points per player"], avg / nl, false)
+            g[3]:Set(myRank or "–", myRank and (L["of %d"]):format(#rank) or "", myRank and (#rank - myRank + 1) / math.max(1, #rank) or nil, anim and myRank ~= nil)
             if fresh then for i, tile in ipairs(g) do rise(tile, (i - 1) * 0.06) sweep(tile, 0.4 + i * 0.12) end end
             p.gTable.head:SetCount(#rank)
             p.gl:SetData(rank)
@@ -2231,7 +2231,7 @@ ns.RegisterPage({
             end
         end
         p.cl:SetData(rows)
-        p.hits:SetText((L["%d Treffer"]):format(#rows))
+        p.hits:SetText((L["%d matches"]):format(#rows))
         if fresh then rise(p.cl, 0.05) rise(p.detail, 0.12) end
         local e
         for _, x in ipairs(rows) do if x.e.id == selected then e = x.e end end
@@ -2255,24 +2255,24 @@ ns.RegisterPage({
         p.dGlow:SetVertexColor(cc[1], cc[2], cc[3])
         setIcon(p.dIcon, e)
         p.dName:SetText(Legacy.Name(e))
-        p.dCat:SetText(K.hex(cc) .. L[CAT_BY[e.cat].name] .. "|r  ·  " .. L["1 Legacy-Punkt"] .. "  ·  " .. (e.auto and L["wird automatisch erkannt"] or L["zum Abhaken"]))
+        p.dCat:SetText(K.hex(cc) .. L[CAT_BY[e.cat].name] .. "|r  ·  " .. L["1 Legacy point"] .. "  ·  " .. (e.auto and L["detected automatically"] or L["check off yourself"]))
         p.dReq:SetText(Legacy.Req(e))
         local who = done[e.id]
         local x = prog[e.id]
         if who then
             local manual = Legacy.IsManual(e.id)
-            p.dStatus:SetText(K.hex(C.mint) .. L["Geschafft"] .. "|r" .. (type(who) == "string" and ("  |cff888888" .. (L["mit %s"]):format(ns.displayName(who)) .. "|r") or "")
-                .. (manual and ("  |cff888888(" .. L["abgehakt"] .. ")|r") or ""))
+            p.dStatus:SetText(K.hex(C.mint) .. L["Done"] .. "|r" .. (type(who) == "string" and ("  |cff888888" .. (L["with %s"]):format(ns.displayName(who)) .. "|r") or "")
+                .. (manual and ("  |cff888888(" .. L["checked off"] .. ")|r") or ""))
             barColor(p.dBar, C.mint)
             p.dBar:Set(1)
             p.dMark:SetShown(manual)
-            p.dMark:SetLabel(L["Haken entfernen"])
+            p.dMark:SetLabel(L["Remove check"])
         else
-            p.dStatus:SetText(x and (K.hex(C.amber) .. stepText(e, x) .. "|r") or ("|cff888888" .. L["Noch offen"] .. "|r"))
+            p.dStatus:SetText(x and (K.hex(C.amber) .. stepText(e, x) .. "|r") or ("|cff888888" .. L["Still open"] .. "|r"))
             barColor(p.dBar, C.amber)
             fillBar(p.dBar, x and x.f or 0, p.lastBarSel ~= e.id, 0.05)
             p.dMark:SetShown(not e.auto)
-            p.dMark:SetLabel(L["Als erledigt markieren"])
+            p.dMark:SetLabel(L["Mark as done"])
         end
         p.lastBarSel = e.id
         local go = GOTO[e.cat]
@@ -2289,24 +2289,24 @@ ns.RegisterPage({
         local lines = {}
         local dl = dungeonList(e)
         if #dl > 0 then
-            lines[#lines + 1] = "|cff888888" .. L["Dungeons in diesem Stufenbereich:"] .. "|r"
+            lines[#lines + 1] = "|cff888888" .. L["Dungeons in this level range:"] .. "|r"
             lines[#lines + 1] = table.concat(dl, ", ")
             lines[#lines + 1] = " "
         end
         local h, n = Legacy.WhoDone(e.id)
-        lines[#lines + 1] = K.hex(C.mint) .. L["Geschafft ("] .. #h .. ")|r"
+        lines[#lines + 1] = K.hex(C.mint) .. L["Done ("] .. #h .. ")|r"
         lines[#lines + 1] = names(h)
         lines[#lines + 1] = " "
-        lines[#lines + 1] = K.hex(C.amber) .. L["Braucht noch ("] .. #n .. ")|r"
+        lines[#lines + 1] = K.hex(C.amber) .. L["Still needs ("] .. #n .. ")|r"
         lines[#lines + 1] = names(n)
         local s = searching[e.id]
         if s then
             lines[#lines + 1] = " "
-            lines[#lines + 1] = K.hex(C.violet) .. (L["%s sucht Mitstreiter"]):format(ns.displayName(s.name)) .. "|r" .. ((s.note or "") ~= "" and ("  |cff999999" .. s.note .. "|r") or "")
+            lines[#lines + 1] = K.hex(C.violet) .. (L["%s is looking for companions"]):format(ns.displayName(s.name)) .. "|r" .. ((s.note or "") ~= "" and ("  |cff999999" .. s.note .. "|r") or "")
         end
         p.dBody:SetText(table.concat(lines, "\n"))
         p.dBtn:SetEnabledState(not who)
-        p.dBtn:SetLabel(who and L["Schon geschafft"] or L["Mitstreiter suchen"])
+        p.dBtn:SetLabel(who and L["Already done"] or L["Find partners"])
     end,
 })
 

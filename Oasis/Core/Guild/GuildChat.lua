@@ -460,7 +460,7 @@ end
 -- /oa discordcheck: Felder der letzten Gildennachrichten aus der Gemeinschaft zum Kopieren (Fehlersuche Kennzeichen)
 ns.slash.discordcheck = function()
     local clubId, streams = guildStreams()
-    if not clubId then ns.print(L["Keine Gilden-Gemeinschaft gefunden."]) return end
+    if not clubId then ns.print(L["No guild community found."]) return end
     -- 0.6.291: alle Bereiche lesen (der neueste war oft leer) und immer sagen, was gefunden wurde
     local out = { "Gemeinschaft " .. tostring(clubId) .. ", Kanaele " .. #streams }
     for _, st in ipairs(streams) do
@@ -679,20 +679,20 @@ end)
 ns.slash.chatimport = function()
     GC.RequestClubHistory()
     local n = GC.ImportClub()
-    ns.print((L["Aus dem WoW-Chat uebernommen: %d Nachrichten"]):format(n))
+    ns.print((L["Imported from WoW chat: %d messages"]):format(n))
     -- 0.6.293: Aufschluesselung, damit man sieht, warum etwas fehlt
     local st = GC.lastImport
-    if st and st.noClub then ns.print(L["Keine Gilden-Gemeinschaft gefunden."])
+    if st and st.noClub then ns.print(L["No guild community found."])
     elseif st then
-        ns.print((L["Gelesen %d aus %d Kanaelen - neu %d, schon da %d, ohne Name %d, ohne Text %d, geloescht %d, abgelehnt %d"]):format(
+        ns.print((L["Read %d from %d channels – new %d, already there %d, no name %d, no text %d, deleted %d, rejected %d"]):format(
             st.read, st.streams, st.added, st.known, st.noName, st.noText, st.destroyed, st.rejected))
-        if (st.repaired or 0) > 0 then ns.print((L["Repariert/aufgefrischt (sonst ausgeblendet): %d"]):format(st.repaired)) end
+        if (st.repaired or 0) > 0 then ns.print((L["Repaired/refreshed (otherwise hidden): %d"]):format(st.repaired)) end
         local t = {}
         for k, v in pairs(st.why or {}) do t[#t + 1] = k .. " " .. v end
-        if #t > 0 then table.sort(t) ns.print(L["Abgelehnt, weil: "] .. table.concat(t, ", ")) end
+        if #t > 0 then table.sort(t) ns.print(L["Rejected because: "] .. table.concat(t, ", ")) end
         for _, ex in ipairs(st.ex or {}) do ns.print("|cff888888" .. ex .. "|r") end
         -- Verlauf wird beim Server angefragt; was dann kommt, uebernimmt Oasis von selbst
-        if st.read == 0 then ns.print(L["Noch nichts geladen - Verlauf angefragt, gleich nochmal /oa chatimport."]) end
+        if st.read == 0 then ns.print(L["Nothing loaded yet – history requested, run /oa chatimport again in a moment."]) end
     end
 end
 
@@ -707,14 +707,14 @@ local function lastPublicTs()
     for i = #l, 1, -1 do if l[i].k ~= "off" and l[i].k ~= "sys" and l[i].src ~= "discord" and l[i].src ~= "snd" then return l[i].ts or 0 end end
     return 0
 end
-ns.GuildOption({ page = "chat", key = "chSync", default = true, label = "Verpasste Nachrichten teilen",
-    desc = "Oasis-Nutzer schicken sich beim Einloggen verpasste Gildenchat-Nachrichten zu (nie den Offizierschat)" })
-ns.GuildOption({ page = "chat", key = "chPin", default = "note", lead = true, label = "Anpinnen duerfen",
-    desc = "Wer eine Nachricht oben im Gildenchat anpinnen darf",
-    choices = { { key = "note", text = "Offiziersnotiz-Recht" }, { key = "lead", text = "Nur Gildenleitung" } } })
-ns.GuildOption({ page = "chat", key = "chPinD", default = 14, min = 1, max = 60, step = 1, label = "Angepinnt bleibt",
-    desc = "So lange wird eine angepinnte Nachricht oben im Gildenchat gezeigt",
-    fmt = function(v) return (ns.L["%d Tg"]):format(v) end })
+ns.GuildOption({ page = "chat", key = "chSync", default = true, label = "Share missed messages",
+    desc = "Oasis users send each other missed guild chat messages on login (never officer chat)" })
+ns.GuildOption({ page = "chat", key = "chPin", default = "note", lead = true, label = "Who may pin",
+    desc = "Who may pin a message at the top of guild chat",
+    choices = { { key = "note", text = "Officer note right" }, { key = "lead", text = "Guild leadership only" } } })
+ns.GuildOption({ page = "chat", key = "chPinD", default = 14, min = 1, max = 60, step = 1, label = "Pin stays for",
+    desc = "How long a pinned message is shown at the top of guild chat",
+    fmt = function(v) return (ns.L["%d d"]):format(v) end })
 -- wann war ich zuletzt online (jede Minute gemerkt): Nachladen ab dort, nicht ab der neuesten Nachricht -
 -- die WoW-Chathistorie beim Einloggen liefert oft nur die letzten Zeilen, dazwischen bliebe sonst eine Luecke
 C_Timer.NewTicker(60, function() if ns.db then ns.db.chatOnlineAt = ns.now() end end)
@@ -836,9 +836,9 @@ local dayFilter   -- "JJJJMMTT" = nur dieser Tag
 local DAYNAME
 local function dayLabel(ts)
     local d = date("%Y%m%d", ts)
-    if d == date("%Y%m%d") then return L["Heute"] end
-    if d == date("%Y%m%d", ns.now() - 86400) then return L["Gestern"] end
-    return date(L["%d.%m."], ts)
+    if d == date("%Y%m%d") then return L["Today"] end
+    if d == date("%Y%m%d", ns.now() - 86400) then return L["Yesterday"] end
+    return date(L["%m/%d"], ts)
 end
 ------------------------------------------------------------------------
 -- Extras: Reaktionen, Antworten/Zitieren, Pin, Stummschalten, Helfer-Knopf
@@ -1026,13 +1026,13 @@ renderRaw = function(e)
         -- Erfolg: goldener Pokal vorne
         return { ach = true, body = time .. "|T" .. BADGE_ICON .. ":14:14:0:0:64:64:0:64:0:64:255:210:74|t |cffffd24a" .. text .. "|r" }
     end
-    local tag = e.k == "off" and ("|cff66db9e" .. L["Offiziere"] .. "|r  ") or ""
+    local tag = e.k == "off" and ("|cff66db9e" .. L["Officers"] .. "|r  ") or ""
     local late = ""
     local mention = (not ns.isMe(e.s) and mentionsMe(e.m)) and "|cffffd24a@|r " or ""
     local dcIcon = e.dc and ("|T" .. ns.ICONS.chat .. ":13:13:0:0:64:64:0:64:0:64:88:101:242|t ") or ""
     local help = ""
     local kind = askOf(e)
-    if kind then help = "  |Hoasishelp:" .. lid(e) .. "|h|cff66db9e[" .. (kind == "group" and L["Bin dabei"] or L["Ich helfe"]) .. "]|r|h" end
+    if kind then help = "  |Hoasishelp:" .. lid(e) .. "|h|cff66db9e[" .. (kind == "group" and L["Count me in"] or L["I can help"]) .. "]|r|h" end
     return {
         head = tag .. dcIcon .. nameLink(e) .. (e.dc and "  |cff7b8cf0Discord|r" or "") .. late,
         body = time .. mention .. highlight(text) .. reactLine(e) .. help,
@@ -1060,8 +1060,8 @@ function GC.HiddenReason(e)
     if placeholder(e.m) then return "Platzhalter" end
     if isK(e.m) and e.sess ~= GC.sess then return "geschuetzt" end
     if muted(e.s) and not ns.isMe(e.s) then return "stumm" end
-    if e.k == "off" then return "Offiziere" end
-    if not matches(e) then return "Filter" end
+    if e.k == "off" then return "Officers" end
+    if not matches(e) then return "filter" end
     return nil
 end
 function GC.HasOfficer()
@@ -1091,7 +1091,7 @@ local function sameGroup(prev, e)
 end
 local function dayText(ts)
     local lbl = dayLabel(ts)
-    local d = date(L["%d.%m."], ts)
+    local d = date(L["%m/%d"], ts)
     if lbl ~= d then lbl = lbl .. ", " .. d end
     return lbl
 end
@@ -1264,7 +1264,7 @@ local function paintRow(list, row, it)
     if not isMsg then
         glass(row.tint, GLASS_NONE, GLASS_NONE, 10)
         local amber = it.kind == "new"
-        row.pill.t:SetText(amber and L["Neu seit deinem letzten Besuch"] or dayText(it.ts))
+        row.pill.t:SetText(amber and L["New since your last visit"] or dayText(it.ts))
         local c = amber and C.amber or C.muted
         row.pill.t:SetTextColor(c[1], c[2], c[3])
         row.pill:SetWidth((row.pill.t:GetStringWidth() or 60) + 24)
@@ -1462,13 +1462,13 @@ local function fill(p)
     local list = p.list
     local items, n, prev, lastDay = buildItems()
     p.lastDay, p.lastShown, p.shownCount = lastDay, prev, n
-    list.empty:SetText(search ~= "" and L["Nichts gefunden."] or (filter == "mention" and L["Noch niemand hat dich erwaehnt."]
-        or L["Noch keine Nachrichten. Alles, was ab jetzt im Gildenchat geschrieben wird, landet hier."]))
+    list.empty:SetText(search ~= "" and L["Nothing found."] or (filter == "mention" and L["Nobody has mentioned you yet."]
+        or L["No messages yet. Everything written in guild chat from now on ends up here."]))
     list:SetItems(items)
     p.newCount = 0
     p.jump:Hide()
     if p.barTitle then
-        p.barTitle:SetText((L["%d Nachrichten"]):format(n))
+        p.barTitle:SetText((L["%d messages"]):format(n))
     end
     if p.UpdateScrollbar then p.UpdateScrollbar() end
     if p.dayDrop then p.dayDrop:Update() end
@@ -1493,13 +1493,13 @@ function GC.Live(e)
     add[#add + 1] = { kind = "msg", e = e, first = not sameGroup(p.lastShown, e) }
     p.lastShown = e
     p.shownCount = (p.shownCount or 0) + 1
-    if p.barTitle then p.barTitle:SetText((L["%d Nachrichten"]):format(p.shownCount)) end
+    if p.barTitle then p.barTitle:SetText((L["%d messages"]):format(p.shownCount)) end
     local wasBottom = p.list:Append(add)
     if p.UpdateScrollbar then p.UpdateScrollbar() end
     if not wasBottom and not ns.isMe(e.s) then
         -- man liest gerade weiter oben: nicht springen, sondern Hinweis zeigen
         p.newCount = (p.newCount or 0) + 1
-        p.jump.text:SetText((L["%d neue Nachrichten"]):format(p.newCount))
+        p.jump.text:SetText((L["%d new messages"]):format(p.newCount))
         if not p.jump:IsShown() then p.jump:Show() K.FadeIn(p.jump, 0) end
     elseif ns.isMe(e.s) then
         p.list:ScrollToBottom()
@@ -1634,7 +1634,7 @@ local QUICK = {}   -- Kurzantworten entfernt
 
 ns.RegisterPage({
     key = "chat", title = "Chat", order = 0.7,
-    sub = "Gildenchat und private Nachrichten - nichts geht verloren",
+    sub = "Guild chat and private messages - nothing gets lost",
     build = function(p)
         GC.page = p
         p:SetScript("OnShow", function(self)
@@ -1649,7 +1649,7 @@ ns.RegisterPage({
         local SIDE, TOP = 214, 46
         p.SIDE, p.TOP = SIDE, TOP
         -- Reiterleiste oben: Gildenchat / Privat (gleitende Akzent-Pille wie im Profil)
-        local TABS = { { key = "guild", text = L["Gildenchat"], icon = "social" }, { key = "priv", text = L["Privat"], icon = "profile" } }
+        local TABS = { { key = "guild", text = L["Guild chat"], icon = "social" }, { key = "priv", text = L["Private"], icon = "profile" } }
         local function onMode(k) GC.mode = k ns.RefreshPage("chat") end
         if ns.Insta and ns.Insta.ProfileTabs then
             p.mode = ns.Insta.ProfileTabs(p, TABS, onMode)
@@ -1670,8 +1670,8 @@ ns.RegisterPage({
         p.seg:SetPoint("TOPLEFT", 12, -10)
         p.seg:SetSize(400, 26)
         p.seg.buttons = {}
-        local FILTERS = { { key = "all", text = L["Alle"] }, { key = "mention", text = L["Erwaehnungen"] },
-            { key = "links", text = L["Links"] }, { key = "off", text = L["Offiziere"] } }
+        local FILTERS = { { key = "all", text = L["All"] }, { key = "mention", text = L["Mentions"] },
+            { key = "links", text = L["Links"] }, { key = "off", text = L["Officers"] } }
         for i, it in ipairs(FILTERS) do
             local b = CreateFrame("Button", nil, p.seg)
             b.key = it.key
@@ -1721,7 +1721,7 @@ ns.RegisterPage({
         end
         -- Suche erst kurz nach dem Tippen ausfuehren (nicht bei jedem Buchstaben alles neu aufbauen)
         local searchGen = 0
-        p.search = K.Input(box, 170, L["Im Verlauf suchen ..."], function(t)
+        p.search = K.Input(box, 170, L["Search history ..."], function(t)
             searchGen = searchGen + 1
             local gen = searchGen
             ns.After(0.3, function()
@@ -1767,7 +1767,7 @@ ns.RegisterPage({
                 local e = byLid[tonumber(hl)]
                 local kind, sub = e and askOf(e)
                 GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
-                GameTooltip:SetText(L["Hilfe anbieten"], 1, 1, 1)
+                GameTooltip:SetText(L["Offer help"], 1, 1, 1)
                 if kind == "prof" then
                     local n = 0
                     for _, h in ipairs(profHolders(sub)) do
@@ -1775,9 +1775,9 @@ ns.RegisterPage({
                         n = n + 1
                         GameTooltip:AddDoubleLine(ns.displayName(h.m.name) .. (h.m.online and "  |cff66db9eonline|r" or ""), h.prof .. " " .. h.r, 0.9, 0.9, 0.9, 0.6, 0.6, 0.6)
                     end
-                    if n == 0 then GameTooltip:AddLine(L["Niemand in der Gilde hat diesen Beruf eingetragen."], 0.6, 0.6, 0.6, true) end
+                    if n == 0 then GameTooltip:AddLine(L["Nobody in the guild has this profession listed."], 0.6, 0.6, 0.6, true) end
                 end
-                GameTooltip:AddLine(L["Klick: anfluestern / Gildenmitglied vorschlagen"], 0.5, 0.5, 0.5, true)
+                GameTooltip:AddLine(L["Click: whisper / suggest a guild member"], 0.5, 0.5, 0.5, true)
                 GameTooltip:Show()
                 return
             end
@@ -1792,7 +1792,7 @@ ns.RegisterPage({
         end
         -- Zeile ueberfahren: Datum, Reaktionen, Hinweis auf das Menue
         local function onRowEnter(row, e)
-            local lines = { date("%d.%m.%Y  %H:%M", e.ts or 0), "|cff888888" .. L["Rechtsklick: Reagieren, Antworten, Zitieren, Anpinnen ..."] .. "|r" }
+            local lines = { date("%d.%m.%Y  %H:%M", e.ts or 0), "|cff888888" .. L["Right-click: react, reply, quote, pin ..."] .. "|r" }
             local t = reactIndex()[msgKey(e)]
             if t then
                 for _, em in ipairs(t.order) do lines[#lines + 1] = emo(em) .. "  " .. table.concat(t.who[em], ", ") end
@@ -1879,13 +1879,13 @@ ns.RegisterPage({
         box:HookScript("OnSizeChanged", function() if p.seg and p.seg.Layout then p.seg:Layout() end end)
         function calBtn:Update()
             self.t:SetText(dayFilter and dayLabel(time({ year = tonumber(dayFilter:sub(1, 4)), month = tonumber(dayFilter:sub(5, 6)), day = tonumber(dayFilter:sub(7, 8)), hour = 12 }))
-                or L["Alle Tage"])
+                or L["All days"])
             local ac = C.accent
             if dayFilter then glass(self, { ac[1], ac[2], ac[3], 0.14 }, { ac[1], ac[2], ac[3], 0.4 }, 12)
             else glass(self, { 1, 1, 1, 0.04 }, { 1, 1, 1, 0.08 }, 12) end
         end
         local cal
-        local MONTHS = { "Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember" }
+        local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" }
         local function counts()
             local c = {}
             for _, e in ipairs(log()) do
@@ -1936,7 +1936,7 @@ ns.RegisterPage({
             prev:SetPoint("TOPLEFT", 10, -8)
             local nxt = K.Button(cal, ">", 26, 22, "ghost", function() cal.m = cal.m + 1 if cal.m > 12 then cal.m, cal.y = 1, cal.y + 1 end paint() end)
             nxt:SetPoint("TOPRIGHT", -10, -8)
-            for i, wdn in ipairs({ "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So" }) do
+            for i, wdn in ipairs({ "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" }) do
                 local t = K.Text(cal, 10, C.dim, "CENTER")
                 t:SetPoint("TOPLEFT", 12 + (i - 1) * 32, -40)
                 t:SetWidth(30)
@@ -1955,11 +1955,11 @@ ns.RegisterPage({
                     cal:Hide()
                     ns.RefreshPage("chat")
                 end)
-                c:SetScript("OnEnter", function(self) if self.key then K.ShowTip(self, { dayLabel(time({ year = tonumber(self.key:sub(1, 4)), month = tonumber(self.key:sub(5, 6)), day = tonumber(self.key:sub(7, 8)), hour = 12 })), (L["%d Nachrichten"]):format(self.n or 0) }) end end)
+                c:SetScript("OnEnter", function(self) if self.key then K.ShowTip(self, { dayLabel(time({ year = tonumber(self.key:sub(1, 4)), month = tonumber(self.key:sub(5, 6)), day = tonumber(self.key:sub(7, 8)), hour = 12 })), (L["%d messages"]):format(self.n or 0) }) end end)
                 c:SetScript("OnLeave", function() GameTooltip:Hide() end)
                 cal.cells[i] = c
             end
-            local all = K.Button(cal, L["Alle Tage"], 110, 22, "ghost", function() dayFilter = nil cal:Hide() ns.RefreshPage("chat") end)
+            local all = K.Button(cal, L["All days"], 110, 22, "ghost", function() dayFilter = nil cal:Hide() ns.RefreshPage("chat") end)
             all:SetPoint("BOTTOMLEFT", 10, 8)
             local x = K.CloseButton(cal, function() cal:Hide() end)
             x:SetPoint("BOTTOMRIGHT", -8, 8)
@@ -1975,7 +1975,7 @@ ns.RegisterPage({
             paint()
             cal:Show()
         end)
-        calBtn:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Kalender"], L["Klick: Tag waehlen - nur Nachrichten dieses Tages"] }) end)
+        calBtn:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Calendar"], L["Click: pick a day - only that day's messages"] }) end)
         calBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
         calBtn:Update()
 
@@ -1999,7 +1999,7 @@ ns.RegisterPage({
             self.ring:SetRotation(-self.a)
             self.t = (self.t or 0) + el
             local dots = string.rep(".", math.floor(self.t * 2) % 4)
-            self.text:SetText(L["Lade Nachrichten"] .. dots)
+            self.text:SetText(L["Loading messages"] .. dots)
             if self.t > 6 then self:Hide() end   -- spaetestens nach 6 s ausblenden
         end)
         p.loader:SetScript("OnShow", function(self) self.t = 0 end)
@@ -2025,8 +2025,8 @@ ns.RegisterPage({
         p.pin:SetScript("OnEnter", function(self)
             local r = ns.Store.Get("chatpin", "pin")
             if not r or not GC.PinOk(r) then return end
-            K.ShowTip(self, { L["Angepinnt"], ns.displayName(SEC.Name(r.s) or "?") .. ": " .. plain(SEC.Text(r.m, 300, SYNC_LINKS)), "|cff888888" .. (L["von %s"]):format(ns.displayName(r.by or "?")) .. "|r",
-                GC.CanPin() and ("|cff888888" .. L["Rechtsklick: loesen"] .. "|r") or nil })
+            K.ShowTip(self, { L["Pinned"], ns.displayName(SEC.Name(r.s) or "?") .. ": " .. plain(SEC.Text(r.m, 300, SYNC_LINKS)), "|cff888888" .. (L["by %s"]):format(ns.displayName(r.by or "?")) .. "|r",
+                GC.CanPin() and ("|cff888888" .. L["Right-click: unpin"] .. "|r") or nil })
         end)
         p.pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
         p.pin:SetScript("OnClick", function(_, btn)
@@ -2067,7 +2067,7 @@ ns.RegisterPage({
         p.emoji.icon:SetAllPoints()
         p.emoji.icon:SetTexture(ns.MEDIA .. "emoji\\smile")
         p.emoji.icon:SetDesaturated(true)
-        p.emoji:SetScript("OnEnter", function(self) self.icon:SetDesaturated(false) K.ShowTip(self, { L["Emojis"], L["Klick: Auswahl oeffnen"] }) end)
+        p.emoji:SetScript("OnEnter", function(self) self.icon:SetDesaturated(false) K.ShowTip(self, { L["Emojis"], L["Click: open picker"] }) end)
         p.emoji:SetScript("OnLeave", function(self) self.icon:SetDesaturated(true) GameTooltip:Hide() end)
         p.emoji:SetScript("OnClick", function(self)
             if ns.Emoji then
@@ -2085,7 +2085,7 @@ ns.RegisterPage({
         p.sndBtn.icon:SetVertexColor(0.6, 0.6, 0.62)
         p.sndBtn:SetScript("OnEnter", function(self)
             self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
-            K.ShowTip(self, { L["Sound schicken"], L["Alle mit Oasis hoeren ihn - hoechstens alle 30 Sekunden."] })
+            K.ShowTip(self, { L["Send sound"], L["Everyone with Oasis hears it - at most every 30 seconds."] })
         end)
         p.sndBtn:SetScript("OnLeave", function(self) self.icon:SetVertexColor(0.6, 0.6, 0.62) GameTooltip:Hide() end)
         if ns.Sound and ns.Sound.AttachCooldown then pcall(ns.Sound.AttachCooldown, p.sndBtn) end
@@ -2108,7 +2108,7 @@ ns.RegisterPage({
         K.CenterNum(p.wlBtn.n, p.wlBtn, "TOPRIGHT", -2, -2)
         p.wlBtn:SetScript("OnEnter", function(self)
             self.icon:SetVertexColor(C.pink[1], C.pink[2], C.pink[3])
-            K.ShowTip(self, { L["Fluester-Verlauf"], L["Alle Fluesternachrichten - auch die, die du verpasst hast (/oa fl)."] })
+            K.ShowTip(self, { L["Whisper history"], L["All whispers - including the ones you missed (/oa fl)."] })
         end)
         p.wlBtn:SetScript("OnLeave", function(self) self.icon:SetVertexColor(0.6, 0.6, 0.62) GameTooltip:Hide() end)
         p.wlBtn:SetScript("OnClick", function() GC.mode = "priv" ns.RefreshPage("chat") end)
@@ -2142,13 +2142,13 @@ ns.RegisterPage({
             else self.bg:SetVertexColor(1, 1, 1, 0.07) end
             for _, t in ipairs(self.arrow) do t:SetAlpha(on and 1 or 0.35) end
         end
-        p.sendBtn:SetScript("OnEnter", function(self) self.hover = true self:Paint() K.ShowTip(self, { L["Senden"], "|cff888888" .. L["Enter"] .. "|r" }) end)
+        p.sendBtn:SetScript("OnEnter", function(self) self.hover = true self:Paint() K.ShowTip(self, { L["Send"], "|cff888888" .. L["Enter"] .. "|r" }) end)
         p.sendBtn:SetScript("OnLeave", function(self) self.hover = nil self:Paint() GameTooltip:Hide() end)
         p.sendBtn:SetScript("OnClick", function() send(p) end)
         p.sendBtn:Paint()
         p.counter = K.Text(bar, 10, C.dim, "RIGHT")
         p.counter:SetPoint("RIGHT", p.sendBtn, "LEFT", -8, 0)
-        p.input = K.Input(bar, 300, L["Schreib was an die Gilde ... (Enter sendet)"])
+        p.input = K.Input(bar, 300, L["Say something to the guild ... (Enter sends)"])
         if ns.EmojiComplete then ns.EmojiComplete.Attach(p.input) end   -- :xx -> Emoji-Vorschlaege
         p.input:SetPoint("LEFT", p.sndBtn, "RIGHT", 6, 0)
         p.input:SetPoint("RIGHT", p.counter, "LEFT", -8, 0)
@@ -2185,8 +2185,8 @@ ns.RegisterPage({
             end
             table.sort(names)
             if #names == 0 then self.typing:SetText("")
-            elseif #names == 1 then self.typing:SetText((L["%s schreibt ..."]):format(names[1]))
-            else self.typing:SetText((L["%s schreiben ..."]):format(table.concat(names, ", "))) end
+            elseif #names == 1 then self.typing:SetText((L["%s is typing ..."]):format(names[1]))
+            else self.typing:SetText((L["%s are typing ..."]):format(table.concat(names, ", "))) end
         end)
         if ns.Emoji and ns.Emoji.AttachHotkey then ns.Emoji.AttachHotkey(p.input, function() return p.emoji end) end
 
@@ -2280,12 +2280,12 @@ ns.RegisterPage({
         c1:SetPoint("TOPLEFT") c1:SetPoint("TOPRIGHT")
         c1:SetHeight(104)
         glass(c1, nil, nil, 12)
-        cardHead(c1, L["Heute im Chat"])
+        cardHead(c1, L["Today in chat"])
         p.stToday = K.Title(c1, 26, C.text)
         p.stToday:SetPoint("TOPLEFT", 14, -36)
         local stl = K.Text(c1, 11, C.muted)
         stl:SetPoint("BOTTOMLEFT", p.stToday, "BOTTOMRIGHT", 7, 3)
-        stl:SetText(L["Nachrichten"])
+        stl:SetText(L["Messages"])
         local function mini(x, label)
             local v = K.Title(c1, 13, C.text)
             v:SetPoint("TOPLEFT", x, -74)
@@ -2294,7 +2294,7 @@ ns.RegisterPage({
             t:SetText(label)
             return v
         end
-        p.stWriters = mini(14, L["schreiben"])
+        p.stWriters = mini(14, L["writing"])
         p.stLinks = mini(110, L["Links"])
         -- Karte 2: Vielschreiber (Klassensymbol, Name, runde Balken)
         local c2 = CreateFrame("Frame", nil, side)
@@ -2302,7 +2302,7 @@ ns.RegisterPage({
         c2:SetPoint("TOPRIGHT", c1, "BOTTOMRIGHT", 0, -10)
         c2:SetHeight(40 + 5 * 34)
         glass(c2, nil, nil, 12)
-        cardHead(c2, L["Vielschreiber"] .. "  |cff777777" .. L["7 Tage"] .. "|r")
+        cardHead(c2, L["Chattiest"] .. "  |cff777777" .. L["7 days"] .. "|r")
         p.topRows = {}
         for i = 1, 5 do
             local r = CreateFrame("Frame", nil, c2)
@@ -2347,13 +2347,13 @@ ns.RegisterPage({
         end
         p.topEmpty = K.Text(c2, 11, C.dim)
         p.topEmpty:SetPoint("TOPLEFT", 14, -40)
-        p.topEmpty:SetText(L["Diese Woche noch still."])
+        p.topEmpty:SetText(L["Quiet this week."])
         -- Karte 3: Zuletzt verlinkt (fuellt den Rest der Spalte)
         local c3 = CreateFrame("Frame", nil, side)
         c3:SetPoint("TOPLEFT", c2, "BOTTOMLEFT", 0, -10)
         c3:SetPoint("BOTTOMRIGHT", side, "BOTTOMRIGHT", 0, 0)
         glass(c3, nil, nil, 12)
-        cardHead(c3, L["Zuletzt verlinkt"])
+        cardHead(c3, L["Recently linked"])
         p.linkCard = c3
         c3:SetScript("OnSizeChanged", function() if p:IsVisible() and GC.mode ~= "priv" then sideStats(p) end end)
         p.linkRows = {}
@@ -2387,7 +2387,7 @@ ns.RegisterPage({
         end
         p.linkEmpty = K.Text(c3, 11, C.dim)
         p.linkEmpty:SetPoint("TOPLEFT", 14, -40)
-        p.linkEmpty:SetText(L["Noch keine Items verlinkt."])
+        p.linkEmpty:SetText(L["No items linked yet."])
         if ns.WhisperLog and ns.WhisperLog.BuildPrivate then
             p.priv = ns.WhisperLog.BuildPrivate(p)
             p.priv:SetPoint("TOPLEFT", 0, -TOP)
@@ -2406,7 +2406,7 @@ ns.RegisterPage({
         gear.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3])
         gear:SetScript("OnEnter", function(self)
             self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3])
-            K.ShowTip(self, { L["Chat-Darstellung"], L["Schrift, Farben und Abstaende - nur fuer dich"] })
+            K.ShowTip(self, { L["Chat appearance"], L["Font, colors and spacing - just for you"] })
         end)
         gear:SetScript("OnLeave", function(self)
             self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3])
@@ -2423,7 +2423,7 @@ ns.RegisterPage({
             p.mode:Select(isPriv and "priv" or "guild")
             local n = ns.WhisperLog and ns.WhisperLog.Unread() or 0
             if p.mode.buttons and p.mode.buttons[2] and p.mode.buttons[2].label then
-                p.mode.buttons[2].label:SetText(L["Privat"] .. (n > 0 and ("  |cffff7a6a" .. n .. "|r") or ""))
+                p.mode.buttons[2].label:SetText(L["Private"] .. (n > 0 and ("  |cffff7a6a" .. n .. "|r") or ""))
                 if p.mode.Layout then pcall(p.mode.Layout, p.mode) end
             end
         end
@@ -2498,21 +2498,21 @@ function GC.BuildLook(parent, y, opts)
     local function track(w) widgets[#widgets + 1] = w if parent.t then parent.t[#parent.t + 1] = w end return w end
     local h = K.Text(parent, 12, C.amber)
     h:SetPoint("TOPLEFT", X, y)
-    h:SetText(L["Darstellung"])
+    h:SetText(L["Appearance"])
     y = y - 26
     -- Schriftart
-    label(L["Schriftart"], y)
+    label(L["Font"], y)
     local fb = K.Button(parent, "", 180, 24, "ghost")
     fb.isDropdown = true
     fb:SetPoint("TOPLEFT", CX, y + 2)
     function fb:Refresh()
         local k = GC.Look("chatFont")
         local f = k ~= "" and K.fontByKey[k]
-        self:SetLabel(f and f.text or L["Oasis-Schrift"])
+        self:SetLabel(f and f.text or L["Oasis font"])
     end
     fb:SetScript("OnClick", function(self)
         local cur = GC.Look("chatFont")
-        local list = { { text = L["Oasis-Schrift"], checked = cur == "", fn = function() setLook("chatFont", "") self:Refresh() end } }
+        local list = { { text = L["Oasis font"], checked = cur == "", fn = function() setLook("chatFont", "") self:Refresh() end } }
         for _, f in ipairs(K.PickFonts(function(x) return x.ui end)) do
             list[#list + 1] = { text = f.text, checked = cur == f.key, fn = function() setLook("chatFont", f.key) self:Refresh() end }
         end
@@ -2530,12 +2530,12 @@ function GC.BuildLook(parent, y, opts)
         y = y - 30
         return s
     end
-    slider(L["Schriftgroesse"], "chatFontSize", 10, 18, 1, function(v) return v .. " px" end)
-    slider(L["Zeilenabstand"], "chatSpacing", 0, 12, 1, function(v) return v .. " px" end)
+    slider(L["Font size"], "chatFontSize", 10, 18, 1, function(v) return v .. " px" end)
+    slider(L["Line spacing"], "chatSpacing", 0, 12, 1, function(v) return v .. " px" end)
     if opts.emoji then
-        label(L["Emoji-Groesse im Chat"], y)
+        label(L["Emoji size in chat"], y)
         local s = K.Slider(parent, 200, 0, 32, 2, function() return tonumber(S().emojiChatSize) or 0 end,
-            function(v) S().emojiChatSize = v applySoon() end, function(v) return v == 0 and L["automatisch"] or (v .. " px") end)
+            function(v) S().emojiChatSize = v applySoon() end, function(v) return v == 0 and L["automatic"] or (v .. " px") end)
         s:SetPoint("TOPLEFT", CX, y)
         track(s)
         y = y - 30
@@ -2543,7 +2543,7 @@ function GC.BuildLook(parent, y, opts)
     local function color(text, key, getHex)
         label(text, y)
         local b = K.ColorPickButton(parent, getHex or function() return K.ToHex({ GC.LookColor(key) }) end,
-            function(hex) S()[key] = (hex and hex ~= "") and hex or nil applySoon() end, L["Farbe waehlen"],
+            function(hex) S()[key] = (hex and hex ~= "") and hex or nil applySoon() end, L["Pick color"],
             function() return S()[key] end)
         b:SetPoint("TOPLEFT", CX, y + 2)
         b:SetWidth(140)
@@ -2552,12 +2552,12 @@ function GC.BuildLook(parent, y, opts)
         y = y - 30
         return b
     end
-    color(L["Schriftfarbe"], "chatTextColor")
-    color(L["Zeitstempel"], "chatTimeColor")
-    color(L["Hintergrund"], "chatBgColor")
-    slider(L["Deckkraft Hintergrund"], "chatBgAlpha", 0, 100, 5, function(v) return v .. " %" end)
-    color(L["Blase eigene (Privat)"], "chatBubbleMine", function() return K.ToHex({ GC.MineBubbleColor() }) end)
-    color(L["Blase fremde (Privat)"], "chatBubbleOther")
+    color(L["Text color"], "chatTextColor")
+    color(L["Timestamp"], "chatTimeColor")
+    color(L["Background"], "chatBgColor")
+    slider(L["Background opacity"], "chatBgAlpha", 0, 100, 5, function(v) return v .. " %" end)
+    color(L["Own bubble (private)"], "chatBubbleMine", function() return K.ToHex({ GC.MineBubbleColor() }) end)
+    color(L["Other bubble (private)"], "chatBubbleOther")
     local function tg(text, key, desc)
         local t = K.Toggle(parent, text, function() return GC.Look(key) ~= false end, function(v) setLook(key, v and true or false) end, desc)
         t:SetPoint("TOPLEFT", X, y)
@@ -2565,9 +2565,9 @@ function GC.BuildLook(parent, y, opts)
         track(t)
         y = y - (desc and 42 or 30)
     end
-    tg(L["Zeitstempel anzeigen"], "chatShowTime")
-    tg(L["Nachrichten gruppieren"], "chatGroup", L["Mehrere Nachrichten derselben Person kurz hintereinander stehen unter einem Namen"])
-    local reset = K.Button(parent, L["Zuruecksetzen"], 130, 24, "ghost", function()
+    tg(L["Show timestamps"], "chatShowTime")
+    tg(L["Group messages"], "chatGroup", L["Several messages from the same person in quick succession appear under one name"])
+    local reset = K.Button(parent, L["Reset"], 130, 24, "ghost", function()
         for k in pairs(GC.LOOK_DEF) do S()[k] = nil end
         if opts.emoji then S().emojiChatSize = nil end
         for _, w in ipairs(widgets) do if w.Refresh then pcall(w.Refresh, w) end end
@@ -2594,7 +2594,7 @@ function GC.ToggleLookPopup(owner)
         if K.ApplySkin then pcall(K.ApplySkin, lookPop, "panel", { 0.07, 0.075, 0.085, 0.98 }) end
         local title = K.Title(lookPop, 15, C.text)
         title:SetPoint("TOPLEFT", 16, -14)
-        title:SetText(L["Chat-Darstellung"])
+        title:SetText(L["Chat appearance"])
         local x = K.CloseButton(lookPop, function() lookPop:Hide() end)
         x:SetPoint("TOPRIGHT", -10, -10)
         local y = GC.BuildLook(lookPop, -46, { emoji = true, x = 16, width = 380 })
@@ -2678,7 +2678,7 @@ function GC.UpdatePin(p)
     p.pin:SetShown(show and true or false)
     if p.LayoutList then p.LayoutList(show and true or false) end
     if show then
-        p.pin.text:SetText("|cffe8b44a" .. L["Angepinnt"] .. "|r   |cffcccccc" .. ns.displayName(r.s or "?") .. ":|r  " .. emo(plain(r.m)))
+        p.pin.text:SetText("|cffe8b44a" .. L["Pinned"] .. "|r   |cffcccccc" .. ns.displayName(r.s or "?") .. ":|r  " .. emo(plain(r.m)))
     end
 end
 
@@ -2689,15 +2689,15 @@ function GC.MsgMenu(p, e)
     local cur = mine and not mine.del and mine.em
     local row = {}
     for _, em in ipairs(GC.REACTS) do
-        items[#items + 1] = { text = emo(em) .. "  " .. (cur == em and ("|cff66db9e" .. L["(deine Reaktion)"] .. "|r") or L["Reagieren"]), checked = cur == em,
+        items[#items + 1] = { text = emo(em) .. "  " .. (cur == em and ("|cff66db9e" .. L["(your reaction)"] .. "|r") or L["React"]), checked = cur == em,
             fn = function() GC.ToggleReact(e, em) end }
     end
-    items[#items + 1] = { text = L["Antworten"], fn = function()
+    items[#items + 1] = { text = L["Reply"], fn = function()
         p.input:SetText("@" .. firstName(e.s) .. " ")
         p.input:SetFocus()
         p.input:SetCursorPosition(#p.input:GetText())
     end }
-    items[#items + 1] = { text = L["Zitieren"], fn = function()
+    items[#items + 1] = { text = L["Rate"], fn = function()
         local q = plain(e.m)
         if #q > 50 then q = q:sub(1, 48) .. ".." end
         p.input:SetText("\"" .. firstName(e.s) .. ": " .. q .. "\"  ")
@@ -2707,27 +2707,27 @@ function GC.MsgMenu(p, e)
     -- Kopieren (Kopierfenster, Text markiert) und Merken (Merkliste im Reiter Privat > Gemerkt)
     local WLx = ns.WhisperLog
     if WLx and WLx.Copy then
-        items[#items + 1] = { text = L["Kopieren"], fn = function() WLx.Copy(L["Nachricht kopieren"], plain(e.m)) end }
+        items[#items + 1] = { text = L["Copy"], fn = function() WLx.Copy(L["Copy message"], plain(e.m)) end }
     end
     if WLx and WLx.ToggleGuildStar then
         local starred = WLx.GuildStarred(msgKey(e))
-        items[#items + 1] = { text = starred and L["Nicht mehr merken"] or L["Nachricht merken"], fn = function()
+        items[#items + 1] = { text = starred and L["Unsave"] or L["Save message"], fn = function()
             WLx.ToggleGuildStar(msgKey(e), e.s, e.m, e.ts)
         end }
     end
     if not ns.isMe(e.s) then
-        items[#items + 1] = { text = L["Anfluestern"], fn = function() ns.Whisper(e.s) end }
-        if ns.Profile and ns.Profile.Show then items[#items + 1] = { text = L["Profil ansehen"], fn = function() ns.Profile.Show(e.s) end } end
-        if ns.Talents then items[#items + 1] = { text = L["Talente ansehen"], fn = function() ns.Talents.Show(e.s) end } end
+        items[#items + 1] = { text = L["Whisper"], fn = function() ns.Whisper(e.s) end }
+        if ns.Profile and ns.Profile.Show then items[#items + 1] = { text = L["View profile"], fn = function() ns.Profile.Show(e.s) end } end
+        if ns.Talents then items[#items + 1] = { text = L["View talents"], fn = function() ns.Talents.Show(e.s) end } end
     end
     if GC.CanPin() then
-        items[#items + 1] = { text = L["Anpinnen"], fn = function()
+        items[#items + 1] = { text = L["Pin"], fn = function()
             ns.Store.Put("chatpin", { id = "pin", s = e.s, m = e.m, ts = e.ts })
         end }
     end
     if not ns.isMe(e.s) then
         local isM = muted(e.s)
-        items[#items + 1] = { text = isM and L["Stummschaltung aufheben"] or (L["%s stummschalten"]):format(firstName(e.s)), fn = function()
+        items[#items + 1] = { text = isM and L["Unmute"] or (L["Mute %s"]):format(firstName(e.s)), fn = function()
             S().chatMuted = S().chatMuted or {}
             S().chatMuted[who(e.s)] = (not isM) or nil
             GC.ClearRenderCache()
@@ -2742,25 +2742,25 @@ function GC.HelpMenu(p, e)
     local asker = ns.ChatName(e.s)
     local items = {}
     if kind == "group" then
-        items[#items + 1] = { text = L["Einladen"], fn = function()
+        items[#items + 1] = { text = L["Invite"], fn = function()
             if C_PartyInfo and C_PartyInfo.InviteUnit then pcall(C_PartyInfo.InviteUnit, asker) elseif InviteUnit then pcall(InviteUnit, asker) end
         end }
     end
-    items[#items + 1] = { text = L["Ich helfe (anfluestern)"], fn = function() ns.Whisper(e.s) end }
+    items[#items + 1] = { text = L["I'll help (whisper)"], fn = function() ns.Whisper(e.s) end }
     if kind == "prof" then
         local n = 0
         for _, h in ipairs(profHolders(sub)) do
             if n >= 6 then break end
             if not ns.isMe(h.m.name) and who(h.m.name) ~= who(e.s) then
                 n = n + 1
-                items[#items + 1] = { text = (L["Vorschlagen: %s (%s %d)"]):format(ns.displayName(h.m.name), h.prof, h.r) .. (h.m.online and "  |cff66db9e*|r" or ""),
+                items[#items + 1] = { text = (L["Suggest: %s (%s %d)"]):format(ns.displayName(h.m.name), h.prof, h.r) .. (h.m.online and "  |cff66db9e*|r" or ""),
                     fn = function()
-                        ns.SendChat(("@%s %s: %s (%s %d)"):format(firstName(e.s), L["frag mal"], ns.ChatName(h.m.name), h.prof, h.r), "GUILD")
+                        ns.SendChat(("@%s %s: %s (%s %d)"):format(firstName(e.s), L["ask"], ns.ChatName(h.m.name), h.prof, h.r), "GUILD")
                     end }
             end
         end
     end
-    K.ShowMenu(p.smf, items, L["Hilfe anbieten"], 200)
+    K.ShowMenu(p.smf, items, L["Offer help"], 200)
 end
 
 -- Namens-Karte beim Hovern
@@ -2784,7 +2784,7 @@ function GC.NameTip(owner, name)
         local clsName = (LOCALIZED_CLASS_NAMES_MALE and cls and LOCALIZED_CLASS_NAMES_MALE[cls]) or ""
         GameTooltip:AddLine(" ")
         GameTooltip:AddDoubleLine(L["Level"], (m.level or "?") .. "  " .. clsName, 0.55, 0.55, 0.6, cr, cg, cb)
-        if m.rank and m.rank ~= "" then GameTooltip:AddDoubleLine(L["Gildenrang"], m.rank, 0.55, 0.55, 0.6, 0.9, 0.9, 0.9) end
+        if m.rank and m.rank ~= "" then GameTooltip:AddDoubleLine(L["Guild rank"], m.rank, 0.55, 0.55, 0.6, 0.9, 0.9, 0.9) end
         if m.online then
             GameTooltip:AddDoubleLine(L["Online"], m.zone ~= "" and m.zone or "-", 0.4, 0.86, 0.62, 0.9, 0.9, 0.9)
         else
@@ -2792,7 +2792,7 @@ function GC.NameTip(owner, name)
         end
         if ns.Profile and ns.Profile.RoleIcons then
             local ri = ns.Profile.RoleIcons(full, 14)
-            if ri ~= "" then GameTooltip:AddDoubleLine(L["Rollen"], ri, 0.55, 0.55, 0.6) end
+            if ri ~= "" then GameTooltip:AddDoubleLine(L["Roles"], ri, 0.55, 0.55, 0.6) end
         end
         -- Berufe: je Zeile Name + Stufe (farbig nach Fortschritt)
         local pr = ns.db.members[m.name]
@@ -2805,7 +2805,7 @@ function GC.NameTip(owner, name)
         if #list > 0 then
             table.sort(list, function(a, b) return a.r > b.r end)
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(K.Upper(L["Berufe"]), 0.91, 0.71, 0.29)
+            GameTooltip:AddLine(K.Upper(L["Professions"]), 0.91, 0.71, 0.29)
             for _, x in ipairs(list) do
                 local q = x.r >= 225 and { 0.64, 0.21, 0.93 } or x.r >= 150 and { 0, 0.44, 0.87 } or x.r >= 75 and { 0.12, 1, 0 } or { 0.8, 0.8, 0.8 }
                 GameTooltip:AddDoubleLine("  " .. x.n, tostring(x.r), 0.85, 0.85, 0.85, q[1], q[2], q[3])
@@ -2817,7 +2817,7 @@ function GC.NameTip(owner, name)
         GameTooltip:AddLine("\"" .. d.s .. "\"", 0.8, 0.8, 0.8, true)
     end
     GameTooltip:AddLine(" ")
-    GameTooltip:AddLine(L["Klick: anfluestern  ·  Rechtsklick: Menue"], 0.45, 0.45, 0.5)
+    GameTooltip:AddLine(L["Click: whisper  ·  Right-click: menu"], 0.45, 0.45, 0.5)
     GameTooltip:Show()
 end
 
@@ -2846,7 +2846,7 @@ do
         K.Border(ac, C.accent2)
         ac.head = K.Text(ac, 10, C.dim)
         ac.head:SetPoint("TOPLEFT", 8, -5)
-        ac.head:SetText(L["Gildenmitglied erwaehnen  ·  Tab / Klick"])
+        ac.head:SetText(L["Mention a guild member  ·  Tab / click"])
         ac.rows = {}
         for i = 1, 8 do
             local r = CreateFrame("Button", nil, ac)

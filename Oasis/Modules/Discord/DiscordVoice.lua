@@ -74,9 +74,9 @@ function D.Line()
     local members, chName = D.Members()
     local shown = s.voice == true or #members > 0
     if not shown then return "" end
-    if #members > 0 then return (L["Discord: %s  -  %d im Voice"]):format(chName or "Voice", #members) end
+    if #members > 0 then return (L["Discord: %s  -  %d in voice"]):format(chName or "Voice", #members) end
     if chName then return (L["Discord: %s"]):format(chName) end
-    return L["Discord Voice: an"]
+    return L["Discord voice: on"]
 end
 
 function D.Tip()
@@ -84,13 +84,13 @@ function D.Tip()
     local members, chName = D.Members()
     local lines = {}
     lines[#lines + 1] = L["Discord Voice"]
-    lines[#lines + 1] = (L["Voice: %s"]):format(s.voice and L["an"] or L["aus"])
-    if chName then lines[#lines + 1] = (L["Kanal: %s"]):format(chName) end
-    if #members == 0 then lines[#lines + 1] = L["Gerade ist niemand im Sprachkanal."] end
+    lines[#lines + 1] = (L["Voice: %s"]):format(s.voice and L["on"] or L["off"])
+    if chName then lines[#lines + 1] = (L["Channel: %s"]):format(chName) end
+    if #members == 0 then lines[#lines + 1] = L["Nobody is in the voice channel right now."] end
     if #members > 0 then
         local parts = {}
         for _, m in ipairs(members) do parts[#parts + 1] = m.speaking and ("|cff66db9e" .. m.name .. "|r") or m.name end
-        lines[#lines + 1] = (L["Im Voice: %s"]):format(table.concat(parts, ", "))
+        lines[#lines + 1] = (L["In voice: %s"]):format(table.concat(parts, ", "))
     end
     return lines
 end

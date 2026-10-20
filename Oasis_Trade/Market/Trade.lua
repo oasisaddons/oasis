@@ -134,14 +134,14 @@ end
 ------------------------------------------------------------------------
 -- 1) Wunschliste-Alarm
 ------------------------------------------------------------------------
-ns.GuildOption({ page = "trade", key = "trCheap", default = 85, min = 50, max = 95, step = 5, label = "Wunsch-Alarm ab Preis",
-    desc = "Ein Wunsch gilt als guenstig, wenn er hoechstens so viel vom fairen Preis kostet",
+ns.GuildOption({ page = "trade", key = "trCheap", default = 85, min = 50, max = 95, step = 5, label = "Want alert at price",
+    desc = "A want counts as cheap if it costs at most this share of the fair price",
     fmt = function(v) return v .. " %" end })
-ns.GuildOption({ page = "trade", key = "trAlrtH", default = 12, min = 1, max = 48, step = 1, label = "Wunsch-Alarm Pause",
-    desc = "So lange wird derselbe Wunsch nicht erneut gemeldet",
+ns.GuildOption({ page = "trade", key = "trAlrtH", default = 12, min = 1, max = 48, step = 1, label = "Want alert cooldown",
+    desc = "The same want is not reported again for this long",
     fmt = function(v) return v .. " Std" end })
-ns.GuildOption({ page = "trade", key = "trPcAns", default = true, label = "Preisfragen im Gildenchat beantworten",
-    desc = "Oasis antwortet automatisch auf pc / preis mit Item-Link im Gildenchat" })
+ns.GuildOption({ page = "trade", key = "trPcAns", default = true, label = "Answer price questions in guild chat",
+    desc = "Oasis automatically answers pc / price with an item link in guild chat" })
 local function CHEAPF() return (tonumber(ns.GuildOpt("trCheap")) or 85) / 100 end   -- Anteil vom fairen Preis
 local function ALERTF() return (tonumber(ns.GuildOpt("trAlrtH")) or 12) * 3600 end
 
@@ -174,10 +174,10 @@ end
 
 local function wantToast(itemID, name, cur, fair, finder)
     local pct = (fair and fair > 0) and math.floor((1 - cur / fair) * 100 + 0.5) or 0
-    local title = L["Wunschliste: guenstig im AH"]
+    local title = L["Wishlist: cheap in the AH"]
     local body = (name or ("#" .. itemID)) .. "  ~" .. ns.Market.Format(cur)
-        .. (pct > 0 and ("  |cff66db9e" .. (L["%d%% unter fair"]):format(pct) .. "|r") or "")
-        .. (finder and ("  |cff888888- " .. (L["gesehen von %s"]):format(ns.displayName(finder)) .. "|r") or "")
+        .. (pct > 0 and ("  |cff66db9e" .. (L["%d%% below fair"]):format(pct) .. "|r") or "")
+        .. (finder and ("  |cff888888- " .. (L["spotted by %s"]):format(ns.displayName(finder)) .. "|r") or "")
     K.Toast(title, body, C.mint, function() ns.ShowPage("trade") end, "announce")
 end
 
@@ -227,10 +227,10 @@ function Trade.PriceLine(itemID, link)
     if not info then return nil end
     local parts = { "[Oasis] " .. (link or ("#" .. itemID)) .. ":" }
     if info.fair then parts[#parts + 1] = L["fair"] .. " ~" .. Trade.Plain(info.fair) end
-    if info.cur and info.cur ~= info.fair then parts[#parts + 1] = L["jetzt"] .. " " .. Trade.Plain(info.cur) end
-    if info.floor7 then parts[#parts + 1] = L["7-Tage-Tief"] .. " " .. Trade.Plain(info.floor7) end
+    if info.cur and info.cur ~= info.fair then parts[#parts + 1] = L["now"] .. " " .. Trade.Plain(info.cur) end
+    if info.floor7 then parts[#parts + 1] = L["7-day low"] .. " " .. Trade.Plain(info.floor7) end
     local ts = Trade.LatestScan()
-    if ts then parts[#parts + 1] = "(" .. L["Stand"] .. " " .. ns.ago(ts) .. ")" end
+    if ts then parts[#parts + 1] = "(" .. L["Last update"] .. " " .. ns.ago(ts) .. ")" end
     return table.concat(parts, "  ")
 end
 
@@ -257,7 +257,7 @@ ns.On("CHAT_MSG_GUILD", function(msg, sender)
         if claimed[key] and GetTime() - claimed[key] < 60 then return end
         claimed[key] = GetTime()
         Comm.Guild("PCDONE", key)
-        ns.OfferChat(L["Preisfrage im Gildenchat"], line:sub(1, 250), "GUILD", nil, ns.K.C.amber)
+        ns.OfferChat(L["Price question in guild chat"], line:sub(1, 250), "GUILD", nil, ns.K.C.amber)
     end)
 end)
 -- "erledigt" nur fuer eine Frage, die gerade wirklich im Gildenchat stand, und nur von Gildenmitgliedern
@@ -433,7 +433,7 @@ end
 local function demoOn() return (ns.Demo and ns.Demo.IsActive and ns.Demo.IsActive()) and true or false end
 -- ItemID, Name (falls der Client das Item noch nicht kennt), Qualitaet, Kategorie, fair, aktuell (Kupfer)
 local DEMO_ITEMS = {
-    { 2589, "Leinenstoff", 1, "cloth", 62, 41 },
+    { 2589, "Linen Cloth", 1, "cloth", 62, 41 },
     { 2592, "Wollstoff", 1, "cloth", 115, 108 },
     { 4306, "Seidenstoff", 1, "cloth", 155, 112 },
     { 4338, "Magiestoff", 1, "cloth", 210, 236 },
@@ -452,7 +452,7 @@ local DEMO_ITEMS = {
     { 929, "Heiltrank", 1, "pot", 78, 55 },
     { 1710, "Grosser Heiltrank", 1, "pot", 185, 172 },
     { 3827, "Manatrank", 1, "pot", 165, 178 },
-    { 13452, "Elixier des Mungos", 1, "pot", 12500, 11800 },
+    { 13452, "Elixir of the Mongoose", 1, "pot", 12500, 11800 },
     { 10940, "Seltsamer Staub", 1, "ench", 105, 92 },
     { 11083, "Seelenstaub", 1, "ench", 260, 281 },
     { 10938, "Geringe Magieessenz", 2, "ench", 155, 149 },
@@ -463,7 +463,7 @@ local DEMO_ITEMS = {
     { 1482, "Shadowfang", 3, "gear", 165000, 149000 },
     { 7719, "Helm des tobenden Berserkers", 3, "gear", 92000, 98500 },
 }
-local CATS = { cloth = "Stoff", ore = "Erz & Barren", herb = "Kraut", pot = "Trank", ench = "Verzauberung", gear = "Ausruestung" }
+local CATS = { cloth = "Cloth", ore = "Ore & bars", herb = "Herb", pot = "Potion", ench = "Enchant", gear = "Gear" }
 -- Demo-Rangliste: Index in Demo.People(), Bilanz (Kupfer), verkaufte Auktionen
 local DEMO_RANK = { { 9, 482000, 23 }, { 11, 315500, 17 }, { 14, 221000, 12 }, { 4, 96000, 6 }, { 2, 41000, 4 }, { 16, -28500, 3 } }
 local DEMO_NET, DEMO_SOLD = 124000, 9
@@ -603,23 +603,23 @@ local QCOL = { [0] = { 0.62, 0.62, 0.62 }, [1] = { 0.94, 0.94, 0.94 }, [2] = { 0
     [4] = { 0.64, 0.21, 0.93 }, [5] = { 1, 0.5, 0 }, [6] = { 0.9, 0.8, 0.5 } }
 local MEDAL = { { 1, 0.82, 0.29 }, { 0.79, 0.82, 1 }, { 0.85, 0.54, 0.29 } }
 local TABS = {
-    { key = "over", text = "Uebersicht", glyph = "home", color = C.accent },
-    { key = "prices", text = "Preise", glyph = "stats", color = C.amber },
-    { key = "rank", text = "Haendler der Woche", glyph = "badges", color = C.mint },
-    { key = "opts", text = "Einstellungen", glyph = "settings", color = C.blue },
+    { key = "over", text = "Overview", glyph = "home", color = C.accent },
+    { key = "prices", text = "Prices", glyph = "stats", color = C.amber },
+    { key = "rank", text = "Traders of the week", glyph = "badges", color = C.mint },
+    { key = "opts", text = "Settings", glyph = "settings", color = C.blue },
 }
 local TILES = {
-    { key = "scan", label = "Letzter Scan", glyph = "sync", color = C.mint, tip = "Klick: Uebersicht" },
-    { key = "items", label = "Items mit Preis", glyph = "stats", color = C.amber, tip = "Klick: alle Preise" },
-    { key = "hits", label = "Wunschliste-Treffer", glyph = "wants", color = C.pink, tip = "Klick: nur guenstige Items" },
-    { key = "gain", label = "Dein Handelsgewinn 7 Tage", glyph = "bank", color = C.blue, tip = "Klick: Haendler der Woche" },
+    { key = "scan", label = "Last scan", glyph = "sync", color = C.mint, tip = "Click: overview" },
+    { key = "items", label = "Items with price", glyph = "stats", color = C.amber, tip = "Click: all prices" },
+    { key = "hits", label = "Wishlist hits", glyph = "wants", color = C.pink, tip = "Click: cheap items only" },
+    { key = "gain", label = "Your trade profit 7 days", glyph = "bank", color = C.blue, tip = "Click: traders of the week" },
 }
-local SORTS = { { key = "save", text = "Ersparnis" }, { key = "name", text = "Name" }, { key = "price", text = "Preis" }, { key = "trend", text = "Trend" } }
+local SORTS = { { key = "save", text = "Savings" }, { key = "name", text = "Name" }, { key = "price", text = "Price" }, { key = "trend", text = "Trend" } }
 local FEATURES = {
-    { "sync", C.mint, "AH-Stand fuer alle", "Einer scannt mit Midas, die ganze Gilde sieht die Preise." },
-    { "wants", C.pink, "Wunschliste-Alarm", "Liegt ein Wunsch guenstig im AH, gibt es einen Hinweis." },
-    { "announce", C.amber, "Preise im Gildenchat", "'pc [Item]' schreiben - Oasis antwortet mit dem Preis." },
-    { "badges", C.blue, "Haendler der Woche", "Freiwillige Handelsbilanz, der Beste bekommt einen Titel." },
+    { "sync", C.mint, "AH data for everyone", "One person scans with Midas, the whole guild sees the prices." },
+    { "wants", C.pink, "Wishlist alert", "If a wish is cheap in the AH, you get a notice." },
+    { "announce", C.amber, "Prices in guild chat", "Type 'pc [Item]' - Oasis replies with the price." },
+    { "badges", C.blue, "Traders of the week", "Voluntary trade balance, the best one earns a title." },
 }
 local view, search, onlyCheap, sortBy = "over", "", false, "save"
 local page
@@ -1130,15 +1130,15 @@ local function buildLock(p)
     ic:SetPoint("CENTER", box.disc)
     local t = K.Title(box, 16, C.text, "CENTER")
     t:SetPoint("TOP", box.disc, "BOTTOM", 0, -8)
-    t:SetText(L["Midas benoetigt"])
+    t:SetText(L["Midas required"])
     local d = K.Text(box, 11, C.muted, "CENTER")
     d:SetPoint("TOP", t, "BOTTOM", 0, -6)
     d:SetWidth(410)
     d:SetWordWrap(true)
-    d:SetText(L["Der Markt nutzt Preise aus dem AH-Addon Midas. Sobald du oder jemand aus der Gilde mit Midas im AH scannt, schaltet sich diese Seite frei."])
+    d:SetText(L["The market uses prices from the AH addon Midas. As soon as you or a guild member scans the AH with Midas, this page unlocks."])
     local head = K.Text(box, 10, C.dim)
     head:SetPoint("TOPLEFT", 26, -128)
-    head:SetText(K.Upper and K.Upper(L["Was die Seite kann"]) or L["Was die Seite kann"]:upper())
+    head:SetText(K.Upper and K.Upper(L["What this page does"]) or L["What this page does"]:upper())
     for i, f in ipairs(FEATURES) do
         local y = -146 - (i - 1) * 30
         local dc = box:CreateTexture(nil, "BORDER")
@@ -1157,7 +1157,7 @@ local function buildLock(p)
         b:SetWordWrap(false)
         b:SetText(L[f[4]])
     end
-    o.demoBtn = K.Button(box, L["Demo ansehen"], 140, 24, "primary", function()
+    o.demoBtn = K.Button(box, L["View demo"], 140, 24, "primary", function()
         if ns.Demo and ns.Demo.Load then ns.Demo.Load() end
         ns.RefreshPage("trade")
     end)
@@ -1166,7 +1166,7 @@ local function buildLock(p)
     o.where:SetPoint("BOTTOM", 0, 18)
     o.where:SetWidth(410)
     o.where:SetWordWrap(true)
-    o.where:SetText(L["Midas ist ein eigenes AH-Addon - einfach wie jedes andere Addon installieren, dann im AH 'Midas Scan' klicken."])
+    o.where:SetText(L["Midas is a separate AH addon - install it like any other addon, then click 'Midas Scan' in the AH."])
     function o:Update()
         local dev = ns.IsDev and ns.IsDev() or false
         self.demoBtn:SetShown(dev)
@@ -1196,7 +1196,7 @@ local function buildOverview(p, body)
     local v = CreateFrame("Frame", nil, body)
     v:SetAllPoints()
     -- links: guenstig jetzt
-    v.cheap = card(v, "Guenstig jetzt", C.mint)
+    v.cheap = card(v, "Cheap now", C.mint)
     v.cheap.rows = {}
     for i = 1, 9 do
         local r = newMiniRow(v.cheap)
@@ -1204,10 +1204,10 @@ local function buildOverview(p, body)
         r:SetPoint("RIGHT", -14, 0)
         v.cheap.rows[i] = r
     end
-    v.cheap.more = K.Button(v.cheap, L["Alle Preise"], 110, 22, "ghost", function() switchTo("prices", false) end)
+    v.cheap.more = K.Button(v.cheap, L["All prices"], 110, 22, "ghost", function() switchTo("prices", false) end)
     v.cheap.more:SetPoint("BOTTOMRIGHT", -12, 10)
     -- rechts oben: Wunschliste-Treffer
-    v.wants = card(v, "Wunschliste-Treffer", C.pink)
+    v.wants = card(v, "Wishlist hits", C.pink)
     v.wants.rows = {}
     for i = 1, 4 do
         local r = newMiniRow(v.wants)
@@ -1216,7 +1216,7 @@ local function buildOverview(p, body)
         v.wants.rows[i] = r
     end
     -- rechts unten: Haendler der Woche (Top 3) + AH-Stand
-    v.top = card(v, "Haendler der Woche", C.amber)
+    v.top = card(v, "Traders of the week", C.amber)
     v.top.rows = {}
     for i = 1, 3 do
         local r = CreateFrame("Frame", nil, v.top)
@@ -1246,7 +1246,7 @@ local function buildOverview(p, body)
     v.top.tip:SetPoint("BOTTOMLEFT", 14, 12)
     v.top.tip:SetPoint("RIGHT", -14, 0)
     v.top.tip:SetWordWrap(true)
-    v.top.tip:SetText(L["Tipp: 'pc [Item]' in den Gildenchat schreiben - Oasis nennt den Preis."])
+    v.top.tip:SetText(L["Tip: type 'pc [Item]' in guild chat - Oasis tells you the price."])
     function v:Layout(W, H)
         local cw = math.floor((W - 10) / 2)
         self.cheap:ClearAllPoints()
@@ -1281,15 +1281,15 @@ local function buildOverview(p, body)
                 row.name:SetText(K.hex(QCOL[e.q] or QCOL[1]) .. e.name .. "|r")
                 row.sub:SetText(L["fair"] .. " " .. money(e.fair) .. (e.cat and ("  |cff555555·|r  " .. L[CATS[e.cat]]) or ""))
                 row.val:SetText(money(e.cur))
-                row.pct:SetText(trendText(e.pct) .. (e.cheap and ("  " .. K.hex(C.mint) .. L["guenstig"] .. "|r") or ""))
+                row.pct:SetText(trendText(e.pct) .. (e.cheap and ("  " .. K.hex(C.mint) .. L["cheap"] .. "|r") or ""))
                 row:Show()
             else
                 row:Hide()
             end
         end
-        self.cheap.info:SetText(#list > 0 and (L["%d unter fair"]):format(#list) or "")
+        self.cheap.info:SetText(#list > 0 and (L["%d below fair"]):format(#list) or "")
         self.cheap.empty:SetShown(shown == 0)
-        self.cheap.empty:SetText(m.ts and L["Gerade liegt nichts unter dem fairen Preis."] or L["Noch kein Scan - sobald jemand mit Midas scannt, stehen hier Schnaeppchen."])
+        self.cheap.empty:SetText(m.ts and L["Nothing is below the fair price right now."] or L["No scan yet - once someone scans with Midas, bargains show up here."])
         local ws = 0
         for i, row in ipairs(self.wants.rows) do
             local h = m.wants[i]
@@ -1301,7 +1301,7 @@ local function buildOverview(p, body)
                 row.id, row.q, row.plainName = id, q, nm
                 row.badge:Set(id, q)
                 row.name:SetText(K.hex(QCOL[q] or QCOL[1]) .. nm .. "|r")
-                row.sub:SetText((L["Wunsch von %s"]):format(colored(h.want.who)))
+                row.sub:SetText((L["Wished by %s"]):format(colored(h.want.who)))
                 row.val:SetText(money(h.info.cur))
                 row.pct:SetText("|cff66db9e-" .. h.pct .. "%|r")
                 row:Show()
@@ -1311,13 +1311,13 @@ local function buildOverview(p, body)
         end
         self.wants.info:SetText(#m.wants > 0 and tostring(#m.wants) or "")
         self.wants.empty:SetShown(ws == 0)
-        self.wants.empty:SetText(L["Gerade nichts unter dem fairen Preis. Nach dem naechsten Scan wird neu geprueft."])
+        self.wants.empty:SetText(L["Nothing below fair price right now. Checked again after the next scan."])
         local rs = 0
         for i, row in ipairs(self.top.rows) do
             local e = m.rank[i]
             if e and row.fits then
                 rs = rs + 1
-                row.name:SetText(colored(e.name) .. (i == 1 and e.net > 0 and ("  |cffe8b44a" .. L["Goldmacher der Woche"] .. "|r") or ""))
+                row.name:SetText(colored(e.name) .. (i == 1 and e.net > 0 and ("  |cffe8b44a" .. L["Goldmaker of the week"] .. "|r") or ""))
                 row.val:SetText(signedMoney(e.net))
                 row:Show()
             else
@@ -1325,8 +1325,8 @@ local function buildOverview(p, body)
             end
         end
         self.top.empty:SetShown(rs == 0)
-        self.top.empty:SetText(L["Noch niemand teilt seine Handelsbilanz."])
-        self.top.info:SetText(m.demoRank and L["Beispiel"] or "")
+        self.top.empty:SetText(L["Nobody shares their trade balance yet."])
+        self.top.info:SetText(m.demoRank and L["Example"] or "")
     end
     return v
 end
@@ -1334,7 +1334,7 @@ end
 local function buildPrices(p, body)
     local v = CreateFrame("Frame", nil, body)
     v:SetAllPoints()
-    v.search = K.Input(v, 170, L["Item suchen ..."], function(t)
+    v.search = K.Input(v, 170, L["Search item …"], function(t)
         local s = low(t):gsub("^%s+", ""):gsub("%s+$", "")
         if s == search then return end
         search = s
@@ -1350,9 +1350,9 @@ local function buildPrices(p, body)
         for _, s in ipairs(SORTS) do
             items[#items + 1] = { text = L[s.text], checked = sortBy == s.key, fn = function() sortBy = s.key ns.RefreshPage("trade") end }
         end
-        K.ShowMenu(self, items, L["Sortieren nach"], 160)
+        K.ShowMenu(self, items, L["Sort by"], 160)
     end)
-    v.chip = K.Button(v, L["Nur guenstig"], 100, 22, "ghost", function()
+    v.chip = K.Button(v, L["Cheap only"], 100, 22, "ghost", function()
         onlyCheap = not onlyCheap
         ns.RefreshPage("trade")
     end)
@@ -1377,7 +1377,7 @@ local function buildPrices(p, body)
         fs:SetText(L[text])
         return fs
     end
-    v.hName, v.hFair, v.hCur, v.hTrend = hcol("Item"), hcol("Fair", "RIGHT"), hcol("Aktuell", "RIGHT"), hcol("Trend", "RIGHT")
+    v.hName, v.hFair, v.hCur, v.hTrend = hcol("Item"), hcol("Fair", "RIGHT"), hcol("Current", "RIGHT"), hcol("Trend", "RIGHT")
     v.hName:SetPoint("LEFT", 44, 0)
     v.list = K.List(v, 38, function(list)
         local r = K.Row(list)
@@ -1414,9 +1414,9 @@ local function buildPrices(p, body)
             if GameTooltip:IsShown() then
                 GameTooltip:AddLine(" ")
                 GameTooltip:AddDoubleLine(L["fair"], money(e.fair), 0.7, 0.7, 0.7, 1, 1, 1)
-                GameTooltip:AddDoubleLine(L["jetzt"], money(e.cur), 0.7, 0.7, 0.7, 1, 1, 1)
-                if e.info.floor7 then GameTooltip:AddDoubleLine(L["7-Tage-Tief"], money(e.info.floor7), 0.7, 0.7, 0.7, 1, 1, 1) end
-                GameTooltip:AddLine(L["Shift-Klick: im Chat verlinken"], 0.5, 0.5, 0.5)
+                GameTooltip:AddDoubleLine(L["now"], money(e.cur), 0.7, 0.7, 0.7, 1, 1, 1)
+                if e.info.floor7 then GameTooltip:AddDoubleLine(L["7-day low"], money(e.info.floor7), 0.7, 0.7, 0.7, 1, 1, 1) end
+                GameTooltip:AddLine(L["Shift-click: link in chat"], 0.5, 0.5, 0.5)
                 GameTooltip:Show()
             end
         end)
@@ -1432,8 +1432,8 @@ local function buildPrices(p, body)
         r.cheapBg:SetShown(e.cheap)
         r.cheapBar:SetShown(e.cheap)
         r.badge:Set(e.id, e.q)
-        r.name:SetText(K.hex(QCOL[e.q] or QCOL[1]) .. e.name .. "|r" .. (e.cheap and ("  " .. K.hex(C.mint) .. L["Guenstig jetzt"] .. "|r") or ""))
-        r.sub:SetText((e.cat and L[CATS[e.cat]] or "") .. (e.info.floor7 and (((e.cat and "  |cff555555·|r  ") or "") .. L["7-Tage-Tief"] .. " " .. money(e.info.floor7)) or ""))
+        r.name:SetText(K.hex(QCOL[e.q] or QCOL[1]) .. e.name .. "|r" .. (e.cheap and ("  " .. K.hex(C.mint) .. L["Cheap now"] .. "|r") or ""))
+        r.sub:SetText((e.cat and L[CATS[e.cat]] or "") .. (e.info.floor7 and (((e.cat and "  |cff555555·|r  ") or "") .. L["7-day low"] .. " " .. money(e.info.floor7)) or ""))
         -- Spalten von rechts: Verlauf | Trend | aktuell | fair
         local x = -8
         r.spark:ClearAllPoints()
@@ -1495,13 +1495,13 @@ local function buildPrices(p, body)
             end
             return low(a.name) < low(b.name)
         end)
-        self.list.empty:SetText(#m.items == 0 and L["Noch keine Preise. Sobald jemand mit Midas im AH scannt, stehen sie hier."]
-            or L["Nichts gefunden - andere Suche probieren?"])
+        self.list.empty:SetText(#m.items == 0 and L["No prices yet. Once someone scans the AH with Midas, they show up here."]
+            or L["Nothing found - try another search?"])
         self.list:SetData(out)
-        self.count:SetText((L["%d Items"]):format(#out))
+        self.count:SetText((L["%d items"]):format(#out))
         local sl
         for _, s in ipairs(SORTS) do if s.key == sortBy then sl = L[s.text] end end
-        self.sort:SetLabel("|cff888888" .. L["Sortierung:"] .. "|r " .. (sl or "") .. "  |cff666666v|r")
+        self.sort:SetLabel("|cff888888" .. L["Sort:"] .. "|r " .. (sl or "") .. "  |cff666666v|r")
         self.sort:SetWidth(math.floor((self.sort.label:GetStringWidth() or 120) + 24))
         local c = onlyCheap and C.mint or C.muted
         self.chip.label:SetTextColor(c[1], c[2], c[3])
@@ -1518,7 +1518,7 @@ local function buildRank(p, body)
     v.head:SetPoint("TOPLEFT", 2, -2)
     v.head:SetPoint("RIGHT", -2, 0)
     v.head:SetWordWrap(true)
-    v.head:SetText(L["Freiwillige Handelsbilanz der letzten 7 Tage aus Midas. Der Erste traegt den Titel 'Goldmacher der Woche'."])
+    v.head:SetText(L["Voluntary trade balance of the last 7 days from Midas. The leader earns the title 'Goldmaker of the week'."])
     v.list = K.List(v, 46, function(list)
         local r = K.Row(list)
         r.medal = r:CreateTexture(nil, "BORDER")
@@ -1561,9 +1561,9 @@ local function buildRank(p, body)
         r.num:SetText(idx)
         r.cls:SetShown(setClassIcon(r.cls, classOf(e)))
         local mine = ns.isMe(e.name)
-        r.name:SetText(colored(e.name) .. (mine and ("  |cff888888(" .. L["du"] .. ")|r") or "")
-            .. (idx == 1 and e.net > 0 and ("  |cffe8b44a" .. L["Goldmacher der Woche"] .. "|r") or ""))
-        r.sub:SetText((L["%d Verkaeufe"]):format(e.sold or 0))
+        r.name:SetText(colored(e.name) .. (mine and ("  |cff888888(" .. L["you"] .. ")|r") or "")
+            .. (idx == 1 and e.net > 0 and ("  |cffe8b44a" .. L["Goldmaker of the week"] .. "|r") or ""))
+        r.sub:SetText((L["%d sales"]):format(e.sold or 0))
         r.val:SetText(signedMoney(e.net))
         -- Balken: Anteil am Besten
         local W = r:GetWidth() or 600
@@ -1595,11 +1595,11 @@ local function buildRank(p, body)
     v.share:SetPoint("BOTTOMRIGHT", 0, 6)
     function v:Layout() end
     function v:Fill(m)
-        self.list.empty:SetText(L["Noch niemand teilt seine Handelsbilanz. Unten 'Bilanz teilen' einschalten - dann geht's los."])
+        self.list.empty:SetText(L["Nobody shares their trade balance yet. Turn on 'Share balance' below to get started."])
         self.list:SetData(m.rank)
-        self.mine:SetText(m.net and (L["Deine Bilanz (7 Tage): "] .. signedMoney(m.net) .. "  |cff777777" .. (L["%d Verkaeufe"]):format(m.sold or 0)
-            .. (S().shareTrade and "" or ("  ·  " .. L["(nur fuer dich sichtbar)"])) .. "|r") or ("|cff777777" .. L["Ohne Midas keine Handelsbilanz."] .. "|r"))
-        self.share:SetLabel(S().shareTrade and L["Bilanz teilen: an"] or L["Bilanz teilen: aus"])
+        self.mine:SetText(m.net and (L["Your balance (7 days): "] .. signedMoney(m.net) .. "  |cff777777" .. (L["%d sales"]):format(m.sold or 0)
+            .. (S().shareTrade and "" or ("  ·  " .. L["(only visible to you)"])) .. "|r") or ("|cff777777" .. L["No trade balance without Midas."] .. "|r"))
+        self.share:SetLabel(S().shareTrade and L["Share balance: on"] or L["Share balance: off"])
         self.share:SetWidth(math.floor((self.share.label:GetStringWidth() or 120) + 26))
         local c = S().shareTrade and C.mint or C.muted
         self.share.label:SetTextColor(c[1], c[2], c[3])
@@ -1613,11 +1613,11 @@ local function buildOpts(p, body)
     local function get(key, default) return function() local x = S()[key] if x == nil then return default end return x end end
     local function set(key, after) return function(x) S()[key] = x if after then after(x) end ns.RefreshPage("trade") end end
     v.rows = {
-        optRow(v, "wants", C.pink, "Wunschliste-Alarm", "Liegt etwas von deiner Wunschliste guenstig im AH, bekommst du einen Hinweis - auch wenn ein anderer gescannt hat.",
+        optRow(v, "wants", C.pink, "Wishlist alert", "If something from your wishlist is cheap in the AH, you get a notice - even if someone else scanned.",
             get("wantAlarm", true), set("wantAlarm")),
-        optRow(v, "announce", C.amber, "Preisabfragen beantworten", "Schreibt jemand 'pc [Item]' in den Gildenchat, antwortet genau ein Oasis-Nutzer mit Preis und 7-Tage-Tief.",
+        optRow(v, "announce", C.amber, "Answer price checks", "When someone types 'pc [item]' in guild chat, exactly one Oasis user answers with the price and 7-day low.",
             get("priceAnswer", true), set("priceAnswer")),
-        optRow(v, "badges", C.blue, "Meine Handelsbilanz teilen", "Freiwillig: dein Gewinn der letzten 7 Tage erscheint in der Haendler-Rangliste.",
+        optRow(v, "badges", C.blue, "Share my trade balance", "Optional: your profit of the last 7 days shows up in the trader ranking.",
             get("shareTrade", false), set("shareTrade", function() if ns.Radar then ns.Radar.SendHello() end end)),
     }
     for i, r in ipairs(v.rows) do
@@ -1629,7 +1629,7 @@ local function buildOpts(p, body)
     v.guild:SetPoint("RIGHT", -4, 0)
     v.guild:SetWordWrap(true)
     v.guild:SetText("")
-    v.midas = K.Button(v, L["Midas oeffnen"], 130, 24, "ghost", Trade.OpenMidas)
+    v.midas = K.Button(v, L["Open Midas"], 130, 24, "ghost", Trade.OpenMidas)
     v.midas:SetPoint("TOPLEFT", v.guild, "BOTTOMLEFT", -4, -12)
     v.note = K.Text(v, 11, C.dim)
     v.note:SetPoint("TOPLEFT", v.midas, "BOTTOMLEFT", 4, -10)
@@ -1641,8 +1641,8 @@ local function buildOpts(p, body)
         for _, r in ipairs(self.rows) do r:Refresh() end
         local pc = tonumber(ns.GuildOpt("trCheap")) or 85
         local hrs = tonumber(ns.GuildOpt("trAlrtH")) or 12
-        self.guild:SetText((L["Von der Gildenleitung: ein Wunsch gilt ab %d %% vom fairen Preis als guenstig, derselbe Wunsch wird hoechstens alle %d Std gemeldet."]):format(pc, hrs)
-            .. (ns.GuildOpt("trPcAns") == false and ("\n|cffe8b44a" .. L["Preisfragen im Gildenchat sind von der Gildenleitung abgeschaltet."] .. "|r") or ""))
+        self.guild:SetText((L["Set by the guild leaders: a wish counts as cheap at %d %% of the fair price or less, the same wish is reported at most every %d h."]):format(pc, hrs)
+            .. (ns.GuildOpt("trPcAns") == false and ("\n|cffe8b44a" .. L["Price questions in guild chat are turned off by the guild leaders."] .. "|r") or ""))
         local has = SlashCmdList and SlashCmdList.MIDAS ~= nil
         self.midas:SetShown(has and true or false)
         self.note:ClearAllPoints()
@@ -1650,16 +1650,16 @@ local function buildOpts(p, body)
         else self.note:SetPoint("TOPLEFT", self.guild, "BOTTOMLEFT", 0, -12) end
         self.note:SetPoint("RIGHT", -4, 0)
         self.note:SetText(Trade.HasMidas()
-            and L["Im Auktionshaus oben rechts auf 'Midas Scan' klicken. Die Preise gehen automatisch an alle in der Gilde."]
-            or ("|cffe8b44a" .. L["Midas ist nicht installiert."] .. "|r " .. L["Optional: Wer das AH-Addon Midas selbst installiert, bekommt hier Preise, Wunschliste-Alarm und mehr. Oasis funktioniert auch ohne."]))
+            and L["At the Auction House, click 'Midas Scan' at the top right. The prices go to everyone in the guild automatically."]
+            or ("|cffe8b44a" .. L["Midas is not installed."] .. "|r " .. L["Optional: install the AH addon Midas yourself to get prices, wishlist alerts and more here. Oasis works without it too."]))
     end
     return v
 end
 
 local TOP_Y, BODY_Y = 0, -44   -- 0.5.853: Kennzahl-Kacheln entfallen, Inhalt beginnt direkt unter den Reitern
 ns.RegisterPage({
-    key = "trade", title = "Markt", order = 2.3,
-    sub = "Auktionshaus-Preise fuer die Gilde - einer scannt, alle profitieren",
+    key = "trade", title = "Market", order = 2.3,
+    sub = "Auction House prices for the guild - one scans, everyone benefits",
     build = function(p)
         page = p
         p.fresh = true
@@ -1737,18 +1737,18 @@ ns.RegisterPage({
         local c = m.ts and Trade.ScanColor(m.ts) or C.dim
         p.pill.dot:SetVertexColor(c[1], c[2], c[3])
         p.pill.text:SetText((m.demo and (K.hex(C.amber) .. L["Demo"] .. "|r  |cff555555·|r  ") or "")
-            .. (m.ts and (L["AH-Stand"] .. " " .. ns.ago(m.ts) .. "  |cff555555·|r  " .. colored(m.who)) or L["Noch kein Scan"]))
-        p.pill.tip = m.ts and { L["Auktionshaus"], (L["gescannt von %s"]):format(colored(m.who)) .. "  |cff777777" .. date(L["%d.%m. %H:%M"], m.ts) .. "|r",
-            "|cff888888" .. L["Im Auktionshaus oben rechts auf 'Midas Scan' klicken. Die Preise gehen automatisch an alle in der Gilde."] .. "|r" }
-            or { L["Noch kein Scan"], "|cff888888" .. L["Sobald jemand mit Oasis im AH scannt, steht es hier."] .. "|r" }
-        if m.demo then p.pill.tip[#p.pill.tip + 1] = K.hex(C.amber) .. L["Demo: Beispielpreise, nur bei dir sichtbar"] .. "|r" end
+            .. (m.ts and (L["AH data"] .. " " .. ns.ago(m.ts) .. "  |cff555555·|r  " .. colored(m.who)) or L["No scan yet"]))
+        p.pill.tip = m.ts and { L["Auction House"], (L["scanned by %s"]):format(colored(m.who)) .. "  |cff777777" .. date(L["%m/%d %H:%M"], m.ts) .. "|r",
+            "|cff888888" .. L["At the Auction House, click 'Midas Scan' at the top right. The prices go to everyone in the guild automatically."] .. "|r" }
+            or { L["No scan yet"], "|cff888888" .. L["As soon as someone with Oasis scans the AH, it shows up here."] .. "|r" }
+        if m.demo then p.pill.tip[#p.pill.tip + 1] = K.hex(C.amber) .. L["Demo: sample prices, only visible to you"] .. "|r" end
 
         -- Kacheln
         local vals = {
             scan = { m.ts and ns.ago(m.ts) or "–", m.ts and ns.displayName(m.who) or "", m.ts and Trade.ScanColor(m.ts) or C.dim },
-            items = { #m.items, m.cheapN > 0 and (L["%d guenstig"]):format(m.cheapN) or "", #m.items > 0 and C.text or C.dim },
+            items = { #m.items, m.cheapN > 0 and (L["%d cheap"]):format(m.cheapN) or "", #m.items > 0 and C.text or C.dim },
             hits = { #m.wants, "", #m.wants > 0 and C.text or C.dim },
-            gain = { m.net and shortGold(m.net) or "–", m.net and (L["%d Verkaeufe"]):format(m.sold or 0) or "", m.net and (m.net >= 0 and C.mint or C.red) or C.dim },
+            gain = { m.net and shortGold(m.net) or "–", m.net and (L["%d sales"]):format(m.sold or 0) or "", m.net and (m.net >= 0 and C.mint or C.red) or C.dim },
         }
         for i, t in ipairs(p.tiles) do
             local v = vals[t.key]

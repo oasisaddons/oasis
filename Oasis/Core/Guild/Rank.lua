@@ -52,26 +52,26 @@ local TITLE_XP = { first10 = true, first20 = true, first30 = true, first40 = tru
 -- 100 Raenge: 20 Rangstufen mit je 5 Unterstufen (I-V), z.B. "Karawanenfuehrer III"
 Rank.MAX = 100
 Rank.NAMES = {
-    "Neuling", "Sandlaeufer", "Wuestenwanderer", "Brunnenfinder", "Oasenhueter",
-    "Kamelfluesterer", "Karawanenfuehrer", "Duenenreiter", "Skorpionbaendiger", "Sandsturmbezwinger",
-    "Quellenwaechter", "Sternendeuter", "Fata-Morgana-Jaeger", "Palmenfuerst", "Sonnenkrieger",
-    "Wuestenkoenig", "Oasenmeister", "Hueter der Quelle", "Legende der Oase", "Herz der Oasis",
+    "Newcomer", "Sand runner", "Desert wanderer", "Well finder", "Oasis keeper",
+    "Camel whisperer", "Caravan leader", "Dune rider", "Scorpion tamer", "Sandstorm tamer",
+    "Spring warden", "Star reader", "Mirage hunter", "Palm lord", "Sun warrior",
+    "Desert king", "Oasis master", "Keeper of the spring", "Legend of the oasis", "Heart of Oasis",
 }
 local ROMAN = { "I", "II", "III", "IV", "V" }
 
 -- Rahmen: alle 10 Raenge ein neuer, ab Smaragd leuchtend, ab Amethyst doppelt, ab Rubin mit Funken
 Rank.FRAMES = {
-    { name = "Holzrahmen", color = { 0.62, 0.43, 0.25 }, width = 2 },
-    { name = "Bronzerahmen", color = { 0.85, 0.53, 0.27 }, width = 2 },
-    { name = "Silberrahmen", color = { 0.80, 0.83, 0.90 }, width = 2 },
-    { name = "Goldrahmen", color = { 1.00, 0.80, 0.25 }, width = 3, gems = true },
-    { name = "Smaragdrahmen", color = { 0.30, 0.88, 0.50 }, width = 3, gems = true, glow = true },
-    { name = "Saphirrahmen", color = { 0.35, 0.58, 1.00 }, width = 3, gems = true, glow = true },
-    { name = "Amethystrahmen", color = { 0.72, 0.42, 1.00 }, width = 3, gems = true, glow = true, double = true },
-    { name = "Rubinrahmen", color = { 1.00, 0.25, 0.32 }, width = 3, gems = true, glow = true, double = true, sparks = 1 },
-    { name = "Diamantrahmen", color = { 0.78, 0.96, 1.00 }, width = 3, gems = true, glow = true, double = true, sparks = 2 },
-    { name = "Legendenrahmen", color = { 1.00, 0.55, 0.10 }, width = 4, gems = true, glow = true, double = true, sparks = 3 },
-    { name = "Herz der Oasis", color = { 1.00, 0.30, 0.50 }, width = 4, gems = true, glow = true, double = true, sparks = 4, cycle = true },
+    { name = "Wooden frame", color = { 0.62, 0.43, 0.25 }, width = 2 },
+    { name = "Bronze frame", color = { 0.85, 0.53, 0.27 }, width = 2 },
+    { name = "Silver frame", color = { 0.80, 0.83, 0.90 }, width = 2 },
+    { name = "Gold frame", color = { 1.00, 0.80, 0.25 }, width = 3, gems = true },
+    { name = "Emerald frame", color = { 0.30, 0.88, 0.50 }, width = 3, gems = true, glow = true },
+    { name = "Sapphire frame", color = { 0.35, 0.58, 1.00 }, width = 3, gems = true, glow = true },
+    { name = "Amethyst frame", color = { 0.72, 0.42, 1.00 }, width = 3, gems = true, glow = true, double = true },
+    { name = "Ruby frame", color = { 1.00, 0.25, 0.32 }, width = 3, gems = true, glow = true, double = true, sparks = 1 },
+    { name = "Diamond frame", color = { 0.78, 0.96, 1.00 }, width = 3, gems = true, glow = true, double = true, sparks = 2 },
+    { name = "Legendary frame", color = { 1.00, 0.55, 0.10 }, width = 4, gems = true, glow = true, double = true, sparks = 3 },
+    { name = "Heart of Oasis", color = { 1.00, 0.30, 0.50 }, width = 4, gems = true, glow = true, double = true, sparks = 4, cycle = true },
 }
 function Rank.FrameIndex(level)
     level = math.max(1, math.min(Rank.MAX, level or 1))
@@ -313,7 +313,7 @@ function Rank.Update(silent, noDouble)
         flushAt = GetTime() + 1.5
         ns.After(1.5, function()
             flushAt = nil
-            if pending >= 1 then floatText(("+%d %s"):format(math.floor(pending + 0.5), L["Oasis-XP"])) end
+            if pending >= 1 then floatText(("+%d %s"):format(math.floor(pending + 0.5), L["Oasis XP"])) end
             pending = 0
         end)
     end
@@ -321,16 +321,16 @@ function Rank.Update(silent, noDouble)
     if newLvl > oldLvl then
         local title = Rank.Title(newLvl)
         ns.After(1.8, function()
-            floatText((L["Oasis-Rang %d!"]):format(newLvl), true)
+            floatText((L["Oasis rank %d!"]):format(newLvl), true)
             -- eigene Rang-Fanfare (Belohnung), sonst der normale Abzeichen-Klang
             -- Aufstiegs-Sound erst ab Rang 10, davor der normale Hinweis-Klang
             if ns.Sound then ns.Sound.Next(newLvl >= 10 and "rankup" or "badge") end
-            K.Toast((L["Oasis-Rang %d!"]):format(newLvl), title, C.amber, function() ns.ShowPage("rank") end)
+            K.Toast((L["Oasis rank %d!"]):format(newLvl), title, C.amber, function() ns.ShowPage("rank") end)
             -- neu freigeschaltete Belohnungen melden
             if ns.Rewards then
                 for _, x in ipairs(ns.Rewards.LIST) do
                     if x.lvl > oldLvl and x.lvl <= newLvl then
-                        ns.After(3, function() K.Toast(L["Belohnung freigeschaltet!"], L[x.name], C.mint, function() ns.ShowPage("rank") end) end)
+                        ns.After(3, function() K.Toast(L["Reward unlocked!"], L[x.name], C.mint, function() ns.ShowPage("rank") end) end)
                     end
                 end
             end
@@ -338,11 +338,11 @@ function Rank.Update(silent, noDouble)
             local fr = Rank.Frame(newLvl)
             if fr ~= Rank.Frame(oldLvl) then
                 ns.After(1.5, function()
-                    K.Toast(L["Neuer Profilrahmen!"], L[fr.name], fr.color, function() ns.ShowPage("home") end)
+                    K.Toast(L["New profile frame!"], L[fr.name], fr.color, function() ns.ShowPage("home") end)
                 end)
             end
             if ns.Chronicle then
-                ns.Chronicle.Add("level", ("rank-%s-%d"):format(ns.short(ns.me()), newLvl), "hat Oasis-Rang %s erreicht", { newLvl }, { rank = true })
+                ns.Chronicle.Add("level", ("rank-%s-%d"):format(ns.short(ns.me()), newLvl), "reached Oasis rank %s", { newLvl }, { rank = true })
             end
             if ns.Radar then ns.Radar.SendHello() end
         end)
@@ -383,9 +383,9 @@ end)
 
 ns.slash.rang = function()
     local m = Rank.Mine()
-    ns.print((L["Oasis-Rang %d"]):format(m.level) .. " - " .. m.title .. "  (" .. m.into .. " / " .. m.need .. " XP)")
+    ns.print((L["Oasis rank %d"]):format(m.level) .. " - " .. m.title .. "  (" .. m.into .. " / " .. m.need .. " XP)")
 end
-ns.slash.xptest = function() floatText("+25 " .. L["Oasis-XP"]) end
+ns.slash.xptest = function() floatText("+25 " .. L["Oasis XP"]) end
 -- 0.6.433: /oa testrang N (aus mit /oa testrang) - Rang zum Testen der Freischaltungen, echter Stand bleibt
 ns.slash.testrang = function(a)
     if not (ns.IsDev and ns.IsDev()) then return end

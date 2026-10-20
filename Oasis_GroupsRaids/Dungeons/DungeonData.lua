@@ -54,7 +54,7 @@ return {
   },
   {
     -- wft GF level 15
-    key = "ruinsoflordaeron", name = "Ruins of Lordaeron", de = "Ruinen von Lordaeron", lo = 15, hi = 20, zone = "Lordaeron",
+    key = "ruinsoflordaeron", name = "Ruins of Lordaeron", de = "Ruins of Lordaeron", lo = 15, hi = 20, zone = "Lordaeron",
     faction = nil, status = "beta",
     bosses = {
       { name = "The Baron", npc = 250660, level = 17, loot = { {271204, "Meathook Slicer", 3}, {271205, "Abomination Bones", 3}, {271206, "Leftover Abomination Skin", 3} } },

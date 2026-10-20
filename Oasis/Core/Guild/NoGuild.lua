@@ -24,7 +24,7 @@ function NoGuild.OpenFinder()
         local ok, done = pcall(fn)
         if ok and done then return true end
     end
-    ns.print(L["Keine Gildensuche in diesem Client gefunden - frag im Handelschat oder fluestere ein Gildenmitglied an."])
+    ns.print(L["No guild finder found in this client - ask in trade chat or whisper a guild member."])
     return false
 end
 
@@ -82,27 +82,27 @@ function NoGuild.Fill(p)
         p.hero.title = K.Title(p.hero, 20, C.text)
         p.hero.title:SetPoint("TOPLEFT", 92, -28)
         p.hero.title:SetPoint("RIGHT", p.hero, "RIGHT", -20, 0)
-        p.hero.title:SetText(L["Du bist in keiner Gilde."])
+        p.hero.title:SetText(L["You are not in a guild."])
         p.hero.sub = K.Text(p.hero, 13, C.muted)
         p.hero.sub:SetPoint("TOPLEFT", p.hero.title, "BOTTOMLEFT", 0, -8)
         p.hero.sub:SetPoint("RIGHT", p.hero, "RIGHT", -20, 0)
         p.hero.sub:SetWordWrap(true)
-        p.hero.sub:SetText(L["Oasis funktioniert trotzdem fuer dich: dein Profil, Ziele, Dungeons und Sammlungen sind da."])
+        p.hero.sub:SetText(L["Oasis still works for you: your profile, goals, dungeons and collections are here."])
 
         p.cards = {
-            card(p, "profile", C.accent, L["Profil"], L["Werte, Jahrbuch, Tagesziel, Rekorde und Abenteuer deines Charakters."], L["Profil oeffnen"],
+            card(p, "profile", C.accent, L["Profile"], L["Stats, yearbook, daily goal, records and adventures of your character."], L["Open profile"],
                 function() ns.ShowPage("insta") end),
-            card(p, "checklist", C.mint, L["Was tun?"], L["Vorschlaege passend zu deinem Level und deiner Zeit."], L["Vorschlaege ansehen"],
+            card(p, "checklist", C.mint, L["What to do?"], L["Suggestions for your level and your time."], L["See suggestions"],
                 function() ns.profileTab = "todo" ns.ShowPage("insta") end),
-            card(p, "dungeons", C.blue, L["Dungeons"], L["Der Dungeonkompass: welcher Dungeon passt, was droppt dort fuer dich."], L["Dungeons oeffnen"],
+            card(p, "dungeons", C.blue, L["Dungeons"], L["The dungeon compass: which dungeon fits, what drops there for you."], L["Open dungeons"],
                 function() ns.ShowPage("dungeons") end),
         }
-        p.find = card(p, "groups", C.amber, L["Gilde finden"],
-            L["Mit Gilde kommen Mitgliederliste, Chronik, Raids, Handwerk und mehr dazu. Die Gildensuche von WoW hilft beim Finden - oder frag im Handelschat."],
-            L["Gildensuche oeffnen"], function() NoGuild.OpenFinder() end)
+        p.find = card(p, "groups", C.amber, L["Find a guild"],
+            L["With a guild you also get the member list, chronicle, raids, crafting and more. WoW's guild finder helps - or ask in trade chat."],
+            L["Open guild finder"], function() NoGuild.OpenFinder() end)
         p.find:SetHeight(96)
         -- 0.6.527: bei einer Gilde mit Oasis direkt bewerben (Rekrutierungs-Mappe)
-        p.find.apply = calmBtn(K.Button(p.find, L["Bewerbung schreiben"], 150, 22, "ghost", function() if ns.Apply then ns.Apply.ShowForm() else ns.print(L["Bewerben braucht das Modul Gildenpflege."]) end end))
+        p.find.apply = calmBtn(K.Button(p.find, L["Write application"], 150, 22, "ghost", function() if ns.Apply then ns.Apply.ShowForm() else ns.print(L["Applying needs the Guild care module."]) end end))
         p.find.apply:SetPoint("RIGHT", p.find.btn, "LEFT", -8, 0)
         p.find.text:ClearAllPoints()
         p.find.text:SetPoint("TOPLEFT", 64, -42)
@@ -113,13 +113,13 @@ function NoGuild.Fill(p)
         -- Beispieldaten: so sieht Oasis mit Gilde aus. Startet nur per Klick und bleibt auf diesem PC.
         if ns.Demo and ns.Demo.Load then
             p.find.btn:SetPoint("RIGHT", -16, 17)
-            p.find.demo = calmBtn(K.Button(p.find, L["Beispiel ansehen"], 150, 26, "ghost", function()
+            p.find.demo = calmBtn(K.Button(p.find, L["Show example"], 150, 26, "ghost", function()
                 if not ns.Demo.IsActive() then ns.Demo.Load() end
                 ns.ShowPage("home")
             end))
             p.find.demo:SetPoint("RIGHT", -16, -17)
             p.find.demo:HookScript("OnEnter", function(self)
-                K.ShowTip(self, { L["Beispiel ansehen"], L["So sieht Oasis mit einer Gilde aus: Beispieldaten nur auf deinem PC, es wird nichts gesendet. Entfernen mit /oa demo aus."] })
+                K.ShowTip(self, { L["Show example"], L["This is what Oasis looks like with a guild: sample data on your PC only, nothing is sent. Remove it with /oa demo off."] })
             end)
             p.find.demo:HookScript("OnLeave", function() GameTooltip:Hide() end)
         end
@@ -131,7 +131,7 @@ function NoGuild.Fill(p)
         if not hasGlass() then K.Fill(p.ct, C.panel) K.Border(p.ct, C.line) end
         p.ct.head = K.Title(p.ct, 14, C.text)
         p.ct.head:SetPoint("TOPLEFT", 16, -14)
-        p.ct.head:SetText(L["Deine Oasis-Kontakte"])
+        p.ct.head:SetText(L["Your Oasis contacts"])
         p.ct.count = K.Text(p.ct, 11, C.dim)
         p.ct.count:SetPoint("LEFT", p.ct.head, "RIGHT", 8, 0)
         p.ct.empty = K.Text(p.ct, 12, C.muted)
@@ -139,7 +139,7 @@ function NoGuild.Fill(p)
         p.ct.empty:SetPoint("RIGHT", p.ct, "RIGHT", -16, 0)
         p.ct.empty:SetJustifyH("LEFT")
         p.ct.empty:SetWordWrap(true)
-        p.ct.empty:SetText(L["Noch keine Kontakte. Geh mit anderen Oasis-Nutzern in eine Gruppe - Oasis merkt sie sich dann hier, auch ohne Gilde."])
+        p.ct.empty:SetText(L["No contacts yet. Group up with other Oasis users - Oasis remembers them here, even without a guild."])
         p.ct.rows = {}
         for i = 1, MAXR do
             local r = CreateFrame("Button", nil, p.ct)
@@ -178,15 +178,15 @@ function NoGuild.Fill(p)
             r.info:SetPoint("LEFT", 214, 0)
             r.info:SetPoint("RIGHT", r, "RIGHT", -180, 0)
             r.info:SetWordWrap(false)
-            r.dr = calmBtn(K.Button(r, L["Todeswuerfeln"], 90, 22, "ghost"))
+            r.dr = calmBtn(K.Button(r, L["Deathroll"], 90, 22, "ghost"))
             r.dr:SetPoint("RIGHT", 0, 0)
-            r.inv = calmBtn(K.Button(r, L["Einladen"], 76, 22, "ghost"))
+            r.inv = calmBtn(K.Button(r, L["Invite"], 76, 22, "ghost"))
             r.inv:SetPoint("RIGHT", r.dr, "LEFT", -6, 0)
             r:SetScript("OnEnter", function(self)
                 local x = self.item
                 if not x then return end
                 K.ShowTip(self, { ns.colorName(x.name, x.c.cls), "|cff66db9e" .. (ns.Contacts.TipLine(x.c) or "") .. "|r",
-                    x.group and L["in deiner Gruppe"] or (x.online and L["online (Freundesliste)"] or (x.friend and L["offline"] or L["nicht auf deiner Freundesliste - online-Status unbekannt"])) })
+                    x.group and L["in your group"] or (x.online and L["online (friends list)"] or (x.friend and L["offline"] or L["not on your friends list - online status unknown"])) })
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
             r:SetScript("OnClick", function(self) if self.item and ns.Profile then ns.Profile.Show(self.item.name) end end)
@@ -210,7 +210,7 @@ function NoGuild.Fill(p)
                     if not ok then r.ini:SetText(((ns.displayName(x.name) or "?"):match("^[%z\1-\127\194-\244][\128-\191]*") or "?"):upper()) end
                     r.dot:SetShown(x.online)
                     r.name:SetText(ns.colorName(x.name, c.cls) .. "  |cff888888" .. (c.lvl or "?") .. "|r")
-                    r.info:SetText(L["zuletzt"] .. " " .. (ns.ago and ns.ago(c.seen or 0) or "?"))
+                    r.info:SetText(L["last"] .. " " .. (ns.ago and ns.ago(c.seen or 0) or "?"))
                     local nm = x.name
                     r.inv:SetShown(x.online and not x.group)
                     r.inv:SetScript("OnClick", function()
@@ -311,7 +311,7 @@ function NoGuild.BuildBack(parent)
     if not hasGlass() then K.Fill(f, C.panel) K.Border(f, C.line) end
     f.title = K.Title(f, 15, C.text)
     f.title:SetPoint("TOPLEFT", 16, -14)
-    f.title:SetText(L["Zurueck in deine Gilde?"])
+    f.title:SetText(L["Back to your guild?"])
     f.sub = K.Text(f, 12, C.muted)
     f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -4)
     f.sub:SetPoint("RIGHT", f, "RIGHT", -16, 0)
@@ -320,7 +320,7 @@ function NoGuild.BuildBack(parent)
     f.none:SetPoint("TOPLEFT", 16, -56)
     f.none:SetPoint("RIGHT", f, "RIGHT", -16, 0)
     f.none:SetWordWrap(true)
-    f.none:SetText(L["Wer einladen darf, ist noch nicht bekannt - logge einmal mit deinem Main ein, dann merkt sich Oasis die Gildenleitung."])
+    f.none:SetText(L["Who can invite is not known yet - log in once with your main and Oasis will remember the guild leadership."])
     -- Kopierfeld (nur wenn das Chatfenster nicht vorbereitet werden kann)
     f.copy = CreateFrame("EditBox", nil, f)
     f.copy:SetAutoFocus(false)
@@ -331,7 +331,7 @@ function NoGuild.BuildBack(parent)
     glass(f.copy, { 1, 1, 1, 0.05 }, { 1, 1, 1, 0.12 }, 6)
     f.copy:SetTextInsets(8, 8, 0, 0)
     f.copy:SetScript("OnEscapePressed", function(self) self:ClearFocus() self:Hide() end)
-    f.copy:Hide()    -- "Wer ist online?": /who nach der Gilde (nur per Klick erlaubt - Blizzard verlangt einen Tastendruck/Klick).    -- Ergebnis markiert Offiziere als online und nennt, wie viele aus der Gilde gerade da sind.    -- /who nach der Gilde; minGap = Mindestabstand in Sekunden    function NoGuild.SendWho(minGap)        local info = f.info or NoGuild.ReturnInfo()        local W = C_FriendList        if not (info and info.guild and W and W.SendWho) then return end        if GetTime() - (NoGuild.whoT or 0) < (minGap or 6) then return end        NoGuild.whoT = GetTime()        NoGuild.whoPending = info.guild        if W.SetWhoToUi then pcall(W.SetWhoToUi, true) end        pcall(W.SendWho, 'g-"' .. info.guild .. '"')        if f.check then f.check:SetLabel(L["Suche ..."]) end    end    f.check = K.Button(f, L["Wer ist online?"], 130, 22, "ghost", function() NoGuild.SendWho(6) end)    f.check:SetPoint("TOPRIGHT", -14, -12)    f.sub:SetPoint("RIGHT", f.check, "LEFT", -10, 0)    if not (C_FriendList and C_FriendList.SendWho) then f.check:Hide() end    NoGuild.EnsureWhoEv()    NoGuild.backCard = f
+    f.copy:Hide()    -- "Wer ist online?": /who nach der Gilde (nur per Klick erlaubt - Blizzard verlangt einen Tastendruck/Klick).    -- Ergebnis markiert Offiziere als online und nennt, wie viele aus der Gilde gerade da sind.    -- /who nach der Gilde; minGap = Mindestabstand in Sekunden    function NoGuild.SendWho(minGap)        local info = f.info or NoGuild.ReturnInfo()        local W = C_FriendList        if not (info and info.guild and W and W.SendWho) then return end        if GetTime() - (NoGuild.whoT or 0) < (minGap or 6) then return end        NoGuild.whoT = GetTime()        NoGuild.whoPending = info.guild        if W.SetWhoToUi then pcall(W.SetWhoToUi, true) end        pcall(W.SendWho, 'g-"' .. info.guild .. '"')        if f.check then f.check:SetLabel(L["Searching ..."]) end    end    f.check = K.Button(f, L["Who is online?"], 130, 22, "ghost", function() NoGuild.SendWho(6) end)    f.check:SetPoint("TOPRIGHT", -14, -12)    f.sub:SetPoint("RIGHT", f.check, "LEFT", -10, 0)    if not (C_FriendList and C_FriendList.SendWho) then f.check:Hide() end    NoGuild.EnsureWhoEv()    NoGuild.backCard = f
     f.rows = {}
     for i = 1, 4 do
         local r = CreateFrame("Frame", nil, f)
@@ -366,7 +366,7 @@ function NoGuild.BuildBack(parent)
         r.info:SetPoint("LEFT", 264, 0)
         r.info:SetPoint("RIGHT", r, "RIGHT", -120, 0)
         r.info:SetWordWrap(false)
-        r.btn = calmBtn(K.Button(r, L["Anfluestern"], 104, 22, "primary"), true)
+        r.btn = calmBtn(K.Button(r, L["Whisper"], 104, 22, "primary"), true)
         r.btn:SetPoint("RIGHT", 0, 0)
         f.rows[i] = r
     end
@@ -374,9 +374,9 @@ function NoGuild.BuildBack(parent)
         self.info = info
         if not info then self:Hide() return 0 end
         self:Show()
-        self.sub:SetText((L["Dein Main %s ist in <%s>."]):format(ns.colorName(info.main, (ns.db.chars[info.main] or {}).class), info.guild or "?"))        local wo = NoGuild.whoOnline        if wo then            for _, o in ipairs(info.officers) do                local key = ns.NameKey(o.name)                if wo[key] then o.online = true o.whoOn = true end            end            table.sort(info.officers, function(a2, b2)                if (a2.online and true or false) ~= (b2.online and true or false) then return a2.online and true or false end                return (a2.seen or 0) > (b2.seen or 0)            end)            local wc = NoGuild.whoCount or 0            self.sub:SetText(self.sub:GetText() .. "  " .. (wc > 0 and ("|cff66db9e" .. (L["%d aus der Gilde online"]):format(wc) .. "|r") or ("|cff888888" .. L["gerade niemand aus der Gilde online"] .. "|r"))                .. "  |cff666666" .. (L["Stand %s"]):format(ns.ago and ns.ago(NoGuild.whoAt or time()) or "") .. "|r")        end        if self.check then self.check:SetLabel(L["Wer ist online?"]) end
+        self.sub:SetText((L["Your main %s is in <%s>."]):format(ns.colorName(info.main, (ns.db.chars[info.main] or {}).class), info.guild or "?"))        local wo = NoGuild.whoOnline        if wo then            for _, o in ipairs(info.officers) do                local key = ns.NameKey(o.name)                if wo[key] then o.online = true o.whoOn = true end            end            table.sort(info.officers, function(a2, b2)                if (a2.online and true or false) ~= (b2.online and true or false) then return a2.online and true or false end                return (a2.seen or 0) > (b2.seen or 0)            end)            local wc = NoGuild.whoCount or 0            self.sub:SetText(self.sub:GetText() .. "  " .. (wc > 0 and ("|cff66db9e" .. (L["%d from the guild online"]):format(wc) .. "|r") or ("|cff888888" .. L["nobody from the guild online right now"] .. "|r"))                .. "  |cff666666" .. (L["As of %s"]):format(ns.ago and ns.ago(NoGuild.whoAt or time()) or "") .. "|r")        end        if self.check then self.check:SetLabel(L["Who is online?"]) end
         local twink = ns.ChatName and ns.ChatName(ns.me()) or ns.short(ns.me())
-        -- wer laut /who gerade online ist, steht oben (mit Namen); danach die Offiziere        local people, seenP = {}, {}        for _, w in ipairs(NoGuild.whoList or {}) do            local key = ns.NameKey(w.name)            local off            for _, o in ipairs(info.officers) do if ns.NameKey(o.name) == key then off = o end end            people[#people + 1] = off or { name = w.name, cls = w.cls, rank = (L["Stufe %s"]):format(w.lvl or "?") .. ((w.zone and w.zone ~= "") and ("  ·  " .. w.zone) or ""), online = true, whoOn = true }            seenP[key] = true        end        for _, o in ipairs(info.officers) do            local key = ns.NameKey(o.name)            if not seenP[key] then people[#people + 1] = o end        end        local n = math.min(#people, self.maxRows or #self.rows)
+        -- wer laut /who gerade online ist, steht oben (mit Namen); danach die Offiziere        local people, seenP = {}, {}        for _, w in ipairs(NoGuild.whoList or {}) do            local key = ns.NameKey(w.name)            local off            for _, o in ipairs(info.officers) do if ns.NameKey(o.name) == key then off = o end end            people[#people + 1] = off or { name = w.name, cls = w.cls, rank = (L["Level %s"]):format(w.lvl or "?") .. ((w.zone and w.zone ~= "") and ("  ·  " .. w.zone) or ""), online = true, whoOn = true }            seenP[key] = true        end        for _, o in ipairs(info.officers) do            local key = ns.NameKey(o.name)            if not seenP[key] then people[#people + 1] = o end        end        local n = math.min(#people, self.maxRows or #self.rows)
         for i, r in ipairs(self.rows) do
             local o = i <= n and people[i]
             if o then
@@ -389,17 +389,17 @@ function NoGuild.BuildBack(parent)
                 if not ok then r.ini:SetText(((ns.displayName(o.name) or "?"):match("^[%z\1-\127\194-\244][\128-\191]*") or "?"):upper()) end
                 r.dot:SetShown(o.online and true or false)
                 r.name:SetText(ns.colorName(o.name, o.cls) .. "  |cff888888" .. (o.rank or "") .. "|r")
-                r.info:SetText(o.whoOn and ("|cff66db9e" .. L["gerade online"] .. "|r") or ((o.seen or 0) > 0 and (L["zuletzt online"] .. " " .. (ns.ago and ns.ago(o.seen) or "?")) or ""))
+                r.info:SetText(o.whoOn and ("|cff66db9e" .. L["online now"] .. "|r") or ((o.seen or 0) > 0 and (L["last online"] .. " " .. (ns.ago and ns.ago(o.seen) or "?")) or ""))
                 local target = ns.Comm and ns.Comm.WhisperName and ns.Comm.WhisperName(o.name) or ns.short(o.name)
-                local text = (L["Hallo! Kannst du meinen Twink %s in die Gilde einladen? Danke!"]):format(twink)
+                local text = (L["Hi! Could you invite my alt %s to the guild? Thanks!"]):format(twink)
                 if ChatFrame_SendTell or ChatFrame_OpenChat then
-                    r.btn:SetLabel(L["Anfluestern"])
+                    r.btn:SetLabel(L["Whisper"])
                     -- ns.Whisper setzt den kompletten Namen als Ziel: "/w Lena Berg Hallo!" las WoW als
                     -- Ziel "Lena Hallo!" (Forever-Doppelnamen); der Text wird danach eingefuegt
                     r.btn:SetScript("OnClick", function() ns.Whisper(o.name, text) end)
                 else
                     -- kein vorbereitetes Chatfenster: Text zum Kopieren anbieten (nichts wird automatisch gesendet)
-                    r.btn:SetLabel(L["Text kopieren"])
+                    r.btn:SetLabel(L["Copy text"])
                     r.btn:SetScript("OnClick", function()
                         self.copy:SetText("/w " .. target .. " " .. text)
                         self.copy:Show()
@@ -427,7 +427,7 @@ function NoGuild.BuildArea(parent)
     a.hero:Hide()
     a.cards[#a.cards + 1] = a.find
     -- im Raster: "Gilde finden" als normale Karte mit kurzem Text
-    a.find.text:SetText(L["Die Gildensuche von WoW hilft beim Finden - neutral, ohne Werbung."])
+    a.find.text:SetText(L["WoW's guild finder helps - neutral, no ads."])
     a.back = NoGuild.BuildBack(a)
     function a:LayoutDash(W, sideW, avail)
         local gap = 10
@@ -478,8 +478,8 @@ function NoGuild.BuildArea(parent)
 end
 
 ns.RegisterPage({
-    key = "noguild", title = "Willkommen", order = 0.01, topbar = true,
-    sub = "Oasis ohne Gilde",
+    key = "noguild", title = "Welcome", order = 0.01, topbar = true,
+    sub = "Oasis without a guild",
     visible = function() return not ns.InGuild() end,
     build = function(p)
         -- Hinweis, wenn eine Gildenseite geoeffnet wurde
@@ -492,7 +492,7 @@ ns.RegisterPage({
         p.note.t:SetPoint("LEFT", 14, 0)
         p.note.t:SetPoint("RIGHT", p.note, "RIGHT", -150, 0)
         p.note.t:SetWordWrap(true)
-        p.note.btn = calmBtn(K.Button(p.note, L["Gilde finden"], 126, 26, "primary", function() NoGuild.OpenFinder() end), true)
+        p.note.btn = calmBtn(K.Button(p.note, L["Find a guild"], 126, 26, "primary", function() NoGuild.OpenFinder() end), true)
         p.note.btn:SetPoint("RIGHT", -10, 0)
         p.note:Hide()
 
@@ -528,7 +528,7 @@ ns.RegisterPage({
         if blocked then
             local bd = ns.PageDef(blocked)
             local name = bd and L[bd.title] or blocked
-            p.note.t:SetText((L["\"%s\" braucht eine Gilde - ohne Gilde gibt es hier nichts zu sehen."]):format(name))
+            p.note.t:SetText((L["\"%s\" needs a guild - without one there is nothing to see here."]):format(name))
         end
         p.note:SetShown(blocked ~= nil)
         p:FillContacts()

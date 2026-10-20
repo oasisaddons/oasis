@@ -545,7 +545,7 @@ function GM.WhoNeeds(link)
 end
 
 local function ownerText(owner)
-    if owner == GB_OWNER then return "|cffe8b44a" .. L["Gildenbank"] .. "|r" end
+    if owner == GB_OWNER then return "|cffe8b44a" .. L["Guild bank"] .. "|r" end
     local cls = ns.Radar and ns.Radar.ClassOf and ns.Radar.ClassOf(owner)
     if not cls then
         local r = Store.Get(COLL, owner)
@@ -578,9 +578,9 @@ function GM.CheckNew()
     for k, ts in pairs(seen) do if (tonumber(ts) or 0) < ns.now() - 60 * 86400 then seen[k] = nil end end
     local best = fresh[1]
     if not best then return end
-    local more = #fresh > 1 and ("  |cff888888" .. (L["(+%d weitere)"]):format(#fresh - 1) .. "|r") or ""
+    local more = #fresh > 1 and ("  |cff888888" .. (L["(+%d more)"]):format(#fresh - 1) .. "|r") or ""
     if ns.Sound and ns.Sound.Next then ns.Sound.Next("toast") end
-    K.Toast(L["Upgrade in der Gilde"],
+    K.Toast(L["Upgrade in the guild"],
         qualityHex(idOf(best.key)) .. (itemName(idOf(best.key)) or "?") .. "|r  |cff66db9e+" .. math.min(best.pct, 999) .. "%|r  ·  " .. ownerText(best.owner) .. more,
         C.mint, function() if ns.ShowPage then ns.ShowPage("gearmatch") end end)
 end
@@ -616,10 +616,10 @@ if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and
         if not ok2 or not list or #list == 0 then return end
         -- eigener Block wie "Entzaubern ergibt": Abstand, Ueberschrift, je Person eine Zeile (Name in Klassenfarbe, Gewinn rechts)
         tt:AddLine(" ")
-        tt:AddLine(L["Upgrade fuer"], 0.4, 0.86, 0.62)
+        tt:AddLine(L["Upgrade for"], 0.4, 0.86, 0.62)
         for i, x in ipairs(list) do
             if i > 4 then
-                tt:AddLine("  |cff888888" .. (L["+ %d weitere"]):format(#list - 4) .. "|r")
+                tt:AddLine("  |cff888888" .. (L["+ %d more"]):format(#list - 4) .. "|r")
                 break
             end
             tt:AddDoubleLine("  " .. ns.colorName(ns.displayName(x.name), x.cls), "+" .. math.min(x.pct, 999) .. " %", 0.9, 0.9, 0.9, 0.4, 0.86, 0.62)
@@ -677,12 +677,12 @@ end
 -- Seite
 ------------------------------------------------------------------------
 local function askText(e)
-    if not e.pct then return (L["Hi! Du hast %s - koenntest du es mir geben oder verkaufen?"]):format(chatLink(e.key)) end
-    if e.bank then return (L["Kann mir jemand %s aus der Gildenbank geben? Waere ein Upgrade fuer mich (+%d%%)."]):format(chatLink(e.key), math.min(e.pct, 999)) end
-    return (L["Hi! Du hast %s - das waere ein Upgrade fuer mich (+%d%%). Wuerdest du es mir geben oder verkaufen?"]):format(chatLink(e.key), math.min(e.pct, 999))
+    if not e.pct then return (L["Hi! You have %s - could you give or sell it to me?"]):format(chatLink(e.key)) end
+    if e.bank then return (L["Could someone give me %s from the guild bank? It would be an upgrade for me (+%d%%)."]):format(chatLink(e.key), math.min(e.pct, 999)) end
+    return (L["Hi! You have %s - that would be an upgrade for me (+%d%%). Would you give or sell it to me?"]):format(chatLink(e.key), math.min(e.pct, 999))
 end
 local function offerText(e)
-    return (L["Hi! Ich habe %s - laut Oasis ein Upgrade fuer dich (+%d%%). Magst du es haben? Ich schicke es dir gern per Post."]):format(chatLink(e.key), math.min(e.pct, 999))
+    return (L["Hi! I have %s - Oasis says it is an upgrade for you (+%d%%). Want it? Happy to send it by mail."]):format(chatLink(e.key), math.min(e.pct, 999))
 end
 
 -- Platz-Gruppen fuer den Filter
@@ -721,14 +721,14 @@ local function pctColor(pct)
 end
 
 ns.RegisterPage({
-    key = "gearmatch", title = "Upgrade-Boerse", order = 5.46,
-    sub = "Handelbare Ausruestung in der Gilde: was ist ein Upgrade fuer dich, wem helfen deine Teile?",
+    key = "gearmatch", title = "Upgrade Exchange", order = 5.46,
+    sub = "Tradable gear in the guild: what is an upgrade for you, and who do your items help?",
     build = function(p)
-        p.seg = K.Segments(p, { { key = "forme", text = L["Fuer mich"] }, { key = "helps", text = L["Meine Teile helfen"] }, { key = "all", text = L["Basar"] } },
+        p.seg = K.Segments(p, { { key = "forme", text = L["For me"] }, { key = "helps", text = L["My items help"] }, { key = "all", text = L["Bazaar"] } },
             function(k) view = k p.fresh = true ns.RefreshPage("gearmatch") end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
         -- Suche rechts oben
-        p.search = K.Input(p, 180, L["Teil suchen..."], function(t)
+        p.search = K.Input(p, 180, L["Search item..."], function(t)
             search = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
             ns.RefreshPage("gearmatch")
         end)
@@ -743,8 +743,8 @@ ns.RegisterPage({
         ov:Hide()   -- 0.5.858: die drei Kacheln doppelten die Reiter; die Zahlen stehen jetzt an den Reitern
         p.stats = {}
         local SD = {
-            { "forme", "Upgrades fuer dich", C.mint, "Teile anderer, die dich verbessern" },
-            { "helps", "Deine Teile helfen", C.amber, "Deine handelbaren Teile als Upgrade fuer andere" },
+            { "forme", "Upgrades for you", C.mint, "Teile anderer, die dich verbessern" },
+            { "helps", "Your items help", C.amber, "Deine handelbaren Teile als Upgrade fuer andere" },
             { "all", "Im Basar", C.blue, "Alles Handelbare, das die Gilde teilt" },
         }
         for i, d in ipairs(SD) do
@@ -790,7 +790,7 @@ ns.RegisterPage({
         p.headN = K.Text(panel, 11, C.dim)
         p.headN:SetPoint("LEFT", p.headT, "RIGHT", 10, -1)
         -- Platz-Filter rechts im Kopf
-        p.slot = K.Segments(panel, { { key = "all", text = L["Alle"] }, { key = "armor", text = L["Ruestung"] }, { key = "weapon", text = L["Waffen"] }, { key = "jewel", text = L["Schmuck"] } },
+        p.slot = K.Segments(panel, { { key = "all", text = L["All"] }, { key = "armor", text = L["Armour"] }, { key = "weapon", text = L["Weapons"] }, { key = "jewel", text = L["Trinkets"] } },
             function(k) slotFilter = k ns.RefreshPage("gearmatch") end, nil, { size = 11, pad = 14 })
         p.slot:SetPoint("TOPRIGHT", -10, -9)
         p.sum = K.Text(panel, 10, C.dim, "RIGHT")
@@ -829,7 +829,7 @@ ns.RegisterPage({
             r.fill = r:CreateTexture(nil, "ARTWORK", nil, 1)
             r.fill:SetHeight(3)
             r.fill:SetPoint("LEFT", r.track, "LEFT")
-            r.btn = K.Button(r, L["Anfluestern"], 100, 24, "ghost")
+            r.btn = K.Button(r, L["Whisper"], 100, 24, "ghost")
             r.btn:SetPoint("RIGHT", -12, 0)
             r.btn.label:SetFont(K.FONT, 11, "")
             r:SetScript("OnEnter", function(self)
@@ -838,8 +838,8 @@ ns.RegisterPage({
                 glass(self.card, 10, 0.05)
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 pcall(GameTooltip.SetHyperlink, GameTooltip, linkOf(e.key))
-                if e.target then GameTooltip:AddLine(L["Per Post: Briefkasten, Empfaenger "] .. ns.displayName(e.target), 0.6, 0.6, 0.6, true) end
-                GameTooltip:AddLine("|cff888888" .. L["Shift-Klick: in den Chat einfuegen"] .. "|r")
+                if e.target then GameTooltip:AddLine(L["By mail: mailbox, recipient "] .. ns.displayName(e.target), 0.6, 0.6, 0.6, true) end
+                GameTooltip:AddLine("|cff888888" .. L["Shift-click: insert into chat"] .. "|r")
                 GameTooltip:Show()
                 -- Vergleich mit dem, was ich gerade trage
                 if not e.target and GameTooltip_ShowCompareItem then pcall(GameTooltip_ShowCompareItem, GameTooltip) end
@@ -856,7 +856,7 @@ ns.RegisterPage({
             local id = idOf(e.key)
             r.icon:SetTexture(itemIcon(id))
             r.cols.name:SetText(qualityHex(id) .. (itemName(id) or ("#" .. tostring(id))) .. "|r")
-            r.cols.slot:SetText(e.quest and L["Questitem"] or slotText(e.key))
+            r.cols.slot:SetText(e.quest and L["Quest item"] or slotText(e.key))
             local okQ, q = pcall(function() return C_Item.GetItemQualityByID and C_Item.GetItemQualityByID(id) end)
             local qc = okQ and q and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[ns.safe(q) or 1]
             r.qual:SetColorTexture(qc and qc.r or 0.6, qc and qc.g or 0.6, qc and qc.b or 0.6, 0.9)
@@ -882,20 +882,20 @@ ns.RegisterPage({
                 r.cols.pct:SetText("")   -- 0.5.859: "kein Upgrade" in jeder Zeile war Laerm - nur echte Upgrades tragen eine Zahl
             end
             if e.quest then
-                r.cols.who:SetText(L["hat "] .. ownerText(e.owner) .. "  |cff888888" .. (L["uebrig - fuer %s"]):format(e.qtitle) .. "|r")
-                r.btn.label:SetText(L["Anfragen"])
+                r.cols.who:SetText(L["owned by "] .. ownerText(e.owner) .. "  |cff888888" .. (L["spare - for %s"]):format(e.qtitle) .. "|r")
+                r.btn.label:SetText(L["Ask"])
                 r.btn:SetScript("OnClick", function() if ns.QuestItems then ns.QuestItems.AskFor(e.owner, e.nd, e.qtitle, e.demo) end end)
             elseif e.target then
-                r.cols.who:SetText(L["hilft "] .. ownerText(e.target) .. "  |cff777777" .. L["per Post oder anfluestern"] .. "|r")
-                r.btn.label:SetText(L["Anbieten"])
+                r.cols.who:SetText(L["helps "] .. ownerText(e.target) .. "  |cff777777" .. L["via mail or whisper"] .. "|r")
+                r.btn.label:SetText(L["Offer"])
                 r.btn:SetScript("OnClick", function() ns.Whisper(e.target, offerText(e)) end)
             elseif e.bank then
-                r.cols.who:SetText(L["liegt in der "] .. ownerText(GB_OWNER))
-                r.btn.label:SetText(L["Gilde fragen"])
+                r.cols.who:SetText(L["stored in the "] .. ownerText(GB_OWNER))
+                r.btn.label:SetText(L["Ask guild"])
                 r.btn:SetScript("OnClick", function() ns.OpenChat("/g " .. askText(e)) end)
             else
-                r.cols.who:SetText(L["hat "] .. ownerText(e.owner) .. ((ns.Radar and ns.Radar.IsOnline and ns.Radar.IsOnline(e.owner)) and "  |cff66db9e" .. L["online"] .. "|r" or ""))
-                r.btn.label:SetText(e.any and L["Anfragen"] or L["Anfluestern"])
+                r.cols.who:SetText(L["owned by "] .. ownerText(e.owner) .. ((ns.Radar and ns.Radar.IsOnline and ns.Radar.IsOnline(e.owner)) and "  |cff66db9e" .. L["online"] .. "|r" or ""))
+                r.btn.label:SetText(e.any and L["Ask"] or L["Whisper"])
                 r.btn:SetScript("OnClick", function() ns.Whisper(e.owner, askText(e)) end)
             end
             if p.fresh and K.FadeIn then r.oasisFadedAt = nil K.FadeIn(r, (i or 1) * 0.03) end
@@ -924,7 +924,7 @@ ns.RegisterPage({
         p.foot = K.Text(p, 10, C.dim)
         p.foot:SetPoint("BOTTOMLEFT", 0, 4)
         p.foot:SetPoint("RIGHT", p, "RIGHT", 0, 0)
-        p.foot:SetText(L["Nur handelbare (nicht seelengebundene) Teile. Werte nach Klasse und Rolle wie beim Verbesserungs-Pfeil; Bank zaehlt erst nach einmal Oeffnen."])
+        p.foot:SetText(L["Tradable (not soulbound) items only. Scored by class and role like the upgrade arrow; the bank counts after opening it once."])
         p.fresh = true
     end,
     refresh = function(p)
@@ -934,18 +934,18 @@ ns.RegisterPage({
         local em = p.emptyBox
         if view == "helps" then
             rows = GM.MyHelps()
-            title = L["Deine Teile - wem helfen sie?"]
-            em.t:SetText(L["Gerade hilft keines deiner Teile"])
-            em.d:SetText(shareOn() and L["Keines deiner handelbaren Teile ist ein Upgrade fuer jemanden mit Oasis. Bank einmal oeffnen, damit sie mitzaehlt."]
-                or L["Teilen ist aus (Einstellungen > Upgrade-Boerse)."])
-            em.b.label:SetText(L["Im Basar stoebern"])
+            title = L["Your items - who do they help?"]
+            em.t:SetText(L["None of your items help right now"])
+            em.d:SetText(shareOn() and L["None of your tradable items is an upgrade for anyone with Oasis. Open your bank once so it counts."]
+                or L["Sharing is off (Settings > Upgrade Exchange)."])
+            em.b.label:SetText(L["Browse the bazaar"])
             em.b:SetScript("OnClick", function() view = "all" p.fresh = true ns.RefreshPage("gearmatch") end)
         elseif view == "all" then
             rows = GM.AllShared()
-            title = L["Basar - alles Handelbare der Gilde"]
-            em.t:SetText(L["Der Basar ist leer"])
-            em.d:SetText(L["Noch teilt niemand mit Oasis handelbare Teile. Je mehr Mitglieder Oasis nutzen, desto voller wird es hier."])
-            em.b.label:SetText(L["Zu den Mitgliedern"])
+            title = L["Bazaar - everything tradable in the guild"]
+            em.t:SetText(L["The bazaar is empty"])
+            em.d:SetText(L["Nobody shares tradable items with Oasis yet. The more members use Oasis, the fuller it gets here."])
+            em.b.label:SetText(L["Go to members"])
             em.b:SetScript("OnClick", function() ns.ShowPage("radar") end)
         else
             rows = GM.ForMe()
@@ -963,10 +963,10 @@ ns.RegisterPage({
                     end
                 end
             end
-            title = L["Fuer dich - Upgrades und Questitems"]
-            em.t:SetText(L["Gerade kein Upgrade dabei"])
-            em.d:SetText(L["Sobald jemand mit Oasis ein passendes handelbares Teil hat, erscheint es hier - mit Hinweis."])
-            em.b.label:SetText(L["Im Basar stoebern"])
+            title = L["For you - upgrades and quest items"]
+            em.t:SetText(L["No upgrade right now"])
+            em.d:SetText(L["As soon as someone with Oasis has a matching tradable item, it appears here - with a notice."])
+            em.b.label:SetText(L["Browse the bazaar"])
             em.b:SetScript("OnClick", function() view = "all" p.fresh = true ns.RefreshPage("gearmatch") end)
         end
         local shown = {}
@@ -978,14 +978,14 @@ ns.RegisterPage({
             end
         end
         if #rows > 0 and #shown == 0 then
-            em.t:SetText(L["Nichts passt zum Filter"])
-            em.d:SetText(L["Andere Kategorie waehlen oder die Suche leeren."])
-            em.b.label:SetText(L["Filter zuruecksetzen"])
+            em.t:SetText(L["Nothing matches the filter"])
+            em.d:SetText(L["Choose another category or clear the search."])
+            em.b.label:SetText(L["Reset filters"])
             em.b:SetScript("OnClick", function() slotFilter, search = "all", "" p.search:SetText("") ns.RefreshPage("gearmatch") end)
         end
         p.headT:SetText(title)
-        p.headN:SetText(#shown > 0 and ((#shown == 1) and L["1 Teil"] or (L["%d Teile"]):format(#shown)) or "")
-        p.sum:SetText(view ~= "all" and (L["ab +%d%%"]):format(minPct()) or "")
+        p.headN:SetText(#shown > 0 and ((#shown == 1) and L["1 piece"] or (L["%d pieces"]):format(#shown)) or "")
+        p.sum:SetText(view ~= "all" and (L["from +%d%%"]):format(minPct()) or "")
         em:SetShown(#shown == 0)
         p.list:SetData(shown)
 
@@ -1000,15 +1000,15 @@ ns.RegisterPage({
         -- Zahlen an den Reitern
         for _, b in ipairs(p.seg.buttons or {}) do
             local i = (b.key == "forme" and 1) or (b.key == "helps" and 2) or 3
-            local base = (i == 1 and L["Fuer mich"]) or (i == 2 and L["Meine Teile helfen"]) or L["Basar"]
+            local base = (i == 1 and L["For me"]) or (i == 2 and L["My items help"]) or L["Bazaar"]
             if b.label then b.label:SetText(base .. (counts[i] > 0 and ("  |cff888888" .. counts[i] .. "|r") or "")) end
         end
-        local names = { (L["%d Charaktere teilen"]):format(#others) }
+        local names = { (L["%d characters sharing"]):format(#others) }
         for i, r in ipairs(others) do
             if i > 15 then names[#names + 1] = "|cff888888+" .. (#others - 15) .. "|r" break end
             local n = 0
             for _ in tostring(r.it or ""):gmatch("[^,]+") do n = n + 1 end
-            names[#names + 1] = ownerText(r.id) .. "  |cff888888" .. (L["%d handelbare Teile"]):format(n) .. "|r"
+            names[#names + 1] = ownerText(r.id) .. "  |cff888888" .. (L["%d tradable items"]):format(n) .. "|r"
         end
         p.stats[3].names = names
         p.fresh = nil
@@ -1032,13 +1032,13 @@ if ns.AddPageSettings then
             det.t[#det.t + 1] = t
             y = y - 44
         end
-        tog("Handelbare Ausruestung mit der Gilde teilen", "Taschen und Bank (nur nicht seelengebundene Teile) - andere sehen, was ihnen hilft", "gmShareOff", true,
+        tog("Share tradable gear with the guild", "Bags and bank (non-soulbound items only) - others see what helps them", "gmShareOff", true,
             function() myCache = nil GM.Share(true) end)
-        tog("Hinweis bei neuem Upgrade fuer mich", "Hoechstens einmal je Teil", "gmToastOff", true)
-        tog("Zeile 'Upgrade fuer' im Item-Tooltip", "Zeigt, fuer wen in der Gilde ein Teil ein Upgrade ist", "gmTipOff", true)
+        tog("Notify me about new upgrades", "At most once per item", "gmToastOff", true)
+        tog("'Upgrade for' line in item tooltips", "Shows who in the guild an item is an upgrade for", "gmTipOff", true)
         local lbl = K.Text(det, 13, C.text)
         lbl:SetPoint("TOPLEFT", 14, y - 2)
-        lbl:SetText(L["Mindest-Verbesserung"])
+        lbl:SetText(L["Minimum improvement"])
         det.t[#det.t + 1] = lbl
         if K.Slider then
             local sl = K.Slider(det, 180, 1, 30, 1, function() return minPct() end,

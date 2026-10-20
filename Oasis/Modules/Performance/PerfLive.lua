@@ -41,9 +41,9 @@ end
 
 -- Farbe nach Rechenzeit je Bild: bis 0,5 ms ruhig, bis 1,5 ms merklich, darueber viel
 local function level(ms)
-    if ms < 0.5 then return C.mint, L["ruhig"] end
-    if ms < 1.5 then return C.amber, L["merklich"] end
-    return C.red, L["hoch"]
+    if ms < 0.5 then return C.mint, L["calm"] end
+    if ms < 1.5 then return C.amber, L["noticeable"] end
+    return C.red, L["high"]
 end
 
 local function build(f)
@@ -53,23 +53,23 @@ local function build(f)
     if not (C_AddOnProfiler and C_AddOnProfiler.GetAddOnMetric) then
         local t = K.Text(f, 12, C.muted)
         t:SetPoint("TOPLEFT", 4, -8)
-        t:SetText(L["Dieser Client liefert keine Addon-Messwerte (C_AddOnProfiler fehlt)."])
+        t:SetText(L["This client provides no add-on metrics (C_AddOnProfiler missing)."])
         return
     end
 
     -- Kopf: grosse Zahl + Einordnung ------------------------------------------------------
-    local top = H.cardH(f, 0, 0, W, 124, "stats", L["Rechenzeit jetzt"], L["Echtzeit, aktualisiert jede Sekunde - Oasis und Gildenmodul zusammen"])
+    local top = H.cardH(f, 0, 0, W, 124, "stats", L["Compute time now"], L["Live, updated every second - Oasis and guild module combined"])
     top:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, 0)
     f.big = K.Title(top, 34, C.text)
     f.big:SetPoint("TOPLEFT", 16, -56)
     f.unit = K.Text(top, 12, C.muted)
     f.unit:SetPoint("BOTTOMLEFT", f.big, "BOTTOMRIGHT", 6, 5)
-    f.unit:SetText(L["ms je Bild"])
+    f.unit:SetText(L["ms per frame"])
     f.state = K.Text(top, 12, C.text)
     f.state:SetPoint("TOPLEFT", f.big, "BOTTOMLEFT", 2, -4)
     -- rechts im Kopf: vier Kennzahlen
     f.tiles = {}
-    local TILES = { { "peak", L["Spitze"] }, { "avg", L["Ø Sitzung"] }, { "mem", L["Speicher"] }, { "fps", L["Bilder / Sek."] } }
+    local TILES = { { "peak", L["Peak"] }, { "avg", L["Session avg"] }, { "mem", L["Memory"] }, { "fps", L["Frames / sec"] } }
     for i, t in ipairs(TILES) do
         local x = 330 + (i - 1) * 100
         local v = K.Title(top, 18, C.text)
@@ -81,15 +81,15 @@ local function build(f)
     end
 
     -- Graph --------------------------------------------------------------------------------
-    local gc = H.cardH(f, 0, -136, W, 288, "stats", L["Verlauf"], L["Mit der Maus darueberfahren fuer Einzelwerte"])
+    local gc = H.cardH(f, 0, -136, W, 288, "stats", L["Gradient"], L["Hover for individual values"])
     gc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, -136)
-    f.seg = K.Segments(gc, { { key = 60, text = L["1 Min"] }, { key = 120, text = L["2 Min"] }, { key = 300, text = L["5 Min"] } },
+    f.seg = K.Segments(gc, { { key = 60, text = L["1 min"] }, { key = 120, text = L["2 min"] }, { key = 300, text = L["5 min"] } },
         function(k) windowSec = k PERF.Draw(f) end)
     f.seg:SetPoint("TOPRIGHT", gc, "TOPRIGHT", -112, -10)
     f.seg:Select(windowSec)
     f.pauseBtn = K.Button(gc, L["Pause"], 90, 22, "ghost", function(self)
         paused = not paused
-        self:SetLabel(paused and L["Weiter"] or L["Pause"])
+        self:SetLabel(paused and L["Resume"] or L["Pause"])
     end)
     f.pauseBtn:SetPoint("TOPRIGHT", gc, "TOPRIGHT", -14, -10)
 
@@ -121,7 +121,7 @@ local function build(f)
     g.read:Hide()
     g.empty = K.Text(g, 12, C.dim, "CENTER")
     g.empty:SetPoint("CENTER")
-    g.empty:SetText(L["Messe ... die Kurve baut sich gleich auf."])
+    g.empty:SetText(L["Measuring ... the curve builds up shortly."])
     g:EnableMouse(true)
     g:SetScript("OnLeave", function(self)
         self.cross:Hide() self.dot:Hide() self.read:Hide()
@@ -133,7 +133,7 @@ local function build(f)
     -- unter dem Graph: Legende / Aktion
     f.legend = K.Text(gc, 11, C.muted)
     f.legend:SetPoint("BOTTOMLEFT", gc, "BOTTOMLEFT", 16, 12)
-    f.report = K.Button(gc, L["Messbericht (60 s)"], 150, 22, "ghost", function() if ns.PerfStart then ns.PerfStart(60) end end)
+    f.report = K.Button(gc, L["Report (60 s)"], 150, 22, "ghost", function() if ns.PerfStart then ns.PerfStart(60) end end)
     f.report:SetPoint("BOTTOMRIGHT", gc, "BOTTOMRIGHT", -14, 8)
 
     f:HookScript("OnShow", function() PERF.Sample(f) end)
@@ -193,7 +193,7 @@ function PERF.Draw(f)
         f.big:SetTextColor(col[1], col[2], col[3])
         local fps = GetFramerate and GetFramerate() or 0
         local pct = cur / 16.67 * 100
-        f.state:SetText(K.hex(col) .. word .. "|r  -  " .. (L["%.1f %% eines Bildes bei 60 Bildern pro Sekunde"]):format(pct))
+        f.state:SetText(K.hex(col) .. word .. "|r  -  " .. (L["%.1f %% of a frame at 60 frames per second"]):format(pct))
         f.tiles.peak:SetText(("%.1f ms"):format(metric("PeakTime") or 0))
         f.tiles.avg:SetText(("%.2f ms"):format(metric("SessionAverageTime") or 0))
         f.tiles.mem:SetText(("%.1f MB"):format(histMem[#histMem] or 0))
@@ -201,7 +201,7 @@ function PERF.Draw(f)
     end
     g.empty:SetShown(n < 2)
     local over1 = metric("CountTimeOver1Ms")
-    f.legend:SetText(over1 and (L["Bilder ueber 1 ms (seit Sitzungsbeginn): %d"]):format(math.floor(over1 + 0.5)) or "")
+    f.legend:SetText(over1 and (L["Frames over 1 ms (this session): %d"]):format(math.floor(over1 + 0.5)) or "")
     if n < 2 then
         for _, b in ipairs(g.bars) do b:Hide() end
         for _, l in ipairs(g.lines) do l:Hide() end
@@ -298,7 +298,7 @@ function PERF.Hover(f)
     g.dot:SetVertexColor(col[1], col[2], col[3], 1)
     g.dot:Show()
     local ago = n - i
-    g.read:SetText(("%.2f ms  -  %s  -  %.1f MB"):format(v, ago == 0 and L["jetzt"] or (L["vor %d s"]):format(ago), histMem[g.first + i - 1] or 0))
+    g.read:SetText(("%.2f ms  -  %s  -  %.1f MB"):format(v, ago == 0 and L["now"] or (L["%d s ago"]):format(ago), histMem[g.first + i - 1] or 0))
     g.read:ClearAllPoints()
     if x > g:GetWidth() * 0.6 then g.read:SetPoint("TOPRIGHT", g, "TOPLEFT", x - 8, -6) else g.read:SetPoint("TOPLEFT", g, "TOPLEFT", x + 8, -6) end
     g.read:Show()
@@ -311,6 +311,6 @@ ns.Every(1, function()
 end)
 
 if ns.AddSettingsTab then
-    ns.AddSettingsTab("perf", "Leistung", function(f) tabFrame = f build(f) end, function(f) tabFrame = f PERF.Draw(f) end)
+    ns.AddSettingsTab("perf", "Performance", function(f) tabFrame = f build(f) end, function(f) tabFrame = f PERF.Draw(f) end)
 end
 end)

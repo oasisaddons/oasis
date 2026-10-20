@@ -28,11 +28,11 @@ GL.WeekStart = weekStart
 -- Wochenaufgabe
 ------------------------------------------------------------------------
 GL.PRESETS = {
-    { key = "levels", title = "Level-Meilensteine sammeln", goal = 15, desc = "Jeder Level-Meilenstein in der Chronik zaehlt" },
-    { key = "bosses", title = "Bosse gemeinsam besiegen", goal = 20, desc = "Jeder Boss in der Chronik zaehlt" },
-    { key = "thanks", title = "Einander helfen", goal = 25, desc = "Jedes Danke in der Gilde zaehlt" },
-    { key = "meet", title = "Beim Gildentreffen dabei sein", goal = 15, desc = "Jede Teilnahme an einem Gildentreffen zaehlt" },
-    { key = "item", title = "Material fuer die Gildenbank", goal = 200, desc = "Abgaben eintragen: Item und Menge, die du in die Bank gelegt hast" },
+    { key = "levels", title = "Collect level milestones", goal = 15, desc = "Every level milestone in the chronicle counts" },
+    { key = "bosses", title = "Defeat bosses together", goal = 20, desc = "Every boss in the chronicle counts" },
+    { key = "thanks", title = "Help each other", goal = 25, desc = "Every thanks in the guild counts" },
+    { key = "meet", title = "Join guild meetups", goal = 15, desc = "Every guild meetup attendance counts" },
+    { key = "item", title = "Materials for the guild bank", goal = 200, desc = "Log donations: item and amount you put into the bank" },
 }
 local PBY = {}
 for _, p in ipairs(GL.PRESETS) do PBY[p.key] = p end
@@ -109,18 +109,18 @@ end
 function GL.NewMeet(title, when)
     local t = parseTime(when)
     local map, x, y = myPos()
-    if not t then ns.print(L["Zeit als HH:MM oder TT.MM HH:MM angeben"]) return end
-    if not map then ns.print(L["Deine Position ist hier nicht bekannt (Instanz?) - geh an den Treffpunkt."]) return end
+    if not t then ns.print(L["Enter the time as HH:MM or DD.MM HH:MM"]) return end
+    if not map then ns.print(L["Your position is unknown here (instance?) - go to the meeting point."]) return end
     local zone = C_Map.GetMapInfo and C_Map.GetMapInfo(map)
     Store.Put("meets", { id = ns.newId("meet"), title = tostring(title or ""):sub(1, 60), ts = t, mapID = map,
         x = math.floor(x * 10000), y = math.floor(y * 10000), zone = zone and ns.safe(zone.name) or "", by = ns.me() })
-    K.Toast(L["Gildentreffen angelegt"], (title or "") .. "  ·  " .. date("%d.%m. %H:%M", t), C.mint)
+    K.Toast(L["Guild meetup created"], (title or "") .. "  ·  " .. date("%d.%m. %H:%M", t), C.mint)
 end
 function GL.Attendees(meetId)
     return Store.List("meetatt", function(r) return r.m == meetId end)
 end
 function GL.Goto(m)
-    if ns.Map and ns.Map.SetTarget then ns.Map.SetTarget({ mapID = m.mapID, x = (m.x or 0) / 10000, y = (m.y or 0) / 10000, label = m.title, sub = L["Gildentreffen"] }) end
+    if ns.Map and ns.Map.SetTarget then ns.Map.SetTarget({ mapID = m.mapID, x = (m.x or 0) / 10000, y = (m.y or 0) / 10000, label = m.title, sub = L["Guild meetup"] }) end
 end
 -- Hinweis 10 Minuten vorher, Anwesenheit automatisch (bis 40 m, -15 bis +60 Minuten)
 local reminded = {}
@@ -132,7 +132,7 @@ local function tick()
         local dt = (m.ts or 0) - now
         if dt > 0 and dt <= 600 and not reminded[m.id] then
             reminded[m.id] = true
-            K.Toast(L["Gildentreffen gleich"], (m.title or "") .. "  ·  " .. (m.zone or "") .. "  ·  " .. date("%H:%M", m.ts), C.accent, function() GL.Goto(m) end)
+            K.Toast(L["Guild meetup soon"], (m.title or "") .. "  ·  " .. (m.zone or "") .. "  ·  " .. date("%H:%M", m.ts), C.accent, function() GL.Goto(m) end)
         end
         if dt <= 900 and dt >= -3600 and not Store.Get("meetatt", m.id .. "@" .. ns.NameKey(ns.me())) then
             if not map then map, x, y = myPos() end
@@ -141,7 +141,7 @@ local function tick()
                 local dx, dy = (x - (m.x or 0) / 10000) * (w or 0), (y - (m.y or 0) / 10000) * (h or 0)
                 if (w or 0) > 0 and math.sqrt(dx * dx + dy * dy) <= 40 then
                     Store.Put("meetatt", { id = m.id .. "@" .. ns.NameKey(ns.me()), m = m.id, by = ns.me(), ts = now })
-                    K.Toast(L["Dabei!"], (L["Du bist beim Gildentreffen %s eingetragen."]):format(m.title or ""), C.mint)
+                    K.Toast(L["You're in!"], (L["You're checked in at the guild meetup %s."]):format(m.title or ""), C.mint)
                 end
             end
         end
@@ -212,26 +212,26 @@ function GL.Month(offset)
     for i = 1, math.min(3, #helpers) do r.helpers[i] = helpers[i].n end
     return r
 end
-local MONTHS = { "Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember" }
+local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" }
 local function names(list, max)
     local o = {}
     for i, n in ipairs(list) do if i > (max or 8) then o[#o + 1] = "+" .. (#list - (max or 8)) break end o[#o + 1] = ns.short(n) end
     return table.concat(o, ", ")
 end
 function GL.MonthText(r, md)
-    local g = (GetGuildInfo and ns.safe(GetGuildInfo("player"))) or "Gilde"
+    local g = (GetGuildInfo and ns.safe(GetGuildInfo("player"))) or "Guild"
     local b = md and "**" or ""
     local lines = { (md and "## " or "") .. g .. " - " .. L[MONTHS[r.m]] .. " " .. r.y }
     local function add(k, v) if v and v ~= "" then lines[#lines + 1] = (md and "- " or "") .. b .. L[k] .. b .. ": " .. v end end
-    add("Neu in der Gilde", #r.joins > 0 and (#r.joins .. "  (" .. names(r.joins) .. ")") or nil)
-    add("Hoechststufe erreicht", #r.lvl60 > 0 and names(r.lvl60) or nil)
-    add("Level-Meilensteine", r.levels > 0 and tostring(r.levels) or nil)
-    add("Bosse", r.nBoss > 0 and (r.nBoss .. "  (" .. table.concat(r.bosses, ", ", 1, math.min(#r.bosses, 6)) .. ")") or nil)
-    add("Gildentreffen", r.meets > 0 and ((L["%d Treffen, %d dabei"]):format(r.meets, r.meetPeople)) or nil)
-    add("Helfer des Monats", #r.helpers > 0 and names(r.helpers) or nil)
-    add("Todeswuerfeln", r.duels > 0 and tostring(r.duels) or nil)
-    add("Friedhof", r.deaths > 0 and tostring(r.deaths) or nil)
-    if #lines == 1 then lines[#lines + 1] = L["In diesem Monat hat Oasis noch nichts aufgeschrieben."] end
+    add("New in the guild", #r.joins > 0 and (#r.joins .. "  (" .. names(r.joins) .. ")") or nil)
+    add("Reached max level", #r.lvl60 > 0 and names(r.lvl60) or nil)
+    add("Level milestones", r.levels > 0 and tostring(r.levels) or nil)
+    add("Bosses", r.nBoss > 0 and (r.nBoss .. "  (" .. table.concat(r.bosses, ", ", 1, math.min(#r.bosses, 6)) .. ")") or nil)
+    add("Guild meetup", r.meets > 0 and ((L["%d meetups, %d attended"]):format(r.meets, r.meetPeople)) or nil)
+    add("Helpers of the month", #r.helpers > 0 and names(r.helpers) or nil)
+    add("Deathroll", r.duels > 0 and tostring(r.duels) or nil)
+    add("Graveyard", r.deaths > 0 and tostring(r.deaths) or nil)
+    if #lines == 1 then lines[#lines + 1] = L["Oasis hasn't recorded anything this month yet."] end
     return table.concat(lines, "\n")
 end
 
@@ -247,7 +247,7 @@ local function showCopy(text)
         f:SetSize(520, 320) f:SetPoint("CENTER") f:SetFrameStrata("DIALOG")
         glass(f, 0.97)
         K.Fill(f, { 0.04, 0.04, 0.05, 0.97 })
-        local t = K.Title(f, 14, C.text) t:SetPoint("TOPLEFT", 16, -14) t:SetText(L["Text fuer Discord - Strg+C zum Kopieren"])
+        local t = K.Title(f, 14, C.text) t:SetPoint("TOPLEFT", 16, -14) t:SetText(L["Text for Discord - Ctrl+C to copy"])
         local x = K.CloseButton(f, function() f:Hide() end) x:SetPoint("TOPRIGHT", -6, -6)
         local sf = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
         sf:SetPoint("TOPLEFT", 16, -42) sf:SetPoint("BOTTOMRIGHT", -34, 16)
@@ -264,23 +264,23 @@ local function showCopy(text)
     copyBox:Show()
 end
 StaticPopupDialogs["OASIS_MEET_NEW"] = {
-    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Abbrechen", hasEditBox = true, maxLetters = 80,
+    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 80,
     OnAccept = function(self) local eb = self.editBox or self.EditBox local t = eb and eb:GetText() or ""
         local when, title = t:match("^%s*([%d%.]*%s*%d+:%d+)%s*(.*)$")
-        GL.NewMeet((title and title ~= "") and title or L["Gildentreffen"], when) ns.RefreshPage("guildlife") end,
+        GL.NewMeet((title and title ~= "") and title or L["Guild meetup"], when) ns.RefreshPage("guildlife") end,
     EditBoxOnEnterPressed = function(self) local p = self:GetParent() if p.button1 then p.button1:Click() end end,
     EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
     timeout = 0, whileDead = true, hideOnEscape = true,
 }
 StaticPopupDialogs["OASIS_WC_GIVE"] = {
-    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Abbrechen", hasEditBox = true, maxLetters = 5,
+    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 5,
     OnAccept = function(self) local eb = self.editBox or self.EditBox GL.Contribute(eb and eb:GetText()) ns.RefreshPage("guildlife") end,
     EditBoxOnEnterPressed = function(self) local p = self:GetParent() if p.button1 then p.button1:Click() end end,
     EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
     timeout = 0, whileDead = true, hideOnEscape = true,
 }
 StaticPopupDialogs["OASIS_WC_ITEM"] = {
-    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Abbrechen", hasEditBox = true, maxLetters = 120,
+    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 120,
     OnAccept = function(self) local eb = self.editBox or self.EditBox local t = eb and eb:GetText() or ""
         local id = ns.itemID and ns.itemID(t)
         local goal = tonumber(t:match("(%d+)%s*$"))
@@ -296,17 +296,17 @@ local function buildWeek(a)
     a.bar = K.Bar(a, 500, 10) a.bar:SetPoint("TOPLEFT", 4, -70) a.bar:SetPoint("RIGHT", -120, 0)
     a.num = K.Title(a, 16, C.text, "RIGHT") a.num:SetPoint("LEFT", a.bar, "RIGHT", 10, 0) a.num:SetPoint("RIGHT", -4, 0)
     a.who = K.Text(a, 12, C.text) a.who:SetPoint("TOPLEFT", 4, -96) a.who:SetPoint("RIGHT", -4, 0) a.who:SetJustifyH("LEFT") a.who:SetWordWrap(true)
-    a.give = K.Button(a, L["Abgabe eintragen"], 150, 24, nil, function() StaticPopup_Show("OASIS_WC_GIVE", L["Wie viele hast du in die Gildenbank gelegt?"]) end)
+    a.give = K.Button(a, L["Log a donation"], 150, 24, nil, function() StaticPopup_Show("OASIS_WC_GIVE", L["How many did you put into the guild bank?"]) end)
     a.give:SetPoint("TOPLEFT", 4, -150)
-    a.pick = K.Button(a, L["Aufgabe der Woche waehlen"], 210, 24, "ghost", function(self)
+    a.pick = K.Button(a, L["Choose this week's goal"], 210, 24, "ghost", function(self)
         local items = {}
         for _, p in ipairs(GL.PRESETS) do
             items[#items + 1] = { text = L[p.title] .. "  |cff888888(" .. p.goal .. ")|r", fn = function()
-                if p.key == "item" then StaticPopup_Show("OASIS_WC_ITEM", L["Item (Link oder Name) und Ziel-Menge, z. B. '[Kupfererz] 200'"])
+                if p.key == "item" then StaticPopup_Show("OASIS_WC_ITEM", L["Item (link or name) and target amount, e.g. '[Copper Ore] 200'"])
                 else GL.SetChallenge(p.key, p.goal) ns.RefreshPage("guildlife") end
             end }
         end
-        K.ShowMenu(self, items, L["Aufgabe der Woche"])
+        K.ShowMenu(self, items, L["Goal of the week"])
     end)
     a.pick:SetPoint("BOTTOMLEFT", 4, 4)
 end
@@ -314,8 +314,8 @@ local function refreshWeek(a)
     local ch = GL.Challenge()
     a.pick:SetShown(lead())
     if not ch then
-        a.title:SetText(L["Noch keine Wochenaufgabe"])
-        a.desc:SetText(lead() and L["Waehle unten eine Aufgabe - die ganze Gilde sieht den Fortschritt."] or L["Die Leitung waehlt jede Woche ein gemeinsames Ziel."])
+        a.title:SetText(L["No weekly goal yet"])
+        a.desc:SetText(lead() and L["Pick a goal below - the whole guild sees the progress."] or L["The leadership picks a shared goal every week."])
         a.bar:Hide() a.num:SetText("") a.who:SetText("") a.give:Hide()
         return
     end
@@ -326,27 +326,27 @@ local function refreshWeek(a)
         if nm then title = title .. ": " .. nm end
     end
     a.title:SetText(title)
-    a.desc:SetText(L[p.desc or ""] .. "  ·  " .. (L["bis Sonntag, Ziel %d"]):format(ch.goal))
+    a.desc:SetText(L[p.desc or ""] .. "  ·  " .. (L["until Sunday, target %d"]):format(ch.goal))
     local n, who = GL.Progress(ch)
     a.bar:Show() a.bar:Set(n / math.max(1, ch.goal))
-    a.num:SetText(n .. " / " .. ch.goal .. (n >= ch.goal and ("  |cff66db9e" .. L["geschafft!"] .. "|r") or ""))
+    a.num:SetText(n .. " / " .. ch.goal .. (n >= ch.goal and ("  |cff66db9e" .. L["done!"] .. "|r") or ""))
     local list = {}
     for name, k in pairs(who) do list[#list + 1] = short(name) .. " |cff888888" .. k .. "|r" end
     table.sort(list)
-    a.who:SetText(#list > 0 and (L["Dabei: "] .. table.concat(list, ", ")) or L["Noch hat niemand beigetragen - mach den Anfang!"])
+    a.who:SetText(#list > 0 and (L["Taking part: "] .. table.concat(list, ", ")) or L["Nobody has contributed yet - be the first!"])
     a.give:SetShown(ch.kind == "item")
 end
 
 local function buildMeets(a)
-    a.new = K.Button(a, L["Treffen hier anlegen"], 170, 24, nil, function() StaticPopup_Show("OASIS_MEET_NEW", L["Zeit und Titel, z. B. '20:30 Lagerfeuer am Brachland-Kreuzweg' - der Ort ist deine Position"]) end)
+    a.new = K.Button(a, L["Create meetup here"], 170, 24, nil, function() StaticPopup_Show("OASIS_MEET_NEW", L["Time and title, e.g. '20:30 Campfire at the Crossroads' - the place is your position"]) end)
     a.new:SetPoint("TOPLEFT", 0, 0)
     a.info = K.Text(a, 11, C.muted) a.info:SetPoint("LEFT", a.new, "RIGHT", 12, 0) a.info:SetPoint("RIGHT", -4, 0) a.info:SetWordWrap(false)
-    a.info:SetText(L["10 Minuten vorher kommt ein Hinweis mit Ziel-Pfeil. Wer vor Ort ist, wird automatisch als dabei eingetragen."])
+    a.info:SetText(L["10 minutes before, a reminder with a waypoint arrow appears. Whoever is there is checked in automatically."])
     a.list = K.List(a, 52, function(l)
         local r = K.Row(l)
         r.t = K.Text(r, 13, C.text) r.t:SetPoint("TOPLEFT", 12, -8) r.t:SetPoint("RIGHT", -150, 0) r.t:SetWordWrap(false)
         r.s = K.Text(r, 11, C.muted) r.s:SetPoint("TOPLEFT", r.t, "BOTTOMLEFT", 0, -4) r.s:SetPoint("RIGHT", -150, 0) r.s:SetWordWrap(false)
-        r.go = K.Button(r, L["Ziel setzen"], 110, 22, "ghost", function() if r.item then GL.Goto(r.item) end end)
+        r.go = K.Button(r, L["Set waypoint"], 110, 22, "ghost", function() if r.item then GL.Goto(r.item) end end)
         r.go:SetPoint("RIGHT", -8, 0)
         return r
     end, function(r, m)
@@ -354,7 +354,7 @@ local function buildMeets(a)
         local ppl = {}
         for i, x in ipairs(att) do if i <= 10 then ppl[#ppl + 1] = short(x.by) end end
         r.t:SetText((m.title or "") .. "  |cff888888" .. date("%a %d.%m. %H:%M", m.ts or 0) .. "|r")
-        r.s:SetText((m.zone or "") .. "  ·  " .. L["von"] .. " " .. short(m.by or "?") .. (#att > 0 and ("  ·  " .. #att .. " " .. L["dabei"] .. ": " .. table.concat(ppl, ", ")) or ""))
+        r.s:SetText((m.zone or "") .. "  ·  " .. L["from"] .. " " .. short(m.by or "?") .. (#att > 0 and ("  ·  " .. #att .. " " .. L["attended"] .. ": " .. table.concat(ppl, ", ")) or ""))
     end)
     a.list:SetPoint("TOPLEFT", 0, -34) a.list:SetPoint("BOTTOMRIGHT", 0, 0)
     glass(a.list, 0.025)
@@ -365,12 +365,12 @@ local function refreshMeets(a)
     for _, m in ipairs(GL.Meets(false)) do if (m.ts or 0) > now - 14 * DAY then l[#l + 1] = m end end
     table.sort(l, function(x, y) return (x.ts or 0) > (y.ts or 0) end)
     a.list:SetData(l)
-    a.list.empty:SetText(#l == 0 and L["Noch keine Gildentreffen. Ein Lagerfeuer, ein Duell-Abend, ein Gruppenfoto - einfach anlegen!"] or "")
+    a.list.empty:SetText(#l == 0 and L["No guild meetups yet. A campfire, a duel night, a group photo - just create one!"] or "")
 end
 
 local function buildThanks(a)
     a.info = K.Text(a, 12, C.muted) a.info:SetPoint("TOPLEFT", 4, -2) a.info:SetPoint("RIGHT", -4, 0) a.info:SetJustifyH("LEFT") a.info:SetWordWrap(true)
-    a.info:SetText(L["Wer in den letzten 30 Tagen etwas fuer andere getan hat - alphabetisch, ohne Rangliste. Danke euch!"])
+    a.info:SetText(L["Who did something for others in the last 30 days - alphabetical, no ranking. Thank you!"])
     a.list = K.List(a, 30, function(l)
         local r = K.Row(l)
         r.n = K.Text(r, 13, C.text) r.n:SetPoint("LEFT", 12, 0) r.n:SetWidth(180)
@@ -381,11 +381,11 @@ local function buildThanks(a)
         local cr, cg, cb = ns.classColor(m and m.class)
         r.n:SetText(short(e.name)) r.n:SetTextColor(cr or 1, cg or 1, cb or 1)
         local p = {}
-        if (e.thanks or 0) > 0 then p[#p + 1] = (L["%d x Danke"]):format(e.thanks) end
-        if (e.orders or 0) > 0 then p[#p + 1] = (L["%d Auftraege hergestellt"]):format(e.orders) end
-        if (e.mats or 0) > 0 then p[#p + 1] = (L["%d Material gespendet"]):format(e.mats) end
-        if (e.meets or 0) > 0 then p[#p + 1] = (L["%d x beim Treffen"]):format(e.meets) end
-        if (e.mentor or 0) > 0 then p[#p + 1] = L["Pate"] end
+        if (e.thanks or 0) > 0 then p[#p + 1] = (L["%d x thanks"]):format(e.thanks) end
+        if (e.orders or 0) > 0 then p[#p + 1] = (L["%d orders crafted"]):format(e.orders) end
+        if (e.mats or 0) > 0 then p[#p + 1] = (L["%d materials donated"]):format(e.mats) end
+        if (e.meets or 0) > 0 then p[#p + 1] = (L["%d x at meetups"]):format(e.meets) end
+        if (e.mentor or 0) > 0 then p[#p + 1] = L["Mentor"] end
         r.d:SetText(table.concat(p, "  ·  "))
     end)
     a.list:SetPoint("TOPLEFT", 0, -40) a.list:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -394,7 +394,7 @@ end
 local function refreshThanks(a)
     local l = GL.Contributions(30)
     a.list:SetData(l)
-    a.list.empty:SetText(#l == 0 and L["Noch nichts eingetragen - sag Danke im Rechtsklick-Menue der Mitglieder."] or "")
+    a.list.empty:SetText(#l == 0 and L["Nothing yet - say thanks in the members' right-click menu."] or "")
 end
 
 local function buildBook(a)
@@ -402,13 +402,13 @@ local function buildBook(a)
     a.prev:SetPoint("TOPLEFT", 0, 0)
     a.next = K.Button(a, ">", 30, 24, "ghost", function() monthOff = math.max(0, monthOff - 1) ns.RefreshPage("guildlife") end)
     a.next:SetPoint("LEFT", a.prev, "RIGHT", 4, 0)
-    a.copy = K.Button(a, L["Fuer Discord kopieren"], 170, 24, "ghost", function() showCopy(GL.MonthText(GL.Month(monthOff), true)) end)
+    a.copy = K.Button(a, L["Copy for Discord"], 170, 24, "ghost", function() showCopy(GL.MonthText(GL.Month(monthOff), true)) end)
     a.copy:SetPoint("TOPRIGHT", 0, 0)
-    a.post = K.Button(a, L["Kurz in den Gildenchat"], 170, 24, "ghost", function()
+    a.post = K.Button(a, L["Short note to guild chat"], 170, 24, "ghost", function()
         local r = GL.Month(monthOff)
-        local msg = (L["Oasis-Jahrbuch %s: %d neue Mitglieder, %d Bosse, %d Gildentreffen"]):format(L[MONTHS[r.m]], #r.joins, r.nBoss, r.meets)
-        if #r.helpers > 0 then msg = msg .. " - " .. L["Helfer des Monats"] .. ": " .. names(r.helpers) end
-        ns.OfferChat(L["Jahrbuch"], msg, "GUILD")
+        local msg = (L["Oasis yearbook %s: %d new members, %d bosses, %d guild meetups"]):format(L[MONTHS[r.m]], #r.joins, r.nBoss, r.meets)
+        if #r.helpers > 0 then msg = msg .. " - " .. L["Helpers of the month"] .. ": " .. names(r.helpers) end
+        ns.OfferChat(L["Yearbook"], msg, "GUILD")
     end)
     a.post:SetPoint("RIGHT", a.copy, "LEFT", -6, 0)
     a.page = CreateFrame("Frame", nil, a)
@@ -426,15 +426,15 @@ local function refreshBook(a)
 end
 
 local TABS = {
-    { key = "week", text = "Wochenaufgabe", build = buildWeek, refresh = refreshWeek },
-    { key = "meets", text = "Treffen", build = buildMeets, refresh = refreshMeets },
-    { key = "thanks", text = "Danke & Beitrag", build = buildThanks, refresh = refreshThanks },
-    { key = "book", text = "Jahrbuch", build = buildBook, refresh = refreshBook },
+    { key = "week", text = "Weekly goal", build = buildWeek, refresh = refreshWeek },
+    { key = "meets", text = "Meetups", build = buildMeets, refresh = refreshMeets },
+    { key = "thanks", text = "Thanks & contribution", build = buildThanks, refresh = refreshThanks },
+    { key = "book", text = "Yearbook", build = buildBook, refresh = refreshBook },
 }
 ns.ICONS.guildlife = ns.MEDIA .. "icons\\heart"
 ns.RegisterPage({
-    key = "guildlife", title = "Gildenleben", order = 3.45,
-    sub = "Wochenaufgabe, Gildentreffen, Danke und das Jahrbuch der Gilde",
+    key = "guildlife", title = "Guild life", order = 3.45,
+    sub = "Weekly goal, guild meetups, thanks and the guild yearbook",
     build = function(p)
         local items = {}
         for _, t in ipairs(TABS) do items[#items + 1] = { key = t.key, text = L[t.text] } end
@@ -462,7 +462,7 @@ for _, g in ipairs(ns.NAV_GROUPS or {}) do
         if not has then table.insert(g.pages, 3, "guildlife") end
     end
 end
-ns.slash.treffen = function(arg) if arg and arg ~= "" then local when, title = arg:match("^%s*([%d%.]*%s*%d+:%d+)%s*(.*)$") GL.NewMeet((title and title ~= "") and title or L["Gildentreffen"], when) else StaticPopup_Show("OASIS_MEET_NEW", L["Zeit und Titel, z. B. '20:30 Lagerfeuer am Brachland-Kreuzweg' - der Ort ist deine Position"]) end end
+ns.slash.treffen = function(arg) if arg and arg ~= "" then local when, title = arg:match("^%s*([%d%.]*%s*%d+:%d+)%s*(.*)$") GL.NewMeet((title and title ~= "") and title or L["Guild meetup"], when) else StaticPopup_Show("OASIS_MEET_NEW", L["Time and title, e.g. '20:30 Campfire at the Crossroads' - the place is your position"]) end end
 ns.slash.jahrbuch = function() tab = "book" if ns.Expand then ns.Expand("guildlife") else ns.ShowPage("guildlife") end end
 
 end)

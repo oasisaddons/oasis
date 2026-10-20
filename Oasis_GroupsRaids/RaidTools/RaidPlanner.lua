@@ -10,7 +10,7 @@ local K, C, Store = ns.K, ns.K.C, ns.Store
 local Planner = {}
 ns.RaidPlanner = Planner
 
-local ROLE_NAMES = { tank = "Tank", heal = "Heiler", dps = "Schaden" }
+local ROLE_NAMES = { tank = "Tank", heal = "Healer", dps = "Damage" }
 local function roleColor(k) return ns.Profile and ns.Profile.ROLE_COLORS[k] or C.muted end
 
 ------------------------------------------------------------------------
@@ -38,7 +38,7 @@ end
 function Planner.CanEdit() return simOn() or not ns.Admin or not ns.Admin.CanRaidPlan or ns.Admin.CanRaidPlan() end
 function Planner.Save(plan)
     if not Planner.CanEdit() then
-        ns.print(L["Den Raidplan bearbeiten duerfen Gildenleitung, Schlachtzugsleiter und Raid-Assistenten."])
+        ns.print(L["Only leadership, raid leaders and raid assistants may edit the raid plan."])
         ns.RefreshPage("raid")
         return
     end
@@ -254,8 +254,8 @@ local function tick()
             -- ohne Schlachtzug passen nur 5 in die Gruppe
             if ns.Group.IsInRaid() or (math.max(n, 1) + pending) < 5 then
                 r.invited[name] = GetTime()
-                if simOn() then ns.print(L["(Raid-Sim) Einladung an "] .. ns.displayName(name))
-                elseif m and m.demo then ns.print(L["(Demo) Einladung an "] .. ns.displayName(name))
+                if simOn() then ns.print(L["(Raid sim) Invite to "] .. ns.displayName(name))
+                elseif m and m.demo then ns.print(L["(Demo) Invite sent to "] .. ns.displayName(name))
                 elseif C_PartyInfo and C_PartyInfo.InviteUnit then pcall(C_PartyInfo.InviteUnit, ns.ChatName(name)) end
                 return
             end
@@ -268,7 +268,7 @@ end
 function Planner.Start(evId)
     Planner.running = { ev = evId, invited = {}, t = GetTime(), sim = simOn() or nil }
     if not ticker then ticker = C_Timer.NewTicker(0.4, function() pcall(tick) end) end
-    K.Toast(L["Raid wird aufgebaut"], L["Einladen und Gruppen sortieren laeuft - Oasis kuemmert sich."], C.accent)
+    K.Toast(L["Building the raid"], L["Inviting and sorting groups – Oasis takes care of it."], C.accent)
     ns.RefreshPage("raid")
 end
 function Planner.Stop()
@@ -294,8 +294,8 @@ local drag, ghost, pageF
 function Planner.Build(f)
     pageF = f
     -- Termin waehlen, Groesse, Aktionen
-    f.evDrop = K.Dropdown(f, 190, L["Termin"], function()
-        local items = { { key = "frei", text = L["Ohne Termin"] } }
+    f.evDrop = K.Dropdown(f, 190, L["Event"], function()
+        local items = { { key = "frei", text = L["No event"] } }
         for _, e in ipairs(ns.Raid.Events()) do
             items[#items + 1] = { key = e.id, text = ns.weekday(e.ts, true) .. " " .. date("%d.%m.", e.ts) .. "  " .. (e.title or "?") }
         end
@@ -314,29 +314,29 @@ function Planner.Build(f)
         Planner.Save(plan)
     end, 44)
     f.size:SetPoint("LEFT", f.evDrop, "RIGHT", 12, 0)
-    f.auto = K.Button(f, L["Auto-Fuellen"], 104, 24, "ghost", function()
+    f.auto = K.Button(f, L["Auto-fill"], 104, 24, "ghost", function()
         local plan = Planner.Get(selEv)
         local n = Planner.AutoFill(plan, poolMode)
         Planner.Save(plan)
-        if n == 0 then ns.print(L["Keine passenden Kandidaten mehr - wechsle links auf 'Online' oder 'Alle'."]) end
+        if n == 0 then ns.print(L["No more matching candidates – switch to 'Online' or 'All' on the left."]) end
     end)
     f.auto:SetPoint("LEFT", f.size, "RIGHT", 12, 0)
-    f.clear = K.Button(f, L["Leeren"], 64, 24, "ghost", function()
+    f.clear = K.Button(f, L["Clear"], 64, 24, "ghost", function()
         local plan = Planner.Get(selEv)
         plan.slots = {}
         Planner.Save(plan)
     end)
     f.clear:SetPoint("LEFT", f.auto, "RIGHT", 6, 0)
     -- ein Klick: alle Zusagen auf die Gruppen verteilen und sofort einladen/sortieren
-    f.oneClick = K.Button(f, L["Einteilen & starten"], 150, 24, "ghost", function()
-        if not selEv then ns.print(L["Erst oben einen Termin waehlen."]) return end
+    f.oneClick = K.Button(f, L["Assign & start"], 150, 24, "ghost", function()
+        if not selEv then ns.print(L["Pick a date above first."]) return end
         local plan = Planner.Get(selEv)
         Planner.AutoFill(plan, "signed")
         Planner.Save(plan)
         if not Planner.running then Planner.Start(selEv) end
     end)
     f.oneClick:SetPoint("LEFT", f.clear, "RIGHT", 6, 0)
-    f.oneClick:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Zusagen einteilen & starten"], L["Alle Zusagen auf die Gruppen verteilen und sofort einladen und sortieren."] }) end)
+    f.oneClick:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Assign sign-ups & start"], L["Distribute all sign-ups into groups, invite and sort right away."] }) end)
     f.oneClick:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- schmales Fenster: Knoepfe enger bzw. "Einteilen & starten" in die zweite Zeile rechts
     f:HookScript("OnSizeChanged", function(self, w)
@@ -348,11 +348,11 @@ function Planner.Build(f)
     end)
     f.lockHint = K.Text(f, 11, C.amber, "RIGHT")
     f.lockHint:SetPoint("TOPRIGHT", 0, -6)
-    f.lockHint:SetText(L["Nur ansehen - bearbeiten: Leitung, Schlachtzugsleiter, Raid-Assistenten"])
+    f.lockHint:SetText(L["View only - editing: leadership, raid leaders, raid assistants"])
     f.lockHint:Hide()
 
     -- links: Kandidaten
-    f.pool = K.Segments(f, { { key = "signed", text = L["Angemeldet"] }, { key = "online", text = L["Online"] }, { key = "all", text = L["Alle"] } }, function(k)
+    f.pool = K.Segments(f, { { key = "signed", text = L["Signed up"] }, { key = "online", text = L["Online"] }, { key = "all", text = L["All"] } }, function(k)
         poolMode = k
         ns.RefreshPage("raid")
     end, 72)
@@ -395,7 +395,7 @@ function Planner.Build(f)
     f.candsBg:SetPoint("BOTTOMRIGHT", f.cands, "BOTTOMRIGHT", 4, -4)
     f.candsBg:SetFrameLevel(math.max(0, f.cands:GetFrameLevel() - 1))
     glass(f.candsBg, { 1, 1, 1, 0.08 }, { 1, 1, 1, 0.025 }, 12)
-    f.cands.empty:SetText(L["Keine Kandidaten.\nOben 'Online' oder 'Alle' waehlen."])
+    f.cands.empty:SetText(L["No candidates.\nPick 'Online' or 'All' above."])
 
     -- rechts: Gruppen
     f.groups = {}
@@ -437,7 +437,7 @@ function Planner.Build(f)
             s:SetScript("OnEnter", function(self)
                 if drag then return end
                 if self.who and ns.Radar.byName[self.who] then ns.Radar.ShowMemberTip(self, ns.Radar.byName[self.who])
-                elseif picked then K.ShowTip(self, (L["Klick: %s hierher"]):format(ns.displayName(picked))) end
+                elseif picked then K.ShowTip(self, (L["Click: move %s here"]):format(ns.displayName(picked))) end
             end)
             s:SetScript("OnLeave", function() GameTooltip:Hide() end)
             box.slots[i] = s
@@ -458,7 +458,7 @@ function Planner.Build(f)
     f.go:SetPoint("BOTTOMRIGHT", 0, 6)
     f.hint = K.Text(f, 10, C.dim, "RIGHT")
     f.hint:SetPoint("BOTTOMRIGHT", f.go, "TOPRIGHT", 0, 4)
-    f.hint:SetText(L["Ziehen oder anklicken  ·  Rechtsklick: entfernen"])
+    f.hint:SetText(L["Drag or click  ·  Right-click: remove"])
     f.legend = K.Text(f, 10, C.dim)
     f.legend:SetPoint("BOTTOMLEFT", 214, 22)
 end
@@ -625,7 +625,7 @@ function Planner.Refresh(f)
         box:SetShown(g <= groups)
         if g <= groups then
             local mem = Planner.Members(plan, g)
-            box.head:SetText((L["Gruppe %d"]):format(g) .. "  |cff666666" .. #mem .. "/5|r")
+            box.head:SetText((L["Group %d"]):format(g) .. "  |cff666666" .. #mem .. "/5|r")
             for i, s in ipairs(box.slots) do
                 local name = mem[i]
                 s.who = name
@@ -647,7 +647,7 @@ function Planner.Refresh(f)
                 else
                     s.role:Hide()
                     s.state:Hide()
-                    s.text:SetText(picked and ("|cff666666" .. L["+ hier"] .. "|r") or "")
+                    s.text:SetText(picked and ("|cff666666" .. L["+ here"] .. "|r") or "")
                     sline(s, picked and C.accent2 or nil)
                 end
             end
@@ -656,12 +656,12 @@ function Planner.Refresh(f)
     local st = Planner.Status(plan)
     local function part(k) return (ns.Profile and ns.Profile.RoleIcon(k, 13) or "") .. " " .. counts[k] end
     f.sum:SetText(part("tank") .. "   " .. part("heal") .. "   " .. part("dps") .. "     |cffe6e6e6" .. st.total .. "/" .. plan.size .. "|r")
-    f.status:SetText((L["%d online  ·  %d in der Gruppe  ·  %d richtig einsortiert"]):format(st.online, st.inGroup, st.placed))
-    f.legend:SetText("|cff66db9e●|r " .. L["richtig"] .. "   |cffe8b44a●|r " .. L["falsche Gruppe"] .. "   |cff555555●|r " .. L["noch nicht da"])
+    f.status:SetText((L["%d online  ·  %d in the group  ·  %d sorted correctly"]):format(st.online, st.inGroup, st.placed))
+    f.legend:SetText("|cff66db9e●|r " .. L["correct"] .. "   |cffe8b44a●|r " .. L["wrong group"] .. "   |cff555555●|r " .. L["not here yet"])
     if Planner.running then
-        f.go:SetLabel(L["Aufbau stoppen"])
+        f.go:SetLabel(L["Stop building"])
     else
-        f.go:SetLabel(ns.Group.IsInRaid() and L["Raid jetzt anordnen"] or L["Alle einladen & anordnen"])
+        f.go:SetLabel(ns.Group.IsInRaid() and L["Arrange raid now"] or L["Invite all & arrange"])
     end
     f.go:SetEnabledState(st.total > 0)
 end

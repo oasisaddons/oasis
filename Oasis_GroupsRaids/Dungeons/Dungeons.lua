@@ -78,7 +78,7 @@ local function scanEJ()
                         key = "ej:" .. id, ejID = id, name = name, raid = isRaid, tier = tierName,
                         lo = lv and lv.lo, hi = lv and lv.hi,
                         level = lv and ((lv.lo == lv.hi) and tostring(lv.lo) or (lv.lo .. "-" .. lv.hi)) or "",
-                        location = isRaid and L["Schlachtzug"] or L["Dungeon"],
+                        location = isRaid and L["Raid"] or L["Dungeon"],
                         icon = okI and button or nil, mapID = okI and areaMapID or nil,
                         desc = okI and desc or "", source = "blizzard",
                     }
@@ -428,27 +428,27 @@ local function point(p, fallbackText)
     local out = {}
     if p.item or p.itemName then
         local name = p.item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(p.item) or p.itemName
-        out.text = L["Startet durch ein Item"] .. (name and (": " .. name) or "")
-        out.long = out.text .. "\n|cffa8a8a8" .. L["droppt meist im Dungeon"] .. "|r"
+        out.text = L["Starts from an item"] .. (name and (": " .. name) or "")
+        out.long = out.text .. "\n|cffa8a8a8" .. L["usually drops inside the dungeon"] .. "|r"
         return out
     end
     if p.object then
         out.text = p.object
-        out.long = p.object .. "\n|cffa8a8a8" .. L["ein Objekt, meist im Dungeon"] .. "|r"
+        out.long = p.object .. "\n|cffa8a8a8" .. L["an object, usually inside the dungeon"] .. "|r"
         return out
     end
     local npc = p.npc or ""
     if p.inside then
-        out.text = npc .. "  ·  " .. L["im Dungeon"]
-        out.long = npc .. "\n|cffa8a8a8" .. L["steht im Dungeon selbst"] .. "|r"
+        out.text = npc .. "  ·  " .. L["inside the dungeon"]
+        out.long = npc .. "\n|cffa8a8a8" .. L["is inside the dungeon itself"] .. "|r"
         -- Kartenziel: der Dungeon-Eingang
         local e = p.entrance
         if e and e.x and e.y then
             local emap = e.map or ZONES[e.zone or ""]
             if emap then
                 local ez = zoneLabel(emap, e.zone)
-                out.long = out.long .. "\n" .. L["Eingang:"] .. " |cffa8a8a8" .. ez .. "|r  |cff888888(" .. ("%.1f, %.1f"):format(e.x, e.y) .. ")|r"
-                out.target = { mapID = emap, x = e.x / 100, y = e.y / 100, label = L["Dungeon-Eingang"], sub = ez }
+                out.long = out.long .. "\n" .. L["Entrance:"] .. " |cffa8a8a8" .. ez .. "|r  |cff888888(" .. ("%.1f, %.1f"):format(e.x, e.y) .. ")|r"
+                out.target = { mapID = emap, x = e.x / 100, y = e.y / 100, label = L["Dungeon entrance"], sub = ez }
                 out.zoneMap = emap
             end
         end
@@ -475,7 +475,7 @@ function Dungeons.QuestLocation(q)
     elseif q.giver and q.giver ~= "" then
         local item = q.giver:match("^From the item")
         if item then
-            loc.start = { text = L["Startet durch ein Item"], long = q.giver }
+            loc.start = { text = L["Starts from an item"], long = q.giver }
         else
             local npc, zone = q.giver:match("^(.-),%s*(.+)$")
             loc.start = point({ npc = npc or q.giver, zone = zone })
@@ -554,8 +554,8 @@ end
 function Dungeons.TooltipLine(itemID)
     local src = Dungeons.Source(itemID)
     if not src then return nil end
-    if src.boss then return (L["Beute von %s (%s)"]):format(src.boss, src.dungeon) end
-    return (L["Questbelohnung: %s (%s)"]):format(src.quest or "?", src.dungeon)
+    if src.boss then return (L["Drops from %s (%s)"]):format(src.boss, src.dungeon) end
+    return (L["Quest reward: %s (%s)"]):format(src.quest or "?", src.dungeon)
 end
 
 function Dungeons.InRange(d)

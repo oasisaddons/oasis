@@ -262,8 +262,8 @@ local function wantedSet()
     return set
 end
 -- wer hat in den letzten Tagen am meisten eingezahlt
-ns.GuildOption({ page = "bank", key = "gbTopDay", default = 7, min = 1, max = 30, step = 1, label = "Top-Spender Zeitraum",
-    desc = "Ueber wie viele Tage die Top-Spender auf der Bank-Startseite gezaehlt werden",
+ns.GuildOption({ page = "bank", key = "gbTopDay", default = 7, min = 1, max = 30, step = 1, label = "Top donors period",
+    desc = "How many days the top donors on the bank home page cover",
     fmt = function(v) return v .. " Tg" end })
 function Bank.Contributors(days)
     local cut = ns.now() - (days or 7) * 86400
@@ -287,8 +287,8 @@ end
 ------------------------------------------------------------------------
 local ACTIONS = {
     deposit = { "eingezahlt", C.mint }, withdraw = { "entnommen", C.amber }, move = { "verschoben", C.blue },
-    repair = { "Reparatur", C.muted }, withdrawForTab = { "fuer Fachkauf", C.muted }, buyTab = { "Fach gekauft", C.muted },
-    depositSummary = { "Einnahmen", C.mint },
+    repair = { "Repair", C.muted }, withdrawForTab = { "for tab purchase", C.muted }, buyTab = { "bought tab", C.muted },
+    depositSummary = { "income", C.mint },
 }
 local view, search, logFilter = "home", "", "all"
 local COLS, CELL = 14, 36
@@ -298,10 +298,10 @@ local function cellTip(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
     pcall(GameTooltip.SetItemByID, GameTooltip, self.id)
     local pr = priceOf(self.id)
-    if pr then GameTooltip:AddLine(L["Marktwert ~"] .. ns.Market.Format(pr * (self.qty or 1)), 0.9, 0.7, 0.3) end
-    if self.wanted then GameTooltip:AddLine(L["Gesucht von: "] .. table.concat((function()
+    if pr then GameTooltip:AddLine(L["Market value ~"] .. ns.Market.Format(pr * (self.qty or 1)), 0.9, 0.7, 0.3) end
+    if self.wanted then GameTooltip:AddLine(L["Wanted by: "] .. table.concat((function()
         local t = {} for _, w in ipairs(self.wanted) do t[#t + 1] = ns.displayName(w) end return t end)(), ", "), 0.9, 0.7, 0.3) end
-    GameTooltip:AddLine(L["Rechtsklick: Menue"], 0.45, 0.45, 0.48)
+    GameTooltip:AddLine(L["Right-click: menu"], 0.45, 0.45, 0.48)
     GameTooltip:Show()
 end
 local function cellMenu(self)
@@ -309,10 +309,10 @@ local function cellMenu(self)
     local id = self.id
     local _, link = C_Item.GetItemInfo(id)
     local items = {
-        { text = L["Im Chat verlinken"], disabled = not link, fn = function() ChatEdit_InsertLink(link) end },
-        { text = L["In die Gesucht-Liste"], disabled = not (link and ns.Wants), fn = function() ns.Wants.Add(link, 1, L["aus der Gildenbank"]) end },
-        { text = L["Im Gildenchat anfragen"], disabled = not link, fn = function()
-            ns.OpenChat("/g " .. (L["Darf ich mir %s aus der Gildenbank nehmen?"]):format(link))
+        { text = L["Link in chat"], disabled = not link, fn = function() ChatEdit_InsertLink(link) end },
+        { text = L["Add to wishlist"], disabled = not (link and ns.Wants), fn = function() ns.Wants.Add(link, 1, L["from the guild bank"]) end },
+        { text = L["Ask in guild chat"], disabled = not link, fn = function()
+            ns.OpenChat("/g " .. (L["May I take %s from the guild bank?"]):format(link))
         end },
     }
     K.ShowMenu(self, items, itemName(id))
@@ -348,10 +348,10 @@ end
 local valMode = "value"   -- Uebersicht rechts oben: "value" (wertvoll) | "wanted" (von der Gilde gesucht)
 
 ns.RegisterPage({
-    key = "bank", title = "Gildenbank", order = 2.2,
-    sub = "Was liegt in der Gildenbank, was ist es wert und wer hat was eingezahlt",
+    key = "bank", title = "Guild bank", order = 2.2,
+    sub = "What's in the guild bank, what it's worth and who deposited what",
     build = function(p)
-        p.search = K.Input(p, 200, L["In allen Faechern suchen ..."], function(t)
+        p.search = K.Input(p, 200, L["Search all tabs ..."], function(t)
             search = t:lower()
             ns.RefreshPage("bank")
         end)
@@ -378,7 +378,7 @@ ns.RegisterPage({
         p.home:SetPoint("BOTTOMRIGHT")
         p.cards = {}
         local CARDCOL = { C.amber, C.text, C.mint, C.blue }
-        for i, lab in ipairs({ "Gold", "Gegenstaende", "Belegt", "Marktwert" }) do
+        for i, lab in ipairs({ "Gold", "Items", "Used", "Market value" }) do
             local c = K.StatCard(p.home, L[lab])
             glass(c, 12)
             c.value:SetFont(K.FONT_HEAD or K.FONT, 18, "")
@@ -404,7 +404,7 @@ ns.RegisterPage({
             p.worthSpark:SetPoint("TOPRIGHT", -10, -12)
         end
         -- Faecher mit Fuellstand
-        local tp = panel(p.home, L["Faecher"])
+        local tp = panel(p.home, L["Tabs"])
         p.homePanels = { tp }
         tp:SetPoint("TOPLEFT", 0, -68)
         tp:SetSize(370, 214)
@@ -430,20 +430,20 @@ ns.RegisterPage({
             r.bar = K.Bar(r, 100, 3)
             r.bar:SetPoint("LEFT", r.name, "RIGHT", 8, 0)
             r.bar:SetPoint("RIGHT", r.fill, "LEFT", -10, 0)
-            r:HookScript("OnEnter", function(self) if self.n then K.ShowTip(self, { self.name:GetText() or "", L["Klick: Fach oeffnen"] }) end end)
+            r:HookScript("OnEnter", function(self) if self.n then K.ShowTip(self, { self.name:GetText() or "", L["Click: open profession"] }) end end)
             r:HookScript("OnLeave", function() GameTooltip:Hide() end)
             r:SetScript("OnClick", function(self) if self.n then view = self.n p.seg:Select(view) p.fresh = true ns.RefreshPage("bank") end end)
             p.tabRows[i] = r
         end
         -- wertvollste Items
-        local vp = panel(p.home, L["Wertvollste Items"])
+        local vp = panel(p.home, L["Most valuable items"])
         table.insert(p.homePanels, vp)
         vp:SetPoint("TOPLEFT", tp, "TOPRIGHT", 10, 0)
         vp:SetPoint("TOPRIGHT", 0, -68)
         vp:SetHeight(214)
         p.valPanel = vp
         vp.head:Hide()
-        p.valSeg = K.Segments(vp, { { key = "value", text = L["Wertvollste Items"] }, { key = "wanted", text = L["Gesucht"] } },
+        p.valSeg = K.Segments(vp, { { key = "value", text = L["Most valuable items"] }, { key = "wanted", text = L["Wanted"] } },
             function(k) valMode = k p.fresh = true ns.RefreshPage("bank") end, nil, { size = 12, pad = 14 })
         p.valSeg:SetPoint("TOPLEFT", 6, -8)
         p.valRows = {}
@@ -480,9 +480,9 @@ ns.RegisterPage({
         p.valEmpty:SetPoint("TOPLEFT", 16, -44)
         p.valEmpty:SetPoint("RIGHT", vp, "RIGHT", -16, 0)
         p.valEmpty:SetWordWrap(true)
-        p.valEmpty:SetText(L["Preise kommen aus Midas oder aus Oasis' eigener AH-Beobachtung."])
+        p.valEmpty:SetText(L["Prices come from Midas or Oasis' own auction house tracking."])
         -- Top-Spender
-        local cp = panel(p.home, L["Top-Spender (7 Tage)"])
+        local cp = panel(p.home, L["Top donors (7 days)"])
         p.contribPanel = cp
         table.insert(p.homePanels, cp)
         cp:SetPoint("TOPLEFT", 0, -292)
@@ -517,19 +517,19 @@ ns.RegisterPage({
             r.bar:SetWidth(math.max(2, tw * (w.share or 0)))
             r.cols.who:SetText(ns.Radar.Colored(ns.fullName(w.who)))
             local t = {}
-            if w.items > 0 then t[#t + 1] = (L["%d Items"]):format(w.items) end
+            if w.items > 0 then t[#t + 1] = (L["%d items"]):format(w.items) end
             if w.gold > 0 then t[#t + 1] = money(w.gold) end
             r.cols.what:SetText(table.concat(t, "  ·  "))
         end)
         p.contrib:SetPoint("TOPLEFT", 6, -38)
         p.contrib:SetPoint("BOTTOMRIGHT", -6, 8)
-        p.contrib.empty:SetText(L["Diese Woche hat noch niemand eingezahlt."])
+        p.contrib.empty:SetText(L["Nobody has deposited anything this week."])
         -- letzte Bewegungen
-        local lp = panel(p.home, L["Letzte Bewegungen"])
+        local lp = panel(p.home, L["Recent activity"])
         table.insert(p.homePanels, lp)
         lp:SetPoint("TOPLEFT", cp, "TOPRIGHT", 10, 0)
         lp:SetPoint("BOTTOMRIGHT")
-        lp.more = K.Button(lp, L["Alles"], 60, 20, "ghost", function() view = "log" p.fresh = true ns.RefreshPage("bank") end)
+        lp.more = K.Button(lp, L["All"], 60, 20, "ghost", function() view = "log" p.fresh = true ns.RefreshPage("bank") end)
         lp.more:SetPoint("TOPRIGHT", -10, -10)
         lp.more.label:SetFont(K.FONT, 11, "")
         p.recent = K.List(lp, 28, function(l)
@@ -568,7 +568,7 @@ ns.RegisterPage({
         end)
         p.recent:SetPoint("TOPLEFT", 6, -38)
         p.recent:SetPoint("BOTTOMRIGHT", -6, 8)
-        p.recent.empty:SetText(L["Noch kein Protokoll."])
+        p.recent.empty:SetText(L["No log yet."])
         do
             local em = CreateFrame("Frame", nil, p.home)
             em:SetSize(460, 230)
@@ -578,13 +578,13 @@ ns.RegisterPage({
             em.ico:SetPoint("TOP", 0, -24)
             em.t = K.Title(em, 16, C.text, "CENTER")
             em.t:SetPoint("TOP", em.ico, "BOTTOM", 0, -12)
-            em.t:SetText(L["Die Gildenbank wurde noch nicht gelesen"])
+            em.t:SetText(L["The guild bank hasn't been read yet"])
             em.d = K.Text(em, 11, C.muted, "CENTER")
             em.d:SetPoint("TOP", em.t, "BOTTOM", 0, -8)
             em.d:SetWidth(400)
             em.d:SetWordWrap(true)
-            em.d:SetText(L["WoW gibt den Inhalt nur heraus, solange jemand am Gildentresor steht."])
-            local steps = { "Gildentresor in einer Hauptstadt oeffnen", "Jedes Fach einmal anklicken", "Oasis teilt den Stand mit der ganzen Gilde" }
+            em.d:SetText(L["WoW only provides the contents while someone is at the guild vault."])
+            local steps = { "Open the guild vault in a capital city", "Click each tab once", "Oasis shares the status with the whole guild" }
             for i, st in ipairs(steps) do
                 local n = K.Title(em, 12, C.amber, "CENTER")
                 n:SetPoint("TOPLEFT", 70, -128 - (i - 1) * 24)
@@ -633,7 +633,7 @@ ns.RegisterPage({
         end
         p.legend = K.Text(p, 10, C.dim)
         p.legend:SetPoint("TOPLEFT", p.grid, "BOTTOMLEFT", 0, -6)
-        p.legend:SetText("|cffe8b44a●|r " .. L["von der Gilde gesucht"] .. "     " .. L["Rahmenfarbe = Qualitaet"] .. "     " .. L["Shift-Klick: verlinken  ·  Rechtsklick: Menue"])
+        p.legend:SetText("|cffe8b44a●|r " .. L["wanted by the guild"] .. "     " .. L["Border color = quality"] .. "     " .. L["Shift-click: link  ·  Right-click: menu"])
 
         -- Seitenleiste rechts (Fach-Infos oder Suchtreffer)
         local side = CreateFrame("Frame", nil, p)
@@ -656,7 +656,7 @@ ns.RegisterPage({
         p.sInfo:SetPoint("RIGHT", side, "RIGHT", -10, 0)
         p.sInfo:SetWordWrap(true)
         p.sInfo:SetJustifyV("TOP")
-        local sh = K.Label(side, L["Wertvollste hier"])
+        local sh = K.Label(side, L["Most valuable here"])
         sh:SetPoint("TOPLEFT", 12, -118)
         p.sHead = sh
         p.sRows = {}
@@ -686,8 +686,8 @@ ns.RegisterPage({
         ----------------------------------------------------------------
         -- Protokoll
         ----------------------------------------------------------------
-        p.logSeg = K.Segments(p, { { key = "all", text = L["Alles"] }, { key = "items", text = L["Items"] },
-            { key = "gold", text = L["Gold"] }, { key = "mine", text = L["Meine"] } }, function(k)
+        p.logSeg = K.Segments(p, { { key = "all", text = L["All"] }, { key = "items", text = L["Items"] },
+            { key = "gold", text = L["Gold"] }, { key = "mine", text = L["Mine"] } }, function(k)
             logFilter = k
             ns.RefreshPage("bank")
         end, 70)
@@ -735,7 +735,7 @@ ns.RegisterPage({
         end)
         p.log:SetPoint("TOPLEFT", 0, -72)
         p.log:SetPoint("BOTTOMRIGHT")
-        p.log.empty:SetText(L["Noch kein Protokoll. Es wird gelesen, wenn jemand mit Oasis die Bank oeffnet."])
+        p.log.empty:SetText(L["No log yet. It is read when someone with Oasis opens the bank."])
     end,
 
     refresh = function(p)
@@ -750,14 +750,14 @@ ns.RegisterPage({
             local room = (p:GetWidth() or 0) > 0 and (p:GetWidth() - (p.search:GetWidth() or 200) - 16) or 530
             for _, iconsOnly in ipairs({ false, true }) do
                 if p.seg then p.seg:Hide() end
-                local items = { { key = "home", text = L["Uebersicht"] } }
+                local items = { { key = "home", text = L["Overview"] } }
                 for _, t in ipairs(tabs) do
                     local hasIcon = t.icon and t.icon ~= 0
                     local icon = hasIcon and ("|T" .. t.icon .. ":16:16:0:0:64:64:6:58:6:58|t") or ""
                     local name = t.name or ("Fach " .. t.n)
                     items[#items + 1] = { key = t.n, text = (iconsOnly and hasIcon) and icon or (icon .. (hasIcon and " " or "") .. name), tip = name }
                 end
-                items[#items + 1] = { key = "log", text = L["Protokoll"] }
+                items[#items + 1] = { key = "log", text = L["Log"] }
                 p.seg = K.Segments(p.segHolder, items, function(k) view = k p.fresh = true ns.RefreshPage("bank") end)
                 p.seg:SetPoint("LEFT")
                 p.seg:Select(view)
@@ -798,9 +798,9 @@ ns.RegisterPage({
             for _, e in ipairs(allItems) do stacks = stacks + e.count end
             p.cards[1]:Set(amount and money(amount) or "–")
             if p.fresh and stacks > 0 and animOn() then
-                K.CountUp(p.cards[2].value, stacks, 0.6, function(v) return math.floor(v + 0.5) .. " |cff888888(" .. #allItems .. " " .. L["Sorten"] .. ")|r" end)
+                K.CountUp(p.cards[2].value, stacks, 0.6, function(v) return math.floor(v + 0.5) .. " |cff888888(" .. #allItems .. " " .. L["kinds"] .. ")|r" end)
             else
-                p.cards[2]:Set(stacks > 0 and (stacks .. " |cff888888(" .. #allItems .. " " .. L["Sorten"] .. ")|r") or "–")
+                p.cards[2]:Set(stacks > 0 and (stacks .. " |cff888888(" .. #allItems .. " " .. L["kinds"] .. ")|r") or "–")
             end
             p.cards[3]:Set(slots > 0 and (used .. " |cff888888/ " .. slots .. "|r") or "–")
             p.cards[4]:Set(worth > 0 and ("~" .. ns.Market.Format(worth)) or "–")
@@ -808,7 +808,7 @@ ns.RegisterPage({
                 if worth > 0 then pcall(ns.Trade.RecordBankWorth, worth) end
                 local hist, week = ns.Trade.BankHistory(30)
                 p.worthSpark:SetValues(hist)
-                p.cards[4].label:SetText(L["Marktwert"] .. ((week and worth > 0) and ("  " .. ns.Trade.Signed(worth - week) .. " |cff777777" .. L["7 Tg"] .. "|r") or ""))
+                p.cards[4].label:SetText(L["Market value"] .. ((week and worth > 0) and ("  " .. ns.Trade.Signed(worth - week) .. " |cff777777" .. L["7 d"] .. "|r") or ""))
             end
             for i, r in ipairs(p.tabRows) do
                 local t = tabs[i]
@@ -848,7 +848,7 @@ ns.RegisterPage({
             if valMode == "wanted" then table.sort(val, function(a, b) return #a.who > #b.who end)
             else table.sort(val, function(a, b) return a.worth > b.worth end) end
             p.valSeg:Select(valMode)
-            p.valSeg.buttons[2].label:SetText(nWanted > 0 and (L["Gesucht"] .. "  |cffe8b44a" .. nWanted .. "|r") or L["Gesucht"])
+            p.valSeg.buttons[2].label:SetText(nWanted > 0 and (L["Wanted"] .. "  |cffe8b44a" .. nWanted .. "|r") or L["Wanted"])
             for i, r in ipairs(p.valRows) do
                 local v = val[i]
                 if v then
@@ -863,7 +863,7 @@ ns.RegisterPage({
                     local hex = qc and ("|cff%02x%02x%02x"):format(qc[1] * 255, qc[2] * 255, qc[3] * 255) or "|cffffffff"
                     r.name:SetText("|cff888888" .. v.count .. "x|r " .. hex .. itemName(v.id) .. "|r")
                     if valMode == "wanted" then
-                        r.value:SetText("|cffe8b44a" .. ((#v.who == 1) and ns.displayName(v.who[1]) or (L["%d suchen"]):format(#v.who)) .. "|r")
+                        r.value:SetText("|cffe8b44a" .. ((#v.who == 1) and ns.displayName(v.who[1]) or (L["%d looking"]):format(#v.who)) .. "|r")
                     else
                         r.value:SetText("~" .. ns.Market.Format(v.worth))
                     end
@@ -873,14 +873,14 @@ ns.RegisterPage({
                     r:Hide()
                 end
             end
-            p.valEmpty:SetText(valMode == "wanted" and L["Nichts in der Bank steht gerade auf einer Gesucht-Liste."] or L["Preise kommen aus Midas oder aus Oasis' eigener AH-Beobachtung."])
+            p.valEmpty:SetText(valMode == "wanted" and L["Nothing in the bank is on a wanted list right now."] or L["Prices come from Midas or Oasis' own auction house tracking."])
             p.valEmpty:SetShown(#val == 0)
             local tdays = tonumber(ns.GuildOpt("gbTopDay")) or 7
             if p.contribPanel and p.contribPanel.head and p.contribPanel.head.SetText then
-                p.contribPanel.head:SetText(tdays == 7 and L["Top-Spender (7 Tage)"] or (L["Top-Spender (%d Tage)"]):format(tdays))
+                p.contribPanel.head:SetText(tdays == 7 and L["Top donors (7 days)"] or (L["Top donors (%d days)"]):format(tdays))
             end
             local contrib = Bank.Contributors(tdays)
-            p.contrib.empty:SetText(tdays == 7 and L["Diese Woche hat noch niemand eingezahlt."] or (L["In den letzten %d Tagen hat noch niemand eingezahlt."]):format(tdays))
+            p.contrib.empty:SetText(tdays == 7 and L["Nobody has deposited anything this week."] or (L["Nobody has deposited in the last %d days."]):format(tdays))
             local top = 0
             for _, w in ipairs(contrib) do top = math.max(top, w.items + w.gold / 10000) end
             for i, w in ipairs(contrib) do w.rank = i w.share = top > 0 and ((w.items + w.gold / 10000) / top) or 0 end
@@ -892,7 +892,7 @@ ns.RegisterPage({
             p.homeEmpty:SetShown(not hasData)
             for _, f in ipairs(p.cards) do f:SetShown(hasData) end
             for _, f in ipairs(p.homePanels) do f:SetShown(hasData) end
-            p.homePanels[1].count:SetText(#tabs > 0 and ((#tabs == 1) and L["1 Fach"] or (L["%d Faecher"]):format(#tabs)) or "")
+            p.homePanels[1].count:SetText(#tabs > 0 and ((#tabs == 1) and L["1 slot"] or (L["%d slots"]):format(#tabs)) or "")
             p.fresh = nil
             return
         end
@@ -943,11 +943,11 @@ ns.RegisterPage({
         for _, r in ipairs(p.sRows) do r:Hide() end
         if results then
             p.sIcon:SetTexture("Interface\\Icons\\INV_Misc_Spyglass_03")
-            p.sTitle:SetText((L["%d Treffer"]):format(#results))
-            p.sSub:SetText(L["in allen Faechern"])
+            p.sTitle:SetText((L["%d matches"]):format(#results))
+            p.sSub:SetText(L["in all tabs"])
             p.sBar:Hide()
-            p.sInfo:SetText(#results == 0 and L["Nichts gefunden."] or L["Klick auf einen Treffer: zum Fach springen"])
-            p.sHead:SetText(L["Treffer"])
+            p.sInfo:SetText(#results == 0 and L["Nothing found."] or L["Click a result to jump to its tab"])
+            p.sHead:SetText(L["Results"])
             local names = {}
             for _, t in ipairs(tabs) do names[t.n] = t.name end
             for i, e in ipairs(results) do
@@ -965,18 +965,18 @@ ns.RegisterPage({
             return
         end
         p.sBar:Show()
-        p.sHead:SetText(L["Wertvollste hier"])
+        p.sHead:SetText(L["Most valuable here"])
         if tab then
             local used, worth, priced = Bank.TabStats(tab)
             p.sIcon:SetTexture((tab.icon and tab.icon ~= 0) and tab.icon or 134400)
             p.sTitle:SetText(tab.name or ("Fach " .. tab.n))
-            p.sSub:SetText((L["%d von %d Plaetzen belegt"]):format(used, SLOTS))
+            p.sSub:SetText((L["%d of %d slots used"]):format(used, SLOTS))
             p.sBar:Set(used / SLOTS)
             local nWanted = 0
             for _, it in pairs(items) do if wanted[it.id] then nWanted = nWanted + 1 end end
             local info = {}
-            if priced > 0 then info[#info + 1] = L["Marktwert ~"] .. ns.Market.Format(worth) end
-            if nWanted > 0 then info[#info + 1] = "|cffe8b44a" .. (L["%d Items hier werden gesucht"]):format(nWanted) .. "|r" end
+            if priced > 0 then info[#info + 1] = L["Market value ~"] .. ns.Market.Format(worth) end
+            if nWanted > 0 then info[#info + 1] = "|cffe8b44a" .. (L["%d items here are wanted"]):format(nWanted) .. "|r" end
             p.sInfo:SetText(table.concat(info, "\n"))
             local val = {}
             for _, it in pairs(items) do val[#val + 1] = { id = it.id, count = it.count, worth = (priceOf(it.id) or 0) * it.count } end
@@ -991,12 +991,12 @@ ns.RegisterPage({
                     r:Show()
                 end
             end
-            p.sStand:SetText(L["Stand: "] .. ns.ago(tab.ts) .. "  ·  " .. (L["von %s"]):format(ns.displayName(tab.who or "?")))
+            p.sStand:SetText(L["As of: "] .. ns.ago(tab.ts) .. "  ·  " .. (L["by %s"]):format(ns.displayName(tab.who or "?")))
         else
-            p.sTitle:SetText(L["noch nie gelesen"])
+            p.sTitle:SetText(L["never read"])
             p.sSub:SetText("")
             p.sInfo:SetText("")
-            p.sStand:SetText(L["Die Bank aktualisiert sich, wenn jemand mit Oasis den Gildentresor oeffnet."])
+            p.sStand:SetText(L["The bank updates whenever someone with Oasis opens the guild vault."])
         end
     end,
 })

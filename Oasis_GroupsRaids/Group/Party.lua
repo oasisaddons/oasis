@@ -158,7 +158,7 @@ end)
 function P.AskShare(target, qid)
     if not ns.groupChannel() then return end
     Comm.Group("GPQR", target, qid)
-    K.Toast(L["Quest teilen"], (L["%s wurde gefragt, ob er/sie %s teilt."]):format((target:gsub("%-.*$", "")), questTitle(qid)), C.accent)
+    K.Toast(L["Share quest"], (L["%s was asked to share %s."]):format((target:gsub("%-.*$", "")), questTitle(qid)), C.accent)
 end
 local askAt = {}
 Comm.On("GPQR", function(sender, _, target, qid)
@@ -169,11 +169,11 @@ Comm.On("GPQR", function(sender, _, target, qid)
     local q = myQuests()[qid]
     if not q then return end
     local who = sender:gsub("%-.*$", "")
-    K.Toast(L["Quest teilen?"], (L["%s bittet dich: %s teilen - klicken zum Teilen"]):format(who, q.t), C.accent, function() P.Push(qid) end)
+    K.Toast(L["Share quest?"], (L["%s asks you to share %s - click to share"]):format(who, q.t), C.accent, function() P.Push(qid) end)
 end)
 function P.Push(qid)
-    if ns.inCombat() then ns.print(L["Im Kampf nicht moeglich - gleich nochmal."]) return end
-    if not (QuestLogPushQuest and api(C_QuestLog, "SetSelectedQuest")) then ns.print(L["Quest teilen geht hier nicht - im Questlog auf Teilen klicken."]) return end
+    if ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return end
+    if not (QuestLogPushQuest and api(C_QuestLog, "SetSelectedQuest")) then ns.print(L["Sharing does not work here - click Share in the quest log."]) return end
     local prev = api(C_QuestLog, "GetSelectedQuest") and select(2, pcall(C_QuestLog.GetSelectedQuest)) or nil
     pcall(C_QuestLog.SetSelectedQuest, qid)
     pcall(QuestLogPushQuest)
@@ -219,15 +219,15 @@ local function memberRow(l)
     r:Col("ilvl", 460, 60, 13, C.text, "CENTER")
     r:Col("quests", 525, 70, 12, C.muted, "CENTER")
     r:Col("oasis", 600, 140, 11, C.dim)
-    r.talents = K.Button(r, L["Talente"], 70, 20, "ghost", function(self)
+    r.talents = K.Button(r, L["Talents"], 70, 20, "ghost", function(self)
         if ns.Talents and ns.Talents.Show and self.who then pcall(ns.Talents.Show, self.who) end
     end)
     r.talents:SetPoint("RIGHT", -8, 0)
     r:SetScript("OnClick", function(self, btn)
         if btn == "RightButton" and self.item then
             K.ShowMenu(self, {
-                { text = L["Anfluestern"], fn = function() ChatFrame_OpenChat("/w " .. self.item.name .. " ") end },
-                { text = L["Talente"], fn = function() if ns.Talents and ns.Talents.Show then pcall(ns.Talents.Show, self.item.name) end end },
+                { text = L["Whisper"], fn = function() ChatFrame_OpenChat("/w " .. self.item.name .. " ") end },
+                { text = L["Talents"], fn = function() if ns.Talents and ns.Talents.Show then pcall(ns.Talents.Show, self.item.name) end end },
             }, self.item.short)
         end
     end)
@@ -253,7 +253,7 @@ local function memberUpdate(r, m)
     local nq = 0
     for _ in pairs(inf and inf.quests or {}) do nq = nq + 1 end
     r.cols.quests:SetText(inf and nq or "|cff555555-|r")
-    r.cols.oasis:SetText(m.me and L["du"] or (inf and inf.oasis and ("|cff7fd07fOasis|r " .. (inf.ver or ""))) or ("|cff666666" .. L["ohne Oasis"] .. "|r"))
+    r.cols.oasis:SetText(m.me and L["you"] or (inf and inf.oasis and ("|cff7fd07fOasis|r " .. (inf.ver or ""))) or ("|cff666666" .. L["no Oasis"] .. "|r"))
     r.talents.who = m.name
     r.talents:SetShown(ns.Talents ~= nil and not m.me)
 end
@@ -288,7 +288,7 @@ local function questRow(l)
     local r = K.Row(l)
     r:Col("title", 12, 300, 13)
     r:Col("have", 320, 330, 11, C.muted)
-    r.btn = K.Button(r, L["Bitte teilen"], 110, 20, "ghost", function(self)
+    r.btn = K.Button(r, L["Ask to share"], 110, 20, "ghost", function(self)
         if self.target and self.qid then P.AskShare(self.target, self.qid) end
     end)
     r.btn:SetPoint("RIGHT", -8, 0)
@@ -297,7 +297,7 @@ end
 local function questUpdate(r, e)
     r.cols.title:SetText(e.title)
     r.cols.title:SetTextColor((e.mine and C.muted or C.text)[1], (e.mine and C.muted or C.text)[2], (e.mine and C.muted or C.text)[3])
-    r.cols.have:SetText((e.mine and (L["Du hast sie"] .. " - ") or "") .. table.concat(e.have, ", "))
+    r.cols.have:SetText((e.mine and (L["You have it"] .. " - ") or "") .. table.concat(e.have, ", "))
     r.btn.qid, r.btn.target = e.id, e.push[1]
     r.btn:SetShown(not e.mine and e.push[1] ~= nil)
 end
@@ -312,16 +312,16 @@ end
 
 ns.ICONS.party = ns.MEDIA .. "icons\\groups"
 ns.RegisterPage({
-    key = "party", title = "Meine Gruppe", order = 2.72,
-    sub = "Wer ist dabei, wer braucht welche Quest, Segen, Bedrohung und Wuerfelrunde",
+    key = "party", title = "My group", order = 2.72,
+    sub = "Who is in, who needs which quest, blessings, threat and roll game",
     build = function(p)
-        local items = { { key = "members", text = L["Mitglieder"] }, { key = "quests", text = L["Quests"] } }
+        local items = { { key = "members", text = L["Members"] }, { key = "quests", text = L["Quests"] } }
         for _, d in ipairs(P.tabs) do items[#items + 1] = { key = d.key, text = L[d.text] } end
         p.seg = K.Segments(p, items, function(k) switch(p, k) end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
         p.empty = K.Text(p, 13, C.dim, "CENTER")
         p.empty:SetPoint("TOP", 0, -120)
-        p.empty:SetText(L["Du bist in keiner Gruppe. Sobald du einer Gruppe beitrittst, siehst du hier alle Mitglieder."])
+        p.empty:SetText(L["You are not in a group. Once you join one, you see all members here."])
         -- Mitglieder
         p.members = CreateFrame("Frame", nil, p)
         p.members:SetPoint("TOPLEFT", 0, -36)
@@ -329,7 +329,7 @@ ns.RegisterPage({
         local hd = K.Text(p.members, 10, C.dim)
         hd:SetPoint("TOPLEFT", 30, 0)
         hd:SetText(K.Upper(L["Name"]))
-        for _, h in ipairs({ { 205, "Stufe" }, { 262, "Erfahrung" }, { 460, "Itemlevel" }, { 525, "Quests" }, { 600, "Addon" } }) do
+        for _, h in ipairs({ { 205, "Item level" }, { 262, "Experience" }, { 460, "Item level" }, { 525, "Quests" }, { 600, "Addon" } }) do
             local t = K.Text(p.members, 10, C.dim) t:SetPoint("TOPLEFT", h[1], 0) t:SetText(K.Upper(L[h[2]]))
         end
         p.mlist = K.List(p.members, 34, memberRow, memberUpdate)
@@ -339,7 +339,7 @@ ns.RegisterPage({
         p.sum = K.Text(p.members, 11, C.muted)
         p.sum:SetPoint("BOTTOMLEFT", 4, 8)
         -- 0.6.525: Naowh Forever zeigt Ausruestung/Talente der ganzen Gruppe im Detail - dorthin verweisen statt nachbauen
-        p.naowh = K.Button(p.members, L["Ausruestung in Naowh"], 150, 22, "ghost", function()
+        p.naowh = K.Button(p.members, L["Gear in Naowh"], 150, 22, "ghost", function()
             local NW = ns.Compat and ns.Compat.Naowh
             if NW then NW.OpenGroupInspect() end
         end)
@@ -351,7 +351,7 @@ ns.RegisterPage({
         p.quests:SetPoint("BOTTOMRIGHT", 0, 0)
         local qh = K.Text(p.quests, 11, C.muted)
         qh:SetPoint("TOPLEFT", 4, 0)
-        qh:SetText(L["Oben die Quests, die dir fehlen. 'Bitte teilen' fragt ein Gruppenmitglied mit Oasis - es muss nur noch klicken."])
+        qh:SetText(L["Quests you are missing are on top. 'Ask to share' asks a group member with Oasis - they only need to click."])
         p.qlist = K.List(p.quests, 30, questRow, questUpdate)
         p.qlist:SetPoint("TOPLEFT", 0, -22)
         p.qlist:SetPoint("BOTTOMRIGHT", 0, 0)
@@ -384,11 +384,11 @@ ns.RegisterPage({
                 if x.me or (x.info and x.info.oasis) then oasis = oasis + 1 end
                 if x.info and x.info.ilvl and x.info.ilvl > 0 then sum, cnt = sum + x.info.ilvl, cnt + 1 end
             end
-            p.sum:SetText((L["%d Mitglieder, %d mit Oasis"]):format(#m, oasis) .. (cnt > 0 and ("  -  " .. (L["Itemlevel im Schnitt %d"]):format(math.floor(sum / cnt + 0.5))) or ""))
+            p.sum:SetText((L["%d members, %d with Oasis"]):format(#m, oasis) .. (cnt > 0 and ("  -  " .. (L["average item level %d"]):format(math.floor(sum / cnt + 0.5))) or ""))
         elseif tab == "quests" and grouped then
             local rows = questRows()
             p.qlist:SetData(rows)
-            p.qlist.empty:SetText(#rows == 0 and L["Noch keine Quests bekannt - die anderen brauchen Oasis."] or "")
+            p.qlist.empty:SetText(#rows == 0 and L["No quests known yet - the others need Oasis."] or "")
         end
         for _, d in ipairs(P.tabs) do
             if d.key == tab and d.refresh then local ok, e = pcall(d.refresh, p, d.area) if not ok then ns.err("Gruppe " .. d.key, e) end end
@@ -415,10 +415,10 @@ if not ns.AddPageSettings then return end
 ns.AddPageSettings("party", function(det, y)
     local S = ns.db.settings
     local defs = {
-        { "Gruppen-XP-Leiste", "partyXP", "Kleine Leiste mit dem Erfahrungsbalken jedes Gruppenmitglieds mit Oasis (5er-Gruppe)", true, function() if ns.Party.UpdateXP then ns.Party.UpdateXP() end end },
-        { "Pull-Warnung", "pullWarn", "Hinweis, wenn du vor dem Tank in den Kampf kommst oder als Nicht-Tank die Aggro hast", true },
-        { "Bedrohungsleiste", "threatBar", "Deine Bedrohung auf dem Ziel in Prozent (nur wenn das Spiel den Wert liefert)", false },   -- 0.6.548: standardmaessig aus
-        { "Gebiet und Stufe im Chat", "chatZones", "Vor Gilden-, Gruppen- und Raidzeilen steht klein Stufe und Gebiet der Person", false },
+        { "Group XP bar", "partyXP", "Small bar with the XP of every group member running Oasis (5-player group)", true, function() if ns.Party.UpdateXP then ns.Party.UpdateXP() end end },
+        { "Pull warning", "pullWarn", "Alert when you enter combat before the tank or pull aggro as a non-tank", true },
+        { "Threat bar", "threatBar", "Your threat on the target in percent (only when the game provides it)", false },   -- 0.6.548: standardmaessig aus
+        { "Zone and level in chat", "chatZones", "Guild, party and raid lines show the speaker's level and zone", false },
     }
     for _, d in ipairs(defs) do
         local t = K.Toggle(det, L[d[1]], function() if d[4] then return S[d[2]] ~= false end return S[d[2]] == true end, function(v)

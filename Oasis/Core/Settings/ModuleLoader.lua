@@ -10,46 +10,46 @@ local M = {}
 ns.ModuleLoader = M
 -- ns.ModuleFile steht seit 0.6.272 in Core.lua (Moduldateien duerfen ueberall in der toc stehen), gesammelt in ns.moduleFiles
 -- 0.6.272: nach Kategorien geordnet (cat); die Einstellungsseite zeigt je Kategorie eine Ueberschrift
-M.CATS = { "Spielinhalte", "Gilde und Gruppe", "Chat", "Komfort und Karte" }
+M.CATS = { "Game content", "Guild and group", "Chat", "Comfort and map" }
 M.LIST = {
-    { cat = "Spielinhalte", addon = "Oasis_Dungeons", title = "Dungeons", icon = "dungeons", desc = "Dungeon-Datenbank, Bosse, Karten, Questorte und die Dungeon-Seite" },
-    { cat = "Spielinhalte", addon = "Oasis_RaidTools", title = "Raids und Termine", icon = "raid", desc = "Termine und Anmeldungen, Raid-Planer, Raid-Check, Buffs, Pluendermeister und Lootpunkte, Taktik-Karte, Raid-IDs, Kampfberichte" },
-    { cat = "Spielinhalte", addon = "Oasis_Legacy", title = "Legacy", icon = "legacy", desc = "Legacy-Erfolge und Sammelstuecke" },
-    { cat = "Spielinhalte", addon = "Oasis_QuestItems", title = "Questitems", icon = "checklist", desc = "Questitems der Gilde suchen und anbieten" },
-    { cat = "Spielinhalte", addon = "Oasis_Rares", title = "Seltene Gegner", icon = "star_on", desc = "Gildenweit geteilte Sichtungen von Rares und Weltbossen mit Wiederkehr-Schaetzung" },
-    { cat = "Spielinhalte", addon = "Oasis_Reputation", title = "Ruf-Planer", icon = "badges", desc = "Eigener Ruf und der Stand der Gilde je Fraktion" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Group", title = "Meine Gruppe", icon = "groups", desc = "Gruppenuebersicht, Quests teilen, Gruppen-XP, Segen-Plan, Bedrohung und Pull-Warnung, Wuerfelrunde, Gebiet im Chat" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Deathroll", title = "Todeswuerfeln", icon = "deathroll", desc = "Deathroll-Duelle mit Rangliste" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Polls", title = "Umfragen", icon = "polls", desc = "Abstimmungen in der Gilde" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Community", title = "Gemeinschaft", icon = "heart", desc = "Steckbriefe, Geburtstage, Paten fuer Neulinge, Danke und Helfer der Woche, Gilden-Erfolge" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Combat", title = "Kampf-Rangliste", icon = "stats", desc = "Schaden und Heilung der Gilde nach jedem Kampf, echte Crits" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Upgrades", title = "Upgrade-Suche", icon = "wants", desc = "Handelbare Ausruestung der Gilde, die fuer dich besser waere" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Talents", title = "Talente", icon = "profile", desc = "Talente von Gildenmitgliedern und betrachteten Spielern ansehen" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Discord", title = "Discord", icon = "speaker", desc = "Discord-Bruecke und Sprachkanal der Gilde" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Crafting", title = "Handwerk", icon = "crafting", desc = "Wer kann was herstellen, Handwerks-Auftraege an die Gilde, Materialien im Tooltip" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_GuildBank", title = "Gildenbank", icon = "bank", desc = "Inhalt und Verlauf der Gildenbank" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Market", title = "Handel", icon = "bank", desc = "Kaufen und verkaufen in der Gilde, Marktwerte" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Wishlist", title = "Wunschliste", icon = "wants", desc = "Gesuchte Items der Gilde, Wer-braucht-was im Tooltip, Hinweise im Dungeon" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Chronicle", title = "Chronik", icon = "chronicle", desc = "Was in der Gilde passiert ist: Level, Abzeichen, Erfolge" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Campfire", title = "Lagerfeuer", icon = "camp", desc = "Lagerfeuer fuer die Gilde melden und auf der Karte zeigen" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Deaths", title = "Tode", icon = "deaths", desc = "Tode in der Gilde, Sterbeorte auf der Karte" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Social", title = "Mitspieler", icon = "groups", desc = "Quest-Partner in der Gilde, kuerzliche Mitspieler von ausserhalb, Neulinge" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Collections", title = "Sammlungen", icon = "star_on", desc = "Reittiere, Haustiere und Spielzeuge der Gilde" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_GuildGoals", title = "Gildenziele", icon = "checklist", desc = "Gemeinsame Vorhaben mit Schritten und Fortschritt" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Greeting", title = "Begruessung", icon = "smile", desc = "Abgestimmter Gruss im Gildenchat, wenn jemand online kommt" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_GuildManagement", title = "Gildenpflege", icon = "admin", desc = "Nur Gildenleitung: Inaktive, Bewerber, Werbung, Anwesenheit, Protokoll mit Gildenverlauf, Bannliste, Verdachts-Monitor" },
-    { cat = "Chat", addon = "Oasis_Whispers", title = "Fluesterverlauf", icon = "social", desc = "Gespraeche im Fluesterchat, privater Reiter im Gildenchat, Weiterleitung an Twinks" },
-    { cat = "Chat", addon = "Oasis_GameChat", title = "Spielchat", icon = "social", desc = "Blizzards Chatfenster lesbarer: Namen, Stufen und Symbole, Filter, Suche, Verlauf und Stichwort-Alarme" },
-    { cat = "Chat", addon = "Oasis_EmojiSuggest", title = "Emoji-Vorschlaege", icon = "smile", desc = "Beim Tippen passende Emojis vorschlagen" },
-    { cat = "Komfort und Karte", addon = "Oasis_Comfort", title = "Komfort", icon = "home", desc = "Automatisch reparieren und verkaufen, Quests, Einladungen, Leisten, Tooltips" },
-    { cat = "Komfort und Karte", addon = "Oasis_MapExtras", title = "Karten-Extras", icon = "pin", desc = "Sammelorte der Gilde, Marker, Laufspuren, Gefahrenzonen, Zielpfeil" },
-    { cat = "Komfort und Karte", addon = "Oasis_MyJourney", title = "Mein Weg", icon = "chronicle", desc = "Zeitleiste und Rekorde deines Charakters" },
-    { cat = "Komfort und Karte", addon = "Oasis_QuestTags", title = "Quest-Markierungen", icon = "checklist", desc = "Gruppenquests im Questlog markieren" },
-    { cat = "Spielinhalte", addon = "Oasis_WeaponTrainers", title = "Waffenlehrer", icon = "map", desc = "Welche Waffe lernst du in welcher Hauptstadt" },
-    { cat = "Gilde und Gruppe", addon = "Oasis_Encounters", title = "Begegnungen", icon = "groups", desc = "Spieler ausserhalb der Gilde: Ausruestung beim Betrachten merken" },
-    { cat = "Komfort und Karte", addon = "Oasis_ItemCompare", title = "Item-Vergleich", icon = "wants", desc = "Vergleichsfenster neben dem Item-Tooltip" },
-    { cat = "Komfort und Karte", addon = "Oasis_BankSlots", title = "Bankplaetze", icon = "bank", desc = "Feste Plaetze in der eigenen Bank merken" },
-    { cat = "Komfort und Karte", addon = "Oasis_Performance", dev = true, title = "Leistungsmessung", icon = "stats", desc = "Live-Anzeige der Rechenzeit und Messwerte der Gilde" },
+    { cat = "Game content", addon = "Oasis_Dungeons", title = "Dungeons", icon = "dungeons", desc = "Dungeon database, bosses, maps, quest locations and the dungeon page" },
+    { cat = "Game content", addon = "Oasis_RaidTools", title = "Raids and events", icon = "raid", desc = "Events and sign-ups, raid planner, raid check, buffs, master looter and loot points, tactics map, raid IDs, combat reports" },
+    { cat = "Game content", addon = "Oasis_Legacy", title = "Legacy", icon = "legacy", desc = "Legacy achievements and collectibles" },
+    { cat = "Game content", addon = "Oasis_QuestItems", title = "Quest items", icon = "checklist", desc = "Find and offer quest items in the guild" },
+    { cat = "Game content", addon = "Oasis_Rares", title = "Rare Enemies", icon = "star_on", desc = "Rare and world boss sightings shared with the guild, with respawn estimate" },
+    { cat = "Game content", addon = "Oasis_Reputation", title = "Reputation Planner", icon = "badges", desc = "Your reputation and the guild's standing per faction" },
+    { cat = "Guild and group", addon = "Oasis_Group", title = "My group", icon = "groups", desc = "Group overview, quest sharing, group XP, blessing plan, threat and pull warning, roll game, zone in chat" },
+    { cat = "Guild and group", addon = "Oasis_Deathroll", title = "Deathroll", icon = "deathroll", desc = "Deathroll duels with leaderboard" },
+    { cat = "Guild and group", addon = "Oasis_Polls", title = "Polls", icon = "polls", desc = "Votes in the guild" },
+    { cat = "Guild and group", addon = "Oasis_Community", title = "Community", icon = "heart", desc = "Profiles, birthdays, mentors for newcomers, thanks and helper of the week, guild achievements" },
+    { cat = "Guild and group", addon = "Oasis_Combat", title = "Combat ranking", icon = "stats", desc = "Guild damage and healing after every fight, real crits" },
+    { cat = "Guild and group", addon = "Oasis_Upgrades", title = "Upgrade finder", icon = "wants", desc = "Tradeable guild gear that would be an upgrade for you" },
+    { cat = "Guild and group", addon = "Oasis_Talents", title = "Talents", icon = "profile", desc = "View talents of guild members and inspected players" },
+    { cat = "Guild and group", addon = "Oasis_Discord", title = "Discord", icon = "speaker", desc = "Discord bridge and the guild's voice channel" },
+    { cat = "Guild and group", addon = "Oasis_Crafting", title = "Crafting", icon = "crafting", desc = "Who can craft what, crafting orders to the guild, materials in the tooltip" },
+    { cat = "Guild and group", addon = "Oasis_GuildBank", title = "Guild bank", icon = "bank", desc = "Guild bank contents and history" },
+    { cat = "Guild and group", addon = "Oasis_Market", title = "Trade", icon = "bank", desc = "Buy and sell within the guild, market values" },
+    { cat = "Guild and group", addon = "Oasis_Wishlist", title = "Wish list", icon = "wants", desc = "Items the guild is looking for, who-needs-what in tooltips, hints in dungeons" },
+    { cat = "Guild and group", addon = "Oasis_Chronicle", title = "Chronicle", icon = "chronicle", desc = "What happened in the guild: levels, badges, achievements" },
+    { cat = "Guild and group", addon = "Oasis_Campfire", title = "Campfire", icon = "camp", desc = "Announce campfires to the guild and show them on the map" },
+    { cat = "Guild and group", addon = "Oasis_Deaths", title = "Deaths", icon = "deaths", desc = "Deaths in the guild, death locations on the map" },
+    { cat = "Guild and group", addon = "Oasis_Social", title = "Players", icon = "groups", desc = "Quest partners in the guild, recent players from outside, newcomers" },
+    { cat = "Guild and group", addon = "Oasis_Collections", title = "Collections", icon = "star_on", desc = "Mounts, pets and toys of the guild" },
+    { cat = "Guild and group", addon = "Oasis_GuildGoals", title = "Guild goals", icon = "checklist", desc = "Shared projects with steps and progress" },
+    { cat = "Guild and group", addon = "Oasis_Greeting", title = "Greeting", icon = "smile", desc = "Coordinated greeting in guild chat when someone logs in" },
+    { cat = "Guild and group", addon = "Oasis_GuildManagement", title = "Guild care", icon = "admin", desc = "Guild leaders only: inactives, applicants, recruiting, attendance, log with guild history, ban list, suspicion monitor" },
+    { cat = "Chat", addon = "Oasis_Whispers", title = "Whisper history", icon = "social", desc = "Whisper conversations, private tab in guild chat, forwarding to alts" },
+    { cat = "Chat", addon = "Oasis_GameChat", title = "Game chat", icon = "social", desc = "Makes Blizzard's chat windows easier to read: names, levels and icons, filters, search, history and keyword alerts" },
+    { cat = "Chat", addon = "Oasis_EmojiSuggest", title = "Emoji suggestions", icon = "smile", desc = "Suggest matching emojis while typing" },
+    { cat = "Comfort and map", addon = "Oasis_Comfort", title = "Comfort", icon = "home", desc = "Auto repair and sell, quests, invites, bars, tooltips" },
+    { cat = "Comfort and map", addon = "Oasis_MapExtras", title = "Map extras", icon = "pin", desc = "Guild gathering spots, markers, trails, danger zones, target arrow" },
+    { cat = "Comfort and map", addon = "Oasis_MyJourney", title = "My Journey", icon = "chronicle", desc = "Timeline and records of your character" },
+    { cat = "Comfort and map", addon = "Oasis_QuestTags", title = "Quest markers", icon = "checklist", desc = "Mark group quests in the quest log" },
+    { cat = "Game content", addon = "Oasis_WeaponTrainers", title = "Weapon masters", icon = "map", desc = "Which weapon you learn in which capital" },
+    { cat = "Guild and group", addon = "Oasis_Encounters", title = "Encounters", icon = "groups", desc = "Players outside the guild: remember gear when inspecting" },
+    { cat = "Comfort and map", addon = "Oasis_ItemCompare", title = "Item comparison", icon = "wants", desc = "Comparison window next to the item tooltip" },
+    { cat = "Comfort and map", addon = "Oasis_BankSlots", title = "Bank slots", icon = "bank", desc = "Remember fixed slots in your bank" },
+    { cat = "Comfort and map", addon = "Oasis_Performance", dev = true, title = "Performance", icon = "stats", desc = "Live CPU time display and guild measurements" },
 }
 M.state = {}   -- [addon] = "loaded" | "off" | "missing" | "disabled" | Fehlertext
 
@@ -205,7 +205,7 @@ local function build(f)
     intro:SetWidth(730)
     intro:SetJustifyH("LEFT")
     intro:SetWordWrap(true)
-    intro:SetText(L["Grosse Bereiche lassen sich abschalten. Was du abschaltest, wird nach dem naechsten /reload gar nicht mehr geladen und belegt keinen Speicher."])
+    intro:SetText(L["Large areas can be switched off. Whatever you switch off is not loaded at all after the next /reload and uses no memory."])
     -- 0.5.713: je Modul eine Glas-Karte (Symbol + Name, Schalter rechts, Beschreibung, Zustand unten rechts)
     f.noCompact = true
     f.rows = {}
@@ -241,8 +241,8 @@ local function build(f)
     end
     -- 0.5.728: Gildenmodul = eigenes Addon "Oasis_Guild" (Meme-Sounds, Musik, Gilden-Emojis, Fehlerberichte); hier und
     -- in der AddOn-Liste des Spiels einzeln an-/abschaltbar. In der oeffentlichen Version ist der Ordner gar nicht dabei.
-    local gm = H.cardH(f, 0, y, 2 * W + 14, 72, "home", L["Gildenmodul"],
-        L["Meme-Sounds, Musik, Gilden-Emojis und Fehlerberichte - ein eigenes Addon nur fuer die Gilde."])
+    local gm = H.cardH(f, 0, y, 2 * W + 14, 72, "home", L["Guild module"],
+        L["Meme sounds, music, guild emojis and bug reports - a separate add-on for the guild only."])
     gm.s:SetWordWrap(true)
     gm.s:SetPoint("RIGHT", -70, 0)
     f.gmState = K.Text(gm, 10, C.dim, "RIGHT")
@@ -250,7 +250,7 @@ local function build(f)
     f.gmT = K.Toggle(gm, "", function() return M.GuildEnabled() end, function(v)
         M.SetGuildEnabled(v)
         if f.reload then f.reload:Show() f.hint:Show() end
-        f.gmState:SetText("|cffe8b44a" .. L[v and "an nach /reload" or "aus nach /reload"] .. "|r")
+        f.gmState:SetText("|cffe8b44a" .. L[v and "on after /reload" or "off after /reload"] .. "|r")
     end)
     f.gmT:SetWidth(46)
     f.gmT:SetPoint("TOPRIGHT", -14, -12)
@@ -260,9 +260,9 @@ local function build(f)
     f.total:SetPoint("TOPLEFT", 0, y)
     f.hint = K.Text(f, 11, C.amber or C.accent)
     f.hint:SetPoint("TOPLEFT", 0, y - 30)
-    f.hint:SetText(L["Aenderungen gelten nach dem Neuladen."])
+    f.hint:SetText(L["Changes apply after reloading."])
     f.hint:SetShown(M.dirty and true or false)
-    f.reload = K.Button(f, L["Jetzt neu laden"], 150, 24, "primary", function() ReloadUI() end)
+    f.reload = K.Button(f, L["Reload now"], 150, 24, "primary", function() ReloadUI() end)
     f.reload:SetPoint("LEFT", f.hint, "RIGHT", 14, 0)
     f.reload:SetShown(M.dirty and true or false)
     f.stale = K.Text(f, 11, C.amber or C.accent)
@@ -272,16 +272,16 @@ local function build(f)
     f.stale:SetWordWrap(true)
 end
 local function staleText()
-    return (L["Alte Oasis-Zusatzordner liegen noch im AddOns-Ordner und werden nicht mehr gebraucht (alles steckt jetzt im Ordner Oasis). Du kannst sie loeschen: %s"]):format(table.concat(M.stale, ", "))
+    return (L["Old Oasis add-on folders are still in your AddOns folder and are no longer needed (everything now lives in the Oasis folder). You can delete them: %s"]):format(table.concat(M.stale, ", "))
 end
 local function refresh(f)
     M.UpdateMem()
     if f.gmT then
         f.gmT:SetShown(M.GuildInstalled())
         f.gmT:Refresh()
-        if not M.GuildInstalled() then f.gmState:SetText("|cff888888" .. L["nicht installiert (oeffentliche Version)"] .. "|r")
-        elseif ns.GuildPack then f.gmState:SetText("|cff66db9e" .. L["geladen"] .. "|r")
-        else f.gmState:SetText("|cff888888" .. L["aus"] .. "|r") end
+        if not M.GuildInstalled() then f.gmState:SetText("|cff888888" .. L["not installed (public version)"] .. "|r")
+        elseif ns.GuildPack then f.gmState:SetText("|cff66db9e" .. L["loaded"] .. "|r")
+        else f.gmState:SetText("|cff888888" .. L["off"] .. "|r") end
     end
     local sum = M.MemKB(ADDON) or 0
     for _, r in ipairs(f.rows or {}) do
@@ -289,16 +289,16 @@ local function refresh(f)
         local s = M.state[r.m.addon]
         local sd = STATE_TXT[s]
         local txt = sd and ("|cff" .. sd[2] .. L[sd[1]] .. "|r") or ("|cffff6060" .. tostring(s or "?") .. "|r")
-        if not M.IsOn(r.m.addon) and s == "loaded" then txt = "|cffe8b44a" .. L["aus nach /reload"] .. "|r" end
-        if M.IsOn(r.m.addon) and s == "off" then txt = "|cffe8b44a" .. L["an nach /reload"] .. "|r" end
+        if not M.IsOn(r.m.addon) and s == "loaded" then txt = "|cffe8b44a" .. L["off after /reload"] .. "|r" end
+        if M.IsOn(r.m.addon) and s == "off" then txt = "|cffe8b44a" .. L["on after /reload"] .. "|r" end
         -- 0.6.566: Modul steckt in einem Teil-Addon, das fehlt oder aus ist
         local part = M.partOf[r.m.addon]
         if part and s == "missing" and not M.PartLoaded(part.addon) then
-            txt = "|cffe8b44a" .. (L["%s fehlt"]):format(part.title) .. "|r"
+            txt = "|cffe8b44a" .. (L["%s missing"]):format(part.title) .. "|r"
         end
         r.st:SetText(txt)
     end
-    f.total:SetText((L["Oasis belegt gerade %s."]):format(fmtMB(sum)))
+    f.total:SetText((L["Oasis is currently using %s."]):format(fmtMB(sum)))
     local has = M.stale and #M.stale > 0
     f.stale:SetText(has and staleText() or "")
     f.stale:SetShown(has and true or false)
@@ -309,8 +309,8 @@ ns.Listen("LOGIN", function()
     if ns.db.staleDirHint == ns.version then return end
     ns.db.staleDirHint = ns.version
     C_Timer.After(12, function()
-        K.Toast(L["Alte Oasis-Ordner"], staleText(), nil, function() ns.slash.module() end)
+        K.Toast(L["Old Oasis folders"], staleText(), nil, function() ns.slash.module() end)
     end)
 end)
-if ns.AddSettingsTab then ns.AddSettingsTab("modules", "Module", build, refresh) end
+if ns.AddSettingsTab then ns.AddSettingsTab("modules", "Modules", build, refresh) end
 ns.slash.module = function() if ns.Settings then ns.Settings.SetTab("modules") end end

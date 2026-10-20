@@ -335,27 +335,27 @@ local function build()
     f.empty:SetWidth(520)
     f.empty:SetWordWrap(true)
     f.nodes, f.lines = {}, {}
-    f.copy = K.Button(f, L["Export-Text kopieren"], 150, 24, "ghost", function()
+    f.copy = K.Button(f, L["Copy export string"], 150, 24, "ghost", function()
         if f.export and ns.Bugs and ns.Bugs.ShowCopy then ns.Bugs.ShowCopy(f.export) end
     end)
     f.copy:SetPoint("BOTTOMLEFT", 18, 16)
     -- Build uebernehmen (zweimal klicken = bestaetigen)
-    f.apply = K.Button(f, L["Bei mir uebernehmen"], 170, 24, "primary", function(self)
+    f.apply = K.Button(f, L["Apply to me"], 170, 24, "primary", function(self)
         if not f.data then return end
         if not self.armed then
             self.armed = GetTime()
-            self:SetLabel(L["Wirklich? Nochmal klicken"])
-            C_Timer.After(4, function() if self.armed and GetTime() - self.armed >= 3.9 then self.armed = nil self:SetLabel(L["Bei mir uebernehmen"]) end end)
+            self:SetLabel(L["Sure? Click again"])
+            C_Timer.After(4, function() if self.armed and GetTime() - self.armed >= 3.9 then self.armed = nil self:SetLabel(L["Apply to me"]) end end)
             return
         end
         self.armed = nil
-        self:SetLabel(L["Bei mir uebernehmen"])
+        self:SetLabel(L["Apply to me"])
         T.Apply(f.data)
     end)
     f.apply:SetPoint("LEFT", f.copy, "RIGHT", 8, 0)
     f.apply:SetScript("OnEnter", function(self)
         local ok, why = T.CanApply(f.data)
-        K.ShowTip(self, { L["Bei mir uebernehmen"], ok and L["Setzt deinen Baum zurueck und verteilt die Punkte wie hier - so weit deine Punkte reichen."] or (why or "") })
+        K.ShowTip(self, { L["Apply to me"], ok and L["Resets your tree and spends points like shown here - as far as your points allow."] or (why or "") })
     end)
     f.apply:SetScript("OnLeave", function() GameTooltip:Hide() end)
     f.foot = K.Text(f, 10, C.dim, "RIGHT")
@@ -434,7 +434,7 @@ function T.ShowNodeTip(self)
     pcall(function()
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText(name or self.defName or L["Talent"], 1, 1, 1)
-        GameTooltip:AddLine((L["Rang %d / %d"]):format(self.r or 0, self.max or 1), 1, 0.82, 0.3)
+        GameTooltip:AddLine((L["Rank %d / %d"]):format(self.r or 0, self.max or 1), 1, 0.82, 0.3)
         -- nur fuer Entwickler: woran es liegt (Zauber, Eintrag, Knoten, Fehler)
         if ns.IsDev and ns.IsDev() then
             GameTooltip:AddLine(("spell %s  entry %s  node %s  cfg %s"):format(tostring(self.spell), tostring(self.entry), tostring(self.node and self.node.id), tostring(self.cfg)), 0.5, 0.5, 0.5)
@@ -462,13 +462,13 @@ showNodeTip = function(self)
     if not lines and self.spell and self.spell ~= 0 and GameTooltip.SetSpellByID then
         local ok = pcall(GameTooltip.SetSpellByID, GameTooltip, self.spell)
         if ok and GameTooltip:NumLines() > 0 then
-            GameTooltip:AddLine((L["Rang %d / %d"]):format(r, max), 1, 0.82, 0.3)
+            GameTooltip:AddLine((L["Rank %d / %d"]):format(r, max), 1, 0.82, 0.3)
             GameTooltip:Show()
             return
         end
     end
     GameTooltip:SetText(name or "?", 1, 1, 1)
-    GameTooltip:AddLine((L["Rang %d / %d"]):format(r, max), 1, 0.82, 0.3)
+    GameTooltip:AddLine((L["Rank %d / %d"]):format(r, max), 1, 0.82, 0.3)
     local seen = {}
     if lines then addLines(lines, name, seen) end
     -- naechster Rang (nur bei mehrstufigen, nicht vollen Talenten)
@@ -476,7 +476,7 @@ showNodeTip = function(self)
         local nxt = tipData("GetTraitEntry", self.entry, r + 1)
         if nxt then
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(TALENT_BUTTON_TOOLTIP_NEXT_RANK or L["Naechster Rang:"], 0.1, 1, 0.1)
+            GameTooltip:AddLine(TALENT_BUTTON_TOOLTIP_NEXT_RANK or L["Next rank:"], 0.1, 1, 0.1)
             addLines(nxt, name, seen)
         end
     end
@@ -898,15 +898,15 @@ do
     end
 end
 local TREE_NAME = {
-    WARRIOR = { "Waffen", "Furor", "Schutz" },
-    PALADIN = { "Heilig", "Schutz", "Vergeltung" },
-    HUNTER = { "Tierherrschaft", "Treffsicherheit", "Ueberleben" },
-    ROGUE = { "Meucheln", "Kampf", "Taeuschung" },
-    PRIEST = { "Disziplin", "Heilig", "Schatten" },
-    SHAMAN = { "Elementar", "Verstaerkung", "Wiederherstellung" },
-    MAGE = { "Arkan", "Feuer", "Frost" },
-    WARLOCK = { "Gebrechen", "Daemonologie", "Zerstoerung" },
-    DRUID = { "Gleichgewicht", "Wilder Kampf", "Wiederherstellung" },
+    WARRIOR = { "Weapons", "Fury", "Prot." },
+    PALADIN = { "Holy", "Prot.", "Retribution" },
+    HUNTER = { "Beast Mastery", "Marksmanship", "Survival" },
+    ROGUE = { "Assassination", "Fight", "Subtlety" },
+    PRIEST = { "Discipline", "Holy", "Shadow" },
+    SHAMAN = { "Elemental", "Enhancement", "Restoration" },
+    MAGE = { "Arcane", "Fires", "Frost" },
+    WARLOCK = { "Affliction", "Demonology", "Destruction" },
+    DRUID = { "Balance", "Feral Combat", "Restoration" },
 }
 local function specInfo(cls, i)
     local cid = CLASS_ID[cls or ""]
@@ -922,7 +922,7 @@ local function specInfo(cls, i)
     if own and (not name or name == clsName or name == (LOCALIZED_CLASS_NAMES_FEMALE and LOCALIZED_CLASS_NAMES_FEMALE[cls])) then
         return L[own], icon
     end
-    return name or (L["Baum %d"]):format(i), icon
+    return name or (L["Tree %d"]):format(i), icon
 end
 local function colFrame(f, i)
     f.cols = f.cols or {}
@@ -1182,19 +1182,19 @@ T._draw = function(...) return draw(...) end   -- fuer Tests
 ------------------------------------------------------------------------
 function T.CanApply(d)
     if not d or not d.s or d.me then return false, nil end
-    if ns.inCombat() then return false, L["Im Kampf nicht moeglich."] end
-    if not (C_Traits and C_Traits.PurchaseRank and C_ClassTalents and C_ClassTalents.GetActiveConfigID) then return false, L["Dein Client kann das nicht."] end
+    if ns.inCombat() then return false, L["Not possible in combat."] end
+    if not (C_Traits and C_Traits.PurchaseRank and C_ClassTalents and C_ClassTalents.GetActiveConfigID) then return false, L["Your client can't do that."] end
     local _, spec = T.Header(d.s)
-    if not spec or spec ~= mySpec() then return false, L["Nur bei gleicher Klasse und Spezialisierung."] end
+    if not spec or spec ~= mySpec() then return false, L["Only for the same class and specialization."] end
     return true
 end
 function T.Apply(d)
     local ok, why = T.CanApply(d)
     if not ok then if why then ns.print(why) end return false end
     local lay = T.MyLayout()
-    if not lay then ns.print(L["Dein Talentbaum ist nicht lesbar."]) return false end
+    if not lay then ns.print(L["Your talent tree can't be read."]) return false end
     local ranks, choice = T.Decode(d.s, lay.order, function(id) local n = lay.byId[id] return n and n.max end)
-    if not ranks then ns.print(L["Export-Text unlesbar."]) return false end
+    if not ranks then ns.print(L["Export string unreadable."]) return false end
     local cfg, tree = lay.cfg, lay.tree
     -- alles zuruecksetzen (vorgemerkt, wird erst mit Bestaetigen wirksam)
     if C_Traits.ResetTree then pcall(C_Traits.ResetTree, cfg, tree) end
@@ -1231,12 +1231,12 @@ function T.Apply(d)
         or function() return C_Traits.CommitConfig(cfg) end
     local okC, res = pcall(commit)
     if okC and res ~= false then
-        K.Toast(L["Talente uebernommen"], (L["%d von %d Punkten uebernommen"]):format(got, want), C.mint)
+        K.Toast(L["Talents applied"], (L["%d of %d points applied"]):format(got, want), C.mint)
         ns.After(1.5, function() if win and win:IsShown() and win.who then T.Show(win.who) end end)
         return true
     end
     if C_Traits.RollbackConfig then pcall(C_Traits.RollbackConfig, cfg) end
-    ns.print(L["WoW hat die Aenderung nicht angenommen (evtl. nur in Ruhe-Zonen oder ausserhalb von Instanzen moeglich)."])
+    ns.print(L["WoW did not accept the change (maybe only possible in rest areas or outside instances)."])
     return false
 end
 
@@ -1251,7 +1251,7 @@ function T.Show(name)
     local f = win or build()
     f.who = name
     local d = T.DataFor(name)
-    f.title:SetText((L["Talente: %s"]):format(ns.displayName(name)))
+    f.title:SetText((L["Talents: %s"]):format(ns.displayName(name)))
     f.export = d and d.s or nil
     f.copy:SetShown(f.export ~= nil)
     f.data = d
@@ -1270,7 +1270,7 @@ function T.Show(name)
         if f.SetClass then pcall(f.SetClass, f, d and d.cls or nil) end
         f.sub:SetText("")
         f.foot:SetText("")
-        f.empty:SetText(L["Noch keine Talente bekannt. Mitglieder mit Oasis teilen sie automatisch; andere Spieler: anvisieren und betrachten (Rechtsklick > Betrachten) oder hier mit Ziel erneut oeffnen."])
+        f.empty:SetText(L["No talents known yet. Members with Oasis share them automatically; other players: target and inspect them (right-click > Inspect) or reopen this with them targeted."])
         f.empty:Show()
         -- Ziel in Reichweite? Dann gleich betrachten
         if ns.safe(UnitExists("target")) and ns.fullName(ns.safe(ns.UnitName("target")) or "") == name then T.Inspect("target", true) end
@@ -1292,7 +1292,7 @@ function T.Show(name)
         if f.SetClass then pcall(f.SetClass, f, d.cls) end
         f.sub:SetText("")
         f.foot:SetText("")
-        f.empty:SetText(L["Den Talentbaum dieser Klasse kann WoW hier nicht anzeigen. Der Export-Text laesst sich unten kopieren."])
+        f.empty:SetText(L["WoW can't show this class's talent tree here. You can copy the export string below."])
         f.empty:Show()
         return
     end
@@ -1314,8 +1314,8 @@ function T.Show(name)
         if ns.probes and ns.probes.talicons then pcall(ns.probes.talicons, true) end
     end
     local cls = d.cls and ((LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[d.cls]) or d.cls) or ""
-    f.sub:SetText(("%s  ·  %s  ·  %s"):format(cls, (L["Level %d"]):format(d.lvl or 0), (L["%d Punkte verteilt"]):format(total)))
-    local src = d.src == "oasis" and L["geteilt per Oasis"] or (d.src == "inspect" and L["beim Betrachten gemerkt"] or L["dein aktueller Stand"])
+    f.sub:SetText(("%s  ·  %s  ·  %s"):format(cls, (L["Level %d"]):format(d.lvl or 0), (L["%d points spent"]):format(total)))
+    local src = d.src == "oasis" and L["shared via Oasis"] or (d.src == "inspect" and L["remembered from inspect"] or L["your current build"])
     f.foot:SetText(src .. ((d.t and not d.me) and ("  ·  " .. ns.ago(d.t)) or ""))
 end
 ns.slash.talente = function(arg)
@@ -1396,7 +1396,7 @@ local function buildSide()
     f.gear.icon:SetPoint("CENTER")
     f.gear:SetScript("OnEnter", function(self)
         self.icon:SetVertexColor(C.text[1], C.text[2], C.text[3])
-        K.ShowTip(self, { L["Einstellungen"], L["Einklappen, verschieben, ausblenden"] })
+        K.ShowTip(self, { L["Settings"], L["Collapse, move, hide"] })
     end)
     f.gear:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
     -- 0.5.787: Klick aufs Zahnrad oeffnet ein kleines Feld mit Schaltern (statt Menue) - deckend, ueber allem
@@ -1413,7 +1413,7 @@ local function buildSide()
             K.Border(o, C.line)
             o.head = K.Text(o, 10, C.dim)
             o.head:SetPoint("TOPLEFT", 12, -10)
-            o.head:SetText(K.Upper(L["Builds aus der Gilde"]))
+            o.head:SetText(K.Upper(L["Guild builds"]))
             local st = ns.db.settings
             o.t = {}
             local function row(i, label, get, set, tip)
@@ -1426,11 +1426,11 @@ local function buildSide()
                 end
                 o.t[i] = t
             end
-            row(1, L["Eingeklappt"], function() return st.talentSideFold and true or false end, function(v)
+            row(1, L["Collapsed"], function() return st.talentSideFold and true or false end, function(v)
                 st.talentSideFold = v or nil
                 T.UpdateSide()
-            end, L["Zeigt nur die Kopfzeile mit der Anzahl der Builds."])
-            row(2, L["Frei verschiebbar"], function() return st.talentSidePos ~= nil end, function(v)
+            end, L["Shows only the header with the number of builds."])
+            row(2, L["Freely movable"], function() return st.talentSidePos ~= nil end, function(v)
                 if v then
                     local l, t = f:GetLeft(), f:GetTop()
                     st.talentSidePos = { l or 600, t or 600 }
@@ -1438,17 +1438,17 @@ local function buildSide()
                     st.talentSidePos = nil
                 end
                 sidePlace(f, f.anchor)
-            end, L["An: mit der Maus an eine eigene Stelle ziehen. Aus: haengt am Talentfenster."])
-            row(3, L["Neben dem Talentfenster zeigen"], function() return st.talentSide ~= false end, function(v)
+            end, L["On: drag it anywhere with the mouse. Off: docked to the talent window."])
+            row(3, L["Show next to the talent window"], function() return st.talentSide ~= false end, function(v)
                 if v then
                     st.talentSide = nil
                 else
                     st.talentSide = false
                     o:Hide()
                     f:Hide()
-                    ns.print(L["Builds aus der Gilde ausgeblendet. Wieder einblenden: /oa builds"])
+                    ns.print(L["Guild builds hidden. Show again: /oa builds"])
                 end
-            end, L["Aus: das Fenster verschwindet. Zurueck mit /oa builds."])
+            end, L["Off: the window disappears. Bring it back with /oa builds."])
             f:HookScript("OnHide", function() o:Hide() end)
         end
         if o:IsShown() then o:Hide() return end
@@ -1481,18 +1481,18 @@ local function buildSide()
     f.title:SetPoint("RIGHT", f, "RIGHT", -50, 0)
     f.title:SetJustifyH("LEFT")
     f.title:SetWordWrap(false)
-    f.title:SetText(L["Builds aus der Gilde"])
+    f.title:SetText(L["Guild builds"])
     f.sub = K.Text(f, 10, C.muted)
     f.sub:SetPoint("TOPLEFT", 12, -34)
     f.sub:SetPoint("RIGHT", -12, 0)
     f.sub:SetWordWrap(true)
-    f.sub:SetText(L["Gleiche Spezialisierung - Klick: Baum ansehen und uebernehmen"])
+    f.sub:SetText(L["Same specialization - click: view and apply"])
     f.rows = {}
     f.empty = K.Text(f, 11, C.dim, "CENTER")
     f.empty:SetPoint("TOP", 0, -80)
     f.empty:SetWidth(200)
     f.empty:SetWordWrap(true)
-    f.empty:SetText(L["Noch niemand aus der Gilde mit deiner Spezialisierung teilt seine Talente (Oasis-Nutzer teilen automatisch)."])
+    f.empty:SetText(L["Nobody in the guild with your specialization shares talents yet (Oasis users share automatically)."])
     side = f
     return f
 end
@@ -1506,11 +1506,11 @@ function T.UpdateSide()
     side.sub:SetShown(not fold)
     if fold then
         side.empty:Hide()
-        side.title:SetText(L["Builds aus der Gilde"] .. (#list > 0 and ("  |cff888888" .. #list .. "|r") or ""))
+        side.title:SetText(L["Guild builds"] .. (#list > 0 and ("  |cff888888" .. #list .. "|r") or ""))
         side:SetHeight(40)
         return
     end
-    side.title:SetText(L["Builds aus der Gilde"])
+    side.title:SetText(L["Guild builds"])
     for i = 1, math.min(8, #list) do
         local e = list[i]
         local r = side.rows[i]
@@ -1527,7 +1527,7 @@ function T.UpdateSide()
         end
         r.who = e.who
         r.name:SetText(ns.colorName(e.who, e.cls))
-        r.info:SetText((L["Level %d"]):format(e.lvl) .. "  ·  " .. (L["%d Punkte verteilt"]):format(e.pts))
+        r.info:SetText((L["Level %d"]):format(e.lvl) .. "  ·  " .. (L["%d points spent"]):format(e.pts))
         r:Show()
     end
     side.empty:SetShown(#list == 0)
@@ -1565,7 +1565,7 @@ ns.slash.builds = function()
         f:Show()
         T.UpdateSide()
     end
-    ns.print(L["Builds aus der Gilde wird wieder neben dem Talentfenster gezeigt."])
+    ns.print(L["Guild builds are shown next to the talent window again."])
 end
 local function findTalentFrame()
     for _, n in ipairs(CANDIDATES) do
@@ -1592,8 +1592,8 @@ ns.On("TRAIT_CONFIG_UPDATED", function()
 end)
 ns.slash.talentsymbole = function()
     local fr = hookedFrame or findTalentFrame()
-    if not fr then ns.print(L["Erst das Talentfenster (Taste N) einmal oeffnen."]) return end
-    ns.print((L["Talent-Symbole gelernt: %d"]):format(T.Harvest(fr) or 0))
+    if not fr then ns.print(L["Open the talent window (N key) once first."]) return end
+    ns.print((L["Talent icons learned: %d"]):format(T.Harvest(fr) or 0))
 end
 
 -- Diagnose: /oa probe talicons  -> was liefern die Symbol-APIs fuer die ersten Talente?

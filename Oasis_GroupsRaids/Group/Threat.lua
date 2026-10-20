@@ -35,7 +35,7 @@ ns.On("PLAYER_REGEN_DISABLED", function()
             local c = clean(UnitAffectingCombat(u))
             if c == nil or c == true then return end
         end
-        K.Toast(L["Vor dem Tank gezogen"], L["Du bist im Kampf, der Tank noch nicht - zurueck zum Tank!"], C.amber or C.accent)
+        K.Toast(L["Pulled before the tank"], L["You are in combat, the tank is not - back to the tank!"], C.amber or C.accent)
         if PlaySound and SOUNDKIT and SOUNDKIT.RAID_WARNING then pcall(PlaySound, SOUNDKIT.RAID_WARNING) end
     end)
 end)
@@ -53,7 +53,7 @@ local function build()
     P.glass(f, { 0.03, 0.03, 0.04, 0.8 }, { 1, 1, 1, 0.08 }, 6)
     f.t = K.Text(f, 10, C.dim)
     f.t:SetPoint("TOPLEFT", 6, -3)
-    f.t:SetText(K.Upper(L["Bedrohung"]))
+    f.t:SetText(K.Upper(L["Threat"]))
     f.v = K.Text(f, 11, C.text, "RIGHT")
     f.v:SetPoint("TOPRIGHT", -6, -3)
     f.bar = K.Bar(f, 148, 5)
@@ -83,7 +83,7 @@ ticker:SetScript("OnUpdate", function(_, el)
     if tanking == true and myRole() ~= "TANK" and S().pullWarn ~= false then
         if not warned or GetTime() - warned > 8 then
             warned = GetTime()
-            K.Toast(L["Du hast die Aggro"], L["Kurz zuruecknehmen, bis der Tank sie wieder hat."], C.amber or C.accent)
+            K.Toast(L["You have aggro"], L["Ease off until the tank has it back."], C.amber or C.accent)
         end
     end
 end)

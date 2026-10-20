@@ -116,7 +116,7 @@ local function schedule(full)
         lastSent = GetTime()
         greeted[full] = ns.now()
         -- ohne Klick darf Oasis nicht in den Chat schreiben: Gruss als Hinweis anbieten
-        ns.OfferChat((L["%s ist online"]):format(ns.displayName(full)), msg, "GUILD", nil, ns.K.C.mint)
+        ns.OfferChat((L["%s is online"]):format(ns.displayName(full)), msg, "GUILD", nil, ns.K.C.mint)
         Comm.Guild("GRT", full)
     end)
 end
@@ -147,23 +147,23 @@ local function build(f)
     -- 0.5.712: zwei Glas-Karten nebeneinander (links Einstellung + Schutz, rechts die Gruesse)
     local W, HH = 362, 236
     f.noCompact = true
-    local left = H.cardH(f, 0, 0, W, HH, "social", L["Login-Begruessung"], L["Zufaelliger Gruss, wenn jemand online kommt"])
-    H.toggle(left, 14, -58, "Mitglieder beim Online-Kommen im Gildenchat begruessen", "greetOn",
-        "Zufaelliger Gruss aus deiner Liste. Gruesst schon ein anderer Oasis-Nutzer, bleibst du still.", nil, W - 28)
+    local left = H.cardH(f, 0, 0, W, HH, "social", L["Login greeting"], L["Random greeting when someone comes online"])
+    H.toggle(left, 14, -58, "Greet members in guild chat when they come online", "greetOn",
+        "Random greeting from your list. If another Oasis user already greeted, you stay quiet.", nil, W - 28)
     local div = K.Divider(left)
     div:SetPoint("TOPLEFT", 14, -96)
     div:SetPoint("RIGHT", left, "RIGHT", -14, 0)
-    H.rowLabel(left, L["Pause pro Person (Minuten)"], 14, -108)
+    H.rowLabel(left, L["Pause per person (minutes)"], 14, -108)
     local cd = K.Input(left, 70, "60", function(t)
         local n = tonumber(t)
         if n then S().greetCooldown = math.max(5, math.min(1440, n)) end
     end)
     cd:SetPoint("TOPRIGHT", left, "TOPRIGHT", -14, -106)
     f.cd = cd
-    H.note(left, L["Schutz vor Spam: kein Gruss in den ersten 90 Sekunden nach deinem Login, hoechstens alle 45 Sekunden einer, nicht wenn du AFK bist."], 14, -146, W - 28)
+    H.note(left, L["Spam protection: no greeting in the first 90 seconds after your login, at most one every 45 seconds, not while AFK."], 14, -146, W - 28)
     f.greetOn = left
 
-    local right = H.cardH(f, W + 14, 0, W, HH, "chronicle", L["Deine Gruesse"], L["Eine Zeile pro Gruss. {name} wird durch den Vornamen ersetzt."])
+    local right = H.cardH(f, W + 14, 0, W, HH, "chronicle", L["Your greetings"], L["One greeting per line. {name} is replaced with the first name."])
     local box = CreateFrame("Frame", nil, right)
     box:SetPoint("TOPLEFT", 14, -58)
     box:SetPoint("RIGHT", right, "RIGHT", -14, 0)
@@ -183,12 +183,12 @@ local function build(f)
     box:EnableMouse(true)
     box:SetScript("OnMouseDown", function() eb:SetFocus() end)
     f.eb = eb
-    local test = K.Button(right, L["Vorschau"], 110, 24, "ghost", function()
+    local test = K.Button(right, L["Preview"], 110, 24, "ghost", function()
         local m = G.Pick(ns.me())
-        ns.print(m and ("|cff66db9e" .. L["Vorschau"] .. ":|r " .. m) or L["Keine Gruesse eingetragen."])
+        ns.print(m and ("|cff66db9e" .. L["Preview"] .. ":|r " .. m) or L["No greetings entered."])
     end)
     test:SetPoint("BOTTOMLEFT", 14, 14)
-    local reset = K.Button(right, L["Standard"], 110, 24, "ghost", function()
+    local reset = K.Button(right, L["Default"], 110, 24, "ghost", function()
         S().greetLines = nil
         eb:SetText(DEFAULT)
     end)
@@ -198,5 +198,5 @@ local function refresh(f)
     if f.eb and not f.eb:HasFocus() then f.eb:SetText(S().greetLines or DEFAULT) end
     if f.cd and not f.cd:HasFocus() then f.cd:SetText(tostring(S().greetCooldown or 60)) end
 end
-if ns.AddSettingsTab then ns.AddSettingsTab("greet", "Begruessung", build, refresh) end
+if ns.AddSettingsTab then ns.AddSettingsTab("greet", "Greeting", build, refresh) end
 end)

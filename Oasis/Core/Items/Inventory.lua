@@ -147,21 +147,21 @@ local function line(tt, itemID)
     local list, total, gb = Inv.Where(itemID)
     if total == 0 and gb == 0 then return end
     tt:AddLine(" ")
-    tt:AddDoubleLine("|cffff1200Oasis|r  |cff8a8a90" .. L["Deine Charaktere"] .. "|r",
-        "|cff8a8a90" .. L["gesamt"] .. "|r |cffffffff" .. (total + gb) .. "|r")
+    tt:AddDoubleLine("|cffff1200Oasis|r  |cff8a8a90" .. L["Your characters"] .. "|r",
+        "|cff8a8a90" .. L["total"] .. "|r |cffffffff" .. (total + gb) .. "|r")
     for i, x in ipairs(list) do
         if i > 6 then
-            tt:AddLine("|cff6a6a70   + " .. (#list - 6) .. " " .. L["weitere"] .. "|r")
+            tt:AddLine("|cff6a6a70   + " .. (#list - 6) .. " " .. L["more"] .. "|r")
             break
         end
         local right = {}
-        right[#right + 1] = cnt(L["Taschen"], x.bags)
+        right[#right + 1] = cnt(L["bags"], x.bags)
         right[#right + 1] = cnt(L["Bank"], x.bank)
-        local me = ns.isMe(x.who) and (" |cff6a6a70(" .. L["du"] .. ")|r") or ""
+        local me = ns.isMe(x.who) and (" |cff6a6a70(" .. L["you"] .. ")|r") or ""
         tt:AddDoubleLine("   " .. clsIcon(x.cls) .. ns.colorName(ns.short(x.who), x.cls) .. me, table.concat(right, "   "))
     end
     if gb > 0 then
-        tt:AddDoubleLine("   |cffe8b44a" .. L["Gildenbank"] .. "|r", "|cffffffff" .. gb .. "|r")
+        tt:AddDoubleLine("   |cffe8b44a" .. L["Guild bank"] .. "|r", "|cffffffff" .. gb .. "|r")
     end
 end
 if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
@@ -203,16 +203,16 @@ local function coins(c)
 end
 -- Kategorien (Rang, Name, Farbe)
 local CAT = {
-    [2] = { 1, "Waffen", { 0.95, 0.45, 0.35 } }, [4] = { 2, "Ruestung", { 0.45, 0.65, 1.0 } },
-    [0] = { 3, "Verbrauchbares", { 0.45, 0.85, 0.55 } }, [7] = { 4, "Handwerkswaren", { 0.95, 0.75, 0.35 } },
-    [5] = { 5, "Reagenzien", { 0.75, 0.55, 1.0 } }, [9] = { 6, "Rezepte", { 0.95, 0.6, 0.85 } },
-    [12] = { 7, "Quest-Gegenstaende", { 1.0, 0.85, 0.3 } }, [1] = { 8, "Taschen", { 0.7, 0.6, 0.45 } },
-    [6] = { 9, "Munition", { 0.8, 0.8, 0.8 } }, [11] = { 9, "Munition", { 0.8, 0.8, 0.8 } }, [13] = { 10, "Schluessel", { 0.8, 0.8, 0.8 } },
+    [2] = { 1, "Weapons", { 0.95, 0.45, 0.35 } }, [4] = { 2, "Armour", { 0.45, 0.65, 1.0 } },
+    [0] = { 3, "Consumables", { 0.45, 0.85, 0.55 } }, [7] = { 4, "Trade goods", { 0.95, 0.75, 0.35 } },
+    [5] = { 5, "Reagents", { 0.75, 0.55, 1.0 } }, [9] = { 6, "Recipes", { 0.95, 0.6, 0.85 } },
+    [12] = { 7, "Quest items", { 1.0, 0.85, 0.3 } }, [1] = { 8, "bags", { 0.7, 0.6, 0.45 } },
+    [6] = { 9, "Ammo", { 0.8, 0.8, 0.8 } }, [11] = { 9, "Ammo", { 0.8, 0.8, 0.8 } }, [13] = { 10, "Keys", { 0.8, 0.8, 0.8 } },
 }
-local OTHER = { 11, "Sonstiges", { 0.6, 0.6, 0.65 } }
+local OTHER = { 11, "Miscellaneous", { 0.6, 0.6, 0.65 } }
 -- Filter-Reiter: die wichtigsten Gruppen, Rest unter Sonstiges
-local FILTERS = { { key = 0, text = "Alle" }, { key = 50, text = "Gilde braucht" }, { key = 1, text = "Waffen" }, { key = 2, text = "Ruestung" }, { key = 3, text = "Verbrauch" },
-    { key = 4, text = "Handwerk" }, { key = 7, text = "Quest" }, { key = 99, text = "Sonstiges" } }
+local FILTERS = { { key = 0, text = "All" }, { key = 50, text = "Guild needs" }, { key = 1, text = "Weapons" }, { key = 2, text = "Armour" }, { key = 3, text = "Consumables" },
+    { key = 4, text = "Crafting" }, { key = 7, text = "Quest" }, { key = 99, text = "Miscellaneous" } }
 -- 0.6.524: Was braucht die Gilde von dem, was du hast? Gesucht-Liste, Questitems anderer, offene Handwerks-Auftraege
 -- [itemID] = { { who, kind = "want"|"quest"|"order", text }, ... } - einmal je Seitenaufbau berechnet
 function Inv.GuildNeeds()
@@ -235,12 +235,12 @@ function Inv.GuildNeeds()
     end
     return out
 end
-local NEED_KIND = { want = "Gesucht", quest = "Quest", order = "Auftrag" }
+local NEED_KIND = { want = "Wanted", quest = "Quest", order = "Order" }
 local function needText(list)
     local parts = {}
     for i, e in ipairs(list) do
         if i > 3 then parts[#parts + 1] = "+" .. (#list - 3) break end
-        parts[#parts + 1] = L[NEED_KIND[e.kind] or "Gesucht"] .. ": " .. ns.displayName(e.who) .. (e.text and (" |cff888888(" .. e.text .. ")|r") or "")
+        parts[#parts + 1] = L[NEED_KIND[e.kind] or "Wanted"] .. ": " .. ns.displayName(e.who) .. (e.text and (" |cff888888(" .. e.text .. ")|r") or "")
     end
     return table.concat(parts, "  ·  ")
 end
@@ -253,10 +253,10 @@ local function inFilter(cat, x)
 end
 
 ns.RegisterPage({
-    key = "bags", title = "Taschen & Twinks", order = 5.45,
-    sub = "Was liegt wo? Suche ueber alle deine Charaktere, ihre Bank und die Gildenbank",
+    key = "bags", title = "Bags & alts", order = 5.45,
+    sub = "What is where? Search across all your characters, their bank and the guild bank",
     build = function(p)
-        p.search = K.Input(p, 320, L["Item suchen, z.B. Leinenstoff"], function() p.fresh = true ns.RefreshPage("bags") end)
+        p.search = K.Input(p, 320, L["Search item, e.g. Linen Cloth"], function() p.fresh = true ns.RefreshPage("bags") end)
         p.search:SetPoint("TOPLEFT", 0, 0)
         glass(p.search, 8, 0.04)
         if ns.ItemSearch and ns.ItemSearch.Attach then pcall(ns.ItemSearch.Attach, p.search, function() ns.RefreshPage("bags") end) end
@@ -273,7 +273,7 @@ ns.RegisterPage({
         ch:SetWidth(240)
         local ht = K.Title(ch, 14, C.text)
         ht:SetPoint("TOPLEFT", 16, -14)
-        ht:SetText(L["Deine Charaktere"])
+        ht:SetText(L["Your characters"])
         p.chars = K.List(ch, 62, function(l)
             local r = K.Row(l)
             if r.sel then r.sel:SetAlpha(0) end
@@ -319,14 +319,14 @@ ns.RegisterPage({
                 r.ico:SetTexture(ns.MEDIA .. "icons\\bank")
                 r.ico:SetTexCoord(0, 1, 0, 1)
                 r.ico:SetVertexColor(C.amber[1], C.amber[2], C.amber[3])
-                r.name:SetText(L["Alle zusammen"])
+                r.name:SetText(L["All together"])
                 r.gold:SetText(coins(c.gold))
             else
                 r.ico:SetTexture(CLASS_CIRCLES)
                 r.ico:SetVertexColor(1, 1, 1)
                 local tc = CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[c.cls or ""]
                 if tc then r.ico:SetTexCoord(tc[1], tc[2], tc[3], tc[4]) else r.ico:SetTexCoord(0, 1, 0, 1) end
-                r.name:SetText(ns.colorName(ns.short(c.who), c.cls) .. "  |cff888888" .. (c.lvl or "?") .. "|r" .. (ns.isMe(c.who) and ("  |cff66db9e" .. L["du"] .. "|r") or ""))
+                r.name:SetText(ns.colorName(ns.short(c.who), c.cls) .. "  |cff888888" .. (c.lvl or "?") .. "|r" .. (ns.isMe(c.who) and ("  |cff66db9e" .. L["you"] .. "|r") or ""))
                 r.gold:SetText(coins(c.gold))
             end
             local frac = (c.used and c.slots and c.slots > 0) and (c.used / c.slots) or 0
@@ -358,7 +358,7 @@ ns.RegisterPage({
         p.rinfo:SetPoint("RIGHT", rp, "RIGHT", -110, 0)
         p.rinfo:SetWordWrap(false)
         -- Ansicht: Liste / Raster
-        p.mode = K.Segments(rp, { { key = "list", text = L["Liste"] }, { key = "grid", text = L["Raster"] } },
+        p.mode = K.Segments(rp, { { key = "list", text = L["List"] }, { key = "grid", text = L["Grid"] } },
             function(k) mode = k p.fresh = true ns.RefreshPage("bags") end, nil, { size = 11, pad = 14 })
         p.mode:SetPoint("TOPRIGHT", -10, -9)
         local fl = {}
@@ -397,8 +397,8 @@ ns.RegisterPage({
                 if not self.item or self.item.header then return end
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 pcall(GameTooltip.SetItemByID, GameTooltip, self.item.id)
-                if self.item.needs then GameTooltip:AddLine("|cffff1200Oasis|r  " .. L["Die Gilde braucht das:"] .. " " .. needText(self.item.needs), 0.85, 0.85, 0.85, true) end
-                GameTooltip:AddLine("|cff888888" .. L["Shift-Klick: in den Chat einfuegen"] .. "|r")
+                if self.item.needs then GameTooltip:AddLine("|cffff1200Oasis|r  " .. L["The guild needs this:"] .. " " .. needText(self.item.needs), 0.85, 0.85, 0.85, true) end
+                GameTooltip:AddLine("|cff888888" .. L["Shift-click: insert into chat"] .. "|r")
                 GameTooltip:Show()
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -487,7 +487,7 @@ ns.RegisterPage({
                     glass(self, 6, 0.10)
                     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                     pcall(GameTooltip.SetItemByID, GameTooltip, self.it.id)
-                    if self.it.needs then GameTooltip:AddLine("|cffff1200Oasis|r  " .. L["Die Gilde braucht das:"] .. " " .. needText(self.it.needs), 0.85, 0.85, 0.85, true) end
+                    if self.it.needs then GameTooltip:AddLine("|cffff1200Oasis|r  " .. L["The guild needs this:"] .. " " .. needText(self.it.needs), 0.85, 0.85, 0.85, true) end
                     GameTooltip:Show()
                 end)
                 b:SetScript("OnLeave", function(self) glass(self, 6, 0.03) GameTooltip:Hide() end)
@@ -550,7 +550,7 @@ ns.RegisterPage({
         selChar = selChar or ns.me()
         if selChar == ALL and #chars < 2 then selChar = ns.me() end
         p.chars:SetData(chars)
-        p.sum:SetText((L["%d Charaktere"]):format(#chars - (#chars > 1 and 1 or 0)) .. "  ·  " .. coins(gold - gold % 10000))
+        p.sum:SetText((L["%d characters"]):format(#chars - (#chars > 1 and 1 or 0)) .. "  ·  " .. coins(gold - gold % 10000))
 
         local q = ((p.search:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")):lower()
         local out = {}
@@ -561,7 +561,7 @@ ns.RegisterPage({
             for _, x in ipairs(list) do
                 w[#w + 1] = ns.colorName(ns.short(x.who), x.cls) .. " " .. (x.bags > 0 and x.bags or "") .. (x.bank > 0 and ((x.bags > 0 and "+" or "") .. x.bank .. " " .. L["Bank"]) or "")
             end
-            if gb > 0 then w[#w + 1] = "|cffe8b44a" .. L["Gildenbank"] .. " " .. gb .. "|r" end
+            if gb > 0 then w[#w + 1] = "|cffe8b44a" .. L["Guild bank"] .. " " .. gb .. "|r" end
             return table.concat(w, "  ·  ")
         end
         if q ~= "" or selChar == ALL then
@@ -590,13 +590,13 @@ ns.RegisterPage({
             if q ~= "" then
                 local shown = q
                 if qid then shown = itemName(qid) or ("#" .. qid) end
-                p.rtitle:SetText((L["Treffer fuer \"%s\""]):format(shown))
-                em.t:SetText(L["Nichts gefunden"])
-                em.d:SetText(L["Bei Twinks einmal einloggen und die Bank einmal oeffnen - dann findet Oasis auch dort alles."])
+                p.rtitle:SetText((L["Results for \"%s\""]):format(shown))
+                em.t:SetText(L["Nothing found"])
+                em.d:SetText(L["Log in on alts once and open the bank once - then Oasis finds everything there too."])
             else
-                p.rtitle:SetText(L["Alle Charaktere"])
-                em.t:SetText(L["Noch nichts eingelesen"])
-                em.d:SetText(L["Einmal mit jedem Charakter einloggen."])
+                p.rtitle:SetText(L["All characters"])
+                em.t:SetText(L["Nothing imported yet"])
+                em.d:SetText(L["Log in once with each character."])
             end
             p.rinfo:SetText("")
         else
@@ -605,13 +605,13 @@ ns.RegisterPage({
             for id, n in pairs(e.bags or {}) do by[id] = { id = id, n = n, bag = n, bank = 0 } end
             for id, n in pairs(e.bank or {}) do by[id] = by[id] or { id = id, n = 0, bag = 0, bank = 0 } by[id].n = by[id].n + n by[id].bank = n end
             for _, x in pairs(by) do
-                x.where = (x.bag > 0 and ((L["Taschen %d"]):format(x.bag)) or "") .. (x.bank > 0 and ((x.bag > 0 and "  ·  " or "") .. "|cffe8b44a" .. (L["Bank %d"]):format(x.bank) .. "|r") or "")
+                x.where = (x.bag > 0 and ((L["Bags %d"]):format(x.bag)) or "") .. (x.bank > 0 and ((x.bag > 0 and "  ·  " or "") .. "|cffe8b44a" .. (L["Bank %d"]):format(x.bank) .. "|r") or "")
                 out[#out + 1] = x
             end
             p.rtitle:SetText(ns.colorName(ns.short(selChar), e.cls))
-            p.rinfo:SetText(e.bankTs and ((L["Bank gesehen %s"]):format(ns.ago(e.bankTs))) or L["Bank noch nicht gesehen - einmal oeffnen"])
-            em.t:SetText(L["Noch nichts eingelesen"])
-            em.d:SetText(L["Einmal mit diesem Charakter einloggen."])
+            p.rinfo:SetText(e.bankTs and ((L["Bank seen %s"]):format(ns.ago(e.bankTs))) or L["Bank not seen yet - open it once"])
+            em.t:SetText(L["Nothing imported yet"])
+            em.d:SetText(L["Log in once with this character."])
         end
 
         -- Kategorien + Filter
@@ -625,15 +625,15 @@ ns.RegisterPage({
             if x.needs then nNeed = nNeed + 1 end
         end
         if #out > 0 and #shown == 0 then
-            em.t:SetText(catFilter == 50 and L["Gerade braucht niemand etwas davon"] or L["Nichts in dieser Kategorie"])
-            em.d:SetText(catFilter == 50 and L["Hier erscheinen Items aus der Gesucht-Liste, Questitems anderer und offene Handwerks-Auftraege."] or L["Andere Kategorie waehlen."])
+            em.t:SetText(catFilter == 50 and L["Nobody needs any of this right now"] or L["Nothing in this category"])
+            em.d:SetText(catFilter == 50 and L["Items from the wanted list, other members' quest items and open crafting orders show up here."] or L["Choose another category."])
         end
         -- Hinweisleiste: wie viele Items die Gilde gerade braucht (Klick = Filter)
         p.needBar:SetShown(nNeed > 0 and catFilter ~= 50)
         local bot = (nNeed > 0 and catFilter ~= 50) and 38 or 8
         p.items:SetPoint("BOTTOMRIGHT", -6, bot)
         p.grid:SetPoint("BOTTOMRIGHT", -6, bot)
-        p.needBar.t:SetText((L["%d deiner Items braucht gerade jemand aus der Gilde - anzeigen"]):format(nNeed))
+        p.needBar.t:SetText((L["%d of your items are needed by someone in the guild - show"]):format(nNeed))
         table.sort(shown, function(a, b)
             if a.cat[1] ~= b.cat[1] then return a.cat[1] < b.cat[1] end
             if (a.needs ~= nil) ~= (b.needs ~= nil) then return a.needs ~= nil end

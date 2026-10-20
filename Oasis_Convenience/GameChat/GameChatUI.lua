@@ -29,7 +29,7 @@ local function buildViewer()
     f.close = K.CloseButton(f, function() f:Hide() end)
     f.close:SetPoint("TOPRIGHT", -6, -6)
 
-    f.input = K.Input(f, 300, L["Suchen ..."], function() f:Refresh() end)
+    f.input = K.Input(f, 300, L["Search ..."], function() f:Refresh() end)
     f.input:SetPoint("TOPLEFT", 14, -42)
     f.tab = K.Button(f, "", 200, 24, "ghost", function(self)
         local items = {}
@@ -39,7 +39,7 @@ local function buildViewer()
                 items[#items + 1] = { text = name, checked = cf == f.frame, fn = function() f.frame = cf f:Refresh() end }
             end
         end
-        K.ShowMenu(self, items, L["Chat-Reiter"], 200)
+        K.ShowMenu(self, items, L["Chat tab"], 200)
     end)
     f.tab:SetPoint("LEFT", f.input, "RIGHT", 8, 0)
     f.count = K.Text(f, 11, C.dim, "RIGHT")
@@ -67,15 +67,15 @@ local function buildViewer()
     sf:SetScript("OnSizeChanged", function(self, w) eb:SetWidth(math.max(100, (w or 600) - 4)) end)
     f.sf, f.eb = sf, eb
 
-    f.all = K.Button(f, L["Alles markieren"], 130, 24, "ghost", function()
+    f.all = K.Button(f, L["Select all"], 130, 24, "ghost", function()
         eb:SetFocus()
         eb:HighlightText()
     end)
     f.all:SetPoint("BOTTOMLEFT", 14, 12)
     f.hint = K.Text(f, 11, C.dim)
     f.hint:SetPoint("LEFT", f.all, "RIGHT", 10, 0)
-    f.hint:SetText(L["Text markieren, dann Strg+C zum Kopieren."])
-    f.clear = K.Button(f, L["Treffer leeren"], 120, 24, "ghost", function()
+    f.hint:SetText(L["Select text, then press Ctrl+C to copy."])
+    f.clear = K.Button(f, L["Clear matches"], 120, 24, "ghost", function()
         for i = #GC.hits, 1, -1 do GC.hits[i] = nil end
         f:Refresh()
     end)
@@ -84,7 +84,7 @@ local function buildViewer()
     function f:Refresh()
         self.dirty = nil
         local alerts = self.mode == "alerts"
-        self.title:SetText(alerts and L["Chat-Alarme: Treffer"] or L["Chat durchsuchen"])
+        self.title:SetText(alerts and L["Chat alerts: matches"] or L["Search chat"])
         self.input:SetShown(not alerts)
         self.tab:SetShown(not alerts)
         self.clear:SetShown(alerts)
@@ -94,7 +94,7 @@ local function buildViewer()
         else
             if not self.frame then self.frame = SELECTED_CHAT_FRAME or ChatFrame1 end
             if self.frame == ChatFrame2 then self.frame = ChatFrame1 end
-            self.tab:SetLabel(L["Reiter"] .. ": " .. GC.TabName(self.frame))
+            self.tab:SetLabel(L["Rider"] .. ": " .. GC.TabName(self.frame))
             lines = GC.Search(self.frame, self.input:GetText())
         end
         local out = {}
@@ -102,10 +102,10 @@ local function buildViewer()
             local l = lines[i]
             out[#out + 1] = (l.ts and date("[%H:%M] ", l.ts) or "") .. (alerts and ("<" .. l.w .. "> ") or "") .. l.t
         end
-        self.count:SetText(#lines > SHOW_MAX and (L["%d Zeilen, die letzten %d gezeigt"]):format(#lines, SHOW_MAX) or (L["%d Zeilen"]):format(#lines))
+        self.count:SetText(#lines > SHOW_MAX and (L["%d lines, showing the last %d"]):format(#lines, SHOW_MAX) or (L["%d lines"]):format(#lines))
         if #out == 0 then
-            out[1] = alerts and L["Noch kein Treffer. Stichwoerter legst du in den Einstellungen unter Spielhilfen > Spielchat an."]
-                or L["Nichts gefunden. Durchsucht wird, was seit dem Einloggen in diesem Reiter stand."]
+            out[1] = alerts and L["No matches yet. Add keywords in the settings under Gameplay helpers > Game chat."]
+                or L["Nothing found. The search covers what appeared in this tab since you logged in."]
         end
         self.eb:SetText(table.concat(out, "\n"))
         self.eb:ClearFocus()
@@ -131,7 +131,7 @@ function GC.OpenViewer(mode, frame)
     f:Show()
     f:Refresh()
     -- Suchen/Kopieren geht auch ohne Spielchat (liest dann das Chatfenster), nur die Alarme brauchen ihn
-    if mode == "alerts" and not G().gcOn then ns.print(L["Spielchat ist ausgeschaltet - einschalten unter Einstellungen > Spielhilfen > Spielchat."]) end
+    if mode == "alerts" and not G().gcOn then ns.print(L["Game chat is switched off - switch it on under Settings > Gameplay helpers > Game chat."]) end
 end
 
 ------------------------------------------------------------------------
@@ -148,7 +148,7 @@ local function editor(card, y, w, key, placeholder, normalize)
     e.more:SetPoint("BOTTOMRIGHT", e.box, "BOTTOMRIGHT", 0, 4)
     e.none = K.Text(e.box, 11, C.dim)
     e.none:SetPoint("TOPLEFT", 0, -5)
-    e.none:SetText(L["Noch nichts eingetragen."])
+    e.none:SetText(L["Nothing added yet."])
     function e:Update()
         for _, c in ipairs(self.chips) do c:Hide() end
         local list = G()[key]
@@ -193,7 +193,7 @@ local function editor(card, y, w, key, placeholder, normalize)
     e.input = K.Input(card, w - 112, L[placeholder])
     e.input:SetPoint("TOPLEFT", 14, y)
     e.input.onEnter = add
-    e.add = K.Button(card, L["Hinzufuegen"], 104, 24, "ghost", add)
+    e.add = K.Button(card, L["Add"], 104, 24, "ghost", add)
     e.add:SetPoint("LEFT", e.input, "RIGHT", 8, 0)
     e:Update()
     editors[#editors + 1] = e
@@ -201,38 +201,38 @@ local function editor(card, y, w, key, placeholder, normalize)
 end
 local function muteValue(text)
     local channel, name = tostring(text or ""):match("^%s*(.-)%s*;%s*(.-)%s*$")
-    if not channel or channel == "" or name == "" then return nil, L["So geht es: Kanal; Spielername"] end
+    if not channel or channel == "" or name == "" then return nil, L["Usage: channel; player name"] end
     return GC.MuteKey(channel, name)
 end
 local function stampText()
     local cur = G().gcStamp
-    for _, st in ipairs(GC.STAMPS) do if st.key == cur then return st.key == "none" and L["Aus"] or st.text end end
-    return L["Spieleinstellung"]
+    for _, st in ipairs(GC.STAMPS) do if st.key == cur then return st.key == "none" and L["Off"] or st.text end end
+    return L["Game setting"]
 end
 
 local NAMES = {
-    { "gcShort", "Namen kuerzen", "Zeigt im Chat nur den Vornamen. Fluestern und Rechtsklick benutzen weiter den vollen Namen." },
-    { "gcLevel", "Stufe vor dem Namen", "Zeigt die Stufe, sobald dein Spiel sie kennt (Ziel, Gruppe, Gilde, Freunde, /wer) - in der Farbe der Schwierigkeit" },
-    { "gcClassIcon", "Klassensymbol vor dem Namen" },
-    { "gcRaceIcon", "Volkssymbol vor dem Namen" },
-    { "gcLinkIcons", "Symbole an Item- und Zauberlinks" },
-    { "gcTokens", "Kuerzel im Text aufloesen", "item:6948 und spell:10060 werden zu anklickbaren Links, :mage: oder :troll: zu Symbolen - nur bei dir, verschickt wird der Text" },
-    { "gcChNum", "Kanalnamen kuerzen", "[2. Handel - Orgrimmar] wird zu [2]" },
-    { "gcQuiet", "Ruhiger Text", "Kanal und Name behalten die Kanalfarbe, die Nachricht selbst wird hellgrau (Kanaele, Sagen, Schreien)" },
-    { "gcHover", "Item-Tooltip beim Ueberfahren", "Zeigt den Tooltip schon beim Ueberfahren eines Itemlinks im Chat, nicht erst beim Klick" },
+    { "gcShort", "Shorten names", "Shows only the first name in chat. Whispering and right-click still use the full name." },
+    { "gcLevel", "Level before the name", "Shows the level as soon as your game knows it (target, group, guild, friends, /who) - in the difficulty colour" },
+    { "gcClassIcon", "Class icon before the name" },
+    { "gcRaceIcon", "Race icon before the name" },
+    { "gcLinkIcons", "Icons on item and spell links" },
+    { "gcTokens", "Resolve shortcuts in text", "item:6948 and spell:10060 become clickable links, :mage: or :troll: become icons - only for you, the text itself is what gets sent" },
+    { "gcChNum", "Shorten channel names", "[2. Trade - Orgrimmar] becomes [2]" },
+    { "gcQuiet", "Quiet text", "Channel and name keep the channel colour, the message itself turns light grey (channels, say, yell)" },
+    { "gcHover", "Item tooltip on hover", "Shows the tooltip when you hover an item link in chat instead of only on click" },
 }
 local FILTERS = {
-    { "gcFilter", "Filter einschalten", "Gilt fuer Kanaele, Sagen, Schreien, Emotes und Fluestern - nie fuer Gilde, Gruppe und Schlachtzug und nie fuer deine eigenen Nachrichten" },
-    { "gcWhole", "Nur ganze Woerter", "Sonst trifft \"boost\" auch \"boosting\"" },
-    { "gcCyr", "Kyrillische Schrift ausblenden" },
-    { "gcHan", "Chinesische Schriftzeichen ausblenden" },
-    { "gcRepeat", "Wiederholte Nachrichten ausblenden", "Dieselbe Nachricht desselben Spielers im selben Kanal innerhalb der eingestellten Zeit" },
+    { "gcFilter", "Enable filters", "Applies to channels, say, yell, emotes and whispers - never to guild, party and raid and never to your own messages" },
+    { "gcWhole", "Whole words only", "Otherwise \"boost\" also matches \"boosting\"" },
+    { "gcCyr", "Hide Cyrillic text" },
+    { "gcHan", "Hide Chinese characters" },
+    { "gcRepeat", "Hide repeated messages", "The same message from the same player in the same channel within the chosen time" },
 }
 local BUTTONS = {
-    { "gcHideMenu", "Chat-Menue-Knopf ausblenden" },
-    { "gcHideChannel", "Kanal-Knopf ausblenden" },
-    { "gcHideSocial", "Geselligkeits-Knopf ausblenden" },
-    { "gcHideScroll", "Blaetter-Knoepfe ausblenden" },
+    { "gcHideMenu", "Hide the chat menu button" },
+    { "gcHideChannel", "Hide the channel button" },
+    { "gcHideSocial", "Hide the social button" },
+    { "gcHideScroll", "Hide the scroll buttons" },
 }
 local function build(f)
     local H = ns.SettingsHelpers
@@ -245,8 +245,8 @@ local function build(f)
     -- 0.6.272: mit EllesmereUI-Chat greift Oasis seit 0.6.254 nicht in den Chat ein (ns.ForeignChat) - die Schalter
     -- hier wirkten dann still nicht. Jetzt steht oben ein Hinweis und die Seite ist ausgegraut.
     if ns.ForeignChat and ns.ForeignChat() then
-        local warn = H.cardH(f, 0, 0, 738, 74, "eye_off", L["EllesmereUI-Chat erkannt"],
-            L["Den Chat zeichnet EllesmereUI. Damit nichts doppelt laeuft, greift Oasis nicht in den Chat ein - die Schalter auf dieser Seite wirken nur ohne EllesmereUI-Chat."])
+        local warn = H.cardH(f, 0, 0, 738, 74, "eye_off", L["EllesmereUI chat detected"],
+            L["EllesmereUI draws the chat. To avoid doing things twice, Oasis stays out of the chat - the switches on this page only work without EllesmereUI chat."])
         if warn.s then warn.s:SetWordWrap(true) warn.s:SetPoint("RIGHT", -14, 0) end
         body:SetPoint("TOPLEFT", 0, -86)
         body:SetAlpha(0.45)
@@ -264,37 +264,37 @@ local function build(f)
 
     -- linke Spalte
     local y = 0
-    local c = H.cardH(body, 0, y, W, 152, "checklist", L["Spielchat"])
-    H.toggle(c, 14, -48, "Blizzards Chatfenster verbessern", "gcOn", "Hauptschalter fuer alles auf dieser Seite. Wirkt auf neue Nachrichten; im Kampf geschuetzte Nachrichten bleiben unveraendert.", apply, IN)
-    H.toggle(c, 14, -80, "Auch oeffentliche Kanaele, Sagen und Schreien", "gcAllChannels", "Standard: nur Gilde, Gruppe, Raid und Fluestern. Erst damit wirken die Filter fuer Handel und Allgemein.", apply, IN)
-    H.note(c, L["Oasis ersetzt nichts an Blizzards Chat, sondern passt die Zeilen nachtraeglich an."], 14, -116, IN)
+    local c = H.cardH(body, 0, y, W, 152, "checklist", L["Game chat"])
+    H.toggle(c, 14, -48, "Improve Blizzard's chat windows", "gcOn", "Master switch for everything on this page. Applies to new messages; messages protected during combat stay untouched.", apply, IN)
+    H.toggle(c, 14, -80, "Also public channels, say and yell", "gcAllChannels", "Default: only guild, party, raid and whispers. The filters for Trade and General only work with this on.", apply, IN)
+    H.note(c, L["Oasis does not replace any part of Blizzard's chat; it adjusts the lines afterwards."], 14, -116, IN)
     y = y - 152 - 12
 
     local h = 50 + #NAMES * 28 + 40
-    c = H.cardH(body, 0, y, W, h, "profile", L["Namen und Symbole"])
+    c = H.cardH(body, 0, y, W, h, "profile", L["Names and icons"])
     local cy = toggles(c, NAMES, -48)
-    H.rowLabel(c, L["Zeitstempel"], 14, cy - 4)
+    H.rowLabel(c, L["Timestamp"], 14, cy - 4)
     local stamp = K.Button(c, stampText(), 170, 24, "ghost")
     stamp:SetPoint("TOPLEFT", 178, cy)
     stamp:SetScript("OnClick", function(self)
-        local items = { { text = L["Spieleinstellung"], checked = s.gcStamp == nil, fn = function() s.gcStamp = nil GC.ApplyStamp() self:SetLabel(stampText()) end } }
+        local items = { { text = L["Game setting"], checked = s.gcStamp == nil, fn = function() s.gcStamp = nil GC.ApplyStamp() self:SetLabel(stampText()) end } }
         for _, st in ipairs(GC.STAMPS) do
-            items[#items + 1] = { text = st.key == "none" and L["Aus"] or st.text, checked = s.gcStamp == st.key,
+            items[#items + 1] = { text = st.key == "none" and L["Off"] or st.text, checked = s.gcStamp == st.key,
                 fn = function() s.gcStamp = st.key GC.ApplyStamp() self:SetLabel(stampText()) end }
         end
-        K.ShowMenu(self, items, L["Zeitstempel"], 170)
+        K.ShowMenu(self, items, L["Timestamp"], 170)
     end)
     y = y - h - 12
 
     h = 50 + #BUTTONS * 28 + 8
-    c = H.cardH(body, 0, y, W, h, "modules", L["Knoepfe am Chatfenster"])
+    c = H.cardH(body, 0, y, W, h, "modules", L["Buttons on the chat window"])
     toggles(c, BUTTONS, -48, function() pcall(GC.ApplyButtons) end)
     y = y - h - 12
 
     -- 0.6.111: Chat-Schalter aus Komfort und Markieren hier gesammelt
     local CO = ns.Comfort and ns.Comfort.CHAT_OPTS or {}
     h = 50 + (#CO + 2) * 28 + 8
-    c = H.cardH(body, 0, y, W, h, "polls", L["Chatfenster"])
+    c = H.cardH(body, 0, y, W, h, "polls", L["Chat window"])
     cy = -48
     for _, o in ipairs(CO) do
         H.toggle(c, 14, cy, o[2], o[1], o[3], o[4] and function() pcall(o[4]) end or nil, IN)
@@ -302,47 +302,47 @@ local function build(f)
     end
     if s.gcLiveSelect == nil then s.gcLiveSelect = true end
     if s.gcAltSelect == nil then s.gcAltSelect = true end
-    H.toggle(c, 14, cy, "Text durch Ziehen markieren", "gcLiveSelect", "Mit gedrueckter Maus ueber den Chat ziehen markiert buchstabengenau, Strg+C kopiert, Rechtsklick zeigt mehr", nil, IN)
+    H.toggle(c, 14, cy, "Select text by dragging", "gcLiveSelect", "Dragging across the chat selects letter by letter, Ctrl+C copies, right-click shows more", nil, IN)
     cy = cy - 28
-    H.toggle(c, 14, cy, "Alt + Klick oeffnet das Markierfeld", "gcAltSelect", "Der Chat als Textfeld ueber dem Fenster - zum Markieren ueber viele Zeilen", nil, IN)
+    H.toggle(c, 14, cy, "Alt + click opens the selection box", "gcAltSelect", "The chat as a text box over the window - for selecting across many lines", nil, IN)
     local leftBottom = y - h - 12
 
     -- rechte Spalte
     y = 0
     h = 50 + #FILTERS * 28 + 40 + 26 + 88 + 26 + 88 + 8
-    c = H.cardH(body, 376, y, W, h, "eye_off", L["Filter und Stummschalten"])
+    c = H.cardH(body, 376, y, W, h, "eye_off", L["Filters and mutes"])
     cy = toggles(c, FILTERS, -48)
-    H.rowLabel(c, L["Zeitfenster fuer Wiederholungen"], 14, cy - 4)
+    H.rowLabel(c, L["Time window for repeats"], 14, cy - 4)
     local rep = K.Slider(c, 120, 5, 600, 5, function() return tonumber(s.gcRepeatSec) or 60 end, function(v) s.gcRepeatSec = v end,
         function(v) return v .. " s" end)
     rep:SetPoint("TOPLEFT", 226, cy - 2)
     cy = cy - 40
-    H.rowLabel(c, "|cffe8b44a" .. L["Gesperrte Woerter"] .. "|r", 14, cy)
+    H.rowLabel(c, "|cffe8b44a" .. L["Blocked words"] .. "|r", 14, cy)
     cy = cy - 26
-    editor(c, cy, IN, "gcPhrases", "Wort oder Satzteil")
+    editor(c, cy, IN, "gcPhrases", "Word or phrase")
     cy = cy - 88
-    H.rowLabel(c, "|cffe8b44a" .. L["Spieler in einem Kanal stummschalten"] .. "|r", 14, cy)
+    H.rowLabel(c, "|cffe8b44a" .. L["Mute a player in one channel"] .. "|r", 14, cy)
     cy = cy - 26
-    editor(c, cy, IN, "gcMutes", "Kanal; Spielername", muteValue)
+    editor(c, cy, IN, "gcMutes", "Channel; player name", muteValue)
     y = y - h - 12
 
     h = 50 + 28 + 40 + 36
-    c = H.cardH(body, 376, y, W, h, "chronicle", L["Suche und Verlauf"])
-    H.toggle(c, 14, -48, "Chatverlauf ueber Sitzungen behalten", "gcHist", "Die letzten Zeilen jedes Reiters stehen nach dem Einloggen wieder da (bis zu 7 Tage alt, als einfacher Text). Gespeichert wird nur bei dir.", nil, IN)
-    H.rowLabel(c, L["Zeilen je Reiter"], 14, -80)
+    c = H.cardH(body, 376, y, W, h, "chronicle", L["Search and history"])
+    H.toggle(c, 14, -48, "Keep chat history between sessions", "gcHist", "The last lines of each tab are back after you log in (up to 7 days old, as plain text). They are stored only on your PC.", nil, IN)
+    H.rowLabel(c, L["Lines per tab"], 14, -80)
     local keep = K.Slider(c, 150, 20, 300, 10, function() return tonumber(s.gcHistLines) or 100 end, function(v) s.gcHistLines = v end)
     keep:SetPoint("TOPLEFT", 196, -78)
-    local find = K.Button(c, L["Chat durchsuchen"], 160, 24, "primary", function() GC.OpenViewer("search") end)
+    local find = K.Button(c, L["Search chat"], 160, 24, "primary", function() GC.OpenViewer("search") end)
     find:SetPoint("TOPLEFT", 14, -116)
     H.note(c, "/oa chatsuche", 184, -121, 160)
     y = y - h - 12
 
     h = 50 + 2 * 28 + 8 + 88 + 36
-    c = H.cardH(body, 376, y, W, h, "announce", L["Stichwort-Alarme"])
-    H.toggle(c, 14, -48, "Bei Stichwoertern Bescheid geben", "gcAlert", "Steht eines deiner Stichwoerter in einer neuen Chatnachricht, zeigt Oasis einen Hinweis und merkt sich die Zeile", nil, IN)
-    H.toggle(c, 14, -76, "Ton beim Alarm", "gcAlertSound", nil, nil, IN)
-    editor(c, -112, IN, "gcWords", "Stichwort, z. B. suche heiler")
-    local hitsBtn = K.Button(c, L["Treffer ansehen"], 160, 24, "ghost", function() GC.OpenViewer("alerts") end)
+    c = H.cardH(body, 376, y, W, h, "announce", L["Keyword alerts"])
+    H.toggle(c, 14, -48, "Notify me about keywords", "gcAlert", "When a new chat message contains one of your keywords, Oasis shows a notice and keeps the line", nil, IN)
+    H.toggle(c, 14, -76, "Sound on alert", "gcAlertSound", nil, nil, IN)
+    editor(c, -112, IN, "gcWords", "Keyword, e.g. looking for healer")
+    local hitsBtn = K.Button(c, L["View matches"], 160, 24, "ghost", function() GC.OpenViewer("alerts") end)
     hitsBtn:SetPoint("TOPLEFT", 14, -200)
     H.note(c, "/oa chatalarm", 184, -205, 160)
     local rightBottom = y - h - 12
@@ -352,6 +352,6 @@ end
 local function refresh()
     for _, e in ipairs(editors) do pcall(e.Update, e) end
 end
-if ns.AddSettingsTab then ns.AddSettingsTab("gamechat", "Spielchat", build, refresh) end
+if ns.AddSettingsTab then ns.AddSettingsTab("gamechat", "Game chat", build, refresh) end
 
 end)

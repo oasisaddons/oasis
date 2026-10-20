@@ -84,9 +84,9 @@ function Social.OpenQuest(id, q)
     end
     if not idx then
         -- nicht bei mir: Demo-Quest bzw. Quest eines Mitspielers -> sagen, wer sie hat, und Ort zeigen
-        if q and q.demo then ns.print(L["Das ist eine Demo-Quest - sie steht nicht in deinem Questlog."]) return end
+        if q and q.demo then ns.print(L["This is a demo quest - it is not in your quest log."]) return end
         local who = q and q.owners and q.owners[1]
-        ns.print(who and (L["Diese Quest hat %s, nicht du."]):format(ns.displayName(who)) or L["Diese Quest ist nicht in deinem Questlog."])
+        ns.print(who and (L["%s has this quest, not you."]):format(ns.displayName(who)) or L["This quest is not in your quest log."])
         if q and ns.QuestLocations and ns.QuestLocations.Show then pcall(ns.QuestLocations.Show, id, q) end
         return
     end
@@ -249,7 +249,7 @@ ns.Listen("PROFILE", function(name, p)
             if not told[key] then
                 told[key] = true
                 ns.Sound.Next("group")
-                K.Toast((L["%s hat auch: %s"]):format(ns.displayName(name), q.title), L["Klick: zusammen questen (einladen)"], C.mint, function()
+                K.Toast((L["%s also has: %s"]):format(ns.displayName(name), q.title), L["Click: quest together (invite)"], C.mint, function()
                     if C_PartyInfo and C_PartyInfo.InviteUnit then pcall(C_PartyInfo.InviteUnit, ns.ChatName(name)) end
                 end)
             end
@@ -443,15 +443,15 @@ function Social.AllyRoles(a)
 end
 
 function Social.InviteGroup(name, demo)
-    if demo then ns.print(L["(Demo) Einladung an "] .. ns.displayName(name)) return end
+    if demo then ns.print(L["(Demo) Invite sent to "] .. ns.displayName(name)) return end
     if C_PartyInfo and C_PartyInfo.InviteUnit then pcall(C_PartyInfo.InviteUnit, ns.ChatName(name)) elseif InviteUnit then pcall(InviteUnit, ns.ChatName(name)) end
 end
 function Social.InviteGuild(name, demo)
-    if demo then ns.print(L["(Demo) Gildeneinladung an "] .. ns.displayName(name)) return end
+    if demo then ns.print(L["(Demo) Guild invite to "] .. ns.displayName(name)) return end
     if C_GuildInfo and C_GuildInfo.Invite then pcall(C_GuildInfo.Invite, name) elseif GuildInvite then pcall(GuildInvite, name) end
 end
 function Social.AddFriend(name, demo)
-    if demo then ns.print(L["(Demo) Freund hinzugefuegt: "] .. ns.displayName(name)) return end
+    if demo then ns.print(L["(Demo) Friend added: "] .. ns.displayName(name)) return end
     if C_FriendList and C_FriendList.AddFriend then pcall(C_FriendList.AddFriend, name) elseif AddFriend then pcall(AddFriend, name) end
 end
 function Social.IsFriend(name)
@@ -563,7 +563,7 @@ function Social.AddToBook(name, unit)
         local pg = Social._page
         if pg and pg.detailNote then pg.detailNote:SetFocus() end
     end)
-    K.Toast(L["Spielerbuch"], (L["%s steht jetzt im Spielerbuch - schreib eine Notiz dazu."]):format(ns.displayName(full)), C.accent)
+    K.Toast(L["Player book"], (L["%s is now in your player book - add a note."]):format(ns.displayName(full)), C.accent)
 end
 -- Eintrag in Blizzards Rechtsklick-Menues (offizieller Weg: Menu.ModifyMenu, Blizzard-Menues bleiben unveraendert)
 local MENU_TAGS = { "MENU_UNIT_PLAYER", "MENU_UNIT_PARTY", "MENU_UNIT_RAID_PLAYER", "MENU_UNIT_TARGET", "MENU_UNIT_FRIEND",
@@ -584,7 +584,7 @@ local function bookMenu(owner, root, ctx)
     if not name or name == "" or ns.isMe(name) then return end
     root:CreateDivider()
     root:CreateTitle("Oasis")
-    root:CreateButton(L["Ins Spielerbuch"], function() Social.AddToBook(name, unit) end)
+    root:CreateButton(L["Add to player book"], function() Social.AddToBook(name, unit) end)
 end
 if ns.Listen then ns.Listen("LOGIN", function()
     if not (Menu and Menu.ModifyMenu) then return end
@@ -597,7 +597,7 @@ ns.slash.buch = function()
         n, realm = ns.safe(n), ns.safe(realm)
         if n then Social.AddToBook((realm and realm ~= "") and (n .. "-" .. realm) or n, "target") return end
     end
-    ns.print(L["Erst einen Spieler anvisieren, dann /oa buch."])
+    ns.print(L["Target a player first, then /oa book."])
 end
 ns.slash.book = ns.slash.buch
 local allyFilter, roleFilter = "all", nil
@@ -651,7 +651,7 @@ end
 
 local function inviteName(n)
     if not ns.Radar.IsOnline(n) then
-        ns.print((L["%s ist gerade offline."]):format(ns.displayName(n)))
+        ns.print((L["%s is offline right now."]):format(ns.displayName(n)))
         return
     end
     if C_PartyInfo and C_PartyInfo.InviteUnit then pcall(C_PartyInfo.InviteUnit, ns.ChatName(n)) end
@@ -662,11 +662,11 @@ local function dot(online)
 end
 
 local socialPage = {
-    key = "social", title = "Gemeinsam questen", order = 2.8,
-    sub = "Mit wem kannst du gerade zusammen spielen? Gleiche Quests, gleiche Gegend",
+    key = "social", title = "Quest together", order = 2.8,
+    sub = "Who can you play with right now? Same quests, same area",
     build = function(p)
         p.seg = K.Segments(p, {
-            { key = "quests", text = L["Quest-Partner"] }, { key = "near", text = L["In deiner Naehe"] },
+            { key = "quests", text = L["Quest partners"] }, { key = "near", text = L["Near you"] },
         }, function(k)
             view = k
             Social.animNext = true
@@ -674,11 +674,11 @@ local socialPage = {
         end, 120)
         p.seg:SetPoint("TOPLEFT", 0, 0)
         if p.fixed then p.seg:Hide() end
-        p.segBase = { quests = L["Quest-Partner"], near = L["In deiner Naehe"], allies = L["Kuerzliche Mitspieler"] }
+        p.segBase = { quests = L["Quest partners"], near = L["Near you"], allies = L["Recent players"] }
         p.hint = K.Text(p, 11, C.dim, "RIGHT")
         p.hint:SetPoint("TOPRIGHT", 0, -6)
         -- Quest-Partner: nach Quest (Standard) oder nach Person gruppieren
-        p.group = K.Segments(p, { { key = "quest", text = L["Nach Quest"] }, { key = "person", text = L["Nach Person"] } }, function(k)
+        p.group = K.Segments(p, { { key = "quest", text = L["By quest"] }, { key = "person", text = L["By person"] } }, function(k)
             ns.db.settings.socialGroup = k
             Social.animNext = true
             refreshSocial()
@@ -733,7 +733,7 @@ local socialPage = {
             c.info:SetPoint("BOTTOMLEFT", 46, 8)
             c.info:SetPoint("RIGHT", c, "RIGHT", -84, 0)
             c.info:SetWordWrap(false)
-            c.inv = K.Button(c, L["Einladen"], 72, 22, "primary")
+            c.inv = K.Button(c, L["Invite"], 72, 22, "primary")
             c.inv:SetPoint("RIGHT", -8, 0)
             c.state = K.Text(c, 11, C.mint, "CENTER")
             c.state:SetPoint("CENTER", c.inv, "CENTER")
@@ -789,7 +789,7 @@ local socialPage = {
             r.cols.qs = K.Text(r, 12, C.muted, "RIGHT")
             r.cols.qs:SetPoint("RIGHT", r, "RIGHT", -92, 0)
             r.cols.qs:SetWidth(230)
-            r.inv = K.Button(r, L["Einladen"], 80, 20, "ghost")
+            r.inv = K.Button(r, L["Invite"], 80, 20, "ghost")
             r.inv:SetPoint("RIGHT", -6, 0)
             r.state = K.Text(r, 11, C.mint, "CENTER")
             r.state:SetPoint("CENTER", r.inv, "CENTER")
@@ -817,9 +817,9 @@ local socialPage = {
                     K.ShowTip(self, lines)
                     return
                 end
-                local lines = { ns.Radar.Colored(e.name), (L["%d gemeinsame Quests"]):format(#e.quests), "|cff888888" .. L["Klick: auf- oder zuklappen"] .. "|r" }
+                local lines = { ns.Radar.Colored(e.name), (L["%d shared quests"]):format(#e.quests), "|cff888888" .. L["Click: expand or collapse"] .. "|r" }
                 for _, q in ipairs(e.quests) do
-                    lines[#lines + 1] = Social.QuestColor(q) .. "[" .. (q.lvl or "?") .. "] " .. q.title .. "|r" .. (q.done and ("  |cff66db9e" .. L["fertig"] .. "|r") or "") .. "  |cff666666" .. (q.zone or "") .. "|r"
+                    lines[#lines + 1] = Social.QuestColor(q) .. "[" .. (q.lvl or "?") .. "] " .. q.title .. "|r" .. (q.done and ("  |cff66db9e" .. L["done"] .. "|r") or "") .. "  |cff666666" .. (q.zone or "") .. "|r"
                 end
                 K.ShowTip(self, lines)
             end)
@@ -869,9 +869,9 @@ local socialPage = {
                 r.head:ClearAllPoints()
                 r.head:SetPoint("BOTTOMLEFT", dz and 28 or 10, 5)
                 if dz then r.hicon:ClearAllPoints() r.hicon:SetPoint("BOTTOMLEFT", 10, 4) r.hicon:Show() end
-                r.head:SetText((dz and "|cffa36bff" or "") .. K.Upper(e.zone ~= "" and e.zone or L["Sonstige"]) .. (dz and ("|r  |cff777777" .. L["Dungeon"] .. "|r") or "")
-                    .. (e.here and ("  |cff66db9e" .. L["du bist hier"] .. "|r") or ""))
-                r.headR:SetText((L["%d Quests"]):format(e.n) .. (e.on > 0 and ("  ·  |cff66db9e" .. (L["%d online"]):format(e.on) .. "|r") or ""))
+                r.head:SetText((dz and "|cffa36bff" or "") .. K.Upper(e.zone ~= "" and e.zone or L["Other"]) .. (dz and ("|r  |cff777777" .. L["Dungeon"] .. "|r") or "")
+                    .. (e.here and ("  |cff66db9e" .. L["you are here"] .. "|r") or ""))
+                r.headR:SetText((L["%d quests"]):format(e.n) .. (e.on > 0 and ("  ·  |cff66db9e" .. (L["%d online"]):format(e.on) .. "|r") or ""))
                 return
             end
             local function inviteBtn(names)
@@ -882,19 +882,19 @@ local socialPage = {
                 end
                 if #todo > 0 then
                     r.inv:Show()
-                    r.inv:SetLabel(#todo > 1 and (L["Einladen"] .. " (" .. #todo .. ")") or L["Einladen"])
+                    r.inv:SetLabel(#todo > 1 and (L["Invite"] .. " (" .. #todo .. ")") or L["Invite"])
                     r.inv:SetScript("OnClick", function() for _, n in ipairs(todo) do inviteName(n) end end)
                 elseif inGrp > 0 then
-                    r.state:SetText(L["in Gruppe"])
+                    r.state:SetText(L["in group"])
                 end
             end
             if e.qrow or e.sub then
                 local q = e.q
                 r.lvl:SetText(Social.QuestColor(q) .. (q.lvl or "?") .. "|r")
                 local tags = ""
-                if q.group then tags = tags .. "  |cffff8a3d[" .. L["Gruppe"] .. "]|r" end
-                if q.done then tags = tags .. "  |cff66db9e" .. L["fertig"] .. "|r" end
-                if q.new then tags = tags .. "  |cff8fbaff" .. L["NEU"] .. "|r" end
+                if q.group then tags = tags .. "  |cffff8a3d[" .. L["Group"] .. "]|r" end
+                if q.done then tags = tags .. "  |cff66db9e" .. L["done"] .. "|r" end
+                if q.new then tags = tags .. "  |cff8fbaff" .. L["NEW"] .. "|r" end
                 if q.dungeon then tags = tags .. "  |cffa36bff" .. L["Dungeon"] .. "|r" end
                 r.cols.name:SetText((e.sub and "      " or "") .. Social.QuestColor(q) .. q.title .. "|r" .. tags)
                 if e.sub then
@@ -934,13 +934,13 @@ local socialPage = {
             r.cols.name:SetPoint("LEFT", 70, 2)
             r.cols.name:SetPoint("RIGHT", r, "RIGHT", -280, 0)
             r.cols.name:SetText(ns.Radar.Colored(e.name) .. (m and m.level and ("  |cff777777" .. m.level .. "|r") or "")
-                .. "   |cffe8b44a" .. (L["%d gemeinsame Quests"]):format(#e.quests) .. "|r")
+                .. "   |cffe8b44a" .. (L["%d shared quests"]):format(#e.quests) .. "|r")
             r.cols.qs:SetText(e.online and m and m.zone and ("|cff888888" .. m.zone .. "|r") or ("|cff555555" .. L["offline"] .. "|r"))
             if e.online then inviteBtn({ e.name }) end
         end)
         p.quests:SetPoint("TOPLEFT", 0, -102)
         p.quests:SetPoint("BOTTOMRIGHT")
-        p.quests.empty:SetText(L["Gerade hat niemand aus der Gilde dieselben Quests.\nSobald Mitglieder mit Oasis gleiche Quests annehmen, stehen sie hier."])
+        p.quests.empty:SetText(L["Nobody in the guild has the same quests right now.\nAs soon as members with Oasis pick up the same quests, they show up here."])
 
         ----------------------------------------------------------------
         -- In deiner Naehe
@@ -956,14 +956,14 @@ local socialPage = {
             r.cols.tags = K.Text(r, 11, C.text)
             r.cols.tags:SetPoint("LEFT", 330, 0)
             r.cols.tags:SetWidth(240)
-            r.inv = K.Button(r, L["Einladen"], 84, 22, "primary")
+            r.inv = K.Button(r, L["Invite"], 84, 22, "primary")
             r.inv:SetPoint("RIGHT", -36, 0)
             r.w = CreateFrame("Button", nil, r)
             r.w:SetSize(18, 18)
             r.w:SetPoint("RIGHT", -10, 0)
             r.w.icon = K.Glyph(r.w, 16, ns.MEDIA .. "icons\\badges\\chat")
             r.w.icon:SetPoint("CENTER")
-            r.w:SetScript("OnEnter", function(self) K.ShowTip(self, L["Anfluestern"]) end)
+            r.w:SetScript("OnEnter", function(self) K.ShowTip(self, L["Whisper"]) end)
             r.w:SetScript("OnLeave", function() GameTooltip:Hide() end)
             r:SetScript("OnEnter", function(self) if self.item then ns.Radar.ShowMemberTip(self, self.item.m) end end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -972,17 +972,17 @@ local socialPage = {
         end, function(r, e)
             local m = e.m
             r.cols.name:SetText(dot(true) .. ns.Radar.Label(m.name) .. " |cff888888" .. m.level .. "|r  " .. (ns.Profile and ns.Profile.RoleIcons(m.name, 13) or ""))
-            r.cols.meta:SetText((e.sameZone and ("|cff66db9e" .. m.zone .. "|r") or m.zone) .. "  ·  " .. (e.close and L["passendes Level"] or L["gleiches Gebiet"]))
+            r.cols.meta:SetText((e.sameZone and ("|cff66db9e" .. m.zone .. "|r") or m.zone) .. "  ·  " .. (e.close and L["matching level"] or L["same zone"]))
             local t = {}
-            if e.shared > 0 then t[#t + 1] = "|cffe8b44a" .. (L["%d gleiche Quests"]):format(e.shared) .. "|r" end
-            if e.sameZone then t[#t + 1] = "|cff66db9e" .. L["im selben Gebiet"] .. "|r" end
+            if e.shared > 0 then t[#t + 1] = "|cffe8b44a" .. (L["%d shared quests"]):format(e.shared) .. "|r" end
+            if e.sameZone then t[#t + 1] = "|cff66db9e" .. L["in the same zone"] .. "|r" end
             r.cols.tags:SetText(table.concat(t, "   "))
             r.inv:SetScript("OnClick", function() inviteName(m.name) end)
             r.w:SetScript("OnClick", function() ns.Whisper(m.name) end)
         end)
         p.near:SetPoint("TOPLEFT", 0, -36)
         p.near:SetPoint("BOTTOMRIGHT")
-        p.near.empty:SetText(L["Gerade ist niemand aus der Gilde in deiner Gegend oder deinem Level online."])
+        p.near.empty:SetText(L["Nobody from the guild is online in your area or level right now."])
 
         ----------------------------------------------------------------
         -- Kuerzliche Mitspieler (von ausserhalb der Gilde)
@@ -1059,7 +1059,7 @@ local socialPage = {
                 b:SetScript("OnEnter", function(self)
                     local a = r.item and ns.db.allies[r.item.name]
                     local _, set, seen = Social.AllyRoles(a or {})
-                    K.ShowTip(self, { L[({ tank = "Tank", heal = "Heiler", dps = "Schaden" })[k]], seen and L["in der Gruppe so gespielt - Klick: an/aus"] or set and L["selbst eingetragen - Klick: an/aus"] or L["aus der Klasse geschaetzt - Klick: an/aus"] })
+                    K.ShowTip(self, { L[({ tank = "Tank", heal = "Healer", dps = "Damage" })[k]], seen and L["played this role in your group - click: on/off"] or set and L["set by you – click: on/off"] or L["guessed from class – click: on/off"] })
                 end)
                 b:SetScript("OnLeave", function() GameTooltip:Hide() end)
                 r.roles[k] = b
@@ -1080,7 +1080,7 @@ local socialPage = {
             r.noteEdit.bg:SetColorTexture(1, 1, 1, 0.03)
             r.noteEdit.ph = K.Text(r.noteEdit, 11, C.dim)
             r.noteEdit.ph:SetPoint("LEFT", 6, 0)
-            r.noteEdit.ph:SetText(L["Notiz ..."])
+            r.noteEdit.ph:SetText(L["Note ..."])
             local function saveNote(self)
                 if not r.item then return end
                 if (self:GetText() or "") == "" and not ns.db.allies[r.item.name] then return end
@@ -1106,14 +1106,14 @@ local socialPage = {
             end)
             r.noteEdit:SetScript("OnEnterPressed", function(self) saveNote(self) self:ClearFocus() end)
             r.noteEdit:SetScript("OnEscapePressed", function(self) self:SetText(self.originalNote or "") self:ClearFocus() end)
-            r.guild = K.Button(r, L["Gilde"], 50, 20, "ghost")
+            r.guild = K.Button(r, L["Guild"], 50, 20, "ghost")
             r.guild:SetPoint("RIGHT", -30, 0)
-            r.party = K.Button(r, L["Gruppe"], 58, 20, "primary")
+            r.party = K.Button(r, L["Group"], 58, 20, "primary")
             r.party:SetPoint("RIGHT", r.guild, "LEFT", -6, 0)
             -- Notiz endet vor den Knoepfen (vorher feste 300 px -> lag unter "Gruppe"/"Gilde")
             r.noteEdit:SetPoint("RIGHT", r.party, "LEFT", -8, 0)
             r:RegisterForClicks("AnyUp")
-            r.bx = K.IconButton(r, "x", 18, nil, L["Aus der Liste entfernen"])
+            r.bx = K.IconButton(r, "x", 18, nil, L["Remove from list"])
             r.bx:SetPoint("RIGHT", -8, 0)
             r:SetScript("OnClick", function(self, btn)
                 if not self.item then return end
@@ -1122,15 +1122,15 @@ local socialPage = {
                     local e = ns.db.allies[a.name]
                     local canGuild = (CanGuildInvite and CanGuildInvite()) or a.demo
                     K.ShowMenu(self, {
-                        { text = L["Anfluestern"], disabled = not a.isOnline, fn = function() ns.Whisper(a.name) end },
-                        { text = L["In die Gruppe einladen"], disabled = not a.isOnline, fn = function() Social.InviteGroup(a.name, a.demo) end },
-                        { text = L["In die Gilde einladen"], disabled = not canGuild, fn = function() Social.InviteGuild(a.name, a.demo) end },
-                        { text = L["Als Freund hinzufuegen"], disabled = Social.IsFriend(a.name), fn = function() Social.AddFriend(a.name, a.demo) end },
-                        { text = (e and e.fav) and L["Kein Favorit mehr"] or L["Als Favorit merken"], fn = function()
+                        { text = L["Whisper"], disabled = not a.isOnline, fn = function() ns.Whisper(a.name) end },
+                        { text = L["Invite to group"], disabled = not a.isOnline, fn = function() Social.InviteGroup(a.name, a.demo) end },
+                        { text = L["Invite to guild"], disabled = not canGuild, fn = function() Social.InviteGuild(a.name, a.demo) end },
+                        { text = L["Add as friend"], disabled = Social.IsFriend(a.name), fn = function() Social.AddFriend(a.name, a.demo) end },
+                        { text = (e and e.fav) and L["Remove favorite"] or L["Mark as favourite"], fn = function()
                             if e then e.fav = not e.fav or nil end
                             refreshSocial()
                         end },
-                        { text = (e and e.ninja) and L["Ninja-Markierung entfernen"] or L["Als Ninja-Looter melden"], fn = function()
+                        { text = (e and e.ninja) and L["Remove ninja mark"] or L["Report as ninja looter"], fn = function()
                             local x = Social.Entry(a.name)
                             if not x then return end
                             x.ninja = not x.ninja or nil
@@ -1138,16 +1138,16 @@ local socialPage = {
                             Social.ShareRep(a.name)
                             refreshSocial()
                         end },
-                        { text = L["Ausruestung ansehen"], disabled = not ns.Scout, fn = function() if ns.Scout then ns.Scout.ShowGear(a.name) end end },
-                        { text = L["Talente ansehen"], fn = function() if ns.Talents then ns.Talents.Show(a.name) end end },
-                        { text = L["Zum Anwerben vorschlagen"], disabled = not ns.Scout or (ns.Scout.Suggested and ns.Scout.Suggested(a.name) ~= nil),
+                        { text = L["View gear"], disabled = not ns.Scout, fn = function() if ns.Scout then ns.Scout.ShowGear(a.name) end end },
+                        { text = L["View talents"], fn = function() if ns.Talents then ns.Talents.Show(a.name) end end },
+                        { text = L["Suggest for recruiting"], disabled = not ns.Scout or (ns.Scout.Suggested and ns.Scout.Suggested(a.name) ~= nil),
                           fn = function() ns.Scout.Suggest(a.name) end },
-                        { text = L["Notiz bearbeiten"], fn = function()
+                        { text = L["Edit note"], fn = function()
                             selected = a.name
                             refreshSocial()
                             if p.detailNote then p.detailNote:SetFocus() end
                         end },
-                        { text = L["Aus der Liste entfernen"], fn = function()
+                        { text = L["Remove from list"], fn = function()
                             ns.db.allies[a.name] = nil
                             refreshSocial()
                         end },
@@ -1187,9 +1187,9 @@ local socialPage = {
                 Social.ShareRep(a.name)
                 refreshSocial()
             end)
-            r.fav:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Gut - gerne wieder"], a.fav and L["Klick: zuruecknehmen"] or L["Klick: als gut merken (Favorit)"] }) end)
+            r.fav:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Good - happy to play again"], a.fav and L["Click: undo"] or L["Click: mark as good (favourite)"] }) end)
             r.fav:SetScript("OnLeave", function() GameTooltip:Hide() end)
-            r.bad:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Schlecht - lieber nicht"], L["Oasis warnt dich, wenn diese Person dir schreibt oder in deiner Gruppe ist."], a.bad and L["Klick: zuruecknehmen"] or L["Klick: als schlecht markieren"] }) end)
+            r.bad:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Bad - rather not"], L["Oasis warns you when they whisper you or are in your group."], a.bad and L["Click: undo"] or L["Click: mark as bad"] }) end)
             r.bad:SetScript("OnLeave", function() GameTooltip:Hide() end)
             -- Notiz nimmt den Platz bis zu den Knoepfen (offline ohne Knoepfe: bis zum X)
             local rw = r:GetWidth() or 0
@@ -1234,14 +1234,14 @@ local socialPage = {
                 local f = roles[k] and (set and 1 or 0.7) or 0.18
                 b.icon:SetVertexColor(c[1] * f + (roles[k] and 0 or 0.12), c[2] * f + (roles[k] and 0 or 0.12), c[3] * f + (roles[k] and 0 or 0.12))
             end
-            local times = (a.count or 1) > 1 and ((L["%dx zusammen"]):format(a.count) .. "  ·  ") or ""
-            if a.fromGuild then times = "|cff9b8cff" .. L["nur aus der Gilde bekannt"] .. "|r  ·  " end
+            local times = (a.count or 1) > 1 and ((L["%dx together"]):format(a.count) .. "  ·  ") or ""
+            if a.fromGuild then times = "|cff9b8cff" .. L["known only via the guild"] .. "|r  ·  " end
             local gu, gd, glist = Social.GuildRep(a.name)
             local gtxt = ""
-            if gd > 0 then gtxt = "|cffff5a5a" .. (L["Gilde: %d schlecht"]):format(gd) .. "|r  ·  " elseif gu > 0 then gtxt = "|cff66db9e" .. (L["Gilde: %d gut"]):format(gu) .. "|r  ·  " end
+            if gd > 0 then gtxt = "|cffff5a5a" .. (L["Guild: %d bad"]):format(gd) .. "|r  ·  " elseif gu > 0 then gtxt = "|cff66db9e" .. (L["Guild: %d good"]):format(gu) .. "|r  ·  " end
             -- 0.6.290: ohne Zeitstempel kein "01.01.70"
             local when = ((tonumber(a.last) or 0) > 86400) and ns.ago(a.last) or ""
-            local VIA = { whisper = L["gefluestert"], trade = L["gehandelt"], duel = L["Duell"], manual = L["eingetragen"], group = L["Gruppe"], guild = L["von der Gilde"] }
+            local VIA = { whisper = L["whispered"], trade = L["traded"], duel = L["Duel"], manual = L["added"], group = L["Group"], guild = L["from the guild"] }
             local via = a.via and VIA[a.via]
             if via then times = "|cff9a9aa0" .. via .. "|r  ·  " .. times end
             local metaText = gtxt .. times .. when .. ((a.zone or "") ~= "" and ((when ~= "" and "  ·  " or "") .. a.zone) or "")
@@ -1254,15 +1254,15 @@ local socialPage = {
             local canInvite = (CanGuildInvite and CanGuildInvite()) or a.demo
             r.guild:SetShown((canInvite and a.isOnline) and true or false)
             r.guild:SetScript("OnClick", function() Social.InviteGuild(a.name, a.demo) end)
-            r.guild:SetScript("OnEnter", function(self) K.ShowTip(self, L["In die Gilde einladen"]) end)
+            r.guild:SetScript("OnEnter", function(self) K.ShowTip(self, L["Invite to guild"]) end)
             r.guild:SetScript("OnLeave", function() GameTooltip:Hide() end)
             r.party:SetShown(a.isOnline and true or false)
             r.party:SetScript("OnClick", function() Social.InviteGroup(a.name, a.demo) end)
-            r.party:SetScript("OnEnter", function(self) K.ShowTip(self, L["In die Gruppe einladen"]) end)
+            r.party:SetScript("OnEnter", function(self) K.ShowTip(self, L["Invite to group"]) end)
             r.party:SetScript("OnLeave", function() GameTooltip:Hide() end)
             r:SetScript("OnEnter", function(self)
                 if not self.glist or #self.glist == 0 then return end
-                local t = { L["Erfahrungen aus der Gilde"] }
+                local t = { L["Experiences from the guild"] }
                 for _, g in ipairs(self.glist) do
                     t[#t + 1] = (g.v == "up" and "|cff66db9e+|r " or g.v == "down" and "|cffff5a5a-|r " or "  ") .. ns.displayName(g.who) .. ((g.note or "") ~= "" and (": " .. g.note) or "")
                 end
@@ -1298,7 +1298,7 @@ local socialPage = {
                 refreshSocial()
             end)
         end)
-        p.bookSearch = K.Input(p, 260, L["Spieler, Notiz oder Gebiet suchen"], function(text)
+        p.bookSearch = K.Input(p, 260, L["Search player, note or zone"], function(text)
             allySearch = (text or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
             p.allies.offset, p.allies.pos, p.allies.target = 0, 0, 0
             refreshSocial()
@@ -1306,16 +1306,16 @@ local socialPage = {
         p.bookSearch:SetPoint("TOPLEFT", 0, 0)
         p.bookSearch:SetText(allySearch)
         -- 0.6.301: Spieler von Hand eintragen (Name; gleicher Realm reicht ohne Realm)
-        p.bookAdd = K.Button(p, "+ " .. L["Eintragen"], 100, 24, "ghost", function()
+        p.bookAdd = K.Button(p, "+ " .. L["Add"], 100, 24, "ghost", function()
             local function add(t)
                 t = (t or ""):gsub("^%s+", ""):gsub("%s+$", "")
                 if t == "" then return end
                 local full = Social.Touch(t, "manual")
-                if full then selected = full ns.print((L["Ins Spielerbuch eingetragen: %s"]):format(ns.displayName(full)))
-                else ns.print(L["Nicht eingetragen - Gildenmitglied, du selbst oder ungueltiger Name."]) end
+                if full then selected = full ns.print((L["Added to the player book: %s"]):format(ns.displayName(full)))
+                else ns.print(L["Not added – guild member, yourself or invalid name."]) end
             end
             if ns.WhisperLog and ns.WhisperLog.Prompt then
-                ns.WhisperLog.Prompt(L["Spieler eintragen"], L["Name des Spielers (gleicher Realm: ohne Realm)"], "", add, L["Eintragen"])
+                ns.WhisperLog.Prompt(L["Add player"], L["Player name (same realm: without realm)"], "", add, L["Add"])
             else
                 add(p.bookSearch:GetText())   -- ohne Fluester-Modul: Name aus dem Suchfeld
             end
@@ -1334,7 +1334,7 @@ local socialPage = {
         p.detailMeta = K.Text(p.details, 11, C.muted)
         p.detailMeta:SetPoint("TOPLEFT", 12, -30)
         p.detailMeta:SetPoint("RIGHT", -12, 0)
-        p.detailNote = K.Input(p.details, 300, L["Notiz ..."])
+        p.detailNote = K.Input(p.details, 300, L["Note ..."])
         Social._page = p
         p.detailNote:SetPoint("BOTTOMLEFT", 12, 10)
         p.detailNote:SetPoint("RIGHT", p.details, "RIGHT", -190, 0)
@@ -1352,27 +1352,27 @@ local socialPage = {
             p.noteOwner = nil
         end)
         p.detailNote:SetScript("OnEscapePressed", function(self) self:SetText(p.originalNote or "") self:ClearFocus() end)
-        p.detailParty = bookButton(K.Button(p.details, L["Gruppe"], 72, 22, "primary", function() if selected then Social.InviteGroup(selected) end end), true)
+        p.detailParty = bookButton(K.Button(p.details, L["Group"], 72, 22, "primary", function() if selected then Social.InviteGroup(selected) end end), true)
         p.detailParty:SetPoint("BOTTOMRIGHT", -100, 10)
-        p.detailGuild = bookButton(K.Button(p.details, L["Gilde"], 72, 22, "ghost", function() if selected then Social.InviteGuild(selected) end end))
+        p.detailGuild = bookButton(K.Button(p.details, L["Guild"], 72, 22, "ghost", function() if selected then Social.InviteGuild(selected) end end))
         p.detailGuild:SetPoint("BOTTOMRIGHT", -16, 10)
-        p.detailClose = K.IconButton(p.details, "x", 18, function() p.detailNote:ClearFocus() selected = nil refreshSocial() end, L["Details schliessen"])
+        p.detailClose = K.IconButton(p.details, "x", 18, function() p.detailNote:ClearFocus() selected = nil refreshSocial() end, L["Close details"])
         p.detailClose:SetPoint("TOPRIGHT", -10, -8)
         p.details:Hide()
         p.bookCount = K.Text(p, 11, C.muted, "RIGHT")
         p.bookCount:SetPoint("TOPRIGHT", -8, -6)
         p.allies:SetPoint("TOPLEFT", 0, -70)
         p.allies:SetPoint("BOTTOMRIGHT")
-        p.allies.empty:SetText(L["Noch keine Mitspieler von ausserhalb der Gilde.\nWer mit dir in einer Gruppe war, landet automatisch hier."])
+        p.allies.empty:SetText(L["No players from outside the guild yet.\nAnyone you group with shows up here automatically."])
 
-        p.allySeg = K.Segments(p, { { key = "all", text = L["Alle"] }, { key = "fav", text = L["Favoriten"] }, { key = "online", text = L["Online"] }, { key = "guild", text = L["Von der Gilde"] } },
+        p.allySeg = K.Segments(p, { { key = "all", text = L["All"] }, { key = "fav", text = L["Favourites"] }, { key = "online", text = L["Online"] }, { key = "guild", text = L["From guild"] } },
             function(k) allyFilter = k refreshSocial() end, 80)
         p.allySeg:SetPoint("TOPLEFT", 0, -36)
         bookGlass(p.allySeg, nil, nil)
         p.roleFilter = {}
         local rl = K.Text(p, 11, C.muted)
         rl:SetPoint("LEFT", p.allySeg, "RIGHT", 18, 0)
-        rl:SetText(L["Rolle:"])
+        rl:SetText(L["Role:"])
         p.roleLabel = rl
         local rx = nil
         for i, k in ipairs({ "tank", "heal", "dps" }) do
@@ -1394,7 +1394,7 @@ local socialPage = {
                 bookGlass(self, { 1, 1, 1, on and 0.08 or 0.025 }, on and { c[1], c[2], c[3], 0.4 } or nil)
             end
             b:SetScript("OnClick", function() roleFilter = (roleFilter ~= k) and k or nil refreshSocial() end)
-            b:SetScript("OnEnter", function(self) K.ShowTip(self, { (L["Nur %s zeigen"]):format(L[({ tank = "Tank", heal = "Heiler", dps = "Schaden" })[k]]), L["Nochmal klicken: alle"] }) end)
+            b:SetScript("OnEnter", function(self) K.ShowTip(self, { (L["Show only %s"]):format(L[({ tank = "Tank", heal = "Healer", dps = "Damage" })[k]]), L["Click again: show all"] }) end)
             b:SetScript("OnLeave", function() GameTooltip:Hide() end)
             b:Refresh()
             p.roleFilter[k] = b
@@ -1402,11 +1402,11 @@ local socialPage = {
         -- 0.6.300: Bewertung filtern (gut / schlecht), zusaetzlich zu Reiter und Rolle
         p.rateLabel = K.Text(p, 11, C.muted)
         p.rateLabel:SetPoint("LEFT", rx, "RIGHT", 18, 0)
-        p.rateLabel:SetText(L["Bewertung:"])
+        p.rateLabel:SetText(L["Rating:"])
         p.rateFilter = {}
         local qx
-        for i, it in ipairs({ { "good", "Interface\\RaidFrame\\ReadyCheck-Ready", { 0.40, 0.86, 0.62 }, L["Nur gut bewertete"] },
-                              { "bad", "Interface\\RaidFrame\\ReadyCheck-NotReady", { 0.95, 0.35, 0.35 }, L["Nur schlecht bewertete"] } }) do
+        for i, it in ipairs({ { "good", "Interface\\RaidFrame\\ReadyCheck-Ready", { 0.40, 0.86, 0.62 }, L["Only rated good"] },
+                              { "bad", "Interface\\RaidFrame\\ReadyCheck-NotReady", { 0.95, 0.35, 0.35 }, L["Only rated bad"] } }) do
             local k, tex, c, tip = it[1], it[2], it[3], it[4]
             local b = CreateFrame("Button", nil, p)
             b:SetSize(26, 24)
@@ -1426,12 +1426,12 @@ local socialPage = {
                 bookGlass(self, { 1, 1, 1, on and 0.08 or 0.025 }, on and { c[1], c[2], c[3], 0.4 } or nil)
             end
             b:SetScript("OnClick", function() rateFilter = (rateFilter ~= k) and k or nil refreshSocial() end)
-            b:SetScript("OnEnter", function(self) K.ShowTip(self, { tip, L["Nochmal klicken: alle"] }) end)
+            b:SetScript("OnEnter", function(self) K.ShowTip(self, { tip, L["Click again: show all"] }) end)
             b:SetScript("OnLeave", function() GameTooltip:Hide() end)
             b:Refresh()
             p.rateFilter[k] = b
         end
-        p.noteBox = K.Input(p, 420, L["Notiz zum ausgewaehlten Mitspieler, z.B. 'super Heiler, netter Typ'"])
+        p.noteBox = K.Input(p, 420, L["Note for the selected player, e.g. \"great healer, nice person\""])
         p.noteBox:SetPoint("TOPLEFT", 0, -68)
         p.noteBox.onEnter = function(t)
             if selected and ns.db.allies[selected] then
@@ -1439,7 +1439,7 @@ local socialPage = {
                 refreshSocial()
             end
         end
-        p.whisper = K.Button(p, L["Anfluestern"], 110, 24, "ghost", function()
+        p.whisper = K.Button(p, L["Whisper"], 110, 24, "ghost", function()
             if selected then ns.Whisper(selected) end
         end)
         p.whisper:SetPoint("LEFT", p.noteBox, "RIGHT", 8, 0)
@@ -1473,7 +1473,7 @@ local socialPage = {
         p.whisper:SetShown(false)
         p.group:SetShown(view == "quests")
         p.doneBtn:SetShown(view == "quests")
-        p.doneBtn:SetLabel(ns.db.settings.socialShowDone and ("|cff66db9e" .. L["Fertige: an"] .. "|r") or L["Fertige: aus"])
+        p.doneBtn:SetLabel(ns.db.settings.socialShowDone and ("|cff66db9e" .. L["Finished: on"] .. "|r") or L["Finished: off"])
         p.hint:SetShown(view ~= "quests")
         if view == "quests" then
             local mode = ns.db.settings.socialGroup or "quest"
@@ -1515,7 +1515,7 @@ local socialPage = {
                     return (a.title or "") < (b.title or "")
                 end)
                 if #solo > 0 then
-                    rows[#rows + 1] = { zrow = true, solo = true, zone = L["Nur bei dir"], n = #solo, on = 0 }
+                    rows[#rows + 1] = { zrow = true, solo = true, zone = L["Only for you"], n = #solo, on = 0 }
                     for _, q in ipairs(solo) do rows[#rows + 1] = { qrow = true, solo = true, q = q, online = {}, offline = {} } end
                 end
             else
@@ -1567,10 +1567,10 @@ local socialPage = {
                     c:SetAlpha(0)
                     K.Tween(c, 0.3, function(q) c:SetAlpha(q) end, function() c:SetAlpha(1) end, (i - 1) * 0.06)
                 end
-                c.info:SetText("|cffe8b44a" .. (L["%d gemeinsame Quests"]):format(#e.quests) .. "|r" .. (m and m.zone and ("  ·  " .. m.zone) or ""))
+                c.info:SetText("|cffe8b44a" .. (L["%d shared quests"]):format(#e.quests) .. "|r" .. (m and m.zone and ("  ·  " .. m.zone) or ""))
                 local inGrp = Social.InMyGroup(e.name)
                 c.inv:SetShown(not inGrp)
-                c.state:SetText(inGrp and L["in Gruppe"] or "")
+                c.state:SetText(inGrp and L["in group"] or "")
                 c.inv:SetScript("OnClick", function() inviteName(e.name) end)
                 c:Show()
             end
@@ -1578,16 +1578,16 @@ local socialPage = {
             local more = #onList - maxChips
             if #onList == 0 then
                 p.sumText:SetText(#partners > 0
-                    and ((L["Gerade ist keiner deiner Quest-Partner online."]) .. "   |cff666666" .. (L["%d gemeinsame Quests mit %d Leuten"]):format(#partners, offCount) .. "|r")
-                    or ("|cff777777" .. ((ns.InGuild and not ns.InGuild()) and L["Geh mit Oasis-Nutzern in eine Gruppe - Oasis zeigt dir dann, wer dieselben Quests hat."]
-                        or L["Nimm Quests an - Oasis zeigt dir, wer aus der Gilde dieselben hat."]) .. "|r"))
+                    and ((L["None of your quest partners are online right now."]) .. "   |cff666666" .. (L["%d shared quests with %d people"]):format(#partners, offCount) .. "|r")
+                    or ("|cff777777" .. ((ns.InGuild and not ns.InGuild()) and L["Group up with other Oasis users - Oasis then shows who has the same quests."]
+                        or L["Pick up quests – Oasis shows you who in the guild has the same ones."]) .. "|r"))
             else
                 p.sumText:SetText("")
             end
             local todo = {}
             for _, e in ipairs(onList) do if not Social.InMyGroup(e.name) then todo[#todo + 1] = e.name end end
             p.inviteAll:SetShown(#todo > 1)
-            p.inviteAll:SetLabel((L["Alle einladen (%d)"]):format(#todo) .. (more > 0 and ("  +" .. more) or ""))
+            p.inviteAll:SetLabel((L["Invite all (%d)"]):format(#todo) .. (more > 0 and ("  +" .. more) or ""))
             p.inviteAll:SetScript("OnClick", function() for _, n in ipairs(todo) do inviteName(n) end end)
         elseif view == "near" then
             p.hint:SetText((L["Level %d  ·  %s"]):format(ns.safe(UnitLevel("player")) or 0, ns.safe(GetRealZoneText()) or ""))
@@ -1602,8 +1602,8 @@ local socialPage = {
                 if ok and rateFilter then ok = (rateFilter == "good" and a.fav) or (rateFilter == "bad" and a.bad) or false end
                 if ok and bookMatches(a) then shown[#shown + 1] = a end
             end
-            p.bookCount:SetText((L["%d von %d Spielern"]):format(#shown, #allies))
-            p.allies.empty:SetText(#allies > 0 and L["Keine Spieler fuer diese Suche oder Filter."] or L["Noch keine Mitspieler von ausserhalb der Gilde.\nWer mit dir in einer Gruppe war, landet automatisch hier."])
+            p.bookCount:SetText((L["%d of %d players"]):format(#shown, #allies))
+            p.allies.empty:SetText(#allies > 0 and L["No players match this search or filters."] or L["No players from outside the guild yet.\nAnyone you group with shows up here automatically."])
             local picked
             for _, a in ipairs(shown) do if a.name == selected then picked = a break end end
             if p.detailNote:HasFocus() and (not picked or p.noteOwner ~= selected) then p.detailNote:ClearFocus() end
@@ -1613,7 +1613,7 @@ local socialPage = {
             if picked then
                 p.allies:SetPoint("BOTTOMRIGHT", p.details, "TOPRIGHT", 0, 8)
                 p.detailTitle:SetText(ns.colorName(picked.name, picked.class) .. "  " .. (L["Level %d"]):format(picked.lvl or 0))
-                p.detailMeta:SetText((L["%dx zusammen"]):format(picked.count or 1) .. "  ·  " .. ns.ago(picked.last) .. ((picked.zone or "") ~= "" and ("  ·  " .. picked.zone) or ""))
+                p.detailMeta:SetText((L["%dx together"]):format(picked.count or 1) .. "  ·  " .. ns.ago(picked.last) .. ((picked.zone or "") ~= "" and ("  ·  " .. picked.zone) or ""))
                 if not p.detailNote:HasFocus() then p.detailNote:SetText(picked.note or "") end
                 p.detailParty:SetEnabledState(picked.isOnline and true or false)
                 p.detailGuild:SetEnabledState(picked.isOnline and CanGuildInvite and CanGuildInvite() and true or false)
@@ -1646,8 +1646,8 @@ local socialPage = {
 }
 ns.RegisterPage(socialPage)
 ns.RegisterPage({
-    key = "allies", title = "Spielerbuch", order = 2.85,
-    sub = "Mit wem du unterwegs warst - bewerten, Notizen, mit der Gilde teilen",
+    key = "allies", title = "Player book", order = 2.85,
+    sub = "Who you played with - rate, take notes, share with the guild",
     build = function(p) p.fixed = "allies" socialPage.build(p) end,
     refresh = function(p) p.fixed = "allies" socialPage.refresh(p) end,
 })
@@ -1676,9 +1676,9 @@ ns.Listen("ROSTER", function() refreshSocial() end)
 ------------------------------------------------------------------------
 -- mit der Gilde teilen: je Spieler und Bewerter ein Datensatz
 ns.GuildOption({ page = "allies", key = "soRepShr", default = true,
-    label = "Bewertungen in der Gilde teilen", desc = "Gut/Schlecht-Markierungen von Mitspielern werden an die Gilde weitergegeben (aus = jeder behaelt sie fuer sich)." })
+    label = "Share ratings with the guild", desc = "Good/bad marks on players are shared with the guild (off = everyone keeps them private)." })
 ns.GuildOption({ page = "allies", key = "soWarnN", default = 1, min = 1, max = 5, step = 1,
-    label = "Gilden-Warnung ab Stimmen", desc = "So viele schlechte Bewertungen aus der Gilde braucht es, bevor vor einem Spieler gewarnt wird.",
+    label = "Guild warning from votes", desc = "This many bad ratings from the guild are needed before a warning about a player is shown.",
     fmt = function(v) return v .. "x" end })
 -- 0.6.302: je Bewerter und Spieler EINE Bewertung - Ziel ohne Realm in der Kennung ("Woodox" und "Woodox-Realm"
 -- waren zwei Datensaetze und zaehlten doppelt); neue Bewertung ersetzt die alte
@@ -1729,7 +1729,7 @@ local function badEntry(name)
     if not name or not ns.db or not ns.db.allies then return end
     local e = ns.db.allies[name] or ns.db.allies[ns.fullName(name)]
     if e and e.fav then return end   -- selbst als gut markiert: keine Warnung
-    if e and e.ninja then return { note = L["von dir als Ninja-Looter gemeldet"] .. ((e.note or "") ~= "" and (" - " .. e.note) or ""), ninja = true }, name end
+    if e and e.ninja then return { note = L["reported by you as a ninja looter"] .. ((e.note or "") ~= "" and (" - " .. e.note) or ""), ninja = true }, name end
     if e and e.bad then return e, name end
     local sh = ns.short(name)
     for k, v in pairs(ns.db.allies) do
@@ -1740,12 +1740,12 @@ local function badEntry(name)
     if ninja > 0 then
         local by = {}
         for _, r in ipairs(list) do if r.ninja == 1 then by[#by + 1] = ns.displayName(r.who) end end
-        return { note = (L["als Ninja-Looter gemeldet von %s"]):format(table.concat(by, ", ")), guild = true, ninja = true }, name
+        return { note = (L["reported as a ninja looter by %s"]):format(table.concat(by, ", ")), guild = true, ninja = true }, name
     end
     if down > 0 and down >= (tonumber(ns.GuildOpt("soWarnN")) or 1) and down > up then
         local notes = {}
         for _, r in ipairs(list) do if r.v == "down" and (r.note or "") ~= "" then notes[#notes + 1] = ns.displayName(r.who) .. ": " .. r.note end end
-        return { note = (L["%d aus der Gilde: schlecht"]):format(down) .. (#notes > 0 and (" - " .. table.concat(notes, "; ")) or ""), guild = true }, name
+        return { note = (L["%d from the guild: bad"]):format(down) .. (#notes > 0 and (" - " .. table.concat(notes, "; ")) or ""), guild = true }, name
     end
 end
 Social.BadEntry = badEntry
@@ -1754,8 +1754,8 @@ local function warn(name, e, why)
     e = { note = SEC.Text(e.note, 120) }
     why = SEC.Text(why, 200)
     local note = (e.note or "") ~= "" and ("  |cffffc24d\"" .. e.note .. "\"|r") or ""
-    ns.print("|cffff4d4d" .. L["Achtung:"] .. "|r " .. ns.displayName(name) .. " " .. why .. note)
-    if K.Toast then pcall(K.Toast, L["Achtung"] .. ": " .. ns.displayName(name), why .. ((e.note or "") ~= "" and (" - " .. e.note) or ""), { 0.95, 0.25, 0.25 }) end
+    ns.print("|cffff4d4d" .. L["Warning:"] .. "|r " .. ns.displayName(name) .. " " .. why .. note)
+    if K.Toast then pcall(K.Toast, L["Warning"] .. ": " .. ns.displayName(name), why .. ((e.note or "") ~= "" and (" - " .. e.note) or ""), { 0.95, 0.25, 0.25 }) end
     if ns.Sound then pcall(ns.Sound.Play, "toast") end
 end
 local whisperWarned = {}
@@ -1766,7 +1766,7 @@ ns.On("CHAT_MSG_WHISPER", function(_, sender)
     if e.guild and ns.db.settings.allyWarnGuild == false then return end
     if whisperWarned[n] and GetTime() - whisperWarned[n] < 600 then return end
     whisperWarned[n] = GetTime()
-    warn(n, e, e.guild and L["schreibt dir - schlechte Erfahrungen in der Gilde."] or L["schreibt dir - du hast diese Person als schlecht markiert."])
+    warn(n, e, e.guild and L["is whispering you - the guild had bad experiences."] or L["is whispering you - you marked them as bad."])
 end)
 local groupWarned = {}
 ns.On("GROUP_ROSTER_UPDATE", function()
@@ -1783,7 +1783,7 @@ ns.On("GROUP_ROSTER_UPDATE", function()
                 local e, key = badEntry(full)
                 if e and not groupWarned[key] and not (e.guild and ns.db.settings.allyWarnGuild == false) then
                     groupWarned[key] = true
-                    warn(key, e, e.guild and L["ist in deiner Gruppe - schlechte Erfahrungen in der Gilde."] or L["ist in deiner Gruppe - du hast diese Person als schlecht markiert."])
+                    warn(key, e, e.guild and L["is in your group - the guild had bad experiences."] or L["is in your group - you marked them as bad."])
                 end
             end
         end
@@ -1803,14 +1803,14 @@ local function repLine(tt, unit)
     local up, down, list, ninja = Social.GuildRep(full)
     if not (mine and (mine.fav or mine.bad or (mine.note or "") ~= "")) and #list == 0 then return end
     tt:AddLine(" ")
-    tt:AddLine("|cffe8b44a" .. L["Spielerbuch"] .. "|r")
-    if (ninja or 0) > 0 or (mine and mine.ninja) then tt:AddLine("|cffff3b3b" .. L["NINJA-LOOTER"] .. "|r  |cffaaaaaa" .. (L["%d Meldung(en) aus der Gilde"]):format((ninja or 0) + ((mine and mine.ninja) and 1 or 0)) .. "|r") end
+    tt:AddLine("|cffe8b44a" .. L["Player book"] .. "|r")
+    if (ninja or 0) > 0 or (mine and mine.ninja) then tt:AddLine("|cffff3b3b" .. L["NINJA LOOTER"] .. "|r  |cffaaaaaa" .. (L["%d report(s) from the guild"]):format((ninja or 0) + ((mine and mine.ninja) and 1 or 0)) .. "|r") end
     if mine and (mine.fav or mine.bad) then
-        tt:AddLine(mine.bad and ("|cffff5a5a" .. L["Du: schlecht"] .. "|r") or ("|cff66db9e" .. L["Du: gut"] .. "|r"))
+        tt:AddLine(mine.bad and ("|cffff5a5a" .. L["You: bad"] .. "|r") or ("|cff66db9e" .. L["You: good"] .. "|r"))
     end
     if mine and (mine.note or "") ~= "" then tt:AddLine("\"" .. mine.note .. "\"", 1, 0.76, 0.3, true) end
     if up + down > 0 then
-        tt:AddLine((L["Gilde: %d gut, %d schlecht"]):format(up, down), down > up and 1 or 0.4, down > up and 0.35 or 0.86, down > up and 0.35 or 0.62)
+        tt:AddLine((L["Guild: %d good, %d bad"]):format(up, down), down > up and 1 or 0.4, down > up and 0.35 or 0.86, down > up and 0.35 or 0.62)
     end
     for i, r in ipairs(list) do
         if i > 3 then break end

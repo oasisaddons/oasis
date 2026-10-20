@@ -4,20 +4,20 @@ local resetButton   -- 0.6.180: Vorab-Deklaration (wird weiter unten belegt, sch
 local L = ns.L
 local K, C, Comm = ns.K, ns.K.C, ns.Comm
 
-local QUALITY = { [2] = "Gruen", [3] = "Blau", [4] = "Episch" }
+local QUALITY = { [2] = "Green", [3] = "Blue", [4] = "Epic" }
 local TABS = {
-    { key = "quick", text = "Schnellstart" },
-    { key = "general", text = "Fenster & Minimap" },
-    { key = "pages", text = "Seiten" },
-    { key = "look", text = "Design" },
+    { key = "quick", text = "Quick start" },
+    { key = "general", text = "Window & minimap" },
+    { key = "pages", text = "Pages" },
+    { key = "look", text = "Theme" },
     { key = "tips", text = "Tooltips" },
-    { key = "mapset", text = "Karte" },
-    { key = "toasts", text = "Hinweise" },
+    { key = "mapset", text = "Map" },
+    { key = "toasts", text = "Notifications" },
     { key = "sound", text = "Sound" },
-    { key = "char", text = "Main & Twinks" },
+    { key = "char", text = "Main & alts" },
     { key = "status", text = "Status" },
-    { key = "share", text = "Datenschutz" },
-    { key = "lists", text = "Listen & Karte" },
+    { key = "share", text = "Privacy" },
+    { key = "lists", text = "Lists & map" },
 }
 
 local page
@@ -308,42 +308,42 @@ local function buildGeneral(f)
 
     -- Fenster -------------------------------------------------------------
     -- 0.5.677: Sprache als Zeile hier (vorher eigene Karte), Minimap-Karte auf den Inhalt gekuerzt
-    cardH(f, 0, 0, 362, 196, "home", L["Fenster"], L["Womit Oasis startet - Groesse und Durchsicht stehen unter Aussehen"])
-    rowLabel(f, L["Beim Einloggen"], LX, -60)
+    cardH(f, 0, 0, 362, 196, "home", L["Window"], L["How Oasis starts - size and transparency are under Appearance"])
+    rowLabel(f, L["On login"], LX, -60)
     f.openSeg = K.Segments(f, {
-        { key = "auto", text = L["Wie zuletzt"] }, { key = "always", text = L["Oeffnen"] }, { key = "never", text = L["Zu lassen"] },
+        { key = "auto", text = L["As last time"] }, { key = "always", text = L["Open"] }, { key = "never", text = L["Keep closed"] },
     }, function(k) S().openOnLogin = (k ~= "auto") and k or nil end)
     f.openSeg:SetPoint("TOPLEFT", SX, -58)
-    indexAdd(L["Beim Einloggen"], f.openSeg, L["Oasis beim Einloggen oeffnen"])
-    rowLabel(f, L["Startseite"], LX, -94)
+    indexAdd(L["On login"], f.openSeg, L["Open Oasis on login"])
+    rowLabel(f, L["Start page"], LX, -94)
     f.startSeg = K.Segments(f, {
-        { key = "home", text = L["Dashboard"] }, { key = "last", text = L["Zuletzt offen"] },
+        { key = "home", text = L["Dashboard"] }, { key = "last", text = L["Last opened"] },
     }, function(k) S().startPage = (k == "last") and "last" or nil end)
     f.startSeg:SetPoint("TOPLEFT", SX, -92)
-    indexAdd(L["Startseite"], f.startSeg)
-    local rp = K.Button(f, L["Position zuruecksetzen"], 160, 22, "ghost", function()
+    indexAdd(L["Start page"], f.startSeg)
+    local rp = K.Button(f, L["Reset position"], 160, 22, "ghost", function()
         if ns.ResetWindowPos then ns.ResetWindowPos() end
-        K.Toast(L["Fenster"], L["Wieder in der Bildschirmmitte."], C.mint)
+        K.Toast(L["Window"], L["Back in the middle of the screen."], C.mint)
     end)
     rp:SetPoint("TOPLEFT", LX, -164)
     -- Sprache (auch oben neben der Krone umschaltbar)
-    rowLabel(f, L["Sprache"], LX, -128)
+    rowLabel(f, L["Language"], LX, -128)
     f.lang = K.Button(f, "", 200, 24, "ghost")
     f.lang.isDropdown = true
     f.lang:SetPoint("TOPLEFT", SX, -124)
     f.lang:SetScript("OnClick", function(self) ns.ShowLanguageMenu(self) end)
-    indexAdd(L["Sprache"], f.lang)
+    indexAdd(L["Language"], f.lang)
 
     -- Verhalten -----------------------------------------------------------
-    cardH(f, 0, -210, 362, 176, "settings", L["Verhalten"], L["Wie sich das Fenster im Spiel verhaelt"])
-    f.hideCombat = toggle(f, LX, -262, "Im Kampf ausblenden", "hideInCombat", "Das Oasis-Fenster verschwindet, sobald ein Kampf beginnt (im Kampf schliesst Esc es nicht)", function() if f.reshow then f.reshow:Refresh() end end, 330)
+    cardH(f, 0, -210, 362, 176, "settings", L["Behaviour"], L["How the window behaves in game"])
+    f.hideCombat = toggle(f, LX, -262, "Hide in combat", "hideInCombat", "The Oasis window disappears as soon as combat starts (Esc cannot close it in combat)", function() if f.reshow then f.reshow:Refresh() end end, 330)
     -- 0.5.596: danach wieder zeigen (an) oder geschlossen lassen (aus)
-    f.reshow = toggle(f, LX + 20, -290, "Nach dem Kampf wieder zeigen", "combatReshow", "An: das Fenster kommt nach dem Kampf zurueck. Aus: es bleibt zu.", nil, 310)
-    f.lockWin = toggle(f, LX, -318, "Fenster fixieren", "lockWindow", "Das Fenster laesst sich nicht mehr versehentlich verschieben", nil, 330)
-    f.noAnim = toggle(f, LX, -346, "Animationen reduzieren", "noAnim", "Kein Einblenden und Hochzaehlen - alles erscheint sofort", nil, 330)
+    f.reshow = toggle(f, LX + 20, -290, "Show again after combat", "combatReshow", "On: the window comes back after combat. Off: it stays closed.", nil, 310)
+    f.lockWin = toggle(f, LX, -318, "Lock window", "lockWindow", "The window can no longer be moved by accident", nil, 330)
+    f.noAnim = toggle(f, LX, -346, "Reduce animations", "noAnim", "No fades or count-ups - everything appears instantly", nil, 330)
 
     -- Minimap-Knopf (mit Vorschau zum Ziehen) -----------------------------
-    cardH(f, RX, 0, 362, 400, "map", L["Minimap-Knopf"], L["Knopf in der Vorschau ziehen oder unten genau einstellen"], true)
+    cardH(f, RX, 0, 362, 400, "map", L["Minimap button"], L["Drag the button in the preview or fine-tune below"], true)
     local MX = RX + 14
     if S().minimapBadge == nil then S().minimapBadge = true end
     local function place() if ns.PlaceMinimap then ns.PlaceMinimap() end end
@@ -371,7 +371,7 @@ local function buildGeneral(f)
     pv.btn.glow:SetVertexColor(C.accent[1], C.accent[2], C.accent[3], 0.35)
     pv.hint = K.Text(pv, 9, C.dim, "CENTER")
     pv.hint:SetPoint("TOP", pv, "BOTTOM", 0, 2)
-    pv.hint:SetText(L["ziehen"])
+    pv.hint:SetText(L["drag"])
     function pv:Update()
         local st = S()
         local a = math.rad(st.minimapAngle or 215)
@@ -405,32 +405,32 @@ local function buildGeneral(f)
             if f.mmAngle and f.mmAngle.Refresh then f.mmAngle:Refresh() end
         end
     end)
-    pv:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Minimap-Knopf"], L["Klicken und ziehen: Knopf um die Minimap bewegen"] }) end)
+    pv:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Minimap button"], L["Click and drag: move the button around the minimap"] }) end)
     pv:SetScript("OnLeave", function() GameTooltip:Hide() end)
     f.mmPreview = pv
     -- Schalter rechts neben der Vorschau
     local TX = MX + 156
-    f.t1 = toggle(f, TX, -62, "Anzeigen", "minimap", "Linksklick oeffnet Oasis, Rechtsklick die Einstellungen", function() ns.UpdateMinimapButton() pv:Update() end, 180)
-    f.mmLock = toggle(f, TX, -92, "Fixieren", "minimapLock", "Der Knopf laesst sich nicht mehr mit der Maus verschieben", nil, 180)
-    f.mmBadge = toggle(f, TX, -122, "Neuigkeiten-Zahl", "minimapBadge", "Kleine Zahl am Knopf, wenn es etwas Neues gibt", function() if ns.UpdateNotify then ns.UpdateNotify() end end, 180)
+    f.t1 = toggle(f, TX, -62, "Show", "minimap", "Left-click opens Oasis, right-click the settings", function() ns.UpdateMinimapButton() pv:Update() end, 180)
+    f.mmLock = toggle(f, TX, -92, "Lock", "minimapLock", "The button can no longer be dragged", nil, 180)
+    f.mmBadge = toggle(f, TX, -122, "News counter", "minimapBadge", "Small number on the button when there is something new", function() if ns.UpdateNotify then ns.UpdateNotify() end end, 180)
     -- Feineinstellung
     rowLabel(f, L["Position"], MX, -226)
     f.mmAngle = K.Slider(f, 170, 0, 355, 5, function() return math.floor(((S().minimapAngle or 215) % 360) / 5 + 0.5) * 5 end,
         function(v) S().minimapAngle = v place() pv:Update() end, function(v) return v .. "°" end)
     f.mmAngle:SetPoint("TOPLEFT", MX + 130, -224)
-    indexAdd(L["Position"], f.mmAngle, L["Minimap-Knopf"])
-    rowLabel(f, L["Abstand zum Rand"], MX, -258)
+    indexAdd(L["Position"], f.mmAngle, L["Minimap button"])
+    rowLabel(f, L["Distance from edge"], MX, -258)
     f.mmDist = K.Slider(f, 170, -10, 25, 1, function() return S().minimapDist or 5 end,
         function(v) S().minimapDist = v place() pv:Update() end, function(v) return tostring(v) end)
     f.mmDist:SetPoint("TOPLEFT", MX + 130, -256)
-    indexAdd(L["Abstand zum Rand"], f.mmDist, L["Minimap-Knopf"])
-    rowLabel(f, L["Groesse"], MX, -290)
+    indexAdd(L["Distance from edge"], f.mmDist, L["Minimap button"])
+    rowLabel(f, L["Size"], MX, -290)
     f.mmScale = K.Slider(f, 170, 0.6, 1.6, 0.05, function() return S().minimapScale or 1 end,
         function(v) S().minimapScale = v place() pv:Update() end, function(v) return (L["%d%%"]):format(v * 100 + 0.5) end)
     f.mmScale:SetPoint("TOPLEFT", MX + 130, -288)
-    indexAdd(L["Groesse"], f.mmScale, L["Minimap-Knopf"])
-    note(f, L["Den Knopf kannst du auch direkt an der Minimap mit der Maus verschieben."], MX, -330, 330, C.dim)
-    local mr = K.Button(f, L["Zuruecksetzen"], 120, 22, "ghost", function()
+    indexAdd(L["Size"], f.mmScale, L["Minimap button"])
+    note(f, L["You can also drag the button around the minimap."], MX, -330, 330, C.dim)
+    local mr = K.Button(f, L["Reset"], 120, 22, "ghost", function()
         S().minimapAngle, S().minimapDist, S().minimapScale = 215, 5, 1
         place()
         ns.RefreshPage("settings")
@@ -445,7 +445,7 @@ local function refreshGeneral(f)
     if f.mmPreview then f.mmPreview:Update() end
     local l = ns.langByKey[ns.lang]
     local auto = (S().lang or "auto") == "auto"
-    f.lang:SetLabel("|T" .. ns.MEDIA .. "flags\\" .. l.flag .. ":12:16:0:0:64:64:0:64:0:48|t  " .. (auto and (L["Wie das Spiel"] .. " (" .. l.name .. ")") or l.name))
+    f.lang:SetLabel("|T" .. ns.MEDIA .. "flags\\" .. l.flag .. ":12:16:0:0:64:64:0:64:0:48|t  " .. (auto and (L["Like the game"] .. " (" .. l.name .. ")") or l.name))
     K.SetFontSafe(f.lang.label, K.fontByKey[l.cjk or "ptsans"].path, 12, "")
 end
 
@@ -456,13 +456,13 @@ end
 local function updPins() if ns.Map and ns.Map.UpdateWorldPins then ns.Map.UpdateWorldPins() end end
 local PAGE_OPTS = {
     chat = {
-        { "Emojis im Chat anzeigen", "chatEmoji", "Aus :lol: oder <3 wird ein Bild - sehen alle mit Oasis" },
-        { "Emoji-Knopf im Eingabefeld", "emojiButton", "Kleines Gesicht rechts im Chat-Eingabefeld", function() if ns.Emoji then ns.Emoji.UpdateButtons() end end },
-        { "Fluestern an Offline-Charaktere dem Twink anbieten", "whisperForward", "Ist der angefluesterte Charakter offline und ein Twink desselben Spielers online, bietet Oasis an, die Nachricht dorthin zu schicken - gesendet wird erst nach deinem Klick." },
+        { "Show emojis in chat", "chatEmoji", ":lol: or <3 becomes a picture – everyone with Oasis sees it" },
+        { "Emoji button in the input box", "emojiButton", "Small face on the right of the chat input box", function() if ns.Emoji then ns.Emoji.UpdateButtons() end end },
+        { "Offer whispers to offline characters to their alt", "whisperForward", "If the character you whispered is offline and an alt of the same player is online, Oasis offers to send the message there - it is only sent after your click." },
         emojiPicker = true,
     },
     radar = {
-        { "Deutlicher Standard-Ton bei Online-Meldungen", "entranceLoud", "Zweiklang statt kurzem Ton, wenn die Person keinen eigenen Online-Sound gewaehlt hat", nil, true },
+        { "Clear default sound for online notices", "entranceLoud", "Two-tone instead of a short blip when the person has not picked an online sound", nil, true },
         inactive = true, listDark = true,
     },
     deathroll = { { "Deathroll leise wuerfeln", "drSilent", "Unter Oasis-Spielern fair per Addon statt /roll - nichts im Chat" } },
@@ -476,9 +476,9 @@ local AREA_CHILDREN = { insta = { "life" } }
 -- Wege zu den Sammelseiten: Bereiche zeigen nur ihre eigenen Schalter, Tooltip-, Karten-, Hinweis-, Klang- und
 -- Teilen-Schalter stehen gesammelt (0.6.112: Hinweise und Teilen auch nicht mehr doppelt in den Bereichen)
 local LK = {
-    map = { "mapset", "Karte und Minimap einstellen" }, tips = { "tips", "Tooltip-Zeilen einstellen" },
-    toast = { "toasts", "Hinweise ein- und ausschalten" }, share = { "share", "Teilen und Datenschutz" },
-    sound = { "sound", "Online-Ton und Anzeige" },
+    map = { "mapset", "Map and minimap settings" }, tips = { "tips", "Tooltip line settings" },
+    toast = { "toasts", "Turn notifications on and off" }, share = { "share", "Sharing and privacy" },
+    sound = { "sound", "Online sound and display" },
 }
 local AREA_LINKS = {
     radar = { LK.map, LK.toast, LK.sound }, map = { LK.map }, deaths = { LK.map, LK.toast },
@@ -533,7 +533,7 @@ local function rewardPicker(parent, kind, x, y, label, get, set)
             self.img:SetTexture(round and "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask" or "Interface\\Buttons\\WHITE8X8")
         end
         self.img:SetVertexColor(col[1], col[2], col[3])
-        self.label:SetText(r and short(r) or ("|cff999999" .. L["Standard"] .. "|r"))
+        self.label:SetText(r and short(r) or ("|cff999999" .. L["Default"] .. "|r"))
     end
     b:SetScript("OnClick", function(self)
         local lvl = ns.Rank and ns.Rank.Mine() and ns.Rank.Mine().level or 1
@@ -542,17 +542,17 @@ local function rewardPicker(parent, kind, x, y, label, get, set)
         do
             local icon, col, round = rewardVisual(kind, nil)
             if kind == "theme" then col = ns.Admin and ns.Admin.GuildAccentColor() or C.accent end
-            items[1] = { key = false, text = L["Standard"], icon = icon, color = col, round = round, checked = cur == nil }
+            items[1] = { key = false, text = L["Default"], icon = icon, color = col, round = round, checked = cur == nil }
         end
         for _, r in ipairs(RW and RW.LIST or {}) do
             if r.kind == kind then
                 local icon, col, round = rewardVisual(kind, r)
                 local key = r.key
                 items[#items + 1] = { key = key, text = short(r), icon = icon, color = col, round = round, checked = cur == key,
-                    locked = lvl < r.lvl and (L["Rang %d"]):format(r.lvl) or nil,
+                    locked = lvl < r.lvl and (L["Rank %d"]):format(r.lvl) or nil,
                     onEnter = function(tile)
                         if kind == "sound" and ns.Sound then ns.Sound.PlayChoice(key) end
-                        K.ShowTip(tile, { L[r.name], L[r.desc or ""], lvl < r.lvl and ("|cffe8b44a" .. (L["Ab Oasis-Rang %d"]):format(r.lvl) .. "|r") or nil })
+                        K.ShowTip(tile, { L[r.name], L[r.desc or ""], lvl < r.lvl and ("|cffe8b44a" .. (L["From Oasis rank %d"]):format(r.lvl) .. "|r") or nil })
                     end }
             end
         end
@@ -569,7 +569,7 @@ ns.AddPageSettings("badges", function(det, y)
     local s = S()
     local B = ns.Badges
     det.t[#det.t + 1] = (function()
-        local t = K.Toggle(det, L["Hinweis bei neuem Abzeichen"], function()
+        local t = K.Toggle(det, L["Notify me about new badges"], function()
             return not (S().toastOff and S().toastOff.badge)
         end, function(v)
             S().toastOff = S().toastOff or {}
@@ -581,14 +581,14 @@ ns.AddPageSettings("badges", function(det, y)
     end)()
     y = y - 32
     if s.badgeChronicle == nil then s.badgeChronicle = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Neue Abzeichen in der Chronik eintragen", "badgeChronicle", "Die Gilde sieht in der Chronik, was du erreicht hast", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Add new badges to the chronicle", "badgeChronicle", "The guild sees your achievements in the chronicle", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Gold-Abzeichen im Gildenchat feiern", "badgeAnnounce", "Schreibt bei Gold-Abzeichen und Gilden-Titeln eine kurze Zeile in den Gildenchat", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Celebrate gold badges in guild chat", "badgeAnnounce", "Posts a short line in guild chat for gold badges and guild titles", nil, 600)
     y = y - 40
 
     -- Vitrine
-    rowLabel(det, "|cffe8b44a" .. L["Deine Vitrine"] .. "|r", 14, y)
-    note(det, L["Diese Abzeichen zeigt deine Profilkarte zuerst - bei dir und bei der Gilde."], 150, y - 2, 450, C.dim)
+    rowLabel(det, "|cffe8b44a" .. L["Your showcase"] .. "|r", 14, y)
+    note(det, L["Your profile card shows these badges first - for you and the guild."], 150, y - 2, 450, C.dim)
     y = y - 34
     det.slots = {}
     local function mineList()
@@ -634,20 +634,20 @@ ns.AddPageSettings("badges", function(det, y)
         slot:SetScript("OnEnter", function(self)
             local id = (S().badgeShowcase or {})[i]
             local b = id and B.byId[id]
-            K.ShowTip(self, b and { B.Label(id, tierOf(id) or 1), L["Klick: anderes Abzeichen waehlen"] } or { L["Freier Platz"], L["Klick: Abzeichen waehlen"] })
+            K.ShowTip(self, b and { B.Label(id, tierOf(id) or 1), L["Click: choose another badge"] } or { L["Empty slot"], L["Click: choose a badge"] })
         end)
         slot:SetScript("OnLeave", function() GameTooltip:Hide() end)
         slot:SetScript("OnClick", function(self)
             local cur = (S().badgeShowcase or {})[i]
-            local items = { { key = false, text = L["Leer"], icon = nil, color = { 0.25, 0.25, 0.28 }, round = true, checked = cur == nil } }
+            local items = { { key = false, text = L["Empty"], icon = nil, color = { 0.25, 0.25, 0.28 }, round = true, checked = cur == nil } }
             for _, e in ipairs(mineList()) do
                 local c = B.Color(e.tier)
                 items[#items + 1] = { key = e.b.id, text = L[e.b.name], icon = e.b.wow or e.b.icon, color = e.b.wow and { 1, 1, 1 } or c,
                     checked = cur == e.b.id,
                     onEnter = function(tile) K.ShowTip(tile, { B.Label(e.b.id, e.tier), L[e.b.desc or ""] }) end }
             end
-            if #items == 1 then items[2] = { key = false, text = L["Noch keine Abzeichen"], color = { 0.3, 0.3, 0.3 }, round = true, locked = " " } end
-            K.TilePicker(self, (L["Vitrine - Platz %d"]):format(i), items, function(k)
+            if #items == 1 then items[2] = { key = false, text = L["No badges yet"], color = { 0.3, 0.3, 0.3 }, round = true, locked = " " } end
+            K.TilePicker(self, (L["Showcase - slot %d"]):format(i), items, function(k)
                 local sc = S().badgeShowcase or {}
                 -- dasselbe Abzeichen nicht doppelt
                 for j = 1, 4 do if j ~= i and sc[j] == k then sc[j] = nil end end
@@ -669,33 +669,33 @@ ns.AddPageSettings("bags", function(det, y)
     -- 0.6.569: Bankplaetze und Aktionsleisten stecken in Oasis Convenience - ohne das Teil-Addon keine Zeilen
     if not (ns.BankSlots or ns.ActionBars) then return y end
     if S().bankGhosts == nil then S().bankGhosts = true end
-    if ns.BankSlots then det.t[#det.t + 1] = toggle(det, 14, y, "Bank-Platzhalter", "bankGhosts", "Leiste ueber der Bank: Belegung merken, leere Plaetze zeigen ein blasses Symbol (Oasis verschiebt nichts)",
+    if ns.BankSlots then det.t[#det.t + 1] = toggle(det, 14, y, "Bank placeholders", "bankGhosts", "Bar above the bank: remember the layout, empty slots show a faded icon (Oasis moves nothing)",
         function() if ns.BankSlots then ns.BankSlots.Refresh() end end, 600)
     y = y - 32 end
     -- 0.6.521: Aktionsleisten speichern/laden (Komfort-Modul)
     if ns.ActionBars then
         y = y - 8
-        rowLabel(det, "|cffe8b44a" .. L["Aktionsleisten"] .. "|r", 14, y)
+        rowLabel(det, "|cffe8b44a" .. L["Action bars"] .. "|r", 14, y)
         y = y - 28
-        local name = K.Input(det, 160, L["Name, z. B. Raid"])
+        local name = K.Input(det, 160, L["Name, e.g. Raid"])
         name:SetPoint("TOPLEFT", 14, y)
-        local sv = K.Button(det, L["Speichern"], 90, 24, "ghost", function() ns.ActionBars.Save(name:GetText()) end)
+        local sv = K.Button(det, L["Save"], 90, 24, "ghost", function() ns.ActionBars.Save(name:GetText()) end)
         sv:SetPoint("LEFT", name, "RIGHT", 8, 0)
         local ld
-        ld = K.Button(det, L["Laden ..."], 90, 24, "ghost", function()
+        ld = K.Button(det, L["Load …"], 90, 24, "ghost", function()
             local items = {}
             for _, n in ipairs(ns.ActionBars.Names()) do
                 items[#items + 1] = { text = n, fn = function() ns.ActionBars.Load(n) end }
             end
-            if #items == 0 then items[1] = { text = L["Noch keine Leisten gespeichert."], fn = function() end } end
-            K.ShowMenu(ld, items, L["Aktionsleisten laden"])
+            if #items == 0 then items[1] = { text = L["No bars saved yet."], fn = function() end } end
+            K.ShowMenu(ld, items, L["Load action bars"])
         end)
         ld:SetPoint("LEFT", sv, "RIGHT", 6, 0)
         local del
-        del = K.Button(det, L["Loeschen ..."], 90, 24, "ghost", function()
+        del = K.Button(det, L["Delete …"], 90, 24, "ghost", function()
             local items = {}
             for _, n in ipairs(ns.ActionBars.Names()) do items[#items + 1] = { text = n, fn = function() ns.ActionBars.Delete(n) end } end
-            if #items > 0 then K.ShowMenu(del, items, L["Loeschen"]) end
+            if #items > 0 then K.ShowMenu(del, items, L["Put out"]) end
         end)
         del:SetPoint("LEFT", ld, "RIGHT", 6, 0)
         y = y - 36
@@ -711,25 +711,25 @@ ns.AddPageSettings("chat", function(det, y)
         if st.wlGroupAlts == nil then st.wlGroupAlts = true end
         if st.wlOnlineBg == nil then st.wlOnlineBg = true end
         local function rf() ns.RefreshPage("chat") end
-        det.t[#det.t + 1] = toggle(det, 14, y, "Privat: Twink-Gespraeche unter dem Main", "wlGroupAlts", "Gespraeche mit Twinks haengen aufklappbar unter dem Gespraech mit ihrem Main", rf, 600)
+        det.t[#det.t + 1] = toggle(det, 14, y, "Private: alt conversations under the main", "wlGroupAlts", "Conversations with alts are nested under the conversation with their main", rf, 600)
         y = y - 30
-        det.t[#det.t + 1] = toggle(det, 14, y, "Privat: wer online ist, gruen hinterlegen", "wlOnlineBg", "Gruener Hintergrund fuer Gespraechspartner, die gerade online sind", rf, 600)
+        det.t[#det.t + 1] = toggle(det, 14, y, "Private: green background for who is online", "wlOnlineBg", "Green background for contacts who are online right now", rf, 600)
         y = y - 36
     end
     local s = S()
     if s.chatTyping == nil then s.chatTyping = true end
     if s.chatMentionSuggest == nil then s.chatMentionSuggest = true end
     if s.chatMentionSound == nil then s.chatMentionSound = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Zeigen, wenn jemand schreibt", "chatTyping", "Auch die anderen sehen dann, wenn du gerade schreibst", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Show when someone is typing", "chatTyping", "Others will then also see when you are typing", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "@Namen-Vorschlaege im normalen Chat", "chatMentionSuggest", "Beim Tippen von @ schlaegt Oasis Gildenmitglieder vor (Tab vervollstaendigt)", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "@name suggestions in the normal chat", "chatMentionSuggest", "Typing @ suggests guild members (Tab completes)", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Ton bei @Erwaehnung", "chatMentionSound", "Kurzer Ping, wenn dich jemand im Gildenchat erwaehnt", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Sound on @mention", "chatMentionSound", "Short ping when someone mentions you in guild chat", nil, 600)
     y = y - 38
-    rowLabel(det, L["Emoji-Groesse im Chat"], 14, y - 2)
+    rowLabel(det, L["Emoji size in chat"], 14, y - 2)
     det.esize = K.Slider(det, 180, 0, 32, 2, function() return tonumber(S().emojiChatSize) or 0 end,
         function(v) S().emojiChatSize = v if ns.GuildChat and ns.GuildChat.ClearRenderCache then ns.GuildChat.ClearRenderCache() end end,
-        function(v) return v == 0 and L["automatisch"] or (v .. " px") end,
+        function(v) return v == 0 and L["automatic"] or (v .. " px") end,
         function() if ns.GuildChat and ns.GuildChat.ApplyLook then ns.GuildChat.ApplyLook() end end)
     det.esize:SetPoint("TOPLEFT", 184, y)
     y = y - 40
@@ -739,7 +739,7 @@ ns.AddPageSettings("chat", function(det, y)
         if ok and type(ny) == "number" then y = ny - 6 end
     end
     -- Stummgeschaltete Personen
-    rowLabel(det, "|cffe8b44a" .. L["Stummgeschaltet"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Muted"] .. "|r", 14, y)
     y = y - 26
     det.muteBox = CreateFrame("Frame", nil, det)
     det.muteBox:SetPoint("TOPLEFT", 14, y)
@@ -773,7 +773,7 @@ ns.AddPageSettings("chat", function(det, y)
         if not self.muteEmpty then
             self.muteEmpty = K.Text(self.muteBox, 11, C.dim)
             self.muteEmpty:SetPoint("TOPLEFT", 0, -4)
-            self.muteEmpty:SetText(L["Niemand. Stummschalten geht per Rechtsklick auf einen Namen im Gildenchat."])
+            self.muteEmpty:SetText(L["Nobody. Mute someone by right-clicking a name in guild chat."])
         end
         self.muteEmpty:SetShown(#names == 0)
     end
@@ -785,14 +785,14 @@ end)
 ns.AddPageSettings("radar", function(det, y)
     local s = S()
     if s.trackPlay == nil then s.trackPlay = true end
-    rowLabel(det, L["Als neu markieren"], 14, y - 2)
+    rowLabel(det, L["Mark as new"], 14, y - 2)
     det.newDays = K.Slider(det, 180, 3, 30, 1, function() return S().newDays or 14 end,
-        function(v) S().newDays = v end, function(v) return (L["%d Tg"]):format(v) end)
+        function(v) S().newDays = v end, function(v) return (L["%d d"]):format(v) end)
     det.newDays:SetPoint("TOPLEFT", 184, y)
     y = y - 26
-    note(det, L["So lange steht ein gruenes NEU vor neuen Mitgliedern."], 14, y, 600, C.dim)
+    note(det, L["How long new members show a green NEW."], 14, y, 600, C.dim)
     y = y - 30
-    det.t[#det.t + 1] = toggle(det, 14, y, "Spielzeiten mitschreiben", "trackPlay", "Fuer 'meist online um' und das Level-Tempo in der Mitgliederliste - nur bei dir gespeichert", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Record play times", "trackPlay", "For 'usually online at' and level pace in the member list - stored only on your PC", nil, 600)
     return y - 36
 end)
 
@@ -802,18 +802,18 @@ ns.AddPageSettings("fight", function(det, y)
     if s.cbAutoLog == nil then s.cbAutoLog = ns.GuildPack and true or false end   -- oeffentliche Version: aus
     -- die Logdatei nuetzt nur mit dem Crit-Import ueber OasisSync, und der wird nicht verteilt - nur mit Gildenmodul
     if ns.GuildPack then
-        det.t[#det.t + 1] = toggle(det, 14, y, "Kampflog mitschreiben (/combatlog)", "cbAutoLog",
-            "Schaltet beim Einloggen das Kampflog ein (wie /combatlog). OasisSync liest daraus die Crits aus Gruppen und Dungeons.",
+        det.t[#det.t + 1] = toggle(det, 14, y, "Write combat log (/combatlog)", "cbAutoLog",
+            "Turns on combat logging at login (like /combatlog). OasisSync reads group and dungeon crits from it.",
             function() if ns.CombatBoard and ns.CombatBoard.ApplyAutoLog then ns.CombatBoard.ApplyAutoLog() end end, 600)
         y = y - 30
     end
     if s.cbLiveCrit == nil then s.cbLiveCrit = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Crits beim Kampf allein automatisch zaehlen", "cbLiveCrit",
-        "Ohne Gruppe und ausserhalb von Dungeons zaehlt jeder kritische Treffer auf dein Ziel sofort fuer Hoechster Crit - ohne Logdatei.", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Count crits automatically when fighting alone", "cbLiveCrit",
+        "Without a group and outside dungeons, every critical hit on your target counts for highest crit right away - no log file.", nil, 600)
     y = y - 30
     if s.cbGroupCrit == nil then s.cbGroupCrit = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Crits in Gruppe und Dungeon schaetzen", "cbGroupCrit",
-        "WoW sagt Addons in der Gruppe nicht, wer getroffen hat. Oasis zaehlt einen kritischen Treffer nur, wenn er direkt auf deinen eigenen Angriff folgt und nach dem Kampf zur Schadensanzeige passt. In der Rangliste als geschaetzt markiert.", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Estimate crits in groups and dungeons", "cbGroupCrit",
+        "In a group WoW does not tell addons who landed a hit. Oasis only counts a critical hit if it directly follows your own attack and matches the damage meter after the fight. Marked as estimated in the ranking.", nil, 600)
     return y - 36
 end)
 
@@ -828,17 +828,17 @@ ns.AddPageSettings("groups", function(det, y)
     if s.lfgAccept == nil then s.lfgAccept = true end
     if s.lfgAuto == nil then s.lfgAuto = true end
     local function refreshGroups() ns.RefreshPage("groups") end
-    rowLabel(det, "|cffe8b44a" .. L["Hinweise"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Notifications"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Auch Suchen ohne Platz fuer meine Rolle melden", "lfgAllRoles", "Sonst kommt der Hinweis nur, wenn ein Platz fuer eine deiner Rollen frei ist", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Also notify about searches without a spot for my role", "lfgAllRoles", "Otherwise you are only notified when a spot for one of your roles is free", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Hinweise auch in Dungeons und Schlachtfeldern", "lfgInInstance", "Sonst bleiben neue Gruppensuchen in Instanzen still", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Notices in dungeons and battlegrounds too", "lfgInInstance", "Otherwise new group searches stay silent inside instances", nil, 600)
     y = y - 40
-    rowLabel(det, "|cffe8b44a" .. L["Automatik"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Automation"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Einladung zu angefragten Gruppen automatisch annehmen", "lfgAccept", "Nur von Leitern, bei denen du ueber Oasis angefragt hast", refreshGroups, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Automatically accept invites to groups I requested", "lfgAccept", "Only from leaders you asked via Oasis", refreshGroups, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Bei eigener Suche automatisch einladen", "lfgAuto", "Standard fuer neue Suchen: Anfragende werden sofort eingeladen statt erst nach Klick", refreshGroups, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Auto-invite on my own search", "lfgAuto", "Default for new searches: requesters are invited right away instead of after a click", refreshGroups, 600)
     y = y - 32
     return y - 10
 end)
@@ -848,13 +848,13 @@ ns.AddPageSettings("social", function(det, y)
     local s = S()
     if s.socialQuestHint == nil then s.socialQuestHint = true end
     local function refreshSocial() ns.RefreshPage("social") end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Hinweis, wenn jemand dieselbe Quest annimmt", "socialQuestHint", "Klick auf den Hinweis laedt die Person in deine Gruppe ein", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Notice when someone accepts the same quest", "socialQuestHint", "Clicking the notice invites that player to your group", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Nur Gruppenquests beruecksichtigen", "socialGroupOnly", "Liste und Hinweise zeigen nur Quests, die fuer Gruppen gedacht sind", refreshSocial, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Group quests only", "socialGroupOnly", "List and notices only show quests meant for groups", refreshSocial, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Fertige Quests in der Liste zeigen", "socialShowDone", "Auch Quests, die du nur noch abgeben musst (wie der Knopf Fertige auf der Seite)", refreshSocial, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Show completed quests in the list", "socialShowDone", "Also quests you only need to turn in (same as the Completed button on the page)", refreshSocial, 600)
     y = y - 32
-    note(det, L["Ob andere deine Quests sehen, stellst du unter Profil ein (Meine Quests teilen)."], 14, y, 600, C.dim)
+    note(det, L["Whether others see your quests is set under Profile (Share my quests)."], 14, y, 600, C.dim)
     y = y - 28
     return y - 10
 end)
@@ -865,16 +865,16 @@ ns.AddPageSettings("allies", function(det, y)
     for _, k in ipairs({ "allyRemember", "allyWarnWhisper", "allyWarnGroup", "allyWarnGuild", "allyTooltip" }) do
         if s[k] == nil then s[k] = true end
     end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Mitspieler aus Gruppen merken", "allyRemember", "Spieler ausserhalb der Gilde, mit denen du in einer Gruppe warst, landen im Spielerbuch - nur bei dir gespeichert", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Remember players from groups", "allyRemember", "Players outside the guild you grouped with go into the player book - stored only on your side", nil, 600)
     y = y - 32
     y = y - 8
-    rowLabel(det, "|cffe8b44a" .. L["Warnungen"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Warnings"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Warnen, wenn ein schlecht Bewerteter in die Gruppe kommt", "allyWarnGroup", nil, nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Warn when a badly rated player joins the group", "allyWarnGroup", nil, nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Warnen, wenn ein schlecht Bewerteter dir schreibt", "allyWarnWhisper", nil, nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Warn when a badly rated player whispers you", "allyWarnWhisper", nil, nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Auch nach Bewertungen der Gilde warnen", "allyWarnGuild", "Aus: nur bei Spielern, die DU als schlecht markiert hast", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Also warn based on guild ratings", "allyWarnGuild", "Off: only for players YOU marked as bad", nil, 600)
     y = y - 32
     return y - 10
 end)
@@ -886,12 +886,12 @@ ns.AddPageSettings("dungeons", function(det, y)
         if s[k] == nil then s[k] = true end
     end
     local function refreshDg() ns.RefreshPage("dungeons") end
-    rowLabel(det, L["Start-Filter"], 14, y - 2)
+    rowLabel(det, L["Start filter"], 14, y - 2)
     det.dgFilter = K.Segments(det, {
-        { key = "auto", text = L["Automatisch"] },
-        { key = "mine", text = L["Fuer mich"] },
-        { key = "open", text = L["Alle offenen"] },
-        { key = "all", text = L["Alle"] },
+        { key = "auto", text = L["Automatic"] },
+        { key = "mine", text = L["For me"] },
+        { key = "open", text = L["All open"] },
+        { key = "all", text = L["All"] },
     }, function(k)
         S().dgFilter = (k ~= "auto") and k or nil
         if ns.Dungeons and ns.Dungeons.ResetFilter then ns.Dungeons.ResetFilter() end
@@ -901,17 +901,17 @@ ns.AddPageSettings("dungeons", function(det, y)
     det.refreshers = det.refreshers or {}
     table.insert(det.refreshers, function() det.dgFilter:Select(S().dgFilter or "auto") end)
     y = y - 30
-    note(det, L["Automatisch: passende Dungeons fuer dein Level, sonst alle offenen."], 14, y, 600, C.dim)
+    note(det, L["Automatic: dungeons fitting your level, otherwise all open ones."], 14, y, 600, C.dim)
     y = y - 34
-    rowLabel(det, "|cffe8b44a" .. L["Beute-Liste"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Loot list"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Passende Beute als fuer dich markieren", "dgForYou", "Gruener Hinweis bei Gegenstaenden mit Werten fuer deine Klasse", refreshDg, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Mark fitting loot as for you", "dgForYou", "Green tag on items with stats for your class", refreshDg, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Unpassende Beute abdunkeln", "dgDimUnfit", "Ruestung und Waffen, die deine Klasse nicht tragen kann, werden blasser", refreshDg, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Dim unusable loot", "dgDimUnfit", "Armor and weapons your class cannot use are faded", refreshDg, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Gesucht, Gildenbank und Besitz anzeigen", "dgMarkers", "Zusatz unter jedem Gegenstand: wer ihn sucht, wie viele in der Gildenbank liegen, ob du ihn hast", refreshDg, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Show wanted, guild bank and owned", "dgMarkers", "Extra line under each item: who wants it, how many are in the guild bank, whether you own it", refreshDg, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Beute im Hintergrund vorladen", "dgPreload", "Nach dem Einloggen werden alle Dungeon-Beutelisten nach und nach gelesen (fuer Tooltips) - wirkt ab dem naechsten Login", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Preload loot in the background", "dgPreload", "After login all dungeon loot lists are read bit by bit (for tooltips) - takes effect on next login", nil, 600)
     y = y - 32
     return y - 10
 end)
@@ -924,13 +924,13 @@ ns.AddPageSettings("buffs", function(det, y)
         if ns.BuffMonitor and ns.BuffMonitor.Update then ns.BuffMonitor.Update() end
         ns.RefreshPage("buffs")
     end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Beim Gruppenbeitritt automatisch einblenden", "buffAuto", "Das schwebende Buff-Fenster geht auf, sobald du in eine Gruppe kommst", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Show automatically when joining a group", "buffAuto", "The floating buff window opens as soon as you join a group", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Beim Verlassen der Gruppe ausblenden", "buffAutoHide", "Allein ist das Fenster weg - in der naechsten Gruppe kommt es wieder", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Hide when leaving the group", "buffAutoHide", "Gone while solo - it comes back in your next group", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Fenster festsetzen", "buffLock", "Das schwebende Fenster laesst sich nicht mehr versehentlich verschieben", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Lock window", "buffLock", "The floating window can no longer be moved by accident", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Flaeschchen, Elixiere und Essen pruefen", "buffCons", "Aus: nur Klassen-Buffs (Ausdauer, Intelligenz, Segen ...)", upd, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Check flasks, elixirs and food", "buffCons", "Off: class buffs only (Stamina, Intellect, Blessings ...)", upd, 600)
     y = y - 32
     return y - 10
 end)
@@ -939,19 +939,19 @@ ns.AddPageSettings("raid", function(det, y)
     for _, k in ipairs({ "raidReminder", "raidNewEventToast", "raidWinToast", "lootHelper", "raidPointsPrompt" }) do
         if S()[k] == nil then S()[k] = true end
     end
-    rowLabel(det, "|cffe8b44a" .. L["Hinweise"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Notifications"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Erinnerung 15 Min vor meinen Raids", "raidReminder", "Kurzer Hinweis, wenn ein Termin mit deiner Zusage (oder deiner eigener) gleich beginnt", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Reminder 15 min before my raids", "raidReminder", "Short notice when an event you signed up for (or created) is about to start", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Hinweis bei neuen Raidterminen", "raidNewEventToast", "Zeigt einen Hinweis, sobald jemand aus der Gilde einen neuen Termin anlegt", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Notify about new raid events", "raidNewEventToast", "Shows a notice as soon as a guildmate creates a new event", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Hinweis, wenn ich ein Item bekomme", "raidWinToast", "Meldung bei der Oasis-Verteilung, wenn das Item an dich geht", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Notify when I receive an item", "raidWinToast", "Notice during Oasis loot distribution when the item goes to you", nil, 600)
     y = y - 32
-    rowLabel(det, "|cffe8b44a" .. L["Als Anfuehrer"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["As leader"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Verteil-Helfer am Beutefenster", "lootHelper", "Als Anfuehrer erscheint neben dem Beutefenster eine Liste zum Verteilen per Oasis", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Distribution helper at the loot window", "lootHelper", "As leader, a list for distributing via Oasis appears next to the loot window", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Raid-Punkte beim Betreten anbieten", "raidPointsPrompt", "Als Offizier fragt Oasis beim Betreten einer Raid-Instanz, ob die Punkte starten sollen", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Offer raid points on entering", "raidPointsPrompt", "As an officer, Oasis asks on entering a raid instance whether to start points", nil, 600)
     y = y - 32
     return y - 10
 end)
@@ -965,9 +965,9 @@ ns.AddPageSettings("crafting", function(det, y)
     if s.craftStatusToasts == nil then s.craftStatusToasts = true end
     if s.craftBadge == nil then s.craftBadge = true end
     if s.tipCrafters == nil then s.tipCrafters = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Hinweise zu meinen Auftraegen", "craftStatusToasts", "Angenommen, fertig, abgelehnt oder zurueckgegeben - Meldung bei Aenderungen deiner eigenen Bestellungen", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Updates on my orders", "craftStatusToasts", "Accepted, done, declined or returned - a notice when your own orders change", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Zahl offener Auftraege im Menue", "craftBadge", "Kleine Zahl am Menuepunkt Handwerks-Boerse fuer Auftraege, die du herstellen koenntest",
+    det.t[#det.t + 1] = toggle(det, 14, y, "Open order count in the menu", "craftBadge", "Small number on the Crafting menu entry for orders you could craft",
         function() if ns.Crafting and ns.Crafting.UpdateBadge then ns.Crafting.UpdateBadge() end end, 600)
     y = y - 32
     return y - 10
@@ -979,13 +979,13 @@ ns.AddPageSettings("trade", function(det, y)
     if s.wantAlarm == nil then s.wantAlarm = true end
     if s.priceAnswer == nil then s.priceAnswer = true end
     local function upd() ns.RefreshPage("trade") end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Wunschliste-Alarm", "wantAlarm", "Liegt etwas von deiner Wunschliste guenstig im AH, bekommst du einen Hinweis - auch wenn ein anderer gescannt hat.", upd, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Wishlist alert", "wantAlarm", "If something from your wishlist is cheap in the AH, you get a notice - even if someone else scanned.", upd, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Preisabfragen beantworten", "priceAnswer", "Schreibt jemand 'pc [Item]' in den Gildenchat, antwortet genau ein Oasis-Nutzer mit Preis und 7-Tage-Tief.", upd, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Answer price checks", "priceAnswer", "When someone types 'pc [item]' in guild chat, exactly one Oasis user answers with the price and 7-day low.", upd, 600)
     y = y - 32
     if _G.MidasDB then
         if s.midasAutoScan == nil then s.midasAutoScan = true end
-        det.t[#det.t + 1] = toggle(det, 14, y, "Midas scannt automatisch", "midasAutoScan", "Beim Oeffnen des Auktionshauses startet Midas den Scan im Hintergrund (hoechstens alle 15 Minuten, Server-Sperre).",
+        det.t[#det.t + 1] = toggle(det, 14, y, "Midas scans automatically", "midasAutoScan", "When you open the auction house, Midas starts its scan in the background (at most every 15 minutes, server limit).",
             function() upd() if ns.ApplyMidasAutoScan then ns.ApplyMidasAutoScan() end end, 600)
         y = y - 32
     end
@@ -998,18 +998,18 @@ ns.AddPageSettings("wants", function(det, y)
     for _, k in ipairs({ "wantsLootHint", "wantsBagHint", "wantsBadge", "tipOasis", "tipWanted", "itemSuggest", "wantsDungeonHint", "wantsGotHint", "tipReagent" }) do
         if s[k] == nil then s[k] = true end
     end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Beim Looten melden, wenn jemand das sucht", "wantsLootHint", "Hebst du ein Item auf, das ein Gildenmitglied sucht, kommt ein Hinweis zum Bescheid sagen", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Notify when I loot something someone wants", "wantsLootHint", "If you loot an item a guild member is looking for, you get a notice to let them know", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Melden, wenn ich Gesuchtes in den Taschen habe", "wantsBagHint", "Neuer Wunsch eines anderen und du hast das Item dabei", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Notify when my bags hold a wanted item", "wantsBagHint", "Someone added a wish and you carry the item", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Im Dungeon zeigen, welche Wunsch-Items hier droppen", "wantsDungeonHint", "Beim Betreten: deine Wunsch-Items und die deiner Gilden-Mitspieler, die in diesem Dungeon droppen", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "In dungeons, show which wishlist items drop here", "wantsDungeonHint", "On entering: your wishlist items and those of your guild group mates that drop in this dungeon", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Ziel erreicht melden", "wantsGotHint", "Lootest du ein Item von deiner Wunschliste, kommt ein Hinweis (Klick hakt es ab)", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Announce goal reached", "wantsGotHint", "When you loot an item from your wishlist, a notice appears (click to tick it off)", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Zahl im Menue, wenn ich helfen kann", "wantsBadge", "Kleine Zahl am Menuepunkt Wunschliste",
+    det.t[#det.t + 1] = toggle(det, 14, y, "Count in the menu when I can help", "wantsBadge", "Small number on the Wishlist menu entry",
         function() if ns.Wants and ns.Wants.UpdateBadge then ns.Wants.UpdateBadge() end end, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Item-Vorschlaege beim Tippen", "itemSuggest", "Beim Eintippen eines Item-Namens schlaegt Oasis passende Items vor", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Item suggestions while typing", "itemSuggest", "While typing an item name, Oasis suggests matching items", nil, 600)
     y = y - 32
     return y - 10
 end)
@@ -1019,11 +1019,11 @@ ns.AddPageSettings("bank", function(det, y)
     local s = S()
     if s.bankShareScan == nil then s.bankShareScan = true end
     if s.tipBank == nil then s.tipBank = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Gildenbank fuer die Gilde einlesen", "bankShareScan", "Oeffnest du den Gildentresor, liest Oasis Faecher, Gold und Protokoll und teilt sie mit der Gilde", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Read the guild bank for the guild", "bankShareScan", "When you open the guild vault, Oasis reads tabs, gold and log and shares them with the guild", nil, 600)
     y = y - 38
-    rowLabel(det, L["Protokoll zeigt zuerst"], 14, y - 2)
-    det.bankLog = K.Segments(det, { { key = "all", text = L["Alles"] }, { key = "items", text = L["Items"] },
-        { key = "gold", text = L["Gold"] }, { key = "mine", text = L["Meine"] } }, function(k)
+    rowLabel(det, L["Log shows first"], 14, y - 2)
+    det.bankLog = K.Segments(det, { { key = "all", text = L["All"] }, { key = "items", text = L["Items"] },
+        { key = "gold", text = L["Gold"] }, { key = "mine", text = L["Mine"] } }, function(k)
         S().bankLogFilter = (k ~= "all") and k or nil
     end)
     det.bankLog:SetPoint("TOPLEFT", 184, y)
@@ -1041,11 +1041,11 @@ ns.AddPageSettings("chronicle", function(det, y)
     local s = S()
     if s.chrToastLevels == nil then s.chrToastLevels = true end
     if s.chrPostLegacy == nil then s.chrPostLegacy = true end
-    rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Personal"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Level-Aufstiege anderer melden", "chrToastLevels", "Aus: keine Hinweise mehr, wenn jemand ein Level erreicht - Bosse und Legacy bleiben", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Notify on others' level-ups", "chrToastLevels", "Off: no more notices when someone reaches a level - bosses and legacy stay", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Geschaffte Legacy-Challenges im Gildenchat posten", "chrPostLegacy", "Gilt nur, wenn Meilensteine posten an ist - Aus: nur Level werden gepostet", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Post completed legacy challenges in guild chat", "chrPostLegacy", "Only applies when posting milestones is on - off: only levels are posted", nil, 600)
     y = y - 32
     return y - 10
 end)
@@ -1055,11 +1055,11 @@ ns.AddPageSettings("polls", function(det, y)
     local s = S()
     if s.pollEndToast == nil then s.pollEndToast = true end
     if s.pollBadge == nil then s.pollBadge = true end
-    rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Personal"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Ergebnis melden, wenn eine Umfrage endet", "pollEndToast", "Nur fuer Umfragen, die du gestartet oder bei denen du abgestimmt hast", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Show the result when a poll ends", "pollEndToast", "Only for polls you started or voted in", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Offene Umfragen in der Navigation zaehlen", "pollBadge", "Zahl am Menuepunkt fuer Umfragen, bei denen du noch nicht abgestimmt hast",
+    det.t[#det.t + 1] = toggle(det, 14, y, "Count open polls in the navigation", "pollBadge", "Number on the menu item for polls you have not voted in yet",
         function() if ns.Polls and ns.Polls.UpdateBadge then ns.Polls.UpdateBadge() end end, 600)
     y = y - 32
     return y - 10
@@ -1068,7 +1068,7 @@ end)
 -- Bereich "Gildenziele" (0.5.481)
 ns.AddPageSettings("goals", function(det, y)
     if S().ggHint == nil then S().ggHint = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Hinweis bei neuen Gildenzielen", "ggHint", "Ein Hinweis erscheint, sobald jemand ein Gildenziel anlegt", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Notice for new guild goals", "ggHint", "Shows a notice as soon as someone creates a guild goal", nil, 600)
     y = y - 32
     return y - 10
 end)
@@ -1077,11 +1077,11 @@ end)
 ns.AddPageSettings("camp", function(det, y)
     local s = S()
     if s.campOwnToast == nil then s.campOwnToast = true end
-    rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Personal"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Nur Lagerfeuer in meinem Gebiet melden", "campZoneOnly", "Hinweise nur, wenn das Feuer in deiner aktuellen Zone brennt - auf der Karte siehst du weiter alle", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Only notify on campfires in my zone", "campZoneOnly", "Notices only when the fire burns in your current zone - the map still shows all", nil, 600)
     y = y - 32
-    det.t[#det.t + 1] = toggle(det, 14, y, "Bestaetigung beim eigenen Lagerfeuer", "campOwnToast", "Kurzer Hinweis, dass die Gilde dein Feuer sieht", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Confirmation for my own campfire", "campOwnToast", "Short notice that the guild can see your fire", nil, 600)
     y = y - 32
     if s.campAuto == nil then s.campAuto = true end
     return y - 10
@@ -1091,13 +1091,13 @@ end)
 ns.AddPageSettings("deathroll", function(det, y)
     local s = S()
     if s.drOpenInvites == nil then s.drOpenInvites = true end
-    rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Personal"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Offene Spiel-Einladungen der Gilde melden", "drOpenInvites", "Aus: Wer in der Warteschlange einen Gegner sucht, erscheint nur noch auf der Deathroll-Seite", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Notify on open guild game invites", "drOpenInvites", "Off: players looking for an opponent only show up on the Deathroll page", nil, 600)
     y = y - 32
     -- 0.6.213: gildenuebergreifende Lobby ueber versteckte Kanaele (Standard an)
     if s.drNet == nil then s.drNet = true end
-    det.t[#det.t + 1] = toggle(det, 14, y, "Gegner auch ausserhalb der Gilde finden", "drNet", "Versteckter Kanal je Einsatzhoehe - Suchende anderer Gilden erscheinen still in der Liste", function(v)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Find opponents outside the guild too", "drNet", "Hidden channel per stake level - players from other guilds appear quietly in the list", function(v)
         local DR = ns.Deathroll
         if DR then if v then DR.NetJoin(DR.inQueue and DR.inQueue.start or 100) else DR.NetLeave() end end
     end, 600)
@@ -1109,18 +1109,18 @@ end)
 ns.AddPageSettings("deaths", function(det, y)
     local s = S()
     if s.deathKiller == nil then s.deathKiller = true end
-    rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Personal"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Todesursache im Hinweis zeigen", "deathKiller", "Aus: der Hinweis nennt nur Name und Ort", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Show cause of death in the notice", "deathKiller", "Off: the notice only shows name and location", nil, 600)
     y = y - 32
     return y - 10
 end)
 
 -- Bereich "Legacy": Mitstreiter-Suchen
 ns.AddPageSettings("legacy", function(det, y)
-    rowLabel(det, "|cffe8b44a" .. L["Persoenlich"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Personal"] .. "|r", 14, y)
     y = y - 28
-    det.t[#det.t + 1] = toggle(det, 14, y, "Auch Suchen fuer bereits geschaffte Challenges melden", "legacyLfgDone", "Normal meldet Oasis nur Suchen, die du selbst noch offen hast", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Also notify on searches for challenges I already finished", "legacyLfgDone", "Normally Oasis only notifies on searches you still have open yourself", nil, 600)
     y = y - 32
     return y - 10
 end)
@@ -1160,47 +1160,47 @@ ns.AddPageSettings("map", function(det, y)
     end
     local function head(text) y = y - 6 rowLabel(det, "|cffe8b44a" .. L[text] .. "|r", 14, y) y = y - 28 end
 
-    head("Weltkarte")
+    head("World map")
     if S().lfgPins == nil then S().lfgPins = true end
     grid({
-        { "Levelbereiche auf der Weltkarte", "mapLevels", "Zeigt die Levelspanne der Gebiete", upd },
-        { "Todesorte auf der Weltkarte", "mapDeaths", "Totenkoepfe der Gilde zusaetzlich in der Kartenebene", upd },
-        { "Gruppensuchen am Dungeon-Eingang", "lfgPins", "Wer Mitstreiter sucht, erscheint am Eingang des Dungeons", symUpd },
-        { "Marker und Notizen", "mapMarkers", "Treffpunkte, Warnungen und Notizen auf Weltkarte und Minimap", xupd, true },
-        { "Dungeon-Eingaenge", "mapDungeons", "Eingaenge mit Levelspanne und Gildenmitgliedern im Levelbereich", xupd, true },
-        { "Gefahrenzonen", "mapDanger", "Roter Schimmer, wo mehrere aus der Gilde gestorben sind (7 Tage)", xupd },
-        { "Haendler, Reparatur, Briefkaesten und Flugpunkte", "mapPoi", "Orte, die jemand aus der Gilde schon besucht hat", xupd, true },
-        { "Questgeber der Dungeon-Quests", "mapQuestGivers", "Wo Dungeon-Quests in der offenen Welt beginnen", xupd },
-        { "Eigene Laufspur", "mapTrails", "Dein Weg der letzten 5 Minuten als duenne Linie", xupd },
-        { "Lange Laufspur: ganze Sitzung", "trailSession", "Aus = nur die letzten 10 Minuten deiner Route, aeltere Wege verblassen", function() ns.db.settings.trailMinutes = ns.db.settings.trailSession and 0 or nil xupd() end },
-        { "Laufspuren anderer Spieler", "mapTrailsGuild", "Die Wege der Gildenmitglieder der letzten 5 Minuten (nur wer seine Position teilt)", xupd },
-        { "Lagerfeuer auf der Karte", "mapCamp", "Gemeldete Lagerfeuer der Gilde auf Weltkarte und Minimap", function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end end },
-        { "Koordinaten an der Minimap", "mmCoords", "Eigene Position und Entfernung zum Ziel", xupd },
-        { "Ziele auch als TomTom-Wegpunkt", "tomtom", "Nur wenn TomTom installiert ist: Ziele aus Oasis bekommen zusaetzlich einen TomTom-Pfeil", nil, true },
-        { "Layer-Anfragen aus der Gilde annehmen", "layerAsk", "Hinweis, wenn jemand ueber deine Gruppe auf deinen Layer will", xupd, true },
+        { "Level ranges on the world map", "mapLevels", "Shows the level range of each zone", upd },
+        { "Death locations on the world map", "mapDeaths", "Guild skulls as an extra map layer", upd },
+        { "Group searches at the dungeon entrance", "lfgPins", "Players looking for a group appear at the dungeon entrance", symUpd },
+        { "Markers and notes", "mapMarkers", "Meeting points, warnings and notes on the world map and minimap", xupd, true },
+        { "Dungeon entrances", "mapDungeons", "Entrances with level range and guild members in range", xupd, true },
+        { "Danger zones", "mapDanger", "Red tint where several guild members died (7 days)", xupd },
+        { "Vendors, repair, mailboxes and flight points", "mapPoi", "Places someone in the guild has already visited", xupd, true },
+        { "Dungeon quest givers", "mapQuestGivers", "Where dungeon quests start in the open world", xupd },
+        { "Own trail", "mapTrails", "Your path of the last 5 minutes as a thin line", xupd },
+        { "Long trail: whole session", "trailSession", "Off = only the last 10 minutes of your route, older paths fade out", function() ns.db.settings.trailMinutes = ns.db.settings.trailSession and 0 or nil xupd() end },
+        { "Other players' trails", "mapTrailsGuild", "Guild members' paths of the last 5 minutes (only those sharing their position)", xupd },
+        { "Campfires on the map", "mapCamp", "Guild campfires on the world map and minimap", function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end end },
+        { "Coordinates on the minimap", "mmCoords", "Your position and distance to the target", xupd },
+        { "Targets also as TomTom waypoint", "tomtom", "Only with TomTom installed: Oasis targets also get a TomTom arrow", nil, true },
+        { "Accept layer requests from the guild", "layerAsk", "Notice when someone wants to join your layer through your group", xupd, true },
     })
 
-    head("Gilden-Sammelkarte")
+    head("Guild gathering map")
     if S().gatherFresh == nil then S().gatherFresh = true end
     if S().gatherHarvest == nil then S().gatherHarvest = true end
     grid({
-        { "Sammelkarte auf der Weltkarte ausblenden", "gatherWorldOff", "Fundorte, die jemand aus der Gilde gefunden hat", gupd },
-        { "Sammelkarte auf der Minimap ausblenden", "gatherMiniOff", "Fundorte, die jemand aus der Gilde gefunden hat", gupd },
-        { "Kraeuter ausblenden", "gatherOff_herb", nil, gupd },
-        { "Erz ausblenden", "gatherOff_ore", nil, gupd },
-        { "Schaetze ausblenden", "gatherOff_treasure", nil, gupd },
-        { "Angelstellen ausblenden", "gatherOff_fish", nil, gupd },
-        { "Schlosskisten ausblenden", "gatherOff_lock", nil, gupd },
-        { "Sammelpunkte ohne Kreisrahmen", "gatherRingOff", "Nur das Symbol, ohne dunkle Scheibe und Ring", symUpd },
-        { "Fundorte nach Frische einfaerben", "gatherFresh", "Frische Stellen kraeftig, alte verblassen", gupd },
-        { "Gerade abgeerntete Stellen grau zeigen", "gatherHarvest", "Wenn dort in den letzten 5 Minuten gesammelt wurde", gupd },
-        { "Sammelroute", "gatherRoute", "Rundstrecke durch die Fundorte, Pfeil an der Minimap zum naechsten", symUpd },
-        { "Glimmer: Fundorte in der Naehe leuchten", "glimmer", "Bekannte Fundorte bis 60 m pulsieren an der Minimap, ab 25 m ein leiser Ton", gupd, true },
-        { "Glimmer-Ton", "glimmerSound", "Leiser Ton, wenn du einem Fundort nahe kommst", nil, true },
-        { "Fundorte aller Berufe zeigen", "gatherAllProfs", "Aus = nur Kraeuter/Erz/Angelstellen deiner eigenen Sammelberufe", function() if ns.Gather and ns.Gather.ResetOwnKinds then ns.Gather.ResetOwnKinds() end gupd() end },
+        { "Hide gathering map on the world map", "gatherWorldOff", "Nodes someone in the guild has found", gupd },
+        { "Hide gathering map on the minimap", "gatherMiniOff", "Nodes someone in the guild has found", gupd },
+        { "Hide herbs", "gatherOff_herb", nil, gupd },
+        { "Hide ore", "gatherOff_ore", nil, gupd },
+        { "Hide treasures", "gatherOff_treasure", nil, gupd },
+        { "Hide fishing spots", "gatherOff_fish", nil, gupd },
+        { "Hide locked chests", "gatherOff_lock", nil, gupd },
+        { "Gather nodes without circle frame", "gatherRingOff", "Only the icon, without dark disc and ring", symUpd },
+        { "Color nodes by freshness", "gatherFresh", "Fresh nodes bright, old ones fade", gupd },
+        { "Show just-harvested spots in gray", "gatherHarvest", "If someone gathered there in the last 5 minutes", gupd },
+        { "Gathering route", "gatherRoute", "Round trip through the nodes, minimap arrow to the next one", symUpd },
+        { "Glimmer: nearby nodes light up", "glimmer", "Known nodes within 60 m pulse on the minimap, a soft sound at 25 m", gupd, true },
+        { "Glimmer sound", "glimmerSound", "Soft sound when you get close to a node", nil, true },
+        { "Show nodes for all professions", "gatherAllProfs", "Off = only herbs/ore/fishing spots of your own gathering professions", function() if ns.Gather and ns.Gather.ResetOwnKinds then ns.Gather.ResetOwnKinds() end gupd() end },
     })
     local sorts
-    sorts = K.Button(det, L["Einzelne Sorten filtern"], 226, 24, nil, function()
+    sorts = K.Button(det, L["Filter individual types"], 226, 24, nil, function()
         local items = {}
         local G = ns.Gather
         for _, e in ipairs(G and G.Names and G.Names() or {}) do
@@ -1212,23 +1212,23 @@ ns.AddPageSettings("map", function(det, y)
                     gupd()
                 end }
         end
-        if #items == 0 then items[1] = { text = L["Noch keine benannten Fundorte."], disabled = true } end
-        K.ShowMenu(sorts, items, L["Einzelne Sorten filtern"])
+        if #items == 0 then items[1] = { text = L["No named nodes yet."], disabled = true } end
+        K.ShowMenu(sorts, items, L["Filter individual types"])
     end)
     sorts:SetPoint("TOPLEFT", 14, y)
     y = y - 36
 
-    head("Symbole anpassen")
+    head("Adjust icons")
     local function pct(v) return math.floor(v * 100 + 0.5) .. "%" end
     local SYM = {   -- { Text, Schluessel, von, bis, Schritt, Standard, Format }
-        { "Sammelpunkte Minimap: Groesse", "gatherMiniScale", 0.6, 2, 0.05, 1 },
-        { "Sammelpunkte Minimap: Deckkraft", "gatherMiniAlpha", 0.2, 1, 0.05, 1 },
-        { "Sammelpunkte Weltkarte: Groesse", "gatherWorldScale", 0.6, 2.5, 0.05, 1 },
-        { "Sammelpunkte Weltkarte: Deckkraft", "gatherWorldAlpha", 0.2, 1, 0.05, 1 },
-        { "Gilden-Punkte Minimap: Groesse", "mmDotScale", 0.6, 2, 0.05, 1 },
-        { "Gilden-Punkte Minimap: Deckkraft", "mmDotAlpha", 0.2, 1, 0.05, 1 },
-        { "Punkte auf der Weltkarte: Groesse", "mapPinScale", 0.6, 2, 0.05, 1 },
-        { "Nur Fundorte zeigen ab", "gatherMinCount", 1, 10, 1, 1, function(v) return (L["%d Funden"]):format(v) end },
+        { "Gathering nodes minimap: size", "gatherMiniScale", 0.6, 2, 0.05, 1 },
+        { "Gathering nodes minimap: opacity", "gatherMiniAlpha", 0.2, 1, 0.05, 1 },
+        { "Gathering nodes world map: size", "gatherWorldScale", 0.6, 2.5, 0.05, 1 },
+        { "Gathering nodes world map: opacity", "gatherWorldAlpha", 0.2, 1, 0.05, 1 },
+        { "Guild dots minimap: size", "mmDotScale", 0.6, 2, 0.05, 1 },
+        { "Guild dots minimap: opacity", "mmDotAlpha", 0.2, 1, 0.05, 1 },
+        { "World map dots: size", "mapPinScale", 0.6, 2, 0.05, 1 },
+        { "Only show nodes from", "gatherMinCount", 1, 10, 1, 1, function(v) return (L["%d finds"]):format(v) end },
     }
     for i, d in ipairs(SYM) do
         local cx = 14 + ((i - 1) % 2) * 370
@@ -1239,7 +1239,7 @@ ns.AddPageSettings("map", function(det, y)
         table.insert(det.refreshers, function() sl:Refresh() end)
         if i % 2 == 0 or i == #SYM then y = y - 54 end
     end
-    local reset = K.Button(det, L["Symbole zuruecksetzen"], 226, 24, nil, function()
+    local reset = K.Button(det, L["Reset icons"], 226, 24, nil, function()
         for _, d in ipairs(SYM) do S()[d[2]] = nil end
         S().gatherRingOff, S().gatherHide = nil, nil
         symUpd()
@@ -1249,15 +1249,15 @@ ns.AddPageSettings("map", function(det, y)
     reset:SetPoint("TOPLEFT", 14, y)
     y = y - 40
 
-    head("Senden")
-    rowLabel(det, L["Position senden alle"], 14, y)
+    head("Send")
+    rowLabel(det, L["Send position every"], 14, y)
     det.mapInterval = K.Slider(det, 160, 5, 30, 1, function() return S().mapInterval or 8 end,
         function(v) S().mapInterval = v if ns.Map then ns.Map.nextSend = nil end end,
-        function(v) return (L["%d Sek."]):format(v) end)
+        function(v) return (L["%d sec"]):format(v) end)
     det.mapInterval:SetPoint("TOPLEFT", 184, y + 2)
     table.insert(det.refreshers, function() det.mapInterval:Refresh() end)
     y = y - 30
-    note(det, L["Seltener senden = weniger Datenverkehr, die Gilde sieht dich aber ruckeliger."], 14, y, 600, C.dim)
+    note(det, L["Sending less often = less traffic, but the guild sees you move less smoothly."], 14, y, 600, C.dim)
     y = y - 22
     return y - 10
 end)
@@ -1266,8 +1266,8 @@ ns.AddPageSettings("insta", function(det, y)
     if s.profShareQuests == nil then s.profShareQuests = true end
     if s.profShareGear == nil then s.profShareGear = true end
     -- Ueber mich
-    rowLabel(det, L["Ueber mich"], 14, y - 2)
-    local bio = K.Input(det, 330, L["Ein Satz ueber dich, z.B. Immer fuer Dungeons zu haben"])
+    rowLabel(det, L["About me"], 14, y - 2)
+    local bio = K.Input(det, 330, L["One line about you, e.g. Always up for dungeons"])
     bio:SetMaxLetters(80)
     bio:SetPoint("TOPLEFT", 164, y + 2)
     bio:SetText(s.bio or "")
@@ -1279,22 +1279,22 @@ ns.AddPageSettings("insta", function(det, y)
     bio.onEnter = function() sendProfile() end
     bio:HookScript("OnEditFocusLost", function() sendProfile() end)
     y = y - 30
-    note(det, L["Steht auf deiner Profilkarte, die die Gilde sieht."], 164, y, 330, C.dim)
+    note(det, L["Shown on your profile card for the guild."], 164, y, 330, C.dim)
     y = y - 30
     -- Sichtbarkeit
-    det.t[#det.t + 1] = toggle(det, 14, y, "Oasis-XP im Bild anzeigen", "xpFloat", "Neue Oasis-Erfahrung steigt kurz als +XP in der Bildmitte auf", nil, 600)
+    det.t[#det.t + 1] = toggle(det, 14, y, "Show Oasis XP on screen", "xpFloat", "New Oasis experience briefly floats up as +XP in the middle of the screen", nil, 600)
     y = y - 40
     -- Belohnungen aus dem Oasis-Rang
-    rowLabel(det, "|cffe8b44a" .. L["Deine Belohnungen"] .. "|r", 14, y)
+    rowLabel(det, "|cffe8b44a" .. L["Your rewards"] .. "|r", 14, y)
     y = y - 30
     det.rw = {}
-    det.rw[1] = rewardPicker(det, "sound", 14, y, "Fanfare beim Rangaufstieg", function() return S().rankSound end,
+    det.rw[1] = rewardPicker(det, "sound", 14, y, "Rank-up fanfare", function() return S().rankSound end,
         function(k) S().rankSound = k if k and ns.Sound then ns.Sound.PlayChoice(k) end end)
     y = y - 36
-    det.rw[2] = rewardPicker(det, "dice", 14, y, "Deathroll-Wuerfel", function() return S().diceDesign end,
+    det.rw[2] = rewardPicker(det, "dice", 14, y, "Deathroll dice", function() return S().diceDesign end,
         function(k) S().diceDesign = k end)
     y = y - 36
-    det.rw[3] = rewardPicker(det, "theme", 14, y, "Rang-Farbe", function()
+    det.rw[3] = rewardPicker(det, "theme", 14, y, "Rank colour", function()
             local acc = S().accent
             for _, r in ipairs(ns.Rewards and ns.Rewards.LIST or {}) do if r.kind == "theme" and r.hex == acc then return r.key end end
         end,
@@ -1304,7 +1304,7 @@ ns.AddPageSettings("insta", function(det, y)
             if ns.Admin then ns.Admin.ApplyBrand(true) end
         end)
     y = y - 36
-    note(det, L["Neue Belohnungen schaltest du mit deinem Oasis-Rang frei."], 14, y, 600, C.dim)
+    note(det, L["You unlock new rewards with your Oasis rank."], 14, y, 600, C.dim)
     return y - 20
 end)
 
@@ -1348,7 +1348,7 @@ local function pageGroups(scope)
     for _, d in ipairs(ns.Pages()) do
         if d.nav and not seen[d.key] and d.key ~= "home" and not d.topbar and not (d.visible and not d.visible()) and (not scope or (AREA_SCOPE[d.key] or "personal") == scope) then rest[#rest + 1] = d end
     end
-    if #rest > 0 then out[#out + 1] = { text = "Weitere", items = rest } end
+    if #rest > 0 then out[#out + 1] = { text = "More", items = rest } end
     return out
 end
 local function pageShown(key) return not (S().hiddenPages and S().hiddenPages[key]) end
@@ -1371,13 +1371,13 @@ local function buildPages(f, scope)
     end
     -- 0.5.550: kein Dropdown mehr - Uebersicht als Karten (wie "Entdecken"), Zahnrad oeffnet die Einstellungen
     f.pick = { Update = function() end }
-    f.back = K.Button(f, "< " .. L["Alle Bereiche"], 140, 22, "ghost", function() f.sel = nil f:ShowSel() end)
+    f.back = K.Button(f, "< " .. L["All sections"], 140, 22, "ghost", function() f.sel = nil f:ShowSel() end)
     f.back:SetPoint("TOPLEFT", 0, -6)
     f.back:Hide()
-    f.intro = note(f, L["Schalter: in deiner Navigation anzeigen. Zahnrad: Funktion einstellen. Module schaltest du unter System & Module ab."], 0, -6, 620, C.muted)
+    f.intro = note(f, L["Switch: show in your navigation. Cog: configure this feature. Disable modules under System & modules."], 0, -6, 620, C.muted)
     f.pickHint = { SetShown = function(_, v) f.back:SetShown(not v) f.intro:SetShown(v) end }
     -- Rundgang erneut starten (Onboarding.lua)
-    f.tourBtn = K.Button(f, L["Rundgang"], 88, 22, "ghost", function() ns.Onboarding.Show() end)
+    f.tourBtn = K.Button(f, L["Tour"], 88, 22, "ghost", function() ns.Onboarding.Show() end)
     f.tourBtn:SetPoint("TOPRIGHT", 0, -6)
 
     -- Uebersicht: alle Bereiche als Karten nach Gruppen (Symbol, Name, Kurztext, Schalter, Zahnrad)
@@ -1426,7 +1426,7 @@ local function buildPages(f, scope)
             t.gear.ic = K.Glyph(t.gear, 14, ns.MEDIA .. "icons\\settings", C.dim)
             t.gear.ic:SetPoint("CENTER")
             t.gear:SetScript("OnClick", function() f.sel = key f:ShowSel() end)
-            t.gear:SetScript("OnEnter", function(self) self.ic:SetVertexColor(C.text[1], C.text[2], C.text[3]) K.ShowTip(self, { L[d.title], L["Einstellungen dieses Bereichs"] }) end)
+            t.gear:SetScript("OnEnter", function(self) self.ic:SetVertexColor(C.text[1], C.text[2], C.text[3]) K.ShowTip(self, { L[d.title], L["Settings of this area"] }) end)
             t.gear:SetScript("OnLeave", function(self) self.ic:SetVertexColor(C.dim[1], C.dim[2], C.dim[3]) GameTooltip:Hide() end)
             t.key = key
             -- Dashboard laesst sich nicht ausblenden: kein Schalter, Klick oeffnet seine Einstellungen
@@ -1456,12 +1456,12 @@ local function buildPages(f, scope)
                 self.tint:SetAlpha(1.7)
                 local lines = { L[d.title] }
                 if d.sub then lines[#lines + 1] = L[d.sub] end
-                if ns.Admin and not ns.Admin.PageEnabled(key) then lines[#lines + 1] = "|cffffc24d" .. L["Von der Gildenleitung abgeschaltet."] .. "|r" end
-                lines[#lines + 1] = "|cff888888" .. L["Klick: zeigen/ausblenden  ·  Zahnrad oder Rechtsklick: Einstellungen"] .. "|r"
+                if ns.Admin and not ns.Admin.PageEnabled(key) then lines[#lines + 1] = "|cffffc24d" .. L["Turned off by guild leadership."] .. "|r" end
+                lines[#lines + 1] = "|cff888888" .. L["Click: show/hide  ·  Gear or right-click: settings"] .. "|r"
                 K.ShowTip(self, lines)
             end)
             t:SetScript("OnLeave", function(self) self.tint:SetAlpha(1) GameTooltip:Hide() end)
-            indexAdd(L[d.title], t, L["In meiner Navigation zeigen"])
+            indexAdd(L[d.title], t, L["Show in my navigation"])
             ts[#ts + 1] = t
             f.nav[#f.nav + 1] = t
         end
@@ -1562,7 +1562,7 @@ local function buildPages(f, scope)
         c2:SetPoint("TOPRIGHT", det, "TOPRIGHT", -2, 0)
         section(det, L[d.title], 14, -12, 700)
         if adminOff then
-            note(det, "|cffffc24d" .. L["Von der Gildenleitung abgeschaltet."] .. "|r", 360, -13, 300)
+            note(det, "|cffffc24d" .. L["Turned off by guild leadership."] .. "|r", 360, -13, 300)
         end
         det:SetScript("OnSizeChanged", nil)
         local Y0 = -46
@@ -1575,16 +1575,16 @@ local function buildPages(f, scope)
             y = y - 32
         end
         if opts.inactive then
-            rowLabel(det, L["Inaktiv ab"], 14, y - 2)
+            rowLabel(det, L["Inactive after"], 14, y - 2)
             det.inact = K.Slider(det, 180, 7, 90, 1, function() return S().inactiveDays or 30 end,
-                function(v) S().inactiveDays = v end, function(v) return (L["%d Tg"]):format(v) end)
+                function(v) S().inactiveDays = v end, function(v) return (L["%d d"]):format(v) end)
             det.inact:SetPoint("TOPLEFT", 184, y)
             y = y - 28
-            note(det, L["Ab so vielen Tagen offline gilt ein Mitglied in der Mitgliederliste als inaktiv."], 14, y, 600)
+            note(det, L["After this many days offline a member counts as inactive in the member list."], 14, y, 600)
             y = y - 24
         end
         if opts.listDark then
-            rowLabel(det, L["Listen-Hintergrund"], 14, y - 2)
+            rowLabel(det, L["List background"], 14, y - 2)
             det.listDark = K.Slider(det, 180, 0.2, 1, 0.01, function() return S().memberListAlpha or 0.82 end,
                 function(v) S().memberListAlpha = v if ns.Radar and ns.Radar.ApplyListBg then pcall(ns.Radar.ApplyListBg) end end,
                 function(v) return ("%d %%"):format(v * 100 + 0.5) end)
@@ -1593,14 +1593,14 @@ local function buildPages(f, scope)
             y = y - 36
         end
         if opts.emojiPicker then
-            local ep = K.Button(det, L["Emojis ansehen"], 140, 22, "ghost", function() if ns.Emoji then ns.Emoji.TogglePicker() end end)
+            local ep = K.Button(det, L["Browse emojis"], 140, 22, "ghost", function() if ns.Emoji then ns.Emoji.TogglePicker() end end)
             ep:SetPoint("TOPLEFT", 14, y)
             y = y - 36
         end
         if opts.lootQuality then
-            rowLabel(det, L["Beute-Log ab Qualitaet"], 14, y - 2)
+            rowLabel(det, L["Log loot from quality"], 14, y - 2)
             det.q = K.Segments(det, {
-                { key = 2, text = L["Gruen"] }, { key = 3, text = L["Blau"] }, { key = 4, text = L["Episch"] },
+                { key = 2, text = L["Green"] }, { key = 3, text = L["Blue"] }, { key = 4, text = L["Epic"] },
             }, function(k) S().lootMinQuality = k end)
             det.q:SetPoint("TOPLEFT", 184, y)
             y = y - 34
@@ -1608,7 +1608,7 @@ local function buildPages(f, scope)
         if PAGE_EXTRA[key] then
             local ok, ny = pcall(PAGE_EXTRA[key], det, y)
             if ok and type(ny) == "number" then y = ny
-            elseif not ok then ns.err(L["Aufbau"] .. " settings/pages/" .. key, ny) end
+            elseif not ok then ns.err(L["Setup"] .. " settings/pages/" .. key, ny) end
         end
         -- Unterseiten ohne eigenen Navigationspunkt: Einstellungen beim Hauptbereich zeigen
         for _, ck in ipairs(AREA_CHILDREN[key] or {}) do
@@ -1625,7 +1625,7 @@ local function buildPages(f, scope)
                 if PAGE_EXTRA[ck] then
                     local ok, ny = pcall(PAGE_EXTRA[ck], det, y)
                     if ok and type(ny) == "number" then y = ny
-                    elseif not ok then ns.err(L["Aufbau"] .. " settings/pages/" .. ck, ny) end
+                    elseif not ok then ns.err(L["Setup"] .. " settings/pages/" .. ck, ny) end
                 end
             end
         end
@@ -1640,7 +1640,7 @@ local function buildPages(f, scope)
             y = y - 36
         end
         if y == Y0 then
-            note(det, L["Fuer diesen Bereich gibt es keine eigenen Einstellungen."], 14, y, 600, C.dim)
+            note(det, L["This section has no settings of its own."], 14, y, 600, C.dim)
             y = y - 24
         end
         descInline = false
@@ -1790,7 +1790,7 @@ local function themeCard(f, th, x, y, w, h)
     b.th = th
     b:SetScript("OnEnter", function(self)
         K.SetBorderColor(self, acc)
-        K.ShowTip(self, { L[th.name], L[th.desc], "|cff888888" .. L["Klick: Design uebernehmen (Farben, Akzent, Schrift)"] .. "|r" })
+        K.ShowTip(self, { L[th.name], L[th.desc], "|cff888888" .. L["Click: apply theme (colours, accent, font)"] .. "|r" })
     end)
     b:SetScript("OnLeave", function(self)
         K.SetBorderColor(self, self.on and C.accent or line, self.on and 1 or 0.9)
@@ -1803,7 +1803,7 @@ local function themeCard(f, th, x, y, w, h)
         local cur = K.CurrentTheme()
         local hadOverride = (s.accent or "") ~= (cur.accent or "") or s.themeGrad ~= nil
         if hadOverride and s.theme ~= th.key and K.Toast then
-            K.Toast(L[th.name], L["Akzentfarbe und Verlauf auf das Design zurueckgesetzt"], C.accent)
+            K.Toast(L[th.name], L["Accent colour and gradient reset to the design"], C.accent)
         end
         s.theme = th.key
         s.colorOn = nil                      -- Design-Klick = Farben des Designs (eigene Farben wieder aus)
@@ -1837,7 +1837,7 @@ local function buildLook(f)
     local RXc = 376
     local themeRows = math.ceil(#K.THEMES / 2)
     local designH = 54 + themeRows * 72 + 4
-    cardH(f, 0, 0, 362, designH, "brush", L["Design"], L["Fertige Looks - Farben, Akzent und Schrift auf einen Klick"])
+    cardH(f, 0, 0, 362, designH, "brush", L["Theme"], L["Ready-made looks - colours, accent and font in one click"])
     f.themes = {}
     local PER, GAPX = 2, 10
     local CW, CH = 160, 62
@@ -1855,7 +1855,7 @@ local function buildLook(f)
             else self:ClearAllPoints() self:SetPoint("TOPLEFT", self.x0, self.y0) end
         end)
         f.themes[#f.themes + 1] = b
-        indexAdd(L[th.name], b, L["Design"])
+        indexAdd(L[th.name], b, L["Theme"])
     end
 
     -- Eigene Farben ----------------------------------------------------------
@@ -1864,7 +1864,7 @@ local function buildLook(f)
     -- Hoehe aus der Zahl der Vorlagen (6 je Reihe)
     local duoRows = math.ceil(#K.DUO_PRESETS / 6)
     local farbH = 68 + duoRows * 28 + 8 + 24 + 20 + 30 + 34 + 104   -- 0.6.232: zwei Regler (Glut, Bild-Helligkeit)   -- 0.6.136/0.6.149 Knopfzeilen; 0.6.158: Glut-Staerke und Atmen
-    cardH(f, RXc, Y, 362, farbH, "heart", L["Eigene Farben"], L["Zwei Farben mischen - Grundfarbe, Akzent und Leiste einzeln waehlbar"], true)
+    cardH(f, RXc, Y, 362, farbH, "heart", L["Own colours"], L["Mix two colours - base, accent and sidebar individually"], true)
     local function applyDuo(base, acc)
         local s = S()
         -- 0.5.786: eigene Farben faerben das GEWAEHLTE Design um - das Design selbst (Stil, Rahmen, Schrift) bleibt
@@ -1872,7 +1872,7 @@ local function buildLook(f)
         if ns.Sound and ns.Sound.Next then pcall(ns.Sound.Next, "click") end
         rebuildSoon()
     end
-    local l0 = K.Text(f, 10, C.dim) l0:SetPoint("TOPLEFT", RX0, Y - 52) l0:SetText(K.Upper(L["Zwei Farben"]))
+    local l0 = K.Text(f, 10, C.dim) l0:SetPoint("TOPLEFT", RX0, Y - 52) l0:SetText(K.Upper(L["Two colours"]))
     f.duo = {}
     local DPER, DGAP = 6, 5
     local DW = (330 - DGAP * (DPER - 1)) / DPER
@@ -1889,21 +1889,21 @@ local function buildLook(f)
         if not K.Gradient(b.r, "HORIZONTAL", { bc[1], bc[2], bc[3], 1 }, { ac[1], ac[2], ac[3], 1 }) then b.r:SetColorTexture(ac[1], ac[2], ac[3], 1) end
         K.Border(b, C.line)
         b.pr = pr
-        b:SetScript("OnEnter", function(self) K.SetBorderColor(self, ac) K.ShowTip(self, { L[pr.name], "|cff888888" .. L["Klick: das gewaehlte Design in diesen Farben"] .. "|r" }) end)
+        b:SetScript("OnEnter", function(self) K.SetBorderColor(self, ac) K.ShowTip(self, { L[pr.name], "|cff888888" .. L["Click: the selected design in these colours"] .. "|r" }) end)
         b:SetScript("OnLeave", function(self) K.SetBorderColor(self, self.on and C.accent or C.line) GameTooltip:Hide() end)
         b:SetScript("OnClick", function() S().duoSide = pr.side applyDuo(pr.base, pr.acc) end)
         f.duo[i] = b
     end
     local by = Y - 68 - math.ceil(#K.DUO_PRESETS / DPER) * 28 - 8
-    f.duoBase = K.ColorPickButton(f, function() return S().duoBase or "15171d" end, function(hex) applyDuo(hex, S().duoAccent or (S().accent ~= "" and S().accent) or "ff4d6d") end, L["Fenster-Hintergrund"], lookSnapshot)
+    f.duoBase = K.ColorPickButton(f, function() return S().duoBase or "15171d" end, function(hex) applyDuo(hex, S().duoAccent or (S().accent ~= "" and S().accent) or "ff4d6d") end, L["Window background"], lookSnapshot)
     f.duoBase:SetWidth(162)
     f.duoBase:SetPoint("TOPLEFT", RX0, by)
-    f.duoAcc = K.ColorPickButton(f, function() return S().duoAccent or "ff4d6d" end, function(hex) applyDuo(S().duoBase or "15171d", hex) end, L["Akzent / Hervorhebung"], lookSnapshot)
+    f.duoAcc = K.ColorPickButton(f, function() return S().duoAccent or "ff4d6d" end, function(hex) applyDuo(S().duoBase or "15171d", hex) end, L["Accent / highlight"], lookSnapshot)
     f.duoAcc:SetWidth(162)
     f.duoAcc:SetPoint("LEFT", f.duoBase, "RIGHT", 6, 0)
     -- 0.6.170: klare Namen + Erklaerung, was genau gefaerbt wird
-    f.duoBase:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Fenster-Hintergrund"], L["Grundfarbe des ganzen Oasis-Fensters (Flaechen und Karten)."] }) end)
-    f.duoAcc:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Akzent / Hervorhebung"], L["Farbe fuer Rahmen, Knoepfe, Markierungen und aktive Eintraege."] }) end)
+    f.duoBase:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Window background"], L["Base colour of the whole Oasis window (surfaces and cards)."] }) end)
+    f.duoAcc:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Accent / highlight"], L["Colour for frames, buttons, markers and active entries."] }) end)
     -- 0.6.159: aktuelle Grund-/Akzentfarbe behalten (vorher Standardfarben -> rechts aenderte sich alles mit)
     local function curBase() return S().duoBase or (C.bg and K.ToHex(C.bg)) or "15171d" end
     local function curAcc() return S().duoAccent or (C.accent and K.ToHex(C.accent)) or "ff4d6d" end
@@ -1913,54 +1913,54 @@ local function buildLook(f)
     end, function(hex)
         S().duoSide = hex
         applyDuo(curBase(), curAcc())
-    end, L["Navigation links"], lookSnapshot)
+    end, L["Navigation (left)"], lookSnapshot)
     f.duoSide:SetWidth(162)
     f.duoSide:SetPoint("TOPLEFT", f.duoBase, "BOTTOMLEFT", 0, -6)
     f.duoSide:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     f.duoSide:HookScript("OnClick", function(_, btn)
         if btn == "RightButton" then S().duoSide = nil applyDuo(curBase(), curAcc()) end
     end)
-    f.duoSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Navigation links"], L["Hintergrundfarbe der Navigationsleiste links. Rechtsklick: wieder automatisch."] }) end)
+    f.duoSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Navigation (left)"], L["Background colour of the navigation bar on the left. Right-click: automatic again."] }) end)
     f.duoSide:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- 0.6.136: eigene Farbe fuer die Glut-Hintergruende (Leiste links und Inhalt rechts); ohne Wahl = Akzentfarbe
     f.glowCol = K.ColorPickButton(f, function()
         return (S().glowColor and S().glowColor ~= "") and S().glowColor or K.ToHex(C.accent)
-    end, function(hex) S().glowColor = hex end, L["Glut im Inhalt"], lookSnapshot)
+    end, function(hex) S().glowColor = hex end, L["Embers in content"], lookSnapshot)
     f.glowCol:SetWidth(162)
     f.glowCol:SetPoint("LEFT", f.duoSide, "RIGHT", 6, 0)
     f.glowCol:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     f.glowCol:HookScript("OnClick", function(self, btn)
         if btn == "RightButton" then S().glowColor = nil if self.Update then self:Update() end end
     end)
-    f.glowCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Glut im Inhalt"], L["Farbe der leuchtenden Glutadern im grossen Inhaltsbereich rechts. Rechtsklick: wieder wie die Akzentfarbe."] }) end)
+    f.glowCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Embers in content"], L["Colour of the glowing ember veins in the large content area on the right. Right-click: same as accent again."] }) end)
     f.glowCol:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- 0.6.149: eigene Farbe fuer den Hintergrund der Leiste links (ohne Wahl wie rechts bzw. Akzentfarbe)
     f.glowSide = K.ColorPickButton(f, function()
         local v = S().glowColorSide
         if v and v ~= "" then return v end
         return K.ToHex(C.accent)   -- 0.6.159: wie rechts - ohne Wahl die Akzentfarbe
-    end, function(hex) S().glowColorSide = hex end, L["Glut in der Navigation"], lookSnapshot)
+    end, function(hex) S().glowColorSide = hex end, L["Embers in navigation"], lookSnapshot)
     f.glowSide:SetWidth(162)
     f.glowSide:SetPoint("TOPLEFT", f.duoSide, "BOTTOMLEFT", 0, -6)
     f.glowSide:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     f.glowSide:HookScript("OnClick", function(self, btn)
         if btn == "RightButton" then S().glowColorSide = nil if self.Update then self:Update() end end
     end)
-    f.glowSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Glut in der Navigation"], L["Farbe der leuchtenden Glutadern in der Navigationsleiste links. Rechtsklick: wieder wie die Akzentfarbe."] }) end)
+    f.glowSide:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Embers in navigation"], L["Colour of the glowing ember veins in the navigation bar on the left. Right-click: same as accent again."] }) end)
     f.glowSide:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- 0.6.191: Farbe der Glut im Fensterrahmen (Bild-Rahmen); ohne Wahl wie die Akzentfarbe
     f.frameCol = K.ColorPickButton(f, function()
         local v = S().frameColor
         if v and v ~= "" then return v end
         return K.ToHex(C.accent)
-    end, function(hex) S().frameColor = hex end, L["Fensterrahmen"], lookSnapshot)
+    end, function(hex) S().frameColor = hex end, L["Window frame"], lookSnapshot)
     f.frameCol:SetWidth(162)
     f.frameCol:SetPoint("LEFT", f.glowSide, "RIGHT", 6, 0)
     f.frameCol:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     f.frameCol:HookScript("OnClick", function(self, btn)
         if btn == "RightButton" then S().frameColor = nil if self.Update then self:Update() end end
     end)
-    f.frameCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Fensterrahmen"], L["Farbe der Glut im Fensterrahmen. Rechtsklick: wieder wie die Akzentfarbe."] }) end)
+    f.frameCol:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Window frame"], L["Colour of the embers in the window frame. Right-click: same as accent again."] }) end)
     f.frameCol:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- 0.6.158: Glut-Staerke links/rechts und "Glut atmet"
     local pct = function(v) return (L["%d%%"]):format(v * 100 + 0.5) end
@@ -1991,37 +1991,37 @@ local function buildLook(f)
         return lb, sl
     end
     local applyBg = function() if K.ApplyBgBright then K.ApplyBgBright() end end
-    f.glowAllLbl, f.glowAll = pairRow("Glut", { "glowStrengthR", "glowStrengthL" }, f.glowSide, -16, 2, 1,
-        "Leuchtkraft der Glutadern links und rechts. 0 % = aus.")
+    f.glowAllLbl, f.glowAll = pairRow("Embers", { "glowStrengthR", "glowStrengthL" }, f.glowSide, -16, 2, 1,
+        "Glow strength of the ember veins left and right. 0 % = off.")
     -- 0.6.232: Bild-Deckkraft entfaellt (Helligkeit 0 % = schwarz deckt das ab); alte Werte einmalig auf 100 %
     S().bgBright, S().bgBrightL = nil, nil
-    f.bgLiLbl, f.bgLi = pairRow("Bild-Helligkeit", { "bgLight", "bgLightL" }, f.glowAllLbl, -14, 2, 1,
-        "0 % = schwarz, 100 % = normal, darueber kraeftiger und leuchtender.", applyBg)
-    f.glowBreath = K.Toggle(f, L["Glut atmet"], function() return S().glowBreath and true or false end,
+    f.bgLiLbl, f.bgLi = pairRow("Image brightness", { "bgLight", "bgLightL" }, f.glowAllLbl, -14, 2, 1,
+        "0 % = black, 100 % = normal, above that stronger and brighter.", applyBg)
+    f.glowBreath = K.Toggle(f, L["Glow breathes"], function() return S().glowBreath and true or false end,
         function(v) S().glowBreath = v or nil end)
     f.glowBreath:SetPoint("TOPLEFT", f.bgLiLbl, "BOTTOMLEFT", 0, -12)
     f.glowBreath:SetWidth(330)
-    indexAdd(L["Glut atmet"], f.glowBreath)
+    indexAdd(L["Glow breathes"], f.glowBreath)
     -- Schrift (links) + Details (rechts) --------------------------------------
     local Y3 = -designH - 14
-    cardH(f, 0, Y3, 362, 300, "chronicle", L["Schrift"], L["Gilt fuer die ganze Oasis-Oberflaeche. Wirkt sofort, einzelne Stellen erst nach /reload."])
+    cardH(f, 0, Y3, 362, 300, "chronicle", L["Font"], L["Applies to the whole Oasis interface. Takes effect right away, some spots after /reload."])
     f.head = fontList(f, LX, Y3 - 54, 330, 232, K.PickFonts(), "uiFont", true)
     Y3 = Y - farbH - 14
     -- 0.6.107: Details als ruhige Liste - drei Schalter in voller Breite, darunter Groesse und Durchsicht, unten
     -- Zuruecksetzen (vorher Kacheln mit abgeschnittenem Titel und einer grossen Luecke vor den Reglern)
-    cardH(f, RXc, Y3, 362, 362, "settings", L["Details"], L["Kontrast, Rahmen, Grafik, Groesse und Durchsicht"], true)
+    cardH(f, RXc, Y3, 362, 362, "settings", L["Details"], L["Contrast, border, texture, size and transparency"], true)
     local MX = RXc + 16
     local restyle = function() local m = ns.MainFrame and ns.MainFrame() if m and K.StyleWindow then K.StyleWindow(m) end end
     if S().themeTexture == nil then S().themeTexture = true end
     if S().imageFrame == nil then S().imageFrame = true end
-    f.contrast = toggle(f, MX, Y3 - 62, "Hoher Kontrast", "highContrast", "Graue Texte und Linien heller", function() rebuildSoon() end, 330)
-    f.frameAcc = toggle(f, MX, Y3 - 94, "Rahmen in Akzentfarbe", "frameAccent", "Fensterrand in deiner Farbe", function() restyle() end, 330)
-    f.texT = toggle(f, MX, Y3 - 126, "Hintergrundgrafik", "themeTexture", "Leder, Stein, Hex-Raster ... je nach Design", function(v)
+    f.contrast = toggle(f, MX, Y3 - 62, "High contrast", "highContrast", "Brighter grey text and lines", function() rebuildSoon() end, 330)
+    f.frameAcc = toggle(f, MX, Y3 - 94, "Frame in accent colour", "frameAccent", "Window edge in your colour", function() restyle() end, 330)
+    f.texT = toggle(f, MX, Y3 - 126, "Background texture", "themeTexture", "Leather, stone, hex grid ... depending on the design", function(v)
         S().themeTexture = v and true or false
         restyle()
     end, 330)
     -- 0.6.192: Bild-Rahmen (Lavaglut) an/aus - aus = schlanker moderner Rahmen mit Schimmer wie vorher
-    f.imgFrame = toggle(f, MX, Y3 - 158, "Verzierter Fensterrahmen", "imageFrame", "Bild-Rahmen mit Glut (aus: schlanker moderner Rahmen)", function(v)
+    f.imgFrame = toggle(f, MX, Y3 - 158, "Ornate window frame", "imageFrame", "Ornate frame with embers (off: slim modern frame)", function(v)
         S().imageFrame = v and true or false
         if K.ApplyFrameStyle then
             local m = ns.MainFrame and ns.MainFrame()
@@ -2032,7 +2032,7 @@ local function buildLook(f)
     end, 330)
     -- 0.6.281: derselbe Rahmen schmal um alle Boxen (nur mit Gildenmodul, nur wenn der verzierte Rahmen an ist)
     if S().boxFrame == nil then S().boxFrame = true end
-    f.boxFrameT = toggle(f, MX, Y3 - 190, "Rahmen auch um Boxen", "boxFrame", "Die rote Linie auch schmal um Karten und Boxen im Addon", function(v)
+    f.boxFrameT = toggle(f, MX, Y3 - 190, "Frame around boxes too", "boxFrame", "The red line also thin around cards and boxes in the addon", function(v)
         S().boxFrame = v and true or false
         if K.RefreshBoxFrames then K.RefreshBoxFrames() end
     end, 330)
@@ -2040,7 +2040,7 @@ local function buildLook(f)
     local dv = K.Divider(f)
     dv:SetPoint("TOPLEFT", MX, Y3 - 226)
     dv:SetWidth(330)
-    rowLabel(f, L["Fenstergroesse"], MX, Y3 - 242)
+    rowLabel(f, L["Window size"], MX, Y3 - 242)
     local pendingScale
     f.winScale = K.Slider(f, 200, 0.7, 1.4, 0.05, function() return pendingScale or S().scale or 1 end,
         function(v) pendingScale = v end, function(v) return (L["%d%%"]):format(v * 100 + 0.5) end,
@@ -2049,14 +2049,14 @@ local function buildLook(f)
             if v ~= S().scale then ns.SetScale(v) end
         end)
     f.winScale:SetPoint("TOPLEFT", MX + 110, Y3 - 240)
-    indexAdd(L["Fenstergroesse"], f.winScale)
-    rowLabel(f, L["Durchsicht"], MX, Y3 - 274)
+    indexAdd(L["Window size"], f.winScale)
+    rowLabel(f, L["Transparency"], MX, Y3 - 274)
     f.winAlpha = K.Slider(f, 200, 0.1, 1, 0.01, function() return S().windowAlpha or 1 end,
         function(v) S().windowAlpha = v if ns.ApplyWindowAlpha then ns.ApplyWindowAlpha() end end,
         function(v) return ("%d %%"):format(v * 100 + 0.5) end)
     f.winAlpha:SetPoint("TOPLEFT", MX + 110, Y3 - 272)
-    indexAdd(L["Durchsicht"], f.winAlpha, L["Wie durchsichtig das Oasis-Fenster ist"])
-    local rs = K.Button(f, L["Aussehen zuruecksetzen"], 170, 24, "ghost", function()
+    indexAdd(L["Transparency"], f.winAlpha, L["How transparent the Oasis window is"])
+    local rs = K.Button(f, L["Reset appearance"], 170, 24, "ghost", function()
         local st = S()
         st.theme, st.themeGrad, st.highContrast, st.frameAccent, st.accent, st.uiFont = nil, nil, nil, nil, "", "inter"
         st.duoBase, st.duoAccent, st.duoSide, st.glowColor, st.glowColorSide, st.frameColor, st.bgBright, st.bgBrightL, st.bgLight, st.bgLightL = nil, nil, nil, nil, nil, nil, nil, nil, nil, nil
@@ -2064,11 +2064,11 @@ local function buildLook(f)
         st.themeTexture, st.logoAnim, st.logoMode, st.windowAlpha = true, true, nil, 1
         K.ApplyUserFonts()
         if ns.ApplyWindowAlpha then ns.ApplyWindowAlpha() end
-        if K.Toast then K.Toast(L["Aussehen zuruecksetzen"], L["Alle Farb- und Design-Einstellungen stehen wieder auf Standard."], C.accent) end
+        if K.Toast then K.Toast(L["Reset appearance"], L["All colour and design settings are back to default."], C.accent) end
         rebuildSoon()
     end)
     rs:SetPoint("TOPLEFT", MX, Y3 - 314)
-    note(f, L["Manche Stellen faerben sich erst nach /reload um."], MX + 182, Y3 - 316, 150, C.dim)
+    note(f, L["Some spots only change color after /reload."], MX + 182, Y3 - 316, 150, C.dim)
 end
 local function refreshLook(f)
     for _, b in ipairs(f.duo or {}) do
@@ -2101,16 +2101,16 @@ local function buildToasts(f)
     f.t = {}
     -- Karte: Allgemein
     card(f, 0, 0, 362, 214)
-    section(f, L["Hinweise"], 14, -12, 334)
-    f.t[1] = toggle(f, 14, -46, "Hinweise anzeigen", "toasts", "Auftraege, Termine, Gruppensuchen, Durchsagen ...", nil, 320)
-    f.t[2] = toggle(f, 14, -78, "Im Kampf zurueckhalten", "toastHoldCombat", "Erscheinen gesammelt, sobald der Kampf vorbei ist", nil, 320)
-    rowLabel(f, L["Anzeigedauer"], 14, -118)
+    section(f, L["Notifications"], 14, -12, 334)
+    f.t[1] = toggle(f, 14, -46, "Show notifications", "toasts", "Orders, events, group searches, announcements ...", nil, 320)
+    f.t[2] = toggle(f, 14, -78, "Hold back in combat", "toastHoldCombat", "Shown together once combat is over", nil, 320)
+    rowLabel(f, L["Display time"], 14, -118)
     f.dur = K.Slider(f, 160, 1, 20, 1, function() return S().toastDur or 7 end,
         function(v) S().toastDur = v end, function(v) return (L["%d s"]):format(v) end)
     f.dur:SetPoint("TOPLEFT", 144, -116)
-    note(f, L["Wichtige Durchsagen der Gildenleitung bleiben doppelt so lange stehen."], 14, -144, 334)
-    local test = K.Button(f, L["Test-Hinweis"], 120, 24, "ghost", function()
-        K.Toast(L["Oasis laeuft"], L["So sehen Hinweise aus."], C.accent)
+    note(f, L["Important announcements from the guild leadership stay twice as long."], 14, -144, 334)
+    local test = K.Button(f, L["Test notification"], 120, 24, "ghost", function()
+        K.Toast(L["Oasis is running"], L["This is what notifications look like."], C.accent)
     end)
     test:SetPoint("TOPLEFT", 14, -174)
 
@@ -2118,18 +2118,18 @@ local function buildToasts(f)
     local RX = 376
     local rc = card(f, RX, 0, 362, 214)
     rc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, 0)
-    section(f, L["Groesse und Position"], RX + 14, -12, 330)
-    rowLabel(f, L["Groesse"], RX + 14, -48)
+    section(f, L["Size and position"], RX + 14, -12, 330)
+    rowLabel(f, L["Size"], RX + 14, -48)
     f.scale = K.Slider(f, 160, 0.7, 1.5, 0.05, function() return S().toastScale or 1 end,
         function(v) S().toastScale = v K.LayoutToasts() end,
         function(v) return (L["%d%%"]):format(v * 100 + 0.5) end,
-        function() K.Toast(L["Oasis laeuft"], L["So sehen Hinweise aus."], C.accent) end)
+        function() K.Toast(L["Oasis is running"], L["This is what notifications look like."], C.accent) end)
     f.scale:SetPoint("TOPLEFT", RX + 130, -46)
-    local move = K.Button(f, L["Position aendern"], 150, 24, "primary", function()
+    local move = K.Button(f, L["Change position"], 150, 24, "primary", function()
         K.ToastMover(function() ns.RefreshPage("settings") end)
     end)
     move:SetPoint("TOPLEFT", RX + 14, -84)
-    local reset = K.Button(f, L["Zuruecksetzen"], 120, 24, "ghost", function()
+    local reset = K.Button(f, L["Reset"], 120, 24, "ghost", function()
         S().toastPos, S().toastScale = nil, 1
         K.LayoutToasts()
         ns.RefreshPage("settings")
@@ -2140,9 +2140,9 @@ local function buildToasts(f)
     -- Hinweise nach Anlass; die Auswahl bleibt beim Zu-/Aufklappen erhalten.
     f.kinds, f.kindGroups = {}, {}
     local scopes = {
-        { key = "guild", title = "Gilde & Organisation", desc = "Durchsagen, Termine, Handwerk und gemeinsame Fortschritte." },
-        { key = "social", title = "Socializing", desc = "Gruppensuche, neue Mitglieder, Geburtstage und gemeinsame Spiele." },
-        { key = "personal", title = "Meine Erfolge & Allgemeines", desc = "Deine Stufen, Abzeichen und persoenlichen Hinweise." },
+        { key = "guild", title = "Guild & organisation", desc = "Announcements, events, crafting and shared progress." },
+        { key = "social", title = "Socialising", desc = "Group searches, new members, birthdays and games together." },
+        { key = "personal", title = "My achievements & general", desc = "Your levels, badges and personal notifications." },
     }
     local eventScope = {
         announce = "guild", alert = "guild", order = "guild", wants = "guild", event = "guild",
@@ -2184,11 +2184,11 @@ local function buildToasts(f)
         local sc = f:GetParent()
         if sc and sc.Measure then C_Timer.After(0, function() sc.Measure() end) end
     end
-    local head = K.Header(f, L["Welche Hinweise willst du sehen?"])
+    local head = K.Header(f, L["Which notifications do you want?"])
     head:SetPoint("TOPLEFT", 0, -234)
-    local go = K.Button(f, L["Sounds dazu"], 110, 24, "ghost", function() page.SetTab("sound") end)
+    local go = K.Button(f, L["Sounds"], 110, 24, "ghost", function() page.SetTab("sound") end)
     go:SetPoint("TOPRIGHT", -2, -230)
-    local allOn = K.Button(f, L["Alle an"], 80, 24, "ghost", function()
+    local allOn = K.Button(f, L["All on"], 80, 24, "ghost", function()
         S().toastOff, S().toastMuted, S().deathToasts = {}, nil, nil
         ns.RefreshPage("settings")
     end)
@@ -2207,7 +2207,7 @@ local function buildToasts(f)
         g.fold.label:ClearAllPoints()
         g.fold.label:SetPoint("LEFT", 8, 0)
         note(g.card, L[spec.desc], 14, -44, 660, C.muted)
-        g.bulk = K.Button(g.card, L["Gruppe ausschalten"], 170, 24, "ghost", function()
+        g.bulk = K.Button(g.card, L["Turn group off"], 170, 24, "ghost", function()
             local any = false
             for _, t in ipairs(g.items) do if enabled(t.kindKey) then any = true end end
             for _, t in ipairs(g.items) do change(t.kindKey, not any) end
@@ -2251,21 +2251,21 @@ local function refreshToasts(f)
         end
     end
     if f.kindSum then
-        f.kindSum:SetText(("|cff66db9e%d %s|r  |cff666666·|r  %s"):format(on, L["an"],
-            n - on > 0 and ("|cffe06060" .. (n - on) .. " " .. L["aus"] .. "|r") or ("|cff888888" .. L["keiner aus"] .. "|r")))
+        f.kindSum:SetText(("|cff66db9e%d %s|r  |cff666666·|r  %s"):format(on, L["on"],
+            n - on > 0 and ("|cffe06060" .. (n - on) .. " " .. L["off"] .. "|r") or ("|cff888888" .. L["none off"] .. "|r")))
     end
     for _, g in ipairs(f.kindGroups or {}) do
         local on = 0
         for _, t in ipairs(g.items) do
             if not (S().toastOff and S().toastOff[t.kindKey]) and not (t.kindKey == "death" and S().deathToasts == false) then on = on + 1 end
         end
-        g.bulk:SetLabel(on > 0 and L["Gruppe ausschalten"] or L["Gruppe einschalten"])
+        g.bulk:SetLabel(on > 0 and L["Turn group off"] or L["Turn group on"])
         g.fold:SetLabel((g.closed and ">  " or "v  ") .. L[g.title] .. "  (" .. on .. "/" .. #g.items .. ")")
     end
     f.dur:Refresh()
     f.scale:Refresh()
-    f.posNote:SetText(S().toastPos and L["Eigene Position. Liegt sie in der unteren Bildschirmhaelfte, stapeln sich neue Hinweise nach oben."]
-        or L["Standard: oben in der Mitte. 'Position aendern' zeigt einen Beispiel-Hinweis, den du mit der Maus verschiebst."])
+    f.posNote:SetText(S().toastPos and L["Custom position. In the lower half of the screen, new notifications stack upwards."]
+        or L["Default: top center. 'Change position' shows a sample notification you can drag with the mouse."])
 end
 
 ------------------------------------------------------------------------
@@ -2315,7 +2315,7 @@ local function buildSound(f)
             local on = b.playAt and GetTime() - b.playAt < 1.6 or false
             if on ~= b.eqOn then b.eqOn = on b.eq:SetShown(on) b.play.icon:SetShown(not on) end
         end)
-        b.play:SetScript("OnEnter", function(self) self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3]) K.ShowTip(self, L["Anhoeren"]) end)
+        b.play:SetScript("OnEnter", function(self) self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3]) K.ShowTip(self, L["Lists"]) end)
         b.play:SetScript("OnLeave", function(self) self.icon:SetVertexColor(C.muted[1], C.muted[2], C.muted[3]) GameTooltip:Hide() end)
         b.label = K.Text(b, 12, C.text)
         b.label:SetPoint("LEFT", 28, 0)
@@ -2332,7 +2332,7 @@ local function buildSound(f)
         function b:Update()
             local k = getKey()
             if not k or k == "none" then
-                self.label:SetText("|cff777777" .. L["Kein Sound"] .. "|r")
+                self.label:SetText("|cff777777" .. L["No sound"] .. "|r")
                 self.play:SetAlpha(0.3)
             else
                 local c = Snd.byKey[k]
@@ -2346,18 +2346,18 @@ local function buildSound(f)
     -- Karte: Wiedergabe ---------------------------------------------------
     local X = 14
     card(f, 0, 0, 362, ns.TOOLS_RELEASED and 270 or 228)
-    section(f, L["Wiedergabe"], X, -12, 334)
-    f.on = toggle(f, X, -44, "Sounds abspielen", "sound", nil, nil, 320)
-    f.quiet = toggle(f, X, -72, "Im Kampf stumm", "soundQuietCombat", nil, nil, 320)
-    f.chs = toggle(f, X, -100, "Sounds aus dem Chat", "chatSounds", "Sounds, die andere im Gildenchat schicken", nil, 320)
-    rowLabel(f, L["Lautstaerke"], X, -140)
+    section(f, L["Playback"], X, -12, 334)
+    f.on = toggle(f, X, -44, "Play sounds", "sound", nil, nil, 320)
+    f.quiet = toggle(f, X, -72, "Silent in combat", "soundQuietCombat", nil, nil, 320)
+    f.chs = toggle(f, X, -100, "Sounds from chat", "chatSounds", "Sounds others send in guild chat", nil, 320)
+    rowLabel(f, L["Volume"], X, -140)
     f.vol = K.Slider(f, 160, 0, Snd.VOL_MAX, 1, function() return S().soundVol or 14 end,
         function(v) S().soundVol = v if f.spk then refreshSoundSpk(f) end end,
-        function(v) return v == 0 and L["aus"] or Snd.VolText(v) end,
+        function(v) return v == 0 and L["off"] or Snd.VolText(v) end,
         function(v) Snd.Preview("glocke", v) end)
     f.vol:SetPoint("TOPLEFT", X + 116, -138)
     -- UI-Soundpaket: Klick-Toene bei Knoepfen, Reitern, Schaltern und Fenster auf/zu
-    rowLabel(f, L["Klick-Toene"], X, -168)
+    rowLabel(f, L["Click sounds"], X, -168)
     f.uis = K.Button(f, "", 160, 24, "ghost")
     f.uis:SetPoint("TOPLEFT", X + 116, -164)
     f.uis.label:ClearAllPoints()
@@ -2382,34 +2382,34 @@ local function buildSound(f)
         end
         K.ShowMenu(self, list, nil, 160)
     end)
-    f.uis:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Klick-Toene"], L["Soundpaket fuer Knoepfe, Reiter, Schalter und Fenster"] }) end)
+    f.uis:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Click sounds"], L["Sound pack for buttons, tabs, switches and windows"] }) end)
     -- 0.5.948: eigene Sounds und Emojis einer Gilde - wie es geht und was gerade geladen ist
     -- haengt an ns.TOOLS_RELEASED (Core.lua): die Vorlage dazu liegt in Oasis-Tools auf GitHub/Discord
     if ns.TOOLS_RELEASED then
         local STEPS = {
-            "1. Die Vorlage Oasis-Tools gibt es im Oasis-Discord (Kanal oasis-download).",
-            "2. Nach Interface/AddOns entpacken: dort entstehen die Ordner Oasis_Sounds und Oasis_Emojis.",
-            "3. Eigene Dateien hineinlegen, die Einlese-Datei doppelklicken, WoW neu starten.",
-            "4. Die beiden Ordner an eure Gilde weitergeben. Updates von Oasis fassen sie nicht an.",
+            "1. Get the template Oasis-Tools from the Oasis Discord (channel oasis-download).",
+            "2. Unpack it into Interface/AddOns: this creates the folders Oasis_Sounds and Oasis_Emojis.",
+            "3. Drop your files in, double-click the import file, restart WoW.",
+            "4. Share the two folders with your guild. Oasis updates never touch them.",
         }
         local function loaded()
             local s = rawget(_G, "OasisSoundsList")
             local e = rawget(_G, "OasisEmojiList")
             local ns_, ne = type(s) == "table" and #s or 0, 0
             for _, c in ipairs(type(e) == "table" and e or {}) do ne = ne + (type(c) == "table" and type(c.items) == "table" and #c.items or 0) end
-            return (L["Geladen: %d eigene Sounds, %d eigene Emojis"]):format(ns_, ne)
+            return (L["Loaded: %d own sounds, %d own emojis"]):format(ns_, ne)
         end
-        f.own = K.Button(f, L["Eigene Sounds und Emojis ..."], 334, 22, "ghost", function()
-            ns.print(L["Eigene Sounds und Emojis fuer eure Gilde"] .. ":")
+        f.own = K.Button(f, L["Your own sounds and emojis ..."], 334, 22, "ghost", function()
+            ns.print(L["Your own sounds and emojis for your guild"] .. ":")
             for _, t in ipairs(STEPS) do ns.print("  " .. L[t]) end
             ns.print("  " .. loaded())
         end)
         f.own:SetPoint("TOPLEFT", X, -236)   -- 0.6.111: unter die Klick-Lautstaerke (lag vorher genau darauf)
         f.own:HookScript("OnEnter", function(self)
-            local lines = { L["Eigene Sounds und Emojis fuer eure Gilde"] }
+            local lines = { L["Your own sounds and emojis for your guild"] }
             for _, t in ipairs(STEPS) do lines[#lines + 1] = L[t] end
             lines[#lines + 1] = "|cff66db9e" .. loaded() .. "|r"
-            lines[#lines + 1] = "|cff888888" .. L["Klick: Anleitung in den Chat schreiben"] .. "|r"
+            lines[#lines + 1] = "|cff888888" .. L["Click: print the instructions to chat"] .. "|r"
             K.ShowTip(self, lines)
         end)
         f.own:HookScript("OnLeave", function() GameTooltip:Hide() end)
@@ -2434,7 +2434,7 @@ local function buildSound(f)
             if K.ApplySkin then K.ApplySkin(w, "panel", solid) end
             local t = K.Title(w, 14, C.text)
             t:SetPoint("TOPLEFT", 16, -14)
-            t:SetText(L["Klick-Toene einzeln"])
+            t:SetText(L["Click sounds one by one"])
             local x = K.CloseButton(w, function() w:Hide() end)
             x:SetPoint("TOPRIGHT", -8, -8)
             w.rows = {}
@@ -2455,11 +2455,11 @@ local function buildSound(f)
                 function b:Refresh()
                     local o = Snd.UiRoleChoice(role)
                     local p = o and Snd.uiPackByKey[o]
-                    self:SetLabel(p and L[p.text] or ("|cff888888" .. L["wie das Paket"] .. "|r"))
+                    self:SetLabel(p and L[p.text] or ("|cff888888" .. L["as in the pack"] .. "|r"))
                 end
                 b:SetScript("OnClick", function(btn)
                     local cur, list = Snd.UiRoleChoice(role), {}
-                    list[1] = { text = L["wie das Paket"], checked = cur == nil, fn = function() Snd.SetUiRole(role, nil) btn:Refresh() Snd.PlayChoice("ui_" .. role) end }
+                    list[1] = { text = L["as in the pack"], checked = cur == nil, fn = function() Snd.SetUiRole(role, nil) btn:Refresh() Snd.PlayChoice("ui_" .. role) end }
                     for _, p in ipairs(Snd.UI_PACKS) do
                         list[#list + 1] = { text = L[p.text], checked = cur == p.key, fn = function()
                             Snd.SetUiRole(role, p.key)
@@ -2469,7 +2469,7 @@ local function buildSound(f)
                     end
                     K.ShowMenu(btn, list, nil, 170)
                 end)
-                local pl = K.IconButton(w, "", 22, function() Snd.PlayChoice("ui_" .. role) end, L["Anhoeren"])
+                local pl = K.IconButton(w, "", 22, function() Snd.PlayChoice("ui_" .. role) end, L["Lists"])
                 if K.NoUiSound then K.NoUiSound(pl) end
                 pl:SetPoint("LEFT", b, "RIGHT", 6, 0)
                 pl.label:Hide()
@@ -2477,7 +2477,7 @@ local function buildSound(f)
                 pl.ic:SetPoint("CENTER")
                 w.rows[i] = b
             end
-            local reset = K.Button(w, L["Alle wie das Paket"], 150, 22, "ghost", function()
+            local reset = K.Button(w, L["All as in the pack"], 150, 22, "ghost", function()
                 S().uiRole = nil
                 for _, b in ipairs(w.rows) do b:Refresh() end
             end)
@@ -2491,13 +2491,13 @@ local function buildSound(f)
         w:Raise()
     end)
     f.uiRoles:SetPoint("LEFT", f.uis, "RIGHT", 6, 0)
-    f.uiRoles:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Klick-Toene einzeln"], L["Fuer jede Aktion den Ton aus einem beliebigen Paket waehlen"] }) end)
+    f.uiRoles:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Click sounds one by one"], L["Pick the sound for each action from any pack"] }) end)
     f.uiRoles:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- eigene Lautstaerke fuer die Klick-Toene (ohne Wert: 70 % der Sound-Lautstaerke)
-    rowLabel(f, L["Klick-Lautstaerke"], X, -202)
+    rowLabel(f, L["Click volume"], X, -202)
     f.uivol = K.Slider(f, 160, 0, Snd.VOL_MAX, 1, function() return K.UiVolume() end,
         function(v) S().uiVol = v end,
-        function(v) return v == 0 and L["aus"] or Snd.VolText(v) end,
+        function(v) return v == 0 and L["off"] or Snd.VolText(v) end,
         function() K.UiSound("ui_click") end)
     f.uivol:SetPoint("TOPLEFT", X + 116, -200)
     -- Equalizer oben rechts in der Karte: tanzt bei jeder Vorschau
@@ -2505,7 +2505,7 @@ local function buildSound(f)
     f.eq:SetPoint("TOPRIGHT", f, "TOPLEFT", 362 - 16, -12)
     f.eq:EnableMouse(true)
     f.eq:SetScript("OnMouseDown", function() Snd.Preview("glocke") end)
-    f.eq:SetScript("OnEnter", function(self) K.ShowTip(self, L["Antippen zum Anhoeren"]) end)
+    f.eq:SetScript("OnEnter", function(self) K.ShowTip(self, L["Click to listen"]) end)
     f.eq:SetScript("OnLeave", function() GameTooltip:Hide() end)
     -- Lautsprecher vor der Lautstaerke: zeigt den Pegel
     f.spk = K.Glyph(f, 14, ns.MEDIA .. "icons\\speaker", C.muted)
@@ -2515,39 +2515,39 @@ local function buildSound(f)
     local RX = 376
     local rc = card(f, RX, 0, 362, 228)
     rc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, 0)
-    section(f, L["Wenn jemand online kommt"], RX + 14, -12, 330)
-    rowLabel(f, L["Dein Sound"], RX + 14, -46)
+    section(f, L["When someone comes online"], RX + 14, -12, 330)
+    rowLabel(f, L["Your sound"], RX + 14, -46)
     f.entrChip = chip(f, 200, function() return Snd.ChoiceFor("entrance") end,
-        function(k) Snd.SetChoice("entrance", k) end, function() return L["Dein Online-Sound"] end)
+        function(k) Snd.SetChoice("entrance", k) end, function() return L["Your online sound"] end)
     f.entrChip:SetPoint("TOPLEFT", RX + 130, -42)
-    f.entrChip:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Dein Online-Sound"], L["Hoeren alle mit Oasis, wenn du online kommst."] }) end)
+    f.entrChip:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Your online sound"], L["Everyone with Oasis hears it when you come online."] }) end)
     f.entrChip:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    rowLabel(f, L["Lautstaerke"], RX + 14, -80)
+    rowLabel(f, L["Volume"], RX + 14, -80)
     f.evol = K.Slider(f, 160, 1, Snd.VOL_MAX, 1, function() return S().soundEntranceVol or 10 end,
         function(v) S().soundEntranceVol = v end,
-        function(v) return Snd.VolText(v) .. (v > 20 and ("  |cffe8b44a" .. L["laut"] .. "|r") or "") end,
+        function(v) return Snd.VolText(v) .. (v > 20 and ("  |cffe8b44a" .. L["loud"] .. "|r") or "") end,
         function(v) Snd.PreviewLoud("hallo", v) end)
     f.evol:SetPoint("TOPLEFT", RX + 130, -78)
-    f.entr = toggle(f, RX + 14, -110, "Online-Sounds anderer abspielen", "soundEntrance", nil, nil, 320)
-    f.epop = toggle(f, RX + 14, -138, "Anzeige, wenn jemand online kommt", "entrancePopup", nil, nil, 320)
+    f.entr = toggle(f, RX + 14, -110, "Play other players' online sounds", "soundEntrance", nil, nil, 320)
+    f.epop = toggle(f, RX + 14, -138, "Show when someone comes online", "entrancePopup", nil, nil, 320)
 
     -- Karte: Sounds je Hinweis -----------------------------------------------
     local bc = card(f, 0, -242, 738, 260)
     bc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, -242)
     bc:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 4)
-    local bh = K.Header(bc, L["Sounds fuer Hinweise"])
+    local bh = K.Header(bc, L["Sounds for notifications"])
     bh:SetPoint("TOPLEFT", 14, -12)
     bh:SetPoint("RIGHT", -140, 0)
     local bl = K.Divider(bc)
     bl:SetPoint("TOPLEFT", 14, -32)
     bl:SetPoint("RIGHT", bc, "RIGHT", -14, 0)
-    local def = K.Button(bc, L["Alle auf Standard"], 120, 20, "ghost", function()
+    local def = K.Button(bc, L["Reset all"], 120, 20, "ghost", function()
         S().soundEvents = {}
         ns.RefreshPage("settings")
     end)
     def:SetPoint("TOPRIGHT", -14, -10)
     -- Vorlagen: setzt alle Hinweis-Sounds auf einmal
-    local pre = K.Button(bc, L["Vorlage waehlen"], 130, 20, "ghost", function(self)
+    local pre = K.Button(bc, L["Choose preset"], 130, 20, "ghost", function(self)
         local list = {}
         for _, p in ipairs(Snd.PRESETS) do
             if not p.need or Snd.byKey[p.need] then list[#list + 1] = { text = L[p.text], fn = function() Snd.ApplyPreset(p.key) ns.RefreshPage("settings") end } end
@@ -2644,26 +2644,26 @@ local function buildShare(f)
     -- links: was die Gilde von dir sieht
     local ROW = 27
     local L1 = {
-        { "Position auf der Weltkarte teilen", "shareMap", "Gildenkarte und Minimap-Punkte der anderen. Standard: aus" },
-        { "Sterbeort teilen", "shareDeaths", "Totenkoepfe auf der Gildenkarte (90 Tage)" },
-        { "Sammelorte teilen", "shareNodes", "Kraeuter- und Erzfunde fuer die Gilden-Sammelkarte" },
-        { "Lagerfeuer automatisch melden", "campAuto", "Beim Anzuenden zeigt Oasis der Gilde, wo das Feuer brennt" },
-        { "Rare-Sichtungen melden", "rareShare", "Seltene Gegner mit Ort an die Gilde. Standard: aus" },
-        { "Dungeon-Laufwege teilen", "shareTrace", "Fuer selbst erkundete Dungeon-Karten" },
-        { "Position im Dungeon an die Gruppe", "shareInstPos", "Nur an die eigene Gruppe, fuer die Dungeon-Karte" },
-        { "Mitspieler-Bewertungen teilen", "shareRep", "Daumen und Notiz zu Mitspielern. Standard: aus (nur fuer dich)" },
-        { "Twinks ausserhalb der Gilde zeigen", "shareAltsOutside", "Bank- und Chill-Twinks bleiben sonst privat" },
-        { "Ausruestung im Profil", "profShareGear", nil },
-        { "Quests im Profil", "profShareQuests", nil },
-        { "Eigene Online-Zeiten teilen", "rtShare", "Fuer die Raid-Zeit-Planung (nur deine eigenen Zeiten)" },
-        { "Kampf-Rekorde teilen", "shareCombat", "Bestwerte fuer die Kampf-Rangliste" },
-        { "Kampfberichte teilen", "wrShare", "Bosskaempfe mit Todesreihenfolge (nur Gildenmitglieder)" },
-        { "Raid-IDs teilen", "lkShare", nil },
-        { "Handelsbilanz teilen", "shareTrade", "Fuer die Handels-Rangliste. Standard: aus" },
-        { "Eigene Meilensteine im Gildenchat posten", "announceMilestones", "Level alle 5 Stufen und Legacy-Challenges" },
+        { "Share position on the world map", "shareMap", "Guild map and minimap dots for others. Default: off" },
+        { "Share where you died", "shareDeaths", "Skulls on the guild map (90 days)" },
+        { "Share gathering nodes", "shareNodes", "Herb and ore finds for the guild gathering map" },
+        { "Announce campfires automatically", "campAuto", "When you light one, Oasis shows the guild where it burns" },
+        { "Report rare sightings", "rareShare", "Rare mobs with location to the guild. Default: off" },
+        { "Share dungeon paths", "shareTrace", "For self-explored dungeon maps" },
+        { "Dungeon position to your group", "shareInstPos", "Only to your own group, for the dungeon map" },
+        { "Share player ratings", "shareRep", "Thumbs and notes on players. Default: off (only for you)" },
+        { "Show alts outside the guild", "shareAltsOutside", "Otherwise bank and chill alts stay private" },
+        { "Gear in profile", "profShareGear", nil },
+        { "Quests in profile", "profShareQuests", nil },
+        { "Share your own online times", "rtShare", "For raid time planning (only your own times)" },
+        { "Share combat records", "shareCombat", "Best values for the combat ranking" },
+        { "Share fight reports", "wrShare", "Boss fights with death order (guild members only)" },
+        { "Share raid IDs", "lkShare", nil },
+        { "Share trade balance", "shareTrade", "For the trade ranking. Default: off" },
+        { "Post my milestones in guild chat", "announceMilestones", "Every 5 levels and Legacy challenges" },
     }
     descInline = true
-    local c1 = cardH(f, 0, 0, 362, 100, "social", L["Was die Gilde von dir sieht"], L["Alles abschaltbar - Standard ist datenschutzfreundlich"])
+    local c1 = cardH(f, 0, 0, 362, 100, "social", L["What the guild sees of you"], L["Everything can be switched off - privacy-friendly defaults"])
     local yy = -56
     for _, r in ipairs(L1) do
         tg(LX, yy, r[1], r[2], r[3], r[2] == "rareShare" and function(v) S().cpRareShare = v end
@@ -2673,11 +2673,11 @@ local function buildShare(f)
     c1:SetHeight(-yy + 6)
     -- rechts oben: Technik
     local L2 = {
-        { "Fehlerberichte an die Gilde", "shareErrors", "Hilft beim Beheben von Fehlern" },
-        { "Liste anderer Addons mitsenden", "shareAddonList", "Nur fuer die Fehlersuche. Standard: aus" },
-        { "Leistungsdaten teilen", "sharePerf", "Bildrate und Speicher, alle 15 Minuten" },
+        { "Error reports to the guild", "shareErrors", "Helps fix bugs" },
+        { "Include list of other addons", "shareAddonList", "Only for debugging. Default: off" },
+        { "Share performance data", "sharePerf", "Frame rate and memory, every 15 minutes" },
     }
-    local c2 = cardH(f, RX, 0, 362, 100, "settings", L["Technik"], L["Fehlerberichte und Netz"], true)
+    local c2 = cardH(f, RX, 0, 362, 100, "settings", L["Technical"], L["Error reports and network"], true)
     yy = -56
     for _, r in ipairs(L2) do
         tg(MX, yy, r[1], r[2], r[3])
@@ -2830,8 +2830,8 @@ local function buildChar(f)
     local X = 14
     -- Karte links: Profil ---------------------------------------------------
     card(f, 0, 0, 362, 470)
-    section(f, L["Main und Twinks"], X, -12, 334)
-    rowLabel(f, L["Main-Charakter"], X, -46)
+    section(f, L["Main and alts"], X, -12, 334)
+    rowLabel(f, L["Main character"], X, -46)
     f.main = K.Button(f, "", 180, 24, "ghost")
     f.main.isDropdown = true
     f.main:SetPoint("TOPLEFT", X + 150, -42)
@@ -2843,10 +2843,10 @@ local function buildChar(f)
         end
         K.ShowMenu(self, items, nil, 180)
     end)
-    note(f, L["Twinks erkennt Oasis nach dem ersten Login automatisch."], X, -76, 334, C.muted)
+    note(f, L["Oasis detects your alts automatically after their first login."], X, -76, 334, C.muted)
     -- 0.5.794: der Schalter "Twinks ausserhalb der Gilde zeigen" stand doppelt (hier und unter Datenschutz, dieselbe Einstellung) -
     -- jetzt nur noch unter Datenschutz; hier ein Verweis mit Sprung dorthin
-    f.altsLink = K.Button(f, L["Twinks ausserhalb der Gilde: unter Datenschutz"], 334, 22, "ghost", function() if page and page.SetTab then page.SetTab("share") end end)
+    f.altsLink = K.Button(f, L["Alts outside the guild: see Privacy"], 334, 22, "ghost", function() if page and page.SetTab then page.SetTab("share") end end)
     f.altsLink:SetPoint("TOPLEFT", X, -98)
     f.altsLink:SetHeight(20)
     -- von dir bestaetigte Twinks auf anderen WoW-Accounts: Liste mit Entfernen
@@ -2856,48 +2856,48 @@ local function buildChar(f)
     f.extraAlts:SetPoint("TOPLEFT", X, -122)
     local function extraLabel()
         local n = #ns.Alts.ExtraAlts()
-        f.extraAlts:SetLabel((L["Twinks auf anderen Accounts: %d"]):format(n))
+        f.extraAlts:SetLabel((L["Alts on other accounts: %d"]):format(n))
         f.extraAlts:SetAlpha(n > 0 and 1 or 0.55)
     end
     f.extraAlts:SetScript("OnClick", function(self)
         local items = {}
         for _, n in ipairs(ns.Alts.ExtraAlts()) do
-            items[#items + 1] = { text = ns.displayName(n) .. "  |cffd9786b" .. L["entfernen"] .. "|r", fn = function() ns.Alts.RemoveExtra(n) extraLabel() end }
+            items[#items + 1] = { text = ns.displayName(n) .. "  |cffd9786b" .. L["remove"] .. "|r", fn = function() ns.Alts.RemoveExtra(n) extraLabel() end }
         end
-        if #items == 0 then items[1] = { text = L["Noch keiner bestaetigt - der Twink traegt dich mit /oa twink als Main ein."], disabled = true } end
-        K.ShowMenu(self, items, L["Klick entfernt die Verknuepfung"], 334)
+        if #items == 0 then items[1] = { text = L["None confirmed yet - the alt sets you as main with /oa twink."], disabled = true } end
+        K.ShowMenu(self, items, L["Click removes the link"], 334)
     end)
     f.extraAlts:HookScript("OnShow", extraLabel)
     extraLabel()
 
-    section(f, L["Geburtstag"], X, -144, 334)
-    rowLabel(f, L["Geburtstag (TT.MM)"], X, -176)
+    section(f, L["Birthday"], X, -144, 334)
+    rowLabel(f, L["Birthday (DD.MM)"], X, -176)
     f.bstate = K.Text(f, 11, C.muted)
     f.bday = K.Input(f, 80, "12.10", function(t)
         if t == "" then
             ns.Members.SetBirthday(nil)
-            f.bstate:SetText(L["nicht angegeben"])
+            f.bstate:SetText(L["not set"])
         elseif ns.Members.SetBirthday(t) then
-            f.bstate:SetText("|cff66db9e" .. L["gespeichert"] .. "|r")
+            f.bstate:SetText("|cff66db9e" .. L["saved"] .. "|r")
         else
-            f.bstate:SetText("|cffff5a4a" .. L["Format: TT.MM"] .. "|r")
+            f.bstate:SetText("|cffff5a4a" .. L["Format: DD.MM"] .. "|r")
         end
     end)
     f.bday:SetPoint("TOPLEFT", X + 150, -172)
     f.bstate:SetPoint("LEFT", f.bday, "RIGHT", 10, 0)
-    note(f, L["Freiwillig. Die Gilde bekommt am Tag einen Hinweis und kann gratulieren."], X, -204, 334)
+    note(f, L["Optional. The guild gets a notice on the day and can congratulate you."], X, -204, 334)
 
     -- 0.5.926: fuer jede Gilde (vorher nur mit dem Gildenmodul) - Daten fuer die eigene Webseite / den eigenen Discord-Bot
     -- 0.5.956: wieder nur mit dem Gildenmodul, solange die Export-Werkzeuge nicht veroeffentlicht sind
     if ns.ExternTools() then
         -- Gilden-Webseite: Daten fuer OasisSync (Paket Oasis-Tools) bereitstellen
-        section(f, L["Gilden-Webseite"], X, -240, 334)
-        f.webEx = K.Toggle(f, L["Daten fuer die Gilden-Webseite bereitstellen"],
+        section(f, L["Guild website"], X, -240, 334)
+        f.webEx = K.Toggle(f, L["Provide data for the guild website"],
             function() return ns.Officer and ns.Officer.ExportWanted and ns.Officer.ExportWanted() or S().webExport == true end,
             function(v) S().webExport = v and true or false end)
         f.webEx:SetPoint("TOPLEFT", X, -270)
         f.webEx:SetWidth(334)
-        note(f, L["Mitglieder, Termine, Gildenbank usw. landen beim Ausloggen in den gespeicherten Daten - OasisSync (Ordner Oasis/Tools) kann sie an die Gilden-Webseite schicken. Nie dabei: Offiziersnotizen, Chats, Fluestern."], X, -300, 334)
+        note(f, L["Members, events, guild bank etc. are written to saved data on logout - OasisSync (folder Oasis/Tools) can send them to the guild website. Never included: officer notes, chats, whispers."], X, -300, 334)
     end
 
     -- 0.5.793: Oasis-Netz (realmweiter Kanal) komplett entfernt
@@ -2906,47 +2906,47 @@ local function buildChar(f)
     local RX, MX = 376, 390
     local rc = card(f, RX, 0, 362, 470)
     rc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, 0)
-    section(f, L["Einstellungen sichern"], MX, -12, 330)
-    note(f, L["Deine Einstellungen gelten automatisch fuer alle Charaktere auf diesem Account."], MX, -40, 330, C.muted)
+    section(f, L["Back up settings"], MX, -12, 330)
+    note(f, L["Your settings automatically apply to all characters on this account."], MX, -40, 330, C.muted)
 
     -- Export / Import
-    rowLabel(f, L["Als Text"], MX, -78)
-    f.io = K.Input(f, 330, L["Hier Text einfuegen oder Exportieren klicken"])
+    rowLabel(f, L["As text"], MX, -78)
+    f.io = K.Input(f, 330, L["Paste text here or click Export"])
     f.io:SetMaxLetters(0)
     f.io:SetPoint("TOPLEFT", MX, -100)
     f.ioState = K.Text(f, 11, C.muted)
     f.ioState:SetPoint("TOPLEFT", MX, -160)
     f.ioState:SetWidth(330)
     f.ioState:SetJustifyH("LEFT")
-    local ex = K.Button(f, L["Exportieren"], 120, 24, "primary", function()
+    local ex = K.Button(f, L["Export"], 120, 24, "primary", function()
         f.io:SetText(exportString())
         f.io:SetFocus()
         f.io:HighlightText()
-        f.ioState:SetText("|cff66db9e" .. L["Markiert - mit Strg+C kopieren."] .. "|r")
+        f.ioState:SetText("|cff66db9e" .. L["Selected - copy with Ctrl+C."] .. "|r")
     end)
     ex:SetPoint("TOPLEFT", MX, -130)
-    local im = K.Button(f, L["Importieren"], 120, 24, "ghost", function()
+    local im = K.Button(f, L["Import"], 120, 24, "ghost", function()
         if importString(f.io:GetText()) then
-            f.ioState:SetText("|cff66db9e" .. L["Uebernommen."] .. "|r")
+            f.ioState:SetText("|cff66db9e" .. L["Applied."] .. "|r")
             f.io:SetText("")
         else
-            f.ioState:SetText("|cffff5a4a" .. L["Das ist kein gueltiger Oasis-Text."] .. "|r")
+            f.ioState:SetText("|cffff5a4a" .. L["That is not a valid Oasis text."] .. "|r")
         end
     end)
     im:SetPoint("LEFT", ex, "RIGHT", 8, 0)
 
     -- Gespeicherte Profile
-    section(f, L["Gespeicherte Profile"], MX, -194, 330)
-    f.pname = K.Input(f, 200, L["Name, z.B. Raid-Abend"])
+    section(f, L["Saved profiles"], MX, -194, 330)
+    f.pname = K.Input(f, 200, L["Name, e.g. Raid night"])
     f.pname:SetPoint("TOPLEFT", MX, -226)
-    local save = K.Button(f, L["Speichern"], 122, 24, "ghost", function()
+    local save = K.Button(f, L["Save"], 122, 24, "ghost", function()
         local n = (f.pname:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
         if n == "" then return end
         ns.db.presets = ns.db.presets or {}
         ns.db.presets[n] = { s = ser(S()), ts = ns.now() }
         f.pname:SetText("")
         f.pname:ClearFocus()
-        K.Toast(L["Profil gespeichert"], n, C.mint)
+        K.Toast(L["Profile saved"], n, C.mint)
         ns.RefreshPage("settings")
     end)
     save:SetPoint("LEFT", f.pname, "RIGHT", 8, 0)
@@ -2958,19 +2958,19 @@ local function buildChar(f)
         r.name:SetWordWrap(false)
         r.when = K.Text(r, 10, C.dim, "RIGHT")
         r.when:SetPoint("RIGHT", -150, 0)
-        r.load = K.Button(r, L["Laden"], 70, 20, "ghost", function()
+        r.load = K.Button(r, L["Load"], 70, 20, "ghost", function()
             local p = r.item and ns.db.presets and ns.db.presets[r.item.name]
             local t = p and deser(p.s)
-            if t then applySettings(t) K.Toast(L["Profil geladen"], r.item.name, C.mint) end
+            if t then applySettings(t) K.Toast(L["Profile loaded"], r.item.name, C.mint) end
         end)
         r.load:SetPoint("RIGHT", -64, 0)
-        r.del = K.Button(r, L["Loeschen"], 56, 20, "danger", function()
+        r.del = K.Button(r, L["Put out"], 56, 20, "danger", function()
             if not r.item then return end
             -- zweimal klicken zum Loeschen
             if r.armed ~= r.item.name then
                 r.armed = r.item.name
-                r.del:SetLabel(L["Sicher?"])
-                ns.After(3, function() r.armed = nil if r.del then r.del:SetLabel(L["Loeschen"]) end end)
+                r.del:SetLabel(L["Sure?"])
+                ns.After(3, function() r.armed = nil if r.del then r.del:SetLabel(L["Put out"]) end end)
                 return
             end
             ns.db.presets[r.item.name] = nil
@@ -2982,17 +2982,17 @@ local function buildChar(f)
     end, function(r, p)
         r.name:SetText(p.name)
         r.when:SetText(p.ts and ns.ago(p.ts) or "")
-        r.del:SetLabel(r.armed == p.name and L["Sicher?"] or L["Loeschen"])
+        r.del:SetLabel(r.armed == p.name and L["Sure?"] or L["Put out"])
     end)
     f.plist:SetPoint("TOPLEFT", MX - 4, -258)
     f.plist:SetPoint("BOTTOMRIGHT", rc, "BOTTOMRIGHT", -10, 10)
-    f.plist.empty:SetText(L["Noch keine Profile gespeichert."])
+    f.plist.empty:SetText(L["No profiles saved yet."])
 end
 local function refreshChar(f)
     f.main:SetLabel(ns.displayName(ns.Alts.MyMain()))
     if not f.bday:HasFocus() then
         f.bday:SetText(S().birthday or "")
-        if f.bstate:GetText() == nil or f.bstate:GetText() == "" then f.bstate:SetText(S().birthday and "" or L["freiwillig"]) end
+        if f.bstate:GetText() == nil or f.bstate:GetText() == "" then f.bstate:SetText(S().birthday and "" or L["optional"]) end
     end
     local list = {}
     for n, p in pairs(ns.db.presets or {}) do list[#list + 1] = { name = n, ts = p.ts } end
@@ -3005,20 +3005,20 @@ end
 ------------------------------------------------------------------------
 -- Namen der gespeicherten Sammlungen fuer die Anzeige
 local STORE_NAMES = {
-    orders = "Handwerks-Auftraege", events = "Termine", signups = "Anmeldungen", chronicle = "Chronik",
-    loot = "Beute", campCatalog = "Buff-Katalog", campfires = "Lagerfeuer", wants = "Wunschliste",
-    lfg = "Gruppensuchen", duels = "Wuerfelspiele", notices = "Durchsagen", guildcfg = "Gilden-Einstellungen",
-    audit = "Protokoll Gildenleitung", bank = "Gildenbank-Faecher", banklog = "Gildenbank-Protokoll",
-    bankworth = "Bankwert-Verlauf", deaths = "Friedhof", links = "Links", points = "Lootpunkte",
-    posts = "Oasigram-Beitraege", prices = "Marktpreise", raidplan = "Raidplaene", rep = "Spielerbuch-Bewertungen",
-    votes = "Umfrage-Stimmen", polls = "Umfragen", likes = "Likes", comments = "Kommentare", follows = "Folgen",
-    flights = "Flugpunkte", mapcal = "Karten-Termine", wtrain = "Waffenmeister", rpreq = "Ruf-Anfragen", invites = "Einladungen",
-    reacts = "Reaktionen", lfgreq = "Gruppen-Anfragen", chatpin = "Angeheftet im Chat", attend = "Raid-Teilnahme", formers = "Ehemalige",
-    tactics = "Boss-Taktiken", nodes = "Sammelpunkte", bans = "Sperren", sndmute = "Sound-Sperren", recruits = "Anwerbungen", sres = "Reservierungen",
-    trace = "Dungeon-Spuren", raidint = "Raid-Interesse", bugs = "Fehlerberichte", ggoals = "Gildenziele", ggcontrib = "Gildenziel-Beitraege",
-    talents = "Talente", scout = "Anwerbe-Vorschlaege", perf = "Leistungsmessungen", combat = "Kampf-Rekorde", profcd = "Berufs-Abklingzeiten",
-    coll_chars = "Sammlungen: Charaktere", coll_mounts = "Sammlungen: Reittiere", coll_pets = "Sammlungen: Haustiere", coll_toys = "Sammlungen: Spielzeuge",
-    gearmatch = "Upgrade-Boerse", lockouts = "Raid-IDs", qitems = "Questitems", rtweek = "Raid-Zeit", repfac = "Ruf-Planer",
+    orders = "Crafting orders", events = "Events", signups = "Sign-ups", chronicle = "Chronicle",
+    loot = "Loot", campCatalog = "Buff catalog", campfires = "Campfire", wants = "Wish list",
+    lfg = "Group searches", duels = "Dice games", notices = "Announcements", guildcfg = "Gilden-Einstellungen",
+    audit = "Leadership log", bank = "Guild bank tabs", banklog = "Guild bank log",
+    bankworth = "Bank value history", deaths = "Graveyard", links = "Links", points = "Loot points",
+    posts = "Oasigram posts", prices = "Market prices", raidplan = "Raid plans", rep = "Player book ratings",
+    votes = "Poll votes", polls = "Polls", likes = "Likes", comments = "Comments", follows = "Follows",
+    flights = "Flight points", mapcal = "Map events", wtrain = "Weapon masters", rpreq = "Reputation requests", invites = "Invites",
+    reacts = "Reactions", lfgreq = "Group requests", chatpin = "Pinned in chat", attend = "Raid attendance", formers = "Former members",
+    tactics = "Boss tactics", nodes = "Gather nodes", bans = "Bans", sndmute = "Sound mutes", recruits = "Recruits", sres = "Reservations",
+    trace = "Dungeon traces", raidint = "Raid interest", bugs = "Bug reports", ggoals = "Guild goals", ggcontrib = "Guild goal contributions",
+    talents = "Talents", scout = "Recruiting suggestions", perf = "Performance samples", combat = "Combat records", profcd = "Profession cooldowns",
+    coll_chars = "Collections: characters", coll_mounts = "Collections: mounts", coll_pets = "Collections: pets", coll_toys = "Collections: toys",
+    gearmatch = "Upgrade Exchange", lockouts = "Raid Lockouts", qitems = "Quest items", rtweek = "Raid Time", repfac = "Reputation Planner",
 }
 local function buildStatus(f)
     -- 0.5.570: Glas-Karten mit Kopf, Datenliste passt in die Karte (vorher liefen 30 Zeilen unten hinaus, Ueberschriften fehlten)
@@ -3033,10 +3033,10 @@ local function buildStatus(f)
     f.guild:SetPoint("TOPLEFT", f.ver, "BOTTOMLEFT", 0, -6)
     f.author = K.Text(hc, 11, C.dim)
     f.author:SetPoint("TOPLEFT", f.guild, "BOTTOMLEFT", 0, -5)
-    f.author:SetText(L["Entwickelt von"] .. " " .. K.hex(C.accent) .. "Oasis Addons|r")
+    f.author:SetText(L["Developed by"] .. " " .. K.hex(C.accent) .. "Oasis Addons|r")
     f.lead = K.Text(hc, 11, C.amber)
     f.lead:SetPoint("TOPLEFT", f.author, "BOTTOMLEFT", 0, -5)
-    f.tour = K.Button(hc, L["Rundgang starten"], 140, 24, "ghost", function() if ns.Onboarding then ns.Onboarding.Show() end end)
+    f.tour = K.Button(hc, L["Start tour"], 140, 24, "ghost", function() if ns.Onboarding then ns.Onboarding.Show() end end)
     f.tour:SetPoint("RIGHT", hc, "RIGHT", -18, 16)
     -- 0.5.949: Beispieldaten fuer alle - zum Ausprobieren und Einrichten, bevor die eigene Gilde Daten hat
     f.demoBtn = K.Button(hc, "", 140, 24, "ghost", function(self)
@@ -3048,14 +3048,14 @@ local function buildStatus(f)
     f.demoBtn:SetPoint("RIGHT", hc, "RIGHT", -18, -16)
     function f.demoBtn:Refresh()
         local on = ns.Demo and ns.Demo.IsActive()
-        self.label:SetText(on and L["Beispieldaten entfernen"] or L["Beispieldaten ansehen"])
+        self.label:SetText(on and L["Remove sample data"] or L["Show sample data"])
     end
     f.demoBtn:Refresh()
     f.demoBtn:HookScript("OnShow", function(self) self:Refresh() end)
     f.demoBtn:HookScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Beispieldaten"],
-            L["Fuellt Oasis mit Beispiel-Mitgliedern, Terminen, Chronik, Umfragen usw. Bleibt nur bei dir und wird nie an die Gilde gesendet."],
-            L["Solange sie laufen, steht oben im Fenster 'Demo an'. Ein Klick dort oder hier entfernt alles wieder."] })
+        K.ShowTip(self, { L["Sample data"],
+            L["Fills Oasis with sample members, events, chronicle, polls etc. Stays on your client only and is never sent to the guild."],
+            L["While they are on, the window shows 'Demo on' at the top. One click there or here removes everything again."] })
     end)
     f.demoBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
     -- 0.5.996: Entwickler - Leitungsrechte (Gildenleitung, Offiziere, Raidleitung) per Knopf statt nur /oa testleitung
@@ -3069,19 +3069,19 @@ local function buildStatus(f)
         local dev = ns.IsDev and ns.IsDev()
         self:SetShown(dev and true or false)
         local on = ns.Admin and ns.Admin.TestMode()
-        self.label:SetText(on and L["Leitungsrechte aus"] or L["Leitungsrechte an"])
+        self.label:SetText(on and L["Leadership rights off"] or L["Leadership rights on"])
     end
     f.devLead:Refresh()
     f.devLead:HookScript("OnShow", function(self) self:Refresh() end)
     f.devLead:HookScript("OnEnter", function(self)
-        K.ShowTip(self, { L["Leitungsrechte (Entwickler)"],
-            L["Du wirst auf diesem PC wie der Gildenmeister behandelt: Gildenleitung, Offiziers- und Raidleiter-Einstellungen sind offen."],
-            L["Fuer die Gilde gespeicherte Aenderungen sehen die anderen NICHT - deren Oasis prueft deinen echten Rang."] })
+        K.ShowTip(self, { L["Leadership rights (developer)"],
+            L["On this PC you are treated like the guild master: guild leadership, officer and raid leader settings are unlocked."],
+            L["Others do NOT see changes saved for the guild - their Oasis checks your real rank."] })
     end)
     f.devLead:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
     f.tiles = {}
-    local labels = { L["Profile bekannt"], L["Rezeptlisten"], L["Legacy-Daten"], L["Letzter Abgleich"] }
+    local labels = { L["Known profiles"], L["Recipe lists"], L["Legacy data"], L["Last sync"] }
     for i, lab in ipairs(labels) do
         local t = K.StatCard(f, lab)
         t:SetPoint("TOPLEFT", f, "TOPLEFT", (i - 1) * 186, -118)
@@ -3091,7 +3091,7 @@ local function buildStatus(f)
 
     -- Gespeicherte Daten: 2 Spalten x 9 Zeilen, groesste zuerst
     local ROWS = 9
-    local dc = cardH(f, 0, -188, 470, 56 + ROWS * 20 + 14, "stats", L["Gespeicherte Daten"], L["Was Oasis von der Gilde gerade kennt"])
+    local dc = cardH(f, 0, -188, 470, 56 + ROWS * 20 + 14, "stats", L["Stored data"], L["What Oasis currently knows from the guild"])
     f.dataRows = {}
     for i = 1, ROWS * 2 do
         local col, row = math.floor((i - 1) / ROWS), (i - 1) % ROWS
@@ -3107,10 +3107,10 @@ local function buildStatus(f)
     end
     f.dataEmpty = K.Text(dc, 12, C.dim)
     f.dataEmpty:SetPoint("TOPLEFT", 14, -60)
-    f.dataEmpty:SetText(L["Noch keine Daten von der Gilde."])
+    f.dataEmpty:SetText(L["No data from the guild yet."])
 
     -- Verbindung
-    local cc = cardH(f, 484, -188, 254, 56 + ROWS * 20 + 14, "sync", L["Verbindung"], L["Austausch mit der Gilde"], true)
+    local cc = cardH(f, 484, -188, 254, 56 + ROWS * 20 + 14, "sync", L["Connection"], L["Exchange with the guild"], true)
     f.netDot = cc:CreateTexture(nil, "ARTWORK")
     f.netDot:SetTexture(ns.MEDIA .. "dot")
     f.netDot:SetSize(9, 9)
@@ -3118,7 +3118,7 @@ local function buildStatus(f)
     f.netState = K.Text(cc, 12, C.text)
     f.netState:SetPoint("LEFT", f.netDot, "RIGHT", 8, 0)
     f.net = {}
-    for i, lab in ipairs({ L["Gesendet"], L["Empfangen"], L["Warteschlange"] }) do
+    for i, lab in ipairs({ L["Sent"], L["Received"], L["Queue"] }) do
         local n = K.Text(cc, 12, C.muted)
         n:SetPoint("TOPLEFT", cc, "TOPLEFT", 14, -90 - (i - 1) * 22)
         n:SetText(lab)
@@ -3126,19 +3126,19 @@ local function buildStatus(f)
         v:SetPoint("TOPRIGHT", cc, "TOPRIGHT", -14, -90 - (i - 1) * 22)
         f.net[i] = v
     end
-    note(cc, L["Oasis tauscht Daten nur mit Gildenmitgliedern, die Oasis auch haben. Im Kampf und in Instanzen pausiert der Austausch."], 14, -162, 226, C.dim)
+    note(cc, L["Oasis only exchanges data with guild members who also use Oasis. Exchange pauses in combat and instances."], 14, -162, 226, C.dim)
     -- Credits und Lizenzen unten (Core/Start/Credits.lua, laedt nach dieser Datei - beim Aufbau des Reiters ist es da)
     if ns.Credits and ns.Credits.Build then
         local ok, e = pcall(ns.Credits.Build, f, 0, -188 - (56 + ROWS * 20 + 14) - 26, 738)
-        if not ok then ns.err(L["Aufbau"] .. " settings/credits", e) end
+        if not ok then ns.err(L["Setup"] .. " settings/credits", e) end
     end
 end
 local function refreshStatus(f)
-    local guild = IsInGuild() and (GetGuildInfo("player") or "?") or L["keine Gilde"]
+    local guild = IsInGuild() and (GetGuildInfo("player") or "?") or L["no guild"]
     local _, rankName = GetGuildInfo("player")
     f.ver:SetText("OASIS  " .. K.hex(C.accent) .. ns.version .. "|r")
-    f.guild:SetText(L["Gilde: "] .. "|cffffffff" .. guild .. "|r" .. (rankName and ("   |cff888888" .. rankName .. "|r") or ""))
-    f.lead:SetText(ns.Admin and ns.Admin.CanManage() and L["Du hast Zugriff auf die Gildenleitung."] or "")
+    f.guild:SetText(L["Guild: "] .. "|cffffffff" .. guild .. "|r" .. (rankName and ("   |cff888888" .. rankName .. "|r") or ""))
+    f.lead:SetText(ns.Admin and ns.Admin.CanManage() and L["You have access to Guild Leadership."] or "")
     if f.devLead then f.devLead:Refresh() end
 
     local members, recipes, legacy = 0, 0, 0
@@ -3164,7 +3164,7 @@ local function refreshStatus(f)
             -- letzte Zelle: Rest zusammenfassen
             local rest = 0
             for j = nr, #list do rest = rest + list[j][2] end
-            row.name:SetText("|cff888888" .. (L["+%d weitere"]):format(#list - nr + 1) .. "|r")
+            row.name:SetText("|cff888888" .. (L["+%d more"]):format(#list - nr + 1) .. "|r")
             row.val:SetText(rest)
         else
             row.name:SetText(e and e[1] or "")
@@ -3176,7 +3176,7 @@ local function refreshStatus(f)
     local blocked = Comm.restricted()
     local c = blocked and C.amber or C.mint
     f.netDot:SetVertexColor(c[1], c[2], c[3])
-    f.netState:SetText(blocked and L["Gerade pausiert (Kampf/Instanz)"] or L["Bereit"])
+    f.netState:SetText(blocked and L["Paused (combat/instance)"] or L["Ready"])
     f.net[1]:SetText(Comm.sent)
     f.net[2]:SetText(Comm.received)
     f.net[3]:SetText(Comm.QueueSize())
@@ -3221,7 +3221,7 @@ local function buildBar(f)
     end
     local function labelOf(k)
         if panelLabel[k] then return L[panelLabel[k]] end
-        if k == "mark" then return L["Auto-Marker (in Gruppe)"] end
+        if k == "mark" then return L["Auto marker (in group)"] end
         local def = ns.PageDef and ns.PageDef(k)
         return def and L[def.title] or k
     end
@@ -3353,57 +3353,57 @@ local function buildBar(f)
             b:SetPoint("TOPLEFT", f, "TOPLEFT", LX, g.y0 - (i - 1) * (b:GetHeight() + gap))
         end
     end
-    cardH(f, 0, 0, 362, 50 + 3 * 54 + 8, "pin", L["Wann erscheint die Topbar?"], L["Die echte Leiste oben zeigt jede Aenderung sofort"])
+    cardH(f, 0, 0, 362, 50 + 3 * 54 + 8, "pin", L["When does the top bar show?"], L["The real bar above shows every change instantly"])
     f.modeSeg = choiceGroup({
-        { key = "collapse", text = L["Beim Schliessen"], desc = L["X am Fenster klappt ein"], icon = "home" },
-        { key = "always", text = L["Immer"], desc = L["ab dem Einloggen da"], icon = "star_on" },
-        { key = "off", text = L["Nie"], desc = L["nur das Fenster"], icon = "eye_off" },
+        { key = "collapse", text = L["On close"], desc = L["window X collapses"], icon = "home" },
+        { key = "always", text = L["Always"], desc = L["there from login"], icon = "star_on" },
+        { key = "off", text = L["Never"], desc = L["window only"], icon = "eye_off" },
     }, LX, -50, 330, 48, function(k)
         S().topbarMode = (k ~= "collapse") and k or nil
         if ns.ApplyTopbarMode then ns.ApplyTopbarMode() end
     end)
     f.modeSeg.y0 = -50
     stackY(f.modeSeg, 6)
-    indexAdd(L["Wann erscheint die Topbar?"], f.modeSeg.btns[1], L["Topbar immer zeigen oder nie"])
+    indexAdd(L["When does the top bar show?"], f.modeSeg.btns[1], L["Always show the top bar or never"])
 
     -- Stil ----------------------------------------------------------------
     local YS = -(50 + 3 * 54 + 8) - 14
-    cardH(f, 0, YS, 362, 50 + 4 * 66 + 8, "brush", L["Stil"], L["Wie die Leiste aussieht - die echte Leiste oben aendert sich sofort"])
+    cardH(f, 0, YS, 362, 50 + 4 * 66 + 8, "brush", L["Style"], L["How the bar looks - the real bar above changes instantly"])
     f.styleSeg = choiceGroup({
-        { key = "normal", text = L["Normal"], desc = L["schmal, frei verschiebbar"], draw = function(b, w, h) screen(b, w, h, false) end },
-        { key = "compact", text = L["Kompakt"], desc = L["ganze Breite, mit Uhr"], draw = function(b, w, h) screen(b, w, h, true) end },
-        { key = "minimal", text = L["Minimal"], desc = L["nur Symbole, ganz schmal"], draw = function(b, w, h) screen(b, w, h, false, "minimal") end },
-        { key = "dock", text = L["Dock"], desc = L["grosse Symbole, wachsen beim Ueberfahren"], draw = function(b, w, h) screen(b, w, h, false, "dock") end },
+        { key = "normal", text = L["Normal"], desc = L["slim, movable"], draw = function(b, w, h) screen(b, w, h, false) end },
+        { key = "compact", text = L["Compact"], desc = L["full width, with clock"], draw = function(b, w, h) screen(b, w, h, true) end },
+        { key = "minimal", text = L["Minimal"], desc = L["icons only, very slim"], draw = function(b, w, h) screen(b, w, h, false, "minimal") end },
+        { key = "dock", text = L["Dock"], desc = L["big icons, grow on hover"], draw = function(b, w, h) screen(b, w, h, false, "dock") end },
     }, LX, YS - 50, 330, 60, function(k)
         S().miniStyle = (k ~= "normal") and k or nil
         if ns.UpdateMiniBarNow then pcall(ns.UpdateMiniBarNow) end
     end)
     f.styleSeg.y0 = YS - 50
     stackY(f.styleSeg, 6)
-    indexAdd(L["Stil"], f.styleSeg.btns[2], L["Kompakte Topbar ueber die ganze Bildschirmbreite"])
+    indexAdd(L["Style"], f.styleSeg.btns[2], L["Compact top bar across the full screen width"])
 
     -- Leiste ---------------------------------------------------------------
     local Y2 = 0
-    cardH(f, RXc, Y2, 362, 292, "settings", L["Leiste"], nil, true)
-    f.autoHide = optTile(RX0, Y2 - 46, 330, "eye_off", "Einrollen", "nur der Rand bleibt sichtbar, Maus oben holt sie", "miniAutoHide",
+    cardH(f, RXc, Y2, 362, 292, "settings", L["Bar"], nil, true)
+    f.autoHide = optTile(RX0, Y2 - 46, 330, "eye_off", "Roll up", "only the edge stays visible, mouse at the top brings it back", "miniAutoHide",
         function() if ns.PlaceMiniBar then ns.PlaceMiniBar() end end)
-    f.noLogo = optTile(RX0, Y2 - 110, 330, "chronicle", "Logo ausblenden", "Leiste ohne Schriftzug, Klick links klappt weiter auf", "miniNoLogo",
+    f.noLogo = optTile(RX0, Y2 - 110, 330, "chronicle", "Hide logo", "Bar without the wordmark, clicking on the left still expands it", "miniNoLogo",
         function() if ns.UpdateMiniBar then ns.UpdateMiniBar() end end)
-    rowLabel(f, L["Hintergrund"], RX0, Y2 - 182)
+    rowLabel(f, L["Background"], RX0, Y2 - 182)
     f.miniAlpha = K.Slider(f, 200, 0.1, 1, 0.05, function() return S().miniAlpha or 1 end,
         function(v) S().miniAlpha = v if ns.ApplyMiniAlpha then ns.ApplyMiniAlpha() end end,
         function(v) return (L["%d %%"]):format(v * 100 + 0.5) end)
     f.miniAlpha:SetPoint("TOPLEFT", RX0 + 110, Y2 - 180)
-    indexAdd(L["Topbar-Transparenz"], f.miniAlpha, L["Wie durchsichtig die Topbar ist"])
-    rowLabel(f, L["Groesse"], RX0, Y2 - 214)
+    indexAdd(L["Top bar transparency"], f.miniAlpha, L["How transparent the top bar is"])
+    rowLabel(f, L["Size"], RX0, Y2 - 214)
     f.miniScale = K.Slider(f, 200, 0.6, 1.6, 0.05, function() return S().miniScale or 1 end,
         function(v) S().miniScale = v if ns.UpdateMiniBarNow then pcall(ns.UpdateMiniBarNow) elseif ns.UpdateMiniBar then ns.UpdateMiniBar() end end,
         function(v) return (L["%d%%"]):format(v * 100 + 0.5) end)
     f.miniScale:SetPoint("TOPLEFT", RX0 + 110, Y2 - 212)
-    indexAdd(L["Topbar-Groesse"], f.miniScale, L["Wie gross die Topbar ist"])
-    local c = K.Button(f, L["Jetzt einklappen"], 158, 24, "ghost", function() if ns.Collapse then ns.Collapse(true) end end)
+    indexAdd(L["Topbar size"], f.miniScale, L["How big the topbar is"])
+    local c = K.Button(f, L["Collapse now"], 158, 24, "ghost", function() if ns.Collapse then ns.Collapse(true) end end)
     c:SetPoint("TOPLEFT", RX0, Y2 - 248)
-    local r = K.Button(f, L["Position zuruecksetzen"], 164, 24, "ghost", function()
+    local r = K.Button(f, L["Reset position"], 164, 24, "ghost", function()
         S().miniPos = nil
         if ns.HideMiniBar and ns.ShowMiniBar then ns.HideMiniBar() ns.ShowMiniBar() end
     end)
@@ -3416,7 +3416,7 @@ local function buildBar(f)
     for _, pq in ipairs(ns.MINI_QUICK_PANELS or {}) do keys[#keys + 1] = pq.key end
     local PER, CW, CHh = 2, 162, 28
     local Y3 = Y2 - 306
-    cardH(f, RXc, Y3, 362, 58 + math.ceil(#keys / PER) * (CHh + 5), "modules", L["Knoepfe in der Leiste"], L["Klick schaltet einen Knopf an oder aus"], true)
+    cardH(f, RXc, Y3, 362, 58 + math.ceil(#keys / PER) * (CHh + 5), "modules", L["Buttons in the bar"], L["Click toggles a button"], true)
     f.qt = {}
     for i, k in ipairs(keys) do
         local col, row = (i - 1) % PER, math.floor((i - 1) / PER)
@@ -3458,7 +3458,7 @@ local function buildBar(f)
         end)
         b:SetScript("OnEnter", function(self) self.tint:SetAlpha(1.8) end)
         b:SetScript("OnLeave", function(self) self.tint:SetAlpha(1) end)
-        indexAdd(labelOf(k), b, L["Knoepfe in der Leiste"])
+        indexAdd(labelOf(k), b, L["Buttons in the bar"])
         f.qt[#f.qt + 1] = b
     end
 end
@@ -3473,7 +3473,7 @@ local function refreshBar(f)
     for _, t in ipairs(f.qt or {}) do t:Refresh() end
 end
 BUILD.bar, REFRESH.bar = buildBar, refreshBar
-table.insert(TABS, #TABS, { key = "bar", text = "Topbar" })
+table.insert(TABS, #TABS, { key = "bar", text = "Top bar" })
 
 -- weitere Reiter aus anderen Modulen (vor dem ersten Oeffnen der Einstellungen anmelden)
 function ns.AddSettingsTab(key, text, build, refresh)
@@ -3524,27 +3524,27 @@ end
 -- Themenwahl: Gildenorganisation, soziale Aktivitaeten und persoenliche Helfer getrennt.
 -- Design, Benachrichtigungen, Datenschutz und technische Modulverwaltung haben eigene Themen.
 local GROUPS = {
-    { key = "start", text = "Uebersicht", icon = "home", tabs = { "quick" },
-        desc = "Waehle ein Thema oder suche direkt nach einer Einstellung." },
-    { key = "guild", text = "Gilde & Organisation", icon = "modules", tabs = { "guildtools", "helpers" },
-        desc = "Mitglieder, Termine, Raids, Handwerk und gemeinsame Gildenziele." },
-    { key = "social", text = "Socializing", icon = "social", tabs = { "socialtools", "greet" },
-        desc = "Leute kennenlernen, Gruppen finden und gemeinsam etwas unternehmen." },
-    { key = "help", text = "Mein Komfort", icon = "checklist", tabs = { "personaltools", "comfort", "gamechat", "mapset", "tips", "keys" },
-        desc = "Persoenliche Spielhilfen, Chat, Karte und Tooltips fuer deinen Alltag." },
-    { key = "look", text = "Aussehen & Bedienung", icon = "brush", tabs = { "look", "general", "bar", "ownmedia" },
-        desc = "Design, Schrift, Fenster und Leisten an deinen Spielstil anpassen." },
-    { key = "notify", text = "Hinweise & Klang", icon = "announce", tabs = { "toasts", "sound" },
-        desc = "Bestimme, was du mitbekommst, wie es aussieht und wie es klingt." },
-    { key = "char", text = "Profil & Datenschutz", icon = "profile", tabs = { "char", "share", "lexport" },
-        desc = "Charaktere zuordnen, geteilte Daten kontrollieren und Einstellungen sichern." },
-    { key = "adv", text = "System & Module", icon = "settings", tabs = { "modules", "status", "perf" },
-        desc = "Module laden, Verbindung pruefen und Leistung einstellen." },
+    { key = "start", text = "Overview", icon = "home", tabs = { "quick" },
+        desc = "Choose a topic or search for a setting directly." },
+    { key = "guild", text = "Guild & organisation", icon = "modules", tabs = { "guildtools", "helpers" },
+        desc = "Members, events, raids, crafting and shared guild goals." },
+    { key = "social", text = "Socialising", icon = "social", tabs = { "socialtools", "greet" },
+        desc = "Meet people, find groups and do things together." },
+    { key = "help", text = "My convenience", icon = "checklist", tabs = { "personaltools", "comfort", "gamechat", "mapset", "tips", "keys" },
+        desc = "Personal helpers, chat, maps and tooltips for everyday play." },
+    { key = "look", text = "Look & controls", icon = "brush", tabs = { "look", "general", "bar", "ownmedia" },
+        desc = "Adjust the design, font, window and bars to your play style." },
+    { key = "notify", text = "Notices & sound", icon = "announce", tabs = { "toasts", "sound" },
+        desc = "Choose what you hear about, how it looks and how it sounds." },
+    { key = "char", text = "Profile & privacy", icon = "profile", tabs = { "char", "share", "lexport" },
+        desc = "Link characters, control shared data and back up settings." },
+    { key = "adv", text = "System & modules", icon = "settings", tabs = { "modules", "status", "perf" },
+        desc = "Load modules, check connectivity and adjust performance." },
 }
 for _, entry in ipairs({
-    { "guildtools", "Gildenfunktionen", "guild" },
-    { "socialtools", "Miteinander", "social" },
-    { "personaltools", "Meine Werkzeuge", "personal" },
+    { "guildtools", "Guild tools", "guild" },
+    { "socialtools", "Together", "social" },
+    { "personaltools", "My tools", "personal" },
 }) do
     local scope = entry[3]
     BUILD[entry[1]] = function(f) buildPages(f, scope) end
@@ -3640,7 +3640,7 @@ local function setTab(key)
         page.buildingTab = key
         local ok, e = pcall(BUILD[key], fr)
         page.buildingTab = nil
-        if not ok then ns.err(L["Aufbau"] .. " settings/" .. key, e) end
+        if not ok then ns.err(L["Setup"] .. " settings/" .. key, e) end
         -- 0.6.476: Kaesten mit ausgeblendeten Schaltern zuerst zusammenruecken und um die Luecke kuerzen
         local function boxes(o, depth)
             if depth > 3 then return end
@@ -3791,21 +3791,21 @@ local function resetPage(f, after)
     if after then pcall(after) end
     for _, t in ipairs(f.t or {}) do if t.Refresh then pcall(t.Refresh, t) end end
     for _, fn in ipairs(f.refreshers or {}) do pcall(fn) end
-    if K.Toast then K.Toast(L["Zurueckgesetzt"], L["Die Schalter dieser Seite stehen wieder auf Standard."], C.accent) end
+    if K.Toast then K.Toast(L["Reset"], L["The switches on this page are back to default."], C.accent) end
 end
 function resetButton(f, y, after)   -- 0.6.180: oben vorab als local deklariert (Seite 'Teilen' rief sie vorher auf -> nil)
     -- zweistufig: erster Klick fragt nach, zweiter (innerhalb von 4 s) setzt zurueck
     local b
-    b = K.Button(f, L["Diese Seite zuruecksetzen"], 190, 22, "ghost", function(self)
+    b = K.Button(f, L["Reset this page"], 190, 22, "ghost", function(self)
         if self.armed and GetTime() - self.armed < 4 then
             self.armed = nil
-            self:SetLabel(L["Diese Seite zuruecksetzen"])
+            self:SetLabel(L["Reset this page"])
             resetPage(f, after)
             return
         end
         self.armed = GetTime()
-        self:SetLabel(L["Wirklich? Nochmal klicken"])
-        C_Timer.After(4, function() if b.armed and GetTime() - b.armed >= 3.9 then b.armed = nil b:SetLabel(L["Diese Seite zuruecksetzen"]) end end)
+        self:SetLabel(L["Sure? Click again"])
+        C_Timer.After(4, function() if b.armed and GetTime() - b.armed >= 3.9 then b.armed = nil b:SetLabel(L["Reset this page"]) end end)
     end)
     b:SetPoint("TOPLEFT", 0, y)
     return b
@@ -3815,25 +3815,25 @@ local function buildQuick(f)
     f.noCompact = true
     f.t = {}
     -- Das Wichtigste ----------------------------------------------------
-    local c, y = wideCard(f, 0, "settings", L["Das Wichtigste"], L["Die Schalter, die fast jeder einmal braucht - alles andere findest du unten nach Themen sortiert"])
+    local c, y = wideCard(f, 0, "settings", L["The essentials"], L["The switches almost everyone needs at some point - everything else is sorted by topic below"])
     -- Sprache steht oben im Fenster (Flagge) immer bereit - hier nicht doppelt
     y = toggleList(f, {
-        { "Hinweise anzeigen", "toasts", "Kurze Meldungen am Bildschirmrand: Auftraege, Termine, Gruppensuchen, Durchsagen ..." },
-        { "Sounds abspielen", "sound", "Alle Oasis-Klaenge an oder aus" },
-        { "Im Kampf ausblenden", "hideInCombat", "Das Oasis-Fenster verschwindet, sobald ein Kampf beginnt" },
-        { "Minimap-Knopf anzeigen", "minimap", "Linksklick oeffnet Oasis, Rechtsklick die Einstellungen", function() if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end end },
-        { "Position auf der Weltkarte teilen", "shareMap", "Gildenkarte und Minimap-Punkte der anderen. Standard: aus" },
-        { "Emojis im Chat anzeigen", "chatEmoji", "Aus :lol: oder <3 wird ein Bild" },
-        { "Oasis-Zeilen im Item-Tooltip", "tipOasis", "Gesucht von, Auftraege, Gildenbank und Herkunft unter jedem Item-Tooltip", nil, true },
-        { "Animationen reduzieren", "noAnim", "Kein Einblenden und Hochzaehlen - alles erscheint sofort" },
-        { "Gildenfenster-Taste (J) oeffnet Oasis", "guildKeyOasis", "Statt Blizzards Gildenfenster oeffnet und schliesst die Taste das Oasis-Fenster", function() if ns.Keybinds and ns.Keybinds.ApplyGuildKey then ns.Keybinds.ApplyGuildKey() end end },
+        { "Show notifications", "toasts", "Short messages at the edge of the screen: orders, events, group searches, announcements ..." },
+        { "Play sounds", "sound", "All Oasis sounds on or off" },
+        { "Hide in combat", "hideInCombat", "The Oasis window disappears as soon as combat starts" },
+        { "Show minimap button", "minimap", "Left-click opens Oasis, right-click the settings", function() if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end end },
+        { "Share position on the world map", "shareMap", "Guild map and minimap dots for others. Default: off" },
+        { "Show emojis in chat", "chatEmoji", ":lol: or <3 becomes a picture" },
+        { "Oasis lines in item tooltips", "tipOasis", "Wanted by, orders, guild bank and source below every item tooltip", nil, true },
+        { "Reduce animations", "noAnim", "No fades or count-ups - everything appears instantly" },
+        { "Guild window key (J) opens Oasis", "guildKeyOasis", "The key opens and closes the Oasis window instead of Blizzard's guild window", function() if ns.Keybinds and ns.Keybinds.ApplyGuildKey then ns.Keybinds.ApplyGuildKey() end end },
     }, y)
     c:SetHeight(-y + 4)
     -- Wegweiser ---------------------------------------------------------
     y = y - 18
     local h = K.Text(f, 10, C.dim)
     h:SetPoint("TOPLEFT", 0, y)
-    h:SetText(K.Upper(L["Alle Einstellungen nach Thema"]))
+    h:SetText(K.Upper(L["All settings by topic"]))
     y = y - 20
     local G = ns.Insta and ns.Insta.Glass
     f.tiles = {}
@@ -3877,7 +3877,7 @@ local function buildQuick(f)
     layout()
     -- Rundgang erneut starten (Onboarding.lua)
     if ns.Onboarding and ns.Onboarding.Show then
-        local tb = K.Button(f, L["Rundgang starten"], 140, 22, "ghost", function() ns.Onboarding.Show() end)
+        local tb = K.Button(f, L["Start tour"], 140, 22, "ghost", function() ns.Onboarding.Show() end)
         tb:SetPoint("TOPLEFT", 0, y - math.ceil(#f.tiles / 3) * 64 - 8)
     end
 end
@@ -3886,7 +3886,7 @@ local function refreshQuick(f)
     local l = ns.langByKey and ns.langByKey[ns.lang]
     if l and f.lang then
         local auto = (S().lang or "auto") == "auto"
-        f.lang:SetLabel("|T" .. ns.MEDIA .. "flags\\" .. l.flag .. ":12:16:0:0:64:64:0:64:0:48|t  " .. (auto and (L["Wie das Spiel"] .. " (" .. l.name .. ")") or l.name))
+        f.lang:SetLabel("|T" .. ns.MEDIA .. "flags\\" .. l.flag .. ":12:16:0:0:64:64:0:64:0:48|t  " .. (auto and (L["Like the game"] .. " (" .. l.name .. ")") or l.name))
     end
 end
 
@@ -3894,24 +3894,24 @@ end
 local function buildTips(f)
     f.noCompact = true
     f.t = {}
-    local c, y = wideCard(f, 0, "wants", L["Item-Tooltip"], L["Was Oasis unter Gegenstaenden anzeigt"])
+    local c, y = wideCard(f, 0, "wants", L["Item tooltip"], L["What Oasis shows below items"])
     y = toggleList(f, {
-        { "Oasis-Zeilen im Item-Tooltip", "tipOasis", "Hauptschalter: Gesucht von, Auftraege, Gilden-Preis, Gildenbank und Herkunft", nil, true },
-        { "Gesucht von im Item-Tooltip", "tipWanted", "Wer aus der Gilde das Item auf der Wunschliste hat", nil, true },
-        { "Herstellbar von im Item-Tooltip", "tipCrafters", "Zeigt im Tooltip, wer in der Gilde das Item herstellen kann", nil, true },
-        { "Gildenbank-Bestand im Item-Tooltip", "tipBank", "Zeigt im Tooltip, wie viele davon in der Gildenbank liegen", nil, true },
-        { "Material-Tooltip: wofuer die Gilde es braucht", "tipReagent", "Unter Materialien: in welchen Rezepten der Gilde sie stecken (Shift = alle)", nil, true },
-        { "Reservierungen im Item-Tooltip zeigen", "srTooltip", "Zeigt im Item-Tooltip, wer das Item fuer einen anstehenden Termin reserviert hat", nil, true },
-        { "Tooltip-Zeile nur in einer Gruppe", "srTooltipGroupOnly", "Die Reservierungs-Zeile erscheint nur, wenn du in einer Gruppe oder einem Schlachtzug bist" },
+        { "Oasis lines in item tooltips", "tipOasis", "Master switch: wanted by, orders, guild price, guild bank and source", nil, true },
+        { "Wanted by in item tooltip", "tipWanted", "Who in the guild has the item on their wishlist", nil, true },
+        { "Craftable by in item tooltip", "tipCrafters", "Shows in the tooltip who in the guild can craft the item", nil, true },
+        { "Guild bank stock in item tooltip", "tipBank", "Shows in the tooltip how many are in the guild bank", nil, true },
+        { "Reagent tooltip: what the guild needs it for", "tipReagent", "Below reagents: which guild recipes use them (Shift = all)", nil, true },
+        { "Show reservations in item tooltip", "srTooltip", "Shows in the item tooltip who reserved the item for an upcoming event", nil, true },
+        { "Tooltip line only in a group", "srTooltipGroupOnly", "The reservation line only appears while you are in a group or raid" },
     }, y)
     c:SetHeight(-y + 4)
     y = y - 18
     local c2
     local top2 = y
-    c2, y = wideCard(f, y, "profile", L["Spieler-Tooltip"], L["Was Oasis unter Spielern anzeigt"])
+    c2, y = wideCard(f, y, "profile", L["Player tooltip"], L["What Oasis shows below players"])
     y = toggleList(f, {
-        { "Oasis-Nutzer im Tooltip markieren", "oasisMark", "Kleines Zeichen im Tooltip bei Mitgliedern, die Oasis nutzen", nil, true },
-        { "Bewertung im Spieler-Tooltip zeigen", "allyTooltip", "Deine Bewertung, Notiz und die Erfahrungen der Gilde beim Drueberfahren", nil, true },
+        { "Mark Oasis users in tooltips", "oasisMark", "Small tooltip marker for members using Oasis", nil, true },
+        { "Show rating in the player tooltip", "allyTooltip", "Your rating, note and the guild's experiences on mouseover", nil, true },
     }, y)
     c2:SetHeight(top2 - y + 4)
     resetButton(f, y - 16)
@@ -3922,19 +3922,19 @@ local function refreshTips(f) for _, t in ipairs(f.t) do if t.Refresh then pcall
 local function buildMapTab(f)
     f.noCompact = true
     f.t, f.refreshers = {}, {}
-    local c, y = wideCard(f, 0, "map", L["Gilde auf der Karte"], L["Was du teilst und was du von der Gilde siehst"])
+    local c, y = wideCard(f, 0, "map", L["Guild on the map"], L["What you share and what you see of the guild"])
     y = toggleList(f, {
-        { "Namen auf der Weltkarte", "mapNames", nil, updPins },
-        { "Gildenpunkte auf der Minimap", "minimapDots", nil, function() if ns.Map then ns.Map.UpdateMinimap() end end },
-        { "Heatmap auf der Weltkarte", "mapHeat", "Wo die Gilde unterwegs war", updPins },
-        { "Totenkoepfe auf der Karte", "deathPins", "Wo Gildenmitglieder gestorben sind" },
-        { "Weltkarte aufdecken", "mapReveal", "Zeigt unerforschte Gebiete abgedunkelt an (Standard aus)", function() if ns.ComfortPlus then ns.ComfortPlus.ApplyReveal() end end },
+        { "Names on the world map", "mapNames", nil, updPins },
+        { "Guild dots on the minimap", "minimapDots", nil, function() if ns.Map then ns.Map.UpdateMinimap() end end },
+        { "Heatmap on the world map", "mapHeat", "Where the guild has been", updPins },
+        { "Skulls on the map", "deathPins", "Where guild members died" },
+        { "Reveal world map", "mapReveal", "Shows unexplored areas dimmed (off by default)", function() if ns.ComfortPlus then ns.ComfortPlus.ApplyReveal() end end },
     }, y)
     -- die ausfuehrlichen Karten-Schalter (Sammelkarte, Extras, Symbole) aus Modules/Settings "map"
     if PAGE_EXTRA.map then
         y = y - 8
         local ok, ny = pcall(PAGE_EXTRA.map, f, y)
-        if ok and type(ny) == "number" then y = ny elseif not ok then ns.err(L["Aufbau"] .. " settings/mapset", ny) end
+        if ok and type(ny) == "number" then y = ny elseif not ok then ns.err(L["Setup"] .. " settings/mapset", ny) end
     end
     c:SetHeight(-y + 4)
     resetButton(f, y - 16, function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end if ns.Gather and ns.Gather.Refresh then pcall(ns.Gather.Refresh) end end)
@@ -4022,8 +4022,8 @@ end
 ns.SettingsSearch = searchHits   -- fuer Tests
 
 ns.RegisterPage({
-    key = "settings", title = "Einstellungen", order = 8, topbar = true,
-    sub = "Oasis an deinen Stil anpassen",
+    key = "settings", title = "Settings", order = 8, topbar = true,
+    sub = "Make Oasis your own",
     build = function(p)
         page = p
         wipe(INDEX)
@@ -4163,7 +4163,7 @@ ns.RegisterPage({
         -- Suche: findet jede Einstellung, springt hin und laesst sie aufleuchten
         -- 0.5.563: jede Aenderung bestaetigt sich kurz mit einem Haken
         p.saved = K.Text(p, 11, C.good or { 0.4, 0.86, 0.62 }, "RIGHT")
-        p.saved:SetText("|TInterface\\RaidFrame\\ReadyCheck-Ready:12:12|t " .. L["Gespeichert"])
+        p.saved:SetText("|TInterface\\RaidFrame\\ReadyCheck-Ready:12:12|t " .. L["Saved"])
         p.saved:SetAlpha(0)
         K.OnSaved = function()
             if not (p.saved and p:IsVisible()) then return end
@@ -4179,7 +4179,7 @@ ns.RegisterPage({
                 sv:SetPoint("RIGHT", p.allOpt or p.find, "LEFT", -12, (q < 0.12) and (-4 * (1 - q / 0.12)) or 0)
             end, function() sv:SetAlpha(0) end)
         end
-        p.find = K.Input(p, 170, L["Einstellung suchen ..."], function(t)
+        p.find = K.Input(p, 170, L["Search settings ..."], function(t)
             t = (t or ""):lower()
             local res = p.findRes
             for _, b in ipairs(res.btns) do b:Hide() end
@@ -4304,7 +4304,7 @@ ns.RegisterPage({
         p.find:SetPoint("TOPLEFT", 0, 0)
         p.find:SetWidth(280)
         -- 0.6.471: "Alle Optionen" - zeigt auch die selten gebrauchten Schalter (Seiten werden neu aufgebaut)
-        p.allOpt = K.Toggle(p, L["Alle Optionen"], function() return S().setAll and true or false end, function(v)
+        p.allOpt = K.Toggle(p, L["All options"], function() return S().setAll and true or false end, function(v)
             S().setAll = v or nil
             local cur = p.tab
             for k, fr in pairs(p.tabs) do fr:Hide() if p.scrolls and p.scrolls[k] then p.scrolls[k]:Hide() end end
@@ -4315,7 +4315,7 @@ ns.RegisterPage({
         end)
         p.allOpt:SetPoint("TOPRIGHT", 0, 0)
         p.allOpt:SetWidth(130)
-        p.allOpt:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Alle Optionen"], L["Zeigt auch selten gebrauchte Schalter. Aus: nur das Wichtigste."] }) end)
+        p.allOpt:HookScript("OnEnter", function(self) K.ShowTip(self, { L["All options"], L["Also shows rarely used switches. Off: only the essentials."] }) end)
         p.allOpt:HookScript("OnLeave", function() GameTooltip:Hide() end)
         p.findRes = CreateFrame("Frame", nil, p)
         p.findRes:SetPoint("TOPLEFT", p.find, "BOTTOMLEFT", 0, -4)
@@ -4326,7 +4326,7 @@ ns.RegisterPage({
         p.findRes.btns = {}
         p.findRes.none = K.Text(p.findRes, 11, C.dim)
         p.findRes.none:SetPoint("LEFT", 12, 0)
-        p.findRes.none:SetText(L["Nichts gefunden."])
+        p.findRes.none:SetText(L["Nothing found."])
         p.findRes:Hide()
         local line = K.Divider(p)
         line:SetPoint("TOPLEFT", 0, -32)
@@ -4343,7 +4343,7 @@ ns.RegisterPage({
         local fr = p.tabs[p.tab]
         if fr and REFRESH[p.tab] then
             local ok, e = pcall(REFRESH[p.tab], fr)
-            if not ok then ns.err(L["Seite"] .. " settings/" .. p.tab, e) end
+            if not ok then ns.err(L["Page"] .. " settings/" .. p.tab, e) end
         end
     end,
 })

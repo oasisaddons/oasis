@@ -12,12 +12,12 @@ ns.Blessings = B
 
 -- Segen (Classic-Zauber-IDs Rang 1; Name und Symbol kommen vom Spiel)
 B.LIST = {
-    { key = "k", spell = 20217, short = "Koenige" },
-    { key = "m", spell = 19740, short = "Macht" },
-    { key = "w", spell = 19742, short = "Weisheit" },
-    { key = "s", spell = 1038, short = "Rettung" },
-    { key = "l", spell = 19977, short = "Licht" },
-    { key = "r", spell = 20911, short = "Refugium" },
+    { key = "k", spell = 20217, short = "Kings" },
+    { key = "m", spell = 19740, short = "Might" },
+    { key = "w", spell = 19742, short = "Wisdom" },
+    { key = "s", spell = 1038, short = "Salvation" },
+    { key = "l", spell = 19977, short = "Light" },
+    { key = "r", spell = 20911, short = "Sanctuary" },
 }
 local BY = {}
 for _, b in ipairs(B.LIST) do BY[b.key] = b end
@@ -101,7 +101,7 @@ local function announceMine()
     for cls, k in pairs(row) do by[k] = by[k] or {} table.insert(by[k], (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[cls]) or cls) end
     local lines = {}
     for k, list in pairs(by) do lines[#lines + 1] = B.Name(k) .. ": " .. table.concat(list, ", ") end
-    if #lines > 0 then K.Toast(L["Dein Segen-Plan"], table.concat(lines, "\n"), C.accent) end
+    if #lines > 0 then K.Toast(L["Your blessing plan"], table.concat(lines, "\n"), C.accent) end
 end
 Comm.On("GPB", function(sender, _, s)
     if type(s) ~= "string" or #s > 1500 or not P.InMyGroup(sender) then return end
@@ -134,16 +134,16 @@ end)
 ------------------------------------------------------------------------
 local cells = {}
 P.AddTab({
-    key = "bless", text = "Segen",
+    key = "bless", text = "Blessings",
     build = function(p, a)
         a.info = K.Text(a, 11, C.muted)
         a.info:SetPoint("TOPLEFT", 4, 0)
         a.info:SetPoint("RIGHT", -240, 0)
         a.info:SetJustifyH("LEFT")
-        a.info:SetText(L["Klick auf ein Feld wechselt den Segen. Aendern duerfen die Gruppenleitung und die Paladine; alle mit Oasis sehen den Plan."])
-        a.sug = K.Button(a, L["Vorschlag"], 100, 22, "ghost", function() if canEdit() then B.Suggest() end end)
+        a.info:SetText(L["Click a cell to change the blessing. The group lead and the paladins may edit; everyone with Oasis sees the plan."])
+        a.sug = K.Button(a, L["Suggestion"], 100, 22, "ghost", function() if canEdit() then B.Suggest() end end)
         a.sug:SetPoint("TOPRIGHT", -114, 2)
-        a.send = K.Button(a, L["In den Chat"], 104, 22, "ghost", function()
+        a.send = K.Button(a, L["To chat"], 104, 22, "ghost", function()
             local parts = {}
             for name, row in pairs(B.plan) do
                 local by = {}
@@ -152,7 +152,7 @@ P.AddTab({
                 for k, l in pairs(by) do seg[#seg + 1] = B.Name(k) .. " > " .. table.concat(l, "/") end
                 parts[#parts + 1] = name:gsub("%-.*$", "") .. ": " .. table.concat(seg, ", ")
             end
-            if #parts > 0 and ns.groupChannel() then ns.OfferChat(L["Segen-Plan"], table.concat(parts, " | "), ns.groupChannel()) end
+            if #parts > 0 and ns.groupChannel() then ns.OfferChat(L["Blessing plan"], table.concat(parts, " | "), ns.groupChannel()) end
         end)
         a.send:SetPoint("TOPRIGHT", -4, 2)
         a.grid = CreateFrame("Frame", nil, a)
@@ -165,7 +165,7 @@ P.AddTab({
         for _, c in ipairs(cells) do c:Hide() end
         local pals, classes = B.Paladins(), B.Classes()
         a.empty:SetShown(#pals == 0)
-        a.empty:SetText(L["Kein Paladin in der Gruppe."])
+        a.empty:SetText(L["No paladin in the group."])
         a.sug:SetShown(#pals > 0 and canEdit())
         a.send:SetShown(#pals > 0)
         if #pals == 0 then return end
@@ -212,7 +212,7 @@ P.AddTab({
                 local key = B.plan[pm.name] and B.plan[pm.name][cls]
                 local b = key and BY[key]
                 if b then c.ic:SetTexture(spellIcon(b.spell)) c.ic:Show() else c.t:SetText("|cff555555-|r") end
-                c:SetScript("OnEnter", function(self) K.ShowTip(self, { pm.short .. " > " .. ((LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[cls]) or cls), b and B.Name(b.key) or L["kein Segen"], canEdit() and L["Klick: naechster Segen, Rechtsklick: keiner"] or nil }) end)
+                c:SetScript("OnEnter", function(self) K.ShowTip(self, { pm.short .. " > " .. ((LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[cls]) or cls), b and B.Name(b.key) or L["no blessing"], canEdit() and L["Click: next blessing, right-click: none"] or nil }) end)
                 c:SetScript("OnLeave", function() GameTooltip:Hide() end)
                 c:RegisterForClicks("LeftButtonUp", "RightButtonUp")
                 c:SetScript("OnClick", function(_, btn)

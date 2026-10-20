@@ -32,10 +32,10 @@ local function decorate(btn, questID, isGroup)
     local g, t = DECO[btn].g, DECO[btn].t
     if new then
         if not K.Gradient(g, "HORIZONTAL", { 0.3, 0.55, 1, 0.35 }, { 0.3, 0.55, 1, 0 }) then g:SetColorTexture(0.3, 0.55, 1, 0.15) end
-        t:SetText("|cff8fbaff" .. L["NEU"] .. "|r" .. (grp and "  |cffff8a3d" .. L["Gruppe"] .. "|r" or ""))
+        t:SetText("|cff8fbaff" .. L["NEW"] .. "|r" .. (grp and "  |cffff8a3d" .. L["Group"] .. "|r" or ""))
     elseif grp then
         if not K.Gradient(g, "HORIZONTAL", { 1, 0.55, 0.25, 0.22 }, { 1, 0.55, 0.25, 0 }) then g:SetColorTexture(1, 0.55, 0.25, 0.1) end
-        t:SetText("|cffff8a3d" .. L["Gruppe"] .. "|r")
+        t:SetText("|cffff8a3d" .. L["Group"] .. "|r")
     end
     g:SetShown(new or grp)
     t:SetShown(new or grp)

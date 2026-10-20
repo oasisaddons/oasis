@@ -31,7 +31,7 @@ function DB.EnableChatlog(force)
     local ok, on = pcall(LoggingChat)
     if ok and on then return true end
     local ok2 = pcall(LoggingChat, true)
-    if ok2 then ns.print(L["Chatlog eingeschaltet - OasisSync kann den Gildenchat an Discord geben."]) end
+    if ok2 then ns.print(L["Chat log enabled - OasisSync can pass guild chat on to Discord."]) end
     return ok2
 end
 
@@ -87,7 +87,7 @@ ns.Listen("LOGIN", function()
 end)
 ns.slash.discord = function()
     local n = DB.ShowImported()
-    ns.print((L["Discord-Nachrichten uebernommen: %d (neue erscheinen erst nach /reload)"]):format(n or 0))
+    ns.print((L["Discord messages imported: %d (new ones only appear after /reload)"]):format(n or 0))
 end
 
 ------------------------------------------------------------------------
@@ -98,7 +98,7 @@ function DB.BuildSettings(det, y)
     if not K or not K.Toggle then return y end
     if not (ns.ExternTools and ns.ExternTools()) then return y end   -- braucht OasisSync: oeffentlich vorerst nicht angeboten
     y = y - 6
-    local t1 = K.Toggle(det, L["Discord-Nachrichten im Gildenchat zeigen (ueber OasisSync, nach /reload)"],
+    local t1 = K.Toggle(det, L["Show Discord messages in guild chat (via OasisSync, after /reload)"],
         function() return S().dcShow ~= false end,
         function(v) S().dcShow = v and true or false if v then pcall(DB.ShowImported) end end)
     t1:SetPoint("TOPLEFT", 14, y)
@@ -106,7 +106,7 @@ function DB.BuildSettings(det, y)
     det.t[#det.t + 1] = t1
     y = y - 32
     if DB.ChatlogAvailable() then
-        local t2 = K.Toggle(det, L["Chatlog beim Login einschalten (Gildenchat -> Discord ueber OasisSync)"],
+        local t2 = K.Toggle(det, L["Enable chat log on login (guild chat -> Discord via OasisSync)"],
             function() return S().dcChatlog == true end,
             function(v) S().dcChatlog = v and true or nil if v then pcall(DB.EnableChatlog, true) end end)
         t2:SetPoint("TOPLEFT", 14, y)

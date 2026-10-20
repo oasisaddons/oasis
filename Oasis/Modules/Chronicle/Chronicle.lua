@@ -62,17 +62,17 @@ ns.Chronicle = Chronicle
 
 local KINDS = {
     level = { "Level", C.blue },
-    loot = { "Beute", C.pink },
+    loot = { "Loot", C.pink },
     legacy = { "Legacy", C.violet },
     boss = { "Boss", C.amber },
-    guild = { "Gilde", C.mint },
-    duel = { "Wuerfeln", C.red },
-    badge = { "Abzeichen", C.accent },
-    news = { "Gilden-News", { 0.55, 0.68, 0.85 } },
+    guild = { "Guild", C.mint },
+    duel = { "Roll", C.red },
+    badge = { "Badge", C.accent },
+    news = { "Guild news", { 0.55, 0.68, 0.85 } },
 }
 ns.Relabel(function()
-    KINDS.level[1], KINDS.loot[1], KINDS.legacy[1], KINDS.boss[1] = L["Level"], L["Beute"], L["Legacy"], L["Boss"]
-    KINDS.guild[1], KINDS.duel[1], KINDS.badge[1], KINDS.news[1] = L["Gilde"], L["Wuerfeln"], L["Abzeichen"], L["Gilden-News"]
+    KINDS.level[1], KINDS.loot[1], KINDS.legacy[1], KINDS.boss[1] = L["Level"], L["Loot"], L["Legacy"], L["Boss"]
+    KINDS.guild[1], KINDS.duel[1], KINDS.badge[1], KINDS.news[1] = L["Guild"], L["Roll"], L["Badge"], L["Guild news"]
 end)
 
 -- Eintraege speichern eine Textvorlage (tk) + Werte (a1..a3), damit jeder Client
@@ -84,14 +84,34 @@ function Chronicle.Add(kind, id, tk, args, extra)
     if extra then for k, v in pairs(extra) do rec[k] = v end end
     Store.Put("chronicle", rec)
 end
+-- Entries from Oasis before 0.6.572 carry German templates (tk); show them with the English key
+local LEGACY_TK = {
+    ["Gildenerfolg errungen:"] = "earned a guild achievement:",
+    ["gewinnt Todeswuerfeln gegen %s (ab %s)"] = "wins a deathroll against %s (from %s)",
+    ["gewinnt Todeswuerfeln gegen %s (ab %s, Einsatz %s)"] = "wins a deathroll against %s (from %s, stake %s)",
+    ["hat Level %s erreicht"] = "reached level %s",
+    ["hat Oasis-Rang %s erreicht"] = "reached Oasis rank %s",
+    ["hat besiegt:"] = "defeated:",
+    ["hat den Erfolg errungen:"] = "earned the achievement:",
+    ["hat die Gilde verlassen"] = "left the guild",
+    ["hat ein Abzeichen erhalten:"] = "earned a badge:",
+    ["hat eine Legacy-Challenge geschafft:"] = "completed a Legacy challenge:",
+    ["hat erbeutet:"] = "looted:",
+    ["hat gekauft:"] = "bought:",
+    ["hat hergestellt:"] = "crafted:",
+    ["tritt der Gilde bei - willkommen!"] = "joined the guild – welcome!",
+    ["und Gruppe besiegen %s (%s)"] = "and group defeated %s (%s)",
+    ["und Gruppe besiegen %s"] = "and group defeated %s",
+}
 function Chronicle.Text(e)
     if not e.tk then return e.text or "" end
+    local tk = LEGACY_TK[e.tk] or e.tk
     if e.kind == "badge" and ns.Badges then
-        return L[e.tk] .. " " .. ns.Badges.Label(e.a1, e.a2)
+        return L[tk] .. " " .. ns.Badges.Label(e.a1, e.a2)
     end
     local a1 = e.kind == "boss" and L[e.a1 or ""] or (e.a1 or "")
-    local ok, s = pcall(string.format, L[e.tk], a1, e.a2 or "", e.a3 or "")
-    return ok and s or L[e.tk]
+    local ok, s = pcall(string.format, L[tk], a1, e.a2 or "", e.a3 or "")
+    return ok and s or L[tk]
 end
 function Chronicle.Item(e)
     if e.kind == "legacy" and e.a1 and ns.Legacy then
@@ -107,19 +127,19 @@ end
 
 -- Gilden-Optionen (Gildenleitung): was in die Chronik kommt und ob im Gildenchat gepostet werden darf
 ns.GuildOption({ page = "chronicle", key = "chLvStep", default = 5, min = 1, max = 10, step = 1,
-    label = "Level-Eintrag alle", desc = "Ein Level-Meilenstein wird alle so viele Level eingetragen (Level 60 immer).",
+    label = "Level entry every", desc = "A level milestone is recorded every this many levels (level 60 always).",
     fmt = function(v) return v .. " Level" end })
 ns.GuildOption({ page = "chronicle", key = "chLoot", default = "4",
-    choices = { { key = "3", text = "Selten" }, { key = "4", text = "Episch" }, { key = "5", text = "Legendaer" } },
-    label = "Beute ab Qualitaet", desc = "Ab dieser Qualitaet wird erbeutete Beute in die Chronik eingetragen." })
+    choices = { { key = "3", text = "Rare" }, { key = "4", text = "Epic" }, { key = "5", text = "Legendary" } },
+    label = "Loot from quality", desc = "Loot of this quality or better is recorded in the chronicle." })
 ns.GuildOption({ page = "chronicle", key = "chJoin", default = true,
-    label = "Beitritte und Austritte eintragen", desc = "Neue Mitglieder und Austritte erscheinen in der Chronik." })
+    label = "Record joins and leaves", desc = "New members and departures appear in the chronicle." })
 ns.GuildOption({ page = "chronicle", key = "chPost", default = true,
-    label = "Meilensteine im Gildenchat erlauben", desc = "Mitglieder duerfen Level- und Legacy-Meilensteine automatisch im Gildenchat posten (wenn sie es persoenlich eingeschaltet haben)." })
+    label = "Allow milestones in guild chat", desc = "Members may automatically post level and Legacy milestones in guild chat (if they enabled it personally)." })
 
 local function announce(text)
     if ns.db.settings.announceMilestones and IsInGuild() and ns.GuildOpt("chPost") ~= false then
-        ns.OfferChat(L["Im Gildenchat zeigen?"], L["[Oasis] "] .. text, "GUILD")
+        ns.OfferChat(L["Show in guild chat?"], L["[Oasis] "] .. text, "GUILD")
     end
 end
 
@@ -129,14 +149,14 @@ end
 ns.Listen("LEVEL_UP", function(level)
     local step = math.max(1, math.floor(tonumber(ns.GuildOpt("chLvStep")) or 5))
     if level % step == 0 or level == 60 then
-        Chronicle.Add("level", ("lvl-%s-%d"):format(ns.short(ns.me()), level), "hat Level %s erreicht", { level }, { lvl = level })
-        announce(L["Level %d erreicht!"]:format(level))
+        Chronicle.Add("level", ("lvl-%s-%d"):format(ns.short(ns.me()), level), "reached level %s", { level }, { lvl = level })
+        announce(L["Reached level %d!"]:format(level))
     end
 end)
 
 ns.Listen("STORE", function(coll, rec, old)
     if coll == "loot" and not old and not rec.del and ns.isMe(rec.who) and (rec.quality or 0) >= (tonumber(ns.GuildOpt("chLoot")) or 4) then
-        Chronicle.Add("loot", "chr-" .. rec.id, "hat erbeutet:", nil, { item = rec.item, zone = rec.zone, mapID = rec.mapID })
+        Chronicle.Add("loot", "chr-" .. rec.id, "looted:", nil, { item = rec.item, zone = rec.zone, mapID = rec.mapID })
     end
     local age = ns.now() - (tonumber(rec.ts) or 0)
     if coll == "chronicle" and not old and not rec.del and not ns.isMe(rec.who) and age >= -5 and age <= 30 then
@@ -156,8 +176,8 @@ ns.Listen("STORE", function(coll, rec, old)
 end)
 
 ns.Listen("LEGACY_DONE", function(e)
-    Chronicle.Add("legacy", ("leg-%s-%s"):format(ns.short(ns.me()), tostring(e.id)), "hat eine Legacy-Challenge geschafft:", { e.id }, { item = e.name })
-    if ns.db.settings.chrPostLegacy ~= false then announce(L["Legacy-Challenge geschafft: "] .. e.name) end
+    Chronicle.Add("legacy", ("leg-%s-%s"):format(ns.short(ns.me()), tostring(e.id)), "completed a Legacy challenge:", { e.id }, { item = e.name })
+    if ns.db.settings.chrPostLegacy ~= false then announce(L["Legacy challenge done: "] .. e.name) end
 end)
 
 -- Bosskills: der Gruppenanfuehrer traegt ein
@@ -179,9 +199,9 @@ ns.On("ENCOUNTER_END", function(encounterID, encounterName, difficultyID, groupS
         local extra = { zone = table.concat(guildies, ", ") }
         if fight and fight.top then extra.top = fight.top end
         if fight and fight.dur then
-            Chronicle.Add("boss", id, "und Gruppe besiegen %s (%s)", { encounterName, ("%d:%02d"):format(fight.dur / 60, fight.dur % 60) }, extra)
+            Chronicle.Add("boss", id, "and group defeated %s (%s)", { encounterName, ("%d:%02d"):format(fight.dur / 60, fight.dur % 60) }, extra)
         else
-            Chronicle.Add("boss", id, "und Gruppe besiegen %s", { encounterName }, extra)
+            Chronicle.Add("boss", id, "and group defeated %s", { encounterName }, extra)
         end
     end)
 end)
@@ -204,12 +224,12 @@ ns.On("CHAT_MSG_SYSTEM", function(text)
     text = ns.safe(text)
     if not text then return end
     local who = matchAny(text, joinPats)
-    local kind = "tritt der Gilde bei - willkommen!"
+    local kind = "joined the guild – welcome!"
     if not who then
         who = matchAny(text, leavePats)
-        kind = "hat die Gilde verlassen"
+        kind = "left the guild"
     end
-    local tag = (kind:sub(1, 4) == "trit") and "join" or "left"
+    local tag = (kind:sub(1, 6) == "joined") and "join" or "left"
     if not who then return end
     if ns.GuildOpt("chJoin") == false then return end
     who = who:gsub("|H.-|h%[?(.-)%]?|h", "%1")
@@ -230,17 +250,17 @@ local firstKill = {}         -- Boss-Name -> id des ersten Kills (fuer "Erstkill
 local CIRCLE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local EMBER = ns.MEDIA .. "ember"
 local CLASS_SHEET = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes"
-local DAYNAMES = { "Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag" }
+local DAYNAMES = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" }
 local TAB_KEYS = { "all", "level", "loot", "legacy", "boss", "guild", "duel", "badge", "news" }
 local GLYPH = { all = "chronicle", level = "stats", loot = "wants", legacy = "legacy", boss = "raid", guild = "social",
     duel = "deathroll", badge = "badges", news = "announce" }
 local TILE_KINDS = { "level", "loot", "boss", "badge", "guild" }
-local TILE_LABEL = { level = "Level-Meilensteine", loot = "Beute", boss = "Bosse besiegt", badge = "Abzeichen", guild = "Neue Mitglieder" }
+local TILE_LABEL = { level = "Level milestones", loot = "Loot", boss = "Bosse besiegt", badge = "Badge", guild = "New members" }
 local WEEK_KINDS = { "level", "loot", "boss", "legacy", "badge", "guild", "duel" }
-local WEEK_LABEL = { level = "Level-Meilensteine", loot = "Epische Beute", boss = "Bosse besiegt", legacy = "Legacy-Challenges",
-    badge = "Abzeichen", guild = "Neue Mitglieder", duel = "Wuerfelspiele" }
-local BUNDLE_TEXT = { badge = "hat %d Abzeichen erhalten", loot = "hat %d Beutestuecke erbeutet", boss = "und Gruppe besiegen %d Bosse",
-    duel = "hat %d Wuerfelspiele gespielt", news = "%d Gilden-News", legacy = "hat %d Legacy-Challenges geschafft" }
+local WEEK_LABEL = { level = "Level milestones", loot = "Epic loot", boss = "Bosse besiegt", legacy = "Legacy challenges",
+    badge = "Badge", guild = "New members", duel = "Dice games" }
+local BUNDLE_TEXT = { badge = "earned %d badges", loot = "looted %d items", boss = "und Gruppe besiegen %d Bosse",
+    duel = "played %d dice games", news = "%d guild news", legacy = "completed %d Legacy challenges" }
 local BUNDLE_GAP = 3 * 3600  -- gleiche Ereignisse einer Person innerhalb von 3 Std. = eine Karte
 local QHEX = { ["9d9d9d"] = 0, ffffff = 1, ["1eff00"] = 2, ["0070dd"] = 3, a335ee = 4, ff8000 = 5, e6cc80 = 6 }
 local QCOL = { [0] = { 0.62, 0.62, 0.62 }, [1] = { 0.9, 0.9, 0.9 }, [2] = { 0.12, 1, 0 }, [3] = { 0.1, 0.5, 0.95 },
@@ -256,8 +276,8 @@ local function dayKey(ts) return date("%Y%m%d", ts or 0) end
 local function dayLabel(ts)
     local now = ns.now()
     local k = dayKey(ts)
-    if k == dayKey(now) then return L["Heute"] end
-    if k == dayKey(now - 86400) then return L["Gestern"] end
+    if k == dayKey(now) then return L["Today"] end
+    if k == dayKey(now - 86400) then return L["Yesterday"] end
     local w = tonumber(date("%w", ts)) + 1
     return L[DAYNAMES[w]] .. ", " .. date("%d.%m.", ts)
 end
@@ -292,17 +312,17 @@ local function levelOf(e) return (not e.rank) and tonumber(e.lvl or e.a1) or nil
 local function highlight(e)
     if e.kind == "loot" then
         local q = itemQuality(e) or 0
-        if q >= 5 then return 100, L["Legendaer"] end
-        if q >= 4 then return 70, L["Episch"] end
+        if q >= 5 then return 100, L["Legendary"] end
+        if q >= 4 then return 70, L["Epic"] end
         return 12
     elseif e.kind == "level" then
         local lv = levelOf(e)
         if lv == 60 then return 90, L["Level 60"] end
         return (lv or 0) / 4
     elseif e.kind == "boss" then
-        if e.a1 and firstKill[e.a1] == e.id then return 80, L["Erstkill"] end
+        if e.a1 and firstKill[e.a1] == e.id then return 80, L["First kill"] end
         return 30
-    elseif isJoin(e) then return 45, L["Neu"]
+    elseif isJoin(e) then return 45, L["New"]
     elseif e.kind == "legacy" then return 50
     elseif e.kind == "badge" then return 8 + (tonumber(e.a2) or 0) * 4
     end
@@ -491,20 +511,20 @@ local function gzText(e)
     local n = ns.displayName(e.who or "")
     if e.kind == "level" then
         local lv = levelOf(e)
-        if lv == 60 then return (L["GZ zu Level 60, %s! Willkommen im Endgame!"]):format(n) end
-        if lv then return (L["GZ zu Level %d, %s!"]):format(lv, n) end
+        if lv == 60 then return (L["Grats on level 60, %s! Welcome to the endgame!"]):format(n) end
+        if lv then return (L["Grats on level %d, %s!"]):format(lv, n) end
     elseif e.kind == "loot" and Chronicle.Item(e) then
-        return (L["GZ zu %s, %s!"]):format(Chronicle.Item(e), n)
+        return (L["Grats on %s, %s!"]):format(Chronicle.Item(e), n)
     elseif e.kind == "boss" then
-        return (L["Stark gemacht, %s - GZ zu %s!"]):format(n, L[e.a1 or ""])
+        return (L["Well done, %s – grats on %s!"]):format(n, L[e.a1 or ""])
     elseif e.kind == "legacy" then
-        return (L["GZ zur Legacy-Challenge, %s!"]):format(n)
+        return (L["Grats on the Legacy challenge, %s!"]):format(n)
     elseif e.kind == "badge" then
-        return (L["GZ zum neuen Abzeichen, %s!"]):format(n)
+        return (L["Grats on the new badge, %s!"]):format(n)
     elseif isJoin(e) then
-        return (L["Willkommen in der Gilde, %s!"]):format(n)
+        return (L["Welcome to the guild, %s!"]):format(n)
     end
-    return (L["GZ %s!"]):format(n, "")
+    return (L["Grats %s!"]):format(n, "")
 end
 local function congratulate(e)
     local text = gzText(e)
@@ -517,7 +537,7 @@ local function congratulate(e)
     end
     local WL = ns.WhisperLog
     if WL and WL.Prompt then
-        WL.Prompt(L["Gratulieren"], L["Text fuer den Gildenchat:"], text, send, L["Senden"])
+        WL.Prompt(L["Congratulate"], L["Text for guild chat:"], text, send, L["Send"])
     else
         ns.OpenChat("/g " .. text)
     end
@@ -528,7 +548,7 @@ local function copyEntry(e, kids)
         if i > 1 then lines[#lines + 1] = date("%d.%m. %H:%M", k.ts or 0) .. "  " .. plainLine(k) end
     end
     local text = table.concat(lines, "\n")
-    if ns.WhisperLog and ns.WhisperLog.Copy then ns.WhisperLog.Copy(L["Eintrag kopieren"], text)
+    if ns.WhisperLog and ns.WhisperLog.Copy then ns.WhisperLog.Copy(L["Copy entry"], text)
     else ns.OpenChat(text) end
 end
 local function linkItem(e)
@@ -539,21 +559,21 @@ local function entryMenu(owner, e, kids)
     if not e then return end
     local items = {}
     local me = e.who and ns.isMe(e.who)
-    if e.who and not me then items[#items + 1] = { text = L["Fluestern"], fn = function() ns.Whisper(e.who) end } end
-    if e.who and ns.Profile and ns.Profile.Show then items[#items + 1] = { text = L["Profil ansehen"], fn = function() showProfile(e.who) end } end
+    if e.who and not me then items[#items + 1] = { text = L["Whisper"], fn = function() ns.Whisper(e.who) end } end
+    if e.who and ns.Profile and ns.Profile.Show then items[#items + 1] = { text = L["View profile"], fn = function() showProfile(e.who) end } end
     if e.who and not me and e.kind ~= "news" then
-        items[#items + 1] = { text = L["Gratulieren im Gildenchat ..."], disabled = not IsInGuild(), fn = function() congratulate(e) end }
+        items[#items + 1] = { text = L["Congratulate in guild chat ..."], disabled = not IsInGuild(), fn = function() congratulate(e) end }
     end
-    if itemLink(e) then items[#items + 1] = { text = L["Gegenstand im Chat verlinken"], fn = function() linkItem(e) end } end
+    if itemLink(e) then items[#items + 1] = { text = L["Link item in chat"], fn = function() linkItem(e) end } end
     if e.who then
-        items[#items + 1] = { text = whoFilter == e.who and L["Personenfilter aufheben"] or L["Nur Eintraege dieser Person"], fn = function() setWho(e.who) end }
+        items[#items + 1] = { text = whoFilter == e.who and L["Clear person filter"] or L["Only this person's entries"], fn = function() setWho(e.who) end }
     end
-    if not e.noCopy then items[#items + 1] = { text = L["Eintrag kopieren"], fn = function() copyEntry(e, kids) end } end
-    K.ShowMenu(owner, items, e.who and ns.displayName(e.who) or L["Chronik"], 190)
+    if not e.noCopy then items[#items + 1] = { text = L["Copy entry"], fn = function() copyEntry(e, kids) end } end
+    K.ShowMenu(owner, items, e.who and ns.displayName(e.who) or L["Chronicle"], 190)
 end
 local function entryTip(owner, e, kids)
     local link = itemLink(e)
-    local hint = "|cff777777" .. L["Klick auf Name: Profil  ·  Rechtsklick: Aktionen"] .. (link and ("  ·  " .. L["Shift-Klick: verlinken"]) or "") .. "|r"
+    local hint = "|cff777777" .. L["Click name: profile  ·  Right-click: actions"] .. (link and ("  ·  " .. L["Shift-click: link"]) or "") .. "|r"
     if link and (not kids or #kids < 2) then
         GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
         if pcall(GameTooltip.SetHyperlink, GameTooltip, link) then
@@ -569,7 +589,7 @@ local function entryTip(owner, e, kids)
     local lines = { ns.Radar.Colored(e.who) }
     if kids and #kids > 1 then
         for i, k in ipairs(kids) do
-            if i > 8 then lines[#lines + 1] = "|cff888888" .. (L["... und %d weitere"]):format(#kids - 8) .. "|r" break end
+            if i > 8 then lines[#lines + 1] = "|cff888888" .. (L["... and %d more"]):format(#kids - 8) .. "|r" break end
             lines[#lines + 1] = "|cff888888" .. date("%H:%M", k.ts or 0) .. "|r  " .. lineText(k)
         end
     else
@@ -577,8 +597,8 @@ local function entryTip(owner, e, kids)
         lines[#lines + 1] = "|cff888888" .. ns.fmtDate(e.ts) .. "  ·  " .. ns.ago(e.ts) .. "|r"
     end
     local zn = ns.zoneName(e.mapID, e.zone)
-    if zn ~= "" then lines[#lines + 1] = (e.kind == "boss" and L["Dabei: "] or "") .. zn end
-    if e.top then lines[#lines + 1] = L["Top-Schaden: "] .. e.top end
+    if zn ~= "" then lines[#lines + 1] = (e.kind == "boss" and L["Taking part: "] or "") .. zn end
+    if e.top then lines[#lines + 1] = L["Top damage: "] .. e.top end
     local _, tag = highlight(e)
     if tag then lines[#lines + 1] = K.hex(C.amber) .. "* " .. tag .. "|r" end
     lines[#lines + 1] = " "
@@ -632,7 +652,7 @@ local function groupText(g)
     local e, n = g.e, #g.kids
     if n > 1 then
         if e.kind == "level" and g.fromLvl then
-            return (L["hat Level %d bis %d erreicht"]):format(g.fromLvl, tonumber(e.a1) or 0)
+            return (L["reached level %d to %d"]):format(g.fromLvl, tonumber(e.a1) or 0)
         end
         if BUNDLE_TEXT[e.kind] then return (L[BUNDLE_TEXT[e.kind]]):format(n) end
     end
@@ -726,7 +746,7 @@ local function buildTabs(p, onPick)
         if hasGlass() then b.hov:SetColorTexture(1, 1, 1, 0.035) end
         b.ico = K.Glyph(b, 14, ns.MEDIA .. "icons\\" .. GLYPH[k], C.muted)
         b.label = K.Text(b, 13, C.muted)
-        b.label:SetText(k == "all" and L["Alle"] or kindOf(k)[1])
+        b.label:SetText(k == "all" and L["All"] or kindOf(k)[1])
         b.count = K.Text(b, 10, C.dim)
         b:SetScript("OnClick", function() onPick(k) end)
         b:SetScript("OnEnter", function(self)
@@ -932,7 +952,7 @@ local function buildTile(parent, kind, onClick)
     end
     t:SetScript("OnEnter", function(self)
         hover(true)
-        K.ShowTip(self, { L[WEEK_LABEL[kind]] .. " - " .. L["letzte 7 Tage"], "|cff888888" .. (self.sel and L["Klick: Filter aufheben"] or L["Klick: nur diese Art zeigen"]) .. "|r" })
+        K.ShowTip(self, { L[WEEK_LABEL[kind]] .. " - " .. L["last 7 days"], "|cff888888" .. (self.sel and L["Click: clear filter"] or L["Click: show only this kind"]) .. "|r" })
     end)
     t:SetScript("OnLeave", function() hover(false) GameTooltip:Hide() end)
     t:SetScript("OnClick", function() onClick(kind) end)
@@ -1035,7 +1055,7 @@ local function buildTimeline(p)
             return
         end
         r.text:SetText(K.Upper and K.Upper(it.label) or it.label:upper())
-        r.info:SetText((L["%d Eintraege"]):format(it.n))
+        r.info:SetText((L["%d entries"]):format(it.n))
     end
 
     local function newCard()
@@ -1104,7 +1124,7 @@ local function buildTimeline(p)
             local g = r.item and r.item.g
             r.hov:Show()
             r.name:SetAlpha(0.8)
-            if g and g.e.who then K.ShowTip(self, { ns.Radar.Colored(g.e.who), "|cff888888" .. L["Klick: Profil ansehen"] .. "|r" }) end
+            if g and g.e.who then K.ShowTip(self, { ns.Radar.Colored(g.e.who), "|cff888888" .. L["Click: view profile"] .. "|r" }) end
         end)
         r.nameBtn:SetScript("OnLeave", function() r.name:SetAlpha(1) r.hov:Hide() GameTooltip:Hide() end)
         r:SetScript("OnClick", function(self, btn)
@@ -1194,8 +1214,8 @@ local function buildTimeline(p)
             sub[#sub + 1] = table.concat(names, ", ")
         else
             local zn = ns.zoneName(e.mapID, e.zone)
-            if zn ~= "" then sub[#sub + 1] = (e.kind == "boss" and (L["mit "] .. zn) or zn) end
-            if e.top then sub[#sub + 1] = L["Top-Schaden: "] .. e.top end
+            if zn ~= "" then sub[#sub + 1] = (e.kind == "boss" and (L["with "] .. zn) or zn) end
+            if e.top then sub[#sub + 1] = L["Top damage: "] .. e.top end
         end
         r.sub:SetText(table.concat(sub, "  ·  "))
         r.sub:ClearAllPoints()
@@ -1324,7 +1344,7 @@ local function buildTimeline(p)
                     r:SetHeight(it.h - (it.t == "card" and GAP or 0))
                     r:Show()
                     local ok, err = pcall(FILL[it.t], r, it)
-                    if not ok then ns.err(L["Chronik"], err) end
+                    if not ok then ns.err(L["Chronicle"], err) end
                     self.used[it] = r
                 else
                     r:SetPoint("TOPLEFT", self, "TOPLEFT", XOFF[it.t] + (it.indent or 0), -(it.y - off))
@@ -1459,7 +1479,7 @@ local function sideBox(parent, title, color)
 end
 
 local function buildHighlight(p)
-    local f = sideBox(p, L["Highlight der Woche"], C.amber)
+    local f = sideBox(p, L["Highlight of the week"], C.amber)
     f:SetHeight(86)
     f.glow = f:CreateTexture(nil, "BORDER")
     f.glow:SetAllPoints()
@@ -1491,7 +1511,7 @@ local function buildHighlight(p)
     f.none:SetPoint("LEFT", 14, -10)
     f.none:SetPoint("RIGHT", -10, -10)
     f.none:SetWordWrap(true)
-    f.none:SetText(L["Noch kein Highlight - die Woche ist jung."])
+    f.none:SetText(L["No highlight yet – the week is young."])
     f.btn:SetScript("OnClick", function(self, btn)
         local e = f.e
         if not e then return end
@@ -1515,7 +1535,7 @@ local function buildHighlight(p)
 end
 
 local function buildWeek(p, onPick)
-    local f = sideBox(p, L["Diese Woche"], C.accent)
+    local f = sideBox(p, L["This week"], C.accent)
     f:SetHeight(32 + #WEEK_KINDS * 19 + 6)
     f.rows = {}
     for i, k in ipairs(WEEK_KINDS) do
@@ -1561,7 +1581,7 @@ local function buildWeek(p, onPick)
         r.fill:SetWidth(1)
         r:SetScript("OnClick", function() onPick(k) end)
         r:SetScript("OnEnter", function(self)
-            K.ShowTip(self, { L[WEEK_LABEL[k]], (L["%d Eintraege"]):format(self.n or 0) .. " - " .. L["letzte 7 Tage"], "|cff888888" .. L["Klick: nur diese Art zeigen"] .. "|r" })
+            K.ShowTip(self, { L[WEEK_LABEL[k]], (L["%d entries"]):format(self.n or 0) .. " - " .. L["last 7 days"], "|cff888888" .. L["Click: show only this kind"] .. "|r" })
         end)
         r:SetScript("OnLeave", function() GameTooltip:Hide() end)
         f.rows[k] = r
@@ -1592,7 +1612,7 @@ local function buildWeek(p, onPick)
 end
 
 local function buildTop(p)
-    local f = sideBox(p, L["Am aktivsten (7 Tage)"], C.mint)
+    local f = sideBox(p, L["Most active (7 days)"], C.mint)
     f.list = K.List(f, 28, function(l)
         local r = K.Row(l)
         r.stripe:Hide()
@@ -1649,8 +1669,8 @@ local function buildTop(p)
         r:RegisterForClicks("AnyUp")
         r:SetScript("OnEnter", function(self)
             if not self.item then return end
-            K.ShowTip(self, { ns.Radar.Colored(self.item.who), (L["%d Eintraege"]):format(self.item.n) .. " - " .. L["letzte 7 Tage"],
-                "|cff888888" .. (whoFilter == self.item.who and L["Klick: Personenfilter aufheben"] or L["Klick: nur Eintraege dieser Person"]) .. "|r" })
+            K.ShowTip(self, { ns.Radar.Colored(self.item.who), (L["%d entries"]):format(self.item.n) .. " - " .. L["last 7 days"],
+                "|cff888888" .. (whoFilter == self.item.who and L["Click: clear person filter"] or L["Click: only this person's entries"]) .. "|r" })
         end)
         r:SetScript("OnLeave", function() GameTooltip:Hide() end)
         return r
@@ -1680,7 +1700,7 @@ local function buildTop(p)
     end)
     f.list:SetPoint("TOPLEFT", 4, -30)
     f.list:SetPoint("BOTTOMRIGHT", -4, 6)
-    f.list.empty:SetText(L["Diese Woche noch ruhig."])
+    f.list.empty:SetText(L["Quiet week so far."])
     return f
 end
 
@@ -1723,8 +1743,8 @@ end
 local SIDE = 228
 
 ns.RegisterPage({
-    key = "chronicle", title = "Chronik", order = 6,
-    sub = "Was in der Gilde passiert: Level-Meilensteine, epische Beute, Legacy, Bosse, neue Gesichter",
+    key = "chronicle", title = "Chronicle", order = 6,
+    sub = "What's happening in the guild: level milestones, epic loot, Legacy, bosses, new faces",
     build = function(p)
         page = p
         p.fresh = true
@@ -1754,14 +1774,14 @@ ns.RegisterPage({
 
         -- Werkzeugleiste: Suche, Schalter, Personenfilter, Anzahl
         local TOOL_Y = -108
-        p.search = K.Input(p, 170, L["Suchen ..."], function(t)
+        p.search = K.Input(p, 170, L["Search ..."], function(t)
             search = (t or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
             refreshSoon(true)
         end)
         p.search:SetPoint("TOPLEFT", 0, TOOL_Y)
-        p.mine = buildChip(p, L["Nur meine"], function() return onlyMine end, function(v) onlyMine = v end)
+        p.mine = buildChip(p, L["Only mine"], function() return onlyMine end, function(v) onlyMine = v end)
         p.mine:SetPoint("LEFT", p.search, "RIGHT", 8, 0)
-        p.online = buildChip(p, L["Nur online"], function() return onlyOnline end, function(v) onlyOnline = v end)
+        p.online = buildChip(p, L["Online only"], function() return onlyOnline end, function(v) onlyOnline = v end)
         p.online:SetPoint("LEFT", p.mine, "RIGHT", 6, 0)
         p.chip = K.Button(p, "", 140, 22, "ghost", function() whoFilter = nil refreshSoon(true) end)
         calmBtn(p.chip)
@@ -1898,15 +1918,15 @@ ns.RegisterPage({
         p.empty:SetShown(#items == 0)
         if #items == 0 then
             if filtered then
-                p.empty:Set(L["Nichts gefunden - andere Filter probieren?"], L["Filter zuruecksetzen"], function()
+                p.empty:Set(L["Nothing found – try other filters?"], L["Reset filters"], function()
                     filter, whoFilter, search, onlyMine, onlyOnline = "all", nil, "", false, false
                     p.search:SetText("")
                     p.mine:Update() p.online:Update()
                     refreshSoon(true)
                 end)
             else
-                p.empty:Set(L["Noch nichts passiert - zieht los und schreibt Geschichte!"], L["Gruppe suchen"], function() ns.ShowPage("groups") end,
-                    L["Gildenchat"], function() ns.ShowPage("chat") end)
+                p.empty:Set(L["Nothing happened yet - go out and make history!"], L["Find group"], function() ns.ShowPage("groups") end,
+                    L["Guild chat"], function() ns.ShowPage("chat") end)
             end
         end
 
@@ -1917,7 +1937,7 @@ ns.RegisterPage({
             local n = week[t.kind] or 0
             t:SetSel(filter == t.kind)
             local tn = todayN[t.kind] or 0
-            t.sub:SetText(tn > 0 and ((L["+%d heute"]):format(tn)) or "")
+            t.sub:SetText(tn > 0 and ((L["+%d today"]):format(tn)) or "")
             if t.subPill then
                 t.subPill:SetShown(tn > 0)
                 if tn > 0 then t.subPill:SetWidth((t.sub:GetStringWidth() or 40) + 14) end
@@ -1938,10 +1958,10 @@ ns.RegisterPage({
         p.mine:Update() p.online:Update()
         p.chip:SetShown(whoFilter ~= nil)
         if whoFilter then
-            p.chip:SetLabel(L["nur "] .. ns.displayName(whoFilter) .. "  |cff888888x|r")
+            p.chip:SetLabel(L["only "] .. ns.displayName(whoFilter) .. "  |cff888888x|r")
             p.chip:SetWidth(math.min(170, (p.chip.label:GetStringWidth() or 0) + 24))
         end
-        p.count:SetText((L["%d Eintraege"]):format(#rows))
+        p.count:SetText((L["%d entries"]):format(#rows))
 
         -- rechte Spalte
         p.hl:Set(best, bestTag)

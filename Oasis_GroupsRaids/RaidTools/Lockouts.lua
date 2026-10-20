@@ -94,7 +94,7 @@ LK.RAIDS = {
     { key = "barrow", name = "Barrow Deeps", size = 10, minLevel = 60, ids = {}, match = { "barrow", "huegelgrab", "hügelgrab" } },
     -- TODO Hyjal (Classic+): Instanz-ID (TBC-Hyjal war 534), Mindeststufe, Freischaltung unbekannt
     { key = "hyjal", name = "Hyjal", size = 20, minLevel = 60, ids = { 534 }, match = { "hyjal" } },
-    { key = "ony", name = "Onyxias Hort", size = 40, minLevel = 60, ids = { 249 }, match = { "onyx" }, unlock = "ony" },
+    { key = "ony", name = "Onyxia's Lair", size = 40, minLevel = 60, ids = { 249 }, match = { "onyx" }, unlock = "ony" },
 }
 LK.RAID_BY = {}
 for _, r in ipairs(LK.RAIDS) do LK.RAID_BY[r.key] = r end
@@ -104,15 +104,15 @@ for _, r in ipairs(LK.RAIDS) do LK.RAID_BY[r.key] = r end
 LK.UNLOCKS = {
     -- Horde: "Blood of the Black Dragon Champion" (6602) -> Drachenfeueramulett (16309)
     -- (Allianz waere 6502 "Drakefire Amulet" - Gilde ist Horde, trotzdem mitpruefen schadet nicht)
-    { key = "ony", text = "Onyxia: Drachenfeueramulett", quests = { 6602, 6502 }, items = { 16309 } },
+    { key = "ony", text = "Onyxia: Drakefire Amulet", quests = { 6602, 6502 }, items = { 16309 } },
     -- "Attunement to the Core" (7848)
-    { key = "mc", text = "Geschmolzener Kern: Einstimmung", quests = { 7848 } },
-    { key = "ubrs", text = "Siegel des Aufstiegs (Obere Schwarzfelsspitze)", items = { 12344 } },
-    { key = "brd", text = "Schattenschmiedeschluessel (Schwarzfelstiefen)", items = { 11000 } },
-    { key = "scholo", text = "Skelettschluessel (Scholomance)", items = { 13704 } },
-    { key = "strat", text = "Schluessel zur Stadt (Stratholme)", items = { 12382 } },
-    { key = "dm", text = "Mondsichelschluessel (Duesterbruch)", items = { 18249 } },
-    { key = "zf", text = "Schlaegel von Zul'Farrak", items = { 9240 } },
+    { key = "mc", text = "Molten Core: Attunement", quests = { 7848 } },
+    { key = "ubrs", text = "Seal of Ascension (Upper Blackrock Spire)", items = { 12344 } },
+    { key = "brd", text = "Shadowforge Key (Blackrock Depths)", items = { 11000 } },
+    { key = "scholo", text = "Skeleton Key (Scholomance)", items = { 13704 } },
+    { key = "strat", text = "Key to the City (Stratholme)", items = { 12382 } },
+    { key = "dm", text = "Crescent Key (Dire Maul)", items = { 18249 } },
+    { key = "zf", text = "Mallet of Zul'Farrak", items = { 9240 } },
     -- TODO Hyjal / Barrow Deeps: Freischaltungs-Quests von WoW Forever eintragen, sobald bekannt
 }
 LK.UNLOCK_BY = {}
@@ -123,7 +123,7 @@ local NEED = { [10] = { 2, 3 }, [20] = { 3, 5 }, [25] = { 3, 6 }, [40] = { 5, 10
 
 for _, r in ipairs(LK.RAIDS) do
     ns.GuildOption({ page = "lockouts", key = "lkLvl_" .. r.key, default = r.minLevel, kind = "num", min = 1, max = 60, step = 1,
-        label = "Mindeststufe " .. r.name, desc = "Darunter gilt ein Charakter fuer diesen Raid als zu niedrig (auch beim Gruppenvorschlag)." })
+        label = "Minimum level " .. r.name, desc = "Below this a character counts as too low for this raid (also for group suggestions)." })
 end
 
 ------------------------------------------------------------------------
@@ -145,9 +145,9 @@ local function minLevel(r) return tonumber(ns.GuildOpt("lkLvl_" .. r.key)) or r.
 local function fmtLeft(sec)
     if not sec or sec <= 0 then return "-" end
     local d, h, m = math.floor(sec / 86400), math.floor(sec % 86400 / 3600), math.floor(sec % 3600 / 60)
-    if d > 0 then return (L["%dT %dStd"]):format(d, h) end
-    if h > 0 then return (L["%dStd %dMin"]):format(h, m) end
-    return (L["%d Min"]):format(math.max(1, m))
+    if d > 0 then return (L["%dd %dh"]):format(d, h) end
+    if h > 0 then return (L["%dh %dm"]):format(h, m) end
+    return (L["%d min"]):format(math.max(1, m))
 end
 LK.FmtLeft = fmtLeft
 
@@ -382,7 +382,7 @@ function LK.BoundHint(ev)
     end
     if n == 0 then return nil end
     local list = table.concat(names, ", ", 1, math.min(#names, 5)) .. (#names > 5 and " ..." or "")
-    return "|cffe8b44a" .. (L["%d Angemeldete sind schon gebunden"]):format(n) .. ":|r |cff888888" .. list .. "|r"
+    return "|cffe8b44a" .. (L["%d signed-up players are already saved"]):format(n) .. ":|r |cff888888" .. list .. "|r"
 end
 
 -- naechster Reset je Raid (aus allen bekannten IDs)
@@ -496,7 +496,7 @@ function LK.Suggest(raidKey)
 end
 
 function LK.InviteOnline(list)
-    if ns.inCombat() then ns.print(L["Im Kampf nicht moeglich - gleich nochmal."]) return end
+    if ns.inCombat() then ns.print(L["Not possible in combat - try again shortly."]) return end
     local n = 0
     for _, e in ipairs(list or {}) do
         if e.row.online and not ns.isMe(e.row.name) and not (e.row.rec and e.row.rec.demo) then
@@ -505,7 +505,7 @@ function LK.InviteOnline(list)
             ns.After(n * 0.3, function() ns.InviteName(who) end)
         end
     end
-    if n == 0 then ns.print(L["Niemand aus dem Vorschlag ist online."]) end
+    if n == 0 then ns.print(L["Nobody from the suggestion is online."]) end
 end
 
 ------------------------------------------------------------------------
@@ -623,7 +623,7 @@ function LK.SeedDemo()
                 rl = (ns.db.members[m.name] and ns.db.members[m.name].rl) or "d", demo = true, ts = now, n = 0, v = 1,
                 a = (i % 4 ~= 1) and "ony,ubrs" or "ubrs" }
             if lvl >= 60 then
-                if i % 3 == 0 then rec.n = rec.n + 1 rec["s" .. rec.n] = "ony~249~" .. reset .. "~1~Onyxia~40~" .. L["Onyxias Hort"] .. "~1" end
+                if i % 3 == 0 then rec.n = rec.n + 1 rec["s" .. rec.n] = "ony~249~" .. reset .. "~1~Onyxia~40~" .. L["Onyxia's Lair"] .. "~1" end
                 if i % 5 == 0 then rec.n = rec.n + 1 rec["s" .. rec.n] = "hyjal~534~" .. reset .. "~11000~" .. "Rage Winterchill/Anetheron~20~Hyjal~1" end
                 if i % 2 == 0 then rec.n = rec.n + 1 rec["s" .. rec.n] = "barrow~0~" .. (now + 86400 + 7200) .. "~1100~" .. "~10~Barrow Deeps~1" end
             end
@@ -681,7 +681,7 @@ end)
 if ns.AddPageSettings then
     ns.AddPageSettings("lockouts", function(det, y)
         if S().lkShare == nil then S().lkShare = true end
-        local t = K.Toggle(det, L["Eigene Raid-IDs mit der Gilde teilen"], function() return S().lkShare ~= false end,
+        local t = K.Toggle(det, L["Share my raid lockouts with the guild"], function() return S().lkShare ~= false end,
             function(v) S().lkShare = v if v then lastSent = nil LK.QueueScan(1) end end)
         t:SetPoint("TOPLEFT", 14, y)
         t:SetWidth(600)
@@ -691,7 +691,7 @@ if ns.AddPageSettings then
         hint:SetPoint("TOPLEFT", 14, y)
         hint:SetWidth(600)
         hint:SetWordWrap(true)
-        hint:SetText(L["Twinks erscheinen mit dem Stand ihres letzten Logins. Mindeststufen je Raid stellt die Gildenleitung ein."])
+        hint:SetText(L["Alts show the state of their last login. Minimum levels per raid are set by the guild leadership."])
         return y - 30
     end)
 end
@@ -720,10 +720,10 @@ end
 local function stateText(st, sv, rd, short)
     if st == "bound" then
         local prog = (sv and (sv.total or 0) > 0) and (sv.killed .. "/" .. sv.total) or nil
-        if short then return prog or L["geb."] end
-        return L["gebunden"] .. (prog and (" " .. prog) or "")
-    elseif st == "free" then return L["frei"]
-    elseif st == "locked" then return short and L["gesperrt"] or L["nicht freigeschaltet"]
+        if short then return prog or L["saved"] end
+        return L["saved"] .. (prog and (" " .. prog) or "")
+    elseif st == "free" then return L["open"]
+    elseif st == "locked" then return short and L["locked"] or L["not attuned"]
     elseif st == "low" then return short and ("< " .. minLevel(rd)) or "-"   -- "Stufe zu niedrig" in jeder Zelle war eine Textwand
     end
     return "?"
@@ -778,14 +778,14 @@ local function rowTip(self)
     if not e then return end
     local lines = { nameOf(e.name) }
     if not e.rec then
-        lines[#lines + 1] = "|cff888888" .. L["Keine Oasis-Daten (noch nicht mit Oasis eingeloggt)."] .. "|r"
+        lines[#lines + 1] = "|cff888888" .. L["No Oasis data (not logged in with Oasis yet)."] .. "|r"
     else
-        lines[#lines + 1] = "|cff888888" .. (L["Stand: %s"]):format(ns.ago(e.rec.ts)) .. "|r"
+        lines[#lines + 1] = "|cff888888" .. (L["As of: %s"]):format(ns.ago(e.rec.ts)) .. "|r"
         local sv = LK.Saved(e.rec)
         for _, r in ipairs(LK.RAIDS) do
             local s = sv[r.key]
             if s then
-                lines[#lines + 1] = (L["%s: gebunden, Reset in %s"]):format(L[r.name], fmtLeft(s.reset - ns.now()))
+                lines[#lines + 1] = (L["%s: saved, reset in %s"]):format(L[r.name], fmtLeft(s.reset - ns.now()))
                 if s.bosses ~= "" then lines[#lines + 1] = "  |cff888888" .. s.bosses:gsub("/", ", ") .. "|r" end
             else
                 local st = LK.StateOf(e.name, r.key, e.lvl)
@@ -798,8 +798,8 @@ local function rowTip(self)
         local un = {}
         for _, u in ipairs(LK.UNLOCKS) do if LK.Unlocked(e.rec, u.key) then un[#un + 1] = L[u.text] end end
         lines[#lines + 1] = " "
-        lines[#lines + 1] = "|cffe8b44a" .. L["Freischaltungen & Schluessel"] .. "|r"
-        lines[#lines + 1] = #un > 0 and table.concat(un, "\n") or ("|cff666666" .. L["keine bekannt"] .. "|r")
+        lines[#lines + 1] = "|cffe8b44a" .. L["Attunements & keys"] .. "|r"
+        lines[#lines + 1] = #un > 0 and table.concat(un, "\n") or ("|cff666666" .. L["none known"] .. "|r")
     end
     K.ShowTip(self, lines)
 end
@@ -835,10 +835,10 @@ local function newRaidCard(p, rd, idx)
         t:Hide()
         c.segs[st] = t
     end
-    c.btn = K.Button(c, L["Freie Gruppe"], 104, 22, "ghost", function() showSuggest(p, rd.key) end)
+    c.btn = K.Button(c, L["Free group"], 104, 22, "ghost", function() showSuggest(p, rd.key) end)
     c.btn.label:SetFont(K.FONT, 11, "")
-    c.btn:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Freie Gruppe vorschlagen"],
-        L["Freie, freigeschaltete Mains und Twinks passender Stufe, je Spieler einer, Rollen aus den Profilen."] }) end)
+    c.btn:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Suggest free group"],
+        L["Free, attuned mains and alts of fitting level, one per player, roles from the profiles."] }) end)
     c.btn:HookScript("OnLeave", function() GameTooltip:Hide() end)
     c:SetScript("OnEnter", function(self)
         local n = self.n or {}
@@ -846,7 +846,7 @@ local function newRaidCard(p, rd, idx)
         for _, st in ipairs(ST_ORDER) do
             lines[#lines + 1] = K.hex(ST_COL[st]) .. stateText(st, nil, rd, false) .. "|r: " .. (n[st] or 0)
         end
-        if rd.unlock and LK.UNLOCK_BY[rd.unlock] then lines[#lines + 1] = "|cff888888" .. L["Freischaltung"] .. ": " .. L[LK.UNLOCK_BY[rd.unlock].text] .. "|r" end
+        if rd.unlock and LK.UNLOCK_BY[rd.unlock] then lines[#lines + 1] = "|cff888888" .. L["Attunement"] .. ": " .. L[LK.UNLOCK_BY[rd.unlock].text] .. "|r" end
         K.ShowTip(self, lines)
     end)
     c:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -895,9 +895,9 @@ local function newRaidCard(p, rd, idx)
     end
     function c:SetData(n, total, nextReset, anim)
         self.n, self.total = n, total
-        local sizeT = (L["%d Spieler"]):format(rd.size)
-        local res = nextReset and (L["Reset in %s"]):format(fmtLeft(nextReset - ns.now())) or (L["ab Stufe %d"]):format(minLevel(rd))
-        local cnt = ("|cffe64047%d|r %s  ·  |cff66db9e%d|r %s  ·  |cffff8a3d%d|r %s"):format(n.bound or 0, L["gebunden"], n.free or 0, L["frei"], n.locked or 0, L["gesperrt"])
+        local sizeT = (L["%d players"]):format(rd.size)
+        local res = nextReset and (L["Reset in %s"]):format(fmtLeft(nextReset - ns.now())) or (L["from level %d"]):format(minLevel(rd))
+        local cnt = ("|cffe64047%d|r %s  ·  |cff66db9e%d|r %s  ·  |cffff8a3d%d|r %s"):format(n.bound or 0, L["saved"], n.free or 0, L["open"], n.locked or 0, L["locked"])
         if self.compact then
             self.meta:SetText(("|cffe64047%d|r / |cff66db9e%d|r / |cffff8a3d%d|r  ·  %s"):format(n.bound or 0, n.free or 0, n.locked or 0, res))
         else
@@ -934,21 +934,21 @@ local function applyRowCols(p, r)
 end
 
 ns.RegisterPage({
-    key = "lockouts", title = "Raid-IDs", order = 2.77,
-    sub = "Wer ist diese Woche schon gebunden, wer ist frei und freigeschaltet - Mains und Twinks",
+    key = "lockouts", title = "Raid Lockouts", order = 2.77,
+    sub = "Who is already saved this week, who is free and attuned – mains and alts",
     build = function(p)
         local U = ns.RCUI
         p.rects = {}
         if not U then
             p.miss = K.Text(p, 13, C.dim, "CENTER")
             p.miss:SetPoint("CENTER")
-            p.miss:SetText(L["Raid-Check-Modul fehlt - diese Ansicht braucht seine Bausteine."])
+            p.miss:SetText(L["Raid check module missing – this view needs its building blocks."])
             return
         end
         -- 1) Kopf-Kacheln
         p.tiles = {}
-        for i, d in ipairs({ { "raid", "Gebunden diese Woche", C.red }, { "groups", "Frei & bereit", C.mint },
-            { "legacy", "Nicht freigeschaltet", C.amber }, { "chronicle", "Naechster Reset", C.blue } }) do
+        for i, d in ipairs({ { "raid", "Saved this week", C.red }, { "groups", "Free & ready", C.mint },
+            { "legacy", "Not attuned", C.amber }, { "chronicle", "Next reset", C.blue } }) do
             p.tiles[i] = K.HudTile(p, glyph(d[1]), L[d[2]], d[3])
         end
         -- 2) Raid-Karten
@@ -957,7 +957,7 @@ ns.RegisterPage({
         -- 3) Werkzeugleiste
         local bar = CreateFrame("Frame", nil, p)
         p.bar = bar
-        p.seg = K.Segments(bar, { { key = "all", text = L["Alle"] }, { key = "online", text = L["Nur online"] } }, function(k)
+        p.seg = K.Segments(bar, { { key = "all", text = L["All"] }, { key = "online", text = L["Online only"] } }, function(k)
             filter.online = (k == "online")
             S().lkOnline = filter.online
             ns.RefreshPage("lockouts")
@@ -971,9 +971,9 @@ ns.RegisterPage({
             U.Reveal(p.list)
         end)
         p.twk:SetPoint("LEFT", p.seg, "RIGHT", 10, 0)
-        p.twk:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Twinks"], L["Twinks erscheinen mit dem Stand ihres letzten Logins."] }) end)
+        p.twk:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Alts"], L["Alts show the state of their last login."] }) end)
         p.twk:HookScript("OnLeave", function() GameTooltip:Hide() end)
-        p.scan = K.Button(bar, L["Aktualisieren"], 104, 22, "ghost", function() lastSent = nil request() end)
+        p.scan = K.Button(bar, L["Refresh"], 104, 22, "ghost", function() lastSent = nil request() end)
         p.scan:SetPoint("RIGHT", 0, 0)
         p.cnt = K.Text(bar, 10, C.dim, "RIGHT")
         p.cnt:SetPoint("RIGHT", p.scan, "LEFT", -10, 0)
@@ -986,7 +986,7 @@ ns.RegisterPage({
         hdr.line:SetHeight(1)
         hdr.line:SetColorTexture(C.line[1], C.line[2], C.line[3], 1)
         hdr.name = K.Text(hdr, 10, C.dim)
-        hdr.name:SetText(K.Upper(L["Charakter"]))
+        hdr.name:SetText(K.Upper(L["Character"]))
         hdr.lvl = K.Text(hdr, 10, C.dim)
         hdr.lvl:SetText(K.Upper(L["Lvl"]))
         hdr.raids = {}
@@ -1011,7 +1011,7 @@ ns.RegisterPage({
             r:Col("lvl", 200, 30, 11, C.muted)
             r.pills = {}
             for i = 1, #LK.RAIDS do r.pills[i] = newPill(r) end
-            r.inv = K.Button(r, L["Einladen"], 60, 18, "ghost")
+            r.inv = K.Button(r, L["Invite"], 60, 18, "ghost")
             r.inv:SetPoint("RIGHT", -4, 0)
             r.inv.label:SetFont(K.FONT, 10, "")
             r.inv:SetScript("OnClick", function(self) local e = self:GetParent().item if e then ns.InviteName(e.name) end end)
@@ -1023,7 +1023,7 @@ ns.RegisterPage({
             U.ClassIcon(r.cls, e.class)
             local oc = e.online and C.mint or C.dim
             r.dot:SetVertexColor(oc[1], oc[2], oc[3], e.online and 1 or 0.6)
-            r.cols.name:SetText(nameOf(e.name) .. (e.alt and ("  |cff666666" .. L["Twink"] .. "|r") or ""))
+            r.cols.name:SetText(nameOf(e.name) .. (e.alt and ("  |cff666666" .. L["Alt"] .. "|r") or ""))
             r.cols.lvl:SetText(e.lvl > 0 and e.lvl or "?")
             for i, rd in ipairs(LK.RAIDS) do
                 local st, sv = LK.StateOf(e.name, rd.key, e.lvl)
@@ -1032,21 +1032,21 @@ ns.RegisterPage({
             r.inv:SetShown(p.cols.inv ~= nil and e.online and not ns.isMe(e.name) and not (e.rec and e.rec.demo))
             r:SetAlpha(e.online and 1 or 0.78)
         end)
-        p.list.empty:SetText(L["Noch keine Daten. Sobald Gildenmitglieder mit Oasis einloggen, erscheinen ihre Raid-IDs hier."])
+        p.list.empty:SetText(L["No data yet. As soon as guild members log in with Oasis, their lockouts appear here."])
 
         -- 5) Vorschlag (ersetzt Karten + Liste)
         local sug = U.Card(p, C.mint)
         sug:Hide()
         p.sug = sug
-        sug.head = K.GameHead(sug, L["Freie Gruppe vorschlagen"], C.mint)
+        sug.head = K.GameHead(sug, L["Suggest free group"], C.mint)
         sug.head:SetPoint("TOPLEFT", 14, -14)
-        sug.back = K.Button(sug, L["Zurueck"], 90, 22, "ghost", function() sugRaid = nil ns.RefreshPage("lockouts") U.Reveal(p.list) end)
+        sug.back = K.Button(sug, L["Back"], 90, 22, "ghost", function() sugRaid = nil ns.RefreshPage("lockouts") U.Reveal(p.list) end)
         sug.back:SetPoint("TOPRIGHT", -12, -10)
-        sug.invAll = K.Button(sug, L["Alle online einladen"], 150, 22, "primary", function() LK.InviteOnline(sug.cur) end)
+        sug.invAll = K.Button(sug, L["Invite all online"], 150, 22, "primary", function() LK.InviteOnline(sug.cur) end)
         sug.invAll:SetPoint("RIGHT", sug.back, "LEFT", -8, 0)
         sug.head:SetPoint("RIGHT", sug.invAll, "LEFT", -8, 0)
         sug.chips = {}
-        for i, d in ipairs({ { "role_tank", "Tanks", C.blue }, { "role_heal", "Heiler", C.mint }, { "role_dps", "Schaden", C.red }, { "radar", "Online", C.accent } }) do
+        for i, d in ipairs({ { "role_tank", "Tanks", C.blue }, { "role_heal", "Healer", C.mint }, { "role_dps", "Damage", C.red }, { "radar", "Online", C.accent } }) do
             local ch = CreateFrame("Frame", nil, sug)
             ch.bg = K.Fill(ch, C.raised)
             K.Border(ch, C.line)
@@ -1078,7 +1078,7 @@ ns.RegisterPage({
             r:Col("lvl", 260, 30, 11, C.muted)
             r:Col("state", 296, 160, 10, C.muted)
             r.cols.state:SetWordWrap(false)
-            r.inv = K.Button(r, L["Einladen"], 66, 18, "ghost")
+            r.inv = K.Button(r, L["Invite"], 66, 18, "ghost")
             r.inv:SetPoint("RIGHT", -4, 0)
             r.inv.label:SetFont(K.FONT, 10, "")
             r.inv:SetScript("OnClick", function(self) local e = self:GetParent().item if e then ns.InviteName(e.row.name) end end)
@@ -1099,13 +1099,13 @@ ns.RegisterPage({
             else r.role:Hide() end
             local row = e.row
             U.ClassIcon(r.cls, row.class)
-            r.cols.name:SetText(nameOf(row.name) .. (row.alt and ("  |cff666666" .. L["Twink"] .. "|r") or ""))
+            r.cols.name:SetText(nameOf(row.name) .. (row.alt and ("  |cff666666" .. L["Alt"] .. "|r") or ""))
             r.cols.lvl:SetText(row.lvl)
-            r.cols.state:SetText((row.online and ("|cff66db9e" .. L["online"] .. "|r") or L["offline"]) .. (e.guess and ("  |cff666666" .. L["(Rolle unbekannt)"] .. "|r") or ""))
+            r.cols.state:SetText((row.online and ("|cff66db9e" .. L["online"] .. "|r") or L["offline"]) .. (e.guess and ("  |cff666666" .. L["(role unknown)"] .. "|r") or ""))
             r.inv:SetShown(row.online and not ns.isMe(row.name) and not (row.rec and row.rec.demo))
             r:SetAlpha(row.online and 1 or 0.8)
         end)
-        sug.list.empty:SetText(L["Niemand frei: alle passenden Charaktere sind gebunden, zu niedrig oder nicht freigeschaltet."])
+        sug.list.empty:SetText(L["Nobody free: all fitting characters are saved, too low or not attuned."])
 
         function p:Layout()
             local W = math.floor(self:GetWidth() or 0)
@@ -1195,7 +1195,7 @@ ns.RegisterPage({
     refresh = function(p)
         if not p.tiles then return end
         p.seg:Select(filter.online and "online" or "all")
-        p.twk:SetLabel(filter.twinks and L["Twinks: an"] or L["Twinks: aus"])
+        p.twk:SetLabel(filter.twinks and L["Alts: on"] or L["Alts: off"])
         local rows = LK.Rows()
         local fresh = p.fresh and animOn()
         -- Zaehlen: je Charakter (Kacheln) und je Raid (Karten)
@@ -1219,9 +1219,9 @@ ns.RegisterPage({
             for _, rd in ipairs(LK.RAIDS) do if LK.NextReset(rd.key) == nr then nrName = L[rd.name] break end end
         end
         local total = #rows
-        p.tiles[1]:Set(bound, L["Charaktere"], total > 0 and bound / total or nil, fresh)
-        p.tiles[2]:Set(free, L["Charaktere"], total > 0 and free / total or nil, fresh)
-        p.tiles[3]:Set(locked, L["Charaktere"], total > 0 and locked / total or nil, fresh)
+        p.tiles[1]:Set(bound, L["Characters"], total > 0 and bound / total or nil, fresh)
+        p.tiles[2]:Set(free, L["Characters"], total > 0 and free / total or nil, fresh)
+        p.tiles[3]:Set(locked, L["Characters"], total > 0 and locked / total or nil, fresh)
         p.tiles[4]:Set(nr and fmtLeft(nr - ns.now()) or "-", nrName, nil, false)
         p:Layout()
         for i, c in ipairs(p.cards) do
@@ -1229,7 +1229,7 @@ ns.RegisterPage({
             local n = per[rd.key]
             c:SetData(n, (n.bound or 0) + (n.free or 0) + (n.locked or 0) + (n.low or 0), LK.NextReset(rd.key), fresh)
         end
-        p.cnt:SetText((L["%d Charaktere"]):format(total))
+        p.cnt:SetText((L["%d characters"]):format(total))
         if p.fresh then
             for i, t in ipairs(p.tiles) do K.FadeIn(t, (i - 1) * 0.06) end
         end
@@ -1245,7 +1245,7 @@ ns.RegisterPage({
                 if e.role == "TANK" then t = t + 1 elseif e.role == "HEALER" then h = h + 1 else d = d + 1 end
                 if e.row.online then on = on + 1 end
             end
-            s.head.text:SetText(K.Upper(L[rd.name]) .. "  ·  " .. K.Upper(L["Freie Gruppe"]))
+            s.head.text:SetText(K.Upper(L[rd.name]) .. "  ·  " .. K.Upper(L["Free group"]))
             s.head:SetCount(#list .. " / " .. rd.size)
             local vals = { { t, need[1] }, { h, need[2] }, { d, math.max(0, rd.size - need[1] - need[2]) }, { on, #list } }
             for i, ch in ipairs(s.chips) do
@@ -1255,7 +1255,7 @@ ns.RegisterPage({
                 else ch.val:SetText(v .. " |cff888888/ " .. nd .. "|r") end
                 ch.val:SetTextColor((ok or i == 4) and C.text[1] or C.amber[1], (ok or i == 4) and C.text[2] or C.amber[2], (ok or i == 4) and C.text[3] or C.amber[3])
             end
-            s.info:SetText(L["Je Spieler ein Charakter (online, Main und hoehere Stufe zuerst). Rollen aus den Profilen."])
+            s.info:SetText(L["One character per player (online, main and higher level first). Roles from the profiles."])
             s.invAll:SetShown(on > 0 and s.invAllRoom ~= false)
             s.list:SetData(list)
             p.animSug = false

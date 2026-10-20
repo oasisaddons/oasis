@@ -65,12 +65,12 @@ ev:SetScript("OnEvent", function(_, _, text)
     last.fwd = true
     local to = ns.ChatName(alt)
     if ns.OfferChat then
-        ns.OfferChat((L["%s ist offline - an %s senden?"]):format(ns.short(last.target), to), last.msg, "WHISPER", to)
+        ns.OfferChat((L["%s is offline - send to %s?"]):format(ns.short(last.target), to), last.msg, "WHISPER", to)
     end
 end)
 
 ns.slash.weiterleiten = function()
     ns.db.settings.whisperForward = (not on()) or nil
-    ns.print(on() and L["Fluester-Angebot fuer Twinks: an"] or L["Fluester-Angebot fuer Twinks: aus"])
+    ns.print(on() and L["Whisper offer for alts: on"] or L["Whisper offer for alts: off"])
 end
 end)

@@ -13,16 +13,16 @@ local function S() return ns.db.settings end
 local NEWS = {
     -- 0.6.144: Punkte mit Titel (t), Text (d) und Symbol (icon = Schluessel in ns.ICONS)
     { v = "0.6.117", items = {
-        { t = "Einstellungen", d = "Die Suche findet auch verwandte Woerter und springt direkt zum passenden Schalter.", icon = "settings" },
-        { t = "Mehr Uebersicht", d = "Unter jedem Schalter steht kurz, was er tut.", icon = "polls" },
-        { t = "Karte", d = "Alle Karten-Schalter auf einer Seite, nach Themen sortiert.", icon = "map" },
-        { t = "Sammelseiten", d = "Jede Sammelseite hat einen Knopf zum Zuruecksetzen.", icon = "bank" },
-        { t = "Gildenchat", d = "Text mit der Maus markieren und mit Strg+C kopieren.", icon = "chat" },
+        { t = "Settings", d = "Search also finds related words and jumps straight to the right switch.", icon = "settings" },
+        { t = "Clearer overview", d = "Every switch now says in a short line what it does.", icon = "polls" },
+        { t = "Map", d = "All map switches on one page, sorted by topic.", icon = "map" },
+        { t = "Settings pages", d = "Every settings page has a reset button.", icon = "bank" },
+        { t = "Guild chat", d = "Select text with the mouse and copy it with Ctrl+C.", icon = "chat" },
     } },
     { v = "0.6.112", items = {
-        "Einstellungen neu geordnet: Start, Aussehen, Hinweise & Klang, Tooltips & Karte, Bereiche, Spielhilfen, Profil, Erweitert",
-        "Hinweise, Tooltip-Zeilen, Karte und Teilen stehen jetzt je an einer Stelle statt in den einzelnen Bereichen",
-        "Chat: Text mit der Maus markieren, Strg+C kopiert, Rechtsklick zeigt mehr",
+        "Settings reorganised: Start, Appearance, Notifications & sound, Tooltips & map, Areas, Gameplay helpers, Profile, Advanced",
+        "Notifications, tooltip lines, map and sharing are now each in one place instead of in every area",
+        "Chat: select text with the mouse, Ctrl+C copies, right-click shows more",
     } },
 }
 
@@ -99,7 +99,7 @@ local function build()
     f.ver.t:SetPoint("CENTER")
     f.sub = K.Text(f, 13, C.muted)
     f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -6)
-    f.sub:SetText(L["Das ist neu in dieser Version."])
+    f.sub:SetText(L["This is new in this version."])
     local close = K.CloseButton(f, function() f:Hide() end)
     close:SetPoint("TOPRIGHT", -22, -22)
     f.rows = {}
@@ -107,14 +107,14 @@ local function build()
     f.footLine = line(f, 0.10)
     f.footLine:SetPoint("BOTTOMLEFT", 24, FOOT)
     f.footLine:SetPoint("BOTTOMRIGHT", -24, FOOT)
-    f.go = K.Button(f, L["Zu den Einstellungen"], 190, 30, "primary", function()
+    f.go = K.Button(f, L["Open settings"], 190, 30, "primary", function()
         f:Hide()
         if ns.OpenSettingsTab then ns.OpenSettingsTab("quick") end
     end)
     f.go:SetPoint("BOTTOMRIGHT", -30, 18)
-    f.ok = K.Button(f, L["Schliessen"], 140, 30, "ghost", function() f:Hide() end)
+    f.ok = K.Button(f, L["Close"], 140, 30, "ghost", function() f:Hide() end)
     f.ok:SetPoint("RIGHT", f.go, "LEFT", -12, 0)
-    f.never = K.Toggle(f, L["Nicht mehr zeigen"], function() return S().newsOff == true end,
+    f.never = K.Toggle(f, L["Don't show again"], function() return S().newsOff == true end,
         function(v) S().newsOff = v or nil end)
     f.never:SetWidth(200)
     f.never:SetPoint("BOTTOMLEFT", 30, 20)
@@ -149,7 +149,7 @@ function W.Show(items)
     items = items or W.Items(S().newsSeen)
     if #items == 0 then return false end
     local f = win or build()
-    f.title:SetText(L["Neu in Oasis"])
+    f.title:SetText(L["New in Oasis"])
     f.ver.t:SetText(ns.version)
     f.ver:SetWidth((f.ver.t:GetStringWidth() or 40) + 22)
     local y = -HEAD

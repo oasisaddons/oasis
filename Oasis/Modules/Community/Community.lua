@@ -44,14 +44,14 @@ end
 function CO.BecomeMentor(newbie)
     if not newbie or CO.MentorOf(newbie) or ns.isMe(newbie) then return end
     Store.Put(MENTOR, { id = "m-" .. newbie, newbie = newbie, ts = ns.now() })
-    K.Toast(L["Pate"], (L["Du bist jetzt Pate von %s."]):format(ns.displayName(newbie)), C.mint)
-    if ns.OfferChat then ns.OfferChat(L["Pate"], (L["Hallo %s, ich bin dein Pate in der Gilde - frag mich gern alles!"]):format(ns.short(newbie)), "WHISPER", newbie) end
+    K.Toast(L["Mentor"], (L["You are now mentor of %s."]):format(ns.displayName(newbie)), C.mint)
+    if ns.OfferChat then ns.OfferChat(L["Mentor"], (L["Hi %s, I am your mentor in the guild - feel free to ask me anything!"]):format(ns.short(newbie)), "WHISPER", newbie) end
 end
 -- kurzer Zusatz fuer die Mitgliederliste
 function CO.Tag(name)
     local me = ns.me()
-    if CO.MentorOf(name) and ns.SameName(CO.MentorOf(name), me) then return "|cff66db9e" .. L["Patenkind"] .. "|r" end
-    if CO.MentorOf(me) and ns.SameName(CO.MentorOf(me), name) then return "|cff66db9e" .. L["dein Pate"] .. "|r" end
+    if CO.MentorOf(name) and ns.SameName(CO.MentorOf(name), me) then return "|cff66db9e" .. L["Mentee"] .. "|r" end
+    if CO.MentorOf(me) and ns.SameName(CO.MentorOf(me), name) then return "|cff66db9e" .. L["your mentor"] .. "|r" end
     return nil
 end
 -- gemeinsames Leveln: Pate/Patenkind in der Gruppe -> Oasis-XP
@@ -63,7 +63,7 @@ ns.On("PLAYER_LEVEL_UP", function()
     for _, p in ipairs(partners) do
         local s = ns.short(p)
         if (UnitInParty and UnitInParty(s)) or (UnitInRaid and UnitInRaid(s)) then
-            if ns.Rewards and ns.Rewards.GiveXP then ns.Rewards.GiveXP(15, L["Gemeinsam mit dem Paten gelevelt"]) end
+            if ns.Rewards and ns.Rewards.GiveXP then ns.Rewards.GiveXP(15, L["Levelled together with your mentor"]) end
             return
         end
     end
@@ -73,7 +73,7 @@ end)
 function CO.Thank(to, why)
     if not to or ns.isMe(to) then return end
     Store.Put(THANKS, { id = ("t-%s-%d"):format(ns.short(ns.me()), math.floor(ns.now())), to = to, why = cut(why, 60), ts = ns.now() })
-    K.Toast(L["Danke gesagt"], ns.displayName(to) .. ((why or "") ~= "" and ("  ·  " .. cut(why, 60)) or ""), C.mint)
+    K.Toast(L["Thanks given"], ns.displayName(to) .. ((why or "") ~= "" and ("  ·  " .. cut(why, 60)) or ""), C.mint)
 end
 function CO.Thanks(since)
     local out = Store.List(THANKS, function(r) return r.to and (r.ts or 0) > (since or 0) end)
@@ -92,11 +92,11 @@ end
 
 -- Gilden-Erfolge der Woche aus der Chronik
 local GOALS = {
-    { kind = "boss", text = "Bosse besiegt", goal = 25, color = { 0.98, 0.58, 0.22 } },
-    { kind = "level", text = "Level-Meilensteine", goal = 30, color = { 0.45, 0.6, 1 } },
-    { kind = "badge", text = "Abzeichen", goal = 50, color = { 0.93, 0.3, 0.32 } },
-    { kind = "duel", text = "Wuerfelspiele", goal = 10, color = { 0.85, 0.55, 1 } },
-    { kind = "thanks", text = "Danke gesagt", goal = 15, color = { 0.4, 0.86, 0.55 } },
+    { kind = "boss", text = "Bosses defeated", goal = 25, color = { 0.98, 0.58, 0.22 } },
+    { kind = "level", text = "Level milestones", goal = 30, color = { 0.45, 0.6, 1 } },
+    { kind = "badge", text = "Badge", goal = 50, color = { 0.93, 0.3, 0.32 } },
+    { kind = "duel", text = "Dice games", goal = 10, color = { 0.85, 0.55, 1 } },
+    { kind = "thanks", text = "Thanks given", goal = 15, color = { 0.4, 0.86, 0.55 } },
 }
 function CO.WeekGoals()
     local cut0 = ns.now() - WEEK
@@ -120,7 +120,7 @@ ns.Listen("LOGIN", function()
                 local key = date("%Y%m%d") .. r.by
                 if not ns.db.bdayShown[key] and ns.OfferChat then
                     ns.db.bdayShown[key] = true
-                    ns.OfferChat(L["Geburtstag"], (L["Alles Gute zum Geburtstag, %s!"]):format(ns.short(r.by)), "GUILD")
+                    ns.OfferChat(L["Birthday"], (L["Happy birthday, %s!"]):format(ns.short(r.by)), "GUILD")
                 end
             end
         end
@@ -148,23 +148,23 @@ local function field(parent, label, w, ph)
 end
 
 ns.RegisterPage({
-    key = "community", title = "Gemeinschaft", order = 7.63,
-    sub = "Steckbriefe, Paten, Danke und gemeinsame Ziele der Gilde",
+    key = "community", title = "Community", order = 7.63,
+    sub = "Profiles, mentors, thanks and shared guild goals",
     build = function(p)
         -- Mein Steckbrief
-        local sb = box(p, L["Mein Steckbrief"])
+        local sb = box(p, L["My profile card"])
         p.sb = sb
-        sb.lOn, sb.on = field(sb, L["Meist online"], 200, L["z. B. abends ab 19 Uhr"])
-        sb.lTz, sb.tz = field(sb, L["Zeitzone"], 90, "MEZ")
-        sb.lSeek, sb.seek = field(sb, L["Ich suche gerade ..."], 300, L["z. B. Gruppe fuer Kloster"])
-        sb.lBd, sb.bd = field(sb, L["Geburtstag (TT.MM, freiwillig)"], 90, "24.12")
-        sb.save = K.Button(sb, L["Speichern"], 110, 26, "primary", function()
+        sb.lOn, sb.on = field(sb, L["Usually online"], 200, L["e.g. evenings from 7 pm"])
+        sb.lTz, sb.tz = field(sb, L["Time zone"], 90, "MEZ")
+        sb.lSeek, sb.seek = field(sb, L["I am looking for ..."], 300, L["e.g. group for Monastery"])
+        sb.lBd, sb.bd = field(sb, L["Birthday (DD.MM, optional)"], 90, "24.12")
+        sb.save = K.Button(sb, L["Save"], 110, 26, "primary", function()
             CO.SaveCard({ on = sb.on:GetText(), tz = sb.tz:GetText(), seek = sb.seek:GetText(), bday = sb.bd:GetText() })
-            K.Toast(L["Steckbrief"], L["Gespeichert - die Gilde sieht ihn jetzt."], C.mint)
+            K.Toast(L["Profile card"], L["Saved - the guild can see it now."], C.mint)
             ns.RefreshPage("community", true)
         end)
         -- Paten
-        local pb = box(p, L["Paten fuer Neulinge"])
+        local pb = box(p, L["Mentors for newcomers"])
         p.pb = pb
         pb.mine = K.Text(pb, 11, C.text)
         pb.mine:SetWordWrap(true)
@@ -174,14 +174,14 @@ ns.RegisterPage({
             r:SetHeight(28)
             r.n = K.Text(r, 12, C.text)
             r.n:SetPoint("LEFT", 0, 0)
-            r.b = K.Button(r, L["Pate werden"], 110, 24, "ghost", function() if r.who then CO.BecomeMentor(r.who) ns.RefreshPage("community", true) end end)
+            r.b = K.Button(r, L["Become mentor"], 110, 24, "ghost", function() if r.who then CO.BecomeMentor(r.who) ns.RefreshPage("community", true) end end)
             r.b:SetPoint("RIGHT", 0, 0)
             pb.rows[i] = r
         end
         pb.none = K.Text(pb, 11, C.dim)
-        pb.none:SetText(L["Gerade keine neuen Mitglieder ohne Paten."])
+        pb.none:SetText(L["No new members without a mentor right now."])
         -- Gilden-Erfolge
-        local gb = box(p, L["Gilden-Erfolge diese Woche"])
+        local gb = box(p, L["Guild achievements this week"])
         p.gb = gb
         gb.rows = {}
         for i = 1, #GOALS do
@@ -196,18 +196,18 @@ ns.RegisterPage({
             gb.rows[i] = r
         end
         -- Danke
-        local db = box(p, L["Danke sagen"])
+        local db = box(p, L["Say thanks"])
         p.db = db
         db.helper = K.Text(db, 12, C.text)
-        db.lTo, db.to = field(db, L["An wen?"], 150, L["Name"])
-        db.lWhy, db.why = field(db, L["Wofuer? (freiwillig)"], 220, L["z. B. Hilfe im Kloster"])
-        db.send = K.Button(db, L["Danke"], 90, 26, "primary", function()
+        db.lTo, db.to = field(db, L["To whom?"], 150, L["Name"])
+        db.lWhy, db.why = field(db, L["What for? (optional)"], 220, L["e.g. help in Monastery"])
+        db.send = K.Button(db, L["Thanks"], 90, 26, "primary", function()
             local n = trim(db.to:GetText())
             if n == "" then return end
             local full = ns.Radar and ns.Radar.byName and (function()
                 for nm in pairs(ns.Radar.byName) do if ns.SameName(nm, n) or ns.short(nm):lower() == n:lower() then return nm end end
             end)()
-            if not full then K.Toast(L["Danke sagen"], L["Das ist kein Gildenmitglied."], C.amber) return end
+            if not full then K.Toast(L["Say thanks"], L["That is not a guild member."], C.amber) return end
             CO.Thank(full, db.why:GetText())
             db.to:SetText("") db.why:SetText("")
             ns.RefreshPage("community", true)
@@ -216,7 +216,7 @@ ns.RegisterPage({
         db.list:SetJustifyV("TOP")
         db.list:SetWordWrap(true)
         -- Steckbriefe der Gilde
-        local cb = box(p, L["Steckbriefe der Gilde"])
+        local cb = box(p, L["Guild profile cards"])
         p.cb = cb
         cb.list = K.List(cb, 30, function(l)
             local r = K.Row(l)
@@ -236,10 +236,10 @@ ns.RegisterPage({
         end, function(r, c)
             r.n:SetText(ns.Radar and ns.Radar.Colored and ns.Radar.Colored(c.by) or c.by)
             r.on:SetText((c.on or "") .. ((c.tz or "") ~= "" and ("  |cff666666" .. c.tz .. "|r") or ""))
-            r.seek:SetText((c.seek or "") ~= "" and ("|cffe8b44a" .. L["sucht:"] .. "|r " .. c.seek) or "")
+            r.seek:SetText((c.seek or "") ~= "" and ("|cffe8b44a" .. L["needs:"] .. "|r " .. c.seek) or "")
         end)
         cb.empty = K.Text(cb, 11, C.dim, "CENTER")
-        cb.empty:SetText(L["Noch keine Steckbriefe - fuell deinen oben aus."])
+        cb.empty:SetText(L["No profile cards yet - fill in yours above."])
 
         function p:Layout()
             local W, H = self:GetWidth() or 760, self:GetHeight() or 520
@@ -303,14 +303,14 @@ ns.RegisterPage({
         local pb = p.pb
         local mine = {}
         local m = CO.MentorOf(me)
-        if m then mine[#mine + 1] = L["Dein Pate:"] .. " " .. (ns.Radar and ns.Radar.Colored(m) or m) end
+        if m then mine[#mine + 1] = L["Your mentor:"] .. " " .. (ns.Radar and ns.Radar.Colored(m) or m) end
         local kids = CO.MenteesOf(me)
         if #kids > 0 then
             local t = {}
             for _, k in ipairs(kids) do t[#t + 1] = ns.Radar and ns.Radar.Colored(k) or k end
-            mine[#mine + 1] = L["Deine Patenkinder:"] .. " " .. table.concat(t, ", ")
+            mine[#mine + 1] = L["Your mentees:"] .. " " .. table.concat(t, ", ")
         end
-        pb.mine:SetText(#mine > 0 and table.concat(mine, "   ") or ("|cff888888" .. L["Werde Pate fuer ein neues Mitglied - gemeinsames Leveln gibt Oasis-XP."] .. "|r"))
+        pb.mine:SetText(#mine > 0 and table.concat(mine, "   ") or ("|cff888888" .. L["Become a mentor for a new member - levelling together gives Oasis XP."] .. "|r"))
         local cand = {}
         for _, mm in ipairs(ns.Radar and ns.Radar.roster or {}) do
             if ns.Welcome and ns.Welcome.IsNew and ns.Welcome.IsNew(mm.name) and not CO.MentorOf(mm.name) and not ns.isMe(mm.name) then cand[#cand + 1] = mm.name end
@@ -318,22 +318,22 @@ ns.RegisterPage({
         for i, r in ipairs(pb.rows) do
             r.who = cand[i]
             r:SetShown(cand[i] ~= nil)
-            if cand[i] then r.n:SetText((ns.Radar and ns.Radar.Colored(cand[i]) or cand[i]) .. "  |cff66db9e" .. L["NEU"] .. "|r") end
+            if cand[i] then r.n:SetText((ns.Radar and ns.Radar.Colored(cand[i]) or cand[i]) .. "  |cff66db9e" .. L["NEW"] .. "|r") end
         end
         pb.none:SetShown(#cand == 0)
         -- Gilden-Erfolge
         for i, g in ipairs(CO.WeekGoals()) do
             local r = p.gb.rows[i]
             r.l:SetText(L[g.text])
-            r.v:SetText(g.n .. " / " .. g.goal .. (g.n >= g.goal and "  |cff66db9e" .. L["geschafft"] .. "|r" or ""))
+            r.v:SetText(g.n .. " / " .. g.goal .. (g.n >= g.goal and "  |cff66db9e" .. L["done"] .. "|r" or ""))
             local w = (r.track:GetWidth() or 200)
             r.fill:SetWidth(math.max(1, w * math.min(1, g.n / g.goal)))
             r.fill:SetColorTexture(g.color[1], g.color[2], g.color[3], 0.9)
         end
         -- Danke + Helfer der Woche
         local h, hn = CO.Helper()
-        p.db.helper:SetText(h and (L["Helfer der Woche:"] .. "  " .. (ns.Radar and ns.Radar.Colored(h) or h) .. "  |cff888888" .. (L["%d mal Danke"]):format(hn) .. "|r")
-            or ("|cff888888" .. L["Noch kein Helfer der Woche - sag Danke, wenn dir jemand hilft."] .. "|r"))
+        p.db.helper:SetText(h and (L["Helper of the week:"] .. "  " .. (ns.Radar and ns.Radar.Colored(h) or h) .. "  |cff888888" .. (L["thanked %d times"]):format(hn) .. "|r")
+            or ("|cff888888" .. L["No helper of the week yet - say thanks when someone helps you."] .. "|r"))
         local lines = {}
         for i, t in ipairs(CO.Thanks(ns.now() - WEEK)) do
             if i > 3 then break end

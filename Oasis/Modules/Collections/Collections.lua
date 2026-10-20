@@ -70,7 +70,7 @@ local LISTS = { mount = "coll_mounts", pet = "coll_pets", toy = "coll_toys" }
 local KEEP = { coll_chars = 365 * 86400, coll_mounts = 365 * 86400, coll_pets = 365 * 86400, coll_toys = 365 * 86400 }
 local GROUP = "sammlung"
 local KINDS = { "mount", "pet" }   -- Spielzeuge gibt es in WoW Forever nicht
-local KIND_NAME = { mount = "Reittiere", pet = "Haustiere", toy = "Spielzeuge" }
+local KIND_NAME = { mount = "Mounts", pet = "Pets", toy = "Toys" }
 local KIND_ICON = { mount = "Interface\\Icons\\Ability_Mount_RidingHorse", pet = "Interface\\Icons\\INV_Box_PetCarrier_01",
     toy = "Interface\\Icons\\INV_Misc_Toy_10" }
 local SEND_GAP = 600       -- hoechstens alle 10 Min senden
@@ -111,7 +111,7 @@ local function installProbe()
         local keys = {}
         for k in pairs(ns.probes) do keys[#keys + 1] = k end
         table.sort(keys)
-        ns.print(L["Probe-Themen: "] .. table.concat(keys, ", "))
+        ns.print(L["Probe topics: "] .. table.concat(keys, ", "))
     end
     ns._probeDispatch = dispatch
     ns.slash.probe = dispatch
@@ -587,10 +587,10 @@ local function personView()
     f.sub = K.Text(f, 11, C.muted) f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -4) f.sub:SetPoint("RIGHT", -18, 0)
     local x = K.CloseButton(f, function() f:Hide() end) x:SetPoint("TOPRIGHT", -6, -6)
     f.kind, f.missing = "mount", false
-    f.seg = K.Segments(f, { { key = "mount", text = L["Reittiere"] }, { key = "pet", text = L["Haustiere"] }, { key = "toy", text = L["Spielzeuge"] } },
+    f.seg = K.Segments(f, { { key = "mount", text = L["Mounts"] }, { key = "pet", text = L["Pets"] }, { key = "toy", text = L["Toys"] } },
         function(k) f.kind = k f:Fill() end, nil, { size = 12 })
     f.seg:SetPoint("TOPLEFT", 14, -60)
-    f.miss = K.Toggle(f, L["Nur was mir fehlt"], function() return f.missing end, function(v) f.missing = v and true or false f:Fill() end)
+    f.miss = K.Toggle(f, L["Only what I'm missing"], function() return f.missing end, function(v) f.missing = v and true or false f:Fill() end)
     f.miss:SetPoint("TOPLEFT", 18, -90)
     f.miss:SetWidth(260)
     f.list = K.List(f, 30, function(l)
@@ -616,7 +616,7 @@ local function personView()
     end, function(r, e)
         r.icon:SetTexture(e.icon or KIND_ICON[f.kind])
         r.n:SetText(e.name or ("#" .. e.id))
-        r.tag:SetText(f.self and "" or (e.mine and ("|cff66db9e" .. L["hast du auch"] .. "|r") or ("|cffe8b44a" .. L["fehlt dir"] .. "|r")))
+        r.tag:SetText(f.self and "" or (e.mine and ("|cff66db9e" .. L["you have it too"] .. "|r") or ("|cffe8b44a" .. L["you're missing it"] .. "|r")))
     end)
     f.list:SetPoint("TOPLEFT", 12, -124) f.list:SetPoint("BOTTOMRIGHT", -12, 14)
     function f:Fill()
@@ -627,9 +627,9 @@ local function personView()
             if not (self.missing and e.mine) then list[#list + 1] = e end
         end
         self.list:SetData(list)
-        self.list.empty:SetText(#all == 0 and L["Davon hat Oasis bei dieser Person noch nichts gesehen."] or (#list == 0 and L["Du hast alles davon."] or ""))
-        self.sub:SetText(self.self and ((L["%d Stueck"]):format(#all))
-            or ((L["%d Stueck  -  %d hast du auch, %d fehlen dir"]):format(#all, both, #all - both)))
+        self.list.empty:SetText(#all == 0 and L["Oasis hasn't seen any of these for this person yet."] or (#list == 0 and L["You have all of them."] or ""))
+        self.sub:SetText(self.self and ((L["%d total"]):format(#all))
+            or ((L["%d total  -  you have %d too, missing %d"]):format(#all, both, #all - both)))
         self.miss:SetShown(not self.self)
         self.seg:Select(self.kind)
     end
@@ -642,7 +642,7 @@ function Coll.ShowPerson(who, kind)
     local f = personView()
     f.who, f.self = who, ns.isMe(who)
     if kind then f.kind = kind end
-    f.title:SetText((L["Sammlung von %s"]):format(ns.Radar and ns.Radar.Colored and ns.Radar.Colored(who) or ns.short(who)))
+    f.title:SetText((L["Collection of %s"]):format(ns.Radar and ns.Radar.Colored and ns.Radar.Colored(who) or ns.short(who)))
     f:Fill()
     f:Show()
     f:Raise()
@@ -673,10 +673,10 @@ end)
 ------------------------------------------------------------------------
 -- Demo-Daten (nur lokal)
 ------------------------------------------------------------------------
-DEMO_NAMES.mount = { [990601] = "Schneller Steppenwolf", [990602] = "Rostiger Kodo", [990603] = "Skelettpferd der Verlassenen",
-    [990604] = "Schwarzer Kriegsraptor", [990605] = "Kriegsbaer der Frostwoelfe", [990606] = "Smaragdgruener Drachenhabicht" }
-DEMO_NAMES.pet = { [990701] = "Praeriehund", [990702] = "Kakerlake", [990703] = "Mechanisches Eichhoernchen", [990704] = "Kleiner Drache (Smaragd)" }
-DEMO_NAMES.toy = { [990801] = "Leuchtrakete", [990802] = "Trommel der Ahnen", [990803] = "Diskoball", [990804] = "Gnomen-Verkleinerer" }
+DEMO_NAMES.mount = { [990601] = "Swift Steppe Wolf", [990602] = "Rusty Kodo", [990603] = "Forsaken Skeletal Horse",
+    [990604] = "Black War Raptor", [990605] = "Frostwolf War Bear", [990606] = "Emerald Dragonhawk" }
+DEMO_NAMES.pet = { [990701] = "Prairie dog", [990702] = "Cockroach", [990703] = "Mechanical Squirrel", [990704] = "Tiny Emerald Whelpling" }
+DEMO_NAMES.toy = { [990801] = "Flare", [990802] = "Drum of the Ancestors", [990803] = "Disco Ball", [990804] = "Gnomish Shrinker" }
 local DEMO_PEOPLE = {
     { "Hoknar", "SHAMAN", 60, { 990601, 990602, 990605 }, { 990701, 990702 }, { 990801, 990803 } },
     { "Tavira", "MAGE", 58, { 990601, 990606 }, { 990701, 990703, 990704 }, { 990801 } },
@@ -745,9 +745,9 @@ end
 ------------------------------------------------------------------------
 if ns.AddPageSettings then
     ns.AddPageSettings("sammlung", function(det, y)
-        local t = K.Toggle(det, L["Meine Sammlung mit der Gilde teilen"], function() return opt("collShare") end,
+        local t = K.Toggle(det, L["Share my collection with the guild"], function() return opt("collShare") end,
             function(v) S().collShare = v if v then Coll.QueueSend() end end,
-            L["Anzahl und Liste von Reittieren, Haustieren und Spielzeugen - nur bei Aenderung, hoechstens alle 10 Minuten"])
+            L["Count and list of mounts, pets and toys - only on change, at most every 10 minutes"])
         t:SetPoint("TOPLEFT", 14, y)
         t:SetWidth(600)
         if det.t then det.t[#det.t + 1] = t end
@@ -803,16 +803,16 @@ local function setClass(tex, cls)
 end
 
 ns.RegisterPage({
-    key = "sammlung", title = "Sammlungen", order = 7.82,
-    sub = "Reittiere und Haustiere der Gilde: Rangliste, wer hat was, Seltenes",
+    key = "sammlung", title = "Collections", order = 7.82,
+    sub = "Guild mounts and pets: ranking, who has what, rare ones",
     build = function(p)
         -- 2026: Glas-Reiterleiste wie im Profil (Fallback: einfache Segmente)
         local IGL = ns.Insta
         local glass = function(f, fill, line, r) if IGL and IGL.Glass then IGL.Glass(f, fill, line, r) end end
         local round = function(t, box, r) if K.RoundMask and t then K.RoundMask(t, box or t, r) end end
         local function onTab(k) view = k selected = nil p.fresh = true ns.RefreshPage("sammlung") end
-        local TABS = { { key = "rank", text = L["Rangliste"], icon = "stats" }, { key = "who", text = L["Wer hat ...?"], icon = "groups" },
-            { key = "rare", text = L["Selten"], icon = "badges" }, { key = "me", text = L["Ich und die Gilde"], icon = "profile" } }
+        local TABS = { { key = "rank", text = L["Ranking"], icon = "stats" }, { key = "who", text = L["Who has ...?"], icon = "groups" },
+            { key = "rare", text = L["Rare"], icon = "badges" }, { key = "me", text = L["Me vs. guild"], icon = "profile" } }
         if IGL and IGL.ProfileTabs then
             p.seg = IGL.ProfileTabs(p, TABS, onTab)
             p.seg:SetPoint("TOPRIGHT", 0, 0)
@@ -884,7 +884,7 @@ ns.RegisterPage({
             end)
             p.cards[#p.cards + 1] = c
         end
-        local pc = card("place", L["Dein Platz"], ns.ICONS.rank or ns.ICONS.badges, C.pink)
+        local pc = card("place", L["Your rank"], ns.ICONS.rank or ns.ICONS.badges, C.pink)
         pc:SetScript("OnClick", function() rankSort = nil view = "rank" p.fresh = true ns.RefreshPage("sammlung") end)
         p.cards[#p.cards + 1] = pc
         local function layoutCards(w)
@@ -899,7 +899,7 @@ ns.RegisterPage({
         p:HookScript("OnSizeChanged", function(_, w) layoutCards(w) if p.Relayout then p:Relayout() end end)
         layoutCards(p:GetWidth())
 
-        p.search = K.Input(p, 220, L["Name suchen, z.B. Raptor ..."], function(t) search = (t or ""):lower() ns.RefreshPage("sammlung") end)
+        p.search = K.Input(p, 220, L["Search name, e.g. raptor ..."], function(t) search = (t or ""):lower() ns.RefreshPage("sammlung") end)
         p.search:SetPoint("TOPLEFT", 0, -(TOP + 80 + 12))
         p.search:SetHeight(26)
         glass(p.search, { 1, 1, 1, 0.03 }, nil, 9)
@@ -921,7 +921,7 @@ ns.RegisterPage({
         local ORDER = { 2, 1, 3 }
         local PH = { 150, 134, 126 }
         local PCOL = { { 1, 0.80, 0.25 }, { 0.80, 0.83, 0.90 }, { 0.85, 0.55, 0.32 } }
-        local PLACE_TXT = { "1. Platz", "2. Platz", "3. Platz" }
+        local PLACE_TXT = { "1st place", "2nd place", "3rd place" }
         for slot, place in ipairs(ORDER) do
             local col = CreateFrame("Button", nil, pod)
             col.place, col.slot = place, slot
@@ -968,7 +968,7 @@ ns.RegisterPage({
                 if not self.e then return end
                 local e = self.e
                 self.hov:Show()
-                K.ShowTip(self, { ns.displayName(e.name), (L["Reittiere"] .. ": " .. e.m), (L["Haustiere"] .. ": " .. e.p), L["Gesamt"] .. ": " .. e.total })
+                K.ShowTip(self, { ns.displayName(e.name), (L["Mounts"] .. ": " .. e.m), (L["Pets"] .. ": " .. e.p), L["Total"] .. ": " .. e.total })
             end)
             col:SetScript("OnLeave", function(self) self.hov:Hide() GameTooltip:Hide() end)
             pod.cols[place] = col
@@ -1013,7 +1013,7 @@ ns.RegisterPage({
             r.det:SetPoint("RIGHT", r.sum, "LEFT", -12, 0)
             r:SetScript("OnEnter", function(self)
                 local e = self.item
-                if e then K.ShowTip(self, { ns.displayName(e.name), L["Reittiere"] .. ": " .. e.m, L["Haustiere"] .. ": " .. e.p, "|cff888888" .. L["Klick: ansehen, was genau"] .. "|r" }) end
+                if e then K.ShowTip(self, { ns.displayName(e.name), L["Mounts"] .. ": " .. e.m, L["Pets"] .. ": " .. e.p, "|cff888888" .. L["Click: see exactly what"] .. "|r" }) end
             end)
             r:SetScript("OnClick", function(self) if self.item then Coll.ShowPerson(self.item.name, rankSort) end end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1021,7 +1021,7 @@ ns.RegisterPage({
         end, function(r, e)
             r.cols.pos:SetText(e._pos .. ".")
             local me = ns.isMe(e.name)
-            r.cols.name:SetText(ns.Radar.Colored(e.name) .. (me and ("  |cffe8b44a" .. L["(du)"] .. "|r") or ""))
+            r.cols.name:SetText(ns.Radar.Colored(e.name) .. (me and ("  |cffe8b44a" .. L["(you)"] .. "|r") or ""))
             setClass(r.cls, e.cls)
             -- Mehrfarben-Balken (Reittiere/Haustiere/Spielzeuge) relativ zum Besten
             local W = math.max(80, (r:GetWidth() or 700) - 70 - 190 - 150)
@@ -1074,7 +1074,7 @@ ns.RegisterPage({
             r:SetScript("OnEnter", function(self)
                 local e = self.item
                 if not e then return end
-                local lines = { e._name, (L["%d Charaktere haben es:"]):format(#e.owners) }
+                local lines = { e._name, (L["%d characters have it:"]):format(#e.owners) }
                 local o = {}
                 for _, n in ipairs(e.owners) do o[#o + 1] = n end
                 table.sort(o)
@@ -1082,7 +1082,7 @@ ns.RegisterPage({
                     if i > 20 then lines[#lines + 1] = "|cff888888+" .. (#o - 20) .. "|r" break end
                     lines[#lines + 1] = "  " .. ns.Radar.Colored(n)
                 end
-                lines[#lines + 1] = e._mine and ("|cff66db9e" .. L["Hast du auch."] .. "|r") or ("|cff888888" .. L["Hast du noch nicht."] .. "|r")
+                lines[#lines + 1] = e._mine and ("|cff66db9e" .. L["You have it too."] .. "|r") or ("|cff888888" .. L["You don't have it yet."] .. "|r")
                 K.ShowTip(self, lines)
             end)
             r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1097,7 +1097,7 @@ ns.RegisterPage({
             r.cols.n:SetText(#e.owners)
             local uniq = #e.owners == 1
             r.cols.n:SetTextColor(unpack(uniq and C.pink or C.amber))
-            r.tag:SetText(uniq and L["Einzigartig"] or "")
+            r.tag:SetText(uniq and L["Unique"] or "")
             local chars = 0
             for _ in pairs(Coll.Chars()) do chars = chars + 1 end
             r.share:Set(chars > 0 and #e.owners / chars or 0)
@@ -1145,13 +1145,13 @@ ns.RegisterPage({
             -- freundliche leere Zustaende: keine Schnittstelle / noch nichts erfasst
             if mine == nil then
                 c.num:SetText("|cff6b6b70–|r")
-                c.of:SetText(L["in diesem Client nicht verfuegbar"])
+                c.of:SetText(L["not available in this client"])
             elseif mine == 0 and bv == 0 then
                 c.num:SetText("|cff6b6b700|r")
-                c.of:SetText(L["noch keine Daten"])
+                c.of:SetText(L["no data yet"])
             else
                 c.num:SetText(mine)
-                c.of:SetText((L["von %d (Gildenbestwert)"]):format(bv))
+                c.of:SetText((L["of %d (guild best)"]):format(bv))
             end
             local frac = (mine and bv > 0) and mine / bv or 0
             if fr and K.Tween and not (ns.db and ns.db.settings.noAnim) then
@@ -1160,16 +1160,16 @@ ns.RegisterPage({
                 c.bar:Set(frac)
             end
             c:Mark((view ~= "rank" and kind == k) or (view == "rank" and rankSort == k))
-            c.tipLines = { L[KIND_NAME[k]], bwho and ((L["Meiste: %s (%d)"]):format(ns.displayName(bwho), bv)) or L["Noch keine Daten aus der Gilde."],
-                "|cff666666" .. (view == "rank" and L["Klick: Rangliste danach sortieren"] or L["Klick: diese Sammlung zeigen"]) .. "|r" }
+            c.tipLines = { L[KIND_NAME[k]], bwho and ((L["Most: %s (%d)"]):format(ns.displayName(bwho), bv)) or L["No guild data yet."],
+                "|cff666666" .. (view == "rank" and L["Click: sort ranking by this"] or L["Click: show this collection"]) .. "|r" }
         end
         local pcard = p.cards[#p.cards]
         pcard.num:SetText(pos or "–")
-        pcard.of:SetText((L["von %d"]):format(#ranking))
+        pcard.of:SetText((L["of %d"]):format(#ranking))
         pcard.bar:Set((pos and #ranking > 0) and (1 - (pos - 1) / #ranking) or 0)
         pcard:Mark(view == "rank" and rankSort == nil)
-        if not pos then pcard.of:SetText(#ranking > 0 and L["noch nicht in der Rangliste"] or L["noch keine Daten"]) end
-        pcard.tipLines = { L["Dein Platz"], "|cff666666" .. L["Klick: Gesamtrangliste"] .. "|r" }
+        if not pos then pcard.of:SetText(#ranking > 0 and L["not ranked yet"] or L["no data yet"]) end
+        pcard.tipLines = { L["Your rank"], "|cff666666" .. L["Click: overall ranking"] .. "|r" }
         if fr then
             if K.FadeIn then for i, c in ipairs(p.cards) do K.FadeIn(c, (i - 1) * 0.06) end end
             p.fresh = false
@@ -1197,7 +1197,7 @@ ns.RegisterPage({
                     if col.crown then col.crown:Show() end
                     col:SetAlpha(1)
                 else
-                    col.name:SetText("|cff555555" .. L["frei"] .. "|r")
+                    col.name:SetText("|cff555555" .. L["open"] .. "|r")
                     col.score:SetText("")
                     col.cls:Hide()
                     if col.crown then col.crown:Hide() end
@@ -1207,23 +1207,23 @@ ns.RegisterPage({
             local rest = {}
             for i = 4, #ranking do ranking[i].top = maxTot rest[#rest + 1] = ranking[i] end
             p.rank:SetData(rest)
-            p.rank.empty:SetText(#ranking > 3 and "" or (#ranking > 0 and ("|cff6b6b70" .. L["Weitere Plaetze erscheinen, sobald mehr Gildenmitglieder mit Oasis ihre Sammlung teilen."] .. "|r")
-                or (apiMissing() and L["Dieser Client hat keine Sammlungs-Schnittstelle. /oa probe sammlung zeigt Details."]
-                or L["Noch keine Daten - oeffne einmal das Sammlungsfenster oder trage Reittiere und Haustiere in der Tasche. Sobald Gildenmitglieder mit Oasis online sind, erscheinen sie hier."])))
+            p.rank.empty:SetText(#ranking > 3 and "" or (#ranking > 0 and ("|cff6b6b70" .. L["More places appear as more guild members share their collection with Oasis."] .. "|r")
+                or (apiMissing() and L["This client has no collection API. /oa probe sammlung shows details."]
+                or L["No data yet - open the collections window once or carry mounts and pets in your bags. Guild members with Oasis appear here once they are online."])))
             return
         end
         local function hit(e) return search == "" or e._name:lower():find(search, 1, true) end
         local list
         if view == "who" then
             list = itemList(hit, function(a, b) if #a.owners ~= #b.owners then return #a.owners > #b.owners end return a._name < b._name end)
-            p.hint:SetText((L["%d verschiedene %s in der Gilde"]):format(#list, L[KIND_NAME[kind]]))
-            p.items.empty:SetText(search ~= "" and L["Niemand in der Gilde hat etwas mit diesem Namen."] or L["Noch keine Daten aus der Gilde."])
+            p.hint:SetText((L["%d different %s in the guild"]):format(#list, L[KIND_NAME[kind]]))
+            p.items.empty:SetText(search ~= "" and L["Nobody in the guild has anything with that name."] or L["No guild data yet."])
         elseif view == "rare" then
             list = itemList(nil, function(a, b) if #a.owners ~= #b.owners then return #a.owners < #b.owners end return a._name < b._name end)
             local only = 0
             for _, e in ipairs(list) do if #e.owners == 1 then only = only + 1 end end
-            p.hint:SetText((L["%d Stuecke besitzt nur ein einziger Charakter"]):format(only))
-            p.items.empty:SetText(L["Noch keine Daten aus der Gilde."])
+            p.hint:SetText((L["%d items are owned by a single character only"]):format(only))
+            p.items.empty:SetText(L["No guild data yet."])
         else
             list = itemList(function(e) return not e._mine and hit(e) end,
                 function(a, b) if #a.owners ~= #b.owners then return #a.owners > #b.owners end return a._name < b._name end)
@@ -1233,9 +1233,9 @@ ns.RegisterPage({
             end
             local total = 0
             for _ in pairs(Coll.Index(kind)) do total = total + 1 end
-            p.hint:SetText((L["Du hast %d von %d bekannten %s, %d davon nur du. Liste: was andere haben und dir fehlt."]):format(
+            p.hint:SetText((L["You have %d of %d known %s, %d only you. List: what others have and you lack."]):format(
                 mineN, total, L[KIND_NAME[kind]], onlyMe))
-            p.items.empty:SetText(L["Dir fehlt nichts, was die Gilde hat - stark!"])
+            p.items.empty:SetText(L["You have everything the guild has - impressive!"])
         end
         p.items:SetData(list)
     end,

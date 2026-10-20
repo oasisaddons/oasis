@@ -1,6 +1,6 @@
--- Oasis - Sprachen (nach Client-Sprache oder selbst gewaehlt, oben im Fenster umschaltbar)
--- Schluessel sind die deutschen Texte ohne Umlaute. DE korrigiert Umlaute, alle anderen uebersetzen;
--- fehlt eine Uebersetzung, gilt Englisch.
+-- Oasis - languages (client language or chosen in the window header)
+-- Keys are the English texts used in the code (since 0.6.572). German lives in Locales/Base/German.lua,
+-- the other languages in Locales/XX.lua; a missing translation falls back to English.
 local ADDON, ns = ...
 
 local DE, EN = {}, {}
@@ -129,7 +129,7 @@ end
 ns.L = setmetatable({}, {
     __index = function(_, key)
         local lang = ns.lang
-        if lang == "de" then return autoUmlaut(DE[key] or key) end
+        if lang == "de" then return DE[key] or key end
         if lang ~= "en" then
             local t = ns.LOCALES[lang]
             local v = t and t[key]

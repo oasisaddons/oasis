@@ -10,12 +10,12 @@ ns.Weapons = W
 
 -- Waffen: Schluessel, deutscher Name (Fertigkeit im deDE-Client), englischer Name
 local WEAPONS = {
-    { "axe1", "Einhandaexte", "One-Handed Axes" }, { "axe2", "Zweihandaexte", "Two-Handed Axes" },
-    { "mace1", "Einhandstreitkolben", "One-Handed Maces" }, { "mace2", "Zweihandstreitkolben", "Two-Handed Maces" },
-    { "sword1", "Einhandschwerter", "One-Handed Swords" }, { "sword2", "Zweihandschwerter", "Two-Handed Swords" },
-    { "dagger", "Dolche", "Daggers" }, { "fist", "Faustwaffen", "Fist Weapons" }, { "polearm", "Stangenwaffen", "Polearms" },
-    { "staff", "Stäbe", "Staves" }, { "bow", "Bogen", "Bows" }, { "xbow", "Armbrüste", "Crossbows" },
-    { "gun", "Schusswaffen", "Guns" }, { "thrown", "Wurfwaffen", "Thrown" },
+    { "axe1", "One-Handed Axes", "One-Handed Axes" }, { "axe2", "Two-Handed Axes", "Two-Handed Axes" },
+    { "mace1", "One-Handed Maces", "One-Handed Maces" }, { "mace2", "Two-Handed Maces", "Two-Handed Maces" },
+    { "sword1", "One-Handed Swords", "One-Handed Swords" }, { "sword2", "Two-Handed Swords", "Two-Handed Swords" },
+    { "dagger", "Daggers", "Daggers" }, { "fist", "Fist Weapons", "Fist Weapons" }, { "polearm", "Polearms", "Polearms" },
+    { "staff", "Staves", "Staves" }, { "bow", "Bows", "Bows" }, { "xbow", "Crossbows", "Crossbows" },
+    { "gun", "Guns", "Guns" }, { "thrown", "Thrown", "Thrown" },
 }
 -- was die Klasse lernen darf (Classic; WoW Forever: Schurken auch Einhandaexte - laut Gilde 07.10.)
 local CLASS = {
@@ -65,17 +65,17 @@ function W.ShowTrainer(t)
     if not t then return end
     local id = t.mapID or cityMap(t.city)
     if id and t.x and ns.Map and ns.Map.SetTarget then
-        ns.Map.SetTarget({ mapID = id, x = t.x / 100, y = t.y / 100, label = t.npc, sub = L["Waffenmeister"] .. " · " .. L[t.city] })
+        ns.Map.SetTarget({ mapID = id, x = t.x / 100, y = t.y / 100, label = t.npc, sub = L["Weapon masters"] .. " · " .. L[t.city] })
     elseif id and ns.Map and ns.Map.ShowOnWorldMap then
         ns.Map.ShowOnWorldMap(id)
     else
-        ns.print(L["Waffenmeister"] .. ": " .. t.npc .. ", " .. L[t.city] .. " (" .. L[t.where] .. ")")
+        ns.print(L["Weapon masters"] .. ": " .. t.npc .. ", " .. L[t.city] .. " (" .. L[t.where] .. ")")
     end
 end
 
 -- WoW Forever nennt die Einhand-Fertigkeiten kurz ("Äxte", "Streitkolben", "Schwerter")
 local ALIAS = { ["Äxte"] = "axe1", ["Axes"] = "axe1", ["Streitkolben"] = "mace1", ["Maces"] = "mace1",
-    ["Schwerter"] = "sword1", ["Swords"] = "sword1", ["Stäbe"] = "staff", ["Staves"] = "staff" }
+    ["Schwerter"] = "sword1", ["Swords"] = "sword1", ["Staves"] = "staff", ["Staves"] = "staff" }
 -- schon gelernte Waffen (Fertigkeiten-Liste des Clients)
 local function known()
     local out = {}
@@ -219,7 +219,7 @@ end
 function W.Build(h)
     local left = K.Panel(h, C.panel)
     left:SetPoint("TOPLEFT") left:SetPoint("BOTTOMLEFT") left:SetWidth(370)
-    local hd = K.GameHead(left, L["Deine Waffen"], C.amber)
+    local hd = K.GameHead(left, L["Your weapons"], C.amber)
     hd:SetPoint("TOPLEFT", 12, -12) hd:SetPoint("RIGHT", -12, 0)
     h.rows = {}
     for i = 1, #WEAPONS do
@@ -243,7 +243,7 @@ function W.Build(h)
             self.bg:SetColorTexture(1, 1, 1, 0.07)
             if self.trainer then
                 self.pin:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
-                K.ShowTip(self, { self.title or "", self.trainer.npc .. "  ·  " .. L[self.trainer.city] .. ", " .. L[self.trainer.where], "|cff66db9e" .. L["Klick: Waffenmeister auf der Karte zeigen"] .. "|r" })
+                K.ShowTip(self, { self.title or "", self.trainer.npc .. "  ·  " .. L[self.trainer.city] .. ", " .. L[self.trainer.where], "|cff66db9e" .. L["Click: show weapon master on the map"] .. "|r" })
             end
         end)
         r:SetScript("OnLeave", function(self) self.bg:SetColorTexture(1, 1, 1, 0.025) self.pin:SetVertexColor(C.dim[1], C.dim[2], C.dim[3]) GameTooltip:Hide() end)
@@ -257,7 +257,7 @@ function W.Build(h)
     h.notMine:SetWordWrap(true)
     local right = K.Panel(h, C.panel)
     right:SetPoint("TOPLEFT", left, "TOPRIGHT", 10, 0) right:SetPoint("BOTTOMRIGHT")
-    local hr = K.GameHead(right, L["Waffenmeister"], C.blue)
+    local hr = K.GameHead(right, L["Weapon masters"], C.blue)
     hr:SetPoint("TOPLEFT", 12, -12) hr:SetPoint("RIGHT", -12, 0)
     h.cards = {}
     for i = 1, 4 do
@@ -271,7 +271,7 @@ function W.Build(h)
         c:SetScript("OnEnter", function(self)
             self.bg:SetColorTexture(C.raised[1] + 0.05, C.raised[2] + 0.05, C.raised[3] + 0.05, 1)
             self.pin:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
-            if self.trainer then K.ShowTip(self, { self.trainer.npc, L[self.trainer.city] .. ", " .. L[self.trainer.where], "|cff66db9e" .. L["Klick: Waffenmeister auf der Karte zeigen"] .. "|r" }) end
+            if self.trainer then K.ShowTip(self, { self.trainer.npc, L[self.trainer.city] .. ", " .. L[self.trainer.where], "|cff66db9e" .. L["Click: show weapon master on the map"] .. "|r" }) end
         end)
         c:SetScript("OnLeave", function(self)
             self.bg:SetColorTexture(C.raised[1], C.raised[2], C.raised[3], C.raised[4] or 1)
@@ -296,7 +296,7 @@ function W.Build(h)
     h.note = K.Text(right, 10, C.dim)
     h.note:SetPoint("BOTTOMLEFT", 12, 10)
     h.note:SetPoint("RIGHT", -12, 0)
-    h.note:SetText(L["Rot = noch nicht gelernt  ·  Gruen = schon gelernt. Oasis liest beim Waffenmeister mit, was er wirklich lehrt, und teilt es mit der Gilde."])
+    h.note:SetText(L["Red = not learned yet  ·  Green = already learned. Oasis reads what the weapon master actually teaches and shares it with the guild."])
 end
 
 function W.Show(h)
@@ -340,19 +340,19 @@ function W.Show(h)
             -- gelernt = gruen
             r.dot:SetColorTexture(0.40, 0.86, 0.62, 1)
             r.n:SetText("|cff66db9e" .. L[wp[2]] .. "|r")
-            r.v:SetText((h2.max or 0) > 0 and ("|cff9a9aa2" .. (h2.rank or 0) .. " / " .. h2.max .. "|r") or ("|cff66db9e" .. L["gelernt"] .. "|r"))
+            r.v:SetText((h2.max or 0) > 0 and ("|cff9a9aa2" .. (h2.rank or 0) .. " / " .. h2.max .. "|r") or ("|cff66db9e" .. L["learned"] .. "|r"))
         elseif can[k] then
             -- noch nicht gelernt = rot
             r.dot:SetColorTexture(0.95, 0.30, 0.30, 1)
             r.n:SetText("|cfff04d4d" .. L[wp[2]] .. "|r")
             local w = where[k]
-            r.v:SetText(w and ("|cffe8b44a" .. table.concat(w, " · ") .. "|r") or ("|cff666666" .. L["kein Lehrer deiner Fraktion"] .. "|r"))
+            r.v:SetText(w and ("|cffe8b44a" .. table.concat(w, " · ") .. "|r") or ("|cff666666" .. L["no trainer of your faction"] .. "|r"))
         end
     end
     h.notMine:ClearAllPoints()
     h.notMine:SetPoint("TOPLEFT", 18, -42 - #order * 28 - 10)
     h.notMine:SetPoint("RIGHT", h.rows[1]:GetParent(), "RIGHT", -18, 0)
-    h.notMine:SetText(#rest > 0 and ("|cff777777" .. L["Nicht fuer deine Klasse:"] .. "|r  |cff555555" .. table.concat(rest, ", ") .. "|r") or "")
+    h.notMine:SetText(#rest > 0 and ("|cff777777" .. L["Not for your class:"] .. "|r  |cff555555" .. table.concat(rest, ", ") .. "|r") or "")
     local col = faction == "Alliance" and C.blue or C.red
     for i, c in ipairs(h.cards) do
         local t = trainers[i]
@@ -412,7 +412,7 @@ function W.Skills()
             local hk = have[wp[1]]
             if hk then list[#list + 1] = { name = L[wp[2]], rank = hk.rank or 0, mod = 0, max = hk.max or 0 } end
         end
-        if #list > 0 then out[1] = { head = L["Waffen"], list = list, noRank = true } end
+        if #list > 0 then out[1] = { head = L["Weapons"], list = list, noRank = true } end
     end
     return out
 end
@@ -422,7 +422,7 @@ function W.ShowSkills(h)
         h.built = true
         h.panel = K.Panel(h, C.panel)
         h.panel:SetAllPoints()
-        h.head = K.GameHead(h.panel, L["Fertigkeiten"], C.accent)
+        h.head = K.GameHead(h.panel, L["Skills"], C.accent)
         h.head:SetPoint("TOPLEFT", 14, -12) h.head:SetPoint("RIGHT", -14, 0)
         h.note = K.Text(h.panel, 10, C.dim)
         h.note:SetPoint("BOTTOMLEFT", 14, 10) h.note:SetPoint("RIGHT", -14, 0)
@@ -476,7 +476,7 @@ function W.ShowSkills(h)
             local hasMax = s.max > 0
             local full = hasMax and s.rank >= s.max
             local col = full and C.mint or (hasMax and C.amber or C.mint)
-            r.v:SetText(hasMax and (s.rank .. (s.mod ~= 0 and (" |cff66db9e" .. (s.mod > 0 and "+" or "") .. s.mod .. "|r") or "") .. " |cff6b6b70/ " .. s.max .. "|r") or ("|cff66db9e" .. L["gelernt"] .. "|r"))
+            r.v:SetText(hasMax and (s.rank .. (s.mod ~= 0 and (" |cff66db9e" .. (s.mod > 0 and "+" or "") .. s.mod .. "|r") or "") .. " |cff6b6b70/ " .. s.max .. "|r") or ("|cff66db9e" .. L["learned"] .. "|r"))
             r.track:SetShown(hasMax)
             r.fill:SetShown(hasMax)
             if hasMax then
@@ -490,8 +490,8 @@ function W.ShowSkills(h)
     end
     for i = ri + 1, #h.rows do h.rows[i]:Hide() end
     for i = hi + 1, #h.heads do h.heads[i]:Hide() end
-    h.note:SetText(#data == 0 and L["Der Client liefert gerade keine Fertigkeiten - nach dem Einloggen kurz warten."]
-        or (noRank and L["Stufen der Waffenfertigkeiten liefert WoW Forever nicht - angezeigt wird, was du gelernt hast."]
-        or L["Gruen = Hoechststufe erreicht  ·  Gold = noch steigerbar (Waffe benutzen bzw. Treffer einstecken)"]))
+    h.note:SetText(#data == 0 and L["The client delivers no skills right now - wait a moment after logging in."]
+        or (noRank and L["WoW Forever does not provide weapon skill levels - showing what you have learned."]
+        or L["Green = maxed  ·  gold = can still improve (use the weapon or take hits)"]))
 end
 end)

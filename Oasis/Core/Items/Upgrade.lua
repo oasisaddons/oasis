@@ -34,14 +34,14 @@ local AGILE = { ROGUE = true, DRUID = true }
 function UP.Role()
     local _, cls = UnitClass("player")
     local r = ns.Groups and ns.Groups.MyRoles and ns.Groups.MyRoles() or {}
-    if r.heal and not (r.dps and CASTER[cls]) and cls ~= "WARRIOR" and cls ~= "ROGUE" and cls ~= "HUNTER" and cls ~= "MAGE" and cls ~= "WARLOCK" then return "healer", L["Heiler"] end
+    if r.heal and not (r.dps and CASTER[cls]) and cls ~= "WARRIOR" and cls ~= "ROGUE" and cls ~= "HUNTER" and cls ~= "MAGE" and cls ~= "WARLOCK" then return "healer", L["Healer"] end
     if r.tank and (cls == "WARRIOR" or cls == "DRUID" or cls == "PALADIN") and not r.dps then return "tank", L["Tank"] end
-    if cls == "HUNTER" then return "ranged", L["Fernkampf"] end
-    if CASTER[cls] or cls == "PRIEST" then return "caster", L["Zauber"] end
-    if cls == "SHAMAN" and not r.tank then return (r.heal and "healer" or "melee"), (r.heal and L["Heiler"] or L["Nahkampf"]) end
-    if AGILE[cls] then return "agile", L["Nahkampf"] end
+    if cls == "HUNTER" then return "ranged", L["Ranged"] end
+    if CASTER[cls] or cls == "PRIEST" then return "caster", L["Spells"] end
+    if cls == "SHAMAN" and not r.tank then return (r.heal and "healer" or "melee"), (r.heal and L["Healer"] or L["Melee"]) end
+    if AGILE[cls] then return "agile", L["Melee"] end
     if cls == "WARRIOR" and r.tank and not r.dps then return "tank", L["Tank"] end
-    return "melee", L["Nahkampf"]
+    return "melee", L["Melee"]
 end
 
 -- Wertung je 1 % (Krit/Treffer/Ausweichen ...): neuere Clients liefern "..._RATING" statt Prozent.
@@ -308,8 +308,8 @@ end
 function UP.Text(link)
     local pct, role = UP.Compare(link)
     if not pct or pct == 0 then return nil end
-    if pct > 0 then return "|TInterface\\Buttons\\Arrow-Up-Up:12:12|t |cff66db9e" .. (L["Verbesserung +%d%%"]):format(math.min(pct, 999)) .. "|r", role end
-    return "|TInterface\\Buttons\\Arrow-Down-Up:12:12|t |cffe06060" .. (L["schlechter %d%%"]):format(pct) .. "|r", role
+    if pct > 0 then return "|TInterface\\Buttons\\Arrow-Up-Up:12:12|t |cff66db9e" .. (L["Improvement +%d%%"]):format(math.min(pct, 999)) .. "|r", role end
+    return "|TInterface\\Buttons\\Arrow-Down-Up:12:12|t |cffe06060" .. (L["worse %d%%"]):format(pct) .. "|r", role
 end
 
 if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then

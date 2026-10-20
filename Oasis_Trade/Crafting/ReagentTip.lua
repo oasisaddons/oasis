@@ -109,7 +109,7 @@ local function tipLine(tt, id)
     local l = RT.For(id)
     if not l or #l == 0 then return end
     if IsShiftKeyDown() then
-        tt:AddLine("|cffff1200Oasis|r  " .. (L["Material fuer %d Rezepte der Gilde:"]):format(#l), 0.85, 0.85, 0.85)
+        tt:AddLine("|cffff1200Oasis|r  " .. (L["Reagent for %d guild recipes:"]):format(#l), 0.85, 0.85, 0.85)
         for i = 1, math.min(10, #l) do
             local e = l[i]
             local who = {}
@@ -117,14 +117,14 @@ local function tipLine(tt, id)
             if #e.crafters > 3 then who[#who + 1] = "+" .. (#e.crafters - 3) end
             tt:AddDoubleLine("  " .. e.name, table.concat(who, ", "), 0.9, 0.9, 0.9, 0.55, 0.55, 0.6)
         end
-        if #l > 10 then tt:AddLine("  " .. (L["... und %d weitere"]):format(#l - 10), 0.55, 0.55, 0.6) end
+        if #l > 10 then tt:AddLine("  " .. (L["... and %d more"]):format(#l - 10), 0.55, 0.55, 0.6) end
         return
     end
     local names = {}
     for i = 1, math.min(3, #l) do names[#names + 1] = l[i].name end
     local more = #l > 3 and (" +" .. (#l - 3)) or ""
-    tt:AddLine("|cffff1200Oasis|r  " .. (L["Material fuer %d Rezepte:"]):format(#l) .. " " .. table.concat(names, ", ") .. more
-        .. "  |cff777777" .. L["(Shift: alle)"] .. "|r", 0.85, 0.85, 0.85, true)
+    tt:AddLine("|cffff1200Oasis|r  " .. (L["Reagent for %d recipes:"]):format(#l) .. " " .. table.concat(names, ", ") .. more
+        .. "  |cff777777" .. L["(Shift: all)"] .. "|r", 0.85, 0.85, 0.85, true)
 end
 if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Item then
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tt, data)

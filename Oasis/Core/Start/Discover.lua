@@ -16,17 +16,17 @@ D.CORE = { home = true, chat = true, radar = true, settings = true, discover = t
 D.LOCKED = { settings = true, admin = true, home = true }   -- 0.6.468: Dashboard wieder fest (ausgeblendet liess es sich nicht zurueckholen)   -- 0.5.550: Dashboard und Entdecken lassen sich auch ausblenden
 -- Interessen -> Bereiche
 D.INTERESTS = {
-    { key = "level", text = "Leveln & Questen", sub = "Mein Weg (Was tun?, Ziele, Rekorde), Quest-Partner, Questitems", icon = "life", color = C.accent,
+    { key = "level", text = "Levelling & questing", sub = "My Journey (what's next, goals, records), quest partners, quest items", icon = "life", color = C.accent,
       pages = { "life", "questitems", "social", "dungeons", "map" } },
-    { key = "group", text = "Zusammen spielen", sub = "Gruppen finden, gemeinsam questen, Dungeons", icon = "groups", color = C.mint,
+    { key = "group", text = "Play together", sub = "Find groups, quest together, dungeons", icon = "groups", color = C.mint,
       pages = { "groups", "social", "questitems", "dungeons", "allies", "scout", "map" } },
-    { key = "raid", text = "Raiden", sub = "Termine, Anmeldungen, Beute, Raid-Check", icon = "raid", color = C.red,
+    { key = "raid", text = "Raiding", sub = "Events, sign-ups, loot, raid check", icon = "raid", color = C.red,
       pages = { "raid", "raidcheck", "buffs", "softres", "lockouts", "raidprep", "raidboard", "raidtime", "wipes", "tactics", "lootrules", "loot", "raidlead", "raidprepteam" } },
-    { key = "trade", text = "Handwerk & Handel", sub = "Wer kann was herstellen, Markt, Gildenbank", icon = "crafting", color = C.amber,
+    { key = "trade", text = "Crafting & trade", sub = "Who crafts what, market, guild bank", icon = "crafting", color = C.amber,
       pages = { "crafting", "trade", "wants", "bank", "bags", "gearmatch" } },
-    { key = "fun", text = "Spass & Gilde", sub = "Deathroll, Umfragen, Lagerfeuer, Profil", icon = "deathroll", color = C.pink,
+    { key = "fun", text = "Fun & guild", sub = "Deathroll, polls, campfire, profile", icon = "deathroll", color = C.pink,
       pages = { "deathroll", "deaths", "polls", "camp", "insta", "chronicle" } },
-    { key = "collect", text = "Sammeln & Fortschritt", sub = "Abzeichen, Legacy, Oasis-Rang, Ruf, Sammlungen", icon = "badges", color = C.blue,
+    { key = "collect", text = "Collecting & progress", sub = "Badges, legacy, Oasis rank, reputation, collections", icon = "badges", color = C.blue,
       pages = { "badges", "legacy", "rank", "sammlung", "repplan", "rares" } },
 }
 local interestOf = {}
@@ -340,12 +340,12 @@ function D.ShowPicker(mode)
         hero.icon:SetPoint("CENTER", hero.halo, "CENTER")
         hero.t = K.Title(hero, 15, C.text)
         hero.t:SetPoint("BOTTOMLEFT", hero, "LEFT", 70, 1)
-        hero.t:SetText(L["Wie bisher weitermachen"])
+        hero.t:SetText(L["Continue as before"])
         hero.s = K.Text(hero, 11, C.muted)
         hero.s:SetPoint("TOPLEFT", hero, "LEFT", 70, -3)
         hero.s:SetPoint("RIGHT", -60, 0)
         hero.s:SetJustifyH("LEFT")
-        hero.s:SetText(L["Deine Bereiche und Einstellungen bleiben genau so, wie sie sind."])
+        hero.s:SetText(L["Your sections and settings stay exactly as they are."])
         hero.arrow = hero:CreateTexture(nil, "ARTWORK", nil, 3)
         hero.arrow:SetTexture("Interface\\ChatFrame\\ChatFrameExpandArrow")
         hero.arrow:SetSize(18, 18)
@@ -353,7 +353,7 @@ function D.ShowPicker(mode)
         hero:SetScript("OnClick", function()
             f:Hide()
             if PlaySound and SOUNDKIT then pcall(PlaySound, SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON) end
-            K.Toast(L["Oasis ist bereit"], L["Alles wie bisher."], C.mint)
+            K.Toast(L["Oasis is ready"], L["Everything as before."], C.mint)
         end)
         hero:SetScript("OnEnter", function(self) self.hover = true end)
         hero:SetScript("OnLeave", function(self) self.hover = nil end)
@@ -416,7 +416,7 @@ function D.ShowPicker(mode)
         -- Trenner "oder neu zusammenstellen"
         f.orLbl = K.Text(f, 10, C.dim)
         f.orLbl:SetPoint("TOP", hero, "BOTTOM", 0, -14)
-        f.orLbl:SetText(K.Upper(L["oder neu zusammenstellen"]))
+        f.orLbl:SetText(K.Upper(L["or put together anew"]))
         f.orL = f:CreateTexture(nil, "ARTWORK")
         f.orL:SetHeight(1)
         f.orL:SetPoint("LEFT", hero, "LEFT", 0, 0)
@@ -578,11 +578,11 @@ function D.ShowPicker(mode)
                 t.check:SetShown(on and true or false)
                 t.n:SetTextColor(on and 1 or C.text[1], on and 1 or C.text[2], on and 1 or C.text[3])
             end
-            self.count:SetText((L["%d von %d ausgewaehlt"]):format(n, #self.tiles))
+            self.count:SetText((L["%d of %d selected"]):format(n, #self.tiles))
             self.ok:SetEnabled(n > 0)
-            if self.ok.SetLabel then self.ok:SetLabel(n > 0 and (L["Los geht's (%d)"]):format(n) or L["Los geht's"]) end
+            if self.ok.SetLabel then self.ok:SetLabel(n > 0 and (L["Let's go (%d)"]):format(n) or L["Let's go"]) end
             if self.go then
-                self.go.label:SetText(n > 0 and (L["Los geht's (%d)"]):format(n) or L["Los geht's"])
+                self.go.label:SetText(n > 0 and (L["Let's go (%d)"]):format(n) or L["Let's go"])
                 self.go:SetAlpha(n > 0 and 1 or 0.5)
             end
         end
@@ -596,11 +596,11 @@ function D.ShowPicker(mode)
         line:SetPoint("BOTTOMLEFT", 20, 64) line:SetPoint("BOTTOMRIGHT", -20, 64)
         f.count = K.Text(f, 11, C.muted)
         f.count:SetPoint("BOTTOMLEFT", 28, 32)
-        f.ok = K.Button(f, L["Los geht's"], 120, 26, "ghost", function()
+        f.ok = K.Button(f, L["Let's go"], 120, 26, "ghost", function()
             D.ApplyInterests(f.sel)
             f:Hide()
             if ns.ShowPage then pcall(ns.ShowPage, "home") end
-            K.Toast(L["Fertig eingerichtet"], L["Mehr Bereiche findest du jederzeit unter 'Entdecken'."], C.mint, function() ns.ShowPage("discover") end)
+            K.Toast(L["All set"], L["You can find more areas anytime under 'Discover'."], C.mint, function() ns.ShowPage("discover") end)
         end)
         f.ok:SetPoint("BOTTOMRIGHT", -24, 22)
         -- 0.6.125: Bild-Knopf unten in der Mitte (Gildenmodul) - eigener schlichter Knopf nur aus dem Bild, der
@@ -633,25 +633,25 @@ function D.ShowPicker(mode)
             K.SetBorderColor(self, { C.accent[1], C.accent[2], C.accent[3], 0.55 })
             self.label:SetTextColor(C.accent[1], C.accent[2], C.accent[3])
         end)
-        f.all = textBtn(f, L["Alle einschalten"], 110, function()
+        f.all = textBtn(f, L["Turn all on"], 110, function()
             S().interestsDone = ns.now()
             -- wirklich alles: auch was "Nur das Noetigste" ausgeblendet hat
             if ns.UpdateStart and ns.UpdateStart.AllOn then ns.UpdateStart.AllOn() else D.ShowAll() end
             f:Hide()
         end)
         if ns.GuildPack then f.all:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -24, 28) else f.all:SetPoint("RIGHT", f.ok, "LEFT", -12, 0) end
-        f.min = textBtn(f, L["Nur das Noetigste"], 116, function()
+        f.min = textBtn(f, L["Essentials only"], 116, function()
             if ns.UpdateStart then ns.UpdateStart.Minimal() end
             S().interestsDone = ns.now()
             f:Hide()
-            K.Toast(L["Oasis ist bereit"], L["Nur die wichtigsten Bereiche sind an."], C.mint)
+            K.Toast(L["Oasis is ready"], L["Only the most important areas are on."], C.mint)
         end)
         f.min:SetPoint("RIGHT", f.all, "LEFT", -8, 0)
-        f.never = K.Toggle(f, L["Nicht mehr fragen"], function() return S().updateAsk == false end,
+        f.never = K.Toggle(f, L["Don't ask again"], function() return S().updateAsk == false end,
             function(v) if v then S().updateAsk = false else S().updateAsk = nil end end)   -- 0.6.125: liess sich nicht ausschalten
         f.never:SetPoint("BOTTOMLEFT", 20, 28)
         f.never:SetWidth(150)
-        f.never:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Nicht mehr fragen"], L["Bei neuen Versionen startet Oasis dann einfach wie bisher."] }) end)
+        f.never:HookScript("OnEnter", function(self) K.ShowTip(self, { L["Don't ask again"], L["New versions will then simply start as before."] }) end)
         f.never:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
         --------------------------------------------------------------------
@@ -752,10 +752,10 @@ function D.ShowPicker(mode)
     -- Anzeige je nach Anlass: erste Einrichtung oder neue Version
     local upd = mode == "update"
     pick.mode = mode
-    pick.eyebrow:SetText(K.Upper(upd and ((L["Oasis %s ist da"]):format(ns.version) .. ((ns.versionDate and ns.versionDate ~= "") and ("  ·  " .. ns.versionDate) or "")) or L["Willkommen bei Oasis"]))
-    pick.title:SetText(upd and L["Wie moechtest du starten?"] or L["Was interessiert dich?"])
-    pick.sub:SetText(upd and L["Waehle Schwerpunkte, schalte alles an oder lass alles wie bisher - aendern kannst du es jederzeit unter 'Entdecken'."]
-        or L["Oasis kann sehr viel. Waehle, was du nutzen willst - der Rest bleibt erstmal aus und laesst sich jederzeit unter 'Entdecken' einschalten."])
+    pick.eyebrow:SetText(K.Upper(upd and ((L["Oasis %s is here"]):format(ns.version) .. ((ns.versionDate and ns.versionDate ~= "") and ("  ·  " .. ns.versionDate) or "")) or L["Welcome to Oasis"]))
+    pick.title:SetText(upd and L["How do you want to start?"] or L["What are you interested in?"])
+    pick.sub:SetText(upd and L["Pick focuses, turn everything on or keep things as they are - you can change it any time under 'Discover'."]
+        or L["Oasis can do a lot. Pick what you want to use - the rest stays off for now and can be turned on anytime under 'Discover'."])
     for _, w in ipairs({ pick.hero, pick.orLbl, pick.orL, pick.orR, pick.min, pick.never }) do w:SetShown(upd) end
     pick.count:SetShown(not upd)
     -- Karten unter "Wie bisher" bzw. direkt unter den Text; Hoehe passend
@@ -810,7 +810,7 @@ local function hint()
     local d = cand[math.random(#cand)]
     s.hinted[d.key] = true
     s.hintLast = ns.now()
-    K.Toast((L["Schon entdeckt? %s"]):format(L[d.title]), (d.sub and L[d.sub] or "") .. "  |cff66db9e" .. L["Klick: einschalten"] .. "|r", C.accent, function()
+    K.Toast((L["Discovered yet? %s"]):format(L[d.title]), (d.sub and L[d.sub] or "") .. "  |cff66db9e" .. L["Click: turn on"] .. "|r", C.accent, function()
         D.Set(d.key, true)
         if ns.OpenMain then ns.OpenMain() end
         if ns.ShowPage then pcall(ns.ShowPage, d.key) end
@@ -854,15 +854,15 @@ local function switch(parent, onClick)
 end
 
 ns.RegisterPage({
-    key = "discover", title = "Entdecken", order = 0.5,
-    sub = "Alle Bereiche von Oasis auf einen Blick - einschalten, was du brauchst",
+    key = "discover", title = "Discover", order = 0.5,
+    sub = "All Oasis areas at a glance - turn on what you need",
     build = function(p)
-        p.seg = K.Segments(p, { { key = "all", text = L["Alle"] }, { key = "off", text = L["Noch aus"] }, { key = "on", text = L["Eingeschaltet"] } },
+        p.seg = K.Segments(p, { { key = "all", text = L["All"] }, { key = "off", text = L["Still off"] }, { key = "on", text = L["Turned on"] } },
             function(k) filter = k ns.RefreshPage("discover") end)
         p.seg:SetPoint("TOPLEFT", 0, 0)
-        p.btnAll = K.Button(p, L["Alles einschalten"], 140, 24, "ghost", function() D.ShowAll() end)
+        p.btnAll = K.Button(p, L["Turn everything on"], 140, 24, "ghost", function() D.ShowAll() end)
         p.btnAll:SetPoint("TOPRIGHT", 0, 0)
-        p.btnPick = K.Button(p, L["Interessen waehlen"], 140, 24, "ghost", function() D.ShowPicker() end)
+        p.btnPick = K.Button(p, L["Pick interests"], 140, 24, "ghost", function() D.ShowPicker() end)
         p.btnPick:SetPoint("RIGHT", p.btnAll, "LEFT", -8, 0)
 
         p.info = K.Text(p, 11, C.muted)
@@ -897,7 +897,7 @@ ns.RegisterPage({
             c.sw:SetPoint("TOPRIGHT", -12, -13)
             c.sw:SetScript("OnEnter", function(self)
                 local d = c.d
-                if d then K.ShowTip(self, { L[d.title], D.IsOn(d.key) and L["Klick: ausblenden"] or L["Klick: einschalten"] }) end
+                if d then K.ShowTip(self, { L[d.title], D.IsOn(d.key) and L["Click: hide"] or L["Click: turn on"] }) end
             end)
             c.sw:SetScript("OnLeave", function() GameTooltip:Hide() end)
             c:SetScript("OnClick", function(self)
@@ -1003,8 +1003,8 @@ ns.RegisterPage({
             h:SetPoint("TOPLEFT", 0, -y)
             h:SetPoint("RIGHT", p.content, "RIGHT", 0, 0)
             h.dot:SetVertexColor(col[1], col[2], col[3])
-            h.t:SetText(g.it and L[g.it.text] or L["Weitere"])
-            h.sub:SetText((L["%d von %d an"]):format(nOn, #g.list))
+            h.t:SetText(g.it and L[g.it.text] or L["More"])
+            h.sub:SetText((L["%d of %d on"]):format(nOn, #g.list))
             h:Show()
             y = y + (hi == 1 and 28 or 30)
             for i, d in ipairs(g.list) do
@@ -1022,7 +1022,7 @@ ns.RegisterPage({
         for i = ci + 1, #p.cards do p.cards[i]:Hide() end
         for i = hi + 1, #p.heads do p.heads[i]:Hide() end
         p.content:SetHeight(math.max(10, y))
-        p.info:SetText((L["%d von %d Bereichen eingeschaltet. Klick auf eine Karte oeffnet den Bereich."]):format(on, #all))
+        p.info:SetText((L["%d of %d areas turned on. Click a card to open it."]):format(on, #all))
     end,
 })
 -- in die Navigation: gleich unter dem Dashboard
@@ -1034,20 +1034,20 @@ ns.slash.erststart = function()
     local s = S()
     D.ShowAll()
     s.onboarded, s.interestsDone, s.interests, s.hinted, s.hintLast = nil, nil, nil, nil, nil
-    ns.print(L["Erster Start wird nachgespielt - Rundgang und Interessen-Auswahl wie bei Neuen."])
+    ns.print(L["Replaying the first start - tour and interest selection like a new user."])
     D.ShowPicker()
 end
 
 -- Abgleich pruefen: was wurde verworfen, laeuft noch etwas, Komplett-Abgleich anstossen
 ns.slash.abgleich = function(arg)
     local St, Co = ns.Store, ns.Comm
-    ns.print("|cffe8b44a" .. L["Abgleich"] .. "|r  " .. (L["zuletzt: %s"]):format(ns.db.meta.lastSync and ns.fmtDate(ns.db.meta.lastSync) or "-")
-        .. "  ·  " .. (L["Sende-Schlange: %d"]):format(Co and Co.QueueSize and Co.QueueSize() or 0)
-        .. "  ·  " .. (L["zurueckgestellt: %d"]):format(St and St.HeldCount and St.HeldCount() or 0))
+    ns.print("|cffe8b44a" .. L["Sync"] .. "|r  " .. (L["last: %s"]):format(ns.db.meta.lastSync and ns.fmtDate(ns.db.meta.lastSync) or "-")
+        .. "  ·  " .. (L["Send queue: %d"]):format(Co and Co.QueueSize and Co.QueueSize() or 0)
+        .. "  ·  " .. (L["deferred: %d"]):format(St and St.HeldCount and St.HeldCount() or 0))
     local list = {}
     for k, n in pairs((St and St.rejectWhy) or {}) do list[#list + 1] = { k = k, n = n } end
     table.sort(list, function(a, b) return a.n > b.n end)
-    if #list == 0 then ns.print("  " .. L["Nichts verworfen."]) end
+    if #list == 0 then ns.print("  " .. L["Nothing discarded."]) end
     local np = 0
     for _ in pairs(St.coll("polls")) do np = np + 1 end
     local hb = St.HeldByColl and St.HeldByColl() or {}
@@ -1059,8 +1059,8 @@ ns.slash.abgleich = function(arg)
         Co.RequestSync(true)
         if Co.PullImportant then ns.After(20, function() pcall(Co.PullImportant) end) end
         if ns.GuildChat and ns.GuildChat.RequestMissed then ns.GuildChat.RequestMissed(72) end
-        ns.print("  " .. L["Komplett-Abgleich angefragt."])
+        ns.print("  " .. L["Full sync requested."])
     else
-        ns.print("  |cff888888" .. L["/oa abgleich voll - alles neu von der Gilde holen"] .. "|r")
+        ns.print("  |cff888888" .. L["/oa abgleich voll - fetch everything fresh from the guild"] .. "|r")
     end
 end

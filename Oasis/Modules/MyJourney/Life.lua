@@ -109,17 +109,17 @@ end
 ------------------------------------------------------------------------
 -- key -> { label, better = "high"|"low", fmt, icon }
 local REC = {
-    killsHour = { "Meiste Kills in einer Stunde", "high", function(v) return tostring(v) end, "Interface\\Icons\\Ability_Warrior_Rampage" },
-    goldDay = { "Meistes Gold an einem Tag", "high", plain, "Interface\\Icons\\INV_Misc_Coin_02" },
-    bigLoot = { "Groesster Goldfund", "high", plain, "Interface\\Icons\\INV_Misc_Bag_10" },
-    questsDay = { "Meiste Quests an einem Tag", "high", function(v) return tostring(v) end, "Interface\\Icons\\INV_Misc_Note_01" },
-    bossesDay = { "Meiste Bosse an einem Tag", "high", function(v) return tostring(v) end, "Interface\\Icons\\Achievement_Boss_Ragnaros" },
-    fastLevel = { "Schnellstes Level", "low", fmtLong, "Interface\\Icons\\Spell_Holy_SurgeOfLight" },
-    session = { "Laengste Spielsitzung", "high", fmtLong, "Interface\\Icons\\INV_Misc_PocketWatch_01" },
-    noDeath = { "Laengste Zeit ohne Tod", "high", fmtLong, "Interface\\Icons\\Spell_Holy_DivineIntervention" },
-    killsSession = { "Meiste Kills in einer Sitzung", "high", function(v) return tostring(v) end, "Interface\\Icons\\Ability_DualWield" },
-    quickDeath = { "Schnellster Tod nach dem Einloggen", "low", fmtDur, "Interface\\Icons\\Spell_Shadow_DeathScream" },
-    zonesDay = { "Meiste neue Gebiete an einem Tag", "high", function(v) return tostring(v) end, "Interface\\Icons\\INV_Misc_Map_01" },
+    killsHour = { "Most kills in one hour", "high", function(v) return tostring(v) end, "Interface\\Icons\\Ability_Warrior_Rampage" },
+    goldDay = { "Most gold in one day", "high", plain, "Interface\\Icons\\INV_Misc_Coin_02" },
+    bigLoot = { "Biggest gold find", "high", plain, "Interface\\Icons\\INV_Misc_Bag_10" },
+    questsDay = { "Most quests in one day", "high", function(v) return tostring(v) end, "Interface\\Icons\\INV_Misc_Note_01" },
+    bossesDay = { "Most bosses in one day", "high", function(v) return tostring(v) end, "Interface\\Icons\\Achievement_Boss_Ragnaros" },
+    fastLevel = { "Fastest level", "low", fmtLong, "Interface\\Icons\\Spell_Holy_SurgeOfLight" },
+    session = { "Longest session", "high", fmtLong, "Interface\\Icons\\INV_Misc_PocketWatch_01" },
+    noDeath = { "Longest time without dying", "high", fmtLong, "Interface\\Icons\\Spell_Holy_DivineIntervention" },
+    killsSession = { "Most kills in one session", "high", function(v) return tostring(v) end, "Interface\\Icons\\Ability_DualWield" },
+    quickDeath = { "Fastest death after login", "low", fmtDur, "Interface\\Icons\\Spell_Shadow_DeathScream" },
+    zonesDay = { "Most new zones in one day", "high", function(v) return tostring(v) end, "Interface\\Icons\\INV_Misc_Map_01" },
 }
 Life.REC = REC
 local REC_ORDER = { "killsHour", "killsSession", "questsDay", "bossesDay", "goldDay", "bigLoot", "fastLevel", "session", "noDeath", "zonesDay", "quickDeath" }
@@ -139,9 +139,9 @@ function Life.Record(key, value, extra, quiet)
         local label = extra and extra.label or L[def[1]]
         local shown = def[3] and def[3](value) or fmtDur(value)
         if ns.Sound and ns.Sound.Next then ns.Sound.Next("record") end
-        K.Toast(L["NEUER PERSOENLICHER REKORD!"], label .. ": |cffffd100" .. shown .. "|r", C.amber,
+        K.Toast(L["NEW PERSONAL RECORD!"], label .. ": |cffffd100" .. shown .. "|r", C.amber,
             function() Life.Open("records") end)
-        Life.Event("record", (L["Neuer Rekord - %s: %s"]):format(label, shown), def[4] or "Interface\\Icons\\INV_Misc_Trophy_03")
+        Life.Event("record", (L["New record - %s: %s"]):format(label, shown), def[4] or "Interface\\Icons\\INV_Misc_Trophy_03")
     end
     refresh()
     return true
@@ -169,10 +169,10 @@ local function dayAnnounce(recKey)
     local def = REC[recKey]
     if S().lifeRecToast ~= false then
         if ns.Sound and ns.Sound.Next then ns.Sound.Next("record") end
-        K.Toast(L["NEUER PERSOENLICHER REKORD!"], L[def[1]] .. ": |cffffd100" .. def[3](r.v) .. "|r", C.amber,
+        K.Toast(L["NEW PERSONAL RECORD!"], L[def[1]] .. ": |cffffd100" .. def[3](r.v) .. "|r", C.amber,
             function() Life.Open("records") end)
     end
-    Life.Event("record", (L["Neuer Rekord - %s: %s"]):format(L[def[1]], def[3](r.v)), def[4])
+    Life.Event("record", (L["New record - %s: %s"]):format(L[def[1]], def[3](r.v)), def[4])
 end
 local function dayRecord(key, recKey, n)
     local v = dayCount(key, recKey, n)
@@ -214,16 +214,16 @@ end
 ------------------------------------------------------------------------
 local CATS = {
     { key = "quest", text = "Quests", icon = "Interface\\Icons\\INV_Misc_Note_01" },
-    { key = "loot", text = "Beute", icon = "Interface\\Icons\\INV_Misc_Bag_10" },
-    { key = "vendor", text = "Haendler", icon = "Interface\\Icons\\INV_Misc_Coin_01" },
-    { key = "repair", text = "Reparaturen", icon = "Interface\\Icons\\Trade_BlackSmithing" },
+    { key = "loot", text = "Loot", icon = "Interface\\Icons\\INV_Misc_Bag_10" },
+    { key = "vendor", text = "Vendors", icon = "Interface\\Icons\\INV_Misc_Coin_01" },
+    { key = "repair", text = "Repairs", icon = "Interface\\Icons\\Trade_BlackSmithing" },
     { key = "train", text = "Training", icon = "Interface\\Icons\\INV_Misc_Book_09" },
-    { key = "taxi", text = "Flugmeister", icon = "Interface\\Icons\\Ability_Mount_Wyvern_01" },
-    { key = "ah", text = "Auktionshaus", icon = "Interface\\Icons\\INV_Misc_Coin_05" },
-    { key = "mail", text = "Post", icon = "Interface\\Icons\\INV_Letter_15" },
-    { key = "trade", text = "Handel", icon = "Interface\\Icons\\INV_Misc_Coin_17" },
-    { key = "gbank", text = "Gildenbank", icon = "Interface\\Icons\\INV_Misc_Bag_EnchantedRunecloth" },
-    { key = "other", text = "Sonstiges", icon = "Interface\\Icons\\INV_Misc_QuestionMark" },
+    { key = "taxi", text = "Flight master", icon = "Interface\\Icons\\Ability_Mount_Wyvern_01" },
+    { key = "ah", text = "Auction House", icon = "Interface\\Icons\\INV_Misc_Coin_05" },
+    { key = "mail", text = "Mail", icon = "Interface\\Icons\\INV_Letter_15" },
+    { key = "trade", text = "Trade", icon = "Interface\\Icons\\INV_Misc_Coin_17" },
+    { key = "gbank", text = "Guild bank", icon = "Interface\\Icons\\INV_Misc_Bag_EnchantedRunecloth" },
+    { key = "other", text = "Miscellaneous", icon = "Interface\\Icons\\INV_Misc_QuestionMark" },
 }
 local CAT = {}
 for _, c in ipairs(CATS) do CAT[c.key] = c end
@@ -273,7 +273,7 @@ local function onMoney()
             local id = "earned:" .. st
             if (l.stats.goldIn or 0) >= st and not l.ms[id] then
                 l.ms[id] = now()
-                Life.Event("gold", (L["Insgesamt %s verdient"]):format(plain(st)), "Interface\\Icons\\INV_Misc_Coin_02")
+                Life.Event("gold", (L["Earned %s in total"]):format(plain(st)), "Interface\\Icons\\INV_Misc_Coin_02")
             end
         end
     else
@@ -291,7 +291,7 @@ local function onMoney()
         local id = "own:" .. s
         if m >= s and not l.ms[id] then
             l.ms[id] = now()
-            Life.Event("gold", (L["Zum ersten Mal %s besessen"]):format(plain(s)), "Interface\\Icons\\INV_Misc_Coin_02")
+            Life.Event("gold", (L["Owned %s for the first time"]):format(plain(s)), "Interface\\Icons\\INV_Misc_Coin_02")
         end
     end
     Life.CheckGoals()
@@ -358,13 +358,13 @@ local function finishRun(l)
         local first = not l.firsts["clear:" .. r.key]
         if first then
             l.firsts["clear:" .. r.key] = now()
-            Life.Event("dungeon", (L["%s zum ersten Mal komplett abgeschlossen (%s)"]):format(r.name, fmtDur(r.dur)), "Interface\\Icons\\INV_Misc_Key_03")
+            Life.Event("dungeon", (L["%s fully cleared for the first time (%s)"]):format(r.name, fmtDur(r.dur)), "Interface\\Icons\\INV_Misc_Key_03")
         end
-        Life.Record("run:" .. r.key, r.dur, { label = (L["Schnellster Lauf: %s"]):format(r.name), name = r.name })
+        Life.Record("run:" .. r.key, r.dur, { label = (L["Fastest run: %s"]):format(r.name), name = r.name })
     end
     local runsHere = 0
     for _, x in ipairs(l.runs) do if x.key == r.key then runsHere = runsHere + 1 end end
-    milestone("runs-" .. r.key, { 10, 25, 50, 100 }, runsHere, r.name .. ": " .. L["%d Laeufe"], "Interface\\Icons\\INV_Misc_Key_03", "dungeon")
+    milestone("runs-" .. r.key, { 10, 25, 50, 100 }, runsHere, r.name .. ": " .. L["%d runs"], "Interface\\Icons\\INV_Misc_Key_03", "dungeon")
 end
 local function checkInstance()
     local l = db()
@@ -442,24 +442,24 @@ local function onDeath()
     if session.start and (now() - session.start) < 3600 then Life.Record("quickDeath", now() - session.start) end
     if (l.stats.noDeathAcc or 0) > 0 then Life.Record("noDeath", l.stats.noDeathAcc) end
     l.stats.noDeathAcc = 0
-    milestone("deaths", { 1, 10, 50, 100, 250, 500, 1000 }, total, "%d. Tod", "Interface\\Icons\\Spell_Shadow_DeathScream", "death")
+    milestone("deaths", { 1, 10, 50, 100, 250, 500, 1000 }, total, "Death no. %d", "Interface\\Icons\\Spell_Shadow_DeathScream", "death")
     if S().lifeDeathToast ~= false then
         local why = Life.TipText(e.tips[1])
-        K.Toast(L["Tod-Analyse"], (e.killer or L["Unbekannt"]) .. (why and (" - " .. why) or ""), C.red,
+        K.Toast(L["Death analysis"], (e.killer or L["Unknown"]) .. (why and (" - " .. why) or ""), C.red,
             function() Life.Open("deaths") end, "death")
     end
     refresh()
 end
 local TIPS = {
-    pot = "Heiltrank war in der Tasche",
-    hs = "Gesundheitsstein war in der Tasche",
-    lvl = "Gegner war 3+ Stufen hoeher",
-    skull = "Gegner war viel zu hoch (Totenkopf)",
-    elite = "Elite-Gegner allein angegriffen",
-    fast = "Sehr kurzer Kampf - mehrere Gegner oder Ueberraschung?",
-    fall = "Fallschaden",
-    drown = "Ertrunken / Erschoepfung",
-    env = "Kein Gegner im Ziel - Umgebung oder Gegner ohne Ziel",
+    pot = "Healing potion was in your bag",
+    hs = "Healthstone was in your bag",
+    lvl = "Enemy was 3+ levels higher",
+    skull = "Enemy was far too high (skull)",
+    elite = "Attacked an elite alone",
+    fast = "Very short fight - several enemies or an ambush?",
+    fall = "Falling damage",
+    drown = "Drowned / fatigue",
+    env = "No enemy targeted - environment or untargeted enemy",
 }
 function Life.TipText(k) return k and TIPS[k] and L[TIPS[k]] or nil end
 
@@ -502,9 +502,9 @@ function Life.CompleteGoal(g, undo)
     if undo then g.done, g.doneT = nil, nil refresh() return end
     if g.done then return end
     g.done, g.doneT = true, now()
-    Life.Event("goal", (L["Ziel erreicht: %s"]):format(g.text), "Interface\\Icons\\Achievement_General")
+    Life.Event("goal", (L["Goal reached: %s"]):format(g.text), "Interface\\Icons\\Achievement_General")
     if ns.Sound and ns.Sound.Next then ns.Sound.Next("record") end
-    K.Toast(L["Ziel erreicht!"], g.text, C.mint, function() Life.Open("goals") end)
+    K.Toast(L["Goal reached!"], g.text, C.mint, function() Life.Open("goals") end)
     refresh()
 end
 function Life.AddGoal(g)
@@ -547,13 +547,13 @@ function Life.Suggestions(budget)
         end
     end
     if ready > 0 then
-        out[#out + 1] = { icon = "Interface\\Icons\\INV_Misc_Note_02", title = L["Quests abgeben"],
-            sub = (L["%d Quests sind fertig - schnelle Erfahrung"]):format(ready), min = 15, score = 60 + ready * 5 }
+        out[#out + 1] = { icon = "Interface\\Icons\\INV_Misc_Note_02", title = L["Turn in quests"],
+            sub = (L["%d quests are done - quick experience"]):format(ready), min = 15, score = 60 + ready * 5 }
     end
     for z, info in pairs(zones) do
         if info.n >= 2 then
             out[#out + 1] = { icon = "Interface\\Icons\\INV_Misc_Map_01", title = z,
-                sub = (L["%d passende Quests im Log"]):format(info.n), min = 15 + info.n * 8, score = 30 + info.n * 6 }
+                sub = (L["%d fitting quests in your log"]):format(info.n), min = 15 + info.n * 8, score = 30 + info.n * 6 }
         end
     end
     -- Dungeons im Stufenbereich
@@ -567,10 +567,10 @@ function Life.Suggestions(budget)
                 if ns.Dungeons.WantedLoot then local okW, w = pcall(ns.Dungeons.WantedLoot, d) wants = okW and #w or 0 end
                 local ups = Life.DungeonUpgrades(d)
                 local parts = {}
-                if mine > 0 then parts[#parts + 1] = (L["%d offene Quests"]):format(mine) end
-                if ups > 0 then parts[#parts + 1] = (L["%d moegliche Upgrades"]):format(ups) end
-                if wants > 0 then parts[#parts + 1] = (L["%d von der Gilde gesucht"]):format(wants) end
-                parts[#parts + 1] = (L["Stufe %d-%d"]):format(d.lo, d.hi or d.lo)
+                if mine > 0 then parts[#parts + 1] = (L["%d open quests"]):format(mine) end
+                if ups > 0 then parts[#parts + 1] = (L["%d possible upgrades"]):format(ups) end
+                if wants > 0 then parts[#parts + 1] = (L["%d wanted by the guild"]):format(wants) end
+                parts[#parts + 1] = (L["Level %d-%d"]):format(d.lo, d.hi or d.lo)
                 local name = (ns.lang == "de" and (d.nameDE or d.de)) or d.name
                 out[#out + 1] = { icon = "Interface\\Icons\\INV_Misc_Key_03", title = name, sub = table.concat(parts, " · "),
                     min = d.raid and 150 or 75, score = 25 + mine * 10 + ups * 8 + wants * 3, page = "dungeons", group = true }
@@ -582,18 +582,18 @@ function Life.Suggestions(budget)
         for _, p in ipairs(ns.Radar.myProfessions()) do
             if p.max and p.max > 0 and p.max < 300 and p.rank >= p.max - 10 then
                 out[#out + 1] = { icon = "Interface\\Icons\\INV_Misc_Book_09", title = p.name,
-                    sub = (L["%d/%d - beim Lehrer die naechste Stufe lernen"]):format(p.rank, p.max), min = 10, score = 50 }
+                    sub = (L["%d/%d - learn the next rank at the trainer"]):format(p.rank, p.max), min = 10, score = 50 }
             elseif p.max and p.rank < p.max then
                 out[#out + 1] = { icon = "Interface\\Icons\\Trade_Engineering", title = p.name,
-                    sub = (L["%d/%d - noch %d Punkte bis zur Grenze"]):format(p.rank, p.max, p.max - p.rank), min = 30, score = 12 }
+                    sub = (L["%d/%d - %d points to the cap"]):format(p.rank, p.max, p.max - p.rank), min = 30, score = 12 }
             end
         end
     end
     -- Klassenlehrer (neue Raenge auf geraden Stufen)
     local l = db()
     if l and lvl % 2 == 0 and (l.trainedAt or 0) < lvl and lvl >= 4 then
-        out[#out + 1] = { icon = "Interface\\Icons\\INV_Misc_Book_11", title = L["Klassenlehrer"],
-            sub = (L["Mit Stufe %d gibt es neue Zauber/Faehigkeiten"]):format(lvl), min = 10, score = 55 }
+        out[#out + 1] = { icon = "Interface\\Icons\\INV_Misc_Book_11", title = L["Class trainer"],
+            sub = (L["New spells/abilities at level %d"]):format(lvl), min = 10, score = 55 }
     end
     -- Reparatur
     local worst = 1
@@ -603,22 +603,22 @@ function Life.Suggestions(budget)
         if cur and max and max > 0 then worst = math.min(worst, cur / max) end
     end
     if worst < 0.3 then
-        out[#out + 1] = { icon = "Interface\\Icons\\Trade_BlackSmithing", title = L["Reparieren"],
-            sub = (L["Ausruestung bei %d%%"]):format(worst * 100), min = 5, score = 70 }
+        out[#out + 1] = { icon = "Interface\\Icons\\Trade_BlackSmithing", title = L["Repair"],
+            sub = (L["Gear at %d%%"]):format(worst * 100), min = 5, score = 70 }
     end
     -- Erholt-Bonus
     local rest = GetXPExhaustion and ns.safe(GetXPExhaustion())
     local maxXP = ns.safe(UnitXPMax("player")) or 0
     if rest and maxXP > 0 and rest > maxXP * 0.5 then
-        out[#out + 1] = { icon = "Interface\\Icons\\Spell_Nature_Sleep", title = L["Erholt-Bonus nutzen"],
-            sub = (L["%d%% einer Stufe doppelte Erfahrung"]):format(math.min(150, math.floor(rest / maxXP * 100))), min = 30, score = 35 }
+        out[#out + 1] = { icon = "Interface\\Icons\\Spell_Nature_Sleep", title = L["Use rested bonus"],
+            sub = (L["%d%% of a level double experience"]):format(math.min(150, math.floor(rest / maxXP * 100))), min = 30, score = 35 }
     end
     -- offene Ziele
     for _, g in ipairs(l and l.goals or {}) do
         if not g.done then
             local cur, max = Life.GoalProgress(g)
-            out[#out + 1] = { icon = "Interface\\Icons\\Achievement_General", title = L["Ziel"] .. ": " .. g.text,
-                sub = (g.kind ~= "free" and (cur .. " / " .. max) or L["eigenes Ziel"]), min = 45, score = 20, page = nil, goal = true }
+            out[#out + 1] = { icon = "Interface\\Icons\\Achievement_General", title = L["Destination"] .. ": " .. g.text,
+                sub = (g.kind ~= "free" and (cur .. " / " .. max) or L["custom goal"]), min = 45, score = 20, page = nil, goal = true }
         end
     end
     -- Zeitbudget
@@ -684,7 +684,7 @@ function Life.Yearbook()
     -- Erzfeind
     local k = {}
     for _, d in ipairs(l.deaths) do
-        local who = d.killer or (d.tips and (d.tips[#d.tips] == "fall" and L["Fallschaden"] or nil))
+        local who = d.killer or (d.tips and (d.tips[#d.tips] == "fall" and L["Falling damage"] or nil))
         if who then k[who] = (k[who] or 0) + 1 end
     end
     for n, c in pairs(k) do if not y.nemN or c > y.nemN then y.nem, y.nemN = n, c end end
@@ -698,13 +698,13 @@ function Life.Yearbook()
 end
 function Life.YearbookText()
     local y = Life.Yearbook()
-    local parts = { ("%s - %s %d %s"):format(L["Jahrbuch"], y.name or "?", y.level or 0, y.className or "") }
-    parts[#parts + 1] = (L["%d Gegner besiegt"]):format(y.kills)
-    parts[#parts + 1] = (L["%d Tode"]):format(y.deaths)
-    parts[#parts + 1] = (L["%d Dungeon-Laeufe"]):format(y.runs)
-    parts[#parts + 1] = plain(y.goldIn) .. " " .. L["verdient"]
-    if y.fav then parts[#parts + 1] = L["Lieblingsdungeon"] .. ": " .. y.fav end
-    if y.nem then parts[#parts + 1] = L["Erzfeind"] .. ": " .. y.nem end
+    local parts = { ("%s - %s %d %s"):format(L["Yearbook"], y.name or "?", y.level or 0, y.className or "") }
+    parts[#parts + 1] = (L["%d enemies killed"]):format(y.kills)
+    parts[#parts + 1] = (L["%d deaths"]):format(y.deaths)
+    parts[#parts + 1] = (L["%d dungeon runs"]):format(y.runs)
+    parts[#parts + 1] = plain(y.goldIn) .. " " .. L["earned"]
+    if y.fav then parts[#parts + 1] = L["Favourite dungeon"] .. ": " .. y.fav end
+    if y.nem then parts[#parts + 1] = L["Nemesis"] .. ": " .. y.nem end
     return table.concat(parts, " | ")
 end
 
@@ -725,7 +725,7 @@ ns.Listen("LOGIN", function()
     if not l then return end
     if not l.ms.start then
         l.ms.start = now()
-        Life.Event("start", (L["Oasis begleitet %s ab heute (Stufe %d)"]):format(ns.UnitName("player") or "?", UnitLevel("player") or 1), "Interface\\Icons\\INV_Misc_Book_07")
+        Life.Event("start", (L["Oasis accompanies %s from today (level %d)"]):format(ns.UnitName("player") or "?", UnitLevel("player") or 1), "Interface\\Icons\\INV_Misc_Book_07")
     end
     session.start = now()
     session.kills = 0
@@ -742,9 +742,9 @@ ns.On("PLAYER_LEVEL_UP", function(level)
     if not l then return end
     level = tonumber(ns.safe(level)) or UnitLevel("player")
     local secs = l.lvlSecs
-    Life.Event("level", (L["Stufe %d erreicht"]):format(level), "Interface\\Icons\\Spell_Holy_SurgeOfLight")
+    Life.Event("level", (L["Reached level %d"]):format(level), "Interface\\Icons\\Spell_Holy_SurgeOfLight")
     if secs and secs >= 300 and l.lvlFrom == level - 1 then
-        Life.Record("fastLevel", secs, { label = (L["Schnellstes Level (%d > %d)"]):format(level - 1, level) })
+        Life.Record("fastLevel", secs, { label = (L["Fastest level (%d > %d)"]):format(level - 1, level) })
     end
     l.lvlSecs, l.lvlFrom = 0, level
     ns.After(1, Life.CheckGoals)
@@ -811,14 +811,14 @@ ns.Listen("KILL", function()
     kt[#kt + 1] = t
     while kt[1] and t - kt[1] > 3600 do table.remove(kt, 1) end
     Life.Record("killsHour", #kt, nil, true)
-    milestone("kills", { 100, 1000, 5000, 10000, 25000, 50000 }, total, "%d Gegner besiegt", "Interface\\Icons\\Ability_Warrior_Rampage")
+    milestone("kills", { 100, 1000, 5000, 10000, 25000, 50000 }, total, "%d enemies killed", "Interface\\Icons\\Ability_Warrior_Rampage")
 end)
 
 ns.On("QUEST_TURNED_IN", function()
     lastQuest = GetTime()
     local total = stat("quests", 1)
     dayRecord("quests", "questsDay")
-    milestone("quests", { 10, 100, 250, 500, 1000, 2000 }, total, "%d Quests abgeschlossen", "Interface\\Icons\\INV_Misc_Note_01")
+    milestone("quests", { 10, 100, 250, 500, 1000, 2000 }, total, "%d quests completed", "Interface\\Icons\\INV_Misc_Note_01")
 end)
 
 ns.On("CHAT_MSG_MONEY", function() lastLoot = GetTime() end)
@@ -850,7 +850,7 @@ ns.On("ZONE_CHANGED_NEW_AREA", function()
         l.zones[z] = now()
         local first = l.ms.zoneInit
         if first then
-            Life.Event("zone", (L["Neues Gebiet entdeckt: %s"]):format(z), "Interface\\Icons\\INV_Misc_Map_01")
+            Life.Event("zone", (L["New zone discovered: %s"]):format(z), "Interface\\Icons\\INV_Misc_Map_01")
             dayRecord("zones", "zonesDay")
         end
     end
@@ -875,7 +875,7 @@ ns.On("ENCOUNTER_END", function(encounterID, encounterName, difficultyID, groupS
     local id = "boss:" .. tostring(ns.safe(encounterID) or encounterName)
     if not l.firsts[id] then
         l.firsts[id] = now()
-        Life.Event("boss", (L["Zum ersten Mal besiegt: %s"]):format(encounterName), "Interface\\Icons\\Achievement_Boss_Ragnaros")
+        Life.Event("boss", (L["Defeated for the first time: %s"]):format(encounterName), "Interface\\Icons\\Achievement_Boss_Ragnaros")
     end
     refresh()
 end)
@@ -904,7 +904,7 @@ ns.On("CHAT_MSG_LOOT", function(msg)
         local id = tonumber(link:match("item:(%d+)"))
         if id and not l.firsts["item:" .. id] then
             l.firsts["item:" .. id] = now()
-            Life.Event("loot", (q >= 4 and L["Episches Item erhalten:"] or L["Besonderes Item erhalten:"]), "Interface\\Icons\\INV_Misc_Gem_Variety_01", link)
+            Life.Event("loot", (q >= 4 and L["Epic item received:"] or L["Special item received:"]), "Interface\\Icons\\INV_Misc_Gem_Variety_01", link)
         end
     end
     ns.After(1, Life.CheckGoals)
@@ -930,7 +930,7 @@ function Life.CheckProfs()
             local id = "prof:" .. (p.id or p.name) .. ":" .. s
             if p.rank >= s and not l.ms[id] then
                 l.ms[id] = now()
-                if l.ms.profInit then Life.Event("prof", (L["%s: Fertigkeit %d erreicht"]):format(p.name, s), "Interface\\Icons\\INV_Misc_Book_09") end
+                if l.ms.profInit then Life.Event("prof", (L["%s: reached skill %d"]):format(p.name, s), "Interface\\Icons\\INV_Misc_Book_09") end
             end
         end
     end
@@ -948,7 +948,7 @@ end)
 
 -- eigener Sound-Typ fuer Rekorde (Einstellungen > Sound/Hinweise)
 if ns.Sound and ns.Sound.EVENTS and not ns.Sound.eventByKey.record then
-    local e = { key = "record", text = "Persoenlicher Rekord / Ziel erreicht", def = "arbeitszeit" }
+    local e = { key = "record", text = "Personal record / goal reached", def = "arbeitszeit" }
     table.insert(ns.Sound.EVENTS, e)
     ns.Sound.eventByKey.record = e
 end
@@ -958,9 +958,9 @@ end
 ------------------------------------------------------------------------
 Life.view = "journey"
 local VIEWS = {
-    { key = "journey", text = "Reise" }, { key = "records", text = "Rekorde" }, { key = "dungeons", text = "Dungeons" },
-    { key = "mates", text = "Mitspieler" }, { key = "deaths", text = "Tode" }, { key = "gold", text = "Gold" },
-    { key = "goals", text = "Ziele" }, { key = "todo", text = "Was tun?" }, { key = "year", text = "Jahrbuch" },
+    { key = "journey", text = "Journey" }, { key = "records", text = "Records" }, { key = "dungeons", text = "Dungeons" },
+    { key = "mates", text = "Players" }, { key = "deaths", text = "Deaths" }, { key = "gold", text = "Gold" },
+    { key = "goals", text = "Goals" }, { key = "todo", text = "What to do?" }, { key = "year", text = "Yearbook" },
 }
 
 -- NIE "StaticPopupDialogs = ..." zuweisen (verseucht Blizzards Dialogliste -> Esc/Ausloggen blockiert)
@@ -1123,15 +1123,15 @@ end
 
 local function relDay(t)
     local d = dayKey(t)
-    if d == dayKey() then return L["Heute"] end
-    if d == dayKey(now() - DAY) then return L["Gestern"] end
+    if d == dayKey() then return L["Today"] end
+    if d == dayKey(now() - DAY) then return L["Yesterday"] end
     return fmtDate(t)
 end
 
 -- Seite
 ns.RegisterPage({
-    key = "life", title = "Mein Weg", order = 1.15, topbar = true,   -- im Profil eingebettet (Insta.lua)
-    sub = "Dein Leben in Azeroth: Reise, Rekorde, Dungeons, Ziele und Jahrbuch",
+    key = "life", title = "My Journey", order = 1.15, topbar = true,   -- im Profil eingebettet (Insta.lua)
+    sub = "Your life in Azeroth: journey, records, dungeons, goals and yearbook",
     build = function(p)
         p.views = {}
         p.seg = K.Segments(p, (function()
@@ -1143,11 +1143,11 @@ ns.RegisterPage({
 
         -------------------------------------------------- Reise
         local j = sub(p, "journey")
-        tiles(j, { { ns.ICONS.chronicle, "Momente", C.accent }, { ns.ICONS.map, "Gebiete entdeckt", C.blue },
-            { ns.ICONS.dungeons, "Erste Bosskills", C.red }, { ns.ICONS.badges, "Mit Oasis seit", C.mint } })
+        tiles(j, { { ns.ICONS.chronicle, "Moments", C.accent }, { ns.ICONS.map, "Zones discovered", C.blue },
+            { ns.ICONS.dungeons, "First boss kills", C.red }, { ns.ICONS.badges, "With Oasis since", C.mint } })
         j.filter = "all"
-        j.fseg = K.Segments(j, { { key = "all", text = L["Alles"] }, { key = "level", text = L["Level"] }, { key = "boss", text = L["Bosse"] },
-            { key = "loot", text = L["Beute"] }, { key = "zone", text = L["Gebiete"] }, { key = "record", text = L["Rekorde"] } },
+        j.fseg = K.Segments(j, { { key = "all", text = L["All"] }, { key = "level", text = L["Level"] }, { key = "boss", text = L["Bosses"] },
+            { key = "loot", text = L["Loot"] }, { key = "zone", text = L["Zones"] }, { key = "record", text = L["Records"] } },
             function(k) j.filter = k refresh() end, nil, { size = 11, pad = 14 })
         j.fseg:SetPoint("TOPLEFT", 0, -76)
         -- 0.6.398: Momente in einer Box wie auf der Werte-Seite
@@ -1159,14 +1159,14 @@ ns.RegisterPage({
         j.list = iconList(j.box, 36)
         j.list:SetPoint("TOPLEFT", 10, -10)
         j.list:SetPoint("BOTTOMRIGHT", -10, 10)
-        j.list.empty:SetText(L["Noch keine Momente - spiel einfach, Oasis schreibt mit."])
+        j.list.empty:SetText(L["No moments yet - just play, Oasis keeps the record."])
 
         -------------------------------------------------- Rekorde
         local r = sub(p, "records")
         -- 0.6.397: Kacheln oben (wie die Werte-Kacheln), darunter die Rekorde in einer Box
         local G = ns.Insta and ns.Insta.Glass
         local BOXF, BOXL = { 0.055, 0.055, 0.065, 0.85 }, { 1, 1, 1, 0.08 }
-        local RT = { { "badges", "Rekorde", { 0.95, 0.72, 0.38 } }, { "star_on", "Neuester Rekord", { 0.62, 0.48, 0.95 } }, { "chronicle", "In den letzten 7 Tagen", { 0.35, 0.85, 0.55 } } }
+        local RT = { { "badges", "Records", { 0.95, 0.72, 0.38 } }, { "star_on", "Latest record", { 0.62, 0.48, 0.95 } }, { "chronicle", "In the last 7 days", { 0.35, 0.85, 0.55 } } }
         r.rt = {}
         for i, d in ipairs(RT) do
             local t = CreateFrame("Frame", nil, r)
@@ -1204,55 +1204,55 @@ ns.RegisterPage({
         r.box:SetPoint("BOTTOMRIGHT")
         if G then G(r.box, BOXF, BOXL, 12) end
         if K.DarkBoxFrame then K.DarkBoxFrame(r.box) end
-        r.head = K.GameHead(r.box, L["Persoenliche Rekorde"], C.amber)
+        r.head = K.GameHead(r.box, L["Personal records"], C.amber)
         r.head:SetPoint("TOPLEFT", 14, -12)
         r.head:SetWidth(300)
-        r.head.text:SetText(L["Persoenliche Rekorde"])
+        r.head.text:SetText(L["Personal records"])
         r.note = K.Text(r.box, 10, C.dim, "RIGHT")
         r.note:SetPoint("TOPRIGHT", -14, -14)
-        r.note:SetText(L["Crits und Schaden sind in Forever fuer Addons gesperrt"])
+        r.note:SetText(L["Crits and damage are locked for addons in Forever"])
         r.list = recList(r.box)
         r.list:SetPoint("TOPLEFT", 10, -38)
         r.list:SetPoint("BOTTOMRIGHT", -10, 10)
 
         -------------------------------------------------- Dungeons
         local d = sub(p, "dungeons")
-        tiles(d, { { ns.ICONS.dungeons, "Laeufe", C.amber }, { ns.ICONS.raid, "Bosse besiegt", C.red },
-            { ns.ICONS.deaths, "Tode in Dungeons", C.muted }, { ns.ICONS.wants, "Beute erhalten", C.mint } })
+        tiles(d, { { ns.ICONS.dungeons, "Runs", C.amber }, { ns.ICONS.raid, "Bosses defeated", C.red },
+            { ns.ICONS.deaths, "Deaths in dungeons", C.muted }, { ns.ICONS.wants, "Loot received", C.mint } })
         d.cur = K.Text(d, 12, C.mint)
         d.cur:SetPoint("TOPLEFT", 0, -76)
         d.list = iconList(d, 44)
         d.list:SetPoint("TOPLEFT", 0, -98)
         d.list:SetPoint("BOTTOMRIGHT")
-        d.list.empty:SetText(L["Noch keine Dungeon-Laeufe aufgezeichnet."])
+        d.list.empty:SetText(L["No dungeon runs recorded yet."])
 
         -------------------------------------------------- Mitspieler
         local m = sub(p, "mates")
-        m.head = K.GameHead(m, L["Mit wem du unterwegs warst"], C.blue)
+        m.head = K.GameHead(m, L["Who you've adventured with"], C.blue)
         m.head:SetPoint("TOPLEFT", 0, -2)
         m.head:SetWidth(400)
-        m.search = K.Input(m, 200, L["Suchen..."], function() refresh() end)
+        m.search = K.Input(m, 200, L["Search..."], function() refresh() end)
         m.search:SetPoint("TOPRIGHT", 0, 0)
         m.list = iconList(m, 40)
         m.list:SetPoint("TOPLEFT", 0, -32)
         m.list:SetPoint("BOTTOMRIGHT")
-        m.list.empty:SetText(L["Sobald du in einer Gruppe einen Dungeon betrittst, merkt sich Oasis deine Mitspieler."])
+        m.list.empty:SetText(L["As soon as you enter a dungeon in a group, Oasis remembers your companions."])
 
         -------------------------------------------------- Tode
         local t = sub(p, "deaths")
-        tiles(t, { { ns.ICONS.deaths, "Tode", C.red }, { ns.ICONS.radar, "Erzfeind", C.amber },
-            { ns.ICONS.wants, "Mit Trank in der Tasche", C.blue }, { ns.ICONS.badges, "Ohne Tod seit", C.mint } })
+        tiles(t, { { ns.ICONS.deaths, "Deaths", C.red }, { ns.ICONS.radar, "Nemesis", C.amber },
+            { ns.ICONS.wants, "With a potion in the bag", C.blue }, { ns.ICONS.badges, "Without dying for", C.mint } })
         t.list = iconList(t, 52)
         t.list:SetPoint("TOPLEFT", 0, -76)
         t.list:SetPoint("BOTTOMRIGHT")
-        t.list.empty:SetText(L["Noch kein Tod - weiter so!"])
+        t.list.empty:SetText(L["No death yet - keep it up!"])
 
         -------------------------------------------------- Gold
         local g = sub(p, "gold")
-        tiles(g, { { ns.ICONS.trade, "Heute", C.amber }, { ns.ICONS.trade, "7 Tage", C.mint },
-            { ns.ICONS.trade, "30 Tage", C.blue }, { ns.ICONS.bank, "Insgesamt verdient", C.accent } })
+        tiles(g, { { ns.ICONS.trade, "Today", C.amber }, { ns.ICONS.trade, "7 days", C.mint },
+            { ns.ICONS.trade, "30 days", C.blue }, { ns.ICONS.bank, "Earned in total", C.accent } })
         g.range = 7
-        g.rseg = K.Segments(g, { { key = 1, text = L["Heute"] }, { key = 7, text = L["7 Tage"] }, { key = 30, text = L["30 Tage"] }, { key = 9999, text = L["Alles"] } },
+        g.rseg = K.Segments(g, { { key = 1, text = L["Today"] }, { key = 7, text = L["7 days"] }, { key = 30, text = L["30 days"] }, { key = 9999, text = L["All"] } },
             function(k) g.range = k refresh() end, nil, { size = 11, pad = 14 })
         g.rseg:SetPoint("TOPLEFT", 0, -74)
         g.spark = CreateFrame("Frame", nil, g)
@@ -1265,28 +1265,28 @@ ns.RegisterPage({
         g.out = iconList(g, 40)   -- 0.6.461: mehr Luft zwischen Name und Prozent
         g.out:SetPoint("TOPLEFT", g, "TOP", 6, -130)
         g.out:SetPoint("BOTTOMRIGHT")
-        g.h1 = K.GameHead(g, L["Einnahmen"], C.mint)
+        g.h1 = K.GameHead(g, L["income"], C.mint)
         g.h1:SetPoint("TOPLEFT", 0, -106)
         g.h1:SetWidth(300)
-        g.h2 = K.GameHead(g, L["Ausgaben"], C.red)
+        g.h2 = K.GameHead(g, L["Expenses"], C.red)
         g.h2:SetPoint("TOPLEFT", g, "TOP", 6, -106)
         g.h2:SetWidth(300)
 
         -------------------------------------------------- Ziele
         local z = sub(p, "goals")
         z.kind = "level"
-        z.kseg = K.Segments(z, { { key = "level", text = L["Stufe"] }, { key = "gold", text = L["Gold"] }, { key = "prof", text = L["Beruf"] },
-            { key = "item", text = L["Item"] }, { key = "run", text = L["Dungeon"] }, { key = "free", text = L["Frei"] } },
-            function(k) z.kind = k z.hint:SetText(L[({ level = "Zielstufe, z.B. 42", gold = "Gold, z.B. 100", prof = "Beruf und Stufe, z.B. Schneiderei 225",
-                item = "Item-Link oder Name (+ Anzahl am Ende)", run = "Dungeon und Anzahl Laeufe, z.B. Kloster 5", free = "Was willst du schaffen?" })[k]]) end,
+        z.kseg = K.Segments(z, { { key = "level", text = L["Item level"] }, { key = "gold", text = L["Gold"] }, { key = "prof", text = L["Profession"] },
+            { key = "item", text = L["Item"] }, { key = "run", text = L["Dungeon"] }, { key = "free", text = L["Custom"] } },
+            function(k) z.kind = k z.hint:SetText(L[({ level = "Target level, e.g. 42", gold = "Gold, e.g. 100", prof = "Profession and skill, e.g. Tailoring 225",
+                item = "Item link or name (+ amount at the end)", run = "Dungeon and number of runs, e.g. Monastery 5", free = "What do you want to achieve?" })[k]]) end,
             nil, { size = 11, pad = 14 })
         z.kseg:SetPoint("TOPLEFT", 0, 0)
         z.input = K.Input(z, 330, "", nil)
         z.input:SetPoint("TOPLEFT", 0, -32)
         z.hint = K.Text(z, 11, C.muted)
         z.hint:SetPoint("LEFT", z.input, "RIGHT", 120, 0)
-        z.hint:SetText(L["Zielstufe, z.B. 42"])
-        z.add = K.Button(z, L["Ziel anlegen"], 110, 24, "primary", function() Life.AddFromInput(z.kind, z.input:GetText()) z.input:SetText("") z.input:ClearFocus() end)
+        z.hint:SetText(L["Target level, e.g. 42"])
+        z.add = K.Button(z, L["Add goal"], 110, 24, "primary", function() Life.AddFromInput(z.kind, z.input:GetText()) z.input:SetText("") z.input:ClearFocus() end)
         z.add:SetPoint("LEFT", z.input, "RIGHT", 6, 0)
         z.input:SetScript("OnEnterPressed", function() z.add:Click() end)
         -- Item-Link per Shift-Klick einfuegen
@@ -1298,12 +1298,12 @@ ns.RegisterPage({
         z.list = iconList(z, 40)
         z.list:SetPoint("TOPLEFT", 0, -66)
         z.list:SetPoint("BOTTOMRIGHT")
-        z.list.empty:SetText(L["Noch keine Ziele. Leg oben eins an - Oasis hakt es automatisch ab."])
+        z.list.empty:SetText(L["No goals yet. Add one above - Oasis ticks it off automatically."])
 
         -------------------------------------------------- Was tun?
         local w = sub(p, "todo")
         w.budget = "60"
-        w.bseg = K.Segments(w, { { key = "30", text = L["30 Minuten"] }, { key = "60", text = L["1 Stunde"] }, { key = "120", text = L["2+ Stunden"] } },
+        w.bseg = K.Segments(w, { { key = "30", text = L["30 minutes"] }, { key = "60", text = L["1 hour"] }, { key = "120", text = L["2+ hours"] } },
             function(k) w.budget = k refresh() end, nil, { size = 12, pad = 18 })
         w.bseg:SetPoint("TOPLEFT", 0, 0)
         w.info = K.Text(w, 11, C.muted, "RIGHT")
@@ -1311,7 +1311,7 @@ ns.RegisterPage({
         w.list = iconList(w, 46)
         w.list:SetPoint("TOPLEFT", 0, -34)
         w.list:SetPoint("BOTTOMRIGHT")
-        w.list.empty:SetText(L["Gerade nichts Besonderes - einfach losziehen!"])
+        w.list.empty:SetText(L["Nothing special right now - just head out!"])
 
         -------------------------------------------------- Jahrbuch (2026: Glas-Hero + gruppierte Kacheln + Highlights)
         local y = sub(p, "year")
@@ -1397,10 +1397,10 @@ ns.RegisterPage({
         -- 0.6.370: Farbe je Gruppe (Symbol im Farbkreis wie die Werte-Kacheln im Profil)
         local GCOL = { { 0.93, 0.32, 0.34 }, { 0.95, 0.72, 0.38 }, { 0.95, 0.82, 0.35 }, { 0.62, 0.48, 0.95 } }
         local GROUPS = {
-            { "Kampf", { { "kills", "raid", "Gegner besiegt" }, { "bosses", "dungeons", "Bosse besiegt" }, { "deaths", "deaths", "Tode" } } },
-            { "Abenteuer", { { "runs", "dungeons", "Dungeon-Laeufe" }, { "quests", "checklist", "Quests abgeschlossen" }, { "zones", "map", "Gebiete entdeckt" } } },
-            { "Gold", { { "goldIn", "bank", "Gold verdient" }, { "goldOut", "bank", "Gold ausgegeben" } } },
-            { "Meilensteine", { { "recs", "badges", "Persoenliche Rekorde" }, { "goals", "pin", "Ziele erreicht" } } },
+            { "Fight", { { "kills", "raid", "Enemies killed" }, { "bosses", "dungeons", "Bosses defeated" }, { "deaths", "deaths", "Deaths" } } },
+            { "Adventure", { { "runs", "dungeons", "Dungeon runs" }, { "quests", "checklist", "Quests completed" }, { "zones", "map", "Zones discovered" } } },
+            { "Gold", { { "goldIn", "bank", "Gold earned" }, { "goldOut", "bank", "Gold spent" } } },
+            { "Milestones", { { "recs", "badges", "Personal records" }, { "goals", "pin", "Goals reached" } } },
         }
         y.groups, y.tiles = {}, {}
         for gi, g in ipairs(GROUPS) do
@@ -1439,7 +1439,7 @@ ns.RegisterPage({
         end
 
         -- Highlights: drei breitere Karten mit Text statt Zahl
-        local HL = { { "fav", "dungeons", "Lieblingsdungeon" }, { "nem", "deaths", "Erzfeind" }, { "buddy", "groups", "Bester Mitspieler" } }
+        local HL = { { "fav", "dungeons", "Favourite dungeon" }, { "nem", "deaths", "Nemesis" }, { "buddy", "groups", "Best companion" } }
         y.hl = {}
         for i, d in ipairs(HL) do
             local c = CreateFrame("Frame", nil, y.body)
@@ -1498,15 +1498,15 @@ ns.RegisterPage({
             b.hl:SetColorTexture(1, 1, 1, 0.05)
             if K.RoundMask then K.RoundMask(b.hl, b, 9) end
         end
-        y.share = K.Button(y, L["Im Gildenchat teilen"], 170, 28, "ghost", function()
+        y.share = K.Button(y, L["Share in guild chat"], 170, 28, "ghost", function()
             if IsInGuild() then SendChatMessage(Life.YearbookText(), "GUILD") end
         end)
         y.share:SetPoint("BOTTOMLEFT", 0, 4)
         glassBtn(y.share, true)
-        y.copy = K.Button(y, L["Als Text kopieren"], 150, 28, "ghost", function() ask(L["Strg+C zum Kopieren"], Life.YearbookText()) end)
+        y.copy = K.Button(y, L["Copy as text"], 150, 28, "ghost", function() ask(L["Ctrl+C to copy"], Life.YearbookText()) end)
         y.copy:SetPoint("LEFT", y.share, "RIGHT", 8, 0)
         glassBtn(y.copy)
-        y.played = K.Button(y, L["/played abfragen"], 140, 28, "ghost", function() if RequestTimePlayed then RequestTimePlayed() end ns.After(1, refresh) end)
+        y.played = K.Button(y, L["Ask /played"], 140, 28, "ghost", function() if RequestTimePlayed then RequestTimePlayed() end ns.After(1, refresh) end)
         y.played:SetPoint("LEFT", y.copy, "RIGHT", 8, 0)
         glassBtn(y.played)
 
@@ -1573,7 +1573,7 @@ function Life.RefreshRecords(r, l)
             if (rec.t or 0) > now() - 7 * DAY then week = week + 1 end
         end
         data[#data + 1] = { icon = def[4], title = L[def[1]] .. (rec and rec.x and rec.x.label and ("  |cff888888" .. rec.x.label .. "|r") or ""),
-            sub = rec and ((L["aufgestellt am %s"]):format(fmtDate(rec.t)) .. (rec.prev and ("  ·  " .. L["vorher"] .. " " .. def[3](rec.prev)) or "")) or L["noch kein Wert"],
+            sub = rec and ((L["set on %s"]):format(fmtDate(rec.t)) .. (rec.prev and ("  ·  " .. L["before"] .. " " .. def[3](rec.prev)) or "")) or L["no value yet"],
             val = rec and def[3](rec.v) or "–", up = up, none = not rec }
     end
     if r.rt then
@@ -1586,7 +1586,7 @@ function Life.RefreshRecords(r, l)
     table.sort(runs, function(a, b) return (a.x and a.x.name or "") < (b.x and b.x.name or "") end)
     for _, rec in ipairs(runs) do
         data[#data + 1] = { icon = "Interface\\Icons\\INV_Misc_Key_03", title = rec.x and rec.x.label or "?",
-            sub = (L["aufgestellt am %s"]):format(fmtDate(rec.t)) .. (rec.prev and ("  ·  " .. L["vorher"] .. " " .. fmtDur(rec.prev)) or ""), val = fmtDur(rec.v) }
+            sub = (L["set on %s"]):format(fmtDate(rec.t)) .. (rec.prev and ("  ·  " .. L["before"] .. " " .. fmtDur(rec.prev)) or ""), val = fmtDur(rec.v) }
     end
     r.list:SetData(data)
 end
@@ -1611,25 +1611,25 @@ function Life.RefreshDungeons(d, l)
     d.tiles[3]:Set(deaths)
     d.tiles[4]:Set(loot)
     if l.cur then
-        d.cur:SetText((L["Laeuft gerade: %s - %s, %d Bosse, %d Tode"]):format(l.cur.name, fmtDur(now() - l.cur.start), l.cur.bosses or 0, l.cur.deaths or 0))
+        d.cur:SetText((L["Running now: %s - %s, %d bosses, %d deaths"]):format(l.cur.name, fmtDur(now() - l.cur.start), l.cur.bosses or 0, l.cur.deaths or 0))
     else d.cur:SetText("") end
     table.sort(order, function(a, b) return a.n > b.n end)
     local data = {}
     for _, s in ipairs(order) do
         local mate, mn
         for n, c in pairs(s.mates) do if not mn or c > mn then mate, mn = n, c end end
-        local parts = { (L["%d Laeufe"]):format(s.n) }
-        if s.best then parts[#parts + 1] = L["Bestzeit"] .. " " .. fmtDur(s.best) parts[#parts + 1] = L["Schnitt"] .. " " .. fmtDur(s.dur / s.durN) end
-        parts[#parts + 1] = (L["%d Bosse"]):format(s.bosses)
-        parts[#parts + 1] = (L["%d Tode"]):format(s.deaths)
-        parts[#parts + 1] = (L["%d Beute"]):format(s.loot)
+        local parts = { (L["%d runs"]):format(s.n) }
+        if s.best then parts[#parts + 1] = L["Best"] .. " " .. fmtDur(s.best) parts[#parts + 1] = L["Avg"] .. " " .. fmtDur(s.dur / s.durN) end
+        parts[#parts + 1] = (L["%d bosses"]):format(s.bosses)
+        parts[#parts + 1] = (L["%d deaths"]):format(s.deaths)
+        parts[#parts + 1] = (L["%d loot"]):format(s.loot)
         local tip = { s.name, " " }
-        if mate then tip[#tip + 1] = (L["Haeufigster Mitspieler: %s (%dx)"]):format(ns.displayName and ns.displayName(mate) or mate, mn) end
+        if mate then tip[#tip + 1] = (L["Most frequent companion: %s (%dx)"]):format(ns.displayName and ns.displayName(mate) or mate, mn) end
         local key = s.key
         local okD, dd = pcall(function() return ns.Dungeons and ns.Dungeons.Get(key) end)
         if okD and dd and ns.Dungeons and ns.Dungeons.WantedLoot then
             local okW, w = pcall(ns.Dungeons.WantedLoot, dd)
-            if okW and #w > 0 then tip[#tip + 1] = (L["%d Items aus der Wunschliste droppen hier"]):format(#w) end
+            if okW and #w > 0 then tip[#tip + 1] = (L["%d wish list items drop here"]):format(#w) end
         end
         data[#data + 1] = { icon = "Interface\\Icons\\INV_Misc_Key_03", title = s.name, sub = table.concat(parts, "  ·  "),
             val = relDay(s.last), tip = tip }
@@ -1646,24 +1646,24 @@ function Life.RefreshMates(m, l)
             local name = ns.displayName and ns.displayName(n) or n
             local cls = x.class and (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[x.class]) or ""
             local oc = ns.Contacts and ns.Contacts.Get(n)
-            local sub = (L["%d gemeinsame Laeufe"]):format(x.runs or 0) .. "  ·  " .. L["zuletzt"] .. ": " .. (x.lastName or "?")
+            local sub = (L["%d runs together"]):format(x.runs or 0) .. "  ·  " .. L["last"] .. ": " .. (x.lastName or "?")
             if x.note and x.note ~= "" then sub = sub .. "  ·  |cffffd100" .. x.note .. "|r" end
             data[#data + 1] = {
                 icon = x.class and ("Interface\\Icons\\ClassIcon_" .. x.class:sub(1, 1) .. x.class:sub(2):lower()) or nil,
                 title = "|cff" .. hex .. name .. "|r  |cff888888" .. cls .. (x.level and (" " .. x.level) or "") .. (x.guild and ("  <" .. x.guild .. ">") or "") .. "|r"
                     .. (oc and ("  " .. ns.Contacts.LOGO) or ""),
                 sub = sub, val = relDay(x.last or 0), runs = x.runs or 0, last = x.last or 0,
-                tip = oc and { name, "|cff66db9e" .. ns.Contacts.TipLine(oc) .. "|r", L["Linksklick: Notiz"], L["Rechtsklick: Fluestern / Einladen / Entfernen"] }
-                    or { name, L["Linksklick: Notiz"], L["Rechtsklick: Fluestern / Einladen / Entfernen"] },
+                tip = oc and { name, "|cff66db9e" .. ns.Contacts.TipLine(oc) .. "|r", L["Left-click: note"], L["Right-click: whisper / invite / remove"] }
+                    or { name, L["Left-click: note"], L["Right-click: whisper / invite / remove"] },
                 click = function(btn, row)
                     if btn == "RightButton" then
                         K.ShowMenu(row, {
-                            { text = L["Fluestern"], fn = function() ChatFrame_SendTell(n) end },
-                            { text = L["Einladen"], fn = function() if C_PartyInfo and C_PartyInfo.InviteUnit then C_PartyInfo.InviteUnit(n) elseif InviteUnit then InviteUnit(n) end end },
-                            { text = L["Entfernen"], fn = function() l.mates[n] = nil refresh() end },
+                            { text = L["Whisper"], fn = function() ChatFrame_SendTell(n) end },
+                            { text = L["Invite"], fn = function() if C_PartyInfo and C_PartyInfo.InviteUnit then C_PartyInfo.InviteUnit(n) elseif InviteUnit then InviteUnit(n) end end },
+                            { text = L["Remove"], fn = function() l.mates[n] = nil refresh() end },
                         })
                     else
-                        ask((L["Notiz zu %s"]):format(name), x.note or "", function(t) x.note = t ~= "" and t:sub(1, 120) or nil refresh() end)
+                        ask((L["Note on %s"]):format(name), x.note or "", function(t) x.note = t ~= "" and t:sub(1, 120) or nil refresh() end)
                     end
                 end,
             }
@@ -1688,16 +1688,16 @@ function Life.RefreshDeaths(t, l)
     t.tiles[4]:Set(fmtLong(l.stats.noDeathAcc or 0))
     local data = {}
     for _, e in ipairs(l.deaths) do
-        local head = (e.killer or L["Unbekannt"]) .. (e.klvl and e.klvl > 0 and ("  |cff888888" .. L["Stufe"] .. " " .. e.klvl .. (e.elite and " Elite" or "") .. "|r") or "")
+        local head = (e.killer or L["Unknown"]) .. (e.klvl and e.klvl > 0 and ("  |cff888888" .. L["Item level"] .. " " .. e.klvl .. (e.elite and " Elite" or "") .. "|r") or "")
         local parts = { e.inst or e.zone or "" }
-        if e.dur then parts[#parts + 1] = L["Kampf"] .. " " .. fmtDur(e.dur) end
-        parts[#parts + 1] = (e.group or 0) > 1 and (L["in Gruppe"]) or L["allein"]
+        if e.dur then parts[#parts + 1] = L["Fight"] .. " " .. fmtDur(e.dur) end
+        parts[#parts + 1] = (e.group or 0) > 1 and (L["in group"]) or L["solo"]
         local tips = {}
         for _, tk in ipairs(e.tips or {}) do tips[#tips + 1] = Life.TipText(tk) end
         local sub = table.concat(parts, "  ·  ")
         if #tips > 0 then sub = sub .. "  ·  |cffffb347" .. table.concat(tips, ", ") .. "|r" end
         data[#data + 1] = { icon = "Interface\\Icons\\Spell_Shadow_DeathScream", title = head, sub = sub,
-            val = relDay(e.t) .. " " .. date("%H:%M", e.t), tip = #tips > 0 and { L["Moegliche Ursachen"], unpack(tips) } or nil }
+            val = relDay(e.t) .. " " .. date("%H:%M", e.t), tip = #tips > 0 and { L["Possible causes"], unpack(tips) } or nil }
     end
     t.list:SetData(data)
 end
@@ -1718,7 +1718,7 @@ function Life.RefreshGold(g, l)
     local function netTile(tile, n)
         local inc, out = sum(n)
         tile:Set(plain(inc - out), (inc - out) < 0 and "-" or "+")
-        tile.tip = { L["Einnahmen"] .. ": " .. plain(inc), L["Ausgaben"] .. ": " .. plain(out) }
+        tile.tip = { L["income"] .. ": " .. plain(inc), L["Expenses"] .. ": " .. plain(out) }
     end
     netTile(g.tiles[1], 1)
     netTile(g.tiles[2], 7)
@@ -1737,7 +1737,7 @@ function Life.RefreshGold(g, l)
     end
     local outRows = rows(byOut, out)
     if #l.gold.big > 0 then
-        outRows[#outRows + 1] = { icon = false, title = "|cff888888" .. L["Groesste Ausgaben"] .. "|r" }
+        outRows[#outRows + 1] = { icon = false, title = "|cff888888" .. L["Largest expenses"] .. "|r" }
         for i = 1, math.min(8, #l.gold.big) do
             local b = l.gold.big[i]
             local cat = CAT[b.c] or CAT.other
@@ -1776,10 +1776,10 @@ function Life.AddFromInput(kind, text)
     local num = tonumber(text:match("(%d+)%s*$"))
     if kind == "level" then
         if not num then return end
-        Life.AddGoal({ kind = "level", arg = num, text = (L["Stufe %d erreichen"]):format(num) })
+        Life.AddGoal({ kind = "level", arg = num, text = (L["Reach level %d"]):format(num) })
     elseif kind == "gold" then
         if not num then return end
-        Life.AddGoal({ kind = "gold", arg = num, text = (L["%d Gold besitzen"]):format(num) })
+        Life.AddGoal({ kind = "gold", arg = num, text = (L["Own %d gold"]):format(num) })
     elseif kind == "prof" then
         local name = text:gsub("%s*%d+%s*$", "")
         Life.AddGoal({ kind = "prof", prof = name, arg = num or 300, text = ("%s %d"):format(name, num or 300) })
@@ -1795,7 +1795,7 @@ function Life.AddFromInput(kind, text)
         local d = ns.Dungeons and ns.Dungeons.Match and ns.Dungeons.Match(name)
         if not d then Life.AddGoal({ kind = "free", text = text }) return end
         local dn = (ns.lang == "de" and (d.nameDE or d.de)) or d.name
-        Life.AddGoal({ kind = "run", dkey = d.key, arg = num or 1, text = (L["%s %dx laufen"]):format(dn, num or 1) })
+        Life.AddGoal({ kind = "run", dkey = d.key, arg = num or 1, text = (L["Run %s %dx"]):format(dn, num or 1) })
     else
         Life.AddGoal({ kind = "free", text = text })
     end
@@ -1808,11 +1808,11 @@ function Life.RefreshGoals(z, l)
     table.sort(done, function(a, b) return (a.doneT or 0) > (b.doneT or 0) end)
     local function row(g)
         local cur, max = Life.GoalProgress(g)
-        local val = g.done and ("|cff66db9e" .. L["geschafft"] .. "|r") or (g.kind ~= "free" and (math.min(cur, max) .. " / " .. max) or "")
+        local val = g.done and ("|cff66db9e" .. L["done"] .. "|r") or (g.kind ~= "free" and (math.min(cur, max) .. " / " .. max) or "")
         return { icon = g.done and "Interface\\RaidFrame\\ReadyCheck-Ready" or (g.item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(g.item)) or "Interface\\Icons\\Achievement_General",
             title = g.done and ("|cff888888" .. g.text .. "|r") or g.text,
-            sub = g.done and ((L["erreicht am %s"]):format(fmtDate(g.doneT))) or ((L["angelegt am %s"]):format(fmtDate(g.t)) .. (g.kind == "free" and ("  ·  " .. L["Klick: abhaken"]) or "")),
-            val = val, tip = { g.text, L["Linksklick: abhaken / zurueck"], L["Rechtsklick: loeschen"] },
+            sub = g.done and ((L["reached on %s"]):format(fmtDate(g.doneT))) or ((L["added on %s"]):format(fmtDate(g.t)) .. (g.kind == "free" and ("  ·  " .. L["Click: tick off"]) or "")),
+            val = val, tip = { g.text, L["Left-click: tick off / undo"], L["Right-click: delete"] },
             click = function(btn)
                 if btn == "RightButton" then
                     for i, x in ipairs(l.goals) do if x == g then table.remove(l.goals, i) break end end
@@ -1823,7 +1823,7 @@ function Life.RefreshGoals(z, l)
     end
     for _, g in ipairs(open) do data[#data + 1] = row(g) end
     if #done > 0 then
-        data[#data + 1] = { icon = false, title = "|cff888888" .. (L["Erreicht (%d)"]):format(#done) .. "|r" }
+        data[#data + 1] = { icon = false, title = "|cff888888" .. (L["Reached (%d)"]):format(#done) .. "|r" }
         for _, g in ipairs(done) do data[#data + 1] = row(g) end
     end
     z.list:SetData(data)
@@ -1836,7 +1836,7 @@ function Life.RefreshTodo(w, l)
         data[#data + 1] = { icon = s.icon, title = s.title, sub = s.sub, val = "~" .. (s.min >= 60 and (("%dh"):format(s.min / 60)) or (s.min .. " min")),
             click = s.page and function() ns.ShowPage(s.page) end or nil }
     end
-    w.info:SetText((L["Stufe %d · %d Vorschlaege"]):format(UnitLevel("player") or 0, #data))
+    w.info:SetText((L["Level %d · %d suggestions"]):format(UnitLevel("player") or 0, #data))
     w.list:SetData(data)
 end
 
@@ -1846,16 +1846,16 @@ function Life.RefreshYear(y, l)
     local cr, cg, cb = ns.classColor(ns.safe and ns.safe(classFile) or classFile)
     cr, cg, cb = cr or 0.7, cg or 0.7, cb or 0.7
     local yr = date("%Y")
-    y.kicker:SetText((L["Jahrbuch %s"]):format(yr))
+    y.kicker:SetText((L["Yearbook %s"]):format(yr))
     y.name:SetText(b.name or "?")
-    y.cls:SetText((L["Stufe %d %s"]):format(b.level or 0, b.className or ""))
+    y.cls:SetText((L["Level %d %s"]):format(b.level or 0, b.className or ""))
     y.cls:SetTextColor(cr, cg, cb)
     local days = b.created and math.max(1, math.floor((now() - b.created) / DAY) + 1) or nil
-    y.since:SetText(b.created and ((L["Mit Oasis seit %s"]):format(fmtDate(b.created)) .. "  ·  " .. (L["%d Tage"]):format(days)) or "")
+    y.since:SetText(b.created and ((L["With Oasis since %s"]):format(fmtDate(b.created)) .. "  ·  " .. (L["%d days"]):format(days)) or "")
     y.ring:SetVertexColor(cr, cg, cb, 0.55)
     if SetPortraitTexture then pcall(SetPortraitTexture, y.portrait, "player") end
     y.timeV:SetText((b.played or 0) > 0 and fmtLong(b.played) or "–")
-    y.timeL:SetText(l.played and L["/played gesamt"] or L["Spielzeit mit Oasis"])
+    y.timeL:SetText(l.played and L["/played total"] or L["Playtime with Oasis"])
     -- Zahlen: 0 leise in grau, Gold mit Muenzsymbolen (0 Gold = "–")
     local function n(v)
         v = tonumber(v) or 0
@@ -1871,11 +1871,11 @@ function Life.RefreshYear(y, l)
         zones = n(b.zones), goldIn = gold(b.goldIn), goldOut = gold(b.goldOut), recs = n(b.recs), goals = n(b.goals) }
     for k, t in pairs(y.tiles) do t.v:SetText(V[k] or "") end
     -- Highlights: Text statt Zahl, leer = freundlich in grau
-    local none = "|cff6b6b70" .. L["noch keiner"] .. "|r"
+    local none = "|cff6b6b70" .. L["none yet"] .. "|r"
     local HLV = {
-        fav = { b.fav, b.favN and (L["%d Laeufe"]):format(b.favN) },
-        nem = { b.nem, b.nemN and (L["%d Tode"]):format(b.nemN) },
-        buddy = { b.buddy and (ns.displayName and ns.displayName(b.buddy) or b.buddy), b.buddyN and (L["%d Laeufe"]):format(b.buddyN) },
+        fav = { b.fav, b.favN and (L["%d runs"]):format(b.favN) },
+        nem = { b.nem, b.nemN and (L["%d deaths"]):format(b.nemN) },
+        buddy = { b.buddy and (ns.displayName and ns.displayName(b.buddy) or b.buddy), b.buddyN and (L["%d runs"]):format(b.buddyN) },
     }
     for _, c in ipairs(y.hl) do
         local d = HLV[c.key] or {}
@@ -1889,15 +1889,15 @@ end
 -- Bereichs-Einstellungen
 if ns.AddPageSettings then
     ns.AddPageSettings("life", function(det, y)
-        local t1 = K.Toggle(det, L["Hinweis bei neuem persoenlichen Rekord"], function() return S().lifeRecToast ~= false end, function(v) S().lifeRecToast = v end)
+        local t1 = K.Toggle(det, L["Notify on new personal record"], function() return S().lifeRecToast ~= false end, function(v) S().lifeRecToast = v end)
         t1:SetPoint("TOPLEFT", 14, y)
         t1:SetWidth(600)
         y = y - 30
-        local t2 = K.Toggle(det, L["Tod-Analyse nach jedem Tod als Hinweis"], function() return S().lifeDeathToast ~= false end, function(v) S().lifeDeathToast = v end)
+        local t2 = K.Toggle(det, L["Death analysis as a notice after each death"], function() return S().lifeDeathToast ~= false end, function(v) S().lifeDeathToast = v end)
         t2:SetPoint("TOPLEFT", 14, y)
         t2:SetWidth(600)
         y = y - 30
-        local b = K.Button(det, L["Reise-Eintraege leeren"], 170, 24, "ghost", function()
+        local b = K.Button(det, L["Clear journey entries"], 170, 24, "ghost", function()
             local l = db()
             if l then l.events = {} refresh() end
         end)

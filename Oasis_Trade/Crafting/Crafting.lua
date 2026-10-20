@@ -61,10 +61,10 @@ local Crafting = {}
 ns.Crafting = Crafting
 
 -- Gilden-Optionen (Gildenleitung)
-ns.GuildOption({ page = "crafting", key = "crOffMod", default = true, lead = true, label = "Offiziere verwalten fremde Auftraege",
-    desc = "Offiziere duerfen Auftraege anderer Mitglieder stornieren und erledigte entfernen" })
-ns.GuildOption({ page = "crafting", key = "crBdgMax", default = 5, min = 1, max = 20, step = 1, label = "Abzeichen-Zaehlung je Auftrag",
-    desc = "So viele Stueck eines Auftrags zaehlen hoechstens fuer das Handwerker-Abzeichen",
+ns.GuildOption({ page = "crafting", key = "crOffMod", default = true, lead = true, label = "Officers manage others' orders",
+    desc = "Officers may cancel other members' orders and remove finished ones" })
+ns.GuildOption({ page = "crafting", key = "crBdgMax", default = 5, min = 1, max = 20, step = 1, label = "Badge count per order",
+    desc = "At most this many pieces of an order count toward the crafter badge",
     fmt = function(v) return v .. " Stk" end })
 local function canModerate() return ns.isOfficer() and ns.GuildOpt("crOffMod") ~= false end
 
@@ -335,15 +335,15 @@ end
 -- Auftraege
 ------------------------------------------------------------------------
 local STATUS = {
-    open = { "Offen", C.amber },
-    accepted = { "In Arbeit", C.blue },
-    done = { "Fertig", C.mint },
-    cancel = { "Storniert", C.dim },
-    declined = { "Abgelehnt", C.red },
+    open = { "Open", C.amber },
+    accepted = { "In progress", C.blue },
+    done = { "Done", C.mint },
+    cancel = { "Cancelled", C.dim },
+    declined = { "Declined", C.red },
 }
 ns.Relabel(function()
-    STATUS.open[1], STATUS.accepted[1], STATUS.done[1] = L["Offen"], L["In Arbeit"], L["Fertig"]
-    STATUS.cancel[1], STATUS.declined[1] = L["Storniert"], L["Abgelehnt"]
+    STATUS.open[1], STATUS.accepted[1], STATUS.done[1] = L["Open"], L["In progress"], L["Done"]
+    STATUS.cancel[1], STATUS.declined[1] = L["Cancelled"], L["Declined"]
 end)
 -- offene Auftraege an alle: "ablehnen" blendet sie nur fuer dich aus
 local function hiddenForMe(o)
@@ -376,19 +376,19 @@ ns.Listen("STORE", function(coll, rec, old)
     local me = ns.me()
     if not old and not rec.del and rec.from ~= me and Crafting.Relevant(rec) then
         ns.Sound.Next("order")
-        K.Toast(L["Neuer Handwerks-Auftrag"], (L["%s moechte %dx %s"]):format(ns.displayName(rec.from), rec.qty or 1, Crafting.OrderName(rec)), C.amber,
+        K.Toast(L["New crafting order"], (L["%s wants %dx %s"]):format(ns.displayName(rec.from), rec.qty or 1, Crafting.OrderName(rec)), C.amber,
             function() ns.ShowPage("crafting") end)
     elseif old and rec.from == me and old.status ~= rec.status and ns.db.settings.craftStatusToasts ~= false then
         if rec.status == "accepted" then
-            K.Toast(L["Auftrag angenommen"], (L["%s kuemmert sich um %s"]):format(ns.displayName(rec.worker or "?"), Crafting.OrderName(rec)), C.blue)
+            K.Toast(L["Order accepted"], (L["%s is working on %s"]):format(ns.displayName(rec.worker or "?"), Crafting.OrderName(rec)), C.blue)
         elseif rec.status == "done" then
             ns.Sound.Next("order")
-            K.Toast(L["Auftrag fertig!"], (L["%s hat %s hergestellt"]):format(ns.displayName(rec.worker or "?"), Crafting.OrderName(rec)), C.mint)
+            K.Toast(L["Order done!"], (L["%s crafted %s"]):format(ns.displayName(rec.worker or "?"), Crafting.OrderName(rec)), C.mint)
         elseif rec.status == "declined" then
-            K.Toast(L["Auftrag abgelehnt"], (L["%s kann %s gerade nicht herstellen"]):format(ns.displayName(rec.declinedBy or "?"), Crafting.OrderName(rec)), C.red,
+            K.Toast(L["Order declined"], (L["%s can't craft %s right now"]):format(ns.displayName(rec.declinedBy or "?"), Crafting.OrderName(rec)), C.red,
                 function() ns.ShowPage("crafting") end)
         elseif rec.status == "open" and old.status == "accepted" then
-            K.Toast(L["Auftrag zurueckgegeben"], (L["%s ist wieder offen fuer alle"]):format(Crafting.OrderName(rec)), C.amber)
+            K.Toast(L["Order returned"], (L["%s is open for everyone again"]):format(Crafting.OrderName(rec)), C.amber)
         end
     end
     ns.Debounce("craftStore", 0.4, function() updateBadge() ns.RefreshPage("crafting") end)
@@ -744,20 +744,20 @@ local QCOL = { [0] = { 0.62, 0.62, 0.62 }, [1] = { 0.86, 0.86, 0.88 }, [2] = { 0
 local H_HEAD, H_ROW, H_CRAFTER, H_ORDER = 26, 52, 34, 64   -- 0.6.464: Zeilen hoeher wie im Entwurf
 local TOP_Y = -2             -- Kacheln entfallen, Inhalt beginnt oben
 local MTABS = {
-    { key = "recipes", text = "Rezepte", glyph = ICO .. "crafting", color = C.accent },
-    { key = "crafters", text = "Handwerker", glyph = ICO .. "social", color = C.blue },
+    { key = "recipes", text = "Recipes", glyph = ICO .. "crafting", color = C.accent },
+    { key = "crafters", text = "Crafters", glyph = ICO .. "social", color = C.blue },
 }
 local OTABS = {
-    { key = "tome", text = "An mich", glyph = ICO .. "checklist", color = C.amber },
-    { key = "mine", text = "Meine", glyph = ICO .. "wants", color = C.blue },
-    { key = "open", text = "Alle offenen", glyph = ICO .. "crafting", color = C.accent },
-    { key = "done", text = "Erledigt", glyph = ICO .. "badges", color = C.mint },
+    { key = "tome", text = "For me", glyph = ICO .. "checklist", color = C.amber },
+    { key = "mine", text = "Mine", glyph = ICO .. "wants", color = C.blue },
+    { key = "open", text = "All open", glyph = ICO .. "crafting", color = C.accent },
+    { key = "done", text = "Done", glyph = ICO .. "badges", color = C.mint },
 }
 local TILES = {
-    { key = "recipes", label = "Rezepte", glyph = ICO .. "crafting", color = C.accent, tip = "Klick: alle Rezepte, Filter aufheben" },
-    { key = "crafters", label = "Handwerker", glyph = ICO .. "social", color = C.blue, tip = "Klick: Handwerker nach Beruf" },
-    { key = "mine", label = "Kannst du", glyph = ICO .. "badges", color = C.mint, tip = "Klick: nur Rezepte, die du kannst" },
-    { key = "tome", label = "Fuer dich offen", glyph = ICO .. "checklist", color = C.amber, tip = "Klick: Auftraege an dich" },
+    { key = "recipes", label = "Recipes", glyph = ICO .. "crafting", color = C.accent, tip = "Click: all recipes, clear filters" },
+    { key = "crafters", label = "Crafters", glyph = ICO .. "social", color = C.blue, tip = "Click: crafters by profession" },
+    { key = "mine", label = "You can", glyph = ICO .. "badges", color = C.mint, tip = "Click: only recipes you know" },
+    { key = "tome", label = "Open for you", glyph = ICO .. "checklist", color = C.amber, tip = "Click: orders for you" },
 }
 local page   -- Seitenrahmen nach dem Aufbau
 
@@ -844,7 +844,7 @@ local function recipeTip(owner, e, hint)
     if not ok then GameTooltip:SetText(e.name or "?", 1, 1, 1) end
     if e.crafters then
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(L["Wer kann's?"] .. "  " .. Crafting.CrafterText(e, 6), 0.85, 0.85, 0.85, true)
+        GameTooltip:AddLine(L["Who can craft it?"] .. "  " .. Crafting.CrafterText(e, 6), 0.85, 0.85, 0.85, true)
     end
     if hint then GameTooltip:AddLine("|cff777777" .. hint .. "|r", 1, 1, 1, true) end
     GameTooltip:Show()
@@ -876,23 +876,23 @@ end
 local function crafterMenu(owner, who)
     if not who or who == "" then return end
     local items = {
-        { text = L["Fluestern"], fn = function() ns.Whisper(who) end },
-        { text = L["In Gruppe einladen"], fn = function() ns.InviteName(who) end },
+        { text = L["Whisper"], fn = function() ns.Whisper(who) end },
+        { text = L["Invite to group"], fn = function() ns.InviteName(who) end },
     }
-    if ns.Profile and ns.Profile.Show then items[#items + 1] = { text = L["Profil ansehen"], fn = function() ns.Profile.Show(who) end } end
-    if ns.Talents then items[#items + 1] = { text = L["Talente ansehen"], fn = function() ns.Talents.Show(who) end } end
-    items[#items + 1] = { text = (L["Rezepte von %s zeigen"]):format(ns.displayName(who)), fn = function() showCrafterRecipes(who) end }
+    if ns.Profile and ns.Profile.Show then items[#items + 1] = { text = L["View profile"], fn = function() ns.Profile.Show(who) end } end
+    if ns.Talents then items[#items + 1] = { text = L["View talents"], fn = function() ns.Talents.Show(who) end } end
+    items[#items + 1] = { text = (L["Show recipes by %s"]):format(ns.displayName(who)), fn = function() showCrafterRecipes(who) end }
     K.ShowMenu(owner, items, ns.displayName(who), 190)
 end
 local function recipeMenu(owner, e)
     local items = {
-        { text = isFav(e) and L["Favorit entfernen"] or L["Als Favorit merken"], fn = function() toggleFav(e) end },
-        { text = L["Auswaehlen und Auftrag vorbereiten"], fn = function() selectRecipe(e) end },
+        { text = isFav(e) and L["Remove favourite"] or L["Mark as favourite"], fn = function() toggleFav(e) end },
+        { text = L["Select and prepare order"], fn = function() selectRecipe(e) end },
     }
-    if e.itemID then items[#items + 1] = { text = L["Im Chat verlinken"], fn = function() linkItem(e.itemID) end } end
+    if e.itemID then items[#items + 1] = { text = L["Link in chat"], fn = function() linkItem(e.itemID) end } end
     local pid = profIdOf(e.prof)
     if pid then
-        items[#items + 1] = { text = (L["Nur %s zeigen"]):format(e.prof), checked = profFilter == pid, fn = function()
+        items[#items + 1] = { text = (L["Show only %s"]):format(e.prof), checked = profFilter == pid, fn = function()
             profFilter = (profFilter ~= pid) and pid or nil
             redraw(true)
         end }
@@ -1170,7 +1170,7 @@ local function buildTile(parent, d, onClick)
     end
     t:SetScript("OnEnter", function(self)
         hover(true)
-        K.ShowTip(self, { L[d.label], "|cff888888" .. (self.sel and L["Klick: Filter aufheben"] or L[d.tip]) .. "|r" })
+        K.ShowTip(self, { L[d.label], "|cff888888" .. (self.sel and L["Click: clear filter"] or L[d.tip]) .. "|r" })
     end)
     t:SetScript("OnLeave", function() hover(false) GameTooltip:Hide() end)
     t:SetScript("OnClick", function() onClick(d.key) end)
@@ -1390,13 +1390,13 @@ local function newRecipeRow(TL)
     r.fav:SetScript("OnEnter", function(self)
         rowHover(r, true)
         local e = r.item and r.item.e
-        K.ShowTip(self, { isFav(e) and L["Favorit entfernen"] or L["Als Favorit merken"], L["Favoriten stehen immer oben."] })
+        K.ShowTip(self, { isFav(e) and L["Remove favourite"] or L["Mark as favourite"], L["Favourites always stay on top."] })
     end)
     r.fav:SetScript("OnLeave", function() GameTooltip:Hide() rowHover(r, false) end)
-    r.bCan = smallBadge(r, L["kannst du"], C.mint, function() onlyMine = not onlyMine redraw(true) end,
-        { L["kannst du"], "|cff888888" .. L["Klick: nur Rezepte, die du kannst"] .. "|r" })
-    r.bWant = smallBadge(r, L["gesucht"], C.amber, function() onlyWanted = not onlyWanted redraw(true) end,
-        { L["gesucht"], "|cff888888" .. L["Steht auf einer Wunschliste der Gilde. Klick: nur gesuchte Rezepte"] .. "|r" })
+    r.bCan = smallBadge(r, L["you can"], C.mint, function() onlyMine = not onlyMine redraw(true) end,
+        { L["you can"], "|cff888888" .. L["Click: only recipes you know"] .. "|r" })
+    r.bWant = smallBadge(r, L["wanted"], C.amber, function() onlyWanted = not onlyWanted redraw(true) end,
+        { L["wanted"], "|cff888888" .. L["On a guild wishlist. Click: only wanted recipes"] .. "|r" })
     r.onHover = function(self, on)
         local e = self.item and self.item.e
         if e and not isFav(e) then self.fav:SetAlpha(on and 0.75 or 0.3) end
@@ -1404,7 +1404,7 @@ local function newRecipeRow(TL)
     r:SetScript("OnEnter", function(self)
         rowHover(self, true)
         local e = self.item and self.item.e
-        if e then recipeTip(self, e, L["Klick: auswaehlen"] .. "  ·  " .. L["Shift-Klick: verlinken"] .. "  ·  " .. L["Rechtsklick: Aktionen"]) end
+        if e then recipeTip(self, e, L["Click: select"] .. "  ·  " .. L["Shift-click: link"] .. "  ·  " .. L["Right-click: actions"]) end
     end)
     r:SetScript("OnLeave", function(self) rowHover(self, false) end)
     r:SetScript("OnClick", function(self, btn)
@@ -1434,7 +1434,7 @@ local function fillRecipeRow(r, it)
     local list = it.crafters or {}
     r.cnt:ClearAllPoints()
     r.cnt:SetPoint("LEFT", r, "LEFT", cntX + 14, 0)
-    r.cnt:SetText((L["%d Handwerker"]):format(#list))
+    r.cnt:SetText((L["%d crafters"]):format(#list))
     local anyOn = (it.on or 0) > 0
     r.cntDot:SetVertexColor(anyOn and C.mint[1] or 0.45, anyOn and C.mint[2] or 0.45, anyOn and C.mint[3] or 0.48, 1)
     r.onl:ClearAllPoints()
@@ -1485,7 +1485,7 @@ local function newCrafterRow(TL)
         local x = self.item and self.item.x
         if not x then return end
         ns.Radar.ShowMemberTip(self, ns.Radar.byName[x.member] or { name = x.member, level = 0, zone = "", rank = "" })
-        GameTooltip:AddLine("|cff777777" .. L["Klick: Rezepte zeigen"] .. "  ·  " .. L["Rechtsklick: Aktionen"] .. "|r", 1, 1, 1, true)
+        GameTooltip:AddLine("|cff777777" .. L["Click: show recipes"] .. "  ·  " .. L["Right-click: actions"] .. "|r", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     r:SetScript("OnLeave", function(self) rowHover(self, false) end)
@@ -1515,7 +1515,7 @@ local function fillCrafterRow(r, it)
     local dc = x.online and C.mint or C.dim
     r.dot:SetVertexColor(dc[1], dc[2], dc[3])
     r.name:SetText(hl(ns.displayName(x.member), K.hex({ cr, cg, cb })))
-    r.sub:SetText(x.recipes > 0 and (L["%d Rezepte"]):format(x.recipes) or ("|cff666666" .. L["Rezepte unbekannt"] .. "|r"))
+    r.sub:SetText(x.recipes > 0 and (L["%d recipes"]):format(x.recipes) or ("|cff666666" .. L["recipes unknown"] .. "|r"))
     local maxed = x.max and x.rank and x.rank >= x.max
     r.rank:SetText((maxed and "|cffe8b44a" or "|cffc8c8c8") .. (x.rank or "?") .. "|r" .. (x.max and ("|cff777777 / " .. x.max .. "|r") or ""))
     local pct = math.max(0, math.min(1, (tonumber(x.rank) or 0) / math.max(1, tonumber(x.max) or 300)))
@@ -1530,11 +1530,11 @@ local function orderActs(o)
     local me = ns.me()
     local acts = {}
     if o.status == "open" and o.from ~= me and (ns.isMe(o.to) or ((o.to or "") == "" and Crafting.CanCraft(me, o.recipe, o.rid))) then
-        acts[#acts + 1] = { glyph = ICO .. "checklist", color = C.mint, primary = true, text = L["Annehmen"],
-            tip = { L["Annehmen"], L["Du stellst es her - der Auftraggeber bekommt Bescheid."] }, fn = function() setStatus(o, "accepted") end }
+        acts[#acts + 1] = { glyph = ICO .. "checklist", color = C.mint, primary = true, text = L["Accept"],
+            tip = { L["Accept"], L["You craft it - the customer is notified."] }, fn = function() setStatus(o, "accepted") end }
         -- Ablehnen: direkt an mich -> Auftraggeber bekommt Bescheid; an alle -> nur fuer mich ausblenden
-        acts[#acts + 1] = { cross = true, color = C.muted, text = L["Ablehnen"],
-            tip = { L["Ablehnen"], ns.isMe(o.to) and L["Der Auftraggeber bekommt Bescheid."] or L["Auftrag an alle - wird nur fuer dich ausgeblendet."] },
+        acts[#acts + 1] = { cross = true, color = C.muted, text = L["Decline"],
+            tip = { L["Decline"], ns.isMe(o.to) and L["The requester will be notified."] or L["Order for everyone - only hidden for you."] },
             fn = function()
                 if ns.isMe(o.to) then
                     setStatus(o, "declined")
@@ -1546,27 +1546,27 @@ local function orderActs(o)
                 end
             end }
     elseif o.status == "accepted" and o.worker == me then
-        acts[#acts + 1] = { tex = CHECK_TEX, color = C.mint, primary = true, text = L["Fertig"],
-            tip = { L["Fertig"], L["Der Auftraggeber bekommt Bescheid, dass es fertig ist."] }, fn = function() setStatus(o, "done") end }
+        acts[#acts + 1] = { tex = CHECK_TEX, color = C.mint, primary = true, text = L["Done"],
+            tip = { L["Done"], L["The customer is told it's ready."] }, fn = function() setStatus(o, "done") end }
         -- doch nicht schaffbar: zurueckgeben (an mich gerichtet -> abgelehnt, sonst wieder offen)
-        acts[#acts + 1] = { glyph = ICO .. "sync", color = C.amber, text = L["Zurueckgeben"],
-            tip = { L["Zurueckgeben"], L["Du schaffst es doch nicht - der Auftrag geht zurueck."] },
+        acts[#acts + 1] = { glyph = ICO .. "sync", color = C.amber, text = L["Return"],
+            tip = { L["Return"], L["You can't make it after all - the order goes back."] },
             fn = function() setStatus(o, ns.isMe(o.to) and "declined" or "open") end }
     end
     -- anfluestern: der jeweils andere
     local other = (o.from == me) and (o.worker or ((o.to or "") ~= "" and o.to) or nil) or o.from
     if other and not ns.isMe(other) then
-        acts[#acts + 1] = { glyph = ICO .. "badges\\chat", color = C.blue, text = L["Anfluestern"],
-            tip = { L["Anfluestern"], ns.displayName(other) }, fn = function() ns.Whisper(other, Crafting.OrderName(o) .. ": ") end }
+        acts[#acts + 1] = { glyph = ICO .. "badges\\chat", color = C.blue, text = L["Whisper"],
+            tip = { L["Whisper"], ns.displayName(other) }, fn = function() ns.Whisper(other, Crafting.OrderName(o) .. ": ") end }
     end
     local closed = o.status == "done" or o.status == "cancel" or o.status == "declined"
     if o.from == me or canModerate() then
         if closed then
-            acts[#acts + 1] = { glyph = ICO .. "eraser", color = C.red, text = L["Entfernen"],
-                tip = { L["Entfernen"], L["Erledigten Auftrag aus der Liste nehmen."] }, fn = function() Store.Delete("orders", o.id) end }
+            acts[#acts + 1] = { glyph = ICO .. "eraser", color = C.red, text = L["Remove"],
+                tip = { L["Remove"], L["Remove the finished order from the list."] }, fn = function() Store.Delete("orders", o.id) end }
         else
-            acts[#acts + 1] = { cross = true, color = C.red, text = L["Stornieren"],
-                tip = { L["Stornieren"], L["Der Auftrag wird fuer alle zurueckgezogen."] }, fn = function() setStatus(o, "cancel") end }
+            acts[#acts + 1] = { cross = true, color = C.red, text = L["Cancel"],
+                tip = { L["Cancel"], L["The order is withdrawn for everyone."] }, fn = function() setStatus(o, "cancel") end }
         end
     end
     return acts
@@ -1668,12 +1668,12 @@ local function newOrderCard(TL)
         local o = self.item and self.item.o
         if not o then return end
         local lines = { Crafting.OrderName(o) }
-        lines[#lines + 1] = L["Von: "] .. ns.Radar.Colored(o.from) .. (o.worker and ("   " .. L["Macht: "] .. ns.Radar.Colored(o.worker)) or "")
-        if o.mats then lines[#lines + 1] = "|cff66db9e" .. L["Material bringt der Auftraggeber mit"] .. "|r" end
-        if o.tip then lines[#lines + 1] = "|cffe8b44a" .. (L["Trinkgeld: %dg"]):format(o.tip) .. "|r" end
-        if (o.note or "") ~= "" then lines[#lines + 1] = L["Notiz: "] .. o.note end
-        lines[#lines + 1] = "|cff777777" .. L["erstellt "] .. ns.ago(o.created or o.u) .. "|r"
-        lines[#lines + 1] = "|cff777777" .. L["Klick: Rezept zeigen"] .. "  ·  " .. L["Rechtsklick: Aktionen"] .. "|r"
+        lines[#lines + 1] = L["From: "] .. ns.Radar.Colored(o.from) .. (o.worker and ("   " .. L["Crafter: "] .. ns.Radar.Colored(o.worker)) or "")
+        if o.mats then lines[#lines + 1] = "|cff66db9e" .. L["Customer brings the materials"] .. "|r" end
+        if o.tip then lines[#lines + 1] = "|cffe8b44a" .. (L["Tip: %dg"]):format(o.tip) .. "|r" end
+        if (o.note or "") ~= "" then lines[#lines + 1] = L["Note: "] .. o.note end
+        lines[#lines + 1] = "|cff777777" .. L["created "] .. ns.ago(o.created or o.u) .. "|r"
+        lines[#lines + 1] = "|cff777777" .. L["Click: show recipe"] .. "  ·  " .. L["Right-click: actions"] .. "|r"
         K.ShowTip(self, lines)
     end)
     r:SetScript("OnLeave", function(self) rowHover(self, false) end)
@@ -1684,7 +1684,7 @@ local function newOrderCard(TL)
             local items = {}
             for _, a in ipairs(orderActs(o)) do items[#items + 1] = { text = a.text, fn = a.fn } end
             local e = Crafting.ForItem(o.item ~= 0 and o.item or nil, Crafting.OrderName(o))
-            if e then items[#items + 1] = { text = L["Rezept zeigen"], fn = function() selectRecipe(e) end } end
+            if e then items[#items + 1] = { text = L["Show recipe"], fn = function() selectRecipe(e) end } end
             K.ShowMenu(self, items, Crafting.OrderName(o), 180)
             return
         end
@@ -1740,7 +1740,7 @@ local function fillOrderCard(r, it)
     r.title:SetWidth(math.max(30, math.min((r.title:GetStringWidth() or 100) + 2, avail)))
     r.badge:ClearAllPoints()
     r.badge:SetPoint("LEFT", r.title, "RIGHT", 6, 0)
-    local to = (o.to and o.to ~= "") and ns.Radar.Colored(o.to) or ("|cff888888" .. L["alle"] .. "|r")
+    local to = (o.to and o.to ~= "") and ns.Radar.Colored(o.to) or ("|cff888888" .. L["everyone"] .. "|r")
     if o.worker then to = ns.Radar.Colored(o.worker) end
     local ex = {}
     if o.mats then ex[#ex + 1] = "|cff66db9e" .. L["Mats"] .. "|r" end
@@ -1869,7 +1869,7 @@ local function buildVList(parent, kinds, withSticky)
                     r.item = it
                     if r.stripe then r.stripe:SetShown((it.idx or 0) % 2 == 0) end
                     local ok, err = pcall(kinds[it.t].fill, r, it)
-                    if not ok and ns.err then ns.err(L["Handwerks-Boerse"], err) end
+                    if not ok and ns.err then ns.err(L["Crafting"], err) end
                 end
             elseif it.y >= off + H and first then
                 if it.t == "head" and not nextH then nextH = it end
@@ -2010,11 +2010,11 @@ local function newCrafterChip(parent, p)
     b:SetScript("OnEnter", function(self)
         if not self.on then glass(self, 11, 0.08) end
         if self.who == "" then
-            K.ShowTip(self, { L["Alle, die es koennen"], "|cff888888" .. L["Der Auftrag geht an alle Handwerker mit diesem Rezept - wer Zeit hat, nimmt ihn an."] .. "|r" })
+            K.ShowTip(self, { L["Everyone who can"], "|cff888888" .. L["The order goes to every crafter with this recipe - whoever has time takes it."] .. "|r" })
         elseif self.who then
             ns.Radar.ShowMemberTip(self, ns.Radar.byName[self.who] or { name = self.who, level = 0, zone = "", rank = "" })
-            if self.blizz then GameTooltip:AddLine("|cff777777* " .. L["laut Blizzard-Gildenberufen, ohne Oasis"] .. "|r", 1, 1, 1, true) end
-            GameTooltip:AddLine("|cff777777" .. L["Klick: auswaehlen"] .. "  ·  " .. L["Rechtsklick: Fluestern, Einladen, Profil"] .. "|r", 1, 1, 1, true)
+            if self.blizz then GameTooltip:AddLine("|cff777777* " .. L["from Blizzard guild professions, without Oasis"] .. "|r", 1, 1, 1, true) end
+            GameTooltip:AddLine("|cff777777" .. L["Click: select"] .. "  ·  " .. L["Right-click: whisper, invite, profile"] .. "|r", 1, 1, 1, true)
             GameTooltip:Show()
         end
     end)
@@ -2031,7 +2031,7 @@ local function setCrafterChip(b, c, on, rank, nAll, animate)
         b.cls:SetTexCoord(0, 1, 0, 1)
         b.cls:SetVertexColor(C.accent[1], C.accent[2], C.accent[3])
         b.dot:Hide()
-        b.text:SetText(L["Alle, die es koennen"])
+        b.text:SetText(L["Everyone who can"])
         b.rank:SetText(nAll and nAll > 0 and tostring(nAll) or "")
     else
         local cr, cg, cb, cls = classRGB(c.name)
@@ -2109,13 +2109,13 @@ local function newMatRow(parent)
         if not pcall(GameTooltip.SetItemByID, GameTooltip, self.itemID) then GameTooltip:SetText(self.nm or "?", 1, 1, 1) end
         local s = self.stock or {}
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine((L["Gebraucht: %d"]):format(self.need or 0), 1, 0.85, 0.4)
-        GameTooltip:AddDoubleLine(L["Taschen"], tostring(s[1] or 0), 0.8, 0.8, 0.8, 1, 1, 1)
+        GameTooltip:AddLine((L["Needed: %d"]):format(self.need or 0), 1, 0.85, 0.4)
+        GameTooltip:AddDoubleLine(L["bags"], tostring(s[1] or 0), 0.8, 0.8, 0.8, 1, 1, 1)
         GameTooltip:AddDoubleLine(L["Bank"], tostring(s[2] or 0), 0.8, 0.8, 0.8, 1, 1, 1)
-        if (s[3] or 0) > 0 then GameTooltip:AddDoubleLine(L["Gildenbank"], tostring(s[3]), 0.8, 0.8, 0.8, 0.56, 0.73, 1) end
-        if (s[4] or 0) > 0 then GameTooltip:AddDoubleLine(L["Twinks"], tostring(s[4]), 0.8, 0.8, 0.8, 0.56, 0.73, 1) end
-        if self.priceText then GameTooltip:AddDoubleLine(L["Marktwert"], self.priceText, 0.8, 0.8, 0.8, 1, 1, 1) end
-        GameTooltip:AddLine("|cff777777" .. L["Shift-Klick: verlinken"] .. "|r", 1, 1, 1, true)
+        if (s[3] or 0) > 0 then GameTooltip:AddDoubleLine(L["Guild bank"], tostring(s[3]), 0.8, 0.8, 0.8, 0.56, 0.73, 1) end
+        if (s[4] or 0) > 0 then GameTooltip:AddDoubleLine(L["Alts"], tostring(s[4]), 0.8, 0.8, 0.8, 0.56, 0.73, 1) end
+        if self.priceText then GameTooltip:AddDoubleLine(L["Market value"], self.priceText, 0.8, 0.8, 0.8, 1, 1, 1) end
+        GameTooltip:AddLine("|cff777777" .. L["Shift-click: link"] .. "|r", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     m:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -2147,7 +2147,7 @@ local function buildCard(p)
     p.cAv.glow:Hide()
     p.cAvBtn = CreateFrame("Button", nil, bn)
     p.cAvBtn:SetAllPoints(p.cAv)
-    p.cAvBtn:SetScript("OnEnter", function(self) if selected then recipeTip(self, selected, L["Shift-Klick: verlinken"]) end end)
+    p.cAvBtn:SetScript("OnEnter", function(self) if selected then recipeTip(self, selected, L["Shift-click: link"]) end end)
     p.cAvBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     p.cAvBtn:SetScript("OnClick", function() if selected and linkClick() then linkItem(selected.itemID) end end)
     p.cName = K.Title(bn, 20, C.text)
@@ -2163,25 +2163,25 @@ local function buildCard(p)
     p.cFav.t:SetAllPoints()
     p.cFav.t:SetTexture(ns.MEDIA .. "icons\\star_on")
     p.cFav:SetScript("OnClick", function() toggleFav(selected) end)
-    p.cFav:SetScript("OnEnter", function(self) K.ShowTip(self, { isFav(selected) and L["Favorit entfernen"] or L["Als Favorit merken"], L["Favoriten stehen immer oben."] }) end)
+    p.cFav:SetScript("OnEnter", function(self) K.ShowTip(self, { isFav(selected) and L["Remove favourite"] or L["Mark as favourite"], L["Favourites always stay on top."] }) end)
     p.cFav:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- 1: Handwerker
-    p.h1 = sectionHead(body, 1, L["Handwerker waehlen"])
+    p.h1 = sectionHead(body, 1, L["Pick a crafter"])
     p.h1:SetPoint("TOPLEFT", 12, -112)
     p.h1:SetPoint("RIGHT", body, "RIGHT", -12, 0)
-    p.h1.right:SetText(L["Klick: waehlen  ·  Rechtsklick: Menue"])
+    p.h1.right:SetText(L["Click: choose  ·  Right-click: menu"])
     p.cChips = {}
     p.cMore = K.Text(body, 10, C.dim)
     -- 2: Material
-    p.h2 = sectionHead(body, 2, L["Material"])
+    p.h2 = sectionHead(body, 2, L["Materials"])
     p.cMats = {}
     p.matNone = K.Text(body, 11, C.dim)
     p.matNone:SetWordWrap(true)
-    p.matNone:SetText(L["Material erst bekannt, wenn jemand das Rezept kennt oder teilt."])
+    p.matNone:SetText(L["Materials show up once someone who knows the recipe shares it."])
 
     -- 3: Auftrag (unten verankert)
-    p.h3 = sectionHead(body, 3, L["Auftrag"])
+    p.h3 = sectionHead(body, 3, L["Order"])
     p.h3:SetPoint("BOTTOMLEFT", 12, 74)
     p.h3:SetPoint("RIGHT", body, "RIGHT", -12, 0)
     local function setQty(v)
@@ -2205,8 +2205,8 @@ local function buildCard(p)
     p.x5 = K.Button(body, "+5", 30, 22, "ghost", function() setQty(qty + 5) end)
     p.x5:SetPoint("LEFT", p.plus, "RIGHT", 4, 0)
     p.x5.label:SetFont(K.FONT, 11, "")
-    p.matChip = buildToggle(body, L["Mats dabei"], C.mint, function() return withMats end, function(v) withMats = v ns.RefreshPage("crafting") end,
-        { L["Mats dabei"], "|cff888888" .. L["Du bringst das Material mit - der Handwerker braucht nichts zu besorgen."] .. "|r" })
+    p.matChip = buildToggle(body, L["Bring mats"], C.mint, function() return withMats end, function(v) withMats = v ns.RefreshPage("crafting") end,
+        { L["Bring mats"], "|cff888888" .. L["You bring the materials - the crafter needs nothing."] .. "|r" })
     p.matChip:SetPoint("LEFT", p.x5, "RIGHT", 10, 0)
     tipBox = K.Input(body, 62, L["Gold"])
     tipBox:SetNumeric(true)
@@ -2217,7 +2217,7 @@ local function buildCard(p)
     tipBox.coin:SetTexture(GOLD_TEX)
     tipBox.coin:SetSize(12, 12)
     tipBox.coin:SetPoint("RIGHT", -6, 0)
-    tipBox:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Trinkgeld"], L["Wie viel Gold du dem Handwerker als Dank zahlst (freiwillig)."] }) end)
+    tipBox:SetScript("OnEnter", function(self) K.ShowTip(self, { L["Tip"], L["How much gold you pay the crafter as thanks (optional)."] }) end)
     tipBox:SetScript("OnLeave", function() GameTooltip:Hide() end)
     p.send = K.Button(body, "", 160, 26, "primary", function() if p.sendNow then p.sendNow() end end)
     p.send:SetPoint("BOTTOMRIGHT", -12, 12)
@@ -2228,11 +2228,11 @@ local function buildCard(p)
     p.send.check:Hide()
     p.send:HookScript("OnEnter", function(self)
         if not selected then return end
-        K.ShowTip(self, { L["Auftrag senden"], chosenCrafter and (L["an %s"]):format(ns.Radar.Colored(chosenCrafter)) or L["an alle, die es koennen"],
-            "|cff888888" .. qty .. "x " .. selected.name .. (withMats and ("  ·  " .. L["Mats dabei"]) or "") .. "|r" })
+        K.ShowTip(self, { L["Send order"], chosenCrafter and (L["to %s"]):format(ns.Radar.Colored(chosenCrafter)) or L["to everyone who can craft it"],
+            "|cff888888" .. qty .. "x " .. selected.name .. (withMats and ("  ·  " .. L["Bring mats"]) or "") .. "|r" })
     end)
     p.send:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    noteBox = K.Input(body, 200, L["Notiz, z.B. 'bis Freitag'"])
+    noteBox = K.Input(body, 200, L["Note, e.g. 'by Friday'"])
     noteBox:SetHeight(26)
     noteBox:SetPoint("BOTTOMLEFT", 12, 12)
     noteBox:SetPoint("RIGHT", p.send, "LEFT", -8, 0)
@@ -2243,7 +2243,7 @@ local function buildCard(p)
     p.cSteps = K.Text(p.cEmpty, 11, C.dim, "CENTER")
     p.cSteps:SetPoint("TOP", p.cEmpty.text, "BOTTOM", 0, -46)
     p.cSteps:SetWidth(320)
-    p.cSteps:SetText("|cffe8b44a1|r " .. L["Rezept finden"] .. "   |cffe8b44a2|r " .. L["Handwerker waehlen"] .. "   |cffe8b44a3|r " .. L["Auftrag senden"])
+    p.cSteps:SetText("|cffe8b44a1|r " .. L["Find a recipe"] .. "   |cffe8b44a2|r " .. L["Pick a crafter"] .. "   |cffe8b44a3|r " .. L["Send order"])
 end
 
 -- Karte fuellen (Breite/Hoehe aus p:Layout)
@@ -2253,13 +2253,13 @@ local function fillCard(p)
     p.cEmpty:SetShown(e == nil)
     if not e then
         local nw, nf = p.nWanted or 0, p.nFav or 0
-        p.cEmpty:Set("crafting", C.accent, L["Links ein Rezept anklicken"],
-            nw > 0 and (L["Gesucht: %d"]):format(nw) or L["Handwerker ansehen"], function()
+        p.cEmpty:Set("crafting", C.accent, L["Click a recipe on the left"],
+            nw > 0 and (L["Wanted: %d"]):format(nw) or L["View crafters"], function()
                 if nw > 0 then onlyWanted = true mode = "recipes" p.mode:Select("recipes", true)
                 else mode = "crafters" p.mode:Select("crafters", true) end
                 redraw(true)
             end,
-            nf > 0 and (L["Favoriten: %d"]):format(nf) or nil, function() onlyFav = true mode = "recipes" p.mode:Select("recipes", true) redraw(true) end)
+            nf > 0 and (L["Favorites: %d"]):format(nf) or nil, function() onlyFav = true mode = "recipes" p.mode:Select("recipes", true) redraw(true) end)
         p.cEmpty:Show()
         return
     end
@@ -2274,9 +2274,9 @@ local function fillCard(p)
     local pid = profIdOf(e.prof)
     local sub = (pid and ns.Radar.ProfIcon({ id = pid }, 12, C.muted) .. " " or "") .. e.prof
     local wanted = wantedBy(e)
-    if wanted then sub = sub .. "   |cffe8b44a" .. (L["gesucht von %s"]):format(ns.displayName(wanted[1])) .. (#wanted > 1 and (" +" .. (#wanted - 1)) or "") .. "|r" end
+    if wanted then sub = sub .. "   |cffe8b44a" .. (L["wanted by %s"]):format(ns.displayName(wanted[1])) .. (#wanted > 1 and (" +" .. (#wanted - 1)) or "") .. "|r" end
     local price = ns.Market and e.itemID and ns.Market.Text(e.itemID)
-    if price then sub = sub .. "   |cff888888" .. L["Markt"] .. " " .. price .. "|r" end
+    if price then sub = sub .. "   |cff888888" .. L["Market"] .. " " .. price .. "|r" end
     p.cSub:SetText(sub)
     local fv = isFav(e)
     p.cFav.t:SetVertexColor(fv and 1 or 0.6, fv and 0.82 or 0.6, fv and 0.3 or 0.62)
@@ -2327,7 +2327,7 @@ local function fillCard(p)
         p.cMore:Hide()
     end
     if #opts == 1 then
-        p.cMore:SetText("|cff888888" .. L["Noch niemand sonst kennt das Rezept."] .. "|r")
+        p.cMore:SetText("|cff888888" .. L["Nobody else knows this recipe yet."] .. "|r")
         p.cMore:ClearAllPoints()
         p.cMore:SetPoint("TOPLEFT", p.cBody, "TOPLEFT", x + 4, y - 5)
         p.cMore:Show()
@@ -2377,7 +2377,7 @@ local function fillCard(p)
             p.cMats[nShow + 1] = w
             w.itemID = nil
             w.icon:SetTexture(nil)
-            w.name:SetText("|cff777777" .. (L["+%d weitere Materialien"]):format(#mats - nShow) .. "|r")
+            w.name:SetText("|cff777777" .. (L["+%d more materials"]):format(#mats - nShow) .. "|r")
             w.have:SetText("")
             w.price:SetText("")
             w:ClearAllPoints()
@@ -2385,14 +2385,14 @@ local function fillCard(p)
             w:SetPoint("RIGHT", p.cBody, "RIGHT", -12, 0)
             w:Show()
         end
-        local line = total > 0 and ((known and "" or "≥ ") .. L["Materialwert "] .. "~" .. ns.Market.Format(total)) or ""
+        local line = total > 0 and ((known and "" or "≥ ") .. L["Material value "] .. "~" .. ns.Market.Format(total)) or ""
         -- lohnt sich das Herstellen? Verkaufspreis des fertigen Teils gegen die Materialkosten
         local sell = e.itemID and ns.Market and ns.Market.Price(e.itemID)
         if sell and total > 0 and known then
             local made = (e.yield or 1) * qty
             local diff = sell * made - total
-            line = line .. "  " .. (diff >= 0 and ("|cff66db9e" .. L["lohnt sich"] .. " +" .. ns.Market.Format(diff) .. "|r")
-                or ("|cffe8b44a" .. L["lieber kaufen"] .. " -" .. ns.Market.Format(-diff) .. "|r"))
+            line = line .. "  " .. (diff >= 0 and ("|cff66db9e" .. L["worth it"] .. " +" .. ns.Market.Format(diff) .. "|r")
+                or ("|cffe8b44a" .. L["better to buy"] .. " -" .. ns.Market.Format(-diff) .. "|r"))
         end
         p.h2.right:SetText(line)
     else
@@ -2413,17 +2413,17 @@ local function fillCard(p)
     local sent = p.sentUntil and GetTime() < p.sentUntil
     local label
     if sent then
-        label = L["Gesendet!"]
+        label = L["Sent!"]
     elseif chosenCrafter then
-        label = (L["Auftrag an %s senden"]):format(ns.displayName(chosenCrafter))
+        label = (L["Send order to %s"]):format(ns.displayName(chosenCrafter))
     else
-        label = L["Auftrag an alle senden"]
+        label = L["Send order to everyone"]
     end
     p.send:SetLabel(label)
     local maxW = RW - 24 - 130
     local w = (p.send.label:GetStringWidth() or 100) + (sent and 50 or 30)
     if w > maxW and not sent then
-        p.send:SetLabel(L["Auftrag senden"])
+        p.send:SetLabel(L["Send order"])
         w = (p.send.label:GetStringWidth() or 100) + 30
     end
     p.send:SetWidth(math.floor(math.max(100, math.min(maxW, w))))
@@ -2544,8 +2544,8 @@ local function profButton(p)
     end)
     b:SetScript("OnEnter", function(self)
         self:Paint(true)
-        K.ShowTip(self, { self.pname or "?", "|cff888888" .. (L["%d Rezepte"]):format(self.n or 0) .. "|r",
-            "|cff777777" .. (profFilter == self.pid and L["Klick: Filter aufheben"] or L["Klick: nur dieser Beruf"]) .. "|r" })
+        K.ShowTip(self, { self.pname or "?", "|cff888888" .. (L["%d recipes"]):format(self.n or 0) .. "|r",
+            "|cff777777" .. (profFilter == self.pid and L["Click: clear filter"] or L["Click: only this profession"]) .. "|r" })
     end)
     b:SetScript("OnLeave", function(self) self:Paint(false) GameTooltip:Hide() end)
     return b
@@ -2582,8 +2582,8 @@ local function onTile(k)
 end
 
 ns.RegisterPage({
-    key = "crafting", title = "Handwerks-Boerse", order = 2,
-    sub = "Wer kann was herstellen - Rezepte, Material, Preise und Auftraege der Gilde",
+    key = "crafting", title = "Crafting", order = 2,
+    sub = "Who can craft what – recipes, materials, prices and guild orders",
     build = function(p)
         page = p
         p.fresh = true
@@ -2605,7 +2605,7 @@ ns.RegisterPage({
         end)
         p.mode:SetPoint("TOPLEFT", 0, TOP_Y)
         p.mode:Select(mode)
-        p.search = K.Input(p, 170, L["Rezept oder Item suchen ..."], function(t)
+        p.search = K.Input(p, 170, L["Search recipe or item …"], function(t)
             local s = (t or ""):gsub("^%s+", ""):gsub("%s+$", "")
             if s == search then return end
             search = s
@@ -2617,7 +2617,7 @@ ns.RegisterPage({
             search = ""
             p.searchX:Hide()
             redraw(true)
-        end, L["Suche leeren"])
+        end, L["Clear search"])
         p.searchX:SetPoint("RIGHT", -5, 0)
         p.searchX:Hide()
 
@@ -2628,14 +2628,14 @@ ns.RegisterPage({
 
         -- Filter-Schalter mit Zaehlern
         p.chips = {
-            buildToggle(p, L["nur online"], C.mint, function() return onlyOnline end, function(v) onlyOnline = v redraw(true) end,
-                { L["nur online"], "|cff888888" .. L["Nur Rezepte, die gerade jemand online herstellen kann"] .. "|r" }),
-            buildToggle(p, L["kannst du"], C.blue, function() return onlyMine end, function(v) onlyMine = v redraw(true) end,
-                { L["kannst du"], "|cff888888" .. L["Nur Rezepte, die du selbst kannst"] .. "|r" }),
-            buildToggle(p, L["gesucht"], C.amber, function() return onlyWanted end, function(v) onlyWanted = v redraw(true) end,
-                { L["gesucht"], "|cff888888" .. L["Steht auf einer Wunschliste der Gilde"] .. "|r" }),
-            buildToggle(p, L["Favoriten"], C.pink, function() return onlyFav end, function(v) onlyFav = v redraw(true) end,
-                { L["Favoriten"], "|cff888888" .. L["Favoriten mit dem Stern merken"] .. "|r" }),
+            buildToggle(p, L["online only"], C.mint, function() return onlyOnline end, function(v) onlyOnline = v redraw(true) end,
+                { L["online only"], "|cff888888" .. L["Only recipes someone online can craft right now"] .. "|r" }),
+            buildToggle(p, L["you can"], C.blue, function() return onlyMine end, function(v) onlyMine = v redraw(true) end,
+                { L["you can"], "|cff888888" .. L["Only recipes you know yourself"] .. "|r" }),
+            buildToggle(p, L["wanted"], C.amber, function() return onlyWanted end, function(v) onlyWanted = v redraw(true) end,
+                { L["wanted"], "|cff888888" .. L["On a guild wishlist"] .. "|r" }),
+            buildToggle(p, L["Favourites"], C.pink, function() return onlyFav end, function(v) onlyFav = v redraw(true) end,
+                { L["Favourites"], "|cff888888" .. L["Mark favourites with the star"] .. "|r" }),
         }
         p.count = K.Text(p, 10, C.dim, "RIGHT")
 
@@ -2651,7 +2651,7 @@ ns.RegisterPage({
         p.cfStrip.x = K.IconButton(p.cfStrip, "x", 16, function()
             crafterFilter = nil
             redraw(true)
-        end, L["Filter aufheben"])
+        end, L["Clear filter"])
         p.cfStrip.x:SetPoint("RIGHT", -4, 0)
         p.cfStrip:Hide()
 
@@ -2664,13 +2664,13 @@ ns.RegisterPage({
         p.list = p.tl
         -- 0.6.464: Spaltenkoepfe ueber der Liste
         p.colHead = {}
-        for k, t in ipairs({ "Name", "Handwerker", "Online" }) do
+        for k, t in ipairs({ "Name", "Crafters", "Online" }) do
             local fs = K.Text(p, 11, C.dim)
             fs:SetText(L[t])
             p.colHead[k] = fs
         end
         p.ordTitle = K.Title(p, 16, C.text)
-        p.ordTitle:SetText(L["Auftragsuebersicht"])
+        p.ordTitle:SetText(L["Order overview"])
         p.ordBox = CreateFrame("Frame", nil, p)
         glass(p.ordBox, 12, 0.03)
         p.ordBox:SetFrameLevel(math.max(0, p:GetFrameLevel()))
@@ -2702,7 +2702,7 @@ ns.RegisterPage({
                 { mats = withMats or nil, tip = (tip and tip > 0) and tip or nil })
             noteBox:SetText("")
             tipBox:SetText("")
-            K.Toast(L["Auftrag gesendet"], n .. "x " .. e.name .. (to and (" > " .. ns.displayName(to)) or ""), C.accent)
+            K.Toast(L["Order sent"], n .. "x " .. e.name .. (to and (" > " .. ns.displayName(to)) or ""), C.accent)
             qty, withMats = 1, false
             flyToTab(p, e)
             p.sentUntil = GetTime() + 1.4
@@ -2855,7 +2855,7 @@ ns.RegisterPage({
         for i = 2, 4 do p.chips[i].want = mode == "recipes" end
         p.chips[1].want = true
         p.cfStrip:SetShown(crafterFilter ~= nil and mode == "recipes")
-        if crafterFilter then p.cfStrip.text:SetText((L["Rezepte von %s"]):format(ns.Radar.Colored(crafterFilter))) end
+        if crafterFilter then p.cfStrip.text:SetText((L["Recipes by %s"]):format(ns.Radar.Colored(crafterFilter))) end
 
         -- linke Liste: Kapitel je Beruf (Favoriten zuerst)
         local items = {}
@@ -2873,7 +2873,7 @@ ns.RegisterPage({
                     items[#items + 1] = { t = "crafter", key = "c:" .. tostring(x.pid) .. ":" .. x.member, h = H_CRAFTER, gap = 2, x = x, idx = idx }
                 end
             end
-            p.count:SetText((L["%d Handwerker"]):format(shownN))
+            p.count:SetText((L["%d crafters"]):format(shownN))
         else
             local recs = filteredRecipes()
             local favList, groups, order = {}, {}, {}
@@ -2899,7 +2899,7 @@ ns.RegisterPage({
                 end
             end
             if #favList > 0 then
-                items[#items + 1] = { t = "head", key = "h:fav", h = H_HEAD, label = L["Favoriten"], n = #favList, glyph = ns.MEDIA .. "diamond", color = C.amber }
+                items[#items + 1] = { t = "head", key = "h:fav", h = H_HEAD, label = L["Favourites"], n = #favList, glyph = ns.MEDIA .. "diamond", color = C.amber }
                 addRows(favList)
             end
             for _, g in ipairs(order) do
@@ -2907,7 +2907,7 @@ ns.RegisterPage({
                 addRows(g.list)
             end
             shownN = #recs
-            p.count:SetText(#recs ~= #index and (L["%d von %d"]):format(#recs, #index) or "")
+            p.count:SetText(#recs ~= #index and (L["%d of %d"]):format(#recs, #index) or "")
         end
         p.tl:SetItems(items, not (fresh or switch))
         p.tl:SetSel(selected and mode == "recipes" and ("r:" .. selected.name) or nil, p.selAnim)
@@ -2919,18 +2919,18 @@ ns.RegisterPage({
         p.empty:SetShown(#items == 0)
         if #items == 0 then
             if mode == "crafters" then
-                p.empty:Set("social", C.blue, L["Keine Berufe bekannt."], filtered and L["Filter zuruecksetzen"] or nil, function() onTile("recipes") end)
+                p.empty:Set("social", C.blue, L["No professions known."], filtered and L["Reset filters"] or nil, function() onTile("recipes") end)
             elseif filtered then
-                p.empty:Set("crafting", C.muted, L["Nichts gefunden - Filter lockern oder aufheben."], L["Filter zuruecksetzen"], function() onTile("recipes") end)
+                p.empty:Set("crafting", C.muted, L["Nothing found – loosen or clear the filters."], L["Reset filters"], function() onTile("recipes") end)
             else
-                p.empty:Set("crafting", C.accent, L["Noch keine Rezepte geteilt.\n\nSobald jemand mit Oasis sein Berufsfenster oeffnet, erscheinen die Rezepte hier. Wer welchen Beruf hat, siehst du schon jetzt:"],
-                    L["Handwerker ansehen"], function() mode = "crafters" p.mode:Select("crafters", true) redraw(true) end)
+                p.empty:Set("crafting", C.accent, L["No recipes shared yet.\n\nAs soon as someone with Oasis opens their profession window, the recipes show up here. Who has which profession you can already see:"],
+                    L["View crafters"], function() mode = "crafters" p.mode:Select("crafters", true) redraw(true) end)
             end
         end
 
         -- Rezept-Karte
         local ok, err = pcall(fillCard, p)
-        if not ok and ns.err then ns.err(L["Handwerks-Boerse"], err) end
+        if not ok and ns.err then ns.err(L["Crafting"], err) end
 
         -- Auftraege
         p.oTabs:SetCounts({ tome = #sets.tome, mine = #sets.mine, open = #sets.open, done = #sets.done })
@@ -2948,17 +2948,17 @@ ns.RegisterPage({
         p.oEmpty:SetShown(#oitems == 0)
         if #oitems == 0 then
             if orderFilter == "tome" then
-                p.oEmpty:Set("checklist", C.amber, L["Gerade will niemand etwas von dir."], #sets.open > 0 and L["Alle offenen ansehen"] or nil, function()
+                p.oEmpty:Set("checklist", C.amber, L["Nobody needs anything from you right now."], #sets.open > 0 and L["View all open"] or nil, function()
                     orderFilter = "open" p.oTabs:Select("open", true) p.oswitch = true ns.RefreshPage("crafting")
                 end)
             elseif orderFilter == "mine" then
-                p.oEmpty:Set("wants", C.blue, L["Du hast keine offenen Auftraege."], L["Rezept suchen"], function()
+                p.oEmpty:Set("wants", C.blue, L["You have no open orders."], L["Find a recipe"], function()
                     p.search:SetFocus()
                 end)
             elseif orderFilter == "open" then
-                p.oEmpty:Set("crafting", C.accent, L["Keine offenen Auftraege in der Gilde."], L["Rezept suchen"], function() p.search:SetFocus() end)
+                p.oEmpty:Set("crafting", C.accent, L["No open orders in the guild."], L["Find a recipe"], function() p.search:SetFocus() end)
             else
-                p.oEmpty:Set("badges", C.mint, L["Noch nichts erledigt."])
+                p.oEmpty:Set("badges", C.mint, L["Nothing completed yet."])
             end
         end
         p:Layout()

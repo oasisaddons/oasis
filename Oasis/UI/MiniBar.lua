@@ -137,7 +137,7 @@ for _, k in ipairs(QUICK_ALL) do QUICK[#QUICK + 1] = { key = k } end
 -- Buff-Monitor in der Leiste: oeffnet das kleine schwebende Fenster statt der grossen Seite
 for _, q in ipairs(QUICK) do
     if q.key == "buffs" then
-        q.tip = { "Buff-Monitor", "Klick: Fenster ein/aus", "Rechtsklick: Seite im Oasis-Fenster" }
+        q.tip = { "Buff monitor", "Click: window on/off", "Right-click: page in the Oasis window" }
         q.fn = function(btn)
             if btn == "RightButton" then ns.Expand("buffs") return end
             if ns.BuffMonitor and ns.BuffMonitor.Toggle then ns.BuffMonitor.Toggle() end
@@ -146,23 +146,23 @@ for _, q in ipairs(QUICK) do
 end
 -- Aktion statt Seite: Auto-Marker (nur in einer Gruppe sichtbar)
 QUICK[#QUICK + 1] = { key = "mark", action = true, icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8",
-    tip = { "Auto-Marker", "Linksklick: Gegner markieren (nochmal = Marken weg)", "Rechtsklick: Marken entfernen", "Shift + Klick: Auto-Marker-Fenster" },
+    tip = { "Auto marker", "Left-click: mark enemies (again = remove)", "Right-click: clear marks", "Shift + click: auto marker window" },
     -- kommt der Klick hier an, lag der sichere Knopf nicht darueber -> neu ausrichten
     fn = function()
         -- 0.5.735: Shift + Klick oeffnet das Fenster auch dann, wenn der sichere Knopf den Klick nicht abfaengt (Makro /oa mark button)
         if IsShiftKeyDown and IsShiftKeyDown() and ns.Marker and ns.Marker.Toggle then ns.Marker.Toggle() return end
-        if InCombatLockdown() then ns.print(ns.L["Auto-Marker: nach dem Kampf nochmal klicken."]) return end
+        if InCombatLockdown() then ns.print(ns.L["Auto marker: click again after combat."]) return end
         if ns.UpdateMiniBar then ns.UpdateMiniBar() end
-        ns.print(ns.L["Auto-Marker neu ausgerichtet - bitte nochmal klicken."])
+        ns.print(ns.L["Auto marker realigned - please click again."])
     end }
 
 -- Popout-Fenster ein/aus (Auto-Marker-Box, Buff-Monitor)
 QUICK[#QUICK + 1] = { key = "markbox", panel = true, icon = "Interface\\Icons\\Ability_Hunter_MarkedForDeath",
-    tip = { "Auto-Marker-Fenster", "Klick: Fenster ein/aus" },
+    tip = { "Auto marker window", "Click: window on/off" },
     fn = function() if ns.Marker and ns.Marker.Toggle then ns.Marker.Toggle() end end }
 -- fuer Einstellungen/Vorschau
 ns.MINI_QUICK_PANELS = {
-    { key = "markbox", label = "Auto-Marker-Fenster", icon = "Interface\\Icons\\Ability_Hunter_MarkedForDeath" },
+    { key = "markbox", label = "Auto marker window", icon = "Interface\\Icons\\Ability_Hunter_MarkedForDeath" },
 }
 
 local SNAP = 36   -- so nah am oberen Rand rastet die Leiste ein
@@ -454,7 +454,7 @@ local function build()
     local wm = ns.GuildLogo(logoBtn, 76, 19)
     wm:SetPoint("TOPLEFT")
     logoBtn:SetScript("OnClick", function() ns.Expand() end)
-    logoBtn:SetScript("OnEnter", function(self) K.ShowTip(self, { "Oasis", L["Klick: aufklappen"], L["Ziehen: verschieben (oben am Rand rastet sie ein)"] }) end)
+    logoBtn:SetScript("OnEnter", function(self) K.ShowTip(self, { "Oasis", L["Click: expand"], L["Drag: move (snaps to the top edge)"] }) end)
     logoBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     logoBtn:RegisterForDrag("LeftButton")
     logoBtn:SetScript("OnDragStart", function() bar:GetScript("OnDragStart")(bar) end)
@@ -486,7 +486,7 @@ local function build()
     end)
     bar.onlineBtn:SetScript("OnEnter", function(self)
         bar.online:SetTextColor(C.text[1], C.text[2], C.text[3])
-        K.ShowTip(self, L["Klick: wer gerade online ist"])
+        K.ShowTip(self, L["Click: who is online right now"])
     end)
     bar.onlineBtn:SetScript("OnLeave", function()
         bar.online:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
@@ -573,9 +573,9 @@ local function build()
     local function news() local _, _, lines = ns.NotifyTotal() return lines or {} end
     bar.hintBtn:SetScript("OnEnter", function(self)
         bar.hint:SetTextColor(C.text[1], C.text[2], C.text[3])
-        local tip = { L["Neuigkeiten"] }
+        local tip = { L["News"] }
         for i, l in ipairs(news()) do if i <= 8 then tip[#tip + 1] = l.text .. "  |cffffffff" .. l.n .. "|r" end end
-        tip[#tip + 1] = "|cff888888" .. L["Klick: oeffnen"] .. "|r"
+        tip[#tip + 1] = "|cff888888" .. L["Click: open"] .. "|r"
         K.ShowTip(self, tip)
     end)
     bar.hintBtn:SetScript("OnLeave", function()
@@ -592,7 +592,7 @@ local function build()
             local key = l.key
             items[#items + 1] = { text = l.text .. "  |cffff5a4a" .. l.n .. "|r", fn = function() ns.ShowPage(key) end }
         end
-        K.ShowMenu(self, items, L["Neuigkeiten"])
+        K.ShowMenu(self, items, L["News"])
     end)
     -- Kompakt-Stil (FuBar): Schriftzug statt Wortmarke, rechts Uhrzeit
     bar.label = K.Title(logoBtn, 12, C.accent)
@@ -794,7 +794,7 @@ function ns.UpdateMiniBar()
     C_Timer.After(0.1, function()
         mbPending = false
         local ok, e = pcall(updateMiniBarNow)
-        if not ok then ns.err("Topbar", e) end
+        if not ok then ns.err("Top bar", e) end
     end)
 end
 function ns.UpdateMiniBarNow() return updateMiniBarNow() end
@@ -931,7 +931,7 @@ function updateMiniBarNow()
     total = ns.NotifyTotal and ns.NotifyTotal() or 0
     bar.hint:ClearAllPoints()
     bar.hint:SetPoint("LEFT", bar, "LEFT", x + 6, 0)
-    bar.hint:SetText(total > 0 and (L["%d neu"]):format(total) or "")
+    bar.hint:SetText(total > 0 and (L["%d new"]):format(total) or "")
     if bar.hintBtn then bar.hintBtn:SetShown(total > 0) end
     local w = x + 10 + (total > 0 and (bar.hint:GetStringWidth() + 8) or 0)
 
@@ -952,17 +952,17 @@ function updateMiniBarNow()
         if mine then
             local taken = 0
             for _, s in ipairs(G.Slots(mine)) do if s.who then taken = taken + 1 end end
-            st.text:SetText((L["Suche: %s"]):format(mine.title or "?") .. "  |cff888888" .. taken .. "/5|r")
-            st.tip = { L["Deine Gruppensuche laeuft"], mine.title or "?", L["Klick: Gruppen oeffnen"] }
+            st.text:SetText((L["Looking: %s"]):format(mine.title or "?") .. "  |cff888888" .. taken .. "/5|r")
+            st.tip = { L["Your group search is running"], mine.title or "?", L["Click: open groups"] }
         else
             local g = asked[1]
-            st.text:SetText((L["Angefragt: %s"]):format(g.title or "?") .. (#asked > 1 and ("  |cff888888+" .. (#asked - 1) .. "|r") or ""))
-            local t = { L["Du wartest auf eine Einladung"] }
+            st.text:SetText((L["Requested: %s"]):format(g.title or "?") .. (#asked > 1 and ("  |cff888888+" .. (#asked - 1) .. "|r") or ""))
+            local t = { L["Waiting for an invite"] }
             for _, a in ipairs(asked) do t[#t + 1] = (a.title or "?") .. "  |cff888888" .. ns.displayName(a.who) .. "|r" end
-            t[#t + 1] = L["Klick: Gruppen oeffnen"]
+            t[#t + 1] = L["Click: open groups"]
             st.tip = t
         end
-        st.req:SetText(reqs > 0 and ((reqs == 1 and L["1 Anfrage"]) or (L["%d Anfragen"]):format(reqs)) or "")
+        st.req:SetText(reqs > 0 and ((reqs == 1 and L["1 request"]) or (L["%d requests"]):format(reqs)) or "")
         st.dot:SetVertexColor(reqs > 0 and C.accent[1] or C.mint[1], reqs > 0 and C.accent[2] or C.mint[2], reqs > 0 and C.accent[3] or C.mint[3])
         st:ClearAllPoints()
         st:SetPoint("LEFT", bar, "LEFT", w, 0)
@@ -1038,7 +1038,7 @@ end
 local function addCloseX()
     do return end   -- 0.6.252: kein X mehr an der Leiste (schliessen ueber Einstellungen > Topbar bzw. /oasis)
     if not bar or bar.closeX then return end
-    bar.closeX = ns.K.CloseButton(bar, function() ns.HideMiniBar() end, L["Ganz schliessen (/oasis oeffnet wieder)"])
+    bar.closeX = ns.K.CloseButton(bar, function() ns.HideMiniBar() end, L["Close fully (/oasis reopens)"])
     bar.closeX:SetPoint("RIGHT", bar, "RIGHT", -6, 0)
     bar.closeX:SetFrameLevel(bar:GetFrameLevel() + 10)
 end

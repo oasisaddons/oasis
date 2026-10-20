@@ -39,7 +39,7 @@ ns.On("MERCHANT_SHOW", function()
         if can and cost and cost > 0 then
             local guild = on("cfRepairGuild") and CanGuildBankRepair and CanGuildBankRepair()
             if guild then RepairAllItems(true) else RepairAllItems() end
-            ns.print((L["Repariert fuer %s%s"]):format(money(cost), guild and (" (" .. L["Gildenbank"] .. ")") or ""))
+            ns.print((L["Repaired for %s%s"]):format(money(cost), guild and (" (" .. L["Guild bank"] .. ")") or ""))
         end
     end
     -- Schrott: nur ueber Blizzards eigenen "Schrott verkaufen" (C_MerchantFrame.SellAllJunkItems).
@@ -58,7 +58,7 @@ ns.On("MERCHANT_SHOW", function()
             end
         end
         if n > 0 and pcall(C_MerchantFrame.SellAllJunkItems) then
-            ns.print((L["%d graue Items verkauft fuer %s"]):format(n, money(total)))
+            ns.print((L["Sold %d grey items for %s"]):format(n, money(total)))
         end
     end
 end)
@@ -72,7 +72,7 @@ ns.On("QUEST_DETAIL", function()
     local friendly = UnitInParty("npc") or UnitInRaid("npc") or (UnitIsInMyGuild and UnitIsInMyGuild("npc"))
     if on("cfBlockShared") and UnitIsPlayer("npc") and not friendly then
         if DeclineQuest then DeclineQuest() end
-        ns.print(L["Geteilte Quest abgelehnt."])
+        ns.print(L["Shared quest declined."])
         return
     end
     if on("cfQuests") and not IsShiftKeyDown() then
@@ -151,7 +151,7 @@ ns.On("PARTY_INVITE_REQUEST", function(name, ...)
         AcceptGroup()
     else
         DeclineGroup()
-        ns.print((L["Einladung von %s abgelehnt (nicht Gilde/Freund)."]):format(ns.displayName(name or "?")))
+        ns.print((L["Invite from %s declined (not guild/friend)."]):format(ns.displayName(name or "?")))
     end
     if StaticPopup_Hide then StaticPopup_Hide("PARTY_INVITE") end
 end)
@@ -316,7 +316,7 @@ local function restoreChat()
     if not on("cfChatRestore") or not cr or not cr.lines or time() - (cr.ts or 0) > 600 or not ChatFrame1 then return end
     if ns.ForeignChat and ns.ForeignChat() then ns.db.chatRestore = nil return end   -- 0.6.254: fremder Chat hat eigenen Verlauf
     ns.db.chatRestore = nil
-    ChatFrame1:AddMessage("|cff666666- - - " .. L["Chat vor dem Neuladen"] .. " - - -|r")
+    ChatFrame1:AddMessage("|cff666666- - - " .. L["Chat before reload"] .. " - - -|r")
     -- alte Verlaufsbloecke (grau, "- - -") aus frueheren Versionen nicht wieder einfuegen
     local skip = false
     for _, l in ipairs(cr.lines) do
@@ -375,12 +375,12 @@ local function durUpdate()
     end
     if CF.durText then
         local c = avg >= 0.5 and "|cff66db9e" or (avg >= 0.2 and "|cffe8b44a" or "|cffff5a4a")
-        CF.durText:SetText(L["Haltbarkeit"] .. " " .. c .. math.floor(avg * 100) .. " %|r")
+        CF.durText:SetText(L["Durability"] .. " " .. c .. math.floor(avg * 100) .. " %|r")
         CF.durText:Show()
     end
     if low < 0.2 and GetTime() - durWarned > 1800 then
         durWarned = GetTime()
-        K.Toast(L["Ausruestung fast kaputt"], (L["Schlechtestes Teil: %d %% - bald reparieren"]):format(math.floor(low * 100)), C.red)
+        K.Toast(L["Gear almost broken"], (L["Worst item: %d %% - repair soon"]):format(math.floor(low * 100)), C.red)
     end
 end
 ns.On("UPDATE_INVENTORY_DURABILITY", function() pcall(durUpdate) end)
@@ -457,40 +457,40 @@ end)
 -- Einstellungen: Reiter "Komfort"
 ------------------------------------------------------------------------
 local OPTS = {
-    { "Haendler", {
-        { "cfSellJunk", "Graue Items automatisch verkaufen", "Beim Haendler. Shift gedrueckt halten = diesmal nicht." },
-        { "cfRepair", "Automatisch reparieren", "Beim Haendler. Shift gedrueckt halten = diesmal nicht." },
-        { "cfRepairGuild", "Reparatur aus der Gildenbank (wenn erlaubt)" },
+    { "Vendors", {
+        { "cfSellJunk", "Sell grey items automatically", "At vendors. Hold Shift = skip this time." },
+        { "cfRepair", "Repair automatically", "At vendors. Hold Shift = skip this time." },
+        { "cfRepairGuild", "Repair from guild bank (if allowed)" },
     } },
-    { "Quests & Annehmen", {
-        { "cfQuests", "Quests automatisch annehmen und abgeben", "Nur ohne Belohnungs-Auswahl und ohne Kosten. Shift = aussetzen." },
-        { "cfSummon", "Beschwoerung und Wiederbelebung annehmen", "Beschwoerung nicht im Kampf." },
-        { "cfBlockShared", "Von anderen geteilte Quests ablehnen" },
+    { "Quests & accepting", {
+        { "cfQuests", "Accept and turn in quests automatically", "Only without reward choice and costs. Shift = skip." },
+        { "cfSummon", "Accept summons and resurrections", "Summons not in combat." },
+        { "cfBlockShared", "Decline quests shared by others" },
     } },
-    { "Blizzard-Leisten", {
-        { "cfHideMicro", "Menueleiste ausblenden", "Die Knoepfe fuer Charakter, Zauberbuch, Talente usw. Tasten (C, P, N ...) gehen weiter.", CF.ApplyBars },
-        { "cfHideBags", "Taschenleiste ausblenden", "Taste B oeffnet die Taschen weiterhin.", CF.ApplyBars },
-        { "cfBarsHover", "Beim Drueberfahren einblenden", "Ausgeblendete Leisten erscheinen, sobald die Maus dort ist.", CF.ApplyBars },
+    { "Blizzard bars", {
+        { "cfHideMicro", "Hide menu bar", "The buttons for character, spellbook, talents etc. Keys (C, P, N ...) still work.", CF.ApplyBars },
+        { "cfHideBags", "Hide bag bar", "The B key still opens your bags.", CF.ApplyBars },
+        { "cfBarsHover", "Show on mouseover", "Hidden bars appear as soon as the mouse is over them.", CF.ApplyBars },
     } },
-    { "Blocker & Gruppen", {
-        { "cfBlockDuels", "Duelle ablehnen" },
-        { "cfInvites", "Einladungen nur von Gilde und Freunden", "Andere werden abgelehnt, Gilde/Freunde angenommen." },
-        { "cfWhisperInv", "Einladen per Fluestern (nur Gilde/Freunde)", "Stichwort unten, Standard: inv" },
+    { "Blockers & groups", {
+        { "cfBlockDuels", "Decline duels" },
+        { "cfInvites", "Invites only from guild and friends", "Others are declined, guild/friends accepted." },
+        { "cfWhisperInv", "Invite by whisper (guild/friends only)", "Keyword below, default: inv" },
     } },
     { "Chat", {
-        { "cfChatArrows", "Pfeiltasten im Chat ohne Alt", "Pfeil hoch = letzte Nachricht wieder holen", CF.ApplyChat },
-        { "cfChatNoFade", "Chat nicht ausblenden", nil, CF.ApplyChat },
-        { "cfChatRestore", "Chat nach /reload behalten" },
-        { "cfChatTop", "Eingabefeld ueber dem Chatfenster", "Setzt die Zeile, in die du tippst, ueber den Chat statt darunter - praktisch, wenn der Chat unten am Bildschirmrand klebt und die Eingabe sonst abgeschnitten wird.", CF.ApplyChat },
-        { "emojiNoComplete", "Keine Emoji-Vorschlaege beim Tippen", "Sonst: ':' + 2 Buchstaben zeigt passende Emojis, Tab setzt ein." },
+        { "cfChatArrows", "Arrow keys in chat without Alt", "Arrow up = recall last message", CF.ApplyChat },
+        { "cfChatNoFade", "Don't fade chat", nil, CF.ApplyChat },
+        { "cfChatRestore", "Keep chat after /reload" },
+        { "cfChatTop", "Edit box above the chat window", "Moves the line you type in above the chat instead of below it - handy when the chat sits at the bottom edge of the screen and the input would be cut off.", CF.ApplyChat },
+        { "emojiNoComplete", "No emoji suggestions while typing", "Otherwise: ':' + 2 letters shows matching emojis, Tab inserts." },
     } },
-    { "Komfort", {
-        { "cfFastLoot", "Schneller pluendern (mit Auto-Pluendern)" },
-        { "cfHideErrors", "Rote Fehlermeldungen ausblenden", nil, CF.ApplyErrors },
-        { "cfDurability", "Haltbarkeit anzeigen und warnen", nil, durUpdate },
-        { "upgradeTipOff", "Kein Verbesserungs-Pfeil im Tooltip", "Sonst: gruener Pfeil, wenn ein Item fuer deine Klasse und Rolle besser ist." },
-        { "upgradeIconOff", "Keine Verbesserungs-Pfeile auf Items", "Sonst: gruener Pfeil oben = besser, roter Pfeil unten = schlechter (Taschen, Beute-Fenster).", function() if ns.Upgrade then ns.Upgrade.RefreshBadges() end end },
-        { "invTooltipOff", "Keine Twink-Bestaende im Tooltip", "Sonst: Item-Tooltip zeigt, welcher deiner Charaktere es wie oft hat." },
+    { "Comfort", {
+        { "cfFastLoot", "Faster looting (with auto loot)" },
+        { "cfHideErrors", "Hide red error messages", nil, CF.ApplyErrors },
+        { "cfDurability", "Show durability and warn", nil, durUpdate },
+        { "upgradeTipOff", "No upgrade arrow in the tooltip", "Otherwise: green arrow when an item is better for your class and role." },
+        { "upgradeIconOff", "No upgrade arrows on items", "Otherwise: green arrow up = better, red arrow down = worse (bags, loot window).", function() if ns.Upgrade then ns.Upgrade.RefreshBadges() end end },
+        { "invTooltipOff", "No alt inventory in the tooltip", "Otherwise: the item tooltip shows which of your characters has it and how many." },
     } },
 }
 CF.CHAT_OPTS = OPTS[5][2]   -- fuer den Reiter Spielchat
@@ -500,20 +500,20 @@ local function build(f)
     -- Spalten ausgewogen: links Haendler, Quests, Komfort - rechts Blocker (+ Stichwort), Leisten, Chat
     local byName = {}
     for _, grp in ipairs(OPTS) do byName[grp[1]] = grp end
-    local LEFT = { "Haendler", "Quests & Annehmen", "Komfort" }
-    local RIGHT = { "Blocker & Gruppen", "Blizzard-Leisten", "Chat" }
+    local LEFT = { "Vendors", "Quests & accepting", "Comfort" }
+    local RIGHT = { "Blockers & groups", "Blizzard bars", "Chat" }
     -- 0.6.111: Chat-Schalter stehen im Reiter Spielchat - hier nur, wenn das Spielchat-Modul aus ist
     if ns.GameChat then RIGHT[3] = nil end
     -- 0.5.720: je Gruppe eine Glas-Karte (Titel in der Karte, Schalter darin) - ohne Abstandsautomatik, sonst ueberlappen die Karten
     f.noCompact = true
-    local ICON = { ["Haendler"] = "bank", ["Quests & Annehmen"] = "chronicle", ["Komfort"] = "home",
-        ["Blocker & Gruppen"] = "groups", ["Blizzard-Leisten"] = "map", ["Chat"] = "polls" }
+    local ICON = { ["Vendors"] = "bank", ["Quests & accepting"] = "chronicle", ["Comfort"] = "home",
+        ["Blockers & groups"] = "groups", ["Blizzard bars"] = "map", ["Chat"] = "polls" }
     local ROW = 28
     local function column(list, cx)
         x, y = cx, 0
         for _, nm in ipairs(list) do
             local grp = byName[nm]
-            local extra = (nm == "Blocker & Gruppen") and 36 or 0
+            local extra = (nm == "Blockers & groups") and 36 or 0
             local h = 50 + #grp[2] * ROW + extra + 8
             local c = H.cardH(f, x, y, 362, h, ICON[nm] or "home", L[grp[1]])
             local cy = -48
@@ -521,9 +521,9 @@ local function build(f)
                 H.toggle(c, 14, cy, o[2], o[1], o[3], o[4] and function() pcall(o[4]) end or nil, 334)
                 cy = cy - ROW
             end
-            if nm == "Blocker & Gruppen" then
+            if nm == "Blockers & groups" then
                 -- Stichwort fuer Einladen per Fluestern direkt unter der Option
-                H.rowLabel(c, L["Stichwort"], 14, cy - 4)
+                H.rowLabel(c, L["Keyword"], 14, cy - 4)
                 f.kw = K.Input(c, 120, "inv", function(t) S().cfInvKeyword = t end)
                 f.kw:SetPoint("TOPLEFT", 114, cy - 2)
             end
@@ -536,5 +536,5 @@ end
 local function refresh(f)
     if f.kw and not f.kw:HasFocus() then f.kw:SetText(S().cfInvKeyword or "") end
 end
-if ns.AddSettingsTab then ns.AddSettingsTab("comfort", "Komfort", build, refresh) end
+if ns.AddSettingsTab then ns.AddSettingsTab("comfort", "Comfort", build, refresh) end
 end)

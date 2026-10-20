@@ -23,8 +23,8 @@ local function inactiveDays() return tonumber(ns.GuildOpt and ns.GuildOpt("ldIna
 
 if ns.GuildOption then
     ns.GuildOption({ page = "admin", key = "ldInactive", default = 30, min = 7, max = 120, step = 1, lead = true,
-        label = "Inaktiv ab", desc = "Ab so vielen Tagen offline zaehlt ein Mitglied in der Leitung als inaktiv (Twinks zaehlen nicht)",
-        fmt = function(v) return v .. " " .. L["Tage"] end })
+        label = "Inactive after", desc = "After this many days offline a member counts as inactive for the leadership (alts don't count)",
+        fmt = function(v) return v .. " " .. L["days"] end })
 end
 
 ------------------------------------------------------------------------
@@ -45,18 +45,18 @@ function LD.Inbox()
         end
         if #apps > 0 then
             local one = #apps == 1 and ns.Apply and apps[1]
-            add(1, "groups", (L["%d Bewerbung(en) warten auf eine Antwort"]):format(#apps), table.concat(apps, ", "), one and L["Mappe"] or L["Bewerber"],
+            add(1, "groups", (L["%d application(s) waiting for an answer"]):format(#apps), table.concat(apps, ", "), one and L["File"] or L["Applicants"],
                 one and function() ns.Apply.ShowFile(one) end or open("members", "recruits"))
         end
-        if #trialDone > 0 then add(1, "checklist", (L["Probezeit vorbei: %s"]):format(table.concat(trialDone, ", ")), L["Aufnehmen oder verlaengern?"], L["Entscheiden"], open("members", "recruits")) end
+        if #trialDone > 0 then add(1, "checklist", (L["Trial over: %s"]):format(table.concat(trialDone, ", ")), L["Accept or extend?"], L["Decide"], open("members", "recruits")) end
     end
     -- Befoerderung faellig
     if GH and GH.PromoDue then
         local ok, due = pcall(GH.PromoDue)
         if ok and type(due) == "table" and #due > 0 then
             local names = {}
-            for i, d in ipairs(due) do if i <= 4 then names[#names + 1] = short(d.m.name) .. " (" .. d.days .. " " .. L["Tage"] .. ")" end end
-            add(2, "badges", (L["%d Mitglied(er) lange im selben Rang"]):format(#due), table.concat(names, ", "), L["Befoerdern"], open("members", "promo"))
+            for i, d in ipairs(due) do if i <= 4 then names[#names + 1] = short(d.m.name) .. " (" .. d.days .. " " .. L["days"] .. ")" end end
+            add(2, "badges", (L["%d member(s) long in the same rank"]):format(#due), table.concat(names, ", "), L["Promote"], open("members", "promo"))
         end
     end
     -- Inaktive (ohne Twinks und ohne Leitung)
@@ -65,7 +65,7 @@ function LD.Inbox()
     for _, m in ipairs(roster()) do
         if not m.online and (m.offDays or 0) >= lim and not isAlt(m.name) and (m.rankIndex or 0) > leadRank then inact = inact + 1 end
     end
-    if inact > 0 then add(3, "deaths", (L["%d Mitglieder seit %d+ Tagen nicht online"]):format(inact, lim), L["Nachfragen, Rang anpassen oder aufraeumen"], L["Ansehen"], open("members", "inactive")) end
+    if inact > 0 then add(3, "deaths", (L["%d members offline for %d+ days"]):format(inact, lim), L["Check in, adjust rank or clean up"], L["View"], open("members", "inactive")) end
     -- Neulinge ohne Paten
     if CO and CO.MentorOf and ns.Welcome and ns.Welcome.IsNew then
         local list = {}
@@ -73,8 +73,8 @@ function LD.Inbox()
             local okN, new = pcall(ns.Welcome.IsNew, m.name)
             if okN and new and not CO.MentorOf(m.name) and not isAlt(m.name) then list[#list + 1] = short(m.name) end
         end
-        if #list > 0 then add(2, "heart", (L["%d Neuling(e) ohne Paten"]):format(#list), table.concat(list, ", ", 1, math.min(#list, 5)),
-            L["Gemeinschaft"], function() if ns.Expand then ns.Expand("community") else ns.ShowPage("community") end end) end
+        if #list > 0 then add(2, "heart", (L["%d newcomer(s) without a mentor"]):format(#list), table.concat(list, ", ", 1, math.min(#list, 5)),
+            L["Community"], function() if ns.Expand then ns.Expand("community") else ns.ShowPage("community") end end) end
     end
     -- Termine in den naechsten 3 Tagen mit wenig Zusagen
     if ns.Raid and ns.Raid.Events and ns.Raid.Signups then
@@ -85,8 +85,8 @@ function LD.Inbox()
                 for _, s in ipairs(ns.Raid.Signups(ev.id)) do if s.status == "yes" then yes = yes + 1 end end
                 local want = tonumber(ev.size) or 10
                 if yes < want then
-                    add(2, "raid", (L["%s am %s: %d von %d Zusagen"]):format(ev.title or "?", date("%d.%m. %H:%M", ev.ts), yes, want),
-                        L["Erinnern oder Termin anpassen"], L["Termine"], function() if ns.Admin then ns.Admin.SetTab("events") end end)
+                    add(2, "raid", (L["%s on %s: %d of %d sign-ups"]):format(ev.title or "?", date("%d.%m. %H:%M", ev.ts), yes, want),
+                        L["Remind or adjust the event"], L["Events"], function() if ns.Admin then ns.Admin.SetTab("events") end end)
                 end
             end
         end
@@ -96,12 +96,12 @@ function LD.Inbox()
         local ok, list = pcall(SP.List)
         local n = 0
         for _, e in ipairs(ok and list or {}) do if (e.reporters or 0) >= 2 then n = n + 1 end end
-        if n > 0 then add(1, "bug", (L["%d Auffaelligkeit(en) im Verdachts-Monitor"]):format(n), L["Von mehreren Offizieren gemeldet"], L["Protokoll"], function() if ns.Admin then ns.Admin.SetTab("tools") end end) end
+        if n > 0 then add(1, "bug", (L["%d issue(s) in the suspicion monitor"]):format(n), L["Reported by several officers"], L["Log"], function() if ns.Admin then ns.Admin.SetTab("tools") end end) end
     end
     -- offene Abstimmungen ohne meine Stimme
     local open_ = 0
     for _, v in ipairs(LD.Votes(true)) do if not LD.MyBallot(v.id) then open_ = open_ + 1 end end
-    if open_ > 0 then add(1, "polls", (L["%d Abstimmung(en) warten auf deine Stimme"]):format(open_), nil, L["Abstimmen"], function() if ns.Admin then ns.Admin.SetTab("decide") end end) end
+    if open_ > 0 then add(1, "polls", (L["%d vote(s) waiting for you"]):format(open_), nil, L["Vote"], function() if ns.Admin then ns.Admin.SetTab("decide") end end) end
     -- altes Oasis
     if ns.Radar and ns.Radar.VerNum then
         local mine, old = ns.Radar.VerNum(ns.version), 0
@@ -109,7 +109,7 @@ function LD.Inbox()
             local p = ns.db.members[m.name]
             if m.online and type(p) == "table" and p.v and ns.Radar.VerNum(p.v) < mine then old = old + 1 end
         end
-        if old > 0 then add(4, "sync", (L["%d online mit aelterem Oasis"]):format(old), L["Kurz an das Update erinnern"], L["Mitglieder"], function() if ns.Admin then ns.Admin.SetTab("overview") end end) end
+        if old > 0 then add(4, "sync", (L["%d online with an older Oasis"]):format(old), L["Remind them to update"], L["Members"], function() if ns.Admin then ns.Admin.SetTab("overview") end end) end
     end
     table.sort(out, function(a, b) return a.prio < b.prio end)
     return out
@@ -234,7 +234,7 @@ local function line(f, y, k, v)
     r.v:ClearAllPoints() r.v:SetPoint("TOPLEFT", 140, y) r.v:SetPoint("RIGHT", f.body, "RIGHT", 0, 0) r.v:SetText(v or "-") r.v:Show()
     return y - math.max(18, (r.v:GetStringHeight() or 14) + 6)
 end
-local function ago(ts) if not ts then return L["unbekannt"] end local d = math.floor((ns.now() - ts) / DAY) return (L["vor %d Tagen"]):format(d) .. "  |cff777777(" .. date("%d.%m.%Y", ts) .. ")|r" end
+local function ago(ts) if not ts then return L["unknown"] end local d = math.floor((ns.now() - ts) / DAY) return (L["%d days ago"]):format(d) .. "  |cff777777(" .. date("%d.%m.%Y", ts) .. ")|r" end
 function LD.ShowDossier(name)
     if not name or not ns.isOfficer() then return end
     if not akte then
@@ -256,17 +256,17 @@ function LD.ShowDossier(name)
         f.body:SetPoint("TOPLEFT", 18, -64)
         f.body:SetPoint("BOTTOMRIGHT", -18, 50)
         f.rows = {}
-        f.noteBtn = K.Button(f, L["Notiz bearbeiten"], 130, 24, "ghost", function()
+        f.noteBtn = K.Button(f, L["Edit note"], 130, 24, "ghost", function()
             if not f.who then return end
             local cur = ns.GuildHistory and ns.GuildHistory.Note and ns.GuildHistory.Note(f.who)
             StaticPopup_Show("OASIS_LD_NOTE", short(f.who), nil, { who = f.who, text = cur and cur.t or "" })
         end)
         f.noteBtn:SetPoint("BOTTOMLEFT", 18, 14)
-        f.voteBtn = K.Button(f, L["Abstimmung starten"], 150, 24, "ghost", function()
-            if f.who then StaticPopup_Show("OASIS_LD_NEWVOTE", nil, nil, (L["Entscheidung zu %s: "]):format(short(f.who))) end
+        f.voteBtn = K.Button(f, L["Start a vote"], 150, 24, "ghost", function()
+            if f.who then StaticPopup_Show("OASIS_LD_NEWVOTE", nil, nil, (L["Decision about %s: "]):format(short(f.who))) end
         end)
         f.voteBtn:SetPoint("LEFT", f.noteBtn, "RIGHT", 8, 0)
-        f.wBtn = K.Button(f, L["Anfluestern"], 110, 24, "ghost", function() if f.who and ns.Whisper then ns.Whisper(f.who) end end)
+        f.wBtn = K.Button(f, L["Whisper"], 110, 24, "ghost", function() if f.who and ns.Whisper then ns.Whisper(f.who) end end)
         f.wBtn:SetPoint("LEFT", f.voteBtn, "RIGHT", 8, 0)
         if ns.EscClose then ns.EscClose("OasisDossier") end
         akte = f
@@ -278,56 +278,56 @@ function LD.ShowDossier(name)
     f.n = 0
     local m = d.m
     f.title:SetText(ns.colorName and ns.colorName(short(name), m and m.class) or short(name))
-    f.sub:SetText(m and ((m.rank or "") .. "  ·  " .. L["Stufe"] .. " " .. (m.level or "?") .. "  ·  " .. (m.online and ("|cff66db9e" .. L["online"] .. "|r") or ((L["offline seit %d Tagen"]):format(math.floor(m.offDays or 0))))) or L["nicht (mehr) in der Gilde"])
+    f.sub:SetText(m and ((m.rank or "") .. "  ·  " .. L["Item level"] .. " " .. (m.level or "?") .. "  ·  " .. (m.online and ("|cff66db9e" .. L["online"] .. "|r") or ((L["offline for %d days"]):format(math.floor(m.offDays or 0))))) or L["not (or no longer) in the guild"])
     local y = 0
-    y = line(f, y, L["In der Gilde seit"], ago(d.joined))
-    y = line(f, y, L["Im Rang seit"], ago(d.rankSince))
-    if d.att then y = line(f, y, L["Raid-Anwesenheit"], ("%d%%  |cff777777(%d/%d, 28 Tage)|r"):format(math.floor(d.att * 100 + 0.5), d.attHere or 0, d.attTotal or 0)) end
-    y = line(f, y, L["Danke bekommen"], (L["%d in 30 Tagen"]):format(d.thanks or 0))
+    y = line(f, y, L["In the guild since"], ago(d.joined))
+    y = line(f, y, L["In rank since"], ago(d.rankSince))
+    if d.att then y = line(f, y, L["Raid attendance"], ("%d%%  |cff777777(%d/%d, 28 Tage)|r"):format(math.floor(d.att * 100 + 0.5), d.attHere or 0, d.attTotal or 0)) end
+    y = line(f, y, L["Thanks received"], (L["%d in 30 days"]):format(d.thanks or 0))
     if ns.GuildLife and ns.GuildLife.Contributions then
         for _, e in ipairs(ns.GuildLife.Contributions(30)) do
             if ns.SameName(e.name, name) then
                 local p = {}
-                if (e.orders or 0) > 0 then p[#p + 1] = (L["%d Auftraege hergestellt"]):format(e.orders) end
-                if (e.mats or 0) > 0 then p[#p + 1] = (L["%d Material gespendet"]):format(e.mats) end
-                if (e.meets or 0) > 0 then p[#p + 1] = (L["%d x beim Treffen"]):format(e.meets) end
-                if #p > 0 then y = line(f, y, L["Beitrag (30 Tage)"], table.concat(p, "  ·  ")) end
+                if (e.orders or 0) > 0 then p[#p + 1] = (L["%d orders crafted"]):format(e.orders) end
+                if (e.mats or 0) > 0 then p[#p + 1] = (L["%d materials donated"]):format(e.mats) end
+                if (e.meets or 0) > 0 then p[#p + 1] = (L["%d x at meetups"]):format(e.meets) end
+                if #p > 0 then y = line(f, y, L["Contribution (30 days)"], table.concat(p, "  ·  ")) end
             end
         end
     end
     if ns.Kader then
         local teams = {}
         for _, t in ipairs(ns.Kader.Teams()) do
-            for n in tostring(t.stamm or ""):gmatch("[^,]+") do if ns.SameName(n, name) then teams[#teams + 1] = (t.name or "") .. " (" .. L["Stamm"] .. ")" end end
-            for n in tostring(t.ersatz or ""):gmatch("[^,]+") do if ns.SameName(n, name) then teams[#teams + 1] = (t.name or "") .. " (" .. L["Ersatz"] .. ")" end end
+            for n in tostring(t.stamm or ""):gmatch("[^,]+") do if ns.SameName(n, name) then teams[#teams + 1] = (t.name or "") .. " (" .. L["Core"] .. ")" end end
+            for n in tostring(t.ersatz or ""):gmatch("[^,]+") do if ns.SameName(n, name) then teams[#teams + 1] = (t.name or "") .. " (" .. L["Bench"] .. ")" end end
         end
-        if #teams > 0 then y = line(f, y, L["Raid-Kader"], table.concat(teams, ", ")) end
+        if #teams > 0 then y = line(f, y, L["Raid roster"], table.concat(teams, ", ")) end
     end
-    if d.mentor then y = line(f, y, L["Pate"], short(d.mentor)) end
-    if (d.mentees or 0) > 0 then y = line(f, y, L["Pate fuer"], (L["%d Neuling(e)"]):format(d.mentees)) end
+    if d.mentor then y = line(f, y, L["Mentor"], short(d.mentor)) end
+    if (d.mentees or 0) > 0 then y = line(f, y, L["Mentor for"], (L["%d newcomer(s)"]):format(d.mentees)) end
     if d.chars and #d.chars > 1 then
         local cs = {}
         for _, c in ipairs(d.chars) do cs[#cs + 1] = short(type(c) == "table" and c.name or c) end
-        y = line(f, y, L["Charaktere"], table.concat(cs, ", "))
+        y = line(f, y, L["Characters"], table.concat(cs, ", "))
     end
-    if d.missEnch and d.missEnch > 0 then y = line(f, y, L["Fehlende Verzauberungen"], tostring(d.missEnch)) end
-    y = line(f, y, L["Oasis"], d.ver or ("|cff777777" .. L["nicht installiert"] .. "|r"))
-    if m and (m.onote or "") ~= "" then y = line(f, y, L["Offiziersnotiz"], m.onote) end
-    if d.note and (d.note.t or "") ~= "" then y = line(f, y, L["Leitungsnotiz"], d.note.t .. "  |cff777777(" .. short(d.note.by or "?") .. ")|r") end
-    if d.ban then y = line(f, y, "|cffff6a5a" .. L["Bannliste"] .. "|r", tostring(d.ban.reason or d.ban.r or "")) end
+    if d.missEnch and d.missEnch > 0 then y = line(f, y, L["Missing enchants"], tostring(d.missEnch)) end
+    y = line(f, y, L["Oasis"], d.ver or ("|cff777777" .. L["not installed"] .. "|r"))
+    if m and (m.onote or "") ~= "" then y = line(f, y, L["Officer note"], m.onote) end
+    if d.note and (d.note.t or "") ~= "" then y = line(f, y, L["Leadership note"], d.note.t .. "  |cff777777(" .. short(d.note.by or "?") .. ")|r") end
+    if d.ban then y = line(f, y, "|cffff6a5a" .. L["Ban list"] .. "|r", tostring(d.ban.reason or d.ban.r or "")) end
     local tl = {}
     for i, r in ipairs(d.timeline or {}) do
         if i > 6 then break end
         local txt = ns.Officer and ns.Officer.AuditText and select(2, pcall(ns.Officer.AuditText, r)) or r.kind
         tl[#tl + 1] = date("%d.%m.%y", r.ts or 0) .. "  " .. tostring(txt)
     end
-    if #tl > 0 then y = line(f, y, L["Verlauf"], table.concat(tl, "\n")) end
+    if #tl > 0 then y = line(f, y, L["Gradient"], table.concat(tl, "\n")) end
     f.noteBtn:SetShown(ns.GuildHistory and ns.GuildHistory.SetNote ~= nil and ns.GuildHistory.CanNotes and ns.GuildHistory.CanNotes())
     f:Show()
     f:Raise()
 end
 StaticPopupDialogs["OASIS_LD_NEWVOTE"] = {
-    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Abbrechen", hasEditBox = true, maxLetters = 140,
+    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 140,
     OnShow = function(self, data) local eb = self.editBox or self.EditBox if eb then eb:SetText(data or "") eb:SetFocus() end end,
     OnAccept = function(self) local eb = self.editBox or self.EditBox LD.NewVote(eb and eb:GetText(), 3) ns.RefreshPage("admin") end,
     EditBoxOnEnterPressed = function(self) local p = self:GetParent() if p.button1 then p.button1:Click() end end,
@@ -335,7 +335,7 @@ StaticPopupDialogs["OASIS_LD_NEWVOTE"] = {
     timeout = 0, whileDead = true, hideOnEscape = true,
 }
 StaticPopupDialogs["OASIS_LD_NOTE"] = {
-    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Abbrechen", hasEditBox = true, maxLetters = 500,
+    text = "%s", button1 = ACCEPT or "OK", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 500,
     OnShow = function(self, data) local eb = self.editBox or self.EditBox if eb and data then eb:SetText(data.text or "") eb:SetFocus() end end,
     OnAccept = function(self, data)
         local eb = self.editBox or self.EditBox
@@ -359,9 +359,9 @@ function LD.WeekRecap()
     for _, r in ipairs(Store.List("chronicle", function(r) return (r.ts or 0) > cut end)) do
         if r.kind == "level" then lvls = lvls + 1 elseif r.kind == "boss" then bosses = bosses + 1 end
     end
-    local parts = { (L["Oasis-Woche: %d neue Mitglieder, %d Level-Meilensteine, %d Bosse"]):format(joins, lvls, bosses) }
+    local parts = { (L["Oasis week: %d new members, %d level milestones, %d bosses"]):format(joins, lvls, bosses) }
     local helper, n = ns.Community and ns.Community.Helper and ns.Community.Helper()
-    if helper and (n or 0) > 0 then parts[#parts + 1] = (L["Helfer der Woche: %s (%d x Danke)"]):format(ns.short(helper), n) end
+    if helper and (n or 0) > 0 then parts[#parts + 1] = (L["Helper of the week: %s (%d x thanks)"]):format(ns.short(helper), n) end
     return table.concat(parts, " - ")
 end
 
@@ -373,7 +373,7 @@ local PRIO = { [1] = C.red or C.accent, [2] = C.amber or C.accent, [3] = C.blue 
 local function buildToday(f)
     f.head = K.Title(f, 16, C.text)
     f.head:SetPoint("TOPLEFT", 4, -4)
-    f.head:SetText(L["Heute anstehend"])
+    f.head:SetText(L["On the agenda today"])
     f.list = K.List(f, 46, function(l)
         local r = K.Row(l)
         r.bar = r:CreateTexture(nil, "ARTWORK")
@@ -393,7 +393,7 @@ local function buildToday(f)
         r.ic:SetTexture(ns.MEDIA .. "icons\\" .. (it.icon or "home"))
         r.ic:SetVertexColor(c[1], c[2], c[3])
         r.t:SetText(it.text) r.s:SetText(it.sub or "")
-        r.b:SetLabel(it.btn or L["Oeffnen"]) r.b.fn = it.fn
+        r.b:SetLabel(it.btn or L["Open"]) r.b.fn = it.fn
     end)
     f.list:SetPoint("TOPLEFT", 0, -30)
     f.list:SetPoint("BOTTOMRIGHT", -330, 0)
@@ -405,7 +405,7 @@ local function buildToday(f)
     glass(f.pulse, 0.03)
     f.ph = K.Title(f.pulse, 14, C.text)
     f.ph:SetPoint("TOPLEFT", 14, -12)
-    f.ph:SetText(L["Gilden-Puls"])
+    f.ph:SetText(L["Guild pulse"])
     f.stats = K.Text(f.pulse, 12, C.text)
     f.stats:SetPoint("TOPLEFT", 14, -36) f.stats:SetPoint("RIGHT", -14, 0)
     f.stats:SetJustifyH("LEFT") f.stats:SetSpacing(4)
@@ -421,16 +421,16 @@ local function buildToday(f)
     end
     f.need = K.Text(f.pulse, 11, C.amber or C.accent)
     f.need:SetJustifyH("LEFT") f.need:SetWordWrap(true)
-    f.recap = K.Button(f.pulse, L["Wochenrueckblick posten"], 200, 24, "ghost", function() ns.OfferChat(L["Wochenrueckblick"], LD.WeekRecap(), "GUILD") end)
+    f.recap = K.Button(f.pulse, L["Post weekly recap"], 200, 24, "ghost", function() ns.OfferChat(L["Weekly recap"], LD.WeekRecap(), "GUILD") end)
     f.recap:SetPoint("BOTTOMLEFT", 14, 14)
 end
 local function refreshToday(f)
     local items = LD.Inbox()
     f.list:SetData(items)
-    f.list.empty:SetText(#items == 0 and L["Alles erledigt - gerade steht nichts an."] or "")
+    f.list.empty:SetText(#items == 0 and L["All done - nothing on the agenda right now."] or "")
     local p = LD.Pulse()
-    f.stats:SetText((L["%d Mitglieder, %d aktiv (7 Tage), %d online"]):format(p.members, p.active, p.online) .. "\n"
-        .. (L["30 Tage: %d dazu, %d gegangen"]):format(p.joins, p.leaves))
+    f.stats:SetText((L["%d members, %d active (7 days), %d online"]):format(p.members, p.active, p.online) .. "\n"
+        .. (L["30 days: %d joined, %d left"]):format(p.joins, p.leaves))
     local y = -36 - (f.stats:GetStringHeight() or 30) - 14
     local max = 1
     for _, n in pairs(p.classes) do if n > max then max = n end end
@@ -445,17 +445,17 @@ local function refreshToday(f)
     local need = {}
     for _, c in ipairs(p.need) do need[#need + 1] = className(c) end
     f.need:ClearAllPoints() f.need:SetPoint("TOPLEFT", f.pulse, "TOPLEFT", 14, y - 8) f.need:SetPoint("RIGHT", f.pulse, "RIGHT", -14, 0)
-    f.need:SetText(#need > 0 and ((L["Wenige aktive: %s - gut fuer die Werbung"]):format(table.concat(need, ", "))) or "")
+    f.need:SetText(#need > 0 and ((L["Few active: %s - good for recruiting"]):format(table.concat(need, ", "))) or "")
 end
 
 local function buildDecide(f)
     f.head = K.Title(f, 16, C.text)
     f.head:SetPoint("TOPLEFT", 4, -4)
-    f.head:SetText(L["Entscheidungen der Leitung"])
+    f.head:SetText(L["Leadership decisions"])
     f.info = K.Text(f, 11, C.muted)
     f.info:SetPoint("TOPLEFT", f.head, "BOTTOMLEFT", 0, -4)
-    f.info:SetText(L["Nur Offiziere sehen und stimmen ab (Offizierskanal). Jede Stimme ist mit Namen sichtbar."])
-    f.new = K.Button(f, L["Neue Abstimmung"], 150, 24, nil, function() StaticPopup_Show("OASIS_LD_NEWVOTE", L["Worueber soll die Leitung entscheiden?"], nil, "") end)
+    f.info:SetText(L["Only officers see and vote (officer channel). Every vote is shown with its name."])
+    f.new = K.Button(f, L["New vote"], 150, 24, nil, function() StaticPopup_Show("OASIS_LD_NEWVOTE", L["What should the leadership decide?"], nil, "") end)
     f.new:SetPoint("TOPRIGHT", 0, -2)
     f.list = K.List(f, 70, function(l)
         local r = K.Row(l)
@@ -463,24 +463,24 @@ local function buildDecide(f)
         r.s = K.Text(r, 11, C.muted) r.s:SetPoint("TOPLEFT", r.t, "BOTTOMLEFT", 0, -4) r.s:SetPoint("RIGHT", -300, 0) r.s:SetWordWrap(false)
         r.res = K.Text(r, 11, C.text) r.res:SetPoint("TOPLEFT", r.s, "BOTTOMLEFT", 0, -4) r.res:SetPoint("RIGHT", -300, 0) r.res:SetWordWrap(false)
         r.btns = {}
-        for i, d in ipairs({ { "y", "Ja" }, { "n", "Nein" }, { "a", "Enthaltung" } }) do
+        for i, d in ipairs({ { "y", "Yes" }, { "n", "No" }, { "a", "Abstain" } }) do
             local b = K.Button(r, L[d[2]], 84, 24, "ghost", function(self) if r.item then LD.Vote(r.item.id, d[1]) ns.RefreshPage("admin") end end)
             b:SetPoint("RIGHT", -8 - (3 - i) * 90, 8)
             b.v = d[1]
             r.btns[i] = b
         end
-        r.close = K.Button(r, L["Beenden"], 84, 20, "ghost", function() if r.item then LD.Close(r.item.id) ns.RefreshPage("admin") end end)
+        r.close = K.Button(r, L["Close"], 84, 20, "ghost", function() if r.item then LD.Close(r.item.id) ns.RefreshPage("admin") end end)
         r.close:SetPoint("BOTTOMRIGHT", -8, 6)
         return r
     end, function(r, v)
         local t = LD.Tally(v.id)
         local done = v.closed or (v.ends or 0) <= ns.now()
         r.t:SetText(v.title)
-        r.s:SetText(short(v.by or "?") .. "  ·  " .. (done and L["beendet"] or ((L["laeuft bis %s"]):format(date("%d.%m. %H:%M", v.ends or 0)))))
+        r.s:SetText(short(v.by or "?") .. "  ·  " .. (done and L["finished"] or ((L["open until %s"]):format(date("%d.%m. %H:%M", v.ends or 0)))))
         local who = {}
         for _, w in ipairs(t.who) do who[#who + 1] = short(w.n) .. ((w.v == "y" and " |cff66db9e+|r") or (w.v == "n" and " |cffff6a5a-|r") or " |cff888888o|r") end
-        local res = ("|cff66db9e%s %d|r   |cffff6a5a%s %d|r   |cff888888%s %d|r"):format(L["Ja"], t.y, L["Nein"], t.n, L["Enthaltung"], t.a)
-        if done then res = res .. "   -   " .. ((t.y > t.n) and ("|cff66db9e" .. L["angenommen"] .. "|r") or ("|cffff6a5a" .. L["abgelehnt"] .. "|r")) end
+        local res = ("|cff66db9e%s %d|r   |cffff6a5a%s %d|r   |cff888888%s %d|r"):format(L["Yes"], t.y, L["No"], t.n, L["Abstain"], t.a)
+        if done then res = res .. "   -   " .. ((t.y > t.n) and ("|cff66db9e" .. L["accepted"] .. "|r") or ("|cffff6a5a" .. L["rejected"] .. "|r")) end
         r.res:SetText(res .. (#who > 0 and ("   |cff777777" .. table.concat(who, ", ") .. "|r") or ""))
         local mine = LD.MyBallot(v.id)
         for _, b in ipairs(r.btns) do
@@ -496,12 +496,12 @@ end
 local function refreshDecide(f)
     local list = LD.Votes(false)
     f.list:SetData(list)
-    f.list.empty:SetText(#list == 0 and L["Noch keine Abstimmungen. Beispiel: 'Oni zum Raidleiter machen?'"] or "")
+    f.list.empty:SetText(#list == 0 and L["No votes yet. Example: 'Make Oni raid leader?'"] or "")
     f.new:SetShown(ns.isOfficer())
 end
 if ns.Admin and ns.Admin.AddTab then
-    ns.Admin.AddTab("today", "Heute", buildToday, refreshToday, "Was steht an? Bewerber, Befoerderungen, Inaktive, Neulinge ohne Paten, Termine - je Zeile ein Klick zur Aktion. Rechts: der Gilden-Puls.", 1)
-    ns.Admin.AddTab("decide", "Entscheiden", buildDecide, refreshDecide, "Abstimmungen unter Offizieren: Vorschlag machen, Ja/Nein/Enthaltung, Ergebnis nach Ablauf der Frist.", 3)
+    ns.Admin.AddTab("today", "Today", buildToday, refreshToday, "What's up? Applicants, promotions, inactives, newcomers without mentors, events - one click per line to act. Right: the guild pulse.", 1)
+    ns.Admin.AddTab("decide", "Decide", buildDecide, refreshDecide, "Votes among officers: make a proposal, yes/no/abstain, result after the deadline.", 3)
 end
 
 end)

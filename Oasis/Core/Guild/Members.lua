@@ -76,10 +76,10 @@ function Members.PlayWeek(name)
 end
 function Members.FmtDuration(sec)
     sec = math.floor(sec or 0)
-    if sec < 60 then return L["unter 1 Min."] end
+    if sec < 60 then return L["under 1 min"] end
     local h, m = math.floor(sec / 3600), math.floor(sec % 3600 / 60)
-    if h == 0 then return (L["%d Min."]):format(m) end
-    return (L["%d:%02d Std."]):format(h, m)
+    if h == 0 then return (L["%d min"]):format(m) end
+    return (L["%d:%02d h"]):format(h, m)
 end
 -- Tageszeit mit der meisten Spielzeit (4-Stunden-Fenster)
 local PARTS = {
@@ -100,7 +100,7 @@ function Members.Peak(name)
     local mid = (bestH + 2) % 24
     local part = "nachts"
     for _, p in ipairs(PARTS) do if mid >= p[1] and mid < p[2] then part = p[3] end end
-    return (L["meist %s (%d-%d Uhr)"]):format(L[part], bestH, (bestH + 4) % 24), part
+    return (L["mostly %s (%d-%d h)"]):format(L[part], bestH, (bestH + 4) % 24), part
 end
 -- gewonnene Level in den letzten Tagen
 function Members.LevelGain(name, days, current)
@@ -166,7 +166,7 @@ function Members.StatusIcon(name, size)
     local c = kind == "inst" and C.accent or C.amber
     local icon = ns.MEDIA .. "icons\\" .. (kind == "inst" and "dungeons" or "groups")
     local tex = ("|T%s:%d:%d:0:0:64:64:0:64:0:64:%d:%d:%d|t "):format(icon, size or 12, size or 12, math.floor(c[1] * 255), math.floor(c[2] * 255), math.floor(c[3] * 255))
-    local txt = kind == "inst" and (L["im Dungeon (%d)"]):format(n or 1) or (L["in Gruppe (%d/5)"]):format(n or 2)
+    local txt = kind == "inst" and (L["in a dungeon (%d)"]):format(n or 1) or (L["in a group (%d/5)"]):format(n or 2)
     return tex, txt
 end
 
@@ -247,17 +247,17 @@ function Members.Anniversary(name)
     if j.day ~= n.day then return end
     local months = (n.year - j.year) * 12 + (n.month - j.month)
     if months < 1 then return end
-    if months % 12 == 0 then return (L["%d Jahr(e) in der Gilde"]):format(months / 12) end
-    return (L["%d Monat(e) in der Gilde"]):format(months)
+    if months % 12 == 0 then return (L["%d year(s) in the guild"]):format(months / 12) end
+    return (L["%d month(s) in the guild"]):format(months)
 end
 function Members.MemberSince(name)
     local t = ns.Welcome and ns.Welcome.JoinedAt(name)
-    return t and date(L["%d.%m.%Y"], t)
+    return t and date(L["%m/%d/%Y"], t)
 end
 
 -- einmal pro Tag nach dem Einloggen: wer hat heute Geburtstag/Jubilaeum
-ns.GuildOption({ page = "radar", key = "mbBday", default = true, label = "Geburtstage und Jubilaeen melden",
-    desc = "Einmal am Tag ein Hinweis, wer heute Geburtstag oder ein Gilden-Jubilaeum hat" })
+ns.GuildOption({ page = "radar", key = "mbBday", default = true, label = "Announce birthdays and anniversaries",
+    desc = "Once a day a notice of who has a birthday or guild anniversary today" })
 local function announce()
     if ns.GuildOpt("mbBday") == false then return end
     local today = dayKey()
@@ -266,14 +266,14 @@ local function announce()
     for _, m in ipairs(ns.Radar.roster) do
         if Members.IsBirthday(m.name) and not ns.isMe(m.name) then
             ns.Sound.Next("birthday")
-            K.Toast((L["%s hat heute Geburtstag!"]):format(ns.displayName(m.name)), L["Klick: gratulieren (Flüstern)"], C.pink, function()
-                ns.Whisper(m.name, L["Alles Gute zum Geburtstag!"] .. " ")
+            K.Toast((L["It's %s's birthday today!"]):format(ns.displayName(m.name)), L["Click: congratulate (whisper)"], C.pink, function()
+                ns.Whisper(m.name, L["Happy birthday!"] .. " ")
             end)
         end
         local a = Members.Anniversary(m.name)
-        if a then K.Toast(ns.displayName(m.name) .. ": " .. a, L["Schon so lange in der Gilde"], C.amber) end
+        if a then K.Toast(ns.displayName(m.name) .. ": " .. a, L["In the guild for this long already"], C.amber) end
     end
-    if Members.IsBirthday(ns.me()) then ns.Sound.Next("birthday") K.Toast(L["Alles Gute zum Geburtstag!"], L["Die Oasis gratuliert."], C.pink) end
+    if Members.IsBirthday(ns.me()) then ns.Sound.Next("birthday") K.Toast(L["Happy birthday!"], L["Oasis wishes you all the best."], C.pink) end
 end
 
 function Members.SetBirthday(s)
@@ -286,11 +286,11 @@ function Members.SetBirthday(s)
 end
 ns.slash.geburtstag = function(arg)
     if arg == "" or arg == nil then
-        ns.print(L["Geburtstag: "] .. (ns.db.settings.birthday or "-") .. "  |cff888888(/oa geburtstag TT.MM)|r")
+        ns.print(L["Birthday: "] .. (ns.db.settings.birthday or "-") .. "  |cff888888(/oa geburtstag TT.MM)|r")
     elseif Members.SetBirthday(arg) then
-        ns.print(L["Geburtstag gespeichert: "] .. ns.db.settings.birthday)
+        ns.print(L["Birthday saved: "] .. ns.db.settings.birthday)
     else
-        ns.print(L["Bitte als TT.MM angeben, z.B. /oa geburtstag 12.10"])
+        ns.print(L["Please use DD.MM, e.g. /oa birthday 12.10"])
     end
 end
 ns.slash.birthday = ns.slash.geburtstag
@@ -308,7 +308,7 @@ function Members.CanEditOfficerNote()
 end
 -- nie die globale Tabelle selbst neu setzen (das "beruehrt" Blizzards Popups und blockiert Esc/Zauber)
 StaticPopupDialogs.OASIS_OFFICER_NOTE = {
-    text = "%s", button1 = OKAY or "OK", button2 = CANCEL or "Abbrechen",
+    text = "%s", button1 = OKAY or "OK", button2 = CANCEL or "Cancel",
     hasEditBox = true, maxLetters = 31, timeout = 0, whileDead = true, hideOnEscape = true,
     OnShow = function(self, data)
         local eb = self.editBox or self.EditBox
@@ -327,7 +327,7 @@ StaticPopupDialogs.OASIS_OFFICER_NOTE = {
 }
 function Members.EditOfficerNote(m)
     if not (m and m.index) then return end
-    StaticPopup_Show("OASIS_OFFICER_NOTE", (L["Offiziersnotiz fuer %s"]):format(ns.displayName(m.name)), nil,
+    StaticPopup_Show("OASIS_OFFICER_NOTE", (L["Officer note for %s"]):format(ns.displayName(m.name)), nil,
         { index = m.index, guid = m.guid, note = m.onote or "" })
 end
 
@@ -342,30 +342,30 @@ function Members.ShowMenu(owner, m)
     -- "Lena Berg"), sonst wenigstens das Gebiet aus der Gildenliste
     local canMap = ns.Map and ns.Map.ShowMember and (me or (ns.Map.PosOf and ns.Map.PosOf(m.name)) or (m.online and (m.zone or "") ~= ""))
     local items = {
-        { text = L["Profil anzeigen"], icon = I .. "profile", fn = function() if ns.Profile then ns.Profile.Show(m.name) end end },
-        { text = L["Talente ansehen"], icon = I .. "stats", fn = function() if ns.Talents then ns.Talents.Show(m.name) end end },
-        { text = L["Anfluestern"], icon = I .. "social", disabled = me or not m.online, fn = function() ns.Whisper(m.name) end },
-        { text = L["In Gruppe einladen"], icon = I .. "groups", disabled = me or not m.online, fn = function()
-            if m.demo then ns.print(L["(Demo) Einladung an "] .. ns.displayName(m.name)) return end
+        { text = L["Show profile"], icon = I .. "profile", fn = function() if ns.Profile then ns.Profile.Show(m.name) end end },
+        { text = L["View talents"], icon = I .. "stats", fn = function() if ns.Talents then ns.Talents.Show(m.name) end end },
+        { text = L["Whisper"], icon = I .. "social", disabled = me or not m.online, fn = function() ns.Whisper(m.name) end },
+        { text = L["Invite to group"], icon = I .. "groups", disabled = me or not m.online, fn = function()
+            if m.demo then ns.print(L["(Demo) Invite sent to "] .. ns.displayName(m.name)) return end
             if C_PartyInfo and C_PartyInfo.InviteUnit then C_PartyInfo.InviteUnit(ns.ChatName(m.name)) elseif InviteUnit then InviteUnit(ns.ChatName(m.name)) end
         end },
-        { text = L["Auf der Karte zeigen"], icon = I .. "map", disabled = not canMap, fn = function()
-            if not ns.Map.ShowMember(m.name, m.zone) then ns.print(L["Position und Gebiet unbekannt."]) end
+        { text = L["Show on map"], icon = I .. "map", disabled = not canMap, fn = function()
+            if not ns.Map.ShowMember(m.name, m.zone) then ns.print(L["Position and zone unknown."]) end
         end },
     }
     -- 0.6.469: Danke sagen und Pate werden (Modul Gemeinschaft)
     local CO = ns.Community
     if CO and not me and not m.demo then
-        items[#items + 1] = { text = L["Danke sagen"], icon = I .. "heart", fn = function() CO.Thank(m.name, "") end }
+        items[#items + 1] = { text = L["Say thanks"], icon = I .. "heart", fn = function() CO.Thank(m.name, "") end }
         if ns.Welcome and ns.Welcome.IsNew and ns.Welcome.IsNew(m.name) and not CO.MentorOf(m.name) then
-            items[#items + 1] = { text = L["Pate werden"], icon = I .. "groups", fn = function() CO.BecomeMentor(m.name) end }
+            items[#items + 1] = { text = L["Become mentor"], icon = I .. "groups", fn = function() CO.BecomeMentor(m.name) end }
         end
     end
     if ns.Leadership and ns.isOfficer() and not me and not m.demo then
-        items[#items + 1] = { text = L["Akte oeffnen"], icon = I .. "admin", fn = function() ns.Leadership.ShowDossier(m.name) end }   -- 0.6.526
+        items[#items + 1] = { text = L["Open file"], icon = I .. "admin", fn = function() ns.Leadership.ShowDossier(m.name) end }   -- 0.6.526
     end
     if Members.CanEditOfficerNote() and not m.demo and m.index then
-        items[#items + 1] = { text = L["Offiziersnotiz bearbeiten"], icon = I .. "checklist", fn = function() Members.EditOfficerNote(m) end }
+        items[#items + 1] = { text = L["Edit officer note"], icon = I .. "checklist", fn = function() Members.EditOfficerNote(m) end }
     end
     K.ShowMenu(owner, items, ns.colorName(m.name, m.class))
 end
@@ -376,28 +376,28 @@ end
 function Members.TooltipLines(m, lines)
     local today = Members.PlayToday(m.name)
     if today > 0 or m.online then
-        lines[#lines + 1] = L["Heute online: "] .. Members.FmtDuration(today) .. "  |cff888888(" .. L["7 Tage: "] .. Members.FmtDuration(Members.PlayWeek(m.name)) .. ")|r"
+        lines[#lines + 1] = L["Online today: "] .. Members.FmtDuration(today) .. "  |cff888888(" .. L["7 days: "] .. Members.FmtDuration(Members.PlayWeek(m.name)) .. ")|r"
     end
     local peak = Members.Peak(m.name)
-    if peak then lines[#lines + 1] = L["Aktiv: "] .. peak end
+    if peak then lines[#lines + 1] = L["Active: "] .. peak end
     local gain = Members.LevelGain(m.name, 7, m.level)
-    if gain > 0 then lines[#lines + 1] = "|cff66db9e" .. (L["+%d Level in 7 Tagen"]):format(gain) .. "|r" end
+    if gain > 0 then lines[#lines + 1] = "|cff66db9e" .. (L["+%d levels in 7 days"]):format(gain) .. "|r" end
     local _, st = Members.StatusIcon(m.name)
-    if st and m.online then lines[#lines + 1] = L["Gerade: "] .. st end
+    if st and m.online then lines[#lines + 1] = L["Right now: "] .. st end
     if m.zone ~= "" and m.online and not ns.isMe(m.name) and m.zone == (ns.safe(GetRealZoneText()) or "") then
-        lines[#lines + 1] = "|cff66db9e" .. L["Im selben Gebiet wie du"] .. "|r"
+        lines[#lines + 1] = "|cff66db9e" .. L["In the same zone as you"] .. "|r"
     end
     local shared = Members.SharedQuests(m.name)
     if #shared > 0 then
-        lines[#lines + 1] = "|cffe8b44a" .. L["Gleiche Quests: "] .. "|r" .. table.concat(shared, ", ")
-        if m.online then lines[#lines + 1] = "|cff888888" .. L["Das gelbe Ausrufezeichen am Symbol zeigt das an."] .. "|r" end
+        lines[#lines + 1] = "|cffe8b44a" .. L["Same quests: "] .. "|r" .. table.concat(shared, ", ")
+        if m.online then lines[#lines + 1] = "|cff888888" .. L["The yellow exclamation mark on the icon marks this."] .. "|r" end
     end
     local b = Members.Birthday(m.name)
-    if b then lines[#lines + 1] = L["Geburtstag: "] .. b .. (Members.IsBirthday(m.name) and ("  |cffff77aa" .. L["heute!"] .. "|r") or "") end
+    if b then lines[#lines + 1] = L["Birthday: "] .. b .. (Members.IsBirthday(m.name) and ("  |cffff77aa" .. L["today!"] .. "|r") or "") end
     local since = Members.MemberSince(m.name)
-    if since then lines[#lines + 1] = L["In der Gilde seit "] .. since end
+    if since then lines[#lines + 1] = L["In the guild since "] .. since end
     if (m.onote or "") ~= "" and (m.demo or Members.CanSeeOfficerNote()) then
-        lines[#lines + 1] = "|cffff7a5c" .. L["Offiziersnotiz: "] .. "|r" .. m.onote
+        lines[#lines + 1] = "|cffff7a5c" .. L["Officer note: "] .. "|r" .. m.onote
     end
 end
 

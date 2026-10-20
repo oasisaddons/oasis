@@ -87,7 +87,7 @@ function NS.TipFor(key)
     local n = counts[key]
     local cur = ns._badges and ns._badges[key]
     if n and n > 0 and cur ~= nil and cur == mine[key] then
-        return n == 1 and L["1 neu seit deinem letzten Besuch"] or (L["%d neu seit deinem letzten Besuch"]):format(n)
+        return n == 1 and L["1 new since your last visit"] or (L["%d new since your last visit"]):format(n)
     end
 end
 
