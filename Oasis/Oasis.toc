@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.563
+## Version: 0.6.566
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -91,14 +91,7 @@ Kern\Gilde\Wants.lua
 Modules\Fojji\FojjiBridge.lua
 Kern\Items\ItemSearch.lua
 Kern\Gilde\Groups.lua
-Modules\RaidTools\BuffMonitor.lua
-Modules\RaidTools\BuffPage.lua
 Modules\Lager\Camp.lua
-Modules\RaidTools\LootPoints.lua
-Modules\RaidTools\RaidPlanner.lua
-Modules\RaidTools\Roster.lua
-Modules\RaidTools\RaidTime.lua
-Modules\RaidTools\Raid.lua
 Modules\Chronik\Chronicle.lua
 Kern\Karte\Map.lua
 Kern\Gilde\Badges.lua
@@ -137,10 +130,8 @@ Modules\Gildenpflege\GuildHistory.lua
 Modules\Gildenpflege\Leadership.lua
 Modules\Gildenpflege\Apply.lua
 Modules\Gildenpflege\Suspect.lua
-Modules\RaidTools\LootMaster.lua
 Modules\Kartenextras\GatherMap.lua
 Modules\Kartenextras\Glimmer.lua
-Modules\Rares\Rares.lua
 Modules\Kartenextras\MapExtras.lua
 Modules\Sammlungen\Collections.lua
 Kern\Items\Inventory.lua
@@ -149,7 +140,6 @@ Modules\MeinWeg\Life.lua
 Kern\Gilde\Contacts.lua
 Kern\Gilde\NoGuild.lua
 Modules\Upgrades\GearMatch.lua
-Modules\RaidTools\RaidCheck.lua
 Modules\Fluestern\WhisperLog.lua
 Import.lua
 Kern\Einstellungen\Import.lua
@@ -178,10 +168,7 @@ Kern\Chat\GuildPackAdmin.lua
 Kern\Einstellungen\ModuleLoader.lua
 Kern\Gilde\LevelBadges.lua
 Kern\Diagnose\MeterProbe.lua
-Modules\Kampf\CombatBoard.lua
 CritImport.lua
-Modules\Kampf\CombatCrit.lua
-Modules\Talente\Talents.lua
 Kern\Start\UpdateStart.lua
 Kern\Start\WhatsNew.lua
 Locales\Base\LocaleData481.lua
@@ -197,12 +184,6 @@ Modules\Dungeons\DropRates.lua
 Modules\Dungeons\QuestLocations.lua
 Modules\Dungeons\Dungeons.lua
 Modules\Dungeons\DungeonUI.lua
-Modules\RaidTools\RaidBoard.lua
-Modules\RaidTools\Lockouts.lua
-Modules\RaidTools\RaidPrep.lua
-Modules\RaidTools\WipeReport.lua
-Modules\RaidTools\LootRules.lua
-Modules\RaidTools\SoftRes.lua
 Modules\Deathroll\Deathroll.lua
 Modules\Gruppe\Party.lua
 Modules\Gruppe\PartyXP.lua

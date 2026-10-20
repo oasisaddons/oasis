@@ -4,7 +4,7 @@
 --  * "Ersatz an der Reihe": wer aus dem Ersatz zuletzt am wenigsten dabei war - faire Rotation
 --  * jeder kann sich abmelden ("Ich fehle am ..." -> Store "absent"); die Raidleitung bekommt einen Hinweis
 -- Ergaenzt Gargul/RCLootCouncil (Beute) und MRT (Notizen) - die kennen keinen festen Kader.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Raidwerkzeuge", function()
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store

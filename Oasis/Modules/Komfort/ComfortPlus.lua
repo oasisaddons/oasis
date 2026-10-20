@@ -252,7 +252,7 @@ end)
 ------------------------------------------------------------------------
 -- 9. Weltkarte aufdecken (Standard aus, Einstellung bei der Karte)
 ------------------------------------------------------------------------
--- Daten: ns.MapRevealData[uiMapID] = { "w:h:x:y:tex1,tex2,...", ... } (Kern/Karte/MapRevealData.lua)
+-- Daten: ns.MapRevealData[uiMapID] = { "w:h:x:y:tex1,tex2,...", ... } (Kern/Karte/MapRevealData.lua, Spieldaten WoW Forever)
 local revealPool = {}
 local function revealRefresh()
     for _, t in ipairs(revealPool) do t:Hide() end
@@ -262,23 +262,29 @@ local function revealRefresh()
     local list = data and mapID and data[mapID]
     if not list then return end
     -- schon erkundete Flaechen lassen wir Blizzard zeichnen
+    -- 0.6.564: Abgleich mit Toleranz (Forever verschiebt einzelne Flaechen um ein paar Pixel). Frueher reichte EINE
+    -- abweichende Flaeche, damit gar nichts aufgedeckt wurde (Hillsbrad). Jetzt erst aussetzen, wenn die Mehrheit
+    -- der erkundeten Flaechen nicht passt (Karte wirklich neu gezeichnet, z. B. Mulgore).
     local known = {}
+    local mine = {}
+    for i, entry in ipairs(list) do
+        local ox, oy = entry:match("^%d+:%d+:(%d+):(%d+):")
+        if ox then mine[#mine + 1] = { tonumber(ox), tonumber(oy), i } end
+    end
+    local function near(x, y)
+        for _, m in ipairs(mine) do
+            if math.abs(m[1] - x) <= 6 and math.abs(m[2] - y) <= 6 then return m[3] end
+        end
+    end
     if C_MapExplorationInfo and C_MapExplorationInfo.GetExploredMapTextures then
         local ok, ex = pcall(C_MapExplorationInfo.GetExploredMapTextures, mapID)
-        if ok and type(ex) == "table" then
-            for _, e in ipairs(ex) do known[(e.offsetX or 0) .. ":" .. (e.offsetY or 0)] = true end
-            -- 0.6.520: Forever hat manche Karten neu gezeichnet (z. B. Mulgore). Passen die erkundeten Flaechen des
-            -- Spiels nicht zu unseren 1.15-Daten, ist die Karte geaendert -> nichts aufdecken (sonst alte Karte drueber)
-            if #ex > 0 then
-                local mine = {}
-                for _, entry in ipairs(list) do
-                    local ox, oy = entry:match("^%d+:%d+:(%d+):(%d+):")
-                    if ox then mine[ox .. ":" .. oy] = true end
-                end
-                local miss = 0
-                for _, e in ipairs(ex) do if not mine[(e.offsetX or 0) .. ":" .. (e.offsetY or 0)] then miss = miss + 1 end end
-                if miss > 0 then return end
+        if ok and type(ex) == "table" and #ex > 0 then
+            local miss = 0
+            for _, e in ipairs(ex) do
+                local i = near(e.offsetX or 0, e.offsetY or 0)
+                if i then known[i] = true else miss = miss + 1 end
             end
+            if miss * 2 > #ex then return end
         end
     end
     local canvas = WorldMapFrame:GetCanvas()
@@ -288,10 +294,10 @@ local function revealRefresh()
     local lh = layers and layers[1] and layers[1].layerHeight or 668
     local sx, sy = cw / lw, ch / lh
     local k = 0
-    for _, entry in ipairs(list) do
+    for i, entry in ipairs(list) do
         local w, h, ox, oy, texs = entry:match("^(%d+):(%d+):(%d+):(%d+):(.+)$")
         w, h, ox, oy = tonumber(w), tonumber(h), tonumber(ox), tonumber(oy)
-        if w and not known[ox .. ":" .. oy] then
+        if w and not known[i] then
             local ids = {}
             for id in texs:gmatch("%d+") do ids[#ids + 1] = tonumber(id) end
             local cols = math.ceil(w / 256)

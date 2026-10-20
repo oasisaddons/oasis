@@ -1,7 +1,7 @@
 -- Oasis - Buff-Monitor als eigener Reiter: wer hat welche Buffs, was fehlt, wer kann es geben
 -- Glas 2026: vorhandene Buffs als Symbol, fehlende als ruhige leere Felder; Rot nur, wo es zaehlt
 -- (fehlt allen bzw. du kannst es selbst beheben). Klick auf ein fehlendes Feld fragt den Verteiler.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Raidwerkzeuge", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C

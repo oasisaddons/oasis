@@ -1,5 +1,5 @@
 -- Oasis - Soft-Reserve: pro Raidtermin reserviert jeder (Main) ein Item. Sichtbar auf der Seite und im Item-Tooltip.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Raidwerkzeuge", function()   -- Modul Raidwerkzeuge (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C = ns.K, ns.K.C

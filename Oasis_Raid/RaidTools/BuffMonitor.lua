@@ -4,7 +4,7 @@
 -- Schnittstelle (BuffPage.lua, RaidCheck.lua): BM.Scan() -> list, cols, missing, total, done, info
 --   list[i] = { unit, name, class, dead, away, has = { [key] = true }, exp = { [key] = Ablaufzeit }, src = { [key] = Aura-Name } }
 --   cols[j] = Buff-Definition { key, cat, cls, short, label, icon, cons }
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Raidwerkzeuge", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
 -- ns.Group kommt aus Kern\Diagnose\RaidSim.lua; fehlt die Datei, gelten die echten Blizzard-Abfragen
 if not ns.Group then ns.Group = { IsSim = function() return false end, IsInGroup = function() return (IsInGroup and IsInGroup()) and true or false end, IsInRaid = function() return (IsInRaid and IsInRaid()) and true or false end, Num = function() return (GetNumGroupMembers and GetNumGroupMembers()) or 0 end, InInstance = function() if IsInInstance then return IsInInstance() end return false, "none" end, Instance = function() return nil end, Members = function() return {} end, Member = function() return nil end, IsLeader = function() return (UnitIsGroupLeader and UnitIsGroupLeader("player")) and true or false end, IsAssist = function() return false end } end

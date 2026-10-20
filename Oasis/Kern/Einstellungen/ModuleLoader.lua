@@ -56,7 +56,27 @@ function M.Loaded(addon) return M.state[addon] == "loaded" end
 M.OLD_FOLDERS = { "Oasis_Dungeons", "Oasis_Raidwerkzeuge", "Oasis_Deathroll", "Oasis_Brachland", "Oasis_Legacy", "Oasis_Questitems", "Oasis_Sprachen",
     "Oasis_Locale_FR", "Oasis_Locale_ES", "Oasis_Locale_IT", "Oasis_Locale_PT", "Oasis_Locale_RU", "Oasis_Locale_ZH", "Oasis_Locale_KO" }
 -- beim Start (ADDON_LOADED, vor DB_READY/LOGIN): eingeschaltete Module ausfuehren, den Rest verwerfen
+-- 0.6.566: Oasis wird in Teil-Addons zerlegt (Ordner Addons\<Teil>\, eigene toc mit LoadOnDemand).
+-- Oasis laedt sie hier selbst, BEVOR die Module laufen - so haengen sie wie bisher an ns.ModuleFile und laufen vor DB_READY.
+-- Ist ein Teil nicht installiert oder in der AddOn-Liste aus, fehlen seine Module (Zustand "missing").
+M.PARTS = {
+    { addon = "Oasis_Raid", title = "Oasis - Raid", modules = { "Oasis_Raidwerkzeuge", "Oasis_Kampf", "Oasis_Talente", "Oasis_Rares" } },
+}
+M.partOf = {}
+for _, p in ipairs(M.PARTS) do for _, k in ipairs(p.modules) do M.partOf[k] = p end end
+M.partState = {}   -- [Teil] = "loaded" | Grund von LoadAddOn ("MISSING", "DISABLED" ...)
+local function loadParts()
+    local load = (C_AddOns and C_AddOns.LoadAddOn) or LoadAddOn
+    for _, p in ipairs(M.PARTS) do
+        if not load then M.partState[p.addon] = "MISSING" else
+            local ok, loaded, reason = pcall(load, p.addon)
+            M.partState[p.addon] = (ok and loaded) and "loaded" or tostring(reason or (not ok and loaded) or "MISSING")
+        end
+    end
+end
+function M.PartLoaded(addon) return M.partState[addon] == "loaded" end
 function M.LoadAll()
+    pcall(loadParts)
     local files = ns.moduleFiles or {}
     ns.moduleFiles = nil
     -- 0.6.285: in der Reihenfolge der toc ausfuehren (nicht der Anzeigeliste) - z. B. erweitert ein Modul ein anderes
@@ -253,6 +273,11 @@ local function refresh(f)
         local txt = sd and ("|cff" .. sd[2] .. L[sd[1]] .. "|r") or ("|cffff6060" .. tostring(s or "?") .. "|r")
         if not M.IsOn(r.m.addon) and s == "loaded" then txt = "|cffe8b44a" .. L["aus nach /reload"] .. "|r" end
         if M.IsOn(r.m.addon) and s == "off" then txt = "|cffe8b44a" .. L["an nach /reload"] .. "|r" end
+        -- 0.6.566: Modul steckt in einem Teil-Addon, das fehlt oder aus ist
+        local part = M.partOf[r.m.addon]
+        if part and s == "missing" and not M.PartLoaded(part.addon) then
+            txt = "|cffe8b44a" .. (L["%s fehlt"]):format(part.title) .. "|r"
+        end
         r.st:SetText(txt)
     end
     f.total:SetText((L["Oasis belegt gerade %s."]):format(fmtMB(sum)))

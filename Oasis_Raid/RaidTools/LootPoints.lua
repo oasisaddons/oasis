@@ -5,7 +5,7 @@
 --  Jede Woche verfallen x % (Standard 10), damit Neue aufholen koennen.
 -- Punkte vergeben duerfen Offiziere (Rang einstellbar). Jede Buchung ist ein eigener Datensatz,
 -- alle Clients rechnen den Stand selbst aus -> nichts geht verloren, alles ist nachvollziehbar.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Raidwerkzeuge", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store

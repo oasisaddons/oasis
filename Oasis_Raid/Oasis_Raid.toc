@@ -1,0 +1,30 @@
+## Interface: 16001
+## Title: Oasis - Raid
+## Notes: Raid tools for Oasis: raid schedule and sign-ups, raid lead, loot master, buffs, tactics map, raid check, combat ranking, talents, rare spawns.
+## Notes-deDE: Raid-Werkzeuge fuer Oasis: Raid-Termine und Anmeldungen, Raidleitung, Plundermeister, Buffs, Taktik-Karte, Raid-Check, Kampf-Rangliste, Talente, seltene Gegner.
+## Author: Oasis Addons
+## Version: 0.6.566
+## Category: Oasis
+## Dependencies: Oasis
+## LoadOnDemand: 1
+## IconTexture: Interface\AddOns\Oasis\Media\logo64
+
+RaidTools\BuffMonitor.lua
+RaidTools\BuffPage.lua
+RaidTools\LootPoints.lua
+RaidTools\RaidPlanner.lua
+RaidTools\Roster.lua
+RaidTools\RaidTime.lua
+RaidTools\Raid.lua
+RaidTools\LootMaster.lua
+Rares\Rares.lua
+RaidTools\RaidCheck.lua
+Kampf\CombatBoard.lua
+Kampf\CombatCrit.lua
+Talente\Talents.lua
+RaidTools\RaidBoard.lua
+RaidTools\Lockouts.lua
+RaidTools\RaidPrep.lua
+RaidTools\WipeReport.lua
+RaidTools\LootRules.lua
+RaidTools\SoftRes.lua

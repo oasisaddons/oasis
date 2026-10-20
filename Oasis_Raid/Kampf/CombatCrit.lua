@@ -1,5 +1,5 @@
 -- Echte Crits: oeffentliche Kampflog-Ereignisse oder manueller Import einer lokalen Logdatei.
-local _, ns = ...
+local _, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Kampf", function()   -- Modul Kampf-Rangliste (abschaltbar, siehe ModuleLoader.lua)
 local CB = ns.CombatBoard
 local secret = issecretvalue or function() return false end

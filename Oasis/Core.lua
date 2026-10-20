@@ -2,8 +2,8 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.563"
-ns.versionDate = "19.10.2026"
+ns.version = "0.6.566"
+ns.versionDate = "20.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
 ns.MEDIA = "Interface\\AddOns\\Oasis\\Media\\"

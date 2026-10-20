@@ -2,7 +2,7 @@
 -- automatisch geht, z.B. "Handwerkswaren an Bankchar", "Graues an mich". Greift beim Oeffnen
 -- einer Leiche, nur als Plundermeister. Was eine Regel trifft, kommt nicht in die Verteilung.
 -- Reiter "Pluender-Regeln" auf der Seite Raid-Check (Bausteine aus ns.RCUI, RaidCheck.lua).
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Raidwerkzeuge", function()   -- Modul Raidwerkzeuge (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local function refreshAll() if ns.RCRefresh then ns.RCRefresh() else ns.RefreshPage("lootrules") end end

@@ -6,7 +6,7 @@
 --    (die Sammlung steht nicht in Comms RETENTION-Liste, deshalb eigener Versand + eigenes Aufraeumen)
 --  * Seite (Gruppe Raid): Raster Mitglieder x Raids, Filter, "Freie Gruppe vorschlagen", Reset-Countdown
 --  * Oeffentlich: Lockouts.StateOf(name, raidKey), Lockouts.RaidFor(text), Lockouts.BoundHint(ev) (fuer Raid.lua)
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Raidwerkzeuge", function()   -- Modul Raidwerkzeuge (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Store = ns.K, ns.K.C, ns.Store

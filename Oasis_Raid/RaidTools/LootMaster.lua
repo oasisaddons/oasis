@@ -8,7 +8,7 @@
 --  * Alles landet im Beute-Verlauf (Store "loot") und bucht Punkte (LootPoints), Plus-Eins zaehlt je Raidabend
 -- Aufbau angelehnt an das, was sich bewaehrt hat: links Item-Reiter, rechts Bewerbertabelle mit Spalten
 -- (Name, Rang, Wahl, Wurf, +1/Punkte, getragene Items, Stimmen, Notiz); fuer Mitglieder ein schmales Wurf-Fenster.
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Raidwerkzeuge", function()   -- Modul Raid-Werkzeuge (abschaltbar, siehe ModuleLoader.lua)
 -- ns.Group kommt aus Kern\Diagnose\RaidSim.lua; fehlt die Datei, gelten die echten Blizzard-Abfragen
 if not ns.Group then ns.Group = { IsSim = function() return false end, IsInGroup = function() return (IsInGroup and IsInGroup()) and true or false end, IsInRaid = function() return (IsInRaid and IsInRaid()) and true or false end, Num = function() return (GetNumGroupMembers and GetNumGroupMembers()) or 0 end, InInstance = function() if IsInInstance then return IsInInstance() end return false, "none" end, Instance = function() return nil end, Members = function() return {} end, Member = function() return nil end, IsLeader = function() return (UnitIsGroupLeader and UnitIsGroupLeader("player")) and true or false end, IsAssist = function() return false end } end

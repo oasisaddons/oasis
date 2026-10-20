@@ -3,7 +3,7 @@
 --  oder "Ziel ist tot" nach dem Kampf. Aus den Toden je Gegner: Wiederkehr-Schaetzung (kuerzester/mittlerer Abstand).
 --  Geteilt ueber den Store (eigene Sammlungen "rare_seen" + "rare_kills", eigene Nachrichten OARU/OARQ/OARA/OARB,
 --  weil Comm.lua nur fest eingetragene Sammlungen annimmt).
-local ADDON, ns = ...
+local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
 ns.ModuleFile("Oasis_Rares", function()   -- Modul Seltene Gegner (abschaltbar, siehe ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
