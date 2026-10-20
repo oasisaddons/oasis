@@ -3,7 +3,7 @@
 ## Notes: Groups and raids for Oasis: my group (share quests, group XP, blessings, threat), dungeon database with bosses, maps and quest spots, quest markers, raid schedule and sign-ups, raid lead, loot master, buffs, tactics map, raid check, combat ranking, talents, rare spawns.
 ## Notes-deDE: Gruppen und Raids fuer Oasis: meine Gruppe (Quests teilen, Gruppen-XP, Segen, Bedrohung), Dungeon-Datenbank mit Bossen, Karten und Questorten, Quest-Markierungen, Raid-Termine und Anmeldungen, Raidleitung, Plundermeister, Buffs, Taktik-Karte, Raid-Check, Kampf-Rangliste, Talente, seltene Gegner.
 ## Author: Oasis Addons
-## Version: 0.6.577
+## Version: 0.6.578
 ## Category: Oasis
 ## Dependencies: Oasis
 ## LoadOnDemand: 1

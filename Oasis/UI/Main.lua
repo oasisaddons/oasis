@@ -1489,9 +1489,9 @@ end
 local NAV_GROUPS = {
     { key = "top", text = "", pages = { "home" }, nohead = true },   -- dashboard: at the very top, without group heading
     { key = "me", text = "Me", pages = { "life", "insta", "bags", "badges", "legacy", "rank" } },
-    { key = "guild", text = "Guild", pages = { "chat", "radar", "chronicle", "polls", "community", "pasture", "board", "goals", "bank", "deaths" } },
+    { key = "guild", text = "Guild", pages = { "chat", "radar", "chronicle", "polls", "community", "board", "goals", "bank", "deaths" } },
     { key = "play", text = "Play together", pages = { "social", "questitems", "allies", "scout", "camp" } },
-    { key = "fun", text = "Fun", pages = { "deathroll" } },
+    { key = "fun", text = "Fun", pages = { "pasture", "deathroll" } },
     -- 0.6.573: one group per add-on (Oasis Groups & Raids / Trade / Convenience) - missing add-on = group is empty and hidden
     { key = "raid", text = "Groups & Raids", addon = "Oasis_GroupsRaids", pages = { "groups", "dungeons", "fight", "raid", "raidlead", "loot", "buffs", "tactics" } },
     { key = "trade", text = "Trade", addon = "Oasis_Trade", pages = { "crafting", "trade", "wants" } },

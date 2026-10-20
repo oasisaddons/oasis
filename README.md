@@ -4,6 +4,8 @@
 
 **One window for your whole guild: members, guild chat, chronicle, profiles, community and guild leadership - all in-game.**
 
+**Quick links:** [OASIS - Groups & Raids](https://www.curseforge.com/wow/addons/oasis-groups-raids) · [OASIS - Trade](https://www.curseforge.com/wow/addons/oasis-trade) · [OASIS - Convenience](https://www.curseforge.com/wow/addons/oasis-convenience) · [Build your guild pack (Oasis Studio)](https://oasisaddon.com/#studio) · [Website](https://oasisaddon.com/) · [Discord](https://discord.gg/j5Nfd5zR6)
+
 OASIS is a guild hub built for **WoW Forever**. This is the **base add-on**. It works on its own, and you can add more areas with the optional OASIS add-ons below - install only what your guild needs.
 
 ## Add-ons for OASIS
@@ -29,16 +31,28 @@ See who's online, follow level-ups and loot, check upcoming goals and discover y
 ## Guild chat, emojis & sounds
 
 Give guild conversations their own space: a guild chat with emojis, mentions and a history.
-Your guild can build its **own emojis and sounds** in the free [Oasis Studio](https://oasisaddon.com/#studio) - right in the browser, nothing is uploaded. Guildmates install the same guild pack to see and hear them.
 
-## Community & fun
+## Your own guild pack - emojis & sounds
+
+Make OASIS truly yours with the free **[Oasis Studio](https://oasisaddon.com/#studio)**:
+
+- Drop in your own **images** (PNG, JPG, GIF, WEBP - animated GIFs stay animated) and **sounds** (MP3, OGG).
+- Name them, sort emojis into tabs and lock items to an Oasis rank if you like.
+- Download one folder, `Oasis_GuildPack`, and share it with your guild. Guildmates install the same pack to see your emojis and hear your sounds.
+- Already have a pack? **Open it in the Studio** (ZIP or folder), change it and download the new version.
+- Everything happens in your browser - your images and sounds are never uploaded.
+
+## Community
 
 - **Polls & guild goals:** decide together and work toward shared objectives.
 - **Community:** profiles, birthdays, mentors for new members, thank-yous.
-- **Guildotchi:** every member with Oasis has an animal on the guild meadow - feed it, pet it, keep it happy.
-- **Deathroll:** a classic dice duel with a leaderboard; stakes are off by default.
 - **Badges, collections & Legacy:** celebrate progress and milestones.
 - **Campfires & deaths:** share campfires on the map and remember fallen heroes.
+
+## Fun
+
+- **Guildotchi:** every member with Oasis has an animal on the guild meadow - feed it, pet it, brush it and keep it happy. Higher Oasis ranks unlock new animals and colours.
+- **Deathroll:** a classic dice duel with a leaderboard and an arena; stakes are off by default.
 
 ## Guild leadership
 
