@@ -474,6 +474,8 @@ local function newSheep(field)
     end)
     m:SetScript("OnEnter", function(self)
         if not self.who then return end
+        self.hover = true
+        self.nameHidden = nil self.name:SetAlpha(1)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine(ns.short(self.who.name), 1, 1, 1)
         GameTooltip:AddLine((L["Oasis rank %d"]):format(self.who.lvl), C.accent2[1], C.accent2[2], C.accent2[3])
@@ -489,7 +491,7 @@ local function newSheep(field)
         if not ns.isMe(self.who.name) then GameTooltip:AddLine(L["Click: feed or say hello"], 0.6, 0.8, 1) end
         GameTooltip:Show()
     end)
-    m:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    m:SetScript("OnLeave", function(self) self.hover = nil GameTooltip:Hide() end)
     -- 0.6.580: click on someone else's animal: feed (once a day) or send a small reaction
     m:SetScript("OnMouseUp", function(self)
         if not self.who then return end
@@ -593,12 +595,15 @@ local GAP_X, GAP_Y = 0.13, 0.12   -- 0.6.548: clearly more distance
 -- 0.6.558: distance by actual size (like when drawing: 0.35 + 1.25 * y^1.8) - at the front the animals were
 -- three times as wide as the fixed distance and walked into each other
 -- 0.6.579: gentler perspective - at the back still clearly visible (0.42), at the front 1.42 (before 0.16 .. 1.60)
-local function bodyW(y) return 0.42 + 1.0 * (y or 0) ^ 1.35 end
+-- 0.6.584: big flocks - all animals shrink with the number on the meadow (100 animals at full size were one big heap);
+-- distances and walking room use the same factor
+local crowdScale = 1
+local function bodyW(y) return (0.42 + 1.0 * (y or 0) ^ 1.35) * crowdScale end
 local function crowded(s, x, y, flock)
     for _, o in ipairs(flock or {}) do
         if o ~= s and o:IsShown() and o.who then
             local need = 0.17 * (bodyW(y) + bodyW(o.y))   -- 0.6.559: from the side a sheep is almost twice as long as wide
-            local needY = GAP_Y * (0.9 + 0.9 * math.max(y, o.y))
+            local needY = GAP_Y * (0.9 + 0.9 * math.max(y, o.y)) * crowdScale
             if math.abs(o.x - x) < need and math.abs(o.y - y) < needY then return o end
         end
     end
@@ -612,7 +617,7 @@ local function room(s, x, y, flock)
             local ox, oy = o.tx or o.x, o.ty or o.y   -- also where the others are currently heading
             local d = math.sqrt((ox - x) ^ 2 + ((oy - y) * 1.3) ^ 2)
             -- 0.6.555: at the front animals are up to three times as big - the same distance looks much tighter there
-            d = d / (0.45 + 0.9 * math.max(y, oy))
+            d = d / ((0.45 + 0.9 * math.max(y, oy)) * crowdScale)
             if d < best then best = d end
         end
     end
@@ -825,7 +830,8 @@ ns.RegisterPage({
                         if s.wait <= 0 then pickTarget(s, self.sheep) end
                         -- standing too close to another (e.g. after start)? gently apart
                         if not s.duel then
-                            local o = crowded(s, s.x, s.y, self.sheep)
+                            s.cw = ((s.cw or math.random(0, 5)) + 1) % 6   -- 0.6.584: standing animals check only every sixth frame
+                            local o = s.cw == 0 and crowded(s, s.x, s.y, self.sheep) or nil
                             if o then push(s, o, dt) end
                         end
                         s.sayIn = (s.sayIn or 10) - dt
@@ -840,7 +846,11 @@ ns.RegisterPage({
                             local v = 0.045 * (0.6 + 0.6 * s.y) * (s.mood and (0.45 + s.mood / 120) or 1)   -- faster at the front, sad sheep trudge
                             local step = math.min(d, v * dt)
                             local nx, ny = s.x + dx / d * step, s.y + dy / d * step
-                            local o = crowded(s, nx, ny, self.sheep)
+                            -- 0.6.584: the O(n^2) check only every third frame per animal (100 animals = 10,000 pairs)
+                            s.cc = ((s.cc or math.random(0, 2)) + 1) % 3
+                            local o
+                            if s.cc == 0 then o = crowded(s, nx, ny, self.sheep) s.lastCrowd = o else o = s.lastCrowd end
+                            if o and not o:IsShown() then o = nil end
                             if o and s.duel and (o == s.duel.a or o == s.duel.b) then o = nil end   -- for a duel you may get close
                             -- 0.6.546: don't walk into each other - whoever stands in front of another animal stops briefly and picks a new target
                             local away = o and (math.abs(nx - o.x) + math.abs(ny - o.y)) > (math.abs(s.x - o.x) + math.abs(s.y - o.y))
@@ -863,9 +873,12 @@ ns.RegisterPage({
                     -- speech bubble: every 15-40 s briefly "Baa!" or whatever is lacking
                     if s.sayLeft then
                         s.sayLeft = s.sayLeft - dt
-                        if s.sayLeft <= 0 then s.sayLeft = nil s.say:Hide() s.sayBg:Hide() end
+                        if s.sayLeft <= 0 then s.sayLeft = nil s.say:Hide() s.sayBg:Hide() self.talking = math.max(0, (self.talking or 1) - 1) end
+                    elseif (s.sayIn or 10) <= 0 and not s.duel and (self.talking or 0) >= 3 then
+                        s.sayIn = 3 + math.random() * 6   -- 0.6.584: enough bubbles right now - try again later
                     elseif (s.sayIn or 10) <= 0 and not s.duel then
-                        s.sayIn = 15 + math.random() * 25
+                        self.talking = (self.talking or 0) + 1
+                        s.sayIn = (15 + math.random() * 25) * math.max(1, (self.crowd or 1) / 15)
                         s.say:SetText(s.wish or L["Baa!"])
                         s.say:Show() s.sayBg:Show() s.sayLeft = 3
                         if self:IsVisible() and s.who.online and (not s.form or s.form.key == "sheep") then Weide.Maeh() end
@@ -1007,10 +1020,13 @@ ns.RegisterPage({
                     return a.y > b.y
                 end)
                 local taken = {}
+                local big = (self.crowd or 0) > 25
                 for _, s in ipairs(list) do
                     local l, r, t, b = s.name:GetLeft(), s.name:GetRight(), s.name:GetTop(), s.name:GetBottom()
                     local hide = false
-                    if l and r and t and b and not self.showAll then
+                    local keep = s.keepName or s.hover
+                    if big and not keep then hide = true l = nil end
+                    if l and r and t and b and not self.showAll and not s.hover then
                         for _, q in ipairs(taken) do
                             if l < q[2] + 2 and r > q[1] - 2 and b < q[3] + 1 and t > q[4] - 1 then hide = true break end
                         end
@@ -1480,7 +1496,9 @@ ns.RegisterPage({
             if s.lying then s.wish = L["Zzz ..."] s.wait = nil end
             if not who.online and not s.wish then s.wish = L["Zzz ..."] end
             s.streak = Weide.Streak(who.name)
-            s.friend = friends[ns.NameKey(who.name)]
+            local nk = ns.NameKey(who.name)
+            s.friend = friends[nk]
+            s.keepName = ns.isMe(who.name) or (friends[ns.NameKey(ns.me())] == nk) or nil
             -- 0.6.580: new reactions from guildmates: the animal shows them once (heart, wave, cheer)
             if p:IsVisible() then
                 local nr = Weide.NewReacts(who.name)
@@ -1508,6 +1526,12 @@ ns.RegisterPage({
             s:Hide() s.who = nil s.name:Hide() s.say:Hide() s.sayBg:Hide() s.shadow:Hide()
         end
         field.empty:SetText(#flock == 0 and L["No sheep on the pasture yet."] or "")
+        -- 0.6.584: crowd: up to ~18 animals at full size, then smaller (40 -> 0.67, 100 -> 0.42)
+        field.crowd = n
+        crowdScale = math.min(1, math.sqrt(18 / math.max(18, n)))
+        field.myFriend = friends[ns.NameKey(ns.me())]
+        field.talking = 0
+        for i = 1, n do local s = field.sheep[i] if s and s.sayLeft then field.talking = field.talking + 1 end end
 
         -- current look
         local mine = myRank()
