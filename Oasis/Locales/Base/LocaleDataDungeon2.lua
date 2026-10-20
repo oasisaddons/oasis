@@ -119,7 +119,7 @@ local ENL2 = {
     ["Nur in einer Gruppe und mit der Quest im Log."] = "Only in a group and with the quest in your log.",
 }
 for k, v in pairs(ENL2) do if EN[k] == nil then EN[k] = v end end
--- Position in Instanzen (Kern\Karte\InstancePos.lua)
+-- Position in Instanzen (Core\Map\InstancePos.lua)
 local DEFIX3 = {
     ["Position gesetzt - Oasis fuehrt sie jetzt mit (Rechtsklick korrigiert)."] = "Position gesetzt – Oasis führt sie jetzt mit (Rechtsklick korrigiert).",
     ["geschaetzt"] = "geschätzt",

@@ -795,7 +795,7 @@ end)
 ------------------------------------------------------------------------
 -- 9. Weltkarte aufdecken (Standard aus, Einstellung bei der Karte)
 ------------------------------------------------------------------------
--- Daten: ns.MapRevealData[uiMapID] = { "w:h:x:y:tex1,tex2,...", ... } (Kern/Karte/MapRevealData.lua, Spieldaten WoW Forever)
+-- Daten: ns.MapRevealData[uiMapID] = { "w:h:x:y:tex1,tex2,...", ... } (Core/Map/MapRevealData.lua, Spieldaten WoW Forever)
 local revealPool = {}
 local function revealRefresh()
     for _, t in ipairs(revealPool) do t:Hide() end

@@ -3,25 +3,25 @@
 ## Notes: Personal convenience helpers for Oasis: auto repair/sell, quest helpers, best quest reward, item comparison, weapon trainers, bank slots, action bar sets, XP/hour, mail, ammo, flight time, vendor price, disenchant, map extras, game chat, whisper log, upgrade search.
 ## Notes-deDE: Persoenliche Komfort-Helfer fuer Oasis: reparieren/verkaufen, Quest-Helfer, beste Questbelohnung, Item-Vergleich, Waffenlehrer, Bankplaetze, Aktionsleisten, XP/Stunde, Post, Munition, Flugzeit, Haendlerpreis, Entzaubern, Karten-Extras, Spielchat, Fluesterverlauf, Upgrade-Suche.
 ## Author: Oasis Addons
-## Version: 0.6.569
+## Version: 0.6.570
 ## Category: Oasis
 ## Dependencies: Oasis
 ## LoadOnDemand: 1
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
 
-Komfort\Comfort.lua
-Komfort\ComfortPlus.lua
-Komfort\ComfortPlus2.lua
-Kartenextras\GatherMap.lua
-Kartenextras\Glimmer.lua
-Kartenextras\MapExtras.lua
+Comfort\Comfort.lua
+Comfort\ComfortPlus.lua
+Comfort\ComfortPlus2.lua
+MapExtras\GatherMap.lua
+MapExtras\Glimmer.lua
+MapExtras\MapExtras.lua
 Upgrades\GearMatch.lua
-Fluestern\WhisperLog.lua
-Fluestern\WhisperForward.lua
+Whispers\WhisperLog.lua
+Whispers\WhisperForward.lua
 GameChat\GameChat.lua
 GameChat\GameChatUI.lua
-Komfort\ActionBars.lua
-Itemvergleich\ItemCompare.lua
-Waffenlehrer\Weapons.lua
-Bankplaetze\BankSlots.lua
-Komfort\QuestHelpers.lua
+Comfort\ActionBars.lua
+ItemCompare\ItemCompare.lua
+WeaponTrainers\Weapons.lua
+BankSlots\BankSlots.lua
+Comfort\QuestHelpers.lua

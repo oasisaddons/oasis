@@ -1,4 +1,4 @@
--- Oasis - Texte: Raid-Zeit (Modules\RaidTools\RaidTime.lua) und Ruf-Planer (Modules\Ruf\RepPlanner.lua)
+-- Oasis - Texte: Raid-Zeit (Modules\RaidTools\RaidTime.lua) und Ruf-Planer (Modules\Reputation\RepPlanner.lua)
 local ADDON, ns = ...
 local DE, EN = ns.LOCALE_DE, ns.LOCALE_EN
 

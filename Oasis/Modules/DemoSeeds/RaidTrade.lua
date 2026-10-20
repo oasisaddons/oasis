@@ -1,5 +1,5 @@
 -- Oasis: Demo-Daten fuer Raid und Handel (nur /oa demo)
--- Ergaenzt Kern\Start\Demo.lua: Geschmolzener-Kern-Termin mit Anmeldungen, Aufstellungen (Raidleitung),
+-- Ergaenzt Core\Start\Demo.lua: Geschmolzener-Kern-Termin mit Anmeldungen, Aufstellungen (Raidleitung),
 -- Soft-Reservierungen, Gilden-Taktiken, Raid-Beute im Beute-Log und raidnahe Wuensche.
 -- Alles nur ueber ctx.put (Store.merge mit demo=true) - Comm schickt nichts davon an die Gilde.
 -- Markt (Trade.lua), Buff-Monitor (BuffMonitor.lua) und Handwerk bringen eigene Demo-Daten mit.

@@ -2776,7 +2776,7 @@ local BUILD = { overview = buildOverview, modules = buildModules, rights = build
 local REFRESH = { overview = refreshOverview, modules = refreshModules, rights = refreshRights, notices = refreshNotices, events = refreshEvents }
 local DRAFT_TABS = { modules = true, rights = true }
 
--- Gildenpflege als Gruppen mit Unterreitern (Modules/Gildenpflege/Officer.lua)
+-- Gildenpflege als Gruppen mit Unterreitern (Modules/GuildManagement/Officer.lua)
 ------------------------------------------------------------------------
 -- Reiter: Offizierschat - WoWs Offizierskanal (/o). Blizzard schickt ihn nur an Raenge mit
 -- Offizierschat-Recht; Verlauf kommt aus dem Gildenchat-Log (ns.db.gchat, Eintraege k="off").

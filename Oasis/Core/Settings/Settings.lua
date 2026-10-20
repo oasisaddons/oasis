@@ -3127,7 +3127,7 @@ local function buildStatus(f)
         f.net[i] = v
     end
     note(cc, L["Oasis tauscht Daten nur mit Gildenmitgliedern, die Oasis auch haben. Im Kampf und in Instanzen pausiert der Austausch."], 14, -162, 226, C.dim)
-    -- Credits und Lizenzen unten (Kern/Start/Credits.lua, laedt nach dieser Datei - beim Aufbau des Reiters ist es da)
+    -- Credits und Lizenzen unten (Core/Start/Credits.lua, laedt nach dieser Datei - beim Aufbau des Reiters ist es da)
     if ns.Credits and ns.Credits.Build then
         local ok, e = pcall(ns.Credits.Build, f, 0, -188 - (56 + ROWS * 20 + 14) - 26, 738)
         if not ok then ns.err(L["Aufbau"] .. " settings/credits", e) end

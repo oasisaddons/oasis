@@ -132,7 +132,7 @@ local LIVE_KILLER = { "Sturz", "Kolkar-Pirscher", "Allianz-Spieler", "Wildtatzen
 local LIVE_LFG = { { 17, "Burg Schattenfang" }, { 22, "Tiefschwarze Grotte" }, { 30, "Kloster Bibliothek" }, { 36, "Kloster Waffenkammer + Kathedrale" }, { 40, "Uldaman" }, { 44, "Zul'Farrak" }, { 48, "Maraudon" } }
 
 local function nm(i) return ns.fullName(PEOPLE[i][1]) end
--- Namen + Klassen der Demo-Gilde (fuer den Raid-Simulator, Kern\Diagnose\RaidSim.lua)
+-- Namen + Klassen der Demo-Gilde (fuer den Raid-Simulator, Core\Diagnostics\RaidSim.lua)
 function Demo.People()
     local out = {}
     for i, p in ipairs(PEOPLE) do out[i] = { name = nm(i), class = p[2], level = p[3], roles = p[6] } end

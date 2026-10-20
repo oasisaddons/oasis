@@ -1,4 +1,4 @@
--- Oasis - Texte: Raid-Simulator (Kern\Diagnose\RaidSim.lua) und Sim-Anbindung der Raid-Module, neue Demo-Inhalte
+-- Oasis - Texte: Raid-Simulator (Core\Diagnostics\RaidSim.lua) und Sim-Anbindung der Raid-Module, neue Demo-Inhalte
 local ADDON, ns = ...
 local DE, EN = ns.LOCALE_DE, ns.LOCALE_EN
 
