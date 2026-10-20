@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.572"
+ns.version = "0.6.573"
 ns.versionDate = "20.10.2026"
 ns.SUPPORT_URL = ""   -- Link fuer "Bericht kopieren" (z. B. Discord-Einladung); leer = nur Text
 ns.WAGO_ID = ""       -- Wago-Projekt-ID fuer Wago Analytics (leer = aus)   -- Datum der Version: bei JEDER neuen Version mitpflegen (Update-Hinweis im Gildenchat)
@@ -361,7 +361,7 @@ end
 -- stehen). ModuleLoader.LoadAll fuehrt beim Start nur die eingeschalteten aus; danach nimmt ns.ModuleFile nichts mehr an.
 ns.moduleFiles = {}
 ns.moduleOrder = {}   -- 0.6.285: Reihenfolge der toc (Module, die auf anderen aufbauen, laden danach)
--- chronicle entry "joined the guild" (German template from Oasis before 0.6.572 or English)
+-- chronicle entry "joined the guild" (German template from Oasis before 0.6.573 or English)
 function ns.IsJoinTk(tk) return type(tk) == "string" and (tk:find("^tritt") or tk:find("^joined the guild")) and true or false end
 function ns.ModuleFile(key, fn)
     local files = ns.moduleFiles

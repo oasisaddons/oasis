@@ -397,7 +397,7 @@ ns.RegisterPage({
 })
 -- in die Navigation unter "Zusammen spielen"
 for _, g in ipairs(ns.NAV_GROUPS or {}) do
-    if g.key == "play" then
+    if g.key == "raid" then
         local has = false
         for _, k in ipairs(g.pages) do if k == "party" then has = true end end
         if not has then table.insert(g.pages, 2, "party") end

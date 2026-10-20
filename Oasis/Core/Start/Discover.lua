@@ -15,22 +15,31 @@ D.CORE = { home = true, chat = true, radar = true, settings = true, discover = t
 -- nie ausblendbar (kein Auge); Chat und Mitglieder darf man selbst ausblenden
 D.LOCKED = { settings = true, admin = true, home = true }   -- 0.6.468: Dashboard wieder fest (ausgeblendet liess es sich nicht zurueckholen)   -- 0.5.550: Dashboard und Entdecken lassen sich auch ausblenden
 -- Interessen -> Bereiche
+-- 0.6.573: the tiles are the sidebar groups - Oasis itself (Me, Play together, Fun) and the add-ons
+-- (Groups & Raids, Trade, Convenience). Guild pages are always on. Keys stay (saved choices, tile art).
 D.INTERESTS = {
-    { key = "level", text = "Levelling & questing", sub = "My Journey (what's next, goals, records), quest partners, quest items", icon = "life", color = C.accent,
-      pages = { "life", "questitems", "social", "dungeons", "map" } },
-    { key = "group", text = "Play together", sub = "Find groups, quest together, dungeons", icon = "groups", color = C.mint,
-      pages = { "groups", "social", "questitems", "dungeons", "allies", "scout", "map" } },
-    { key = "raid", text = "Raiding", sub = "Events, sign-ups, loot, raid check", icon = "raid", color = C.red,
-      pages = { "raid", "raidcheck", "buffs", "softres", "lockouts", "raidprep", "raidboard", "raidtime", "wipes", "tactics", "lootrules", "loot", "raidlead", "raidprepteam" } },
-    { key = "trade", text = "Crafting & trade", sub = "Who crafts what, market, guild bank", icon = "crafting", color = C.amber,
-      pages = { "crafting", "trade", "wants", "bank", "bags", "gearmatch" } },
-    { key = "fun", text = "Fun & guild", sub = "Deathroll, polls, campfire, profile", icon = "deathroll", color = C.pink,
-      pages = { "deathroll", "deaths", "polls", "camp", "insta", "chronicle" } },
-    { key = "collect", text = "Collecting & progress", sub = "Badges, legacy, Oasis rank, reputation, collections", icon = "badges", color = C.blue,
-      pages = { "badges", "legacy", "rank", "sammlung", "repplan", "rares" } },
+    { key = "level", text = "Me", sub = "My Journey, profile, bags, badges, legacy, Oasis rank, reputation", icon = "life", color = C.accent, group = "me" },
+    { key = "group", text = "Play together", sub = "Quest partners, quest items, recruiting, campfires", icon = "groups", color = C.mint, group = "play" },
+    { key = "fun", text = "Fun", sub = "Deathroll, Guildotchi and more", icon = "deathroll", color = C.pink, group = "fun" },
+    { key = "raid", text = "Groups & Raids", sub = "Groups, dungeons, raids, loot, raid check", icon = "raid", color = C.red, group = "raid", addon = "Oasis_GroupsRaids" },
+    { key = "trade", text = "Trade", sub = "Crafting, market, wishlist", icon = "crafting", color = C.amber, group = "trade", addon = "Oasis_Trade" },
+    { key = "collect", text = "Convenience", sub = "Comfort helpers, map extras, game chat, upgrade search", icon = "home", color = C.blue, group = "convenience", addon = "Oasis_Convenience" },
 }
-local interestOf = {}
-for _, it in ipairs(D.INTERESTS) do for _, k in ipairs(it.pages) do interestOf[k] = it end end
+local function navGroup(key)
+    for _, g in ipairs(ns.NAV_GROUPS or {}) do if g.key == key then return g end end
+end
+-- pages of a tile = pages of its sidebar group (modules add their pages there while loading)
+function D.PagesOf(it)
+    local g = navGroup(it.group)
+    return g and g.pages or {}
+end
+-- add-on of the tile installed? (Oasis itself always)
+function D.Available(it)
+    return not it.addon or (ns.ModuleLoader and ns.ModuleLoader.PartLoaded and ns.ModuleLoader.PartLoaded(it.addon)) or false
+end
+local interestOf = setmetatable({}, { __index = function(_, k)
+    for _, it in ipairs(D.INTERESTS) do for _, p in ipairs(D.PagesOf(it)) do if p == k then return it end end end
+end })
 
 local function S() return ns.db.settings end
 local function relayout()
@@ -65,7 +74,9 @@ function D.ApplyInterests(sel)
     local s = S()
     s.interests = sel
     local keep = {}
-    for _, it in ipairs(D.INTERESTS) do if sel[it.key] then for _, k in ipairs(it.pages) do keep[k] = true end end end
+    for _, it in ipairs(D.INTERESTS) do if sel[it.key] then for _, k in ipairs(D.PagesOf(it)) do keep[k] = true end end end
+    -- guild pages are Oasis itself - never hidden by the tiles
+    for _, gk in ipairs({ "top", "guild" }) do local g = navGroup(gk) if g then for _, k in ipairs(g.pages) do keep[k] = true end end end
     s.hiddenPages = s.hiddenPages or {}
     s.focusHidden = s.focusHidden or {}
     for _, d in ipairs(D.Pages()) do
@@ -498,6 +509,12 @@ function D.ShowPicker(mode)
             t.check:SetSize(14, 14)
             t.check:SetPoint("CENTER", t.ring, "CENTER")
             t.it = it
+            -- add-on not installed: tile stays visible as a hint, but cannot be chosen
+            if not D.Available(it) then
+                t.s:SetText((L["Not installed - download %s"]):format("Oasis " .. L[it.text]))
+                t:SetAlpha(0.45)
+                t:Disable()
+            end
             t:SetScript("OnClick", function(self)
                 f.sel[self.it.key] = not f.sel[self.it.key] or nil
                 if f.sel[self.it.key] then self.pop = 0 end

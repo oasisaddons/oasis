@@ -1489,11 +1489,13 @@ end
 local NAV_GROUPS = {
     { key = "top", text = "", pages = { "home" }, nohead = true },   -- Dashboard: ganz oben, ohne Gruppen-Ueberschrift
     { key = "me", text = "Me", pages = { "life", "insta", "bags", "badges", "legacy", "rank" } },
-    { key = "guild", text = "Guild", pages = { "chat", "radar", "fight", "chronicle", "polls", "community", "pasture", "board", "goals", "bank", "deaths" } },
-    { key = "play", text = "Play together", pages = { "groups", "social", "questitems", "allies", "scout", "dungeons", "camp" } },
-    { key = "raid", text = "Raid", pages = { "raid", "raidlead", "loot", "buffs", "tactics" } },
-    { key = "trade", text = "Trade", pages = { "crafting", "trade", "wants" } },
+    { key = "guild", text = "Guild", pages = { "chat", "radar", "chronicle", "polls", "community", "pasture", "board", "goals", "bank", "deaths" } },
+    { key = "play", text = "Play together", pages = { "social", "questitems", "allies", "scout", "camp" } },
     { key = "fun", text = "Fun", pages = { "deathroll" } },
+    -- 0.6.573: one group per add-on (Oasis Groups & Raids / Trade / Convenience) - missing add-on = group is empty and hidden
+    { key = "raid", text = "Groups & Raids", addon = "Oasis_GroupsRaids", pages = { "groups", "dungeons", "fight", "raid", "raidlead", "loot", "buffs", "tactics" } },
+    { key = "trade", text = "Trade", addon = "Oasis_Trade", pages = { "crafting", "trade", "wants" } },
+    { key = "convenience", text = "Convenience", addon = "Oasis_Convenience", pages = {} },
     { key = "dev", text = "Developer", pages = { "dev", "bugs" } },   -- nur im Entwicklermodus sichtbar
 }
 ns.NAV_GROUPS = NAV_GROUPS

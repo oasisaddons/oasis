@@ -81,7 +81,7 @@ local STORE_KEY = { INVTYPE_2HWEAPON = 21, INVTYPE_SHIELD = 22, INVTYPE_HOLDABLE
 if ns.ICONS and ns.MEDIA then ns.ICONS.gearmatch = ns.MEDIA .. "icons\\stats" end
 -- Navigation: unter "Handel" einsortieren (ohne Main.lua zu aendern)
 for _, g in ipairs(ns.NAV_GROUPS or {}) do
-    if g.key == "trade" then
+    if g.key == "convenience" then
         local has = false
         for _, k in ipairs(g.pages) do if k == "gearmatch" then has = true end end
         if not has then g.pages[#g.pages + 1] = "gearmatch" end

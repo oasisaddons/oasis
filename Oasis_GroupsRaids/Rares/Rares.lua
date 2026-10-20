@@ -908,7 +908,7 @@ do
     local groups = ns.NAV_GROUPS
     if groups then
         for _, g in ipairs(groups) do
-            if g.key == "play" then
+            if g.key == "raid" then
                 local has = false
                 for _, k in ipairs(g.pages) do if k == "rares" then has = true end end
                 if not has then
