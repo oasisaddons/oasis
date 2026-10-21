@@ -624,29 +624,57 @@ function D.ShowPicker(mode)
         line:SetPoint("BOTTOMLEFT", 20, 64) line:SetPoint("BOTTOMRIGHT", -20, 64)
         f.count = K.Text(f, 11, C.muted)
         f.count:SetPoint("BOTTOMLEFT", 28, 32)
-        -- 0.6.588: panel for a missing or switched-off add-on: switch on + reload, or the download link to copy
+        -- 0.6.588/0.6.590: panel for a missing or switched-off add-on (inside the start window): what it brings,
+        -- three steps and the download link - or switch it on and reload
         do
             local ML = ns.ModuleLoader
             local pi = CreateFrame("Frame", nil, f)
-            pi:SetSize(460, 150)
-            pi:SetPoint("CENTER", f, "CENTER", 0, -20)
+            pi:SetSize(520, 262)
+            pi:SetPoint("CENTER", f, "CENTER", 0, -10)
             pi:SetFrameLevel(f:GetFrameLevel() + 40)
             pi:EnableMouse(true)
-            K.Fill(pi, { 0.04, 0.04, 0.05, 0.97 })
+            pi.bg = K.Fill(pi, { 0.035, 0.035, 0.045, 0.98 })
             K.Border(pi, C.line)
-            pi.h = K.Title(pi, 15, C.text)
-            pi.h:SetPoint("TOPLEFT", 18, -16)
-            pi.t = K.Text(pi, 12, C.muted)
-            pi.t:SetPoint("TOPLEFT", pi.h, "BOTTOMLEFT", 0, -8)
-            pi.t:SetWidth(424) pi.t:SetJustifyH("LEFT") pi.t:SetWordWrap(true)
-            pi.eb = CreateFrame("EditBox", nil, pi, "InputBoxTemplate")
-            pi.eb:SetSize(420, 22)
+            if K.ApplySkin then K.ApplySkin(pi, "panel", { 0.035, 0.035, 0.045, 0.98 }) end
+            pi.bar = pi:CreateTexture(nil, "ARTWORK")
+            pi.bar:SetPoint("TOPLEFT", 1, -1) pi.bar:SetPoint("TOPRIGHT", -1, -1) pi.bar:SetHeight(3)
+            -- badge / icon
+            pi.badge = pi:CreateTexture(nil, "ARTWORK")
+            pi.badge:SetSize(64, 64)
+            pi.badge:SetPoint("TOPLEFT", 22, -22)
+            pi.icon = K.Glyph(pi, 30, ns.ICONS and ns.ICONS.home, C.text)
+            pi.icon:SetPoint("CENTER", pi.badge, "CENTER")
+            pi.kick = K.Text(pi, 10, C.dim)
+            pi.kick:SetPoint("TOPLEFT", pi.badge, "TOPRIGHT", 16, -4)
+            pi.kick:SetText(K.Upper and K.Upper(L["Optional add-on for OASIS"]) or L["Optional add-on for OASIS"])
+            pi.h = K.Title(pi, 18, C.text)
+            pi.h:SetPoint("TOPLEFT", pi.kick, "BOTTOMLEFT", 0, -4)
+            pi.d = K.Text(pi, 12, C.muted)
+            pi.d:SetPoint("TOPLEFT", pi.h, "BOTTOMLEFT", 0, -6)
+            pi.d:SetPoint("RIGHT", pi, "RIGHT", -22, 0)
+            pi.d:SetJustifyH("LEFT") pi.d:SetWordWrap(true)
+            pi.line = pi:CreateTexture(nil, "ARTWORK")
+            pi.line:SetColorTexture(1, 1, 1, 0.07)
+            pi.line:SetHeight(1)
+            pi.line:SetPoint("TOPLEFT", 22, -104) pi.line:SetPoint("TOPRIGHT", -22, -104)
+            -- steps / state text
+            pi.t = K.Text(pi, 12, C.text)
+            pi.t:SetPoint("TOPLEFT", 22, -118)
+            pi.t:SetPoint("RIGHT", pi, "RIGHT", -22, 0)
+            pi.t:SetJustifyH("LEFT") pi.t:SetWordWrap(true) pi.t:SetSpacing(4)
+            -- link field (Oasis input, read only)
+            pi.lab = K.Text(pi, 10, C.dim)
+            pi.lab:SetPoint("BOTTOMLEFT", 22, 84)
+            pi.lab:SetText(K.Upper and K.Upper(L["Download link - Ctrl+C copies it"]) or L["Download link - Ctrl+C copies it"])
+            pi.eb = K.Input(pi, 352, "")
             pi.eb:SetPoint("BOTTOMLEFT", 22, 52)
-            pi.eb:SetAutoFocus(false)
+            pi.eb:SetHeight(26)
+            pi.eb:SetScript("OnTextChanged", function(self, user) self.ph:Hide() if user and pi.url then self:SetText(pi.url) self:HighlightText() end end)
+            pi.eb:HookScript("OnEditFocusGained", function(self) self:HighlightText() end)
             pi.eb:SetScript("OnEscapePressed", function(self) self:ClearFocus() pi:Hide() end)
-            pi.eb:SetScript("OnTextChanged", function(self, user) if user and pi.url then self:SetText(pi.url) self:HighlightText() end end)
-            pi.eb:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
-            pi.btn = K.Button(pi, L["Turn on"], 130, 26, "primary", function()
+            pi.sel = K.Button(pi, L["Select link"], 116, 26, "ghost", function() pi.eb:SetFocus() pi.eb:HighlightText() end)
+            pi.sel:SetPoint("LEFT", pi.eb, "RIGHT", 8, 0)
+            pi.btn = K.Button(pi, L["Turn on"], 150, 28, "primary", function()
                 if pi.mode == "on" then
                     if ML and ML.EnablePart then ML.EnablePart(pi.addon) end
                     pi.mode = "reload"
@@ -656,24 +684,37 @@ function D.ShowPicker(mode)
                     if ReloadUI then ReloadUI() end
                 end
             end)
-            pi.btn:SetPoint("BOTTOMLEFT", 18, 14)
-            pi.close = K.Button(pi, L["Close"], 100, 26, "ghost", function() pi:Hide() end)
-            pi.close:SetPoint("BOTTOMRIGHT", -18, 14)
+            pi.btn:SetPoint("BOTTOMLEFT", 22, 16)
+            pi.close = K.Button(pi, L["Close"], 110, 28, "ghost", function() pi:Hide() end)
+            pi.close:SetPoint("BOTTOMRIGHT", -22, 16)
             pi:Hide()
             function pi:Open(it, state)
                 local part = ML and ML.Part and ML.Part(it.addon)
                 self.addon, self.url = it.addon, part and part.url
+                local c = it.color or C.accent
+                self.bar:SetColorTexture(c[1], c[2], c[3], 0.9)
+                if ns.ART then
+                    self.badge:SetTexture("Interface\\AddOns\\Oasis\\Media\\art\\interest_" .. it.key .. "_badge")
+                    self.badge:SetVertexColor(1, 1, 1) self.icon:Hide()
+                else
+                    self.badge:SetTexture(ns.MEDIA .. "dot") self.badge:SetVertexColor(c[1], c[2], c[3], 0.25)
+                    if self.icon.SetTexture and ns.ICONS then self.icon:SetTexture(ns.ICONS[it.icon] or ns.ICONS.home) end
+                    self.icon:Show()
+                end
                 self.h:SetText(part and part.title or L[it.text])
+                self.d:SetText(L[it.sub] or "")
                 if state == "DISABLED" then
                     self.mode = "on"
-                    self.t:SetText(L["This add-on is installed but switched off in the AddOn list."])
+                    self.t:SetText(L["This add-on is installed but switched off in the AddOn list. Switch it on here - it is there after a reload."])
                     self.btn:SetLabel(L["Turn on"]) self.btn:Show()
-                    self.eb:Hide()
+                    self.lab:Hide() self.eb:Hide() self.sel:Hide()
                 else
                     self.mode = nil
-                    self.t:SetText(L["Not installed. Download it from CurseForge (Ctrl+C copies the link), unpack it into Interface/AddOns and restart the game."])
+                    self.t:SetText("|cffd8d8d8" .. L["1.  Copy the link and open it in your browser"] .. "\n" .. L["2.  Download and unpack it into Interface/AddOns"] .. "\n" .. L["3.  Restart the game - the area appears by itself"] .. "|r")
                     self.btn:Hide()
-                    self.eb:SetText(self.url or "") self.eb:Show() self.eb:SetFocus() self.eb:HighlightText()
+                    self.lab:Show() self.sel:Show()
+                    self.eb:SetText(self.url or "") self.eb:Show() self.eb:SetCursorPosition(0)
+                    self.eb:SetFocus() self.eb:HighlightText()
                 end
                 self:Show()
             end
