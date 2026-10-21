@@ -375,7 +375,11 @@ local function sparkleOn(parent, key, dy)
         active[f] = true
     end
     style(f)
-    f:SetScale(1)
+    -- 0.6.639: same size on screen whatever the parent is - the navigation marker (far sparkles) and some
+    -- nameplates are scaled up a lot, the sparkles came out as a huge yellow blur over the screen
+    local ps = parent and parent.GetEffectiveScale and parent:GetEffectiveScale() or 1
+    local us = UIParent and UIParent:GetEffectiveScale() or 1
+    f:SetScale(math.max(0.05, math.min(4, us / math.max(0.01, ps))))
     f:ClearAllPoints()
     f:SetPoint("CENTER", parent, dy and "CENTER" or "BOTTOM", 0, dy or -50)
     f:Show()
