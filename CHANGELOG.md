@@ -2,6 +2,17 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.585
+
+- **OASIS is now split into add-ons.** This base add-on keeps the guild hub (members, profiles, guild chat, chronicle, community, fun, guild leadership). New optional add-ons, each its own download: **OASIS - Groups & Raids** (group finder, dungeon atlas, raids, loot, combat ranking), **OASIS - Trade** (crafting, market, wishlist) and **OASIS - Convenience** (personal helpers). Missing add-ons simply leave their area out. Your settings stay.
+- The sidebar and the start window are grouped by add-on; the tile of an add-on you have not installed says so.
+- English is now the base language of the add-on; German and the other ten languages are translations as before.
+- **Guildotchi reworked:** animals stay on the meadow, gentler perspective, soft shadows, names above the heads without overlapping, a weekly **flock festival** for the whole guild, **gifts at the fence** when you feed someone's animal, small reactions (heart, wave, cheer), friends graze side by side, a forgiven day per week for your streak, shepherd titles, a care book with memories, brushing as a little mini game, day and night with fireflies, seasons, and sleeping instead of sad animals. Big guilds show up to 30 animals; the rest graze behind the hill.
+- **Oasis Studio:** you can now open an existing guild pack (ZIP or folder) on oasisaddon.com, change it and download the new version.
+- Map reveal now uses the real WoW Forever map data (redrawn zones like the Badlands fit again).
+- Artwork, bug reports and the developer tools are now part of the public add-on.
+- FojjiCore integration removed.
+
 ## 0.6.551
 
 - New page under Guild: **Guildotchi**. Every guild member using Oasis has an animal walking around a meadow. Feed, pet and brush it - mood drops over time, neglected animals turn grey, lie down and eventually run away (one click brings them back). Daily care builds a streak with small extras (sparkle, star, golden name, crown).
