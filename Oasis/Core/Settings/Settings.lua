@@ -3896,18 +3896,14 @@ local function buildQuick(f)
     f.noCompact = true
     f.t = {}
     -- The essentials ----------------------------------------------------
-    local c, y = wideCard(f, 0, "settings", L["The essentials"], L["The switches almost everyone needs at some point - everything else is sorted by topic below"])
-    -- Language is always available at the top of the window (flag) - not duplicated here
+    -- 0.6.619: compact - no subtitles, only what has no other home (privacy, tooltips, chat and shortcuts have theirs)
+    local c, y = wideCard(f, 0, "settings", L["The essentials"])
     y = toggleList(f, {
-        { "Show notifications", "toasts", "Short messages at the edge of the screen: orders, events, group searches, announcements ..." },
-        { "Play sounds", "sound", "All Oasis sounds on or off" },
-        { "Hide in combat", "hideInCombat", "The Oasis window disappears as soon as combat starts" },
-        { "Show minimap button", "minimap", "Left-click opens Oasis, right-click the settings", function() if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end end },
-        { "Share position on the world map", "shareMap", "Guild map and minimap dots for others. Default: off" },
-        { "Show emojis in chat", "chatEmoji", ":lol: or <3 becomes a picture" },
-        { "Oasis lines in item tooltips", "tipOasis", "Wanted by, orders, guild bank and source below every item tooltip", nil, true },
-        { "Reduce animations", "noAnim", "No fades or count-ups - everything appears instantly" },
-        { "Guild window key (J) opens Oasis", "guildKeyOasis", "The key opens and closes the Oasis window instead of Blizzard's guild window", function() if ns.Keybinds and ns.Keybinds.ApplyGuildKey then ns.Keybinds.ApplyGuildKey() end end },
+        { "Show notifications", "toasts" },
+        { "Play sounds", "sound" },
+        { "Hide in combat", "hideInCombat" },
+        { "Show minimap button", "minimap", nil, function() if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end end },
+        { "Reduce animations", "noAnim" },
     }, y)
     c:SetHeight(-y + 4)
     -- 0.6.617: the topic tiles and the tour button are gone - the topic buttons at the top do the same
