@@ -719,9 +719,23 @@ local function apply(p)
     local g = p.gen and p.gen[p.cur]
     if g and PV and PV[p.cur] then pcall(PV[p.cur].update, g) end
 end
+-- 0.6.643: with a preview the page is split in half - left the example (scaled to fill it), right the controls
+local function halfW(p) local w = p:GetWidth() or 0 if w < 300 then w = 900 end return math.floor(w / 2) end
+local function fitPreview(p, fr)
+    if not fr then return end
+    local base = fr.baseW or fr:GetWidth() or 270
+    if base < 50 then base = 270 end
+    fr.baseW = base
+    local sc = math.max(0.8, math.min(2, (halfW(p) - 24) / base))
+    fr:SetScale(sc)
+    -- offsets scale too: keep the top edge where it was
+    fr:ClearAllPoints()
+    fr:SetPoint("TOPLEFT", p, "TOPLEFT", 0, -44 / sc)
+end
+ns.ComfortFitPreview = fitPreview
 local function buildControls(p, key, withPreview)
     local box = CreateFrame("Frame", nil, p)
-    box:SetPoint("TOPLEFT", withPreview and 280 or 0, -44)
+    box:SetPoint("TOPLEFT", withPreview and halfW(p) or 0, -44)
     box:SetPoint("BOTTOMRIGHT", 0, 0)
     local o = OPTS[key]
     local y = 0
@@ -758,11 +772,12 @@ local function buildControls(p, key, withPreview)
     for i, sd in ipairs(sliders) do
         local col = two and ((i - 1) % 2) or 0
         if col == 0 then y = y - 2 end   -- 0.6.636: more compact
-        local x = col * 250
+        local colW = withPreview and math.floor((halfW(p) - 20) / 2) or 250
+        local x = col * colW
         local lab = K.Text(box, 11, C.muted)
         lab:SetPoint("TOPLEFT", x, y)
         lab:SetText(L[sd[1]])
-        local sl = K.Slider(box, two and 220 or 260, sd[3], sd[4], sd[5], function() return S()[sd[2]] or sd[6] end,
+        local sl = K.Slider(box, two and (colW - 30) or 260, sd[3], sd[4], sd[5], function() return S()[sd[2]] or sd[6] end,
             function(v)
                 S()[sd[2]] = (v ~= sd[6]) and v or nil
                 apply(p)
@@ -868,6 +883,8 @@ local function show(p, key)
     end
     for k2, g in pairs(p.gen) do g:SetShown(k2 == key) end
     if p.mpv then p.mpv:SetShown(tdef and tdef.mappreview and true or false) end
+    fitPreview(p, p.pv) fitPreview(p, p.mpv)
+    for _, g in pairs(p.gen or {}) do fitPreview(p, g) end
     apply(p)
 end
 
