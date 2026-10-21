@@ -899,7 +899,11 @@ revealRefreshInner = function()
                         while fw < tw do fw = fw * 2 end
                         while fh < th do fh = fh * 2 end
                         t:SetTexCoord(0, tw / fw, 0, th / fh)
-                        t:SetTexture(id)
+                        -- /oa reveal test: red boxes instead of the map pieces (shows whether position/layer are right)
+                        if CP.revealTest then t:SetColorTexture(1, 0, 0, 0.5) else t:SetTexture(id) end
+                        if not CP.revealTest and t.GetTexture and not t:GetTexture() then
+                            CP.revealDiag.noTex = (CP.revealDiag.noTex or 0) + 1
+                        end
                         -- unexplored = tinted (0.6.604: color and opacity adjustable, WorldMapPlus.lua)
                         local tr, tg, tb, ta = 0.55, 0.55, 0.6, 0.85
                         if ns.WorldMapPlus then tr, tg, tb, ta = ns.WorldMapPlus.Tint() end
@@ -928,7 +932,12 @@ ns.On("ADDON_LOADED", function(name) if name == "Blizzard_WorldMap" then pcall(h
 ns.On("PLAYER_ENTERING_WORLD", function() pcall(hookReveal) end)
 if C_Timer then C_Timer.After(2, function() pcall(hookReveal) end) end
 -- /oa reveal: why the open map reveals nothing (for bug reports)
-ns.slash.reveal = function()
+ns.slash.reveal = function(rest)
+    rest = tostring(rest or ""):lower()
+    if rest:find("test") then
+        CP.revealTest = not CP.revealTest
+        ns.print("Reveal test boxes: " .. tostring(CP.revealTest))
+    end
     revealRefresh()   -- fresh values for the open map
     local mapID = WorldMapFrame and WorldMapFrame.GetMapID and WorldMapFrame:GetMapID()
     local list = ns.MapRevealData and mapID and ns.MapRevealData[mapID]
@@ -936,7 +945,7 @@ ns.slash.reveal = function()
     ns.print(("Reveal: switch %s, hooked %s, map %s, areas %s, explored %s, not matching %s"):format(
         tostring(on("mapReveal")), tostring(revealHooked and true or false), tostring(mapID), tostring(list and #list or 0),
         tostring(d.map == mapID and d.explored or "?"), tostring(d.map == mapID and d.miss or "?"))
-        .. (", drawn " .. tostring(d.drawn or 0)) .. (d.err and (", error: " .. d.err) or "")
+        .. (", drawn " .. tostring(d.drawn or 0)) .. (d.noTex and (", no texture " .. d.noTex) or "") .. (d.err and (", error: " .. d.err) or "")
         .. (revealHost and (", layer " .. tostring(revealHost:GetFrameLevel()) .. " shown " .. tostring(revealHost:IsVisible())) or ""))
 end
 
