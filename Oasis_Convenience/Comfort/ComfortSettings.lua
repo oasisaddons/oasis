@@ -27,7 +27,7 @@ end
 
 local function S() return ns.db.settings end
 -- toggles that are on until switched off (nil = on)
-local ON = { gatherScan = true, gatherSymbols = true, gatherArrowHerb = true, gatherArrowOre = true, gatherArrowTreasure = true,
+local ON = { mapRevealTint = true, gatherScan = true, gatherSymbols = true, gatherArrowHerb = true, gatherArrowOre = true, gatherArrowTreasure = true,
     gatherArrowRare = true, gatherArrowLeyline = true, gatherAlerts = true, gatherAlertsShare = true, gatherWanted = true, gatherShareArea = true }
 local function get(k) if ON[k] then return S()[k] ~= false end return S()[k] and true or false end
 local function set(k, v) if ON[k] then S()[k] = v and true or false else S()[k] = v and true or nil end end
@@ -37,6 +37,7 @@ local GTABS = {
     { key = "arrow", text = "Arrow", preview = true },
     { key = "sparkle", text = "Sparkles & pin", preview = true },
     { key = "guild", text = "Guild", preview = true },
+    { key = "worldmap", text = "World map", mappreview = true },
 }
 local CTABS = {
     { key = "comfort", text = "Helpers", tab = "comfort" },
@@ -74,6 +75,22 @@ local OPTS = {
             { "Sparkle size", "gatherSparkleSize", 50, 200, 10, 100, function(v) return v .. " %" end },
         },
         colors = true,
+    },
+    worldmap = {
+        { "Show unexplored areas on the world map", "mapReveal" },
+        { "Tint unexplored areas", "mapRevealTint" },
+        { "Move the world map (drag the frame)", "wmMove" },
+        { "No reading emote when opening the map", "wmNoEmote" },
+        { "Hide town and city icons on continent maps", "wmHideTowns" },
+        slider = {
+            { "Tint: red", "wmTintR", 0, 1, 0.05, 0.55 },
+            { "Tint: green", "wmTintG", 0, 1, 0.05, 0.55 },
+            { "Tint: blue", "wmTintB", 0, 1, 0.05, 0.6 },
+            { "Tint: opacity", "wmTintA", 0.1, 1, 0.05, 0.85 },
+            { "World map size (window)", "wmScale", 0.5, 2, 0.05, 1 },
+            { "World map size (maximised)", "wmScaleMax", 0.5, 2, 0.05, 1 },
+        },
+        resetPos = true,
     },
     guild = {
         { "Guild finds: notices", "gatherAlerts" },
@@ -221,13 +238,57 @@ local function buildPreview(p)
     return pv
 end
 
+local buildMapPreview
+-- world map preview: a piece of a zone map, the right half "unexplored" in the chosen tint
+buildMapPreview = function(p)
+    local f = CreateFrame("Frame", nil, p)
+    f:SetSize(250, 300)
+    f:SetPoint("TOPLEFT", 0, -44)
+    local w, h = 240, 160
+    f.map = f:CreateTexture(nil, "BACKGROUND")
+    f.map:SetSize(w, h)
+    f.map:SetPoint("TOP", 0, -26)
+    f.map:SetTexture("Interface\\WorldMap\\Elwynn\\Elwynn6")
+    f.dark = f:CreateTexture(nil, "BACKGROUND", nil, 1)
+    f.dark:SetSize(w / 2, h)
+    f.dark:SetPoint("TOPRIGHT", f.map, "TOPRIGHT")
+    f.dark:SetColorTexture(0, 0, 0, 1)
+    f.unex = f:CreateTexture(nil, "ARTWORK")
+    f.unex:SetSize(w / 2, h)
+    f.unex:SetPoint("TOPRIGHT", f.map, "TOPRIGHT")
+    f.unex:SetTexture("Interface\\WorldMap\\Elwynn\\Elwynn6")
+    f.unex:SetTexCoord(0.5, 1, 0, 1)
+    f.frame = f:CreateTexture(nil, "OVERLAY")
+    f.frame:SetPoint("TOPLEFT", f.map, -3, 3) f.frame:SetPoint("BOTTOMRIGHT", f.map, 3, -3)
+    f.frame:SetColorTexture(0, 0, 0, 0)
+    f.l1 = K.Text(f, 10, C.dim) f.l1:SetPoint("TOPLEFT", f.map, "BOTTOMLEFT", 4, -6) f.l1:SetText(L["explored"])
+    f.l2 = K.Text(f, 10, C.dim) f.l2:SetPoint("TOPRIGHT", f.map, "BOTTOMRIGHT", -4, -6) f.l2:SetText(L["unexplored (revealed)"])
+    f.note = K.Text(f, 10, C.dim)
+    f.note:SetPoint("TOP", f.map, "BOTTOM", 0, -30)
+    f.note:SetText(L["Preview - changes show at once"])
+    function f:Update()
+        local reveal = S().mapReveal
+        local r, g, b, a = 1, 1, 1, 1
+        if ns.WorldMapPlus then r, g, b, a = ns.WorldMapPlus.Tint() end
+        self.unex:SetShown(reveal and true or false)
+        self.unex:SetVertexColor(r, g, b)
+        self.unex:SetAlpha(a)
+        self.l2:SetText(reveal and L["unexplored (revealed)"] or L["unexplored (hidden)"])
+    end
+    f:Update()
+    return f
+end
+
 ------------------------------------------------------------------------
 -- page
 ------------------------------------------------------------------------
 local cur = "mini"
 local function apply(p)
     if ns.GatherSight then pcall(ns.GatherSight.Apply) end
+    if ns.WorldMapPlus then pcall(ns.WorldMapPlus.Apply) end
+    if ns.ComfortPlus and ns.ComfortPlus.ApplyReveal then pcall(ns.ComfortPlus.ApplyReveal) end
     if p.pv then p.pv:Update(cur) end
+    if p.mpv then p.mpv:Update() end
 end
 local function buildControls(p, key)
     local box = CreateFrame("Frame", nil, p)
@@ -242,16 +303,25 @@ local function buildControls(p, key)
         box.ctrls[#box.ctrls + 1] = t
         y = y - 30
     end
-    for _, sd in ipairs(o.slider or {}) do
-        y = y - 6
+    local sliders = o.slider or {}
+    local two = #sliders > 2
+    for i, sd in ipairs(sliders) do
+        local col = two and ((i - 1) % 2) or 0
+        if col == 0 then y = y - 6 end
+        local x = col * 250
         local lab = K.Text(box, 11, C.muted)
-        lab:SetPoint("TOPLEFT", 0, y)
+        lab:SetPoint("TOPLEFT", x, y)
         lab:SetText(L[sd[1]])
-        local sl = K.Slider(box, 260, sd[3], sd[4], sd[5], function() return S()[sd[2]] or sd[6] end,
+        local sl = K.Slider(box, two and 220 or 260, sd[3], sd[4], sd[5], function() return S()[sd[2]] or sd[6] end,
             function(v) S()[sd[2]] = (v ~= sd[6]) and v or nil apply(p) end, sd[7] or function(v) return math.floor(v * 100 + 0.5) .. " %" end)
-        sl:SetPoint("TOPLEFT", 0, y - 18)
+        sl:SetPoint("TOPLEFT", x, y - 18)
         box.ctrls[#box.ctrls + 1] = sl
-        y = y - 54
+        if not two or col == 1 or i == #sliders then y = y - 54 end
+    end
+    if o.resetPos and ns.WorldMapPlus then
+        local rb = K.Button(box, L["Reset map position"], 200, 26, nil, function() ns.WorldMapPlus.ResetPosition() end)
+        rb:SetPoint("TOPLEFT", 0, y - 4)
+        y = y - 36
     end
     if o.colors and ns.GatherSight then
         y = y - 4
@@ -307,6 +377,8 @@ local function show(p, key)
     local tdef
     for _, t in ipairs(p.tabs) do if t.key == key then tdef = t end end
     if p.pv then p.pv:SetShown(tdef and tdef.preview and true or false) end
+    if tdef and tdef.mappreview and not p.mpv then p.mpv = buildMapPreview(p) end
+    if p.mpv then p.mpv:SetShown(tdef and tdef.mappreview and true or false) end
     apply(p)
 end
 

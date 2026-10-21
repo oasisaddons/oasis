@@ -866,9 +866,11 @@ local function revealRefresh()
                         while fh < th do fh = fh * 2 end
                         t:SetTexCoord(0, tw / fw, 0, th / fh)
                         t:SetTexture(id)
-                        -- unexplored = darkened
-                        t:SetVertexColor(0.55, 0.55, 0.6)
-                        t:SetAlpha(0.85)
+                        -- unexplored = tinted (0.6.604: color and opacity adjustable, WorldMapPlus.lua)
+                        local tr, tg, tb, ta = 0.55, 0.55, 0.6, 0.85
+                        if ns.WorldMapPlus then tr, tg, tb, ta = ns.WorldMapPlus.Tint() end
+                        t:SetVertexColor(tr, tg, tb)
+                        t:SetAlpha(ta)
                         t:Show()
                     end
                 end
