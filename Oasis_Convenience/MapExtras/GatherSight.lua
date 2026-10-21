@@ -506,4 +506,6 @@ ns.slash.gathersparkle = function(rest)
 end
 ns.slash.sammelpfeil, ns.slash.glitzern, ns.slash.sammelpin = ns.slash.gatherarrow, ns.slash.gathersparkle, ns.slash.gatherpin
 ns.slash.sammelsymbole, ns.slash.finderwechsel = ns.slash.gathersymbols, ns.slash.gatherswitch
+-- the key names in WoW's list lose the "(Oasis - Convenience)" hint now that it is here
+if ns.Keybinds and ns.Keybinds.Names then pcall(ns.Keybinds.Names) end
 end)

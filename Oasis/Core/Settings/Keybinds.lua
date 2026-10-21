@@ -29,8 +29,19 @@ KB.ACTIONS = {
     { cmd = "OASIS_GATHER_SWITCH", text = "Switch finders automatically", icon = "map", gather = "gatherSwitch" },
 }
 -- Names for WoW's key bindings (only once all texts are loaded - LocaleData481 comes after it in the toc)
-local function names() for _, a in ipairs(KB.ACTIONS) do _G["BINDING_NAME_" .. a.cmd] = L[a.text] end end
+-- 0.6.595: gathering keys only when Oasis - Convenience is there (in WoW's own list they carry the add-on name)
+function KB.Actions()
+    local out = {}
+    for _, a in ipairs(KB.ACTIONS) do if not a.gather or ns.GatherSight then out[#out + 1] = a end end
+    return out
+end
+local function names()
+    for _, a in ipairs(KB.ACTIONS) do
+        _G["BINDING_NAME_" .. a.cmd] = L[a.text] .. ((a.gather and not ns.GatherSight) and " (Oasis - Convenience)" or "")
+    end
+end
 names()
+KB.Names = names
 ns.Listen("DB_READY", names)
 
 function KB.Run(cmd)
@@ -217,18 +228,19 @@ ns.Listen("DB_READY", function() if ns.After then ns.After(1, KB.ApplyGuildKey) 
 
 local function build(f)
     f.btns = {}
+    local acts = KB.Actions()
     local GAP, W = 14, 360
     local function fill(c, from, to)
         for i = from, to do
-            local r = row(c, i - from + 1, KB.ACTIONS[i], -50)
+            local r = row(c, i - from + 1, acts[i], -50)
             f.btns[#f.btns + 1] = r.btn
         end
     end
-    local nWin, nPages = 4, #KB.ACTIONS - 4
+    local nWin, nPages = 4, #acts - 4
     local left = card(f, 0, 0, W, 58 + nWin * ROWH, "settings", L["Window"])
     fill(left, 1, 4)
     local right = card(f, W + GAP, 0, W, 58 + nPages * ROWH, "home", L["Open pages directly"])
-    fill(right, 5, #KB.ACTIONS)
+    fill(right, 5, #acts)
     -- Esc + hint
     local esc = card(f, 0, -(58 + nWin * ROWH) - GAP, W, 170, "eye_off", L["Esc key"],
         L["Esc closes the Oasis window (not in combat - there Esc belongs to the game)."])

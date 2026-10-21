@@ -1180,6 +1180,8 @@ ns.AddPageSettings("map", function(det, y)
         { "Accept layer requests from the guild", "layerAsk", "Notice when someone wants to join your layer through your group", xupd, true },
     })
 
+    -- 0.6.595: gathering map lives in Oasis - Convenience: without that add-on the section is not shown at all
+    if ns.Gather then
     head("Guild gathering map")
     if S().gatherFresh == nil then S().gatherFresh = true end
     if S().gatherHarvest == nil then S().gatherHarvest = true end
@@ -1233,6 +1235,7 @@ ns.AddPageSettings("map", function(det, y)
     end)
     sorts:SetPoint("TOPLEFT", 14, y)
     y = y - 36
+    end
 
     head("Adjust icons")
     local function pct(v) return math.floor(v * 100 + 0.5) .. "%" end

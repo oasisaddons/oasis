@@ -1493,9 +1493,10 @@ local NAV_GROUPS = {
     { key = "play", text = "Play together", pages = { "social", "questitems", "allies", "scout", "camp" } },
     { key = "fun", text = "Fun", pages = { "pasture", "deathroll" } },
     -- 0.6.573: one group per add-on (Oasis Groups & Raids / Trade / Convenience) - missing add-on = group is empty and hidden
-    { key = "raid", text = "Groups & Raids", addon = "Oasis_GroupsRaids", pages = { "groups", "dungeons", "fight", "raid", "raidlead", "loot", "buffs", "tactics" } },
-    { key = "trade", text = "Trade", addon = "Oasis_Trade", pages = { "crafting", "trade", "wants" } },
-    { key = "convenience", text = "Convenience", addon = "Oasis_Convenience", pages = {} },
+    -- 0.6.595: add-on groups get their own color and an "ADD-ON" tag in the sidebar
+    { key = "raid", text = "Groups & Raids", addon = "Oasis_GroupsRaids", color = { 0.95, 0.5, 0.4 }, pages = { "groups", "dungeons", "fight", "raid", "raidlead", "loot", "buffs", "tactics" } },
+    { key = "trade", text = "Trade", addon = "Oasis_Trade", color = { 0.95, 0.78, 0.35 }, pages = { "crafting", "trade", "wants" } },
+    { key = "convenience", text = "Convenience", addon = "Oasis_Convenience", color = { 0.45, 0.75, 1 }, pages = {} },
     { key = "dev", text = "Developer", pages = { "dev", "bugs" } },   -- only visible in developer mode
 }
 ns.NAV_GROUPS = NAV_GROUPS
@@ -1508,12 +1509,22 @@ local function navHead(g)
     h.t = K.Text(h, 10, C.dim)
     h.t:SetPoint("LEFT", 10, 0)
     h.t:SetText(K.Upper(L[g.text]))
+    local col = g.color or C.dim
+    h.t:SetTextColor(col[1], col[2], col[3])
     h.arrow = K.Text(h, 10, C.dim, "RIGHT")
     h.arrow:SetPoint("RIGHT", -10, 0)
+    -- add-on group: small tag after the name, so you see at once what comes from which add-on
+    local after = h.t
+    if g.addon then
+        h.tag = K.Text(h, 8, C.dim)
+        h.tag:SetPoint("LEFT", h.t, "RIGHT", 6, 0)
+        h.tag:SetText(K.Upper(L["Add-on"]))
+        after = h.tag
+    end
     h.line = h:CreateTexture(nil, "ARTWORK")
     h.line:SetColorTexture(C.line[1], C.line[2], C.line[3], 0.6)
     h.line:SetHeight(1)
-    h.line:SetPoint("LEFT", h.t, "RIGHT", 8, 0)
+    h.line:SetPoint("LEFT", after, "RIGHT", 8, 0)
     h.line:SetPoint("RIGHT", h.arrow, "LEFT", -8, 0)
     h:SetScript("OnClick", function()
         local c = ns.db.settings.navClosed or {}
@@ -1521,8 +1532,19 @@ local function navHead(g)
         c[g.key] = not c[g.key] or nil
         ns.LayoutNav()
     end)
-    h:SetScript("OnEnter", function(self) self.t:SetTextColor(C.text[1], C.text[2], C.text[3]) end)
-    h:SetScript("OnLeave", function(self) self.t:SetTextColor(C.dim[1], C.dim[2], C.dim[3]) end)
+    h:SetScript("OnEnter", function(self)
+        self.t:SetTextColor(C.text[1], C.text[2], C.text[3])
+        if g.addon and GameTooltip then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(L[g.text])
+            GameTooltip:AddLine((L["From the add-on %s"]):format("Oasis - " .. L[g.text]), 0.8, 0.8, 0.8)
+            GameTooltip:Show()
+        end
+    end)
+    h:SetScript("OnLeave", function(self)
+        self.t:SetTextColor(col[1], col[2], col[3])
+        if g.addon and GameTooltip then GameTooltip:Hide() end
+    end)
     main.navHeads[g.key] = h
     return h
 end
