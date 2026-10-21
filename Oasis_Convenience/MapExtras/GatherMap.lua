@@ -1193,6 +1193,17 @@ function GM.NodeAbsent(r, c)
     end
     return true
 end
+-- 0.6.618: inside the part of the minimap the scan just looked at (at most 10 s ago, same map)? There the scan knows
+-- better than any stored node - nodes of a kind it does not track are unknown, not "there"
+function GM.InScanView(r, c)
+    if not (GM.scanLiveAt and GM.scanDone ~= nil) or ns.db.settings.gatherScan == false then return false end
+    local now = GetTime and GetTime() or 0
+    if now - GM.scanLiveAt > 10 then return false end
+    c = c or GM.MiniCtx()
+    if not c or r.map ~= c.map then return false end
+    local _, _, dist = GM.MiniPlace(c, r.x, r.y)
+    return dist ~= nil and dist <= 0.85
+end
 -- 0.6.593: the minimap shows one finder at a time. With herbalism and mining, "switch finders" changes between
 -- Find Herbs and Find Minerals every few meters (out of combat); the other kind's dots stay as held symbols.
 local FINDER = { [2383] = "herb", [2580] = "ore", [2481] = "treasure" }

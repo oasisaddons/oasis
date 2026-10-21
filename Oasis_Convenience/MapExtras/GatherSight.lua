@@ -95,7 +95,8 @@ function GS.Nearest()
         for _, r in ipairs(GM.Nodes(map)) do
             if (r.kind == "herb" or r.kind == "ore") then
                 local dx, dy = (r.x - mx) * w, (r.y - my) * h
-                if dx * dx + dy * dy <= FAR * FAR and GM.Shown(r) and not GM.Harvested(r, t) then try(r) end
+                -- 0.6.618: stored nodes only outside the scanned minimap view - inside it the scan's live dots count
+            if dx * dx + dy * dy <= FAR * FAR and GM.Shown(r) and not GM.Harvested(r, t) and not (GM.InScanView and GM.InScanView(r)) then try(r) end
             end
         end
     end
