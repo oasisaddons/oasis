@@ -636,6 +636,124 @@ CreateFrame("Frame"):SetScript("OnUpdate", function(_, el)
 end)
 
 ------------------------------------------------------------------------
+-- 0.6.591: minimap scan - finds the yellow tracking dots by itself, without hovering or gathering.
+-- An invisible probe (Minimap:UpdateMouseoverAtPoint) walks a grid over the minimap, a few points per frame,
+-- and C_TooltipInfo.GetMinimapMouseover names what lies under it. Hits of the same name lying together
+-- = one dot, its center goes into the gathering map like a hovered node. Off with /oa gatherscan.
+-- Paused in combat, in instances, while the mouse is over the minimap and while the minimap is hidden.
+------------------------------------------------------------------------
+local SCAN_STEP, SCAN_PER_FRAME, SCAN_PAUSE = 7, 50, 2
+local scanJob, scanWait = nil, 0
+GM.scanStats = { runs = 0, hits = 0, added = 0 }
+local function canScan()
+    local s = ns.db and ns.db.settings
+    if not s or s.gatherScan == false or s.shareNodes == false then return false end
+    if not (Minimap and Minimap.UpdateMouseoverAtPoint and C_TooltipInfo and C_TooltipInfo.GetMinimapMouseover) then return false end
+    if not Minimap:IsVisible() or Minimap:IsMouseOver() then return false end
+    if InCombatLockdown and InCombatLockdown() then return false end
+    if ns.inInstance() then return false end
+    return true
+end
+-- pixel offset from the minimap center -> map position (same math as the hover reader above)
+local function pxToMap(c, ox, oy)
+    local nx, ny = ox / c.half, -oy / c.half
+    local rx, ry = nx * c.radius, ny * c.radius
+    local dx = rx * c.cosF + ry * c.sinF
+    local dy = -rx * c.sinF + ry * c.cosF
+    return c.mx + dx / c.w, c.my + dy / c.h
+end
+local function newScan()
+    local c = GM.MiniCtx()
+    if not c then return nil end
+    local pts, r = {}, c.half - 3
+    for ox = -r, r, SCAN_STEP do
+        for oy = -r, r, SCAN_STEP do
+            if ox * ox + oy * oy <= r * r then pts[#pts + 1] = { ox, oy } end
+        end
+    end
+    return { c = c, pts = pts, i = 1, hits = {} }
+end
+local function probe(job, sc, cx, cy, p)
+    Minimap:UpdateMouseoverAtPoint((cx + p[1]) * sc, (cy + p[2]) * sc)
+    local data = ns.safe(C_TooltipInfo.GetMinimapMouseover())
+    local lines = type(data) == "table" and ns.safe(data.lines)
+    if type(lines) ~= "table" then return end
+    for _, line in ipairs(lines) do
+        local txt = ns.safe(line.leftText)
+        if type(txt) == "string" then
+            for part in txt:gmatch("[^\n]+") do
+                local n = part:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("^%s+", ""):gsub("%s+$", "")
+                local kind = n ~= "" and kindForName(n)
+                if kind then
+                    local h = job.hits[n]
+                    if not h then h = { kind = kind } job.hits[n] = h end
+                    h[#h + 1] = p
+                end
+            end
+        end
+    end
+end
+-- group the hits of one name: points closer than two grid steps belong to the same dot
+local function clusters(list)
+    local out, lim = {}, (SCAN_STEP * 2.1) ^ 2
+    for _, p in ipairs(list) do
+        local best
+        for _, g in ipairs(out) do
+            local dx, dy = p[1] - g.x / g.n, p[2] - g.y / g.n
+            if dx * dx + dy * dy <= lim then best = g break end
+        end
+        if best then best.x, best.y, best.n = best.x + p[1], best.y + p[2], best.n + 1
+        else out[#out + 1] = { x = p[1], y = p[2], n = 1 } end
+    end
+    return out
+end
+local function finishScan(job)
+    local added = {}
+    for name, h in pairs(job.hits) do
+        for _, g in ipairs(clusters(h)) do
+            GM.scanStats.hits = GM.scanStats.hits + 1
+            local x, y = pxToMap(job.c, g.x / g.n, g.y / g.n)
+            local ok, res = pcall(GM.Record, h.kind, name, x, y)
+            if ok and res == "neu gespeichert" then added[#added + 1] = name end
+        end
+    end
+    GM.scanStats.runs = GM.scanStats.runs + 1
+    GM.scanStats.added = GM.scanStats.added + #added
+    if #added > 0 then ns.print((L["Minimap scan: %d new gathering spots (%s)"]):format(#added, table.concat(added, ", "))) end
+end
+function GM.ScanStep(el)
+    if not scanJob then
+        scanWait = scanWait - (el or 0)
+        if scanWait > 0 or not canScan() then return end
+        scanJob = newScan()
+        if not scanJob then scanWait = SCAN_PAUSE return end
+    end
+    -- the player moved the mouse onto the minimap or a fight started: drop this run, the tooltip belongs to the player
+    if not canScan() then scanJob, scanWait = nil, SCAN_PAUSE return end
+    local job = scanJob
+    local sc = Minimap:GetEffectiveScale()
+    local cx, cy = Minimap:GetCenter()
+    if not cx then scanJob = nil return end
+    local soft = Minimap.SetUsingSoftCursor
+    if soft then pcall(soft, Minimap, true) end
+    for i = job.i, math.min(job.i + SCAN_PER_FRAME - 1, #job.pts) do pcall(probe, job, sc, cx, cy, job.pts[i]) end
+    if soft then pcall(soft, Minimap, false) end
+    job.i = job.i + SCAN_PER_FRAME
+    if job.i > #job.pts then
+        scanJob, scanWait = nil, SCAN_PAUSE
+        pcall(finishScan, job)
+    end
+end
+CreateFrame("Frame"):SetScript("OnUpdate", function(_, el) GM.ScanStep(el) end)
+ns.slash.gatherscan = function()
+    ns.db.settings.gatherScan = ns.db.settings.gatherScan == false and true or false
+    local st = GM.scanStats
+    ns.print((ns.db.settings.gatherScan and L["Minimap scan on: herb and ore dots are found by themselves."] or L["Minimap scan off."])
+        .. (" (%d / %d / %d)"):format(st.runs, st.hits, st.added))
+end
+ns.slash.sammelscan = ns.slash.gatherscan
+
+------------------------------------------------------------------------
 -- Gathering route (0.5.934): connects the visible nodes of a zone into a round trip.
 -- World map: line. Minimap: arrow to the next point (left-click skips, right-click goes back).
 -- Order: nearest neighbor, then 2-opt (untangles crossings). At most 120 points - the most found.
