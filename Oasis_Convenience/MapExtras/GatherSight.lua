@@ -74,14 +74,18 @@ function GS.Nearest()
     local farmers = GG and GG.Farmers() or {}
     if GG and farmers[1] then GG.TellFarmers(farmers) end
     local function try(r)
-        if r.map ~= map or not arrowWants(r.kind) or GM.TooHard(r.name) then return end
+        if r.map ~= map then return end
+        -- 0.6.600: distance first (cheap) - the name checks only for nodes that could win
+        local dx, dy = (r.x - mx) * w, (r.y - my) * h
+        local d2 = dx * dx + dy * dy
+        if d2 <= AT * AT or d2 > FAR * FAR or (bscore and d2 * 0.36 >= bscore * bscore) then return end
+        if not arrowWants(r.kind) or GM.TooHard(r.name) then return end
         if r.cave and not S().gatherArrowCaves then return end
         if profOnly and not GM.PROF_KINDS[r.kind] then return end
         if GG and GG.Theirs(r, farmers, mx, my) then return end
-        local dx, dy = (r.x - mx) * w, (r.y - my) * h
-        local d = math.sqrt(dx * dx + dy * dy)
+        local d = math.sqrt(d2)
         local score = d * ((GG and GG.WantedBy(r.name)) and 0.6 or 1)
-        if d > AT and d <= FAR and (not bscore or score < bscore) then best, bd, bscore = r, d, score end
+        if not bscore or score < bscore then best, bd, bscore = r, d, score end
     end
     for _, r in ipairs(GS.Live()) do try(r) end
     -- 0.6.597: herbs and ore first - the others only if there is none
@@ -89,7 +93,10 @@ function GS.Nearest()
     if not best then
         local t = ns.now()
         for _, r in ipairs(GM.Nodes(map)) do
-            if (r.kind == "herb" or r.kind == "ore") and GM.Shown(r) and not GM.Harvested(r, t) then try(r) end
+            if (r.kind == "herb" or r.kind == "ore") then
+                local dx, dy = (r.x - mx) * w, (r.y - my) * h
+                if dx * dx + dy * dy <= FAR * FAR and GM.Shown(r) and not GM.Harvested(r, t) then try(r) end
+            end
         end
     end
     if not best then return nil end
@@ -559,7 +566,7 @@ GS.Calibrating = function() return GS.cal.state ~= nil end
 ------------------------------------------------------------------------
 -- tick
 ------------------------------------------------------------------------
-local acc, pinAcc = 0, 0
+local acc, pinAcc, pickAcc, picked = 0, 0, 0, nil
 function GS.Tick(el)
     el = el or 0
     if GS.cal.state and calibrate(el) then return end
@@ -584,7 +591,22 @@ function GS.Tick(el)
         sparkleOff(FAR_KEY) GS.FarOthers(nil)
         return
     end
-    local r, d, b = GS.Nearest()
+    -- 0.6.600: choosing the target walks all nodes of the zone - only 4x per second; in between only the
+    -- distance and direction of the chosen one are updated (cheap), so the arrow still turns smoothly
+    pickAcc = pickAcc + 0.05
+    local r, d, b
+    if pickAcc >= 0.25 or not picked then
+        pickAcc = 0
+        r, d, b = GS.Nearest()
+        picked = r
+    else
+        r = picked
+        local map, mx, my, w, h = here()
+        if map and r.map == map then
+            local dx, dy = (r.x - mx) * w, (r.y - my) * h
+            d, b = math.sqrt(dx * dx + dy * dy), atan2(-dx, -dy)
+        else r, picked = nil, nil end
+    end
     updateArrow(r, d, b)
     if pinAcc >= 1 then pinAcc = 0 updatePin(r) end
     updateFar()

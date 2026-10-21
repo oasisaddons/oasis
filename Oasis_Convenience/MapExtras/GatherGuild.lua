@@ -113,7 +113,16 @@ end)
 -- no double work: guild members farming close by
 ------------------------------------------------------------------------
 -- members on your map within 400 m who stored a node in the last 10 minutes
+-- 0.6.600: cached for 2 seconds (it walks the zone's nodes and the guild positions)
+local farmCache, farmAt = {}, -100
 function GG.Farmers()
+    local now = GetTime and GetTime() or 0
+    if now - farmAt < 2 then return farmCache end
+    farmAt = now
+    farmCache = GG.FarmersNow()
+    return farmCache
+end
+function GG.FarmersNow()
     local out = {}
     if S().gatherShareArea == false or not (ns.Map and ns.Map.Active) then return out end
     local c = GM.MiniCtx()
