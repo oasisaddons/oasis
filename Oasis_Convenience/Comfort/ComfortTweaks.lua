@@ -361,7 +361,15 @@ local function unitTip(tt)
         if c and GameTooltipTextLeft1 then GameTooltipTextLeft1:SetTextColor(c.r, c.g, c.b) end
     end
     if on("twTipBar") and GameTooltipStatusBar then
-        tt:AddLine(" ")
+        -- 0.6.642: the empty line for the bar only after all other additions (target, guild info ...) -
+        -- added right away, the target line came below it and the bar covered it
+        C_Timer.After(0, function()
+            if not tt:IsShown() then return end
+            local _, u2 = tt:GetUnit()
+            if ns.safe(u2) ~= unit then return end
+            tt:AddLine(" ")
+            tt:Show()
+        end)
         GameTooltipStatusBar:ClearAllPoints()
         GameTooltipStatusBar:SetPoint("BOTTOMLEFT", tt, "BOTTOMLEFT", 10, 8)
         GameTooltipStatusBar:SetPoint("BOTTOMRIGHT", tt, "BOTTOMRIGHT", -10, 8)

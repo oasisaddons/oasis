@@ -342,38 +342,130 @@ PREV.whisper = {
 ------------------------------------------------------------------------
 -- map extras: sample icons for each layer
 ------------------------------------------------------------------------
+-- 0.6.642: real zone (Tirisfal Glades) with the explored areas, trails as lines in class colours, game symbols
+local function zone(parent, mapID, w)
+    local sc = w / 1002
+    local box = CreateFrame("Frame", nil, parent)
+    box:SetSize(w, math.floor(668 * sc + 0.5))
+    box:SetClipsChildren(true)
+    local bg = box:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.32, 0.27, 0.18, 1)
+    local ok, tiles = pcall(function() return C_Map and C_Map.GetMapArtLayerTextures and C_Map.GetMapArtLayerTextures(mapID, 1) end)
+    if ok and type(tiles) == "table" then
+        for i, id in ipairs(tiles) do
+            local c, r = (i - 1) % 4, math.floor((i - 1) / 4)
+            local t = box:CreateTexture(nil, "BACKGROUND", nil, 1)
+            t:SetTexture(id)
+            t:SetSize(256 * sc, 256 * sc)
+            t:SetPoint("TOPLEFT", c * 256 * sc, -r * 256 * sc)
+        end
+    end
+    for _, entry in ipairs(ns.MapRevealData and ns.MapRevealData[mapID] or {}) do
+        local pw, ph, ox, oy, texs = entry:match("^(%d+):(%d+):(%d+):(%d+):(.+)$")
+        pw, ph, ox, oy = tonumber(pw), tonumber(ph), tonumber(ox), tonumber(oy)
+        if pw then
+            local ids = {}
+            for id in texs:gmatch("%d+") do ids[#ids + 1] = tonumber(id) end
+            local cols, rows = math.ceil(pw / 256), math.ceil(ph / 256)
+            for r = 1, rows do
+                for c = 1, cols do
+                    local id = ids[(r - 1) * cols + c]
+                    if id then
+                        local tw = (c < cols) and 256 or (pw - 256 * (cols - 1))
+                        local th = (r < rows) and 256 or (ph - 256 * (rows - 1))
+                        local t = box:CreateTexture(nil, "BACKGROUND", nil, 2)
+                        t:SetTexture(id)
+                        local fw, fh = 16, 16
+                        while fw < tw do fw = fw * 2 end
+                        while fh < th do fh = fh * 2 end
+                        t:SetTexCoord(0, tw / fw, 0, th / fh)
+                        t:SetSize(tw * sc, th * sc)
+                        t:SetPoint("TOPLEFT", (ox + 256 * (c - 1)) * sc, -(oy + 256 * (r - 1)) * sc)
+                    end
+                end
+            end
+        end
+    end
+    return box
+end
+PREV.zone = zone
+
 PREV.mapextras = {
     build = function(f)
-        f.map = f:CreateTexture(nil, "BACKGROUND")
-        f.map:SetSize(240, 160)
+        f.map = zone(f, 1420, 262)
         f.map:SetPoint("TOPLEFT", 0, -4)
-        f.map:SetTexture("Interface\\WorldMap\\Elwynn\\Elwynn6")
-        f.i = {}
-        local function add(key, tex, x, y, size)
-            local t = icon(f, size or 18, tex, x, y)
-            f.i[key] = t
+        local W, H = f.map:GetWidth(), f.map:GetHeight()
+        local function at(o, x, y) o:ClearAllPoints() o:SetPoint("CENTER", f.map, "TOPLEFT", x * W, -y * H) end
+        local function ico(tex, size, x, y, atlas)
+            local t = f.map:CreateTexture(nil, "OVERLAY")
+            t:SetSize(size, size)
+            if atlas and t.SetAtlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) then t:SetAtlas(atlas) else t:SetTexture(tex) end
+            at(t, x, y)
+            return t
         end
-        add("mapDungeons", "Interface\\Minimap\\Dungeon", 40, -30, 22)
-        add("mapDanger", nil, 150, -40, 46)
-        f.i.mapDanger:SetColorTexture(1, 0.1, 0.1, 0.3)
-        add("mapPoi", "Interface\\Icons\\INV_Misc_Bag_10", 100, -90)
-        add("mapQuestGivers", "Interface\\GossipFrame\\AvailableQuestIcon", 190, -110)
-        f.trail = {}
-        for i = 1, 8 do local t = f:CreateTexture(nil, "ARTWORK") t:SetColorTexture(1, 0.85, 0.3, 0.8) t:SetSize(4, 4) t:SetPoint("TOPLEFT", 20 + i * 14, -130 + i * 4) f.trail[i] = t end
-        f.gtrail = {}
-        for i = 1, 8 do local t = f:CreateTexture(nil, "ARTWORK") t:SetColorTexture(0.4, 0.8, 1, 0.8) t:SetSize(4, 4) t:SetPoint("TOPLEFT", 120 + i * 12, -70 - i * 3) f.gtrail[i] = t end
-        f.coords = text(f, 10, C.text, 0, -170)
-        f.layer = text(f, 10, C.text, 0, -188)
+        f.i = {}
+        -- dungeon entrance: Scarlet Monastery
+        f.i.mapDungeons = ico("Interface\\Minimap\\Dungeon", 18, 0.83, 0.3, "Dungeon")
+        -- danger zone: Agamand Mills
+        local d = f.map:CreateTexture(nil, "ARTWORK")
+        d:SetTexture(ns.MEDIA .. "softglow") d:SetBlendMode("ADD") d:SetVertexColor(1, 0.15, 0.1) d:SetAlpha(0.8)
+        d:SetSize(56, 56) at(d, 0.37, 0.24)
+        f.i.mapDanger = d
+        -- vendors, repair, mailbox, flight master: Brill
+        f.poi = {
+            ico("Interface\\Icons\\INV_Misc_Coin_01", 10, 0.55, 0.5, "Banker"),
+            ico("Interface\\Icons\\Trade_BlackSmithing", 10, 0.59, 0.53, "Repair"),
+            ico("Interface\\Icons\\INV_Letter_15", 10, 0.55, 0.56, "Mailbox"),
+            ico("Interface\\Icons\\Ability_Mount_Wyvern_01", 12, 0.62, 0.47, "FlightMaster"),
+        }
+        -- quest giver of a dungeon quest
+        f.i.mapQuestGivers = ico("Interface\\GossipFrame\\AvailableQuestIcon", 14, 0.7, 0.42, "QuestNormal")
+        -- trails as lines
+        local function path(pts)
+            local list = {}
+            for i = 2, #pts do
+                local l = f.map:CreateLine(nil, "ARTWORK", nil, 2)
+                if not l then return list end
+                l:SetThickness(2)
+                l:SetStartPoint("TOPLEFT", f.map, pts[i - 1][1] * W, -pts[i - 1][2] * H)
+                l:SetEndPoint("TOPLEFT", f.map, pts[i][1] * W, -pts[i][2] * H)
+                l.q = (i - 1) / (#pts - 1)
+                list[#list + 1] = l
+            end
+            return list
+        end
+        -- own: from Deathknell towards Brill; the first part only with "whole session"
+        f.trailOld = path({ { 0.17, 0.58 }, { 0.22, 0.6 }, { 0.27, 0.57 }, { 0.31, 0.6 } })
+        f.trail = path({ { 0.31, 0.6 }, { 0.36, 0.57 }, { 0.41, 0.6 }, { 0.46, 0.56 }, { 0.5, 0.54 } })
+        f.me = ico(ns.MEDIA .. "pinarrow", 12, 0.5, 0.54)
+        -- another player
+        f.gtrail = path({ { 0.74, 0.72 }, { 0.7, 0.66 }, { 0.66, 0.62 }, { 0.63, 0.57 } })
+        f.gname = f.map:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        f.gname:SetPoint("BOTTOM", f.map, "TOPLEFT", 0.63 * W, -0.57 * H + 4)
+        f.gname:SetText("Mira")
+        f.coords = f.map:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        f.coords:SetPoint("BOTTOMRIGHT", -4, 4)
+        f.layer = text(f, 10, C.text, 0, -H - 14)
         caption(f)
     end,
     update = function(f)
         f.i.mapDungeons:SetShown(onD("mapDungeons"))
         f.i.mapDanger:SetShown(on("mapDanger"))
-        f.i.mapPoi:SetShown(onD("mapPoi"))
+        for _, t in ipairs(f.poi) do t:SetShown(onD("mapPoi")) end
         f.i.mapQuestGivers:SetShown(on("mapQuestGivers"))
-        for _, t in ipairs(f.trail) do t:SetShown(on("mapTrails")) end
-        for _, t in ipairs(f.gtrail) do t:SetShown(on("mapTrailsGuild")) end
-        f.coords:SetText(on("mmCoords") and L["Minimap: 42.3, 65.1  ·  120 m to the target"] or "")
+        local _, cls = UnitClass("player")
+        local mr, mg, mb = 1, 0.85, 0.3
+        if cls and ns.classColor then mr, mg, mb = ns.classColor(cls) end
+        local own, long = on("mapTrails"), on("trailSession")
+        for _, l in ipairs(f.trail) do l:SetColorTexture(mr, mg, mb, 0.35 + 0.65 * l.q) l:SetShown(own) end
+        for _, l in ipairs(f.trailOld) do l:SetColorTexture(mr, mg, mb, 0.25) l:SetShown(own and long) end
+        local gc = RAID_CLASS_COLORS and RAID_CLASS_COLORS.MAGE or { r = 0.25, g = 0.78, b = 0.92 }
+        local other = on("mapTrailsGuild")
+        for _, l in ipairs(f.gtrail) do l:SetColorTexture(gc.r, gc.g, gc.b, 0.35 + 0.65 * l.q) l:SetShown(other) end
+        f.gname:SetShown(other)
+        f.gname:SetTextColor(gc.r, gc.g, gc.b)
+        f.coords:SetText(on("mmCoords") and "50.2, 54.8" or "")
         f.layer:SetText(onD("layerAsk") and L["Layer requests from the guild: asked"] or ("|cff888888" .. L["Layer requests: ignored"] .. "|r"))
     end,
 }
