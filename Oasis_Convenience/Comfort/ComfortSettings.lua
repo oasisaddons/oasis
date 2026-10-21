@@ -6,18 +6,22 @@ local L = ns.L
 local K, C = ns.K, ns.K.C
 if not (K and ns.RegisterPage) then return end
 
--- 0.6.603: two pages - "Gathering & minimap" (everything map/gathering, with preview) and "Comfort settings"
-local KEY, GKEY = "comfortset", "gatherset"
+-- 0.6.606: four sidebar pages under "Comfort" - Gathering & minimap, World map, Everyday helpers, Game chat.
+-- None of the Comfort settings stay in the big Oasis settings window while this add-on is loaded.
+local KEY, GKEY, WKEY, CHKEY = "comfortset", "gatherset", "worldmapset", "chatset"
 ns.GatherSettingsPage = GKEY
+ns.ConvenienceOwnPages = true
 ns.SETTINGS_ELSEWHERE = ns.SETTINGS_ELSEWHERE or {}
-ns.SETTINGS_ELSEWHERE.comfort, ns.SETTINGS_ELSEWHERE.gamechat = true, true
+ns.SETTINGS_ELSEWHERE.comfort, ns.SETTINGS_ELSEWHERE.gamechat, ns.SETTINGS_ELSEWHERE.helpers = true, true, true
 if ns.ICONS then
     ns.ICONS[KEY] = ns.ICONS.settings or ns.ICONS.home
     ns.ICONS[GKEY] = ns.ICONS.map or ns.ICONS.compass or ns.ICONS.settings or ns.ICONS.home
+    ns.ICONS[WKEY] = ns.ICONS.map or ns.ICONS.compass or ns.ICONS.home
+    ns.ICONS[CHKEY] = ns.ICONS.announce or ns.ICONS.chat or ns.ICONS.home
 end
 for _, g in ipairs(ns.NAV_GROUPS or {}) do
     if g.key == "convenience" then
-        for i, k in ipairs({ GKEY, KEY }) do
+        for i, k in ipairs({ GKEY, WKEY, KEY, CHKEY }) do
             local has = false
             for _, x in ipairs(g.pages) do if x == k then has = true end end
             if not has then table.insert(g.pages, i, k) end
@@ -27,7 +31,7 @@ end
 
 local function S() return ns.db.settings end
 -- toggles that are on until switched off (nil = on)
-local ON = { mapRevealTint = true, gatherScan = true, gatherSymbols = true, gatherArrowHerb = true, gatherArrowOre = true, gatherArrowTreasure = true,
+local ON = { mapDungeons = true, mapPoi = true, layerAsk = true, mapRevealTint = true, gatherScan = true, gatherSymbols = true, gatherArrowHerb = true, gatherArrowOre = true, gatherArrowTreasure = true,
     gatherArrowRare = true, gatherArrowLeyline = true, gatherAlerts = true, gatherAlertsShare = true, gatherWanted = true, gatherShareArea = true }
 local function get(k) if ON[k] then return S()[k] ~= false end return S()[k] and true or false end
 local function set(k, v) if ON[k] then S()[k] = v and true or false else S()[k] = v and true or nil end end
@@ -37,11 +41,19 @@ local GTABS = {
     { key = "arrow", text = "Arrow", preview = true },
     { key = "sparkle", text = "Sparkles & pin", preview = true },
     { key = "guild", text = "Guild", preview = true },
+}
+local WTABS = {
     { key = "worldmap", text = "World map", mappreview = true },
+    { key = "mapextras", text = "Map extras" },
 }
 local CTABS = {
     { key = "comfort", text = "Helpers", tab = "comfort" },
+    { key = "tweaks", text = "More helpers" },
+    { key = "helpers", text = "Guild helpers", tab = "helpers" },
+}
+local CHTABS = {
     { key = "gamechat", text = "Game chat", tab = "gamechat" },
+    { key = "whisper", text = "Whispers" },
 }
 local OPTS = {
     mini = {
@@ -91,6 +103,35 @@ local OPTS = {
             { "World map size (maximised)", "wmScaleMax", 0.5, 2, 0.05, 1 },
         },
         resetPos = true,
+    },
+    mapextras = {
+        { "Dungeon entrances", "mapDungeons" },
+        { "Danger zones", "mapDanger" },
+        { "Vendors, repair, mailboxes and flight points", "mapPoi" },
+        { "Dungeon quest givers", "mapQuestGivers" },
+        { "Own trail", "mapTrails" },
+        { "Long trail: whole session", "trailSession" },
+        { "Other players' trails", "mapTrailsGuild" },
+        { "Coordinates on the minimap", "mmCoords" },
+        { "Accept layer requests from the guild", "layerAsk" },
+    },
+    tweaks = {
+        { "Flight master: straight to the flight map", "twTaxi" },
+        { "Battleground: release automatically", "twBgRelease" },
+        { "Alt+right-click marks items as junk", "twJunkMark" },
+        { "Gear groups (Ctrl+right-click in the bags)", "twGear" },
+        { "Quest levels in the quest log", "twQuestLevel" },
+        { "\"Train all\" at the trainer", "twTrainAll" },
+        { "Fishing: double right-click casts", "twFishing" },
+        { "Auction house: item level in the list", "twAhIlvl" },
+        { "Camera: zoom out further", "twCamera" },
+        { "No screen glow", "twNoGlow" },
+        { "Tooltips: class colours for players", "twTipClass" },
+        { "Tooltips: health bar inside", "twTipBar" },
+        gearButtons = true,
+    },
+    whisper = {
+        { "Offer whispers to offline characters to their alt", "whisperForward" },
     },
     guild = {
         { "Guild finds: notices", "gatherAlerts" },
@@ -325,24 +366,38 @@ end
 local cur = "mini"
 local function apply(p)
     if ns.GatherSight then pcall(ns.GatherSight.Apply) end
+    if ns.ComfortTweaks then pcall(ns.ComfortTweaks.Apply) end
+    if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end
+    if ns.ComfortPlus and ns.ComfortPlus.ApplyAll then pcall(ns.ComfortPlus.ApplyAll) end
+    S().trailMinutes = S().trailSession and 0 or nil
     if ns.WorldMapPlus then pcall(ns.WorldMapPlus.Apply) end
     if ns.ComfortPlus and ns.ComfortPlus.ApplyReveal then pcall(ns.ComfortPlus.ApplyReveal) end
     if p.pv then p.pv:Update(cur) end
     if p.mpv then p.mpv:Update() end
 end
-local function buildControls(p, key)
+local function buildControls(p, key, withPreview)
     local box = CreateFrame("Frame", nil, p)
-    box:SetPoint("TOPLEFT", 280, -44)
+    box:SetPoint("TOPLEFT", withPreview and 280 or 0, -44)
     box:SetPoint("BOTTOMRIGHT", 0, 0)
     local o = OPTS[key]
     local y = 0
     box.ctrls = {}
-    for _, row in ipairs(o) do
+    -- without a preview and with many switches: two columns
+    local twoCol = not withPreview and #o > 7
+    local half = math.ceil(#o / 2)
+    for i, row in ipairs(o) do
         local t = K.Toggle(box, L[row[1]], function() return get(row[2]) end, function(v) set(row[2], v) apply(p) end)
-        t:SetPoint("TOPLEFT", 0, y)
+        if twoCol then
+            local col = i > half and 1 or 0
+            t:SetPoint("TOPLEFT", col * 400, -((col == 1 and i - half or i) - 1) * 30)
+            if t.SetWidth then t:SetWidth(380) end
+        else
+            t:SetPoint("TOPLEFT", 0, y)
+        end
         box.ctrls[#box.ctrls + 1] = t
-        y = y - 30
+        if not twoCol then y = y - 30 end
     end
+    if twoCol then y = -half * 30 end
     local sliders = o.slider or {}
     local two = #sliders > 2
     for i, sd in ipairs(sliders) do
@@ -383,6 +438,21 @@ local function buildControls(p, key)
         end
         y = y - 54
     end
+    if o.gearButtons and ns.ComfortTweaks then
+        y = y - 10
+        local lab = K.Text(box, 11, C.muted)
+        lab:SetPoint("TOPLEFT", 0, y)
+        lab:SetText(L["Equip gear group"])
+        local x = 0
+        for _, g in ipairs(ns.ComfortTweaks.GROUPS) do
+            local b = K.Button(box, K.hex(g.color) .. g.text .. "|r", 90, 26, nil, function()
+                ns.print((L["Equipped %d items of %s."]):format(ns.ComfortTweaks.EquipGroup(g.key), g.text))
+            end)
+            b:SetPoint("TOPLEFT", x, y - 18)
+            x = x + 98
+        end
+        y = y - 54
+    end
     if o.buttons and ns.GatherGuild then
         y = y - 4
         local watch
@@ -406,7 +476,7 @@ local function show(p, key)
                     f:SetPoint("TOPLEFT", 0, -44) f:SetPoint("BOTTOMRIGHT", 0, 0)
                     ns.BuildSettingsTab(t.tab, f)
                 else
-                    f = buildControls(p, t.key)
+                    f = buildControls(p, t.key, t.preview or t.mappreview)
                 end
                 p.views[t.key] = f
             end
@@ -439,5 +509,7 @@ local function register(key, title, sub, order, tabs, withPreview)
         refresh = function(p) if p.views then show(p, p.cur or tabs[1].key) end end,
     })
 end
-register(GKEY, "Gathering & minimap", "Minimap, arrow, sparkles and gathering with the guild - with a live preview", 5.44, GTABS, true)
-register(KEY, "Comfort settings", "Helpers and game chat", 5.45, CTABS, false)
+register(GKEY, "Gathering & minimap", "Minimap, arrow, sparkles and gathering with the guild - with a live preview", 5.441, GTABS, true)
+register(WKEY, "World map", "Reveal, tint, size and position of the world map, map extras", 5.442, WTABS, false)
+register(KEY, "Everyday helpers", "Repair, junk, quests, gear groups, fishing, tooltips and more", 5.443, CTABS, false)
+register(CHKEY, "Game chat", "Game chat and whispers", 5.444, CHTABS, false)

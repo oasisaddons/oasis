@@ -40,6 +40,8 @@ function ns.SettingAvailable(key)
         for _, pf in ipairs(NEEDS_PREFIX) do if key:sub(1, #pf[1]) == pf[1] then addon = pf[2] break end end
     end
     if not addon then return true end
+    -- 0.6.606: the Comfort add-on shows all of its settings on its own sidebar pages
+    if addon == "Oasis_Convenience" and ns.ConvenienceOwnPages and key ~= "shareNodes" then return false end
     -- 0.6.602: gathering settings live on the comfort settings page
     if ns.GatherSettingsPage and (key:sub(1, 6) == "gather" or key:sub(1, 7) == "glimmer") then return false end
     local ML = ns.ModuleLoader
