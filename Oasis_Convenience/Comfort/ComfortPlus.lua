@@ -14,7 +14,14 @@ local function S() return ns.db and ns.db.settings or {} end
 local function on(k) return S()[k] and true or false end
 local function money(c)
     c = math.floor(c or 0)
-    return (GetCoinTextureString and GetCoinTextureString(c)) or (math.floor(c / 10000) .. "g")
+    if GetCoinTextureString then return GetCoinTextureString(c) end
+    -- 0.6.628: without the coin texture string show gold, silver and copper (below 1 gold it said "0g")
+    local g, sv, cu = math.floor(c / 10000), math.floor(c / 100) % 100, c % 100
+    local t = {}
+    if g > 0 then t[#t + 1] = g .. "g" end
+    if sv > 0 then t[#t + 1] = sv .. "s" end
+    if cu > 0 or #t == 0 then t[#t + 1] = cu .. "c" end
+    return table.concat(t, " ")
 end
 local function fmtTime(sec)
     sec = math.max(0, math.floor(sec or 0))
@@ -797,6 +804,25 @@ end)
 ------------------------------------------------------------------------
 -- data: ns.MapRevealData[uiMapID] = { "w:h:x:y:tex1,tex2,...", ... } (Core/Map/MapRevealData.lua, game data WoW Forever)
 local revealPool = {}
+-- 0.6.628: own frame above the map art - textures directly on the canvas were drawn BELOW the map tiles
+-- (the map is drawn by child frames of the canvas), so nothing was visible
+local revealHost
+local function revealLayer(canvas)
+    if not revealHost then
+        revealHost = CreateFrame("Frame", nil, canvas)
+        revealHost:SetAllPoints(canvas)
+    end
+    if revealHost:GetParent() ~= canvas then revealHost:SetParent(canvas) revealHost:SetAllPoints(canvas) end
+    -- same level as Blizzard's explored areas (they never overlap with the unexplored ones), otherwise just above the map
+    local lvl
+    if WorldMapFrame.EnumeratePinsByTemplate then
+        local ok, it = pcall(WorldMapFrame.EnumeratePinsByTemplate, WorldMapFrame, "MapExplorationPinTemplate")
+        if ok and it then for pin in it do lvl = pin:GetFrameLevel() break end end
+    end
+    revealHost:SetFrameLevel(lvl or (canvas:GetFrameLevel() + 10))
+    revealHost:Show()
+    return revealHost
+end
 local function revealRefresh()
     for _, t in ipairs(revealPool) do t:Hide() end
     if not on("mapReveal") or not WorldMapFrame or not WorldMapFrame:IsShown() then return end
@@ -832,6 +858,7 @@ local function revealRefresh()
         end
     end
     local canvas = WorldMapFrame:GetCanvas()
+    local host = revealLayer(canvas)
     local cw, ch = canvas:GetWidth(), canvas:GetHeight()
     local layers = C_Map.GetMapArtLayers and C_Map.GetMapArtLayers(mapID)
     local lw = layers and layers[1] and layers[1].layerWidth or 1002
@@ -853,7 +880,7 @@ local function revealRefresh()
                         k = k + 1
                         local t = revealPool[k]
                         if not t then
-                            t = canvas:CreateTexture(nil, "ARTWORK", nil, -1)
+                            t = host:CreateTexture(nil, "ARTWORK")
                             revealPool[k] = t
                         end
                         local tw = (c < cols) and 256 or (w - 256 * (cols - 1))

@@ -12,7 +12,14 @@ local function S() return ns.db and ns.db.settings or {} end
 local function on(k) return S()[k] and true or false end
 local function money(c)
     c = math.floor(c or 0)
-    return (GetCoinTextureString and GetCoinTextureString(c)) or (math.floor(c / 10000) .. "g")
+    if GetCoinTextureString then return GetCoinTextureString(c) end
+    -- 0.6.628: without the coin texture string show gold, silver and copper (below 1 gold it said "0g")
+    local g, sv, cu = math.floor(c / 10000), math.floor(c / 100) % 100, c % 100
+    local t = {}
+    if g > 0 then t[#t + 1] = g .. "g" end
+    if sv > 0 then t[#t + 1] = sv .. "s" end
+    if cu > 0 or #t == 0 then t[#t + 1] = cu .. "c" end
+    return table.concat(t, " ")
 end
 local function isFriendOrGuild(name, guid)
     if not name then return false end
