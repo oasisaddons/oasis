@@ -160,7 +160,7 @@ PREV.tooltips = {
         f.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
         f.bar:SetMinMaxValues(0, 1) f.bar:SetValue(0.7) f.bar:SetStatusBarColor(0, 1, 0)
         f.combat = text(f, 10, C.dim, 10, -140)
-        caption(f)
+        caption(f, L["This is how the box looks with the mouse over a player"])
     end,
     update = function(f)
         if on("twTipClass") then f.name:SetTextColor(CLASS.r, CLASS.g, CLASS.b) else f.name:SetTextColor(1, 1, 1) end

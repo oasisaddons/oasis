@@ -59,7 +59,7 @@ local QTABS = {
     { key = "vendor", text = "Vendor & bags" },
 }
 local UTABS = {
-    { key = "tooltips", text = "Tooltips" },
+    { key = "tooltips", text = "Mouse over players & NPCs" },
     { key = "minimapcam", text = "Minimap & camera" },
     { key = "sounds", text = "Sounds" },
 }
@@ -160,12 +160,13 @@ local OPTS = {
         gearButtons = true,
     },
     tooltips = {
-        { "Tooltips: class colours for players", "twTipClass" },
-        { "Tooltips: health bar inside", "twTipBar" },
-        { "Tooltip: guild and rank", "cfTipRank" },
-        { "Tooltip: the unit's target", "cfTipTarget" },
-        { "Tooltip: hide in combat (Shift shows it)", "cfTipCombat" },
-        { "Tooltip: backdrop in faction colour", "cfTipFaction" },
+        intro = "The small info box that appears when your mouse is over a player, NPC or enemy:",
+        { "Player names in class colour", "twTipClass" },
+        { "Health bar inside the box", "twTipBar" },
+        { "Show guild and rank", "cfTipRank" },
+        { "Show whom they are targeting", "cfTipTarget" },
+        { "Hide in combat (hold Shift to see it)", "cfTipCombat" },
+        { "Background in faction colour (blue Alliance, red Horde)", "cfTipFaction" },
     },
     minimapcam = {
         { "Square minimap", "cfSquareMap" },
@@ -578,6 +579,14 @@ local function buildControls(p, key, withPreview)
     local o = OPTS[key]
     local y = 0
     box.ctrls = {}
+    -- 0.6.622: one sentence above the switches when the tab name alone does not say it
+    if o.intro then
+        local it = K.Text(box, 11, C.muted)
+        it:SetPoint("TOPLEFT", 0, 0) it:SetPoint("RIGHT", box, "RIGHT", -10, 0)
+        it:SetJustifyH("LEFT") it:SetWordWrap(true)
+        it:SetText(L[o.intro])
+        y = -26
+    end
     -- without a preview and with many switches: two columns
     local twoCol = not withPreview and #o > 7
     local half = math.ceil(#o / 2)
