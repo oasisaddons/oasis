@@ -39,7 +39,9 @@ f:SetScript("OnUpdate", function(_, el)
         local c = GM.MiniCtx()
         if c then
             for _, r in ipairs(GM.Nodes(c.map) or {}) do
-                if GM.PROF_KINDS[r.kind] and (not GM.OwnKind or GM.OwnKind(r.kind)) and not S()["gatherOff_" .. r.kind] and r.x and r.y then
+                -- 0.6.616: no glimmer where the minimap scan just saw nothing (node empty right now)
+                if GM.PROF_KINDS[r.kind] and (not GM.OwnKind or GM.OwnKind(r.kind)) and not S()["gatherOff_" .. r.kind] and r.x and r.y
+                    and not (GM.NodeAbsent and GM.NodeAbsent(r, c)) then
                     local x, y, dist, m = GM.MiniPlace(c, r.x, r.y)
                     if m <= NEAR and dist < 0.95 and used < 8 then
                         used = used + 1

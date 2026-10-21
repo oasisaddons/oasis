@@ -488,6 +488,7 @@ local lastSig
 --   * about 30x per second: only reposition these few points - and only if position/facing/zoom changed
 local near, nearAt, nearMap, cvRotate, cvZoom = {}, 0, nil, false, nil
 function GM.DrawMinimap()
+    local absentCtx = GM.NodeAbsent and GM.MiniCtx and GM.MiniCtx()   -- 0.6.616: once per draw
     if S().gatherMiniOff or not Minimap or ns.inInstance() then
         if GM.RouteArrow then GM.RouteArrow() end
         for i = 1, mUsed do mPool[i]:Hide() end
@@ -551,7 +552,9 @@ function GM.DrawMinimap()
                 local own = r.by and ns.isMe(r.by)
                 local cd = math.sqrt((nx * half) ^ 2 + (ny * half) ^ 2)
                 local nearFade = math.max(0, math.min(1, (cd - 20) / 14))
-                p:SetAlpha(alpha * freshness(r, tnow) * (own and 1 or 0.45) * nearFade)
+                -- 0.6.616: the minimap scan saw nothing there just now - the node is empty, draw it faint
+                local empty = GM.NodeAbsent and GM.NodeAbsent(r, absentCtx) and 0.3 or 1
+                p:SetAlpha(alpha * freshness(r, tnow) * (own and 1 or 0.45) * nearFade * empty)
                 -- 0.6.144: transparent - no dark disc, image half transparent, only the ring stays strong.
                 -- This way you see the game's real node dot below (it always lies under addon icons).
                 if p.bg then p.bg:SetShown(false) p.ring:SetShown(frame) end
@@ -1173,6 +1176,23 @@ function GM.ScanStep(el)
     end
 end
 CreateFrame("Frame"):SetScript("OnUpdate", function(_, el) GM.ScanStep(el) end)
+-- 0.6.616: a known node is empty right now when the last scan (at most 10 s ago, same map) looked at its spot -
+-- inside the minimap, its kind tracked - and found no dot of that kind there
+function GM.NodeAbsent(r, c)
+    if not (GM.scanLive and GM.scanLiveAt) or ns.db.settings.gatherScan == false then return false end
+    local now = GetTime and GetTime() or 0
+    if now - GM.scanLiveAt > 10 then return false end
+    c = c or GM.MiniCtx()
+    if not c or r.map ~= c.map then return false end
+    local _, _, dist = GM.MiniPlace(c, r.x, r.y)
+    if not dist or dist > 0.85 then return false end
+    local tracked = GM.TrackedKinds and GM.TrackedKinds() or {}
+    if not tracked[r.kind] then return false end
+    for _, d in ipairs(GM.scanLive) do
+        if d.kind == r.kind and not d.held and d.map == r.map and math.abs(d.x - r.x) < 0.004 and math.abs(d.y - r.y) < 0.004 then return false end
+    end
+    return true
+end
 -- 0.6.593: the minimap shows one finder at a time. With herbalism and mining, "switch finders" changes between
 -- Find Herbs and Find Minerals every few meters (out of combat); the other kind's dots stay as held symbols.
 local FINDER = { [2383] = "herb", [2580] = "ore", [2481] = "treasure" }
