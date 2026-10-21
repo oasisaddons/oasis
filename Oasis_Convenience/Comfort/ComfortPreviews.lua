@@ -150,29 +150,58 @@ PREV.vendor = {
 -- tooltips: a unit tooltip that follows every switch
 ------------------------------------------------------------------------
 PREV.tooltips = {
+    -- 0.6.638: looks like the game's tooltip - its border and background, its fonts and its line order
     build = function(f)
-        f.tt = panel(f, 230, 120, 10, -10, { 0.03, 0.03, 0.05, 0.92 })
-        f.name = text(f.tt, 13, C.text, 10, -8, "Jaina")
-        f.l2 = text(f.tt, 11, C.text, 10, -28, L["Level 32 Human Mage"])
-        f.rank = text(f.tt, 11, { 0.6, 0.85, 1 }, 10, -46)
-        f.tgt = text(f.tt, 11, C.text, 10, -64)
+        f.tt = CreateFrame("Frame", nil, f, BackdropTemplateMixin and "BackdropTemplate" or nil)
+        f.tt:SetPoint("TOPLEFT", 10, -10)
+        f.tt:SetWidth(220)
+        if f.tt.SetBackdrop then
+            f.tt:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+                tile = true, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } })
+            f.tt:SetBackdropBorderColor(0.6, 0.6, 0.6, 1)
+        else
+            K.Fill(f.tt, { 0.03, 0.03, 0.05, 0.92 })
+        end
+        local function line(head)
+            local t = f.tt:CreateFontString(nil, "ARTWORK", head and "GameTooltipHeaderText" or "GameTooltipText")
+            t:SetJustifyH("LEFT")
+            return t
+        end
+        f.name, f.guild, f.lvl, f.fac, f.tgt = line(true), line(), line(), line(), line()
+        f.name:SetText("Jaina")
+        f.lvl:SetText(L["Level 32 Human Mage"] .. " (" .. L["Player"] .. ")")
         f.bar = CreateFrame("StatusBar", nil, f.tt)
         f.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
         f.bar:SetMinMaxValues(0, 1) f.bar:SetValue(0.7) f.bar:SetStatusBarColor(0, 1, 0)
-        f.combat = text(f, 10, C.dim, 10, -140)
+        f.combat = text(f, 10, C.dim, 10, -150)
         caption(f, L["This is how the box looks with the mouse over a player"])
     end,
     update = function(f)
         if on("twTipClass") then f.name:SetTextColor(CLASS.r, CLASS.g, CLASS.b) else f.name:SetTextColor(1, 1, 1) end
-        f.rank:SetText(on("cfTipRank") and "<Oasis>  Officer" or "")
+        f.guild:SetText(on("cfTipRank") and "|cff40ff40<Oasis>|r Officer" or "")
+        f.fac:SetText(L["Alliance"])
         f.tgt:SetText(on("cfTipTarget") and (L["Target:"] .. " |cffff7d0aThrall|r") or "")
-        f.bar:ClearAllPoints()
-        if on("twTipBar") then
-            f.bar:SetPoint("BOTTOMLEFT", f.tt, "BOTTOMLEFT", 10, 8) f.bar:SetPoint("BOTTOMRIGHT", f.tt, "BOTTOMRIGHT", -10, 8) f.bar:SetHeight(5)
-        else
-            f.bar:SetPoint("TOPLEFT", f.tt, "BOTTOMLEFT", 2, -2) f.bar:SetPoint("TOPRIGHT", f.tt, "BOTTOMRIGHT", -2, -2) f.bar:SetHeight(8)
+        -- stack the lines like the game does (empty ones take no space)
+        local y = -10
+        for _, t in ipairs({ f.name, f.guild, f.lvl, f.fac, f.tgt }) do
+            if (t:GetText() or "") ~= "" then
+                t:ClearAllPoints() t:SetPoint("TOPLEFT", 10, y) t:Show()
+                y = y - (t == f.name and 18 or 15)
+            else
+                t:Hide()
+            end
         end
-        if on("cfTipFaction") then f.tt.bg:SetVertexColor(0.05, 0.08, 0.25, 0.95) else f.tt.bg:SetVertexColor(0.03, 0.03, 0.05, 0.92) end
+        local inside = on("twTipBar")
+        f.tt:SetHeight(-y + (inside and 18 or 8))
+        f.bar:ClearAllPoints()
+        if inside then
+            f.bar:SetPoint("BOTTOMLEFT", f.tt, "BOTTOMLEFT", 9, 9) f.bar:SetPoint("BOTTOMRIGHT", f.tt, "BOTTOMRIGHT", -9, 9) f.bar:SetHeight(6)
+        else
+            f.bar:SetPoint("TOPLEFT", f.tt, "BOTTOMLEFT", 2, -1) f.bar:SetPoint("TOPRIGHT", f.tt, "BOTTOMRIGHT", -2, -1) f.bar:SetHeight(8)
+        end
+        if f.tt.SetBackdropColor then
+            if on("cfTipFaction") then f.tt:SetBackdropColor(0.05, 0.1, 0.35, 0.95) else f.tt:SetBackdropColor(0, 0, 0, 0.9) end
+        end
         f.combat:SetText(on("cfTipCombat") and L["In combat: hidden - hold Shift to see it"] or L["In combat: always shown"])
     end,
 }

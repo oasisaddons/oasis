@@ -427,6 +427,13 @@ local function buildPreview(p)
     pv.note:SetPoint("TOP", map, "BOTTOM", 0, -68)
     pv.note:SetText(L["Preview with sample nodes - changes show at once"])
     function pv:Update(tab)
+        -- 0.6.638: scene first - later parts of this function return early for some tabs
+        local sp = tab == "sparkle"
+        if self.scene then
+            self.map:SetShown(not sp)
+            self.scene:SetShown(sp)
+            if sp then self.scene:Refresh() end
+        end
         local dotScale = S().gatherDotScale or 1
         local symbols = get("gatherSymbols")
         for i, d in ipairs(SAMPLE) do
@@ -510,29 +517,7 @@ local function buildPreview(p)
         end
         -- 0.6.637: tab "Sparkles & pin" shows a scene in the world instead of the minimap: a copper vein and a
         -- peacebloom with the sparkles on them, the game's interact icon, the map pin and a far node
-        local sp = tab == "sparkle"
-        self.map:SetShown(not sp)
-        self.scene:SetShown(sp)
-        if GS and GS.SparkleOn then
-            GS.SparkleOff("preview")
-            local sc = self.scene
-            if sp and get("gatherSparkle") then
-                GS.SparkleOn(sc.ore, "preview", 0)
-                GS.SparkleOn(sc.herb, "preview2", 0)
-            else
-                GS.SparkleOff("preview2")
-            end
-            if sp and get("gatherSparkleFar") then GS.SparkleOn(sc.far, "preview3", 0) else GS.SparkleOff("preview3") end
-        end
-        if sp then
-            local sc = self.scene
-            local icons = get("gatherSparkle") and get("gatherSparkleHideIcons")
-            sc.oreHand:SetShown(not icons)
-            sc.herbHand:SetShown(not icons)
-            sc.pin:SetShown(get("gatherPin") and true or false)
-            sc.far:SetShown(get("gatherSparkleFar") and true or false)
-            sc.farT:SetShown(get("gatherSparkleFar") and true or false)
-        end
+        if GS and GS.SparkleOff then GS.SparkleOff("preview") GS.SparkleOff("preview2") GS.SparkleOff("preview3") end
     end
     -- the world scene for the sparkle tab
     do
@@ -585,6 +570,50 @@ local function buildPreview(p)
         sc.pin:SetSize(18, 18)
         sc.pin:SetTexture(ns.MEDIA .. "pinarrow")
         sc.pin:SetPoint("BOTTOM", sc.ore, "TOP", 18, 2)
+        -- own little sparkles (color and size from the settings) - the real ones are built for nameplates
+        sc.stars = {}
+        local function stars(n, count)
+            for i = 1, count do
+                local t = sc:CreateTexture(nil, "OVERLAY")
+                t:SetTexture("Interface\\Cooldown\\star4")
+                t:SetBlendMode("ADD")
+                t.node, t.ang, t.rad, t.spd, t.ph = n, (i / count) * math.pi * 2, 0.55 + math.random() * 0.35, 0.6 + math.random() * 0.8, math.random() * 6
+                sc.stars[#sc.stars + 1] = t
+            end
+        end
+        stars(sc.ore, 5) stars(sc.herb, 5) stars(sc.far, 3)
+        local tt = 0
+        sc:SetScript("OnUpdate", function(self, el)
+            tt = tt + el
+            for _, t in ipairs(self.stars) do
+                if t:IsShown() then
+                    local n = t.node
+                    local r = n:GetWidth() * t.rad
+                    local a = t.ang + tt * 0.6 * t.spd
+                    t:ClearAllPoints()
+                    t:SetPoint("CENTER", n, "CENTER", math.cos(a) * r, math.sin(a) * r)
+                    t:SetAlpha(0.35 + 0.65 * math.abs(math.sin(tt * 2 * t.spd + t.ph)))
+                end
+            end
+        end)
+        function sc:Refresh()
+            local GS = ns.GatherSight
+            local c = (GS and GS.COLORS and GS.COLORS[S().gatherSparkleColor or "gold"]) or { 1, 0.85, 0.35 }
+            local size = 14 * math.max(0.5, math.min(2, (S().gatherSparkleSize or 100) / 100))
+            local onS, far = get("gatherSparkle"), get("gatherSparkleFar")
+            for _, t in ipairs(self.stars) do
+                local show = (t.node == self.far) and far or (t.node ~= self.far and onS)
+                t:SetShown(show and true or false)
+                t:SetVertexColor(c[1], c[2], c[3])
+                t:SetSize(t.node == self.far and size * 0.6 or size, t.node == self.far and size * 0.6 or size)
+            end
+            local icons = onS and get("gatherSparkleHideIcons")
+            self.oreHand:SetShown(not icons)
+            self.herbHand:SetShown(not icons)
+            self.pin:SetShown(get("gatherPin") and true or false)
+            self.far:SetShown(far and true or false)
+            self.farT:SetShown(far and true or false)
+        end
         sc:Hide()
         pv.scene = sc
     end
