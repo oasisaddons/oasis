@@ -814,26 +814,32 @@ local function revealLayer(canvas)
     end
     if revealHost:GetParent() ~= canvas then revealHost:SetParent(canvas) revealHost:SetAllPoints(canvas) end
     -- same level as Blizzard's explored areas (they never overlap with the unexplored ones), otherwise just above the map
+    -- 0.6.629: the enumerator returns iterator + state - keeping only the first value broke the loop
     local lvl
-    if WorldMapFrame.EnumeratePinsByTemplate then
-        local ok, it = pcall(WorldMapFrame.EnumeratePinsByTemplate, WorldMapFrame, "MapExplorationPinTemplate")
-        if ok and it then for pin in it do lvl = pin:GetFrameLevel() break end end
-    end
+    pcall(function()
+        for pin in WorldMapFrame:EnumeratePinsByTemplate("MapExplorationPinTemplate") do lvl = pin:GetFrameLevel() break end
+    end)
     revealHost:SetFrameLevel(lvl or (canvas:GetFrameLevel() + 10))
     revealHost:Show()
     return revealHost
 end
+local revealRefreshInner
 local function revealRefresh()
+    local ok, err = pcall(revealRefreshInner)
+    if not ok then CP.revealDiag = { err = tostring(err) } end
+end
+revealRefreshInner = function()
     for _, t in ipairs(revealPool) do t:Hide() end
     if not on("mapReveal") or not WorldMapFrame or not WorldMapFrame:IsShown() then return end
     local data = ns.MapRevealData
     local mapID = WorldMapFrame:GetMapID()
     local list = data and mapID and data[mapID]
-    if not list then return end
+    if not list then CP.revealDiag = { map = mapID, areas = 0 } return end
     -- already explored areas are drawn by Blizzard
     -- 0.6.564: matching with tolerance (Forever shifts single areas by a few pixels). Previously ONE
     -- deviating area was enough to reveal nothing at all (Hillsbrad). Now only skip when the majority
     -- of explored areas does not match (map really redrawn, e.g. Mulgore).
+    CP.revealDiag = { map = mapID, areas = #list, explored = 0, miss = 0 }
     local known = {}
     local mine = {}
     for i, entry in ipairs(list) do
@@ -900,6 +906,7 @@ local function revealRefresh()
                         t:SetVertexColor(tr, tg, tb)
                         t:SetAlpha(ta)
                         t:Show()
+                        CP.revealDiag.drawn = k
                     end
                 end
             end
@@ -922,12 +929,15 @@ ns.On("PLAYER_ENTERING_WORLD", function() pcall(hookReveal) end)
 if C_Timer then C_Timer.After(2, function() pcall(hookReveal) end) end
 -- /oa reveal: why the open map reveals nothing (for bug reports)
 ns.slash.reveal = function()
+    revealRefresh()   -- fresh values for the open map
     local mapID = WorldMapFrame and WorldMapFrame.GetMapID and WorldMapFrame:GetMapID()
     local list = ns.MapRevealData and mapID and ns.MapRevealData[mapID]
     local d = CP.revealDiag or {}
     ns.print(("Reveal: switch %s, hooked %s, map %s, areas %s, explored %s, not matching %s"):format(
         tostring(on("mapReveal")), tostring(revealHooked and true or false), tostring(mapID), tostring(list and #list or 0),
-        tostring(d.map == mapID and d.explored or "?"), tostring(d.map == mapID and d.miss or "?")))
+        tostring(d.map == mapID and d.explored or "?"), tostring(d.map == mapID and d.miss or "?"))
+        .. (", drawn " .. tostring(d.drawn or 0)) .. (d.err and (", error: " .. d.err) or "")
+        .. (revealHost and (", layer " .. tostring(revealHost:GetFrameLevel()) .. " shown " .. tostring(revealHost:IsVisible())) or ""))
 end
 
 function CP.ApplyAll()
