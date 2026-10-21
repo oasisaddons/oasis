@@ -306,6 +306,48 @@ ns.On("PLAYER_LOGIN", function() pcall(TW.ApplyCVars) end)
 if ns.db then pcall(TW.ApplyCVars) end
 
 ------------------------------------------------------------------------
+-- 0.6.607: quest items always sparkle. The game shows the loot sparkle only while the outline mode is off;
+-- graphics presets switch it back on. Oasis sets the game's own settings, sets them again about a second
+-- after a preset changed them, and waits out combat. Switching it off puts the old values back
+-- (the game only shows that after a restart).
+------------------------------------------------------------------------
+local LOOT = { { "outlineModeShowLootEffectWhenDisabled", "1" }, { "graphicsOutlineMode", "0" }, { "OutlineEngineMode", "0" },
+    { "raidGraphicsOutlineMode", "0" }, { "RAIDOutlineEngineMode", "0" } }
+local lootNames = {}
+for _, c in ipairs(LOOT) do lootNames[c[1]:lower()] = true end
+TW.LOOT_CVARS = LOOT
+local lootPending
+function TW.ApplyLootSparkle()
+    if combat() then lootPending = true return end
+    lootPending = nil
+    local saved = S().twLootSaved
+    if on("twLootSparkle") then
+        if not saved then
+            saved = {}
+            for _, c in ipairs(LOOT) do saved[c[1]] = getCV(c[1]) or false end
+            S().twLootSaved = saved
+        end
+        for _, c in ipairs(LOOT) do if tostring(getCV(c[1])) ~= c[2] then setCV(c[1], c[2]) end end
+    elseif saved then
+        for _, c in ipairs(LOOT) do if saved[c[1]] then setCV(c[1], saved[c[1]]) end end
+        S().twLootSaved = nil
+        ns.print(L["Quest item sparkles off - the game shows this after a restart."])
+    end
+end
+ns.On("PLAYER_LOGIN", function() pcall(TW.ApplyLootSparkle) end)
+ns.On("PLAYER_REGEN_ENABLED", function() if lootPending then pcall(TW.ApplyLootSparkle) end end)
+-- a graphics preset changed one of them: set it again a moment later
+local lootTimer
+ns.On("CVAR_UPDATE", function(name)
+    name = ns.safe(name)
+    if not on("twLootSparkle") or type(name) ~= "string" or not lootNames[name:lower()] then return end
+    if lootTimer then return end
+    lootTimer = true
+    local function again() lootTimer = nil pcall(TW.ApplyLootSparkle) end
+    if C_Timer then C_Timer.After(1, again) else again() end
+end)
+
+------------------------------------------------------------------------
 -- tooltips: class-coloured player names, health bar inside the tooltip
 ------------------------------------------------------------------------
 local function unitTip(tt)
@@ -354,6 +396,7 @@ ns.slash.ausruestung = ns.slash.gear
 
 function TW.Apply()
     pcall(TW.ApplyCVars)
+    pcall(TW.ApplyLootSparkle)
     pcall(TW.UpdateBags)
 end
 end)

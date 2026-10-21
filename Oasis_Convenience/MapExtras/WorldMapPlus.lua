@@ -31,6 +31,10 @@ function WM.Apply()
     local mode = modeKey()
     local sc = mode == "max" and S().wmScaleMax or S().wmScale
     pcall(f.SetScale, f, sc or 1)
+    -- 0.6.607: opacity (window / maximised)
+    local al = mode == "max" and S().wmAlphaMax or S().wmAlpha
+    pcall(f.SetAlpha, f, al or 1)
+    pcall(WM.GroupPins)
     local pos = S().wmMove and S().wmPos and S().wmPos[mode]
     if pos then
         pcall(function()
@@ -81,6 +85,24 @@ local function onPoiAcquired(pin)
     if (mt == 1 or mt == 2) and isTownIcon(pin) then pin:Hide() end
 end
 
+-- 0.6.607: party/raid members on the world map: own size and class colours (the game's group pin)
+function WM.GroupPins()
+    local f = WorldMapFrame
+    if not (f and f.EnumeratePinsByTemplate) then return end
+    local size, class = S().wmGroupSize, S().wmGroupClass
+    if not size and not class then return end
+    for pin in f:EnumeratePinsByTemplate("GroupMembersPinTemplate") do
+        if size and pin.SetPinSize then
+            pcall(pin.SetPinSize, pin, "party", size)
+            pcall(pin.SetPinSize, pin, "raid", math.floor(size * 0.85 + 0.5))
+        end
+        if pin.SetAppearanceField then
+            pcall(pin.SetAppearanceField, pin, "party", "useClassColor", class and true or false)
+            pcall(pin.SetAppearanceField, pin, "raid", "useClassColor", class and true or false)
+        end
+        if pin.SetShouldShowUnits then pcall(pin.SetShouldShowUnits, pin, "party", true) end
+    end
+end
 local hooked
 function WM.Hook()
     if hooked or not WorldMapFrame then return end

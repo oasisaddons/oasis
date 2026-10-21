@@ -99,9 +99,36 @@ end
 ------------------------------------------------------------------------
 -- TomTom: Oasis target additionally as waypoint
 ------------------------------------------------------------------------
+-- 0.6.607: Shortest Path Forever (ShortestPathForever.API v1): plans the whole journey (walk, flights, boats,
+-- portals) to an Oasis target. Oasis then leaves TomTom alone - Shortest Path brings its own TomTom shim.
+function CP.SPF()
+    local S = rawget(_G, "ShortestPathForever")
+    local api = type(S) == "table" and S.API
+    if type(api) ~= "table" or type(api.Navigate) ~= "function" then return nil end
+    if ns.db and ns.db.settings.spfRoute == false then return nil end
+    return api
+end
+function CP.SPFNavigate(map, x, y, title)
+    local api = CP.SPF()
+    if not api then return false end
+    local ok, r = pcall(api.Navigate, "Oasis", map, x, y, title and ("Oasis: " .. tostring(title)) or "Oasis")
+    return ok and r == true
+end
+function CP.SPFEstimate(toMap, toX, toY)
+    local api = CP.SPF()
+    if not (api and type(api.Estimate) == "function") then return nil end
+    local map = C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+    local pos = map and C_Map.GetPlayerMapPosition(map, "player")
+    if not pos then return nil end
+    local x, y = pos:GetXY()
+    local ok, sec = pcall(api.Estimate, map, x, y, toMap, toX, toY)
+    return ok and type(sec) == "number" and sec or nil
+end
 local tomUid
 function CP.TomTomTarget(t)
-    if not t or ns.db.settings.tomtom == false then return end
+    if not t then return end
+    if CP.SPFNavigate(t.mapID, t.x, t.y, t.label) then return end
+    if ns.db.settings.tomtom == false then return end
     local T = rawget(_G, "TomTom")
     if type(T) ~= "table" or type(T.AddWaypoint) ~= "function" then return end
     if tomUid and type(T.RemoveWaypoint) == "function" then pcall(T.RemoveWaypoint, T, tomUid) end
@@ -109,6 +136,8 @@ function CP.TomTomTarget(t)
     tomUid = ok and uid or nil
 end
 function CP.TomTomClear()
+    local api = CP.SPF()
+    if api and type(api.Cancel) == "function" then pcall(api.Cancel, "Oasis") end
     local T = rawget(_G, "TomTom")
     if tomUid and type(T) == "table" and type(T.RemoveWaypoint) == "function" then pcall(T.RemoveWaypoint, T, tomUid) end
     tomUid = nil

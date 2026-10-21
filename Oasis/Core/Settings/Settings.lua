@@ -1210,6 +1210,7 @@ ns.AddPageSettings("map", function(det, y)
         { "Campfires on the map", "mapCamp", "Guild campfires on the world map and minimap", function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end end },
         { "Coordinates on the minimap", "mmCoords", "Your position and distance to the target", xupd },
         { "Targets also as TomTom waypoint", "tomtom", "Only with TomTom installed: Oasis targets also get a TomTom arrow", nil, true },
+        { "Route targets with Shortest Path", "spfRoute", "Only with Shortest Path Forever installed: it plans the whole way (flights, boats, portals) to every Oasis target", nil, true },
         { "Accept layer requests from the guild", "layerAsk", "Notice when someone wants to join your layer through your group", xupd, true },
     })
 

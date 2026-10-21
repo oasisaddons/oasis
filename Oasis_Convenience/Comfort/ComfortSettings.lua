@@ -94,6 +94,7 @@ local OPTS = {
         { "Move the world map (drag the frame)", "wmMove" },
         { "No reading emote when opening the map", "wmNoEmote" },
         { "Hide town and city icons on continent maps", "wmHideTowns" },
+        { "Group members in class colours", "wmGroupClass" },
         slider = {
             { "Tint: red", "wmTintR", 0, 1, 0.05, 0.55 },
             { "Tint: green", "wmTintG", 0, 1, 0.05, 0.55 },
@@ -101,6 +102,9 @@ local OPTS = {
             { "Tint: opacity", "wmTintA", 0.1, 1, 0.05, 0.85 },
             { "World map size (window)", "wmScale", 0.5, 2, 0.05, 1 },
             { "World map size (maximised)", "wmScaleMax", 0.5, 2, 0.05, 1 },
+            { "World map opacity (window)", "wmAlpha", 0.3, 1, 0.05, 1 },
+            { "World map opacity (maximised)", "wmAlphaMax", 0.3, 1, 0.05, 1 },
+            { "Group member icons: size", "wmGroupSize", 8, 40, 1, 16, function(v) return v .. " px" end },
         },
         resetPos = true,
     },
@@ -128,6 +132,7 @@ local OPTS = {
         { "No screen glow", "twNoGlow" },
         { "Tooltips: class colours for players", "twTipClass" },
         { "Tooltips: health bar inside", "twTipBar" },
+        { "Quest items always sparkle", "twLootSparkle" },
         gearButtons = true,
     },
     whisper = {

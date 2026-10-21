@@ -90,7 +90,9 @@ local function watched(name)
     return w[info.en] == true
 end
 GG.Watched = watched
-local function setPin(map, x, y)
+local function setPin(map, x, y, name)
+    -- 0.6.607: as Oasis target - with Shortest Path Forever installed it plans the whole journey
+    if ns.Map and ns.Map.SetTarget then ns.Map.SetTarget({ mapID = map, x = x, y = y, label = name or "?" }) return end
     if not (C_Map.SetUserWaypoint and UiMapPoint) then return end
     if InCombatLockdown and InCombatLockdown() then return end
     if pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(map, x, y)) and C_SuperTrack then
@@ -105,7 +107,7 @@ ns.Listen("STORE", function(coll, rec)
     GG.alerts = GG.alerts + 1
     local zone = ns.zoneName and ns.zoneName(rec.map) or tostring(rec.map)
     local text = (L["%s sees it in %s - click: set map pin"]):format(ns.displayName(rec.by or "?"), zone)
-    if K.Toast then K.Toast((L["Guild find: %s"]):format(rec.name or "?"), text, C.amber or C.accent, function() setPin(rec.map, rec.x, rec.y) end, true) end
+    if K.Toast then K.Toast((L["Guild find: %s"]):format(rec.name or "?"), text, C.amber or C.accent, function() setPin(rec.map, rec.x, rec.y, rec.name) end, true) end
     ns.print((L["Guild find: %s"]):format(rec.name or "?") .. " - " .. text)
 end)
 
@@ -274,8 +276,11 @@ function GG.Recommend(limit)
         table.sort(names, function(a, b) return a.c > b.c end)
         local top = {}
         for j = 1, math.min(3, #names) do top[#top + 1] = names[j].n end
-        out[#out + 1] = { map = z.map, n = z.n, score = z.score, text = (L["%s: %d nodes for you (%s)"]):format(
-            ns.zoneName and ns.zoneName(z.map) or tostring(z.map), z.n, table.concat(top, ", ")) }
+        local text = (L["%s: %d nodes for you (%s)"]):format(ns.zoneName and ns.zoneName(z.map) or tostring(z.map), z.n, table.concat(top, ", "))
+        -- 0.6.607: travel time when Shortest Path Forever is installed
+        local sec = ns.Compat and ns.Compat.SPFEstimate and ns.Compat.SPFEstimate(z.map, 0.5, 0.5)
+        if sec then text = text .. "  |cff888888" .. (L["~%d min away"]):format(math.max(1, math.floor(sec / 60 + 0.5))) .. "|r" end
+        out[#out + 1] = { map = z.map, n = z.n, score = z.score, text = text }
     end
     return out
 end
