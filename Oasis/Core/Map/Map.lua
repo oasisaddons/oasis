@@ -898,19 +898,22 @@ function Map.ShowMapBar()
         b.logo:SetPoint("TOPLEFT", 12, -8)
         b.boxes, b.seps = {}, {}
         -- { toggle, text, after, group, tooltip }  (heatmap, share position and minimap dots are only in the settings now)
+        -- 0.6.624: only what is shared with the guild (level ranges, reveal and the route are personal - in the settings)
+        local upd = function() Map.UpdateWorldPins() if Map.UpdateMinimap then Map.UpdateMinimap() end end
         local defs = {
-            { "mapNames", "Names", function() Map.UpdateWorldPins() end, 1, "Names next to guild member dots" },
-            { "mapLevels", "Level ranges", function() Map.UpdateWorldPins() end, 2, "Level range of zones on the map" },
-            { "mapDeaths", "Death spots", function() Map.UpdateWorldPins() end, 2, "Where guild members died" },
-            { "mapReveal", "Reveal", function() if ns.ComfortPlus then ns.ComfortPlus.ApplyReveal() end end, 2, "Show undiscovered areas on the map" },
-            { "mapGather", "Gather nodes", function() ns.db.settings.gatherWorldOff = not ns.db.settings.mapGather Map.UpdateWorldPins() if ns.Gather then pcall(ns.Gather.DrawWorld) end end, 3, "Known spots for herbs, ore and chests" },
-            { "gatherRoute", "Gathering route", function() if ns.Gather and ns.Gather.Refresh then ns.Gather.Refresh() end end, 3, "Connects the zone's spots into a loop" },
+            { "shareMap", "Share my position", upd, 1, "Guild members see you on their map and minimap" },
+            { "mapNames", "Names", upd, 1, "Names next to guild member dots" },
+            { "mapDeaths", "Death spots", upd, 2, "Where guild members died" },
+            { "mapDanger", "Danger zones", upd, 2, "Red where several guild members died (7 days)" },
+            { "mapCamp", "Campfires", upd, 2, "Guild campfires" },
+            { "mapTrailsGuild", "Guild trails", upd, 2, "Where guild members walked in the last minutes" },
+            { "mapGather", "Gather nodes", function() ns.db.settings.gatherWorldOff = not ns.db.settings.mapGather Map.UpdateWorldPins() if ns.Gather then pcall(ns.Gather.DrawWorld) end end, 3, "Herbs, ore and chests the guild has found" },
         }
         local SW_W, SW_H, KNOB = 22, 12, 8
-        -- 0.6.569: reveal and gathering nodes live in Oasis Convenience - no toggles without that sub-addon
-        local need = { mapReveal = ns.ComfortPlus, mapGather = ns.Gather, gatherRoute = ns.Gather }
+        -- danger zones, guild trails and gathering nodes live in Oasis Convenience - no toggles without it
+        local needConv = { mapGather = true, mapDanger = true, mapTrailsGuild = true }
         for _, d in ipairs(defs) do
-          if need[d[1]] ~= nil or (d[1] ~= "mapReveal" and d[1] ~= "mapGather" and d[1] ~= "gatherRoute") then
+          if not (needConv[d[1]] and not ns.Gather) then
             local t = CreateFrame("Button", nil, b)
             t:SetHeight(26)
             t.hl = t:CreateTexture(nil, "HIGHLIGHT")
