@@ -6,16 +6,22 @@ local L = ns.L
 local K, C = ns.K, ns.K.C
 if not (K and ns.RegisterPage) then return end
 
-local KEY = "comfortset"
-ns.GatherSettingsPage = KEY
+-- 0.6.603: two pages - "Gathering & minimap" (everything map/gathering, with preview) and "Comfort settings"
+local KEY, GKEY = "comfortset", "gatherset"
+ns.GatherSettingsPage = GKEY
 ns.SETTINGS_ELSEWHERE = ns.SETTINGS_ELSEWHERE or {}
 ns.SETTINGS_ELSEWHERE.comfort, ns.SETTINGS_ELSEWHERE.gamechat = true, true
-if ns.ICONS then ns.ICONS[KEY] = ns.ICONS.settings or ns.ICONS.home end
+if ns.ICONS then
+    ns.ICONS[KEY] = ns.ICONS.settings or ns.ICONS.home
+    ns.ICONS[GKEY] = ns.ICONS.map or ns.ICONS.compass or ns.ICONS.settings or ns.ICONS.home
+end
 for _, g in ipairs(ns.NAV_GROUPS or {}) do
     if g.key == "convenience" then
-        local has = false
-        for _, k in ipairs(g.pages) do if k == KEY then has = true end end
-        if not has then table.insert(g.pages, 1, KEY) end
+        for i, k in ipairs({ GKEY, KEY }) do
+            local has = false
+            for _, x in ipairs(g.pages) do if x == k then has = true end end
+            if not has then table.insert(g.pages, i, k) end
+        end
     end
 end
 
@@ -26,11 +32,13 @@ local ON = { gatherScan = true, gatherSymbols = true, gatherArrowHerb = true, ga
 local function get(k) if ON[k] then return S()[k] ~= false end return S()[k] and true or false end
 local function set(k, v) if ON[k] then S()[k] = v and true or false else S()[k] = v and true or nil end end
 
-local TABS = {
+local GTABS = {
     { key = "mini", text = "Minimap", preview = true },
     { key = "arrow", text = "Arrow", preview = true },
     { key = "sparkle", text = "Sparkles & pin", preview = true },
     { key = "guild", text = "Guild", preview = true },
+}
+local CTABS = {
     { key = "comfort", text = "Helpers", tab = "comfort" },
     { key = "gamechat", text = "Game chat", tab = "gamechat" },
 }
@@ -113,11 +121,13 @@ local function buildPreview(p)
     pv:SetSize(250, 300)
     pv:SetPoint("TOPLEFT", 0, -44)
     local map = CreateFrame("Frame", nil, pv)
-    map:SetSize(230, 230)
-    map:SetPoint("TOP", 0, -6)
+    map:SetSize(200, 200)
+    map:SetPoint("TOP", 0, -26)
+    -- 0.6.603: Blizzard look - a piece of a real zone map as ground, round, with the game's minimap border
     map.bg = map:CreateTexture(nil, "BACKGROUND")
     map.bg:SetAllPoints()
-    map.bg:SetColorTexture(0.13, 0.17, 0.11, 1)
+    map.bg:SetTexture("Interface\\WorldMap\\Elwynn\\Elwynn6")
+    map.bg:SetTexCoord(0.1, 0.9, 0.1, 0.9)
     if map.CreateMaskTexture and map.bg.AddMaskTexture then
         pcall(function()
             local m = map:CreateMaskTexture()
@@ -126,10 +136,19 @@ local function buildPreview(p)
             map.bg:AddMaskTexture(m)
         end)
     end
-    map.rim = map:CreateTexture(nil, "OVERLAY", nil, 7)
-    map.rim:SetTexture(ns.MEDIA .. "pinring")
-    map.rim:SetPoint("TOPLEFT", -6, 6) map.rim:SetPoint("BOTTOMRIGHT", 6, -6)
-    map.rim:SetVertexColor(0.5, 0.45, 0.35, 1)
+    -- the game's border texture (round frame + zone plate at the top); the circle sits in its left part
+    local rimF = CreateFrame("Frame", nil, map)
+    rimF:SetAllPoints()
+    rimF:SetFrameLevel(map:GetFrameLevel() + 8)
+    map.rim = rimF:CreateTexture(nil, "OVERLAY")
+    map.rim:SetTexture("Interface\\Minimap\\UI-Minimap-Border")
+    -- like Blizzard's MinimapCluster: border 192x192, the 140 px minimap centered 9 right / 4 up of the border's middle
+    local k = 200 / 140
+    map.rim:SetSize(192 * k, 192 * k)
+    map.rim:SetPoint("CENTER", map, "CENTER", -9 * k, -4 * k)
+    map.zone = rimF:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    map.zone:SetPoint("BOTTOM", map, "TOP", 0, 6)
+    map.zone:SetText(C_Map and C_Map.GetMapInfo and (C_Map.GetMapInfo(1429) or {}).name or "Elwynn Forest")
     map.me = map:CreateTexture(nil, "OVERLAY")
     map.me:SetTexture("Interface\\Minimap\\MinimapArrow")
     map.me:SetSize(22, 22)
@@ -138,12 +157,18 @@ local function buildPreview(p)
     pv.dots, pv.syms = {}, {}
     for i, d in ipairs(SAMPLE) do
         local dot = map:CreateTexture(nil, "ARTWORK")
-        dot:SetTexture(ns.MEDIA .. "dot")
-        dot:SetPoint("CENTER", map, "CENTER", d.x, d.y)
+        -- the game's tracking icons (herb / ore), else a plain yellow dot
+        local atlas = (d.kind == "herb" and "Professions_Tracking_Herb") or (d.kind == "ore" and "Professions_Tracking_Ore") or nil
+        if not (atlas and dot.SetAtlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) and dot:SetAtlas(atlas) ~= false) then
+            dot:SetTexture("Interface\\Minimap\\ObjectIcons")
+            dot:SetTexCoord(0.25, 0.375, 0, 0.5)   -- yellow tracking dot
+            dot.plain = true
+        end
+        dot:SetPoint("CENTER", map, "CENTER", d.x * 200 / 230, d.y * 200 / 230)
         pv.dots[i] = dot
         local s = ns.GatherSight and ns.GatherSight.NewSymbol(map)
         if s then
-            s:SetPoint("CENTER", map, "CENTER", d.x, d.y)
+            s:SetPoint("CENTER", map, "CENTER", d.x * 200 / 230, d.y * 200 / 230)
             s:SetFrameLevel(map:GetFrameLevel() + 3)
             s.d = d
             pv.syms[i] = s
@@ -166,8 +191,9 @@ local function buildPreview(p)
         local symbols = get("gatherSymbols")
         for i, d in ipairs(SAMPLE) do
             local gray = d.cave
-            self.dots[i]:SetSize(10 * dotScale, 10 * dotScale)
-            self.dots[i]:SetVertexColor(gray and 0.6 or 1, gray and 0.6 or 0.85, gray and 0.6 or 0.2, 1)
+            self.dots[i]:SetSize(14 * dotScale, 14 * dotScale)
+            if self.dots[i].SetDesaturated then self.dots[i]:SetDesaturated(gray and true or false) end
+            self.dots[i]:SetVertexColor(gray and 0.7 or 1, gray and 0.7 or 1, gray and 0.7 or 1, 1)
             local s = self.syms[i]
             if s then
                 if symbols then ns.GatherSight.StyleSymbol(s, d, d.x, d.y) s:Show() else s:Hide() end
@@ -259,8 +285,9 @@ local function buildControls(p, key)
     return box
 end
 local function show(p, key)
-    cur = key
-    for _, t in ipairs(TABS) do
+    p.cur = key
+    if p.tabs == GTABS then cur = key end
+    for _, t in ipairs(p.tabs) do
         local f = p.views[t.key]
         if t.key == key then
             if not f then
@@ -278,23 +305,27 @@ local function show(p, key)
         elseif f then f:Hide() end
     end
     local tdef
-    for _, t in ipairs(TABS) do if t.key == key then tdef = t end end
+    for _, t in ipairs(p.tabs) do if t.key == key then tdef = t end end
     if p.pv then p.pv:SetShown(tdef and tdef.preview and true or false) end
     apply(p)
 end
 
-ns.RegisterPage({
-    key = KEY, title = "Comfort settings", order = 5.45,
-    sub = "Gathering, minimap, helpers and game chat - with a live preview",
-    build = function(p)
-        local items = {}
-        for _, t in ipairs(TABS) do items[#items + 1] = { key = t.key, text = L[t.text] } end
-        p.seg = K.Segments(p, items, function(k) show(p, k) end)
-        p.seg:SetPoint("TOPLEFT", 0, 0)
-        p.views = {}
-        p.ShowTab = function(k) show(p, k) end
-        p.pv = buildPreview(p)
-        show(p, cur)
-    end,
-    refresh = function(p) if p.views then show(p, cur) end end,
-})
+local function register(key, title, sub, order, tabs, withPreview)
+    ns.RegisterPage({
+        key = key, title = title, order = order, sub = sub,
+        build = function(p)
+            p.tabs = tabs
+            local items = {}
+            for _, t in ipairs(tabs) do items[#items + 1] = { key = t.key, text = L[t.text] } end
+            p.seg = K.Segments(p, items, function(k) show(p, k) end)
+            p.seg:SetPoint("TOPLEFT", 0, 0)
+            p.views = {}
+            p.ShowTab = function(k) show(p, k) end
+            if withPreview then p.pv = buildPreview(p) end
+            show(p, tabs[1].key)
+        end,
+        refresh = function(p) if p.views then show(p, p.cur or tabs[1].key) end end,
+    })
+end
+register(GKEY, "Gathering & minimap", "Minimap, arrow, sparkles and gathering with the guild - with a live preview", 5.44, GTABS, true)
+register(KEY, "Comfort settings", "Helpers and game chat", 5.45, CTABS, false)
