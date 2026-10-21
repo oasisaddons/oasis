@@ -115,12 +115,10 @@ end
 -- symbols on the minimap (follow every frame, also on a rotating minimap)
 ------------------------------------------------------------------------
 local sPool = {}
-local function sym(i)
-    local p = sPool[i]
-    if p then return p end
-    p = CreateFrame("Frame", nil, Minimap)
+-- 0.6.602: one symbol (also used by the preview on the comfort settings page)
+function GS.NewSymbol(parent)
+    local p = CreateFrame("Frame", nil, parent)
     p:SetSize(13, 13)
-    if ns.MiniPinLayer then ns.MiniPinLayer(p, 3) else p:SetFrameLevel((Minimap:GetFrameLevel() or 1) + 6) end
     p.bg = p:CreateTexture(nil, "BACKGROUND")
     p.bg:SetTexture(ns.MEDIA .. "pindisc")
     p.bg:SetPoint("TOPLEFT", -2, 2) p.bg:SetPoint("BOTTOMRIGHT", 2, -2)
@@ -164,10 +162,43 @@ local function sym(i)
         GameTooltip:Show()
     end)
     p:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    return p
+end
+local function sym(i)
+    local p = sPool[i]
+    if p then return p end
+    p = GS.NewSymbol(Minimap)
+    if ns.MiniPinLayer then ns.MiniPinLayer(p, 3) else p:SetFrameLevel((Minimap:GetFrameLevel() or 1) + 6) end
     sPool[i] = p
     return p
 end
 GS.symbols = sPool
+-- look of a symbol from the settings (shape, ring color, too hard, cave, held, wanted); d.hard / d.wanted for the preview
+function GS.StyleSymbol(p, d, ox, oy)
+    local icon, info = iconOf(d)
+    -- shape: 1 square, 2 round, 3 round with ring, 4 slim ring
+    local shape = S().gatherShape or 3
+    local tex = shape == 1 and p.square or p.icon
+    p.square:SetShown(shape == 1) p.icon:SetShown(shape ~= 1)
+    p.bg:SetShown(shape == 2 or shape == 3)
+    p.ring:SetShown(shape >= 3)
+    p.ring:ClearAllPoints()
+    local o = shape == 4 and 1 or 2
+    p.ring:SetPoint("TOPLEFT", -o, o) p.ring:SetPoint("BOTTOMRIGHT", o, -o)
+    tex:SetTexture(icon)
+    p.want:SetShown((d.wanted or (ns.GatherGuild and ns.GatherGuild.WantedBy(d.name))) and S().gatherWanted ~= false and true or false)
+    local k = GM.KINDS[d.kind] or {}
+    local ring = info and info.ring or k.color or { 1, 1, 1 }
+    p.ring:SetVertexColor(ring[1], ring[2], ring[3], shape == 4 and 0.7 or 1)
+    if d.hard or GM.TooHard(d.name) then tex:SetVertexColor(1, 0.25, 0.25) else tex:SetVertexColor(1, 1, 1) end
+    -- cave / other level: gray like the game's own dot
+    if tex.SetDesaturated then tex:SetDesaturated(d.cave and true or false) end
+    -- over your own arrow in the middle: see-through; held or cave: faded
+    local a = (d.held or d.cave) and 0.55 or 1
+    if ox * ox + oy * oy < 81 then a = math.min(a, 0.35) end
+    p:SetAlpha(a)
+end
+GS.IconOf = iconOf
 function GS.DrawSymbols()
     local used = 0
     local c = S().gatherSymbols ~= false and GM.MiniCtx()
@@ -181,28 +212,7 @@ function GS.DrawSymbols()
                     p.d = d
                     p:ClearAllPoints()
                     p:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
-                    local icon, info = iconOf(d)
-                    -- shape: 1 square, 2 round, 3 round with ring, 4 slim ring
-                    local shape = S().gatherShape or 3
-                    local tex = shape == 1 and p.square or p.icon
-                    p.square:SetShown(shape == 1) p.icon:SetShown(shape ~= 1)
-                    p.bg:SetShown(shape == 2 or shape == 3)
-                    p.ring:SetShown(shape >= 3)
-                    p.ring:ClearAllPoints()
-                    local o = shape == 4 and 1 or 2
-                    p.ring:SetPoint("TOPLEFT", -o, o) p.ring:SetPoint("BOTTOMRIGHT", o, -o)
-                    tex:SetTexture(icon)
-                    p.want:SetShown(ns.GatherGuild and ns.GatherGuild.WantedBy(d.name) and true or false)
-                    local k = GM.KINDS[d.kind] or {}
-                    local ring = info and info.ring or k.color or { 1, 1, 1 }
-                    p.ring:SetVertexColor(ring[1], ring[2], ring[3], shape == 4 and 0.7 or 1)
-                    if GM.TooHard(d.name) then tex:SetVertexColor(1, 0.25, 0.25) else tex:SetVertexColor(1, 1, 1) end
-                    -- cave / other level: gray like the game's own dot
-                    if tex.SetDesaturated then tex:SetDesaturated(d.cave and true or false) end
-                    -- over your own arrow in the middle: see-through; held or cave: faded
-                    local a = (d.held or d.cave) and 0.55 or 1
-                    if ox * ox + oy * oy < 81 then a = math.min(a, 0.35) end
-                    p:SetAlpha(a)
+                    GS.StyleSymbol(p, d, ox, oy)
                     p:Show()
                 end
             end
@@ -371,6 +381,7 @@ local function dim(plate, on)
     elseif not on and dimmed[plate] then uf:SetAlpha(dimmed[plate]) dimmed[plate] = nil end
 end
 GS.plates = plates
+GS.SparkleOn, GS.SparkleOff = function(parent, key, dy) return sparkleOn(parent, key, dy) end, function(key) sparkleOff(key) end
 function GS.PlateUnit(unit)
     if not (C_NamePlate and C_NamePlate.GetNamePlateForUnit) then return end
     local plate = C_NamePlate.GetNamePlateForUnit(unit)

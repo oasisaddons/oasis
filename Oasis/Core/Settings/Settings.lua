@@ -40,6 +40,8 @@ function ns.SettingAvailable(key)
         for _, pf in ipairs(NEEDS_PREFIX) do if key:sub(1, #pf[1]) == pf[1] then addon = pf[2] break end end
     end
     if not addon then return true end
+    -- 0.6.602: gathering settings live on the comfort settings page
+    if ns.GatherSettingsPage and (key:sub(1, 6) == "gather" or key:sub(1, 7) == "glimmer") then return false end
     local ML = ns.ModuleLoader
     if not (ML and ML.PartLoaded) then return true end
     return ML.PartLoaded(addon) and true or false
@@ -1210,7 +1212,12 @@ ns.AddPageSettings("map", function(det, y)
     })
 
     -- 0.6.595: gathering map lives in Oasis - Convenience: without that add-on the section is not shown at all
-    if ns.Gather then
+    if ns.Gather and ns.GatherSettingsPage then
+        head("Guild gathering map")
+        local go = K.Button(det, L["Open gathering settings (Comfort)"], 300, 24, nil, function() ns.ShowPage(ns.GatherSettingsPage) end)
+        go:SetPoint("TOPLEFT", 14, y)
+        y = y - 36
+    elseif ns.Gather then
     head("Guild gathering map")
     if S().gatherFresh == nil then S().gatherFresh = true end
     if S().gatherHarvest == nil then S().gatherHarvest = true end
@@ -3541,6 +3548,9 @@ BUILD.bar, REFRESH.bar = buildBar, refreshBar
 table.insert(TABS, #TABS, { key = "bar", text = "Top bar" })
 
 -- further tabs from other modules (register before the settings are first opened)
+-- 0.6.602: build a settings tab into any frame (an add-on's own settings page)
+function ns.BuildSettingsTab(key, f) local b = BUILD[key] if b then b(f) return true end end
+function ns.RefreshSettingsTab(key, f) local r = REFRESH[key] if r then pcall(r, f) end end
 function ns.AddSettingsTab(key, text, build, refresh)
     if BUILD[key] then return end
     table.insert(TABS, #TABS, { key = key, text = text })   -- before "Status"
@@ -3626,9 +3636,11 @@ local function groupTabs(g)
     if g.dev and not (ns.IsDev and ns.IsDev()) then return {} end
     local out, known = {}, {}
     for _, gg in ipairs(GROUPS) do for _, k in ipairs(gg.tabs) do known[k] = true end end
-    for _, k in ipairs(g.tabs) do if BUILD[k] and (k ~= "perf" or (ns.IsDev and ns.IsDev())) then out[#out + 1] = k end end   -- 0.6.523: performance only for developers
+    -- 0.6.602: tabs an add-on shows on its own settings page (Comfort > Settings) stay out of here
+    local away = ns.SETTINGS_ELSEWHERE or {}
+    for _, k in ipairs(g.tabs) do if BUILD[k] and not away[k] and (k ~= "perf" or (ns.IsDev and ns.IsDev())) then out[#out + 1] = k end end   -- 0.6.523: performance only for developers
     if g.key == "help" then
-        for _, t in ipairs(TABS) do if not known[t.key] and not HIDDEN_TABS[t.key] and BUILD[t.key] then out[#out + 1] = t.key end end
+        for _, t in ipairs(TABS) do if not known[t.key] and not away[t.key] and not HIDDEN_TABS[t.key] and BUILD[t.key] then out[#out + 1] = t.key end end
     end
     return out
 end
