@@ -947,6 +947,21 @@ ns.slash.reveal = function(rest)
         tostring(d.map == mapID and d.explored or "?"), tostring(d.map == mapID and d.miss or "?"))
         .. (", drawn " .. tostring(d.drawn or 0)) .. (d.noTex and (", no texture " .. d.noTex) or "") .. (d.err and (", error: " .. d.err) or "")
         .. (revealHost and (", layer " .. tostring(revealHost:GetFrameLevel()) .. " shown " .. tostring(revealHost:IsVisible())) or ""))
+    -- 0.6.632: geometry - where canvas, layer and the first piece really are
+    local function rect(o)
+        if not (o and o.GetRect) then return "-" end
+        local x, y, w, h = o:GetRect()
+        if not x then return "none" end
+        return ("%d,%d %dx%d"):format(x, y, w, h)
+    end
+    local canvas = WorldMapFrame and WorldMapFrame.GetCanvas and WorldMapFrame:GetCanvas()
+    local t = revealPool[1]
+    local lv = canvas and canvas.GetFrameLevel and canvas:GetFrameLevel()
+    local lvl = {}
+    pcall(function() for pin in WorldMapFrame:EnumeratePinsByTemplate("MapExplorationPinTemplate") do lvl[#lvl + 1] = pin:GetFrameLevel() end end)
+    ns.print(("Reveal geometry: canvas %s (level %s, scale %.2f), layer %s, piece 1 %s visible %s alpha %.2f, explored pins %s"):format(
+        rect(canvas), tostring(lv), canvas and canvas:GetEffectiveScale() or 0, rect(revealHost), rect(t),
+        tostring(t and t:IsVisible()), t and t:GetAlpha() or 0, table.concat(lvl, "/")))
 end
 
 function CP.ApplyAll()
