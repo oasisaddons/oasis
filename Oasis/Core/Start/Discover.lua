@@ -676,6 +676,8 @@ function D.ShowPicker(mode)
             pi.sel:SetPoint("LEFT", pi.eb, "RIGHT", 8, 0)
             pi.btn = K.Button(pi, L["Turn on"], 150, 28, "primary", function()
                 if pi.mode == "on" then
+                    -- 0.6.601: also ends the test switch "only the base" (/oa nurbasis)
+                    ns.db.settings.onlyBase = nil
                     if ML and ML.EnablePart then ML.EnablePart(pi.addon) end
                     pi.mode = "reload"
                     pi.btn:SetLabel(L["Reload now"])
@@ -703,9 +705,14 @@ function D.ShowPicker(mode)
                 end
                 self.h:SetText(part and part.title or L[it.text])
                 self.d:SetText(L[it.sub] or "")
-                if state == "DISABLED" then
+                -- installed, but hidden by the test switch "only the base": switch on here as well
+                local ex = C_AddOns and C_AddOns.DoesAddOnExist
+                local installed = ex and select(2, pcall(ex, it.addon)) == true
+                local testMode = ns.db.settings.onlyBase and installed
+                if state == "DISABLED" or testMode then
                     self.mode = "on"
-                    self.t:SetText(L["This add-on is installed but switched off in the AddOn list. Switch it on here - it is there after a reload."])
+                    self.t:SetText(testMode and L["Installed, but the test switch \"only the base\" is on. Switch it on here - it is there after a reload."]
+                        or L["This add-on is installed but switched off in the AddOn list. Switch it on here - it is there after a reload."])
                     self.btn:SetLabel(L["Turn on"]) self.btn:Show()
                     self.lab:Hide() self.eb:Hide() self.sel:Hide()
                 else
