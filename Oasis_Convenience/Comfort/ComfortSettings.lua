@@ -140,32 +140,72 @@ local function buildPreview(p)
     local map = CreateFrame("Frame", nil, pv)
     map:SetSize(200, 200)
     map:SetPoint("TOP", 0, -26)
-    -- 0.6.603: Blizzard look - a piece of a real zone map as ground, round, with the game's minimap border
+    -- 0.6.605: Blizzard look - ground in the minimap's terrain colors (the world map art is parchment, the
+    -- minimap is not), border and zone plate copied 1:1 from the real minimap (texture, cut-out, size, offset),
+    -- so it also fits a minimap restyled by a UI addon
     map.bg = map:CreateTexture(nil, "BACKGROUND")
     map.bg:SetAllPoints()
-    map.bg:SetTexture("Interface\\WorldMap\\Elwynn\\Elwynn6")
-    map.bg:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    map.bg:SetColorTexture(1, 1, 1, 1)
+    if map.bg.SetGradient and CreateColor then
+        pcall(map.bg.SetGradient, map.bg, "VERTICAL", CreateColor(0.17, 0.22, 0.12, 1), CreateColor(0.27, 0.33, 0.18, 1))
+    else
+        map.bg:SetColorTexture(0.22, 0.28, 0.15, 1)
+    end
+    -- a little terrain: two soft patches (meadow / path)
+    map.p1 = map:CreateTexture(nil, "BACKGROUND", nil, 1)
+    map.p1:SetTexture(ns.MEDIA .. "dot") map.p1:SetVertexColor(0.36, 0.42, 0.22, 0.6)
+    map.p1:SetSize(120, 90) map.p1:SetPoint("CENTER", -30, 25)
+    map.p2 = map:CreateTexture(nil, "BACKGROUND", nil, 1)
+    map.p2:SetTexture(ns.MEDIA .. "dot") map.p2:SetVertexColor(0.45, 0.38, 0.24, 0.55)
+    map.p2:SetSize(150, 26) map.p2:SetPoint("CENTER", 20, -20) map.p2:SetRotation(0.5)
     if map.CreateMaskTexture and map.bg.AddMaskTexture then
         pcall(function()
             local m = map:CreateMaskTexture()
             m:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-            m:SetAllPoints(map.bg)
-            map.bg:AddMaskTexture(m)
+            m:SetAllPoints(map)
+            map.bg:AddMaskTexture(m) map.p1:AddMaskTexture(m) map.p2:AddMaskTexture(m)
         end)
     end
-    -- the game's border texture (round frame + zone plate at the top); the circle sits in its left part
     local rimF = CreateFrame("Frame", nil, map)
     rimF:SetAllPoints()
     rimF:SetFrameLevel(map:GetFrameLevel() + 8)
-    map.rim = rimF:CreateTexture(nil, "OVERLAY")
-    map.rim:SetTexture("Interface\\Minimap\\UI-Minimap-Border")
-    -- like Blizzard's MinimapCluster: border 192x192, the 140 px minimap centered 9 right / 4 up of the border's middle
-    local k = 200 / 140
-    map.rim:SetSize(192 * k, 192 * k)
-    map.rim:SetPoint("CENTER", map, "CENTER", -9 * k, -4 * k)
+    -- copy a texture of the real minimap into the preview (same place relative to the minimap, scaled)
+    local function mirror(src)
+        if not (src and src.GetTexture and Minimap and Minimap.GetCenter) then return nil end
+        local mx, my = Minimap:GetCenter()
+        local sx, sy = src:GetCenter()
+        local mw = Minimap:GetWidth()
+        if not (mx and sx and mw and mw > 0) then return nil end
+        local t = rimF:CreateTexture(nil, "OVERLAY")
+        local atlas = src.GetAtlas and src:GetAtlas()
+        if atlas then t:SetAtlas(atlas) else
+            local file = src:GetTexture()
+            if not file then return nil end
+            t:SetTexture(file)
+            t:SetTexCoord(src:GetTexCoord())
+        end
+        local me, se = Minimap:GetEffectiveScale(), src:GetEffectiveScale()
+        local k = 200 / mw
+        local w, h = src:GetSize()
+        t:SetSize(w * se / me * k, h * se / me * k)
+        t:SetPoint("CENTER", map, "CENTER", (sx * se - mx * me) / me * k, (sy * se - my * me) / me * k)
+        local r, g, b, a = src:GetVertexColor()
+        if r then t:SetVertexColor(r, g, b, a) end
+        return t
+    end
+    map.rim = mirror(_G.MinimapBorder or (MinimapCompassTexture))
+    map.top = mirror(_G.MinimapBorderTop or (MinimapCluster and MinimapCluster.BorderTop))
+    if not map.rim then
+        -- no game border found: simple dark ring
+        map.rim = rimF:CreateTexture(nil, "OVERLAY")
+        map.rim:SetTexture(ns.MEDIA .. "pinring")
+        map.rim:SetPoint("TOPLEFT", -5, 5) map.rim:SetPoint("BOTTOMRIGHT", 5, -5)
+        map.rim:SetVertexColor(0.25, 0.22, 0.18, 1)
+    end
     map.zone = rimF:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    map.zone:SetPoint("BOTTOM", map, "TOP", 0, 6)
-    map.zone:SetText(C_Map and C_Map.GetMapInfo and (C_Map.GetMapInfo(1429) or {}).name or "Elwynn Forest")
+    if map.top then map.zone:SetPoint("CENTER", map.top, "CENTER", 0, 0) else map.zone:SetPoint("BOTTOM", map, "TOP", 0, 8) end
+    local zoneText = _G.MinimapZoneText or (MinimapCluster and MinimapCluster.ZoneTextButton and MinimapCluster.ZoneTextButton.Text)
+    map.zone:SetText((zoneText and zoneText.GetText and ns.safe(zoneText:GetText())) or (GetMinimapZoneText and GetMinimapZoneText()) or "")
     map.me = map:CreateTexture(nil, "OVERLAY")
     map.me:SetTexture("Interface\\Minimap\\MinimapArrow")
     map.me:SetSize(22, 22)
