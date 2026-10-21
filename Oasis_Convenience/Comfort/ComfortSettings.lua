@@ -209,13 +209,13 @@ local SAMPLE = {
     { name = "Peacebloom", kind = "herb", x = 42, y = 30 },
     { name = "Copper Vein", kind = "ore", x = -52, y = 18 },
     { name = "Tin Vein", kind = "ore", x = -22, y = -58 },
-    { name = "Iron Deposit", kind = "ore", x = 70, y = -42 },
-    { name = "Kingsblood", kind = "herb", x = -80, y = -30, wanted = true },
-    { name = "Liferoot", kind = "herb", x = 22, y = 78, cave = true },
-    { name = "Battered Chest", kind = "treasure", x = 86, y = 52 },
-    { name = "Silverleaf", kind = "herb", x = -44, y = 82, held = true },
-    { name = "Icecap", kind = "herb", x = 6, y = -94, hard = true },
-    { name = "Leyline", kind = "leyline", x = -96, y = 40 },
+    { name = "Iron Deposit", kind = "ore", x = 69, y = -41 },
+    { name = "Kingsblood", kind = "herb", x = -75, y = -28, wanted = true },
+    { name = "Liferoot", kind = "herb", x = 22, y = 77, cave = true },
+    { name = "Battered Chest", kind = "treasure", x = 68, y = 41 },
+    { name = "Silverleaf", kind = "herb", x = -38, y = 70, held = true },
+    { name = "Icecap", kind = "herb", x = 5, y = -80, hard = true },
+    { name = "Leyline", kind = "leyline", x = -74, y = 31 },
 }
 local function previewTarget()
     local best, bd
@@ -313,8 +313,17 @@ local function buildPreview(p)
         local me, se = Minimap:GetEffectiveScale(), src:GetEffectiveScale()
         local k = 200 / mw
         local w, h = src:GetSize()
-        t:SetSize(w * se / me * k, h * se / me * k)
-        t:SetPoint("CENTER", map, "CENTER", (sx * se - mx * me) / me * k, (sy * se - my * me) / me * k)
+        local dx, dy = (sx * se - mx * me) / me * k, (sy * se - my * me) / me * k
+        -- 0.6.623: a ring sits centred on the map - its measured offset only counts for the zone plate above it
+        if math.abs(dx) < 30 and math.abs(dy) < 30 then
+            local size = math.max(w, h) * se / me * k
+            if size < 206 or size > 240 then size = 218 end   -- odd measurement: Blizzard's ring is about 9 % larger than the map
+            t:SetSize(size, size)
+            t:SetPoint("CENTER", map, "CENTER", 0, 0)
+        else
+            t:SetSize(w * se / me * k, h * se / me * k)
+            t:SetPoint("CENTER", map, "CENTER", dx, dy)
+        end
         local r, g, b, a = src:GetVertexColor()
         if r then t:SetVertexColor(r, g, b, a) end
         return t
