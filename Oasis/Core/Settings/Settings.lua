@@ -3910,57 +3910,7 @@ local function buildQuick(f)
         { "Guild window key (J) opens Oasis", "guildKeyOasis", "The key opens and closes the Oasis window instead of Blizzard's guild window", function() if ns.Keybinds and ns.Keybinds.ApplyGuildKey then ns.Keybinds.ApplyGuildKey() end end },
     }, y)
     c:SetHeight(-y + 4)
-    -- Signposts ---------------------------------------------------------
-    y = y - 18
-    local h = K.Text(f, 10, C.dim)
-    h:SetPoint("TOPLEFT", 0, y)
-    h:SetText(K.Upper(L["All settings by topic"]))
-    y = y - 20
-    local G = ns.Insta and ns.Insta.Glass
-    f.tiles = {}
-    for _, g in ipairs(GROUPS) do
-        if g.key ~= "start" and #groupTabs(g) > 0 then
-            local t = CreateFrame("Button", nil, f)
-            t:SetHeight(56)
-            if not (G and pcall(G, t, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.09 }, 10)) then K.Fill(t, { 1, 1, 1, 0.03 }) K.Border(t, C.line) end
-            t.icon = K.Glyph(t, 16, ns.MEDIA .. "icons\\" .. g.icon, C.accent)
-            t.icon:SetPoint("TOPLEFT", 12, -11)
-            t.lbl = K.Title(t, 12, C.text)
-            t.lbl:SetPoint("LEFT", t.icon, "RIGHT", 8, 0)
-            t.lbl:SetText(L[g.text])
-            t.sub = K.Text(t, 10, C.dim)
-            t.sub:SetPoint("TOPLEFT", 12, -32)
-            t.sub:SetPoint("RIGHT", -10, 0)
-            t.sub:SetJustifyH("LEFT")
-            t.sub:SetWordWrap(false)
-            t.sub:SetText(L[g.desc or ""])
-            t.hl = t:CreateTexture(nil, "HIGHLIGHT")
-            t.hl:SetAllPoints()
-            t.hl:SetColorTexture(1, 1, 1, 0.05)
-            t.g = g
-            t:SetScript("OnClick", function(self) setTab(groupTabs(self.g)[1]) end)
-            f.tiles[#f.tiles + 1] = t
-        end
-    end
-    local function layout()
-        local w = f:GetWidth()
-        if not w or w < 200 then w = 740 end
-        local cols = w >= 600 and 3 or 2
-        local cw = math.floor((w - 2 - (cols - 1) * 10) / cols)
-        for i, t in ipairs(f.tiles) do
-            local k = i - 1
-            t:ClearAllPoints()
-            t:SetPoint("TOPLEFT", (k % cols) * (cw + 10), y - math.floor(k / cols) * 64)
-            t:SetWidth(cw)
-        end
-    end
-    f:HookScript("OnSizeChanged", layout)
-    layout()
-    -- Restart the tour (Onboarding.lua)
-    if ns.Onboarding and ns.Onboarding.Show then
-        local tb = K.Button(f, L["Start tour"], 140, 22, "ghost", function() ns.Onboarding.Show() end)
-        tb:SetPoint("TOPLEFT", 0, y - math.ceil(#f.tiles / 3) * 64 - 8)
-    end
+    -- 0.6.617: the topic tiles and the tour button are gone - the topic buttons at the top do the same
 end
 local function refreshQuick(f)
     for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end
