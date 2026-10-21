@@ -827,6 +827,7 @@ local function revealRefresh()
                 local i = near(e.offsetX or 0, e.offsetY or 0)
                 if i then known[i] = true else miss = miss + 1 end
             end
+            CP.revealDiag = { map = mapID, areas = #list, explored = #ex, miss = miss }
             if miss * 2 > #ex then return end
         end
     end
@@ -885,6 +886,21 @@ local function hookReveal()
     revealHooked = true
     WorldMapFrame:HookScript("OnShow", function() pcall(revealRefresh) end)
     if WorldMapFrame.OnMapChanged then hooksecurefunc(WorldMapFrame, "OnMapChanged", function() pcall(revealRefresh) end) end
+end
+
+-- 0.6.627: hook the world map by itself - before, this only happened when the settings page was opened,
+-- so after a login the map revealed nothing
+ns.On("ADDON_LOADED", function(name) if name == "Blizzard_WorldMap" then pcall(hookReveal) end end)
+ns.On("PLAYER_ENTERING_WORLD", function() pcall(hookReveal) end)
+if C_Timer then C_Timer.After(2, function() pcall(hookReveal) end) end
+-- /oa reveal: why the open map reveals nothing (for bug reports)
+ns.slash.reveal = function()
+    local mapID = WorldMapFrame and WorldMapFrame.GetMapID and WorldMapFrame:GetMapID()
+    local list = ns.MapRevealData and mapID and ns.MapRevealData[mapID]
+    local d = CP.revealDiag or {}
+    ns.print(("Reveal: switch %s, hooked %s, map %s, areas %s, explored %s, not matching %s"):format(
+        tostring(on("mapReveal")), tostring(revealHooked and true or false), tostring(mapID), tostring(list and #list or 0),
+        tostring(d.map == mapID and d.explored or "?"), tostring(d.map == mapID and d.miss or "?")))
 end
 
 function CP.ApplyAll()
