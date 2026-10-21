@@ -508,15 +508,90 @@ local function buildPreview(p)
                 end
             end
         end
-        -- sparkles on the arrow's node (tab "Sparkles & pin")
+        -- 0.6.637: tab "Sparkles & pin" shows a scene in the world instead of the minimap: a copper vein and a
+        -- peacebloom with the sparkles on them, the game's interact icon, the map pin and a far node
+        local sp = tab == "sparkle"
+        self.map:SetShown(not sp)
+        self.scene:SetShown(sp)
         if GS and GS.SparkleOn then
-            local host
-            for i, d in ipairs(SAMPLE) do if d == t then host = self.syms[i] end end
-            if tab == "sparkle" and get("gatherSparkle") and host and host:IsShown() then GS.SparkleOn(host, "preview", 0)
-            else GS.SparkleOff("preview") end
+            GS.SparkleOff("preview")
+            local sc = self.scene
+            if sp and get("gatherSparkle") then
+                GS.SparkleOn(sc.ore, "preview", 0)
+                GS.SparkleOn(sc.herb, "preview2", 0)
+            else
+                GS.SparkleOff("preview2")
+            end
+            if sp and get("gatherSparkleFar") then GS.SparkleOn(sc.far, "preview3", 0) else GS.SparkleOff("preview3") end
+        end
+        if sp then
+            local sc = self.scene
+            local icons = get("gatherSparkle") and get("gatherSparkleHideIcons")
+            sc.oreHand:SetShown(not icons)
+            sc.herbHand:SetShown(not icons)
+            sc.pin:SetShown(get("gatherPin") and true or false)
+            sc.far:SetShown(get("gatherSparkleFar") and true or false)
+            sc.farT:SetShown(get("gatherSparkleFar") and true or false)
         end
     end
-    pv:SetScript("OnHide", function() if ns.GatherSight and ns.GatherSight.SparkleOff then ns.GatherSight.SparkleOff("preview") end end)
+    -- the world scene for the sparkle tab
+    do
+        local sc = CreateFrame("Frame", nil, pv)
+        sc:SetSize(230, 200)
+        sc:SetPoint("TOP", 0, -26)
+        sc.bg = sc:CreateTexture(nil, "BACKGROUND")
+        sc.bg:SetAllPoints()
+        sc.bg:SetColorTexture(1, 1, 1, 1)
+        if sc.bg.SetGradient and CreateColor then
+            pcall(sc.bg.SetGradient, sc.bg, "VERTICAL", CreateColor(0.16, 0.2, 0.1, 1), CreateColor(0.3, 0.34, 0.42, 1))
+        else
+            sc.bg:SetColorTexture(0.2, 0.25, 0.14, 1)
+        end
+        K.Border(sc, C.line)
+        local function node(icon, size, x, y, name)
+            local n = CreateFrame("Frame", nil, sc)
+            n:SetSize(size, size)
+            n:SetPoint("CENTER", sc, "CENTER", x, y)
+            n.t = n:CreateTexture(nil, "ARTWORK")
+            n.t:SetAllPoints()
+            n.t:SetTexture(icon)
+            n.t:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            if K.RoundMask then pcall(K.RoundMask, n.t, n, size / 2) end
+            if name then
+                n.name = K.Text(sc, 10, C.text, "CENTER")
+                n.name:SetPoint("TOP", n, "BOTTOM", 0, -4)
+                n.name:SetText(L[name])
+            end
+            return n
+        end
+        sc.ore = node("Interface\\Icons\\INV_Ore_Copper_01", 46, -52, -18, "Copper Vein")
+        sc.herb = node("Interface\\Icons\\INV_Misc_Flower_02", 46, 52, -18, "Peacebloom")
+        sc.far = node("Interface\\Icons\\INV_Ore_Tin_01", 18, 70, 62)
+        sc.far.t:SetAlpha(0.6)
+        sc.farT = K.Text(sc, 9, C.dim, "CENTER")
+        sc.farT:SetPoint("TOP", sc.far, "BOTTOM", 0, -2)
+        sc.farT:SetText(L["far away"])
+        local function hand(n, tex, atlas)
+            local h = sc:CreateTexture(nil, "OVERLAY")
+            h:SetSize(20, 20)
+            h:SetTexture(tex)
+            if h.SetAtlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) then h:SetAtlas(atlas) end
+            h:SetPoint("BOTTOM", n, "TOP", 0, 6)
+            return h
+        end
+        sc.oreHand = hand(sc.ore, "Interface\\Cursor\\Mine")
+        sc.herbHand = hand(sc.herb, "Interface\\Cursor\\Herbalism")
+        sc.pin = sc:CreateTexture(nil, "OVERLAY")
+        sc.pin:SetSize(18, 18)
+        sc.pin:SetTexture(ns.MEDIA .. "pinarrow")
+        sc.pin:SetPoint("BOTTOM", sc.ore, "TOP", 18, 2)
+        sc:Hide()
+        pv.scene = sc
+    end
+    pv:SetScript("OnHide", function()
+        local GS = ns.GatherSight
+        if GS and GS.SparkleOff then GS.SparkleOff("preview") GS.SparkleOff("preview2") GS.SparkleOff("preview3") end
+    end)
     return pv
 end
 
@@ -526,7 +601,7 @@ local function buildTabPage(p, tabKey)
     local f = CreateFrame("Frame", nil, p)
     f:SetPoint("TOPLEFT", 0, -44) f:SetPoint("BOTTOMRIGHT", 0, 0)
     local sc = CreateFrame("ScrollFrame", nil, f)
-    sc:SetAllPoints()
+    sc:SetPoint("TOPLEFT") sc:SetPoint("BOTTOMRIGHT")
     local child = CreateFrame("Frame", nil, sc)
     child:SetSize(740, 400)
     sc:SetScrollChild(child)
@@ -537,12 +612,14 @@ local function buildTabPage(p, tabKey)
     local PV = ns.ComfortPreviews and ns.ComfortPreviews["tab_" .. tabKey]
     local top, pv = 0, nil
     if PV then
-        pv = CreateFrame("Frame", nil, child)
+        -- 0.6.637: the example stays fixed on top, only the settings below scroll
+        pv = CreateFrame("Frame", nil, f)
         pv:SetPoint("TOPLEFT", 0, 0)
         pv:SetSize(738, PV.h or 130)
         local ok, err = pcall(PV.build, pv)
         if not ok and ns.err then ns.err("preview " .. tabKey, err) end
-        top = (PV.h or 130) + 14
+        sc:SetPoint("TOPLEFT", 0, -((PV.h or 130) + 14))
+        sc:SetClipsChildren(true)
         -- switches in these tabs do not report back - keep the example current while it is visible
         local acc = 0
         pv:SetScript("OnUpdate", function(self, el)

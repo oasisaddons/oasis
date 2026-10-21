@@ -8457,3 +8457,5 @@ DE["hidden - appears under the mouse"] = "ausgeblendet – erscheint unter der M
 DE["to level"] = "bis Stufe"
 DE["Party"] = "Gruppe"
 DE["Level"] = "Stufe"
+DE["Copper Vein"] = "Kupferader"
+DE["Peacebloom"] = "Friedensblume"
