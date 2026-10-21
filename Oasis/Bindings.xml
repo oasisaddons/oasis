@@ -51,4 +51,6 @@
 	<Binding name="OASIS_GATHER_SWITCH">
 		Oasis_KeyAction("OASIS_GATHER_SWITCH")
 	</Binding>
+	<Binding name="CLICK OasisQuestTargetButton:LeftButton">
+	</Binding>
 </Bindings>

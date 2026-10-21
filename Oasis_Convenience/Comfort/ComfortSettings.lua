@@ -77,7 +77,8 @@ local OPTS = {
         { "Hide the skill needed in the tooltip", "gatherSkillOff" },
         slider = {
             { "Gathering symbols: shape", "gatherShape", 1, 4, 1, 3, function(v) return L[({ "Square", "Round", "Round with ring", "Slim ring" })[v] or "Round with ring"] end },
-            { "Game's gathering dots: size", "gatherDotScale", 0.5, 1, 0.05, 1 },
+            { "Gathering symbols: size", "gatherSymbolSize", 0.6, 1.8, 0.05, 1 },
+            { "Game's yellow dots under the symbols: size", "gatherDotScale", 0.5, 1, 0.05, 1 },
         },
     },
     arrow = {
@@ -138,6 +139,8 @@ local OPTS = {
         { "\"Train all\" at the trainer", "twTrainAll" },
         { "Battleground: release automatically", "twBgRelease" },
         { "Quest items always sparkle", "twLootSparkle" },
+        { "Quest progress on enemy nameplates", "cfQuestPlates" },
+        { "Key for the next quest enemy (game key bindings)", "cfQuestTarget" },
         slider = {
             { "Forever's own quests", "cfForeverQuests", 1, 3, 1, 3, function(v) return L[({ "Leave to me", "Turn in only", "Accept and turn in" })[v] or "Accept and turn in"] end },
             { "Quest reward", "cfRewardPick", 1, 3, 1, 1, function(v) return L[({ "Let me pick", "Best upgrade", "Highest price" })[v] or "Let me pick"] end },
@@ -151,6 +154,8 @@ local OPTS = {
         { "Confirm bind-on-pickup loot automatically", "cfLootConfirm" },
         { "Delete items without typing DELETE", "cfEasyDestroy" },
         { "Auction house: item level in the list", "twAhIlvl" },
+        { "Bags full: offer to destroy the cheapest item", "cfDestroyCheap" },
+        { "Open button for clams, sacks and boxes", "cfOpenButton" },
         restockButtons = true,
         gearButtons = true,
     },
@@ -167,7 +172,6 @@ local OPTS = {
         { "Addon buttons only on minimap mouse-over", "cfMapButtons" },
         { "Camera: zoom out further", "twCamera" },
         { "No screen glow", "twNoGlow" },
-        { "Fishing: double right-click casts", "twFishing" },
     },
     sounds = {
         { "Mute clock chimes", "cfMuteChimes" },
@@ -449,7 +453,8 @@ local function buildPreview(p)
         else
             self.finder:SetText(tab == "mini" and (get("gatherSound") and L["A soft ping for new nodes"] or "") or "")
         end
-        self.tip:SetShown(tab == "mini" and not get("gatherSkillOff"))
+        self.tip:Hide()
+        self.finder:SetText(self.switching and self.finder:GetText() or (tab == "mini" and not get("gatherSkillOff") and L["Hover a symbol: shows the skill you need"] or self.finder:GetText()))
         local ds = 24 * (S().gatherDotScale or 1)
         if self.legend.SetAtlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("Professions_Tracking_Herb") then self.legend:SetAtlas("Professions_Tracking_Herb")
         else self.legend:SetTexture(ns.MEDIA .. "dot") self.legend:SetVertexColor(1, 0.85, 0.2) end
@@ -554,6 +559,7 @@ local function apply(p)
     if ns.GatherSight then pcall(ns.GatherSight.Apply) end
     if ns.ComfortTweaks then pcall(ns.ComfortTweaks.Apply) end
     if ns.ComfortMore then pcall(ns.ComfortMore.Apply) end
+    if ns.ComfortQuestBags then pcall(ns.ComfortQuestBags.Apply) end
     if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end
     if ns.ComfortPlus and ns.ComfortPlus.ApplyAll then pcall(ns.ComfortPlus.ApplyAll) end
     S().trailMinutes = S().trailSession and 0 or nil

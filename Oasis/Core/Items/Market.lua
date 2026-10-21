@@ -43,6 +43,22 @@ function Market.Price(item)
     if r and r.price then return r.price, "oasis", r.ts end
     return nil
 end
+-- 0.6.621: last auction house price Oasis saw, in the item tooltip. Not with Midas or Auctionator installed -
+-- they show their own price line, two would only repeat each other.
+function Market.TipLine(tt, id)
+    local s = ns.db and ns.db.settings
+    if not s or s.tipAhPrice == false or s.tipOasis == false or not id then return end
+    if Market.HasMidas() or rawget(_G, "Auctionator") then return end
+    local r = Store.Get("prices", "p-" .. id)
+    if not (r and r.price) then return end
+    tt:AddLine("|cffff1200Oasis|r  " .. L["Auction house:"] .. " " .. Market.Format(r.price) .. "  |cff888888" .. ns.ago(r.ts) .. "|r", 0.85, 0.85, 0.85)
+end
+if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Item then
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tt, data)
+        if tt ~= GameTooltip and tt ~= ItemRefTooltip then return end
+        pcall(Market.TipLine, tt, data and ns.safe(data.id))
+    end)
+end
 function Market.Info(item)
     if not Market.HasMidas() then return nil end
     local ok, info = pcall(_G.MidasAPI.GetMarketInfo, item)

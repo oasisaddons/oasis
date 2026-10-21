@@ -638,6 +638,24 @@ local function tipLine(tt, itemID)
         end
         if #parts >= 4 then parts[#parts + 1] = "..." break end
     end
+    -- 0.6.621: your own quests too (before only guild members' needs were shown)
+    if name and GetNumQuestLogEntries and GetQuestLogLeaderBoard then
+        for i = 1, (GetNumQuestLogEntries() or 0) do
+            local title, _, _, isHeader = GetQuestLogTitle(i)
+            if title and not isHeader then
+                for j = 1, (GetNumQuestLeaderBoards(i) or 0) do
+                    local text, kind, done = GetQuestLogLeaderBoard(j, i)
+                    text = ns.safe(text)
+                    if kind == "item" and not done and type(text) == "string" then
+                        local n, have, need = text:match("^(.-):%s*(%d+)%s*/%s*(%d+)")
+                        if n and low(n) == low(name) then
+                            table.insert(parts, 1, "|cffffd100" .. L["you"] .. "|r |cff777777(" .. title .. " " .. have .. "/" .. need .. ")|r")
+                        end
+                    end
+                end
+            end
+        end
+    end
     if #parts == 0 then return end
     tt:AddLine("|cffff1200Oasis|r  " .. L["Needed by:"] .. " " .. table.concat(parts, ", "), 0.85, 0.85, 0.85, true)
 end

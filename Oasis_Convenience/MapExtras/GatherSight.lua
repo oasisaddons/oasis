@@ -177,6 +177,9 @@ GS.symbols = sPool
 -- look of a symbol from the settings (shape, ring color, too hard, cave, held, wanted); d.hard / d.wanted for the preview
 function GS.StyleSymbol(p, d, ox, oy)
     local icon, info = iconOf(d)
+    -- 0.6.621: own size for the symbols (slider "Gathering symbols: size")
+    local sz = 13 * (S().gatherSymbolSize or 1)
+    p:SetSize(sz, sz)
     -- shape: 1 square, 2 round, 3 round with ring, 4 slim ring
     local shape = S().gatherShape or 3
     local tex = shape == 1 and p.square or p.icon

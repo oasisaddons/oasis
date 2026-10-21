@@ -69,6 +69,8 @@ PREV.quests = {
             text(f.rew, 9, C.dim, 44 + (i - 1) * 78, -34, r[2])
             f.items[i] = b
         end
+        f.plate = panel(f, 250, 26, 0, -198 + 70)
+        f.plate:Hide()
         f.extra = panel(f, 250, 64, 0, -198)
         f.e1 = text(f.extra, 10, C.text, 8, -6)
         f.e2 = text(f.extra, 10, C.text, 8, -22)
@@ -90,7 +92,9 @@ PREV.quests = {
         f.e1:SetText(on("twTaxi") and ("|cff7fd77f" .. L["Flight master: flight map opens at once"] .. "|r") or ("|cff888888" .. L["Flight master: you talk first"] .. "|r"))
         f.e2:SetText(on("twTrainAll") and ("|cff7fd77f" .. L["Trainer: \"Train all\" button"] .. "|r") or ("|cff888888" .. L["Trainer: learn one by one"] .. "|r"))
         f.e3:SetText((on("twBgRelease") and ("|cff7fd77f" .. L["Battleground: released at once"] .. "|r  ") or "")
-            .. (on("twLootSparkle") and ("|cffffd100" .. L["Quest items sparkle"] .. "|r") or ""))
+            .. (on("twLootSparkle") and ("|cffffd100" .. L["Quest items sparkle"] .. "|r  ") or "")
+            .. (on("cfQuestPlates") and ("|cffffd100" .. L["Nameplate: ! 3/8"] .. "|r  ") or "")
+            .. (on("cfQuestTarget") and ("|cff7fd77f" .. L["Quest enemy key"] .. "|r") or ""))
     end,
 }
 
@@ -138,6 +142,7 @@ PREV.vendor = {
         f.ahLvl:SetText(on("twAhIlvl") and "27" or "")
         f.m1:SetText(on("cfLootConfirm") and ("|cff7fd77f" .. L["Bind-on-pickup loot: taken without asking"] .. "|r") or ("|cff888888" .. L["Bind-on-pickup loot: you confirm"] .. "|r"))
         f.m2:SetText(on("cfEasyDestroy") and ("|cff7fd77f" .. L["Delete: the word is filled in"] .. "|r") or ("|cff888888" .. L["Delete: you type the word"] .. "|r"))
+        f.hint:SetText(f.hint:GetText() .. ((on("cfDestroyCheap") and ("   |cffff9050" .. L["full -> cheapest?"] .. "|r")) or "") .. ((on("cfOpenButton") and ("   |cff7fd77f" .. L["[Open]"] .. "|r")) or ""))
     end,
 }
 

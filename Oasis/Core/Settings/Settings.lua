@@ -3924,6 +3924,7 @@ local function buildTips(f)
     local c, y = wideCard(f, 0, "wants", L["Item tooltip"], L["What Oasis shows below items"])
     y = toggleList(f, {
         { "Oasis lines in item tooltips", "tipOasis", "Master switch: wanted by, orders, guild price, guild bank and source", nil, true },
+        { "Last auction house price", "tipAhPrice", "The cheapest price Oasis saw at the auction house (not with Midas or Auctionator - they show theirs)", nil, true },
         { "Wanted by in item tooltip", "tipWanted", "Who in the guild has the item on their wishlist", nil, true },
         { "Craftable by in item tooltip", "tipCrafters", "Shows in the tooltip who in the guild can craft the item", nil, true },
         { "Guild bank stock in item tooltip", "tipBank", "Shows in the tooltip how many are in the guild bank", nil, true },

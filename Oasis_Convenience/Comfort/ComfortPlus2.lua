@@ -317,7 +317,8 @@ end)
 ns.Listen("LOGIN", function() ns.After(5, function() pcall(saveBags) end) end)
 -- tooltip lines
 local function altLines(tt)
-    if not on("cpAltItems") or TIPM[tt] then return end
+    -- 0.6.621: "Bags & alts" (Oasis base) shows the counts already - this second list only without it
+    if not on("cpAltItems") or TIPM[tt] or not (ns.db.settings.invTooltipOff) then return end
     local _, link = tt:GetItem()
     if not link or (issecretvalue and issecretvalue(link)) then return end
     local id = tonumber(link:match("item:(%d+)"))
@@ -893,7 +894,6 @@ H2.OPTS = {
         { "cpRareShare", "Report rares to the guild", "Others with Oasis see where you found a rare" },
     } },
     { "Characters & gear", {
-        { "cpAltItems", "Items of all characters in the tooltip", "Bags and bank of your alts, gold in the overview" },
         { "cpFishing", "Fishing helper", "Double right-click casts, catch statistics in the overview" },
         { "cpRange", "Range on action bars", "Button turns red when the target is out of range" },
     } },
