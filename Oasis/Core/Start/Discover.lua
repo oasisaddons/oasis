@@ -1157,8 +1157,8 @@ ns.RegisterPage({
         p.info:SetText((L["%d of %d areas turned on. Click a card to open it."]):format(on, #all))
     end,
 })
--- into the navigation: right below the dashboard
-if ns.NAV_GROUPS and ns.NAV_GROUPS[1] then table.insert(ns.NAV_GROUPS[1].pages, "discover") end
+-- 0.6.625: no longer in the sidebar (pages are switched on under Settings > Modules); the page stays reachable by link
+-- if ns.NAV_GROUPS and ns.NAV_GROUPS[1] then table.insert(ns.NAV_GROUPS[1].pages, "discover") end
 
 -- Replay the first start (for testing): reset onboarding, tour + interest picker as for new users.
 -- Data is kept; afterwards show everything again with "Alles einschalten" (Discover).
