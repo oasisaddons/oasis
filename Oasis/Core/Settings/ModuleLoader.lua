@@ -76,23 +76,55 @@ M.OLD_FOLDERS = { "Oasis_Dungeons", "Oasis_Raidwerkzeuge", "Oasis_Deathroll", "O
 -- Oasis loads them itself here, BEFORE the modules run - so they hook into ns.ModuleFile as before and run before DB_READY.
 -- If a part is not installed or disabled in the AddOn list, its modules are missing (state "missing").
 M.PARTS = {
-    { addon = "Oasis_GroupsRaids", title = "Oasis - Groups & Raids", modules = { "Oasis_Group", "Oasis_Dungeons", "Oasis_QuestTags", "Oasis_RaidTools", "Oasis_Combat", "Oasis_Talents", "Oasis_Rares" } },
-    { addon = "Oasis_Trade", title = "Oasis - Trade", modules = { "Oasis_Crafting", "Oasis_Market", "Oasis_Wishlist" } },
-    { addon = "Oasis_Convenience", title = "Oasis - Convenience", modules = { "Oasis_Comfort", "Oasis_MapExtras", "Oasis_GameChat", "Oasis_Whispers", "Oasis_Upgrades", "Oasis_ItemCompare", "Oasis_WeaponTrainers", "Oasis_BankSlots" } },
+    { addon = "Oasis_GroupsRaids", title = "Oasis - Groups & Raids", url = "https://www.curseforge.com/wow/addons/oasis-groups-raids", modules = { "Oasis_Group", "Oasis_Dungeons", "Oasis_QuestTags", "Oasis_RaidTools", "Oasis_Combat", "Oasis_Talents", "Oasis_Rares" } },
+    { addon = "Oasis_Trade", title = "Oasis - Trade", url = "https://www.curseforge.com/wow/addons/oasis-trade", modules = { "Oasis_Crafting", "Oasis_Market", "Oasis_Wishlist" } },
+    { addon = "Oasis_Convenience", title = "Oasis - Convenience", url = "https://www.curseforge.com/wow/addons/oasis-convenience", modules = { "Oasis_Comfort", "Oasis_MapExtras", "Oasis_GameChat", "Oasis_Whispers", "Oasis_Upgrades", "Oasis_ItemCompare", "Oasis_WeaponTrainers", "Oasis_BankSlots" } },
 }
 M.partOf = {}
 for _, p in ipairs(M.PARTS) do for _, k in ipairs(p.modules) do M.partOf[k] = p end end
 M.partState = {}   -- [part] = "loaded" | reason from LoadAddOn ("MISSING", "DISABLED" ...)
+-- 0.6.587: switched off in the AddOn list = do not load (LoadAddOn loaded it anyway before)
+local function partExists(name)
+    local ex = C_AddOns and C_AddOns.DoesAddOnExist
+    if ex then local ok, r = pcall(ex, name) if ok then return r and true or false end end
+    return true
+end
+local function partEnabled(name)
+    local f = C_AddOns and C_AddOns.GetAddOnEnableState or GetAddOnEnableState
+    if not f then return true end
+    local me = ns.UnitName and ns.UnitName("player") or (UnitName and UnitName("player"))
+    local ok, r = pcall(f, name, me)
+    if not (ok and type(r) == "number") then ok, r = pcall(f, me, name) end
+    if ok and type(r) == "number" then return r > 0 end
+    return true
+end
 local function loadParts()
     local load = (C_AddOns and C_AddOns.LoadAddOn) or LoadAddOn
     for _, p in ipairs(M.PARTS) do
-        if not load then M.partState[p.addon] = "MISSING" else
+        if not partExists(p.addon) then M.partState[p.addon] = "MISSING"
+        elseif not partEnabled(p.addon) then M.partState[p.addon] = "DISABLED"
+        elseif not load then M.partState[p.addon] = "MISSING" else
             local ok, loaded, reason = pcall(load, p.addon)
             M.partState[p.addon] = (ok and loaded) and "loaded" or tostring(reason or (not ok and loaded) or "MISSING")
         end
     end
 end
 function M.PartLoaded(addon) return M.partState[addon] == "loaded" end
+function M.PartState(addon) return M.partState[addon] end
+function M.Part(addon) for _, p in ipairs(M.PARTS) do if p.addon == addon then return p end end end
+-- 0.6.587: download link of a missing add-on (copy box, the game cannot open a browser)
+StaticPopupDialogs["OASIS_PART_URL"] = {
+    text = "%s", button1 = OKAY or "OK", hasEditBox = true, editBoxWidth = 320,
+    OnShow = function(self, data) local eb = self.editBox or self.EditBox if eb then eb:SetText(data or "") eb:HighlightText() eb:SetFocus() end end,
+    EditBoxOnEnterPressed = function(self) self:GetParent():Hide() end,
+    EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+    timeout = 0, whileDead = true, hideOnEscape = true,
+}
+function M.ShowPartLink(addon)
+    local p = M.Part(addon)
+    if not (p and p.url and StaticPopup_Show) then return end
+    StaticPopup_Show("OASIS_PART_URL", (L["%s - Ctrl+C copies the download link:"]):format(p.title), nil, p.url)
+end
 function M.LoadAll()
     pcall(loadParts)
     local files = ns.moduleFiles or {}

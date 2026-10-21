@@ -509,13 +509,24 @@ function D.ShowPicker(mode)
             t.check:SetSize(14, 14)
             t.check:SetPoint("CENTER", t.ring, "CENTER")
             t.it = it
-            -- add-on not installed: tile stays visible as a hint, but cannot be chosen
+            -- add-on missing or switched off: tile greyed out; a click shows the download link or where to switch it on
+            local ML = ns.ModuleLoader
             if not D.Available(it) then
-                t.s:SetText((L["Not installed - download %s"]):format("Oasis " .. L[it.text]))
+                local st = ML and ML.PartState and ML.PartState(it.addon)
+                t.s:SetText(st == "DISABLED" and L["Switched off - turn it on in the AddOn list (character screen)"]
+                    or L["Not installed - click for the download link"])
                 t:SetAlpha(0.45)
-                t:Disable()
+                t.unavail = st or "MISSING"
+                if t.ring then t.ring:Hide() end
+                if t.check then t.check:Hide() end
             end
             t:SetScript("OnClick", function(self)
+                if self.unavail then
+                    if self.unavail == "DISABLED" then
+                        K.Toast(L[self.it.text], L["Switched off - turn it on in the AddOn list (character screen)"], C.amber or C.accent)
+                    elseif ML and ML.ShowPartLink then ML.ShowPartLink(self.it.addon) end
+                    return
+                end
                 f.sel[self.it.key] = not f.sel[self.it.key] or nil
                 if f.sel[self.it.key] then self.pop = 0 end
                 f:Mark()
@@ -572,6 +583,7 @@ function D.ShowPicker(mode)
         function f:Mark()
             local n = 0
             for _, t in ipairs(self.tiles) do
+                if t.unavail then self.sel[t.it.key] = nil end   -- 0.6.587: missing/disabled add-on can not be chosen
                 local on, c = self.sel[t.it.key], t.it.color
                 if on then n = n + 1 end
                 K.SetBorderColor(t, on and { c[1], c[2], c[3], 0.9 } or (t.hover and { c[1], c[2], c[3], 0.4 } or { 1, 1, 1, 0.07 }))
