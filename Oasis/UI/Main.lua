@@ -1785,9 +1785,9 @@ function ns.LayoutNav()
                 if not isClosed or d.key == current then
                     d.nav:SetHeight(step - 2)
                     d.nav.navGroup = gr.g.key
-                    -- light add-on tint: 30 % of the group color mixed into the normal gray
+                    -- 0.6.610: entries in the add-on's color, as strong as its heading
                     local gc = gr.g.color
-                    local tint = gc and { C.muted[1] * 0.7 + gc[1] * 0.3, C.muted[2] * 0.7 + gc[2] * 0.3, C.muted[3] * 0.7 + gc[3] * 0.3 } or nil
+                    local tint = gc and { gc[1], gc[2], gc[3] } or nil
                     if (tint and not d.nav.tint) or (not tint and d.nav.tint) or (tint and d.nav.tint and tint[1] ~= d.nav.tint[1]) then
                         d.nav.tint = tint
                         if d.nav.SetActive then pcall(d.nav.SetActive, d.nav, d.key == current) end

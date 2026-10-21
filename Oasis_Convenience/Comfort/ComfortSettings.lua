@@ -8,7 +8,9 @@ if not (K and ns.RegisterPage) then return end
 
 -- 0.6.606: four sidebar pages under "Comfort" - Gathering & minimap, World map, Everyday helpers, Game chat.
 -- None of the Comfort settings stay in the big Oasis settings window while this add-on is loaded.
-local KEY, GKEY, WKEY, CHKEY = "comfortset", "gatherset", "worldmapset", "chatset"
+-- 0.6.610: seven sidebar pages under "Comfort" (gathering, world map, quests & vendor, interface, game chat,
+-- helpers, upgrade exchange) instead of few big ones
+local KEY, GKEY, WKEY, CHKEY, QKEY, UKEY = "comfortset", "gatherset", "worldmapset", "chatset", "questset", "uiset"
 ns.GatherSettingsPage = GKEY
 ns.ConvenienceOwnPages = true
 ns.SETTINGS_ELSEWHERE = ns.SETTINGS_ELSEWHERE or {}
@@ -18,10 +20,12 @@ if ns.ICONS then
     ns.ICONS[GKEY] = ns.ICONS.map or ns.ICONS.compass or ns.ICONS.settings or ns.ICONS.home
     ns.ICONS[WKEY] = ns.ICONS.map or ns.ICONS.compass or ns.ICONS.home
     ns.ICONS[CHKEY] = ns.ICONS.announce or ns.ICONS.chat or ns.ICONS.home
+    ns.ICONS[QKEY] = ns.ICONS.checklist or ns.ICONS.quest or ns.ICONS.home
+    ns.ICONS[UKEY] = ns.ICONS.brush or ns.ICONS.eye or ns.ICONS.home
 end
 for _, g in ipairs(ns.NAV_GROUPS or {}) do
     if g.key == "convenience" then
-        for i, k in ipairs({ GKEY, WKEY, KEY, CHKEY }) do
+        for i, k in ipairs({ GKEY, WKEY, QKEY, UKEY, CHKEY, KEY }) do
             local has = false
             for _, x in ipairs(g.pages) do if x == k then has = true end end
             if not has then table.insert(g.pages, i, k) end
@@ -48,13 +52,20 @@ local WTABS = {
 }
 local CTABS = {
     { key = "comfort", text = "Helpers", tab = "comfort" },
-    { key = "tweaks", text = "More helpers" },
-    { key = "questvendor", text = "Quests & vendor" },
-    { key = "tipmapchat", text = "Tooltip, minimap & chat" },
     { key = "helpers", text = "Guild helpers", tab = "helpers" },
+}
+local QTABS = {
+    { key = "quests", text = "Quests" },
+    { key = "vendor", text = "Vendor & bags" },
+}
+local UTABS = {
+    { key = "tooltips", text = "Tooltips" },
+    { key = "minimapcam", text = "Minimap & camera" },
+    { key = "sounds", text = "Sounds" },
 }
 local CHTABS = {
     { key = "gamechat", text = "Game chat", tab = "gamechat" },
+    { key = "chatclean", text = "Tidy up" },
     { key = "whisper", text = "Whispers" },
 }
 local OPTS = {
@@ -121,47 +132,53 @@ local OPTS = {
         { "Coordinates on the minimap", "mmCoords" },
         { "Accept layer requests from the guild", "layerAsk" },
     },
-    tweaks = {
-        { "Flight master: straight to the flight map", "twTaxi" },
-        { "Battleground: release automatically", "twBgRelease" },
-        { "Alt+right-click marks items as junk", "twJunkMark" },
-        { "Gear groups (Ctrl+right-click in the bags)", "twGear" },
+    quests = {
         { "Quest levels in the quest log", "twQuestLevel" },
+        { "Flight master: straight to the flight map", "twTaxi" },
         { "\"Train all\" at the trainer", "twTrainAll" },
-        { "Fishing: double right-click casts", "twFishing" },
-        { "Auction house: item level in the list", "twAhIlvl" },
-        { "Camera: zoom out further", "twCamera" },
-        { "No screen glow", "twNoGlow" },
-        { "Tooltips: class colours for players", "twTipClass" },
-        { "Tooltips: health bar inside", "twTipBar" },
+        { "Battleground: release automatically", "twBgRelease" },
         { "Quest items always sparkle", "twLootSparkle" },
-        gearButtons = true,
-    },
-    questvendor = {
-        { "Restock at vendors (your list)", "cfRestockOn" },
-        { "Fill the quiver with the best ammo", "cfAmmo" },
-        { "Confirm bind-on-pickup loot automatically", "cfLootConfirm" },
-        { "Delete items without typing DELETE", "cfEasyDestroy" },
         slider = {
             { "Forever's own quests", "cfForeverQuests", 1, 3, 1, 3, function(v) return L[({ "Leave to me", "Turn in only", "Accept and turn in" })[v] or "Accept and turn in"] end },
             { "Quest reward", "cfRewardPick", 1, 3, 1, 1, function(v) return L[({ "Let me pick", "Best upgrade", "Highest price" })[v] or "Let me pick"] end },
         },
-        restockButtons = true,
     },
-    tipmapchat = {
+    vendor = {
+        { "Restock at vendors (your list)", "cfRestockOn" },
+        { "Fill the quiver with the best ammo", "cfAmmo" },
+        { "Alt+right-click marks items as junk", "twJunkMark" },
+        { "Gear groups (Ctrl+right-click in the bags)", "twGear" },
+        { "Confirm bind-on-pickup loot automatically", "cfLootConfirm" },
+        { "Delete items without typing DELETE", "cfEasyDestroy" },
+        { "Auction house: item level in the list", "twAhIlvl" },
+        restockButtons = true,
+        gearButtons = true,
+    },
+    tooltips = {
+        { "Tooltips: class colours for players", "twTipClass" },
+        { "Tooltips: health bar inside", "twTipBar" },
         { "Tooltip: guild and rank", "cfTipRank" },
         { "Tooltip: the unit's target", "cfTipTarget" },
         { "Tooltip: hide in combat (Shift shows it)", "cfTipCombat" },
         { "Tooltip: backdrop in faction colour", "cfTipFaction" },
+    },
+    minimapcam = {
         { "Square minimap", "cfSquareMap" },
         { "Addon buttons only on minimap mouse-over", "cfMapButtons" },
-        { "Hide the combat log tab", "cfNoCombatTab" },
-        { "Hide chat buttons", "cfNoChatButtons" },
-        { "Filter duel and drunk spam", "cfSpamFilter" },
+        { "Camera: zoom out further", "twCamera" },
+        { "No screen glow", "twNoGlow" },
+        { "Fishing: double right-click casts", "twFishing" },
+    },
+    sounds = {
         { "Mute clock chimes", "cfMuteChimes" },
         { "Mute spell fizzle", "cfMuteFizzle" },
         { "Mute /train emotes", "cfMuteTrains" },
         { "Mute cat yawns", "cfMuteYawns" },
+    },
+    chatclean = {
+        { "Hide the combat log tab", "cfNoCombatTab" },
+        { "Hide chat buttons", "cfNoChatButtons" },
+        { "Filter duel and drunk spam", "cfSpamFilter" },
         slider = {
             { "Chat font size", "cfChatFont", 10, 20, 1, 14, function(v) return v .. " pt" end },
         },
@@ -558,5 +575,7 @@ local function register(key, title, sub, order, tabs, withPreview)
 end
 register(GKEY, "Gathering & minimap", "Minimap, arrow, sparkles and gathering with the guild - with a live preview", 5.441, GTABS, true)
 register(WKEY, "World map", "Reveal, tint, size and position of the world map, map extras", 5.442, WTABS, false)
-register(KEY, "Everyday helpers", "Repair, junk, quests, gear groups, fishing, tooltips and more", 5.443, CTABS, false)
-register(CHKEY, "Game chat", "Game chat and whispers", 5.444, CHTABS, false)
+register(QKEY, "Quests & vendor", "Quest automation, rewards, restock, junk, gear groups", 5.443, QTABS, false)
+register(UKEY, "Interface", "Tooltips, minimap, camera and sounds", 5.444, UTABS, false)
+register(CHKEY, "Game chat", "Game chat, tidy up and whispers", 5.445, CHTABS, false)
+register(KEY, "Everyday helpers", "Repair, junk, quests and more - and the guild helpers", 5.446, CTABS, false)
