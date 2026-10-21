@@ -332,9 +332,15 @@ end
 -- 0.6.431: continent/world map - nodes of the zones below converted (C_Map.GetMapRectOnMap)
 function GM.NodesOn(mapID)
     local own = GM.Nodes(mapID)
-    if #own > 0 or not (C_Map and C_Map.GetMapRectOnMap) then return own end
+    if not (C_Map and C_Map.GetMapRectOnMap) then return own end
+    -- 0.6.610: zone maps keep their own list; on continent / world maps the nodes stored right there (on a
+    -- flight or boat) are added to those of the zones below - before, a few of them hid all the others
+    local info = C_Map.GetMapInfo and C_Map.GetMapInfo(mapID)
+    local mt = info and info.mapType
+    if mt and mt >= 3 then return own end
     GM.Nodes()
     local out = {}
+    for _, r in ipairs(own) do out[#out + 1] = r end
     -- 0.6.609: a zone's rectangle on the shown map - directly, or through its parents (zone -> continent ->
     -- world). On the world map the game gives no rectangle for a zone, only for its continent, so the
     -- nodes were missing there.
