@@ -605,38 +605,92 @@ end
 local buildMapPreview
 -- world map preview: a piece of a zone map, the right half "unexplored" in the chosen tint
 buildMapPreview = function(p)
+    -- 0.6.634: a real zone (Tirisfal Glades) instead of a plain parchment tile - left half explored, right half
+    -- unexplored; the right half shows the hidden areas tinted (or not at all), like the world map
+    local MAP = 1420
     local f = CreateFrame("Frame", nil, p)
-    f:SetSize(250, 300)
+    f:SetSize(266, 300)
     f:SetPoint("TOPLEFT", 0, -44)
-    local w, h = 240, 160
-    f.map = f:CreateTexture(nil, "BACKGROUND")
-    f.map:SetSize(w, h)
-    f.map:SetPoint("TOP", 0, -26)
-    f.map:SetTexture("Interface\\WorldMap\\Elwynn\\Elwynn6")
-    f.dark = f:CreateTexture(nil, "BACKGROUND", nil, 1)
-    f.dark:SetSize(w / 2, h)
-    f.dark:SetPoint("TOPRIGHT", f.map, "TOPRIGHT")
-    f.dark:SetColorTexture(0, 0, 0, 1)
-    f.unex = f:CreateTexture(nil, "ARTWORK")
-    f.unex:SetSize(w / 2, h)
-    f.unex:SetPoint("TOPRIGHT", f.map, "TOPRIGHT")
-    f.unex:SetTexture("Interface\\WorldMap\\Elwynn\\Elwynn6")
-    f.unex:SetTexCoord(0.5, 1, 0, 1)
+    local w = 262
+    local sc = w / 1002
+    local h = math.floor(668 * sc + 0.5)
+    f.box = CreateFrame("Frame", nil, f)
+    f.box:SetSize(w, h)
+    f.box:SetPoint("TOP", 0, -26)
+    f.box:SetClipsChildren(true)
+    f.base = f.box:CreateTexture(nil, "BACKGROUND")
+    f.base:SetAllPoints()
+    f.base:SetColorTexture(0.32, 0.27, 0.18, 1)
+    -- base art (parchment with fog) from the game: 4 x 3 tiles of 256 px
+    local ok, tiles = pcall(function() return C_Map and C_Map.GetMapArtLayerTextures and C_Map.GetMapArtLayerTextures(MAP, 1) end)
+    if ok and type(tiles) == "table" then
+        for i, id in ipairs(tiles) do
+            local c, r = (i - 1) % 4, math.floor((i - 1) / 4)
+            local t = f.box:CreateTexture(nil, "BACKGROUND", nil, 1)
+            t:SetTexture(id)
+            t:SetSize(256 * sc, 256 * sc)
+            t:SetPoint("TOPLEFT", c * 256 * sc, -r * 256 * sc)
+        end
+    end
+    -- the explorable areas (same data as the world map reveal)
+    f.pieces = {}
+    local list = ns.MapRevealData and ns.MapRevealData[MAP] or {}
+    for _, entry in ipairs(list) do
+        local pw, ph, ox, oy, texs = entry:match("^(%d+):(%d+):(%d+):(%d+):(.+)$")
+        pw, ph, ox, oy = tonumber(pw), tonumber(ph), tonumber(ox), tonumber(oy)
+        if pw then
+            local ids = {}
+            for id in texs:gmatch("%d+") do ids[#ids + 1] = tonumber(id) end
+            local cols, rows = math.ceil(pw / 256), math.ceil(ph / 256)
+            local right = (ox + pw / 2) > 501   -- which half the area belongs to
+            for r = 1, rows do
+                for c = 1, cols do
+                    local id = ids[(r - 1) * cols + c]
+                    if id then
+                        local tw = (c < cols) and 256 or (pw - 256 * (cols - 1))
+                        local th = (r < rows) and 256 or (ph - 256 * (rows - 1))
+                        local t = f.box:CreateTexture(nil, "ARTWORK")
+                        t:SetTexture(id)
+                        local fw, fh = 16, 16
+                        while fw < tw do fw = fw * 2 end
+                        while fh < th do fh = fh * 2 end
+                        t:SetTexCoord(0, tw / fw, 0, th / fh)
+                        t:SetSize(tw * sc, th * sc)
+                        t:SetPoint("TOPLEFT", (ox + 256 * (c - 1)) * sc, -(oy + 256 * (r - 1)) * sc)
+                        t.right = right
+                        f.pieces[#f.pieces + 1] = t
+                    end
+                end
+            end
+        end
+    end
+    f.split = f.box:CreateTexture(nil, "OVERLAY")
+    f.split:SetColorTexture(1, 1, 1, 0.35)
+    f.split:SetSize(1, h)
+    f.split:SetPoint("TOP", f.box, "TOP", 0, 0)
     f.frame = f:CreateTexture(nil, "OVERLAY")
-    f.frame:SetPoint("TOPLEFT", f.map, -3, 3) f.frame:SetPoint("BOTTOMRIGHT", f.map, 3, -3)
+    f.frame:SetPoint("TOPLEFT", f.box, -3, 3) f.frame:SetPoint("BOTTOMRIGHT", f.box, 3, -3)
     f.frame:SetColorTexture(0, 0, 0, 0)
-    f.l1 = K.Text(f, 10, C.dim) f.l1:SetPoint("TOPLEFT", f.map, "BOTTOMLEFT", 4, -6) f.l1:SetText(L["explored"])
-    f.l2 = K.Text(f, 10, C.dim) f.l2:SetPoint("TOPRIGHT", f.map, "BOTTOMRIGHT", -4, -6) f.l2:SetText(L["unexplored (revealed)"])
+    f.l1 = K.Text(f, 10, C.dim) f.l1:SetPoint("TOPLEFT", f.box, "BOTTOMLEFT", 4, -6) f.l1:SetText(L["explored"])
+    f.l2 = K.Text(f, 10, C.dim) f.l2:SetPoint("TOPRIGHT", f.box, "BOTTOMRIGHT", -4, -6) f.l2:SetText(L["unexplored (revealed)"])
     f.note = K.Text(f, 10, C.dim)
-    f.note:SetPoint("TOP", f.map, "BOTTOM", 0, -30)
+    f.note:SetPoint("TOP", f.box, "BOTTOM", 0, -30)
     f.note:SetText(L["Preview - changes show at once"])
     function f:Update()
         local reveal = S().mapReveal
         local r, g, b, a = 1, 1, 1, 1
         if ns.WorldMapPlus then r, g, b, a = ns.WorldMapPlus.Tint() end
-        self.unex:SetShown(reveal and true or false)
-        self.unex:SetVertexColor(r, g, b)
-        self.unex:SetAlpha(a)
+        for _, t in ipairs(self.pieces) do
+            if t.right then
+                t:SetShown(reveal and true or false)
+                t:SetVertexColor(r, g, b)
+                t:SetAlpha(a)
+            else
+                t:Show()
+                t:SetVertexColor(1, 1, 1)
+                t:SetAlpha(1)
+            end
+        end
         self.l2:SetText(reveal and L["unexplored (revealed)"] or L["unexplored (hidden)"])
     end
     f:Update()
