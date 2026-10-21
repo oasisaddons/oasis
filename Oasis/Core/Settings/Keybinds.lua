@@ -22,6 +22,11 @@ KB.ACTIONS = {
     { cmd = "OASIS_PROFILE", text = "Profile", icon = "profile", page = "insta" },
     { cmd = "OASIS_BLIZZGUILD", text = "Blizzard guild window", icon = "social" },
     { cmd = "OASIS_INVITE", text = "Invite player to guild", icon = "social" },
+    -- 0.6.593: gathering helpers (Oasis - Convenience)
+    { cmd = "OASIS_GATHER_SYMBOLS", text = "Gathering symbols on the minimap", icon = "map", gather = "gatherSymbols" },
+    { cmd = "OASIS_GATHER_ARROW", text = "Arrow to the nearest node", icon = "map", gather = "gatherArrow" },
+    { cmd = "OASIS_GATHER_SPARKLE", text = "Sparkles on herbs and ore nearby", icon = "map", gather = "gatherSparkle" },
+    { cmd = "OASIS_GATHER_SWITCH", text = "Switch finders automatically", icon = "map", gather = "gatherSwitch" },
 }
 -- Names for WoW's key bindings (only once all texts are loaded - LocaleData481 comes after it in the toc)
 local function names() for _, a in ipairs(KB.ACTIONS) do _G["BINDING_NAME_" .. a.cmd] = L[a.text] end end
@@ -40,6 +45,9 @@ function KB.Run(cmd)
                 if ns.GuildTools then ns.GuildTools.OpenBlizzard() end
             elseif cmd == "OASIS_INVITE" then
                 if ns.GuildTools then ns.GuildTools.AskInvite() end
+            elseif a.gather then
+                if ns.GatherSight then ns.GatherSight.Toggle(a.gather)
+                else K.Toast(L[a.text], L["Needs the add-on Oasis - Convenience"], C.amber or C.accent) end
             elseif cmd == "OASIS_EMOJI" then
                 if ns.Emoji and ns.Emoji.TogglePicker then ns.Emoji.TogglePicker() end
             elseif a.page then

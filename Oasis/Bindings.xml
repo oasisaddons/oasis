@@ -39,4 +39,16 @@
 	<Binding name="OASIS_INVITE">
 		Oasis_KeyAction("OASIS_INVITE")
 	</Binding>
+	<Binding name="OASIS_GATHER_SYMBOLS">
+		Oasis_KeyAction("OASIS_GATHER_SYMBOLS")
+	</Binding>
+	<Binding name="OASIS_GATHER_ARROW">
+		Oasis_KeyAction("OASIS_GATHER_ARROW")
+	</Binding>
+	<Binding name="OASIS_GATHER_SPARKLE">
+		Oasis_KeyAction("OASIS_GATHER_SPARKLE")
+	</Binding>
+	<Binding name="OASIS_GATHER_SWITCH">
+		Oasis_KeyAction("OASIS_GATHER_SWITCH")
+	</Binding>
 </Bindings>

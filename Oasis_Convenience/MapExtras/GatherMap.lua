@@ -30,6 +30,9 @@ GM.KINDS = {
     repair = { name = "Repair", icon = "Interface\\Icons\\Trade_BlackSmithing", color = { 0.8, 0.8, 0.82 }, poi = true },
     mail = { name = "Mailboxes", icon = "Interface\\Icons\\INV_Letter_15", color = { 0.8, 0.8, 0.82 }, poi = true },
     flight = { name = "Flight points", icon = "Interface\\Icons\\Ability_Mount_Wyvern_01", color = { 0.8, 0.8, 0.82 }, poi = true },
+    -- 0.6.593: only seen live by the minimap scan (symbol, arrow), never stored
+    rare = { name = "Rares", icon = "Interface\\Icons\\Ability_Hunter_MarkedForDeath", color = { 0.95, 0.35, 0.35 }, live = true },
+    leyline = { name = "Leylines", icon = "Interface\\Icons\\Spell_Arcane_Arcane04", color = { 0.55, 0.65, 1 }, live = true },
 }
 local NEAR = 0.006   -- map fraction: closer = same node
 
@@ -426,7 +429,8 @@ function GM.DrawMinimap()
         for i = #near, 1, -1 do near[i] = nil end
         local reach = 360   -- meters: largest minimap radius (233) plus the distance travelled in one second
         for _, r in ipairs(GM.Nodes(map)) do
-            if shown(r) and not GM.KINDS[r.kind].poi then
+            -- 0.6.593: a node shown as live symbol right now is not drawn twice
+            if shown(r) and not GM.KINDS[r.kind].poi and not (GM.LiveCovers and GM.LiveCovers(r)) then
                 local dx, dy = (r.x - mx) * w, (r.y - my) * h
                 if dx * dx + dy * dy < reach * reach then near[#near + 1] = r end
             end
@@ -568,8 +572,109 @@ local NODE_NAMES = {
         "Ooze Covered Silver Vein", "Ooze Covered Iron Deposit", "Ooze Covered Mithril Deposit", "Ooze Covered Thorium Vein" },
 }
 local function umlautLess(t) return (t:gsub("\195\164", "ae"):gsub("\195\182", "oe"):gsub("\195\188", "ue"):gsub("\195\159", "ss")) end
+-- 0.6.593: per node English name, German name, gathering skill needed, item icon (game data)
+local NODE_INFO = {
+    herb = {
+        { "Peacebloom", "Friedensblume", 1, "inv_misc_flower_02" }, { "Silverleaf", "Silberblatt", 1, "inv_misc_herb_10" },
+        { "Earthroot", "Erdwurzel", 15, "inv_misc_herb_07" }, { "Mageroyal", "Maguskönigskraut", 50, "inv_jewelry_talisman_03" },
+        { "Briarthorn", "Wilddornrose", 70, "inv_misc_root_01" }, { "Stranglekelp", "Würgetang", 85, "inv_misc_herb_11" },
+        { "Bruiseweed", "Beulengras", 100, "inv_misc_herb_01" }, { "Wild Steelbloom", "Wildstahlblume", 115, "inv_misc_flower_01" },
+        { "Grave Moss", "Grabmoos", 120, "inv_misc_dust_02" }, { "Kingsblood", "Königsblut", 125, "inv_misc_herb_03" },
+        { "Liferoot", "Lebenswurz", 150, "inv_misc_root_02" }, { "Fadeleaf", "Blassblatt", 160, "inv_misc_herb_12" },
+        { "Goldthorn", "Golddorn", 170, "inv_misc_herb_15" }, { "Khadgar's Whisker", "Khadgars Schnurrbart", 185, "inv_misc_herb_08" },
+        { "Wintersbite", "Winterbiss", 195, "inv_misc_flower_03" }, { "Firebloom", "Feuerblüte", 205, "inv_misc_herb_19" },
+        { "Purple Lotus", "Lila Lotus", 210, "inv_misc_herb_17" }, { "Arthas' Tears", "Arthas' Tränen", 220, "inv_misc_herb_13" },
+        { "Sungrass", "Sonnengras", 230, "inv_misc_herb_18" }, { "Blindweed", "Blindkraut", 235, "inv_misc_herb_14" },
+        { "Ghost Mushroom", "Geisterpilz", 245, "inv_mushroom_08" }, { "Gromsblood", "Gromsblut", 250, "inv_misc_herb_16" },
+        { "Golden Sansam", "Goldener Sansam", 260, "inv_misc_herb_sansamroot" }, { "Dreamfoil", "Traumblatt", 270, "inv_misc_herb_dreamfoil" },
+        { "Mountain Silversage", "Bergsilbersalbei", 280, "inv_misc_herb_mountainsilversage" },
+        { "Plaguebloom", "Pestblüte", 285, "inv_misc_herb_plaguebloom" }, { "Icecap", "Eiskappe", 290, "inv_misc_herb_icecap" },
+        { "Black Lotus", "Schwarzer Lotus", 300, "inv_misc_herb_blacklotus" },
+    },
+    ore = {
+        { "Copper Vein", "Kupferader", 1, "inv_ore_copper_01" }, { "Tin Vein", "Zinnader", 65, "inv_ore_tin_01", { 0.26, 0.7, 0.68 } },
+        { "Incendicite Mineral Vein", "Pyrophormineralvorkommen", 65, "inv_ore_thorium_01" },
+        { "Silver Vein", "Silberader", 75, "inv_stone_16" }, { "Ooze Covered Silver Vein", nil, 75, "inv_stone_16" },
+        { "Lesser Bloodstone Deposit", "Geringe Blutsteinablagerung", 75, "inv_ore_thorium_01" },
+        { "Iron Deposit", "Eisenvorkommen", 125, "inv_ore_iron_01", { 0.82, 0.55, 0.36 } }, { "Ooze Covered Iron Deposit", nil, 125, "inv_ore_iron_01" },
+        { "Gold Vein", "Goldader", 155, "inv_ore_copper_01" }, { "Ooze Covered Gold Vein", nil, 155, "inv_ore_copper_01" },
+        { "Mithril Deposit", "Mithrilablagerung", 175, "inv_ore_mithril_02" }, { "Ooze Covered Mithril Deposit", nil, 175, "inv_ore_mithril_02" },
+        { "Truesilver Deposit", "Echtsilberablagerung", 230, "inv_ore_truesilver_01" }, { "Ooze Covered Truesilver Deposit", nil, 230, "inv_ore_truesilver_01" },
+        { "Dark Iron Deposit", "Dunkeleisenablagerung", 230, "inv_ore_mithril_01" },
+        { "Small Thorium Vein", "Kleine Thoriumader", 245, "inv_ore_thorium_02" }, { "Ooze Covered Thorium Vein", nil, 245, "inv_ore_thorium_02" },
+        { "Rich Thorium Vein", "Reiche Thoriumader", 275, "inv_ore_thorium_02" }, { "Ooze Covered Rich Thorium Vein", nil, 275, "inv_ore_thorium_02" },
+    },
+}
+local infoBy = {}
+for kind, list in pairs(NODE_INFO) do
+    for _, e in ipairs(list) do
+        local rec = { kind = kind, en = e[1], skill = e[3], icon = "Interface\\Icons\\" .. e[4], ring = e[5] }
+        infoBy[e[1]:lower()] = rec
+        if e[2] then infoBy[e[2]:lower()] = rec infoBy[umlautLess(e[2]):lower()] = rec end
+    end
+end
+local function plainName(n) return (n:lower():gsub("\226\128\153", "'")) end
+function GM.NodeInfo(name)
+    if type(name) ~= "string" then return nil end
+    local n = plainName(name)
+    return infoBy[n] or infoBy[umlautLess(n)]
+end
+-- treasures, rares and leylines: only for the live symbols and the arrow
+local TREASURE_ENDS = { " chest", "footlocker", "strongbox", "lockbox", "coffer", "truhe", "kassette", "schatulle" }
+local LEY_ENDS = { "leyline", "ley line", "convergence", "leylinie", "konvergenz" }
+local rareNames, rareAt
+local function ends(t, e) return t:sub(-#e) == e end
+function GM.ExtraKind(name)
+    if type(name) ~= "string" or name:find("[%d:/]") then return nil end   -- quest progress ("Peacebloom 3/8")
+    local n = plainName(name)
+    for _, e in ipairs(TREASURE_ENDS) do if ends(n, e) or n == e:gsub("^ ", "") then return "treasure" end end
+    for _, e in ipairs(LEY_ENDS) do if ends(n, e) then return "leyline" end end
+    -- rares the guild knows (rares module, if loaded)
+    local now = GetTime and GetTime() or 0
+    if not rareNames or now - (rareAt or 0) > 30 then
+        rareNames, rareAt = {}, now
+        local ok, list = pcall(function() return ns.Rares and ns.Rares.List and ns.Rares.List() or {} end)
+        if ok and type(list) == "table" then for _, r in ipairs(list) do if r.name then rareNames[plainName(r.name)] = true end end end
+    end
+    if rareNames[n] then return "rare" end
+end
+-- 0.6.593: "Requires Herbalism (115)" - red too hard, then the profession window's colors for the skill-up chance
+local SKILL_LINE = { herb = 182, ore = 186 }
+local skillCache, skillAt = {}, 0
+function GM.Skill(kind)
+    local now = GetTime and GetTime() or 0
+    if now - skillAt > 2 then
+        skillCache, skillAt = {}, now
+        local ok, list = pcall(ns.Radar and ns.Radar.myProfessions or function() return {} end)
+        if ok and type(list) == "table" then
+            for _, p in ipairs(list) do for k, id in pairs(SKILL_LINE) do if p.id == id then skillCache[k] = { rank = p.rank, name = p.name } end end end
+        end
+    end
+    return skillCache[kind]
+end
+function GM.SkillLine(name)
+    local info = GM.NodeInfo(name)
+    if not info then return nil end
+    local own = GM.Skill(info.kind)
+    if not own then return nil end
+    local over = (own.rank or 0) - info.skill
+    local r, g, b
+    if over < 0 then r, g, b = 1, 0.1, 0.1
+    elseif over < 25 then r, g, b = 1, 0.5, 0.25
+    elseif over < 50 then r, g, b = 1, 1, 0
+    elseif over < 100 then r, g, b = 0.25, 0.75, 0.25
+    else r, g, b = 0.5, 0.5, 0.5 end
+    return (ITEM_MIN_SKILL or "Requires %s (%d)"):format(own.name or "", info.skill), r, g, b
+end
+function GM.TooHard(name)
+    local info = GM.NodeInfo(name)
+    local own = info and GM.Skill(info.kind)
+    return own ~= nil and (own.rank or 0) < info.skill
+end
 local nameKind
 local function kindForName(n)
+    local ni = GM.NodeInfo(n)
+    if ni then return ni.kind end
     if not nameKind then
         nameKind = {}
         for kind, list in pairs(NODE_NAMES) do for _, x in ipairs(list) do nameKind[x:lower()] = kind end end
@@ -645,6 +750,9 @@ end)
 ------------------------------------------------------------------------
 local SCAN_STEP, SCAN_PER_FRAME, SCAN_PAUSE = 7, 50, 2
 local scanJob, scanWait = nil, 0
+-- 0.6.593: standing still with nothing new: the pause doubles up to 30 s; looting, moving, switching = at once again
+local REST_MAX, rest, lastSig = 30, 2, nil
+function GM.ScanSoon(sec) rest = SCAN_PAUSE scanWait = math.min(scanWait, sec or 0.3) end
 GM.scanStats = { runs = 0, hits = 0, added = 0 }
 local function canScan()
     local s = ns.db and ns.db.settings
@@ -672,7 +780,8 @@ local function newScan()
             if ox * ox + oy * oy <= r * r then pts[#pts + 1] = { ox, oy } end
         end
     end
-    return { c = c, pts = pts, i = 1, hits = {} }
+    local sig = ("%d:%.4f:%.4f:%.2f:%.2f"):format(c.map, c.mx, c.my, c.sinF, c.radius)
+    return { c = c, pts = pts, i = 1, hits = {}, sig = sig }
 end
 local function probe(job, sc, cx, cy, p)
     Minimap:UpdateMouseoverAtPoint((cx + p[1]) * sc, (cy + p[2]) * sc)
@@ -684,7 +793,7 @@ local function probe(job, sc, cx, cy, p)
         if type(txt) == "string" then
             for part in txt:gmatch("[^\n]+") do
                 local n = part:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("^%s+", ""):gsub("%s+$", "")
-                local kind = n ~= "" and kindForName(n)
+                local kind = n ~= "" and (kindForName(n) or GM.ExtraKind(n))
                 if kind then
                     local h = job.hits[n]
                     if not h then h = { kind = kind } job.hits[n] = h end
@@ -824,12 +933,40 @@ local function finishScan(job)
             GM.scanStats.hits = GM.scanStats.hits + 1
             local x, y = pxToMap(job.c, m[1], m[2])
             live[#live + 1] = { kind = g.kind, name = g.name, map = job.c.map, x = x, y = y }
-            local ok, res = pcall(GM.Record, g.kind, g.name, x, y)
-            if ok and res == "neu gespeichert" then added[#added + 1] = g.name end
+            if g.kind == "herb" or g.kind == "ore" then
+                local ok, res = pcall(GM.Record, g.kind, g.name, x, y)
+                if ok and res == "neu gespeichert" then added[#added + 1] = g.name end
+            end
         end
     end
-    -- dots on the minimap right now (for arrow, pin and sparkles)
-    GM.scanLive, GM.scanLiveAt = live, GetTime and GetTime() or 0
+    -- 0.6.593: dots seen before keep their first time; new ones ring the sound
+    local now = GetTime and GetTime() or 0
+    local old, fresh = GM.scanLive or {}, false
+    for _, d in ipairs(live) do
+        for _, o in ipairs(old) do
+            if o.name == d.name and o.map == d.map and math.abs(o.x - d.x) < 0.002 and math.abs(o.y - d.y) < 0.002 then d.seen = o.seen break end
+        end
+        if not d.seen then d.seen, fresh = now, true end
+    end
+    -- finder switching shows one kind at a time: dots of the kind not tracked right now are held for a while
+    local tracked = GM.TrackedKinds()
+    for _, o in ipairs(old) do
+        if (o.kind == "herb" or o.kind == "ore") and not tracked[o.kind] and o.map == job.c.map and now - (o.seen or now) < 120 then
+            local dup = false
+            for _, d in ipairs(live) do
+                if d.name == o.name and math.abs(d.x - o.x) < 0.002 and math.abs(d.y - o.y) < 0.002 then dup = true break end
+            end
+            if not dup then o.held = true live[#live + 1] = o end
+        end
+    end
+    job.fresh = fresh
+    if fresh and ns.db.settings.gatherSound and now - (GM.soundAt or 0) > 3 then
+        GM.soundAt = now
+        if PlaySound then pcall(PlaySound, SOUNDKIT and SOUNDKIT.MAP_PING or 3175, "Master") end
+    end
+    -- dots on the minimap right now (for arrow, pin, symbols and sparkles)
+    GM.scanLive, GM.scanLiveAt = live, now
+    GM.scanDone = true
     GM.scanStats.runs = GM.scanStats.runs + 1
     GM.scanStats.added = GM.scanStats.added + #added
     if #added > 0 then ns.print((L["Minimap scan: %d new gathering spots (%s)"]):format(#added, table.concat(added, ", "))) end
@@ -859,12 +996,120 @@ function GM.ScanStep(el)
     end
     if soft then pcall(soft, Minimap, false) end
     if job.fpts and job.fi > #job.fpts then
-        scanJob, scanWait = nil, SCAN_PAUSE
+        scanJob = nil
+        -- the minimap turned during the run (rotating minimap): positions would be skewed - again right away
+        local now = GM.MiniCtx()
+        if now and math.abs(now.sinF - job.c.sinF) + math.abs(now.cosF - job.c.cosF) > 0.06 then scanWait = 0.2 return end
         local ok, err = pcall(finishScan, job)
         if not ok and ns.Debug then ns.Debug("gatherscan", err) end
+        if job.sig == lastSig and not job.fresh then rest = math.min(rest * 2, REST_MAX) else rest = SCAN_PAUSE end
+        lastSig, scanWait = job.sig, rest
+        pcall(GM.SwitchFinder)
     end
 end
 CreateFrame("Frame"):SetScript("OnUpdate", function(_, el) GM.ScanStep(el) end)
+-- 0.6.593: the minimap shows one finder at a time. With herbalism and mining, "switch finders" changes between
+-- Find Herbs and Find Minerals every few meters (out of combat); the other kind's dots stay as held symbols.
+local FINDER = { [2383] = "herb", [2580] = "ore", [2481] = "treasure" }
+local function finders()
+    local out = {}
+    if not (C_Minimap and C_Minimap.GetNumTrackingTypes and C_Minimap.GetTrackingInfo) then return nil end
+    for i = 1, C_Minimap.GetNumTrackingTypes() or 0 do
+        local info = ns.safe(C_Minimap.GetTrackingInfo(i))
+        local kind = type(info) == "table" and FINDER[ns.safe(info.spellID)]
+        if kind then out[kind] = { index = i, active = ns.safe(info.active) == true } end
+    end
+    return out
+end
+function GM.TrackedKinds()
+    local f = finders()
+    if not f then return { herb = true, ore = true, treasure = true } end
+    local out = {}
+    for k, v in pairs(f) do if v.active then out[k] = true end end
+    -- no finder known at all (other client): nothing counts as held
+    if not f.herb and not f.ore then out.herb, out.ore = true, true end
+    return out
+end
+local CLICK = 567407   -- the game's UI click, muted while the finder changes
+local switchAt
+function GM.SwitchFinder()
+    local s = ns.db.settings
+    if not s.gatherSwitch or not GM.scanDone then return end
+    if InCombatLockdown and InCombatLockdown() then return end
+    local f = finders()
+    if not (f and f.herb and f.ore and C_Minimap.SetTracking) then return end
+    if f.herb.active == f.ore.active then return end
+    local c = GM.MiniCtx()
+    if not c then return end
+    if not switchAt or switchAt.map ~= c.map then switchAt = { map = c.map, x = c.mx, y = c.my } return end
+    local dx, dy = (c.mx - switchAt.x) * c.w, (c.my - switchAt.y) * c.h
+    local yards = s.gatherSwitchYards or 40
+    if dx * dx + dy * dy < yards * yards then return end
+    switchAt = { map = c.map, x = c.mx, y = c.my }
+    GM.scanDone = false
+    if MuteSoundFile then pcall(MuteSoundFile, CLICK) end
+    pcall(C_Minimap.SetTracking, (f.herb.active and f.ore or f.herb).index, true)
+    if C_Timer and UnmuteSoundFile then C_Timer.After(0.6, function() pcall(UnmuteSoundFile, CLICK) end) end
+    GM.ScanSoon(1)
+end
+-- looted: held dots right where you stand are gone (you just took it)
+ns.On("LOOT_CLOSED", function()
+    local c = GM.MiniCtx()
+    if c and GM.scanLive then
+        for i = #GM.scanLive, 1, -1 do
+            local d = GM.scanLive[i]
+            local dx, dy = (d.x - c.mx) * c.w, (d.y - c.my) * c.h
+            if d.held and dx * dx + dy * dy < 100 then table.remove(GM.scanLive, i) end
+        end
+    end
+    GM.ScanSoon(0.5)
+end)
+ns.On("MINIMAP_UPDATE_TRACKING", function() GM.ScanSoon(0.5) end)
+ns.On("MINIMAP_UPDATE_ZOOM", function() GM.ScanSoon(0.3) end)
+-- skill line in the minimap tooltip and on the node's own tooltip
+local function addSkill(tt, names)
+    local said = {}
+    for i = 1, tt:NumLines() do
+        local fs = _G[tt:GetName() .. "TextLeft" .. i]
+        local t = fs and ns.safe(fs:GetText())
+        if type(t) == "string" then said[t] = true end
+    end
+    local added
+    for _, n in ipairs(names) do
+        local line, r, g, b = GM.SkillLine(n)
+        if line and not said[line] then said[line] = true tt:AddLine(line, r, g, b) added = true end
+    end
+    return added
+end
+local function namesOf(lines)
+    local out = {}
+    if type(lines) ~= "table" then return out end
+    for _, l in ipairs(lines) do
+        local t = ns.safe(l.leftText)
+        if type(t) == "string" then
+            for part in t:gmatch("[^\n]+") do out[#out + 1] = (part:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("^%s+", ""):gsub("%s+$", "")) end
+        end
+    end
+    return out
+end
+GM.AddSkill, GM.NamesOf = addSkill, namesOf
+if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
+    local T = Enum.TooltipDataType
+    if T.MinimapMouseover then
+        TooltipDataProcessor.AddTooltipPostCall(T.MinimapMouseover, function(tt, data)
+            if ns.db.settings.gatherSkillOff then return end
+            pcall(addSkill, tt, namesOf(ns.safe(data and data.lines)))
+        end)
+    end
+    if T.Object then
+        TooltipDataProcessor.AddTooltipPostCall(T.Object, function(tt, data)
+            if ns.db.settings.gatherSkillOff then return end
+            local lines = ns.safe(data and data.lines)
+            local first = type(lines) == "table" and lines[1] and ns.safe(lines[1].leftText)
+            if type(first) == "string" then pcall(addSkill, tt, { first }) end
+        end)
+    end
+end
 ns.slash.gatherscan = function()
     ns.db.settings.gatherScan = ns.db.settings.gatherScan == false and true or false
     local st = GM.scanStats
