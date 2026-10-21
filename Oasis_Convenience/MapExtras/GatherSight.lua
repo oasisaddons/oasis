@@ -67,15 +67,21 @@ function GS.Nearest()
     if ns.inInstance() then return nil end
     local map, mx, my, w, h = here()
     if not map then return nil end
-    local best, bd
+    local best, bd, bscore
     local profOnly = S().gatherArrowProfFirst
+    local GG = ns.GatherGuild
+    -- 0.6.598: guild members farming nearby get their side; wanted nodes count as 40 % nearer
+    local farmers = GG and GG.Farmers() or {}
+    if GG and farmers[1] then GG.TellFarmers(farmers) end
     local function try(r)
         if r.map ~= map or not arrowWants(r.kind) or GM.TooHard(r.name) then return end
         if r.cave and not S().gatherArrowCaves then return end
         if profOnly and not GM.PROF_KINDS[r.kind] then return end
+        if GG and GG.Theirs(r, farmers, mx, my) then return end
         local dx, dy = (r.x - mx) * w, (r.y - my) * h
         local d = math.sqrt(dx * dx + dy * dy)
-        if d > AT and d <= FAR and (not bd or d < bd) then best, bd = r, d end
+        local score = d * ((GG and GG.WantedBy(r.name)) and 0.6 or 1)
+        if d > AT and d <= FAR and (not bscore or score < bscore) then best, bd, bscore = r, d, score end
     end
     for _, r in ipairs(GS.Live()) do try(r) end
     -- 0.6.597: herbs and ore first - the others only if there is none
@@ -130,6 +136,13 @@ local function sym(i)
     p.ring = p:CreateTexture(nil, "OVERLAY")
     p.ring:SetTexture(ns.MEDIA .. "pinring")
     p.ring:SetPoint("TOPLEFT", -2, 2) p.ring:SetPoint("BOTTOMRIGHT", 2, -2)
+    -- 0.6.598: someone in the guild wants it: soft gold halo
+    p.want = p:CreateTexture(nil, "BACKGROUND", nil, -1)
+    p.want:SetTexture(ns.MEDIA .. "halo_ring")
+    p.want:SetBlendMode("ADD")
+    p.want:SetVertexColor(1, 0.8, 0.25)
+    p.want:SetPoint("TOPLEFT", -8, 8) p.want:SetPoint("BOTTOMRIGHT", 8, -8)
+    p.want:Hide()
     p:EnableMouse(true)
     p:SetScript("OnEnter", function(self)
         if not (self.d and GameTooltip) then return end
@@ -139,6 +152,8 @@ local function sym(i)
         if line then GameTooltip:AddLine(line, r, g, b) end
         if self.d.held then GameTooltip:AddLine(L["Seen before the finder switched"], 0.6, 0.6, 0.6) end
         if self.d.cave then GameTooltip:AddLine(L["In a cave or on another level"], 0.6, 0.6, 0.6) end
+        local who = ns.GatherGuild and ns.GatherGuild.WantedBy(self.d.name)
+        if who then GameTooltip:AddLine((L["Wanted by %s"]):format(ns.displayName(who)), 1, 0.82, 0) end
         GameTooltip:Show()
     end)
     p:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -170,6 +185,7 @@ function GS.DrawSymbols()
                     local o = shape == 4 and 1 or 2
                     p.ring:SetPoint("TOPLEFT", -o, o) p.ring:SetPoint("BOTTOMRIGHT", o, -o)
                     tex:SetTexture(icon)
+                    p.want:SetShown(ns.GatherGuild and ns.GatherGuild.WantedBy(d.name) and true or false)
                     local k = GM.KINDS[d.kind] or {}
                     local ring = info and info.ring or k.color or { 1, 1, 1 }
                     p.ring:SetVertexColor(ring[1], ring[2], ring[3], shape == 4 and 0.7 or 1)

@@ -163,6 +163,9 @@ function GM.Record(kind, name, px, py)
             -- center, i.e. the game's node dot; at most 8 harvests count so it can still move
             local m = math.min(8, (r.m or 1))
             local c = {} for k, v in pairs(r) do c[k] = v end
+            -- 0.6.598: harvest times (last 8, as text - the store only keeps flat values) for the respawn estimate
+            if age > 120 then c.hh = GM.AddHarvest(r.hh, ns.now()) end
+            if ns.GatherGuild then pcall(ns.GatherGuild.OnHarvest, map, kind) end
             c.x = math.floor(((r.x * m + x) / (m + 1)) * 10000) / 10000
             c.y = math.floor(((r.y * m + y) / (m + 1)) * 10000) / 10000
             c.m = m + 1
@@ -178,7 +181,8 @@ function GM.Record(kind, name, px, py)
     end
     Store.Put("nodes", { id = ("nd-%s-%d-%d-%d"):format(kind, map, math.floor(x * 1000), math.floor(y * 1000)),
         kind = kind, name = name, map = map, x = math.floor(x * 10000) / 10000, y = math.floor(y * 10000) / 10000,
-        n = 1, ts = ns.now(), by = ns.me() })
+        n = 1, ts = ns.now(), by = ns.me(), hh = (not hover) and tostring(ns.now()) or nil })
+    if not hover and ns.GatherGuild then pcall(ns.GatherGuild.OnHarvest, map, kind) end
     if ns.Map and WorldMapFrame and WorldMapFrame:IsShown() then ns.Map.UpdateWorldPins() end
     return "neu gespeichert"
 end
@@ -269,11 +273,61 @@ local function wPin(canvas)
     if p:GetParent() ~= canvas then p:SetParent(canvas) end
     return p
 end
+-- 0.6.598: respawn estimate per node type from the guild's harvest times. Between two harvests of the same node
+-- lies at least one respawn; the lower quarter of all those gaps is the estimate (needs at least 3 gaps).
+function GM.AddHarvest(hh, t)
+    local list = {}
+    for v in tostring(hh or ""):gmatch("%d+") do list[#list + 1] = v end
+    list[#list + 1] = tostring(math.floor(t))
+    while #list > 8 do table.remove(list, 1) end
+    return table.concat(list, ",")
+end
+local respawnCache, respawnAt = {}, -100
+function GM.RespawnOf(name)
+    local now = GetTime and GetTime() or 0
+    if now - respawnAt > 60 then respawnCache, respawnAt = {}, now end
+    if respawnCache[name] ~= nil then return respawnCache[name] or nil end
+    local gaps = {}
+    for _, r in ipairs(GM.Nodes()) do
+        if r.name == name and r.hh then
+            local prev
+            for v in tostring(r.hh):gmatch("%d+") do
+                v = tonumber(v)
+                if prev and v - prev > 120 then gaps[#gaps + 1] = v - prev end
+                prev = v
+            end
+        end
+    end
+    local est
+    if #gaps >= 3 then
+        table.sort(gaps)
+        est = gaps[math.max(1, math.floor(#gaps * 0.25))]
+    end
+    respawnCache[name] = est or false
+    return est
+end
+function GM.RespawnText(r, now)
+    if not (r.hh and r.name and r.name ~= "") then return nil end
+    local est = GM.RespawnOf(r.name)
+    if not est then return nil end
+    local last = 0
+    for v in tostring(r.hh):gmatch("%d+") do last = tonumber(v) end
+    local left = est - ((now or ns.now()) - last)
+    if left <= 0 then return "|cff7fd77f" .. L["probably back"] .. "|r" end
+    return "|cffd8b04a" .. (L["back in about %d min"]):format(math.ceil(left / 60)) .. "|r"
+end
 local function tipOf(r)
     local k = GM.KINDS[r.kind]
-    return { K.hex(k.color) .. ((r.name ~= "" and r.name) or L[k.name]) .. "|r" .. (harvested(r, ns.now()) and ("  |cff999999" .. L["just harvested"] .. "|r") or ""),
+    local out = { K.hex(k.color) .. ((r.name ~= "" and r.name) or L[k.name]) .. "|r" .. (harvested(r, ns.now()) and ("  |cff999999" .. L["just harvested"] .. "|r") or ""),
         (L["Found %dx"]):format(r.n or 1) .. "  ·  " .. L["last"] .. " " .. ns.ago(r.ts),
         "|cff888888" .. L["added by"] .. " " .. ns.displayName(r.by or "?") .. "|r" }
+    local rs = GM.RespawnText(r)
+    if rs then out[#out + 1] = rs end
+    local who = ns.GatherGuild and ns.GatherGuild.WantedBy(r.name)
+    if who then out[#out + 1] = "|cffffd100" .. (L["Wanted by %s"]):format(ns.displayName(who)) .. "|r" end
+    local line, cr, cg, cb = GM.SkillLine(r.name)
+    if line then out[#out + 1] = K.hex({ cr, cg, cb }) .. line .. "|r" end
+    return out
 end
 -- 0.6.431: continent/world map - nodes of the zones below converted (C_Map.GetMapRectOnMap)
 function GM.NodesOn(mapID)
@@ -614,6 +668,17 @@ for kind, list in pairs(NODE_INFO) do
     end
 end
 local function plainName(n) return (n:lower():gsub("\226\128\153", "'")) end
+-- 0.6.598: all known herb/ore nodes (name in the client language) - for the watch list
+function GM.NodeList()
+    local de = GetLocale and GetLocale() == "deDE"
+    local out = {}
+    for _, kind in ipairs({ "herb", "ore" }) do
+        for _, e in ipairs(NODE_INFO[kind]) do
+            if not e[1]:find("^Ooze") then out[#out + 1] = { en = e[1], name = (de and e[2]) or e[1], skill = e[3], kind = kind } end
+        end
+    end
+    return out
+end
 function GM.NodeInfo(name)
     if type(name) ~= "string" then return nil end
     local n = plainName(name)
@@ -1010,7 +1075,10 @@ local function finishScan(job)
                 break
             end
         end
-        if not d.seen then d.seen, d.k, fresh = now, 1, true end
+        if not d.seen then
+            d.seen, d.k, fresh = now, 1, true
+            if ns.GatherGuild then pcall(ns.GatherGuild.ShareLive, d) end
+        end
         live[#live + 1] = d
         if d.kind == "herb" or d.kind == "ore" then
             local ok, res = pcall(GM.Record, d.kind, d.name, d.x, d.y)
@@ -1232,7 +1300,16 @@ local routes = {}   -- per map: { sig, list, len, idx } - the world map often sh
 local function routeNodes(map)
     local out = {}
     for _, r in ipairs(GM.Nodes(map)) do
-        if shown(r) and not GM.KINDS[r.kind].poi then out[#out + 1] = r end
+        if shown(r) and not GM.KINDS[r.kind].poi then
+            -- 0.6.598: skill-up route - only nodes that still give skill (orange, yellow, green), no gray and none too hard
+            local keep = true
+            if S().gatherRouteSkill then
+                local info = GM.NodeInfo(r.name)
+                local own = info and GM.Skill(info.kind)
+                if own and own.rank then local over = own.rank - info.skill keep = over >= 0 and over < 100 end
+            end
+            if keep then out[#out + 1] = r end
+        end
     end
     if #out > ROUTE_MAX then
         table.sort(out, function(a, b) if (a.n or 1) ~= (b.n or 1) then return (a.n or 1) > (b.n or 1) end return tostring(a.id) < tostring(b.id) end)
@@ -1278,7 +1355,7 @@ function GM.Route(map)
     if not map or not S().gatherRoute then return nil end
     local nodes = routeNodes(map)
     local sig = map .. ":" .. #nodes .. ":" .. (S().gatherMinCount or 1) .. ":" .. tostring(byMap)
-        .. (showKind("herb") and "h" or "") .. (showKind("ore") and "o" or "") .. (showKind("treasure") and "t" or "")
+        .. (showKind("herb") and "h" or "") .. (showKind("ore") and "o" or "") .. (showKind("treasure") and "t" or "") .. (S().gatherRouteSkill and "s" or "")
     local route = routes[map]
     if route and route.sig == sig then return route end
     local w, h = C_Map.GetMapWorldSize(map)

@@ -1239,6 +1239,11 @@ ns.AddPageSettings("map", function(det, y)
         { "Arrow: treasures", "gatherArrowTreasure", nil, nil, true },
         { "Arrow: rares", "gatherArrowRare", "Rares your guild has seen, while Track Beasts/Humanoids shows them", nil, true },
         { "Arrow: leylines", "gatherArrowLeyline", nil, nil, true },
+        { "Guild finds: notices", "gatherAlerts", "Someone in the guild sees a node from your watch list on the minimap: notice with map pin", nil, true },
+        { "Guild finds: share mine", "gatherAlertsShare", "Valuable herbs and ore (skill 230+) you see go to the guild right away", nil, true },
+        { "Wishlist nodes first", "gatherWanted", "Herbs and ore someone in the guild wants: gold halo, the arrow prefers them", nil, true },
+        { "Leave nearby guild farmers their side", "gatherShareArea", "The arrow skips nodes closer to a guild member gathering nearby", nil, true },
+        { "Skill-up route", "gatherRouteSkill", "The gathering route only takes nodes that still give you skill", symUpd },
         { "Arrow: herbs and ore first", "gatherArrowProfFirst", "Treasures, rares and leylines only when no herb or ore is near", nil },
         { "Arrow: also nodes in caves", "gatherArrowCaves", "Off = nodes the minimap shows in gray (cave, other level) are skipped", nil },
         { "Lock arrow", "gatherArrowLock", "Cannot be dragged, clicks go through", function() if ns.GatherSight then ns.GatherSight.Apply() end end },
@@ -1265,6 +1270,12 @@ ns.AddPageSettings("map", function(det, y)
         K.ShowMenu(sorts, items, L["Filter individual types"])
     end)
     sorts:SetPoint("TOPLEFT", 14, y)
+    -- 0.6.598: watch list for guild finds and the farm statistics
+    local watch
+    watch = K.Button(det, L["Guild finds: notify me for"], 226, 24, nil, function() if ns.GatherGuild then ns.GatherGuild.WatchMenu(watch) end end)
+    watch:SetPoint("TOPLEFT", 250, y)
+    local stats = K.Button(det, L["Farm statistics"], 200, 24, nil, function() if ns.GatherGuild then ns.GatherGuild.ShowPanel() end end)
+    stats:SetPoint("TOPLEFT", 486, y)
     y = y - 36
     end
 
