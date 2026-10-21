@@ -306,6 +306,7 @@ local function sparkleOn(parent, key, dy)
         active[f] = true
     end
     style(f)
+    f:SetScale(1)
     f:ClearAllPoints()
     f:SetPoint("CENTER", parent, dy and "CENTER" or "BOTTOM", 0, dy or -50)
     f:Show()
@@ -356,6 +357,68 @@ local function updateFar()
         and not (nav.WasClampedToScreen and nav.WasClampedToScreen())
     local dist = ok and nav.GetDistance and ns.safe(nav.GetDistance())
     if ok and (type(dist) ~= "number" or dist > 25) then sparkleOn(f, FAR_KEY, 0) else sparkleOff(FAR_KEY) end
+    GS.FarOthers(ok and f)
+end
+-- 0.6.594: up to four more nodes far away. The pinned node's marker is the reference: its screen position gives
+-- the camera's turn against your facing and the horizon; the others are placed on the ground from there
+-- (flat ground, camera height from the zoom). Approximate on purpose - it is a hint where to look.
+local MORE = 4
+function GS.Project(ref, refX, refY, list, facing, f, cx, camH)
+    local out = {}
+    local sideRef = ref.bearing - facing
+    local yaw = sideRef - math.atan((cx - refX) / f)
+    local dRef = ref.dist * math.cos(sideRef - yaw)
+    if dRef <= 1 then return out end
+    local horizon = refY + f * camH / dRef
+    for _, o in ipairs(list) do
+        local side = o.bearing - facing - yaw
+        local d = o.dist * math.cos(side)
+        if d > 20 and math.abs(side) < 1.1 then
+            out[#out + 1] = { o = o, x = cx - f * math.tan(side), y = horizon - f * camH / d }
+        end
+    end
+    return out
+end
+function GS.FarOthers(nf)
+    local placed = 0
+    if nf and S().gatherSparkleFar and UIParent then
+        local map, mx, my, w, h = here()
+        local facing = ns.safe(GetPlayerFacing and GetPlayerFacing())
+        local rx, ry = nf:GetCenter()
+        if map and type(facing) == "number" and rx and ourPin then
+            local function polar(x, y)
+                local dx, dy = (x - mx) * w, (y - my) * h
+                return math.sqrt(dx * dx + dy * dy), atan2(-dx, -dy)
+            end
+            local ref = {} ref.dist, ref.bearing = polar(ourPin[2], ourPin[3])
+            local list = {}
+            for _, d in ipairs(GS.Live()) do
+                if d.map == map and (d.kind == "herb" or d.kind == "ore") and not d.held
+                    and not (math.abs(d.x - ourPin[2]) < 0.0005 and math.abs(d.y - ourPin[3]) < 0.0005) and not GM.TooHard(d.name) then
+                    local dist, b = polar(d.x, d.y)
+                    if dist > 25 and dist < 200 then list[#list + 1] = { dist = dist, bearing = b } end
+                end
+            end
+            table.sort(list, function(a, b) return a.dist < b.dist end)
+            local fov = tonumber(getCVar("cameraFov")) or 90
+            local cx = UIParent:GetWidth() / 2
+            local f = cx / math.tan(math.rad(fov) / 2)
+            local camH = 1.8 + (GetCameraZoom and ns.safe(GetCameraZoom()) or 8) * 0.4
+            for _, p in ipairs(GS.Project(ref, rx, ry, list, facing, f, cx, camH)) do
+                if placed >= MORE then break end
+                if p.x > 0 and p.x < UIParent:GetWidth() and p.y > 0 and p.y < UIParent:GetHeight() then
+                    placed = placed + 1
+                    local fr = sparkleOn(UIParent, "far" .. placed, 0)
+                    fr:ClearAllPoints()
+                    fr:SetPoint("CENTER", UIParent, "BOTTOMLEFT", p.x, p.y)
+                    -- further away = smaller
+                    fr:SetScale(math.max(0.4, math.min(1, 60 / p.o.dist)))
+                end
+            end
+        end
+    end
+    for i = placed + 1, MORE do sparkleOff("far" .. i) end
+    return placed
 end
 
 ------------------------------------------------------------------------
@@ -381,7 +444,7 @@ function GS.Tick(el)
     acc = 0
     if not (S().gatherArrow or pinWanted()) then
         if arrow then arrow:Hide() end
-        sparkleOff(FAR_KEY)
+        sparkleOff(FAR_KEY) GS.FarOthers(nil)
         return
     end
     local r, d, b = GS.Nearest()

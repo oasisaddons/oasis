@@ -629,6 +629,23 @@ function GM.ExtraKind(name)
     local n = plainName(name)
     for _, e in ipairs(TREASURE_ENDS) do if ends(n, e) or n == e:gsub("^ ", "") then return "treasure" end end
     for _, e in ipairs(LEY_ENDS) do if ends(n, e) then return "leyline" end end
+    -- 0.6.594: rares of the world (RareNames.lua), only in their own zone (hunter pets keep a rare's name)
+    if not GM.rareIndex and ns.RARE_NAMES then
+        GM.rareIndex = {}
+        for _, e in ipairs(ns.RARE_NAMES) do
+            GM.rareIndex[plainName(e[1])] = e[3]
+            if e[2] then GM.rareIndex[plainName(e[2])] = e[3] end
+        end
+    end
+    local areas = GM.rareIndex and GM.rareIndex[n]
+    if areas then
+        if #areas == 0 or not (C_Map and C_Map.GetAreaInfo and GetRealZoneText) then return "rare" end
+        local zone = ns.safe(GetRealZoneText())
+        for _, a in ipairs(areas) do
+            local ok, an = pcall(C_Map.GetAreaInfo, a)
+            if ok and an == zone then return "rare" end
+        end
+    end
     -- rares the guild knows (rares module, if loaded)
     local now = GetTime and GetTime() or 0
     if not rareNames or now - (rareAt or 0) > 30 then
@@ -905,7 +922,8 @@ local function fineProbe(job, sc, cx, cy, p)
         if type(txt) == "string" and txt:find(g.name, 1, true) then g.hits[#g.hits + 1] = { p[1], p[2] } return end
     end
 end
-local function finishScan(job)
+-- coarse + fine probes done: one center per dot (job.dots)
+local function makeDots(job)
     -- dot size: the smallest fine blob is one dot
     for _, g in ipairs(job.groups) do
         if g.hits then
@@ -916,37 +934,75 @@ local function finishScan(job)
             end
         end
     end
-    local added, live = {}, {}
     local one = GM.dotRadius and math.pi * GM.dotRadius ^ 2 or nil
+    job.dots, job.di = {}, 1
     for _, g in ipairs(job.groups) do
-        local centers = {}
-        if g.done then centers[1] = g.done
-        elseif not g.parts or #g.parts == 0 then centers[1] = { center(g.comp) }
+        local function add(m, single) job.dots[#job.dots + 1] = { kind = g.kind, name = g.name, x = m[1], y = m[2], single = single } end
+        if g.done then add(g.done, true)
+        elseif not g.parts or #g.parts == 0 then add({ center(g.comp) }, true)
         else
             for _, c in ipairs(g.parts) do
                 local k = one and math.max(1, math.floor(#c * FINE * FINE / one + 0.35)) or 1
-                if k == 1 then centers[#centers + 1] = { center(c) }
-                else for _, m in ipairs(kmeans(c, math.min(k, 6))) do centers[#centers + 1] = m end end
-            end
-        end
-        for _, m in ipairs(centers) do
-            GM.scanStats.hits = GM.scanStats.hits + 1
-            local x, y = pxToMap(job.c, m[1], m[2])
-            live[#live + 1] = { kind = g.kind, name = g.name, map = job.c.map, x = x, y = y }
-            if g.kind == "herb" or g.kind == "ore" then
-                local ok, res = pcall(GM.Record, g.kind, g.name, x, y)
-                if ok and res == "neu gespeichert" then added[#added + 1] = g.name end
+                if k == 1 then add({ center(c) }, true)
+                else for _, m in ipairs(kmeans(c, math.min(k, 6))) do add(m, false) end end
             end
         end
     end
-    -- 0.6.593: dots seen before keep their first time; new ones ring the sound
+end
+-- 0.6.594: exact center of a single dot - its four edges are found by bisection (5 steps each), the center is
+-- the middle between left/right and top/bottom. An edge that runs into a neighbour of the same name keeps the old center.
+local function hitAt(name, sc, cx, cy, x, y)
+    Minimap:UpdateMouseoverAtPoint((cx + x) * sc, (cy + y) * sc)
+    local data = ns.safe(C_TooltipInfo.GetMinimapMouseover())
+    local lines = type(data) == "table" and ns.safe(data.lines)
+    if type(lines) ~= "table" then return false end
+    for _, line in ipairs(lines) do
+        local txt = ns.safe(line.leftText)
+        if type(txt) == "string" and txt:find(name, 1, true) then return true end
+    end
+    return false
+end
+local function edge(d, sc, cx, cy, dx, dy, reach)
+    if hitAt(d.name, sc, cx, cy, d.x + dx * reach, d.y + dy * reach) then return nil end
+    local lo, hi = 0, reach
+    for _ = 1, 5 do
+        local mid = (lo + hi) / 2
+        if hitAt(d.name, sc, cx, cy, d.x + dx * mid, d.y + dy * mid) then lo = mid else hi = mid end
+    end
+    return (lo + hi) / 2
+end
+local function refine(d, sc, cx, cy)
+    if not d.single or not hitAt(d.name, sc, cx, cy, d.x, d.y) then return end
+    local reach = (GM.dotRadius or 8) * 2.5
+    local r, l = edge(d, sc, cx, cy, 1, 0, reach), edge(d, sc, cx, cy, -1, 0, reach)
+    local u, w = edge(d, sc, cx, cy, 0, 1, reach), edge(d, sc, cx, cy, 0, -1, reach)
+    if r and l then d.x = d.x + (r - l) / 2 end
+    if u and w then d.y = d.y + (u - w) / 2 end
+    d.exact = (r and l and u and w) and true or false
+end
+GM.Refine = refine
+local function finishScan(job)
+    local added, live = {}, {}
     local now = GetTime and GetTime() or 0
     local old, fresh = GM.scanLive or {}, false
-    for _, d in ipairs(live) do
+    for _, m in ipairs(job.dots) do
+        GM.scanStats.hits = GM.scanStats.hits + 1
+        local x, y = pxToMap(job.c, m.x, m.y)
+        local d = { kind = m.kind, name = m.name, map = job.c.map, x = x, y = y, exact = m.exact }
+        -- seen before: keep the first time and average the place over up to 6 scans (symbols do not jump)
         for _, o in ipairs(old) do
-            if o.name == d.name and o.map == d.map and math.abs(o.x - d.x) < 0.002 and math.abs(o.y - d.y) < 0.002 then d.seen = o.seen break end
+            if o.name == d.name and o.map == d.map and math.abs(o.x - d.x) < 0.003 and math.abs(o.y - d.y) < 0.003 then
+                local k = math.min(o.k or 1, 5)
+                d.x, d.y, d.k, d.seen = (o.x * k + d.x) / (k + 1), (o.y * k + d.y) / (k + 1), k + 1, o.seen
+                break
+            end
         end
-        if not d.seen then d.seen, fresh = now, true end
+        if not d.seen then d.seen, d.k, fresh = now, 1, true end
+        live[#live + 1] = d
+        if d.kind == "herb" or d.kind == "ore" then
+            local ok, res = pcall(GM.Record, d.kind, d.name, d.x, d.y)
+            if ok and res == "neu gespeichert" then added[#added + 1] = d.name end
+        end
     end
     -- finder switching shows one kind at a time: dots of the kind not tracked right now are held for a while
     local tracked = GM.TrackedKinds()
@@ -971,6 +1027,7 @@ local function finishScan(job)
     GM.scanStats.added = GM.scanStats.added + #added
     if #added > 0 then ns.print((L["Minimap scan: %d new gathering spots (%s)"]):format(#added, table.concat(added, ", "))) end
 end
+-- phases per frame: coarse grid -> fine grid over blobs -> edges of single dots (3 dots per frame) -> finish
 function GM.ScanStep(el)
     if not scanJob then
         scanWait = scanWait - (el or 0)
@@ -990,12 +1047,18 @@ function GM.ScanStep(el)
         for i = job.i, math.min(job.i + SCAN_PER_FRAME - 1, #job.pts) do pcall(probe, job, sc, cx, cy, job.pts[i]) end
         job.i = job.i + SCAN_PER_FRAME
         if job.i > #job.pts then fineList(job) end
-    else
+    elseif job.fi <= #job.fpts then
         for i = job.fi, math.min(job.fi + SCAN_PER_FRAME - 1, #job.fpts) do pcall(fineProbe, job, sc, cx, cy, job.fpts[i]) end
         job.fi = job.fi + SCAN_PER_FRAME
+    elseif not job.dots then
+        local ok, err = pcall(makeDots, job)
+        if not ok then job.dots, job.di = {}, 1 if ns.Debug then ns.Debug("gatherscan", err) end end
+    else
+        for i = job.di, math.min(job.di + 2, #job.dots) do pcall(refine, job.dots[i], sc, cx, cy) end
+        job.di = job.di + 3
     end
     if soft then pcall(soft, Minimap, false) end
-    if job.fpts and job.fi > #job.fpts then
+    if job.dots and job.di > #job.dots then
         scanJob = nil
         -- the minimap turned during the run (rotating minimap): positions would be skewed - again right away
         local now = GM.MiniCtx()
