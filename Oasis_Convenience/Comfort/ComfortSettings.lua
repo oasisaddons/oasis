@@ -755,7 +755,7 @@ local function buildControls(p, key, withPreview)
     local two = #sliders > 2
     for i, sd in ipairs(sliders) do
         local col = two and ((i - 1) % 2) or 0
-        if col == 0 then y = y - 6 end
+        if col == 0 then y = y - 2 end   -- 0.6.636: more compact
         local x = col * 250
         local lab = K.Text(box, 11, C.muted)
         lab:SetPoint("TOPLEFT", x, y)
@@ -765,9 +765,9 @@ local function buildControls(p, key, withPreview)
                 S()[sd[2]] = (v ~= sd[6]) and v or nil
                 apply(p)
             end, sd[7] or function(v) return math.floor(v * 100 + 0.5) .. " %" end)
-        sl:SetPoint("TOPLEFT", x, y - 18)
+        sl:SetPoint("TOPLEFT", x, y - 15)
         box.ctrls[#box.ctrls + 1] = sl
-        if not two or col == 1 or i == #sliders then y = y - 54 end
+        if not two or col == 1 or i == #sliders then y = y - 40 end
     end
     if o.resetPos and ns.WorldMapPlus then
         local rb = K.Button(box, L["Reset map position"], 200, 26, nil, function() ns.WorldMapPlus.ResetPosition() end)
