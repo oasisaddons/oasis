@@ -120,6 +120,16 @@ StaticPopupDialogs["OASIS_PART_URL"] = {
     EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
     timeout = 0, whileDead = true, hideOnEscape = true,
 }
+-- 0.6.588: switch a part on in the AddOn list (takes effect after /reload)
+function M.EnablePart(addon)
+    local f = C_AddOns and C_AddOns.EnableAddOn or EnableAddOn
+    if not f then return false end
+    local me = ns.UnitName and ns.UnitName("player") or (UnitName and UnitName("player"))
+    local ok = pcall(f, addon, me)
+    if not ok then ok = pcall(f, addon) end
+    M.dirty = true
+    return ok
+end
 function M.ShowPartLink(addon)
     local p = M.Part(addon)
     if not (p and p.url and StaticPopup_Show) then return end

@@ -522,9 +522,8 @@ function D.ShowPicker(mode)
             end
             t:SetScript("OnClick", function(self)
                 if self.unavail then
-                    if self.unavail == "DISABLED" then
-                        K.Toast(L[self.it.text], L["Switched off - turn it on in the AddOn list (character screen)"], C.amber or C.accent)
-                    elseif ML and ML.ShowPartLink then ML.ShowPartLink(self.it.addon) end
+                    -- 0.6.588: info panel inside the start window (toasts and popups were hidden behind it)
+                    if f.partInfo then f.partInfo:Open(self.it, self.unavail) end
                     return
                 end
                 f.sel[self.it.key] = not f.sel[self.it.key] or nil
@@ -625,6 +624,61 @@ function D.ShowPicker(mode)
         line:SetPoint("BOTTOMLEFT", 20, 64) line:SetPoint("BOTTOMRIGHT", -20, 64)
         f.count = K.Text(f, 11, C.muted)
         f.count:SetPoint("BOTTOMLEFT", 28, 32)
+        -- 0.6.588: panel for a missing or switched-off add-on: switch on + reload, or the download link to copy
+        do
+            local ML = ns.ModuleLoader
+            local pi = CreateFrame("Frame", nil, f)
+            pi:SetSize(460, 150)
+            pi:SetPoint("CENTER", f, "CENTER", 0, -20)
+            pi:SetFrameLevel(f:GetFrameLevel() + 40)
+            pi:EnableMouse(true)
+            K.Fill(pi, { 0.04, 0.04, 0.05, 0.97 })
+            K.Border(pi, C.line)
+            pi.h = K.Title(pi, 15, C.text)
+            pi.h:SetPoint("TOPLEFT", 18, -16)
+            pi.t = K.Text(pi, 12, C.muted)
+            pi.t:SetPoint("TOPLEFT", pi.h, "BOTTOMLEFT", 0, -8)
+            pi.t:SetWidth(424) pi.t:SetJustifyH("LEFT") pi.t:SetWordWrap(true)
+            pi.eb = CreateFrame("EditBox", nil, pi, "InputBoxTemplate")
+            pi.eb:SetSize(420, 22)
+            pi.eb:SetPoint("BOTTOMLEFT", 22, 52)
+            pi.eb:SetAutoFocus(false)
+            pi.eb:SetScript("OnEscapePressed", function(self) self:ClearFocus() pi:Hide() end)
+            pi.eb:SetScript("OnTextChanged", function(self, user) if user and pi.url then self:SetText(pi.url) self:HighlightText() end end)
+            pi.eb:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
+            pi.btn = K.Button(pi, L["Turn on"], 130, 26, "primary", function()
+                if pi.mode == "on" then
+                    if ML and ML.EnablePart then ML.EnablePart(pi.addon) end
+                    pi.mode = "reload"
+                    pi.btn:SetLabel(L["Reload now"])
+                    pi.t:SetText(L["Switched on. It loads after a reload of the interface."])
+                elseif pi.mode == "reload" then
+                    if ReloadUI then ReloadUI() end
+                end
+            end)
+            pi.btn:SetPoint("BOTTOMLEFT", 18, 14)
+            pi.close = K.Button(pi, L["Close"], 100, 26, "ghost", function() pi:Hide() end)
+            pi.close:SetPoint("BOTTOMRIGHT", -18, 14)
+            pi:Hide()
+            function pi:Open(it, state)
+                local part = ML and ML.Part and ML.Part(it.addon)
+                self.addon, self.url = it.addon, part and part.url
+                self.h:SetText(part and part.title or L[it.text])
+                if state == "DISABLED" then
+                    self.mode = "on"
+                    self.t:SetText(L["This add-on is installed but switched off in the AddOn list."])
+                    self.btn:SetLabel(L["Turn on"]) self.btn:Show()
+                    self.eb:Hide()
+                else
+                    self.mode = nil
+                    self.t:SetText(L["Not installed. Download it from CurseForge (Ctrl+C copies the link), unpack it into Interface/AddOns and restart the game."])
+                    self.btn:Hide()
+                    self.eb:SetText(self.url or "") self.eb:Show() self.eb:SetFocus() self.eb:HighlightText()
+                end
+                self:Show()
+            end
+            f.partInfo = pi
+        end
         f.ok = K.Button(f, L["Let's go"], 120, 26, "ghost", function()
             D.ApplyInterests(f.sel)
             f:Hide()
