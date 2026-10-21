@@ -100,8 +100,10 @@ local function partEnabled(name)
 end
 local function loadParts()
     local load = (C_AddOns and C_AddOns.LoadAddOn) or LoadAddOn
+    -- 0.6.589: test switch "only the base" (/oa nurbasis): the add-ons count as not installed at all
+    local onlyBase = ns.db and ns.db.settings and ns.db.settings.onlyBase
     for _, p in ipairs(M.PARTS) do
-        if not partExists(p.addon) then M.partState[p.addon] = "MISSING"
+        if onlyBase or not partExists(p.addon) then M.partState[p.addon] = "MISSING"
         elseif not partEnabled(p.addon) then M.partState[p.addon] = "DISABLED"
         elseif not load then M.partState[p.addon] = "MISSING" else
             local ok, loaded, reason = pcall(load, p.addon)
@@ -110,6 +112,13 @@ local function loadParts()
     end
 end
 function M.PartLoaded(addon) return M.partState[addon] == "loaded" end
+-- /oa nurbasis - toggle: behave like a player who installed only the base add-on (takes effect after /reload)
+ns.slash.nurbasis = function()
+    ns.db.settings.onlyBase = not ns.db.settings.onlyBase or nil
+    ns.print(ns.db.settings.onlyBase and L["Only the base: the add-ons count as not installed. /reload to apply, /oa nurbasis again to undo."]
+        or L["Add-ons are used again. /reload to apply."])
+end
+ns.slash.onlybase = ns.slash.nurbasis
 function M.PartState(addon) return M.partState[addon] end
 function M.Part(addon) for _, p in ipairs(M.PARTS) do if p.addon == addon then return p end end end
 -- 0.6.587: download link of a missing add-on (copy box, the game cannot open a browser)
