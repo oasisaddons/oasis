@@ -1693,7 +1693,18 @@ function ns.LayoutNav()
             local d = pages[k]
             if d and d.nav then inGroup[k] = true if ns.PageVisible(k) and not isFav[k] then items[#items + 1] = d end end
         end
-        groups[#groups + 1] = { g = g, items = ordered(g.key, items) }
+        -- 0.6.599: add-on not loaded: its base pages (e.g. Groups) go to "Play together", no add-on heading
+        local ML = ns.ModuleLoader
+        local hostG
+        if g.addon and ML and ML.PartLoaded and not ML.PartLoaded(g.addon) then
+            for _, gr in ipairs(groups) do if gr.g.key == "play" then hostG = gr end end
+        end
+        if hostG then
+            for _, d in ipairs(items) do hostG.items[#hostG.items + 1] = d end
+            groups[#groups + 1] = { g = g, items = {} }
+        else
+            groups[#groups + 1] = { g = g, items = ordered(g.key, items) }
+        end
         if gi == 1 then
             local favItems = {}
             for _, k in ipairs(S.navFav or {}) do
