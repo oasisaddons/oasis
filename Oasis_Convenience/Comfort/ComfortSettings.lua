@@ -49,6 +49,8 @@ local WTABS = {
 local CTABS = {
     { key = "comfort", text = "Helpers", tab = "comfort" },
     { key = "tweaks", text = "More helpers" },
+    { key = "questvendor", text = "Quests & vendor" },
+    { key = "tipmapchat", text = "Tooltip, minimap & chat" },
     { key = "helpers", text = "Guild helpers", tab = "helpers" },
 }
 local CHTABS = {
@@ -134,6 +136,35 @@ local OPTS = {
         { "Tooltips: health bar inside", "twTipBar" },
         { "Quest items always sparkle", "twLootSparkle" },
         gearButtons = true,
+    },
+    questvendor = {
+        { "Restock at vendors (your list)", "cfRestockOn" },
+        { "Fill the quiver with the best ammo", "cfAmmo" },
+        { "Confirm bind-on-pickup loot automatically", "cfLootConfirm" },
+        { "Delete items without typing DELETE", "cfEasyDestroy" },
+        slider = {
+            { "Forever's own quests", "cfForeverQuests", 1, 3, 1, 3, function(v) return L[({ "Leave to me", "Turn in only", "Accept and turn in" })[v] or "Accept and turn in"] end },
+            { "Quest reward", "cfRewardPick", 1, 3, 1, 1, function(v) return L[({ "Let me pick", "Best upgrade", "Highest price" })[v] or "Let me pick"] end },
+        },
+        restockButtons = true,
+    },
+    tipmapchat = {
+        { "Tooltip: guild and rank", "cfTipRank" },
+        { "Tooltip: the unit's target", "cfTipTarget" },
+        { "Tooltip: hide in combat (Shift shows it)", "cfTipCombat" },
+        { "Tooltip: backdrop in faction colour", "cfTipFaction" },
+        { "Square minimap", "cfSquareMap" },
+        { "Addon buttons only on minimap mouse-over", "cfMapButtons" },
+        { "Hide the combat log tab", "cfNoCombatTab" },
+        { "Hide chat buttons", "cfNoChatButtons" },
+        { "Filter duel and drunk spam", "cfSpamFilter" },
+        { "Mute clock chimes", "cfMuteChimes" },
+        { "Mute spell fizzle", "cfMuteFizzle" },
+        { "Mute /train emotes", "cfMuteTrains" },
+        { "Mute cat yawns", "cfMuteYawns" },
+        slider = {
+            { "Chat font size", "cfChatFont", 10, 20, 1, 14, function(v) return v .. " pt" end },
+        },
     },
     whisper = {
         { "Offer whispers to offline characters to their alt", "whisperForward" },
@@ -372,6 +403,7 @@ local cur = "mini"
 local function apply(p)
     if ns.GatherSight then pcall(ns.GatherSight.Apply) end
     if ns.ComfortTweaks then pcall(ns.ComfortTweaks.Apply) end
+    if ns.ComfortMore then pcall(ns.ComfortMore.Apply) end
     if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end
     if ns.ComfortPlus and ns.ComfortPlus.ApplyAll then pcall(ns.ComfortPlus.ApplyAll) end
     S().trailMinutes = S().trailSession and 0 or nil
@@ -441,6 +473,16 @@ local function buildControls(p, key, withPreview)
             b:SetScript("OnClick", function() S().gatherSparkleColor = name apply(p) end)
             x = x + 34
         end
+        y = y - 54
+    end
+    if o.restockButtons and ns.ComfortMore then
+        y = y - 4
+        local rb
+        rb = K.Button(box, L["Restock list"], 200, 26, nil, function() ns.ComfortMore.RestockMenu(rb) end)
+        rb:SetPoint("TOPLEFT", 0, y)
+        local hint = K.Text(box, 10, C.dim)
+        hint:SetPoint("TOPLEFT", 0, y - 32)
+        hint:SetText(L["Add: /oa restock [item link] [count]"])
         y = y - 54
     end
     if o.gearButtons and ns.ComfortTweaks then

@@ -830,7 +830,7 @@ local function buildMain()
                 for _, t in pairs(self.lp) do t:SetShown(on) end
                 self.bg:Hide()
                 self.bar:Hide()
-                local c = on and { 0, 0, 0 } or C.muted
+                local c = on and { 0, 0, 0 } or (self.tint or C.muted)
                 self.label:SetTextColor(c[1], c[2], c[3])
                 self.icon:SetVertexColor(c[1], c[2], c[3])
                 return
@@ -859,9 +859,10 @@ local function buildMain()
             for _, t in pairs(a) do t:SetShown(on) end
             self.bg:SetShown(false)
             self.bar:SetShown(on)
-            local c = on and C.text or C.muted
+            -- 0.6.609: entries of an add-on group carry a light tint of the add-on's color (self.tint, set by LayoutNav)
+            local c = on and C.text or (self.tint or C.muted)
             self.label:SetTextColor(c[1], c[2], c[3])
-            if on then self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3]) else restTint(self.icon, C.muted) end
+            if on then self.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3]) else restTint(self.icon, self.tint or C.muted) end
         end
         b:SetActive(false)
         b.key = def.key
@@ -1784,6 +1785,13 @@ function ns.LayoutNav()
                 if not isClosed or d.key == current then
                     d.nav:SetHeight(step - 2)
                     d.nav.navGroup = gr.g.key
+                    -- light add-on tint: 30 % of the group color mixed into the normal gray
+                    local gc = gr.g.color
+                    local tint = gc and { C.muted[1] * 0.7 + gc[1] * 0.3, C.muted[2] * 0.7 + gc[2] * 0.3, C.muted[3] * 0.7 + gc[3] * 0.3 } or nil
+                    if (tint and not d.nav.tint) or (not tint and d.nav.tint) or (tint and d.nav.tint and tint[1] ~= d.nav.tint[1]) then
+                        d.nav.tint = tint
+                        if d.nav.SetActive then pcall(d.nav.SetActive, d.nav, d.key == current) end
+                    end
                     place(d.nav, y, step - 2, headTop)
                     slots[#slots + 1] = { key = d.key, top = y + off, h = step - 2 }
                     y = y - step

@@ -335,10 +335,25 @@ function GM.NodesOn(mapID)
     if #own > 0 or not (C_Map and C_Map.GetMapRectOnMap) then return own end
     GM.Nodes()
     local out = {}
+    -- 0.6.609: a zone's rectangle on the shown map - directly, or through its parents (zone -> continent ->
+    -- world). On the world map the game gives no rectangle for a zone, only for its continent, so the
+    -- nodes were missing there.
+    local function rectOn(m)
+        local ok, x1, x2, y1, y2 = pcall(C_Map.GetMapRectOnMap, m, mapID)
+        if ok and x1 and x2 and y1 and y2 and x2 > x1 and y2 > y1 then return x1, x2, y1, y2 end
+        local info = C_Map.GetMapInfo and C_Map.GetMapInfo(m)
+        local parent = info and info.parentMapID
+        if not parent or parent == 0 or parent == m then return nil end
+        local ok2, a1, a2, b1, b2 = pcall(C_Map.GetMapRectOnMap, m, parent)
+        if not (ok2 and a1 and a2 and b1 and b2 and a2 > a1 and b2 > b1) then return nil end
+        local p1, p2, q1, q2 = rectOn(parent)
+        if not p1 then return nil end
+        return p1 + a1 * (p2 - p1), p1 + a2 * (p2 - p1), q1 + b1 * (q2 - q1), q1 + b2 * (q2 - q1)
+    end
     for m, list in pairs(byMap or {}) do
         if m ~= mapID then
-            local ok, x1, x2, y1, y2 = pcall(C_Map.GetMapRectOnMap, m, mapID)
-            if ok and x1 and x2 and y1 and y2 and x2 > x1 and y2 > y1 and (x2 - x1) < 0.9 then
+            local x1, x2, y1, y2 = rectOn(m)
+            if x1 and (x2 - x1) < 0.9 then
                 for _, r in ipairs(list) do
                     out[#out + 1] = setmetatable({ x = x1 + (r.x or 0) * (x2 - x1), y = y1 + (r.y or 0) * (y2 - y1) }, { __index = r })
                 end

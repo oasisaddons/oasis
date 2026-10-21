@@ -28,6 +28,7 @@ local function modeKey() return maximized() and "max" or "win" end
 function WM.Apply()
     local f = WorldMapFrame
     if not f or (InCombatLockdown and InCombatLockdown()) then return end
+    if WM.handle then WM.handle:SetShown(S().wmMove and true or false) end
     local mode = modeKey()
     local sc = mode == "max" and S().wmScaleMax or S().wmScale
     pcall(f.SetScale, f, sc or 1)
@@ -115,14 +116,20 @@ function WM.Hook()
             if cancel then pcall(cancel) end
         end
     end)
-    -- dragging: on the title/border area (the map canvas itself keeps its clicks)
-    local grab = WorldMapFrame.BorderFrame or WorldMapFrame.TitleCanvasSpacerFrame or WorldMapFrame
-    if grab.HookScript then
-        if grab.RegisterForDrag then grab:RegisterForDrag("LeftButton") end
-        grab:HookScript("OnDragStart", startDrag)
-        grab:HookScript("OnDragStop", stopDrag)
-        if grab.EnableMouse and grab ~= WorldMapFrame then grab:EnableMouse(true) end
-    end
+    -- dragging: an own thin handle over the title bar only, and only while "move" is on.
+    -- 0.6.609: previously the whole border frame took the mouse - it lies over the map and swallowed the
+    -- right-click (zoom out)
+    local h = CreateFrame("Frame", nil, WorldMapFrame)
+    h:SetPoint("TOPLEFT", WorldMapFrame, "TOPLEFT", 60, 0)
+    h:SetPoint("TOPRIGHT", WorldMapFrame, "TOPRIGHT", -60, 0)
+    h:SetHeight(22)
+    h:SetFrameLevel((WorldMapFrame:GetFrameLevel() or 1) + 20)
+    h:EnableMouse(true)
+    h:RegisterForDrag("LeftButton")
+    h:SetScript("OnDragStart", startDrag)
+    h:SetScript("OnDragStop", stopDrag)
+    h:SetShown(S().wmMove and true or false)
+    WM.handle = h
     if WorldMapFrame.Maximize then hooksecurefunc(WorldMapFrame, "Maximize", function() pcall(WM.Apply) end) end
     if WorldMapFrame.Minimize then hooksecurefunc(WorldMapFrame, "Minimize", function() pcall(WM.Apply) end) end
     if BaseMapPoiPinMixin and BaseMapPoiPinMixin.OnAcquired then

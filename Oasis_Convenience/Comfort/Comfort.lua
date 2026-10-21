@@ -75,35 +75,45 @@ ns.On("QUEST_DETAIL", function()
         ns.print(L["Shared quest declined."])
         return
     end
-    if on("cfQuests") and not IsShiftKeyDown() then
+    -- 0.6.609: Forever's own quests per setting (ComfortMore.lua), full quest log is said
+    local MO = ns.ComfortMore
+    if on("cfQuests") and not IsShiftKeyDown() and (not MO or MO.MayAccept()) then
         if QuestGetAutoAccept and QuestGetAutoAccept() then
             if CloseQuest then CloseQuest() end
+        elseif MO and MO.LogFull() then
+            ns.print(L["Quest log is full - quest not accepted."])
         else
             AcceptQuest()
         end
     end
 end)
 ns.On("QUEST_PROGRESS", function()
-    if on("cfQuests") and not IsShiftKeyDown() and IsQuestCompletable() then CompleteQuest() end
+    local MO = ns.ComfortMore
+    if on("cfQuests") and not IsShiftKeyDown() and IsQuestCompletable() and (not MO or MO.MayTurnIn()) then CompleteQuest() end
 end)
 ns.On("QUEST_COMPLETE", function()
     if not on("cfQuests") or IsShiftKeyDown() then return end
+    local MO = ns.ComfortMore
+    if MO and not MO.MayTurnIn() then return end
     if (GetQuestMoneyToGet and GetQuestMoneyToGet() or 0) > 0 then return end
     local choices = GetNumQuestChoices and GetNumQuestChoices() or 0
-    if choices <= 1 then GetQuestReward(choices == 1 and 1 or nil) end
+    if choices <= 1 then GetQuestReward(choices == 1 and 1 or nil) return end
+    -- 0.6.609: reward choice by setting (best upgrade / highest price), else the player picks
+    local pick = MO and MO.RewardChoice()
+    if pick then GetQuestReward(pick) end
 end)
 local function gossipQuests()
     if not on("cfQuests") or IsShiftKeyDown() or not C_GossipInfo then return end
     local ok, active = pcall(C_GossipInfo.GetActiveQuests)
     if ok and active then
         for _, q in ipairs(active) do
-            if q.isComplete and q.questID then pcall(C_GossipInfo.SelectActiveQuest, q.questID) return end
+            if q.isComplete and q.questID and (not ns.ComfortMore or ns.ComfortMore.MayTurnIn(q.questID)) then pcall(C_GossipInfo.SelectActiveQuest, q.questID) return end
         end
     end
     local ok2, avail = pcall(C_GossipInfo.GetAvailableQuests)
     if ok2 and avail then
         for _, q in ipairs(avail) do
-            if q.questID then pcall(C_GossipInfo.SelectAvailableQuest, q.questID) return end
+            if q.questID and (not ns.ComfortMore or ns.ComfortMore.MayAccept(q.questID)) then pcall(C_GossipInfo.SelectAvailableQuest, q.questID) return end
         end
     end
 end
