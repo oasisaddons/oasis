@@ -3610,7 +3610,7 @@ local GROUPS = {
         desc = "Meet people, find groups and do things together." },
     { key = "help", text = "My convenience", icon = "checklist", tabs = { "personaltools", "comfort", "gamechat", "mapset", "tips", "keys" },
         desc = "Personal helpers, chat, maps and tooltips for everyday play." },
-    { key = "look", text = "Look & controls", icon = "brush", tabs = { "look", "general", "bar", "ownmedia" },
+    { key = "look", text = "Look & controls", icon = "brush", tabs = { "sidebar", "look", "general", "bar", "ownmedia" },
         desc = "Adjust the design, font, window and bars to your play style." },
     { key = "notify", text = "Notices & sound", icon = "announce", tabs = { "toasts", "sound" },
         desc = "Choose what you hear about, how it looks and how it sounds." },
