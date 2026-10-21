@@ -245,6 +245,32 @@ local function buildPreview(p)
     else
         map.bg:SetColorTexture(0.22, 0.28, 0.15, 1)
     end
+    -- 0.6.615: a real piece of WoW - the map art of the zone you are in, around your position
+    map.art = map:CreateTexture(nil, "BACKGROUND", nil, 2)
+    map.art:SetAllPoints()
+    pcall(function()
+        local mid = C_Map.GetBestMapForUnit("player")
+        local pos = mid and C_Map.GetPlayerMapPosition(mid, "player")
+        local layers = mid and C_Map.GetMapArtLayers and C_Map.GetMapArtLayers(mid)
+        local texs = mid and C_Map.GetMapArtLayerTextures and C_Map.GetMapArtLayerTextures(mid, 1)
+        local lay = layers and layers[1]
+        if not (pos and lay and texs and #texs > 0) then return end
+        local px, py = pos:GetXY()
+        local tw, th = lay.tileWidth or 256, lay.tileHeight or 256
+        local cols = math.ceil((lay.layerWidth or 1002) / tw)
+        local ax, ay = px * (lay.layerWidth or 1002), py * (lay.layerHeight or 668)
+        local col, row = math.floor(ax / tw), math.floor(ay / th)
+        local id = texs[row * cols + col + 1]
+        if not id then return end
+        map.art:SetTexture(id)
+        -- the part of the tile around you (a third of it, like the minimap's view)
+        local fx, fy = (ax - col * tw) / tw, (ay - row * th) / th
+        local r = 0.33
+        local l, t = math.max(0, math.min(1 - 2 * r, fx - r)), math.max(0, math.min(1 - 2 * r, fy - r))
+        map.art:SetTexCoord(l, l + 2 * r, t, t + 2 * r)
+        map.realArt = true
+    end)
+    if not map.realArt then map.art:Hide() end
     -- a little terrain: two soft patches (meadow / path)
     map.p1 = map:CreateTexture(nil, "BACKGROUND", nil, 1)
     map.p1:SetTexture(ns.MEDIA .. "dot") map.p1:SetVertexColor(0.36, 0.42, 0.22, 0.6)
@@ -257,7 +283,7 @@ local function buildPreview(p)
             local m = map:CreateMaskTexture()
             m:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
             m:SetAllPoints(map)
-            map.bg:AddMaskTexture(m) map.p1:AddMaskTexture(m) map.p2:AddMaskTexture(m)
+            map.bg:AddMaskTexture(m) map.p1:AddMaskTexture(m) map.p2:AddMaskTexture(m) map.art:AddMaskTexture(m)
         end)
     end
     local rimF = CreateFrame("Frame", nil, map)
@@ -266,6 +292,7 @@ local function buildPreview(p)
     -- copy a texture of the real minimap into the preview (same place relative to the minimap, scaled)
     local function mirror(src)
         if not (src and src.GetTexture and Minimap and Minimap.GetCenter) then return nil end
+        if src.IsVisible and not src:IsVisible() then return nil end   -- hidden (other UI): try the next one
         local mx, my = Minimap:GetCenter()
         local sx, sy = src:GetCenter()
         local mw = Minimap:GetWidth()
@@ -287,8 +314,14 @@ local function buildPreview(p)
         if r then t:SetVertexColor(r, g, b, a) end
         return t
     end
-    map.rim = mirror(_G.MinimapBorder or (MinimapCompassTexture))
-    map.top = mirror(_G.MinimapBorderTop or (MinimapCluster and MinimapCluster.BorderTop))
+    map.rim = mirror(_G.MinimapBorder) or mirror(_G.MinimapCompassTexture)
+    map.top = mirror(_G.MinimapBorderTop) or mirror(MinimapCluster and MinimapCluster.BorderTop)
+    -- not found on the minimap: Blizzard's own minimap frame art
+    if not map.rim and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("ui-hud-minimap-frame") then
+        map.rim = rimF:CreateTexture(nil, "OVERLAY")
+        map.rim:SetAtlas("ui-hud-minimap-frame")
+        map.rim:SetPoint("TOPLEFT", -14, 14) map.rim:SetPoint("BOTTOMRIGHT", 14, -14)
+    end
     if not map.rim then
         -- no game border found: simple dark ring
         map.rim = rimF:CreateTexture(nil, "OVERLAY")
@@ -355,13 +388,15 @@ local function buildPreview(p)
     -- finder line, skill tooltip, dot legend
     pv.finder = K.Text(pv, 10, C.muted) pv.finder:SetPoint("TOP", map, "BOTTOM", 0, -50)
     pv.tip = CreateFrame("Frame", nil, over)
-    pv.tip:SetSize(150, 34) pv.tip:SetPoint("BOTTOMLEFT", map, "CENTER", -70, 0)
+    pv.tip:SetSize(196, 58) pv.tip:SetPoint("BOTTOMLEFT", map, "CENTER", -92, 0)
     K.Fill(pv.tip, { 0.03, 0.03, 0.05, 0.92 }) K.Border(pv.tip, C.line)
     pv.tip.a = K.Text(pv.tip, 10, C.text) pv.tip.a:SetPoint("TOPLEFT", 6, -4) pv.tip.a:SetText("Kingsblood")
     pv.tip.b = K.Text(pv.tip, 9, { 1, 0.5, 0.25 }) pv.tip.b:SetPoint("TOPLEFT", 6, -18) pv.tip.b:SetText((ITEM_MIN_SKILL or "Requires %s (%d)"):format(L["Herbalism"], 125))
+    pv.tip.c = K.Text(pv.tip, 8, C.dim) pv.tip.c:SetPoint("TOPLEFT", 6, -31) pv.tip.c:SetWidth(184) pv.tip.c:SetJustifyH("LEFT") pv.tip.c:SetWordWrap(true)
+    pv.tip.c:SetText(L["Oasis adds this line: skill needed. Red = too low, orange/yellow/green = chance of a skill-up"])
     pv.legend = map:CreateTexture(nil, "OVERLAY")
-    pv.legend:SetPoint("CENTER", map, "BOTTOMRIGHT", 0, -26)
-    pv.legendT = K.Text(pv, 10, C.muted) pv.legendT:SetPoint("RIGHT", pv.legend, "LEFT", -14, 0) pv.legendT:SetText(L["game dot"] .. ":")
+    pv.legend:SetPoint("CENTER", map, "TOPRIGHT", 4, 2)
+    pv.legendT = K.Text(pv, 10, C.muted) pv.legendT:SetPoint("BOTTOM", pv.legend, "TOP", 0, 2) pv.legendT:SetText(L["game dot"])
     -- arrow lock, pin, interact icon, far sparkle spots
     pv.lock = pv:CreateTexture(nil, "OVERLAY") pv.lock:SetTexture("Interface\\PetBattles\\PetBattle-LockIcon") pv.lock:SetSize(14, 14)
     pv.lock:SetPoint("BOTTOMRIGHT", pv.arrow, "BOTTOMRIGHT", 4, -2)
@@ -379,7 +414,7 @@ local function buildPreview(p)
     pv.note:SetText(L["Preview with sample nodes - changes show at once"])
     function pv:Update(tab)
         local dotScale = S().gatherDotScale or 1
-        local symbols = get("gatherSymbols") and not (self.peek and (GetTime and GetTime() or 0) < self.peek)
+        local symbols = get("gatherSymbols")
         for i, d in ipairs(SAMPLE) do
             local gray = d.cave
             self.dots[i]:SetSize(14 * dotScale, 14 * dotScale)
@@ -568,11 +603,6 @@ local function buildControls(p, key, withPreview)
         local sl = K.Slider(box, two and 220 or 260, sd[3], sd[4], sd[5], function() return S()[sd[2]] or sd[6] end,
             function(v)
                 S()[sd[2]] = (v ~= sd[6]) and v or nil
-                -- moving the dot size: hide the symbols for a moment so the game's dots can be seen
-                if sd[2] == "gatherDotScale" and p.pv then
-                    p.pv.peek = (GetTime and GetTime() or 0) + 1.5
-                    if C_Timer then C_Timer.After(1.6, function() if p.pv then p.pv:Update(p.pv.tab) end end) end
-                end
                 apply(p)
             end, sd[7] or function(v) return math.floor(v * 100 + 0.5) .. " %" end)
         sl:SetPoint("TOPLEFT", x, y - 18)

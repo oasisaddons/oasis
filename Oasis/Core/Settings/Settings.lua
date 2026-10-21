@@ -3602,27 +3602,27 @@ end
 -- Topic picker: guild organization, social activities and personal helpers kept separate.
 -- Design, notifications, privacy and technical module management have their own topics.
 local GROUPS = {
+    -- 0.6.615: tidied up - everything that switches areas on/off in ONE place ("Areas"), map and tooltips together,
+    -- shortcuts with the controls, greeting with the notices. Comfort has its own pages in the sidebar.
     { key = "start", text = "Overview", icon = "home", tabs = { "quick" },
         desc = "Choose a topic or search for a setting directly." },
-    { key = "guild", text = "Guild & organisation", icon = "modules", tabs = { "guildtools", "helpers" },
-        desc = "Members, events, raids, crafting and shared guild goals." },
-    { key = "social", text = "Socialising", icon = "social", tabs = { "socialtools", "greet" },
-        desc = "Meet people, find groups and do things together." },
-    { key = "help", text = "My convenience", icon = "checklist", tabs = { "personaltools", "comfort", "gamechat", "mapset", "tips", "keys" },
-        desc = "Personal helpers, chat, maps and tooltips for everyday play." },
-    { key = "look", text = "Look & controls", icon = "brush", tabs = { "sidebar", "look", "general", "bar", "ownmedia" },
-        desc = "Adjust the design, font, window and bars to your play style." },
-    { key = "notify", text = "Notices & sound", icon = "announce", tabs = { "toasts", "sound" },
-        desc = "Choose what you hear about, how it looks and how it sounds." },
+    { key = "guild", text = "Areas", icon = "modules", tabs = { "sidebar", "guildtools", "socialtools", "personaltools", "modules" },
+        desc = "Show or hide every entry of the sidebar and load or skip whole modules." },
+    { key = "help", text = "Map & tooltips", icon = "checklist", tabs = { "mapset", "tips" },
+        desc = "World map, minimap and what tooltips show." },
+    { key = "look", text = "Look & controls", icon = "brush", tabs = { "look", "general", "bar", "keys", "ownmedia" },
+        desc = "Design, font, window, bars and shortcuts." },
+    { key = "notify", text = "Notices & sound", icon = "announce", tabs = { "toasts", "sound", "greet" },
+        desc = "What you hear about, how it looks and sounds, and the greeting in guild chat." },
     { key = "char", text = "Profile & privacy", icon = "profile", tabs = { "char", "share", "lexport" },
         desc = "Link characters, control shared data and back up settings." },
-    { key = "adv", text = "System & modules", icon = "settings", tabs = { "modules", "status", "perf" },
-        desc = "Load modules, check connectivity and adjust performance." },
+    { key = "adv", text = "System", icon = "settings", tabs = { "status", "perf" },
+        desc = "Connection, data status and performance." },
 }
 for _, entry in ipairs({
-    { "guildtools", "Guild tools", "guild" },
+    { "guildtools", "Guild", "guild" },
     { "socialtools", "Together", "social" },
-    { "personaltools", "My tools", "personal" },
+    { "personaltools", "Personal", "personal" },
 }) do
     local scope = entry[3]
     BUILD[entry[1]] = function(f) buildPages(f, scope) end
