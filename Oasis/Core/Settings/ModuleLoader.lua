@@ -76,7 +76,7 @@ M.OLD_FOLDERS = { "Oasis_Dungeons", "Oasis_Raidwerkzeuge", "Oasis_Deathroll", "O
 -- Oasis loads them itself here, BEFORE the modules run - so they hook into ns.ModuleFile as before and run before DB_READY.
 -- If a part is not installed or disabled in the AddOn list, its modules are missing (state "missing").
 M.PARTS = {
-    { addon = "Oasis_GroupsRaids", title = "Oasis - Groups & Raids", url = "https://www.curseforge.com/wow/addons/oasis-groups-raids", modules = { "Oasis_Group", "Oasis_Dungeons", "Oasis_QuestTags", "Oasis_RaidTools", "Oasis_Combat", "Oasis_Talents", "Oasis_Rares" } },
+    { addon = "Oasis_GroupsRaids", title = "Oasis - Groups & Raids", url = "https://www.curseforge.com/wow/addons/oasis-groups-raids", modules = { "Oasis_Group", "Oasis_Dungeons", "Oasis_QuestTags", "Oasis_RaidTools", "Oasis_Combat", "Oasis_Talents" } },
     { addon = "Oasis_Trade", title = "Oasis - Trade", url = "https://www.curseforge.com/wow/addons/oasis-trade", modules = { "Oasis_Crafting", "Oasis_Market", "Oasis_Wishlist" } },
     { addon = "Oasis_Convenience", title = "Oasis - Convenience", url = "https://www.curseforge.com/wow/addons/oasis-convenience", modules = { "Oasis_Comfort", "Oasis_MapExtras", "Oasis_GameChat", "Oasis_Whispers", "Oasis_Upgrades", "Oasis_ItemCompare", "Oasis_WeaponTrainers", "Oasis_BankSlots" } },
 }

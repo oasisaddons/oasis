@@ -12,7 +12,7 @@ OASIS is a guild hub built for **WoW Forever**. This is the **base add-on**. It 
 
 | Add-on | What it adds |
 |---|---|
-| [**OASIS - Groups & Raids**](https://www.curseforge.com/wow/addons/oasis-groups-raids) | Group finder, dungeon atlas, raid planner and sign-ups, loot master, soft reserve, raid check, buffs, tactics map, combat ranking, talents, rare spawns |
+| [**OASIS - Groups & Raids**](https://www.curseforge.com/wow/addons/oasis-groups-raids) | Group finder, dungeon atlas, raid planner and sign-ups, loot master, soft reserve, raid check, buffs, tactics map, combat ranking, talents |
 | [**OASIS - Trade**](https://www.curseforge.com/wow/addons/oasis-trade) | Who crafts what, crafting orders, guild market and prices, guild wishlist |
 | [**OASIS - Convenience**](https://www.curseforge.com/wow/addons/oasis-convenience) | Personal helpers: auto repair/sell, quest helpers, item comparison, map extras, game chat, whisper log, upgrade search and more |
 
@@ -48,6 +48,7 @@ Make OASIS truly yours with the free **[Oasis Studio](https://oasisaddon.com/#st
 - **Community:** profiles, birthdays, mentors for new members, thank-yous.
 - **Badges, collections & Legacy:** celebrate progress and milestones.
 - **Campfires & deaths:** share campfires on the map and remember fallen heroes.
+- **Rare spawns:** sightings shared within the guild, with respawn hints and map pins.
 
 ## Fun
 

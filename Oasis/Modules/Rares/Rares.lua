@@ -3,7 +3,7 @@
 --  or "target is dead" after combat. From deaths per mob: respawn estimate (shortest/average interval).
 --  Shared via the store (own collections "rare_seen" + "rare_kills", own messages OARU/OARQ/OARA/OARB,
 --  because Comm.lua only accepts registered collections).
-local ADDON, ns = ...  ns = Oasis or ns  -- Teil-Addon: Namensraum von Oasis
+local ADDON, ns = ...   -- 0.6.608: part of the base add-on (guild), previously in Oasis Groups & Raids
 ns.ModuleFile("Oasis_Rares", function()   -- Module Rare mobs (can be disabled, see ModuleLoader.lua)
 local L = ns.L
 local K, C, Comm, Store = ns.K, ns.K.C, ns.Comm, ns.Store
@@ -903,17 +903,17 @@ ns.RegisterPage({
     end,
 })
 
--- Navigation: in the "Play together" group, right after Dungeons
+-- Navigation: in the "Guild" group, after the graveyard (0.6.608: rares are a guild thing now)
 do
     local groups = ns.NAV_GROUPS
     if groups then
         for _, g in ipairs(groups) do
-            if g.key == "raid" then
+            if g.key == "guild" then
                 local has = false
                 for _, k in ipairs(g.pages) do if k == "rares" then has = true end end
                 if not has then
                     local pos = #g.pages + 1
-                    for i, k in ipairs(g.pages) do if k == "dungeons" then pos = i + 1 end end
+                    for i, k in ipairs(g.pages) do if k == "deaths" then pos = i + 1 end end
                     table.insert(g.pages, pos, "rares")
                 end
             end

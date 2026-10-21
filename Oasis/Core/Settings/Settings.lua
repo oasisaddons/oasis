@@ -28,7 +28,7 @@ local NEEDS = {
     whisperForward = "Oasis_Convenience", shareNodes = "Oasis_Convenience", mmCoords = "Oasis_Convenience", layerAsk = "Oasis_Convenience",
     mapDungeons = "Oasis_Convenience", mapDanger = "Oasis_Convenience", mapPoi = "Oasis_Convenience", mapQuestGivers = "Oasis_Convenience",
     mapTrails = "Oasis_Convenience", mapTrailsGuild = "Oasis_Convenience", trailSession = "Oasis_Convenience",
-    rareShare = "Oasis_GroupsRaids", shareTrace = "Oasis_GroupsRaids", shareInstPos = "Oasis_GroupsRaids", shareCombat = "Oasis_GroupsRaids",
+    shareTrace = "Oasis_GroupsRaids", shareInstPos = "Oasis_GroupsRaids", shareCombat = "Oasis_GroupsRaids",
     wrShare = "Oasis_GroupsRaids", lkShare = "Oasis_GroupsRaids",
     shareTrade = "Oasis_Trade", wantsBagHint = "Oasis_Trade", tipReagent = "Oasis_Trade",
 }
