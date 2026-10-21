@@ -86,6 +86,23 @@ local function onPoiAcquired(pin)
     if (mt == 1 or mt == 2) and isTownIcon(pin) then pin:Hide() end
 end
 
+-- 0.6.635: hide town icons on every map change - hooking BaseMapPoiPinMixin only reached pins created afterwards
+-- (the pool keeps its old pins), so the switch seemed to do nothing
+WM.diag = {}
+function WM.HideTowns()
+    local f = WorldMapFrame
+    if not (f and f.EnumerateAllPins) then return end
+    local n, hidden = 0, 0
+    for pin in f:EnumerateAllPins() do
+        n = n + 1
+        if S().wmHideTowns and pin:IsShown() then
+            local ok = pcall(onPoiAcquired, pin)
+            if ok and not pin:IsShown() then hidden = hidden + 1 end
+        end
+    end
+    WM.diag.pins, WM.diag.towns = n, hidden
+end
+
 -- 0.6.607: party/raid members on the world map: own size and class colours (the game's group pin)
 function WM.GroupPins()
     local f = WorldMapFrame
@@ -102,6 +119,10 @@ function WM.GroupPins()
             pcall(pin.SetAppearanceField, pin, "raid", "useClassColor", class and true or false)
         end
         if pin.SetShouldShowUnits then pcall(pin.SetShouldShowUnits, pin, "party", true) end
+        -- 0.6.635: the pin only reads its appearance again when told to
+        if pin.UpdateAppearanceData then pcall(pin.UpdateAppearanceData, pin) end
+        if pin.SynchronizePinSizes then pcall(pin.SynchronizePinSizes, pin) end
+        WM.diag.group = (WM.diag.group or 0) + 1
     end
 end
 local hooked
@@ -112,10 +133,22 @@ function WM.Hook()
         pcall(WM.Apply)
         -- no reading emote
         if S().wmNoEmote then
+            -- 0.6.635: the game starts the emote right after the map opens - cancel it now and once more a moment later
             local cancel = (C_ChatInfo and C_ChatInfo.CancelEmote) or CancelEmote
-            if cancel then pcall(cancel) end
+            WM.diag.cancel = cancel and true or false
+            if cancel then
+                pcall(cancel)
+                C_Timer.After(0.05, function() pcall(cancel) end)
+                C_Timer.After(0.3, function() pcall(cancel) end)
+            end
         end
+        C_Timer.After(0, function() pcall(WM.HideTowns) end)
     end)
+    if WorldMapFrame.OnMapChanged then
+        hooksecurefunc(WorldMapFrame, "OnMapChanged", function()
+            C_Timer.After(0, function() pcall(WM.HideTowns) pcall(WM.GroupPins) end)
+        end)
+    end
     -- dragging: an own thin handle over the title bar only, and only while "move" is on.
     -- 0.6.609: previously the whole border frame took the mouse - it lies over the map and swallowed the
     -- right-click (zoom out)
@@ -139,6 +172,17 @@ end
 WM.IsTownIcon = isTownIcon
 if WorldMapFrame then pcall(WM.Hook) end
 ns.On("ADDON_LOADED", function(name) if name == "Blizzard_WorldMap" then pcall(WM.Hook) end end)
+ns.On("PLAYER_ENTERING_WORLD", function() pcall(WM.Hook) end)
+-- /oa wmtest: what the three map switches find (open the world map first)
+ns.slash.wmtest = function()
+    WM.diag.group = 0
+    pcall(WM.HideTowns) pcall(WM.GroupPins)
+    local id = WorldMapFrame and WorldMapFrame:IsShown() and WorldMapFrame:GetMapID()
+    local info = id and C_Map.GetMapInfo(id)
+    ns.print(("World map: hooked %s, map %s (type %s), pins %s, towns hidden %s, group pins %s, emote cancel %s"):format(
+        tostring(hooked and true or false), tostring(id), tostring(info and info.mapType), tostring(WM.diag.pins),
+        tostring(WM.diag.towns), tostring(WM.diag.group), tostring(WM.diag.cancel)))
+end
 ns.On("PLAYER_REGEN_ENABLED", function() if WorldMapFrame and WorldMapFrame:IsShown() then pcall(WM.Apply) end end)
 
 end)
