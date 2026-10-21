@@ -520,6 +520,88 @@ local function buildPreview(p)
     return pv
 end
 
+-- 0.6.630: settings tabs (game chat, helpers, guild helpers) - before they sat in a plain frame and ran out of the
+-- window at the bottom. Now: scroll area like the settings page, with a live example on top (ComfortPreviews "tab_<key>").
+local function buildTabPage(p, tabKey)
+    local f = CreateFrame("Frame", nil, p)
+    f:SetPoint("TOPLEFT", 0, -44) f:SetPoint("BOTTOMRIGHT", 0, 0)
+    local sc = CreateFrame("ScrollFrame", nil, f)
+    sc:SetAllPoints()
+    local child = CreateFrame("Frame", nil, sc)
+    child:SetSize(740, 400)
+    sc:SetScrollChild(child)
+    sc.thumb = sc:CreateTexture(nil, "OVERLAY")
+    sc.thumb:SetWidth(3)
+    sc.thumb:SetColorTexture(1, 1, 1, 0.18)
+    sc.thumb:Hide()
+    local PV = ns.ComfortPreviews and ns.ComfortPreviews["tab_" .. tabKey]
+    local top, pv = 0, nil
+    if PV then
+        pv = CreateFrame("Frame", nil, child)
+        pv:SetPoint("TOPLEFT", 0, 0)
+        pv:SetSize(738, PV.h or 130)
+        local ok, err = pcall(PV.build, pv)
+        if not ok and ns.err then ns.err("preview " .. tabKey, err) end
+        top = (PV.h or 130) + 14
+        -- switches in these tabs do not report back - keep the example current while it is visible
+        local acc = 0
+        pv:SetScript("OnUpdate", function(self, el)
+            acc = acc + el
+            if acc < 0.25 then return end
+            acc = 0
+            pcall(PV.update, self)
+        end)
+    end
+    local inner = CreateFrame("Frame", nil, child)
+    inner:SetPoint("TOPLEFT", 0, -top)
+    inner:SetSize(740, 2000)
+    ns.BuildSettingsTab(tabKey, inner)
+    local function measure()
+        local h = sc:GetHeight() or 0
+        if h < 50 then return end
+        local w = math.max(300, sc:GetWidth() or 740)
+        child:SetWidth(w) inner:SetWidth(w)
+        local t0 = inner:GetTop()
+        local low
+        local function see(o)
+            if o and o.IsShown and o:IsShown() and o.GetBottom then
+                local b = o:GetBottom()
+                if b and (not low or b < low) then low = b end
+            end
+        end
+        for _, c in ipairs({ inner:GetChildren() }) do see(c) end
+        for _, r in ipairs({ inner:GetRegions() }) do see(r) end
+        local need = (t0 and low) and (t0 - low + 18) or 400
+        inner:SetHeight(need)
+        child:SetHeight(math.max(h, top + need))
+        local over = child:GetHeight() - h
+        sc.thumb:SetShown(over > 4)
+        if over > 4 then
+            local th = math.max(24, h * h / child:GetHeight())
+            sc.thumb:SetHeight(th)
+            sc.thumb:ClearAllPoints()
+            sc.thumb:SetPoint("TOPRIGHT", sc, "TOPRIGHT", 0, -((sc:GetVerticalScroll() or 0) / over) * (h - th))
+        else
+            sc:SetVerticalScroll(0)
+        end
+    end
+    sc:SetScript("OnSizeChanged", function() measure() end)
+    sc:EnableMouseWheel(true)
+    sc:SetScript("OnMouseWheel", function(self, d)
+        local max = math.max(0, child:GetHeight() - self:GetHeight())
+        if max <= 0 then return end
+        self:SetVerticalScroll(math.min(max, math.max(0, (self:GetVerticalScroll() or 0) - d * 48)))
+        measure()
+    end)
+    function f:Refresh()
+        ns.RefreshSettingsTab(tabKey, inner)
+        if pv then pcall(PV.update, pv) end
+        measure()
+        if C_Timer then C_Timer.After(0, measure) end
+    end
+    return f
+end
+
 local buildMapPreview
 -- world map preview: a piece of a zone map, the right half "unexplored" in the chosen tint
 buildMapPreview = function(p)
@@ -702,16 +784,14 @@ local function show(p, key)
         if t.key == key then
             if not f then
                 if t.tab then
-                    f = CreateFrame("Frame", nil, p)
-                    f:SetPoint("TOPLEFT", 0, -44) f:SetPoint("BOTTOMRIGHT", 0, 0)
-                    ns.BuildSettingsTab(t.tab, f)
+                    f = buildTabPage(p, t.tab)
                 else
                     local PV = ns.ComfortPreviews
                     f = buildControls(p, t.key, t.preview or t.mappreview or (PV and PV[t.key]))
                 end
                 p.views[t.key] = f
             end
-            if t.tab then ns.RefreshSettingsTab(t.tab, f) elseif f.Refresh then f:Refresh() end
+            if f.Refresh then f:Refresh() end
             f:Show()
         elseif f then f:Hide() end
     end

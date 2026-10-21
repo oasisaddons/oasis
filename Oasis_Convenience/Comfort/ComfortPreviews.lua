@@ -348,3 +348,118 @@ PREV.mapextras = {
         f.layer:SetText(onD("layerAsk") and L["Layer requests from the guild: asked"] or ("|cff888888" .. L["Layer requests: ignored"] .. "|r"))
     end,
 }
+
+------------------------------------------------------------------------
+-- 0.6.630: examples on top of the settings tabs (full width, ComfortSettings buildTabPage)
+------------------------------------------------------------------------
+local function val(k, def) local v = S()[k] if v == nil then return def end return v end
+local function cname(name, cls)
+    local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[cls]
+    local hex = c and c.colorStr or "ffffffff"
+    return "|c" .. hex .. name .. "|r"
+end
+
+-- game chat: four sample lines that follow the switches
+PREV.tab_gamechat = {
+    h = 128,
+    build = function(f)
+        f.win = panel(f, 738, 110, 0, 0, { 0, 0, 0, 0.55 })
+        f.lines = {}
+        for i = 1, 4 do f.lines[i] = text(f.win, 12, C.text, 10, -10 - (i - 1) * 23) end
+        f.cap = caption(f)
+    end,
+    update = function(f)
+        local onC = val("gcOn", true)
+        local function who(first, last, cls, race, lvl)
+            local nm = (onC and val("gcShort", false)) and first or (first .. " " .. last)
+            local pre = ""
+            if onC and val("gcRaceIcon", false) then pre = pre .. "|A:raceicon-" .. race .. ":14:14|a " end
+            if onC and val("gcClassIcon", false) then pre = pre .. "|A:groupfinder-icon-class-" .. cls:lower() .. ":14:14|a " end
+            local lv = (onC and val("gcLevel", true)) and ("|cff40c040" .. lvl .. "|r ") or ""
+            return pre .. lv .. "[" .. cname(nm, cls) .. "]"
+        end
+        local ore = (onC and val("gcLinkIcons", true)) and "|T134566:14|t|cffffffff[Copper Ore]|r" or "|cffffffff[Copper Ore]|r"
+        local lfm = (onC and val("gcTokens", true)) and ("LFM |cff888888(" .. L["looking for more"] .. ")|r") or "LFM"
+        local ch = (onC and val("gcChNum", false)) and "[2]" or "[2. Trade - Orgrimmar]"
+        local quiet = onC and val("gcQuiet", false)
+        local function body(t, col) return quiet and ("|cffb8b8b8" .. t .. "|r") or (col .. t .. "|r") end
+        local L1 = {
+            "|cff40ff40[" .. L["Guild"] .. "]|r " .. who("Mira", "Stern", "MAGE", "orc-female", 23) .. ": " .. body(L["anyone up for Deadmines?"] .. " " .. lfm, "|cff40ff40"),
+            "|cffffc0c0" .. ch .. "|r " .. who("Tomas", "Berg", "WARRIOR", "tauren-male", 31) .. ": " .. body(L["selling"] .. " ", "|cffffc0c0") .. ore .. body(" x20", "|cffffc0c0"),
+            who("Anna", "Berg", "PRIEST", "undead-female", 19) .. " |cffff80ff" .. L["whispers"] .. ": " .. L["on my way"] .. "|r",
+            "|cffaaaaff[" .. L["Party"] .. "]|r " .. who("Lia", "Moor", "HUNTER", "troll-female", 22) .. ": " .. body(L["ready"], "|cffaaaaff"),
+        }
+        for i, t in ipairs(f.lines) do t:SetText(L1[i]) end
+        f.cap:SetText(onC and L["Preview - changes show at once"] or L["Game chat is off - Blizzard's chat stays as it is"])
+    end,
+}
+
+-- helpers: what happens at the vendor, with quests and invites + Blizzard bars
+PREV.tab_comfort = {
+    h = 132,
+    build = function(f)
+        f.log = panel(f, 440, 112, 0, 0, { 0, 0, 0, 0.55 })
+        f.lines = {}
+        for i = 1, 5 do f.lines[i] = text(f.log, 11, C.text, 10, -8 - (i - 1) * 20) end
+        f.bars = panel(f, 286, 112, 452, 0)
+        text(f.bars, 10, C.dim, 10, -8, L["Blizzard bars"])
+        f.micro = {}
+        local MI = { 132089, 133741, 136222, 132222, 134414, 136207, 135940, 134400 }
+        for i, id in ipairs(MI) do f.micro[i] = icon(f.bars, 22, id, 10 + (i - 1) * 26, -28) end
+        f.bags = {}
+        for i = 1, 5 do f.bags[i] = icon(f.bars, 22, 133633, 10 + (i - 1) * 26, -56) end
+        f.hint = text(f.bars, 10, C.dim, 10, -84)
+        f.dur = text(f.bars, 11, C.amber or C.accent, 160, -60)
+        caption(f)
+    end,
+    update = function(f)
+        local L1 = {}
+        if on("cfSellJunk") then L1[#L1 + 1] = (L["Sold %d grey items for %s"]):format(7, "1s 20c") end
+        if on("cfRepair") then L1[#L1 + 1] = (L["Repaired for %s%s"]):format("3s 45c", on("cfRepairGuild") and (" (" .. L["Guild bank"] .. ")") or "") end
+        if on("cfQuests") then L1[#L1 + 1] = L["Quest accepted"] .. ": Wolves Across the Border" end
+        if on("cfBlockDuels") then L1[#L1 + 1] = L["Duel from Gorr declined"] end
+        if on("cfInvites") then L1[#L1 + 1] = L["Invite from a stranger declined"] end
+        if on("cfSummon") and #L1 < 5 then L1[#L1 + 1] = L["Summon from Toran accepted"] end
+        if #L1 == 0 then L1[1] = "|cff888888" .. L["Nothing happens automatically - turn on a helper below."] .. "|r" end
+        for i, t in ipairs(f.lines) do
+            t:SetText(L1[i] and ("|cffe8b44aOasis|r  " .. L1[i]) or "")
+            if L1[i] and L1[i]:find("^|cff888888") then t:SetText(L1[i]) end
+        end
+        local hov = on("cfBarsHover")
+        for _, b in ipairs(f.micro) do b:SetAlpha(on("cfHideMicro") and (hov and 0.18 or 0) or 1) end
+        for _, b in ipairs(f.bags) do b:SetAlpha(on("cfHideBags") and (hov and 0.18 or 0) or 1) end
+        f.hint:SetText((on("cfHideMicro") or on("cfHideBags")) and (hov and L["hidden - appears under the mouse"] or L["hidden"]) or "")
+        f.dur:SetText(on("cfDurability") and (L["Durability"] .. " 78 %") or "")
+    end,
+}
+
+-- guild helpers: item tooltip + player tooltip + XP line
+PREV.tab_helpers = {
+    h = 132,
+    build = function(f)
+        f.item = panel(f, 360, 112, 0, 0)
+        f.it = {}
+        for i = 1, 5 do f.it[i] = text(f.item, 11, C.text, 10, -8 - (i - 1) * 19) end
+        f.pl = panel(f, 366, 112, 372, 0)
+        f.pt = {}
+        for i = 1, 5 do f.pt[i] = text(f.pl, 11, C.text, 10, -8 - (i - 1) * 19) end
+        caption(f)
+    end,
+    update = function(f)
+        local A = { "|cff1eff00Silver-thread Robe|r", "|cffffffff" .. L["Chest"] .. "  ·  " .. L["Cloth"] .. "|r" }
+        if on("cpTooltip") then
+            A[#A + 1] = "|cffffffff" .. L["Vendor price"] .. ":|r 31s 40c"
+            A[#A + 1] = "|cff888888" .. L["Item level"] .. " 26  ·  ID 6403|r"
+        end
+        if on("cpDisenchant") then A[#A + 1] = "|cff8080ff" .. L["Disenchants into"] .. ":|r Strange Dust, Lesser Magic Essence" end
+        for i, t in ipairs(f.it) do t:SetText(A[i] or "") end
+        local B = { cname("Mira Stern", "MAGE"), "|cffffffff" .. L["Level"] .. " 23 Orc " .. L["Mage"] .. "|r" }
+        if on("cpTooltipGuild") then
+            B[#B + 1] = "|cff40ff40<OASIS>|r  |cffe8b44a" .. L["Oasis rank"] .. " 12|r"
+            B[#B + 1] = "|cff888888" .. L["Professions"] .. ": Tailoring 145, Enchanting 120|r"
+        end
+        if on("cpInspect") then B[#B + 1] = "|cffffffff" .. L["Item level"] .. " 24|r  |cff40c040(+3)|r" end
+        if on("cpXP") and #B < 5 then B[#B + 1] = "|cff8080ff12.4k XP/h  ·  38 min " .. L["to level"] .. " 24|r" end
+        for i, t in ipairs(f.pt) do t:SetText(B[i] or "") end
+    end,
+}

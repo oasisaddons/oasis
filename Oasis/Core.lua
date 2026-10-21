@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 local L = ns.L
 Oasis = ns
-ns.version = "0.6.629"
+ns.version = "0.6.630"
 ns.versionDate = "21.10.2026"
 ns.SUPPORT_URL = ""   -- Link for "Copy report" (e.g. Discord invite); empty = text only
 ns.WAGO_ID = ""       -- Wago project ID for Wago Analytics (empty = off)   -- Version date: update with EVERY new version (update notice in guild chat)
@@ -345,7 +345,7 @@ end
 -- Developer mode: off by default; Core/Diagnostics/Dev.lua replaces ns.IsDev and registers /oa entwickler <code>
 -- (only a hash of the code is in the source). Always call as ns.IsDev(), never cache it.
 function ns.IsDev() return false end
--- 0.6.629: the artwork (backgrounds, deathroll, Guildotchi, start tiles) ships with Oasis (Media\art). Former guild
+-- 0.6.630: the artwork (backgrounds, deathroll, Guildotchi, start tiles) ships with Oasis (Media\art). Former guild
 -- module checks for pictures ask ns.ART; ns.GuildPack stays nil (behaviour of the public version).
 ns.ART = true
 -- 0.6.275: own position on the map (mapID, x, y 0..1) - formerly Camp.MyPosition, used by map, camp, etc.
@@ -363,7 +363,7 @@ end
 -- in the toc). ModuleLoader.LoadAll runs only the enabled ones at startup; after that ns.ModuleFile accepts nothing.
 ns.moduleFiles = {}
 ns.moduleOrder = {}   -- 0.6.285: toc order (modules that build on others load afterwards)
--- chronicle entry "joined the guild" (German template from Oasis before 0.6.629 or English)
+-- chronicle entry "joined the guild" (German template from Oasis before 0.6.630 or English)
 function ns.IsJoinTk(tk) return type(tk) == "string" and (tk:find("^tritt") or tk:find("^joined the guild")) and true or false end
 function ns.ModuleFile(key, fn)
     local files = ns.moduleFiles
