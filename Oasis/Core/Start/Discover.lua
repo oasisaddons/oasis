@@ -67,6 +67,7 @@ function D.Set(key, on)
         s.hiddenPages[key] = true
         s.focusHidden[key] = true
     end
+    if ns.ModuleLoader and ns.ModuleLoader.PageToggled then pcall(ns.ModuleLoader.PageToggled, key, on) end
     relayout()
 end
 -- show only the chosen interests

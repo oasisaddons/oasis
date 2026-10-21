@@ -163,7 +163,9 @@ function M.LoadAll()
         else
             M.state[m.addon] = "loaded"
             for _, fn in ipairs(fns) do
+                ns.currentModule = m.addon   -- 0.6.612: pages registered now belong to this module (hide = switch off)
                 local ok, err = xpcall(fn, function(e) return tostring(e) .. "\n" .. (debugstack and debugstack(2, 6, 0) or "") end)
+                ns.currentModule = nil
                 if not ok then
                     M.state[m.addon] = tostring(err):match("^[^\n]*")
                     if ns.err then pcall(ns.err, "Modul " .. m.addon, err) end
@@ -217,6 +219,89 @@ function M.Set(addon, on)
     ns.db.settings.modOff[addon] = (not on) and true or nil
     M.dirty = true
 end
+
+-- 0.6.612: hiding a page in the sidebar also switches its module off - once every page of that module is
+-- hidden (a module can have several pages). Showing one of them again switches the module back on.
+-- Takes effect after a reload. The pages of switched-off modules stay in Discover as stubs, so they can be
+-- switched on again there. Core pages without a module are only hidden, as before.
+local function pagesOf(module)
+    local out = {}
+    for key, meta in pairs(ns.db and ns.db.settings.pageMeta or {}) do if meta.module == module then out[#out + 1] = key end end
+    for _, d in ipairs(ns.Pages and ns.Pages() or {}) do
+        if d.module == module then
+            local has = false
+            for _, k in ipairs(out) do if k == d.key then has = true end end
+            if not has then out[#out + 1] = d.key end
+        end
+    end
+    return out
+end
+M.PagesOf = pagesOf
+local reloadAsked
+local function askReload(text)
+    if K and K.Toast then
+        K.Toast(L["Takes effect after a reload"], text .. "  ·  " .. L["Click: reload now"], C.amber or C.accent, function() if ReloadUI then ReloadUI() end end)
+    end
+end
+function M.PageToggled(key, on)
+    local s = ns.db and ns.db.settings
+    if not s then return end
+    local def = ns.PageDef and ns.PageDef(key)
+    local meta = s.pageMeta and s.pageMeta[key]
+    local module = (def and def.module) or (meta and meta.module)
+    if not module or module == "Oasis" then return end
+    local hidden = s.hiddenPages or {}
+    if on then
+        if not M.IsOn(module) then
+            M.Set(module, true)
+            askReload((L["%s is switched on again"]):format(L[(def and def.title) or (meta and meta.title) or key]))
+        end
+        return
+    end
+    for _, k in ipairs(pagesOf(module)) do
+        local d = ns.PageDef and ns.PageDef(k)
+        local m = s.pageMeta and s.pageMeta[k]
+        local child = (d and d.hubChild) or (m and m.hubChild)
+        if not hidden[k] and not child then return end   -- another page of it is still shown
+    end
+    if M.IsOn(module) then
+        M.Set(module, false)
+        askReload((L["%s is switched off and no longer loaded"]):format(L[(def and def.title) or (meta and meta.title) or key]))
+    end
+end
+-- remember title and module of every module page (for the stubs while it is off)
+function M.RememberPages()
+    local s = ns.db and ns.db.settings
+    if not s then return end
+    s.pageMeta = s.pageMeta or {}
+    for _, d in ipairs(ns.Pages and ns.Pages() or {}) do
+        if d.module and not d.stub then s.pageMeta[d.key] = { title = d.title, sub = d.sub, module = d.module, order = d.order, hubChild = d.hubChild and true or nil } end
+    end
+end
+-- stubs for the pages of switched-off modules: hidden, listed in Discover, "turn on" switches the module on
+function M.AddStubs()
+    local s = ns.db and ns.db.settings
+    if not (s and s.pageMeta and ns.RegisterPage) then return end
+    for key, meta in pairs(s.pageMeta) do
+        if not (ns.PageDef and ns.PageDef(key)) and meta.module and not meta.hubChild and not M.IsOn(meta.module) then
+            s.hiddenPages = s.hiddenPages or {}
+            s.hiddenPages[key] = true
+            ns.RegisterPage({ key = key, title = meta.title, sub = meta.sub, order = meta.order or 99, module = meta.module, stub = true,
+                build = function(p)
+                    local t = K.Text(p, 13, C.text)
+                    t:SetPoint("TOPLEFT", 0, -10)
+                    t:SetText(L["This area is switched off."])
+                    local b = K.Button(p, L["Turn on and reload"], 200, 28, "primary", function()
+                        M.Set(meta.module, true)
+                        if s.hiddenPages then s.hiddenPages[key] = nil end
+                        if ReloadUI then ReloadUI() end
+                    end)
+                    b:SetPoint("TOPLEFT", 0, -40)
+                end })
+        end
+    end
+end
+ns.Listen("DB_READY", function() pcall(M.RememberPages) pcall(M.AddStubs) end)
 -- Memory of the whole addon (modules count toward Oasis since 0.5.580)
 function M.MemKB(addon)
     local get = (C_AddOns and C_AddOns.GetAddOnMemoryUsage) or GetAddOnMemoryUsage

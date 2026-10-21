@@ -64,6 +64,7 @@ ns.ICONS = ICONS
 -- register page: { key, title, sub, order, build(page), refresh(page), visible() }
 -- title/sub are language keys and are only translated on display
 function ns.RegisterPage(def)
+    def.module = def.module or ns.currentModule   -- 0.6.612: hide in the sidebar = module off (ModuleLoader.PageToggled)
     pages[def.key] = def
     table.insert(pageOrder, def)
     table.sort(pageOrder, function(a, b) return a.order < b.order end)

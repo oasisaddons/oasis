@@ -334,12 +334,52 @@ local function buildPreview(p)
     end
     pv.arrowText = K.Text(pv, 11, C.text)
     pv.arrowText:SetPoint("LEFT", pv.arrow, "RIGHT", 8, 0)
+    -- 0.6.612: everything a switch does is visible here
+    local over = CreateFrame("Frame", nil, map)
+    over:SetAllPoints() over:SetFrameLevel(map:GetFrameLevel() + 12)
+    pv.over = over
+    -- scan: a sweeping line
+    pv.sweep = over:CreateTexture(nil, "OVERLAY")
+    pv.sweep:SetColorTexture(1, 1, 0.6, 0.35)
+    pv.sweep:SetSize(2, 96) pv.sweep:SetPoint("BOTTOM", map, "CENTER", 0, 0)
+    pv.sweepA = 0
+    over:SetScript("OnUpdate", function(_, el)
+        if not pv.sweep:IsShown() then return end
+        pv.sweepA = (pv.sweepA + (el or 0) * 2) % 6.283
+        pv.sweep:SetRotation(pv.sweepA)
+        pv.sweep:ClearAllPoints()
+        pv.sweep:SetPoint("CENTER", map, "CENTER", -math.sin(pv.sweepA) * 48, math.cos(pv.sweepA) * 48)
+        pv.flip = (pv.flip or 0) + (el or 0)
+        if pv.flip > 2 and pv.switching then pv.flip = 0 pv.herbs = not pv.herbs pv:Update(pv.tab) end
+    end)
+    -- finder line, skill tooltip, dot legend
+    pv.finder = K.Text(pv, 10, C.muted) pv.finder:SetPoint("TOP", map, "BOTTOM", 0, -50)
+    pv.tip = CreateFrame("Frame", nil, over)
+    pv.tip:SetSize(150, 34) pv.tip:SetPoint("BOTTOMLEFT", map, "CENTER", -70, 0)
+    K.Fill(pv.tip, { 0.03, 0.03, 0.05, 0.92 }) K.Border(pv.tip, C.line)
+    pv.tip.a = K.Text(pv.tip, 10, C.text) pv.tip.a:SetPoint("TOPLEFT", 6, -4) pv.tip.a:SetText("Kingsblood")
+    pv.tip.b = K.Text(pv.tip, 9, { 1, 0.5, 0.25 }) pv.tip.b:SetPoint("TOPLEFT", 6, -18) pv.tip.b:SetText((ITEM_MIN_SKILL or "Requires %s (%d)"):format(L["Herbalism"], 125))
+    pv.legend = map:CreateTexture(nil, "OVERLAY")
+    pv.legend:SetPoint("CENTER", map, "BOTTOMRIGHT", 0, -26)
+    pv.legendT = K.Text(pv, 10, C.muted) pv.legendT:SetPoint("RIGHT", pv.legend, "LEFT", -14, 0) pv.legendT:SetText(L["game dot"] .. ":")
+    -- arrow lock, pin, interact icon, far sparkle spots
+    pv.lock = pv:CreateTexture(nil, "OVERLAY") pv.lock:SetTexture("Interface\\PetBattles\\PetBattle-LockIcon") pv.lock:SetSize(14, 14)
+    pv.lock:SetPoint("BOTTOMRIGHT", pv.arrow, "BOTTOMRIGHT", 4, -2)
+    pv.pin = over:CreateTexture(nil, "OVERLAY") pv.pin:SetTexture("Interface\\Minimap\\Waypoint-MapPin-Untracked") pv.pin:SetSize(20, 20)
+    if pv.pin.SetAtlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("Waypoint-MapPin-Tracked") then pv.pin:SetAtlas("Waypoint-MapPin-Tracked") end
+    pv.hand = over:CreateTexture(nil, "OVERLAY") pv.hand:SetTexture("Interface\\Cursor\\UnableGatherHerbs") pv.hand:SetSize(16, 16)
+    if pv.hand.SetAtlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("Cursor_Herb_32") then pv.hand:SetAtlas("Cursor_Herb_32") end
+    -- guild: a farming guild member, a notice, route lines
+    pv.mate = over:CreateTexture(nil, "OVERLAY") pv.mate:SetTexture(ns.MEDIA .. "dot") pv.mate:SetVertexColor(0.3, 1, 0.4) pv.mate:SetSize(12, 12)
+    pv.mate:SetPoint("CENTER", map, "CENTER", 60, -60)
+    pv.toast = K.Text(pv, 10, { 1, 0.82, 0 }) pv.toast:SetPoint("BOTTOM", map, "TOP", 0, 22)
+    pv.lines = {}
     pv.note = K.Text(pv, 10, C.dim)
-    pv.note:SetPoint("TOP", map, "BOTTOM", 0, -52)
+    pv.note:SetPoint("TOP", map, "BOTTOM", 0, -68)
     pv.note:SetText(L["Preview with sample nodes - changes show at once"])
     function pv:Update(tab)
         local dotScale = S().gatherDotScale or 1
-        local symbols = get("gatherSymbols")
+        local symbols = get("gatherSymbols") and not (self.peek and (GetTime and GetTime() or 0) < self.peek)
         for i, d in ipairs(SAMPLE) do
             local gray = d.cave
             self.dots[i]:SetSize(14 * dotScale, 14 * dotScale)
@@ -359,6 +399,64 @@ local function buildPreview(p)
         else
             self.arrow:Hide()
             self.arrowText:SetText(get("gatherArrow") and "" or ("|cff888888" .. L["Arrow is off"] .. "|r"))
+        end
+        self.tab = tab
+        local k = 200 / 230
+        -- minimap tab: scan sweep, finder switch, skill line, dot legend
+        self.sweep:SetShown(tab == "mini" and get("gatherScan"))
+        self.switching = tab == "mini" and get("gatherSwitch")
+        if self.switching then
+            self.finder:SetText(self.herbs and ("|cff7fd77f" .. L["Find Herbs"] .. "|r  ⇄  " .. L["Find Minerals"]) or (L["Find Herbs"] .. "  ⇄  |cffd8b04a" .. L["Find Minerals"] .. "|r"))
+            for i, d in ipairs(SAMPLE) do
+                local held = (self.herbs and d.kind == "ore") or (not self.herbs and d.kind == "herb")
+                if self.syms[i] and self.syms[i]:IsShown() and held then self.syms[i]:SetAlpha(0.45) end
+            end
+        else
+            self.finder:SetText(tab == "mini" and (get("gatherSound") and L["A soft ping for new nodes"] or "") or "")
+        end
+        self.tip:SetShown(tab == "mini" and not get("gatherSkillOff"))
+        local ds = 24 * (S().gatherDotScale or 1)
+        if self.legend.SetAtlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("Professions_Tracking_Herb") then self.legend:SetAtlas("Professions_Tracking_Herb")
+        else self.legend:SetTexture(ns.MEDIA .. "dot") self.legend:SetVertexColor(1, 0.85, 0.2) end
+        self.legend:SetSize(ds, ds)
+        self.legend:SetShown(tab == "mini") self.legendT:SetShown(tab == "mini")
+        -- arrow tab: lock
+        self.lock:SetShown(get("gatherArrow") and get("gatherArrowLock") and true or false)
+        -- sparkle tab: pin and the game's interact icon on the target
+        self.pin:Hide() self.hand:Hide()
+        if t and tab == "sparkle" then
+            if get("gatherPin") or get("gatherSparkleFar") then self.pin:ClearAllPoints() self.pin:SetPoint("BOTTOM", self.map, "CENTER", t.x * k, t.y * k + 8) self.pin:Show() end
+            if get("gatherSparkle") and not get("gatherSparkleHideIcons") then self.hand:ClearAllPoints() self.hand:SetPoint("BOTTOM", self.map, "CENTER", t.x * k, t.y * k + 22) self.hand:Show() end
+        end
+        -- guild tab: farmer, notice, route
+        local guild = tab == "guild"
+        self.mate:SetShown(guild and get("gatherShareArea"))
+        if guild and get("gatherShareArea") then
+            for i, d in ipairs(SAMPLE) do
+                if self.syms[i] and self.syms[i]:IsShown() and d.x > 30 and d.y < -20 then self.syms[i]:SetAlpha(0.3) end
+            end
+        end
+        self.toast:SetText(guild and get("gatherAlerts") and ("|TInterface\\Icons\\INV_Misc_Herb_BlackLotus:14|t " .. L["Guild find: Black Lotus - Toran sees it"]) or "")
+        for _, l in ipairs(self.lines) do l:Hide() end
+        if guild and get("gatherRoute") and self.map.CreateLine then
+            local pts = {}
+            for _, d in ipairs(SAMPLE) do
+                local skip = d.kind ~= "herb" and d.kind ~= "ore" or (get("gatherRouteSkill") and (d.hard or d.name == "Peacebloom" or d.name == "Copper Vein"))
+                if not skip then pts[#pts + 1] = d end
+            end
+            for i = 1, #pts do
+                local a, b = pts[i], pts[i % #pts + 1]
+                local l = self.lines[i]
+                if not l then
+                    l = self.over:CreateLine(nil, "ARTWORK")
+                    if l then l:SetThickness(2) l:SetColorTexture(1, 0.85, 0.3, 0.7) self.lines[i] = l end
+                end
+                if l then
+                    l:SetStartPoint("CENTER", self.map, a.x * k, a.y * k)
+                    l:SetEndPoint("CENTER", self.map, b.x * k, b.y * k)
+                    l:Show()
+                end
+            end
         end
         -- sparkles on the arrow's node (tab "Sparkles & pin")
         if GS and GS.SparkleOn then
@@ -428,6 +526,9 @@ local function apply(p)
     if ns.ComfortPlus and ns.ComfortPlus.ApplyReveal then pcall(ns.ComfortPlus.ApplyReveal) end
     if p.pv then p.pv:Update(cur) end
     if p.mpv then p.mpv:Update() end
+    local PV = ns.ComfortPreviews
+    local g = p.gen and p.gen[p.cur]
+    if g and PV and PV[p.cur] then pcall(PV[p.cur].update, g) end
 end
 local function buildControls(p, key, withPreview)
     local box = CreateFrame("Frame", nil, p)
@@ -440,7 +541,10 @@ local function buildControls(p, key, withPreview)
     local twoCol = not withPreview and #o > 7
     local half = math.ceil(#o / 2)
     for i, row in ipairs(o) do
-        local t = K.Toggle(box, L[row[1]], function() return get(row[2]) end, function(v) set(row[2], v) apply(p) end)
+        local t = K.Toggle(box, L[row[1]], function() return get(row[2]) end, function(v)
+            set(row[2], v) apply(p)
+            if v and row[2] == "gatherSound" and PlaySound then pcall(PlaySound, SOUNDKIT and SOUNDKIT.MAP_PING or 3175, "Master") end
+        end)
         if twoCol then
             local col = i > half and 1 or 0
             t:SetPoint("TOPLEFT", col * 400, -((col == 1 and i - half or i) - 1) * 30)
@@ -462,7 +566,15 @@ local function buildControls(p, key, withPreview)
         lab:SetPoint("TOPLEFT", x, y)
         lab:SetText(L[sd[1]])
         local sl = K.Slider(box, two and 220 or 260, sd[3], sd[4], sd[5], function() return S()[sd[2]] or sd[6] end,
-            function(v) S()[sd[2]] = (v ~= sd[6]) and v or nil apply(p) end, sd[7] or function(v) return math.floor(v * 100 + 0.5) .. " %" end)
+            function(v)
+                S()[sd[2]] = (v ~= sd[6]) and v or nil
+                -- moving the dot size: hide the symbols for a moment so the game's dots can be seen
+                if sd[2] == "gatherDotScale" and p.pv then
+                    p.pv.peek = (GetTime and GetTime() or 0) + 1.5
+                    if C_Timer then C_Timer.After(1.6, function() if p.pv then p.pv:Update(p.pv.tab) end end) end
+                end
+                apply(p)
+            end, sd[7] or function(v) return math.floor(v * 100 + 0.5) .. " %" end)
         sl:SetPoint("TOPLEFT", x, y - 18)
         box.ctrls[#box.ctrls + 1] = sl
         if not two or col == 1 or i == #sliders then y = y - 54 end
@@ -540,7 +652,8 @@ local function show(p, key)
                     f:SetPoint("TOPLEFT", 0, -44) f:SetPoint("BOTTOMRIGHT", 0, 0)
                     ns.BuildSettingsTab(t.tab, f)
                 else
-                    f = buildControls(p, t.key, t.preview or t.mappreview)
+                    local PV = ns.ComfortPreviews
+                    f = buildControls(p, t.key, t.preview or t.mappreview or (PV and PV[t.key]))
                 end
                 p.views[t.key] = f
             end
@@ -552,13 +665,27 @@ local function show(p, key)
     for _, t in ipairs(p.tabs) do if t.key == key then tdef = t end end
     if p.pv then p.pv:SetShown(tdef and tdef.preview and true or false) end
     if tdef and tdef.mappreview and not p.mpv then p.mpv = buildMapPreview(p) end
+    -- 0.6.612: own preview for every other tab with switches (ComfortPreviews.lua)
+    local PV = ns.ComfortPreviews
+    p.gen = p.gen or {}
+    if PV and PV[key] and not p.gen[key] then
+        local g = CreateFrame("Frame", nil, p)
+        g:SetSize(260, 300)
+        g:SetPoint("TOPLEFT", 0, -44)
+        local ok, err = pcall(PV[key].build, g)
+        if not ok and ns.err then ns.err("preview " .. key, err) end
+        p.gen[key] = g
+    end
+    for k2, g in pairs(p.gen) do g:SetShown(k2 == key) end
     if p.mpv then p.mpv:SetShown(tdef and tdef.mappreview and true or false) end
     apply(p)
 end
 
+local MODULE_OF = { gatherset = "Oasis_MapExtras", worldmapset = "Oasis_MapExtras", questset = "Oasis_Comfort", uiset = "Oasis_Comfort",
+    comfortset = "Oasis_Comfort", chatset = "Oasis_GameChat" }
 local function register(key, title, sub, order, tabs, withPreview)
     ns.RegisterPage({
-        key = key, title = title, order = order, sub = sub,
+        key = key, title = title, order = order, sub = sub, module = MODULE_OF[key],
         build = function(p)
             p.tabs = tabs
             local items = {}
