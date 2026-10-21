@@ -584,6 +584,7 @@ local function kindForName(n)
         end
     end
 end
+GM.KindForName = kindForName
 local hoverSeen = {}
 local function fromMinimapTooltip()
     -- 0.6.506: the tooltip owner is the minimap, its border or a child depending on the client - what matters is the mouse over the minimap
@@ -693,30 +694,142 @@ local function probe(job, sc, cx, cy, p)
         end
     end
 end
--- group the hits of one name: points closer than two grid steps belong to the same dot
-local function clusters(list)
-    local out, lim = {}, (SCAN_STEP * 2.1) ^ 2
-    for _, p in ipairs(list) do
-        local best
-        for _, g in ipairs(out) do
-            local dx, dy = p[1] - g.x / g.n, p[2] - g.y / g.n
-            if dx * dx + dy * dy <= lim then best = g break end
+-- connected groups: grid points next to each other (also diagonally) belong together
+local function components(list, step)
+    local lim, out, used = (step * 1.5) ^ 2, {}, {}
+    for i = 1, #list do
+        if not used[i] then
+            used[i] = true
+            local comp, q = { list[i] }, 1
+            while q <= #comp do
+                local p = comp[q]
+                for j = 1, #list do
+                    if not used[j] then
+                        local dx, dy = list[j][1] - p[1], list[j][2] - p[2]
+                        if dx * dx + dy * dy <= lim then used[j] = true comp[#comp + 1] = list[j] end
+                    end
+                end
+                q = q + 1
+            end
+            out[#out + 1] = comp
         end
-        if best then best.x, best.y, best.n = best.x + p[1], best.y + p[2], best.n + 1
-        else out[#out + 1] = { x = p[1], y = p[2], n = 1 } end
     end
     return out
 end
-local function finishScan(job)
-    local added = {}
+local function center(pts)
+    local x, y = 0, 0
+    for _, p in ipairs(pts) do x, y = x + p[1], y + p[2] end
+    return x / #pts, y / #pts
+end
+-- k centers in a blob of overlapping dots (k-means, started from points far apart)
+local function kmeans(pts, k)
+    local cs = { { pts[1][1], pts[1][2] } }
+    while #cs < k do
+        local best, bd = nil, -1
+        for _, p in ipairs(pts) do
+            local m = math.huge
+            for _, c in ipairs(cs) do m = math.min(m, (p[1] - c[1]) ^ 2 + (p[2] - c[2]) ^ 2) end
+            if m > bd then best, bd = p, m end
+        end
+        cs[#cs + 1] = { best[1], best[2] }
+    end
+    for _ = 1, 8 do
+        local sx, sy, n = {}, {}, {}
+        for i = 1, k do sx[i], sy[i], n[i] = 0, 0, 0 end
+        for _, p in ipairs(pts) do
+            local bi, bd = 1, math.huge
+            for i, c in ipairs(cs) do
+                local d = (p[1] - c[1]) ^ 2 + (p[2] - c[2]) ^ 2
+                if d < bd then bi, bd = i, d end
+            end
+            sx[bi], sy[bi], n[bi] = sx[bi] + p[1], sy[bi] + p[2], n[bi] + 1
+        end
+        for i = 1, k do if n[i] > 0 then cs[i] = { sx[i] / n[i], sy[i] / n[i] } end end
+    end
+    return cs
+end
+-- 0.6.592: dots lying close together melt into one blob on the coarse grid. Such blobs are probed again on a
+-- fine grid (spread over frames); the dot size is measured from the smallest blob, the area then says how many
+-- dots a blob holds.
+local FINE, MAX_FINE = 3, 900
+GM.dotRadius = nil   -- measured radius of one minimap dot (minimap units)
+local function singlePoints()
+    local r = GM.dotRadius
+    if not r then return 0 end   -- not measured yet: probe every blob once
+    return math.floor(math.pi * r * r / SCAN_STEP ^ 2)   -- coarse hits vary a lot: rather probe once too often
+end
+local function fineList(job)
+    local list, single = {}, singlePoints()
     for name, h in pairs(job.hits) do
-        for _, g in ipairs(clusters(h)) do
-            GM.scanStats.hits = GM.scanStats.hits + 1
-            local x, y = pxToMap(job.c, g.x / g.n, g.y / g.n)
-            local ok, res = pcall(GM.Record, h.kind, name, x, y)
-            if ok and res == "neu gespeichert" then added[#added + 1] = name end
+        for _, comp in ipairs(components(h, SCAN_STEP)) do
+            if #comp > single and #list < 40 then
+                local x0, y0 = center(comp)
+                local r = SCAN_STEP * (1.5 + math.sqrt(#comp) / 2)
+                list[#list + 1] = { name = name, kind = h.kind, x = x0, y = y0, r = r, comp = comp }
+            else
+                list[#list + 1] = { name = name, kind = h.kind, done = { center(comp) } }
+            end
         end
     end
+    -- the fine points of all blobs, in a queue
+    local pts, budget = {}, MAX_FINE
+    for gi, g in ipairs(list) do
+        if not g.done then
+            g.hits = {}
+            for ox = g.x - g.r, g.x + g.r, FINE do
+                for oy = g.y - g.r, g.y + g.r, FINE do
+                    if budget > 0 then budget = budget - 1 pts[#pts + 1] = { ox, oy, gi } end
+                end
+            end
+        end
+    end
+    job.groups, job.fpts, job.fi = list, pts, 1
+end
+local function fineProbe(job, sc, cx, cy, p)
+    local g = job.groups[p[3]]
+    Minimap:UpdateMouseoverAtPoint((cx + p[1]) * sc, (cy + p[2]) * sc)
+    local data = ns.safe(C_TooltipInfo.GetMinimapMouseover())
+    local lines = type(data) == "table" and ns.safe(data.lines)
+    if type(lines) ~= "table" then return end
+    for _, line in ipairs(lines) do
+        local txt = ns.safe(line.leftText)
+        if type(txt) == "string" and txt:find(g.name, 1, true) then g.hits[#g.hits + 1] = { p[1], p[2] } return end
+    end
+end
+local function finishScan(job)
+    -- dot size: the smallest fine blob is one dot
+    for _, g in ipairs(job.groups) do
+        if g.hits then
+            g.parts = components(g.hits, FINE)
+            for _, c in ipairs(g.parts) do
+                local r = math.sqrt(#c * FINE * FINE / math.pi)
+                if r >= 2 and (not GM.dotRadius or r < GM.dotRadius) then GM.dotRadius = r end
+            end
+        end
+    end
+    local added, live = {}, {}
+    local one = GM.dotRadius and math.pi * GM.dotRadius ^ 2 or nil
+    for _, g in ipairs(job.groups) do
+        local centers = {}
+        if g.done then centers[1] = g.done
+        elseif not g.parts or #g.parts == 0 then centers[1] = { center(g.comp) }
+        else
+            for _, c in ipairs(g.parts) do
+                local k = one and math.max(1, math.floor(#c * FINE * FINE / one + 0.35)) or 1
+                if k == 1 then centers[#centers + 1] = { center(c) }
+                else for _, m in ipairs(kmeans(c, math.min(k, 6))) do centers[#centers + 1] = m end end
+            end
+        end
+        for _, m in ipairs(centers) do
+            GM.scanStats.hits = GM.scanStats.hits + 1
+            local x, y = pxToMap(job.c, m[1], m[2])
+            live[#live + 1] = { kind = g.kind, name = g.name, map = job.c.map, x = x, y = y }
+            local ok, res = pcall(GM.Record, g.kind, g.name, x, y)
+            if ok and res == "neu gespeichert" then added[#added + 1] = g.name end
+        end
+    end
+    -- dots on the minimap right now (for arrow, pin and sparkles)
+    GM.scanLive, GM.scanLiveAt = live, GetTime and GetTime() or 0
     GM.scanStats.runs = GM.scanStats.runs + 1
     GM.scanStats.added = GM.scanStats.added + #added
     if #added > 0 then ns.print((L["Minimap scan: %d new gathering spots (%s)"]):format(#added, table.concat(added, ", "))) end
@@ -736,12 +849,19 @@ function GM.ScanStep(el)
     if not cx then scanJob = nil return end
     local soft = Minimap.SetUsingSoftCursor
     if soft then pcall(soft, Minimap, true) end
-    for i = job.i, math.min(job.i + SCAN_PER_FRAME - 1, #job.pts) do pcall(probe, job, sc, cx, cy, job.pts[i]) end
+    if not job.fpts then
+        for i = job.i, math.min(job.i + SCAN_PER_FRAME - 1, #job.pts) do pcall(probe, job, sc, cx, cy, job.pts[i]) end
+        job.i = job.i + SCAN_PER_FRAME
+        if job.i > #job.pts then fineList(job) end
+    else
+        for i = job.fi, math.min(job.fi + SCAN_PER_FRAME - 1, #job.fpts) do pcall(fineProbe, job, sc, cx, cy, job.fpts[i]) end
+        job.fi = job.fi + SCAN_PER_FRAME
+    end
     if soft then pcall(soft, Minimap, false) end
-    job.i = job.i + SCAN_PER_FRAME
-    if job.i > #job.pts then
+    if job.fpts and job.fi > #job.fpts then
         scanJob, scanWait = nil, SCAN_PAUSE
-        pcall(finishScan, job)
+        local ok, err = pcall(finishScan, job)
+        if not ok and ns.Debug then ns.Debug("gatherscan", err) end
     end
 end
 CreateFrame("Frame"):SetScript("OnUpdate", function(_, el) GM.ScanStep(el) end)

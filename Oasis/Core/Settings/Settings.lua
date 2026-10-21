@@ -1197,6 +1197,10 @@ ns.AddPageSettings("map", function(det, y)
         { "Gathering route", "gatherRoute", "Round trip through the nodes, minimap arrow to the next one", symUpd },
         { "Glimmer: nearby nodes light up", "glimmer", "Known nodes within 60 m pulse on the minimap, a soft sound at 25 m", gupd, true },
         { "Glimmer sound", "glimmerSound", "Soft sound when you get close to a node", nil, true },
+        { "Minimap scan: find nodes by themselves", "gatherScan", "Reads the herb and ore dots on the minimap and adds them to the gathering map", nil, true },
+        { "Arrow to the nearest node", "gatherArrow", "An arrow on the screen points to the next herb or ore (drag to move)", function() if ns.GatherSight then ns.GatherSight.Apply() end end },
+        { "Sparkles on herbs and ore nearby", "gatherSparkle", "Gold sparkles on the node in front of you (turns on the game's interact icons, up to 30 m)", function() if ns.GatherSight then ns.GatherSight.Apply() end end },
+        { "Map pin on the nearest node", "gatherPin", "Sets the game's map pin, the in-world marker shows the way (only if you have no own pin)", function() if ns.GatherSight then ns.GatherSight.Apply() end end },
         { "Show nodes for all professions", "gatherAllProfs", "Off = only herbs/ore/fishing spots of your own gathering professions", function() if ns.Gather and ns.Gather.ResetOwnKinds then ns.Gather.ResetOwnKinds() end gupd() end },
     })
     local sorts
