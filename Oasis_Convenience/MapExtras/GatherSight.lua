@@ -68,13 +68,18 @@ function GS.Nearest()
     local map, mx, my, w, h = here()
     if not map then return nil end
     local best, bd
+    local profOnly = S().gatherArrowProfFirst
     local function try(r)
         if r.map ~= map or not arrowWants(r.kind) or GM.TooHard(r.name) then return end
+        if r.cave and not S().gatherArrowCaves then return end
+        if profOnly and not GM.PROF_KINDS[r.kind] then return end
         local dx, dy = (r.x - mx) * w, (r.y - my) * h
         local d = math.sqrt(dx * dx + dy * dy)
         if d > AT and d <= FAR and (not bd or d < bd) then best, bd = r, d end
     end
     for _, r in ipairs(GS.Live()) do try(r) end
+    -- 0.6.597: herbs and ore first - the others only if there is none
+    if profOnly and not best then profOnly = false for _, r in ipairs(GS.Live()) do try(r) end end
     if not best then
         local t = ns.now()
         for _, r in ipairs(GM.Nodes(map)) do
@@ -107,6 +112,10 @@ local function sym(i)
     p.bg:SetTexture(ns.MEDIA .. "pindisc")
     p.bg:SetPoint("TOPLEFT", -2, 2) p.bg:SetPoint("BOTTOMRIGHT", 2, -2)
     p.bg:SetVertexColor(0.04, 0.04, 0.05, 1)
+    -- 0.6.597: square shape = plain icon without mask
+    p.square = p:CreateTexture(nil, "ARTWORK")
+    p.square:SetAllPoints()
+    p.square:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     p.icon = p:CreateTexture(nil, "ARTWORK")
     p.icon:SetAllPoints()
     p.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -129,6 +138,7 @@ local function sym(i)
         local line, r, g, b = GM.SkillLine(self.d.name)
         if line then GameTooltip:AddLine(line, r, g, b) end
         if self.d.held then GameTooltip:AddLine(L["Seen before the finder switched"], 0.6, 0.6, 0.6) end
+        if self.d.cave then GameTooltip:AddLine(L["In a cave or on another level"], 0.6, 0.6, 0.6) end
         GameTooltip:Show()
     end)
     p:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -150,13 +160,24 @@ function GS.DrawSymbols()
                     p:ClearAllPoints()
                     p:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
                     local icon, info = iconOf(d)
-                    p.icon:SetTexture(icon)
+                    -- shape: 1 square, 2 round, 3 round with ring, 4 slim ring
+                    local shape = S().gatherShape or 3
+                    local tex = shape == 1 and p.square or p.icon
+                    p.square:SetShown(shape == 1) p.icon:SetShown(shape ~= 1)
+                    p.bg:SetShown(shape == 2 or shape == 3)
+                    p.ring:SetShown(shape >= 3)
+                    p.ring:ClearAllPoints()
+                    local o = shape == 4 and 1 or 2
+                    p.ring:SetPoint("TOPLEFT", -o, o) p.ring:SetPoint("BOTTOMRIGHT", o, -o)
+                    tex:SetTexture(icon)
                     local k = GM.KINDS[d.kind] or {}
                     local ring = info and info.ring or k.color or { 1, 1, 1 }
-                    p.ring:SetVertexColor(ring[1], ring[2], ring[3])
-                    if GM.TooHard(d.name) then p.icon:SetVertexColor(1, 0.25, 0.25) else p.icon:SetVertexColor(1, 1, 1) end
-                    -- over your own arrow in the middle: see-through; held: faded
-                    local a = d.held and 0.55 or 1
+                    p.ring:SetVertexColor(ring[1], ring[2], ring[3], shape == 4 and 0.7 or 1)
+                    if GM.TooHard(d.name) then tex:SetVertexColor(1, 0.25, 0.25) else tex:SetVertexColor(1, 1, 1) end
+                    -- cave / other level: gray like the game's own dot
+                    if tex.SetDesaturated then tex:SetDesaturated(d.cave and true or false) end
+                    -- over your own arrow in the middle: see-through; held or cave: faded
+                    local a = (d.held or d.cave) and 0.55 or 1
                     if ox * ox + oy * oy < 81 then a = math.min(a, 0.35) end
                     p:SetAlpha(a)
                     p:Show()
@@ -381,6 +402,7 @@ function GS.Project(ref, refX, refY, list, facing, f, cx, camH)
 end
 function GS.FarOthers(nf)
     local placed = 0
+    if GS.cal.state then return 0 end   -- the pin is hopping for the measurement
     if nf and S().gatherSparkleFar and UIParent then
         local map, mx, my, w, h = here()
         local facing = ns.safe(GetPlayerFacing and GetPlayerFacing())
@@ -396,7 +418,7 @@ function GS.FarOthers(nf)
                 if d.map == map and (d.kind == "herb" or d.kind == "ore") and not d.held
                     and not (math.abs(d.x - ourPin[2]) < 0.0005 and math.abs(d.y - ourPin[3]) < 0.0005) and not GM.TooHard(d.name) then
                     local dist, b = polar(d.x, d.y)
-                    if dist > 25 and dist < 200 then list[#list + 1] = { dist = dist, bearing = b } end
+                    if dist > 25 and dist < 200 and not d.cave then list[#list + 1] = { dist = dist, bearing = b, x = d.x, y = d.y } end
                 end
             end
             table.sort(list, function(a, b) return a.dist < b.dist end)
@@ -404,6 +426,11 @@ function GS.FarOthers(nf)
             local cx = UIParent:GetWidth() / 2
             local f = cx / math.tan(math.rad(fov) / 2)
             local camH = 1.8 + (GetCameraZoom and ns.safe(GetCameraZoom()) or 8) * 0.4
+            -- measured values win over the estimate
+            local mf, mh = GS.Camera()
+            if mf then f = mf end
+            if mh then camH = mh end
+            GS.TryCalibrate(ourPin, here, polar, list)
             for _, p in ipairs(GS.Project(ref, rx, ry, list, facing, f, cx, camH)) do
                 if placed >= MORE then break end
                 if p.x > 0 and p.x < UIParent:GetWidth() and p.y > 0 and p.y < UIParent:GetHeight() then
@@ -421,12 +448,106 @@ function GS.FarOthers(nf)
     return placed
 end
 
+-- 0.6.597: size of the game's own yellow dots (Minimap:SetIconScale) - only touched once the slider was moved
+local dotApplied
+function GS.ApplyDotScale()
+    local v = S().gatherDotScale
+    if not (Minimap and Minimap.SetIconScale) then return end
+    if v and v ~= dotApplied then pcall(Minimap.SetIconScale, Minimap, v) dotApplied = v
+    elseif not v and dotApplied then pcall(Minimap.SetIconScale, Minimap, 1) dotApplied = nil end
+end
+
+-- 0.6.597: measuring the camera for the far sparkles. Standing still, the pin hops for a moment to a second
+-- node; the two markers on screen give the focal length, the camera's turn and its height over the ground
+-- (per zoom level, kept in the settings). Without a measurement the field of view and zoom are estimated.
+GS.cal = { state = nil }
+function GS.Solve(a, b, facing, cx)
+    -- a, b = { dist, bearing, x, y } of two markers; returns f, yaw, h or nil
+    local best
+    for yawI = -900, 900 do
+        local yaw = yawI / 1000
+        local sa, sb = a.bearing - facing - yaw, b.bearing - facing - yaw
+        local ta, tb = math.tan(sa), math.tan(sb)
+        local f
+        if math.abs(ta) > 0.03 then f = (cx - a.x) / ta elseif math.abs(tb) > 0.03 then f = (cx - b.x) / tb end
+        if f and f > 150 and f < 4000 then
+            local err = math.abs(cx - f * ta - a.x) + math.abs(cx - f * tb - b.x)
+            if not best or err < best.err then best = { err = err, f = f, yaw = yaw } end
+        end
+    end
+    if not best or best.err > 12 then return nil end
+    local da = a.dist * math.cos(a.bearing - facing - best.yaw)
+    local db = b.dist * math.cos(b.bearing - facing - best.yaw)
+    local k = 1 / db - 1 / da
+    if math.abs(k) < 0.003 then return best.f, best.yaw, nil end
+    local h = (a.y - b.y) / (best.f * k)
+    if h < 0.3 or h > 40 then return best.f, best.yaw, nil end
+    return best.f, best.yaw, h
+end
+local function zoomKey() local z = GetCameraZoom and ns.safe(GetCameraZoom()) return type(z) == "number" and math.floor(z + 0.5) or 0 end
+function GS.Camera()
+    local c = S().gatherCam and S().gatherCam[zoomKey()]
+    if c and c.f then return c.f, c.h end
+end
+local lastPos
+local function calibrate(el)
+    local cal = GS.cal
+    local nav = C_Navigation
+    local nf = nav and nav.GetFrame and nav.GetFrame()
+    if cal.state == "hop" then
+        cal.t = cal.t + el
+        if cal.t < 0.2 then return true end
+        local x, y = nf and nf:GetCenter()
+        local ok = x and (not nav.HasValidScreenPosition or nav.HasValidScreenPosition())
+        if ok then
+            local facing = ns.safe(GetPlayerFacing and GetPlayerFacing())
+            local f, _, h = GS.Solve(cal.a, { dist = cal.b.dist, bearing = cal.b.bearing, x = x, y = y }, facing or 0, UIParent:GetWidth() / 2)
+            if f then
+                S().gatherCam = S().gatherCam or {}
+                local old = S().gatherCam[zoomKey()] or {}
+                S().gatherCam[zoomKey()] = { f = f, h = h or old.h }
+            end
+        end
+        -- back to the real target
+        pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(cal.pin[1], cal.pin[2], cal.pin[3]))
+        cal.state, cal.at = nil, GetTime and GetTime() or 0
+        return true
+    end
+    return false
+end
+function GS.TryCalibrate(ourPin, here, polar, list)
+    local cal = GS.cal
+    if cal.state or not ourPin or not (C_Map.SetUserWaypoint and UiMapPoint) then return end
+    if InCombatLockdown and InCombatLockdown() then return end
+    if WorldMapFrame and WorldMapFrame:IsShown() then return end
+    local now = GetTime and GetTime() or 0
+    if now - (cal.at or -100) < 20 and GS.Camera() then return end
+    local map, mx, my = here()
+    local pos = map and (map .. ":" .. math.floor(mx * 5000) .. ":" .. math.floor(my * 5000))
+    local still = pos == lastPos
+    lastPos = pos
+    if not still or not list[1] then return end
+    local nav = C_Navigation
+    local nf = nav and nav.GetFrame and nav.GetFrame()
+    local x, y = nf and nf:GetCenter()
+    if not x then return end
+    local d1, b1 = polar(ourPin[2], ourPin[3])
+    cal.a = { dist = d1, bearing = b1, x = x, y = y }
+    cal.b = list[1]
+    cal.pin = { ourPin[1], ourPin[2], ourPin[3] }
+    cal.state, cal.t = "hop", 0
+    pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(ourPin[1], list[1].x, list[1].y))
+end
+GS.Calibrating = function() return GS.cal.state ~= nil end
+
 ------------------------------------------------------------------------
 -- tick
 ------------------------------------------------------------------------
 local acc, pinAcc = 0, 0
 function GS.Tick(el)
     el = el or 0
+    if GS.cal.state and calibrate(el) then return end
+    GS.ApplyDotScale()
     -- twinkle (only while sparkles are visible)
     if next(active) then
         local t = GetTime and GetTime() or 0

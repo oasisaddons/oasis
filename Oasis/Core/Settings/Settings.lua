@@ -1239,6 +1239,8 @@ ns.AddPageSettings("map", function(det, y)
         { "Arrow: treasures", "gatherArrowTreasure", nil, nil, true },
         { "Arrow: rares", "gatherArrowRare", "Rares your guild has seen, while Track Beasts/Humanoids shows them", nil, true },
         { "Arrow: leylines", "gatherArrowLeyline", nil, nil, true },
+        { "Arrow: herbs and ore first", "gatherArrowProfFirst", "Treasures, rares and leylines only when no herb or ore is near", nil },
+        { "Arrow: also nodes in caves", "gatherArrowCaves", "Off = nodes the minimap shows in gray (cave, other level) are skipped", nil },
         { "Lock arrow", "gatherArrowLock", "Cannot be dragged, clicks go through", function() if ns.GatherSight then ns.GatherSight.Apply() end end },
         { "Sparkles on herbs and ore nearby", "gatherSparkle", "Gold sparkles on the node in front of you (turns on the game's interact icons, up to 30 m)", function() if ns.GatherSight then ns.GatherSight.Apply() end end },
         { "Sparkles: hide the game's interact icons", "gatherSparkleHideIcons", "Only the sparkles stay on the node", function() if ns.GatherSight then ns.GatherSight.Apply() end end },
@@ -1277,15 +1279,19 @@ ns.AddPageSettings("map", function(det, y)
         { "Guild dots minimap: opacity", "mmDotAlpha", 0.2, 1, 0.05, 1 },
         { "World map dots: size", "mapPinScale", 0.6, 2, 0.05, 1 },
         { "Only show nodes from", "gatherMinCount", 1, 10, 1, 1, function(v) return (L["%d finds"]):format(v) end },
+        -- 0.6.597: look of the live gathering symbols and the size of the game's own yellow dots
+        { "Gathering symbols: shape", "gatherShape", 1, 4, 1, 3, function(v) return L[({ "Square", "Round", "Round with ring", "Slim ring" })[v] or "Round with ring"] end },
+        { "Game's gathering dots: size", "gatherDotScale", 0.5, 1, 0.05, 1 },
     }
-    for i, d in ipairs(avail(SYM)) do
+    local syms = avail(SYM)
+    for i, d in ipairs(syms) do
         local cx = 14 + ((i - 1) % 2) * 370
         rowLabel(det, L[d[1]], cx, y)
         local sl = K.Slider(det, 200, d[3], d[4], d[5], function() return S()[d[2]] or d[6] end,
             function(v) S()[d[2]] = v symUpd() end, d[7] or pct)
         sl:SetPoint("TOPLEFT", cx, y - 22)
         table.insert(det.refreshers, function() sl:Refresh() end)
-        if i % 2 == 0 or i == #SYM then y = y - 54 end
+        if i % 2 == 0 or i == #syms then y = y - 54 end
     end
     local reset = K.Button(det, L["Reset icons"], 226, 24, nil, function()
         for _, d in ipairs(SYM) do S()[d[2]] = nil end

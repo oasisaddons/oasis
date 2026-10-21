@@ -633,11 +633,14 @@ function GM.ExtraKind(name)
     if not GM.rareIndex and ns.RARE_NAMES then
         GM.rareIndex = {}
         for _, e in ipairs(ns.RARE_NAMES) do
-            GM.rareIndex[plainName(e[1])] = e[3]
-            if e[2] then GM.rareIndex[plainName(e[2])] = e[3] end
+            GM.rareIndex[plainName(e[1])] = e
+            if e[2] then GM.rareIndex[plainName(e[2])] = e end
         end
     end
-    local areas = GM.rareIndex and GM.rareIndex[n]
+    local re = GM.rareIndex and GM.rareIndex[n]
+    local areas = re and re[3]
+    -- 0.6.597: friendly to your own faction (quest givers with a rare's name) - not a target
+    if re and re[4] and UnitFactionGroup and ns.safe(UnitFactionGroup("player")) == re[4] then return nil end
     if areas then
         if #areas == 0 or not (C_Map and C_Map.GetAreaInfo and GetRealZoneText) then return "rare" end
         local zone = ns.safe(GetRealZoneText())
@@ -807,14 +810,21 @@ local function probe(job, sc, cx, cy, p)
     if type(lines) ~= "table" then return end
     for _, line in ipairs(lines) do
         local txt = ns.safe(line.leftText)
+        -- 0.6.597: gray text = the node lies in a cave (other height level)
+        local col = ns.safe(line.leftColor)
+        local gray = false
+        if type(col) == "table" and type(col.r) == "number" then
+            gray = math.abs(col.r - col.g) < 0.06 and math.abs(col.g - col.b) < 0.06 and col.r < 0.75
+        end
         if type(txt) == "string" then
             for part in txt:gmatch("[^\n]+") do
                 local n = part:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("^%s+", ""):gsub("%s+$", "")
                 local kind = n ~= "" and (kindForName(n) or GM.ExtraKind(n))
                 if kind then
                     local h = job.hits[n]
-                    if not h then h = { kind = kind } job.hits[n] = h end
+                    if not h then h = { kind = kind, gray = {} } job.hits[n] = h end
                     h[#h + 1] = p
+                    if gray then h.gray[p] = true end
                 end
             end
         end
@@ -888,12 +898,15 @@ local function fineList(job)
     local list, single = {}, singlePoints()
     for name, h in pairs(job.hits) do
         for _, comp in ipairs(components(h, SCAN_STEP)) do
+            local g = 0
+            for _, p in ipairs(comp) do if h.gray and h.gray[p] then g = g + 1 end end
+            local cave = g * 2 > #comp
             if #comp > single and #list < 40 then
                 local x0, y0 = center(comp)
                 local r = SCAN_STEP * (1.5 + math.sqrt(#comp) / 2)
-                list[#list + 1] = { name = name, kind = h.kind, x = x0, y = y0, r = r, comp = comp }
+                list[#list + 1] = { name = name, kind = h.kind, x = x0, y = y0, r = r, comp = comp, cave = cave }
             else
-                list[#list + 1] = { name = name, kind = h.kind, done = { center(comp) } }
+                list[#list + 1] = { name = name, kind = h.kind, done = { center(comp) }, cave = cave }
             end
         end
     end
@@ -937,7 +950,7 @@ local function makeDots(job)
     local one = GM.dotRadius and math.pi * GM.dotRadius ^ 2 or nil
     job.dots, job.di = {}, 1
     for _, g in ipairs(job.groups) do
-        local function add(m, single) job.dots[#job.dots + 1] = { kind = g.kind, name = g.name, x = m[1], y = m[2], single = single } end
+        local function add(m, single) job.dots[#job.dots + 1] = { kind = g.kind, name = g.name, x = m[1], y = m[2], single = single, cave = g.cave } end
         if g.done then add(g.done, true)
         elseif not g.parts or #g.parts == 0 then add({ center(g.comp) }, true)
         else
@@ -988,7 +1001,7 @@ local function finishScan(job)
     for _, m in ipairs(job.dots) do
         GM.scanStats.hits = GM.scanStats.hits + 1
         local x, y = pxToMap(job.c, m.x, m.y)
-        local d = { kind = m.kind, name = m.name, map = job.c.map, x = x, y = y, exact = m.exact }
+        local d = { kind = m.kind, name = m.name, map = job.c.map, x = x, y = y, exact = m.exact, cave = m.cave }
         -- seen before: keep the first time and average the place over up to 6 scans (symbols do not jump)
         for _, o in ipairs(old) do
             if o.name == d.name and o.map == d.map and math.abs(o.x - d.x) < 0.003 and math.abs(o.y - d.y) < 0.003 then
@@ -1128,6 +1141,34 @@ ns.On("LOOT_CLOSED", function()
     GM.ScanSoon(0.5)
 end)
 ns.On("MINIMAP_UPDATE_TRACKING", function() GM.ScanSoon(0.5) end)
+-- 0.6.597: Skyborne racials (Read Leyline, Skysight) show leylines and convergences while they are ready:
+-- used = their symbols go at once, ready again = scan right away
+local RACIALS = { 1259705, 1259686 }
+local racialReady
+local function racialState()
+    local any, ready = false, false
+    for _, id in ipairs(RACIALS) do
+        local known = (C_SpellBook and C_SpellBook.IsSpellKnown and C_SpellBook.IsSpellKnown(id)) or (IsSpellKnown and IsSpellKnown(id))
+        if known and C_Spell and C_Spell.GetSpellCooldown then
+            any = true
+            local cd = ns.safe(C_Spell.GetSpellCooldown(id))
+            local start, dur = type(cd) == "table" and ns.safe(cd.startTime), type(cd) == "table" and ns.safe(cd.duration)
+            if type(start) == "number" and (start == 0 or (type(dur) == "number" and dur <= 1.5)) then ready = true end
+        end
+    end
+    return any, ready
+end
+function GM.RacialCheck()
+    local any, ready = racialState()
+    if not any then return end
+    if racialReady and not ready and GM.scanLive then
+        for i = #GM.scanLive, 1, -1 do if GM.scanLive[i].kind == "leyline" then table.remove(GM.scanLive, i) end end
+    elseif racialReady == false and ready then
+        GM.ScanSoon(0)
+    end
+    racialReady = ready
+end
+ns.On("SPELL_UPDATE_COOLDOWN", function() pcall(GM.RacialCheck) end)
 ns.On("MINIMAP_UPDATE_ZOOM", function() GM.ScanSoon(0.3) end)
 -- skill line in the minimap tooltip and on the node's own tooltip
 local function addSkill(tt, names)
