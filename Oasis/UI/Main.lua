@@ -463,7 +463,8 @@ local function showPage(key)
     end
     local tt = def.headTitle or def.title   -- 0.6.327: own header title possible (profile -> "Character profile")
     main.title:SetText((K.Skin and K.Skin("upperTitle")) and K.Upper(L[tt]) or L[tt])
-    main.sub:SetText(def.sub and L[def.sub] or "")
+    local sub = def.subFn and def.subFn() or def.sub   -- 0.6.626: subtitle can depend on the situation (e.g. no guild)
+    main.sub:SetText(sub and L[sub] or "")
     main.icon:SetTexture(ICONS[key])
     if ICON_COLOR[key] then main.icon:SetVertexColor(1, 1, 1) else main.icon:SetVertexColor(C.accent[1], C.accent[2], C.accent[3]) end
     def.frame:Show()

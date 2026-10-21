@@ -1237,6 +1237,7 @@ end
 ns.RegisterPage({
     key = "home", title = "Dashboard", order = 0.5,
     sub = "Everything important in your guild at a glance",
+    subFn = function() if ns.GuildView and not ns.GuildView() then return "Your start with Oasis - also without a guild" end end,
     build = function(p)
         p.fresh = true
         p.cells = {}

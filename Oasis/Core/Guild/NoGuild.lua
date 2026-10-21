@@ -469,6 +469,28 @@ function NoGuild.BuildArea(parent)
             c.btn:SetPoint("BOTTOMLEFT", 16, 14)
             c.btn:SetWidth(math.max(60, math.min(150, cw - 32)))
         end
+        -- 0.6.626: "Find a guild" in the grid - its three buttons stacked under the title instead of side by side
+        -- (they overlapped the dungeon card and the text); no description there
+        do
+            local f, bw = self.find, math.max(60, math.min(170, cw - 32))
+            f.text:Hide()
+            local list = { f.btn }
+            if f.apply then list[#list + 1] = f.apply end
+            if f.demo then list[#list + 1] = f.demo end
+            local step = (self.cardH or 150) > 100 and 28 or 24
+            for i, b in ipairs(list) do
+                b:ClearAllPoints()
+                b:SetSize(bw, step - 4)
+                b:SetPoint("TOPLEFT", f, "TOPLEFT", 16, -60 - (i - 1) * step)
+            end
+            if (self.cardH or 150) <= 100 then
+                -- compact: only the guild finder fits
+                for i = 2, #list do list[i]:Hide() end
+                list[1]:ClearAllPoints() list[1]:SetPoint("BOTTOMLEFT", 16, 14)
+            else
+                for i = 2, #list do list[i]:Show() end
+            end
+        end
         self.ct:ClearAllPoints()
         self.ct:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -off - (self.cardH or 150) - gap)
         self.ct:SetWidth(math.max(200, W - (sideW or 0)))

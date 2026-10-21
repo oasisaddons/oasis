@@ -8441,3 +8441,4 @@ DE["This add-on is installed but switched off in the AddOn list. Switch it on he
 DE["1.  Copy the link and open it in your browser"] = "1.  Link kopieren und im Browser öffnen"
 DE["2.  Download and unpack it into Interface/AddOns"] = "2.  Herunterladen und nach Interface/AddOns entpacken"
 DE["3.  Restart the game - the area appears by itself"] = "3.  Spiel neu starten - der Bereich erscheint von selbst"
+DE["Your start with Oasis - also without a guild"] = "Dein Start mit Oasis – auch ohne Gilde"
