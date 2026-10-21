@@ -23,6 +23,34 @@ local TABS = {
 local page
 local compact
 local function S() return ns.db.settings end
+-- 0.6.596: settings that belong to an optional add-on are only shown while that add-on is loaded
+local NEEDS = {
+    whisperForward = "Oasis_Convenience", shareNodes = "Oasis_Convenience", mmCoords = "Oasis_Convenience", layerAsk = "Oasis_Convenience",
+    mapDungeons = "Oasis_Convenience", mapDanger = "Oasis_Convenience", mapPoi = "Oasis_Convenience", mapQuestGivers = "Oasis_Convenience",
+    mapTrails = "Oasis_Convenience", mapTrailsGuild = "Oasis_Convenience", trailSession = "Oasis_Convenience",
+    rareShare = "Oasis_GroupsRaids", shareTrace = "Oasis_GroupsRaids", shareInstPos = "Oasis_GroupsRaids", shareCombat = "Oasis_GroupsRaids",
+    wrShare = "Oasis_GroupsRaids", lkShare = "Oasis_GroupsRaids",
+    shareTrade = "Oasis_Trade", wantsBagHint = "Oasis_Trade", tipReagent = "Oasis_Trade",
+}
+local NEEDS_PREFIX = { { "gather", "Oasis_Convenience" }, { "glimmer", "Oasis_Convenience" } }
+function ns.SettingAvailable(key)
+    if type(key) ~= "string" then return true end
+    local addon = NEEDS[key]
+    if not addon then
+        for _, pf in ipairs(NEEDS_PREFIX) do if key:sub(1, #pf[1]) == pf[1] then addon = pf[2] break end end
+    end
+    if not addon then return true end
+    local ML = ns.ModuleLoader
+    if not (ML and ML.PartLoaded) then return true end
+    return ML.PartLoaded(addon) and true or false
+end
+-- the rows of a settings list that can be shown ({ text, key, ... })
+local function avail(list)
+    local out = {}
+    for _, o in ipairs(list or {}) do if ns.SettingAvailable(o[2]) then out[#out + 1] = o end end
+    return out
+end
+ns.SettingsAvail = avail
 
 -- small helpers for consistent forms
 -- Remember headings: after building, every one not yet inside a card automatically gets
@@ -1138,6 +1166,7 @@ ns.AddPageSettings("map", function(det, y)
     local function xupd() symUpd() if ns.MapExtras then ns.MapExtras.Redraw() end end
     -- two columns; row as tall as its tallest toggle (with or without subline)
     local function grid(list)
+        list = avail(list)
         local was = descInline
         descInline = true
         for r = 0, math.ceil(#list / 2) - 1 do
@@ -1249,7 +1278,7 @@ ns.AddPageSettings("map", function(det, y)
         { "World map dots: size", "mapPinScale", 0.6, 2, 0.05, 1 },
         { "Only show nodes from", "gatherMinCount", 1, 10, 1, 1, function(v) return (L["%d finds"]):format(v) end },
     }
-    for i, d in ipairs(SYM) do
+    for i, d in ipairs(avail(SYM)) do
         local cx = 14 + ((i - 1) % 2) * 370
         rowLabel(det, L[d[1]], cx, y)
         local sl = K.Slider(det, 200, d[3], d[4], d[5], function() return S()[d[2]] or d[6] end,
@@ -1587,7 +1616,7 @@ local function buildPages(f, scope)
         local Y0 = -46
         local y = Y0
         descInline = true   -- Explanations as subline, then reflow (reflowDescs)
-        local opts = PAGE_OPTS[key] or {}
+        local opts = avail(PAGE_OPTS[key])
         for _, o in ipairs(opts) do
             if o[5] and S()[o[2]] == nil then S()[o[2]] = true end   -- Default on
             det.t[#det.t + 1] = toggle(det, 14, y, o[1], o[2], o[3], o[4], 600)
@@ -1636,7 +1665,7 @@ local function buildPages(f, scope)
                 y = y - 10
                 rowLabel(det, "|cffe8b44a" .. L[cd.title] .. "|r", 14, y)
                 y = y - 30
-                for _, o in ipairs(PAGE_OPTS[ck] or {}) do
+                for _, o in ipairs(avail(PAGE_OPTS[ck])) do
                     if o[5] and S()[o[2]] == nil then S()[o[2]] = true end
                     det.t[#det.t + 1] = toggle(det, 14, y, o[1], o[2], o[3], o[4], 600)
                     y = y - 32
@@ -2684,7 +2713,7 @@ local function buildShare(f)
     descInline = true
     local c1 = cardH(f, 0, 0, 362, 100, "social", L["What the guild sees of you"], L["Everything can be switched off - privacy-friendly defaults"])
     local yy = -56
-    for _, r in ipairs(L1) do
+    for _, r in ipairs(avail(L1)) do
         tg(LX, yy, r[1], r[2], r[3], r[2] == "rareShare" and function(v) S().cpRareShare = v end
             or (r[2] == "shareAltsOutside" and function() if ns.Radar and ns.Radar.SendHello then pcall(ns.Radar.SendHello) end end) or nil)
         yy = yy - ROW - (r[3] and DESC_H or 0)
@@ -2698,7 +2727,7 @@ local function buildShare(f)
     }
     local c2 = cardH(f, RX, 0, 362, 100, "settings", L["Technical"], L["Error reports and network"], true)
     yy = -56
-    for _, r in ipairs(L2) do
+    for _, r in ipairs(avail(L2)) do
         tg(MX, yy, r[1], r[2], r[3])
         yy = yy - ROW - (r[3] and DESC_H or 0)
     end
@@ -3758,6 +3787,7 @@ end
 -- List { text, key, explanation, after, default on } as toggles stacked
 -- 0.6.0: two columns (left 14, right 384) - single column left half the card empty
 local function toggleList(f, list, y, cols)
+    list = avail(list)
     cols = cols or 2
     -- 0.6.471: rare toggles only with "Alle Optionen zeigen"
     local vis = {}
