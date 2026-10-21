@@ -815,11 +815,17 @@ local function revealLayer(canvas)
     if revealHost:GetParent() ~= canvas then revealHost:SetParent(canvas) revealHost:SetAllPoints(canvas) end
     -- same level as Blizzard's explored areas (they never overlap with the unexplored ones), otherwise just above the map
     -- 0.6.629: the enumerator returns iterator + state - keeping only the first value broke the loop
-    local lvl
+    local lvl, strata
     pcall(function()
-        for pin in WorldMapFrame:EnumeratePinsByTemplate("MapExplorationPinTemplate") do lvl = pin:GetFrameLevel() break end
+        for pin in WorldMapFrame:EnumeratePinsByTemplate("MapExplorationPinTemplate") do
+            lvl, strata = pin:GetFrameLevel(), pin:GetFrameStrata()
+            break
+        end
     end)
-    revealHost:SetFrameLevel(lvl or (canvas:GetFrameLevel() + 10))
+    -- 0.6.633: same strata as the explored areas - the map art sits in a higher strata than the canvas,
+    -- so a frame on the canvas strata was covered no matter how high its level was
+    if strata then revealHost:SetFrameStrata(strata) end
+    revealHost:SetFrameLevel(lvl and (lvl + 1) or (canvas:GetFrameLevel() + 10))
     revealHost:Show()
     return revealHost
 end
@@ -959,9 +965,12 @@ ns.slash.reveal = function(rest)
     local lv = canvas and canvas.GetFrameLevel and canvas:GetFrameLevel()
     local lvl = {}
     pcall(function() for pin in WorldMapFrame:EnumeratePinsByTemplate("MapExplorationPinTemplate") do lvl[#lvl + 1] = pin:GetFrameLevel() end end)
-    ns.print(("Reveal geometry: canvas %s (level %s, scale %.2f), layer %s, piece 1 %s visible %s alpha %.2f, explored pins %s"):format(
-        rect(canvas), tostring(lv), canvas and canvas:GetEffectiveScale() or 0, rect(revealHost), rect(t),
-        tostring(t and t:IsVisible()), t and t:GetAlpha() or 0, table.concat(lvl, "/")))
+    local st = {}
+    pcall(function() for pin in WorldMapFrame:EnumeratePinsByTemplate("MapExplorationPinTemplate") do st[#st + 1] = pin:GetFrameStrata() end end)
+    ns.print(("Reveal geometry: canvas %s (level %s, %s, scale %.2f), layer %s (%s), piece 1 %s visible %s alpha %.2f, explored pins %s %s"):format(
+        rect(canvas), tostring(lv), canvas and canvas:GetFrameStrata() or "?", canvas and canvas:GetEffectiveScale() or 0, rect(revealHost),
+        revealHost and revealHost:GetFrameStrata() or "?", rect(t), tostring(t and t:IsVisible()), t and t:GetAlpha() or 0,
+        table.concat(lvl, "/"), table.concat(st, "/")))
 end
 
 function CP.ApplyAll()
