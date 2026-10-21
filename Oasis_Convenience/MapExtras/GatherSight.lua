@@ -252,6 +252,16 @@ local function makeArrow()
     arrow.text = arrow:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     arrow.text:SetPoint("TOP", arrow.icon, "BOTTOM", 0, -2)
     lockArrow()
+    -- spring: stiffness 70, damping 10 (a bit under critical -> a small, calm overshoot)
+    arrow.rot, arrow.vel = 0, 0
+    arrow:SetScript("OnUpdate", function(self, el)
+        if not self.target then return end
+        el = math.min(el or 0, 0.05)
+        local diff = (self.target - self.rot + math.pi) % (2 * math.pi) - math.pi   -- shortest way round
+        self.vel = self.vel + (diff * 70 - self.vel * 10) * el
+        self.rot = self.rot + self.vel * el
+        self.tex:SetRotation(self.rot)
+    end)
     arrow:Hide()
 end
 local function updateArrow(r, d, bearing)
@@ -259,7 +269,8 @@ local function updateArrow(r, d, bearing)
     if not arrow then makeArrow() end
     local facing = ns.safe(GetPlayerFacing and GetPlayerFacing())
     if type(facing) ~= "number" then arrow:Hide() return end
-    arrow.tex:SetRotation(bearing - facing)
+    -- 0.6.620: the needle swings to the new direction on a spring (overshoots a little, then settles)
+    arrow.target = bearing - facing
     arrow.icon:SetTexture((iconOf(r)))
     arrow.text:SetText(("%s  |cffffd100%d m|r"):format(r.name or "", math.floor(d + 0.5)))
     arrow:Show()
