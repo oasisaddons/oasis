@@ -75,7 +75,7 @@ function PREV.Focus(f, key, title, desc)
         if f._cap then f._cap:SetText(f._capText or "") f._cap:SetTextColor(C.dim[1], C.dim[2], C.dim[3]) end
         return
     end
-    local target = FOCUS[key]
+    local target = FOCUS[key] or (PREV.FOCUS2 and PREV.FOCUS2[key])
     if type(target) == "function" then target = target(f) elseif type(target) == "string" then target = f[target] end
     if target and target.GetObjectType then
         f._hi:ClearAllPoints()

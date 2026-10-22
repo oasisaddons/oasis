@@ -50,9 +50,10 @@ local WTABS = {
     { key = "worldmap", text = "World map", mappreview = true },
     { key = "mapextras", text = "Map extras" },
 }
+-- 0.6.653: the old helper tabs rebuilt in tiles; their switches sorted to where they belong
 local CTABS = {
-    { key = "comfort", text = "Helpers", tab = "comfort" },
-    { key = "helpers", text = "Guild helpers", tab = "helpers" },
+    { key = "road", text = "On the road" },
+    { key = "groupguild", text = "Group & guild" },
 }
 local QTABS = {
     { key = "quests", text = "Quests" },
@@ -60,6 +61,8 @@ local QTABS = {
 }
 local UTABS = {
     { key = "tooltips", text = "Mouse over players & NPCs" },
+    { key = "itemtips", text = "Item tooltips" },
+    { key = "bars", text = "Bars & window" },
     { key = "minimapcam", text = "Minimap & camera" },
     { key = "sounds", text = "Sounds" },
 }
@@ -138,6 +141,9 @@ local OPTS = {
         { "Accept layer requests from the guild", "layerAsk" },
     },
     quests = {
+        { "Accept and turn in quests automatically", "cfQuests" },
+        { "Accept summons and resurrections", "cfSummon" },
+        { "Decline quests shared by others", "cfBlockShared" },
         { "Quest levels in the quest log", "twQuestLevel" },
         { "Flight master: straight to the flight map", "twTaxi" },
         { "\"Train all\" at the trainer", "twTrainAll" },
@@ -151,6 +157,10 @@ local OPTS = {
         },
     },
     vendor = {
+        { "Sell grey items automatically", "cfSellJunk" },
+        { "Repair automatically", "cfRepair" },
+        { "Repair from guild bank (if allowed)", "cfRepairGuild" },
+        { "Restock reagents and ammo", "cpReagBuy" },
         { "Restock at vendors (your list)", "cfRestockOn" },
         { "Better ammo at the vendor: fill the quiver", "cfAmmo" },
         { "Alt+right-click marks items as junk", "twJunkMark" },
@@ -199,6 +209,8 @@ local OPTS = {
     chatmain = {
         intro = "Oasis changes nothing in Blizzard's chat itself - it adjusts the lines afterwards.",
         { "Improve Blizzard's chat windows", "gcOn" },
+        { "Chat: copy links, class colours", "cpChatLinks" },
+        { "No emoji suggestions while typing", "emojiNoComplete" },
         { "Also public channels, say and yell", "gcAllChannels" },
         { "Select text by dragging", "gcLiveSelect" },
         { "Alt + click opens the selection box", "gcAltSelect" },
@@ -238,6 +250,47 @@ local OPTS = {
             { "Lines per tab", "gcHistLines", 20, 300, 10, 100, function(v) return tostring(v) end },
         },
         extra = "histAlerts",
+    },
+    road = {
+        { "XP per hour and time to level", "cpXP" },
+        { "Tell the guild about upcoming level milestones", "cpXPShare" },
+        { "Show flight time", "cpFlight" },
+        { "Re-enable tracking after death", "cpTracking" },
+        { "Instance counter (5 per hour)", "cpInstances" },
+        { "New spells at the trainer", "cpTrainer" },
+        { "Ammo, reagents and soul shards", "cpReagents" },
+        { "Hunter: pet happiness and food", "cpPet" },
+        { "Mail: \"Open all\" button", "cpMail" },
+        { "Faster looting (with auto loot)", "cfFastLoot" },
+        { "Show durability and warn", "cfDurability" },
+        { "Fishing helper", "cpFishing" },
+        extra = "overview",
+    },
+    groupguild = {
+        { "Decline duels", "cfBlockDuels" },
+        { "Invites only from guild and friends", "cfInvites" },
+        { "Invite by whisper (guild/friends only)", "cfWhisperInv" },
+        { "Group quest progress", "cpQuestShare" },
+        { "Share profession cooldowns with the guild", "cpProfCD" },
+        { "Rare alert", "cpRare" },
+        { "Report rares to the guild", "cpRareShare" },
+        extra = "invKeyword",
+    },
+    itemtips = {
+        { "Tooltip: vendor price, item level and ID", "cpTooltip" },
+        { "Tooltip: disenchants into ...", "cpDisenchant" },
+        { "Tooltip: guild info", "cpTooltipGuild" },
+        { "Item level when inspecting", "cpInspect" },
+        { "No upgrade arrow in the tooltip", "upgradeTipOff" },
+        { "No upgrade arrows on items", "upgradeIconOff" },
+        { "No alt inventory in the tooltip", "invTooltipOff" },
+    },
+    bars = {
+        { "Hide menu bar", "cfHideMicro" },
+        { "Hide bag bar", "cfHideBags" },
+        { "Show on mouseover", "cfBarsHover" },
+        { "Hide red error messages", "cfHideErrors" },
+        { "Range on action bars", "cpRange" },
     },
     whisper = {
         { "Offer whispers to offline characters to their alt", "whisperForward" },
@@ -768,7 +821,12 @@ local function apply(p)
     if ns.ComfortMore then pcall(ns.ComfortMore.Apply) end
     if ns.ComfortQuestBags then pcall(ns.ComfortQuestBags.Apply) end
     if ns.GameChat then pcall(ns.GameChat.ApplyAll) if ns.GameChat.ApplyButtons then pcall(ns.GameChat.ApplyButtons) end end
-    if ns.Comfort and ns.Comfort.ApplyChat then pcall(ns.Comfort.ApplyChat) end
+    if ns.Comfort then
+        for _, fn in ipairs({ "ApplyChat", "ApplyBars", "ApplyErrors" }) do if ns.Comfort[fn] then pcall(ns.Comfort[fn]) end end
+    end
+    if ns.ComfortPlus and ns.ComfortPlus.ApplyChat then pcall(ns.ComfortPlus.ApplyChat) end
+    if ns.ComfortPlus and ns.ComfortPlus.UpdateXP then pcall(ns.ComfortPlus.UpdateXP) end
+    if ns.Upgrade and ns.Upgrade.RefreshBadges then pcall(ns.Upgrade.RefreshBadges) end
     if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end
     if ns.ComfortPlus and ns.ComfortPlus.ApplyAll then pcall(ns.ComfortPlus.ApplyAll) end
     S().trailMinutes = S().trailSession and 0 or nil
@@ -796,6 +854,46 @@ end
 ns.ComfortFitPreview = fitPreview
 -- 0.6.644: switches as tiles - icon, title, one short explanation; click switches, bright = on
 local TILE = {
+    cpFishing = { "Interface\Icons\Trade_Fishing", "Double right-click casts, catch statistics in the overview" },
+    cfQuests = { "Interface\\Icons\\INV_Misc_Note_01", "Without a reward choice or costs; Shift talks normally" },
+    cfSummon = { "Interface\\Icons\\Spell_Shadow_Twilight", "Summons (not in combat) and resurrections" },
+    cfBlockShared = { "Interface\\Icons\\Spell_Holy_Silence", "Quests strangers share are declined" },
+    cfSellJunk = { "Interface\\Icons\\INV_Misc_Coin_19", "Grey items sold at every vendor; Shift skips" },
+    cfRepair = { "Interface\\Icons\\Trade_BlackSmithing", "Repaired at every vendor who can" },
+    cfRepairGuild = { "Interface\\Icons\\INV_Misc_Bag_10", "Pays from the guild bank when you may" },
+    cpReagBuy = { "Interface\\Icons\\INV_Misc_Dust_02", "Refills your class reagents and the same ammo" },
+    cpChatLinks = { "Interface\\Icons\\INV_Misc_Note_03", "Click a link: copy window; names in class colours" },
+    emojiNoComplete = { "Interface\\Icons\\INV_Misc_Toy_10", "No emoji list after ':' and two letters" },
+    cpXP = { "Interface\\Icons\\INV_Misc_Book_09", "XP per hour, time to level, rested bar" },
+    cpXPShare = { "Interface\\Icons\\INV_Letter_15", "Tells the guild '~40 min to level 30' once" },
+    cpFlight = { "Interface\\Icons\\Ability_Mount_Wyvern_01", "Time left while flying, learns every route" },
+    cpTracking = { "Interface\\Icons\\INV_Misc_Spyglass_02", "After dying one click turns tracking back on" },
+    cpInstances = { "Interface\\Icons\\INV_Misc_Key_14", "How many instances in the last hour (max 5)" },
+    cpTrainer = { "Interface\\Icons\\INV_Misc_Book_11", "On level up: what you can learn and what it costs" },
+    cpReagents = { "Interface\\Icons\\INV_Ammo_Arrow_02", "Warns when ammo, reagents or shards run low" },
+    cpPet = { "Interface\\Icons\\Ability_Hunter_BeastTraining", "Warns when your pet is hungry" },
+    cpMail = { "Interface\\Icons\\INV_Letter_02", "Takes gold and items from all mails (no COD)" },
+    cfFastLoot = { "Interface\\Icons\\INV_Misc_Bag_08", "Loot windows empty at once (with auto loot)" },
+    cfDurability = { "Interface\\Icons\\Trade_BlackSmithing", "Durability shown, warning before it breaks" },
+    cfBlockDuels = { "Interface\\Icons\\INV_Sword_04", "Duel requests are declined" },
+    cfInvites = { "Interface\\Icons\\INV_Misc_GroupLooking", "Group invites only from guild and friends" },
+    cfWhisperInv = { "Interface\\Icons\\INV_Letter_15", "Guild or friends whisper the keyword: invited" },
+    cpQuestShare = { "Interface\\Icons\\INV_Misc_Note_02", "Quest progress of group members in their tooltip" },
+    cpProfCD = { "Interface\\Icons\\Trade_Alchemy", "Who in the guild can transmute or make cloth now" },
+    cpRare = { "Interface\\Icons\\Ability_Hunter_MarkedForDeath", "Sound and notice for rares nearby" },
+    cpRareShare = { "Interface\\Icons\\INV_Misc_Map_01", "Others see where you found a rare" },
+    cpTooltip = { "Interface\\Icons\\INV_Misc_Coin_01", "Vendor price, item level and ID in the tooltip" },
+    cpDisenchant = { "Interface\\Icons\\INV_Enchant_DustArcane", "What green, blue and epic items disenchant into" },
+    cpTooltipGuild = { "Interface\\Icons\\INV_Misc_Tabard_Guild", "Oasis rank, alts and professions of guild members" },
+    cpInspect = { "Interface\\Icons\\INV_Misc_Spyglass_03", "Item level of inspected players, compared to you" },
+    upgradeTipOff = { "Interface\\Icons\\INV_Misc_ArrowUp", "No green upgrade arrow in item tooltips" },
+    upgradeIconOff = { "Interface\\Icons\\INV_Misc_ArrowDown", "No upgrade arrows on items in bags and loot" },
+    invTooltipOff = { "Interface\\Icons\\INV_Misc_Bag_07", "No list of which character has the item" },
+    cfHideMicro = { "Interface\\Icons\\INV_Misc_Gear_01", "Character, spellbook buttons hidden - keys still work" },
+    cfHideBags = { "Interface\\Icons\\INV_Misc_Bag_10", "Bag buttons hidden - B still opens your bags" },
+    cfBarsHover = { "Interface\\Icons\\Spell_Holy_MindVision", "Hidden bars appear when the mouse is over them" },
+    cfHideErrors = { "Interface\\Icons\\Spell_Shadow_DetectInvisibility", "No red error texts in the middle of the screen" },
+    cpRange = { "Interface\\Icons\\Ability_Hunter_SniperShot", "Action buttons turn red when out of range" },
     gcOn = { "Interface\\Icons\\INV_Letter_15", "Everything on these pages only works with this on" },
     gcAllChannels = { "Interface\\Icons\\INV_Misc_Note_06", "Not only guild, group and whispers - also Trade, General, say, yell" },
     gcLiveSelect = { "Interface\\Icons\\INV_Feather_05", "Drag across the chat to select, Ctrl+C copies" },
@@ -914,6 +1012,7 @@ local PARENT = {
     gcChNum = "gcOn", gcQuiet = "gcOn", gcHover = "gcOn",
     gcFilter = "gcOn", gcWhole = "gcFilter", gcCyr = "gcFilter", gcHan = "gcFilter", gcRepeat = "gcFilter",
     gcHist = "gcOn", gcAlert = "gcOn", gcAlertSound = "gcAlert",
+    cfRepairGuild = "cfRepair", cpXPShare = "cpXP", cpRareShare = "cpRare",
 }
 ns.ComfortParent = PARENT
 local INDENT = 26
@@ -1204,9 +1303,9 @@ local function buildControls(p, key, withPreview)
         box.ctrls[#box.ctrls + 1] = sl
         if not two or col == 1 or i == #sliders then y = y - 40 end
     end
-    if o.extra and ns.GameChat and ns.GameChat.UI then
+    if o.extra then
         local ok, ny = pcall(function()
-            local UI, GC = ns.GameChat.UI, ns.GameChat
+            local UI, GC = ns.GameChat and ns.GameChat.UI or {}, ns.GameChat or {}
             local yy = y - 4
             local w = (withPreview and (halfW(p) - 24)) or 740
             if o.extra == "stamp" then
@@ -1223,6 +1322,18 @@ local function buildControls(p, key, withPreview)
                 UI.editor(box, yy + 6, math.min(w, 560) - 14, "gcMutes", "Channel; player name", UI.muteValue)
                 yy = yy - 96
                 pcall(UI.refresh)
+            elseif o.extra == "overview" then
+                local b = K.Button(box, L["Characters & helpers - overview"], 260, 26, "primary", function() if ns.Helpers2 then ns.Helpers2.Overview() end end)
+                b:SetPoint("TOPLEFT", 0, yy)
+                local n = K.Text(box, 10, C.dim) n:SetPoint("TOPLEFT", 0, yy - 30)
+                n:SetText(L["Gold, hearthstone, instance IDs, guild cooldowns, sets and fishing stats (/oa chars)"])
+                yy = yy - 50
+            elseif o.extra == "invKeyword" then
+                local lab = K.Text(box, 11, C.muted) lab:SetPoint("TOPLEFT", 0, yy) lab:SetText(L["Keyword"] .. " (" .. L["Invite by whisper (guild/friends only)"] .. ")")
+                local kw = K.Input(box, 140, "inv", function(t) S().cfInvKeyword = t end)
+                kw:SetPoint("TOPLEFT", 0, yy - 18)
+                kw:SetText(S().cfInvKeyword or "")
+                yy = yy - 52
             elseif o.extra == "histAlerts" then
                 local find = K.Button(box, L["Search chat"], 160, 24, "primary", function() GC.OpenViewer("search") end)
                 find:SetPoint("TOPLEFT", 0, yy)
