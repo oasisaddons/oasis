@@ -148,7 +148,7 @@ local OPTS = {
     },
     vendor = {
         { "Restock at vendors (your list)", "cfRestockOn" },
-        { "Fill the quiver with the best ammo", "cfAmmo" },
+        { "Better ammo at the vendor: fill the quiver", "cfAmmo" },
         { "Alt+right-click marks items as junk", "twJunkMark" },
         { "Gear groups (Ctrl+right-click in the bags)", "twGear" },
         { "Confirm bind-on-pickup loot automatically", "cfLootConfirm" },
@@ -790,7 +790,7 @@ local TILE = {
     cfQuestPlates = { "Interface\\Icons\\INV_Misc_Note_02", "Enemies your quests need show 3/8 on their plate" },
     cfQuestTarget = { "Interface\\Icons\\Ability_Hunter_MarkedForDeath", "A key that targets the next quest enemy" },
     cfRestockOn = { "Interface\\Icons\\INV_Drink_07", "Buys water, food, reagents from your list" },
-    cfAmmo = { "Interface\\Icons\\INV_Ammo_Arrow_02", "Fills the quiver with the best ammo" },
+    cfAmmo = { "Interface\\Icons\\INV_Ammo_Arrow_02", "Only when the vendor has better ammo than yours" },
     twJunkMark = { "Interface\\Icons\\INV_Misc_Coin_19", "Alt+right-click marks anything as junk" },
     twGear = { "Interface\\Icons\\INV_Chest_Plate06", "Gear sets: Ctrl+right-click, equip in one click" },
     cfLootConfirm = { "Interface\\Icons\\INV_Misc_Bag_08", "No question for bind-on-pickup loot" },
@@ -961,10 +961,30 @@ end
 -- 0.6.650: the switches of the tabs taken over from the big settings (game chat, helpers, guild helpers) get the
 -- tile look on top - glass card, icon, switch on the right, soft hover, coloured edge when on. Their places stay.
 local PREFIX_ICON = { gc = "INV_Letter_15", cf = "INV_Misc_Gear_01", cp = "INV_Misc_Book_09", tw = "INV_Misc_Gear_02" }
+-- 0.6.651: dependencies on these tabs too - master switches are marked, their options greyed while they are off
+local SKIN_PARENT = {
+    gcWhole = "gcFilter", gcCyr = "gcFilter", gcHan = "gcFilter", gcRepeat = "gcFilter", gcAlertSound = "gcAlert",
+    cfRepairGuild = "cfRepair", cpXPShare = "cpXP", cpRareShare = "cpRare",
+}
+local MASTER = { gcOn = true }
+local function parentOf(key)
+    if SKIN_PARENT[key] then return SKIN_PARENT[key] end
+    if key:sub(1, 2) == "gc" and key ~= "gcOn" then return "gcOn" end
+end
+local skinned = {}
+local function repaintAll() for _, f in ipairs(skinned) do if f.oaPaint then pcall(f.oaPaint, f:IsMouseOver()) end end end
 local function skinToggle(f)
     if f.oaSkinned or not (f.settingKey and f.lbl) then return end
     f.oaSkinned = true
+    skinned[#skinned + 1] = f
     local key = f.settingKey
+    f.oaParent = parentOf(key)
+    -- an option whose own parent has a parent (filter options under the master switch) follows both
+    if MASTER[key] then
+        f.oaTag = K.Text(f, 9, C.accent)
+        f.oaTag:SetPoint("RIGHT", f, "RIGHT", -48, 0)
+        f.oaTag:SetText(K.Upper and K.Upper(L["Master switch"]) or L["Master switch"])
+    end
     local G = ns.Insta and ns.Insta.Glass
     local track
     for _, c in ipairs({ f:GetChildren() }) do if c.GetObjectType and c:GetObjectType() == "Frame" then track = c break end end
@@ -1001,8 +1021,20 @@ local function skinToggle(f)
     f.lbl:SetPoint(f.hasSub and "TOPLEFT" or "LEFT", f, f.hasSub and "TOPLEFT" or "LEFT", ic and 30 or 6, f.hasSub and -6 or 0)
     if f.sub then f.sub:SetPoint("RIGHT", f, "RIGHT", -50, 0) end
     if track then track:ClearAllPoints() track:SetPoint("RIGHT", f, "RIGHT", -6, 0) end
+    local function usableNow()
+        local par = f.oaParent
+        while par do
+            if not ns.db.settings[par] then return false end
+            par = parentOf(par)
+        end
+        return true
+    end
     local function paint(hover)
         local on = (ns.db.settings[key] and true) or false
+        local usable = usableNow()
+        f:SetAlpha(usable and 1 or 0.35)
+        f:EnableMouse(usable)
+        if not usable then hover = false end
         local ac = C.accent
         if card.glass and G then
             local lc = on and ac or { 1, 1, 1 }
@@ -1012,7 +1044,8 @@ local function skinToggle(f)
     end
     f:HookScript("OnEnter", function() paint(true) end)
     f:HookScript("OnLeave", function() paint(false) end)
-    f:HookScript("OnClick", function() paint(f:IsMouseOver()) end)
+    f:HookScript("OnClick", function() paint(f:IsMouseOver()) repaintAll() end)
+    f.oaPaint = paint
     if f.Refresh then hooksecurefunc(f, "Refresh", function() paint(f:IsMouseOver()) end) end
     paint(false)
 end

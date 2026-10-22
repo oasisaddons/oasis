@@ -113,6 +113,14 @@ function MO.AmmoOffer()
         end
     end
     if not best then return nil end
+    -- 0.6.651: only an upgrade over the ammo you use now - refilling the same ammo is the job of
+    -- "Restock reagents and ammo" (Helpers), so nothing is bought twice
+    local slot = GetInventorySlotInfo and select(2, pcall(GetInventorySlotInfo, "AmmoSlot"))
+    local cur = slot and GetInventoryItemID("player", slot)
+    if cur then
+        local _, _, _, curLvl = C_Item.GetItemInfo(cur)
+        if (curLvl or 0) >= (bestLvl or 0) then return nil end
+    end
     local free = 0
     for bag = 1, 4 do
         local n, family = C_Container.GetContainerNumFreeSlots(bag)
