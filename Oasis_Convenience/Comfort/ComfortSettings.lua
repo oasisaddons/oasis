@@ -926,6 +926,17 @@ local function makeTile(box, row, p, w)
         paint(self)
     end
     t:SetScript("OnMouseDown", function(self) self.press = 1 self.dirty = true end)
+    -- 0.6.649: show in the preview what this option changes
+    t:SetScript("OnEnter", function()
+        local PV = ns.ComfortPreviews
+        local g = p.gen and p.gen[p.cur]
+        if PV and PV.Focus and g then pcall(PV.Focus, g, row[2], L[row[1]], info[2] and L[info[2]]) end
+    end)
+    t:SetScript("OnLeave", function()
+        local PV = ns.ComfortPreviews
+        local g = p.gen and p.gen[p.cur]
+        if PV and PV.Focus and g then pcall(PV.Focus, g, nil) end
+    end)
     t:SetScript("OnClick", function(self)
         local v = not get(row[2])
         set(row[2], v)

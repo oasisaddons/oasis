@@ -37,9 +37,60 @@ end
 local function caption(f, s)
     local t = K.Text(f, 10, C.dim)
     t:SetPoint("BOTTOMLEFT", 2, 4)
-    t:SetText(s or L["Preview - changes show at once"])
+    t:SetPoint("RIGHT", f, "RIGHT", -4, 0) t:SetJustifyH("LEFT") t:SetWordWrap(true)
+    local txt = s or L["Move the mouse over an option - the part it changes is framed here"]
+    t:SetText(txt)
+    f._cap, f._capText = t, txt
     return t
 end
+
+-- 0.6.649: hovering a switch frames the part of the preview it changes and says what it does
+local FOCUS = {
+    twQuestLevel = "log", twTaxi = "e1", twTrainAll = "e2", twBgRelease = "e3", twLootSparkle = "e3", cfQuestPlates = "e3", cfQuestTarget = "e3",
+    twJunkMark = "bag", twGear = "bag", cfDestroyCheap = "bag", cfOpenButton = "bag", cfRestockOn = "pop1", cfAmmo = "pop2", twAhIlvl = "ah",
+    cfLootConfirm = "m1", cfEasyDestroy = "m2",
+    twTipClass = "name", twTipBar = "bar", cfTipRank = "guild", cfTipTarget = "tgt", cfTipCombat = "combat", cfTipFaction = "tt",
+    cfSquareMap = "map", cfMapButtons = "map", twCamera = "cam", twNoGlow = "glow",
+    cfNoCombatTab = function(f) return f.tabs and f.tabs[2] end, cfNoChatButtons = function(f) return f.btns and f.btns[1] end, cfSpamFilter = "win",
+    whisperForward = "offer",
+    cfMuteChimes = function(f) return f.rows and f.rows[1] and f.rows[1].t end, cfMuteFizzle = function(f) return f.rows and f.rows[2] and f.rows[2].t end,
+    cfMuteTrains = function(f) return f.rows and f.rows[3] and f.rows[3].t end, cfMuteYawns = function(f) return f.rows and f.rows[4] and f.rows[4].t end,
+}
+function PREV.Focus(f, key, title, desc)
+    if not f then return end
+    if not f._hi then
+        local h = CreateFrame("Frame", nil, f)
+        h:SetFrameLevel((f:GetFrameLevel() or 1) + 30)
+        h.l = {}
+        for i = 1, 4 do h.l[i] = h:CreateTexture(nil, "OVERLAY") h.l[i]:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.95) end
+        h.l[1]:SetPoint("TOPLEFT") h.l[1]:SetPoint("TOPRIGHT") h.l[1]:SetHeight(2)
+        h.l[2]:SetPoint("BOTTOMLEFT") h.l[2]:SetPoint("BOTTOMRIGHT") h.l[2]:SetHeight(2)
+        h.l[3]:SetPoint("TOPLEFT") h.l[3]:SetPoint("BOTTOMLEFT") h.l[3]:SetWidth(2)
+        h.l[4]:SetPoint("TOPRIGHT") h.l[4]:SetPoint("BOTTOMRIGHT") h.l[4]:SetWidth(2)
+        h:Hide()
+        f._hi = h
+    end
+    if not key then
+        f._hi:Hide()
+        if f._cap then f._cap:SetText(f._capText or "") f._cap:SetTextColor(C.dim[1], C.dim[2], C.dim[3]) end
+        return
+    end
+    local target = FOCUS[key]
+    if type(target) == "function" then target = target(f) elseif type(target) == "string" then target = f[target] end
+    if target and target.GetObjectType then
+        f._hi:ClearAllPoints()
+        f._hi:SetPoint("TOPLEFT", target, "TOPLEFT", -4, 4)
+        f._hi:SetPoint("BOTTOMRIGHT", target, "BOTTOMRIGHT", 4, -4)
+        f._hi:Show()
+    else
+        f._hi:Hide()
+    end
+    if f._cap then
+        f._cap:SetText((title or "") .. (desc and desc ~= "" and (": " .. desc) or ""))
+        f._cap:SetTextColor(C.accent[1], C.accent[2], C.accent[3])
+    end
+end
+PREV.HINT = "Move the mouse over an option - the part it changes is framed here"
 local CLASS = RAID_CLASS_COLORS and RAID_CLASS_COLORS.MAGE or { r = 0.25, g = 0.78, b = 0.92 }
 
 ------------------------------------------------------------------------
