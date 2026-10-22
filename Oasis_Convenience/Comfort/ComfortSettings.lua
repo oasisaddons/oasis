@@ -455,7 +455,7 @@ local function buildPreview(p)
         self.sweep:SetShown(tab == "mini" and get("gatherScan"))
         self.switching = tab == "mini" and get("gatherSwitch")
         if self.switching then
-            self.finder:SetText(self.herbs and ("|cff7fd77f" .. L["Find Herbs"] .. "|r  ⇄  " .. L["Find Minerals"]) or (L["Find Herbs"] .. "  ⇄  |cffd8b04a" .. L["Find Minerals"] .. "|r"))
+            self.finder:SetText(self.herbs and ("|cff7fd77f" .. L["Find Herbs"] .. "|r  /  " .. L["Find Minerals"]) or (L["Find Herbs"] .. "  /  |cffd8b04a" .. L["Find Minerals"] .. "|r"))
             for i, d in ipairs(SAMPLE) do
                 local held = (self.herbs and d.kind == "ore") or (not self.herbs and d.kind == "herb")
                 if self.syms[i] and self.syms[i]:IsShown() and held then self.syms[i]:SetAlpha(0.45) end
@@ -733,6 +733,128 @@ local function fitPreview(p, fr)
     fr:SetPoint("TOPLEFT", p, "TOPLEFT", 0, -44 / sc)
 end
 ns.ComfortFitPreview = fitPreview
+-- 0.6.644: switches as tiles - icon, title, one short explanation; click switches, bright = on
+local TILE = {
+    gatherScan = { "Interface\\Icons\\INV_Misc_Spyglass_02", "Finds herb and ore dots on the minimap by itself" },
+    gatherSymbols = { "Interface\\Icons\\INV_Misc_Flower_02", "Real herb and ore pictures instead of yellow dots" },
+    gatherSwitch = { "Interface\\Icons\\INV_Pick_02", "Switches herb and mineral search while you walk" },
+    gatherSound = { "Interface\\Icons\\INV_Misc_Bell_01", "A soft ping when something new appears" },
+    gatherSkillOff = { "Interface\\Icons\\INV_Misc_Book_09", "No skill line when you hover a dot" },
+    gatherArrow = { "Interface\\Icons\\Ability_Hunter_Pathfinding", "An arrow on the screen to the nearest node" },
+    gatherArrowLock = { "Interface\\Icons\\INV_Misc_Key_03", "The arrow stays put, clicks go through it" },
+    gatherArrowProfFirst = { "Interface\\Icons\\INV_Misc_Herb_10", "Treasures and rares only when no herb or ore is near" },
+    gatherArrowCaves = { "Interface\\Icons\\INV_Misc_Lantern_01", "Also nodes in caves and on other levels" },
+    gatherArrowHerb = { "Interface\\Icons\\INV_Misc_Flower_02", "The arrow points to herbs" },
+    gatherArrowOre = { "Interface\\Icons\\INV_Ore_Copper_01", "The arrow points to ore" },
+    gatherArrowTreasure = { "Interface\\Icons\\INV_Box_01", "The arrow points to chests" },
+    gatherArrowRare = { "Interface\\Icons\\Ability_Hunter_MarkedForDeath", "The arrow points to rare enemies" },
+    gatherArrowLeyline = { "Interface\\Icons\\Spell_Arcane_Arcane04", "The arrow points to leylines" },
+    gatherSparkle = { "Interface\\Icons\\Spell_Holy_HolyBolt", "Gold sparkles on the node in front of you" },
+    gatherSparkleHideIcons = { "Interface\\Icons\\Spell_Shadow_DetectInvisibility", "Only the sparkles, no game icon above the node" },
+    gatherSparkleFar = { "Interface\\Icons\\Spell_Holy_MindVision", "Sparkles on nodes further away (beta)" },
+    gatherPin = { "Interface\\Icons\\INV_Misc_Map_01", "The game's map pin with a marker in the world" },
+    gatherAlerts = { "Interface\\Icons\\INV_Misc_Herb_BlackLotus", "A notice when the guild sees a node you watch" },
+    gatherAlertsShare = { "Interface\\Icons\\INV_Letter_15", "Your valuable finds go to the guild" },
+    gatherWanted = { "Interface\\Icons\\INV_Misc_Bag_10", "What the guild needs glows gold and comes first" },
+    gatherShareArea = { "Interface\\Icons\\Spell_Holy_PrayerOfSpirit", "The arrow leaves nearby guild farmers their side" },
+    gatherRouteSkill = { "Interface\\Icons\\INV_Misc_Book_11", "The route only takes nodes that still give skill" },
+    gatherRoute = { "Interface\\Icons\\INV_Misc_Map02", "A round trip through the zone's nodes" },
+    mapReveal = { "Interface\\Icons\\INV_Misc_Map_01", "Shows the parts of the map you have not explored" },
+    mapRevealTint = { "Interface\\Icons\\INV_Misc_Ink_01", "Those parts slightly tinted" },
+    wmMove = { "Interface\\Icons\\Spell_Nature_FarSight", "Drag the world map by its title bar" },
+    wmNoEmote = { "Interface\\Icons\\INV_Misc_Book_08", "No reading animation when you open the map" },
+    wmHideTowns = { "Interface\\Icons\\INV_Misc_Flag", "Fewer icons on continent maps" },
+    wmGroupClass = { "Interface\\Icons\\INV_Misc_GroupLooking", "Your group on the map in class colours" },
+    mapDungeons = { "Interface\\Icons\\INV_Misc_Key_14", "Dungeon entrances with level range" },
+    mapDanger = { "Interface\\Icons\\Ability_Creature_Cursed_02", "Red where several guild members died" },
+    mapPoi = { "Interface\\Icons\\INV_Misc_Coin_01", "Vendors, repair, mailboxes and flight points" },
+    mapQuestGivers = { "Interface\\Icons\\INV_Misc_Note_01", "Where dungeon quests start" },
+    mapTrails = { "Interface\\Icons\\Ability_Tracking", "Your path of the last minutes" },
+    trailSession = { "Interface\\Icons\\INV_Misc_PocketWatch_01", "Keep your whole session's path" },
+    mapTrailsGuild = { "Interface\\Icons\\Ability_Hunter_SniperShot", "Paths of guild members" },
+    mmCoords = { "Interface\\Icons\\INV_Misc_Spyglass_03", "Coordinates under the minimap" },
+    layerAsk = { "Interface\\Icons\\Spell_Arcane_PortalDalaran", "Join guild members on their layer" },
+    twQuestLevel = { "Interface\\Icons\\INV_Misc_Book_09", "[12] before each quest in the log" },
+    twTaxi = { "Interface\\Icons\\Ability_Mount_Wyvern_01", "Flight masters open the flight map at once" },
+    twTrainAll = { "Interface\\Icons\\INV_Misc_Book_11", "A button that learns everything you can afford" },
+    twBgRelease = { "Interface\\Icons\\Spell_Holy_Resurrection", "Released at once when you die in a battleground" },
+    twLootSparkle = { "Interface\\Icons\\INV_Misc_Gem_Pearl_04", "Quest items in the world always sparkle" },
+    cfQuestPlates = { "Interface\\Icons\\INV_Misc_Note_02", "Enemies your quests need show 3/8 on their plate" },
+    cfQuestTarget = { "Interface\\Icons\\Ability_Hunter_MarkedForDeath", "A key that targets the next quest enemy" },
+    cfRestockOn = { "Interface\\Icons\\INV_Drink_07", "Buys water, food, reagents from your list" },
+    cfAmmo = { "Interface\\Icons\\INV_Ammo_Arrow_02", "Fills the quiver with the best ammo" },
+    twJunkMark = { "Interface\\Icons\\INV_Misc_Coin_19", "Alt+right-click marks anything as junk" },
+    twGear = { "Interface\\Icons\\INV_Chest_Plate06", "Gear sets: Ctrl+right-click, equip in one click" },
+    cfLootConfirm = { "Interface\\Icons\\INV_Misc_Bag_08", "No question for bind-on-pickup loot" },
+    cfEasyDestroy = { "Interface\\Icons\\Spell_Fire_Fire", "No typing DELETE to destroy" },
+    twAhIlvl = { "Interface\\Icons\\INV_Misc_Coin_02", "Item level in the auction house list" },
+    cfDestroyCheap = { "Interface\\Icons\\INV_Misc_Bag_07", "Bags full: offers to destroy the cheapest item" },
+    cfOpenButton = { "Interface\\Icons\\INV_Box_01", "One button opens clams, sacks and boxes" },
+    twTipClass = { "Interface\\Icons\\INV_Misc_Head_Human_01", "Names in class colour" },
+    twTipBar = { "Interface\\Icons\\INV_Potion_51", "Health bar inside the box" },
+    cfTipRank = { "Interface\\Icons\\INV_Misc_Tabard_Guild", "Guild and rank of players" },
+    cfTipTarget = { "Interface\\Icons\\Ability_Hunter_SniperShot", "Whom they are targeting" },
+    cfTipCombat = { "Interface\\Icons\\Ability_Warrior_BattleShout", "Hidden in combat, Shift shows it" },
+    cfTipFaction = { "Interface\\Icons\\INV_BannerPVP_02", "Blue for Alliance, red for Horde" },
+    cfSquareMap = { "Interface\\Icons\\INV_Misc_Map_01", "Square instead of round minimap" },
+    cfMapButtons = { "Interface\\Icons\\INV_Misc_Gear_01", "Addon buttons only on mouse-over" },
+    twCamera = { "Interface\\Icons\\INV_Misc_Spyglass_01", "Zoom out much further" },
+    twNoGlow = { "Interface\\Icons\\Spell_Shadow_Twilight", "Sharper picture without the glow" },
+    cfMuteChimes = { "Interface\\Icons\\INV_Misc_Bell_01", "No clock chimes in towns" },
+    cfMuteFizzle = { "Interface\\Icons\\Spell_Fire_SelfDestruct", "No sound when a spell fizzles" },
+    cfMuteTrains = { "Interface\\Icons\\INV_Misc_Toy_10", "No /train sounds" },
+    cfMuteYawns = { "Interface\\Icons\\Ability_Druid_CatForm", "No yawning hunter cats" },
+    cfNoCombatTab = { "Interface\\Icons\\INV_Sword_04", "Hides the combat log tab" },
+    cfNoChatButtons = { "Interface\\Icons\\INV_Misc_Gear_02", "Hides the buttons next to the chat" },
+    cfSpamFilter = { "Interface\\Icons\\INV_Drink_04", "No duel results and drunk messages" },
+    whisperForward = { "Interface\\Icons\\INV_Letter_15", "Offers to send a whisper to the alt who is online" },
+}
+local function makeTile(box, row, p, w)
+    local info = TILE[row[2]] or {}
+    local t = CreateFrame("Button", nil, box)
+    t:SetSize(w, 40)
+    t.bg = t:CreateTexture(nil, "BACKGROUND") t.bg:SetAllPoints() t.bg:SetColorTexture(1, 1, 1, 0.03)
+    t.hl = t:CreateTexture(nil, "HIGHLIGHT") t.hl:SetAllPoints() t.hl:SetColorTexture(1, 1, 1, 0.05)
+    K.Border(t, C.line)
+    t.icon = t:CreateTexture(nil, "ARTWORK") t.icon:SetSize(26, 26) t.icon:SetPoint("LEFT", 7, 0)
+    t.icon:SetTexture(info[1] or "Interface\\Icons\\INV_Misc_QuestionMark") t.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    t.title = K.Text(t, 12, C.text) t.title:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 9, info[2] and 1 or -6)
+    t.title:SetPoint("RIGHT", t, "RIGHT", -44, 0) t.title:SetJustifyH("LEFT") t.title:SetWordWrap(false)
+    t.title:SetText(L[row[1]])
+    t.desc = K.Text(t, 10, C.dim) t.desc:SetPoint("TOPLEFT", t.title, "BOTTOMLEFT", 0, -2)
+    t.desc:SetPoint("RIGHT", t, "RIGHT", -44, 0) t.desc:SetJustifyH("LEFT") t.desc:SetWordWrap(false)
+    t.desc:SetText(info[2] and L[info[2]] or "")
+    t.state = K.Text(t, 10, C.dim) t.state:SetPoint("RIGHT", -10, 0)
+    function t:Refresh()
+        local onv = get(row[2])
+        self.state:SetText(onv and L["On"] or L["Off"])
+        local ac = C.accent
+        if onv then
+            self.state:SetTextColor(ac[1], ac[2], ac[3])
+            self.title:SetTextColor(C.text[1], C.text[2], C.text[3])
+            self.icon:SetDesaturated(false) self.icon:SetAlpha(1)
+            if self.SetBackdropBorderColor then pcall(self.SetBackdropBorderColor, self, ac[1], ac[2], ac[3], 0.9) end
+            if self.border and self.border.SetVertexColor then self.border:SetVertexColor(ac[1], ac[2], ac[3], 0.9) end
+            self.bg:SetColorTexture(ac[1], ac[2], ac[3], 0.08)
+        else
+            self.state:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
+            self.title:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
+            self.icon:SetDesaturated(true) self.icon:SetAlpha(0.55)
+            if self.SetBackdropBorderColor then pcall(self.SetBackdropBorderColor, self, C.line[1], C.line[2], C.line[3], 1) end
+            if self.border and self.border.SetVertexColor then self.border:SetVertexColor(C.line[1], C.line[2], C.line[3], 1) end
+            self.bg:SetColorTexture(1, 1, 1, 0.03)
+        end
+    end
+    t:SetScript("OnClick", function(self)
+        local v = not get(row[2])
+        set(row[2], v)
+        self:Refresh()
+        apply(p)
+        if v and row[2] == "gatherSound" and PlaySound then pcall(PlaySound, SOUNDKIT and SOUNDKIT.MAP_PING or 3175, "Master") end
+    end)
+    t:Refresh()
+    return t
+end
 local function buildControls(p, key, withPreview)
     local box = CreateFrame("Frame", nil, p)
     box:SetPoint("TOPLEFT", withPreview and halfW(p) or 0, -44)
@@ -748,25 +870,24 @@ local function buildControls(p, key, withPreview)
         it:SetText(L[o.intro])
         y = -26
     end
-    -- without a preview and with many switches: two columns
-    local twoCol = not withPreview and #o > 7
+    -- 0.6.644: tiles instead of switches; without a preview and with many of them: two columns
+    local twoCol = not withPreview and #o > 5
     local half = math.ceil(#o / 2)
+    local fullW = withPreview and (halfW(p) - 24) or 380
+    local startY = y
     for i, row in ipairs(o) do
-        local t = K.Toggle(box, L[row[1]], function() return get(row[2]) end, function(v)
-            set(row[2], v) apply(p)
-            if v and row[2] == "gatherSound" and PlaySound then pcall(PlaySound, SOUNDKIT and SOUNDKIT.MAP_PING or 3175, "Master") end
-        end)
+        local t = makeTile(box, row, p, fullW)
         if twoCol then
             local col = i > half and 1 or 0
-            t:SetPoint("TOPLEFT", col * 400, -((col == 1 and i - half or i) - 1) * 30)
-            if t.SetWidth then t:SetWidth(380) end
+            t:SetPoint("TOPLEFT", col * 392, startY - ((col == 1 and i - half or i) - 1) * 44)
         else
             t:SetPoint("TOPLEFT", 0, y)
+            y = y - 44
         end
         box.ctrls[#box.ctrls + 1] = t
-        if not twoCol then y = y - 30 end
     end
-    if twoCol then y = -half * 30 end
+    if twoCol then y = startY - half * 44 end
+    y = y - 4
     local sliders = o.slider or {}
     local two = #sliders > 2
     for i, sd in ipairs(sliders) do
