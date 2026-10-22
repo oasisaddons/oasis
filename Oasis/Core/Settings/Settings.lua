@@ -1205,6 +1205,67 @@ ns.AddPageSettings("legacy", function(det, y)
     return y - 10
 end)
 
+-- 0.6.659: the former privacy tab, sorted to where each option belongs
+local function shareBlock(list)
+    return function(det, y)
+        list = avail(list)
+        if #list == 0 then return y end
+        y = y - 6
+        rowLabel(det, "|cffe8b44a" .. L["Sharing"] .. "|r", det.tileX or 14, y)
+        return tileGrid(det, list, y - 28, 2) - 6
+    end
+end
+ns.AppendPageSettings("dungeons", shareBlock({
+    { "Share dungeon paths", "shareTrace", "For self-explored dungeon maps", nil, true },
+    { "Dungeon position to your group", "shareInstPos", "Only to your own group, for the dungeon map", nil, true },
+}))
+ns.AppendPageSettings("allies", shareBlock({
+    { "Share player ratings", "shareRep", "Thumbs and notes on players. Default: off (only for you)" },
+}))
+ns.AppendPageSettings("rares", shareBlock({
+    { "Report rare sightings", "rareShare", "Rare mobs with location to the guild. Default: off", function(v) S().cpRareShare = v end },
+}))
+ns.AppendPageSettings("raid", shareBlock({
+    { "Share your own online times", "rtShare", "For raid time planning (only your own times)", nil, true },
+    { "Share fight reports", "wrShare", "Boss fights with death order (guild members only)" },
+    { "Share raid IDs", "lkShare", nil },
+}))
+ns.AppendPageSettings("fight", shareBlock({
+    { "Share combat records", "shareCombat", "Best values for the combat ranking", nil, true },
+}))
+ns.AppendPageSettings("trade", shareBlock({
+    { "Share trade balance", "shareTrade", "For the trade ranking. Default: off" },
+}))
+ns.AppendPageSettings("life", shareBlock({
+    { "Post my milestones in guild chat", "announceMilestones", "Every 5 levels and Legacy challenges" },
+}))
+-- lowest point of what a tab has built (to append a block below it)
+local function lowestY(f)
+    local low = 0
+    local function see(o)
+        if not (o.GetNumPoints and o:GetNumPoints() > 0 and o.IsShown and o:IsShown()) then return end
+        local _, rel, rp, _, y = o:GetPoint(1)
+        if rel == f and type(y) == "number" and rp and rp:find("^TOP") then
+            local b = y - (o.GetHeight and o:GetHeight() or 0)
+            if b < low then low = b end
+        end
+    end
+    for _, c in ipairs({ f:GetChildren() }) do see(c) end
+    for _, r in ipairs({ f:GetRegions() }) do see(r) end
+    return low
+end
+local function appendCard(f, icon, title, sub, list)
+    list = avail(list)
+    if #list == 0 then return end
+    f.t = f.t or {}
+    local y = lowestY(f) - 18
+    local c = cardH(f, 0, y, 740, 100, icon, L[title], sub and L[sub])
+    c:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, y)
+    local ny = tileGrid(f, list, y - 62, 2)
+    c:SetHeight(y - ny + 6)
+end
+ns.SettingsAppendCard = appendCard
+
 -- Section "Karte & Radar": further map layers, send interval
 -- 0.6.113: map card in two columns and by topic (world map, collection map, icons, sending); explanation as subline
 ns.AddPageSettings("map", function(det, y)
@@ -2769,24 +2830,8 @@ local function buildShare(f)
     end
     -- left: what the guild sees of you
     local ROW = 27
+    -- 0.6.659: all options moved to their topics (map, areas, profile, system)
     local L1 = {
-        { "Share position on the world map", "shareMap", "Guild map and minimap dots for others. Default: off" },
-        { "Share where you died", "shareDeaths", "Skulls on the guild map (90 days)" },
-        { "Share gathering nodes", "shareNodes", "Herb and ore finds for the guild gathering map" },
-        { "Announce campfires automatically", "campAuto", "When you light one, Oasis shows the guild where it burns" },
-        { "Report rare sightings", "rareShare", "Rare mobs with location to the guild. Default: off" },
-        { "Share dungeon paths", "shareTrace", "For self-explored dungeon maps" },
-        { "Dungeon position to your group", "shareInstPos", "Only to your own group, for the dungeon map" },
-        { "Share player ratings", "shareRep", "Thumbs and notes on players. Default: off (only for you)" },
-        { "Show alts outside the guild", "shareAltsOutside", "Otherwise bank and chill alts stay private" },
-        { "Gear in profile", "profShareGear", nil },
-        { "Quests in profile", "profShareQuests", nil },
-        { "Share your own online times", "rtShare", "For raid time planning (only your own times)" },
-        { "Share combat records", "shareCombat", "Best values for the combat ranking" },
-        { "Share fight reports", "wrShare", "Boss fights with death order (guild members only)" },
-        { "Share raid IDs", "lkShare", nil },
-        { "Share trade balance", "shareTrade", "For the trade ranking. Default: off" },
-        { "Post my milestones in guild chat", "announceMilestones", "Every 5 levels and Legacy challenges" },
     }
     descInline = true
     local c1 = cardH(f, 0, 0, 362, 100, "social", L["What the guild sees of you"], L["Everything can be switched off - privacy-friendly defaults"])
@@ -2799,9 +2844,6 @@ local function buildShare(f)
     c1:SetHeight(-yy + 6)
     -- top right: technical
     local L2 = {
-        { "Error reports to the guild", "shareErrors", "Helps fix bugs" },
-        { "Include list of other addons", "shareAddonList", "Only for debugging. Default: off" },
-        { "Share performance data", "sharePerf", "Frame rate and memory, every 15 minutes" },
     }
     local c2 = cardH(f, RX, 0, 362, 100, "settings", L["Technical"], L["Error reports and network"], true)
     yy = -56
@@ -3113,6 +3155,12 @@ local function buildChar(f)
     f.plist:SetPoint("TOPLEFT", MX - 4, -258)
     f.plist:SetPoint("BOTTOMRIGHT", rc, "BOTTOMRIGHT", -10, 10)
     f.plist.empty:SetText(L["No profiles saved yet."])
+    -- 0.6.659: from the former privacy tab
+    appendCard(f, "profile", "What others see in your profile", nil, {
+        { "Show alts outside the guild", "shareAltsOutside", "Otherwise bank and chill alts stay private", function() if ns.Radar and ns.Radar.SendHello then pcall(ns.Radar.SendHello) end end },
+        { "Gear in profile", "profShareGear", nil },
+        { "Quests in profile", "profShareQuests", nil },
+    })
 end
 local function refreshChar(f)
     f.main:SetLabel(ns.displayName(ns.Alts.MyMain()))
@@ -3253,6 +3301,12 @@ local function buildStatus(f)
         f.net[i] = v
     end
     note(cc, L["Oasis only exchanges data with guild members who also use Oasis. Exchange pauses in combat and instances."], 14, -162, 226, C.dim)
+    -- 0.6.659: from the former privacy tab
+    appendCard(f, "settings", "Error reports and diagnostics", "Helps fix bugs - nothing leaves the guild", {
+        { "Error reports to the guild", "shareErrors", "Helps fix bugs" },
+        { "Include list of other addons", "shareAddonList", "Only for debugging. Default: off" },
+        { "Share performance data", "sharePerf", "Frame rate and memory, every 15 minutes", nil, true },
+    })
     -- Credits and licenses at the bottom (Core/Start/Credits.lua, loads after this file - it exists when the tab is built)
     if ns.Credits and ns.Credits.Build then
         local ok, e = pcall(ns.Credits.Build, f, 0, -188 - (56 + ROWS * 20 + 14) - 26, 738)
@@ -3665,7 +3719,7 @@ local GROUPS = {
         desc = "Design, font, window, bars and shortcuts." },
     { key = "notify", text = "Notices & sound", icon = "announce", tabs = { "toasts", "sound", "greet" },
         desc = "What you hear about, how it looks and sounds, and the greeting in guild chat." },
-    { key = "char", text = "Profile & privacy", icon = "profile", tabs = { "char", "share", "lexport" },
+    { key = "char", text = "Profile & privacy", icon = "profile", tabs = { "char", "lexport" },
         desc = "Link characters, control shared data and back up settings." },
     { key = "adv", text = "System", icon = "settings", tabs = { "status", "perf" },
         desc = "Connection, data status and performance." },
@@ -3680,7 +3734,7 @@ for _, entry in ipairs({
     REFRESH[entry[1]] = refreshPages
     TABS[#TABS + 1] = { key = entry[1], text = entry[2] }
 end
-local HIDDEN_TABS = { lists = true, pages = true }   -- still reachable (old links), but without its own tab
+local HIDDEN_TABS = { lists = true, pages = true, share = true }   -- 0.6.659: share options live with their topics   -- still reachable (old links), but without its own tab
 local function tabText(key)
     for _, t in ipairs(TABS) do if t.key == key then return L[t.text] end end
     return key
@@ -3961,6 +4015,18 @@ local TIP_LINES = {
     { key = "oasisMark", text = "|cffff5a3cOasis|r", where = "player" },
     { key = "allyTooltip", text = "|cffe8b44a* * * *|r  |cffbbbbbbgood healer|r", where = "player" },
 }
+-- 0.6.659: previews stay in view while the page scrolls
+local function stickyPreview(pv, f)
+    pv:SetScript("OnUpdate", function(self)
+        local sc = f:GetParent()
+        local v = sc and sc.GetVerticalScroll and sc:GetVerticalScroll() or 0
+        if v ~= self.lastV then
+            self.lastV = v
+            local maxV = math.max(0, (f:GetHeight() or 0) - (self:GetHeight() or 0))
+            self:ClearAllPoints() self:SetPoint("TOPLEFT", 0, -math.min(v, maxV))
+        end
+    end)
+end
 local function tipPreview(f)
     local pv = CreateFrame("Frame", nil, f)
     pv:SetSize(232, 330) pv:SetPoint("TOPLEFT", 0, 0)
@@ -4044,6 +4110,7 @@ local function buildTips(f)
     f.noCompact = true
     f.t = {}
     f.tpv = tipPreview(f)
+    stickyPreview(f.tpv, f)
     ns._tipsTab = f
     f.cardX, f.tileX, f.tileW = 248, 262, 462
     f.onTileEnter = function(key) f.tpv:Focus(key) end
@@ -4081,86 +4148,134 @@ end
 -- 0.6.658: live preview on the left - a piece of map and a minimap with sample data; every switch shows or hides
 -- its part, hovering a switch frames it
 local MAP_EL = {
-    { key = "mapNames", icon = "Interface\\Icons\\INV_Misc_Head_Human_01", x = 60, y = -60, label = "Mira" },
-    { key = "mapLevels", text = "|cffffd100Dun Morogh|r  |cffaaaaaa1-10|r", x = 70, y = -16 },
-    { key = "mapHeat", heat = true, x = 140, y = -110 },
-    { key = "deathPins", icon = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull", x = 150, y = -50 },
-    { key = "mapDeaths", icon = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull", x = 176, y = -64 },
-    { key = "mapDanger", danger = true, x = 150, y = -40 },
-    { key = "lfgPins", icon = "Interface\\Icons\\INV_Misc_GroupLooking", x = 30, y = -120 },
-    { key = "mapDungeons", icon = "Interface\\Icons\\INV_Misc_Key_03", x = 52, y = -128 },
-    { key = "mapMarkers", icon = "Interface\\Icons\\INV_Banner_02", x = 110, y = -90 },
-    { key = "mapPoi", icon = "Interface\\Icons\\INV_Letter_15", x = 190, y = -130 },
-    { key = "mapQuestGivers", text = "|cffffd100!|r", x = 96, y = -140, big = true },
-    { key = "mapTrails", trail = { 20, -80, 60, -60 } },
-    { key = "mapTrailsGuild", trail = { 100, -150, 150, -120 }, guild = true },
-    { key = "mapCamp", icon = "Interface\\Icons\\Spell_Fire_Fire", x = 196, y = -84 },
+    { key = "mapNames", icon = "Interface\\WorldMap\\WorldMapPartyIcon", x = 112, y = -58, size = 16, label = "Mira", raw = true },
+    { key = "mapLevels", text = "|cffffd100Dun Morogh|r  |cffffffff(1-10)|r", x = 60, y = -8, font = "GameFontNormal" },
+    { key = "mapHeat", heat = true, x = 150, y = -96 },
+    { key = "deathPins", icon = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull", x = 160, y = -46, raw = true },
+    { key = "mapDeaths", icon = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull", x = 182, y = -60, raw = true },
+    { key = "mapDanger", danger = true, x = 156, y = -36 },
+    { key = "lfgPins", icon = "Interface\\Minimap\\Tracking\\BattleMaster", x = 30, y = -100, raw = true, size = 16 },
+    { key = "mapDungeons", icon = "Interface\\Icons\\INV_Misc_Key_03", x = 50, y = -106 },
+    { key = "mapMarkers", icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1", x = 96, y = -96, raw = true },
+    { key = "mapPoi", icon = "Interface\\Minimap\\Tracking\\Mailbox", x = 196, y = -116, raw = true, size = 16 },
+    { key = "mapQuestGivers", icon = "Interface\\GossipFrame\\AvailableQuestIcon", x = 132, y = -124, raw = true },
+    { key = "mapTrails", trail = { 30, -70, 104, -56 } },
+    { key = "mapTrailsGuild", trail = { 112, -140, 170, -104 }, guild = true },
+    { key = "mapCamp", icon = "Interface\\Icons\\Spell_Fire_Fire", x = 196, y = -76 },
     { key = "mapReveal", reveal = true },
     { key = "minimapDots", mini = "dots" },
     { key = "mmCoords", mini = "coords" },
 }
+local PREVIEW_MAP = 1426   -- Dun Morogh
 local function mapPreview(f)
     local pv = CreateFrame("Frame", nil, f)
     pv:SetSize(232, 420) pv:SetPoint("TOPLEFT", 0, 0)
-    local map = CreateFrame("Frame", nil, pv)
-    map:SetSize(226, 170) map:SetPoint("TOPLEFT", 3, 0)
+    -- world map: the real zone art of the game (4 x 3 tiles), Blizzard border around it
+    local W = 226
+    local sc = W / 1002
+    local frame = CreateFrame("Frame", nil, pv, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    frame:SetSize(W + 12, 668 * sc + 12) frame:SetPoint("TOPLEFT", 0, 0)
+    if frame.SetBackdrop then
+        frame:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark", edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Gold-Border", tile = true, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } })
+    end
+    local map = CreateFrame("Frame", nil, frame)
+    map:SetSize(W, 668 * sc) map:SetPoint("CENTER")
     map.bg = map:CreateTexture(nil, "BACKGROUND") map.bg:SetAllPoints()
     map.bg:SetColorTexture(0.36, 0.33, 0.25, 1)
-    K.Border(map, { 0.55, 0.47, 0.3, 1 })
-    -- a few softer patches so it reads as terrain
-    for _, b in ipairs({ { 10, -20, 90, 60, 0.30, 0.36, 0.24 }, { 120, -90, 100, 70, 0.42, 0.38, 0.28 }, { 60, -110, 60, 50, 0.27, 0.32, 0.38 } }) do
-        local t = map:CreateTexture(nil, "BACKGROUND", nil, 1)
-        t:SetPoint("TOPLEFT", b[1], b[2]) t:SetSize(b[3], b[4]) t:SetColorTexture(b[5], b[6], b[7], 0.8)
-    end
+    pcall(function()
+        local tiles = C_Map and C_Map.GetMapArtLayerTextures and C_Map.GetMapArtLayerTextures(PREVIEW_MAP, 1)
+        if type(tiles) ~= "table" then return end
+        for i, id in ipairs(tiles) do
+            local c, r = (i - 1) % 4, math.floor((i - 1) / 4)
+            local t = map:CreateTexture(nil, "BACKGROUND", nil, 1)
+            t:SetTexture(id) t:SetSize(256 * sc, 256 * sc) t:SetPoint("TOPLEFT", c * 256 * sc, -r * 256 * sc)
+        end
+    end)
+    map.me = map:CreateTexture(nil, "OVERLAY", nil, 2) map.me:SetSize(18, 18) map.me:SetPoint("TOPLEFT", 100, -78)
+    map.me:SetTexture("Interface\\WorldMap\\WorldMapArrow")
+    -- minimap: a crop of the same art in a round mask, the real minimap border on top
     local mini = CreateFrame("Frame", nil, pv)
-    mini:SetSize(110, 110) mini:SetPoint("TOPLEFT", map, "BOTTOMLEFT", 58, -14)
-    mini.bg = mini:CreateTexture(nil, "BACKGROUND") mini.bg:SetAllPoints()
-    mini.bg:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask") mini.bg:SetVertexColor(0.30, 0.34, 0.24, 1)
-    mini.ring = mini:CreateTexture(nil, "BORDER") mini.ring:SetPoint("TOPLEFT", -6, 6) mini.ring:SetPoint("BOTTOMRIGHT", 6, -6)
-    mini.ring:SetTexture(ns.MEDIA .. "pinring") mini.ring:SetVertexColor(0.55, 0.47, 0.3, 1)
-    mini.me = mini:CreateTexture(nil, "OVERLAY") mini.me:SetSize(10, 10) mini.me:SetPoint("CENTER")
+    mini:SetSize(118, 118) mini:SetPoint("TOP", frame, "BOTTOM", 0, -18)
+    mini.art = mini:CreateTexture(nil, "BACKGROUND") mini.art:SetAllPoints()
+    mini.art:SetColorTexture(0.30, 0.34, 0.24, 1)
+    pcall(function()
+        local tiles = C_Map.GetMapArtLayerTextures(PREVIEW_MAP, 1)
+        if tiles and tiles[6] then mini.art:SetTexture(tiles[6]) mini.art:SetTexCoord(0.2, 0.75, 0.15, 0.7) end
+    end)
+    if mini.CreateMaskTexture and mini.art.AddMaskTexture then
+        pcall(function()
+            local m = mini:CreateMaskTexture()
+            m:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+            m:SetAllPoints(mini) mini.art:AddMaskTexture(m)
+        end)
+    end
+    local rim = CreateFrame("Frame", nil, mini)
+    rim:SetAllPoints() rim:SetFrameLevel(mini:GetFrameLevel() + 5)
+    -- the classic border texture is 256 px with the ring in its top left 192 px (the ring hole is 140 px wide)
+    mini.ring = rim:CreateTexture(nil, "OVERLAY")
+    mini.ring:SetTexture("Interface\\Minimap\\UI-Minimap-Border")
+    local k = 118 / 140
+    mini.ring:SetSize(192 * k, 192 * k)
+    mini.ring:SetPoint("TOPLEFT", mini, "TOPLEFT", -35 * k, 22 * k)
+    mini.me = rim:CreateTexture(nil, "OVERLAY", nil, 2) mini.me:SetSize(16, 16) mini.me:SetPoint("CENTER")
     mini.me:SetTexture("Interface\\Minimap\\MinimapArrow")
     pv.map, pv.mini, pv.el = map, mini, {}
     for _, e in ipairs(MAP_EL) do
         local r
         if e.icon then
-            r = CreateFrame("Frame", nil, map) r:SetSize(14, 14) r:SetPoint("TOPLEFT", e.x, e.y)
-            local t = r:CreateTexture(nil, "ARTWORK") t:SetAllPoints() t:SetTexture(e.icon)
-            if not e.icon:find("Skull") then t:SetTexCoord(0.08, 0.92, 0.08, 0.92) end
+            local sz = e.size or 14
+            r = CreateFrame("Frame", nil, map) r:SetSize(sz, sz) r:SetPoint("TOPLEFT", e.x, e.y)
+            r:SetFrameLevel(map:GetFrameLevel() + 3)
+            local t = r:CreateTexture(nil, "ARTWORK") t:SetSize(sz, sz) t:SetPoint("LEFT") t:SetTexture(e.icon)
+            if not e.raw then
+                t:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+                if r.CreateMaskTexture and t.AddMaskTexture then
+                    pcall(function()
+                        local m = r:CreateMaskTexture()
+                        m:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+                        m:SetAllPoints(t) t:AddMaskTexture(m)
+                    end)
+                end
+            end
+            if e.key == "mapNames" then t:SetVertexColor(0.25, 0.78, 0.92) end
             if e.label then
-                local l = K.Text(r, 10, { 0.25, 0.78, 0.92 }) l:SetPoint("LEFT", r, "RIGHT", 3, 0) l:SetText(e.label)
-                r:SetWidth(50)
-                t:ClearAllPoints() t:SetSize(14, 14) t:SetPoint("LEFT")
+                local l = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+                l:SetPoint("LEFT", t, "RIGHT", 2, 0) l:SetText(e.label) l:SetTextColor(0.25, 0.78, 0.92)
+                r:SetWidth(sz + 34)
             end
         elseif e.text then
-            r = CreateFrame("Frame", nil, map) r:SetSize(e.big and 12 or 110, 14) r:SetPoint("TOPLEFT", e.x, e.y)
-            local l = K.Text(r, e.big and 15 or 10, C.text) l:SetPoint("LEFT") l:SetText(e.text)
+            r = CreateFrame("Frame", nil, map) r:SetSize(130, 16) r:SetPoint("TOPLEFT", e.x, e.y)
+            r:SetFrameLevel(map:GetFrameLevel() + 3)
+            local l = r:CreateFontString(nil, "OVERLAY", e.font or "GameFontNormal") l:SetPoint("LEFT") l:SetText(e.text)
+            l:SetShadowOffset(1, -1)
         elseif e.heat or e.danger then
-            r = CreateFrame("Frame", nil, map) r:SetSize(e.heat and 60 or 50, e.heat and 40 or 40) r:SetPoint("TOPLEFT", e.x, e.y)
+            r = CreateFrame("Frame", nil, map) r:SetSize(e.heat and 60 or 50, 40) r:SetPoint("TOPLEFT", e.x, e.y)
             local t = r:CreateTexture(nil, "BORDER") t:SetAllPoints()
             t:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
             if e.heat then t:SetVertexColor(1, 0.6, 0.1, 0.45) else t:SetVertexColor(0.9, 0.1, 0.1, 0.35) end
         elseif e.trail then
             r = CreateFrame("Frame", nil, map)
             local a = e.trail
-            r:SetPoint("TOPLEFT", a[1], a[2]) r:SetSize(a[3] - a[1], math.abs(a[4] - a[2]))
+            r:SetPoint("TOPLEFT", a[1], math.max(a[2], a[4])) r:SetSize(a[3] - a[1], math.abs(a[4] - a[2]) + 3)
+            r:SetFrameLevel(map:GetFrameLevel() + 2)
             local c = e.guild and { 0.4, 0.9, 0.5 } or { 1, 0.85, 0.3 }
-            for i = 0, 7 do
-                local d = r:CreateTexture(nil, "ARTWORK") d:SetSize(3, 3) d:SetColorTexture(c[1], c[2], c[3], 0.9)
-                d:SetPoint("TOPLEFT", (a[3] - a[1]) * i / 7, (a[4] - a[2]) * i / 7 * (a[4] > a[2] and -1 or 1) * -1)
+            for i = 0, 9 do
+                local d = r:CreateTexture(nil, "ARTWORK") d:SetSize(3, 3) d:SetColorTexture(c[1], c[2], c[3], 0.95)
+                d:SetPoint("CENTER", map, "TOPLEFT", a[1] + (a[3] - a[1]) * i / 9, a[2] + (a[4] - a[2]) * i / 9)
             end
         elseif e.reveal then
-            r = CreateFrame("Frame", nil, map) r:SetPoint("TOPRIGHT") r:SetPoint("BOTTOMRIGHT") r:SetWidth(70)
-            local t = r:CreateTexture(nil, "BORDER", nil, 2) t:SetAllPoints() t:SetColorTexture(0.1, 0.1, 0.12, 0.55)
+            r = CreateFrame("Frame", nil, map) r:SetPoint("TOPRIGHT") r:SetPoint("BOTTOMRIGHT") r:SetWidth(64)
+            r:SetFrameLevel(map:GetFrameLevel() + 1)
+            local t = r:CreateTexture(nil, "BORDER", nil, 2) t:SetAllPoints() t:SetColorTexture(0.05, 0.05, 0.07, 0.6)
         elseif e.mini == "dots" then
-            r = CreateFrame("Frame", nil, mini) r:SetAllPoints()
-            for _, d in ipairs({ { 30, -30 }, { 74, -58 }, { 40, -80 } }) do
-                local t = r:CreateTexture(nil, "OVERLAY") t:SetSize(7, 7) t:SetPoint("TOPLEFT", d[1], d[2])
-                t:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask") t:SetVertexColor(0.25, 0.78, 0.92, 1)
+            r = CreateFrame("Frame", nil, mini) r:SetAllPoints() r:SetFrameLevel(mini:GetFrameLevel() + 3)
+            for _, d in ipairs({ { 30, -32 }, { 80, -60 }, { 44, -84 } }) do
+                local t = r:CreateTexture(nil, "OVERLAY") t:SetSize(12, 12) t:SetPoint("TOPLEFT", d[1], d[2])
+                t:SetTexture("Interface\\WorldMap\\WorldMapPartyIcon") t:SetVertexColor(0.25, 0.78, 0.92, 1)
             end
         elseif e.mini == "coords" then
-            r = CreateFrame("Frame", nil, pv) r:SetSize(110, 14) r:SetPoint("TOP", mini, "BOTTOM", 0, -8)
-            local l = K.Text(r, 10, C.text) l:SetPoint("CENTER") l:SetText("46.2, 53.8")
+            r = CreateFrame("Frame", nil, pv) r:SetSize(110, 14) r:SetPoint("TOP", mini, "BOTTOM", 0, -12)
+            local l = r:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall") l:SetPoint("CENTER") l:SetText("46.2, 53.8")
         end
         pv.el[e.key] = r
     end
@@ -4172,7 +4287,7 @@ local function mapPreview(f)
         else l:SetWidth(2) l:SetPoint(i == 3 and "TOPLEFT" or "TOPRIGHT") l:SetPoint(i == 3 and "BOTTOMLEFT" or "BOTTOMRIGHT") end
     end
     pv.hi:Hide()
-    pv.cap = K.Text(pv, 10, C.dim) pv.cap:SetWidth(222) pv.cap:SetPoint("TOPLEFT", mini, "BOTTOMLEFT", -55, -30)
+    pv.cap = K.Text(pv, 10, C.dim) pv.cap:SetWidth(222) pv.cap:SetPoint("TOPLEFT", mini, "BOTTOMLEFT", -50, -34)
     pv.cap:SetJustifyH("LEFT") pv.cap:SetWordWrap(true)
     pv.capText = L["Move the mouse over an option - its part of the map is framed here"]
     pv.cap:SetText(pv.capText)
@@ -4203,6 +4318,7 @@ local function buildMapTab(f)
     f.noCompact = true
     f.t, f.refreshers = {}, {}
     f.mpv = mapPreview(f)
+    stickyPreview(f.mpv, f)
     ns._mapTab = f
     f.cardX, f.tileX, f.tileW, f.tileCols = 248, 262, 462, 1
     f.onTileEnter = function(key) f.mpv:Focus(key) end
@@ -4210,6 +4326,9 @@ local function buildMapTab(f)
     f.onTileChange = function() f.mpv:Update() end
     local c, y = wideCard(f, 0, "map", L["Guild on the map"], L["What you share and what you see of the guild"])
     y = toggleList(f, {
+        { "Share position on the world map", "shareMap", "Guild map and minimap dots for others. Default: off", function() if ns.Radar and ns.Radar.SendHello then pcall(ns.Radar.SendHello) end end },
+        { "Share where you died", "shareDeaths", "Skulls on the guild map (90 days)", nil, true },
+        { "Announce campfires automatically", "campAuto", "When you light one, Oasis shows the guild where it burns", nil, true },
         { "Names on the world map", "mapNames", nil, updPins },
         { "Guild dots on the minimap", "minimapDots", nil, function() if ns.Map then ns.Map.UpdateMinimap() end end },
         { "Heatmap on the world map", "mapHeat", "Where the guild has been", updPins },

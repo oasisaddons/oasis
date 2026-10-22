@@ -36,7 +36,7 @@ end
 local function S() return ns.db.settings end
 -- toggles that are on until switched off (nil = on)
 local ON = { gcLiveSelect = true, gcAltSelect = true, mapDungeons = true, mapPoi = true, layerAsk = true, mapRevealTint = true, gatherScan = true, gatherSymbols = true, gatherArrowHerb = true, gatherArrowOre = true, gatherArrowTreasure = true,
-    gatherArrowRare = true, gatherArrowLeyline = true, gatherAlerts = true, gatherAlertsShare = true, gatherWanted = true, gatherShareArea = true }
+    gatherArrowRare = true, gatherArrowLeyline = true, gatherAlerts = true, gatherAlertsShare = true, gatherWanted = true, gatherShareArea = true, shareNodes = true }
 local function get(k) if ON[k] then return S()[k] ~= false end return S()[k] and true or false end
 local function set(k, v) if ON[k] then S()[k] = v and true or false else S()[k] = v and true or nil end end
 
@@ -296,6 +296,7 @@ local OPTS = {
         { "Offer whispers to offline characters to their alt", "whisperForward" },
     },
     guild = {
+        { "Share gathering nodes", "shareNodes" },
         { "Guild finds: notices", "gatherAlerts" },
         { "Guild finds: share mine", "gatherAlertsShare" },
         { "Wishlist nodes first", "gatherWanted" },
@@ -941,6 +942,7 @@ local TILE = {
     gatherSparkleHideIcons = { "Interface\\Icons\\Spell_Shadow_DetectInvisibility", "Only the sparkles, no game icon above the node" },
     gatherSparkleFar = { "Interface\\Icons\\Spell_Holy_MindVision", "Sparkles on nodes further away (beta)" },
     gatherPin = { "Interface\\Icons\\INV_Misc_Map_01", "The game's map pin with a marker in the world" },
+    shareNodes = { "Interface\\Icons\\INV_Misc_Map_01", "Your herb and ore finds go to the guild gathering map" },
     gatherAlerts = { "Interface\\Icons\\INV_Misc_Herb_BlackLotus", "A notice when the guild sees a node you watch" },
     gatherAlertsShare = { "Interface\\Icons\\INV_Letter_15", "Your valuable finds go to the guild" },
     gatherWanted = { "Interface\\Icons\\INV_Misc_Bag_10", "What the guild needs glows gold and comes first" },
