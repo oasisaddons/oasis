@@ -854,7 +854,7 @@ end
 ns.ComfortFitPreview = fitPreview
 -- 0.6.644: switches as tiles - icon, title, one short explanation; click switches, bright = on
 local TILE = {
-    cpFishing = { "Interface\Icons\Trade_Fishing", "Double right-click casts, catch statistics in the overview" },
+    cpFishing = { "Interface\\Icons\\Trade_Fishing", "Double right-click casts, catch statistics in the overview" },
     cfQuests = { "Interface\\Icons\\INV_Misc_Note_01", "Without a reward choice or costs; Shift talks normally" },
     cfSummon = { "Interface\\Icons\\Spell_Shadow_Twilight", "Summons (not in combat) and resurrections" },
     cfBlockShared = { "Interface\\Icons\\Spell_Holy_Silence", "Quests strangers share are declined" },
