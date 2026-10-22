@@ -2726,7 +2726,7 @@ local function buildSound(f)
     local yB = math.min(-242, lowestY(f) - 14)
     local bc = card(f, 0, yB, 738, 260)
     bc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, yB)
-    bc:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 4)
+    -- 0.6.663: no bottom anchor - the card is as tall as the list (set below)
     local bh = K.Header(bc, L["Sounds for notifications"])
     bh:SetPoint("TOPLEFT", 14, -12)
     bh:SetPoint("RIGHT", -140, 0)
@@ -2780,6 +2780,7 @@ local function buildSound(f)
     f.list:SetPoint("TOPLEFT", bc, "TOPLEFT", 6, -40)
     f.list:SetPoint("BOTTOMRIGHT", bc, "BOTTOMRIGHT", -6, 6)
     f.list:SetData(events)
+    bc:SetHeight(46 + #events * 30 + 10)   -- 0.6.663: whole list, the page scrolls instead
 
     -- Music section removed; Oasis no longer plays window music
     S().music = "off"
