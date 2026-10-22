@@ -1301,6 +1301,9 @@ ns.AddPageSettings("map", function(det, y)
         end
         descInline = was
     end
+    local X = det.tileX or 14
+    local CW = det.tileW and math.floor(det.tileW / 2) or 370
+    local BW = det.tileW and math.min(226, CW - 8) or 226
     local function head(text) y = y - 6 rowLabel(det, "|cffe8b44a" .. L[text] .. "|r", det.tileX or 14, y) y = y - 28 end
 
     head("World map")
@@ -1328,7 +1331,7 @@ ns.AddPageSettings("map", function(det, y)
     if ns.Gather and ns.GatherSettingsPage then
         head("Guild gathering map")
         local go = K.Button(det, L["Open gathering settings (Comfort)"], 300, 24, nil, function() ns.ShowPage(ns.GatherSettingsPage) end)
-        go:SetPoint("TOPLEFT", 14, y)
+        go:SetPoint("TOPLEFT", X, y)
         y = y - 36
     elseif ns.Gather then
     head("Guild gathering map")
@@ -1374,7 +1377,7 @@ ns.AddPageSettings("map", function(det, y)
         { "Show nodes for all professions", "gatherAllProfs", "Off = only herbs/ore/fishing spots of your own gathering professions", function() if ns.Gather and ns.Gather.ResetOwnKinds then ns.Gather.ResetOwnKinds() end gupd() end },
     })
     local sorts
-    sorts = K.Button(det, L["Filter individual types"], 226, 24, nil, function()
+    sorts = K.Button(det, L["Filter individual types"], BW, 24, nil, function()
         local items = {}
         local G = ns.Gather
         for _, e in ipairs(G and G.Names and G.Names() or {}) do
@@ -1389,13 +1392,13 @@ ns.AddPageSettings("map", function(det, y)
         if #items == 0 then items[1] = { text = L["No named nodes yet."], disabled = true } end
         K.ShowMenu(sorts, items, L["Filter individual types"])
     end)
-    sorts:SetPoint("TOPLEFT", 14, y)
+    sorts:SetPoint("TOPLEFT", X, y)
     -- 0.6.598: watch list for guild finds and the farm statistics
     local watch
-    watch = K.Button(det, L["Guild finds: notify me for"], 226, 24, nil, function() if ns.GatherGuild then ns.GatherGuild.WatchMenu(watch) end end)
-    watch:SetPoint("TOPLEFT", 250, y)
+    watch = K.Button(det, L["Guild finds: notify me for"], BW, 24, nil, function() if ns.GatherGuild then ns.GatherGuild.WatchMenu(watch) end end)
+    watch:SetPoint("TOPLEFT", X + CW, y)
     local stats = K.Button(det, L["Farm statistics"], 200, 24, nil, function() if ns.GatherGuild then ns.GatherGuild.ShowPanel() end end)
-    stats:SetPoint("TOPLEFT", 486, y)
+    if det.tileX then y = y - 30 stats:SetPoint("TOPLEFT", X, y) else stats:SetPoint("TOPLEFT", 486, y) end
     y = y - 36
     end
 
@@ -1416,9 +1419,9 @@ ns.AddPageSettings("map", function(det, y)
     }
     local syms = avail(SYM)
     for i, d in ipairs(syms) do
-        local cx = 14 + ((i - 1) % 2) * 370
+        local cx = X + ((i - 1) % 2) * CW
         rowLabel(det, L[d[1]], cx, y)
-        local sl = K.Slider(det, 200, d[3], d[4], d[5], function() return S()[d[2]] or d[6] end,
+        local sl = K.Slider(det, math.min(200, CW - 24), d[3], d[4], d[5], function() return S()[d[2]] or d[6] end,
             function(v) S()[d[2]] = v symUpd() end, d[7] or pct)
         sl:SetPoint("TOPLEFT", cx, y - 22)
         table.insert(det.refreshers, function() sl:Refresh() end)
@@ -1431,18 +1434,18 @@ ns.AddPageSettings("map", function(det, y)
         for _, fn in ipairs(det.refreshers) do pcall(fn) end
         for _, t in ipairs(det.t) do if t.Refresh then pcall(t.Refresh, t) end end
     end)
-    reset:SetPoint("TOPLEFT", 14, y)
+    reset:SetPoint("TOPLEFT", X, y)
     y = y - 40
 
     head("Send")
-    rowLabel(det, L["Send position every"], 14, y)
-    det.mapInterval = K.Slider(det, 160, 5, 30, 1, function() return S().mapInterval or 8 end,
+    rowLabel(det, L["Send position every"], X, y)
+    det.mapInterval = K.Slider(det, det.tileW and math.min(160, det.tileW - 190) or 160, 5, 30, 1, function() return S().mapInterval or 8 end,
         function(v) S().mapInterval = v if ns.Map then ns.Map.nextSend = nil end end,
         function(v) return (L["%d sec"]):format(v) end)
-    det.mapInterval:SetPoint("TOPLEFT", 184, y + 2)
+    det.mapInterval:SetPoint("TOPLEFT", X + 170, y + 2)
     table.insert(det.refreshers, function() det.mapInterval:Refresh() end)
     y = y - 30
-    note(det, L["Sending less often = less traffic, but the guild sees you move less smoothly."], 14, y, 600, C.dim)
+    note(det, L["Sending less often = less traffic, but the guild sees you move less smoothly."], X, y, det.tileW or 600, C.dim)
     y = y - 22
     return y - 10
 end)
@@ -4016,14 +4019,16 @@ local TIP_LINES = {
     { key = "allyTooltip", text = "|cffe8b44a* * * *|r  |cffbbbbbbgood healer|r", where = "player" },
 }
 -- 0.6.659: previews stay in view while the page scrolls
+local HALF_SC = 1.5   -- 0.6.661: previews fill the left half (232 px drawn at 1.5 = ~350 px)
 local function stickyPreview(pv, f)
+    pv:SetScale(HALF_SC)
     pv:SetScript("OnUpdate", function(self)
         local sc = f:GetParent()
         local v = sc and sc.GetVerticalScroll and sc:GetVerticalScroll() or 0
         if v ~= self.lastV then
             self.lastV = v
-            local maxV = math.max(0, (f:GetHeight() or 0) - (self:GetHeight() or 0))
-            self:ClearAllPoints() self:SetPoint("TOPLEFT", 0, -math.min(v, maxV))
+            local maxV = math.max(0, (f:GetHeight() or 0) - (self:GetHeight() or 0) * HALF_SC)
+            self:ClearAllPoints() self:SetPoint("TOPLEFT", 0, -math.min(v, maxV) / HALF_SC)
         end
     end)
 end
@@ -4112,7 +4117,7 @@ local function buildTips(f)
     f.tpv = tipPreview(f)
     stickyPreview(f.tpv, f)
     ns._tipsTab = f
-    f.cardX, f.tileX, f.tileW = 248, 262, 462
+    f.cardX, f.tileX, f.tileW = 370, 382, 346
     f.onTileEnter = function(key) f.tpv:Focus(key) end
     f.onTileLeave = function() f.tpv:Focus(nil) end
     f.onTileChange = function() f.tpv:Update() end
@@ -4138,7 +4143,7 @@ local function buildTips(f)
     }, y, 1)
     c2:SetHeight(top2 - y + 4)
     local rb = resetButton(f, y - 16, function() f.tpv:Update() end)
-    if rb and rb.SetPoint then rb:ClearAllPoints() rb:SetPoint("TOPLEFT", 248, y - 16) end
+    if rb and rb.SetPoint then rb:ClearAllPoints() rb:SetPoint("TOPLEFT", 370, y - 16) end
 end
 local function refreshTips(f)
     for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end
@@ -4282,7 +4287,9 @@ local function mapPreview(f)
         elseif e.reveal then
             r = CreateFrame("Frame", nil, map) r:SetPoint("TOPRIGHT") r:SetPoint("BOTTOMRIGHT") r:SetWidth(64)
             r:SetFrameLevel(map:GetFrameLevel() + 1)
-            local t = r:CreateTexture(nil, "BORDER", nil, 2) t:SetAllPoints() t:SetColorTexture(0.05, 0.05, 0.07, 0.6)
+            r.tex = r:CreateTexture(nil, "BORDER", nil, 2) r.tex:SetAllPoints() r.tex:SetColorTexture(0.05, 0.05, 0.07, 1)
+            r.lbl = r:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall") r.lbl:SetPoint("BOTTOM", 0, 6)
+            r.lbl:SetText(L["unexplored"])
         elseif e.mini == "dots" then
             r = CreateFrame("Frame", nil, mini) r:SetAllPoints() r:SetFrameLevel(mini:GetFrameLevel() + 3)
             for _, d in ipairs({ { 30, -32 }, { 80, -60 }, { 44, -84 } }) do
@@ -4310,6 +4317,9 @@ local function mapPreview(f)
     function pv:Update()
         local st = S()
         for k, r in pairs(self.el) do r:SetShown(st[k] and true or false) end
+        -- unexplored part: dark fog normally, only a light veil with "reveal world map"
+        local rv = self.el.mapReveal
+        if rv then rv:Show() rv.tex:SetAlpha(st.mapReveal and 0.3 or 0.85) end
         self:Focus(self.focus)
     end
     function pv:Focus(key)
@@ -4336,7 +4346,7 @@ local function buildMapTab(f)
     f.mpv = mapPreview(f)
     stickyPreview(f.mpv, f)
     ns._mapTab = f
-    f.cardX, f.tileX, f.tileW, f.tileCols = 248, 262, 462, 1
+    f.cardX, f.tileX, f.tileW, f.tileCols = 370, 382, 346, 1
     f.onTileEnter = function(key) f.mpv:Focus(key) end
     f.onTileLeave = function() f.mpv:Focus(nil) end
     f.onTileChange = function() f.mpv:Update() end
@@ -4359,7 +4369,7 @@ local function buildMapTab(f)
     end
     c:SetHeight(-y + 4)
     local rb = resetButton(f, y - 16, function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end if ns.Gather and ns.Gather.Refresh then pcall(ns.Gather.Refresh) end f.mpv:Update() end)
-    if rb and rb.SetPoint then rb:ClearAllPoints() rb:SetPoint("TOPLEFT", 248, y - 16) end
+    if rb and rb.SetPoint then rb:ClearAllPoints() rb:SetPoint("TOPLEFT", 370, y - 16) end
 end
 local function refreshMapTab(f)
     for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end
