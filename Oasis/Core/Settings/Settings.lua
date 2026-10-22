@@ -2722,8 +2722,10 @@ local function buildSound(f)
     f.epop = toggle(f, RX + 14, -138, "Show when someone comes online", "entrancePopup", nil, nil, 320)
 
     -- Card: Sounds per notice -----------------------------------------------
-    local bc = card(f, 0, -242, 738, 260)
-    bc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, -242)
+    -- 0.6.662: below the lowest of the two cards above (the left one grows with the click volume row)
+    local yB = math.min(-242, lowestY(f) - 14)
+    local bc = card(f, 0, yB, 738, 260)
+    bc:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, yB)
     bc:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 4)
     local bh = K.Header(bc, L["Sounds for notifications"])
     bh:SetPoint("TOPLEFT", 14, -12)
@@ -4020,15 +4022,20 @@ local TIP_LINES = {
 }
 -- 0.6.659: previews stay in view while the page scrolls
 local HALF_SC = 1.5   -- 0.6.661: previews fill the left half (232 px drawn at 1.5 = ~350 px)
-local function stickyPreview(pv, f)
+-- 0.6.662: ...but never taller than the visible area (scale shrinks to fit, natH = drawn height at scale 1)
+local function stickyPreview(pv, f, natH)
     pv:SetScale(HALF_SC)
     pv:SetScript("OnUpdate", function(self)
         local sc = f:GetParent()
         local v = sc and sc.GetVerticalScroll and sc:GetVerticalScroll() or 0
-        if v ~= self.lastV then
-            self.lastV = v
-            local maxV = math.max(0, (f:GetHeight() or 0) - (self:GetHeight() or 0) * HALF_SC)
-            self:ClearAllPoints() self:SetPoint("TOPLEFT", 0, -math.min(v, maxV) / HALF_SC)
+        local vis = sc and sc.GetHeight and sc:GetHeight() or 0
+        local want = HALF_SC
+        if vis > 50 then want = math.max(0.8, math.min(HALF_SC, (vis - 8) / (natH or 300))) end
+        if v ~= self.lastV or want ~= self.lastS then
+            self.lastV, self.lastS = v, want
+            self:SetScale(want)
+            local maxV = math.max(0, (f:GetHeight() or 0) - (natH or 300) * want)
+            self:ClearAllPoints() self:SetPoint("TOPLEFT", 0, -math.min(v, maxV) / want)
         end
     end)
 end
@@ -4115,7 +4122,7 @@ local function buildTips(f)
     f.noCompact = true
     f.t = {}
     f.tpv = tipPreview(f)
-    stickyPreview(f.tpv, f)
+    stickyPreview(f.tpv, f, 300)
     ns._tipsTab = f
     f.cardX, f.tileX, f.tileW = 370, 382, 346
     f.onTileEnter = function(key) f.tpv:Focus(key) end
@@ -4200,7 +4207,7 @@ local function mapPreview(f)
     map.me:SetTexture("Interface\\WorldMap\\WorldMapArrow")
     -- minimap: a crop of the same art in a round mask, the real minimap border on top
     local mini = CreateFrame("Frame", nil, pv)
-    mini:SetSize(118, 118) mini:SetPoint("TOP", frame, "BOTTOM", 0, -18)
+    mini:SetSize(86, 86) mini:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 14, -14)   -- 0.6.662: small, explanation next to it
     mini.art = mini:CreateTexture(nil, "BACKGROUND") mini.art:SetAllPoints()
     mini.art:SetColorTexture(0.30, 0.34, 0.24, 1)
     pcall(function()
@@ -4223,7 +4230,7 @@ local function mapPreview(f)
     local okRing = pcall(function()
         local src = rawget(_G, "MinimapBorder")
         if not (src and src.GetTexture and src:GetTexture() and Minimap and Minimap:GetWidth() > 0) then error("none") end
-        local k2 = 118 / Minimap:GetWidth()
+        local k2 = 86 / Minimap:GetWidth()
         local mx, my = Minimap:GetCenter()
         local sx, sy = src:GetCenter()
         local me, se = Minimap:GetEffectiveScale(), src:GetEffectiveScale()
@@ -4292,12 +4299,12 @@ local function mapPreview(f)
             r.lbl:SetText(L["unexplored"])
         elseif e.mini == "dots" then
             r = CreateFrame("Frame", nil, mini) r:SetAllPoints() r:SetFrameLevel(mini:GetFrameLevel() + 3)
-            for _, d in ipairs({ { 30, -32 }, { 80, -60 }, { 44, -84 } }) do
+            for _, d in ipairs({ { 20, -22 }, { 58, -44 }, { 30, -62 } }) do
                 local t = r:CreateTexture(nil, "OVERLAY") t:SetSize(12, 12) t:SetPoint("TOPLEFT", d[1], d[2])
                 t:SetTexture("Interface\\WorldMap\\WorldMapPartyIcon") t:SetVertexColor(0.25, 0.78, 0.92, 1)
             end
         elseif e.mini == "coords" then
-            r = CreateFrame("Frame", nil, pv) r:SetSize(110, 14) r:SetPoint("TOP", mini, "BOTTOM", 0, -12)
+            r = CreateFrame("Frame", nil, pv) r:SetSize(86, 14) r:SetPoint("TOP", mini, "BOTTOM", 0, -6)
             local l = r:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall") l:SetPoint("CENTER") l:SetText("46.2, 53.8")
         end
         pv.el[e.key] = r
@@ -4310,7 +4317,7 @@ local function mapPreview(f)
         else l:SetWidth(2) l:SetPoint(i == 3 and "TOPLEFT" or "TOPRIGHT") l:SetPoint(i == 3 and "BOTTOMLEFT" or "BOTTOMRIGHT") end
     end
     pv.hi:Hide()
-    pv.cap = K.Text(pv, 10, C.dim) pv.cap:SetWidth(222) pv.cap:SetPoint("TOPLEFT", mini, "BOTTOMLEFT", -50, -34)
+    pv.cap = K.Text(pv, 10, C.dim) pv.cap:SetWidth(118) pv.cap:SetPoint("TOPLEFT", mini, "TOPRIGHT", 16, -4)
     pv.cap:SetJustifyH("LEFT") pv.cap:SetWordWrap(true)
     pv.capText = L["Move the mouse over an option - its part of the map is framed here"]
     pv.cap:SetText(pv.capText)
@@ -4344,7 +4351,7 @@ local function buildMapTab(f)
     f.noCompact = true
     f.t, f.refreshers = {}, {}
     f.mpv = mapPreview(f)
-    stickyPreview(f.mpv, f)
+    stickyPreview(f.mpv, f, 290)
     ns._mapTab = f
     f.cardX, f.tileX, f.tileW, f.tileCols = 370, 382, 346, 1
     f.onTileEnter = function(key) f.mpv:Focus(key) end
