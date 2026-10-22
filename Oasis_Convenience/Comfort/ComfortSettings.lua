@@ -35,7 +35,7 @@ end
 
 local function S() return ns.db.settings end
 -- toggles that are on until switched off (nil = on)
-local ON = { mapDungeons = true, mapPoi = true, layerAsk = true, mapRevealTint = true, gatherScan = true, gatherSymbols = true, gatherArrowHerb = true, gatherArrowOre = true, gatherArrowTreasure = true,
+local ON = { gcLiveSelect = true, gcAltSelect = true, mapDungeons = true, mapPoi = true, layerAsk = true, mapRevealTint = true, gatherScan = true, gatherSymbols = true, gatherArrowHerb = true, gatherArrowOre = true, gatherArrowTreasure = true,
     gatherArrowRare = true, gatherArrowLeyline = true, gatherAlerts = true, gatherAlertsShare = true, gatherWanted = true, gatherShareArea = true }
 local function get(k) if ON[k] then return S()[k] ~= false end return S()[k] and true or false end
 local function set(k, v) if ON[k] then S()[k] = v and true or false else S()[k] = v and true or nil end end
@@ -63,8 +63,12 @@ local UTABS = {
     { key = "minimapcam", text = "Minimap & camera" },
     { key = "sounds", text = "Sounds" },
 }
+-- 0.6.652: game chat rebuilt in tiles, sorted by topic (was one long old settings page)
 local CHTABS = {
-    { key = "gamechat", text = "Game chat", tab = "gamechat" },
+    { key = "chatmain", text = "Game chat" },
+    { key = "chatnames", text = "Names & icons" },
+    { key = "chatfilter", text = "Filters" },
+    { key = "chathist", text = "History & alerts" },
     { key = "chatclean", text = "Tidy up" },
     { key = "whisper", text = "Whispers" },
 }
@@ -183,10 +187,57 @@ local OPTS = {
     chatclean = {
         { "Hide the combat log tab", "cfNoCombatTab" },
         { "Hide chat buttons", "cfNoChatButtons" },
+        { "Hide the chat menu button", "gcHideMenu" },
+        { "Hide the channel button", "gcHideChannel" },
+        { "Hide the social button", "gcHideSocial" },
+        { "Hide the scroll buttons", "gcHideScroll" },
         { "Filter duel and drunk spam", "cfSpamFilter" },
         slider = {
             { "Chat font size", "cfChatFont", 10, 20, 1, 14, function(v) return v .. " pt" end },
         },
+    },
+    chatmain = {
+        intro = "Oasis changes nothing in Blizzard's chat itself - it adjusts the lines afterwards.",
+        { "Improve Blizzard's chat windows", "gcOn" },
+        { "Also public channels, say and yell", "gcAllChannels" },
+        { "Select text by dragging", "gcLiveSelect" },
+        { "Alt + click opens the selection box", "gcAltSelect" },
+        { "Arrow keys in chat without Alt", "cfChatArrows" },
+        { "Don't fade chat", "cfChatNoFade" },
+        { "Keep chat after /reload", "cfChatRestore" },
+        { "Edit box above the chat window", "cfChatTop" },
+        extra = "stamp",
+    },
+    chatnames = {
+        { "Shorten names", "gcShort" },
+        { "Level before the name", "gcLevel" },
+        { "Class icon before the name", "gcClassIcon" },
+        { "Race icon before the name", "gcRaceIcon" },
+        { "Icons on item and spell links", "gcLinkIcons" },
+        { "Resolve shortcuts in text", "gcTokens" },
+        { "Shorten channel names", "gcChNum" },
+        { "Quiet text", "gcQuiet" },
+        { "Item tooltip on hover", "gcHover" },
+    },
+    chatfilter = {
+        { "Enable filters", "gcFilter" },
+        { "Whole words only", "gcWhole" },
+        { "Hide Cyrillic text", "gcCyr" },
+        { "Hide Chinese characters", "gcHan" },
+        { "Hide repeated messages", "gcRepeat" },
+        slider = {
+            { "Time window for repeats", "gcRepeatSec", 5, 600, 5, 60, function(v) return v .. " s" end },
+        },
+        extra = "filterLists",
+    },
+    chathist = {
+        { "Keep chat history between sessions", "gcHist" },
+        { "Notify me about keywords", "gcAlert" },
+        { "Sound on alert", "gcAlertSound" },
+        slider = {
+            { "Lines per tab", "gcHistLines", 20, 300, 10, 100, function(v) return tostring(v) end },
+        },
+        extra = "histAlerts",
     },
     whisper = {
         { "Offer whispers to offline characters to their alt", "whisperForward" },
@@ -716,6 +767,8 @@ local function apply(p)
     if ns.ComfortTweaks then pcall(ns.ComfortTweaks.Apply) end
     if ns.ComfortMore then pcall(ns.ComfortMore.Apply) end
     if ns.ComfortQuestBags then pcall(ns.ComfortQuestBags.Apply) end
+    if ns.GameChat then pcall(ns.GameChat.ApplyAll) if ns.GameChat.ApplyButtons then pcall(ns.GameChat.ApplyButtons) end end
+    if ns.Comfort and ns.Comfort.ApplyChat then pcall(ns.Comfort.ApplyChat) end
     if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end
     if ns.ComfortPlus and ns.ComfortPlus.ApplyAll then pcall(ns.ComfortPlus.ApplyAll) end
     S().trailMinutes = S().trailSession and 0 or nil
@@ -743,6 +796,35 @@ end
 ns.ComfortFitPreview = fitPreview
 -- 0.6.644: switches as tiles - icon, title, one short explanation; click switches, bright = on
 local TILE = {
+    gcOn = { "Interface\\Icons\\INV_Letter_15", "Everything on these pages only works with this on" },
+    gcAllChannels = { "Interface\\Icons\\INV_Misc_Note_06", "Not only guild, group and whispers - also Trade, General, say, yell" },
+    gcLiveSelect = { "Interface\\Icons\\INV_Feather_05", "Drag across the chat to select, Ctrl+C copies" },
+    gcAltSelect = { "Interface\\Icons\\INV_Misc_Note_01", "Alt + click: the chat as a text box to select from" },
+    cfChatArrows = { "Interface\\Icons\\INV_Misc_ArrowUp", "Arrow up recalls your last message" },
+    cfChatNoFade = { "Interface\\Icons\\Spell_Holy_MindVision", "Old lines stay visible" },
+    cfChatRestore = { "Interface\\Icons\\INV_Misc_Book_08", "The chat is still there after /reload" },
+    cfChatTop = { "Interface\\Icons\\INV_Misc_Note_02", "Type above the chat window instead of below" },
+    gcShort = { "Interface\\Icons\\INV_Misc_Head_Human_01", "Only the first name - whisper still uses the full one" },
+    gcLevel = { "Interface\\Icons\\INV_Misc_Book_09", "The level in the difficulty colour" },
+    gcClassIcon = { "Interface\\Icons\\INV_Misc_Head_Orc_01", "Small class icon before the name" },
+    gcRaceIcon = { "Interface\\Icons\\INV_Misc_Head_Troll_01", "Small race icon before the name" },
+    gcLinkIcons = { "Interface\\Icons\\INV_Sword_04", "Item and spell links with their icon" },
+    gcTokens = { "Interface\\Icons\\INV_Misc_Gem_02", "item:6948 becomes a link, :mage: an icon (only for you)" },
+    gcChNum = { "Interface\\Icons\\INV_Misc_Note_03", "[2. Trade - Orgrimmar] becomes [2]" },
+    gcQuiet = { "Interface\\Icons\\INV_Misc_Ink_01", "Messages in light grey, names keep their colour" },
+    gcHover = { "Interface\\Icons\\INV_Misc_Spyglass_03", "Tooltip on hovering a link, not only on click" },
+    gcFilter = { "Interface\\Icons\\Spell_Holy_Silence", "Never touches guild, group, raid and your own lines" },
+    gcWhole = { "Interface\\Icons\\INV_Misc_Note_05", "\"boost\" no longer matches \"boosting\"" },
+    gcCyr = { "Interface\\Icons\\INV_Misc_Book_07", "Hides lines in Cyrillic letters" },
+    gcHan = { "Interface\\Icons\\INV_Misc_Book_06", "Hides lines with Chinese characters" },
+    gcRepeat = { "Interface\\Icons\\INV_Misc_PocketWatch_01", "Same message, same player within the time window" },
+    gcHist = { "Interface\\Icons\\INV_Misc_Book_11", "The last lines are back after logging in" },
+    gcAlert = { "Interface\\Icons\\INV_Misc_Bell_01", "A notice when a line has one of your keywords" },
+    gcAlertSound = { "Interface\\Icons\\INV_Misc_Drum_01", "A sound with the notice" },
+    gcHideMenu = { "Interface\\Icons\\INV_Misc_Gear_02", "Removes the chat menu button" },
+    gcHideChannel = { "Interface\\Icons\\INV_Misc_Gear_03", "Removes the channel button" },
+    gcHideSocial = { "Interface\\Icons\\INV_Misc_GroupLooking", "Removes the social button" },
+    gcHideScroll = { "Interface\\Icons\\INV_Misc_ArrowDown", "Removes the scroll buttons" },
     gatherScan = { "Interface\\Icons\\INV_Misc_Spyglass_02", "Finds herb and ore dots on the minimap by itself" },
     gatherSymbols = { "Interface\\Icons\\INV_Misc_Flower_02", "Real herb and ore pictures instead of yellow dots" },
     gatherSwitch = { "Interface\\Icons\\INV_Pick_02", "Switches herb and mineral search while you walk" },
@@ -826,6 +908,12 @@ local PARENT = {
     gatherSparkleHideIcons = "gatherSparkle",
     gatherRouteSkill = "gatherRoute",
     mapRevealTint = "mapReveal", trailSession = "mapTrails",
+    -- game chat: everything hangs on the master switch, the filter options on "Enable filters"
+    gcAllChannels = "gcOn", gcLiveSelect = "gcOn", gcAltSelect = "gcOn",
+    gcShort = "gcOn", gcLevel = "gcOn", gcClassIcon = "gcOn", gcRaceIcon = "gcOn", gcLinkIcons = "gcOn", gcTokens = "gcOn",
+    gcChNum = "gcOn", gcQuiet = "gcOn", gcHover = "gcOn",
+    gcFilter = "gcOn", gcWhole = "gcFilter", gcCyr = "gcFilter", gcHan = "gcFilter", gcRepeat = "gcFilter",
+    gcHist = "gcOn", gcAlert = "gcOn", gcAlertSound = "gcAlert",
 }
 ns.ComfortParent = PARENT
 local INDENT = 26
@@ -880,6 +968,11 @@ local function makeTile(box, row, p, w)
     end
     t.state = K.Text(t, 10, C.dim) t.state:Hide()
     t.pill = K.Pill(t, 32, 17) t.pill:SetPoint("RIGHT", -12, 0)
+    if row[2] == "gcOn" then
+        t.tag = K.Text(t, 9, C.accent) t.tag:SetPoint("RIGHT", t.pill, "LEFT", -10, 0)
+        t.tag:SetText(K.Upper and K.Upper(L["Master switch"]) or L["Master switch"])
+        t.title:SetPoint("RIGHT", t.tag, "LEFT", -8, 0)
+    end
     t.knob = K.KnobCircle(t.pill, 13)
     -- animation state: hover 0..1, knob position 0..1, press
     t.hov, t.kx, t.kTarget, t.press = 0, 0, 0, 0
@@ -917,7 +1010,9 @@ local function makeTile(box, row, p, w)
     function t:Refresh()
         local onv = get(row[2])
         self.onv = onv
-        local usable = not self.parentKey or get(self.parentKey)
+        local usable = true
+        local par = self.parentKey
+        while par do if not get(par) then usable = false break end par = PARENT[par] end
         self.usable = usable and true or false
         self:EnableMouse(usable)
         self.state:SetText(onv and L["On"] or L["Off"])
@@ -950,7 +1045,7 @@ local function makeTile(box, row, p, w)
         set(row[2], v)
         self:Refresh()
         -- children follow their parent
-        if box.ctrls then for _, c in ipairs(box.ctrls) do if c.parentKey == row[2] and c.Refresh then c:Refresh() end end end
+        if box.ctrls then for _, c in ipairs(box.ctrls) do if c.parentKey and c.Refresh then c:Refresh() end end end
         apply(p)
         if v and row[2] == "gatherSound" and PlaySound then pcall(PlaySound, SOUNDKIT and SOUNDKIT.MAP_PING or 3175, "Master") end
     end)
@@ -1108,6 +1203,40 @@ local function buildControls(p, key, withPreview)
         sl:SetPoint("TOPLEFT", x, y - 15)
         box.ctrls[#box.ctrls + 1] = sl
         if not two or col == 1 or i == #sliders then y = y - 40 end
+    end
+    if o.extra and ns.GameChat and ns.GameChat.UI then
+        local ok, ny = pcall(function()
+            local UI, GC = ns.GameChat.UI, ns.GameChat
+            local yy = y - 4
+            local w = (withPreview and (halfW(p) - 24)) or 740
+            if o.extra == "stamp" then
+                local lab = K.Text(box, 11, C.muted) lab:SetPoint("TOPLEFT", 0, yy) lab:SetText(L["Timestamp"])
+                local b = K.Button(box, UI.stampText(), 170, 24, "ghost")
+                b:SetPoint("TOPLEFT", 140, yy + 4)
+                b:SetScript("OnClick", function(self) UI.stampMenu(self) end)
+                yy = yy - 34
+            elseif o.extra == "filterLists" then
+                local h1 = K.Text(box, 11, C.amber or C.accent) h1:SetPoint("TOPLEFT", 0, yy) h1:SetText(L["Blocked words"])
+                UI.editor(box, yy + 6, math.min(w, 560) - 14, "gcPhrases", "Word or phrase")
+                yy = yy - 96
+                local h2 = K.Text(box, 11, C.amber or C.accent) h2:SetPoint("TOPLEFT", 0, yy) h2:SetText(L["Mute a player in one channel"])
+                UI.editor(box, yy + 6, math.min(w, 560) - 14, "gcMutes", "Channel; player name", UI.muteValue)
+                yy = yy - 96
+                pcall(UI.refresh)
+            elseif o.extra == "histAlerts" then
+                local find = K.Button(box, L["Search chat"], 160, 24, "primary", function() GC.OpenViewer("search") end)
+                find:SetPoint("TOPLEFT", 0, yy)
+                local hits = K.Button(box, L["View matches"], 160, 24, "ghost", function() GC.OpenViewer("alerts") end)
+                hits:SetPoint("TOPLEFT", 170, yy)
+                yy = yy - 34
+                local h1 = K.Text(box, 11, C.amber or C.accent) h1:SetPoint("TOPLEFT", 0, yy) h1:SetText(L["Keyword alerts"])
+                UI.editor(box, yy + 6, math.min(w, 560) - 14, "gcWords", "Keyword, e.g. looking for healer")
+                yy = yy - 96
+                pcall(UI.refresh)
+            end
+            return yy
+        end)
+        if ok and ny then y = ny end
     end
     if o.resetPos and ns.WorldMapPlus then
         local rb = K.Button(box, L["Reset map position"], 200, 26, nil, function() ns.WorldMapPlus.ResetPosition() end)

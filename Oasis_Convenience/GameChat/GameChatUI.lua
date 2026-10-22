@@ -352,6 +352,19 @@ end
 local function refresh()
     for _, e in ipairs(editors) do pcall(e.Update, e) end
 end
+-- 0.6.652: the comfort pages build the game chat in tiles and reuse these pieces (lists, timestamp menu)
+GC.UI = {
+    editor = editor, muteValue = muteValue, stampText = stampText, refresh = refresh,
+    stampMenu = function(btn)
+        local s = G()
+        local items = { { text = L["Game setting"], checked = s.gcStamp == nil, fn = function() s.gcStamp = nil GC.ApplyStamp() btn:SetLabel(stampText()) end } }
+        for _, st in ipairs(GC.STAMPS) do
+            items[#items + 1] = { text = st.key == "none" and L["Off"] or st.text, checked = s.gcStamp == st.key,
+                fn = function() s.gcStamp = st.key GC.ApplyStamp() btn:SetLabel(stampText()) end }
+        end
+        K.ShowMenu(btn, items, L["Timestamp"], 170)
+    end,
+}
 if ns.AddSettingsTab then ns.AddSettingsTab("gamechat", "Game chat", build, refresh) end
 
 end)
