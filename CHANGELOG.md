@@ -2,6 +2,11 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.664
+
+- The optional add-ons (Groups & Raids, Trade, Convenience) show their own coloured logo in the add-on list.
+- Upload of the base add-on to Wago fixed.
+
 ## 0.6.663
 
 - **Settings reworked:** every switch is now a tile with title, short explanation and the switch on the right. Options that need another one sit indented under it and are greyed while it is off.
