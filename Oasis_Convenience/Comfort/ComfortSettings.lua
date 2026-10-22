@@ -1132,11 +1132,14 @@ local function makeTile(box, row, p, w)
     t:SetScript("OnEnter", function()
         local PV = ns.ComfortPreviews
         local g = p.gen and p.gen[p.cur]
+        -- 0.6.655: gathering/world map previews get the caption too
+        if not g then g = (p.mpv and p.mpv:IsShown() and p.mpv) or (p.pv and p.pv:IsShown() and p.pv) or nil end
         if PV and PV.Focus and g then pcall(PV.Focus, g, row[2], L[row[1]], info[2] and L[info[2]]) end
     end)
     t:SetScript("OnLeave", function()
         local PV = ns.ComfortPreviews
         local g = p.gen and p.gen[p.cur]
+        if not g then g = (p.mpv and p.mpv:IsShown() and p.mpv) or (p.pv and p.pv:IsShown() and p.pv) or nil end
         if PV and PV.Focus and g then pcall(PV.Focus, g, nil) end
     end)
     t:SetScript("OnClick", function(self)

@@ -85,6 +85,7 @@ function PREV.Focus(f, key, title, desc)
     else
         f._hi:Hide()
     end
+    if not f._cap and f.GetObjectType and not f._noCap then caption(f) end
     if f._cap then
         f._cap:SetText((title or "") .. (desc and desc ~= "" and (": " .. desc) or ""))
         f._cap:SetTextColor(C.accent[1], C.accent[2], C.accent[3])
