@@ -187,6 +187,7 @@ local function toggle(p, x, y, label, key, desc, after, w)
         t:HookScript("OnEnter", function(self) K.ShowTip(self, { L[label], self.tipText }) end)
         t:HookScript("OnLeave", function() GameTooltip:Hide() end)
     end
+    if K.SkinToggle then pcall(K.SkinToggle, t) end   -- 0.6.657: tile look on every settings page
     indexAdd(L[label], t, desc and L[desc])
     return t
 end

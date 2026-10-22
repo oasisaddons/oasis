@@ -147,3 +147,44 @@ function K.Tile(parent, w, o)
     t:Refresh()
     return t
 end
+
+-- 0.6.657: the same look for the classic switches on the freely built settings pages (design, notices, sound,
+-- profile, system): a glass card behind the row, switch moved to the right, soft hover, accent edge when on.
+-- Position and size of the row stay, so nothing on those pages moves.
+function K.SkinToggle(f)
+    if f.oaSkinned or not (f.lbl and f.track) then return end
+    f.oaSkinned = true
+    local G = ns.Insta and ns.Insta.Glass
+    local card = CreateFrame("Frame", nil, f)
+    card:SetPoint("TOPLEFT", -6, 4) card:SetPoint("BOTTOMRIGHT", 4, -4)
+    card:SetFrameLevel(math.max(0, f:GetFrameLevel() - 1))
+    card.glass = G and pcall(G, card, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.08 }, 8)
+    if not card.glass then K.Fill(card, { 1, 1, 1, 0.03 }) end
+    f.oaCard = card
+    f.track:ClearAllPoints() f.track:SetPoint("RIGHT", f, "RIGHT", -6, 0)
+    if f.cb then f.cb:ClearAllPoints() f.cb:SetPoint("RIGHT", f, "RIGHT", -6, 0) end
+    local sub = f.sub or f.desc
+    f.lbl:ClearAllPoints()
+    if sub then
+        f.lbl:SetPoint("TOPLEFT", f, "TOPLEFT", 6, 0)
+        sub:SetPoint("RIGHT", f, "RIGHT", -46, 0)
+    else
+        f.lbl:SetPoint("LEFT", f, "LEFT", 6, 0)
+    end
+    f.lbl:SetPoint("RIGHT", f, "RIGHT", -46, 0) f.lbl:SetJustifyH("LEFT")
+    local hov = false
+    local function paint()
+        if not card.glass then return end
+        local on = f.GetChecked and f:GetChecked()
+        if on == nil and f.kpos ~= nil then on = f.kpos == 1 end
+        local ac = C.accent
+        local fa = 0.03 + (hov and 0.05 or 0) + (on and 0.02 or 0)
+        local lc = on and ac or { 1, 1, 1 }
+        local la = on and (hov and 0.6 or 0.35) or (hov and 0.18 or 0.08)
+        pcall(G, card, { 1, 1, 1, fa }, { lc[1], lc[2], lc[3], la }, 8)
+    end
+    f:HookScript("OnEnter", function() hov = true paint() end)
+    f:HookScript("OnLeave", function() hov = false paint() end)
+    if f.Refresh then hooksecurefunc(f, "Refresh", paint) end
+    paint()
+end

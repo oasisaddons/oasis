@@ -1094,6 +1094,7 @@ function K.Toggle(parent, label, getter, setter, desc)
         f.cbHl:SetBlendMode("ADD")
         f.cbHl:SetAllPoints(f.cb)
     end
+    f.track = track
     f.lbl = K.Text(f, 13, C.text)
     f.lbl:SetPoint("TOPLEFT", track, "TOPRIGHT", 10, -1)
     f.lbl:SetText(label)
