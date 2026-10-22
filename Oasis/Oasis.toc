@@ -7,7 +7,7 @@
 ## X-Curse-Project-ID: 1741000
 ## X-Wago-ID: RNL4d8No
 ## X-License: GPL-2.0
-## Version: 0.6.655
+## Version: 0.6.656
 ## SavedVariables: OasisDB
 ## OptionalDeps: Midas, ForeverDungeonJournal, EllesmereUIChat
 ## IconTexture: Interface\AddOns\Oasis\Media\logo64
@@ -30,6 +30,7 @@ Comm.lua
 Core\Chat\ChatSystem.lua
 Core\Diagnostics\RaidSim.lua
 UI\Kit.lua
+UI\Tile.lua
 UI\Sound.lua
 UI\Main.lua
 UI\MiniBar.lua

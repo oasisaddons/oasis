@@ -345,7 +345,7 @@ local function build(f)
     -- 0.5.713: one glass card per module (icon + name, toggle on the right, description, state bottom right)
     f.noCompact = true
     f.rows = {}
-    local W, TH, GAP = 362, 96, 12
+    local W, TH, GAP = 362, 84, 10
     local y = -40
     -- per category a heading + cards in two columns
 
@@ -361,16 +361,22 @@ local function build(f)
         local col = (i - 1) % 2
         if col == 0 and i > 1 then y = y - (TH + GAP) end
 
-        local c = H.cardH(f, col * (W + 14), y, W, TH, m.icon, L[m.title], L[m.desc])
-        if c.s then c.s:SetWordWrap(true) c.s:SetPoint("RIGHT", -70, 0) end
-        local tg = K.Toggle(c, "", function() return M.IsOn(m.addon) end, function(v)
-            M.Set(m.addon, v)
-            if f.reload then f.reload:Show() f.hint:Show() end
-        end)
-        tg:SetWidth(46)
-        tg:SetPoint("TOPRIGHT", -14, -12)
-        local st = K.Text(c, 10, C.dim, "RIGHT")
-        st:SetPoint("BOTTOMRIGHT", -14, 10)
+        -- 0.6.656: tile like everywhere in the settings (icon, explanation, switch), state small under the switch
+        local tg = K.Tile(f, W, {
+            title = L[m.title], desc = L[m.desc], icon = ns.MEDIA .. "icons\\" .. m.icon, glyph = true, h = TH - 20,
+            get = function() return M.IsOn(m.addon) end,
+            set = function(v)
+                M.Set(m.addon, v)
+                if f.reload then f.reload:Show() f.hint:Show() end
+                if f.refreshAll then pcall(f.refreshAll) end
+            end,
+        })
+        tg:SetPoint("TOPLEFT", col * (W + 14), y)
+        if tg.desc.SetMaxLines then tg.desc:SetMaxLines(3) end
+        tg.desc:SetText(L[m.desc])
+        tg:SetHeight(math.max(TH - 20, 32 + math.min(tg.desc:GetStringHeight() or 10, 36)))
+        local st = K.Text(tg, 9, C.dim, "RIGHT")
+        st:SetPoint("BOTTOMRIGHT", -10, 5)
         f.rows[#f.rows + 1] = { m = m, tg = tg, st = st }
       end
       if #list > 0 then y = y - (TH + GAP) - 8 end
@@ -395,6 +401,7 @@ local function staleText()
     return (L["Old Oasis add-on folders are still in your AddOns folder and are no longer needed (everything now lives in the Oasis folder). You can delete them: %s"]):format(table.concat(M.stale, ", "))
 end
 local function refresh(f)
+    f.refreshAll = f.refreshAll or function() refresh(f) end
     M.UpdateMem()
     if f.gmT then
         f.gmT:SetShown(M.GuildInstalled())

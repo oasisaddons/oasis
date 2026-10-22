@@ -190,6 +190,53 @@ local function toggle(p, x, y, label, key, desc, after, w)
     indexAdd(L[label], t, desc and L[desc])
     return t
 end
+local TILE_PARENT = {
+    tipWanted = "tipOasis", tipCrafters = "tipOasis", tipBank = "tipOasis", tipReagent = "tipOasis",
+    srTooltipGroupOnly = "srTooltip",
+}
+local function tileGrid(f, list, y, cols)
+    cols = cols or 2
+    f.t = f.t or {}
+    -- 0.6.656: tiles like on the comfort pages (title, explanation, switch on the right); options that need
+    -- another one are indented under it and greyed while it is off
+    local W, X0 = f.tileW or 712, f.tileX or 14
+    local cw = cols == 1 and W or math.floor((W - 10 * (cols - 1)) / cols)
+    for r = 0, math.ceil(#list / cols) - 1 do
+        local rowH = 0
+        for c = 1, cols do
+            local o = list[r * cols + c]
+            if o then
+                if o[5] and S()[o[2]] == nil then S()[o[2]] = true end
+                local key, after = o[2], o[4]
+                local par = TILE_PARENT[key]
+                local t = K.Tile(f, cw, {
+                    title = L[o[1]], desc = o[3] and L[o[3]] or nil, child = par and true or nil,
+                    usable = par and function() return S()[par] and true or false end or nil,
+                    tint = key == "tipOasis" and C.accent or nil,
+                    onEnter = f.onTileEnter and function(tt) f.onTileEnter(key, tt) end or nil,
+                    onLeave = f.onTileLeave and function(tt) f.onTileLeave(key, tt) end or nil,
+                    get = function() return S()[key] and true or false end,
+                    set = function(v)
+                        S()[key] = v
+                        if after then after(v) end
+                        for _, x in ipairs(f.t) do if x ~= nil and x.o and x.Refresh then pcall(x.Refresh, x) end end
+                        if f.onTileChange then pcall(f.onTileChange, key) end
+                    end,
+                })
+                t:SetPoint("TOPLEFT", X0 + (c - 1) * (cw + 10) + (par and K.TILE_INDENT or 0), y)
+                t.settingKey = key
+                t.noReflow = true
+                indexAdd(L[o[1]], t, o[3] and L[o[3]])
+                f.t[#f.t + 1] = t
+                f.rk = f.rk or {}
+                f.rk[#f.rk + 1] = { key, o[5] and true or nil }
+                rowH = math.max(rowH, t:GetHeight())
+            end
+        end
+        y = y - rowH - 8
+    end
+    return y
+end
 -- move everything in the same frame below a toggle with subline down by DESC_H; returns the
 -- total extra height. Toggles with noReflow (own grid) are skipped.
 local function reflowDescs(fr)
@@ -1404,6 +1451,12 @@ end
 local SCOPE_TAB = { guild = "guildtools", social = "socialtools", personal = "personaltools" }
 local function areaTab(key) return SCOPE_TAB[AREA_SCOPE[key] or "personal"] end
 ns.SettingsAreaTab = areaTab
+-- 0.6.656: does an area have anything to set? (the sidebar tiles only show a cog then)
+function ns.AreaHasSettings(key)
+    if PAGE_OPTS[key] or PAGE_EXTRA[key] then return true end
+    for _, ck in ipairs(AREA_CHILDREN[key] or {}) do if PAGE_OPTS[ck] or PAGE_EXTRA[ck] then return true end end
+    return false
+end
 
 -- Sections in navigation order (groups), rest at the end
 local function pageGroups(scope)
@@ -1429,6 +1482,8 @@ end
 local function pageShown(key) return not (S().hiddenPages and S().hiddenPages[key]) end
 local function setPageShown(key, v)
     if ns.Admin and not ns.Admin.PageEnabled(key) then return end
+    -- 0.6.656: same way as the sidebar tab (unloads the module once all its pages are off)
+    if ns.Discover and ns.Discover.Set then ns.Discover.Set(key, v and true or false) return end
     S().hiddenPages = S().hiddenPages or {}
     S().hiddenPages[key] = (not v) or nil
     ns.LayoutNav()
@@ -1644,11 +1699,8 @@ local function buildPages(f, scope)
         local y = Y0
         descInline = true   -- Explanations as subline, then reflow (reflowDescs)
         local opts = avail(PAGE_OPTS[key])
-        for _, o in ipairs(opts) do
-            if o[5] and S()[o[2]] == nil then S()[o[2]] = true end   -- Default on
-            det.t[#det.t + 1] = toggle(det, 14, y, o[1], o[2], o[3], o[4], 600)
-            y = y - 32
-        end
+        y = tileGrid(det, opts, y, 2)   -- 0.6.656: tiles
+
         if opts.inactive then
             rowLabel(det, L["Inactive after"], 14, y - 2)
             det.inact = K.Slider(det, 180, 7, 90, 1, function() return S().inactiveDays or 30 end,
@@ -1692,11 +1744,8 @@ local function buildPages(f, scope)
                 y = y - 10
                 rowLabel(det, "|cffe8b44a" .. L[cd.title] .. "|r", 14, y)
                 y = y - 30
-                for _, o in ipairs(avail(PAGE_OPTS[ck])) do
-                    if o[5] and S()[o[2]] == nil then S()[o[2]] = true end
-                    det.t[#det.t + 1] = toggle(det, 14, y, o[1], o[2], o[3], o[4], 600)
-                    y = y - 32
-                end
+                y = tileGrid(det, avail(PAGE_OPTS[ck]) or {}, y, 2)
+
                 if PAGE_EXTRA[ck] then
                     local ok, ny = pcall(PAGE_EXTRA[ck], det, y)
                     if ok and type(ny) == "number" then y = ny
@@ -3606,7 +3655,7 @@ local GROUPS = {
     -- shortcuts with the controls, greeting with the notices. Comfort has its own pages in the sidebar.
     { key = "start", text = "Overview", icon = "home", tabs = { "quick" },
         desc = "Choose a topic or search for a setting directly." },
-    { key = "guild", text = "Areas", icon = "modules", tabs = { "sidebar", "guildtools", "socialtools", "personaltools", "modules" },
+    { key = "guild", text = "Areas", icon = "modules", tabs = { "sidebar", "modules", "guildtools", "socialtools", "personaltools" }, quiet = { guildtools = true, socialtools = true, personaltools = true },
         desc = "Show or hide every entry of the sidebar and load or skip whole modules." },
     { key = "help", text = "Map & tooltips", icon = "checklist", tabs = { "mapset", "tips" },
         desc = "World map, minimap and what tooltips show." },
@@ -3641,7 +3690,7 @@ local function groupTabs(g)
     for _, gg in ipairs(GROUPS) do for _, k in ipairs(gg.tabs) do known[k] = true end end
     -- 0.6.602: tabs an add-on shows on its own settings page (Comfort > Settings) stay out of here
     local away = ns.SETTINGS_ELSEWHERE or {}
-    for _, k in ipairs(g.tabs) do if BUILD[k] and not away[k] and (k ~= "perf" or (ns.IsDev and ns.IsDev())) then out[#out + 1] = k end end   -- 0.6.523: performance only for developers
+    for _, k in ipairs(g.tabs) do if BUILD[k] and not away[k] and not (g.quiet and g.quiet[k] and not (page and page.tab == k)) and (k ~= "perf" or (ns.IsDev and ns.IsDev())) then out[#out + 1] = k end end   -- 0.6.523: performance only for developers
     if g.key == "help" then
         for _, t in ipairs(TABS) do if not known[t.key] and not away[t.key] and not HIDDEN_TABS[t.key] and BUILD[t.key] then out[#out + 1] = t.key end end
     end
@@ -3807,7 +3856,7 @@ end
 ------------------------------------------------------------------------
 -- Glass card across the full width with title; returns the card and the first free row
 local function wideCard(f, y, icon, title, sub)
-    local c = cardH(f, 0, y, 740, 100, icon, title, sub)
+    local c = cardH(f, f.cardX or 0, y, 740 - (f.cardX or 0), 100, icon, title, sub)
     c:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, y)
     return c, y - (sub and 62 or 46)
 end
@@ -3834,26 +3883,7 @@ local function toggleList(f, list, y, cols)
         end
     end
     list = vis
-    local was = descInline
-    descInline = true
-    for r = 0, math.ceil(#list / cols) - 1 do
-        local tall = false
-        for c = 1, cols do
-            local o = list[r * cols + c]
-            if o then
-                if o[5] and S()[o[2]] == nil then S()[o[2]] = true end
-                local t = toggle(f, cols == 1 and 14 or (14 + (c - 1) * 370), y, o[1], o[2], o[3], o[4], cols == 1 and 600 or 340)
-                t.noReflow = true
-                f.t[#f.t + 1] = t
-                f.rk = f.rk or {}
-                f.rk[#f.rk + 1] = { o[2], o[5] and true or nil }
-                if o[3] then tall = true end
-            end
-        end
-        y = y - 32 - (tall and DESC_H or 0)
-    end
-    descInline = was
-    return y
+    return tileGrid(f, list, y, cols)
 end
 
 -- 0.6.115: "Diese Seite zuruecksetzen" - every toggle on the page to its default (core default, privacy
@@ -3918,9 +3948,105 @@ local function refreshQuick(f)
 end
 
 -- Tooltips: all extra lines in one place (previously under wish list, crafting, guild bank, softres, player book and chat)
+-- 0.6.656: live preview on the left - a sample item and player tooltip whose lines come and go with the switches
+local TIP_LINES = {
+    { key = "tipAhPrice", text = "|cffbbbbbbAH:|r 12s 40c", where = "item" },
+    { key = "tipWanted", text = "|cff66db9eWanted by:|r Mira, Toran", where = "item", master = true },
+    { key = "tipCrafters", text = "|cff66db9eCraftable by:|r Lia", where = "item", master = true },
+    { key = "tipBank", text = "|cff66db9eGuild bank:|r 14", where = "item", master = true },
+    { key = "tipReagent", text = "|cff66db9eGuild needs it for:|r Copper Tube", where = "item", master = true },
+    { key = "srTooltip", text = "|cffe8b44aReserved:|r Arven (Thursday)", where = "item" },
+    { key = "oasisMark", text = "|cffff5a3cOasis|r", where = "player" },
+    { key = "allyTooltip", text = "|cffe8b44a* * * *|r  |cffbbbbbbgood healer|r", where = "player" },
+}
+local function tipPreview(f)
+    local pv = CreateFrame("Frame", nil, f)
+    pv:SetSize(232, 330) pv:SetPoint("TOPLEFT", 0, 0)
+    local function box(y, h)
+        local b = CreateFrame("Frame", nil, pv)
+        b:SetSize(220, h) b:SetPoint("TOPLEFT", 6, y)
+        K.Fill(b, { 0.03, 0.03, 0.06, 0.94 })
+        K.Border(b, { 0.55, 0.55, 0.6, 0.9 })
+        return b
+    end
+    local function line(p, size, col)
+        local t = K.Text(p, size, col) t:SetJustifyH("LEFT") t:SetWordWrap(false)
+        return t
+    end
+    pv.item = box(0, 150)
+    pv.it1 = line(pv.item, 13, { 1, 1, 1 }) pv.it1:SetPoint("TOPLEFT", 9, -8) pv.it1:SetText(L["Copper Bar"])
+    pv.it2 = line(pv.item, 11, { 1, 1, 1 }) pv.it2:SetPoint("TOPLEFT", 9, -26) pv.it2:SetText(L["Trade Goods"])
+    pv.player = box(-170, 80)
+    pv.pl1 = line(pv.player, 13, { 0.25, 0.78, 0.92 }) pv.pl1:SetPoint("TOPLEFT", 9, -8) pv.pl1:SetText("Mira")
+    pv.pl2 = line(pv.player, 11, { 0.25, 1, 0.25 }) pv.pl2:SetPoint("TOPLEFT", 9, -26) pv.pl2:SetText("<OASIS>")
+    pv.rows = {}
+    for _, d in ipairs(TIP_LINES) do
+        local r = line(d.where == "item" and pv.item or pv.player, 11, { 1, 1, 1 })
+        r:SetText(L[d.text] or d.text)
+        pv.rows[d.key] = r
+    end
+    pv.hi = CreateFrame("Frame", nil, pv)
+    pv.hi:SetFrameLevel(pv.item:GetFrameLevel() + 10)
+    for i = 1, 4 do
+        local l = pv.hi:CreateTexture(nil, "OVERLAY") l:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.95)
+        if i <= 2 then l:SetHeight(2) l:SetPoint(i == 1 and "TOPLEFT" or "BOTTOMLEFT") l:SetPoint(i == 1 and "TOPRIGHT" or "BOTTOMRIGHT")
+        else l:SetWidth(2) l:SetPoint(i == 3 and "TOPLEFT" or "TOPRIGHT") l:SetPoint(i == 3 and "BOTTOMLEFT" or "BOTTOMRIGHT") end
+    end
+    pv.hi:Hide()
+    pv.cap = K.Text(pv, 10, C.dim) pv.cap:SetWidth(218)
+    pv.cap:SetJustifyH("LEFT") pv.cap:SetWordWrap(true)
+    pv.capText = L["Move the mouse over an option - the line it adds is framed here"]
+    pv.cap:SetText(pv.capText)
+    function pv:Update()
+        local st = S()
+        local y = { item = -46, player = -46 }
+        for _, d in ipairs(TIP_LINES) do
+            local r = self.rows[d.key]
+            local on = st[d.key] and (not d.master or st.tipOasis) and true or false
+            r:SetShown(on)
+            if on then
+                r:ClearAllPoints()
+                r:SetPoint("TOPLEFT", 9, y[d.where])
+                y[d.where] = y[d.where] - 16
+            end
+        end
+        self.item:SetHeight(-y.item + 6)
+        self.player:SetHeight(-y.player + 6)
+        self.player:ClearAllPoints() self.player:SetPoint("TOPLEFT", 6, y.item - 22)
+        self.cap:ClearAllPoints() self.cap:SetPoint("TOPLEFT", self.player, "BOTTOMLEFT", 2, -12)
+        self:Focus(self.focus)
+    end
+    function pv:Focus(key)
+        self.focus = key
+        local r = key and self.rows[key]
+        local shown = false
+        if key == "tipOasis" then
+            self.hi:ClearAllPoints() self.hi:SetPoint("TOPLEFT", self.item, -2, 2) self.hi:SetPoint("BOTTOMRIGHT", self.item, 2, -2)
+            self.hi:Show() shown = true
+        elseif r and r:IsShown() then
+            self.hi:ClearAllPoints() self.hi:SetPoint("TOPLEFT", r, -4, 3) self.hi:SetPoint("BOTTOMRIGHT", r, 4, -3)
+            self.hi:Show() shown = true
+        else
+            self.hi:Hide()
+        end
+        if not key then self.cap:SetText(self.capText) self.cap:SetTextColor(C.dim[1], C.dim[2], C.dim[3]) return end
+        self.cap:SetText(shown and L["Framed: this is what the option adds"] or L["Off - switch it on and the line appears"])
+        local c = shown and C.accent or C.dim
+        self.cap:SetTextColor(c[1], c[2], c[3])
+    end
+    pv:Update()
+    return pv
+end
+
 local function buildTips(f)
     f.noCompact = true
     f.t = {}
+    f.tpv = tipPreview(f)
+    ns._tipsTab = f
+    f.cardX, f.tileX, f.tileW = 248, 262, 462
+    f.onTileEnter = function(key) f.tpv:Focus(key) end
+    f.onTileLeave = function() f.tpv:Focus(nil) end
+    f.onTileChange = function() f.tpv:Update() end
     local c, y = wideCard(f, 0, "wants", L["Item tooltip"], L["What Oasis shows below items"])
     y = toggleList(f, {
         { "Oasis lines in item tooltips", "tipOasis", "Master switch: wanted by, orders, guild price, guild bank and source", nil, true },
@@ -3931,7 +4057,7 @@ local function buildTips(f)
         { "Reagent tooltip: what the guild needs it for", "tipReagent", "Below reagents: which guild recipes use them (Shift = all)", nil, true },
         { "Show reservations in item tooltip", "srTooltip", "Shows in the item tooltip who reserved the item for an upcoming event", nil, true },
         { "Tooltip line only in a group", "srTooltipGroupOnly", "The reservation line only appears while you are in a group or raid" },
-    }, y)
+    }, y, 1)
     c:SetHeight(-y + 4)
     y = y - 18
     local c2
@@ -3940,11 +4066,15 @@ local function buildTips(f)
     y = toggleList(f, {
         { "Mark Oasis users in tooltips", "oasisMark", "Small tooltip marker for members using Oasis", nil, true },
         { "Show rating in the player tooltip", "allyTooltip", "Your rating, note and the guild's experiences on mouseover", nil, true },
-    }, y)
+    }, y, 1)
     c2:SetHeight(top2 - y + 4)
-    resetButton(f, y - 16)
+    local rb = resetButton(f, y - 16, function() f.tpv:Update() end)
+    if rb and rb.SetPoint then rb:ClearAllPoints() rb:SetPoint("TOPLEFT", 248, y - 16) end
 end
-local function refreshTips(f) for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end end
+local function refreshTips(f)
+    for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end
+    if f.tpv then f.tpv:Update() end
+end
 
 -- Map: everything about world map and minimap (previously Sections > Members > Map, plus Lists & Map and Graveyard)
 local function buildMapTab(f)
