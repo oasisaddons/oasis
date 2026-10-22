@@ -822,62 +822,110 @@ local PARENT = {
 ns.ComfortParent = PARENT
 local INDENT = 26
 local function makeTile(box, row, p, w)
+    -- 0.6.648: rounded glass card, icon in a round frame, soft hover (brighter, icon grows), press, the knob glides, children hang on a tree line
     local info = TILE[row[2]] or {}
     local parent = PARENT[row[2]]
     if parent then w = w - INDENT end
+    local G = ns.Insta and ns.Insta.Glass
     local t = CreateFrame("Button", nil, box)
-    t:SetSize(w, 40)
-    t.bg = t:CreateTexture(nil, "BACKGROUND") t.bg:SetAllPoints() t.bg:SetColorTexture(1, 1, 1, 0.03)
-    t.hl = t:CreateTexture(nil, "HIGHLIGHT") t.hl:SetAllPoints() t.hl:SetColorTexture(1, 1, 1, 0.05)
-    K.Border(t, C.line)
-    t.icon = t:CreateTexture(nil, "ARTWORK") t.icon:SetSize(26, 26) t.icon:SetPoint("LEFT", 7, 0)
+    t:SetSize(w, 44)
+    t.glass = G and pcall(G, t, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.08 }, 9)
+    if not t.glass then t.bg = K.Fill(t, { 1, 1, 1, 0.03 }) K.Border(t, C.line) end
+    -- "on": a soft colour from the left that fades out
+    t.onFill = t:CreateTexture(nil, "BACKGROUND", nil, 3)
+    t.onFill:SetPoint("TOPLEFT", 1, -1) t.onFill:SetPoint("BOTTOMLEFT", 1, 1) t.onFill:SetWidth(w * 0.6)
+    t.onFill:SetColorTexture(1, 1, 1, 1)
+    -- icon in a round frame
+    t.iconBox = CreateFrame("Frame", nil, t)
+    t.iconBox:SetSize(30, 30) t.iconBox:SetPoint("LEFT", 9, 0)
+    t.ring = t.iconBox:CreateTexture(nil, "BACKGROUND")
+    t.ring:SetPoint("TOPLEFT", -2, 2) t.ring:SetPoint("BOTTOMRIGHT", 2, -2)
+    t.ring:SetTexture(ns.MEDIA .. "pinring")
+    t.icon = t.iconBox:CreateTexture(nil, "ARTWORK") t.icon:SetAllPoints()
     t.icon:SetTexture(info[1] or "Interface\\Icons\\INV_Misc_QuestionMark") t.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    t.title = K.Text(t, 12, C.text) t.title:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 9, info[2] and 1 or -6)
-    t.title:SetPoint("RIGHT", t, "RIGHT", -48, 0) t.title:SetJustifyH("LEFT") t.title:SetWordWrap(false)
+    if t.iconBox.CreateMaskTexture and t.icon.AddMaskTexture then
+        pcall(function()
+            local m = t.iconBox:CreateMaskTexture()
+            m:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+            m:SetAllPoints(t.icon)
+            t.icon:AddMaskTexture(m)
+        end)
+    end
+    t.title = K.Text(t, 12, C.text) t.title:SetPoint("TOPLEFT", t.iconBox, "TOPRIGHT", 11, info[2] and 0 or -8)
+    t.title:SetPoint("RIGHT", t, "RIGHT", -54, 0) t.title:SetJustifyH("LEFT") t.title:SetWordWrap(false)
     t.title:SetText(L[row[1]])
-    t.desc = K.Text(t, 10, C.dim) t.desc:SetPoint("TOPLEFT", t.title, "BOTTOMLEFT", 0, -2)
-    t.desc:SetPoint("RIGHT", t, "RIGHT", -48, 0) t.desc:SetJustifyH("LEFT") t.desc:SetWordWrap(true)
+    t.desc = K.Text(t, 10, C.dim) t.desc:SetPoint("TOPLEFT", t.title, "BOTTOMLEFT", 0, -3)
+    t.desc:SetPoint("RIGHT", t, "RIGHT", -54, 0) t.desc:SetJustifyH("LEFT") t.desc:SetWordWrap(true)
     if t.desc.SetMaxLines then t.desc:SetMaxLines(2) end
     t.desc:SetText(info[2] and L[info[2]] or "")
-    -- room for two lines of explanation
     local dh = (t.desc.GetStringHeight and t.desc:GetStringHeight()) or 10
-    t:SetHeight(math.max(40, 24 + math.min(dh, 24)))
+    t:SetHeight(math.max(46, 28 + math.min(dh, 24)))
     t.parentKey, t.indent = parent, parent and INDENT or 0
-    -- 0.6.645: a real switch on the right (like everywhere else in Oasis)
+    -- tree line to the parent: vertical from above, short horizontal into the card
+    if parent then
+        t.treeV = t:CreateTexture(nil, "BACKGROUND")
+        t.treeV:SetColorTexture(1, 1, 1, 0.12) t.treeV:SetWidth(1)
+        t.treeV:SetPoint("TOPRIGHT", t, "TOPLEFT", -12, 6) t.treeV:SetPoint("BOTTOMRIGHT", t, "LEFT", -12, 0)
+        t.treeH = t:CreateTexture(nil, "BACKGROUND")
+        t.treeH:SetColorTexture(1, 1, 1, 0.12) t.treeH:SetHeight(1)
+        t.treeH:SetPoint("LEFT", t, "LEFT", -12, 0) t.treeH:SetPoint("RIGHT", t, "LEFT", 0, 0)
+    end
     t.state = K.Text(t, 10, C.dim) t.state:Hide()
-    t.pill = K.Pill(t, 30, 16) t.pill:SetPoint("RIGHT", -10, 0)
-    t.knob = K.KnobCircle(t.pill, 12)
+    t.pill = K.Pill(t, 32, 17) t.pill:SetPoint("RIGHT", -12, 0)
+    t.knob = K.KnobCircle(t.pill, 13)
+    -- animation state: hover 0..1, knob position 0..1, press
+    t.hov, t.kx, t.kTarget, t.press = 0, 0, 0, 0
+    local function paint(self)
+        local ac, on = C.accent, self.onv
+        local h = self.hov
+        if self.glass and G then
+            local fa = 0.03 + h * 0.05 + (on and 0.02 or 0)
+            local la = on and (0.35 + h * 0.25) or (0.08 + h * 0.10)
+            local lc = on and ac or { 1, 1, 1 }
+            pcall(G, self, { 1, 1, 1, fa }, { lc[1], lc[2], lc[3], la }, 9)
+        end
+        if K.Gradient and on then
+            K.Gradient(self.onFill, "HORIZONTAL", { ac[1], ac[2], ac[3], 0.16 + h * 0.06 }, { ac[1], ac[2], ac[3], 0 })
+        end
+        self.onFill:SetShown(on and true or false)
+        local sc = 1 + h * 0.08 - self.press * 0.06
+        self.iconBox:SetScale(sc)
+        local rc = on and ac or { 0.35, 0.35, 0.4 }
+        self.ring:SetVertexColor(rc[1], rc[2], rc[3], on and 0.9 or 0.6)
+        -- knob glides between left and right
+        self.knob:ClearAllPoints()
+        self.knob:SetPoint("CENTER", self.pill, "LEFT", 8.5 + self.kx * 15, 0)
+        self:SetAlpha((self.usable == false and 0.35) or 1)
+    end
+    t:SetScript("OnUpdate", function(self, el)
+        el = math.min(el or 0, 0.05)
+        local hT = (self:IsMouseOver() and self.usable ~= false) and 1 or 0
+        local busy = false
+        if math.abs(self.hov - hT) > 0.01 then self.hov = self.hov + (hT - self.hov) * math.min(1, el * 12) busy = true else self.hov = hT end
+        if math.abs(self.kx - self.kTarget) > 0.01 then self.kx = self.kx + (self.kTarget - self.kx) * math.min(1, el * 16) busy = true else self.kx = self.kTarget end
+        if self.press > 0 then self.press = math.max(0, self.press - el * 6) busy = true end
+        if busy or self.dirty then self.dirty = nil paint(self) end
+    end)
     function t:Refresh()
         local onv = get(row[2])
-        -- parent off: the option has no effect -> greyed, not clickable
+        self.onv = onv
         local usable = not self.parentKey or get(self.parentKey)
         self.usable = usable and true or false
-        self:SetAlpha(usable and 1 or 0.35)
         self:EnableMouse(usable)
         self.state:SetText(onv and L["On"] or L["Off"])
+        self.kTarget = onv and 1 or 0
+        if self.kx == nil then self.kx = self.kTarget end
         local pc = onv and C.accent or { 0.22, 0.22, 0.25 }
         self.pill:SetColor(pc[1], pc[2], pc[3], 1)
         local kc = onv and 1 or 0.62
         self.knob:SetVertexColor(kc, kc, kc + (onv and 0 or 0.04), 1)
-        self.knob:ClearAllPoints()
-        self.knob:SetPoint("CENTER", self.pill, "LEFT", onv and 22 or 8, 0)
-        local ac = C.accent
-        if onv then
-            self.state:SetTextColor(ac[1], ac[2], ac[3])
-            self.title:SetTextColor(C.text[1], C.text[2], C.text[3])
-            self.icon:SetDesaturated(false) self.icon:SetAlpha(1)
-            if self.SetBackdropBorderColor then pcall(self.SetBackdropBorderColor, self, ac[1], ac[2], ac[3], 0.9) end
-            if self.border and self.border.SetVertexColor then self.border:SetVertexColor(ac[1], ac[2], ac[3], 0.9) end
-            self.bg:SetColorTexture(ac[1], ac[2], ac[3], 0.08)
-        else
-            self.state:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
-            self.title:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
-            self.icon:SetDesaturated(true) self.icon:SetAlpha(0.55)
-            if self.SetBackdropBorderColor then pcall(self.SetBackdropBorderColor, self, C.line[1], C.line[2], C.line[3], 1) end
-            if self.border and self.border.SetVertexColor then self.border:SetVertexColor(C.line[1], C.line[2], C.line[3], 1) end
-            self.bg:SetColorTexture(1, 1, 1, 0.03)
-        end
+        local tc = onv and C.text or C.muted
+        self.title:SetTextColor(tc[1], tc[2], tc[3])
+        self.icon:SetDesaturated(not onv) self.icon:SetAlpha(onv and 1 or 0.6)
+        self.dirty = true
+        paint(self)
     end
+    t:SetScript("OnMouseDown", function(self) self.press = 1 self.dirty = true end)
     t:SetScript("OnClick", function(self)
         local v = not get(row[2])
         set(row[2], v)
@@ -887,6 +935,7 @@ local function makeTile(box, row, p, w)
         apply(p)
         if v and row[2] == "gatherSound" and PlaySound then pcall(PlaySound, SOUNDKIT and SOUNDKIT.MAP_PING or 3175, "Master") end
     end)
+    t.kx = get(row[2]) and 1 or 0
     t:Refresh()
     return t
 end
