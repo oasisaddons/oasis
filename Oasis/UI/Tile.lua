@@ -156,7 +156,7 @@ function K.SkinToggle(f)
     f.oaSkinned = true
     local G = ns.Insta and ns.Insta.Glass
     local card = CreateFrame("Frame", nil, f)
-    card:SetPoint("TOPLEFT", -6, 4) card:SetPoint("BOTTOMRIGHT", 4, -4)
+    card:SetPoint("TOPLEFT", -6, 2) card:SetPoint("BOTTOMRIGHT", 4, (f.sub or f.desc) and 6 or -2)   -- 0.6.658: no overlap with the next row
     card:SetFrameLevel(math.max(0, f:GetFrameLevel() - 1))
     card.glass = G and pcall(G, card, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.08 }, 8)
     if not card.glass then K.Fill(card, { 1, 1, 1, 0.03 }) end

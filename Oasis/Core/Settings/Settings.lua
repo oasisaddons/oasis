@@ -196,7 +196,7 @@ local TILE_PARENT = {
     srTooltipGroupOnly = "srTooltip",
 }
 local function tileGrid(f, list, y, cols)
-    cols = cols or 2
+    cols = f.tileCols or cols or 2
     f.t = f.t or {}
     -- 0.6.656: tiles like on the comfort pages (title, explanation, switch on the right); options that need
     -- another one are indented under it and greyed while it is off
@@ -1219,6 +1219,7 @@ ns.AddPageSettings("map", function(det, y)
     -- two columns; row as tall as its tallest toggle (with or without subline)
     local function grid(list)
         list = avail(list)
+        if det.tileX then y = tileGrid(det, list, y, 2) return end   -- 0.6.658: tiles next to the map preview
         local was = descInline
         descInline = true
         for r = 0, math.ceil(#list / 2) - 1 do
@@ -1239,7 +1240,7 @@ ns.AddPageSettings("map", function(det, y)
         end
         descInline = was
     end
-    local function head(text) y = y - 6 rowLabel(det, "|cffe8b44a" .. L[text] .. "|r", 14, y) y = y - 28 end
+    local function head(text) y = y - 6 rowLabel(det, "|cffe8b44a" .. L[text] .. "|r", det.tileX or 14, y) y = y - 28 end
 
     head("World map")
     if S().lfgPins == nil then S().lfgPins = true end
@@ -4077,10 +4078,136 @@ local function refreshTips(f)
     if f.tpv then f.tpv:Update() end
 end
 
+-- 0.6.658: live preview on the left - a piece of map and a minimap with sample data; every switch shows or hides
+-- its part, hovering a switch frames it
+local MAP_EL = {
+    { key = "mapNames", icon = "Interface\\Icons\\INV_Misc_Head_Human_01", x = 60, y = -60, label = "Mira" },
+    { key = "mapLevels", text = "|cffffd100Dun Morogh|r  |cffaaaaaa1-10|r", x = 70, y = -16 },
+    { key = "mapHeat", heat = true, x = 140, y = -110 },
+    { key = "deathPins", icon = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull", x = 150, y = -50 },
+    { key = "mapDeaths", icon = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull", x = 176, y = -64 },
+    { key = "mapDanger", danger = true, x = 150, y = -40 },
+    { key = "lfgPins", icon = "Interface\\Icons\\INV_Misc_GroupLooking", x = 30, y = -120 },
+    { key = "mapDungeons", icon = "Interface\\Icons\\INV_Misc_Key_03", x = 52, y = -128 },
+    { key = "mapMarkers", icon = "Interface\\Icons\\INV_Banner_02", x = 110, y = -90 },
+    { key = "mapPoi", icon = "Interface\\Icons\\INV_Letter_15", x = 190, y = -130 },
+    { key = "mapQuestGivers", text = "|cffffd100!|r", x = 96, y = -140, big = true },
+    { key = "mapTrails", trail = { 20, -80, 60, -60 } },
+    { key = "mapTrailsGuild", trail = { 100, -150, 150, -120 }, guild = true },
+    { key = "mapCamp", icon = "Interface\\Icons\\Spell_Fire_Fire", x = 196, y = -84 },
+    { key = "mapReveal", reveal = true },
+    { key = "minimapDots", mini = "dots" },
+    { key = "mmCoords", mini = "coords" },
+}
+local function mapPreview(f)
+    local pv = CreateFrame("Frame", nil, f)
+    pv:SetSize(232, 420) pv:SetPoint("TOPLEFT", 0, 0)
+    local map = CreateFrame("Frame", nil, pv)
+    map:SetSize(226, 170) map:SetPoint("TOPLEFT", 3, 0)
+    map.bg = map:CreateTexture(nil, "BACKGROUND") map.bg:SetAllPoints()
+    map.bg:SetColorTexture(0.36, 0.33, 0.25, 1)
+    K.Border(map, { 0.55, 0.47, 0.3, 1 })
+    -- a few softer patches so it reads as terrain
+    for _, b in ipairs({ { 10, -20, 90, 60, 0.30, 0.36, 0.24 }, { 120, -90, 100, 70, 0.42, 0.38, 0.28 }, { 60, -110, 60, 50, 0.27, 0.32, 0.38 } }) do
+        local t = map:CreateTexture(nil, "BACKGROUND", nil, 1)
+        t:SetPoint("TOPLEFT", b[1], b[2]) t:SetSize(b[3], b[4]) t:SetColorTexture(b[5], b[6], b[7], 0.8)
+    end
+    local mini = CreateFrame("Frame", nil, pv)
+    mini:SetSize(110, 110) mini:SetPoint("TOPLEFT", map, "BOTTOMLEFT", 58, -14)
+    mini.bg = mini:CreateTexture(nil, "BACKGROUND") mini.bg:SetAllPoints()
+    mini.bg:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask") mini.bg:SetVertexColor(0.30, 0.34, 0.24, 1)
+    mini.ring = mini:CreateTexture(nil, "BORDER") mini.ring:SetPoint("TOPLEFT", -6, 6) mini.ring:SetPoint("BOTTOMRIGHT", 6, -6)
+    mini.ring:SetTexture(ns.MEDIA .. "pinring") mini.ring:SetVertexColor(0.55, 0.47, 0.3, 1)
+    mini.me = mini:CreateTexture(nil, "OVERLAY") mini.me:SetSize(10, 10) mini.me:SetPoint("CENTER")
+    mini.me:SetTexture("Interface\\Minimap\\MinimapArrow")
+    pv.map, pv.mini, pv.el = map, mini, {}
+    for _, e in ipairs(MAP_EL) do
+        local r
+        if e.icon then
+            r = CreateFrame("Frame", nil, map) r:SetSize(14, 14) r:SetPoint("TOPLEFT", e.x, e.y)
+            local t = r:CreateTexture(nil, "ARTWORK") t:SetAllPoints() t:SetTexture(e.icon)
+            if not e.icon:find("Skull") then t:SetTexCoord(0.08, 0.92, 0.08, 0.92) end
+            if e.label then
+                local l = K.Text(r, 10, { 0.25, 0.78, 0.92 }) l:SetPoint("LEFT", r, "RIGHT", 3, 0) l:SetText(e.label)
+                r:SetWidth(50)
+                t:ClearAllPoints() t:SetSize(14, 14) t:SetPoint("LEFT")
+            end
+        elseif e.text then
+            r = CreateFrame("Frame", nil, map) r:SetSize(e.big and 12 or 110, 14) r:SetPoint("TOPLEFT", e.x, e.y)
+            local l = K.Text(r, e.big and 15 or 10, C.text) l:SetPoint("LEFT") l:SetText(e.text)
+        elseif e.heat or e.danger then
+            r = CreateFrame("Frame", nil, map) r:SetSize(e.heat and 60 or 50, e.heat and 40 or 40) r:SetPoint("TOPLEFT", e.x, e.y)
+            local t = r:CreateTexture(nil, "BORDER") t:SetAllPoints()
+            t:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+            if e.heat then t:SetVertexColor(1, 0.6, 0.1, 0.45) else t:SetVertexColor(0.9, 0.1, 0.1, 0.35) end
+        elseif e.trail then
+            r = CreateFrame("Frame", nil, map)
+            local a = e.trail
+            r:SetPoint("TOPLEFT", a[1], a[2]) r:SetSize(a[3] - a[1], math.abs(a[4] - a[2]))
+            local c = e.guild and { 0.4, 0.9, 0.5 } or { 1, 0.85, 0.3 }
+            for i = 0, 7 do
+                local d = r:CreateTexture(nil, "ARTWORK") d:SetSize(3, 3) d:SetColorTexture(c[1], c[2], c[3], 0.9)
+                d:SetPoint("TOPLEFT", (a[3] - a[1]) * i / 7, (a[4] - a[2]) * i / 7 * (a[4] > a[2] and -1 or 1) * -1)
+            end
+        elseif e.reveal then
+            r = CreateFrame("Frame", nil, map) r:SetPoint("TOPRIGHT") r:SetPoint("BOTTOMRIGHT") r:SetWidth(70)
+            local t = r:CreateTexture(nil, "BORDER", nil, 2) t:SetAllPoints() t:SetColorTexture(0.1, 0.1, 0.12, 0.55)
+        elseif e.mini == "dots" then
+            r = CreateFrame("Frame", nil, mini) r:SetAllPoints()
+            for _, d in ipairs({ { 30, -30 }, { 74, -58 }, { 40, -80 } }) do
+                local t = r:CreateTexture(nil, "OVERLAY") t:SetSize(7, 7) t:SetPoint("TOPLEFT", d[1], d[2])
+                t:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask") t:SetVertexColor(0.25, 0.78, 0.92, 1)
+            end
+        elseif e.mini == "coords" then
+            r = CreateFrame("Frame", nil, pv) r:SetSize(110, 14) r:SetPoint("TOP", mini, "BOTTOM", 0, -8)
+            local l = K.Text(r, 10, C.text) l:SetPoint("CENTER") l:SetText("46.2, 53.8")
+        end
+        pv.el[e.key] = r
+    end
+    pv.hi = CreateFrame("Frame", nil, pv)
+    pv.hi:SetFrameLevel(map:GetFrameLevel() + 20)
+    for i = 1, 4 do
+        local l = pv.hi:CreateTexture(nil, "OVERLAY") l:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.95)
+        if i <= 2 then l:SetHeight(2) l:SetPoint(i == 1 and "TOPLEFT" or "BOTTOMLEFT") l:SetPoint(i == 1 and "TOPRIGHT" or "BOTTOMRIGHT")
+        else l:SetWidth(2) l:SetPoint(i == 3 and "TOPLEFT" or "TOPRIGHT") l:SetPoint(i == 3 and "BOTTOMLEFT" or "BOTTOMRIGHT") end
+    end
+    pv.hi:Hide()
+    pv.cap = K.Text(pv, 10, C.dim) pv.cap:SetWidth(222) pv.cap:SetPoint("TOPLEFT", mini, "BOTTOMLEFT", -55, -30)
+    pv.cap:SetJustifyH("LEFT") pv.cap:SetWordWrap(true)
+    pv.capText = L["Move the mouse over an option - its part of the map is framed here"]
+    pv.cap:SetText(pv.capText)
+    function pv:Update()
+        local st = S()
+        for k, r in pairs(self.el) do r:SetShown(st[k] and true or false) end
+        self:Focus(self.focus)
+    end
+    function pv:Focus(key)
+        self.focus = key
+        local r = key and self.el[key]
+        if r and r:IsShown() then
+            self.hi:ClearAllPoints() self.hi:SetPoint("TOPLEFT", r, -4, 4) self.hi:SetPoint("BOTTOMRIGHT", r, 4, -4) self.hi:Show()
+        else self.hi:Hide() end
+        if not key then self.cap:SetText(self.capText) self.cap:SetTextColor(C.dim[1], C.dim[2], C.dim[3]) return end
+        if not r then self.cap:SetText(L["Not shown in the example"]) self.cap:SetTextColor(C.dim[1], C.dim[2], C.dim[3]) return end
+        local shown = r:IsShown()
+        self.cap:SetText(shown and L["Framed: this is what the option shows"] or L["Off - switch it on and it appears"])
+        local c = shown and C.accent or C.dim
+        self.cap:SetTextColor(c[1], c[2], c[3])
+    end
+    pv:Update()
+    return pv
+end
+
 -- Map: everything about world map and minimap (previously Sections > Members > Map, plus Lists & Map and Graveyard)
 local function buildMapTab(f)
     f.noCompact = true
     f.t, f.refreshers = {}, {}
+    f.mpv = mapPreview(f)
+    ns._mapTab = f
+    f.cardX, f.tileX, f.tileW, f.tileCols = 248, 262, 462, 1
+    f.onTileEnter = function(key) f.mpv:Focus(key) end
+    f.onTileLeave = function() f.mpv:Focus(nil) end
+    f.onTileChange = function() f.mpv:Update() end
     local c, y = wideCard(f, 0, "map", L["Guild on the map"], L["What you share and what you see of the guild"])
     y = toggleList(f, {
         { "Names on the world map", "mapNames", nil, updPins },
@@ -4096,10 +4223,12 @@ local function buildMapTab(f)
         if ok and type(ny) == "number" then y = ny elseif not ok then ns.err(L["Setup"] .. " settings/mapset", ny) end
     end
     c:SetHeight(-y + 4)
-    resetButton(f, y - 16, function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end if ns.Gather and ns.Gather.Refresh then pcall(ns.Gather.Refresh) end end)
+    local rb = resetButton(f, y - 16, function() if ns.Map then pcall(ns.Map.UpdateWorldPins) pcall(ns.Map.UpdateMinimap) end if ns.Gather and ns.Gather.Refresh then pcall(ns.Gather.Refresh) end f.mpv:Update() end)
+    if rb and rb.SetPoint then rb:ClearAllPoints() rb:SetPoint("TOPLEFT", 248, y - 16) end
 end
 local function refreshMapTab(f)
     for _, t in ipairs(f.t) do if t.Refresh then pcall(t.Refresh, t) end end
+    if f.mpv then f.mpv:Update() end
     for _, fn in ipairs(f.refreshers or {}) do pcall(fn) end
 end
 BUILD.quick, REFRESH.quick = buildQuick, refreshQuick
