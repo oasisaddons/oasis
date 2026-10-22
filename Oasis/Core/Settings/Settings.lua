@@ -4212,11 +4212,27 @@ local function mapPreview(f)
     local rim = CreateFrame("Frame", nil, mini)
     rim:SetAllPoints() rim:SetFrameLevel(mini:GetFrameLevel() + 5)
     -- the classic border texture is 256 px with the ring in its top left 192 px (the ring hole is 140 px wide)
+    -- 0.6.660: the real minimap border, copied with its exact size/position relative to the minimap (scaled);
+    -- other UIs hide it - then a plain gold ring
     mini.ring = rim:CreateTexture(nil, "OVERLAY")
-    mini.ring:SetTexture("Interface\\Minimap\\UI-Minimap-Border")
-    local k = 118 / 140
-    mini.ring:SetSize(192 * k, 192 * k)
-    mini.ring:SetPoint("TOPLEFT", mini, "TOPLEFT", -35 * k, 22 * k)
+    local okRing = pcall(function()
+        local src = rawget(_G, "MinimapBorder")
+        if not (src and src.GetTexture and src:GetTexture() and Minimap and Minimap:GetWidth() > 0) then error("none") end
+        local k2 = 118 / Minimap:GetWidth()
+        local mx, my = Minimap:GetCenter()
+        local sx, sy = src:GetCenter()
+        local me, se = Minimap:GetEffectiveScale(), src:GetEffectiveScale()
+        if not (mx and sx) then error("none") end
+        local atlas = src.GetAtlas and src:GetAtlas()
+        if atlas then mini.ring:SetAtlas(atlas) else mini.ring:SetTexture(src:GetTexture()) mini.ring:SetTexCoord(src:GetTexCoord()) end
+        local w, h = src:GetSize()
+        mini.ring:SetSize(w * se / me * k2, h * se / me * k2)
+        mini.ring:SetPoint("CENTER", mini, "CENTER", (sx * se - mx * me) / me * k2, (sy * se - my * me) / me * k2)
+    end)
+    if not okRing then
+        mini.ring:SetTexture(ns.MEDIA .. "pinring") mini.ring:SetVertexColor(0.85, 0.7, 0.35, 1)
+        mini.ring:SetPoint("TOPLEFT", -5, 5) mini.ring:SetPoint("BOTTOMRIGHT", 5, -5)
+    end
     mini.me = rim:CreateTexture(nil, "OVERLAY", nil, 2) mini.me:SetSize(16, 16) mini.me:SetPoint("CENTER")
     mini.me:SetTexture("Interface\\Minimap\\MinimapArrow")
     pv.map, pv.mini, pv.el = map, mini, {}
