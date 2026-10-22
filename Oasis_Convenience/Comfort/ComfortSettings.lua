@@ -469,7 +469,7 @@ local function buildPreview(p)
         if self.legend.SetAtlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("Professions_Tracking_Herb") then self.legend:SetAtlas("Professions_Tracking_Herb")
         else self.legend:SetTexture(ns.MEDIA .. "dot") self.legend:SetVertexColor(1, 0.85, 0.2) end
         self.legend:SetSize(ds, ds)
-        self.legend:SetShown(tab == "mini") self.legendT:SetShown(tab == "mini")
+        self.legend:Hide() self.legendT:Hide()   -- 0.6.645: the lone sample dot only confused
         -- arrow tab: lock
         self.lock:SetShown(get("gatherArrow") and get("gatherArrowLock") and true or false)
         -- sparkle tab: pin and the game's interact icon on the target
@@ -819,15 +819,24 @@ local function makeTile(box, row, p, w)
     t.icon = t:CreateTexture(nil, "ARTWORK") t.icon:SetSize(26, 26) t.icon:SetPoint("LEFT", 7, 0)
     t.icon:SetTexture(info[1] or "Interface\\Icons\\INV_Misc_QuestionMark") t.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     t.title = K.Text(t, 12, C.text) t.title:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 9, info[2] and 1 or -6)
-    t.title:SetPoint("RIGHT", t, "RIGHT", -44, 0) t.title:SetJustifyH("LEFT") t.title:SetWordWrap(false)
+    t.title:SetPoint("RIGHT", t, "RIGHT", -48, 0) t.title:SetJustifyH("LEFT") t.title:SetWordWrap(false)
     t.title:SetText(L[row[1]])
     t.desc = K.Text(t, 10, C.dim) t.desc:SetPoint("TOPLEFT", t.title, "BOTTOMLEFT", 0, -2)
-    t.desc:SetPoint("RIGHT", t, "RIGHT", -44, 0) t.desc:SetJustifyH("LEFT") t.desc:SetWordWrap(false)
+    t.desc:SetPoint("RIGHT", t, "RIGHT", -48, 0) t.desc:SetJustifyH("LEFT") t.desc:SetWordWrap(false)
     t.desc:SetText(info[2] and L[info[2]] or "")
-    t.state = K.Text(t, 10, C.dim) t.state:SetPoint("RIGHT", -10, 0)
+    -- 0.6.645: a real switch on the right (like everywhere else in Oasis)
+    t.state = K.Text(t, 10, C.dim) t.state:Hide()
+    t.pill = K.Pill(t, 30, 16) t.pill:SetPoint("RIGHT", -10, 0)
+    t.knob = K.KnobCircle(t.pill, 12)
     function t:Refresh()
         local onv = get(row[2])
         self.state:SetText(onv and L["On"] or L["Off"])
+        local pc = onv and C.accent or { 0.22, 0.22, 0.25 }
+        self.pill:SetColor(pc[1], pc[2], pc[3], 1)
+        local kc = onv and 1 or 0.62
+        self.knob:SetVertexColor(kc, kc, kc + (onv and 0 or 0.04), 1)
+        self.knob:ClearAllPoints()
+        self.knob:SetPoint("CENTER", self.pill, "LEFT", onv and 22 or 8, 0)
         local ac = C.accent
         if onv then
             self.state:SetTextColor(ac[1], ac[2], ac[3])
