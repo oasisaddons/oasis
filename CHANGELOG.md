@@ -2,6 +2,18 @@
 
 Add a new section at the top for every file that is uploaded. Describe what changed since the previous uploaded file.
 
+## 0.6.663
+
+- **Settings reworked:** every switch is now a tile with title, short explanation and the switch on the right. Options that need another one sit indented under it and are greyed while it is off.
+- **Live previews:** the sidebar, tooltip and map tabs show a live example on the left (real zone map, minimap and game icons on sample data). Hovering an option frames the part it changes; the preview stays in view while you scroll.
+- **Settings tidied up:** seven clear groups, all area switches in one place (Areas > Sidebar, with a cog to each area's settings), the privacy options moved to the topics they belong to (map, areas, profile, system).
+- Hiding every page of a module switches the module off after a reload - it uses no memory then. Settings of optional add-ons only show while that add-on is loaded.
+- Rares moved into the base add-on (guild group).
+- World map: the bar under the map only lists guild-shared layers.
+- Item tooltips: last auction house price; quest item tooltips list your own quests.
+- With **OASIS - Convenience**: gathering like a dedicated node addon (minimap scan, arrow with a smooth swing, sparkles, pin, finder switching, caves, rares, treasures), gathering with the guild (live finds, respawn estimate, wishlist nodes, farm statistics, zone tips, skill-up route), Shortest Path Forever routes to Oasis targets, world map extras (move/scale, reveal tint, group icons), many everyday helpers and a rebuilt game chat page - all on their own sidebar pages with live previews.
+- Fixes: notice sounds list no longer scrolls on its own, several overlapping cards on the settings pages, right-click zoom-out on the world map.
+
 ## 0.6.585
 
 - **OASIS is now split into add-ons.** This base add-on keeps the guild hub (members, profiles, guild chat, chronicle, community, fun, guild leadership). New optional add-ons, each its own download: **OASIS - Groups & Raids** (group finder, dungeon atlas, raids, loot, combat ranking), **OASIS - Trade** (crafting, market, wishlist) and **OASIS - Convenience** (personal helpers). Missing add-ons simply leave their area out. Your settings stay.
