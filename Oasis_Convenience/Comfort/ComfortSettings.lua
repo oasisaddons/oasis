@@ -196,8 +196,8 @@ local OPTS = {
         { "Guild finds: share mine", "gatherAlertsShare" },
         { "Wishlist nodes first", "gatherWanted" },
         { "Leave nearby guild farmers their side", "gatherShareArea" },
-        { "Skill-up route", "gatherRouteSkill" },
         { "Gathering route", "gatherRoute" },
+        { "Skill-up route", "gatherRouteSkill" },
         buttons = true,
     },
 }
@@ -809,8 +809,22 @@ local TILE = {
     cfSpamFilter = { "Interface\\Icons\\INV_Drink_04", "No duel results and drunk messages" },
     whisperForward = { "Interface\\Icons\\INV_Letter_15", "Offers to send a whisper to the alt who is online" },
 }
+-- 0.6.647: options that only work with another one: shown indented under it, greyed while it is off
+local PARENT = {
+    gatherSymbols = "gatherScan", gatherSwitch = "gatherScan", gatherSound = "gatherScan",
+    gatherArrowLock = "gatherArrow", gatherArrowProfFirst = "gatherArrow", gatherArrowCaves = "gatherArrow",
+    gatherArrowHerb = "gatherArrow", gatherArrowOre = "gatherArrow", gatherArrowTreasure = "gatherArrow",
+    gatherArrowRare = "gatherArrow", gatherArrowLeyline = "gatherArrow",
+    gatherSparkleHideIcons = "gatherSparkle",
+    gatherRouteSkill = "gatherRoute",
+    mapRevealTint = "mapReveal", trailSession = "mapTrails",
+}
+ns.ComfortParent = PARENT
+local INDENT = 26
 local function makeTile(box, row, p, w)
     local info = TILE[row[2]] or {}
+    local parent = PARENT[row[2]]
+    if parent then w = w - INDENT end
     local t = CreateFrame("Button", nil, box)
     t:SetSize(w, 40)
     t.bg = t:CreateTexture(nil, "BACKGROUND") t.bg:SetAllPoints() t.bg:SetColorTexture(1, 1, 1, 0.03)
@@ -822,14 +836,24 @@ local function makeTile(box, row, p, w)
     t.title:SetPoint("RIGHT", t, "RIGHT", -48, 0) t.title:SetJustifyH("LEFT") t.title:SetWordWrap(false)
     t.title:SetText(L[row[1]])
     t.desc = K.Text(t, 10, C.dim) t.desc:SetPoint("TOPLEFT", t.title, "BOTTOMLEFT", 0, -2)
-    t.desc:SetPoint("RIGHT", t, "RIGHT", -48, 0) t.desc:SetJustifyH("LEFT") t.desc:SetWordWrap(false)
+    t.desc:SetPoint("RIGHT", t, "RIGHT", -48, 0) t.desc:SetJustifyH("LEFT") t.desc:SetWordWrap(true)
+    if t.desc.SetMaxLines then t.desc:SetMaxLines(2) end
     t.desc:SetText(info[2] and L[info[2]] or "")
+    -- room for two lines of explanation
+    local dh = (t.desc.GetStringHeight and t.desc:GetStringHeight()) or 10
+    t:SetHeight(math.max(40, 24 + math.min(dh, 24)))
+    t.parentKey, t.indent = parent, parent and INDENT or 0
     -- 0.6.645: a real switch on the right (like everywhere else in Oasis)
     t.state = K.Text(t, 10, C.dim) t.state:Hide()
     t.pill = K.Pill(t, 30, 16) t.pill:SetPoint("RIGHT", -10, 0)
     t.knob = K.KnobCircle(t.pill, 12)
     function t:Refresh()
         local onv = get(row[2])
+        -- parent off: the option has no effect -> greyed, not clickable
+        local usable = not self.parentKey or get(self.parentKey)
+        self.usable = usable and true or false
+        self:SetAlpha(usable and 1 or 0.35)
+        self:EnableMouse(usable)
         self.state:SetText(onv and L["On"] or L["Off"])
         local pc = onv and C.accent or { 0.22, 0.22, 0.25 }
         self.pill:SetColor(pc[1], pc[2], pc[3], 1)
@@ -858,6 +882,8 @@ local function makeTile(box, row, p, w)
         local v = not get(row[2])
         set(row[2], v)
         self:Refresh()
+        -- children follow their parent
+        if box.ctrls then for _, c in ipairs(box.ctrls) do if c.parentKey == row[2] and c.Refresh then c:Refresh() end end end
         apply(p)
         if v and row[2] == "gatherSound" and PlaySound then pcall(PlaySound, SOUNDKIT and SOUNDKIT.MAP_PING or 3175, "Master") end
     end)
@@ -884,18 +910,15 @@ local function buildControls(p, key, withPreview)
     local half = math.ceil(#o / 2)
     local fullW = withPreview and (halfW(p) - 24) or 380
     local startY = y
+    local colY = { startY, startY }
     for i, row in ipairs(o) do
         local t = makeTile(box, row, p, fullW)
-        if twoCol then
-            local col = i > half and 1 or 0
-            t:SetPoint("TOPLEFT", col * 392, startY - ((col == 1 and i - half or i) - 1) * 44)
-        else
-            t:SetPoint("TOPLEFT", 0, y)
-            y = y - 44
-        end
+        local col = (twoCol and i > half) and 1 or 0
+        t:SetPoint("TOPLEFT", col * 392 + t.indent, colY[col + 1])
+        colY[col + 1] = colY[col + 1] - t:GetHeight() - 4
         box.ctrls[#box.ctrls + 1] = t
     end
-    if twoCol then y = startY - half * 44 end
+    y = math.min(colY[1], colY[2])
     y = y - 4
     local sliders = o.slider or {}
     local two = #sliders > 2
