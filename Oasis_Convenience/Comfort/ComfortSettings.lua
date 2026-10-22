@@ -557,7 +557,15 @@ local function buildTabPage(p, tabKey)
     local inner = CreateFrame("Frame", nil, child)
     inner:SetPoint("TOPLEFT", 0, -top)
     inner:SetSize(740, 2000)
-    ns.BuildSettingsTab(tabKey, inner)
+    -- 0.6.650: catch every switch the tab builds and give it the tile look
+    local H = ns.SettingsHelpers
+    local orig, made = H and H.toggle, {}
+    if orig then H.toggle = function(...) local t = orig(...) made[#made + 1] = t return t end end
+    local okB, errB = pcall(ns.BuildSettingsTab, tabKey, inner)
+    if orig then H.toggle = orig end
+    if not okB and ns.err then ns.err("settings tab " .. tabKey, errB) end
+    p.skinned = made
+    if ns.ComfortSkinToggle then for _, t in ipairs(made) do pcall(ns.ComfortSkinToggle, t) end end
     local function measure()
         local h = sc:GetHeight() or 0
         if h < 50 then return end
@@ -950,6 +958,75 @@ local function makeTile(box, row, p, w)
     t:Refresh()
     return t
 end
+-- 0.6.650: the switches of the tabs taken over from the big settings (game chat, helpers, guild helpers) get the
+-- tile look on top - glass card, icon, switch on the right, soft hover, coloured edge when on. Their places stay.
+local PREFIX_ICON = { gc = "INV_Letter_15", cf = "INV_Misc_Gear_01", cp = "INV_Misc_Book_09", tw = "INV_Misc_Gear_02" }
+local function skinToggle(f)
+    if f.oaSkinned or not (f.settingKey and f.lbl) then return end
+    f.oaSkinned = true
+    local key = f.settingKey
+    local G = ns.Insta and ns.Insta.Glass
+    local track
+    for _, c in ipairs({ f:GetChildren() }) do if c.GetObjectType and c:GetObjectType() == "Frame" then track = c break end end
+    local par = f:GetParent()
+    local _, _, _, x = f:GetPoint(1)
+    local pw = par and par.GetWidth and par:GetWidth() or 0
+    if pw and pw > 120 then f:SetWidth(pw - (x or 14) - 12) end
+    local h = f.hasSub and 40 or 28
+    f:SetHeight(h)
+    -- glass card slightly larger than the row
+    local card = CreateFrame("Frame", nil, f)
+    card:SetPoint("TOPLEFT", -6, 4) card:SetPoint("BOTTOMRIGHT", 4, -4)
+    card:SetFrameLevel(math.max(0, f:GetFrameLevel() - 1))
+    card.glass = G and pcall(G, card, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.08 }, 8)
+    f.oaCard = card
+    -- icon
+    local info = TILE[key]
+    local pre = key:match("^(%l%l)")
+    local ic = info and info[1] or (pre and PREFIX_ICON[pre] and ("Interface\\Icons\\" .. PREFIX_ICON[pre]))
+    if ic then
+        f.oaIcon = f:CreateTexture(nil, "ARTWORK")
+        f.oaIcon:SetSize(20, 20) f.oaIcon:SetPoint("LEFT", 2, 0)
+        f.oaIcon:SetTexture(ic) f.oaIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        if f.CreateMaskTexture and f.oaIcon.AddMaskTexture then
+            pcall(function()
+                local m = f:CreateMaskTexture()
+                m:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+                m:SetAllPoints(f.oaIcon) f.oaIcon:AddMaskTexture(m)
+            end)
+        end
+    end
+    -- label after the icon, switch to the right
+    f.lbl:ClearAllPoints()
+    f.lbl:SetPoint(f.hasSub and "TOPLEFT" or "LEFT", f, f.hasSub and "TOPLEFT" or "LEFT", ic and 30 or 6, f.hasSub and -6 or 0)
+    if f.sub then f.sub:SetPoint("RIGHT", f, "RIGHT", -50, 0) end
+    if track then track:ClearAllPoints() track:SetPoint("RIGHT", f, "RIGHT", -6, 0) end
+    local function paint(hover)
+        local on = (ns.db.settings[key] and true) or false
+        local ac = C.accent
+        if card.glass and G then
+            local lc = on and ac or { 1, 1, 1 }
+            pcall(G, card, { 1, 1, 1, 0.03 + (hover and 0.04 or 0) }, { lc[1], lc[2], lc[3], on and (hover and 0.6 or 0.4) or (hover and 0.16 or 0.08) }, 8)
+        end
+        if f.oaIcon then f.oaIcon:SetDesaturated(not on) f.oaIcon:SetAlpha(on and 1 or 0.6) end
+    end
+    f:HookScript("OnEnter", function() paint(true) end)
+    f:HookScript("OnLeave", function() paint(false) end)
+    f:HookScript("OnClick", function() paint(f:IsMouseOver()) end)
+    if f.Refresh then hooksecurefunc(f, "Refresh", function() paint(f:IsMouseOver()) end) end
+    paint(false)
+end
+local function skinAll(root)
+    if not root then return end
+    local function walk(fr, depth)
+        if depth > 8 then return end
+        if fr.settingKey then pcall(skinToggle, fr) end
+        for _, c in ipairs({ fr:GetChildren() }) do walk(c, depth + 1) end
+    end
+    walk(root, 0)
+end
+ns.ComfortSkinToggles = skinAll
+ns.ComfortSkinToggle = skinToggle
 local function buildControls(p, key, withPreview)
     local box = CreateFrame("Frame", nil, p)
     box:SetPoint("TOPLEFT", withPreview and halfW(p) or 0, -44)
