@@ -98,7 +98,7 @@ local OPTS = {
         { "Sparkles far away (beta)", "gatherSparkleFar" },
         { "Map pin on the nearest node", "gatherPin" },
         slider = {
-            { "Sparkle size", "gatherSparkleSize", 50, 200, 10, 100, function(v) return v .. " %" end },
+            { "Sparkle size", "gatherSparklePct", 0, 100, 5, 50, function(v) return v .. " %" end },   -- 0.6.646: 0-100, 50 = normal
         },
         colors = true,
     },

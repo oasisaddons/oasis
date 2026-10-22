@@ -341,7 +341,13 @@ local function applyCVars(on)
 end
 local plates, spare, active, dimmed = {}, {}, {}, {}
 local function color() return GS.COLORS[S().gatherSparkleColor or "gold"] or GS.COLORS.gold end
-local function scale() return math.max(0.5, math.min(2, (S().gatherSparkleSize or 100) / 100)) end
+-- 0.6.646: slider 0-100 % (50 = normal size, 0 = small, 100 = double); the old 50-200 value still counts until moved
+local function scale()
+    local pct = S().gatherSparklePct
+    if not pct then return math.max(0.5, math.min(2, (S().gatherSparkleSize or 100) / 100)) end
+    if pct <= 50 then return 0.3 + pct / 50 * 0.7 end
+    return 1 + (pct - 50) / 50
+end
 local function newSparkles()
     local f = CreateFrame("Frame")
     f.parts = {}
@@ -683,8 +689,8 @@ ns.slash.gathersparkle = function(rest)
         return
     elseif what == "size" or what == "groesse" then
         local n = tonumber(val)
-        if n then S().gatherSparkleSize = math.max(50, math.min(200, math.floor(n))) GS.Apply() end
-        ns.print(L["Sparkle size"] .. ": " .. (S().gatherSparkleSize or 100) .. " %  (50-200)")
+        if n then S().gatherSparklePct = math.max(0, math.min(100, math.floor(n))) GS.Apply() end
+        ns.print(L["Sparkle size"] .. ": " .. (S().gatherSparklePct or 50) .. " %  (0-100)")
         return
     end
     GS.Toggle("gatherSparkle")
