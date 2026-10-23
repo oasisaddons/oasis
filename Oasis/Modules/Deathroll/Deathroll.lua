@@ -925,6 +925,7 @@ function DR.NetJoin(start)
     if not chanIdOf(want) then pcall(JoinTemporaryChannel, want, NET_PASS) end
     C_Timer.After(3, function()
         if chanIdOf(want) then
+            pcall(DR.NetChannelBack)
             local fresh = DR.net.chan ~= want
             DR.net.chan = want
             -- new tier: drop network entries of the old tier
@@ -993,6 +994,38 @@ do
         end
     end
 end
+-- 23.10.2026: our hidden channel must never take a game channel's number (1 = General since forever). The client gives a
+-- new channel the lowest free number - if General/Trade were not joined yet (or the channel came back from the chat
+-- cache at login), ours ended up as 1. Fix: swap our channel behind every game channel (General, Trade, LocalDefense ...).
+local function serverChannel(name)
+    if type(name) ~= "string" then return false end
+    local list = EnumerateServerChannels and { EnumerateServerChannels() } or { "General", "Trade", "LocalDefense", "LookingForGroup", "WorldDefense", "GuildRecruitment" }
+    for _, sc in ipairs(list) do
+        if type(sc) == "string" and (name == sc or name:sub(1, #sc + 1) == sc .. " ") then return true end
+    end
+    return false
+end
+function DR.NetChannelBack()
+    local swap = C_ChatInfo and C_ChatInfo.SwapChatChannelsByChannelIndex
+    if not swap or not GetChannelList then return end
+    local ours
+    for _, t in ipairs(NET_TIERS) do ours = ours or chanIdOf(t.ch) end
+    if not ours then return end
+    for _ = 1, 10 do
+        local list, moved = { GetChannelList() }, false
+        for i = 1, #list, 3 do
+            local id, name = list[i], list[i + 1]
+            if type(id) == "number" and id > ours and serverChannel(name) then
+                if not pcall(swap, ours, id) then return end
+                ours, moved = id, true
+                break
+            end
+        end
+        if not moved then return end
+    end
+end
+ns.On("CHANNEL_UI_UPDATE", function() C_Timer.After(1, function() pcall(DR.NetChannelBack) end) end)
+ns.On("CHAT_MSG_CHANNEL_NOTICE", function() C_Timer.After(1, function() pcall(DR.NetChannelBack) end) end)
 ns.On("PLAYER_ENTERING_WORLD", function() C_Timer.After(10, function() DR.NetJoin(DR.inQueue and DR.inQueue.start or 100) end) end)
 -- 0.6.216: the module often only loads AFTER login (PLAYER_ENTERING_WORLD already passed) -> kick it off ourselves
 C_Timer.After(8, function() DR.NetJoin(DR.inQueue and DR.inQueue.start or 100) end)
