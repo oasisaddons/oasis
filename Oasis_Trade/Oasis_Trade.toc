@@ -3,8 +3,10 @@
 ## Notes: Trade tools for Oasis: who can craft what, crafting orders, reagent tooltips, guild market and prices, guild wishlist.
 ## Notes-deDE: Handel fuer Oasis: wer kann was herstellen, Handwerks-Auftraege, Reagenzien-Tooltip, Gildenmarkt und Preise, Wunschliste der Gilde.
 ## Author: Oasis Addons
-## Version: 0.6.664
+## Version: 0.6.665
 ## Category: Oasis
+## X-Wago-ID: Q6aqJa6W
+## X-Curse-Project-ID: 1755921
 ## Dependencies: Oasis
 ## LoadOnDemand: 1
 ## IconTexture: Interface\AddOns\Oasis_Trade\Media\logo64

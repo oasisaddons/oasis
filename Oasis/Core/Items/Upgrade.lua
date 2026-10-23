@@ -177,7 +177,37 @@ ns.Listen("LOGIN", function()
         pcall(ns.On, ev, function() unlearnedCache = {} end)
     end
 end)
+-- 23.10.2026: items with "Classes: ..." in the tooltip are only for those classes (before: shown as upgrade for everyone)
+local classCache = {}
+local function classLocked(link)
+    local key = tostring(link):match("item:[%-%d:]+") or tostring(link)
+    if classCache[key] ~= nil then return classCache[key] end
+    local res = false
+    local fmt = rawget(_G, "ITEM_CLASSES_ALLOWED")
+    if fmt and C_TooltipInfo and C_TooltipInfo.GetHyperlink then
+        local pat = "^" .. fmt:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1"):gsub("%%%%s", "(.+)") .. "$"
+        local ok, data = pcall(C_TooltipInfo.GetHyperlink, link)
+        if ok and data and data.lines then
+            local mine = UnitClass("player")
+            for _, ln in ipairs(data.lines) do
+                local t = ln.leftText
+                local list = t and t:match(pat)
+                if list then
+                    res = true
+                    for c in list:gmatch("[^,]+") do
+                        if mine and c:match("^%s*(.-)%s*$") == mine then res = false break end
+                    end
+                    break
+                end
+            end
+            if #data.lines > 2 then classCache[key] = res end   -- item not loaded yet: ask again later
+        end
+    end
+    return res
+end
+UP.ClassLocked = classLocked
 local function canWear(link)
+    if classLocked(link) then return false end
     local ok, _, _, _, loc, _, classID, subID = pcall(C_Item.GetItemInfoInstant, link)
     if not ok then return true end
     if UP.Unlearned(link) then return false end
